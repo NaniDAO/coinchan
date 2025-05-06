@@ -1374,21 +1374,28 @@ export const SwapTile = () => {
       });
       
       setTxHash(hash);
-    } catch (err) {
+    } catch (err: unknown) {
       // Enhanced error handling with specific messages for common failure cases
-      if (err.message && err.message.includes("InsufficientOutputAmount")) {
-        console.error("Slippage too high in low liquidity pool:", err);
-        setTxError("Slippage too high in low liquidity pool. Try again with a smaller amount or use a pool with more liquidity.");
-      } else if (err.message && err.message.includes("K(")) {
-        console.error("Pool balance constraints not satisfied:", err);
-        setTxError("Pool balance constraints not satisfied. This usually happens with extreme price impact in low liquidity pools.");
-      } else {
-        // Default to standard error handling
-        const errorMsg = handleWalletError(err);
-        if (errorMsg) {
-          console.error("Single-sided ETH liquidity execution error:", err);
-          setTxError(errorMsg);
+      if (typeof err === 'object' && err !== null && 'message' in err && 
+          typeof err.message === 'string') {
+        if (err.message.includes("InsufficientOutputAmount")) {
+          console.error("Slippage too high in low liquidity pool:", err);
+          setTxError("Slippage too high in low liquidity pool. Try again with a smaller amount or use a pool with more liquidity.");
+        } else if (err.message.includes("K(")) {
+          console.error("Pool balance constraints not satisfied:", err);
+          setTxError("Pool balance constraints not satisfied. This usually happens with extreme price impact in low liquidity pools.");
+        } else {
+          // Default to standard error handling
+          const errorMsg = handleWalletError(err);
+          if (errorMsg) {
+            console.error("Single-sided ETH liquidity execution error:", err);
+            setTxError(errorMsg);
+          }
         }
+      } else {
+        // Fallback for non-standard errors
+        console.error("Unknown error in Single-ETH liquidity:", err);
+        setTxError("An unexpected error occurred. Please try again.");
       }
     }
   };
@@ -1809,21 +1816,28 @@ export const SwapTile = () => {
         });
         setTxHash(hash);
       }
-    } catch (err) {
+    } catch (err: unknown) {
       // Enhanced error handling with specific messages for common swap failure cases
-      if (err.message && err.message.includes("InsufficientOutputAmount")) {
-        console.error("Swap failed due to price movement:", err);
-        setTxError("Swap failed due to price movement in low liquidity pool. Try again or use a smaller amount.");
-      } else if (err.message && err.message.includes("K(")) {
-        console.error("Pool balance constraints not satisfied:", err);
-        setTxError("Swap failed due to pool constraints. This usually happens with large orders in small pools.");
-      } else {
-        // Default to standard error handling
-        const errorMsg = handleWalletError(err);
-        if (errorMsg) {
-          console.error("Swap execution error:", err);
-          setTxError(errorMsg);
+      if (typeof err === 'object' && err !== null && 'message' in err && 
+          typeof err.message === 'string') {
+        if (err.message.includes("InsufficientOutputAmount")) {
+          console.error("Swap failed due to price movement:", err);
+          setTxError("Swap failed due to price movement in low liquidity pool. Try again or use a smaller amount.");
+        } else if (err.message.includes("K(")) {
+          console.error("Pool balance constraints not satisfied:", err);
+          setTxError("Swap failed due to pool constraints. This usually happens with large orders in small pools.");
+        } else {
+          // Default to standard error handling
+          const errorMsg = handleWalletError(err);
+          if (errorMsg) {
+            console.error("Swap execution error:", err);
+            setTxError(errorMsg);
+          }
         }
+      } else {
+        // Fallback for non-standard errors
+        console.error("Unknown error during swap:", err);
+        setTxError("An unexpected error occurred. Please try again.");
       }
     }
   };
