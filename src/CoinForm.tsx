@@ -147,6 +147,7 @@ export function CoinForm({
     description: "",
     logo: "",
     creatorSupply: "0",
+    ethAmount: "0.01", // Default ETH amount
   });
 
   const [imageBuffer, setImageBuffer] = useState<ArrayBuffer | null>(null);
@@ -176,6 +177,13 @@ export function CoinForm({
       setErrorMessage(!address ? "Wallet not connected" : "Please upload an image");
       return;
     }
+    
+    // Validate ETH amount
+    const ethAmount = Number(formState.ethAmount);
+    if (isNaN(ethAmount) || ethAmount <= 0) {
+      setErrorMessage("Please enter a valid ETH amount greater than 0");
+      return;
+    }
 
     const creatorSupplyValue = Number(formState.creatorSupply) || 0;
     const safeCreatorSupply = Math.min(creatorSupplyValue, TOTAL_SUPPLY);
@@ -201,11 +209,16 @@ export function CoinForm({
       const tokenUriHash = await pinJsonToPinata(tokenUriJson);
 
       try {
+        // Use custom ETH amount from form or default to 0.01 if invalid
+        const ethAmount = formState.ethAmount && !isNaN(Number(formState.ethAmount)) 
+          ? formState.ethAmount 
+          : "0.01";
+          
         writeContract({
           address: CoinchanAddress,
           abi: CoinchanAbi,
           functionName: "makeLocked",
-          value: parseEther("0.01"),
+          value: parseEther(ethAmount),
           args: [
             formState.name,
             formState.symbol,
@@ -321,6 +334,21 @@ export function CoinForm({
           <div className="space-y-2">
             <Label htmlFor="logo">Logo</Label>
             <ImageInput onChange={handleFileChange} />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="ethAmount">ETH Amount</Label>
+            <Input
+              id="ethAmount"
+              type="text"
+              name="ethAmount"
+              placeholder="0.01"
+              value={formState.ethAmount}
+              onChange={handleChange}
+            />
+            <p className="text-sm text-gray-500">
+              Default is 0.01 ETH
+            </p>
           </div>
 
           <p>
