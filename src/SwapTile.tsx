@@ -238,7 +238,7 @@ const useAllTokens = () => {
 
         // Step 2: Get all coins directly using indices instead of getCoins
         const coinPromises = [];
-        const displayLimit = Math.min(count, 150); // Limit to first 150 coins
+        const displayLimit = Math.min(count, 100); // Limit to first 100 for safety
 
         for (let i = 0; i < displayLimit; i++) {
           coinPromises.push(
