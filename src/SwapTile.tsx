@@ -33,11 +33,15 @@ import { Loader2, ArrowDownUp, Plus, Minus } from "lucide-react";
   CONSTANTS & HELPERS
 ──────────────────────────────────────────────────────────────────────────── */
 const SWAP_FEE = 100n; // 1% pool fee
-const SLIPPAGE_BPS = 100n; // 1% slippage tolerance
+const SLIPPAGE_BPS = 200n; // 2% slippage tolerance for regular swaps (increased from 1%)
+const SINGLE_ETH_SLIPPAGE_BPS = 500n; // 5% slippage tolerance for Single-ETH operations
 const DEADLINE_SEC = 20 * 60; // 20 minutes
 
 const withSlippage = (amount: bigint) =>
   (amount * (10000n - SLIPPAGE_BPS)) / 10000n;
+  
+const withSingleEthSlippage = (amount: bigint) =>
+  (amount * (10000n - SINGLE_ETH_SLIPPAGE_BPS)) / 10000n;
 
 export interface TokenMeta {
   id: bigint | null; // null = ETH pseudo-token
@@ -1345,12 +1349,12 @@ export const SwapTile = () => {
         SWAP_FEE,
       );
       
-      // Apply slippage tolerance to the token amount
-      const minTokenAmount = withSlippage(estimatedTokens);
+      // Apply higher slippage tolerance for Single-ETH operations
+      const minTokenAmount = withSingleEthSlippage(estimatedTokens);
       
-      // Min amounts for the addLiquidity portion
-      const amount0Min = withSlippage(halfEthAmount);
-      const amount1Min = withSlippage(estimatedTokens);
+      // Min amounts for the addLiquidity portion with higher slippage for less liquid pools
+      const amount0Min = withSingleEthSlippage(halfEthAmount);
+      const amount1Min = withSingleEthSlippage(estimatedTokens);
       
       
       // Call addSingleLiqETH on the ZAMMSingleLiqETH contract
@@ -1370,12 +1374,28 @@ export const SwapTile = () => {
       });
       
       setTxHash(hash);
-    } catch (err) {
-      // Use our utility to handle wallet errors
-      const errorMsg = handleWalletError(err);
-      if (errorMsg) {
-        console.error("Single-sided ETH liquidity execution error:", err);
-        setTxError(errorMsg);
+    } catch (err: unknown) {
+      // Enhanced error handling with specific messages for common failure cases
+      if (typeof err === 'object' && err !== null && 'message' in err && 
+          typeof err.message === 'string') {
+        if (err.message.includes("InsufficientOutputAmount")) {
+          console.error("Slippage too high in low liquidity pool:", err);
+          setTxError("Slippage too high in low liquidity pool. Try again with a smaller amount or use a pool with more liquidity.");
+        } else if (err.message.includes("K(")) {
+          console.error("Pool balance constraints not satisfied:", err);
+          setTxError("Pool balance constraints not satisfied. This usually happens with extreme price impact in low liquidity pools.");
+        } else {
+          // Default to standard error handling
+          const errorMsg = handleWalletError(err);
+          if (errorMsg) {
+            console.error("Single-sided ETH liquidity execution error:", err);
+            setTxError(errorMsg);
+          }
+        }
+      } else {
+        // Fallback for non-standard errors
+        console.error("Unknown error in Single-ETH liquidity:", err);
+        setTxError("An unexpected error occurred. Please try again.");
       }
     }
   };
@@ -1796,12 +1816,28 @@ export const SwapTile = () => {
         });
         setTxHash(hash);
       }
-    } catch (err) {
-      // Use our utility to handle wallet errors
-      const errorMsg = handleWalletError(err);
-      if (errorMsg) {
-        console.error("Swap execution error:", err);
-        setTxError(errorMsg);
+    } catch (err: unknown) {
+      // Enhanced error handling with specific messages for common swap failure cases
+      if (typeof err === 'object' && err !== null && 'message' in err && 
+          typeof err.message === 'string') {
+        if (err.message.includes("InsufficientOutputAmount")) {
+          console.error("Swap failed due to price movement:", err);
+          setTxError("Swap failed due to price movement in low liquidity pool. Try again or use a smaller amount.");
+        } else if (err.message.includes("K(")) {
+          console.error("Pool balance constraints not satisfied:", err);
+          setTxError("Swap failed due to pool constraints. This usually happens with large orders in small pools.");
+        } else {
+          // Default to standard error handling
+          const errorMsg = handleWalletError(err);
+          if (errorMsg) {
+            console.error("Swap execution error:", err);
+            setTxError(errorMsg);
+          }
+        }
+      } else {
+        // Fallback for non-standard errors
+        console.error("Unknown error during swap:", err);
+        setTxError("An unexpected error occurred. Please try again.");
       }
     }
   };
@@ -2067,6 +2103,11 @@ export const SwapTile = () => {
             <strong>Wrong Network:</strong> Please switch to Ethereum mainnet in your wallet to {mode === "swap" ? "swap tokens" : "manage liquidity"}
           </div>
         )}
+        
+        {/* Slippage information */}
+        <div className="text-xs mt-1 px-2 py-1 bg-blue-50 border border-blue-100 rounded text-blue-700">
+          <strong>Slippage Tolerance:</strong> {mode === "liquidity" && liquidityMode === "single-eth" ? "5%" : "2%"} to protect your transaction in low liquidity pools
+        </div>
         
         {/* Mode-specific information */}
         {mode === "liquidity" && (

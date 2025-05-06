@@ -12,7 +12,7 @@ import { CoinsAddress } from "../constants/Coins";
  * Constants for AMM operations
  */
 const SWAP_FEE = 100n; // 1% pool fee
-const SLIPPAGE_BPS = 100n; // 1% slippage tolerance
+const SLIPPAGE_BPS = 200n; // 2% slippage tolerance (increased from 1%)
 const DEADLINE_SEC = 20 * 60; // 20 minutes
 
 /**
