@@ -1,14 +1,32 @@
 import confetti from "canvas-confetti";
-import { useState, useEffect, useRef, ChangeEvent, DragEvent } from "react";
+import { useState, useEffect, useRef, ChangeEvent, DragEvent, useMemo } from "react";
 import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
-import { useAccount, useWriteContract } from "wagmi";
-import { parseEther } from "viem";
+import { useAccount, useWriteContract, useReadContract } from "wagmi";
+import { parseEther, formatNumber } from "viem";
 import { pinImageToPinata, pinJsonToPinata } from "./utils/pinata";
 import { handleWalletError, isUserRejectionError } from "./utils";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { mainnet } from "viem/chains";
+
+// CheckTheChain contract ABI for fetching ETH price
+const CheckTheChainAbi = [
+  {
+    inputs: [{ internalType: "string", name: "symbol", type: "string" }],
+    name: "checkPrice",
+    outputs: [
+      { internalType: "uint256", name: "price", type: "uint256" },
+      { internalType: "string", name: "priceStr", type: "string" }
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+] as const;
+
+// CheckTheChain contract address
+const CheckTheChainAddress = "0x0000000000cDC1F8d393415455E382c30FBc0a84";
 
 // Define proper types for the ImageInput component
 interface ImageInputProps {
@@ -158,6 +176,55 @@ export function CoinForm({
   const swapFee = 100;
   const vestingDuration = 15778476;
   const vesting = true;
+  
+  // Fetch ETH price in USD from CheckTheChain
+  const { data: ethPriceData } = useReadContract({
+    address: CheckTheChainAddress,
+    abi: CheckTheChainAbi,
+    functionName: "checkPrice",
+    args: ["WETH"],
+    chainId: mainnet.id,
+    query: {
+      // Refresh every 60 seconds
+      staleTime: 60_000,
+    },
+  });
+  
+  // Calculate estimated market cap
+  const marketCapEstimation = useMemo(() => {
+    if (!ethPriceData) return null;
+    
+    // Parse ETH price from the data
+    const priceStr = ethPriceData[1];
+    const ethPriceUsd = parseFloat(priceStr);
+    
+    // Check if parsing was successful
+    if (isNaN(ethPriceUsd) || ethPriceUsd === 0) return null;
+    
+    // Get ETH amount (reserve0) and token amount (reserve1)
+    const ethAmount = parseFloat(formState.ethAmount) || 0.01;
+    
+    // In a XYK pool (x*y=k), the spot price is determined by the ratio of reserves
+    // For ETH to token swap, price = reserve_token / reserve_eth
+    // Initial token price in ETH = ethAmount / poolSupply
+    const initialTokenPriceInEth = ethAmount / poolSupply;
+    
+    // Market cap calculation for initial offering
+    // Total fully diluted value = initialTokenPriceInEth * TOTAL_SUPPLY
+    const marketCapEth = initialTokenPriceInEth * TOTAL_SUPPLY;
+    
+    // Market cap in USD
+    const marketCapUsd = marketCapEth * ethPriceUsd;
+    
+    // Token price in USD
+    const tokenPriceUsd = initialTokenPriceInEth * ethPriceUsd;
+    
+    return {
+      eth: marketCapEth,
+      usd: marketCapUsd,
+      tokenPriceUsd: tokenPriceUsd
+    };
+  }, [ethPriceData, formState.ethAmount, poolSupply]);
 
   useEffect(() => {
     const creatorAmount = Number(formState.creatorSupply) || 0;
@@ -184,8 +251,15 @@ export function CoinForm({
       setErrorMessage("Please enter a valid ETH amount greater than 0");
       return;
     }
-
+    
+    // Validate creator supply
     const creatorSupplyValue = Number(formState.creatorSupply) || 0;
+    if (creatorSupplyValue > TOTAL_SUPPLY) {
+      setErrorMessage(`Creator supply cannot exceed ${TOTAL_SUPPLY.toLocaleString()} tokens`);
+      return;
+    }
+
+    // Calculate final pool supply
     const safeCreatorSupply = Math.min(creatorSupplyValue, TOTAL_SUPPLY);
     const finalPoolSupply = TOTAL_SUPPLY - safeCreatorSupply;
 
@@ -324,11 +398,36 @@ export function CoinForm({
               name="creatorSupply"
               placeholder="0"
               value={formState.creatorSupply}
-              onChange={handleChange}
+              onChange={(e) => {
+                // Check if value exceeds total supply
+                const value = e.target.value;
+                const numValue = Number(value) || 0;
+                
+                // If it exceeds total supply, cap it
+                if (numValue > TOTAL_SUPPLY) {
+                  setFormState({
+                    ...formState,
+                    creatorSupply: TOTAL_SUPPLY.toString()
+                  });
+                } else {
+                  setFormState({
+                    ...formState,
+                    creatorSupply: value
+                  });
+                }
+              }}
+              max={TOTAL_SUPPLY}
             />
-            <p className="text-sm text-gray-500">
-              Pool Supply: {poolSupply.toLocaleString()} (Total: {TOTAL_SUPPLY.toLocaleString()})
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-500">
+                Pool Supply: {poolSupply.toLocaleString()} (Total: {TOTAL_SUPPLY.toLocaleString()})
+              </p>
+              {Number(formState.creatorSupply) >= TOTAL_SUPPLY && (
+                <p className="text-xs text-amber-600">
+                  Max: {TOTAL_SUPPLY.toLocaleString()}
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -336,19 +435,89 @@ export function CoinForm({
             <ImageInput onChange={handleFileChange} />
           </div>
           
-          <div className="space-y-2">
-            <Label htmlFor="ethAmount">ETH Amount</Label>
-            <Input
-              id="ethAmount"
-              type="text"
-              name="ethAmount"
-              placeholder="0.01"
-              value={formState.ethAmount}
-              onChange={handleChange}
-            />
-            <p className="text-sm text-gray-500">
-              Default is 0.01 ETH
-            </p>
+          <div className="space-y-2 border p-4 rounded-md bg-gray-50">
+            <Label htmlFor="ethAmount" className="text-md font-semibold">Initial Liquidity (ETH Amount)</Label>
+            <div className="flex gap-2 items-center">
+              <Input
+                id="ethAmount"
+                type="text"
+                name="ethAmount"
+                placeholder="0.01"
+                value={formState.ethAmount}
+                onChange={handleChange}
+                className="flex-grow"
+              />
+            </div>
+            <div className="flex flex-wrap gap-2 mt-2">
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm"
+                onClick={() => setFormState({...formState, ethAmount: "0.01"})}
+                className={`transition-all ${formState.ethAmount === "0.01" ? "bg-blue-100 border-blue-300" : ""}`}
+              >
+                0.01 ETH
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm"
+                onClick={() => setFormState({...formState, ethAmount: "0.033"})}
+                className={`transition-all ${formState.ethAmount === "0.033" ? "bg-blue-100 border-blue-300" : ""}`}
+              >
+                0.033 ETH
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm"
+                onClick={() => setFormState({...formState, ethAmount: "0.5"})}
+                className={`transition-all ${formState.ethAmount === "0.5" ? "bg-blue-100 border-blue-300" : ""}`}
+              >
+                0.5 ETH
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm"
+                onClick={() => setFormState({...formState, ethAmount: "1"})}
+                className={`transition-all ${formState.ethAmount === "1" ? "bg-blue-100 border-blue-300" : ""}`}
+              >
+                1 ETH
+              </Button>
+            </div>
+            
+            {/* Market Cap Estimation */}
+            {marketCapEstimation && (
+              <div className="mt-3 p-3 bg-gray-100 rounded-md border border-gray-200">
+                <h4 className="text-sm font-medium text-gray-700 mb-2">Launch Projections</h4>
+                <div className="flex flex-col gap-2">
+                  <div className="bg-white p-2 rounded border border-gray-200">
+                    <h5 className="text-xs font-medium text-gray-600">TOKEN PRICE</h5>
+                    <div className="flex items-center text-sm mt-1">
+                      <span className="font-medium text-green-600">${marketCapEstimation.tokenPriceUsd.toFixed(8)}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white p-2 rounded border border-gray-200">
+                    <h5 className="text-xs font-medium text-gray-600">MARKET CAP</h5>
+                    <div className="flex flex-col">
+                      <div className="flex items-center text-sm">
+                        <span className="text-gray-600 min-w-20">ETH:</span>
+                        <span className="font-medium">{Number(marketCapEstimation.eth.toFixed(2)).toLocaleString()} ETH</span>
+                      </div>
+                      <div className="flex items-center text-sm mt-1">
+                        <span className="text-gray-600 min-w-20">USD:</span>
+                        <span className="font-medium">${Number(marketCapEstimation.usd.toFixed(0)).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Based on {formState.ethAmount} ETH liquidity with {poolSupply.toLocaleString()} coins
+                </p>
+              </div>
+            )}
           </div>
 
           <p>
