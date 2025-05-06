@@ -2,9 +2,10 @@ import confetti from "canvas-confetti";
 import { useState, useEffect, useRef, ChangeEvent, DragEvent, useMemo } from "react";
 import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
 import { useAccount, useWriteContract, useReadContract } from "wagmi";
-import { parseEther, formatNumber } from "viem";
+import { parseEther } from "viem";
 import { pinImageToPinata, pinJsonToPinata } from "./utils/pinata";
 import { handleWalletError, isUserRejectionError } from "./utils";
+import { formatNumber } from "./lib/utils";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -504,11 +505,11 @@ export function CoinForm({
                     <div className="flex flex-col">
                       <div className="flex items-center text-sm">
                         <span className="text-gray-600 min-w-20">ETH:</span>
-                        <span className="font-medium">{Number(marketCapEstimation.eth.toFixed(2)).toLocaleString()} ETH</span>
+                        <span className="font-medium">{formatNumber(marketCapEstimation.eth, 2)} ETH</span>
                       </div>
                       <div className="flex items-center text-sm mt-1">
                         <span className="text-gray-600 min-w-20">USD:</span>
-                        <span className="font-medium">${Number(marketCapEstimation.usd.toFixed(0)).toLocaleString()}</span>
+                        <span className="font-medium">${formatNumber(marketCapEstimation.usd, 0)}</span>
                       </div>
                     </div>
                   </div>
