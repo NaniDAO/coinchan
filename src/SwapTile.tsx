@@ -173,13 +173,13 @@ const getAmountIn = (
 ──────────────────────────────────────────────────────────────────────────── */
 
 const useAllTokens = () => {
-  const publicClient = usePublicClient({ chainId: mainnet.id }); // Always use mainnet
+  const publicClient = usePublicClient({ chainId: mainnet.id });
   const { address } = useAccount();
   const [tokens, setTokens] = useState<TokenMeta[]>([ETH_TOKEN]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Get ETH balance using wagmi hook with optimized settings
+  // Get ETH balance using wagmi hook
   const {
     data: ethBalance,
     isSuccess: ethBalanceSuccess,
@@ -188,55 +188,31 @@ const useAllTokens = () => {
   } = useBalance({
     address,
     chainId: mainnet.id,
-    scopeKey: "ethBalance", // Unique key for this balance query
+    scopeKey: "ethBalance",
   });
 
   // Set up polling for ETH balance
   useEffect(() => {
     if (!address) return;
-
-    // Immediately fetch on mount or when address changes
     refetchEthBalance();
-
-    // Set up polling interval (every 10 seconds)
     const interval = setInterval(() => {
       refetchEthBalance();
     }, 10000);
-
-    // Clean up interval on unmount
     return () => clearInterval(interval);
   }, [address, refetchEthBalance]);
 
-  // More robust ETH balance handling
+  // ETH balance handling
   useEffect(() => {
-    // Process ETH balance and update state
-
-    // Determine the balance value to use, with persistent state
-    const effectiveBalance = ethBalance
-      ? ethBalance.value
-      : address
-        ? undefined
-        : 0n; // Only reset to 0 if no address
-
-    // Create ETH token with proper balance
-    const ethTokenWithBalance = {
-      ...ETH_TOKEN,
-      // Three cases:
-      // 1. We have a balance from the API - use it
-      // 2. User is connected but balance not loaded yet - keep current balance (undefined)
-      // 3. No wallet connected - use 0n
-      balance: effectiveBalance,
-    };
+    const effectiveBalance = ethBalance ? ethBalance.value : address ? undefined : 0n;
+    const ethTokenWithBalance = { ...ETH_TOKEN, balance: effectiveBalance };
 
     if (ethBalance) {
-      // Cache the ETH balance in localStorage for persistent display
       try {
         localStorage.setItem("ethBalance", ethBalance.value.toString());
       } catch (err) {
         console.error("Failed to cache ETH balance:", err);
       }
     } else if (address && !isEthBalanceFetching) {
-      // If wallet is connected but balance not available yet, try to load from cache
       try {
         const cachedBalance = localStorage.getItem("ethBalance");
         if (cachedBalance) {
@@ -247,37 +223,21 @@ const useAllTokens = () => {
       }
     }
 
-    // Always update the ETH token in our list
     setTokens((prevTokens) => {
-      // If we already have tokens with a real ETH token that has balance, be careful about overwriting
       const existingEthToken = prevTokens.find((token) => token.id === null);
-
-      // Special case: we're trying to set undefined balance, but we already have a real balance
-      if (
-        ethTokenWithBalance.balance === undefined &&
-        existingEthToken?.balance &&
-        existingEthToken.balance > 0n
-      ) {
+      if (ethTokenWithBalance.balance === undefined && existingEthToken?.balance && existingEthToken.balance > 0n) {
         ethTokenWithBalance.balance = existingEthToken.balance;
       }
-
-      // If we don't have any tokens yet or only ETH, replace the whole array
-      if (
-        prevTokens.length === 0 ||
-        (prevTokens.length === 1 && prevTokens[0].id === null)
-      ) {
+      
+      if (prevTokens.length === 0 || (prevTokens.length === 1 && prevTokens[0].id === null)) {
         return [ethTokenWithBalance];
       }
-
-      // Otherwise replace ETH token while keeping others
-      return [
-        ethTokenWithBalance,
-        ...prevTokens.filter((token) => token.id !== null),
-      ];
+      
+      return [ethTokenWithBalance, ...prevTokens.filter((token) => token.id !== null)];
     });
   }, [ethBalance, ethBalanceSuccess, isEthBalanceFetching, address]);
 
-  // Fetch all coins data and user balances using CoinsMetadataHelper
+  // Fetch all coins data using CoinsMetadataHelper
   useEffect(() => {
     const fetchTokensAndBalances = async () => {
       if (!publicClient) {
@@ -287,14 +247,13 @@ const useAllTokens = () => {
       }
 
       try {
-        // Step 1: Use CoinsMetadataHelper.getAllCoinsData to fetch all coins data in a single call
+        // Step 1: Get all coins data in a single call
         const allCoinsDataResult = await publicClient.readContract({
           address: CoinsMetadataHelperAddress,
           abi: CoinsMetadataHelperAbi,
           functionName: "getAllCoinsData",
         });
         
-        // Cast the result to the expected type
         const allCoinsData = allCoinsDataResult as unknown as {
           coinId: bigint;
           name: string;
@@ -306,14 +265,13 @@ const useAllTokens = () => {
           liquidity: bigint;
         }[];
         
-        // If there are no coins, return only ETH token
         if (!allCoinsData || allCoinsData.length === 0) {
           setTokens([ETH_TOKEN]);
           setLoading(false);
           return;
         }
         
-        // Step 2: Convert CoinsMetadataHelper data format to our TokenMeta format
+        // Step 2: Convert to TokenMeta format
         const coinsTokens: TokenMeta[] = allCoinsData.map(coinData => ({
           id: coinData.coinId,
           name: coinData.name,
@@ -323,17 +281,16 @@ const useAllTokens = () => {
           reserve1: coinData.reserve1,
           poolId: coinData.poolId,
           liquidity: coinData.liquidity,
-          balance: 0n, // Will be populated in the next step if user is connected
-          lpBalance: 0n // Will be populated in the next step if user is connected
+          balance: 0n,
+          lpBalance: 0n
         }));
         
         // Step 3: If user is connected, fetch all balances in a single call
         if (address) {
           try {
-            // Get total coins count for batch range
             const count = coinsTokens.length;
             
-            // Fetch all user balances in a single call - includes ETH, coin balances, and LP balances
+            // Fetch all user balances in a single call - includes ETH, coin, and LP balances
             const userBalancesResult = await publicClient.readContract({
               address: CoinsMetadataHelperAddress,
               abi: CoinsMetadataHelperAbi,
@@ -341,10 +298,9 @@ const useAllTokens = () => {
               args: [address, 0n, BigInt(count - 1)],
             });
             
-            // Destructure the results
             const [ethBal, coinBalances, lpBalances] = userBalancesResult as [bigint, bigint[], bigint[]];
             
-            // Update token balances with the fetched data
+            // Update token balances
             for (let i = 0; i < coinBalances.length; i++) {
               if (i < coinsTokens.length) {
                 coinsTokens[i].balance = coinBalances[i];
@@ -352,9 +308,8 @@ const useAllTokens = () => {
               }
             }
             
-            // If we didn't get ETH balance from the useBalance hook, use the one from getUserBalances
+            // Use ethBal if needed
             if (!ethBalance && ethBal > 0n) {
-              // Cache the ETH balance
               try {
                 localStorage.setItem('ethBalance', ethBal.toString());
               } catch (err) {
@@ -363,34 +318,25 @@ const useAllTokens = () => {
             }
           } catch (err) {
             console.error("Error fetching user balances:", err);
-            // Continue with zero balances if balances fetch fails
           }
         }
         
-        // Step 4: Sort tokens by ETH reserves (reserve0), from highest to lowest
+        // Step 4: Sort tokens by ETH reserves
         const sortedTokens = [...coinsTokens].sort((a, b) => {
-          // Default to 0n if reserve0 is undefined
           const reserveA = a.reserve0 || 0n;
           const reserveB = b.reserve0 || 0n;
-          
-          // For bigint comparison, we want descending order (highest first)
           return reserveB > reserveA ? 1 : reserveB < reserveA ? -1 : 0;
         });
         
-        // Get the updated ETH token with balance from current state or use ethBalance directly
+        // Get the updated ETH token
         const currentEthToken = tokens.find(token => token.id === null) || ETH_TOKEN;
-        
-        // Create a new ETH token with balance preserved - prioritize the latest ethBalance
         const ethTokenWithBalance = {
           ...currentEthToken,
-          // If we have ethBalance, use it as the most up-to-date value
           balance: ethBalance?.value !== undefined ? ethBalance.value : currentEthToken.balance,
         };
         
-        // ETH is always first in the list
-        const allTokens = [ethTokenWithBalance, ...sortedTokens];
-        
-        setTokens(allTokens);
+        // Final tokens list with ETH first
+        setTokens([ethTokenWithBalance, ...sortedTokens]);
       } catch (err) {
         console.error("Error fetching tokens with CoinsMetadataHelper:", err);
         setError("Failed to load tokens");
@@ -1008,13 +954,13 @@ export const SwapTile = () => {
     const selectedToken = tokens.find(token => token.id === coinId);
     
     if (selectedToken && selectedToken.reserve0 !== undefined && selectedToken.reserve1 !== undefined) {
-      // Use reserves directly from the token data (already fetched via CoinsMetadataHelper)
+      // Use reserves directly from the token data (from CoinsMetadataHelper)
       setReserves({
         reserve0: selectedToken.reserve0,
         reserve1: selectedToken.reserve1
       });
     } else if (publicClient) {
-      // Fallback to direct fetching if not available in token data
+      // Fallback to direct fetching if needed
       const fetchReserves = async () => {
         try {
           const poolId = computePoolId(coinId);
@@ -1025,7 +971,6 @@ export const SwapTile = () => {
             args: [poolId],
           });
           
-          // Handle the returned data structure correctly
           const poolData = result as unknown as readonly bigint[];
           
           setReserves({
@@ -1053,13 +998,13 @@ export const SwapTile = () => {
     const targetToken = tokens.find(token => token.id === buyToken.id);
     
     if (targetToken && targetToken.reserve0 !== undefined && targetToken.reserve1 !== undefined) {
-      // Use reserves directly from the token data (already fetched via CoinsMetadataHelper)
+      // Use reserves directly from the token data
       setTargetReserves({
         reserve0: targetToken.reserve0,
         reserve1: targetToken.reserve1
       });
     } else if (publicClient) {
-      // Fallback to direct fetching if not available in token data
+      // Fallback to direct fetching if needed
       const fetchTargetReserves = async () => {
         try {
           const targetPoolId = computePoolId(buyToken.id!);
@@ -1086,9 +1031,8 @@ export const SwapTile = () => {
     }
   }, [isCoinToCoin, buyToken?.id, publicClient, tokens]);
   
-  // Update LP token balance when a pool is selected from tokens
+  // Update LP token balance when a pool is selected
   useEffect(() => {
-    // No need to fetch LP balance separately if we already have it in our tokens data
     if (!address || !coinId || coinId === 0n) {
       setLpTokenBalance(0n);
       return;
@@ -1098,16 +1042,13 @@ export const SwapTile = () => {
     const selectedToken = tokens.find(token => token.id === coinId);
     
     if (selectedToken && selectedToken.lpBalance !== undefined) {
-      // Use the LP balance from the token data (already fetched via CoinsMetadataHelper)
+      // Use the LP balance directly from token data (from CoinsMetadataHelper)
       setLpTokenBalance(selectedToken.lpBalance);
     } else if (publicClient) {
-      // Fallback to direct fetching if not available in token data
+      // Fallback to direct fetching if not available
       const fetchLpBalance = async () => {
         try {
-          // Calculate the pool ID for the selected pair
           const poolId = computePoolId(coinId);
-          
-          // Read the user's LP token balance for this pool
           const balance = await publicClient.readContract({
             address: ZAAMAddress,
             abi: ZAAMAbi,
