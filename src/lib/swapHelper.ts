@@ -12,16 +12,16 @@ import { CoinsAddress } from "../constants/Coins";
  * Constants for AMM operations
  */
 const SWAP_FEE = 100n; // 1% pool fee
-const SLIPPAGE_BPS = 200n; // 2% slippage tolerance (increased from 1%)
 const DEADLINE_SEC = 20 * 60; // 20 minutes
 
 /**
  * Apply slippage tolerance to amount
  * @param amount Raw amount
+ * @param slippageBps Slippage tolerance in basis points (e.g., 200 = 2%)
  * @returns Amount with slippage applied
  */
-const withSlippage = (amount: bigint) =>
-  (amount * (10000n - SLIPPAGE_BPS)) / 10000n;
+export const getAmountWithSlippage = (amount: bigint, slippageBps: bigint) =>
+  (amount * (10000n - slippageBps)) / 10000n;
 
 /**
  * Generate a deadline timestamp in seconds
@@ -68,7 +68,7 @@ export const computePoolId = (coinId: bigint) =>
  * @param targetCoinId ID of the target coin to swap to
  * @param amountIn Amount of sourceCoin to swap
  * @param expectedEthOut Expected ETH output from first swap (for second swap input)
- * @param amountOutMinFinal Minimum amount of targetCoin expected (with slippage)
+ * @param amountOutMinFinal Minimum amount of targetCoin expected (already with slippage)
  * @param receiver Address to receive the swapped coins
  * @returns Array of encoded function calls for multicall
  */
@@ -165,6 +165,7 @@ export function createCoinSwapMulticall(
  * @param amountIn Amount of source coin
  * @param sourceReserves Reserves of source coin pool {reserve0: ETH, reserve1: sourceCoin}
  * @param targetReserves Reserves of target coin pool {reserve0: ETH, reserve1: targetCoin}
+ * @param slippageBps Slippage tolerance in basis points (optional, defaults to 200 for 2%)
  * @returns Estimated output amount of target coin and the intermediate ETH amount
  */
 export function estimateCoinToCoinOutput(
@@ -172,7 +173,8 @@ export function estimateCoinToCoinOutput(
   _targetCoinId: bigint, // Prefixed with underscore to indicate it's unused
   amountIn: bigint,
   sourceReserves: { reserve0: bigint, reserve1: bigint },
-  targetReserves: { reserve0: bigint, reserve1: bigint }
+  targetReserves: { reserve0: bigint, reserve1: bigint },
+  slippageBps: bigint = 200n
 ): { amountOut: bigint, withSlippage: bigint, ethAmountOut: bigint } {
   // First swap: sourceCoin → ETH
   const ethAmountOut = getAmountOut(
@@ -190,7 +192,7 @@ export function estimateCoinToCoinOutput(
   
   // Apply a small safety margin to ethAmountOut to account for potential slippage
   // during the first swap or any execution differences
-  const safeEthAmountOut = withSlippage(ethAmountOut);
+  const safeEthAmountOut = getAmountWithSlippage(ethAmountOut, slippageBps);
   
   // Second swap: ETH → targetCoin
   const targetAmountOut = getAmountOut(
@@ -202,7 +204,7 @@ export function estimateCoinToCoinOutput(
   
   return { 
     amountOut: targetAmountOut,
-    withSlippage: withSlippage(targetAmountOut),
+    withSlippage: getAmountWithSlippage(targetAmountOut, slippageBps),
     ethAmountOut: safeEthAmountOut // Return the safe ETH amount for the second swap
   };
 }

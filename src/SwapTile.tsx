@@ -33,15 +33,22 @@ import { Loader2, ArrowDownUp, Plus, Minus } from "lucide-react";
   CONSTANTS & HELPERS
 ──────────────────────────────────────────────────────────────────────────── */
 const SWAP_FEE = 100n; // 1% pool fee
-const SLIPPAGE_BPS = 200n; // 2% slippage tolerance for regular swaps (increased from 1%)
-const SINGLE_ETH_SLIPPAGE_BPS = 500n; // 5% slippage tolerance for Single-ETH operations
+const DEFAULT_SLIPPAGE_BPS = 200n; // 2% default slippage tolerance for regular swaps
+const DEFAULT_SINGLE_ETH_SLIPPAGE_BPS = 500n; // 5% default slippage tolerance for Single-ETH operations
 const DEADLINE_SEC = 20 * 60; // 20 minutes
 
-const withSlippage = (amount: bigint) =>
-  (amount * (10000n - SLIPPAGE_BPS)) / 10000n;
-  
-const withSingleEthSlippage = (amount: bigint) =>
-  (amount * (10000n - SINGLE_ETH_SLIPPAGE_BPS)) / 10000n;
+// Slippage options for the selector
+const SLIPPAGE_OPTIONS = [
+  { label: "0.5%", value: 50n },
+  { label: "1%", value: 100n },
+  { label: "2%", value: 200n },
+  { label: "3%", value: 300n },
+  { label: "5%", value: 500n }
+];
+
+// Calculate amount with slippage tolerance applied
+const getAmountWithSlippage = (amount: bigint, slippageBps: bigint) =>
+  (amount * (10000n - slippageBps)) / 10000n;
 
 export interface TokenMeta {
   id: bigint | null; // null = ETH pseudo-token
@@ -788,6 +795,15 @@ export const SwapTile = () => {
   const [mode, setMode] = useState<TileMode>("swap");
   const [liquidityMode, setLiquidityMode] = useState<LiquidityMode>("add");
   
+  // Slippage settings with defaults
+  const [slippageBps, setSlippageBps] = useState<bigint>(DEFAULT_SLIPPAGE_BPS);
+  const [singleEthSlippageBps, setSingleEthSlippageBps] = useState<bigint>(DEFAULT_SINGLE_ETH_SLIPPAGE_BPS);
+  const [showSlippageSettings, setShowSlippageSettings] = useState<boolean>(false);
+  
+  // Helper functions for slippage calculation
+  const withSlippage = (amount: bigint) => getAmountWithSlippage(amount, slippageBps);
+  const withSingleEthSlippage = (amount: bigint) => getAmountWithSlippage(amount, singleEthSlippageBps);
+  
   // Single-ETH estimation values
   const [singleETHEstimatedCoin, setSingleETHEstimatedCoin] = useState<string>("");
   
@@ -1189,7 +1205,8 @@ export const SwapTile = () => {
             buyToken.id,
             inUnits,
             reserves,
-            targetReserves
+            targetReserves,
+            slippageBps // Pass the current slippage tolerance setting
           );
           
           // For debugging purposes, log the estimated ETH intermediary amount
@@ -1746,7 +1763,8 @@ export const SwapTile = () => {
               buyToken.id!,
               amountInUnits,
               reserves, // source reserves
-              targetReserves // target reserves
+              targetReserves, // target reserves
+              slippageBps // Use current slippage setting
             );
             
             if (amountOut === 0n) {
@@ -2104,9 +2122,48 @@ export const SwapTile = () => {
           </div>
         )}
         
-        {/* Slippage information */}
-        <div className="text-xs mt-1 px-2 py-1 bg-blue-50 border border-blue-100 rounded text-blue-700">
-          <strong>Slippage Tolerance:</strong> {mode === "liquidity" && liquidityMode === "single-eth" ? "5%" : "2%"} to protect your transaction in low liquidity pools
+        {/* Slippage information - clickable to show settings */}
+        <div
+          onClick={() => setShowSlippageSettings(!showSlippageSettings)}
+          className="text-xs mt-1 px-2 py-1 bg-blue-50 border border-blue-100 rounded text-blue-700 cursor-pointer hover:bg-blue-100 transition-colors"
+        >
+          <div className="flex justify-between items-center">
+            <span><strong>Slippage Tolerance:</strong> {mode === "liquidity" && liquidityMode === "single-eth" 
+              ? `${Number(singleEthSlippageBps) / 100}%` 
+              : `${Number(slippageBps) / 100}%`} 
+            </span>
+            <span className="text-xs text-blue-500">{showSlippageSettings ? '▲' : '▼'}</span>
+          </div>
+          
+          {/* Slippage Settings Panel */}
+          {showSlippageSettings && (
+            <div className="mt-2 p-2 bg-white border border-blue-200 rounded-md shadow-sm" onClick={e => e.stopPropagation()}>
+              <div className="mb-2">
+                <div className="font-medium mb-1">{mode === "liquidity" && liquidityMode === "single-eth" ? "Single-ETH" : "Regular"} Slippage:</div>
+                <div className="flex gap-1 flex-wrap">
+                  {SLIPPAGE_OPTIONS.map(option => (
+                    <button
+                      key={option.value.toString()}
+                      onClick={() => mode === "liquidity" && liquidityMode === "single-eth" 
+                        ? setSingleEthSlippageBps(option.value) 
+                        : setSlippageBps(option.value)
+                      }
+                      className={`px-2 py-1 text-xs rounded ${
+                        (mode === "liquidity" && liquidityMode === "single-eth" 
+                          ? singleEthSlippageBps === option.value 
+                          : slippageBps === option.value
+                        ) 
+                          ? 'bg-blue-500 text-white' 
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         
         {/* Mode-specific information */}
