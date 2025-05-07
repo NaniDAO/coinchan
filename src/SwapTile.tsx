@@ -31,7 +31,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, ArrowDownUp, Plus, Minus } from "lucide-react";
-import { simulateContractInteraction } from "./lib/simulate";
+import {
+  estimateContractGas,
+  simulateContractInteraction,
+} from "./lib/simulate";
 
 /* ────────────────────────────────────────────────────────────────────────────
   CONSTANTS & HELPERS
@@ -1845,7 +1848,22 @@ export const SwapTile = () => {
           value: amountInWei,
         });
 
-        console.log("simulation result:", result);
+        const gas = await estimateContractGas({
+          address: ZAAMAddress,
+          abi: ZAAMAbi,
+          functionName: "swapExactIn",
+          args: [
+            poolKey,
+            amountInWei,
+            withSlippage(rawOut),
+            true,
+            address,
+            nowSec() + BigInt(DEADLINE_SEC),
+          ],
+          value: amountInWei,
+        });
+
+        console.log("simulation result:", { result, gas });
 
         const hash = await writeContractAsync({
           address: ZAAMAddress,
@@ -1860,6 +1878,7 @@ export const SwapTile = () => {
             nowSec() + BigInt(DEADLINE_SEC),
           ],
           value: amountInWei,
+          gas: gas,
         });
         setTxHash(hash);
       } else {
@@ -1975,7 +1994,17 @@ export const SwapTile = () => {
               args: [multicallData],
             });
 
-            console.log("simulation result:", result);
+            const gas = await estimateContractGas({
+              address: ZAAMAddress,
+              abi: ZAAMAbi,
+              functionName: "multicall",
+              args: [multicallData],
+            });
+
+            console.log("simulation result:", {
+              result,
+              gas,
+            });
 
             // Execute the multicall transaction
             const hash = await writeContractAsync({
@@ -1983,6 +2012,7 @@ export const SwapTile = () => {
               abi: ZAAMAbi,
               functionName: "multicall",
               args: [multicallData],
+              gas,
             });
 
             setTxHash(hash);
