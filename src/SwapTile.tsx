@@ -1328,7 +1328,7 @@ export const SwapTile = () => {
       const amount1Min = withSingleEthSlippage(estimatedTokens);
 
       // Simulate the contract interaction first
-      const result = await simulateContractInteraction(publicClient, {
+      const result = await simulateContractInteraction({
         address: ZAMMSingleLiqETHAddress,
         abi: ZAMMSingleLiqETHAbi,
         functionName: "addSingleLiqETH",
@@ -1344,7 +1344,7 @@ export const SwapTile = () => {
       });
 
       // Estimate gas with safety buffer
-      const gas = await estimateContractGas(publicClient, {
+      const gas = await estimateContractGas({
         address: ZAMMSingleLiqETHAddress,
         abi: ZAMMSingleLiqETHAbi,
         functionName: "addSingleLiqETH",
@@ -1444,7 +1444,7 @@ export const SwapTile = () => {
       const amount1Min = buyAmt ? withSlippage(parseUnits(buyAmt, 18)) : 0n;
 
       // Simulate the contract interaction first
-      const result = await simulateContractInteraction(publicClient, {
+      const result = await simulateContractInteraction({
         address: ZAAMAddress,
         abi: ZAAMAbi,
         functionName: "removeLiquidity",
@@ -1452,7 +1452,7 @@ export const SwapTile = () => {
       });
 
       // Estimate gas with safety buffer
-      const gas = await estimateContractGas(publicClient, {
+      const gas = await estimateContractGas({
         address: ZAAMAddress,
         abi: ZAAMAbi,
         functionName: "removeLiquidity",
@@ -1538,7 +1538,7 @@ export const SwapTile = () => {
           setTxError("Waiting for operator approval. Please confirm the transaction...");
 
           // Simulate the approval transaction
-          const result = await simulateContractInteraction(publicClient, {
+          const result = await simulateContractInteraction({
             address: CoinsAddress,
             abi: CoinsAbi,
             functionName: "setOperator",
@@ -1546,7 +1546,7 @@ export const SwapTile = () => {
           });
 
           // Estimate gas with safety buffer
-          const gas = await estimateContractGas(publicClient, {
+          const gas = await estimateContractGas({
             address: CoinsAddress,
             abi: CoinsAbi,
             functionName: "setOperator",
@@ -1594,7 +1594,7 @@ export const SwapTile = () => {
       // Use ZAMMHelper to calculate the exact ETH amount to provide
       try {
         // The contract call returns an array of values rather than an object
-        const result = await publicClient.readContract({
+        const calcResult = await publicClient.readContract({
           address: ZAMMHelperAddress,
           abi: ZAMMHelperAbi,
           functionName: "calculateRequiredETH",
@@ -1606,7 +1606,7 @@ export const SwapTile = () => {
         });
 
         // Extract the values from the result array
-        const [ethAmount, calcAmount0, calcAmount1] = result as [bigint, bigint, bigint];
+        const [ethAmount, calcAmount0, calcAmount1] = calcResult as [bigint, bigint, bigint];
 
         // Detailed logging to help with debugging
 
@@ -1615,7 +1615,7 @@ export const SwapTile = () => {
         const actualAmount1Min = withSlippage(calcAmount1);
 
         // Simulate the contract interaction first
-        const result = await simulateContractInteraction(publicClient, {
+        const simulationResult = await simulateContractInteraction({
           address: ZAAMAddress,
           abi: ZAAMAbi,
           functionName: "addLiquidity",
@@ -1632,7 +1632,7 @@ export const SwapTile = () => {
         });
 
         // Estimate gas with safety buffer
-        const gas = await estimateContractGas(publicClient, {
+        const gas = await estimateContractGas({
           address: ZAAMAddress,
           abi: ZAAMAbi,
           functionName: "addLiquidity",
@@ -1648,7 +1648,7 @@ export const SwapTile = () => {
           value: ethAmount, // Use the exact ETH amount calculated by ZAMMHelper
         });
 
-        console.log("simulation result:", { result, gas });
+        console.log("simulation simulationResult:", { simulationResult, gas });
 
         // Use the ethAmount from ZAMMHelper as the exact value to send
         // IMPORTANT: We should also use the exact calculated amounts for amount0Desired and amount1Desired
@@ -1727,7 +1727,7 @@ export const SwapTile = () => {
         }
 
         // Simulate contract interaction first
-        const result = await simulateContractInteraction(publicClient, {
+        const result = await simulateContractInteraction({
           address: ZAAMAddress,
           abi: ZAAMAbi,
           functionName: "swapExactIn",
@@ -1736,7 +1736,7 @@ export const SwapTile = () => {
         });
 
         // Estimate gas with safety buffer
-        const gas = await estimateContractGas(publicClient, {
+        const gas = await estimateContractGas({
           address: ZAAMAddress,
           abi: ZAAMAbi,
           functionName: "swapExactIn",
@@ -1765,7 +1765,7 @@ export const SwapTile = () => {
             setTxError("Waiting for operator approval. Please confirm the transaction...");
 
             // Simulate the approval transaction
-            const result = await simulateContractInteraction(publicClient, {
+            const result = await simulateContractInteraction({
               address: CoinsAddress,
               abi: CoinsAbi,
               functionName: "setOperator",
@@ -1773,7 +1773,7 @@ export const SwapTile = () => {
             });
 
             // Estimate gas with safety buffer
-            const gas = await estimateContractGas(publicClient, {
+            const gas = await estimateContractGas({
               address: CoinsAddress,
               abi: CoinsAbi,
               functionName: "setOperator",
@@ -1870,7 +1870,7 @@ export const SwapTile = () => {
 
             // Log the calls we're making for debugging
             // Simulate multicall first
-            const result = await simulateContractInteraction(publicClient, {
+            const result = await simulateContractInteraction({
               address: ZAAMAddress,
               abi: ZAAMAbi,
               functionName: "multicall",
@@ -1878,7 +1878,7 @@ export const SwapTile = () => {
             });
 
             // Estimate gas with safety buffer
-            const gas = await estimateContractGas(publicClient, {
+            const gas = await estimateContractGas({
               address: ZAAMAddress,
               abi: ZAAMAbi,
               functionName: "multicall",
@@ -1921,7 +1921,7 @@ export const SwapTile = () => {
         }
 
         // Simulate the contract interaction first
-        const result = await simulateContractInteraction(publicClient, {
+        const result = await simulateContractInteraction({
           address: ZAAMAddress,
           abi: ZAAMAbi,
           functionName: "swapExactIn",
@@ -1929,7 +1929,7 @@ export const SwapTile = () => {
         });
 
         // Estimate gas with safety buffer
-        const gas = await estimateContractGas(publicClient, {
+        const gas = await estimateContractGas({
           address: ZAAMAddress,
           abi: ZAAMAbi,
           functionName: "swapExactIn",
