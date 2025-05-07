@@ -2,7 +2,10 @@
 pragma solidity 0.8.29;
 
 interface ICoins {
+    function name(uint256 id) external view returns (string memory);
+    function symbol(uint256 id) external view returns (string memory);
     function tokenURI(uint256 id) external view returns (string memory);
+    function balanceOf(address owner, uint256 id) external view returns (uint256);
 }
 
 interface ICoinchan {
@@ -41,6 +44,8 @@ contract CoinsMetadataHelper {
 
     struct CoinData {
         uint256 coinId;
+        string name;
+        string symbol;
         string tokenURI;
         uint112 reserve0; // ETH reserve
         uint112 reserve1; // Coin reserve
@@ -53,6 +58,8 @@ contract CoinsMetadataHelper {
     // Get a specific Coin's data
     function getCoinData(uint256 coinId) public view returns (CoinData memory data) {
         data.coinId = coinId;
+        data.name = ICoins(COINS).name(coinId);
+        data.symbol = ICoins(COINS).symbol(coinId);
         data.tokenURI = ICoins(COINS).tokenURI(coinId);
         
         // Compute the pool ID
@@ -64,15 +71,33 @@ contract CoinsMetadataHelper {
         data.reserve1 = pool.reserve1;
         data.liquidity = pool.supply;
     }
+ 
+    function getUserBalance(address user, uint256 coinId) public view returns (uint256 coinBal, uint256 lpBal) {
+        return (ICoins(COINS).balanceOf(user, coinId), IZAMM(ZAMM).balanceOf(user, computePoolId(coinId)));    
+    }
+
+    function getUserBalances(
+        address user, 
+        uint256 start, 
+        uint256 finish
+    ) public view returns (uint256 ethBal, uint256[] memory coinBal, uint256[] memory lpBal) {
+        ethBal = user.balance;
+        
+        uint256[] memory coinIds = ICoinchan(COINCHAN).getCoins(start, finish);
+        
+        coinBal = new uint256[](coinIds.length);
+        lpBal = new uint256[](coinIds.length);
+        
+        for (uint256 i; i != coinIds.length; ++i) {
+            coinBal[i] = ICoins(COINS).balanceOf(user, coinIds[i]);
+            lpBal[i] = IZAMM(ZAMM).balanceOf(user, computePoolId(coinIds[i]));
+        }
+    }
 
     // Get data for multiple coins by their IDs
     function getCoinsByIds(uint256[] calldata coinIds) public view returns (CoinData[] memory) {
         CoinData[] memory result = new CoinData[](coinIds.length);
-        
-        for (uint256 i; i != coinIds.length; ++i) {
-            result[i] = getCoinData(coinIds[i]);
-        }
-        
+        for (uint256 i; i != coinIds.length; ++i) result[i] = getCoinData(coinIds[i]);
         return result;
     }
 
@@ -81,10 +106,7 @@ contract CoinsMetadataHelper {
         uint256[] memory coinIds = ICoinchan(COINCHAN).getCoins(start, finish);
         CoinData[] memory result = new CoinData[](coinIds.length);
         
-        for (uint256 i; i != coinIds.length; ++i) {
-            result[i] = getCoinData(coinIds[i]);
-        }
-        
+        for (uint256 i; i != coinIds.length; ++i) result[i] = getCoinData(coinIds[i]);
         return result;
     }
 
@@ -92,19 +114,13 @@ contract CoinsMetadataHelper {
     function getAllCoinsData() public view returns (CoinData[] memory) {
         unchecked {
             uint256 totalCoins = ICoinchan(COINCHAN).getCoinsCount();
-            
-            if (totalCoins == 0) {
-                return new CoinData[](0);
-            }
+            if (totalCoins == 0) return new CoinData[](0);
             
             // Get all coins IDs (0 to totalCoins-1)
             uint256[] memory coinIds = ICoinchan(COINCHAN).getCoins(0, totalCoins - 1);
             CoinData[] memory result = new CoinData[](coinIds.length);
             
-            for (uint256 i; i != coinIds.length; ++i) {
-                result[i] = getCoinData(coinIds[i]);
-            }
-            
+            for (uint256 i; i != coinIds.length; ++i) result[i] = getCoinData(coinIds[i]);
             return result;
         }
     }
@@ -113,24 +129,16 @@ contract CoinsMetadataHelper {
     function getLatestCoins(uint256 count) public view returns (CoinData[] memory) {
         unchecked {
             uint256 totalCoins = ICoinchan(COINCHAN).getCoinsCount();
-            
-            if (totalCoins == 0 || count == 0) {
-                return new CoinData[](0);
-            }
+            if (totalCoins == 0 || count == 0) return new CoinData[](0);
             
             // Adjust count if it exceeds available coins
-            if (count > totalCoins) {
-                count = totalCoins;
-            }
+            if (count > totalCoins) count = totalCoins;
             
             uint256 start = totalCoins - count;
             uint256[] memory coinIds = ICoinchan(COINCHAN).getCoins(start, totalCoins - 1);
             CoinData[] memory result = new CoinData[](coinIds.length);
             
-            for (uint256 i; i != coinIds.length; ++i) {
-                result[i] = getCoinData(coinIds[i]);
-            }
-            
+            for (uint256 i; i != coinIds.length; ++i) result[i] = getCoinData(coinIds[i]);
             return result;
         }
     }
