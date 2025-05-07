@@ -1062,7 +1062,7 @@ export const SwapTile = () => {
       // Fallback to direct fetching if not available in token data
       const fetchTargetReserves = async () => {
         try {
-          const targetPoolId = computePoolId(buyToken.id);
+          const targetPoolId = computePoolId(buyToken.id!);
           const result = await publicClient.readContract({
             address: ZAAMAddress,
             abi: ZAAMAbi,
