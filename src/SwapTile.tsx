@@ -133,90 +133,42 @@ const useAllTokens = () => {
   const {
     data: ethBalance,
     isSuccess: ethBalanceSuccess,
-    refetch: refetchEthBalance,
     isFetching: isEthBalanceFetching,
+    refetch: refetchEthBalance,
   } = useBalance({
     address,
     chainId: mainnet.id,
-    scopeKey: "ethBalance", // Unique key for this balance query
+    scopeKey: "ethBalance",
+
+    query: {
+      enabled: !!address, // only fetch when wallet connected
+      staleTime: 30_000, // treat result as “fresh” for 30 s
+      // cacheTime not recognised in wagmi’s narrowed types
+    },
   });
-
-  // Set up polling for ETH balance
-  useEffect(() => {
-    if (!address) return;
-
-    // Immediately fetch on mount or when address changes
-    refetchEthBalance();
-
-    // Set up polling interval (every 10 seconds)
-    const interval = setInterval(() => {
-      refetchEthBalance();
-    }, 10000);
-
-    // Clean up interval on unmount
-    return () => clearInterval(interval);
-  }, [address, refetchEthBalance]);
-
-  // ETH balance status effect
-  useEffect(() => {
-    // Effect implementation
-  }, [address, ethBalance, ethBalanceSuccess]);
 
   // More robust ETH balance handling
   useEffect(() => {
-    // Process ETH balance and update state
+    if (!address) return; // nothing to do when wallet disconnected
 
-    // Determine the balance value to use, with persistent state
-    const effectiveBalance = ethBalance ? ethBalance.value : address ? undefined : 0n; // Only reset to 0 if no address
+    setTokens((prev) => {
+      // find current ETH token inside existing list (if any)
+      const prevEth = prev.find((t) => t.id === null) ?? ETH_TOKEN;
+      const prevBal = prevEth.balance;
 
-    // Create ETH token with proper balance
-    const ethTokenWithBalance = {
-      ...ETH_TOKEN,
-      // Three cases:
-      // 1. We have a balance from the API - use it
-      // 2. User is connected but balance not loaded yet - keep current balance (undefined)
-      // 3. No wallet connected - use 0n
-      balance: effectiveBalance,
-    };
+      // keep old balance while a new query is still loading
+      const newBal = ethBalanceSuccess && ethBalance ? ethBalance.value : prevBal;
 
-    if (ethBalance) {
-      // Cache the ETH balance in localStorage for persistent display
-      try {
-        localStorage.setItem("ethBalance", ethBalance.value.toString());
-      } catch (err) {
-        console.error("Failed to cache ETH balance:", err);
-      }
-    } else if (address && !isEthBalanceFetching) {
-      // If wallet is connected but balance not available yet, try to load from cache
-      try {
-        const cachedBalance = localStorage.getItem("ethBalance");
-        if (cachedBalance) {
-          ethTokenWithBalance.balance = BigInt(cachedBalance);
-        }
-      } catch (err) {
-        console.error("Failed to load cached ETH balance:", err);
-      }
-    }
+      // if the balance really hasn’t changed, bail out early → no re-render flicker
+      if (newBal === prevBal) return prev;
 
-    // Always update the ETH token in our list
-    setTokens((prevTokens) => {
-      // If we already have tokens with a real ETH token that has balance, be careful about overwriting
-      const existingEthToken = prevTokens.find((token) => token.id === null);
+      // otherwise create a *single* new ETH token object
+      const nextEth = { ...prevEth, balance: newBal };
 
-      // Special case: we're trying to set undefined balance, but we already have a real balance
-      if (ethTokenWithBalance.balance === undefined && existingEthToken?.balance && existingEthToken.balance > 0n) {
-        ethTokenWithBalance.balance = existingEthToken.balance;
-      }
-
-      // If we don't have any tokens yet or only ETH, replace the whole array
-      if (prevTokens.length === 0 || (prevTokens.length === 1 && prevTokens[0].id === null)) {
-        return [ethTokenWithBalance];
-      }
-
-      // Otherwise replace ETH token while keeping others
-      return [ethTokenWithBalance, ...prevTokens.filter((token) => token.id !== null)];
+      // return new tokens array with stable references for the rest
+      return [nextEth, ...prev.filter((t) => t.id !== null)];
     });
-  }, [ethBalance, ethBalanceSuccess, isEthBalanceFetching, address]);
+  }, [address, ethBalance, ethBalanceSuccess]);
 
   useEffect(() => {
     const fetchTokens = async () => {
@@ -423,7 +375,7 @@ const useAllTokens = () => {
     fetchTokens();
   }, [publicClient, address]);
 
-  return { tokens, loading, error, isEthBalanceFetching };
+  return { tokens, loading, error, isEthBalanceFetching, refetchEthBalance };
 };
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -783,7 +735,7 @@ type LiquidityMode = "add" | "remove" | "single-eth";
   SwapTile main component
 ──────────────────────────────────────────────────────────────────────────── */
 export const SwapTile = () => {
-  const { tokens, loading, error: loadError, isEthBalanceFetching } = useAllTokens();
+  const { tokens, loading, error: loadError, isEthBalanceFetching, refetchEthBalance } = useAllTokens();
   const [sellToken, setSellToken] = useState<TokenMeta>(ETH_TOKEN);
   const [buyToken, setBuyToken] = useState<TokenMeta | null>(null);
   const [mode, setMode] = useState<TileMode>("swap");
@@ -807,9 +759,13 @@ export const SwapTile = () => {
     if (mode === "liquidity" && liquidityMode === "single-eth") {
       // If current sell token is not ETH, set it to ETH
       if (sellToken.id !== null) {
-        const ethToken = tokens.find((token) => token.id === null);
+        const ethToken = tokens.find((t) => t.id === null);
         if (ethToken) {
-          setSellToken(ethToken);
+          // preserve the last known balance so the UI doesn’t flash “0”
+          setSellToken((prev) => ({
+            ...ethToken,
+            balance: prev.balance ?? ethToken.balance,
+          }));
         }
       }
 
@@ -944,6 +900,10 @@ export const SwapTile = () => {
   const { writeContractAsync, isPending, error: writeError } = useWriteContract();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
   const chainId = useChainId();
+
+  useEffect(() => {
+    if (isSuccess) refetchEthBalance(); // refresh ETH once tx confirms
+  }, [isSuccess, refetchEthBalance]);
 
   /* Calculate pool reserves */
   const [reserves, setReserves] = useState<{
