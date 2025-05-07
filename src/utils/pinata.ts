@@ -1,6 +1,4 @@
-export async function pinJsonToPinata(
-  jsonObject: Record<string, unknown>,
-): Promise<string> {
+export async function pinJsonToPinata(jsonObject: Record<string, unknown>): Promise<string> {
   const pinataJWT = import.meta.env.VITE_PINATA_JWT;
   if (!pinataJWT) {
     throw new Error("PINATA_JWT is not defined in environment variables.");

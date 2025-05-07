@@ -18,9 +18,7 @@ export const CoinsAbi = [
   },
   {
     anonymous: false,
-    inputs: [
-      { indexed: true, internalType: "uint256", name: "", type: "uint256" },
-    ],
+    inputs: [{ indexed: true, internalType: "uint256", name: "", type: "uint256" }],
     name: "MetadataSet",
     type: "event",
   },
@@ -36,9 +34,7 @@ export const CoinsAbi = [
   },
   {
     anonymous: false,
-    inputs: [
-      { indexed: true, internalType: "uint256", name: "", type: "uint256" },
-    ],
+    inputs: [{ indexed: true, internalType: "uint256", name: "", type: "uint256" }],
     name: "OwnershipTransferred",
     type: "event",
   },
@@ -265,5 +261,4 @@ export const CoinsAbi = [
     type: "function",
   },
 ] as const;
-export const CoinsAddress =
-  "0x0000000000009710cd229bF635c4500029651eE8" as Address;
+export const CoinsAddress = "0x0000000000009710cd229bF635c4500029651eE8" as Address;

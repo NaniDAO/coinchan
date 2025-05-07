@@ -7,9 +7,7 @@ import {
   useSwitchChain,
   useChainId,
 } from "wagmi";
-import {
-  formatUnits
-} from "viem";
+import { formatUnits } from "viem";
 import { mainnet } from "viem/chains";
 import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
 import { Button } from "@/components/ui/button";
@@ -55,12 +53,12 @@ export const ClaimVested = ({ coinId }: ClaimVestedProps) => {
 
       try {
         // Fetch lockup information
-        const lockup = await publicClient.readContract({
+        const lockup = (await publicClient.readContract({
           address: CoinchanAddress,
           abi: CoinchanAbi,
           functionName: "lockups",
           args: [coinId],
-        }) as any;
+        })) as any;
 
         // Check if we have valid lockup data
         if (!lockup || !Array.isArray(lockup) || lockup.length < 6) {
@@ -73,14 +71,14 @@ export const ClaimVested = ({ coinId }: ClaimVestedProps) => {
         const parsedLockup = {
           owner: lockup[0] as string,
           creation: BigInt(lockup[1]), // Ensure BigInt
-          unlock: BigInt(lockup[2]),   // Ensure BigInt
+          unlock: BigInt(lockup[2]), // Ensure BigInt
           vesting: Boolean(lockup[3]),
-          swapFee: BigInt(lockup[4]),  // Ensure BigInt
-          claimed: BigInt(lockup[5]),  // Ensure BigInt
+          swapFee: BigInt(lockup[4]), // Ensure BigInt
+          claimed: BigInt(lockup[5]), // Ensure BigInt
         };
 
         // Verify we have a valid owner address
-        if (!parsedLockup.owner || parsedLockup.owner === '0x0000000000000000000000000000000000000000') {
+        if (!parsedLockup.owner || parsedLockup.owner === "0x0000000000000000000000000000000000000000") {
           setIsLoading(false);
           return;
         }
@@ -88,12 +86,12 @@ export const ClaimVested = ({ coinId }: ClaimVestedProps) => {
         setLockupInfo(parsedLockup);
 
         // Fetch vestable amount
-        const vestable = await publicClient.readContract({
+        const vestable = (await publicClient.readContract({
           address: CoinchanAddress,
           abi: CoinchanAbi,
           functionName: "getVestableAmount",
           args: [coinId],
-        }) as bigint;
+        })) as bigint;
 
         setVestableAmount(BigInt(vestable)); // Ensure BigInt
       } catch (err) {
@@ -113,10 +111,7 @@ export const ClaimVested = ({ coinId }: ClaimVestedProps) => {
 
     const totalDuration = Number(lockupInfo.unlock - lockupInfo.creation);
     const currentTime = BigInt(Math.floor(Date.now() / 1000));
-    const elapsed = Math.min(
-      Number(currentTime - lockupInfo.creation),
-      totalDuration
-    );
+    const elapsed = Math.min(Number(currentTime - lockupInfo.creation), totalDuration);
 
     return (elapsed / totalDuration) * 100;
   };
@@ -226,14 +221,9 @@ export const ClaimVested = ({ coinId }: ClaimVestedProps) => {
             <span>{calculateVestingPercentage().toFixed(2)}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className="bg-yellow-500 h-2 rounded-full"
-              style={{ width: `${calculateVestingPercentage()}%` }}
-            ></div>
+            <div className="bg-yellow-500 h-2 rounded-full" style={{ width: `${calculateVestingPercentage()}%` }}></div>
           </div>
-          <div className="mt-1 text-xs text-gray-600">
-            {formatTimeRemaining()}
-          </div>
+          <div className="mt-1 text-xs text-gray-600">{formatTimeRemaining()}</div>
         </div>
 
         {/* Vestable amount */}
@@ -261,20 +251,16 @@ export const ClaimVested = ({ coinId }: ClaimVestedProps) => {
               <Loader2 className="h-4 w-4 animate-spin" />
               Claiming...
             </span>
-          ) : "Claim Vested LP Tokens"}
+          ) : (
+            "Claim Vested LP Tokens"
+          )}
         </Button>
 
         {/* Error message */}
-        {txError && (
-          <div className="mt-2 text-xs text-red-600">{txError}</div>
-        )}
+        {txError && <div className="mt-2 text-xs text-red-600">{txError}</div>}
 
         {/* Success message */}
-        {isSuccess && (
-          <div className="mt-2 text-xs text-green-600">
-            Successfully claimed tokens!
-          </div>
-        )}
+        {isSuccess && <div className="mt-2 text-xs text-green-600">Successfully claimed tokens!</div>}
       </CardContent>
     </Card>
   );

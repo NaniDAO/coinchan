@@ -15,8 +15,7 @@ export const DEADLINE_SEC = 20 * 60; // 20 minutes
  * @param amount Raw amount
  * @returns Amount with slippage applied
  */
-export const withSlippage = (amount: bigint) =>
-  (amount * (10000n - SLIPPAGE_BPS)) / 10000n;
+export const withSlippage = (amount: bigint) => (amount * (10000n - SLIPPAGE_BPS)) / 10000n;
 
 /**
  * Generate a deadline timestamp in seconds
@@ -43,9 +42,4 @@ export const computePoolKey = (coinId: bigint) => ({
  */
 export const nowSec = () => BigInt(Math.floor(Date.now() / 1000));
 
-export { 
-  pinJsonToPinata, 
-  pinImageToPinata,
-  isUserRejectionError,
-  handleWalletError
-};
+export { pinJsonToPinata, pinImageToPinata, isUserRejectionError, handleWalletError };

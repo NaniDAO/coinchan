@@ -1,12 +1,6 @@
 import { useAccount, useConnect } from "wagmi";
 import { truncAddress } from "./lib/address";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export function ConnectMenu() {
   const { isConnected, address } = useAccount();
@@ -24,9 +18,7 @@ export function ConnectMenu() {
   return (
     <Dialog>
       <DialogTrigger className="appearance-none" asChild>
-        <button className="hover:scale-105 focus:underline">
-          🙏 Connect Wallet
-        </button>
+        <button className="hover:scale-105 focus:underline">🙏 Connect Wallet</button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -39,11 +31,7 @@ export function ConnectMenu() {
               key={connector.id}
               onClick={() => connect({ connector })}
             >
-              <img
-                src={connector.icon ?? "/coinchan-logo.png"}
-                alt={connector.name}
-                className="w-6 h-6 mr-2"
-              />
+              <img src={connector.icon ?? "/coinchan-logo.png"} alt={connector.name} className="w-6 h-6 mr-2" />
               <span>{connector.name}</span>
             </button>
           ))}

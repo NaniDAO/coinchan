@@ -1,10 +1,4 @@
-import { 
-  encodeAbiParameters, 
-  parseAbiParameters,
-  zeroAddress,
-  encodeFunctionData,
-  Address
-} from "viem";
+import { encodeAbiParameters, parseAbiParameters, zeroAddress, encodeFunctionData, Address } from "viem";
 import { ZAAMAddress, ZAAMAbi } from "../constants/ZAAM";
 import { CoinsAddress } from "../constants/Coins";
 
@@ -48,12 +42,12 @@ export const computePoolKey = (coinId: bigint) => ({
  * @returns Pool ID
  */
 export const computePoolId = (coinId: bigint) =>
-  BigInt(encodeAbiParameters(
-    parseAbiParameters(
-      "uint256 id0, uint256 id1, address token0, address token1, uint96 swapFee",
+  BigInt(
+    encodeAbiParameters(
+      parseAbiParameters("uint256 id0, uint256 id1, address token0, address token1, uint96 swapFee"),
+      [0n, coinId, zeroAddress, CoinsAddress, SWAP_FEE],
     ),
-    [0n, coinId, zeroAddress, CoinsAddress, SWAP_FEE],
-  ));
+  );
 
 /**
  * Create a set of encoded function calls for a multicall to swap between coins via ETH
@@ -63,7 +57,7 @@ export const computePoolId = (coinId: bigint) =>
  * 3. Recover any leftover source coins (unlikely since we use full amount)
  * 4. Recover any leftover ETH from the intermediate step
  * 5. Recover any excess target coins if applicable
- * 
+ *
  * @param sourceCoinId ID of the source coin to swap from
  * @param targetCoinId ID of the target coin to swap to
  * @param amountIn Amount of sourceCoin to swap
@@ -74,18 +68,18 @@ export const computePoolId = (coinId: bigint) =>
  */
 export function createCoinSwapMulticall(
   sourceCoinId: bigint,
-  targetCoinId: bigint, 
+  targetCoinId: bigint,
   amountIn: bigint,
   expectedEthOut: bigint,
   amountOutMinFinal: bigint,
-  receiver: Address
+  receiver: Address,
 ): `0x${string}`[] {
   // Create pool keys for both swaps
   const sourcePoolKey = computePoolKey(sourceCoinId);
   const targetPoolKey = computePoolKey(targetCoinId);
-  
+
   const deadline = deadlineTimestamp();
-  
+
   // Create the multicall array with functions to call
   const multicallData: `0x${string}`[] = [
     // 1. First swap: sourceCoin → ETH (use ZAAM as the receiver to keep ETH for next swap)
@@ -102,7 +96,7 @@ export function createCoinSwapMulticall(
         deadline,
       ],
     }) as `0x${string}`,
-    
+
     // 2. Second swap: ETH → targetCoin
     // Use the expected ETH output from first swap (with safety margin)
     encodeFunctionData({
@@ -117,7 +111,7 @@ export function createCoinSwapMulticall(
         deadline,
       ],
     }) as `0x${string}`,
-    
+
     // 3. Recover any leftover source coins - likely none since we use full amount
     // but keep for safety in case of execution failure or unusual circumstances
     encodeFunctionData({
@@ -129,7 +123,7 @@ export function createCoinSwapMulticall(
         receiver, // Return any leftovers to the receiver
       ],
     }) as `0x${string}`,
-    
+
     // 4. Recover any leftover ETH from the intermediate step
     // This is expected to happen if our ETH estimate isn't exact
     encodeFunctionData({
@@ -141,7 +135,7 @@ export function createCoinSwapMulticall(
         receiver, // Return any leftovers to the receiver
       ],
     }) as `0x${string}`,
-    
+
     // 5. Recover any excess target coins (unlikely but possible)
     // This could happen if the contract has a transient balance of the target coin
     encodeFunctionData({
@@ -154,7 +148,7 @@ export function createCoinSwapMulticall(
       ],
     }) as `0x${string}`,
   ];
-  
+
   return multicallData;
 }
 
@@ -172,10 +166,10 @@ export function estimateCoinToCoinOutput(
   _sourceCoinId: bigint, // Prefixed with underscore to indicate it's unused
   _targetCoinId: bigint, // Prefixed with underscore to indicate it's unused
   amountIn: bigint,
-  sourceReserves: { reserve0: bigint, reserve1: bigint },
-  targetReserves: { reserve0: bigint, reserve1: bigint },
-  slippageBps: bigint = 200n
-): { amountOut: bigint, withSlippage: bigint, ethAmountOut: bigint } {
+  sourceReserves: { reserve0: bigint; reserve1: bigint },
+  targetReserves: { reserve0: bigint; reserve1: bigint },
+  slippageBps: bigint = 200n,
+): { amountOut: bigint; withSlippage: bigint; ethAmountOut: bigint } {
   // First swap: sourceCoin → ETH
   const ethAmountOut = getAmountOut(
     amountIn,
@@ -183,17 +177,18 @@ export function estimateCoinToCoinOutput(
     sourceReserves.reserve0, // ETH reserve
     SWAP_FEE,
   );
-  
-  if (ethAmountOut === 0n) return { 
-    amountOut: 0n, 
-    withSlippage: 0n,
-    ethAmountOut: 0n 
-  };
-  
+
+  if (ethAmountOut === 0n)
+    return {
+      amountOut: 0n,
+      withSlippage: 0n,
+      ethAmountOut: 0n,
+    };
+
   // Apply a small safety margin to ethAmountOut to account for potential slippage
   // during the first swap or any execution differences
   const safeEthAmountOut = getAmountWithSlippage(ethAmountOut, slippageBps);
-  
+
   // Second swap: ETH → targetCoin
   const targetAmountOut = getAmountOut(
     safeEthAmountOut, // Use the safe ETH amount for estimation
@@ -201,25 +196,20 @@ export function estimateCoinToCoinOutput(
     targetReserves.reserve1, // Target coin reserve
     SWAP_FEE,
   );
-  
-  return { 
+
+  return {
     amountOut: targetAmountOut,
     withSlippage: getAmountWithSlippage(targetAmountOut, slippageBps),
-    ethAmountOut: safeEthAmountOut // Return the safe ETH amount for the second swap
+    ethAmountOut: safeEthAmountOut, // Return the safe ETH amount for the second swap
   };
 }
 
 /**
  * Calculate output amount for a swap (from ZAMM contract)
  */
-export function getAmountOut(
-  amountIn: bigint,
-  reserveIn: bigint,
-  reserveOut: bigint,
-  swapFee: bigint,
-) {
+export function getAmountOut(amountIn: bigint, reserveIn: bigint, reserveOut: bigint, swapFee: bigint) {
   if (amountIn === 0n || reserveIn === 0n || reserveOut === 0n) return 0n;
-  
+
   const amountInWithFee = amountIn * (10000n - swapFee);
   const numerator = amountInWithFee * reserveOut;
   const denominator = reserveIn * 10000n + amountInWithFee;
@@ -229,15 +219,9 @@ export function getAmountOut(
 /**
  * Calculate input amount for a desired output amount (from ZAMM contract)
  */
-export function getAmountIn(
-  amountOut: bigint,
-  reserveIn: bigint,
-  reserveOut: bigint,
-  swapFee: bigint,
-) {
-  if (amountOut === 0n || reserveIn === 0n || reserveOut === 0n || amountOut >= reserveOut) 
-    return 0n;
-    
+export function getAmountIn(amountOut: bigint, reserveIn: bigint, reserveOut: bigint, swapFee: bigint) {
+  if (amountOut === 0n || reserveIn === 0n || reserveOut === 0n || amountOut >= reserveOut) return 0n;
+
   const numerator = reserveIn * amountOut * 10000n;
   const denominator = (reserveOut - amountOut) * (10000n - swapFee);
   return numerator / denominator + 1n;

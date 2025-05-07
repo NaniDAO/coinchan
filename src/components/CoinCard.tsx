@@ -27,8 +27,14 @@ export const CoinCard = ({ coin, onTrade }: CoinCardProps) => {
   // Simple function to get a color based on token ID
   const getColorForId = (id: bigint) => {
     const colors = [
-      'bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500',
-      'bg-purple-500', 'bg-pink-500', 'bg-indigo-500', 'bg-teal-500'
+      "bg-red-500",
+      "bg-blue-500",
+      "bg-green-500",
+      "bg-yellow-500",
+      "bg-purple-500",
+      "bg-pink-500",
+      "bg-indigo-500",
+      "bg-teal-500",
     ];
     const index = Number(id % BigInt(colors.length));
     return colors[index];
@@ -40,14 +46,9 @@ export const CoinCard = ({ coin, onTrade }: CoinCardProps) => {
   // FIX: Centralized image URL resolution logic for clarity and maintainability.
   // Consolidates multiple potential sources (coin.imageUrl, metadata.image, etc.) into a single prioritized check.
   // Improves render consistency and simplifies fallback image handling.
-  function resolveImageUrl(coin: CoinData): { primaryUrl: string | null, baseForFallbacks: string | null } {
+  function resolveImageUrl(coin: CoinData): { primaryUrl: string | null; baseForFallbacks: string | null } {
     console.log("Resolving image url");
-    const candidates = [
-      coin.imageUrl,
-      coin.metadata?.image,
-      coin.metadata?.image_url,
-      coin.metadata?.imageUrl
-    ];
+    const candidates = [coin.imageUrl, coin.metadata?.image, coin.metadata?.image_url, coin.metadata?.imageUrl];
 
     for (const rawUrl of candidates) {
       if (rawUrl) {
@@ -86,27 +87,30 @@ export const CoinCard = ({ coin, onTrade }: CoinCardProps) => {
   }, [coin]);
 
   // Handle image load error with fallback attempt
-  const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    console.error(`Image failed to load for coin ${coin.coinId.toString()}:`, e);
+  const handleImageError = useCallback(
+    (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+      console.error(`Image failed to load for coin ${coin.coinId.toString()}:`, e);
 
-    // Try next alternative URL if available
-    if (alternativeUrlsRef.current.length > 0) {
-      // Find the first URL we haven't tried yet
-      const nextUrl = alternativeUrlsRef.current.find(url => !attemptedUrlsRef.current.has(url));
+      // Try next alternative URL if available
+      if (alternativeUrlsRef.current.length > 0) {
+        // Find the first URL we haven't tried yet
+        const nextUrl = alternativeUrlsRef.current.find((url) => !attemptedUrlsRef.current.has(url));
 
-      if (nextUrl) {
-        console.log(`Trying alternative URL: ${nextUrl}`);
-        attemptedUrlsRef.current.add(nextUrl);
-        setCurrentImageUrl(nextUrl);
-        // Don't set error yet, we're trying an alternative
-        return;
+        if (nextUrl) {
+          console.log(`Trying alternative URL: ${nextUrl}`);
+          attemptedUrlsRef.current.add(nextUrl);
+          setCurrentImageUrl(nextUrl);
+          // Don't set error yet, we're trying an alternative
+          return;
+        }
       }
-    }
 
-    // If we've exhausted all alternatives, mark as error
-    console.log(`No more alternative URLs to try for coin ${coin.coinId.toString()}`);
-    setImageError(true);
-  }, [coin.coinId]);
+      // If we've exhausted all alternatives, mark as error
+      console.log(`No more alternative URLs to try for coin ${coin.coinId.toString()}`);
+      setImageError(true);
+    },
+    [coin.coinId],
+  );
 
   return (
     <Card className="flex border-2 border-red-900 rounded-md bg-yellow-50 w-full flex-col items-right p-1 gap-2 shadow">
@@ -117,7 +121,9 @@ export const CoinCard = ({ coin, onTrade }: CoinCardProps) => {
 
         <div className="w-16 h-16 sm:w-20 sm:h-20 relative">
           {/* Base colored circle (always visible) */}
-          <div className={`absolute inset-0 flex ${getColorForId(coin.coinId)} text-white justify-center items-center rounded-full`}>
+          <div
+            className={`absolute inset-0 flex ${getColorForId(coin.coinId)} text-white justify-center items-center rounded-full`}
+          >
             {displaySymbol.slice(0, 3)}
           </div>
 
@@ -126,7 +132,7 @@ export const CoinCard = ({ coin, onTrade }: CoinCardProps) => {
             <img
               src={currentImageUrl}
               alt={`${displaySymbol} logo`}
-              className={`absolute inset-0 w-full h-full rounded-full object-cover transition-opacity duration-200 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+              className={`absolute inset-0 w-full h-full rounded-full object-cover transition-opacity duration-200 ${imageLoaded ? "opacity-100" : "opacity-0"}`}
               style={{ zIndex: 1 }}
               onLoad={() => setImageLoaded(true)}
               onError={handleImageError}

@@ -1,13 +1,13 @@
-import { useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { createPublicClient, http, formatEther, formatUnits } from 'viem';
-import { mainnet } from 'viem/chains';
-import { CoinsMetadataHelperAbi, CoinsMetadataHelperAddress } from '@/constants/CoinsMetadataHelper';
+import { useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { createPublicClient, http, formatEther, formatUnits } from "viem";
+import { mainnet } from "viem/chains";
+import { CoinsMetadataHelperAbi, CoinsMetadataHelperAddress } from "@/constants/CoinsMetadataHelper";
 
 // Create a public client instance for direct contract calls
 const publicClient = createPublicClient({
   chain: mainnet,
-  transport: http('https://eth-mainnet.g.alchemy.com/v2/demo'),
+  transport: http("https://eth-mainnet.g.alchemy.com/v2/demo"),
 });
 
 // Define the CoinData type based on our contract
@@ -33,7 +33,7 @@ export type CoinData = RawCoinData & {
 };
 
 // Cache key for localStorage
-const CACHE_KEY = 'coinchan-metadata-cache';
+const CACHE_KEY = "coinchan-metadata-cache";
 
 /**
  * A hook that provides access to global coin data
@@ -55,7 +55,7 @@ export function useGlobalCoinsData() {
           // causing runtime errors. Replaced loose check with strict regex /^\d+n$/ to ensure only actual
           // BigInt-like strings (e.g., "123n") are converted.
           // This fixes cases where token names or symbols (like "Token") were mistakenly treated as BigInts.
-          if (typeof value === 'string' && /^\d+n$/.test(value)) {
+          if (typeof value === "string" && /^\d+n$/.test(value)) {
             return BigInt(value.slice(0, -1));
           }
 
@@ -63,7 +63,7 @@ export function useGlobalCoinsData() {
         }) as CoinData[];
       }
     } catch (error) {
-      console.error('Failed to load from cache:', error);
+      console.error("Failed to load from cache:", error);
     }
     return null;
   }, []);
@@ -75,14 +75,14 @@ export function useGlobalCoinsData() {
         CACHE_KEY,
         JSON.stringify(data, (_key, value) => {
           // Convert BigInts to strings for serialization
-          if (typeof value === 'bigint') {
-            return value.toString() + 'n';
+          if (typeof value === "bigint") {
+            return value.toString() + "n";
           }
           return value;
-        })
+        }),
       );
     } catch (error) {
-      console.error('Failed to save to cache:', error);
+      console.error("Failed to save to cache:", error);
     }
   }, []);
 
@@ -91,17 +91,17 @@ export function useGlobalCoinsData() {
     data: coinsData,
     isLoading,
     error,
-    refetch
+    refetch,
   } = useQuery({
-    queryKey: ['all-coins-data'],
+    queryKey: ["all-coins-data"],
     queryFn: async () => {
-      console.log('Fetching all coins data from CoinsMetadataHelper contract...');
+      console.log("Fetching all coins data from CoinsMetadataHelper contract...");
 
       try {
         // Try to use the cached data first while we fetch fresh data
         const cachedData = loadFromCache();
         if (cachedData) {
-          console.log('Using cached data while fetching fresh data...', cachedData.length, 'coins in cache');
+          console.log("Using cached data while fetching fresh data...", cachedData.length, "coins in cache");
         }
 
         // CRITICAL: Use the direct contract call to fetch all coins data in one go
@@ -110,7 +110,7 @@ export function useGlobalCoinsData() {
         const rawCoinsData = await publicClient.readContract({
           address: CoinsMetadataHelperAddress,
           abi: CoinsMetadataHelperAbi,
-          functionName: 'getAllCoinsData',
+          functionName: "getAllCoinsData",
         });
 
         // Log the raw response to help debug
@@ -124,7 +124,7 @@ export function useGlobalCoinsData() {
 
           // Map the raw data to our CoinData format with immediate metadata extraction
           for (const rawCoin of rawCoinsData) {
-            console.log('Processing raw coin:', rawCoin);
+            console.log("Processing raw coin:", rawCoin);
 
             // Enhanced handling - properly check the structure of the response
             let coinId, tokenURI, reserve0, reserve1, poolId, liquidity;
@@ -146,7 +146,7 @@ export function useGlobalCoinsData() {
             // Convert all values to ensure correct types
             const coinData: CoinData = {
               coinId: BigInt(coinId),
-              tokenURI: tokenURI?.toString() || '',
+              tokenURI: tokenURI?.toString() || "",
               reserve0: BigInt(reserve0 || 0),
               reserve1: BigInt(reserve1 || 0),
               poolId: BigInt(poolId || 0),
@@ -170,20 +170,18 @@ export function useGlobalCoinsData() {
             processedData.push(coinData);
           }
         } else {
-          console.error('Contract returned unexpected data format:', rawCoinsData);
-          throw new Error('Invalid data format from contract');
+          console.error("Contract returned unexpected data format:", rawCoinsData);
+          throw new Error("Invalid data format from contract");
         }
 
         // Merge with cached metadata if available for faster rendering
         let mergedData: CoinData[];
         if (cachedData) {
           // Create a map of coin IDs to cached metadata for quick lookup
-          const cachedMap = new Map(
-            cachedData.map(coin => [coin.coinId.toString(), coin])
-          );
+          const cachedMap = new Map(cachedData.map((coin) => [coin.coinId.toString(), coin]));
 
           // For each fresh coin data, use cached metadata if available
-          mergedData = processedData.map(freshCoin => {
+          mergedData = processedData.map((freshCoin) => {
             const cachedCoin = cachedMap.get(freshCoin.coinId.toString());
             if (cachedCoin) {
               // Merge fresh blockchain data with cached metadata
@@ -243,7 +241,7 @@ export function useGlobalCoinsData() {
                 }
 
                 // Replace the original coin in the array with the updated one
-                const index = mergedData.findIndex(c => c.coinId === coin.coinId);
+                const index = mergedData.findIndex((c) => c.coinId === coin.coinId);
                 if (index !== -1) {
                   mergedData[index] = updatedCoin;
                 }
@@ -269,12 +267,12 @@ export function useGlobalCoinsData() {
 
         return mergedData;
       } catch (err) {
-        console.error('Error fetching all coins data:', err);
+        console.error("Error fetching all coins data:", err);
 
         // If we have cached data, use it as a fallback
         const cachedData = loadFromCache();
         if (cachedData && cachedData.length > 0) {
-          console.log('Using cached data as fallback due to fetch error');
+          console.log("Using cached data as fallback due to fetch error");
           return cachedData;
         }
 
@@ -283,16 +281,19 @@ export function useGlobalCoinsData() {
       }
     },
     staleTime: 5 * 60 * 1000, // 5 minutes - stale after 5 minutes
-    gcTime: 30 * 60 * 1000,   // 30 minutes - keep in cache for 30 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes - keep in cache for 30 minutes
   });
 
-  // We no longer need a separate useEffect since we start processing metadata 
+  // We no longer need a separate useEffect since we start processing metadata
   // directly in the queryFn for more immediate results
 
   // Helper functions to access specific coins
-  const getCoinById = useCallback((id: bigint): CoinData | undefined => {
-    return coinsData?.find(coin => coin.coinId === id);
-  }, [coinsData]);
+  const getCoinById = useCallback(
+    (id: bigint): CoinData | undefined => {
+      return coinsData?.find((coin) => coin.coinId === id);
+    },
+    [coinsData],
+  );
 
   return {
     allCoins: coinsData || [],
@@ -305,25 +306,25 @@ export function useGlobalCoinsData() {
 
 // Process token URI to get metadata
 async function processTokenURI(tokenURI: string): Promise<Record<string, any> | null> {
-  if (!tokenURI || tokenURI === 'N/A') {
-    console.log('Empty or N/A tokenURI, skipping metadata fetch');
+  if (!tokenURI || tokenURI === "N/A") {
+    console.log("Empty or N/A tokenURI, skipping metadata fetch");
     return null;
   }
 
   console.log(`Starting metadata fetch for URI: ${tokenURI}`);
 
   try {
-    // Handle IPFS URIs with multiple gateway fallbacks 
+    // Handle IPFS URIs with multiple gateway fallbacks
     let uri = tokenURI;
 
     // First attempt with primary gateway
-    if (uri.startsWith('ipfs://')) {
+    if (uri.startsWith("ipfs://")) {
       uri = `${IPFS_GATEWAYS[0]}${uri.slice(7)}`;
       console.log(`Converted IPFS URI to HTTP: ${uri}`);
     }
 
     // Skip if it's not an HTTP or HTTPS URI
-    if (!uri.startsWith('http')) {
+    if (!uri.startsWith("http")) {
       console.log(`Skipping non-HTTP URI: ${uri}`);
       return null;
     }
@@ -343,7 +344,7 @@ async function processTokenURI(tokenURI: string): Promise<Record<string, any> | 
       console.warn(`Primary fetch failed for ${uri}:`, fetchError);
 
       // If the URI is IPFS and the primary gateway failed, try alternative gateways
-      if (tokenURI.startsWith('ipfs://')) {
+      if (tokenURI.startsWith("ipfs://")) {
         const ipfsHash = tokenURI.slice(7);
 
         // Try alternative gateways
@@ -373,14 +374,14 @@ async function processTokenURI(tokenURI: string): Promise<Record<string, any> | 
 
       // If still no valid response after trying alternatives
       if (!response || !response.ok) {
-        throw new Error('All gateway attempts failed');
+        throw new Error("All gateway attempts failed");
       }
     } finally {
       clearTimeout(timeoutId);
     }
 
     if (!response || !response.ok) {
-      throw new Error(`HTTP error! status: ${response?.status || 'unknown'}`);
+      throw new Error(`HTTP error! status: ${response?.status || "unknown"}`);
     }
 
     // Parse the JSON response
@@ -392,16 +393,16 @@ async function processTokenURI(tokenURI: string): Promise<Record<string, any> | 
       try {
         metadata = JSON.parse(text);
       } catch (jsonError) {
-        console.error('Error parsing JSON metadata:', jsonError);
+        console.error("Error parsing JSON metadata:", jsonError);
 
         // Try to clean the text response and parse again
         // Some metadata services return invalid JSON with extra characters
-        const cleanedText = text.trim().replace(/^\s*[\r\n]/gm, '');
+        const cleanedText = text.trim().replace(/^\s*[\r\n]/gm, "");
         try {
           metadata = JSON.parse(cleanedText);
-          console.log('Successfully parsed JSON after cleaning');
+          console.log("Successfully parsed JSON after cleaning");
         } catch (secondJsonError) {
-          console.error('Failed to parse JSON even after cleaning:', secondJsonError);
+          console.error("Failed to parse JSON even after cleaning:", secondJsonError);
           return null;
         }
       }
@@ -413,7 +414,7 @@ async function processTokenURI(tokenURI: string): Promise<Record<string, any> | 
 
       return normalizedMetadata;
     } catch (error) {
-      console.error('Error processing metadata response:', error);
+      console.error("Error processing metadata response:", error);
       return null;
     }
   } catch (error) {
@@ -431,13 +432,24 @@ function normalizeMetadata(metadata: Record<string, any>): Record<string, any> {
   if (!normalized.image) {
     // Common variations of image field names
     const possibleImageFields = [
-      'image_url', 'imageUrl', 'image_uri', 'imageUri', 'img', 'avatar',
-      'thumbnail', 'logo', 'icon', 'media', 'artwork', 'picture', 'url'
+      "image_url",
+      "imageUrl",
+      "image_uri",
+      "imageUri",
+      "img",
+      "avatar",
+      "thumbnail",
+      "logo",
+      "icon",
+      "media",
+      "artwork",
+      "picture",
+      "url",
     ];
 
     // Find the first matching field
     for (const field of possibleImageFields) {
-      if (normalized[field] && typeof normalized[field] === 'string') {
+      if (normalized[field] && typeof normalized[field] === "string") {
         console.log(`Found non-standard image field: ${field} with value: ${normalized[field]}`);
         normalized.image = normalized[field];
         break;
@@ -446,12 +458,12 @@ function normalizeMetadata(metadata: Record<string, any>): Record<string, any> {
 
     // Check if image is in a nested field like 'properties.image'
     if (!normalized.image && normalized.properties) {
-      for (const field of ['image', ...possibleImageFields]) {
-        if (normalized.properties[field] && typeof normalized.properties[field] === 'string') {
+      for (const field of ["image", ...possibleImageFields]) {
+        if (normalized.properties[field] && typeof normalized.properties[field] === "string") {
           console.log(`Found image in properties.${field}: ${normalized.properties[field]}`);
           normalized.image = normalized.properties[field];
           break;
-        } else if (normalized.properties[field]?.url && typeof normalized.properties[field].url === 'string') {
+        } else if (normalized.properties[field]?.url && typeof normalized.properties[field].url === "string") {
           console.log(`Found image in properties.${field}.url: ${normalized.properties[field].url}`);
           normalized.image = normalized.properties[field].url;
           break;
@@ -461,8 +473,8 @@ function normalizeMetadata(metadata: Record<string, any>): Record<string, any> {
 
     // Check for media arrays
     if (!normalized.image && Array.isArray(normalized.media)) {
-      const mediaItem = normalized.media.find((item: any) =>
-        item && (item.type?.includes('image') || item.mimeType?.includes('image'))
+      const mediaItem = normalized.media.find(
+        (item: any) => item && (item.type?.includes("image") || item.mimeType?.includes("image")),
       );
       if (mediaItem?.uri || mediaItem?.url) {
         console.log(`Found image in media array: ${mediaItem.uri || mediaItem.url}`);
@@ -476,36 +488,36 @@ function normalizeMetadata(metadata: Record<string, any>): Record<string, any> {
 
 // Define IPFS gateways at module level for consistency
 const IPFS_GATEWAYS = [
-  'https://content.wrappr.wtf/ipfs/',     // Primary gateway
-  'https://cloudflare-ipfs.com/ipfs/',     // Cloudflare gateway is very reliable
-  'https://gateway.pinata.cloud/ipfs/',    // Pinata gateway (often fast)
-  'https://ipfs.io/ipfs/',                 // Standard gateway
-  'https://dweb.link/ipfs/',               // Protocol Labs gateway
-  'https://ipfs.fleek.co/ipfs/'           // Fleek gateway
+  "https://content.wrappr.wtf/ipfs/", // Primary gateway
+  "https://cloudflare-ipfs.com/ipfs/", // Cloudflare gateway is very reliable
+  "https://gateway.pinata.cloud/ipfs/", // Pinata gateway (often fast)
+  "https://ipfs.io/ipfs/", // Standard gateway
+  "https://dweb.link/ipfs/", // Protocol Labs gateway
+  "https://ipfs.fleek.co/ipfs/", // Fleek gateway
 ];
 
 // Format image URL (handle IPFS URLs)
 export function formatImageURL(imageURL: string): string {
   if (!imageURL) {
-    return '';
+    return "";
   }
 
   // Extract IPFS hash if present
-  let ipfsHash = '';
+  let ipfsHash = "";
 
   // Handle IPFS URLs
-  if (imageURL.startsWith('ipfs://')) {
+  if (imageURL.startsWith("ipfs://")) {
     ipfsHash = imageURL.slice(7);
   }
   // Handle direct IPFS gateway references
-  else if (imageURL.includes('/ipfs/')) {
-    const parts = imageURL.split('/ipfs/');
+  else if (imageURL.includes("/ipfs/")) {
+    const parts = imageURL.split("/ipfs/");
     if (parts.length >= 2) {
       ipfsHash = parts[1];
     }
   }
   // Handle ipfs.io URLs which sometimes have rate limits
-  else if (imageURL.includes('ipfs.io')) {
+  else if (imageURL.includes("ipfs.io")) {
     const ipfsMatch = imageURL.match(/\/ipfs\/([a-zA-Z0-9]+)/);
     if (ipfsMatch && ipfsMatch[1]) {
       ipfsHash = ipfsMatch[1];
@@ -528,21 +540,21 @@ export function getAlternativeImageUrls(imageURL: string): string[] {
   }
 
   // Extract IPFS hash if present
-  let ipfsHash = '';
+  let ipfsHash = "";
 
   // Handle IPFS URLs
-  if (imageURL.startsWith('ipfs://')) {
+  if (imageURL.startsWith("ipfs://")) {
     ipfsHash = imageURL.slice(7);
   }
   // Handle direct IPFS gateway references
-  else if (imageURL.includes('/ipfs/')) {
-    const parts = imageURL.split('/ipfs/');
+  else if (imageURL.includes("/ipfs/")) {
+    const parts = imageURL.split("/ipfs/");
     if (parts.length >= 2) {
       ipfsHash = parts[1];
     }
   }
   // Handle ipfs.io URLs which sometimes have rate limits
-  else if (imageURL.includes('ipfs.io')) {
+  else if (imageURL.includes("ipfs.io")) {
     const ipfsMatch = imageURL.match(/\/ipfs\/([a-zA-Z0-9]+)/);
     if (ipfsMatch && ipfsMatch[1]) {
       ipfsHash = ipfsMatch[1];
@@ -552,7 +564,7 @@ export function getAlternativeImageUrls(imageURL: string): string[] {
   // If we found an IPFS hash, generate URLs for all gateways
   if (ipfsHash) {
     // Skip the first gateway as it's used as the primary one in formatImageURL
-    return IPFS_GATEWAYS.slice(1).map(gateway => `${gateway}${ipfsHash}`);
+    return IPFS_GATEWAYS.slice(1).map((gateway) => `${gateway}${ipfsHash}`);
   }
 
   // Return an empty array if no IPFS hash was found

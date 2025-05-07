@@ -22,19 +22,13 @@ import {
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
 import { ZAAMAbi, ZAAMAddress } from "./constants/ZAAM";
 import { ZAMMHelperAbi, ZAMMHelperAddress } from "./constants/ZAMMHelper";
-import {
-  ZAMMSingleLiqETHAbi,
-  ZAMMSingleLiqETHAddress,
-} from "./constants/ZAMMSingleLiqETH";
+import { ZAMMSingleLiqETHAbi, ZAMMSingleLiqETHAddress } from "./constants/ZAMMSingleLiqETH";
 import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, ArrowDownUp, Plus, Minus } from "lucide-react";
-import {
-  estimateContractGas,
-  simulateContractInteraction,
-} from "./lib/simulate";
+import { estimateContractGas, simulateContractInteraction } from "./lib/simulate";
 
 /* ────────────────────────────────────────────────────────────────────────────
   CONSTANTS & HELPERS
@@ -54,8 +48,7 @@ const SLIPPAGE_OPTIONS = [
 ];
 
 // Calculate amount with slippage tolerance applied
-const getAmountWithSlippage = (amount: bigint, slippageBps: bigint) =>
-  (amount * (10000n - slippageBps)) / 10000n;
+const getAmountWithSlippage = (amount: bigint, slippageBps: bigint) => (amount * (10000n - slippageBps)) / 10000n;
 
 export interface TokenMeta {
   id: bigint | null; // null = ETH pseudo-token
@@ -100,21 +93,14 @@ const computePoolId = (coinId: bigint) =>
   BigInt(
     keccak256(
       encodeAbiParameters(
-        parseAbiParameters(
-          "uint256 id0, uint256 id1, address token0, address token1, uint96 swapFee",
-        ),
+        parseAbiParameters("uint256 id0, uint256 id1, address token0, address token1, uint96 swapFee"),
         [0n, coinId, zeroAddress, CoinsAddress, SWAP_FEE],
       ),
     ),
   );
 
 // x*y=k AMM with fee — forward (amountIn → amountOut)
-const getAmountOut = (
-  amountIn: bigint,
-  reserveIn: bigint,
-  reserveOut: bigint,
-  swapFee: bigint,
-) => {
+const getAmountOut = (amountIn: bigint, reserveIn: bigint, reserveOut: bigint, swapFee: bigint) => {
   if (amountIn === 0n || reserveIn === 0n || reserveOut === 0n) return 0n;
 
   const amountInWithFee = amountIn * (10000n - swapFee);
@@ -124,19 +110,8 @@ const getAmountOut = (
 };
 
 // inverse — desired amountOut → required amountIn
-const getAmountIn = (
-  amountOut: bigint,
-  reserveIn: bigint,
-  reserveOut: bigint,
-  swapFee: bigint,
-) => {
-  if (
-    amountOut === 0n ||
-    reserveIn === 0n ||
-    reserveOut === 0n ||
-    amountOut >= reserveOut
-  )
-    return 0n;
+const getAmountIn = (amountOut: bigint, reserveIn: bigint, reserveOut: bigint, swapFee: bigint) => {
+  if (amountOut === 0n || reserveIn === 0n || reserveOut === 0n || amountOut >= reserveOut) return 0n;
 
   const numerator = reserveIn * amountOut * 10000n;
   const denominator = (reserveOut - amountOut) * (10000n - swapFee);
@@ -192,11 +167,7 @@ const useAllTokens = () => {
     // Process ETH balance and update state
 
     // Determine the balance value to use, with persistent state
-    const effectiveBalance = ethBalance
-      ? ethBalance.value
-      : address
-        ? undefined
-        : 0n; // Only reset to 0 if no address
+    const effectiveBalance = ethBalance ? ethBalance.value : address ? undefined : 0n; // Only reset to 0 if no address
 
     // Create ETH token with proper balance
     const ethTokenWithBalance = {
@@ -233,27 +204,17 @@ const useAllTokens = () => {
       const existingEthToken = prevTokens.find((token) => token.id === null);
 
       // Special case: we're trying to set undefined balance, but we already have a real balance
-      if (
-        ethTokenWithBalance.balance === undefined &&
-        existingEthToken?.balance &&
-        existingEthToken.balance > 0n
-      ) {
+      if (ethTokenWithBalance.balance === undefined && existingEthToken?.balance && existingEthToken.balance > 0n) {
         ethTokenWithBalance.balance = existingEthToken.balance;
       }
 
       // If we don't have any tokens yet or only ETH, replace the whole array
-      if (
-        prevTokens.length === 0 ||
-        (prevTokens.length === 1 && prevTokens[0].id === null)
-      ) {
+      if (prevTokens.length === 0 || (prevTokens.length === 1 && prevTokens[0].id === null)) {
         return [ethTokenWithBalance];
       }
 
       // Otherwise replace ETH token while keeping others
-      return [
-        ethTokenWithBalance,
-        ...prevTokens.filter((token) => token.id !== null),
-      ];
+      return [ethTokenWithBalance, ...prevTokens.filter((token) => token.id !== null)];
     });
   }, [ethBalance, ethBalanceSuccess, isEthBalanceFetching, address]);
 
@@ -311,42 +272,32 @@ const useAllTokens = () => {
         const tokenPromises = coinIds.map(async (id) => {
           try {
             // Fetch metadata
-            const [symbolResult, nameResult, tokenUriResult] =
-              await Promise.allSettled([
-                publicClient.readContract({
-                  address: CoinsAddress,
-                  abi: CoinsAbi,
-                  functionName: "symbol",
-                  args: [id],
-                }),
-                publicClient.readContract({
-                  address: CoinsAddress,
-                  abi: CoinsAbi,
-                  functionName: "name",
-                  args: [id],
-                }),
-                publicClient.readContract({
-                  address: CoinsAddress,
-                  abi: CoinsAbi,
-                  functionName: "tokenURI",
-                  args: [id],
-                }),
-              ]);
+            const [symbolResult, nameResult, tokenUriResult] = await Promise.allSettled([
+              publicClient.readContract({
+                address: CoinsAddress,
+                abi: CoinsAbi,
+                functionName: "symbol",
+                args: [id],
+              }),
+              publicClient.readContract({
+                address: CoinsAddress,
+                abi: CoinsAbi,
+                functionName: "name",
+                args: [id],
+              }),
+              publicClient.readContract({
+                address: CoinsAddress,
+                abi: CoinsAbi,
+                functionName: "tokenURI",
+                args: [id],
+              }),
+            ]);
 
-            const symbol =
-              symbolResult.status === "fulfilled"
-                ? (symbolResult.value as string)
-                : `C#${id.toString()}`;
+            const symbol = symbolResult.status === "fulfilled" ? (symbolResult.value as string) : `C#${id.toString()}`;
 
-            const name =
-              nameResult.status === "fulfilled"
-                ? (nameResult.value as string)
-                : `Coin #${id.toString()}`;
+            const name = nameResult.status === "fulfilled" ? (nameResult.value as string) : `Coin #${id.toString()}`;
 
-            const tokenUri =
-              tokenUriResult.status === "fulfilled"
-                ? (tokenUriResult.value as string)
-                : "";
+            const tokenUri = tokenUriResult.status === "fulfilled" ? (tokenUriResult.value as string) : "";
 
             // Fetch reserves for this token
             let reserve0: bigint = 0n;
@@ -370,9 +321,7 @@ const useAllTokens = () => {
                 reserve0 = poolData[0]; // ETH reserve
                 reserve1 = poolData[1]; // Token reserve
               } else {
-                console.warn(
-                  `Invalid pool data for coin ${id}: ${JSON.stringify(poolData)}`,
-                );
+                console.warn(`Invalid pool data for coin ${id}: ${JSON.stringify(poolData)}`);
               }
             } catch (err) {
               console.error(`Failed to fetch reserves for coin ${id}:`, err);
@@ -440,23 +389,16 @@ const useAllTokens = () => {
         // Tokens sorted by reserves
 
         // Get the updated ETH token with balance from current state or use ethBalance directly
-        const currentEthToken =
-          tokens.find((token) => token.id === null) || ETH_TOKEN;
+        const currentEthToken = tokens.find((token) => token.id === null) || ETH_TOKEN;
 
         // Create a new ETH token with balance preserved - ALWAYS prioritize the latest ethBalance
         const ethTokenWithBalance = {
           ...currentEthToken,
           // If we have ethBalance, ALWAYS use it as the most up-to-date value
-          balance:
-            ethBalance?.value !== undefined
-              ? ethBalance.value
-              : currentEthToken.balance,
+          balance: ethBalance?.value !== undefined ? ethBalance.value : currentEthToken.balance,
           // Add formatted balance for debugging
           formattedBalance:
-            ethBalance?.formatted ||
-            (currentEthToken.balance
-              ? formatEther(currentEthToken.balance)
-              : "0"),
+            ethBalance?.formatted || (currentEthToken.balance ? formatEther(currentEthToken.balance) : "0"),
         };
 
         // Debug the ETH balance with more detailed logging
@@ -642,9 +584,7 @@ const TokenSelector = ({
     // If token has no URI, show colored initial
     if (!token.tokenUri) {
       return (
-        <div
-          className={`w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full text-xs font-medium`}
-        >
+        <div className={`w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full text-xs font-medium`}>
           {getInitials(token.symbol)}
         </div>
       );
@@ -655,11 +595,7 @@ const TokenSelector = ({
       return (
         <div className="relative w-8 h-8 rounded-full overflow-hidden">
           <div className="w-8 h-8 flex bg-gray-200 justify-center items-center rounded-full">
-            <img
-              src="/coinchan-logo.png"
-              alt="Loading"
-              className="w-6 h-6 object-contain opacity-50"
-            />
+            <img src="/coinchan-logo.png" alt="Loading" className="w-6 h-6 object-contain opacity-50" />
           </div>
         </div>
       );
@@ -707,28 +643,15 @@ const TokenSelector = ({
             <div className="text-xs font-medium text-gray-700 min-w-[50px] h-[14px]">
               {formatBalance(selectedToken)}
               {selectedToken.id === null && isEthBalanceFetching && (
-                <span
-                  className="text-xs text-yellow-500 ml-1"
-                  style={{ animation: "pulse 1.5s infinite" }}
-                >
+                <span className="text-xs text-yellow-500 ml-1" style={{ animation: "pulse 1.5s infinite" }}>
                   ·
                 </span>
               )}
             </div>
           </div>
         </div>
-        <svg
-          className="w-4 h-4 ml-1"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          fill="none"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            d="M19 9l-7 7-7-7"
-          />
+        <svg className="w-4 h-4 ml-1" viewBox="0 0 24 24" stroke="currentColor" fill="none">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
         </svg>
       </div>
 
@@ -746,22 +669,16 @@ const TokenSelector = ({
                   const query = e.target.value.toLowerCase();
 
                   // Get all token items by data attribute
-                  document
-                    .querySelectorAll("[data-token-symbol]")
-                    .forEach((item) => {
-                      const symbol =
-                        item.getAttribute("data-token-symbol")?.toLowerCase() ||
-                        "";
-                      const name =
-                        item.getAttribute("data-token-name")?.toLowerCase() ||
-                        "";
+                  document.querySelectorAll("[data-token-symbol]").forEach((item) => {
+                    const symbol = item.getAttribute("data-token-symbol")?.toLowerCase() || "";
+                    const name = item.getAttribute("data-token-name")?.toLowerCase() || "";
 
-                      if (symbol.includes(query) || name.includes(query)) {
-                        item.classList.remove("hidden");
-                      } else {
-                        item.classList.add("hidden");
-                      }
-                    });
+                    if (symbol.includes(query) || name.includes(query)) {
+                      item.classList.remove("hidden");
+                    } else {
+                      item.classList.add("hidden");
+                    }
+                  });
                 }}
                 className="w-full p-2 pl-8 border border-yellow-200 rounded focus:outline-none focus:ring-2 focus:ring-yellow-300 text-sm"
               />
@@ -791,8 +708,7 @@ const TokenSelector = ({
               if (token.id === null) return "";
 
               // If no reserves data available or zero reserves
-              if (!token.reserve0 || token.reserve0 === 0n)
-                return "No liquidity";
+              if (!token.reserve0 || token.reserve0 === 0n) return "No liquidity";
 
               // Format ETH reserves to a readable format based on size
               const ethValue = Number(formatEther(token.reserve0));
@@ -835,19 +751,14 @@ const TokenSelector = ({
                   <TokenImage token={token} />
                   <div className="flex flex-col">
                     <span className="font-medium">{token.symbol}</span>
-                    {reserves && (
-                      <span className="text-xs text-gray-500">{reserves}</span>
-                    )}
+                    {reserves && <span className="text-xs text-gray-500">{reserves}</span>}
                   </div>
                 </div>
                 <div className="text-right min-w-[60px]">
                   <div className="text-sm font-medium h-[18px]">
                     {balance}
                     {token.id === null && isEthBalanceFetching && (
-                      <span
-                        className="text-xs text-yellow-500 ml-1"
-                        style={{ animation: "pulse 1.5s infinite" }}
-                      >
+                      <span className="text-xs text-yellow-500 ml-1" style={{ animation: "pulse 1.5s infinite" }}>
                         ·
                       </span>
                     )}
@@ -872,12 +783,7 @@ type LiquidityMode = "add" | "remove" | "single-eth";
   SwapTile main component
 ──────────────────────────────────────────────────────────────────────────── */
 export const SwapTile = () => {
-  const {
-    tokens,
-    loading,
-    error: loadError,
-    isEthBalanceFetching,
-  } = useAllTokens();
+  const { tokens, loading, error: loadError, isEthBalanceFetching } = useAllTokens();
   const [sellToken, setSellToken] = useState<TokenMeta>(ETH_TOKEN);
   const [buyToken, setBuyToken] = useState<TokenMeta | null>(null);
   const [mode, setMode] = useState<TileMode>("swap");
@@ -885,21 +791,15 @@ export const SwapTile = () => {
 
   // Slippage settings with defaults
   const [slippageBps, setSlippageBps] = useState<bigint>(DEFAULT_SLIPPAGE_BPS);
-  const [singleEthSlippageBps, setSingleEthSlippageBps] = useState<bigint>(
-    DEFAULT_SINGLE_ETH_SLIPPAGE_BPS,
-  );
-  const [showSlippageSettings, setShowSlippageSettings] =
-    useState<boolean>(false);
+  const [singleEthSlippageBps, setSingleEthSlippageBps] = useState<bigint>(DEFAULT_SINGLE_ETH_SLIPPAGE_BPS);
+  const [showSlippageSettings, setShowSlippageSettings] = useState<boolean>(false);
 
   // Helper functions for slippage calculation
-  const withSlippage = (amount: bigint) =>
-    getAmountWithSlippage(amount, slippageBps);
-  const withSingleEthSlippage = (amount: bigint) =>
-    getAmountWithSlippage(amount, singleEthSlippageBps);
+  const withSlippage = (amount: bigint) => getAmountWithSlippage(amount, slippageBps);
+  const withSingleEthSlippage = (amount: bigint) => getAmountWithSlippage(amount, singleEthSlippageBps);
 
   // Single-ETH estimation values
-  const [singleETHEstimatedCoin, setSingleETHEstimatedCoin] =
-    useState<string>("");
+  const [singleETHEstimatedCoin, setSingleETHEstimatedCoin] = useState<string>("");
 
   // When switching to single-eth mode, ensure ETH is selected as the sell token
   // and set a default target token if none is selected
@@ -956,13 +856,9 @@ export const SwapTile = () => {
       const shouldUpdate =
         (updatedEthToken.balance &&
           updatedEthToken.balance > 0n &&
-          (!sellToken.balance ||
-            sellToken.balance === 0n ||
-            updatedEthToken.balance !== sellToken.balance)) ||
+          (!sellToken.balance || sellToken.balance === 0n || updatedEthToken.balance !== sellToken.balance)) ||
         // Or if the updated token has no balance but we previously had one, keep the old one
-        ((!updatedEthToken.balance || updatedEthToken.balance === 0n) &&
-          sellToken.balance &&
-          sellToken.balance > 0n);
+        ((!updatedEthToken.balance || updatedEthToken.balance === 0n) && sellToken.balance && sellToken.balance > 0n);
 
       if (shouldUpdate) {
         // Update ETH token with balance changes
@@ -988,21 +884,13 @@ export const SwapTile = () => {
       const shouldUpdate =
         (updatedEthToken.balance &&
           updatedEthToken.balance > 0n &&
-          (!buyToken.balance ||
-            buyToken.balance === 0n ||
-            updatedEthToken.balance !== buyToken.balance)) ||
-        ((!updatedEthToken.balance || updatedEthToken.balance === 0n) &&
-          buyToken.balance &&
-          buyToken.balance > 0n);
+          (!buyToken.balance || buyToken.balance === 0n || updatedEthToken.balance !== buyToken.balance)) ||
+        ((!updatedEthToken.balance || updatedEthToken.balance === 0n) && buyToken.balance && buyToken.balance > 0n);
 
       if (shouldUpdate) {
         // Update buyToken ETH balance
 
-        if (
-          (!updatedEthToken.balance || updatedEthToken.balance === 0n) &&
-          buyToken.balance &&
-          buyToken.balance > 0n
-        ) {
+        if ((!updatedEthToken.balance || updatedEthToken.balance === 0n) && buyToken.balance && buyToken.balance > 0n) {
           setBuyToken({
             ...updatedEthToken,
             balance: buyToken.balance,
@@ -1040,15 +928,10 @@ export const SwapTile = () => {
     (sellToken.id === null ||
       buyToken.id === null ||
       // New case: Coin → Coin (different IDs)
-      (sellToken.id !== null &&
-        buyToken?.id !== null &&
-        sellToken.id !== buyToken.id));
+      (sellToken.id !== null && buyToken?.id !== null && sellToken.id !== buyToken.id));
   const isSellETH = sellToken.id === null;
   const isCoinToCoin =
-    sellToken.id !== null &&
-    buyToken?.id !== null &&
-    buyToken?.id !== undefined &&
-    sellToken.id !== buyToken.id;
+    sellToken.id !== null && buyToken?.id !== null && buyToken?.id !== undefined && sellToken.id !== buyToken.id;
   const coinId = (isSellETH ? buyToken?.id : sellToken.id) ?? 0n;
 
   /* user inputs */
@@ -1058,11 +941,7 @@ export const SwapTile = () => {
   const [txError, setTxError] = useState<string | null>(null);
 
   /* additional wagmi hooks */
-  const {
-    writeContractAsync,
-    isPending,
-    error: writeError,
-  } = useWriteContract();
+  const { writeContractAsync, isPending, error: writeError } = useWriteContract();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
   const chainId = useChainId();
 
@@ -1111,8 +990,7 @@ export const SwapTile = () => {
   // Fetch target reserves for coin-to-coin swaps
   useEffect(() => {
     const fetchTargetReserves = async () => {
-      if (!isCoinToCoin || !buyToken?.id || buyToken.id === 0n || !publicClient)
-        return;
+      if (!isCoinToCoin || !buyToken?.id || buyToken.id === 0n || !publicClient) return;
 
       try {
         const targetPoolId = computePoolId(buyToken.id);
@@ -1284,10 +1162,7 @@ export const SwapTile = () => {
               };
             }
           } catch (err) {
-            console.error(
-              `Failed to fetch reserves for target token ${buyToken.id}:`,
-              err,
-            );
+            console.error(`Failed to fetch reserves for target token ${buyToken.id}:`, err);
             // Continue with existing reserves as fallback
           }
         }
@@ -1296,12 +1171,7 @@ export const SwapTile = () => {
         const halfEthAmount = parseEther(val || "0") / 2n;
 
         // Estimate how many tokens we'll get for half the ETH
-        const estimatedTokens = getAmountOut(
-          halfEthAmount,
-          targetReserves.reserve0,
-          targetReserves.reserve1,
-          SWAP_FEE,
-        );
+        const estimatedTokens = getAmountOut(halfEthAmount, targetReserves.reserve0, targetReserves.reserve1, SWAP_FEE);
 
         // Update the estimated coin display
         if (estimatedTokens === 0n) {
@@ -1351,22 +1221,12 @@ export const SwapTile = () => {
       } else if (isSellETH) {
         // ETH → Coin path
         const inWei = parseEther(val || "0");
-        const outUnits = getAmountOut(
-          inWei,
-          reserves.reserve0,
-          reserves.reserve1,
-          SWAP_FEE,
-        );
+        const outUnits = getAmountOut(inWei, reserves.reserve0, reserves.reserve1, SWAP_FEE);
         setBuyAmt(outUnits === 0n ? "" : formatUnits(outUnits, 18));
       } else {
         // Coin → ETH path
         const inUnits = parseUnits(val || "0", 18);
-        const outWei = getAmountOut(
-          inUnits,
-          reserves.reserve1,
-          reserves.reserve0,
-          SWAP_FEE,
-        );
+        const outWei = getAmountOut(inUnits, reserves.reserve1, reserves.reserve0, SWAP_FEE);
         setBuyAmt(outWei === 0n ? "" : formatEther(outWei));
       }
     } catch {
@@ -1390,22 +1250,12 @@ export const SwapTile = () => {
       } else if (isSellETH) {
         // ETH → Coin path (calculate ETH input)
         const outUnits = parseUnits(val || "0", 18);
-        const inWei = getAmountIn(
-          outUnits,
-          reserves.reserve0,
-          reserves.reserve1,
-          SWAP_FEE,
-        );
+        const inWei = getAmountIn(outUnits, reserves.reserve0, reserves.reserve1, SWAP_FEE);
         setSellAmt(inWei === 0n ? "" : formatEther(inWei));
       } else {
         // Coin → ETH path (calculate Coin input)
         const outWei = parseEther(val || "0");
-        const inUnits = getAmountIn(
-          outWei,
-          reserves.reserve1,
-          reserves.reserve0,
-          SWAP_FEE,
-        );
+        const inUnits = getAmountIn(outWei, reserves.reserve1, reserves.reserve0, SWAP_FEE);
         setSellAmt(inUnits === 0n ? "" : formatUnits(inUnits, 18));
       }
     } catch {
@@ -1474,25 +1324,14 @@ export const SwapTile = () => {
             reserve1: poolData[1],
           };
         } catch (err) {
-          console.error(
-            `Failed to fetch reserves for ${buyToken.symbol}:`,
-            err,
-          );
-          setTxError(
-            `Failed to get pool data for ${buyToken.symbol}. Please try again.`,
-          );
+          console.error(`Failed to fetch reserves for ${buyToken.symbol}:`, err);
+          setTxError(`Failed to get pool data for ${buyToken.symbol}. Please try again.`);
           return;
         }
       }
 
-      if (
-        !targetReserves ||
-        targetReserves.reserve0 === 0n ||
-        targetReserves.reserve1 === 0n
-      ) {
-        setTxError(
-          `No liquidity available for ${buyToken.symbol}. Please select another token.`,
-        );
+      if (!targetReserves || targetReserves.reserve0 === 0n || targetReserves.reserve1 === 0n) {
+        setTxError(`No liquidity available for ${buyToken.symbol}. Please select another token.`);
         return;
       }
 
@@ -1500,12 +1339,7 @@ export const SwapTile = () => {
       const halfEthAmount = ethAmount / 2n;
 
       // Estimate how many tokens we'll get for half the ETH
-      const estimatedTokens = getAmountOut(
-        halfEthAmount,
-        targetReserves.reserve0,
-        targetReserves.reserve1,
-        SWAP_FEE,
-      );
+      const estimatedTokens = getAmountOut(halfEthAmount, targetReserves.reserve0, targetReserves.reserve1, SWAP_FEE);
 
       // Apply higher slippage tolerance for Single-ETH operations
       const minTokenAmount = withSingleEthSlippage(estimatedTokens);
@@ -1533,12 +1367,7 @@ export const SwapTile = () => {
       setTxHash(hash);
     } catch (err: unknown) {
       // Enhanced error handling with specific messages for common failure cases
-      if (
-        typeof err === "object" &&
-        err !== null &&
-        "message" in err &&
-        typeof err.message === "string"
-      ) {
+      if (typeof err === "object" && err !== null && "message" in err && typeof err.message === "string") {
         if (err.message.includes("InsufficientOutputAmount")) {
           console.error("Slippage too high in low liquidity pool:", err);
           setTxError(
@@ -1580,9 +1409,7 @@ export const SwapTile = () => {
     // Check if burn amount exceeds user's balance
     const burnAmount = parseUnits(lpBurnAmount, 18);
     if (burnAmount > lpTokenBalance) {
-      setTxError(
-        `You only have ${formatUnits(lpTokenBalance, 18)} LP tokens available`,
-      );
+      setTxError(`You only have ${formatUnits(lpTokenBalance, 18)} LP tokens available`);
       return;
     }
 
@@ -1659,9 +1486,7 @@ export const SwapTile = () => {
       // - amount1 is the Coin amount
 
       const amount0 = isSellETH ? parseEther(sellAmt) : parseEther(buyAmt); // ETH amount
-      const amount1 = isSellETH
-        ? parseUnits(buyAmt, 18)
-        : parseUnits(sellAmt, 18); // Coin amount
+      const amount1 = isSellETH ? parseUnits(buyAmt, 18) : parseUnits(sellAmt, 18); // Coin amount
 
       // Verify we have valid amounts
       if (amount0 === 0n || amount1 === 0n) {
@@ -1677,9 +1502,7 @@ export const SwapTile = () => {
       if (isOperator === false) {
         try {
           // First, show a notification about the approval step
-          setTxError(
-            "Waiting for operator approval. Please confirm the transaction...",
-          );
+          setTxError("Waiting for operator approval. Please confirm the transaction...");
 
           // Send the approval transaction
           const approvalHash = await writeContractAsync({
@@ -1690,9 +1513,7 @@ export const SwapTile = () => {
           });
 
           // Show a waiting message
-          setTxError(
-            "Operator approval submitted. Waiting for confirmation...",
-          );
+          setTxError("Operator approval submitted. Waiting for confirmation...");
 
           // Wait for the transaction to be mined
           const receipt = await publicClient.waitForTransactionReceipt({
@@ -1733,11 +1554,7 @@ export const SwapTile = () => {
         });
 
         // Extract the values from the result array
-        const [ethAmount, calcAmount0, calcAmount1] = result as [
-          bigint,
-          bigint,
-          bigint,
-        ];
+        const [ethAmount, calcAmount0, calcAmount1] = result as [bigint, bigint, bigint];
 
         // Detailed logging to help with debugging
 
@@ -1768,10 +1585,7 @@ export const SwapTile = () => {
         // Use our utility to handle wallet errors
         const errorMsg = handleWalletError(calcErr);
         if (errorMsg) {
-          console.error(
-            "Error calling ZAMMHelper.calculateRequiredETH:",
-            calcErr,
-          );
+          console.error("Error calling ZAMMHelper.calculateRequiredETH:", calcErr);
           setTxError("Failed to calculate exact ETH amount");
         }
         return;
@@ -1789,12 +1603,8 @@ export const SwapTile = () => {
             setTxError("Insufficient funds for this transaction");
           } else if (err.message.includes("InvalidMsgVal")) {
             // This is our critical error where the msg.value doesn't match what the contract expects
-            setTxError(
-              "Contract rejected ETH value. Please try again with different amounts.",
-            );
-            console.error(
-              "ZAMM contract rejected the ETH value due to strict msg.value validation.",
-            );
+            setTxError("Contract rejected ETH value. Please try again with different amounts.");
+            console.error("ZAMM contract rejected the ETH value due to strict msg.value validation.");
           } else {
             setTxError("Transaction failed. Please try again.");
           }
@@ -1820,12 +1630,7 @@ export const SwapTile = () => {
 
       if (isSellETH) {
         const amountInWei = parseEther(sellAmt || "0");
-        const rawOut = getAmountOut(
-          amountInWei,
-          reserves.reserve0,
-          reserves.reserve1,
-          SWAP_FEE,
-        );
+        const rawOut = getAmountOut(amountInWei, reserves.reserve0, reserves.reserve1, SWAP_FEE);
 
         if (rawOut === 0n) {
           setTxError("Output amount is zero. Check pool liquidity.");
@@ -1837,14 +1642,7 @@ export const SwapTile = () => {
           address: ZAAMAddress,
           abi: ZAAMAbi,
           functionName: "swapExactIn",
-          args: [
-            poolKey,
-            amountInWei,
-            withSlippage(rawOut),
-            true,
-            address,
-            nowSec() + BigInt(DEADLINE_SEC),
-          ],
+          args: [poolKey, amountInWei, withSlippage(rawOut), true, address, nowSec() + BigInt(DEADLINE_SEC)],
           value: amountInWei,
         });
 
@@ -1852,14 +1650,7 @@ export const SwapTile = () => {
           address: ZAAMAddress,
           abi: ZAAMAbi,
           functionName: "swapExactIn",
-          args: [
-            poolKey,
-            amountInWei,
-            withSlippage(rawOut),
-            true,
-            address,
-            nowSec() + BigInt(DEADLINE_SEC),
-          ],
+          args: [poolKey, amountInWei, withSlippage(rawOut), true, address, nowSec() + BigInt(DEADLINE_SEC)],
           value: amountInWei,
         });
 
@@ -1869,14 +1660,7 @@ export const SwapTile = () => {
           address: ZAAMAddress,
           abi: ZAAMAbi,
           functionName: "swapExactIn",
-          args: [
-            poolKey,
-            amountInWei,
-            withSlippage(rawOut),
-            true,
-            address,
-            nowSec() + BigInt(DEADLINE_SEC),
-          ],
+          args: [poolKey, amountInWei, withSlippage(rawOut), true, address, nowSec() + BigInt(DEADLINE_SEC)],
           value: amountInWei,
           gas: gas,
         });
@@ -1888,9 +1672,7 @@ export const SwapTile = () => {
         if (isOperator === false) {
           try {
             // First, show a notification about the approval step
-            setTxError(
-              "Waiting for operator approval. Please confirm the transaction...",
-            );
+            setTxError("Waiting for operator approval. Please confirm the transaction...");
 
             // Send the approval transaction
             const approvalHash = await writeContractAsync({
@@ -1901,9 +1683,7 @@ export const SwapTile = () => {
             });
 
             // Show a waiting message
-            setTxError(
-              "Operator approval submitted. Waiting for confirmation...",
-            );
+            setTxError("Operator approval submitted. Waiting for confirmation...");
 
             // Wait for the transaction to be mined
             const receipt = await publicClient.waitForTransactionReceipt({
@@ -1930,15 +1710,10 @@ export const SwapTile = () => {
         }
 
         // If we have two different Coin IDs, use the multicall path for Coin to Coin swap
-        if (
-          buyToken?.id !== null &&
-          sellToken.id !== null &&
-          buyToken?.id !== sellToken.id
-        ) {
+        if (buyToken?.id !== null && sellToken.id !== null && buyToken?.id !== sellToken.id) {
           try {
             // Import our helper dynamically to avoid circular dependencies
-            const { createCoinSwapMulticall, estimateCoinToCoinOutput } =
-              await import("./lib/swapHelper");
+            const { createCoinSwapMulticall, estimateCoinToCoinOutput } = await import("./lib/swapHelper");
 
             // Fetch target coin reserves
             const targetPoolId = computePoolId(buyToken.id!);
@@ -1949,8 +1724,7 @@ export const SwapTile = () => {
               args: [targetPoolId],
             });
 
-            const targetPoolData =
-              targetPoolResult as unknown as readonly bigint[];
+            const targetPoolData = targetPoolResult as unknown as readonly bigint[];
             const targetReserves = {
               reserve0: targetPoolData[0],
               reserve1: targetPoolData[1],
@@ -2029,12 +1803,7 @@ export const SwapTile = () => {
         }
 
         // Default path for Coin to ETH swap
-        const rawOut = getAmountOut(
-          amountInUnits,
-          reserves.reserve1,
-          reserves.reserve0,
-          SWAP_FEE,
-        );
+        const rawOut = getAmountOut(amountInUnits, reserves.reserve1, reserves.reserve0, SWAP_FEE);
 
         if (rawOut === 0n) {
           setTxError("Output amount is zero. Check pool liquidity.");
@@ -2045,35 +1814,19 @@ export const SwapTile = () => {
           address: ZAAMAddress,
           abi: ZAAMAbi,
           functionName: "swapExactIn",
-          args: [
-            poolKey,
-            amountInUnits,
-            withSlippage(rawOut),
-            false,
-            address,
-            nowSec() + BigInt(DEADLINE_SEC),
-          ],
+          args: [poolKey, amountInUnits, withSlippage(rawOut), false, address, nowSec() + BigInt(DEADLINE_SEC)],
         });
         setTxHash(hash);
       }
     } catch (err: unknown) {
       // Enhanced error handling with specific messages for common swap failure cases
-      if (
-        typeof err === "object" &&
-        err !== null &&
-        "message" in err &&
-        typeof err.message === "string"
-      ) {
+      if (typeof err === "object" && err !== null && "message" in err && typeof err.message === "string") {
         if (err.message.includes("InsufficientOutputAmount")) {
           console.error("Swap failed due to price movement:", err);
-          setTxError(
-            "Swap failed due to price movement in low liquidity pool. Try again or use a smaller amount.",
-          );
+          setTxError("Swap failed due to price movement in low liquidity pool. Try again or use a smaller amount.");
         } else if (err.message.includes("K(")) {
           console.error("Pool balance constraints not satisfied:", err);
-          setTxError(
-            "Swap failed due to pool constraints. This usually happens with large orders in small pools.",
-          );
+          setTxError("Swap failed due to pool constraints. This usually happens with large orders in small pools.");
         } else {
           // Default to standard error handling
           const errorMsg = handleWalletError(err);
@@ -2105,16 +1858,11 @@ export const SwapTile = () => {
       <CardContent className="p-0 sm:p-1 flex flex-col space-y-1">
         {/* Info showing token count */}
         <div className="text-xs text-gray-500 mb-2">
-          Available tokens: {tokenCount} (ETH + {tokenCount - 1} coins, sorted
-          by liquidity)
+          Available tokens: {tokenCount} (ETH + {tokenCount - 1} coins, sorted by liquidity)
         </div>
 
         {/* Mode tabs */}
-        <Tabs
-          value={mode}
-          onValueChange={(value) => setMode(value as TileMode)}
-          className="mb-2"
-        >
+        <Tabs value={mode} onValueChange={(value) => setMode(value as TileMode)} className="mb-2">
           <TabsList className="w-full bg-yellow-50 p-1 rounded-lg border border-yellow-100">
             <TabsTrigger
               value="swap"
@@ -2168,9 +1916,7 @@ export const SwapTile = () => {
 
         {/* Load error notification */}
         {loadError && (
-          <div className="p-2 mb-2 bg-red-50 border border-red-200 rounded text-sm text-red-600">
-            {loadError}
-          </div>
+          <div className="p-2 mb-2 bg-red-50 border border-red-200 rounded text-sm text-red-600">{loadError}</div>
         )}
 
         {/* SELL + FLIP + BUY panel container */}
@@ -2179,18 +1925,12 @@ export const SwapTile = () => {
           {mode === "liquidity" && liquidityMode === "remove" && (
             <div className="border-2 border-yellow-500 group hover:bg-yellow-50 rounded-t-2xl p-3 pb-4 focus-within:ring-2 focus-within:ring-primary flex flex-col gap-2 bg-yellow-50">
               <div className="flex items-center justify-between">
-                <span className="font-medium text-yellow-800">
-                  LP Tokens to Burn
-                </span>
+                <span className="font-medium text-yellow-800">LP Tokens to Burn</span>
                 <div className="flex items-center gap-1">
-                  <span className="text-xs text-yellow-700">
-                    Balance: {formatUnits(lpTokenBalance, 18)}
-                  </span>
+                  <span className="text-xs text-yellow-700">Balance: {formatUnits(lpTokenBalance, 18)}</span>
                   <button
                     className="text-xs bg-yellow-200 hover:bg-yellow-300 text-yellow-800 font-medium px-3 py-1.5 rounded touch-manipulation min-w-[50px]"
-                    onClick={() =>
-                      syncFromSell(formatUnits(lpTokenBalance, 18))
-                    }
+                    onClick={() => syncFromSell(formatUnits(lpTokenBalance, 18))}
                   >
                     MAX
                   </button>
@@ -2207,8 +1947,7 @@ export const SwapTile = () => {
                 className="text-lg sm:text-xl font-medium w-full bg-yellow-50 focus:outline-none h-10 text-right pr-1"
               />
               <div className="text-xs text-yellow-600 mt-1">
-                Enter the amount of LP tokens you want to burn to receive ETH
-                and tokens back.
+                Enter the amount of LP tokens you want to burn to receive ETH and tokens back.
               </div>
             </div>
           )}
@@ -2231,23 +1970,14 @@ export const SwapTile = () => {
               {mode === "liquidity" && liquidityMode === "single-eth" ? (
                 <div className="flex items-center gap-2 bg-transparent border border-yellow-200 rounded-md px-2 py-1">
                   <div className="w-8 h-8 overflow-hidden rounded-full">
-                    <img
-                      src={ETH_TOKEN.tokenUri}
-                      alt="ETH"
-                      className="w-8 h-8 object-cover"
-                    />
+                    <img src={ETH_TOKEN.tokenUri} alt="ETH" className="w-8 h-8 object-cover" />
                   </div>
                   <div className="flex flex-col">
                     <span className="font-medium">ETH</span>
                     <div className="text-xs font-medium text-gray-700 min-w-[50px] h-[14px]">
-                      {sellToken.balance !== undefined
-                        ? formatEther(sellToken.balance)
-                        : "0"}
+                      {sellToken.balance !== undefined ? formatEther(sellToken.balance) : "0"}
                       {isEthBalanceFetching && (
-                        <span
-                          className="text-xs text-yellow-500 ml-1"
-                          style={{ animation: "pulse 1.5s infinite" }}
-                        >
+                        <span className="text-xs text-yellow-500 ml-1" style={{ animation: "pulse 1.5s infinite" }}>
                           ·
                         </span>
                       )}
@@ -2276,31 +2006,24 @@ export const SwapTile = () => {
                 readOnly={mode === "liquidity" && liquidityMode === "remove"}
               />
               {mode === "liquidity" && liquidityMode === "remove" && (
-                <span className="text-xs text-yellow-600 font-medium">
-                  Preview
-                </span>
+                <span className="text-xs text-yellow-600 font-medium">Preview</span>
               )}
               {/* MAX button for using full balance */}
               {sellToken.balance !== undefined &&
                 sellToken.balance > 0n &&
                 (mode === "swap" ||
-                  (mode === "liquidity" &&
-                    (liquidityMode === "add" ||
-                      liquidityMode === "single-eth"))) && (
+                  (mode === "liquidity" && (liquidityMode === "add" || liquidityMode === "single-eth"))) && (
                   <button
                     className="text-xs bg-yellow-100 hover:bg-yellow-200 text-yellow-800 font-medium px-3 py-1.5 rounded touch-manipulation min-w-[50px]"
                     onClick={() => {
                       // For ETH, leave a small amount for gas
                       if (sellToken.id === null) {
                         // Get 99% of ETH balance to leave some for gas
-                        const ethAmount =
-                          ((sellToken.balance as bigint) * 99n) / 100n;
+                        const ethAmount = ((sellToken.balance as bigint) * 99n) / 100n;
                         syncFromSell(formatEther(ethAmount));
                       } else {
                         // For other tokens, use the full balance
-                        syncFromSell(
-                          formatUnits(sellToken.balance as bigint, 18),
-                        );
+                        syncFromSell(formatUnits(sellToken.balance as bigint, 18));
                       }
                     }}
                   >
@@ -2323,84 +2046,65 @@ export const SwapTile = () => {
           )}
 
           {/* BUY/RECEIVE panel - Enhanced for Single-ETH mode with token selector */}
-          {buyToken &&
-            mode === "liquidity" &&
-            liquidityMode === "single-eth" && (
-              <div className="border-2 border-yellow-300 group rounded-b-2xl p-2 pt-3 focus-within:ring-2 hover:bg-yellow-50 focus-within:ring-primary flex flex-col gap-2 mt-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">
-                    Target Token
-                  </span>
-                  <TokenSelector
-                    selectedToken={buyToken}
-                    tokens={tokens.filter((token) => token.id !== null)} // Filter out ETH from the selector options
-                    onSelect={handleBuyTokenSelect}
-                    isEthBalanceFetching={isEthBalanceFetching}
-                  />
-                </div>
-                <div className="flex justify-between items-center">
-                  <div className="text-xl font-medium w-full">
-                    {singleETHEstimatedCoin || "0"}
-                  </div>
-                  <span className="text-xs text-yellow-600 font-medium">
-                    Estimated
-                  </span>
-                </div>
-                <div className="text-xs text-yellow-600 mt-1">
-                  Half of your ETH will be swapped for {buyToken.symbol} and
-                  paired with the remaining ETH.
-                </div>
+          {buyToken && mode === "liquidity" && liquidityMode === "single-eth" && (
+            <div className="border-2 border-yellow-300 group rounded-b-2xl p-2 pt-3 focus-within:ring-2 hover:bg-yellow-50 focus-within:ring-primary flex flex-col gap-2 mt-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Target Token</span>
+                <TokenSelector
+                  selectedToken={buyToken}
+                  tokens={tokens.filter((token) => token.id !== null)} // Filter out ETH from the selector options
+                  onSelect={handleBuyTokenSelect}
+                  isEthBalanceFetching={isEthBalanceFetching}
+                />
               </div>
-            )}
+              <div className="flex justify-between items-center">
+                <div className="text-xl font-medium w-full">{singleETHEstimatedCoin || "0"}</div>
+                <span className="text-xs text-yellow-600 font-medium">Estimated</span>
+              </div>
+              <div className="text-xs text-yellow-600 mt-1">
+                Half of your ETH will be swapped for {buyToken.symbol} and paired with the remaining ETH.
+              </div>
+            </div>
+          )}
 
           {/* Standard BUY/RECEIVE panel - only show in swap mode or regular add/remove liquidity */}
-          {buyToken &&
-            !(mode === "liquidity" && liquidityMode === "single-eth") && (
-              <div className="border-2 border-yellow-300 group rounded-b-2xl p-2 pt-3 focus-within:ring-2 hover:bg-yellow-50 focus-within:ring-primary flex flex-col gap-2 mt-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">
-                    {mode === "swap"
-                      ? "Buy"
-                      : liquidityMode === "add"
-                        ? "And"
-                        : `You'll Receive (${buyToken.symbol})`}
-                  </span>
-                  <TokenSelector
-                    selectedToken={buyToken}
-                    tokens={tokens}
-                    onSelect={handleBuyTokenSelect}
-                    isEthBalanceFetching={isEthBalanceFetching}
-                  />
-                </div>
-                <div className="flex justify-between items-center">
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    min="0"
-                    step="any"
-                    placeholder="0.0"
-                    value={buyAmt}
-                    onChange={(e) => syncFromBuy(e.target.value)}
-                    className="text-lg sm:text-xl font-medium w-full focus:outline-none h-10 text-right pr-1"
-                    readOnly={
-                      mode === "liquidity" && liquidityMode === "remove"
-                    }
-                  />
-                  {mode === "liquidity" && liquidityMode === "remove" && (
-                    <span className="text-xs text-yellow-600 font-medium">
-                      Preview
-                    </span>
-                  )}
-                </div>
+          {buyToken && !(mode === "liquidity" && liquidityMode === "single-eth") && (
+            <div className="border-2 border-yellow-300 group rounded-b-2xl p-2 pt-3 focus-within:ring-2 hover:bg-yellow-50 focus-within:ring-primary flex flex-col gap-2 mt-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">
+                  {mode === "swap" ? "Buy" : liquidityMode === "add" ? "And" : `You'll Receive (${buyToken.symbol})`}
+                </span>
+                <TokenSelector
+                  selectedToken={buyToken}
+                  tokens={tokens}
+                  onSelect={handleBuyTokenSelect}
+                  isEthBalanceFetching={isEthBalanceFetching}
+                />
               </div>
-            )}
+              <div className="flex justify-between items-center">
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="any"
+                  placeholder="0.0"
+                  value={buyAmt}
+                  onChange={(e) => syncFromBuy(e.target.value)}
+                  className="text-lg sm:text-xl font-medium w-full focus:outline-none h-10 text-right pr-1"
+                  readOnly={mode === "liquidity" && liquidityMode === "remove"}
+                />
+                {mode === "liquidity" && liquidityMode === "remove" && (
+                  <span className="text-xs text-yellow-600 font-medium">Preview</span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Network indicator */}
         {isConnected && chainId !== mainnet.id && (
           <div className="text-xs mt-1 px-2 py-1 bg-yellow-50 border border-yellow-200 rounded text-yellow-700">
-            <strong>Wrong Network:</strong> Please switch to Ethereum mainnet in
-            your wallet to{" "}
+            <strong>Wrong Network:</strong> Please switch to Ethereum mainnet in your wallet to{" "}
             {mode === "swap" ? "swap tokens" : "manage liquidity"}
           </div>
         )}
@@ -2417,9 +2121,7 @@ export const SwapTile = () => {
                 ? `${Number(singleEthSlippageBps) / 100}%`
                 : `${Number(slippageBps) / 100}%`}
             </span>
-            <span className="text-xs text-blue-500">
-              {showSlippageSettings ? "▲" : "▼"}
-            </span>
+            <span className="text-xs text-blue-500">{showSlippageSettings ? "▲" : "▼"}</span>
           </div>
 
           {/* Slippage Settings Panel */}
@@ -2430,10 +2132,7 @@ export const SwapTile = () => {
             >
               <div className="mb-2">
                 <div className="font-medium mb-1">
-                  {mode === "liquidity" && liquidityMode === "single-eth"
-                    ? "Single-ETH"
-                    : "Regular"}{" "}
-                  Slippage:
+                  {mode === "liquidity" && liquidityMode === "single-eth" ? "Single-ETH" : "Regular"} Slippage:
                 </div>
                 <div className="flex gap-1 flex-wrap">
                   {SLIPPAGE_OPTIONS.map((option) => (
@@ -2474,10 +2173,7 @@ export const SwapTile = () => {
                         // Convert percentage to basis points
                         const bps = BigInt(Math.floor(value * 100));
 
-                        if (
-                          mode === "liquidity" &&
-                          liquidityMode === "single-eth"
-                        ) {
+                        if (mode === "liquidity" && liquidityMode === "single-eth") {
                           setSingleEthSlippageBps(bps);
                         } else {
                           setSlippageBps(bps);
@@ -2508,9 +2204,7 @@ export const SwapTile = () => {
               <>
                 <p className="font-medium mb-1">Remove Liquidity:</p>
                 <ul className="list-disc pl-4 space-y-0.5">
-                  <li>
-                    Your LP balance: {formatUnits(lpTokenBalance, 18)} LP tokens
-                  </li>
+                  <li>Your LP balance: {formatUnits(lpTokenBalance, 18)} LP tokens</li>
                   <li>Enter amount of LP tokens to burn</li>
                   <li>Preview shows expected return of ETH and tokens</li>
                 </ul>
@@ -2534,25 +2228,16 @@ export const SwapTile = () => {
           <div className="text-xs text-gray-500 flex justify-between px-1 mt-1">
             {mode === "swap" && isCoinToCoin ? (
               <span className="flex items-center">
-                <span className="bg-yellow-200 text-yellow-800 px-1 rounded mr-1">
-                  Multi-hop
-                </span>
+                <span className="bg-yellow-200 text-yellow-800 px-1 rounded mr-1">Multi-hop</span>
                 {sellToken.symbol} → ETH → {buyToken?.symbol}
               </span>
             ) : (
               <span>
                 Pool: {formatEther(reserves.reserve0).substring(0, 8)} ETH /{" "}
-                {formatUnits(reserves.reserve1, 18).substring(0, 8)}{" "}
-                {buyToken?.symbol}
+                {formatUnits(reserves.reserve1, 18).substring(0, 8)} {buyToken?.symbol}
               </span>
             )}
-            <span>
-              Fee:{" "}
-              {mode === "swap" && isCoinToCoin
-                ? (Number(SWAP_FEE) * 2) / 100
-                : Number(SWAP_FEE) / 100}
-              %
-            </span>
+            <span>Fee: {mode === "swap" && isCoinToCoin ? (Number(SWAP_FEE) * 2) / 100 : Number(SWAP_FEE) / 100}%</span>
           </div>
         )}
 
@@ -2570,17 +2255,13 @@ export const SwapTile = () => {
           disabled={
             !isConnected ||
             (mode === "swap" && (!canSwap || !sellAmt)) ||
-            (mode === "liquidity" &&
-              liquidityMode === "add" &&
-              (!canSwap || !sellAmt)) ||
+            (mode === "liquidity" && liquidityMode === "add" && (!canSwap || !sellAmt)) ||
             (mode === "liquidity" &&
               liquidityMode === "remove" &&
               (!lpBurnAmount ||
                 parseFloat(lpBurnAmount) <= 0 ||
                 parseUnits(lpBurnAmount || "0", 18) > lpTokenBalance)) ||
-            (mode === "liquidity" &&
-              liquidityMode === "single-eth" &&
-              (!canSwap || !sellAmt || !reserves)) ||
+            (mode === "liquidity" && liquidityMode === "single-eth" && (!canSwap || !sellAmt || !reserves)) ||
             isPending
           }
           className="w-full text-base sm:text-lg mt-4 h-12 touch-manipulation"
@@ -2617,23 +2298,16 @@ export const SwapTile = () => {
         )}
 
         {/* Show actual errors (only if not a user rejection) */}
-        {((writeError && !isUserRejectionError(writeError)) ||
-          (txError && !txError.includes("Waiting for"))) && (
+        {((writeError && !isUserRejectionError(writeError)) || (txError && !txError.includes("Waiting for"))) && (
           <div className="text-sm text-red-600 mt-2">
-            {writeError && !isUserRejectionError(writeError)
-              ? writeError.message
-              : txError}
+            {writeError && !isUserRejectionError(writeError) ? writeError.message : txError}
           </div>
         )}
 
         {/* Success message */}
         {isSuccess && (
           <div className="text-sm text-green-600 mt-2 flex items-center">
-            <svg
-              className="h-3 w-3 mr-2"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
+            <svg className="h-3 w-3 mr-2" viewBox="0 0 20 20" fill="currentColor">
               <path
                 fillRule="evenodd"
                 d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -2651,9 +2325,7 @@ export const SwapTile = () => {
             onClick={(e) => {
               e.preventDefault();
               // This assumes App.tsx has access to this function via props
-              window.dispatchEvent(
-                new CustomEvent("coinchan:setView", { detail: "menu" }),
-              );
+              window.dispatchEvent(new CustomEvent("coinchan:setView", { detail: "menu" }));
             }}
             className="hover:text-gray-600 hover:underline"
           >

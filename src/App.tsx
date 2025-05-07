@@ -8,26 +8,24 @@ import { ConnectMenu } from "./ConnectMenu";
 import SwapTile from "./SwapTile";
 
 function App() {
-  const [view, setView] = useState<"menu" | "form" | "memepaper" | "swap">(
-    "swap",
-  );
+  const [view, setView] = useState<"menu" | "form" | "memepaper" | "swap">("swap");
   const [tapCount, setTapCount] = useState(0);
   const [lastTap, setLastTap] = useState(0);
 
   useEffect(() => {
     sdk.actions.ready();
-    
+
     // Listen for custom view change events
     const handleViewChange = (event: CustomEvent) => {
-      if (event.detail && typeof event.detail === 'string') {
+      if (event.detail && typeof event.detail === "string") {
         setView(event.detail as "menu" | "form" | "memepaper" | "swap");
       }
     };
-    
-    window.addEventListener('coinchan:setView', handleViewChange as EventListener);
-    
+
+    window.addEventListener("coinchan:setView", handleViewChange as EventListener);
+
     return () => {
-      window.removeEventListener('coinchan:setView', handleViewChange as EventListener);
+      window.removeEventListener("coinchan:setView", handleViewChange as EventListener);
     };
   }, []);
 

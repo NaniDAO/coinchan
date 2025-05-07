@@ -7,13 +7,7 @@ import {
   useSwitchChain,
   useChainId,
 } from "wagmi";
-import {
-  parseEther,
-  parseUnits,
-  formatEther,
-  formatUnits,
-  zeroAddress,
-} from "viem";
+import { parseEther, parseUnits, formatEther, formatUnits, zeroAddress } from "viem";
 import { formatNumber } from "./lib/utils";
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
 import { ZAAMAbi, ZAAMAddress } from "./constants/ZAAM";
@@ -32,7 +26,7 @@ const CheckTheChainAbi = [
     name: "checkPrice",
     outputs: [
       { internalType: "uint256", name: "price", type: "uint256" },
-      { internalType: "string", name: "priceStr", type: "string" }
+      { internalType: "string", name: "priceStr", type: "string" },
     ],
     stateMutability: "view",
     type: "function",
@@ -47,8 +41,7 @@ const SLIPPAGE_BPS = 100n; // 100 basis points = 1 %
 const DEADLINE_SEC = 20 * 60; // 20 minutes
 
 // apply slippage tolerance to an amount
-const withSlippage = (amount: bigint) =>
-  (amount * (10000n - SLIPPAGE_BPS)) / 10000n;
+const withSlippage = (amount: bigint) => (amount * (10000n - SLIPPAGE_BPS)) / 10000n;
 
 type PoolKey = {
   id0: bigint;
@@ -67,12 +60,7 @@ const computePoolKey = (coinId: bigint): PoolKey => ({
 });
 
 // Unchanged getAmountOut from x*y invariants
-const getAmountOut = (
-  amountIn: bigint,
-  reserveIn: bigint,
-  reserveOut: bigint,
-  swapFee: bigint,
-) => {
+const getAmountOut = (amountIn: bigint, reserveIn: bigint, reserveOut: bigint, swapFee: bigint) => {
   const amountInWithFee = amountIn * (10000n - swapFee);
   const numerator = amountInWithFee * reserveOut;
   const denominator = reserveIn * 10000n + amountInWithFee;
@@ -98,19 +86,21 @@ export const BuySell = ({
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
   const { switchChain } = useSwitchChain();
   const chainId = useChainId();
-  
+
   // Fetch coin data using our new hook
   const { coinData, marketCapEth, getDisplayValues } = useCoinData(tokenId);
-  
+
   // Get display values with fallbacks
   const { name, symbol, description } = getDisplayValues();
-  
+
   // We already have reserves in the coinData, no need for a separate fetch
-  const reserves = coinData ? {
-    reserve0: coinData.reserve0,
-    reserve1: coinData.reserve1
-  } : null;
-  
+  const reserves = coinData
+    ? {
+        reserve0: coinData.reserve0,
+        reserve1: coinData.reserve1,
+      }
+    : null;
+
   // Fetch ETH price in USD from CheckTheChain
   const { data: ethPriceData } = useReadContract({
     address: CheckTheChainAddress,
@@ -123,7 +113,7 @@ export const BuySell = ({
       staleTime: 60_000,
     },
   });
-  
+
   const { data: balance } = useReadContract({
     address: CoinsAddress,
     abi: CoinsAbi,
@@ -131,7 +121,7 @@ export const BuySell = ({
     args: address ? [address, tokenId] : undefined,
     chainId: mainnet.id,
   });
-  
+
   // fetch allowance / operator state
   const { data: isOperator } = useReadContract({
     address: CoinsAddress,
@@ -149,22 +139,12 @@ export const BuySell = ({
     try {
       if (tab === "buy") {
         const inWei = parseEther(amount || "0");
-        const rawOut = getAmountOut(
-          inWei,
-          reserves.reserve0,
-          reserves.reserve1,
-          SWAP_FEE,
-        );
+        const rawOut = getAmountOut(inWei, reserves.reserve0, reserves.reserve1, SWAP_FEE);
         const minOut = withSlippage(rawOut);
         return formatUnits(minOut, 18);
       } else {
         const inUnits = parseUnits(amount || "0", 18);
-        const rawOut = getAmountOut(
-          inUnits,
-          reserves.reserve1,
-          reserves.reserve0,
-          SWAP_FEE,
-        );
+        const rawOut = getAmountOut(inUnits, reserves.reserve1, reserves.reserve0, SWAP_FEE);
         const minOut = withSlippage(rawOut);
         return formatEther(minOut);
       }
@@ -176,23 +156,18 @@ export const BuySell = ({
   // BUY using ETH → token
   const onBuy = async () => {
     if (!reserves || !address) return;
-    
+
     // Clear any previous error message when starting a new transaction
     setErrorMessage(null);
-    
+
     try {
       // Switch to mainnet if needed
       if (chainId !== mainnet.id) {
         await switchChain({ chainId: mainnet.id });
       }
-      
+
       const amountInWei = parseEther(amount || "0");
-      const rawOut = getAmountOut(
-        amountInWei,
-        reserves.reserve0,
-        reserves.reserve1,
-        SWAP_FEE,
-      );
+      const rawOut = getAmountOut(amountInWei, reserves.reserve0, reserves.reserve1, SWAP_FEE);
       const amountOutMin = withSlippage(rawOut);
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
@@ -218,16 +193,16 @@ export const BuySell = ({
   // SELL using token → ETH
   const onSell = async () => {
     if (!reserves || !address) return;
-    
+
     // Clear any previous error message when starting a new transaction
     setErrorMessage(null);
-    
+
     try {
       // Switch to mainnet if needed
       if (chainId !== mainnet.id) {
         await switchChain({ chainId: mainnet.id });
       }
-      
+
       const amountInUnits = parseUnits(amount || "0", 18);
 
       // ensure approval
@@ -251,12 +226,7 @@ export const BuySell = ({
         }
       }
 
-      const rawOut = getAmountOut(
-        amountInUnits,
-        reserves.reserve1,
-        reserves.reserve0,
-        SWAP_FEE,
-      );
+      const rawOut = getAmountOut(amountInUnits, reserves.reserve1, reserves.reserve0, SWAP_FEE);
       const amountOutMin = withSlippage(rawOut);
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
@@ -277,43 +247,43 @@ export const BuySell = ({
       }
     }
   };
-  
+
   // Calculate market cap in USD
   const marketCapUsd = useMemo(() => {
     if (!marketCapEth || !ethPriceData) return null;
-    
+
     // Using the string representation as it's likely already in the correct format
     const priceStr = ethPriceData[1];
     const ethPriceUsd = parseFloat(priceStr);
-    
+
     // Check if the parsing was successful
     if (isNaN(ethPriceUsd) || ethPriceUsd === 0) return null;
-    
+
     // Market cap in USD = market cap in ETH * ETH price in USD
     return marketCapEth * ethPriceUsd;
   }, [marketCapEth, ethPriceData]);
-  
-  // Use the display name and symbol 
+
+  // Use the display name and symbol
   const displayName = name || propName;
   const displaySymbol = symbol || propSymbol;
-  
+
   // State for tracking image loading and errors
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
   const alternativeUrlsRef = useRef<string[]>([]);
   const attemptedUrlsRef = useRef<Set<string>>(new Set());
-  
+
   // Determine the best image URL to use
   useEffect(() => {
     if (!coinData) return;
-    
+
     let imageUrl = null;
-    let imageSourceForAlternatives = '';
+    let imageSourceForAlternatives = "";
     setImageLoaded(false);
     setImageError(false);
     attemptedUrlsRef.current = new Set();
-    
+
     // Try different sources in order of preference
     if (coinData.imageUrl) {
       imageUrl = coinData.imageUrl;
@@ -328,29 +298,29 @@ export const BuySell = ({
       imageUrl = formatImageURL(coinData.metadata.imageUrl);
       imageSourceForAlternatives = coinData.metadata.imageUrl;
     }
-    
+
     // Generate alternative URLs for fallback
     if (imageSourceForAlternatives) {
       alternativeUrlsRef.current = getAlternativeImageUrls(imageSourceForAlternatives);
     } else {
       alternativeUrlsRef.current = [];
     }
-    
+
     setCurrentImageUrl(imageUrl);
     if (imageUrl) {
       attemptedUrlsRef.current.add(imageUrl);
     }
   }, [coinData]);
-  
+
   // Handle image load error with fallback attempt
   const handleImageError = useCallback(() => {
     console.error(`Image failed to load for coin ${tokenId.toString()}`);
-    
+
     // Try next alternative URL if available
     if (alternativeUrlsRef.current.length > 0) {
       // Find the first URL we haven't tried yet
-      const nextUrl = alternativeUrlsRef.current.find(url => !attemptedUrlsRef.current.has(url));
-      
+      const nextUrl = alternativeUrlsRef.current.find((url) => !attemptedUrlsRef.current.has(url));
+
       if (nextUrl) {
         console.log(`Trying alternative URL: ${nextUrl}`);
         attemptedUrlsRef.current.add(nextUrl);
@@ -359,7 +329,7 @@ export const BuySell = ({
         return;
       }
     }
-    
+
     // If we've exhausted all alternatives, mark as error
     console.log(`No more alternative URLs to try for coin ${tokenId.toString()}`);
     setImageError(true);
@@ -374,13 +344,13 @@ export const BuySell = ({
             <div className={`w-full h-full flex bg-red-500 text-white justify-center items-center rounded-full`}>
               {displaySymbol?.slice(0, 3)}
             </div>
-            
+
             {/* Use enhanced image loading with fallbacks */}
             {!imageError && currentImageUrl && (
               <img
                 src={currentImageUrl}
                 alt={`${displaySymbol} logo`}
-                className={`absolute inset-0 w-full h-full rounded-full object-cover transition-opacity duration-200 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                className={`absolute inset-0 w-full h-full rounded-full object-cover transition-opacity duration-200 ${imageLoaded ? "opacity-100" : "opacity-0"}`}
                 style={{ zIndex: 1 }}
                 onLoad={() => setImageLoaded(true)}
                 onError={handleImageError}
@@ -394,12 +364,12 @@ export const BuySell = ({
             <h3 className="text-lg font-medium truncate">{displayName}</h3>
             <span className="text-sm text-gray-500">[{displaySymbol}]</span>
           </div>
-          
+
           {/* Description */}
           <p className="text-sm text-gray-600 mt-1 overflow-y-auto max-h-20">
             {description || "No description available"}
           </p>
-          
+
           {/* Market Cap Estimation */}
           <div className="mt-2 text-xs text-gray-500">
             {marketCapEth !== null && (
@@ -415,14 +385,16 @@ export const BuySell = ({
                 )}
               </div>
             )}
-            
+
             {/* Token URI link if available */}
-            {coinData?.tokenURI && coinData.tokenURI !== 'N/A' && (
+            {coinData?.tokenURI && coinData.tokenURI !== "N/A" && (
               <div className="mt-1">
-                <a 
-                  href={coinData.tokenURI.startsWith('ipfs://') 
-                    ? `https://content.wrappr.wtf/ipfs/${coinData.tokenURI.slice(7)}` 
-                    : coinData.tokenURI}
+                <a
+                  href={
+                    coinData.tokenURI.startsWith("ipfs://")
+                      ? `https://content.wrappr.wtf/ipfs/${coinData.tokenURI.slice(7)}`
+                      : coinData.tokenURI
+                  }
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-xs text-blue-500 hover:underline"
@@ -434,7 +406,7 @@ export const BuySell = ({
           </div>
         </div>
       </div>
-      
+
       <TabsList>
         <TabsTrigger value="buy">
           Buy {displayName} [{displaySymbol}]
@@ -458,11 +430,7 @@ export const BuySell = ({
           <span className="text-sm">
             You will receive ~ {estimated} {displaySymbol}
           </span>
-          <Button
-            onClick={onBuy}
-            disabled={!isConnected || isPending || !amount}
-            variant="default"
-          >
+          <Button onClick={onBuy} disabled={!isConnected || isPending || !amount} variant="default">
             {isPending ? "Buying…" : `Buy ${displaySymbol}`}
           </Button>
         </div>
@@ -484,26 +452,16 @@ export const BuySell = ({
           <div className="flex flex-col gap-2">
             <span className="text-sm">You will receive ~ {estimated} ETH</span>
             {balance !== undefined ? (
-              <button
-                className="self-end text-sm text-gray-600"
-                onClick={() => setAmount(formatUnits(balance, 18))}
-              >
+              <button className="self-end text-sm text-gray-600" onClick={() => setAmount(formatUnits(balance, 18))}>
                 MAX ({formatUnits(balance, 18)})
               </button>
             ) : (
-              <button
-                className="self-end text-sm text-gray-600"
-                disabled={!balance}
-              >
+              <button className="self-end text-sm text-gray-600" disabled={!balance}>
                 MAX
               </button>
             )}
           </div>
-          <Button
-            onClick={onSell}
-            disabled={!isConnected || isPending || !amount}
-            variant="outline"
-          >
+          <Button onClick={onSell} disabled={!isConnected || isPending || !amount} variant="outline">
             {isPending ? "Selling…" : `Sell ${displaySymbol}`}
           </Button>
         </div>

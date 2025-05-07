@@ -25,11 +25,7 @@ interface ImageInputProps {
  * <ImageInput onChange={(file) => handleImageChange(file)} />
  * ```
  */
-export default function ImageInput({
-  onChange,
-  multiple = false,
-  className = "",
-}: ImageInputProps) {
+export default function ImageInput({ onChange, multiple = false, className = "" }: ImageInputProps) {
   const [files, setFiles] = useState<(File & { preview: string })[]>([]);
 
   const onDrop = useCallback(
@@ -74,9 +70,7 @@ export default function ImageInput({
         <div className="flex flex-col items-center justify-center gap-2">
           <ImageIcon className="w-12 h-12 opacity-60" aria-hidden />
           <p className="text-sm text-muted-foreground select-none">
-            {isDragActive
-              ? "Drop the image here …"
-              : "Drag & drop or click to select an image"}
+            {isDragActive ? "Drop the image here …" : "Drag & drop or click to select an image"}
           </p>
           <Button
             type="button"
@@ -85,10 +79,7 @@ export default function ImageInput({
             onClick={(e) => {
               e.preventDefault();
               // Forward click to hidden input
-              (
-                e.currentTarget.parentElement
-                  ?.previousSibling as HTMLInputElement
-              )?.click();
+              (e.currentTarget.parentElement?.previousSibling as HTMLInputElement)?.click();
             }}
           >
             Browse files

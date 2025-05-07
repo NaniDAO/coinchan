@@ -19,7 +19,7 @@ const CheckTheChainAbi = [
     name: "checkPrice",
     outputs: [
       { internalType: "uint256", name: "price", type: "uint256" },
-      { internalType: "string", name: "priceStr", type: "string" }
+      { internalType: "string", name: "priceStr", type: "string" },
     ],
     stateMutability: "view",
     type: "function",
@@ -40,26 +40,26 @@ const ImageInput = ({ onChange }: ImageInputProps) => {
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState<boolean>(false);
-  
+
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       handleFile(file);
       // Reset the input value to ensure onChange fires even if the same file is selected again
-      e.target.value = '';
+      e.target.value = "";
     }
   };
 
   const handleFile = (file: File) => {
     setSelectedFileName(file.name);
-    
+
     // Create preview URL
     const objectUrl = URL.createObjectURL(file);
     setPreviewUrl(objectUrl);
-    
+
     // Call parent onChange handler
     onChange(file);
-    
+
     // Clean up the preview URL when component unmounts
     return () => {
       if (previewUrl) {
@@ -67,24 +67,24 @@ const ImageInput = ({ onChange }: ImageInputProps) => {
       }
     };
   };
-  
+
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(true);
   };
-  
+
   const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
   };
-  
+
   const handleDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
-    
+
     const files = e.dataTransfer.files;
     if (files?.length) {
       handleFile(files[0]);
@@ -99,19 +99,13 @@ const ImageInput = ({ onChange }: ImageInputProps) => {
       }
     };
   }, [previewUrl]);
-  
+
   return (
     <div className="flex flex-col gap-2">
-      <input
-        ref={fileInputRef}
-        type="file"
-        onChange={handleFileChange}
-        accept="image/*"
-        className="hidden"
-      />
-      <div 
+      <input ref={fileInputRef} type="file" onChange={handleFileChange} accept="image/*" className="hidden" />
+      <div
         className={`flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-md ${
-          isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
+          isDragging ? "border-blue-500 bg-blue-50" : "border-gray-300"
         } transition-colors duration-200`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -119,19 +113,10 @@ const ImageInput = ({ onChange }: ImageInputProps) => {
       >
         {previewUrl ? (
           <div className="flex flex-col items-center gap-4">
-            <img 
-              src={previewUrl} 
-              alt="Preview" 
-              className="max-h-32 max-w-full object-contain rounded-md" 
-            />
+            <img src={previewUrl} alt="Preview" className="max-h-32 max-w-full object-contain rounded-md" />
             <div className="flex flex-col items-center">
               <p className="text-sm text-gray-500 mb-2">{selectedFileName}</p>
-              <Button 
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                variant="outline"
-                size="sm"
-              >
+              <Button type="button" onClick={() => fileInputRef.current?.click()} variant="outline" size="sm">
                 Change Image
               </Button>
             </div>
@@ -140,12 +125,7 @@ const ImageInput = ({ onChange }: ImageInputProps) => {
           <div className="text-center">
             <p className="mb-2">Drag & drop image here</p>
             <p>or</p>
-            <Button 
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              variant="outline"
-              className="mt-2"
-            >
+            <Button type="button" onClick={() => fileInputRef.current?.click()} variant="outline" className="mt-2">
               Browse Files
             </Button>
           </div>
@@ -177,7 +157,7 @@ export function CoinForm({
   const swapFee = 100;
   const vestingDuration = 15778476;
   const vesting = true;
-  
+
   // Fetch ETH price in USD from CheckTheChain
   const { data: ethPriceData } = useReadContract({
     address: CheckTheChainAddress,
@@ -190,40 +170,40 @@ export function CoinForm({
       staleTime: 60_000,
     },
   });
-  
+
   // Calculate estimated market cap
   const marketCapEstimation = useMemo(() => {
     if (!ethPriceData) return null;
-    
+
     // Parse ETH price from the data
     const priceStr = ethPriceData[1];
     const ethPriceUsd = parseFloat(priceStr);
-    
+
     // Check if parsing was successful
     if (isNaN(ethPriceUsd) || ethPriceUsd === 0) return null;
-    
+
     // Get ETH amount (reserve0) and token amount (reserve1)
     const ethAmount = parseFloat(formState.ethAmount) || 0.01;
-    
+
     // In a XYK pool (x*y=k), the spot price is determined by the ratio of reserves
     // For ETH to token swap, price = reserve_token / reserve_eth
     // Initial token price in ETH = ethAmount / poolSupply
     const initialTokenPriceInEth = ethAmount / poolSupply;
-    
+
     // Market cap calculation for initial offering
     // Total fully diluted value = initialTokenPriceInEth * TOTAL_SUPPLY
     const marketCapEth = initialTokenPriceInEth * TOTAL_SUPPLY;
-    
+
     // Market cap in USD
     const marketCapUsd = marketCapEth * ethPriceUsd;
-    
+
     // Token price in USD
     const tokenPriceUsd = initialTokenPriceInEth * ethPriceUsd;
-    
+
     return {
       eth: marketCapEth,
       usd: marketCapUsd,
-      tokenPriceUsd: tokenPriceUsd
+      tokenPriceUsd: tokenPriceUsd,
     };
   }, [ethPriceData, formState.ethAmount, poolSupply]);
 
@@ -245,14 +225,14 @@ export function CoinForm({
       setErrorMessage(!address ? "Wallet not connected" : "Please upload an image");
       return;
     }
-    
+
     // Validate ETH amount
     const ethAmount = Number(formState.ethAmount);
     if (isNaN(ethAmount) || ethAmount <= 0) {
       setErrorMessage("Please enter a valid ETH amount greater than 0");
       return;
     }
-    
+
     // Validate creator supply
     const creatorSupplyValue = Number(formState.creatorSupply) || 0;
     if (creatorSupplyValue > TOTAL_SUPPLY) {
@@ -268,11 +248,7 @@ export function CoinForm({
       const fileName = `${formState.name}_logo.png`;
       const pinataMetadata = { name: fileName };
 
-      const imageHash = await pinImageToPinata(
-        imageBuffer,
-        fileName,
-        pinataMetadata,
-      );
+      const imageHash = await pinImageToPinata(imageBuffer, fileName, pinataMetadata);
 
       const tokenUriJson = {
         name: formState.name,
@@ -285,10 +261,8 @@ export function CoinForm({
 
       try {
         // Use custom ETH amount from form or default to 0.01 if invalid
-        const ethAmount = formState.ethAmount && !isNaN(Number(formState.ethAmount)) 
-          ? formState.ethAmount 
-          : "0.01";
-          
+        const ethAmount = formState.ethAmount && !isNaN(Number(formState.ethAmount)) ? formState.ethAmount : "0.01";
+
         writeContract({
           address: CoinchanAddress,
           abi: CoinchanAbi,
@@ -333,9 +307,7 @@ export function CoinForm({
     }
   };
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormState({
       ...formState,
       [e.target.name]: e.target.value,
@@ -358,26 +330,12 @@ export function CoinForm({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              type="text"
-              name="name"
-              value={formState.name}
-              onChange={handleChange}
-              required
-            />
+            <Input id="name" type="text" name="name" value={formState.name} onChange={handleChange} required />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="symbol">Symbol</Label>
-            <Input
-              id="symbol"
-              type="text"
-              name="symbol"
-              value={formState.symbol}
-              onChange={handleChange}
-              required
-            />
+            <Input id="symbol" type="text" name="symbol" value={formState.symbol} onChange={handleChange} required />
           </div>
 
           <div className="space-y-2">
@@ -403,17 +361,17 @@ export function CoinForm({
                 // Check if value exceeds total supply
                 const value = e.target.value;
                 const numValue = Number(value) || 0;
-                
+
                 // If it exceeds total supply, cap it
                 if (numValue > TOTAL_SUPPLY) {
                   setFormState({
                     ...formState,
-                    creatorSupply: TOTAL_SUPPLY.toString()
+                    creatorSupply: TOTAL_SUPPLY.toString(),
                   });
                 } else {
                   setFormState({
                     ...formState,
-                    creatorSupply: value
+                    creatorSupply: value,
                   });
                 }
               }}
@@ -424,9 +382,7 @@ export function CoinForm({
                 Pool Supply: {poolSupply.toLocaleString()} (Total: {TOTAL_SUPPLY.toLocaleString()})
               </p>
               {Number(formState.creatorSupply) >= TOTAL_SUPPLY && (
-                <p className="text-xs text-amber-600">
-                  Max: {TOTAL_SUPPLY.toLocaleString()}
-                </p>
+                <p className="text-xs text-amber-600">Max: {TOTAL_SUPPLY.toLocaleString()}</p>
               )}
             </div>
           </div>
@@ -435,9 +391,11 @@ export function CoinForm({
             <Label htmlFor="logo">Logo</Label>
             <ImageInput onChange={handleFileChange} />
           </div>
-          
+
           <div className="space-y-2 border p-4 rounded-md bg-gray-50">
-            <Label htmlFor="ethAmount" className="text-md font-semibold">Initial Liquidity (ETH Amount)</Label>
+            <Label htmlFor="ethAmount" className="text-md font-semibold">
+              Initial Liquidity (ETH Amount)
+            </Label>
             <div className="flex gap-2 items-center">
               <Input
                 id="ethAmount"
@@ -450,44 +408,44 @@ export function CoinForm({
               />
             </div>
             <div className="flex flex-wrap gap-2 mt-2">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 size="sm"
-                onClick={() => setFormState({...formState, ethAmount: "0.01"})}
+                onClick={() => setFormState({ ...formState, ethAmount: "0.01" })}
                 className={`transition-all ${formState.ethAmount === "0.01" ? "bg-blue-100 border-blue-300" : ""}`}
               >
                 0.01 ETH
               </Button>
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 size="sm"
-                onClick={() => setFormState({...formState, ethAmount: "0.033"})}
+                onClick={() => setFormState({ ...formState, ethAmount: "0.033" })}
                 className={`transition-all ${formState.ethAmount === "0.033" ? "bg-blue-100 border-blue-300" : ""}`}
               >
                 0.033 ETH
               </Button>
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 size="sm"
-                onClick={() => setFormState({...formState, ethAmount: "0.5"})}
+                onClick={() => setFormState({ ...formState, ethAmount: "0.5" })}
                 className={`transition-all ${formState.ethAmount === "0.5" ? "bg-blue-100 border-blue-300" : ""}`}
               >
                 0.5 ETH
               </Button>
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 size="sm"
-                onClick={() => setFormState({...formState, ethAmount: "1"})}
+                onClick={() => setFormState({ ...formState, ethAmount: "1" })}
                 className={`transition-all ${formState.ethAmount === "1" ? "bg-blue-100 border-blue-300" : ""}`}
               >
                 1 ETH
               </Button>
             </div>
-            
+
             {/* Market Cap Estimation */}
             {marketCapEstimation && (
               <div className="mt-3 p-3 bg-gray-100 rounded-md border border-gray-200">
@@ -496,10 +454,12 @@ export function CoinForm({
                   <div className="bg-white p-2 rounded border border-gray-200">
                     <h5 className="text-xs font-medium text-gray-600">TOKEN PRICE</h5>
                     <div className="flex items-center text-sm mt-1">
-                      <span className="font-medium text-green-600">${marketCapEstimation.tokenPriceUsd.toFixed(8)}</span>
+                      <span className="font-medium text-green-600">
+                        ${marketCapEstimation.tokenPriceUsd.toFixed(8)}
+                      </span>
                     </div>
                   </div>
-                  
+
                   <div className="bg-white p-2 rounded border border-gray-200">
                     <h5 className="text-xs font-medium text-gray-600">MARKET CAP</h5>
                     <div className="flex flex-col">
@@ -533,10 +493,8 @@ export function CoinForm({
             {isPending ? "Check Wallet" : "Coin It!"}
           </Button>
 
-          {errorMessage && (
-            <div className="text-sm text-red-600 mt-2">{errorMessage}</div>
-          )}
-          
+          {errorMessage && <div className="text-sm text-red-600 mt-2">{errorMessage}</div>}
+
           {isSuccess && <div className="text-sm text-green-600 mt-2">Success! Transaction: {JSON.stringify(data)}</div>}
         </form>
       </div>

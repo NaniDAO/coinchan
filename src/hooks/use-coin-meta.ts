@@ -50,26 +50,26 @@ export const useCoinMeta = (tokenId: bigint): MetaState => {
       staleTime: 24 * 60 * 60 * 1000, // 24 hours
       // Data is kept in cache for 7 days even when component unmounts
       gcTime: 7 * 24 * 60 * 60 * 1000, // 7 days
-    }
+    },
   });
 
   // Parse once; components receive stable refs unless something changed
   return useMemo<MetaState>(() => {
     const [nameData, symbolData, uriData] = data || [];
-    
+
     const name = (nameData?.result as string | undefined) ?? "N/A";
     const symbol = (symbolData?.result as string | undefined) ?? "N/A";
     const tokenUri = (uriData?.result as string | undefined) ?? "N/A";
-    
+
     // Add debug logging to identify issues
     console.log(`useCoinMeta for token ${tokenId.toString()}:`, {
       name,
       symbol,
       tokenUri,
       isLoading,
-      hasError: !!error
+      hasError: !!error,
     });
-    
+
     return {
       name,
       symbol,

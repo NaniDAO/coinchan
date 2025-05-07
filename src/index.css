@@ -1,59 +1,54 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark {
-  &: is(.dark *);
-}
+@layer base {
+  :root {
+    --gold: #f9bd20;
+    --dark-gold: #c17a00;
+    --cream: #fff9e6;
+    --deep-red: #b01e0e;
+    --accent-blue: #0057e7;
+    --bg-mid: #fff5d6;
+    --border: oklch(0.922 0 0);
 
-/* ———————————————————————————————————————————————————————————————
-   Variables
-   ——————————————————————————————————————————————————————————————— */
-:root {
-  --gold: #f9bd20;
-  --dark-gold: #c17a00;
-  --cream: #fff9e6;
-  --deep-red: #b01e0e;
-  --accent-blue: #0057e7;
-  --bg-mid: #fff5d6;
-  --border: oklch(0.922 0 0);
+    --font-display: "Courier New", Courier, monospace;
+    --font-body: "Courier New", Courier, monospace;
 
-  --font-display: "Courier New", Courier, monospace;
-  --font-body: "Courier New", Courier, monospace;
-
-  /* fluid font-size between 14px and 18px */
-  font-size-base: clamp(0.875rem, 4vw, 1.125rem);
-  --radius: 0.3rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.141 0.005 285.823);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.637 0.237 25.331);
-  --primary-foreground: oklch(0.971 0.013 17.38);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.21 0.006 285.885);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.637 0.237 25.331);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-primary: oklch(0.637 0.237 25.331);
-  --sidebar-primary-foreground: oklch(0.971 0.013 17.38);
-  --sidebar-accent: oklch(0.967 0.001 286.375);
-  --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.637 0.237 25.331);
+    /* fluid font-size between 14px and 18px */
+    font-size-base: clamp(0.875rem, 4vw, 1.125rem);
+    --radius: 0.3rem;
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.141 0.005 285.823);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.141 0.005 285.823);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.141 0.005 285.823);
+    --primary: oklch(0.637 0.237 25.331);
+    --primary-foreground: oklch(0.971 0.013 17.38);
+    --secondary: oklch(0.967 0.001 286.375);
+    --secondary-foreground: oklch(0.21 0.006 285.885);
+    --muted: oklch(0.967 0.001 286.375);
+    --muted-foreground: oklch(0.552 0.016 285.938);
+    --accent: oklch(0.967 0.001 286.375);
+    --accent-foreground: oklch(0.21 0.006 285.885);
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: oklch(0.92 0.004 286.32);
+    --input: oklch(0.92 0.004 286.32);
+    --ring: oklch(0.637 0.237 25.331);
+    --chart-1: oklch(0.646 0.222 41.116);
+    --chart-2: oklch(0.6 0.118 184.704);
+    --chart-3: oklch(0.398 0.07 227.392);
+    --chart-4: oklch(0.828 0.189 84.429);
+    --chart-5: oklch(0.769 0.188 70.08);
+    --sidebar: oklch(0.985 0 0);
+    --sidebar-foreground: oklch(0.141 0.005 285.823);
+    --sidebar-primary: oklch(0.637 0.237 25.331);
+    --sidebar-primary-foreground: oklch(0.971 0.013 17.38);
+    --sidebar-accent: oklch(0.967 0.001 286.375);
+    --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
+    --sidebar-border: oklch(0.92 0.004 286.32);
+    --sidebar-ring: oklch(0.637 0.237 25.331);
+  }
 }
 
 /* ———————————————————————————————————————————————————————————————
@@ -69,9 +64,7 @@ img.logo {
   max-width: 240px; /* never exceed this on small */
   margin: 0 auto 2rem;
   cursor: pointer;
-  transition:
-    width 0.3s ease,
-    transform 0.3s ease;
+  transition: width 0.3s ease, transform 0.3s ease;
   animation: float 3s ease-in-out infinite;
 }
 img.logo.small {
@@ -327,7 +320,7 @@ a:hover {
 }
 
 .explanation li::before {
-  content: '•';
+  content: "•";
   color: var(--deep-red);
   font-weight: bold;
   position: absolute;
