@@ -935,7 +935,7 @@ export const SwapTile = () => {
   
   // Use target pool reserves from token data for coin-to-coin swaps
   useEffect(() => {
-    if (!isCoinToCoin || !buyToken?.id || buyToken.id === 0n) {
+    if (!isCoinToCoin || !buyToken?.id || buyToken.id === null || buyToken.id === 0n) {
       setTargetReserves(null);
       return;
     }
@@ -953,7 +953,8 @@ export const SwapTile = () => {
       // Fallback to direct fetching if not available in token data
       const fetchTargetReserves = async () => {
         try {
-          const targetPoolId = computePoolId(buyToken.id);
+          // TypeScript can't infer that buyToken.id is non-null here, so we need to assert
+          const targetPoolId = computePoolId(buyToken.id as bigint);
           const result = await publicClient.readContract({
             address: ZAAMAddress,
             abi: ZAAMAbi,
