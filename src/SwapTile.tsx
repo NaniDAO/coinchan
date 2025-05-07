@@ -1,3 +1,19 @@
+/**
+ * SwapTile Component
+ * 
+ * This component allows users to swap ETH for Coins, Coins for ETH, add/remove liquidity, and 
+ * perform single-sided ETH liquidity provision. It uses the new CoinsMetadataHelper contract
+ * for efficient data fetching in a single call rather than multiple separate calls.
+ * 
+ * The CoinsMetadataHelper.sol contract provides the following optimizations:
+ * 1. Gets all coin metadata (name, symbol, tokenURI) in batch
+ * 2. Gets pool reserves for each coin in the same call
+ * 3. Gets user balances for ETH and all coins in a single call
+ * 4. Gets user LP token balances in the same batch
+ * 
+ * This significantly reduces the number of RPC calls needed and improves loading performance.
+ */
+
 import { mainnet } from "viem/chains";
 import { useState, useEffect } from "react";
 import {
@@ -23,7 +39,7 @@ import { CoinsAbi, CoinsAddress } from "./constants/Coins";
 import { ZAAMAbi, ZAAMAddress } from "./constants/ZAAM";
 import { ZAMMHelperAbi, ZAMMHelperAddress } from "./constants/ZAMMHelper";
 import { ZAMMSingleLiqETHAbi, ZAMMSingleLiqETHAddress } from "./constants/ZAMMSingleLiqETH";
-import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
+import { CoinsMetadataHelperAbi, CoinsMetadataHelperAddress } from "./constants/CoinsMetadataHelper";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -54,10 +70,13 @@ export interface TokenMeta {
   id: bigint | null; // null = ETH pseudo-token
   name: string;
   symbol: string;
-  tokenUri?: string; // Added tokenUri field to display thumbnails
+  tokenUri?: string; // Equivalent to tokenURI in CoinData
   reserve0?: bigint; // ETH reserves in the pool
   reserve1?: bigint; // Token reserves in the pool
+  poolId?: bigint; // Pool ID for this token
+  liquidity?: bigint; // Total pool liquidity
   balance?: bigint; // User's balance of this token
+  lpBalance?: bigint; // User's LP token balance for this pool
 }
 
 // Inline SVG for ETH
@@ -130,7 +149,14 @@ const getAmountIn = (
 };
 
 /* ────────────────────────────────────────────────────────────────────────────
-  HOOK: Simplified approach to fetch all tokens with tokenUri and balances
+  HOOK: Efficient tokens fetching with CoinsMetadataHelper
+  
+  This hook uses CoinsMetadataHelper contract to optimize data fetching:
+  1. getAllCoinsData() - Gets all coins with their metadata and pool reserves in a single call
+  2. getUserBalances() - Gets ETH, coin, and LP token balances for a user in a single call
+  
+  Before: Multiple separate RPC calls for each coin's metadata, reserves, and balances
+  After: Just 2 RPC calls to get all data for all coins
 ──────────────────────────────────────────────────────────────────────────── */
 
 const useAllTokens = () => {
@@ -151,7 +177,6 @@ const useAllTokens = () => {
   useEffect(() => {
     if (!address) return;
     
-    
     // Immediately fetch on mount or when address changes
     refetchEthBalance();
     
@@ -163,11 +188,6 @@ const useAllTokens = () => {
     // Clean up interval on unmount
     return () => clearInterval(interval);
   }, [address, refetchEthBalance]);
-  
-  // ETH balance status effect
-  useEffect(() => {
-    // Effect implementation
-  }, [address, ethBalance, ethBalanceSuccess]);
 
   // More robust ETH balance handling
   useEffect(() => {
@@ -188,7 +208,6 @@ const useAllTokens = () => {
     };
     
     if (ethBalance) {
-      
       // Cache the ETH balance in localStorage for persistent display
       try {
         localStorage.setItem('ethBalance', ethBalance.value.toString());
@@ -230,8 +249,9 @@ const useAllTokens = () => {
     });
   }, [ethBalance, ethBalanceSuccess, isEthBalanceFetching, address]);
 
+  // Fetch all coins data and user balances using CoinsMetadataHelper
   useEffect(() => {
-    const fetchTokens = async () => {
+    const fetchTokensAndBalances = async () => {
       if (!publicClient) {
         setError("No wallet connection available");
         setLoading(false);
@@ -239,202 +259,120 @@ const useAllTokens = () => {
       }
 
       try {
-        // Step 1: Get total coins count
-        const countResult = await publicClient.readContract({
-          address: CoinchanAddress,
-          abi: CoinchanAbi,
-          functionName: "getCoinsCount",
+        // Step 1: Use CoinsMetadataHelper.getAllCoinsData to fetch all coins data in a single call
+        const allCoinsDataResult = await publicClient.readContract({
+          address: CoinsMetadataHelperAddress,
+          abi: CoinsMetadataHelperAbi,
+          functionName: "getAllCoinsData",
         });
-        const count = Number(countResult);
-
-        // Step 2: Get all coins directly using indices instead of getCoins
-        const coinPromises = [];
-        const displayLimit = Math.min(count, 100); // Limit to first 100 for safety
-
-        for (let i = 0; i < displayLimit; i++) {
-          coinPromises.push(
-            publicClient.readContract({
-              address: CoinchanAddress,
-              abi: CoinchanAbi,
-              functionName: "coins", // Direct array access - faster and more reliable
-              args: [BigInt(i)],
-            })
-          );
-        }
-
-        const coinResults = await Promise.allSettled(coinPromises);
-        const coinIds: bigint[] = [];
-
-        for (let i = 0; i < coinResults.length; i++) {
-          const result = coinResults[i];
-          if (result.status === "fulfilled") {
-            coinIds.push(result.value as bigint);
-          } else {
-            console.error(`Failed to fetch coin at index ${i}:`, result.reason);
-          }
-        }
-
-
-        if (coinIds.length === 0) {
+        
+        // Cast the result to the expected type
+        const allCoinsData = allCoinsDataResult as unknown as {
+          coinId: bigint;
+          name: string;
+          symbol: string;
+          tokenURI: string;
+          reserve0: bigint;
+          reserve1: bigint;
+          poolId: bigint;
+          liquidity: bigint;
+        }[];
+        
+        // If there are no coins, return only ETH token
+        if (!allCoinsData || allCoinsData.length === 0) {
           setTokens([ETH_TOKEN]);
           setLoading(false);
           return;
         }
-
-        // Step 3: Get metadata, reserves, and balances for each coin
-        const tokenPromises = coinIds.map(async (id) => {
+        
+        // Step 2: Convert CoinsMetadataHelper data format to our TokenMeta format
+        const coinsTokens: TokenMeta[] = allCoinsData.map(coinData => ({
+          id: coinData.coinId,
+          name: coinData.name,
+          symbol: coinData.symbol,
+          tokenUri: coinData.tokenURI,
+          reserve0: coinData.reserve0,
+          reserve1: coinData.reserve1,
+          poolId: coinData.poolId,
+          liquidity: coinData.liquidity,
+          balance: 0n, // Will be populated in the next step if user is connected
+          lpBalance: 0n // Will be populated in the next step if user is connected
+        }));
+        
+        // Step 3: If user is connected, fetch all balances in a single call
+        if (address) {
           try {
-            // Fetch metadata
-            const [symbolResult, nameResult, tokenUriResult] = await Promise.allSettled([
-              publicClient.readContract({
-                address: CoinsAddress,
-                abi: CoinsAbi,
-                functionName: "symbol",
-                args: [id],
-              }),
-              publicClient.readContract({
-                address: CoinsAddress,
-                abi: CoinsAbi,
-                functionName: "name",
-                args: [id],
-              }),
-              publicClient.readContract({
-                address: CoinsAddress,
-                abi: CoinsAbi,
-                functionName: "tokenURI",
-                args: [id],
-              }),
-            ]);
-
-            const symbol = symbolResult.status === "fulfilled" 
-              ? symbolResult.value as string 
-              : `C#${id.toString()}`;
-              
-            const name = nameResult.status === "fulfilled" 
-              ? nameResult.value as string 
-              : `Coin #${id.toString()}`;
-              
-            const tokenUri = tokenUriResult.status === "fulfilled"
-              ? tokenUriResult.value as string
-              : "";
-
-            // Fetch reserves for this token
-            let reserve0: bigint = 0n;
-            let reserve1: bigint = 0n;
+            // Get total coins count for batch range
+            const count = coinsTokens.length;
             
-            try {
-              const poolId = computePoolId(id);
-              
-              const poolResult = await publicClient.readContract({
-                address: ZAAMAddress,
-                abi: ZAAMAbi,
-                functionName: "pools",
-                args: [poolId],
-              });
-              
-              // Cast to unknown first, then extract the reserves from the array
-              const poolData = poolResult as unknown as readonly bigint[];
-              
-              // Ensure we have valid data before assigning
-              if (poolData && poolData.length >= 2) {
-                reserve0 = poolData[0]; // ETH reserve
-                reserve1 = poolData[1]; // Token reserve
-              } else {
-                console.warn(`Invalid pool data for coin ${id}: ${JSON.stringify(poolData)}`);
+            // Fetch all user balances in a single call - includes ETH, coin balances, and LP balances
+            const userBalancesResult = await publicClient.readContract({
+              address: CoinsMetadataHelperAddress,
+              abi: CoinsMetadataHelperAbi,
+              functionName: "getUserBalances",
+              args: [address, 0n, BigInt(count - 1)],
+            });
+            
+            // Destructure the results
+            const [ethBal, coinBalances, lpBalances] = userBalancesResult as [bigint, bigint[], bigint[]];
+            
+            // Update token balances with the fetched data
+            for (let i = 0; i < coinBalances.length; i++) {
+              if (i < coinsTokens.length) {
+                coinsTokens[i].balance = coinBalances[i];
+                coinsTokens[i].lpBalance = lpBalances[i];
               }
-            } catch (err) {
-              console.error(`Failed to fetch reserves for coin ${id}:`, err);
-              // Keep reserves as 0n if we couldn't fetch them
             }
             
-            // Fetch user's balance if address is connected
-            let balance: bigint = 0n;
-            if (address) {
+            // If we didn't get ETH balance from the useBalance hook, use the one from getUserBalances
+            if (!ethBalance && ethBal > 0n) {
+              // Cache the ETH balance
               try {
-                const balanceResult = await publicClient.readContract({
-                  address: CoinsAddress,
-                  abi: CoinsAbi,
-                  functionName: "balanceOf",
-                  args: [address, id],
-                });
-                
-                balance = balanceResult as bigint;
+                localStorage.setItem('ethBalance', ethBal.toString());
               } catch (err) {
-                console.error(`Failed to fetch balance for coin ${id}:`, err);
-                // Keep balance as 0n if we couldn't fetch it
+                console.error('Failed to cache ETH balance:', err);
               }
             }
-
-            return { id, symbol, name, tokenUri, reserve0, reserve1, balance } as TokenMeta;
           } catch (err) {
-            console.error(`Failed to get metadata for coin ${id}:`, err);
-            return { 
-              id, 
-              symbol: `C#${id.toString()}`, 
-              name: `Coin #${id.toString()}`,
-              tokenUri: "",
-              reserve0: 0n, 
-              reserve1: 0n,
-              balance: 0n
-            } as TokenMeta;
+            console.error("Error fetching user balances:", err);
+            // Continue with zero balances if balances fetch fails
           }
-        });
-
-        const tokenResults = await Promise.all(tokenPromises);
+        }
         
-        // Filter out any tokens with fetch errors
-        const validTokens = tokenResults.filter(token => token && token.id);
-        
-        // Sort tokens by ETH reserves (reserve0), from highest to lowest
-        const sortedTokens = [...validTokens].sort((a, b) => {
+        // Step 4: Sort tokens by ETH reserves (reserve0), from highest to lowest
+        const sortedTokens = [...coinsTokens].sort((a, b) => {
           // Default to 0n if reserve0 is undefined
           const reserveA = a.reserve0 || 0n;
           const reserveB = b.reserve0 || 0n;
           
-          // For bigint comparison, subtract b from a and convert to number
-          // Negative means b > a, positive means a > b
-          // We want descending order (highest first), so we return positive when b > a
+          // For bigint comparison, we want descending order (highest first)
           return reserveB > reserveA ? 1 : reserveB < reserveA ? -1 : 0;
         });
-        
-        // Tokens sorted by reserves
         
         // Get the updated ETH token with balance from current state or use ethBalance directly
         const currentEthToken = tokens.find(token => token.id === null) || ETH_TOKEN;
         
-        // Create a new ETH token with balance preserved - ALWAYS prioritize the latest ethBalance
+        // Create a new ETH token with balance preserved - prioritize the latest ethBalance
         const ethTokenWithBalance = {
           ...currentEthToken,
-          // If we have ethBalance, ALWAYS use it as the most up-to-date value
+          // If we have ethBalance, use it as the most up-to-date value
           balance: ethBalance?.value !== undefined ? ethBalance.value : currentEthToken.balance,
-          // Add formatted balance for debugging
-          formattedBalance: ethBalance?.formatted || 
-            (currentEthToken.balance ? formatEther(currentEthToken.balance) : '0')
         };
         
-        // Debug the ETH balance with more detailed logging
-        if (ethBalance?.value !== undefined) {
-          
-          // Log if there's a discrepancy
-          if (currentEthToken.balance !== ethBalance.value) {
-          }
-        }
-        
-        
-        // ETH is always first
+        // ETH is always first in the list
         const allTokens = [ethTokenWithBalance, ...sortedTokens];
         
         setTokens(allTokens);
       } catch (err) {
-        console.error("Error fetching tokens:", err);
+        console.error("Error fetching tokens with CoinsMetadataHelper:", err);
         setError("Failed to load tokens");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchTokens();
-  }, [publicClient, address]);
+    fetchTokensAndBalances();
+  }, [publicClient, address, ethBalance]);
 
   return { tokens, loading, error, isEthBalanceFetching };
 };
@@ -950,93 +888,136 @@ export const SwapTile = () => {
   const [reserves, setReserves] = useState<{ reserve0: bigint, reserve1: bigint } | null>(null);
   const [targetReserves, setTargetReserves] = useState<{ reserve0: bigint, reserve1: bigint } | null>(null);
 
-  // Fetch reserves directly
+  // Use pool reserves directly from token data
   useEffect(() => {
-    const fetchReserves = async () => {
-      if (!coinId || coinId === 0n || !publicClient) return;
-      
-      try {
-        const poolId = computePoolId(coinId);
-        const result = await publicClient.readContract({
-          address: ZAAMAddress,
-          abi: ZAAMAbi,
-          functionName: "pools",
-          args: [poolId],
-        });
-        
-        // Handle the returned data structure correctly
-        // The contract might return more fields than just the reserves
-        // Cast to unknown first, then extract the reserves from the array
-        const poolData = result as unknown as readonly bigint[];
-        
-        setReserves({
-          reserve0: poolData[0],
-          reserve1: poolData[1]
-        });
-      } catch (err) {
-        console.error("Failed to fetch reserves:", err);
-        setReserves(null);
-      }
-    };
+    if (!coinId || coinId === 0n) {
+      setReserves(null);
+      return;
+    }
     
-    fetchReserves();
-  }, [coinId, publicClient]);
+    // Find the token that matches the selected coinId
+    const selectedToken = tokens.find(token => token.id === coinId);
+    
+    if (selectedToken && selectedToken.reserve0 !== undefined && selectedToken.reserve1 !== undefined) {
+      // Use reserves directly from the token data (already fetched via CoinsMetadataHelper)
+      setReserves({
+        reserve0: selectedToken.reserve0,
+        reserve1: selectedToken.reserve1
+      });
+    } else if (publicClient) {
+      // Fallback to direct fetching if not available in token data
+      const fetchReserves = async () => {
+        try {
+          const poolId = computePoolId(coinId);
+          const result = await publicClient.readContract({
+            address: ZAAMAddress,
+            abi: ZAAMAbi,
+            functionName: "pools",
+            args: [poolId],
+          });
+          
+          // Handle the returned data structure correctly
+          const poolData = result as unknown as readonly bigint[];
+          
+          setReserves({
+            reserve0: poolData[0],
+            reserve1: poolData[1]
+          });
+        } catch (err) {
+          console.error("Failed to fetch reserves:", err);
+          setReserves(null);
+        }
+      };
+      
+      fetchReserves();
+    }
+  }, [coinId, publicClient, tokens]);
   
-  // Fetch target reserves for coin-to-coin swaps
+  // Use target pool reserves from token data for coin-to-coin swaps
   useEffect(() => {
-    const fetchTargetReserves = async () => {
-      if (!isCoinToCoin || !buyToken?.id || buyToken.id === 0n || !publicClient) return;
-      
-      try {
-        const targetPoolId = computePoolId(buyToken.id);
-        const result = await publicClient.readContract({
-          address: ZAAMAddress,
-          abi: ZAAMAbi,
-          functionName: "pools",
-          args: [targetPoolId],
-        });
-        
-        const poolData = result as unknown as readonly bigint[];
-        
-        setTargetReserves({
-          reserve0: poolData[0],
-          reserve1: poolData[1]
-        });
-      } catch (err) {
-        console.error("Failed to fetch target reserves:", err);
-        setTargetReserves(null);
-      }
-    };
+    if (!isCoinToCoin || !buyToken?.id || buyToken.id === 0n) {
+      setTargetReserves(null);
+      return;
+    }
     
-    fetchTargetReserves();
-  }, [isCoinToCoin, buyToken?.id, publicClient]);
+    // Find the token that matches the target coinId
+    const targetToken = tokens.find(token => token.id === buyToken.id);
+    
+    if (targetToken && targetToken.reserve0 !== undefined && targetToken.reserve1 !== undefined) {
+      // Use reserves directly from the token data (already fetched via CoinsMetadataHelper)
+      setTargetReserves({
+        reserve0: targetToken.reserve0,
+        reserve1: targetToken.reserve1
+      });
+    } else if (publicClient) {
+      // Fallback to direct fetching if not available in token data
+      const fetchTargetReserves = async () => {
+        try {
+          const targetPoolId = computePoolId(buyToken.id);
+          const result = await publicClient.readContract({
+            address: ZAAMAddress,
+            abi: ZAAMAbi,
+            functionName: "pools",
+            args: [targetPoolId],
+          });
+          
+          const poolData = result as unknown as readonly bigint[];
+          
+          setTargetReserves({
+            reserve0: poolData[0],
+            reserve1: poolData[1]
+          });
+        } catch (err) {
+          console.error("Failed to fetch target reserves:", err);
+          setTargetReserves(null);
+        }
+      };
+      
+      fetchTargetReserves();
+    }
+  }, [isCoinToCoin, buyToken?.id, publicClient, tokens]);
   
-  // Fetch LP token balance when a pool is selected and user is connected
+  // Update LP token balance when a pool is selected from tokens
   useEffect(() => {
-    const fetchLpBalance = async () => {
-      if (!address || !publicClient || !coinId || coinId === 0n) return;
-      
-      try {
-        // Calculate the pool ID for the selected pair
-        const poolId = computePoolId(coinId);
-        
-        // Read the user's LP token balance for this pool
-        const balance = await publicClient.readContract({
-          address: ZAAMAddress,
-          abi: ZAAMAbi,
-          functionName: "balanceOf",
-          args: [address, poolId],
-        }) as bigint;
-        
-        setLpTokenBalance(balance);
-      } catch (err) {
-        console.error("Failed to fetch LP token balance:", err);
-        setLpTokenBalance(0n);
-      }
-    };
+    // No need to fetch LP balance separately if we already have it in our tokens data
+    if (!address || !coinId || coinId === 0n) {
+      setLpTokenBalance(0n);
+      return;
+    }
     
-    fetchLpBalance();
-  }, [address, publicClient, coinId]);
+    // Find the token that matches the selected coinId
+    const selectedToken = tokens.find(token => token.id === coinId);
+    
+    if (selectedToken && selectedToken.lpBalance !== undefined) {
+      // Use the LP balance from the token data (already fetched via CoinsMetadataHelper)
+      setLpTokenBalance(selectedToken.lpBalance);
+    } else if (publicClient) {
+      // Fallback to direct fetching if not available in token data
+      const fetchLpBalance = async () => {
+        try {
+          // Calculate the pool ID for the selected pair
+          const poolId = computePoolId(coinId);
+          
+          // Read the user's LP token balance for this pool
+          const balance = await publicClient.readContract({
+            address: ZAAMAddress,
+            abi: ZAAMAbi,
+            functionName: "balanceOf",
+            args: [address, poolId],
+          }) as bigint;
+          
+          setLpTokenBalance(balance);
+        } catch (err) {
+          console.error("Failed to fetch LP token balance:", err);
+          setLpTokenBalance(0n);
+        }
+      };
+      
+      fetchLpBalance();
+    } else {
+      setLpTokenBalance(0n);
+    }
+  }, [address, publicClient, coinId, tokens]);
 
   /* Check if user has approved ZAAM as operator */
   const [isOperator, setIsOperator] = useState<boolean | null>(null);
