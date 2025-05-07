@@ -2160,6 +2160,32 @@ export const SwapTile = () => {
                       {option.label}
                     </button>
                   ))}
+                  {/* Simple custom slippage input */}
+                  <div className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-gray-100 text-gray-700">
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min="0.1"
+                      max="50"
+                      step="0.1"
+                      placeholder="Custom"
+                      className="w-12 bg-transparent outline-none text-center"
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value);
+                        if (isNaN(value) || value < 0.1 || value > 50) return;
+                        
+                        // Convert percentage to basis points
+                        const bps = BigInt(Math.floor(value * 100));
+                        
+                        if (mode === "liquidity" && liquidityMode === "single-eth") {
+                          setSingleEthSlippageBps(bps);
+                        } else {
+                          setSlippageBps(bps);
+                        }
+                      }}
+                    />
+                    <span>%</span>
+                  </div>
                 </div>
               </div>
             </div>
