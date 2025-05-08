@@ -100,7 +100,7 @@ export const BuySell = ({
   
   // Fetch the lockup info to determine the custom swap fee and owner
   useEffect(() => {
-    if (!publicClient || !tokenId || !address) return;
+    if (!publicClient || !tokenId) return; // Removed address dependency so this works even when not connected
 
     let isMounted = true;
 
@@ -125,10 +125,12 @@ export const BuySell = ({
         console.log(`BuySell: Token ${tokenId.toString()} swap fee: ${customSwapFee.toString()}`);
         setSwapFee(customSwapFee);
         
-        // Check if the current address is the owner
-        const isActualOwner = lockupOwner?.toLowerCase() === address.toLowerCase();
-        console.log(`BuySell: Token ${tokenId.toString()} owner check: ${isActualOwner}`);
-        setIsOwner(isActualOwner);
+        // Check if the current address is the owner (only if address is connected)
+        if (address) {
+          const isActualOwner = lockupOwner?.toLowerCase() === address.toLowerCase();
+          console.log(`BuySell: Token ${tokenId.toString()} owner check: ${isActualOwner}`);
+          setIsOwner(isActualOwner);
+        }
       } catch (err) {
         console.error(`BuySell: Failed to fetch lockup info for token ${tokenId.toString()}:`, err);
         // Use default swap fee if there's an error, but only if we haven't already set a custom fee
@@ -144,7 +146,7 @@ export const BuySell = ({
     return () => {
       isMounted = false;
     };
-  }, [publicClient, tokenId, address]); // Removed isSuccess as it's not needed
+  }, [publicClient, tokenId, address]); // Keep address dependency for owner check
 
   // We already have reserves in the coinData, no need for a separate fetch
   const reserves = coinData
@@ -423,10 +425,19 @@ export const BuySell = ({
             {description || "No description available"}
           </p>
 
-          {/* Market Cap Estimation */}
+          {/* Market Cap Estimation and Swap Fee */}
           <div className="mt-2 text-xs text-gray-500">
-            {marketCapEth !== null && (
-              <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1">
+              {/* Always show the swap fee, independent of market cap calculation */}
+              <div className="flex items-center gap-1">
+                <span className="text-gray-600">Swap Fee:</span>
+                {/* More precise conversion from basis points to percentage */}
+                <span className="font-medium text-blue-600">{(Number(swapFee) / 100).toFixed(2)}%</span>
+                {isOwner && <span className="text-xs text-green-600">(You are the owner)</span>}
+              </div>
+              
+              {/* Market Cap section */}
+              {marketCapEth !== null && (
                 <div className="flex items-center gap-1">
                   <span className="text-gray-600">Est. Market Cap:</span>
                   <span>{formatNumber(marketCapEth, 2)} ETH</span>
@@ -438,14 +449,8 @@ export const BuySell = ({
                     <span className="ml-1 text-yellow-500">(ETH price unavailable)</span>
                   )}
                 </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-gray-600">Swap Fee:</span>
-                  {/* More precise conversion from basis points to percentage */}
-                  <span className="font-medium text-blue-600">{(Number(swapFee) / 100).toFixed(2)}%</span>
-                  {isOwner && <span className="text-xs text-green-600">(You are the owner)</span>}
-                </div>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Token URI link if available */}
             {coinData?.tokenURI && coinData.tokenURI !== "N/A" && (
