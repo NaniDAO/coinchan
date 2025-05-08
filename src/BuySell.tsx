@@ -6,11 +6,13 @@ import {
   useReadContract,
   useSwitchChain,
   useChainId,
+  usePublicClient,
 } from "wagmi";
 import { parseEther, parseUnits, formatEther, formatUnits, zeroAddress } from "viem";
 import { formatNumber } from "./lib/utils";
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
 import { ZAAMAbi, ZAAMAddress } from "./constants/ZAAM";
+import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -36,7 +38,7 @@ const CheckTheChainAbi = [
 // CheckTheChain contract address
 const CheckTheChainAddress = "0x0000000000cDC1F8d393415455E382c30FBc0a84";
 
-const SWAP_FEE = 100n; // 1 % pool fee
+const DEFAULT_SWAP_FEE = 100n; // 1% pool fee (default) - will be overridden by custom fee if available
 const SLIPPAGE_BPS = 100n; // 100 basis points = 1 %
 const DEADLINE_SEC = 20 * 60; // 20 minutes
 
@@ -51,12 +53,12 @@ type PoolKey = {
   swapFee: bigint;
 };
 
-const computePoolKey = (coinId: bigint): PoolKey => ({
+const computePoolKey = (coinId: bigint, customSwapFee: bigint): PoolKey => ({
   id0: 0n,
   id1: coinId,
   token0: zeroAddress,
   token1: CoinsAddress,
-  swapFee: SWAP_FEE,
+  swapFee: customSwapFee,
 });
 
 // Unchanged getAmountOut from x*y invariants
@@ -80,18 +82,69 @@ export const BuySell = ({
   const [amount, setAmount] = useState("");
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [swapFee, setSwapFee] = useState<bigint>(DEFAULT_SWAP_FEE);
+  const [isOwner, setIsOwner] = useState(false);
 
   const { address, isConnected } = useAccount();
   const { writeContractAsync, isPending } = useWriteContract();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
   const { switchChain } = useSwitchChain();
   const chainId = useChainId();
+  const publicClient = usePublicClient({ chainId: mainnet.id });
 
   // Fetch coin data using our new hook
   const { coinData, marketCapEth, getDisplayValues } = useCoinData(tokenId);
 
   // Get display values with fallbacks
   const { name, symbol, description } = getDisplayValues();
+  
+  // Fetch the lockup info to determine the custom swap fee and owner
+  useEffect(() => {
+    if (!publicClient || !tokenId || !address) return;
+
+    let isMounted = true;
+
+    const fetchLockupInfo = async () => {
+      try {
+        console.log(`BuySell: Fetching lockup info for token ${tokenId.toString()}`);
+
+        const lockup = (await publicClient.readContract({
+          address: CoinchanAddress,
+          abi: CoinchanAbi,
+          functionName: "lockups",
+          args: [tokenId],
+        })) as readonly [string, number, number, boolean, bigint, bigint];
+
+        if (!isMounted) return;
+
+        // Extract values based on the Lockup struct layout: [owner, creation, unlock, vesting, swapFee, claimed]
+        const [lockupOwner, , , , lockupSwapFee, ] = lockup;
+        
+        // Set the swap fee from lockup or use default if not available or zero
+        const customSwapFee = lockupSwapFee && lockupSwapFee > 0n ? lockupSwapFee : DEFAULT_SWAP_FEE;
+        console.log(`BuySell: Token ${tokenId.toString()} swap fee: ${customSwapFee.toString()}`);
+        setSwapFee(customSwapFee);
+        
+        // Check if the current address is the owner
+        const isActualOwner = lockupOwner?.toLowerCase() === address.toLowerCase();
+        console.log(`BuySell: Token ${tokenId.toString()} owner check: ${isActualOwner}`);
+        setIsOwner(isActualOwner);
+      } catch (err) {
+        console.error(`BuySell: Failed to fetch lockup info for token ${tokenId.toString()}:`, err);
+        // Use default swap fee if there's an error, but only if we haven't already set a custom fee
+        if (isMounted) {
+          setSwapFee(DEFAULT_SWAP_FEE);
+          setIsOwner(false);
+        }
+      }
+    };
+
+    fetchLockupInfo();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [publicClient, tokenId, address]); // Removed isSuccess as it's not needed
 
   // We already have reserves in the coinData, no need for a separate fetch
   const reserves = coinData
@@ -139,19 +192,19 @@ export const BuySell = ({
     try {
       if (tab === "buy") {
         const inWei = parseEther(amount || "0");
-        const rawOut = getAmountOut(inWei, reserves.reserve0, reserves.reserve1, SWAP_FEE);
+        const rawOut = getAmountOut(inWei, reserves.reserve0, reserves.reserve1, swapFee);
         const minOut = withSlippage(rawOut);
         return formatUnits(minOut, 18);
       } else {
         const inUnits = parseUnits(amount || "0", 18);
-        const rawOut = getAmountOut(inUnits, reserves.reserve1, reserves.reserve0, SWAP_FEE);
+        const rawOut = getAmountOut(inUnits, reserves.reserve1, reserves.reserve0, swapFee);
         const minOut = withSlippage(rawOut);
         return formatEther(minOut);
       }
     } catch {
       return "0";
     }
-  }, [amount, reserves, tab]);
+  }, [amount, reserves, tab, swapFee]);
 
   // BUY using ETH → token
   const onBuy = async () => {
@@ -167,11 +220,11 @@ export const BuySell = ({
       }
 
       const amountInWei = parseEther(amount || "0");
-      const rawOut = getAmountOut(amountInWei, reserves.reserve0, reserves.reserve1, SWAP_FEE);
+      const rawOut = getAmountOut(amountInWei, reserves.reserve0, reserves.reserve1, swapFee);
       const amountOutMin = withSlippage(rawOut);
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
-      const poolKey = computePoolKey(tokenId);
+      const poolKey = computePoolKey(tokenId, swapFee);
       const hash = await writeContractAsync({
         address: ZAAMAddress,
         abi: ZAAMAbi,
@@ -226,11 +279,11 @@ export const BuySell = ({
         }
       }
 
-      const rawOut = getAmountOut(amountInUnits, reserves.reserve1, reserves.reserve0, SWAP_FEE);
+      const rawOut = getAmountOut(amountInUnits, reserves.reserve1, reserves.reserve0, swapFee);
       const amountOutMin = withSlippage(rawOut);
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
-      const poolKey = computePoolKey(tokenId);
+      const poolKey = computePoolKey(tokenId, swapFee);
       const hash = await writeContractAsync({
         address: ZAAMAddress,
         abi: ZAAMAbi,
@@ -373,16 +426,24 @@ export const BuySell = ({
           {/* Market Cap Estimation */}
           <div className="mt-2 text-xs text-gray-500">
             {marketCapEth !== null && (
-              <div className="flex items-center gap-1">
-                <span className="text-gray-600">Est. Market Cap:</span>
-                <span>{formatNumber(marketCapEth, 2)} ETH</span>
-                {marketCapUsd !== null ? (
-                  <span className="ml-1">(~${formatNumber(marketCapUsd, 0)})</span>
-                ) : ethPriceData ? (
-                  <span className="ml-1 text-yellow-500">(USD price processing...)</span>
-                ) : (
-                  <span className="ml-1 text-yellow-500">(ETH price unavailable)</span>
-                )}
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-1">
+                  <span className="text-gray-600">Est. Market Cap:</span>
+                  <span>{formatNumber(marketCapEth, 2)} ETH</span>
+                  {marketCapUsd !== null ? (
+                    <span className="ml-1">(~${formatNumber(marketCapUsd, 0)})</span>
+                  ) : ethPriceData ? (
+                    <span className="ml-1 text-yellow-500">(USD price processing...)</span>
+                  ) : (
+                    <span className="ml-1 text-yellow-500">(ETH price unavailable)</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-gray-600">Swap Fee:</span>
+                  {/* More precise conversion from basis points to percentage */}
+                  <span className="font-medium text-blue-600">{(Number(swapFee) / 100).toFixed(2)}%</span>
+                  {isOwner && <span className="text-xs text-green-600">(You are the owner)</span>}
+                </div>
               </div>
             )}
 
