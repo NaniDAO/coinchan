@@ -18,9 +18,13 @@ export function ConnectionErrorHandler() {
     let lastErrorTime = 0;
     let handlingError = false;
     
-    const handleError = (event: ErrorEvent) => {
+    // Use a properly typed event handler for 'error' events
+    const handleError = (event: Event) => {
       // Early return if we're actively handling an error or throttling
       if (handlingError) return false;
+      
+      // Type guard to ensure we're dealing with an ErrorEvent
+      if (!(event instanceof ErrorEvent)) return false;
       
       const now = Date.now();
       // Only process one error every 2 seconds maximum
@@ -43,19 +47,17 @@ export function ConnectionErrorHandler() {
         setTimeout(() => {
           handlingError = false;
         }, 50);
-        
-        return true;
       }
       
-      return false;
+      return false; // Standard return for EventListener
     };
     
-    // Add our custom error handler
-    window.addEventListener('error', handleError as EventListener);
+    // Add our custom error handler with proper typing
+    window.addEventListener('error', handleError);
     
     return () => {
       // Clean up by removing our handler
-      window.removeEventListener('error', handleError as EventListener);
+      window.removeEventListener('error', handleError);
     };
   }, []);
   
