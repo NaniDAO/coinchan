@@ -706,7 +706,7 @@ const TokenSelector = ({
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search by symbol..."
+                placeholder="Search by symbol or ID..."
                 onChange={(e) => {
                   // Simply hide/show elements based on the search text
                   const query = e.target.value.toLowerCase();
@@ -715,8 +715,9 @@ const TokenSelector = ({
                   document.querySelectorAll("[data-token-symbol]").forEach((item) => {
                     const symbol = item.getAttribute("data-token-symbol")?.toLowerCase() || "";
                     const name = item.getAttribute("data-token-name")?.toLowerCase() || "";
+                    const id = item.getAttribute("data-token-id") || "";
 
-                    if (symbol.includes(query) || name.includes(query)) {
+                    if (symbol.includes(query) || name.includes(query) || id.toLowerCase().includes(query)) {
                       item.classList.remove("hidden");
                     } else {
                       item.classList.add("hidden");
