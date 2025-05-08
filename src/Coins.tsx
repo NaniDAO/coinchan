@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ExplorerGrid } from "./ExplorerGrid";
 import { TradeView } from "./TradeView";
 import { usePagedCoins } from "./hooks/metadata";
