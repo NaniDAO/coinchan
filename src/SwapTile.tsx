@@ -24,6 +24,7 @@ import { ZAAMAbi, ZAAMAddress } from "./constants/ZAAM";
 import { ZAMMHelperAbi, ZAMMHelperAddress } from "./constants/ZAMMHelper";
 import { ZAMMSingleLiqETHAbi, ZAMMSingleLiqETHAddress } from "./constants/ZAMMSingleLiqETH";
 import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
+import { CoinsMetadataHelperAbi, CoinsMetadataHelperAddress } from "./constants/CoinsMetadataHelper";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -57,6 +58,8 @@ export interface TokenMeta {
   tokenUri?: string; // Added tokenUri field to display thumbnails
   reserve0?: bigint; // ETH reserves in the pool
   reserve1?: bigint; // Token reserves in the pool
+  liquidity?: bigint; // Total liquidity in the pool
+  swapFee?: bigint; // Custom swap fee for the pool (default is 100n - 1%)
   balance?: bigint; // User's balance of this token
 }
 
@@ -179,105 +182,147 @@ const useAllTokens = () => {
       }
 
       try {
-        // Step 1: Get total coins count
+        // Get the total coin count first to verify
         const countResult = await publicClient.readContract({
           address: CoinchanAddress,
           abi: CoinchanAbi,
           functionName: "getCoinsCount",
         });
-        const count = Number(countResult);
+        const totalCoinCount = Number(countResult);
+        console.log(`Total coins in Coinchan contract: ${totalCoinCount}`);
+        
+        console.log("Fetching all coins data from CoinsMetadataHelper...");
 
-        // Step 2: Get all coins directly using indices instead of getCoins
-        const coinPromises = [];
-        const displayLimit = Math.min(count, 100); // Limit to first 100 for safety
-
-        for (let i = 0; i < displayLimit; i++) {
-          coinPromises.push(
-            publicClient.readContract({
-              address: CoinchanAddress,
-              abi: CoinchanAbi,
-              functionName: "coins", // Direct array access - faster and more reliable
-              args: [BigInt(i)],
-            }),
-          );
-        }
-
-        const coinResults = await Promise.allSettled(coinPromises);
-        const coinIds: bigint[] = [];
-
-        for (let i = 0; i < coinResults.length; i++) {
-          const result = coinResults[i];
-          if (result.status === "fulfilled") {
-            coinIds.push(result.value as bigint);
-          } else {
-            console.error(`Failed to fetch coin at index ${i}:`, result.reason);
+        // Step 1: Try to get all coins data directly from CoinsMetadataHelper
+        // This is more efficient than fetching each coin individually and includes liquidity data
+        let allCoinsData;
+        try {
+          allCoinsData = await publicClient.readContract({
+            address: CoinsMetadataHelperAddress,
+            abi: CoinsMetadataHelperAbi,
+            functionName: "getAllCoinsData",
+          });
+          
+          // Check if we're getting all coins
+          if (Array.isArray(allCoinsData) && allCoinsData.length < totalCoinCount) {
+            console.warn(`Warning: getAllCoinsData returned fewer coins (${allCoinsData.length}) than expected (${totalCoinCount}). Using batch fetching as fallback.`);
+            allCoinsData = null; // Force fallback
           }
+        } catch (error) {
+          console.error("Error fetching all coins data in one call:", error);
+          allCoinsData = null; // Force fallback
+        }
+        
+        // Fallback: If getAllCoinsData doesn't return all coins or fails,
+        // fetch in batches using the getCoinDataBatch method
+        if (!allCoinsData) {
+          console.log("Using batch fetching as fallback to get all coins...");
+          const batchSize = 50; // Adjust based on network performance
+          const batches = [];
+          
+          for (let i = 0; i < totalCoinCount; i += batchSize) {
+            const end = Math.min(i + batchSize, totalCoinCount);
+            console.log(`Fetching batch ${i} to ${end-1}...`);
+            
+            batches.push(
+              publicClient.readContract({
+                address: CoinsMetadataHelperAddress,
+                abi: CoinsMetadataHelperAbi,
+                functionName: "getCoinDataBatch",
+                args: [BigInt(i), BigInt(end)],
+              })
+            );
+          }
+          
+          const batchResults = await Promise.all(batches);
+          // Combine all batches
+          allCoinsData = batchResults.flat();
+          console.log(`Completed batch fetching, got ${allCoinsData.length} coins`);
         }
 
-        if (coinIds.length === 0) {
+        // Process the raw data
+        if (!Array.isArray(allCoinsData) || allCoinsData.length === 0) {
+          console.log("No coins data found or invalid response format");
           setTokens([ETH_TOKEN]);
           setLoading(false);
           return;
         }
 
-        // Step 3: Get metadata, reserves, and balances for each coin
-        const tokenPromises = coinIds.map(async (id) => {
+        console.log(`Successfully received ${allCoinsData.length} coins from contract (out of ${totalCoinCount} total coins)`);
+        
+        // Verify that we're getting all coins
+        if (allCoinsData.length < totalCoinCount) {
+          console.warn(`Warning: Received fewer coins (${allCoinsData.length}) than expected (${totalCoinCount})`);
+        }
+
+        // Transform CoinsMetadataHelper data into TokenMeta objects with parallel metadata fetch
+        const tokenPromises = allCoinsData.map(async (coinData: any) => {
           try {
-            // Fetch metadata
-            const [symbolResult, nameResult, tokenUriResult] = await Promise.allSettled([
+            // Enhanced handling - properly check the structure of the response
+            let coinId, tokenURI, reserve0, reserve1, poolId, liquidity;
+
+            // Handle both tuple object and array response formats
+            if (Array.isArray(coinData)) {
+              // If it's an array (some contracts return tuples as arrays)
+              [coinId, tokenURI, reserve0, reserve1, poolId, liquidity] = coinData;
+            } else {
+              // If it's an object with properties (standard viem response)
+              coinId = coinData.coinId;
+              tokenURI = coinData.tokenURI;
+              reserve0 = coinData.reserve0;
+              reserve1 = coinData.reserve1;
+              poolId = coinData.poolId;
+              liquidity = coinData.liquidity;
+            }
+
+            // Convert all values to ensure correct types
+            coinId = BigInt(coinId);
+            reserve0 = BigInt(reserve0 || 0);
+            reserve1 = BigInt(reserve1 || 0);
+            poolId = BigInt(poolId || 0);
+            liquidity = BigInt(liquidity || 0);
+            tokenURI = tokenURI?.toString() || "";
+
+            // Fetch more metadata and custom swap fee
+            const [symbolResult, nameResult, lockupResult] = await Promise.allSettled([
               publicClient.readContract({
                 address: CoinsAddress,
                 abi: CoinsAbi,
                 functionName: "symbol",
-                args: [id],
+                args: [coinId],
               }),
               publicClient.readContract({
                 address: CoinsAddress,
                 abi: CoinsAbi,
                 functionName: "name",
-                args: [id],
+                args: [coinId],
               }),
               publicClient.readContract({
-                address: CoinsAddress,
-                abi: CoinsAbi,
-                functionName: "tokenURI",
-                args: [id],
+                address: CoinchanAddress,
+                abi: CoinchanAbi,
+                functionName: "lockups",
+                args: [coinId],
               }),
             ]);
 
-            const symbol = symbolResult.status === "fulfilled" ? (symbolResult.value as string) : `C#${id.toString()}`;
-
-            const name = nameResult.status === "fulfilled" ? (nameResult.value as string) : `Coin #${id.toString()}`;
-
-            const tokenUri = tokenUriResult.status === "fulfilled" ? (tokenUriResult.value as string) : "";
-
-            // Fetch reserves for this token
-            let reserve0: bigint = 0n;
-            let reserve1: bigint = 0n;
-
-            try {
-              const poolId = computePoolId(id);
-
-              const poolResult = await publicClient.readContract({
-                address: ZAAMAddress,
-                abi: ZAAMAbi,
-                functionName: "pools",
-                args: [poolId],
-              });
-
-              // Cast to unknown first, then extract the reserves from the array
-              const poolData = poolResult as unknown as readonly bigint[];
-
-              // Ensure we have valid data before assigning
-              if (poolData && poolData.length >= 2) {
-                reserve0 = poolData[0]; // ETH reserve
-                reserve1 = poolData[1]; // Token reserve
-              } else {
-                console.warn(`Invalid pool data for coin ${id}: ${JSON.stringify(poolData)}`);
+            const symbol = symbolResult.status === "fulfilled" ? (symbolResult.value as string) : `C#${coinId.toString()}`;
+            const name = nameResult.status === "fulfilled" ? (nameResult.value as string) : `Coin #${coinId.toString()}`;
+            
+            // Extract custom swap fee from lockup if available
+            let swapFee = SWAP_FEE; // Default swap fee
+            if (lockupResult.status === "fulfilled") {
+              try {
+                const lockup = lockupResult.value as readonly [string, number, number, boolean, bigint, bigint];
+                // Extract the swapFee (5th element in the lockups array)
+                if (lockup && lockup.length >= 5) {
+                  const lockupSwapFee = lockup[4];
+                  if (lockupSwapFee && lockupSwapFee > 0n) {
+                    swapFee = lockupSwapFee;
+                  }
+                }
+              } catch (err) {
+                console.error(`Failed to process swap fee for coin ${coinId}:`, err);
               }
-            } catch (err) {
-              console.error(`Failed to fetch reserves for coin ${id}:`, err);
-              // Keep reserves as 0n if we couldn't fetch them
             }
 
             // Fetch user's balance if address is connected
@@ -288,57 +333,101 @@ const useAllTokens = () => {
                   address: CoinsAddress,
                   abi: CoinsAbi,
                   functionName: "balanceOf",
-                  args: [address, id],
+                  args: [address, coinId],
                 });
 
                 balance = balanceResult as bigint;
               } catch (err) {
-                console.error(`Failed to fetch balance for coin ${id}:`, err);
+                console.error(`Failed to fetch balance for coin ${coinId}:`, err);
                 // Keep balance as 0n if we couldn't fetch it
               }
             }
 
             return {
-              id,
+              id: coinId,
               symbol,
               name,
-              tokenUri,
+              tokenUri: tokenURI,
               reserve0,
               reserve1,
+              liquidity, // Include liquidity value from the contract
+              swapFee,   // Include custom swap fee
               balance,
             } as TokenMeta;
           } catch (err) {
-            console.error(`Failed to get metadata for coin ${id}:`, err);
-            return {
-              id,
-              symbol: `C#${id.toString()}`,
-              name: `Coin #${id.toString()}`,
-              tokenUri: "",
-              reserve0: 0n,
-              reserve1: 0n,
-              balance: 0n,
-            } as TokenMeta;
+            console.error(`Failed to process coin data:`, err);
+            return null;
           }
         });
 
         const tokenResults = await Promise.all(tokenPromises);
 
-        // Filter out any tokens with fetch errors
-        const validTokens = tokenResults.filter((token) => token && token.id);
-
-        // Sort tokens by ETH reserves (reserve0), from highest to lowest
-        const sortedTokens = [...validTokens].sort((a, b) => {
-          // Default to 0n if reserve0 is undefined
-          const reserveA = a.reserve0 || 0n;
-          const reserveB = b.reserve0 || 0n;
-
-          // For bigint comparison, subtract b from a and convert to number
-          // Negative means b > a, positive means a > b
-          // We want descending order (highest first), so we return positive when b > a
-          return reserveB > reserveA ? 1 : reserveB < reserveA ? -1 : 0;
+        // Filter out any tokens with fetch errors or null IDs (except ETH token)
+        const validTokens = tokenResults.filter((token): token is TokenMeta => 
+          token !== null && token.id !== undefined && (
+            // Allow ETH token which has null ID, filter out any other tokens with null ID
+            token.id !== null || token.symbol === "ETH"
+          ));
+          
+        console.log(`Successfully processed ${validTokens.length} valid coins out of ${allCoinsData.length} received coins and ${totalCoinCount} total coins`);
+        
+        // Filter out ETH token and any null IDs for debug logging
+        const nonEthValidTokens = validTokens.filter(token => token.id !== null);
+        
+        // Add additional logging to track coin IDs with largest ETH reserves
+        console.log("Top 10 coins by ETH reserves:");
+        const sortedForDebug = [...nonEthValidTokens]
+          .sort((a, b) => {
+            const reserveA = a.reserve0 || 0n;
+            const reserveB = b.reserve0 || 0n;
+            return reserveB > reserveA ? 1 : reserveB < reserveA ? -1 : 0;
+          })
+          .slice(0, 10);
+        
+        sortedForDebug.forEach((coin, idx) => {
+          // Add null check for TypeScript even though we filtered already
+          if (coin.id === null) return; // This should never happen due to our filter
+          
+          const ethReserves = coin.reserve0 ? formatEther(coin.reserve0) : "0";
+          const liquidityInEth = coin.liquidity ? formatEther(coin.liquidity) : "0";
+          const feePercentage = coin.swapFee ? Number(coin.swapFee) / 100 : 1;
+          console.log(`#${idx+1}: Coin ID ${coin.id.toString()}, Symbol: ${coin.symbol}, ETH Reserves: ${ethReserves} ETH, Liquidity: ${liquidityInEth} ETH, Fee: ${feePercentage}%`);
+        });
+        
+        // Check if specific coins exist in our dataset (e.g., Coin #137)
+        const specificCoins = [137n, 138n, 139n, 140n, 141n];
+        console.log("Checking for specific recent coins:");
+        specificCoins.forEach(coinId => {
+          // Find the coin and ensure it has a non-null ID
+          const found = nonEthValidTokens.find(t => t.id === coinId);
+          if (found && found.id !== null) { // Additional check for TypeScript
+            const ethReserves = found.reserve0 ? formatEther(found.reserve0) : "0";
+            const liquidityInEth = found.liquidity ? formatEther(found.liquidity) : "0";
+            const feePercentage = found.swapFee ? Number(found.swapFee) / 100 : 1;
+            console.log(`Found Coin #${coinId.toString()}: ${found.symbol}, ETH Reserves: ${ethReserves} ETH, Liquidity: ${liquidityInEth} ETH, Fee: ${feePercentage}%`);
+          } else {
+            console.warn(`Coin #${coinId.toString()} NOT FOUND in the dataset!`);
+          }
         });
 
-        // Tokens sorted by reserves
+        // Sort tokens by ETH reserves (reserve0) from highest to lowest
+        const sortedByEthReserves = [...validTokens].sort((a, b) => {
+          // ETH token (null ID) should always be first
+          if (a.id === null) return -1;
+          if (b.id === null) return 1;
+          
+          // Primary sort by ETH reserves (reserve0)
+          const reserveA = a.reserve0 || 0n;
+          const reserveB = b.reserve0 || 0n;
+          
+          if (reserveB > reserveA) return 1;
+          if (reserveB < reserveA) return -1;
+          
+          // Secondary sort by liquidity if ETH reserves are equal
+          const liquidityA = a.liquidity || 0n;
+          const liquidityB = b.liquidity || 0n;
+          return liquidityB > liquidityA ? 1 : liquidityB < liquidityA ? -1 : 0;
+        });
 
         // Get the updated ETH token with balance from current state or use ethBalance directly
         const currentEthToken = tokens.find((token) => token.id === null) || ETH_TOKEN;
@@ -354,15 +443,17 @@ const useAllTokens = () => {
         };
 
         // Debug the ETH balance with more detailed logging
-        if (ethBalance?.value !== undefined) {
-          // Log if there's a discrepancy
-          if (currentEthToken.balance !== ethBalance.value) {
-          }
+        if (ethBalance?.value !== undefined && currentEthToken.balance !== ethBalance.value) {
+          console.log(`Updated ETH balance: ${formatEther(ethBalance.value)} ETH`);
         }
 
-        // ETH is always first
-        const allTokens = [ethTokenWithBalance, ...sortedTokens];
+        // Take the top 100 coins by ETH reserves
+        const top100ByEthReserves = sortedByEthReserves.slice(0, 100);
+        
+        // ETH is always first, followed by top 100 by ETH reserves
+        const allTokens = [ethTokenWithBalance, ...top100ByEthReserves];
 
+        console.log(`Showing ETH + top ${top100ByEthReserves.length} tokens by ETH reserves out of ${sortedByEthReserves.length} total coins`);
         setTokens(allTokens);
       } catch (err) {
         console.error("Error fetching tokens:", err);
@@ -655,33 +746,60 @@ const TokenSelector = ({
               (token.id === null && selectedValue === "eth") ||
               (token.id !== null && token.id.toString() === selectedValue);
 
-            // Format reserves (if available) to show in the dropdown
+            // Format reserves, liquidity, and fee to show in the dropdown
             const formatReserves = (token: TokenMeta) => {
               if (token.id === null) return "";
 
-              // If no reserves data available or zero reserves
-              if (!token.reserve0 || token.reserve0 === 0n) return "No liquidity";
+              // Format the custom fee if available (as percentage)
+              const feePercentage = token.swapFee ? Number(token.swapFee) / 100 : 1; // Default is 1%
+              const feeStr = feePercentage % 1 === 0 
+                ? `${feePercentage}%` 
+                : `${feePercentage.toFixed(2)}%`;
 
-              // Format ETH reserves to a readable format based on size
-              const ethValue = Number(formatEther(token.reserve0));
-
-              if (ethValue >= 1000) {
-                return `${Math.floor(ethValue).toLocaleString()} ETH`;
-              } else if (ethValue >= 1.0) {
-                // For larger pools, show with 3 decimal places
-                return `${ethValue.toFixed(3)} ETH`;
-              } else if (ethValue >= 0.001) {
-                // For medium pools, show with 4 decimal places
-                return `${ethValue.toFixed(4)} ETH`;
-              } else if (ethValue >= 0.0001) {
-                // Show small amounts with more precision
-                return `${ethValue.toFixed(6)} ETH`;
-              } else if (ethValue > 0) {
-                // For very small pools, show with 8 decimal places
-                return `${ethValue.toFixed(8)} ETH`;
-              } else {
-                return "No liquidity";
+              // If no liquidity data available or zero liquidity
+              if (!token.liquidity || token.liquidity === 0n) {
+                // Fall back to reserves if available
+                if (token.reserve0 && token.reserve0 > 0n) {
+                  // Format ETH reserves to a readable format
+                  const ethValue = Number(formatEther(token.reserve0));
+                  let reserveStr = "";
+                  
+                  if (ethValue >= 1000) {
+                    reserveStr = `${Math.floor(ethValue).toLocaleString()} ETH`;
+                  } else if (ethValue >= 1.0) {
+                    reserveStr = `${ethValue.toFixed(3)} ETH`;
+                  } else if (ethValue >= 0.001) {
+                    reserveStr = `${ethValue.toFixed(4)} ETH`;
+                  } else if (ethValue >= 0.0001) {
+                    reserveStr = `${ethValue.toFixed(6)} ETH`;
+                  } else if (ethValue > 0) {
+                    reserveStr = `${ethValue.toFixed(8)} ETH`;
+                  }
+                  
+                  return `${reserveStr} • Fee: ${feeStr}`;
+                }
+                return `No liquidity • Fee: ${feeStr}`;
               }
+
+              // Format the ETH reserves (reserve0)
+              const ethReserveValue = Number(formatEther(token.reserve0 || 0n));
+              let reserveStr = "";
+              
+              if (ethReserveValue >= 10000) {
+                reserveStr = `${Math.floor(ethReserveValue / 1000)}K ETH`;
+              } else if (ethReserveValue >= 1000) {
+                reserveStr = `${(ethReserveValue / 1000).toFixed(1)}K ETH`;
+              } else if (ethReserveValue >= 1.0) {
+                reserveStr = `${ethReserveValue.toFixed(2)} ETH`;
+              } else if (ethReserveValue >= 0.001) {
+                reserveStr = `${ethReserveValue.toFixed(4)} ETH`;
+              } else if (ethReserveValue > 0) {
+                reserveStr = `${ethReserveValue.toFixed(6)} ETH`;
+              } else {
+                return `No ETH reserves • Fee: ${feeStr}`;
+              }
+              
+              return `${reserveStr} • Fee: ${feeStr}`;
             };
 
             const reserves = formatReserves(token);
