@@ -26,9 +26,11 @@ export const Coins = () => {
   const closeTrade = () => setSelectedTokenId(null);
 
   // If a token is selected, show the trade view
-  if (selectedTokenId !== null) {
-    return <TradeView tokenId={selectedTokenId} onBack={closeTrade} />;
-  }
+  // FIX: Moved TradeView rendering out of conditional return to maintain consistent hook execution.
+  // Hooks like useState and useMemo must run unconditionally at the top level in React components.
+  const tradeView = selectedTokenId !== null ? (
+    <TradeView tokenId={selectedTokenId} onBack={closeTrade} />
+  ) : null;
 
   // Filter coins based on search query
   const filteredCoins = useMemo(() => {
@@ -36,21 +38,21 @@ export const Coins = () => {
       // When no search, use the paginated coins
       return coins;
     }
-    
+
     // When searching, use the full dataset if available
     const dataToSearch = allCoins && allCoins.length > 0 ? allCoins : coins;
-    
+
     const query = searchQuery.toLowerCase().trim();
     return dataToSearch.filter((coin) => {
       // Search by coin ID
       if (coin.coinId.toString().includes(query)) return true;
-      
+
       // Search by symbol (if available)
       if (coin.symbol && coin.symbol.toLowerCase().includes(query)) return true;
-      
+
       // Search by name (if available)
       if (coin.name && coin.name.toLowerCase().includes(query)) return true;
-      
+
       return false;
     });
   }, [coins, allCoins, searchQuery]);
@@ -85,11 +87,11 @@ export const Coins = () => {
   const isSearchMode = searchQuery.trim() !== "";
 
   // Show the explorer grid
-  return (
+  return tradeView || (
     <>
       <div className="flex justify-between items-center mb-2">
         <div className="text-sm text-gray-500">
-          {isSearchMode 
+          {isSearchMode
             ? `Showing ${filteredCoins.length} result${filteredCoins.length !== 1 ? 's' : ''}`
             : `Page ${page + 1} of ${totalPages} • Showing items ${offset + 1}-${Math.min(offset + coins.length, total)} of ${total}`
           }
