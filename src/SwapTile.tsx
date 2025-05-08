@@ -2091,9 +2091,6 @@ export const SwapTile = () => {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="mb-2">
-                <div className="font-medium mb-1">
-                  {mode === "liquidity" && liquidityMode === "single-eth" ? "Single-ETH" : "Regular"} Slippage:
-                </div>
                 <div className="flex gap-1 flex-wrap">
                   {SLIPPAGE_OPTIONS.map((option) => (
                     <button
@@ -2124,7 +2121,7 @@ export const SwapTile = () => {
                       min="0.1"
                       max="50"
                       step="0.1"
-                      placeholder="Custom"
+                      placeholder=""
                       className="w-12 bg-transparent outline-none text-center"
                       onChange={(e) => {
                         const value = parseFloat(e.target.value);

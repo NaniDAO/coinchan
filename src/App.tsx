@@ -6,11 +6,16 @@ import { CoinForm } from "./CoinForm";
 import Coins from "./Coins";
 import { ConnectMenu } from "./ConnectMenu";
 import SwapTile from "./SwapTile";
+import ConnectionErrorHandler from "./utils/ConnectionErrorHandler";
+import usePersistentConnection from "./hooks/use-persistent-connection";
 
 function App() {
   const [view, setView] = useState<"menu" | "form" | "memepaper" | "swap">("swap");
   const [tapCount, setTapCount] = useState(0);
   const [lastTap, setLastTap] = useState(0);
+  
+  // Use our lightweight persistence hook to maintain UI state across sessions
+  usePersistentConnection();
 
   useEffect(() => {
     sdk.actions.ready();
@@ -53,6 +58,8 @@ function App() {
 
   return (
     <main className="p-2 sm:p-3 min-h-screen w-screen flex flex-col justify-center items-center">
+      {/* Silent error handler component for wallet connection issues */}
+      <ConnectionErrorHandler />
       <div className="w-full max-w-lg">
         <header className="flex justify-end w-full">
           <ConnectMenu />
