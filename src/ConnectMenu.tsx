@@ -1,34 +1,37 @@
 import { useAccount, useConnect } from "wagmi";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { truncAddress } from "./lib/address";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
-export function ConnectMenu() {
+const ConnectMenuComponent = () => {
   const { isConnected, address, status } = useAccount();
   const { connect, connectors } = useConnect();
   const [reconnecting, setReconnecting] = useState(false);
   
-  // Simple status tracking for UI state
+  // Performance-optimized status tracking with fewer state updates
   useEffect(() => {
-    // Show reconnecting state only when the connection is being restored
-    if (status === 'reconnecting' || status === 'connecting') {
-      setReconnecting(true);
-    } else {
-      setReconnecting(false);
+    // Only update state if it's actually changing to prevent redundant renders
+    const shouldShowReconnecting = status === 'reconnecting' || status === 'connecting';
+    
+    if (shouldShowReconnecting !== reconnecting) {
+      setReconnecting(shouldShowReconnecting);
     }
     
-    // Save last known address in sessionStorage to improve UX during reconnection
+    // Only store the address when connected and stable (not during transition states)
     if (status === 'connected' && address) {
-      sessionStorage.setItem('lastConnectedAddress', address);
+      // Use requestIdleCallback for non-critical storage operations
+      if (window.requestIdleCallback) {
+        window.requestIdleCallback(() => {
+          sessionStorage.setItem('lastConnectedAddress', address);
+        });
+      } else {
+        // Fallback for browsers without requestIdleCallback
+        setTimeout(() => {
+          sessionStorage.setItem('lastConnectedAddress', address);
+        }, 100);
+      }
     }
-  }, [status, address]);
-  
-  // Simple connectors check
-  useEffect(() => {
-    if (connectors.length === 0) {
-      console.warn('No wallet connectors available');
-    }
-  }, [connectors]);
+  }, [status, address, reconnecting]);
 
   // When connected - show the address
   if (isConnected) {
@@ -84,4 +87,7 @@ export function ConnectMenu() {
       </DialogContent>
     </Dialog>
   );
-}
+};
+
+// Export a memoized version of the component for better performance
+export const ConnectMenu = React.memo(ConnectMenuComponent);

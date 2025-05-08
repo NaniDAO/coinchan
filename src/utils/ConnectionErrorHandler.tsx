@@ -5,30 +5,49 @@ import { useEffect } from 'react';
  * without attempting to modify wallet behavior
  */
 export function ConnectionErrorHandler() {
-  // Set up global error handler to catch unhandled errors
+  // Only handle a limited set of errors and with minimal processing
   useEffect(() => {
-    const originalOnError = window.onerror;
+    // We'll limit our error handling to just the essential connection errors
+    const errorPatterns = [
+      'getChainId is not a function',
+      'connector.getChainId',
+      'connections.get is not a function'
+    ];
+    
+    // Create a simple throttled error handler to minimize performance impact
+    let lastErrorTime = 0;
+    let handlingError = false;
     
     const handleError = (event: ErrorEvent) => {
-      const errorMsg = event.error?.message || event.message;
+      // Early return if we're actively handling an error or throttling
+      if (handlingError) return false;
       
-      if (typeof errorMsg === 'string' && 
-          (errorMsg.includes('getChainId is not a function') || 
-           errorMsg.includes('connector.getChainId') ||
-           errorMsg.includes('connections.get is not a function'))) {
+      const now = Date.now();
+      // Only process one error every 2 seconds maximum
+      if (now - lastErrorTime < 2000) return false;
+      
+      const errorMsg = event.error?.message || event.message;
+      if (!errorMsg || typeof errorMsg !== 'string') return false;
+      
+      // Check if this is one of our targeted errors
+      const isConnectionError = errorPatterns.some(pattern => errorMsg.includes(pattern));
+      
+      if (isConnectionError) {
+        handlingError = true;
+        lastErrorTime = now;
         
-        // Just log the error without taking action
-        console.warn('Wallet connection warning suppressed:', errorMsg);
-        
-        // Prevent the default error handling to avoid console spam
+        // Just suppress the error without any additional processing
         event.preventDefault();
         
-        // Return true to indicate we've handled this error
+        // Reset the handling flag after a short delay
+        setTimeout(() => {
+          handlingError = false;
+        }, 50);
+        
         return true;
       }
       
-      // For other errors, use the original handler
-      return originalOnError ? originalOnError.call(window, event.message, event.filename, event.lineno, event.colno, event.error) : false;
+      return false;
     };
     
     // Add our custom error handler
