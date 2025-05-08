@@ -362,21 +362,30 @@ const useAllTokens = () => {
 
         const tokenResults = await Promise.all(tokenPromises);
 
-        // Filter out any tokens with fetch errors
+        // Filter out any tokens with fetch errors or null IDs (except ETH token)
         const validTokens = tokenResults.filter((token): token is TokenMeta => 
-          token !== null && token.id !== undefined);
+          token !== null && token.id !== undefined && (
+            // Allow ETH token which has null ID, filter out any other tokens with null ID
+            token.id !== null || token.symbol === "ETH"
+          ));
           
         console.log(`Successfully processed ${validTokens.length} valid coins out of ${allCoinsData.length} received coins and ${totalCoinCount} total coins`);
         
+        // Filter out ETH token and any null IDs for debug logging
+        const nonEthValidTokens = validTokens.filter(token => token.id !== null);
+        
         // Add additional logging to track coin IDs with largest ETH reserves
         console.log("Top 10 coins by ETH reserves:");
-        const sortedForDebug = [...validTokens].sort((a, b) => {
-          const reserveA = a.reserve0 || 0n;
-          const reserveB = b.reserve0 || 0n;
-          return reserveB > reserveA ? 1 : reserveB < reserveA ? -1 : 0;
-        }).slice(0, 10);
+        const sortedForDebug = [...nonEthValidTokens]
+          .sort((a, b) => {
+            const reserveA = a.reserve0 || 0n;
+            const reserveB = b.reserve0 || 0n;
+            return reserveB > reserveA ? 1 : reserveB < reserveA ? -1 : 0;
+          })
+          .slice(0, 10);
         
         sortedForDebug.forEach((coin, idx) => {
+          // We know coin.id is not null here because we filtered above
           const ethReserves = coin.reserve0 ? formatEther(coin.reserve0) : "0";
           const liquidityInEth = coin.liquidity ? formatEther(coin.liquidity) : "0";
           const feePercentage = coin.swapFee ? Number(coin.swapFee) / 100 : 1;
@@ -387,7 +396,8 @@ const useAllTokens = () => {
         const specificCoins = [137n, 138n, 139n, 140n, 141n];
         console.log("Checking for specific recent coins:");
         specificCoins.forEach(coinId => {
-          const found = validTokens.find(t => t.id === coinId);
+          // Find the coin and ensure it has a non-null ID
+          const found = nonEthValidTokens.find(t => t.id === coinId);
           if (found) {
             const ethReserves = found.reserve0 ? formatEther(found.reserve0) : "0";
             const liquidityInEth = found.liquidity ? formatEther(found.liquidity) : "0";
