@@ -777,9 +777,9 @@ const TokenSelector = ({
                     reserveStr = `${ethValue.toFixed(8)} ETH`;
                   }
                   
-                  return `${reserveStr} • Fee: ${feeStr}`;
+                  return `${reserveStr} • ${feeStr}`;
                 }
-                return `No liquidity • Fee: ${feeStr}`;
+                return `No liquidity • ${feeStr}`;
               }
 
               // Format the ETH reserves (reserve0)
@@ -797,10 +797,10 @@ const TokenSelector = ({
               } else if (ethReserveValue > 0) {
                 reserveStr = `${ethReserveValue.toFixed(6)} ETH`;
               } else {
-                return `No ETH reserves • Fee: ${feeStr}`;
+                return `No ETH reserves • ${feeStr}`;
               }
               
-              return `${reserveStr} • Fee: ${feeStr}`;
+              return `${reserveStr} • ${feeStr}`;
             };
 
             const reserves = formatReserves(token);
