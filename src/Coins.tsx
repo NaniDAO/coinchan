@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ExplorerGrid } from "./ExplorerGrid";
 import { TradeView } from "./TradeView";
 import { usePagedCoins } from "./hooks/metadata";
@@ -25,8 +25,7 @@ export const Coins = () => {
     hasPreviousPage, 
     goToNextPage, 
     goToPreviousPage, 
-    isLoading, 
-    setPage 
+    isLoading
   } = usePagedCoins(PAGE_SIZE);
 
   // Get access to all coins for global search
