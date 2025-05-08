@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { mainnet } from "viem/chains";
 
 // CheckTheChain contract ABI for fetching ETH price
@@ -154,7 +155,9 @@ export function CoinForm({
 
   const TOTAL_SUPPLY = 21000000;
   const [poolSupply, setPoolSupply] = useState(TOTAL_SUPPLY);
-  const swapFee = 100;
+  const [swapFee, setSwapFee] = useState(100); // Default 1% fee (represented as basis points)
+  const [customFeeInput, setCustomFeeInput] = useState('');
+  const [showFeeSelector, setShowFeeSelector] = useState(false);
   const vestingDuration = 15778476;
   const vesting = true;
 
@@ -172,6 +175,40 @@ export function CoinForm({
   });
 
   // Calculate estimated market cap
+  // Convert fee basis points to percentage string
+  const feeToPercentage = (basisPoints: number): string => {
+    return (basisPoints / 100).toFixed(2) + '%';
+  };
+  
+  // Convert percentage to basis points
+  const percentageToBasisPoints = (percentage: number): number => {
+    return Math.round(percentage * 100);
+  };
+  
+  // Format percentage input to have max 2 decimal places and be within valid range
+  const formatPercentageInput = (value: string): string => {
+    // Handle empty or invalid input
+    if (!value || isNaN(parseFloat(value))) return '';
+    
+    // Parse the value
+    let numValue = parseFloat(value);
+    
+    // Cap the value at 99.99
+    numValue = Math.min(numValue, 99.99);
+    
+    // If input contains more than 2 decimal places, truncate to 2
+    if (value.includes('.') && value.split('.')[1].length > 2) {
+      return numValue.toFixed(2);
+    }
+    
+    // If we've capped the value, use the fixed format
+    if (numValue !== parseFloat(value)) {
+      return numValue.toFixed(2);
+    }
+    
+    return value;
+  };
+
   const marketCapEstimation = useMemo(() => {
     if (!ethPriceData) return null;
 
@@ -274,7 +311,7 @@ export function CoinForm({
             tokenUriHash,
             parseEther(finalPoolSupply.toString()),
             parseEther(safeCreatorSupply.toString()),
-            BigInt(swapFee),
+            BigInt(swapFee), // Uses the custom fee from state
             address,
             BigInt(Math.floor(Date.now() / 1000) + vestingDuration),
             vesting,
@@ -474,9 +511,108 @@ export function CoinForm({
                     </div>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  Based on {formState.ethAmount} ETH liquidity with {poolSupply.toLocaleString()} coins
-                </p>
+                <div className="flex items-center mt-2">
+                  <p className="text-xs text-gray-500">
+                    Based on {formState.ethAmount} ETH liquidity with {poolSupply.toLocaleString()} coins
+                  </p>
+                  <div className="ml-auto">
+                    <Popover open={showFeeSelector} onOpenChange={setShowFeeSelector}>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="text-xs px-2 py-1 rounded border border-gray-300 hover:bg-gray-100 transition-colors flex items-center gap-1"
+                        >
+                          Fee: <span className="font-semibold text-blue-600">{feeToPercentage(swapFee)}</span>
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 p-3">
+                        <div className="space-y-2">
+                          <h4 className="font-medium text-sm">Customize Swap Fee</h4>
+                          <p className="text-xs text-gray-500">Select a fee percentage for swaps</p>
+                          <div className="grid grid-cols-2 gap-2 mt-2">
+                            {[25, 50, 100, 150, 200, 300].map((fee) => (
+                              <button
+                                key={fee}
+                                type="button"
+                                className={`text-xs px-3 py-2 rounded border transition-colors ${
+                                  swapFee === fee
+                                    ? "bg-blue-100 border-blue-400 text-blue-700"
+                                    : "border-gray-300 hover:bg-gray-50"
+                                }`}
+                                onClick={() => {
+                                  setSwapFee(fee);
+                                  setCustomFeeInput('');
+                                  setShowFeeSelector(false);
+                                }}
+                              >
+                                {feeToPercentage(fee)}
+                              </button>
+                            ))}
+                          </div>
+                          
+                          <div className="mt-3">
+                            <label className="text-xs font-medium text-gray-600 mb-1 block">
+                              Custom Fee (%)
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="text"
+                                inputMode="decimal"
+                                placeholder="e.g. 0.75"
+                                className="text-xs h-8"
+                                value={customFeeInput}
+                                onChange={(e) => {
+                                  // Only allow numbers and up to one decimal point
+                                  const value = e.target.value;
+                                  
+                                  // Validate format (numbers with up to 2 decimal places and max 2 digits before decimal)
+                                  if (value === '' || /^[0-9]{1,2}(\.?[0-9]{0,2})?$/.test(value)) {
+                                    // Check if the value exceeds the maximum allowed (99.99)
+                                    const numValue = parseFloat(value);
+                                    if (value === '' || isNaN(numValue) || numValue <= 99.99) {
+                                      setCustomFeeInput(value);
+                                    }
+                                  }
+                                }}
+                                onBlur={() => {
+                                  // Format on blur to ensure proper format
+                                  setCustomFeeInput(formatPercentageInput(customFeeInput));
+                                }}
+                              />
+                              <Button 
+                                type="button" 
+                                size="sm"
+                                variant="outline"
+                                className="h-8"
+                                onClick={() => {
+                                  const customFeePercent = parseFloat(customFeeInput);
+                                  if (!isNaN(customFeePercent) && customFeePercent >= 0.01 && customFeePercent <= 99.99) {
+                                    // Convert percentage to basis points for internal use
+                                    const basisPoints = percentageToBasisPoints(customFeePercent);
+                                    setSwapFee(basisPoints);
+                                    setShowFeeSelector(false);
+                                  }
+                                }}
+                                disabled={!customFeeInput || 
+                                  isNaN(parseFloat(customFeeInput)) || 
+                                  parseFloat(customFeeInput) < 0.01 || 
+                                  parseFloat(customFeeInput) > 99.99 ||
+                                  !/^[0-9]{1,2}(\.?[0-9]{0,2})?$/.test(customFeeInput)}
+                              >
+                                Set
+                              </Button>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {customFeeInput && !isNaN(parseFloat(customFeeInput)) && /^[0-9]{1,2}(\.?[0-9]{0,2})?$/.test(customFeeInput) ? 
+                                `${customFeeInput}% = ${percentageToBasisPoints(parseFloat(customFeeInput))} basis points` :
+                                'Enter a value between 0.01% and 99.99% (max 2 decimal places)'}
+                            </p>
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
               </div>
             )}
           </div>
