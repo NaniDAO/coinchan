@@ -385,7 +385,9 @@ const useAllTokens = () => {
           .slice(0, 10);
         
         sortedForDebug.forEach((coin, idx) => {
-          // We know coin.id is not null here because we filtered above
+          // Add null check for TypeScript even though we filtered already
+          if (coin.id === null) return; // This should never happen due to our filter
+          
           const ethReserves = coin.reserve0 ? formatEther(coin.reserve0) : "0";
           const liquidityInEth = coin.liquidity ? formatEther(coin.liquidity) : "0";
           const feePercentage = coin.swapFee ? Number(coin.swapFee) / 100 : 1;
@@ -398,7 +400,7 @@ const useAllTokens = () => {
         specificCoins.forEach(coinId => {
           // Find the coin and ensure it has a non-null ID
           const found = nonEthValidTokens.find(t => t.id === coinId);
-          if (found) {
+          if (found && found.id !== null) { // Additional check for TypeScript
             const ethReserves = found.reserve0 ? formatEther(found.reserve0) : "0";
             const liquidityInEth = found.liquidity ? formatEther(found.liquidity) : "0";
             const feePercentage = found.swapFee ? Number(found.swapFee) / 100 : 1;
@@ -410,6 +412,10 @@ const useAllTokens = () => {
 
         // Sort tokens by ETH reserves (reserve0) from highest to lowest
         const sortedByEthReserves = [...validTokens].sort((a, b) => {
+          // ETH token (null ID) should always be first
+          if (a.id === null) return -1;
+          if (b.id === null) return 1;
+          
           // Primary sort by ETH reserves (reserve0)
           const reserveA = a.reserve0 || 0n;
           const reserveB = b.reserve0 || 0n;
