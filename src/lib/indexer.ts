@@ -97,7 +97,7 @@ export async function fetchPoolPricePoints(
         where: { poolId: $poolId },
         orderBy: "timestamp",
         orderDirection: "desc",
-        first: 1000
+        limit: 1000
       ) {
         items {
           price1
