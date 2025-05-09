@@ -1,4 +1,11 @@
-import { encodeAbiParameters, parseAbiParameters, zeroAddress, encodeFunctionData, Address } from "viem";
+import {
+  encodeAbiParameters,
+  parseAbiParameters,
+  zeroAddress,
+  encodeFunctionData,
+  Address,
+  keccak256,
+} from "viem";
 import { ZAAMAddress, ZAAMAbi } from "../constants/ZAAM";
 import { CoinsAddress } from "../constants/Coins";
 
@@ -21,7 +28,8 @@ export const getAmountWithSlippage = (amount: bigint, slippageBps: bigint) =>
  * Generate a deadline timestamp in seconds
  * @returns BigInt of current time + deadline window
  */
-const deadlineTimestamp = () => BigInt(Math.floor(Date.now() / 1000) + DEADLINE_SEC);
+const deadlineTimestamp = () =>
+  BigInt(Math.floor(Date.now() / 1000) + DEADLINE_SEC);
 
 /**
  * Compute pool key structure for a coin ID
@@ -43,9 +51,13 @@ export const computePoolKey = (coinId: bigint) => ({
  */
 export const computePoolId = (coinId: bigint) =>
   BigInt(
-    encodeAbiParameters(
-      parseAbiParameters("uint256 id0, uint256 id1, address token0, address token1, uint96 swapFee"),
-      [0n, coinId, zeroAddress, CoinsAddress, SWAP_FEE],
+    keccak256(
+      encodeAbiParameters(
+        parseAbiParameters(
+          "uint256 id0, uint256 id1, address token0, address token1, uint96 swapFee",
+        ),
+        [0n, coinId, zeroAddress, CoinsAddress, SWAP_FEE],
+      ),
     ),
   );
 
@@ -207,7 +219,12 @@ export function estimateCoinToCoinOutput(
 /**
  * Calculate output amount for a swap (from ZAMM contract)
  */
-export function getAmountOut(amountIn: bigint, reserveIn: bigint, reserveOut: bigint, swapFee: bigint) {
+export function getAmountOut(
+  amountIn: bigint,
+  reserveIn: bigint,
+  reserveOut: bigint,
+  swapFee: bigint,
+) {
   if (amountIn === 0n || reserveIn === 0n || reserveOut === 0n) return 0n;
 
   const amountInWithFee = amountIn * (10000n - swapFee);
@@ -219,8 +236,19 @@ export function getAmountOut(amountIn: bigint, reserveIn: bigint, reserveOut: bi
 /**
  * Calculate input amount for a desired output amount (from ZAMM contract)
  */
-export function getAmountIn(amountOut: bigint, reserveIn: bigint, reserveOut: bigint, swapFee: bigint) {
-  if (amountOut === 0n || reserveIn === 0n || reserveOut === 0n || amountOut >= reserveOut) return 0n;
+export function getAmountIn(
+  amountOut: bigint,
+  reserveIn: bigint,
+  reserveOut: bigint,
+  swapFee: bigint,
+) {
+  if (
+    amountOut === 0n ||
+    reserveIn === 0n ||
+    reserveOut === 0n ||
+    amountOut >= reserveOut
+  )
+    return 0n;
 
   const numerator = reserveIn * amountOut * 10000n;
   const denominator = (reserveOut - amountOut) * (10000n - swapFee);
