@@ -1,4 +1,4 @@
-import React, { useRef, useLayoutEffect, useEffect } from "react";
+import React, { useRef, useLayoutEffect, useEffect, useState } from "react";
 import {
   createChart,
   CrosshairMode,
@@ -9,6 +9,7 @@ import {
   IChartApi,
   ISeriesApi,
   ColorType,
+  PriceFormatBuiltIn,
 } from "lightweight-charts";
 import { Spinner } from "@/components/ui/spinner";
 import { useQuery } from "@tanstack/react-query";
@@ -23,15 +24,56 @@ const PoolCandleChart: React.FC<CandleChartProps> = ({
   poolId,
   interval = "1h",
 }) => {
+  const [selectedInterval, setSelectedInterval] = useState<"1m" | "1h" | "1d">(
+    interval,
+  );
+
   const { data, isLoading, error } = useQuery({
-    queryKey: ["poolCandles", poolId, interval],
-    queryFn: () => fetchPoolCandles(poolId, interval),
+    queryKey: ["poolCandles", poolId, selectedInterval],
+    queryFn: () => fetchPoolCandles(poolId, selectedInterval),
   });
 
   if (error) console.error(error);
 
+  const handleIntervalChange = (newInterval: "1m" | "1h" | "1d") => {
+    setSelectedInterval(newInterval);
+  };
+
   return (
     <div className="w-full">
+      <div className="mb-4 flex space-x-2">
+        <button
+          onClick={() => handleIntervalChange("1m")}
+          className={`px-3 py-1 rounded ${
+            selectedInterval === "1m"
+              ? "bg-blue-500 text-white"
+              : "bg-gray-200 text-gray-700"
+          }`}
+        >
+          1m
+        </button>
+        <button
+          onClick={() => handleIntervalChange("1h")}
+          className={`px-3 py-1 rounded ${
+            selectedInterval === "1h"
+              ? "bg-blue-500 text-white"
+              : "bg-gray-200 text-gray-700"
+          }`}
+        >
+          1h
+        </button>
+        <button
+          onClick={() => handleIntervalChange("1d")}
+          className={`px-3 py-1 rounded ${
+            selectedInterval === "1d"
+              ? "bg-blue-500 text-white"
+              : "bg-gray-200 text-gray-700"
+          }`}
+        >
+          1d
+        </button>
+      </div>
+
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
           <Spinner />
@@ -81,6 +123,11 @@ const TVCandlestick: React.FC<TVChartProps> = ({ rawData }) => {
       wickDownColor: "#f87171",
       borderVisible: false,
       wickVisible: true,
+      priceFormat: {
+        type: "price", // use the regular price formatter
+        precision: 8, // force 6 decimal places
+        minMove: 0.000001, // smallest tick size
+      } as PriceFormatBuiltIn,
     } as CandlestickSeriesOptions);
 
     // responsiveness
@@ -112,7 +159,7 @@ const TVCandlestick: React.FC<TVChartProps> = ({ rawData }) => {
 
     // map to TV's format (seconds‐based UTC timestamp)
     const tvData: TVCandlestickData[] = filtered.map((d) => ({
-      time: Math.floor(d.date / 1000) as UTCTimestamp,
+      time: d.date as UTCTimestamp,
       open: d.open,
       high: d.high,
       low: d.low,

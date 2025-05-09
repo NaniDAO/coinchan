@@ -11,6 +11,7 @@ import { mainnet } from "viem/chains";
 import { useCoinData } from "./hooks/metadata";
 import PoolCandleChart from "./PoolCandleChart";
 import { computePoolId } from "./lib/swapHelper";
+import PoolPriceChart from "./PoolPriceChart";
 
 // Simple error boundary to prevent crashes
 class ErrorBoundary extends Component<
@@ -174,11 +175,22 @@ export const TradeView = ({
       )}
 
       {/* Only show Unlock if the user is the owner */}
-      <div className="mt-4 sm:mt-6">
+      {/* <div className="mt-4 sm:mt-6">
+        // only data upto 30 april is being returned ??? so removing for now
         <ErrorBoundary
           fallback={<p className="text-red-500">Pool chart unavailable</p>}
         >
           <PoolCandleChart poolId={computePoolId(tokenId).toString()} />
+        </ErrorBoundary>
+      </div> */}
+      <div className="mt-4 sm:mt-6">
+        <ErrorBoundary
+          fallback={<p className="text-red-500">Pool chart unavailable</p>}
+        >
+          <PoolPriceChart
+            poolId={computePoolId(tokenId).toString()}
+            ticker={symbol}
+          />
         </ErrorBoundary>
       </div>
     </div>
