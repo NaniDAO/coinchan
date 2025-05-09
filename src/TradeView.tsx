@@ -9,7 +9,7 @@ import {
 import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
 import { mainnet } from "viem/chains";
 import { useCoinData } from "./hooks/metadata";
-import PoolCandleChart from "./PoolCandleChart";
+// import PoolCandleChart from "./PoolCandleChart";
 import { computePoolId } from "./lib/swapHelper";
 import PoolPriceChart from "./PoolPriceChart";
 
