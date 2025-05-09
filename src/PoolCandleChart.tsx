@@ -8,6 +8,7 @@ import {
   CandlestickSeries,
   IChartApi,
   ISeriesApi,
+  ColorType,
 } from "lightweight-charts";
 import { Spinner } from "@/components/ui/spinner";
 import { useQuery } from "@tanstack/react-query";
@@ -61,8 +62,9 @@ const TVCandlestick: React.FC<TVChartProps> = ({ rawData }) => {
 
     const chart = createChart(containerRef.current, {
       layout: {
-        background: { type: "Solid", color: "#ffffff" },
+        background: { type: ColorType.Solid, color: "#ffffff" },
         textColor: "#333",
+        attributionLogo: false,
       },
       width: containerRef.current.clientWidth,
       height: 400,
