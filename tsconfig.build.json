@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "exclude": [
+    "**/*.old.tsx",
+    "**/*.old.ts",
+    "**/node_modules"
+  ]
+}
+EOL < /dev/null
