@@ -5,9 +5,8 @@ import { useAccount, usePublicClient, useWaitForTransactionReceipt } from "wagmi
 import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
 import { mainnet } from "viem/chains";
 import { useCoinData } from "./hooks/metadata";
-// import PoolCandleChart from "./PoolCandleChart";
 import { computePoolId } from "./lib/swapHelper";
-import PoolPriceChart from "./PoolPriceChart";
+import UnifiedChartComponent from "./UnifiedChartComponent";
 
 // Simple error boundary to prevent crashes
 class ErrorBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { hasError: boolean }> {
@@ -156,7 +155,10 @@ export const TradeView = ({
       </div> */}
       <div className="mt-4 sm:mt-6">
         <ErrorBoundary fallback={<p className="text-red-500">Pool chart unavailable</p>}>
-          <PoolPriceChart poolId={computePoolId(tokenId).toString()} ticker={symbol} />
+          <UnifiedChartComponent
+            poolId={computePoolId(tokenId).toString()}
+            symbol={symbol}
+          />
         </ErrorBoundary>
       </div>
     </div>

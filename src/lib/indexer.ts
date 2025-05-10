@@ -2,6 +2,8 @@ import { formatUnits } from "viem"; // lightweight, already in your stack
 
 export const INDEXER_URL = import.meta.env.VITE_INDEXER_URL;
 
+export type TimeInterval = "1m" | "5m" | "15m" | "30m" | "1h" | "4h" | "12h" | "1d" | "1w";
+
 export interface CandleData {
   /** Timestamp in milliseconds */
   date: number;
@@ -9,6 +11,7 @@ export interface CandleData {
   high: number;
   low: number;
   close: number;
+  volume: number;
 }
 
 export interface PricePointData {
@@ -18,44 +21,122 @@ export interface PricePointData {
   price1: number;
 }
 
+// Interface for market statistics
+export interface MarketStatistics {
+  poolId: string;
+  volume24h: number;
+  volumeChange24h: number; // percentage change
+  liquidity: number;
+  priceChange24h: number; // percentage change
+}
+
+// Timeframe options for historical data
+export interface TimeframeOption {
+  label: string;
+  value: TimeInterval;
+  displayName: string;
+}
+
+// Available timeframe options
+export const TIMEFRAME_OPTIONS: TimeframeOption[] = [
+  { label: "1m", value: "1m", displayName: "1 minute" },
+  { label: "5m", value: "5m", displayName: "5 minutes" },
+  { label: "15m", value: "15m", displayName: "15 minutes" },
+  { label: "30m", value: "30m", displayName: "30 minutes" },
+  { label: "1h", value: "1h", displayName: "1 hour" },
+  { label: "4h", value: "4h", displayName: "4 hours" },
+  { label: "12h", value: "12h", displayName: "12 hours" },
+  { label: "1d", value: "1d", displayName: "1 day" },
+  { label: "1w", value: "1w", displayName: "1 week" },
+];
+
+// Utility functions for formatting values
 const fp18ToFloat = (raw: string) => Number(formatUnits(BigInt(raw), 18));
+
 export const toEthPerZamm = (raw: string) => {
   const zammPerEth = fp18ToFloat(raw);
   return zammPerEth === 0 ? 0 : 1 / zammPerEth;
 };
+
+/**
+ * Calculate historical range based on interval
+ * @param interval The time interval
+ * @returns The number of data points to fetch
+ */
+export function calculateHistoricalRange(interval: TimeInterval): number {
+  switch (interval) {
+    case "1m":
+      return 60 * 24; // 1 day of 1-minute candles
+    case "5m":
+      return 12 * 24 * 3; // 3 days of 5-minute candles
+    case "15m":
+      return 4 * 24 * 7; // 1 week of 15-minute candles
+    case "30m":
+      return 2 * 24 * 14; // 2 weeks of 30-minute candles
+    case "1h":
+      return 24 * 30; // 1 month of hourly candles
+    case "4h":
+      return 6 * 30 * 3; // 3 months of 4-hour candles
+    case "12h":
+      return 2 * 30 * 6; // 6 months of 12-hour candles
+    case "1d":
+      return 365; // 1 year of daily candles
+    case "1w":
+      return 52 * 2; // 2 years of weekly candles
+    default:
+      return 1000; // Default limit
+  }
+}
+
 /**
  * Fetches candle data for a given pool and interval from the GraphQL indexer.
  * @param poolId - the pool identifier (as a string representing BigInt)
- * @param interval - one of '1m', '1h', or '1d'
+ * @param interval - one of '1m', '5m', '15m', '30m', '1h', '4h', '12h', '1d', '1w'
+ * @param limit - optional limit for number of candles to fetch (defaults to calculated value based on interval)
  * @returns array of CandleData sorted by bucketStart ascending
  */
-export async function fetchPoolCandles(poolId: string, interval: "1m" | "1h" | "1d"): Promise<CandleData[]> {
+export async function fetchPoolCandles(
+  poolId: string,
+  interval: TimeInterval,
+  limit?: number
+): Promise<CandleData[]> {
+  // Use calculated limit based on interval if not provided
+  const dataLimit = limit || calculateHistoricalRange(interval);
+
   const query = `
-    query PoolCandles($poolId: BigInt!, $interval: String!) {
+    query PoolCandles($poolId: BigInt!, $interval: String!, $limit: Int!) {
       candles(
         where: { poolId: $poolId, interval: $interval },
         orderBy: "bucketStart",
         orderDirection: "asc",
-        first: 1000
+        first: $limit
       ) {
-      items {
-        id
-        poolId
-        interval
-        bucketStart
-        open
-        high
-        low
-        close
+        items {
+          id
+          poolId
+          interval
+          bucketStart
+          open
+          high
+          low
+          close
+          volume
+        }
       }
     }
-  }
   `;
 
   const response = await fetch(INDEXER_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query, variables: { poolId, interval } }),
+    body: JSON.stringify({
+      query,
+      variables: {
+        poolId,
+        interval,
+        limit: dataLimit
+      }
+    }),
   });
 
   if (!response.ok) {
@@ -69,33 +150,32 @@ export async function fetchPoolCandles(poolId: string, interval: "1m" | "1h" | "
     throw new Error(`GraphQL errors: ${JSON.stringify(errors)}`);
   }
 
+  // Handle case where the indexer doesn't yet support volume
   return data.candles.items.map((c: any) => ({
     date: Number(c.bucketStart / 1000),
     open: fp18ToFloat(c.open),
     high: fp18ToFloat(c.high),
     low: fp18ToFloat(c.low),
     close: fp18ToFloat(c.close),
+    volume: c.volume ? fp18ToFloat(c.volume) : 0, // Add volume with fallback
   }));
 }
 
 /**
- * Fetches price points for a given pool from the GraphQL indexer.
- * @param poolId - the pool identifier (as a string representing BigInt)
- * @returns array of PricePointData sorted by timestamp descending, with duplicate timestamps removed
+ * Fetches pool statistics (volume, liquidity, etc.)
+ * @param poolId - the pool identifier
+ * @returns Market statistics for the pool
  */
-export async function fetchPoolPricePoints(poolId: string): Promise<PricePointData[]> {
+export async function fetchPoolStatistics(poolId: string): Promise<MarketStatistics> {
   const query = `
-    query PoolPricePoints($poolId: BigInt!) {
-      pricePoints(
-        where: { poolId: $poolId },
-        orderBy: "timestamp",
-        orderDirection: "desc",
-        limit: 1000
-      ) {
-        items {
-          price1
-          timestamp
-        }
+    query PoolStatistics($poolId: BigInt!) {
+      pool(id: $poolId) {
+        id
+        reserve0
+        reserve1
+        volume24h
+        volumeChange24h
+        priceChange24h
       }
     }
   `;
@@ -104,6 +184,65 @@ export async function fetchPoolPricePoints(poolId: string): Promise<PricePointDa
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ query, variables: { poolId } }),
+  });
+
+  if (!response.ok) {
+    console.error(`Error fetching pool statistics: ${response.statusText}`);
+    throw new Error(`Error fetching pool statistics: ${response.statusText}`);
+  }
+
+  const { data, errors } = await response.json();
+  if (errors) {
+    console.error(`Error in response: ${JSON.stringify(errors)}`);
+    throw new Error(`GraphQL errors: ${JSON.stringify(errors)}`);
+  }
+
+  // Calculate liquidity from reserves
+  const reserve0 = data.pool?.reserve0 ? fp18ToFloat(data.pool.reserve0) : 0;
+  const reserve1 = data.pool?.reserve1 ? fp18ToFloat(data.pool.reserve1) : 0;
+
+  return {
+    poolId,
+    volume24h: data.pool?.volume24h ? fp18ToFloat(data.pool.volume24h) : 0,
+    volumeChange24h: data.pool?.volumeChange24h ? Number(data.pool.volumeChange24h) : 0,
+    liquidity: reserve0 * 2, // Simple liquidity calculation (assuming equal value of tokens)
+    priceChange24h: data.pool?.priceChange24h ? Number(data.pool.priceChange24h) : 0,
+  };
+}
+
+/**
+ * Fetches price points for a given pool from the GraphQL indexer.
+ * @param poolId - the pool identifier (as a string representing BigInt)
+ * @param limit - optional limit of data points to fetch
+ * @returns array of PricePointData sorted by timestamp descending, with duplicate timestamps removed
+ */
+export async function fetchPoolPricePoints(
+  poolId: string,
+  limit: number = 1000
+): Promise<PricePointData[]> {
+  const query = `
+    query PoolPricePoints($poolId: BigInt!, $limit: Int!) {
+      pricePoints(
+        where: { poolId: $poolId },
+        orderBy: "timestamp",
+        orderDirection: "desc",
+        limit: $limit
+      ) {
+        items {
+          price0
+          price1
+          timestamp
+          reserve0
+          reserve1
+        }
+      }
+    }
+  `;
+
+  const response = await fetch(INDEXER_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query, variables: { poolId, limit } }),
   });
 
   if (!response.ok) {
@@ -120,7 +259,10 @@ export async function fetchPoolPricePoints(poolId: string): Promise<PricePointDa
   // Map and convert the data
   const allPricePoints = data.pricePoints.items.map((p: any) => ({
     timestamp: Number(p.timestamp / 1000),
-    price1: fp18ToFloat(p.price1),
+    price0: p.price0 ? fp18ToFloat(p.price0) : 0,
+    price1: p.price1 ? fp18ToFloat(p.price1) : 0,
+    reserve0: p.reserve0 ? fp18ToFloat(p.reserve0) : 0,
+    reserve1: p.reserve1 ? fp18ToFloat(p.reserve1) : 0,
   }));
 
   // Remove duplicate timestamps by keeping only the first occurrence
@@ -135,4 +277,62 @@ export async function fetchPoolPricePoints(poolId: string): Promise<PricePointDa
   }
 
   return uniquePricePoints;
+}
+
+/**
+ * Fetches the most recent swaps for a pool
+ * @param poolId - the pool identifier
+ * @param limit - number of swaps to fetch
+ * @returns Array of swap events with volumes and prices
+ */
+export async function fetchRecentSwaps(poolId: string, limit: number = 50) {
+  const query = `
+    query RecentSwaps($poolId: BigInt!, $limit: Int!) {
+      swaps(
+        where: { poolId: $poolId },
+        orderBy: "timestamp",
+        orderDirection: "desc",
+        first: $limit
+      ) {
+        items {
+          id
+          timestamp
+          amount0In
+          amount1In
+          amount0Out
+          amount1Out
+          trader
+        }
+      }
+    }
+  `;
+
+  const response = await fetch(INDEXER_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query, variables: { poolId, limit } }),
+  });
+
+  if (!response.ok) {
+    console.error(`Error fetching recent swaps: ${response.statusText}`);
+    throw new Error(`Error fetching recent swaps: ${response.statusText}`);
+  }
+
+  const { data, errors } = await response.json();
+  if (errors) {
+    console.error(`Error in response: ${JSON.stringify(errors)}`);
+    throw new Error(`GraphQL errors: ${JSON.stringify(errors)}`);
+  }
+
+  return data.swaps.items.map((swap: any) => ({
+    id: swap.id,
+    timestamp: Number(swap.timestamp / 1000),
+    amount0In: swap.amount0In ? fp18ToFloat(swap.amount0In) : 0,
+    amount1In: swap.amount1In ? fp18ToFloat(swap.amount1In) : 0,
+    amount0Out: swap.amount0Out ? fp18ToFloat(swap.amount0Out) : 0,
+    amount1Out: swap.amount1Out ? fp18ToFloat(swap.amount1Out) : 0,
+    trader: swap.trader,
+    // Calculate volume in ETH terms
+    volumeEth: swap.amount0In ? fp18ToFloat(swap.amount0In) : fp18ToFloat(swap.amount0Out),
+  }));
 }
