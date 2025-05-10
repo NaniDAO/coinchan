@@ -104,7 +104,6 @@ export const Coins = () => {
    *  Data for ExplorerGrid
    * ------------------------------------------------------------------ */
   const displayCoins = isSearchActive ? searchResults : coins;
-  const offset = page * PAGE_SIZE;
 
   /* ------------------------------------------------------------------
    *  Debug logging
