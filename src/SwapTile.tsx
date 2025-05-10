@@ -977,22 +977,47 @@ export const SwapTile = () => {
     }
   }, [tokens]);
 
-  // Simple token selection handlers
+  // Enhanced token selection handlers with error clearing
   const handleSellTokenSelect = (token: TokenMeta) => {
+    // Clear any errors when changing tokens
+    if (txError) setTxError(null);
+    // Reset input values to prevent stale calculations
+    setSellAmt("");
+    setBuyAmt("");
+    // Set the new token
     setSellToken(token);
   };
 
   const handleBuyTokenSelect = (token: TokenMeta) => {
+    // Clear any errors when changing tokens
+    if (txError) setTxError(null);
+    // Reset input values to prevent stale calculations
+    setSellAmt("");
+    setBuyAmt("");
+    // Set the new token
     setBuyToken(token);
   };
 
   const flipTokens = () => {
     if (!buyToken) return;
 
-    // Simple flip
+    // Clear any errors when flipping tokens
+    if (txError) setTxError(null);
+
+    // Reset input values to prevent stale calculations
+    setSellAmt("");
+    setBuyAmt("");
+
+    // Enhanced flip with better state handling
     const tempToken = sellToken;
     setSellToken(buyToken);
     setBuyToken(tempToken);
+
+    // Ensure wallet connection is properly tracked during token swaps
+    // This helps avoid "lost connection" errors when rapidly changing tokens
+    if (address && isConnected) {
+      sessionStorage.setItem('lastConnectedAddress', address);
+    }
   };
 
   /* derived flags */
@@ -2310,7 +2335,8 @@ export const SwapTile = () => {
             ) : (
               <span>
                 Pool: {formatEther(reserves.reserve0).substring(0, 8)} ETH /{" "}
-                {formatUnits(reserves.reserve1, 18).substring(0, 8)} {buyToken?.symbol}
+                {formatUnits(reserves.reserve1, 18).substring(0, 8)}{" "}
+                {coinId ? tokens.find(t => t.id === coinId)?.symbol || "Token" : buyToken?.symbol}
               </span>
             )}
             <span>Fee: {mode === "swap" && isCoinToCoin ? (Number(SWAP_FEE) * 2) / 100 : Number(SWAP_FEE) / 100}%</span>

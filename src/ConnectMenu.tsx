@@ -19,17 +19,40 @@ const ConnectMenuComponent = () => {
       if (hasLastAddress && window.location.href.indexOf('?') === -1) {
         // Only clear on fresh page loads without query params (likely not part of a connection flow)
         sessionStorage.removeItem('lastConnectedAddress');
+        // Also clear connection attempt type to ensure fresh state
+        sessionStorage.removeItem('connectionAttemptType');
       }
     }
-  }, []);
+  }, [status, isConnected]);
   
   // Performance-optimized status tracking with fewer state updates
   useEffect(() => {
-    // Check if we have a previously connected address to determine if this is a reconnection
+    // Track connection attempt type to better distinguish between reconnect and fresh connect
+    if (status === 'connecting') {
+      // If this is the first connection attempt (no connectionAttemptType set yet)
+      if (!sessionStorage.getItem('connectionAttemptType')) {
+        const lastAddress = sessionStorage.getItem('lastConnectedAddress');
+
+        // Set the connection type based on whether we have a last address
+        if (lastAddress) {
+          sessionStorage.setItem('connectionAttemptType', 'reconnect');
+        } else {
+          sessionStorage.setItem('connectionAttemptType', 'fresh');
+        }
+      }
+    }
+
+    // Clear attempt tracking when disconnected
+    if (status === 'disconnected') {
+      sessionStorage.removeItem('connectionAttemptType');
+    }
+
+    // Determine if this is truly a reconnection
     const lastAddress = sessionStorage.getItem('lastConnectedAddress');
-    const isReconnection = !!lastAddress;
+    const isReconnection = !!lastAddress && sessionStorage.getItem('connectionAttemptType') !== 'fresh';
 
     // Only show reconnecting state if we're actually reconnecting (not first connection)
+    // Now using connectionAttemptType to help distinguish context
     const shouldShowReconnecting = (status === 'reconnecting' ||
       (status === 'connecting' && isReconnection));
 
@@ -39,6 +62,9 @@ const ConnectMenuComponent = () => {
 
     // Only store the address when connected and stable (not during transition states)
     if (status === 'connected' && address) {
+      // Clear connection attempt type - connection is complete
+      sessionStorage.removeItem('connectionAttemptType');
+
       // Use requestIdleCallback for non-critical storage operations
       if (window.requestIdleCallback) {
         window.requestIdleCallback(() => {
