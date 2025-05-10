@@ -124,52 +124,7 @@ export const Coins = () => {
   return (
     tradeView || (
       <>
-        {/* Header / search bar */}
-        <div className="flex justify-between items-center mb-2">
-          <div className="text-sm text-gray-500">
-            {isSearchActive
-              ? `Showing ${searchResults.length} result${
-                  searchResults.length !== 1 ? "s" : ""
-                }`
-              : `Page ${page + 1} of ${totalPages} • Showing items ${
-                  offset + 1
-                }-${Math.min(offset + coins.length, total)} of ${total}`}
-          </div>
-
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search by symbol or ID…"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full sm:w-56 p-1 pl-7 border border-red-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 text-sm"
-            />
-            {searchQuery && (
-              <button
-                onClick={resetSearch}
-                className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 hover:text-gray-600"
-                aria-label="Clear search"
-              >
-                ✕
-              </button>
-            )}
-            <svg
-              className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-          </div>
-        </div>
-
-        {/* Main grid */}
+        {/* Main grid with search bar passed as prop */}
         <ExplorerGrid
           coins={displayCoins}
           total={isSearchActive ? searchResults.length : total}
@@ -182,6 +137,40 @@ export const Coins = () => {
           currentPage={page + 1}
           totalPages={totalPages}
           isSearchActive={isSearchActive}
+          searchBar={
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search by symbol or ID…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full sm:w-56 p-1 pl-7 border border-red-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 text-sm"
+              />
+              {searchQuery && (
+                <button
+                  onClick={resetSearch}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 hover:text-gray-600"
+                  aria-label="Clear search"
+                >
+                  ✕
+                </button>
+              )}
+              <svg
+                className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </div>
+          }
+          searchResults={isSearchActive ? `Showing ${searchResults.length} result${searchResults.length !== 1 ? "s" : ""}` : ""}
         />
       </>
     )

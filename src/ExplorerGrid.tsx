@@ -17,6 +17,8 @@ export const ExplorerGrid = ({
   currentPage = 1,
   totalPages = 1,
   isSearchActive = false,
+  searchBar,
+  searchResults = "",
 }: {
   coins: CoinData[];
   total: number;
@@ -29,6 +31,8 @@ export const ExplorerGrid = ({
   currentPage?: number;
   totalPages?: number;
   isSearchActive?: boolean;
+  searchBar?: React.ReactNode;
+  searchResults?: string;
 }) => {
   // Track page transition state for better UX
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -96,23 +100,36 @@ export const ExplorerGrid = ({
   return (
     <div className="w-full px-2 sm:px-4">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg sm:text-xl font-semibold text-center sm:text-left">
-          {total === 0 ? "NO COINS DEPLOYED" : total === 1 ? "1 COIN DEPLOYED" : `${total} COINS DEPLOYED`}
-        </h2>
+        <div className="flex items-center">
+          <h2 className="text-lg sm:text-xl font-semibold text-center sm:text-left">
+            {total === 0 ? "NO COINS DEPLOYED" : total === 1 ? "1 COIN DEPLOYED" : `${total} COINS DEPLOYED`}
+          </h2>
 
-        {/* Enhanced loading indicator */}
-        {isPending && (
-          <div className="flex items-center">
-            <div className="w-4 h-4 rounded-full border-2 border-red-500 border-t-transparent animate-spin mr-2"></div>
-            <span className="text-sm text-red-500">
-              {isTransitioning
-                ? direction === 'next'
-                  ? "Loading next page..."
-                  : "Loading previous page..."
-                : "Loading..."}
-            </span>
-          </div>
-        )}
+          {searchResults && (
+            <div className="ml-4 text-sm text-gray-500">
+              {searchResults}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center">
+          {/* Search Bar */}
+          {searchBar}
+
+          {/* Enhanced loading indicator */}
+          {isPending && (
+            <div className="flex items-center ml-3">
+              <div className="w-4 h-4 rounded-full border-2 border-red-500 border-t-transparent animate-spin mr-2"></div>
+              <span className="text-sm text-red-500">
+                {isTransitioning
+                  ? direction === 'next'
+                    ? "Loading next page..."
+                    : "Loading previous page..."
+                  : "Loading..."}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className={`grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 sm:gap-3 min-h-[300px] ${isTransitioning ? 'transition-opacity duration-300 opacity-50' : ''}`}>
