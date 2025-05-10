@@ -190,10 +190,8 @@ const useAllTokens = () => {
           functionName: "getCoinsCount",
         });
         const totalCoinCount = Number(countResult);
-        console.log(`Total coins in Coinchan contract: ${totalCoinCount}`);
-        
+
         // Fetch all coins data
-        console.log("Fetching all coins data from CoinsMetadataHelper...");
 
         // Step 1: Try to get all coins data directly from CoinsMetadataHelper
         // This is more efficient than fetching each coin individually and includes liquidity data
@@ -371,43 +369,9 @@ const useAllTokens = () => {
             token.id !== null || token.symbol === "ETH"
           ));
 
-        console.log(`Successfully processed ${validTokens.length} valid coins out of ${allCoinsData.length} received coins and ${totalCoinCount} total coins`);
-        // Successfully processed tokens
+        // Process valid coins
         
-        // Filter out ETH token and any null IDs for debug logging
-        const nonEthValidTokens = validTokens.filter(token => token.id !== null);
-        
-        // Add additional logging to track coin IDs with largest ETH reserves
-        // Top 10 coins by ETH reserves
-        const sortedForDebug = [...nonEthValidTokens]
-          .sort((a, b) => {
-            const reserveA = a.reserve0 || 0n;
-            const reserveB = b.reserve0 || 0n;
-            return reserveB > reserveA ? 1 : reserveB < reserveA ? -1 : 0;
-          })
-          .slice(0, 10);
-        
-        sortedForDebug.forEach((coin) => {
-          // Add null check for TypeScript even though we filtered already
-          if (coin.id === null) return; // This should never happen due to our filter
-          
-          // Skip detailed coin logging
-          // Skip detailed coin logging
-        });
-        
-        // Check if specific coins exist in our dataset (e.g., Coin #137)
-        const specificCoins = [137n, 138n, 139n, 140n, 141n];
-        // Check specific coins
-        specificCoins.forEach(coinId => {
-          // Find the coin and ensure it has a non-null ID
-          const found = nonEthValidTokens.find(t => t.id === coinId);
-          if (found && found.id !== null) { // Additional check for TypeScript
-            // Skip detailed logging
-            // Found specific coin
-          } else {
-            // Coin not found in dataset
-          }
-        });
+        // Now sort tokens by ETH reserves for display
 
         // Sort tokens by ETH reserves (reserve0) from highest to lowest
         const sortedByEthReserves = [...validTokens].sort((a, b) => {
@@ -441,10 +405,7 @@ const useAllTokens = () => {
             ethBalance?.formatted || (currentEthToken.balance ? formatEther(currentEthToken.balance) : "0"),
         };
 
-        // Debug the ETH balance with more detailed logging
-        if (ethBalance?.value !== undefined && currentEthToken.balance !== ethBalance.value) {
-          console.log(`Updated ETH balance: ${formatEther(ethBalance.value)} ETH`);
-        }
+        // Update ETH balance when it changes
 
         // Take the top 100 coins by ETH reserves
         const top100ByEthReserves = sortedByEthReserves.slice(0, 100);
@@ -452,8 +413,7 @@ const useAllTokens = () => {
         // ETH is always first, followed by top 100 by ETH reserves
         const allTokens = [ethTokenWithBalance, ...top100ByEthReserves];
 
-        console.log(`Showing ETH + top ${top100ByEthReserves.length} tokens by ETH reserves out of ${sortedByEthReserves.length} total coins`);
-        // Showing top tokens
+        // Use top tokens by ETH reserves
         setTokens(allTokens);
       } catch (err) {
         // Error fetching tokens
@@ -464,7 +424,7 @@ const useAllTokens = () => {
     };
 
     fetchTokens();
-  }, [publicClient, address]);
+  }, [publicClient, address, ethBalance]); // Add ethBalance as a dependency to re-fetch tokens when ETH balance changes
 
   return { tokens, loading, error, isEthBalanceFetching, refetchEthBalance };
 };
@@ -1317,6 +1277,7 @@ export const SwapTile = () => {
       refetchEthBalance();
 
       // Refresh token balances
+      // Just wait a moment and then trigger the useAllTokens hook's refresh mechanism
       const refreshTokenBalances = async () => {
         if (!publicClient || !address) return;
 
@@ -1324,44 +1285,8 @@ export const SwapTile = () => {
           // Wait a moment for transaction to fully propagate
           await new Promise(resolve => setTimeout(resolve, 1000));
 
-          // Refresh balances for the specific tokens involved in the transaction
-          const tokensToRefresh = [sellToken, buyToken].filter(t => t && t.id !== null);
-
-          // Only continue if we have tokens to refresh
-          if (tokensToRefresh.length === 0) return;
-
-          // Refreshing token balances
-
-          // Fetch updated balances
-          const balancePromises = tokensToRefresh.map(async token => {
-            if (!token || token.id === null) return null;
-
-            try {
-              const newBalance = await publicClient.readContract({
-                address: CoinsAddress,
-                abi: CoinsAbi,
-                functionName: "balanceOf",
-                args: [address, token.id],
-              });
-
-              return {
-                id: token.id,
-                balance: newBalance as bigint
-              };
-            } catch (error) {
-              // Failed to refresh balance
-              return null;
-            }
-          });
-
-          const results = await Promise.all(balancePromises);
-          const validResults = results.filter(r => r !== null);
-
-          if (validResults.length > 0) {
-            // We don't have direct access to setTokens from the hook anymore,
-            // so we need to get updated tokens through the hook's refetch mechanism
-            refetchEthBalance();
-          }
+          // Force a refresh of token balances by triggering another ETH balance update
+          refetchEthBalance();
         } catch (error) {
           // Failed to refresh token balances
         }
