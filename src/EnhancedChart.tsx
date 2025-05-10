@@ -461,8 +461,14 @@ export default function EnhancedChart({
               )}
             </div>
           ) : !hasData ? (
-            <div className="flex items-center justify-center h-64 text-gray-500">
-              No data available for the selected time interval.
+            <div className="flex flex-col items-center justify-center h-64 bg-gray-50 rounded-lg">
+              <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4 rounded shadow-sm">
+                <p className="font-bold">No data available from API</p>
+                <p>The indexing service is not returning data for this token. Please try again later or contact support if this persists.</p>
+              </div>
+              <Button variant="outline" onClick={handleRetry} className="mt-2">
+                Retry
+              </Button>
             </div>
           ) : (
             <div className="bg-gray-50 rounded-lg h-[350px] p-0">

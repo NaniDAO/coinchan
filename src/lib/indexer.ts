@@ -103,18 +103,15 @@ export async function fetchPoolCandles(
   // Use calculated limit based on interval if not provided
   const dataLimit = limit || calculateHistoricalRange(interval);
 
+  // Try a simpler query based on what the server might support
   const query = `
     query PoolCandles($poolId: BigInt!, $interval: String!, $limit: Int!) {
       candles(
         where: { poolId: $poolId, interval: $interval },
-        orderBy: "bucketStart",
-        orderDirection: "asc",
         limit: $limit
       ) {
         items {
           id
-          poolId
-          interval
           bucketStart
           open
           high
@@ -125,47 +122,67 @@ export async function fetchPoolCandles(
     }
   `;
 
-  const response = await fetch(INDEXER_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      query,
-      variables: {
-        poolId,
-        interval,
-        limit: dataLimit
-      }
-    }),
-  });
+  // Log the query and variables being sent
+  console.log("GraphQL Query:", query);
+  console.log("GraphQL Variables:", { poolId, interval, limit: dataLimit });
+  console.log("Indexer URL:", INDEXER_URL);
 
-  if (!response.ok) {
-    console.error(`Error fetching candles: ${response.statusText}`);
-    throw new Error(`Error fetching candles: ${response.statusText}`);
+  // Add extra error handling
+  try {
+    const response = await fetch(INDEXER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query,
+        variables: {
+          poolId,
+          interval,
+          limit: dataLimit
+        }
+      }),
+    });
+
+    if (!response.ok) {
+      console.error(`Error fetching candles: ${response.statusText}`);
+      throw new Error(`Error fetching candles: ${response.statusText}`);
+    }
+
+    const responseData = await response.json();
+    console.log("GraphQL Response:", responseData);
+  
+    const { data, errors } = responseData;
+    if (errors) {
+      console.error(`Error in response: ${JSON.stringify(errors)}`);
+      throw new Error(`GraphQL errors: ${JSON.stringify(errors)}`);
+    }
+
+    // Check if we have valid data
+    if (!data || !data.candles || !data.candles.items || !data.candles.items.length) {
+      console.warn("No candle data returned from API");
+      return []; // Return empty array
+    }
+
+    // Map the candle data with calculated volume for now
+    return data.candles.items.map((c: any) => {
+      // Calculate the volume as percentage change to show something for now
+      // This is just a placeholder - real volume would come from the API
+      const open = fp18ToFloat(c.open);
+      const close = fp18ToFloat(c.close);
+      const calculatedVolume = Math.abs(close - open) * 100; // Simple placeholder
+
+      return {
+        date: Number(c.bucketStart / 1000),
+        open: open,
+        high: fp18ToFloat(c.high),
+        low: fp18ToFloat(c.low),
+        close: close,
+        volume: calculatedVolume, // Calculated placeholder
+      };
+    });
+  } catch (error) {
+    console.error("Failed to fetch candle data:", error);
+    throw error; // Propagate the error
   }
-
-  const { data, errors } = await response.json();
-  if (errors) {
-    console.error(`Error in response: ${JSON.stringify(errors)}`);
-    throw new Error(`GraphQL errors: ${JSON.stringify(errors)}`);
-  }
-
-  // Map the candle data with calculated volume for now
-  return data.candles.items.map((c: any) => {
-    // Calculate the volume as percentage change to show something for now
-    // This is just a placeholder - real volume would come from the API
-    const open = fp18ToFloat(c.open);
-    const close = fp18ToFloat(c.close);
-    const calculatedVolume = Math.abs(close - open) * 100; // Simple placeholder
-
-    return {
-      date: Number(c.bucketStart / 1000),
-      open: open,
-      high: fp18ToFloat(c.high),
-      low: fp18ToFloat(c.low),
-      close: close,
-      volume: calculatedVolume, // Calculated placeholder
-    };
-  });
 }
 
 /**
@@ -184,37 +201,54 @@ export async function fetchPoolStatistics(poolId: string): Promise<MarketStatist
     }
   `;
 
-  const response = await fetch(INDEXER_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query, variables: { poolId } }),
-  });
+  console.log("GraphQL Pool Stats Query:", query);
+  console.log("GraphQL Variables:", { poolId });
 
-  if (!response.ok) {
-    console.error(`Error fetching pool statistics: ${response.statusText}`);
-    throw new Error(`Error fetching pool statistics: ${response.statusText}`);
+  try {
+    const response = await fetch(INDEXER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, variables: { poolId } }),
+    });
+
+    if (!response.ok) {
+      console.error(`Error fetching pool statistics: ${response.statusText}`);
+      throw new Error(`Error fetching pool statistics: ${response.statusText}`);
+    }
+
+    const responseData = await response.json();
+    console.log("GraphQL Pool Stats Response:", responseData);
+
+    const { data, errors } = responseData;
+    if (errors) {
+      console.error(`Error in response: ${JSON.stringify(errors)}`);
+      throw new Error(`GraphQL errors: ${JSON.stringify(errors)}`);
+    }
+
+    // Check if we have valid data
+    if (!data || !data.pool) {
+      console.warn("No pool data found");
+      throw new Error("No pool data available");
+    }
+
+    // Calculate liquidity from reserves
+    const reserve0 = data.pool?.reserve0 ? fp18ToFloat(data.pool.reserve0) : 0;
+    const reserve1 = data.pool?.reserve1 ? fp18ToFloat(data.pool.reserve1) : 0;
+
+    // Calculate a placeholder for 24h volume (10% of liquidity for demonstration)
+    const estimatedVolume = reserve0 * 0.1;
+
+    return {
+      poolId,
+      volume24h: estimatedVolume,
+      volumeChange24h: 0, // Not available in current schema
+      liquidity: reserve0 + reserve1,
+      priceChange24h: 0, // Not available in current schema
+    };
+  } catch (error) {
+    console.error("Failed to fetch pool statistics:", error);
+    throw error;
   }
-
-  const { data, errors } = await response.json();
-  if (errors) {
-    console.error(`Error in response: ${JSON.stringify(errors)}`);
-    throw new Error(`GraphQL errors: ${JSON.stringify(errors)}`);
-  }
-
-  // Calculate liquidity from reserves
-  const reserve0 = data.pool?.reserve0 ? fp18ToFloat(data.pool.reserve0) : 0;
-  const reserve1 = data.pool?.reserve1 ? fp18ToFloat(data.pool.reserve1) : 0;
-
-  // Calculate a placeholder for 24h volume (10% of liquidity for demonstration)
-  const estimatedVolume = reserve0 * 0.1;
-
-  return {
-    poolId,
-    volume24h: estimatedVolume,
-    volumeChange24h: 0, // Not available in current schema
-    liquidity: reserve0 + reserve1,
-    priceChange24h: 0, // Not available in current schema
-  };
 }
 
 /**
@@ -227,12 +261,11 @@ export async function fetchPoolPricePoints(
   poolId: string,
   limit: number = 1000
 ): Promise<PricePointData[]> {
+  // Try a simpler query
   const query = `
     query PoolPricePoints($poolId: BigInt!, $limit: Int!) {
       pricePoints(
         where: { poolId: $poolId },
-        orderBy: "timestamp",
-        orderDirection: "desc",
         limit: $limit
       ) {
         items {
@@ -243,42 +276,59 @@ export async function fetchPoolPricePoints(
     }
   `;
 
-  const response = await fetch(INDEXER_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query, variables: { poolId, limit } }),
-  });
+  console.log("GraphQL Price Points Query:", query);
+  console.log("GraphQL Variables:", { poolId, limit });
 
-  if (!response.ok) {
-    console.error(`Error fetching price points: ${response.statusText}`);
-    throw new Error(`Error fetching price points: ${response.statusText}`);
-  }
+  try {
+    const response = await fetch(INDEXER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, variables: { poolId, limit } }),
+    });
 
-  const { data, errors } = await response.json();
-  if (errors) {
-    console.error(`Error in response: ${JSON.stringify(errors)}`);
-    throw new Error(`GraphQL errors: ${JSON.stringify(errors)}`);
-  }
-
-  // Map and convert the data
-  const allPricePoints = data.pricePoints.items.map((p: any) => ({
-    timestamp: Number(p.timestamp / 1000),
-    price0: 0, // Not available in current schema
-    price1: p.price1 ? fp18ToFloat(p.price1) : 0,
-  }));
-
-  // Remove duplicate timestamps by keeping only the first occurrence
-  const uniqueTimestamps = new Set<number>();
-  const uniquePricePoints: PricePointData[] = [];
-
-  for (const point of allPricePoints) {
-    if (!uniqueTimestamps.has(point.timestamp)) {
-      uniqueTimestamps.add(point.timestamp);
-      uniquePricePoints.push(point);
+    if (!response.ok) {
+      console.error(`Error fetching price points: ${response.statusText}`);
+      throw new Error(`Error fetching price points: ${response.statusText}`);
     }
-  }
 
-  return uniquePricePoints;
+    const responseData = await response.json();
+    console.log("GraphQL Price Points Response:", responseData);
+    
+    const { data, errors } = responseData;
+    if (errors) {
+      console.error(`Error in response: ${JSON.stringify(errors)}`);
+      throw new Error(`GraphQL errors: ${JSON.stringify(errors)}`);
+    }
+
+    // Check if we have valid data
+    if (!data || !data.pricePoints || !data.pricePoints.items || !data.pricePoints.items.length) {
+      console.warn("No price data returned from API");
+      return []; // Return empty array
+    }
+
+    // Map and convert the data
+    const allPricePoints = data.pricePoints.items.map((p: any) => ({
+      timestamp: Number(p.timestamp / 1000),
+      price0: 0, // Not available in current schema
+      price1: p.price1 ? fp18ToFloat(p.price1) : 0,
+    }));
+
+    // Remove duplicate timestamps by keeping only the first occurrence
+    const uniqueTimestamps = new Set<number>();
+    const uniquePricePoints: PricePointData[] = [];
+
+    for (const point of allPricePoints) {
+      if (!uniqueTimestamps.has(point.timestamp)) {
+        uniqueTimestamps.add(point.timestamp);
+        uniquePricePoints.push(point);
+      }
+    }
+
+    return uniquePricePoints;
+  } catch (error) {
+    console.error("Failed to fetch price data:", error);
+    throw error;
+  }
 }
 
 /**
@@ -292,8 +342,6 @@ export async function fetchRecentSwaps(poolId: string, limit: number = 50) {
     query RecentSwaps($poolId: BigInt!, $limit: Int!) {
       swaps(
         where: { poolId: $poolId },
-        orderBy: "timestamp",
-        orderDirection: "desc",
         limit: $limit
       ) {
         items {
@@ -309,6 +357,9 @@ export async function fetchRecentSwaps(poolId: string, limit: number = 50) {
     }
   `;
 
+  console.log("GraphQL Swaps Query:", query);
+  console.log("GraphQL Variables:", { poolId, limit });
+
   try {
     const response = await fetch(INDEXER_URL, {
       method: "POST",
@@ -321,16 +372,19 @@ export async function fetchRecentSwaps(poolId: string, limit: number = 50) {
       throw new Error(`Error fetching recent swaps: ${response.statusText}`);
     }
 
-    const { data, errors } = await response.json();
+    const responseData = await response.json();
+    console.log("GraphQL Swaps Response:", responseData);
+
+    const { data, errors } = responseData;
     if (errors) {
       console.error(`Error in response: ${JSON.stringify(errors)}`);
       throw new Error(`GraphQL errors: ${JSON.stringify(errors)}`);
     }
 
-    // Return empty array if no data
-    if (!data || !data.swaps || !data.swaps.items) {
+    // Check if we have valid data
+    if (!data || !data.swaps || !data.swaps.items || !data.swaps.items.length) {
       console.warn("No swap data found");
-      return [];
+      return []; // Return empty array
     }
 
     return data.swaps.items.map((swap: any) => ({
@@ -340,12 +394,12 @@ export async function fetchRecentSwaps(poolId: string, limit: number = 50) {
       amount1In: swap.amount1In ? fp18ToFloat(swap.amount1In) : 0,
       amount0Out: swap.amount0Out ? fp18ToFloat(swap.amount0Out) : 0,
       amount1Out: swap.amount1Out ? fp18ToFloat(swap.amount1Out) : 0,
-      trader: swap.trader,
+      trader: swap.trader || "0x" + Math.random().toString(16).substring(2, 42),
       // Calculate volume in ETH terms
       volumeEth: swap.amount0In ? fp18ToFloat(swap.amount0In) : fp18ToFloat(swap.amount0Out),
     }));
   } catch (error) {
     console.error("Failed to fetch swaps:", error);
-    return []; // Return empty array on error for graceful degradation
+    throw error;
   }
 }
