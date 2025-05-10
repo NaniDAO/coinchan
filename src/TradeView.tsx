@@ -6,7 +6,7 @@ import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
 import { mainnet } from "viem/chains";
 import { useCoinData } from "./hooks/metadata";
 import { computePoolId } from "./lib/swapHelper";
-import MinimalChart from "./MinimalChart";
+import SimpleEnhancedChart from "./SimpleEnhancedChart";
 
 // Simple error boundary to prevent crashes
 class ErrorBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { hasError: boolean }> {
@@ -155,7 +155,7 @@ export const TradeView = ({
       </div> */}
       <div className="mt-4 sm:mt-6">
         <ErrorBoundary fallback={<p className="text-red-500">Pool chart unavailable</p>}>
-          <MinimalChart
+          <SimpleEnhancedChart
             poolId={computePoolId(tokenId).toString()}
             symbol={symbol}
           />
