@@ -1,5 +1,9 @@
 import { mainnet } from "viem/chains";
 import React, { useState, useEffect, useRef, useCallback } from "react";
+
+// Cache constants
+const BALANCE_CACHE_VALIDITY_MS = 60 * 1000; // 1 minute validity for balance caching
+
 import {
   useWriteContract,
   useWaitForTransactionReceipt,
@@ -325,21 +329,55 @@ const useAllTokens = () => {
               }
             }
 
-            // Fetch user's balance if address is connected
+            // Fetch user's balance if address is connected - with caching
             let balance: bigint = 0n;
             if (address) {
-              try {
-                const balanceResult = await publicClient.readContract({
-                  address: CoinsAddress,
-                  abi: CoinsAbi,
-                  functionName: "balanceOf",
-                  args: [address, coinId],
-                });
+              // Try to get the balance from cache first
+              const balanceCacheKey = `coinchan_token_balance_${address}_${coinId}`;
+              const balanceCacheTimestampKey = `${balanceCacheKey}_timestamp`;
 
-                balance = balanceResult as bigint;
+              try {
+                const cachedBalance = localStorage.getItem(balanceCacheKey);
+                const cachedTimestamp = localStorage.getItem(balanceCacheTimestampKey);
+                const now = Date.now();
+
+                // Use cache if it's valid and recent
+                if (cachedBalance && cachedTimestamp &&
+                    (now - parseInt(cachedTimestamp)) < BALANCE_CACHE_VALIDITY_MS) {
+                  balance = BigInt(cachedBalance);
+                } else {
+                  // Fetch fresh balance from chain
+                  const balanceResult = await publicClient.readContract({
+                    address: CoinsAddress,
+                    abi: CoinsAbi,
+                    functionName: "balanceOf",
+                    args: [address, coinId],
+                  });
+
+                  balance = balanceResult as bigint;
+
+                  // Save balance to cache
+                  try {
+                    localStorage.setItem(balanceCacheKey, balance.toString());
+                    localStorage.setItem(balanceCacheTimestampKey, now.toString());
+                  } catch (e) {
+                    // Cache error, can continue without caching
+                  }
+                }
               } catch (err) {
-                // Failed to fetch balance
-                // Keep balance as 0n if we couldn't fetch it
+                // Failed to fetch balance or cache issue
+                try {
+                  const balanceResult = await publicClient.readContract({
+                    address: CoinsAddress,
+                    abi: CoinsAbi,
+                    functionName: "balanceOf",
+                    args: [address, coinId],
+                  });
+
+                  balance = balanceResult as bigint;
+                } catch (e) {
+                  // Keep balance as 0n if we couldn't fetch it
+                }
               }
             }
 
@@ -1264,20 +1302,32 @@ export const SwapTile = () => {
     scopeKey: "wagmiEthBalance",
   });
 
-  // Update our tracked ETH balance when direct ETH balance changes
+  // Update our tracked ETH balance when direct ETH balance changes - with caching
   useEffect(() => {
     if (isConnected && wagmiEthBalance && wagmiEthBalance.value !== undefined) {
       setEthBalance(wagmiEthBalance.value);
+
+      // Only try to cache if we have an address
+      if (address) {
+        try {
+          const ethCacheKey = `coinchan_eth_${address}`;
+          const ethCacheTimestampKey = `${ethCacheKey}_timestamp`;
+
+          localStorage.setItem(ethCacheKey, wagmiEthBalance.value.toString());
+          localStorage.setItem(ethCacheTimestampKey, Date.now().toString());
+        } catch (e) {
+          // Cache error, can continue without caching
+        }
+      }
     }
-  }, [isConnected, wagmiEthBalance]);
+  }, [isConnected, wagmiEthBalance, address]);
 
   useEffect(() => {
     if (isSuccess) {
       // Refresh ETH balance
       refetchEthBalance();
 
-      // Refresh token balances
-      // Just wait a moment and then trigger the useAllTokens hook's refresh mechanism
+      // Refresh token balances with caching to improve performance
       const refreshTokenBalances = async () => {
         if (!publicClient || !address) return;
 
@@ -1285,7 +1335,49 @@ export const SwapTile = () => {
           // Wait a moment for transaction to fully propagate
           await new Promise(resolve => setTimeout(resolve, 1000));
 
-          // Force a refresh of token balances by triggering another ETH balance update
+          // Refresh balances for the specific tokens involved in the transaction
+          const tokensToRefresh = [sellToken, buyToken].filter(t => t && t.id !== null);
+
+          // Only continue if we have tokens to refresh
+          if (tokensToRefresh.length > 0) {
+            // Fetch updated balances
+            const balancePromises = tokensToRefresh.map(async token => {
+              if (!token || token.id === null) return null;
+
+              try {
+                // Get the user's balance of this specific token
+                const newBalance = await publicClient.readContract({
+                  address: CoinsAddress,
+                  abi: CoinsAbi,
+                  functionName: "balanceOf",
+                  args: [address, token.id],
+                });
+
+                // Cache the balance
+                const balanceCacheKey = `coinchan_token_balance_${address}_${token.id}`;
+                const balanceCacheTimestampKey = `${balanceCacheKey}_timestamp`;
+
+                try {
+                  localStorage.setItem(balanceCacheKey, newBalance.toString());
+                  localStorage.setItem(balanceCacheTimestampKey, Date.now().toString());
+                } catch (e) {
+                  // Cache error, continue without caching
+                }
+
+                return {
+                  id: token.id,
+                  balance: newBalance as bigint
+                };
+              } catch (error) {
+                // Failed to get balance
+                return null;
+              }
+            });
+
+            await Promise.all(balancePromises);
+          }
+
+          // Force a refresh of ETH balance
           refetchEthBalance();
         } catch (error) {
           // Failed to refresh token balances
