@@ -63,39 +63,6 @@ export const ExplorerGrid = ({
 
   // Combined loading state including transitions
   const isPending = isLoading || isTransitioning;
-  // Debug: Log coin data for troubleshooting
-  useEffect(() => {
-    console.log(`ExplorerGrid rendering with ${coins.length} coins, page ${currentPage}/${totalPages}`);
-
-    // Check if we have metadata and images
-    const coinsWithMetadata = coins.filter((coin) => coin.metadata !== null).length;
-    const coinsWithImages = coins.filter((coin) => coin.imageUrl !== null).length;
-    console.log(
-      `ExplorerGrid - Coins with metadata: ${coinsWithMetadata}/${coins.length}, Coins with images: ${coinsWithImages}/${coins.length}`,
-    );
-
-    // Log detailed data about the first few coins
-    if (coins.length > 0) {
-      const sampleSize = Math.min(3, coins.length);
-      for (let i = 0; i < sampleSize; i++) {
-        const coin = coins[i];
-        console.log(`Coin ${i + 1} (ID: ${coin.coinId.toString()})`, {
-          name: coin.name,
-          symbol: coin.symbol,
-          tokenURI: coin.tokenURI,
-          hasMetadata: coin.metadata !== null,
-          metadata: coin.metadata
-            ? {
-                name: coin.metadata.name,
-                symbol: coin.metadata.symbol,
-                image: coin.metadata.image,
-              }
-            : null,
-          imageUrl: coin.imageUrl,
-        });
-      }
-    }
-  }, [coins, currentPage, totalPages]);
 
   return (
     <div className="w-full px-2 sm:px-4">
