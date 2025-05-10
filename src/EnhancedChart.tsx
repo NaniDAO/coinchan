@@ -10,12 +10,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import {
-  createChart,
-  IChartApi,
-  ISeriesApi,
-  SeriesType
-} from "lightweight-charts";
+import * as LightweightCharts from "lightweight-charts";
 import { calculateSMA, calculateEMA } from "./lib/chart-indicators";
 
 // Chart type options
@@ -41,8 +36,8 @@ export default function EnhancedChart({
 }) {
   // DOM references
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  const chartInstanceRef = useRef<IChartApi | null>(null);
-  const seriesRef = useRef<ISeriesApi<any>[]>([]);
+  const chartRef = useRef<any>(null);
+  const seriesRef = useRef<any[]>([]);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
   // State
@@ -123,18 +118,18 @@ export default function EnhancedChart({
     }
   }, [candleError, priceError]);
 
-  // Initialize chart
+  // Initialize and clean up chart
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
     // Clean up previous chart instance if it exists
-    if (chartInstanceRef.current) {
-      chartInstanceRef.current.remove();
-      chartInstanceRef.current = null;
+    if (chartRef.current) {
+      chartRef.current.remove();
+      chartRef.current = null;
     }
 
     const container = chartContainerRef.current;
-    const chart = createChart(container, {
+    const chart = LightweightCharts.createChart(container, {
       layout: {
         background: { color: '#ffffff' },
         textColor: '#333',
@@ -163,19 +158,18 @@ export default function EnhancedChart({
           top: 0.1,
           bottom: 0.2, // Leave space for volume bars
         },
-        mode: 0, // Normal mode
       },
     });
 
-    chartInstanceRef.current = chart;
+    chartRef.current = chart;
 
     // Create a resize observer to handle container resizing
     resizeObserverRef.current = new ResizeObserver(entries => {
-      if (entries.length === 0 || !chartInstanceRef.current) return;
+      if (entries.length === 0 || !chartRef.current) return;
       
       const { width, height } = entries[0].contentRect;
-      chartInstanceRef.current.resize(width, height > 100 ? height : 350);
-      chartInstanceRef.current.timeScale().fitContent();
+      chartRef.current.resize(width, height > 100 ? height : 350);
+      chartRef.current.timeScale().fitContent();
     });
 
     resizeObserverRef.current.observe(container);
@@ -187,16 +181,16 @@ export default function EnhancedChart({
         resizeObserverRef.current = null;
       }
       
-      if (chartInstanceRef.current) {
-        chartInstanceRef.current.remove();
-        chartInstanceRef.current = null;
+      if (chartRef.current) {
+        chartRef.current.remove();
+        chartRef.current = null;
       }
     };
   }, []);
 
   // Update chart data when it changes
   useEffect(() => {
-    const chart = chartInstanceRef.current;
+    const chart = chartRef.current;
     if (!chart) return;
 
     // Clear previous series
@@ -209,9 +203,7 @@ export default function EnhancedChart({
     if (chartType === 'candle' && candleData && candleData.length > 0) {
       try {
         // Create main candle series
-        const candleSeries = chart.addSeries({
-          type: 'Candlestick',
-          priceFormat: { type: 'price', precision: 6, minMove: 0.000001 },
+        const candleSeries = chart.addCandlestickSeries({
           upColor: '#26a69a',
           downColor: '#ef5350',
           borderVisible: false,
@@ -223,7 +215,7 @@ export default function EnhancedChart({
         
         // Map to the format expected by lightweight-charts
         const mappedData = candleData.map((d) => ({
-          time: d.date as number / 1000,
+          time: Math.floor(d.date / 1000),
           open: d.open,
           high: d.high,
           low: d.low,
@@ -234,22 +226,20 @@ export default function EnhancedChart({
 
         // Try to add volume series if possible
         try {
-          const volumeSeries = chart.addSeries({
-            type: 'Histogram',
+          const volumeSeries = chart.addHistogramSeries({
             color: '#26a69a',
             priceScaleId: 'volume',
-            priceFormat: { type: 'volume' },
             scaleMargins: {
               top: 0.8, // Place it at the bottom
               bottom: 0,
             },
-          }, 'right');
+          });
           
           seriesRef.current.push(volumeSeries);
           
           // Map volume data
           const volumeData = candleData.map((d) => ({
-            time: d.date as number / 1000,
+            time: Math.floor(d.date / 1000),
             value: d.volume,
             color: d.close >= d.open ? '#26a69a80' : '#ef535080', // Semi-transparent colors based on price direction
           }));
@@ -263,8 +253,7 @@ export default function EnhancedChart({
         if (indicators.showSMA) {
           try {
             const smaData = calculateSMA(candleData, indicators.smaPeriod);
-            const smaSeries = chart.addSeries({
-              type: 'Line',
+            const smaSeries = chart.addLineSeries({
               color: '#2962FF',
               lineWidth: 2,
               title: `SMA(${indicators.smaPeriod})`,
@@ -273,7 +262,7 @@ export default function EnhancedChart({
             seriesRef.current.push(smaSeries);
             
             smaSeries.setData(smaData.map(d => ({
-              time: d.time as number / 1000,
+              time: Math.floor(d.time / 1000),
               value: d.value,
             })));
           } catch (e) {
@@ -284,8 +273,7 @@ export default function EnhancedChart({
         if (indicators.showEMA) {
           try {
             const emaData = calculateEMA(candleData, indicators.emaPeriod);
-            const emaSeries = chart.addSeries({
-              type: 'Line',
+            const emaSeries = chart.addLineSeries({
               color: '#FF6D00',
               lineWidth: 2,
               title: `EMA(${indicators.emaPeriod})`,
@@ -294,7 +282,7 @@ export default function EnhancedChart({
             seriesRef.current.push(emaSeries);
             
             emaSeries.setData(emaData.map(d => ({
-              time: d.time as number / 1000,
+              time: Math.floor(d.time / 1000),
               value: d.value,
             })));
           } catch (e) {
@@ -310,18 +298,16 @@ export default function EnhancedChart({
     } else if (chartType === 'line' && priceData && priceData.length > 0) {
       try {
         // Create line series for price data
-        const lineSeries = chart.addSeries({
-          type: 'Line',
+        const lineSeries = chart.addLineSeries({
           color: '#2962FF',
           lineWidth: 2,
-          priceFormat: { type: 'price', precision: 6, minMove: 0.000001 },
         });
         
         seriesRef.current.push(lineSeries);
         
         // Map to the format expected by lightweight-charts
         const mappedData = priceData.map((d) => ({
-          time: d.timestamp as number / 1000,
+          time: Math.floor(d.timestamp / 1000),
           value: d.price1,
         }));
         
