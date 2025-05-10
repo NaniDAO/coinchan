@@ -1,5 +1,5 @@
 import { mainnet } from "viem/chains";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   useWriteContract,
   useWaitForTransactionReceipt,
@@ -30,6 +30,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, ArrowDownUp, Plus, Minus } from "lucide-react";
 import { estimateContractGas, simulateContractInteraction } from "./lib/simulate";
+import PoolPriceChart from "./PoolPriceChart";
 
 /* ────────────────────────────────────────────────────────────────────────────
   CONSTANTS & HELPERS
@@ -865,6 +866,9 @@ export const SwapTile = () => {
   const [singleEthSlippageBps, setSingleEthSlippageBps] = useState<bigint>(DEFAULT_SINGLE_ETH_SLIPPAGE_BPS);
   const [showSlippageSettings, setShowSlippageSettings] = useState<boolean>(false);
 
+  // Price chart visibility
+  const [showPriceChart, setShowPriceChart] = useState<boolean>(false);
+
   // Helper functions for slippage calculation
   const withSlippage = (amount: bigint) => getAmountWithSlippage(amount, slippageBps);
   const withSingleEthSlippage = (amount: bigint) => getAmountWithSlippage(amount, singleEthSlippageBps);
@@ -1048,6 +1052,35 @@ export const SwapTile = () => {
   useEffect(() => {
     if (isSuccess) refetchEthBalance(); // refresh ETH once tx confirms
   }, [isSuccess, refetchEthBalance]);
+
+  // Reset UI state when tokens change
+  useEffect(() => {
+    // Get the current pair of tokens (regardless of buy/sell order)
+    const currentPair = [sellToken.id, buyToken?.id].sort().toString();
+
+    // Store the current pair in a ref to track changes
+    const prevPairRef = useRef<string>();
+    const prevPair = prevPairRef.current;
+    prevPairRef.current = currentPair;
+
+    // Only reset price chart if the actual pair changes (not just flip)
+    if (prevPair && prevPair !== currentPair) {
+      setShowPriceChart(false);
+    }
+
+    // Always reset chart visibility when mode changes
+    if (mode === "liquidity") {
+      setShowPriceChart(false);
+    }
+
+    // Reset transaction data
+    setTxHash(undefined);
+    setTxError(null);
+
+    // Reset amounts
+    setSellAmt("");
+    setBuyAmt("");
+  }, [sellToken.id, buyToken?.id, mode, liquidityMode]);
 
   /* Calculate pool reserves */
   const [reserves, setReserves] = useState<{
@@ -2417,6 +2450,57 @@ export const SwapTile = () => {
               />
             </svg>
             Transaction confirmed!
+          </div>
+        )}
+
+        {/* Price Chart - Only show when a valid pair is selected in swap mode */}
+        {mode === "swap" && (
+          <div className="mt-4 border-t border-yellow-100 pt-4">
+            {/* Determine which token to use for the chart - prioritize non-ETH token */}
+            {(() => {
+              // Get the non-ETH token for the chart
+              const chartToken = buyToken && buyToken.id !== null
+                ? buyToken
+                : (sellToken && sellToken.id !== null ? sellToken : null);
+
+              // Only show chart button if we have a non-ETH token
+              if (!chartToken) return null;
+
+              return (
+                <>
+                  <div className="flex items-center justify-between mb-2">
+                    <button
+                      onClick={() => setShowPriceChart(prev => !prev)}
+                      className="text-xs text-gray-600 flex items-center gap-1 hover:text-gray-900"
+                    >
+                      {showPriceChart ? "Hide Price Chart" : "Show Price Chart"}
+                      <svg
+                        className={`w-3 h-3 transition-transform ${showPriceChart ? "rotate-180" : ""}`}
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    {showPriceChart && (
+                      <div className="text-xs text-gray-500">
+                        {chartToken.symbol}/ETH price history
+                      </div>
+                    )}
+                  </div>
+
+                  {showPriceChart && (
+                    <div className={`transition-all duration-300 ${showPriceChart ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"}`}>
+                      <PoolPriceChart
+                        poolId={computePoolId(chartToken.id).toString()}
+                        ticker={chartToken.symbol}
+                      />
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
         )}
 
