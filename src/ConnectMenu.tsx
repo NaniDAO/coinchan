@@ -7,16 +7,36 @@ const ConnectMenuComponent = () => {
   const { isConnected, address, status } = useAccount();
   const { connect, connectors } = useConnect();
   const [reconnecting, setReconnecting] = useState(false);
+
+  // Clean up stale connection state on component mount
+  useEffect(() => {
+    // If not connected and no active connection in progress, clear the stored address
+    // to avoid confusion on fresh visits
+    if (status === 'disconnected' && !isConnected) {
+      const hasLastAddress = !!sessionStorage.getItem('lastConnectedAddress');
+
+      // Only clear if there's actually something to clear (performance optimization)
+      if (hasLastAddress && window.location.href.indexOf('?') === -1) {
+        // Only clear on fresh page loads without query params (likely not part of a connection flow)
+        sessionStorage.removeItem('lastConnectedAddress');
+      }
+    }
+  }, []);
   
   // Performance-optimized status tracking with fewer state updates
   useEffect(() => {
-    // Only update state if it's actually changing to prevent redundant renders
-    const shouldShowReconnecting = status === 'reconnecting' || status === 'connecting';
-    
+    // Check if we have a previously connected address to determine if this is a reconnection
+    const lastAddress = sessionStorage.getItem('lastConnectedAddress');
+    const isReconnection = !!lastAddress;
+
+    // Only show reconnecting state if we're actually reconnecting (not first connection)
+    const shouldShowReconnecting = (status === 'reconnecting' ||
+      (status === 'connecting' && isReconnection));
+
     if (shouldShowReconnecting !== reconnecting) {
       setReconnecting(shouldShowReconnecting);
     }
-    
+
     // Only store the address when connected and stable (not during transition states)
     if (status === 'connected' && address) {
       // Use requestIdleCallback for non-critical storage operations
@@ -43,11 +63,11 @@ const ConnectMenuComponent = () => {
     );
   }
   
-  // When reconnecting - show a reconnecting message with last known address if available
+  // When connecting or reconnecting - show appropriate message
   if (reconnecting) {
     // Try to get last known address from sessionStorage to display during reconnection
     const lastAddress = sessionStorage.getItem('lastConnectedAddress');
-    
+
     return (
       <div className="flex items-center gap-2">
         {lastAddress && (
@@ -56,7 +76,18 @@ const ConnectMenuComponent = () => {
           </div>
         )}
         <div className="text-xs text-yellow-700 animate-pulse">
-          {lastAddress ? "Reconnecting..." : "Reconnecting wallet..."}
+          {lastAddress ? "Reconnecting..." : "Connecting..."}
+        </div>
+      </div>
+    );
+  }
+
+  // Show connecting state for first-time connections
+  if (status === 'connecting') {
+    return (
+      <div className="flex items-center gap-2">
+        <div className="text-xs text-yellow-700 animate-pulse">
+          Connecting wallet...
         </div>
       </div>
     );
