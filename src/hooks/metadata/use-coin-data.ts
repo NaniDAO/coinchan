@@ -3,7 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { createPublicClient, http } from "viem";
 import { mainnet } from "viem/chains";
 import { useGlobalCoinsData, type CoinData } from "./use-global-coins-data";
-import { CoinsMetadataHelperAbi, CoinsMetadataHelperAddress } from "@/constants/CoinsMetadataHelper";
+import {
+  CoinsMetadataHelperAbi,
+  CoinsMetadataHelperAddress,
+} from "@/constants/CoinsMetadataHelper";
 
 // Create a public client instance
 const publicClient = createPublicClient({
@@ -29,8 +32,6 @@ export function useCoinData(coinId: bigint) {
     queryKey: ["coin-data", coinId.toString()],
     queryFn: async () => {
       try {
-        console.log(`Fetching data directly for coin ${coinId.toString()}...`);
-
         // Call the contract to get data for this specific coin
         const rawData = await publicClient.readContract({
           address: CoinsMetadataHelperAddress,
@@ -42,7 +43,10 @@ export function useCoinData(coinId: bigint) {
         // Transform and enrich the data
         return await processRawCoinData(rawData as any);
       } catch (error) {
-        console.error(`Error fetching data for coin ${coinId.toString()}:`, error);
+        console.error(
+          `Error fetching data for coin ${coinId.toString()}:`,
+          error,
+        );
         throw error;
       }
     },
@@ -149,7 +153,10 @@ async function processRawCoinData(rawData: any): Promise<CoinData> {
         }
       }
     } catch (error) {
-      console.error(`Error processing metadata for coin ${coinData.coinId.toString()}:`, error);
+      console.error(
+        `Error processing metadata for coin ${coinData.coinId.toString()}:`,
+        error,
+      );
       // We'll just continue with the partial data
     }
   }

@@ -69,8 +69,6 @@ export async function fetchPoolCandles(poolId: string, interval: "1m" | "1h" | "
     throw new Error(`GraphQL errors: ${JSON.stringify(errors)}`);
   }
 
-  console.log("pool candle chart data:", data);
-
   return data.candles.items.map((c: any) => ({
     date: Number(c.bucketStart / 1000),
     open: fp18ToFloat(c.open),
@@ -118,8 +116,6 @@ export async function fetchPoolPricePoints(poolId: string): Promise<PricePointDa
     console.error(`Error in response: ${JSON.stringify(errors)}`);
     throw new Error(`GraphQL errors: ${JSON.stringify(errors)}`);
   }
-
-  console.log("pool price points data:", data);
 
   // Map and convert the data
   const allPricePoints = data.pricePoints.items.map((p: any) => ({

@@ -8,9 +8,8 @@ export const config = createConfig({
   connectors: [farcasterFrame(), injected(), coinbaseWallet(), metaMask()],
   transports: {
     [mainnet.id]: fallback([
-      // Limit to just 2 reliable providers to reduce connection latency
       http(import.meta.env.VITE_DRPC_1),
-      http("https://eth.llamarpc.com"),
+      http("https://cloudflare-eth.com"),
     ]),
   },
 });

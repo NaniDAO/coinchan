@@ -2,7 +2,10 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useGlobalCoinsData, type CoinData } from "./use-global-coins-data";
 import { createPublicClient, http } from "viem";
 import { mainnet } from "viem/chains";
-import { CoinsMetadataHelperAbi, CoinsMetadataHelperAddress } from "@/constants/CoinsMetadataHelper";
+import {
+  CoinsMetadataHelperAbi,
+  CoinsMetadataHelperAddress,
+} from "@/constants/CoinsMetadataHelper";
 import { useQuery } from "@tanstack/react-query";
 
 // Create a public client instance
@@ -31,7 +34,6 @@ export function usePagedCoins(pageSize: number = 20) {
     queryFn: async () => {
       if (totalCoinsFromGlobal > 0) return totalCoinsFromGlobal;
 
-      console.log("Fetching total coins count directly...");
       try {
         const count = await publicClient.readContract({
           address: CoinsMetadataHelperAddress,
@@ -81,8 +83,6 @@ export function usePagedCoins(pageSize: number = 20) {
       const end = Math.min(start + pageSize, total);
       if (start >= end) return [];
 
-      console.log(`Fetching coins directly for page ${page} (${start}-${end})...`);
-
       try {
         const rawData = (await publicClient.readContract({
           address: CoinsMetadataHelperAddress,
@@ -92,7 +92,9 @@ export function usePagedCoins(pageSize: number = 20) {
         })) as any[];
 
         // Process each coin's data
-        const processedData = await Promise.all(rawData.map(processRawCoinData));
+        const processedData = await Promise.all(
+          rawData.map(processRawCoinData),
+        );
 
         return processedData;
       } catch (error) {
@@ -164,8 +166,6 @@ import { formatImageURL } from "./use-global-coins-data";
 
 // Helper function to process raw coin data
 async function processRawCoinData(rawData: any): Promise<CoinData> {
-  console.log("Processing raw coin data:", rawData);
-
   // Enhanced handling - properly check the structure of the response
   let coinId, tokenURI, reserve0, reserve1, poolId, liquidity;
 
@@ -209,8 +209,6 @@ async function processRawCoinData(rawData: any): Promise<CoinData> {
   // Fetch and process metadata immediately for direct coin requests
   if (coinData.tokenURI && coinData.tokenURI !== "N/A") {
     try {
-      console.log(`Fetching metadata for coin ${coinData.coinId.toString()} with URI: ${coinData.tokenURI}`);
-
       // Handle IPFS URIs with gateway
       let uri = coinData.tokenURI;
       if (uri.startsWith("ipfs://")) {
@@ -222,7 +220,6 @@ async function processRawCoinData(rawData: any): Promise<CoinData> {
         const response = await fetch(uri);
         if (response.ok) {
           const metadata = await response.json();
-          console.log(`Successfully fetched metadata for coin ${coinData.coinId.toString()}:`, metadata);
 
           // Extract common fields
           coinData.metadata = metadata;
@@ -233,18 +230,18 @@ async function processRawCoinData(rawData: any): Promise<CoinData> {
           // Process image URL
           if (metadata.image) {
             coinData.imageUrl = formatImageURL(metadata.image);
-            console.log(`Set image URL for coin ${coinData.coinId.toString()}: ${coinData.imageUrl}`);
           } else if (metadata.image_url) {
             coinData.imageUrl = formatImageURL(metadata.image_url);
-            console.log(`Set image_url for coin ${coinData.coinId.toString()}: ${coinData.imageUrl}`);
           } else if (metadata.imageUrl) {
             coinData.imageUrl = formatImageURL(metadata.imageUrl);
-            console.log(`Set imageUrl for coin ${coinData.coinId.toString()}: ${coinData.imageUrl}`);
           }
         }
       }
     } catch (error) {
-      console.error(`Error fetching metadata for coin ${coinData.coinId.toString()}:`, error);
+      console.error(
+        `Error fetching metadata for coin ${coinData.coinId.toString()}:`,
+        error,
+      );
     }
   }
 

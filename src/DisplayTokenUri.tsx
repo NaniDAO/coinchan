@@ -32,10 +32,7 @@ export const DisplayTokenUri = ({
   // Use direct fetch approach like in SwapTile, which works reliably
   useEffect(() => {
     const fetchMetadata = async () => {
-      console.log(`DisplayTokenUri for ${symbol}: Starting fetch for tokenUri:`, tokenUri);
-
       if (!tokenUri || tokenUri === "N/A") {
-        console.log(`DisplayTokenUri for ${symbol}: Invalid token URI, skipping fetch`);
         return;
       }
 
@@ -43,7 +40,6 @@ export const DisplayTokenUri = ({
 
       // Skip for data URIs (if any)
       if (tokenUri.startsWith("data:")) {
-        console.log(`DisplayTokenUri for ${symbol}: Using data URI directly`);
         setActualImageUrl(tokenUri);
         setIsLoading(false);
         return;
@@ -54,54 +50,54 @@ export const DisplayTokenUri = ({
         let uri;
         if (tokenUri.startsWith("ipfs://")) {
           uri = `https://content.wrappr.wtf/ipfs/${tokenUri.slice(7)}`;
-          console.log(`DisplayTokenUri for ${symbol}: Converting IPFS URI to`, uri);
         } else {
           uri = tokenUri;
-          console.log(`DisplayTokenUri for ${symbol}: Using http URI directly:`, uri);
         }
-
-        console.log(`DisplayTokenUri for ${symbol}: Fetching metadata from: ${uri}`);
 
         // Try to fetch as JSON
         const response = await fetch(uri);
 
         if (!response.ok) {
-          console.error(`DisplayTokenUri for ${symbol}: Fetch failed with status:`, response.status);
+          console.error(
+            `DisplayTokenUri for ${symbol}: Fetch failed with status:`,
+            response.status,
+          );
           throw new Error(`Failed to fetch metadata: ${response.status}`);
         }
 
         const contentType = response.headers.get("content-type");
-        console.log(`DisplayTokenUri for ${symbol}: Content-Type:`, contentType);
 
         // If it's JSON, try to extract image URL
         if (contentType && contentType.includes("application/json")) {
           const data = await response.json();
-          console.log(`DisplayTokenUri for ${symbol}: Got metadata:`, data);
 
           if (data && data.image) {
             // Handle IPFS image URL
             let imageUrl;
             if (data.image.startsWith("ipfs://")) {
               imageUrl = `https://content.wrappr.wtf/ipfs/${data.image.slice(7)}`;
-              console.log(`DisplayTokenUri for ${symbol}: Converting image IPFS URI to:`, imageUrl);
             } else {
               imageUrl = data.image;
-              console.log(`DisplayTokenUri for ${symbol}: Using image URL directly:`, imageUrl);
             }
 
-            console.log(`DisplayTokenUri for ${symbol}: Setting image URL:`, imageUrl);
             setActualImageUrl(imageUrl);
           } else {
-            console.error(`DisplayTokenUri for ${symbol}: No image field in metadata:`, data);
+            console.error(
+              `DisplayTokenUri for ${symbol}: No image field in metadata:`,
+              data,
+            );
             throw new Error("No image in metadata");
           }
         } else {
           // If not JSON, use URI directly as image
-          console.log(`DisplayTokenUri for ${symbol}: Not JSON, using URI directly as image:`, uri);
+
           setActualImageUrl(uri);
         }
       } catch (err) {
-        console.error(`DisplayTokenUri for ${symbol}: Error fetching metadata:`, err);
+        console.error(
+          `DisplayTokenUri for ${symbol}: Error fetching metadata:`,
+          err,
+        );
         setImageError(true);
       } finally {
         setIsLoading(false);
@@ -114,7 +110,9 @@ export const DisplayTokenUri = ({
   // Fallback for invalid token URIs
   if (!tokenUri || tokenUri === "N/A") {
     return (
-      <div className={`w-full h-full flex ${bgColor} text-white justify-center items-center rounded-full ${className}`}>
+      <div
+        className={`w-full h-full flex ${bgColor} text-white justify-center items-center rounded-full ${className}`}
+      >
         {symbol?.slice(0, 3)}
       </div>
     );
@@ -134,7 +132,9 @@ export const DisplayTokenUri = ({
   // Error or no image available
   if (imageError || !actualImageUrl) {
     return (
-      <div className={`w-full h-full flex ${bgColor} text-white justify-center items-center rounded-full ${className}`}>
+      <div
+        className={`w-full h-full flex ${bgColor} text-white justify-center items-center rounded-full ${className}`}
+      >
         {symbol?.slice(0, 3)}
       </div>
     );
@@ -144,7 +144,9 @@ export const DisplayTokenUri = ({
   return (
     <div className="relative w-full h-full rounded-full overflow-hidden">
       {/* Fallback that's visible until image loads */}
-      <div className={`absolute inset-0 flex ${bgColor} text-white justify-center items-center`}>
+      <div
+        className={`absolute inset-0 flex ${bgColor} text-white justify-center items-center`}
+      >
         {symbol?.slice(0, 3)}
       </div>
 
@@ -155,11 +157,14 @@ export const DisplayTokenUri = ({
         className="absolute inset-0 w-full h-full object-cover"
         style={{ zIndex: 1 }}
         onLoad={() => {
-          console.log(`DisplayTokenUri for ${symbol}: Image loaded successfully:`, actualImageUrl);
           setImageLoaded(true);
         }}
         onError={(e) => {
-          console.error(`DisplayTokenUri for ${symbol}: Image load error for URL:`, actualImageUrl, e);
+          console.error(
+            `DisplayTokenUri for ${symbol}: Image load error for URL:`,
+            actualImageUrl,
+            e,
+          );
           setImageError(true);
         }}
         loading="eager" // Force eager loading instead of lazy

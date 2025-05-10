@@ -53,7 +53,7 @@ export const handleWalletError = (
   if (isUserRejectionError(error)) {
     // Only log user rejections if specifically requested
     if (logRejections && !silent) {
-      console.log("User rejected wallet request");
+      console.error("User rejected wallet request");
     }
     return null;
   }

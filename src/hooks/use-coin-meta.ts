@@ -61,15 +61,6 @@ export const useCoinMeta = (tokenId: bigint): MetaState => {
     const symbol = (symbolData?.result as string | undefined) ?? "N/A";
     const tokenUri = (uriData?.result as string | undefined) ?? "N/A";
 
-    // Add debug logging to identify issues
-    console.log(`useCoinMeta for token ${tokenId.toString()}:`, {
-      name,
-      symbol,
-      tokenUri,
-      isLoading,
-      hasError: !!error,
-    });
-
     return {
       name,
       symbol,
