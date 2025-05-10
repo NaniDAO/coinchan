@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { ExplorerGrid } from "./ExplorerGrid";
 import { TradeView } from "./TradeView";
 import { usePagedCoins } from "./hooks/metadata";
 import { useGlobalCoinsData, type CoinData } from "./hooks/metadata";
+import { debounce } from "./utils";
 
 // Page size for pagination
 const PAGE_SIZE = 20;
@@ -77,6 +78,19 @@ export const Coins = () => {
   const closeTrade = () => {
     setSelectedTokenId(null);
   };
+
+  /* ------------------------------------------------------------------
+   *  Debounced pagination handlers to prevent rapid clicks
+   * ------------------------------------------------------------------ */
+  const debouncedNextPage = useMemo(
+    () => debounce(goToNextPage, 350),
+    [goToNextPage]
+  );
+
+  const debouncedPrevPage = useMemo(
+    () => debounce(goToPreviousPage, 350),
+    [goToPreviousPage]
+  );
 
   /* ------------------------------------------------------------------
    *  Trade view (moved out of conditional return)
@@ -161,8 +175,8 @@ export const Coins = () => {
           total={isSearchActive ? searchResults.length : total}
           canPrev={!isSearchActive && hasPreviousPage}
           canNext={!isSearchActive && hasNextPage}
-          onPrev={goToPreviousPage}
-          onNext={goToNextPage}
+          onPrev={debouncedPrevPage}
+          onNext={debouncedNextPage}
           onTrade={openTrade}
           isLoading={isLoading || (isSearchActive && isGlobalLoading)}
           currentPage={page + 1}
