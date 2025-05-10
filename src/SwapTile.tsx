@@ -1036,7 +1036,8 @@ export const SwapTile = () => {
   const isSellETH = sellToken.id === null;
   const isCoinToCoin =
     sellToken.id !== null && buyToken?.id !== null && buyToken?.id !== undefined && sellToken.id !== buyToken.id;
-  const coinId = (isSellETH ? buyToken?.id : sellToken.id) ?? 0n;
+  // Ensure coinId is always a valid bigint, never undefined or 0n
+  const coinId = (isSellETH ? (buyToken?.id !== undefined ? buyToken.id : 0n) : sellToken.id) ?? 0n;
 
   /* user inputs */
   const [sellAmt, setSellAmt] = useState("");
@@ -1099,7 +1100,10 @@ export const SwapTile = () => {
   // Fetch reserves directly
   useEffect(() => {
     const fetchReserves = async () => {
-      if (!coinId || coinId === 0n || !publicClient) return;
+      if (!coinId || coinId === 0n || !publicClient) {
+        console.log("Skipping reserves fetch - invalid coinId or no publicClient", { coinId, hasPublicClient: !!publicClient });
+        return;
+      }
 
       try {
         const poolId = computePoolId(coinId);
@@ -1757,7 +1761,18 @@ export const SwapTile = () => {
   };
 
   const executeSwap = async () => {
-    if (!canSwap || !reserves || !address || !sellAmt || !publicClient) return;
+    if (!canSwap || !reserves || !address || !sellAmt || !publicClient || !buyToken) {
+      console.log("Cannot execute swap - missing prerequisites", {
+        canSwap,
+        hasReserves: !!reserves,
+        hasAddress: !!address,
+        hasSellAmt: !!sellAmt,
+        hasPublicClient: !!publicClient,
+        hasBuyToken: !!buyToken
+      });
+      setTxError("Cannot execute swap. Please ensure you have selected a token pair and entered an amount.");
+      return;
+    }
     setTxError(null);
 
     try {
@@ -1851,7 +1866,7 @@ export const SwapTile = () => {
         }
 
         // If we have two different Coin IDs, use the multicall path for Coin to Coin swap
-        if (buyToken?.id !== null && sellToken.id !== null && buyToken?.id !== sellToken.id) {
+        if (buyToken?.id !== null && buyToken?.id !== undefined && sellToken.id !== null && buyToken.id !== sellToken.id) {
           try {
             // Import our helper dynamically to avoid circular dependencies
             const { createCoinSwapMulticall, estimateCoinToCoinOutput } = await import("./lib/swapHelper");
