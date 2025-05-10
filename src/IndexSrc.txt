@@ -1,0 +1,543 @@
+import { ponder } from "ponder:registry";
+import schema from "ponder:schema";
+import { createLogger } from "./utils/logger";
+import { timestampToDate } from "./utils/date";
+import { getTokenMetadata } from "./utils/metadata";
+import { decodeFunctionData, zeroAddress, formatUnits, parseUnits } from "viem";
+import { mergeAbis } from "ponder";
+import { ZAMMSingleLiqETHAbi } from "../abis/ZAMMSingleLiqETHAbi";
+import { predictCoinId, coinIdToAddress } from "./utils/coinId";
+
+const logger = createLogger("INDEXING");
+
+/********************
+ *     COINCHAN     *
+ ********************/
+
+ponder.on("Coinchan:Locked", async ({ event, context }) => {
+  const { coinId, creator, liquidity, unlock, vesting } = event.args;
+
+  await context.db.insert(schema.lockup).values({
+    id: `${event.transaction.hash}-${event.log.logIndex.toString(16)}`,
+    coinId,
+    creator,
+    liquidityLocked: liquidity,
+    unlockTime: timestampToDate(Number(unlock)),
+    vesting,
+    creationTime: timestampToDate(Number(event.block.timestamp)),
+    claimed: 0n,
+  });
+});
+
+/********************
+ *      COINS       *
+ ********************/
+
+// Index coin metadata changes
+ponder.on("Coins:MetadataSet", async ({ event, context }) => {
+  // @TODO
+  const [coinId] = event.args;
+});
+
+// Track ownership transfers
+ponder.on("Coins:OwnershipTransferred", async ({ event, context }) => {
+  const [tokenId] = event.args;
+  const { client } = context;
+  const { Coins } = context.contracts;
+
+  const [newOwner, name, symbol, tokenUri, totalSupply] = await Promise.all([
+    client.readContract({
+      abi: Coins.abi,
+      address: Coins.address,
+      functionName: "ownerOf",
+      args: [tokenId],
+    }),
+    client.readContract({
+      abi: Coins.abi,
+      address: Coins.address,
+      functionName: "name",
+      args: [tokenId],
+    }),
+    client.readContract({
+      abi: Coins.abi,
+      address: Coins.address,
+      functionName: "symbol",
+      args: [tokenId],
+    }),
+    client.readContract({
+      abi: Coins.abi,
+      address: Coins.address,
+      functionName: "tokenURI",
+      args: [tokenId],
+    }),
+    client.readContract({
+      abi: Coins.abi,
+      address: Coins.address,
+      functionName: "totalSupply",
+      args: [tokenId],
+    }),
+  ]);
+  const metadata = await getTokenMetadata(tokenUri);
+  await context.db
+    .insert(schema.coin)
+    .values({
+      id: tokenId,
+      owner: newOwner,
+      name,
+      symbol,
+      tokenURI: tokenUri,
+      imageUrl: metadata ? metadata.image : null,
+      description: metadata ? metadata.description : null,
+      totalSupply,
+      creationTxHash: event.transaction.hash,
+      createdAt: timestampToDate(Number(event.block.timestamp)),
+      updatedAt: timestampToDate(Number(event.block.timestamp)),
+    })
+    .onConflictDoUpdate({
+      owner: newOwner,
+      totalSupply,
+      updatedAt: timestampToDate(Number(event.block.timestamp)),
+    });
+});
+
+// Track operator approvals (no dedicated table, just log)
+ponder.on("Coins:OperatorSet", async ({ event }) => {
+  const [owner, operator, approved] = event.args;
+  logger.debug(
+    `OperatorSet owner=${owner} operator=${operator} approved=${approved}`,
+  );
+});
+
+// Track approvals (no dedicated table)
+ponder.on("Coins:Approval", async ({ event }) => {
+  const [owner, spender, tokenId, amount] = event.args;
+  logger.debug(
+    `Approval owner=${owner} spender=${spender} tokenId=${tokenId} amount=${amount}`,
+  );
+});
+
+// Track transfers
+ponder.on("Coins:Transfer", async ({ event, context }) => {
+  if (!event.args) {
+    logger.error(
+      `Missing args for Transfer event in tx ${event.transaction.hash}`,
+    );
+    logger.debug(`Raw event: ${JSON.stringify(event)}`);
+    return; // Skip this event
+  }
+
+  const [sender, from, to, tokenId, amount] = event.args;
+
+  logger.debug(
+    `Transfer sender=${sender} from=${from} to=${to} tokenId=${tokenId} amount=${amount}`,
+  );
+
+  // await context.db.insert(schema.transfer).values({
+  //   id: Math.random().toString(36).substring(2),
+  //   coinId: tokenId,
+  //   tokenAddr: sender,
+  //   fromAddr: from,
+  //   toAddr: to,
+  //   amount,
+  //   txHash: event.transaction.hash,
+  //   blockNumber: BigInt(event.block.number),
+  //   timestamp: BigInt(event.block.timestamp),
+  // });
+});
+
+/********************
+ *       ZAMM       *
+ ********************/
+
+// Helper to safely get liquidity field or derive fallback
+const getLiquidity = (args: Record<string, unknown>): bigint => {
+  if ("liquidity" in args && args.liquidity !== undefined) {
+    return args.liquidity as bigint;
+  }
+  if ("amount0" in args && "amount1" in args) {
+    return (args.amount0 as bigint) + (args.amount1 as bigint);
+  }
+  return 0n;
+};
+
+// Handle Mint events
+ponder.on("ZAAM:Mint", async ({ event, context }) => {
+  const { poolId, sender, amount0, amount1 } = event.args;
+
+  await context.db.insert(schema.liquidityEvent).values({
+    id: `${event.transaction.hash}-${event.log.logIndex}`,
+    poolId,
+    sender,
+    type: "MINT",
+    amount0,
+    amount1,
+    liquidity: getLiquidity(event.args),
+    txHash: event.transaction.hash,
+    blockNumber: BigInt(event.block.number),
+    timestamp: BigInt(event.block.timestamp),
+  });
+
+  const data = event.transaction.input;
+
+  const { ZAAM, Coinchan, Coins } = context.contracts;
+
+  const decoded = decodeFunctionData({
+    abi: mergeAbis([ZAAM.abi, Coinchan.abi, ZAMMSingleLiqETHAbi]), // for some reason using ZAMMSingleLiqETH.abi results in undefined error
+    data,
+  });
+
+  if (decoded.functionName === "makeLiquid") {
+    // zamm
+    const [maker, liqTo, mkrAmt, liqAmt, swapFee, uri] = decoded.args; //  address maker, address liqTo, uint256 mkrAmt, uint256 liqAmt, uint256 swapFee, string calldata uri
+    // create pool
+    await context.db
+      .insert(schema.pool)
+      .values({
+        id: poolId,
+        coin0Id: 0n,
+        // coin1Id // we don't know this
+        token0: zeroAddress,
+        // token1
+        swapFee: Number(swapFee), // will not actually be a big number
+        updatedAt: timestampToDate(event.block.timestamp),
+      })
+      .onConflictDoUpdate({
+        updatedAt: timestampToDate(event.block.timestamp),
+      });
+  } else if (decoded.functionName === "addLiquidity") {
+    // zamm
+    const [
+      poolKey,
+      amount0Desired,
+      amount1Desired,
+      amount0Min,
+      amount1Min,
+      to,
+      deadline,
+    ] = decoded.args; // PoolKey calldata poolKey, uint256 amount0Desired, uint256 amount1Desired, uint256 amount0Min, uint256 amount1Min, address to, uint256 deadline
+
+    await context.db
+      .insert(schema.pool)
+      .values({
+        id: poolId,
+        coin0Id: poolKey.id0,
+        coin1Id: poolKey.id1,
+        token0: poolKey.token0,
+        token1: poolKey.token1,
+        swapFee: Number(poolKey.swapFee), // will not actually be a big number
+        updatedAt: timestampToDate(event.block.timestamp),
+      })
+      .onConflictDoUpdate({
+        coin0Id: poolKey.id0,
+        coin1Id: poolKey.id1,
+        token0: poolKey.token0,
+        token1: poolKey.token1,
+        updatedAt: timestampToDate(event.block.timestamp),
+      });
+  } else if (decoded.functionName === "makeLocked") {
+    // coinchan
+    const [
+      name,
+      symbol,
+      tokenURI,
+      poolSupply,
+      creatorSupply,
+      swapFee,
+      creator,
+      _unlock,
+    ] = decoded.args; //   string calldata name, string calldata symbol, string calldata tokenURI, uint256 poolSupply, uint256 creatorSupply, uint96 swapFee, address creator, uint256 _unlock,
+
+    const coin1Id = predictCoinId(name, symbol, Coins.address);
+
+    await context.db
+      .insert(schema.pool)
+      .values({
+        id: poolId,
+        coin0Id: 0n,
+        coin1Id: coin1Id,
+        token0: zeroAddress,
+        token1: coinIdToAddress(coin1Id),
+        swapFee: Number(swapFee),
+        updatedAt: timestampToDate(event.block.timestamp),
+      })
+      .onConflictDoUpdate({
+        updatedAt: timestampToDate(event.block.timestamp),
+      });
+  } else if (decoded.functionName === "makeHold") {
+    // coinchan
+    const [
+      name,
+      symbol,
+      tokenURI,
+      poolSupply,
+      creatorSupply,
+      swapFee,
+      creator,
+    ] = decoded.args;
+
+    const coin1Id = predictCoinId(name, symbol, Coins.address);
+
+    await context.db
+      .insert(schema.pool)
+      .values({
+        id: poolId,
+        coin0Id: 0n,
+        coin1Id: coin1Id,
+        token0: zeroAddress,
+        token1: coinIdToAddress(coin1Id),
+        swapFee: Number(swapFee),
+        updatedAt: timestampToDate(event.block.timestamp),
+      })
+      .onConflictDoUpdate({
+        updatedAt: timestampToDate(event.block.timestamp),
+      });
+  } else if (decoded.functionName === "make") {
+    // coinchan
+    const [name, symbol, tokenURI, poolSupply, ownerSupply, swapFee, owner] =
+      decoded.args;
+
+    if (typeof symbol === "string") {
+      const coin1Id = predictCoinId(name, symbol, Coins.address);
+
+      await context.db
+        .insert(schema.pool)
+        .values({
+          id: poolId,
+          coin0Id: 0n,
+          coin1Id: coin1Id,
+          token0: zeroAddress,
+          token1: coinIdToAddress(coin1Id),
+          swapFee: Number(swapFee),
+          updatedAt: timestampToDate(event.block.timestamp),
+        })
+        .onConflictDoUpdate({
+          updatedAt: timestampToDate(event.block.timestamp),
+        });
+    }
+  } else if (decoded.functionName === "addSingleLiqETH") {
+    const [poolKey, amountOutMin, amount0min, to, deadline] = decoded.args;
+    await context.db
+      .insert(schema.pool)
+      .values({
+        id: poolId,
+        coin0Id: poolKey.id0,
+        coin1Id: poolKey.id1,
+        token0: poolKey.token0,
+        token1: poolKey.token1,
+        updatedAt: timestampToDate(event.block.timestamp),
+      })
+      .onConflictDoUpdate({
+        updatedAt: timestampToDate(event.block.timestamp),
+      });
+  }
+});
+
+// Handle Burn events
+ponder.on("ZAAM:Burn", async ({ event, context }) => {
+  const { poolId, sender, amount0, amount1 } = event.args;
+
+  await context.db.insert(schema.liquidityEvent).values({
+    id: `${event.transaction.hash}-${event.log.logIndex}`,
+    poolId,
+    sender,
+    type: "BURN",
+    amount0,
+    amount1,
+    liquidity: getLiquidity(event.args),
+    txHash: event.transaction.hash,
+    blockNumber: BigInt(event.block.number),
+    timestamp: BigInt(event.block.timestamp),
+  });
+});
+
+// Handle Swap events
+ponder.on("ZAAM:Swap", async ({ event, context }) => {
+  const { poolId, sender, amount0In, amount1In, amount0Out, amount1Out, to } =
+    event.args;
+
+  await context.db.insert(schema.swap).values({
+    id: `${event.transaction.hash}-${event.log.logIndex}`,
+    poolId,
+    trader: sender,
+    toAddr: to,
+    amount0In,
+    amount1In,
+    amount0Out,
+    amount1Out,
+    txHash: event.transaction.hash,
+    blockNumber: BigInt(event.block.number),
+    timestamp: BigInt(event.block.timestamp),
+  });
+});
+
+ponder.on("ZAAM:Sync", async ({ event, context }) => {
+  const { poolId, reserve0, reserve1 } = event.args;
+  const { db } = context;
+  const block = event.block;
+
+  // Fetch the pool row
+  const poolRow = await db.find(schema.pool, { id: poolId });
+  if (!poolRow) return;
+
+  // Fixed-point scaling (18 decimals)
+  const DECIMALS = 18n;
+  const SCALING = 10n ** DECIMALS;
+
+  // ZAMM-per-ETH (unused for candles but stored)
+  const price0Fixed = reserve0 === 0n ? 0n : (reserve1 * SCALING) / reserve0;
+  // ETH-per-ZAMM (we'll use this for candles)
+  const price1Fixed = reserve1 === 0n ? 0n : (reserve0 * SCALING) / reserve1;
+
+  const price0 = price0Fixed.toString();
+  const price1 = price1Fixed.toString();
+
+  // Update latest pool state
+  await db.update(schema.pool, { id: poolId }).set({
+    reserve0,
+    reserve1,
+    price0,
+    price1,
+    updatedAt: timestampToDate(block.timestamp),
+  });
+
+  // Insert a new price point
+  await db.insert(schema.pricePoint).values({
+    id: `${event.transaction.hash}-${event.log.logIndex}`,
+    poolId,
+    reserve0,
+    reserve1,
+    price0,
+    price1,
+    blockNumber: BigInt(block.number),
+    timestamp: timestampToDate(block.timestamp),
+    txHash: event.transaction.hash,
+  });
+
+  // Candle intervals in seconds
+  const intervals: Record<string, number> = {
+    "1m": 60,
+    "1h": 3600,
+    "1d": 86400,
+  };
+
+  // Build candles using ETH-per-ZAMM
+  for (const [label, seconds] of Object.entries(intervals)) {
+    const bucketStart = Math.floor(Number(block.timestamp) / seconds) * seconds;
+    const candleId = `${poolId}-${bucketStart}-${label}`;
+
+    const existing = await db.find(schema.candle, { id: candleId });
+    // Use the ETH-per-ZAMM fixed-point value
+    const pFixed = price1Fixed;
+    const pString = price1;
+
+    if (!existing) {
+      // First tick in this bucket: initialize open/high/low/close
+      await db.insert(schema.candle).values({
+        id: candleId,
+        poolId,
+        interval: label,
+        bucketStart: timestampToDate(bucketStart),
+        open: pString,
+        high: pString,
+        low: pString,
+        close: pString,
+        updatedAt: timestampToDate(block.timestamp),
+      });
+    } else {
+      // Update high, low, and close
+      const highPrev = existing.high !== null ? BigInt(existing.high) : 0n;
+      const lowPrev = existing.low !== null ? BigInt(existing.low) : pFixed;
+
+      await db.update(schema.candle, { id: candleId }).set({
+        high: pFixed > highPrev ? pString : existing.high,
+        low: pFixed < lowPrev ? pString : existing.low,
+        close: pString,
+        updatedAt: timestampToDate(block.timestamp),
+      });
+    }
+  }
+});
+
+// Handle URI events (update tokenURI)
+ponder.on("ZAAM:URI", async ({ event, context }) => {
+  // this is URI for LP ?
+  const { uri, coinId } = event.args;
+
+  // await context.db
+  //   .update(schema.coin, {
+  //     id: BigInt(coinId),
+  //   })
+  //   .set({
+  //     tokenURI: uri,
+  //     updatedAt: timestampToDate(Number(event.block.timestamp)),
+  //   });
+});
+
+// ALSO JUST FOR REF HERE IS HOW COIN ID IS PREDICTED
+
+import { getAddress, encodePacked, keccak256 } from "viem";
+
+import { keccak256, encodePacked } from "viem";
+import type { Address } from "viem";
+
+/**
+ * Predicts the coin ID (uint256) that your Solidity _predictId would produce,
+ * i.e. the low 160 bits of the CREATE2 keccak hash.
+ *
+ * @param name           The token name passed to create()
+ * @param symbol         The token symbol passed to create()
+ * @param coinsAddress   The COINS contract address
+ * @returns              The uint256 ID (BigInt) equivalent to uint160(address)
+ */
+export function predictCoinId(
+  name: string,
+  symbol: string,
+  coinsAddress: Address,
+): bigint {
+  // 1) salt = keccak256(abi.encodePacked(name, COINS, symbol))
+  const salt = keccak256(
+    encodePacked(["string", "address", "string"], [name, coinsAddress, symbol]),
+  );
+
+  // 2) raw = keccak256(abi.encodePacked(
+  //       bytes1(0xff), COINS, salt, INIT_CODE_HASH
+  //    ))
+  const INIT_CODE_HASH =
+    "0x6594461b4ce3b23f6cbdcdcf50388d5f444bf59a82f6e868dfd5ef2bfa13f6d4";
+
+  const rawHash = keccak256(
+    encodePacked(
+      ["bytes1", "address", "bytes32", "bytes32"],
+      ["0xff", coinsAddress, salt, INIT_CODE_HASH],
+    ),
+  );
+
+  // 3) mask to uint160: keep only lower 20 bytes (160 bits)
+  const full = BigInt(rawHash);
+  const mask160 = (1n << 160n) - 1n;
+  const id = full & mask160;
+
+  return id;
+}
+
+/**
+ * Convert a numeric coinId (uint256) back into its Ethereum address.
+ *
+ * @param coinId A BigInt, numeric string, or number representing the uint256 ID.
+ * @returns The checksummed token contract address.
+ */
+export function coinIdToAddress(
+  coinId: bigint | number | string,
+): `0x${string}` {
+  // Ensure we’re working with a BigInt
+  const id = typeof coinId === "bigint" ? coinId : BigInt(coinId);
+
+  // Extract the lower 160 bits as hex, pad to 40 chars
+  const rawHex = id
+    .toString(16) // to hex string
+    .padStart(40, "0"); // zero-pad to 20 bytes
+  const rawAddress = `0x${rawHex}`;
+
+  // Normalize to EIP-55 checksum format
+  return getAddress(rawAddress);
+}
