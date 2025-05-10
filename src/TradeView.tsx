@@ -90,7 +90,7 @@ export const TradeView = ({
   // Safely check ownership with error handling
   useEffect(() => {
     if (!publicClient || !tokenId || !address) {
-      console.log("TradeView: Missing prerequisites for ownership check");
+      console.error("TradeView: Missing prerequisites for ownership check");
       return;
     }
 
@@ -98,10 +98,6 @@ export const TradeView = ({
 
     const checkOwnership = async () => {
       try {
-        console.log(
-          `TradeView: Checking ownership for token ${tokenId.toString()}`,
-        );
-
         const lockup = (await publicClient.readContract({
           address: CoinchanAddress,
           abi: CoinchanAbi,
@@ -114,9 +110,6 @@ export const TradeView = ({
         const [lockupOwner] = lockup;
         const isActualOwner =
           lockupOwner?.toLowerCase() === address.toLowerCase();
-        console.log(
-          `TradeView: Token ${tokenId.toString()} owner check: ${isActualOwner}`,
-        );
         setIsOwner(isActualOwner);
       } catch (err) {
         console.error(

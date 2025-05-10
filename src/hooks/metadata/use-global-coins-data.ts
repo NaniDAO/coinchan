@@ -2,7 +2,10 @@ import { useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createPublicClient, http, formatEther, formatUnits } from "viem";
 import { mainnet } from "viem/chains";
-import { CoinsMetadataHelperAbi, CoinsMetadataHelperAddress } from "@/constants/CoinsMetadataHelper";
+import {
+  CoinsMetadataHelperAbi,
+  CoinsMetadataHelperAddress,
+} from "@/constants/CoinsMetadataHelper";
 
 // Create a public client instance for direct contract calls
 const publicClient = createPublicClient({
@@ -95,17 +98,9 @@ export function useGlobalCoinsData() {
   } = useQuery({
     queryKey: ["all-coins-data"],
     queryFn: async () => {
-      console.log("Fetching all coins data from CoinsMetadataHelper contract...");
-
       try {
         // Try to use the cached data first while we fetch fresh data
         const cachedData = loadFromCache();
-        if (cachedData) {
-          console.log("Using cached data while fetching fresh data...", cachedData.length, "coins in cache");
-        }
-
-        // CRITICAL: Use the direct contract call to fetch all coins data in one go
-        console.log(`Making direct contract call to CoinsMetadataHelper at ${CoinsMetadataHelperAddress}`);
 
         const rawCoinsData = await publicClient.readContract({
           address: CoinsMetadataHelperAddress,
@@ -113,26 +108,20 @@ export function useGlobalCoinsData() {
           functionName: "getAllCoinsData",
         });
 
-        // Log the raw response to help debug
-        console.log(`Raw response from contract:`, rawCoinsData);
-
         // Process the raw data into our CoinData format
         const processedData: CoinData[] = [];
 
         if (Array.isArray(rawCoinsData)) {
-          console.log(`Successfully received ${rawCoinsData.length} coins from contract`);
-
           // Map the raw data to our CoinData format with immediate metadata extraction
           for (const rawCoin of rawCoinsData) {
-            console.log("Processing raw coin:", rawCoin);
-
             // Enhanced handling - properly check the structure of the response
             let coinId, tokenURI, reserve0, reserve1, poolId, liquidity;
 
             // Handle both tuple object and array response formats
             if (Array.isArray(rawCoin)) {
               // If it's an array (some contracts return tuples as arrays)
-              [coinId, tokenURI, reserve0, reserve1, poolId, liquidity] = rawCoin;
+              [coinId, tokenURI, reserve0, reserve1, poolId, liquidity] =
+                rawCoin;
             } else {
               // If it's an object with properties (standard viem response)
               coinId = rawCoin.coinId;
@@ -170,7 +159,10 @@ export function useGlobalCoinsData() {
             processedData.push(coinData);
           }
         } else {
-          console.error("Contract returned unexpected data format:", rawCoinsData);
+          console.error(
+            "Contract returned unexpected data format:",
+            rawCoinsData,
+          );
           throw new Error("Invalid data format from contract");
         }
 
@@ -178,7 +170,9 @@ export function useGlobalCoinsData() {
         let mergedData: CoinData[];
         if (cachedData) {
           // Create a map of coin IDs to cached metadata for quick lookup
-          const cachedMap = new Map(cachedData.map((coin) => [coin.coinId.toString(), coin]));
+          const cachedMap = new Map(
+            cachedData.map((coin) => [coin.coinId.toString(), coin]),
+          );
 
           // For each fresh coin data, use cached metadata if available
           mergedData = processedData.map((freshCoin) => {
@@ -203,22 +197,15 @@ export function useGlobalCoinsData() {
         // Save the merged data to cache
         saveToCache(mergedData);
 
-        // Debug log the merged data
-        console.log(`Prepared ${mergedData.length} coins with initial data`);
-
         // Start processing metadata immediately but use Promise.all to wait for all metadata
         // This ensures the data is processed before we return it to React Query
         // and helps React render the component with the updated metadata
         const metadataPromises = mergedData.map(async (coin) => {
           if (!coin.metadata && coin.tokenURI) {
-            console.log(`Processing metadata for coin ${coin.coinId.toString()} with URI: ${coin.tokenURI}`);
-
             try {
               const metadata = await processTokenURI(coin.tokenURI);
 
               if (metadata) {
-                console.log(`Successfully processed metadata for coin ${coin.coinId.toString()}:`, metadata);
-
                 // Create a new object to ensure React detects the change
                 const updatedCoin = {
                   ...coin,
@@ -231,17 +218,16 @@ export function useGlobalCoinsData() {
                 // Process image URL
                 if (metadata.image) {
                   updatedCoin.imageUrl = formatImageURL(metadata.image);
-                  console.log(`Set image URL for coin ${coin.coinId.toString()}: ${updatedCoin.imageUrl}`);
                 } else if (metadata.image_url) {
                   updatedCoin.imageUrl = formatImageURL(metadata.image_url);
-                  console.log(`Set image_url for coin ${coin.coinId.toString()}: ${updatedCoin.imageUrl}`);
                 } else if (metadata.imageUrl) {
                   updatedCoin.imageUrl = formatImageURL(metadata.imageUrl);
-                  console.log(`Set imageUrl for coin ${coin.coinId.toString()}: ${updatedCoin.imageUrl}`);
                 }
 
                 // Replace the original coin in the array with the updated one
-                const index = mergedData.findIndex((c) => c.coinId === coin.coinId);
+                const index = mergedData.findIndex(
+                  (c) => c.coinId === coin.coinId,
+                );
                 if (index !== -1) {
                   mergedData[index] = updatedCoin;
                 }
@@ -250,7 +236,10 @@ export function useGlobalCoinsData() {
                 return updatedCoin;
               }
             } catch (err) {
-              console.error(`Error processing token URI for coin ${coin.coinId.toString()}:`, err);
+              console.error(
+                `Error processing token URI for coin ${coin.coinId.toString()}:`,
+                err,
+              );
             }
           }
 
@@ -261,8 +250,6 @@ export function useGlobalCoinsData() {
         // Wait for all metadata to be processed
         await Promise.all(metadataPromises);
 
-        // Update the cache with the processed data
-        console.log(`Saving ${mergedData.length} coins to cache with processed metadata`);
         saveToCache(mergedData);
 
         return mergedData;
@@ -272,7 +259,6 @@ export function useGlobalCoinsData() {
         // If we have cached data, use it as a fallback
         const cachedData = loadFromCache();
         if (cachedData && cachedData.length > 0) {
-          console.log("Using cached data as fallback due to fetch error");
           return cachedData;
         }
 
@@ -305,13 +291,12 @@ export function useGlobalCoinsData() {
 }
 
 // Process token URI to get metadata
-async function processTokenURI(tokenURI: string): Promise<Record<string, any> | null> {
+async function processTokenURI(
+  tokenURI: string,
+): Promise<Record<string, any> | null> {
   if (!tokenURI || tokenURI === "N/A") {
-    console.log("Empty or N/A tokenURI, skipping metadata fetch");
     return null;
   }
-
-  console.log(`Starting metadata fetch for URI: ${tokenURI}`);
 
   try {
     // Handle IPFS URIs with multiple gateway fallbacks
@@ -320,16 +305,12 @@ async function processTokenURI(tokenURI: string): Promise<Record<string, any> | 
     // First attempt with primary gateway
     if (uri.startsWith("ipfs://")) {
       uri = `${IPFS_GATEWAYS[0]}${uri.slice(7)}`;
-      console.log(`Converted IPFS URI to HTTP: ${uri}`);
     }
 
     // Skip if it's not an HTTP or HTTPS URI
     if (!uri.startsWith("http")) {
-      console.log(`Skipping non-HTTP URI: ${uri}`);
       return null;
     }
-
-    console.log(`Fetching metadata from ${uri}`);
 
     // Try to fetch with timeout to avoid hanging requests
     const controller = new AbortController();
@@ -339,7 +320,6 @@ async function processTokenURI(tokenURI: string): Promise<Record<string, any> | 
     let response;
     try {
       response = await fetch(uri, { signal: controller.signal });
-      console.log(`Initial fetch response status: ${response.status} for ${uri}`);
     } catch (fetchError) {
       console.warn(`Primary fetch failed for ${uri}:`, fetchError);
 
@@ -350,7 +330,6 @@ async function processTokenURI(tokenURI: string): Promise<Record<string, any> | 
         // Try alternative gateways
         for (let i = 1; i < IPFS_GATEWAYS.length; i++) {
           const altUri = `${IPFS_GATEWAYS[i]}${ipfsHash}`;
-          console.log(`Trying alternative gateway: ${altUri}`);
 
           try {
             clearTimeout(timeoutId);
@@ -360,14 +339,14 @@ async function processTokenURI(tokenURI: string): Promise<Record<string, any> | 
             response = await fetch(altUri, { signal: altController.signal });
             clearTimeout(altTimeoutId);
 
-            console.log(`Alternative gateway ${i} response status: ${response.status}`);
-
             if (response.ok) {
-              console.log(`Successfully fetched from alternative gateway: ${altUri}`);
               break;
             }
           } catch (altError) {
-            console.warn(`Alternative gateway ${IPFS_GATEWAYS[i]} failed:`, altError);
+            console.warn(
+              `Alternative gateway ${IPFS_GATEWAYS[i]} failed:`,
+              altError,
+            );
           }
         }
       }
@@ -387,7 +366,6 @@ async function processTokenURI(tokenURI: string): Promise<Record<string, any> | 
     // Parse the JSON response
     try {
       const text = await response.text();
-      console.log(`Raw metadata response (first 100 chars): ${text.slice(0, 100)}...`);
 
       let metadata;
       try {
@@ -400,14 +378,14 @@ async function processTokenURI(tokenURI: string): Promise<Record<string, any> | 
         const cleanedText = text.trim().replace(/^\s*[\r\n]/gm, "");
         try {
           metadata = JSON.parse(cleanedText);
-          console.log("Successfully parsed JSON after cleaning");
         } catch (secondJsonError) {
-          console.error("Failed to parse JSON even after cleaning:", secondJsonError);
+          console.error(
+            "Failed to parse JSON even after cleaning:",
+            secondJsonError,
+          );
           return null;
         }
       }
-
-      console.log(`Successfully parsed metadata:`, metadata);
 
       // Check for non-standard image field names
       const normalizedMetadata = normalizeMetadata(metadata);
@@ -450,7 +428,6 @@ function normalizeMetadata(metadata: Record<string, any>): Record<string, any> {
     // Find the first matching field
     for (const field of possibleImageFields) {
       if (normalized[field] && typeof normalized[field] === "string") {
-        console.log(`Found non-standard image field: ${field} with value: ${normalized[field]}`);
         normalized.image = normalized[field];
         break;
       }
@@ -459,12 +436,16 @@ function normalizeMetadata(metadata: Record<string, any>): Record<string, any> {
     // Check if image is in a nested field like 'properties.image'
     if (!normalized.image && normalized.properties) {
       for (const field of ["image", ...possibleImageFields]) {
-        if (normalized.properties[field] && typeof normalized.properties[field] === "string") {
-          console.log(`Found image in properties.${field}: ${normalized.properties[field]}`);
+        if (
+          normalized.properties[field] &&
+          typeof normalized.properties[field] === "string"
+        ) {
           normalized.image = normalized.properties[field];
           break;
-        } else if (normalized.properties[field]?.url && typeof normalized.properties[field].url === "string") {
-          console.log(`Found image in properties.${field}.url: ${normalized.properties[field].url}`);
+        } else if (
+          normalized.properties[field]?.url &&
+          typeof normalized.properties[field].url === "string"
+        ) {
           normalized.image = normalized.properties[field].url;
           break;
         }
@@ -474,10 +455,11 @@ function normalizeMetadata(metadata: Record<string, any>): Record<string, any> {
     // Check for media arrays
     if (!normalized.image && Array.isArray(normalized.media)) {
       const mediaItem = normalized.media.find(
-        (item: any) => item && (item.type?.includes("image") || item.mimeType?.includes("image")),
+        (item: any) =>
+          item &&
+          (item.type?.includes("image") || item.mimeType?.includes("image")),
       );
       if (mediaItem?.uri || mediaItem?.url) {
-        console.log(`Found image in media array: ${mediaItem.uri || mediaItem.url}`);
         normalized.image = mediaItem.uri || mediaItem.url;
       }
     }

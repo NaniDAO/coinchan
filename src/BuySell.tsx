@@ -8,7 +8,13 @@ import {
   useChainId,
   usePublicClient,
 } from "wagmi";
-import { parseEther, parseUnits, formatEther, formatUnits, zeroAddress } from "viem";
+import {
+  parseEther,
+  parseUnits,
+  formatEther,
+  formatUnits,
+  zeroAddress,
+} from "viem";
 import { formatNumber } from "./lib/utils";
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
 import { ZAAMAbi, ZAAMAddress } from "./constants/ZAAM";
@@ -19,7 +25,10 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { mainnet } from "viem/chains";
 import { handleWalletError } from "./utils";
 import { useCoinData } from "./hooks/metadata";
-import { formatImageURL, getAlternativeImageUrls } from "./hooks/metadata/use-global-coins-data";
+import {
+  formatImageURL,
+  getAlternativeImageUrls,
+} from "./hooks/metadata/use-global-coins-data";
 
 // CheckTheChain contract ABI for fetching ETH price
 const CheckTheChainAbi = [
@@ -43,7 +52,8 @@ const SLIPPAGE_BPS = 100n; // 100 basis points = 1 %
 const DEADLINE_SEC = 20 * 60; // 20 minutes
 
 // apply slippage tolerance to an amount
-const withSlippage = (amount: bigint) => (amount * (10000n - SLIPPAGE_BPS)) / 10000n;
+const withSlippage = (amount: bigint) =>
+  (amount * (10000n - SLIPPAGE_BPS)) / 10000n;
 
 type PoolKey = {
   id0: bigint;
@@ -62,7 +72,12 @@ const computePoolKey = (coinId: bigint, customSwapFee: bigint): PoolKey => ({
 });
 
 // Unchanged getAmountOut from x*y invariants
-const getAmountOut = (amountIn: bigint, reserveIn: bigint, reserveOut: bigint, swapFee: bigint) => {
+const getAmountOut = (
+  amountIn: bigint,
+  reserveIn: bigint,
+  reserveOut: bigint,
+  swapFee: bigint,
+) => {
   const amountInWithFee = amountIn * (10000n - swapFee);
   const numerator = amountInWithFee * reserveOut;
   const denominator = reserveIn * 10000n + amountInWithFee;
@@ -97,7 +112,7 @@ export const BuySell = ({
 
   // Get display values with fallbacks
   const { name, symbol, description } = getDisplayValues();
-  
+
   // Fetch the lockup info to determine the custom swap fee and owner
   useEffect(() => {
     if (!publicClient || !tokenId) return; // Removed address dependency so this works even when not connected
@@ -106,8 +121,6 @@ export const BuySell = ({
 
     const fetchLockupInfo = async () => {
       try {
-        console.log(`BuySell: Fetching lockup info for token ${tokenId.toString()}`);
-
         const lockup = (await publicClient.readContract({
           address: CoinchanAddress,
           abi: CoinchanAbi,
@@ -118,21 +131,26 @@ export const BuySell = ({
         if (!isMounted) return;
 
         // Extract values based on the Lockup struct layout: [owner, creation, unlock, vesting, swapFee, claimed]
-        const [lockupOwner, , , , lockupSwapFee, ] = lockup;
-        
+        const [lockupOwner, , , , lockupSwapFee] = lockup;
+
         // Set the swap fee from lockup or use default if not available or zero
-        const customSwapFee = lockupSwapFee && lockupSwapFee > 0n ? lockupSwapFee : DEFAULT_SWAP_FEE;
-        console.log(`BuySell: Token ${tokenId.toString()} swap fee: ${customSwapFee.toString()}`);
+        const customSwapFee =
+          lockupSwapFee && lockupSwapFee > 0n
+            ? lockupSwapFee
+            : DEFAULT_SWAP_FEE;
         setSwapFee(customSwapFee);
-        
+
         // Check if the current address is the owner (only if address is connected)
         if (address) {
-          const isActualOwner = lockupOwner?.toLowerCase() === address.toLowerCase();
-          console.log(`BuySell: Token ${tokenId.toString()} owner check: ${isActualOwner}`);
+          const isActualOwner =
+            lockupOwner?.toLowerCase() === address.toLowerCase();
           setIsOwner(isActualOwner);
         }
       } catch (err) {
-        console.error(`BuySell: Failed to fetch lockup info for token ${tokenId.toString()}:`, err);
+        console.error(
+          `BuySell: Failed to fetch lockup info for token ${tokenId.toString()}:`,
+          err,
+        );
         // Use default swap fee if there's an error, but only if we haven't already set a custom fee
         if (isMounted) {
           setSwapFee(DEFAULT_SWAP_FEE);
@@ -194,12 +212,22 @@ export const BuySell = ({
     try {
       if (tab === "buy") {
         const inWei = parseEther(amount || "0");
-        const rawOut = getAmountOut(inWei, reserves.reserve0, reserves.reserve1, swapFee);
+        const rawOut = getAmountOut(
+          inWei,
+          reserves.reserve0,
+          reserves.reserve1,
+          swapFee,
+        );
         const minOut = withSlippage(rawOut);
         return formatUnits(minOut, 18);
       } else {
         const inUnits = parseUnits(amount || "0", 18);
-        const rawOut = getAmountOut(inUnits, reserves.reserve1, reserves.reserve0, swapFee);
+        const rawOut = getAmountOut(
+          inUnits,
+          reserves.reserve1,
+          reserves.reserve0,
+          swapFee,
+        );
         const minOut = withSlippage(rawOut);
         return formatEther(minOut);
       }
@@ -222,7 +250,12 @@ export const BuySell = ({
       }
 
       const amountInWei = parseEther(amount || "0");
-      const rawOut = getAmountOut(amountInWei, reserves.reserve0, reserves.reserve1, swapFee);
+      const rawOut = getAmountOut(
+        amountInWei,
+        reserves.reserve0,
+        reserves.reserve1,
+        swapFee,
+      );
       const amountOutMin = withSlippage(rawOut);
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
@@ -281,7 +314,12 @@ export const BuySell = ({
         }
       }
 
-      const rawOut = getAmountOut(amountInUnits, reserves.reserve1, reserves.reserve0, swapFee);
+      const rawOut = getAmountOut(
+        amountInUnits,
+        reserves.reserve1,
+        reserves.reserve0,
+        swapFee,
+      );
       const amountOutMin = withSlippage(rawOut);
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
@@ -356,7 +394,9 @@ export const BuySell = ({
 
     // Generate alternative URLs for fallback
     if (imageSourceForAlternatives) {
-      alternativeUrlsRef.current = getAlternativeImageUrls(imageSourceForAlternatives);
+      alternativeUrlsRef.current = getAlternativeImageUrls(
+        imageSourceForAlternatives,
+      );
     } else {
       alternativeUrlsRef.current = [];
     }
@@ -374,10 +414,11 @@ export const BuySell = ({
     // Try next alternative URL if available
     if (alternativeUrlsRef.current.length > 0) {
       // Find the first URL we haven't tried yet
-      const nextUrl = alternativeUrlsRef.current.find((url) => !attemptedUrlsRef.current.has(url));
+      const nextUrl = alternativeUrlsRef.current.find(
+        (url) => !attemptedUrlsRef.current.has(url),
+      );
 
       if (nextUrl) {
-        console.log(`Trying alternative URL: ${nextUrl}`);
         attemptedUrlsRef.current.add(nextUrl);
         setCurrentImageUrl(nextUrl);
         // Don't set error yet, we're trying an alternative
@@ -386,7 +427,6 @@ export const BuySell = ({
     }
 
     // If we've exhausted all alternatives, mark as error
-    console.log(`No more alternative URLs to try for coin ${tokenId.toString()}`);
     setImageError(true);
   }, [tokenId]);
 
@@ -396,7 +436,9 @@ export const BuySell = ({
         <div className="flex-shrink-0">
           <div className="w-16 h-16 relative">
             {/* Base colored circle (always visible) */}
-            <div className={`w-full h-full flex bg-red-500 text-white justify-center items-center rounded-full`}>
+            <div
+              className={`w-full h-full flex bg-red-500 text-white justify-center items-center rounded-full`}
+            >
               {displaySymbol?.slice(0, 3)}
             </div>
 
@@ -432,21 +474,33 @@ export const BuySell = ({
               <div className="flex items-center gap-1">
                 <span className="text-gray-600">Swap Fee:</span>
                 {/* More precise conversion from basis points to percentage */}
-                <span className="font-medium text-blue-600">{(Number(swapFee) / 100).toFixed(2)}%</span>
-                {isOwner && <span className="text-xs text-green-600">(You are the owner)</span>}
+                <span className="font-medium text-blue-600">
+                  {(Number(swapFee) / 100).toFixed(2)}%
+                </span>
+                {isOwner && (
+                  <span className="text-xs text-green-600">
+                    (You are the owner)
+                  </span>
+                )}
               </div>
-              
+
               {/* Market Cap section */}
               {marketCapEth !== null && (
                 <div className="flex items-center gap-1">
                   <span className="text-gray-600">Est. Market Cap:</span>
                   <span>{formatNumber(marketCapEth, 2)} ETH</span>
                   {marketCapUsd !== null ? (
-                    <span className="ml-1">(~${formatNumber(marketCapUsd, 0)})</span>
+                    <span className="ml-1">
+                      (~${formatNumber(marketCapUsd, 0)})
+                    </span>
                   ) : ethPriceData ? (
-                    <span className="ml-1 text-yellow-500">(USD price processing...)</span>
+                    <span className="ml-1 text-yellow-500">
+                      (USD price processing...)
+                    </span>
                   ) : (
-                    <span className="ml-1 text-yellow-500">(ETH price unavailable)</span>
+                    <span className="ml-1 text-yellow-500">
+                      (ETH price unavailable)
+                    </span>
                   )}
                 </div>
               )}
@@ -496,7 +550,11 @@ export const BuySell = ({
           <span className="text-sm">
             You will receive ~ {estimated} {displaySymbol}
           </span>
-          <Button onClick={onBuy} disabled={!isConnected || isPending || !amount} variant="default">
+          <Button
+            onClick={onBuy}
+            disabled={!isConnected || isPending || !amount}
+            variant="default"
+          >
             {isPending ? "Buying…" : `Buy ${displaySymbol}`}
           </Button>
         </div>
@@ -518,22 +576,34 @@ export const BuySell = ({
           <div className="flex flex-col gap-2">
             <span className="text-sm">You will receive ~ {estimated} ETH</span>
             {balance !== undefined ? (
-              <button className="self-end text-sm text-gray-600" onClick={() => setAmount(formatUnits(balance, 18))}>
+              <button
+                className="self-end text-sm text-gray-600"
+                onClick={() => setAmount(formatUnits(balance, 18))}
+              >
                 MAX ({formatUnits(balance, 18)})
               </button>
             ) : (
-              <button className="self-end text-sm text-gray-600" disabled={!balance}>
+              <button
+                className="self-end text-sm text-gray-600"
+                disabled={!balance}
+              >
                 MAX
               </button>
             )}
           </div>
-          <Button onClick={onSell} disabled={!isConnected || isPending || !amount} variant="outline">
+          <Button
+            onClick={onSell}
+            disabled={!isConnected || isPending || !amount}
+            variant="outline"
+          >
             {isPending ? "Selling…" : `Sell ${displaySymbol}`}
           </Button>
         </div>
       </TabsContent>
 
-      {errorMessage && <p className="text-destructive text-sm">{errorMessage}</p>}
+      {errorMessage && (
+        <p className="text-destructive text-sm">{errorMessage}</p>
+      )}
       {isSuccess && <p className="text-green-600 text-sm">Tx confirmed!</p>}
     </Tabs>
   );
