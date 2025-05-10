@@ -1053,18 +1053,19 @@ export const SwapTile = () => {
     if (isSuccess) refetchEthBalance(); // refresh ETH once tx confirms
   }, [isSuccess, refetchEthBalance]);
 
+  // Create ref outside the effect to maintain persistence between renders
+  const prevPairRef = useRef<string | null>(null);
+
   // Reset UI state when tokens change
   useEffect(() => {
     // Get the current pair of tokens (regardless of buy/sell order)
     const currentPair = [sellToken.id, buyToken?.id].sort().toString();
 
-    // Store the current pair in a ref to track changes
-    const prevPairRef = useRef<string>();
+    // Get previous pair from ref
     const prevPair = prevPairRef.current;
-    prevPairRef.current = currentPair;
 
     // Only reset price chart if the actual pair changes (not just flip)
-    if (prevPair && prevPair !== currentPair) {
+    if (prevPair !== null && prevPair !== currentPair) {
       setShowPriceChart(false);
     }
 
@@ -1072,6 +1073,9 @@ export const SwapTile = () => {
     if (mode === "liquidity") {
       setShowPriceChart(false);
     }
+
+    // Update the ref with current pair
+    prevPairRef.current = currentPair;
 
     // Reset transaction data
     setTxHash(undefined);
@@ -2463,8 +2467,8 @@ export const SwapTile = () => {
                 ? buyToken
                 : (sellToken && sellToken.id !== null ? sellToken : null);
 
-              // Only show chart button if we have a non-ETH token
-              if (!chartToken) return null;
+              // Only show chart button if we have a non-ETH token with a valid ID
+              if (!chartToken || chartToken.id === null) return null;
 
               return (
                 <>
