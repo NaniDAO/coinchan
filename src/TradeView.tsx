@@ -1,11 +1,7 @@
 import { BuySell } from "./BuySell";
 import { ClaimVested } from "./ClaimVested";
 import { useEffect, useState, Component, ReactNode } from "react";
-import {
-  useAccount,
-  usePublicClient,
-  useWaitForTransactionReceipt,
-} from "wagmi";
+import { useAccount, usePublicClient, useWaitForTransactionReceipt } from "wagmi";
 import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
 import { mainnet } from "viem/chains";
 import { useCoinData } from "./hooks/metadata";
@@ -14,10 +10,7 @@ import { computePoolId } from "./lib/swapHelper";
 import PoolPriceChart from "./PoolPriceChart";
 
 // Simple error boundary to prevent crashes
-class ErrorBoundary extends Component<
-  { children: ReactNode; fallback: ReactNode },
-  { hasError: boolean }
-> {
+class ErrorBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { hasError: boolean }> {
   constructor(props: { children: ReactNode; fallback: ReactNode }) {
     super(props);
     this.state = { hasError: false };
@@ -52,12 +45,9 @@ const BuySellFallback = ({
 }) => {
   return (
     <div className="p-4 border border-red-300 bg-red-50 rounded-md">
-      <h3 className="font-medium text-red-700">
-        Trading temporarily unavailable
-      </h3>
+      <h3 className="font-medium text-red-700">Trading temporarily unavailable</h3>
       <p className="text-sm text-red-600 mt-2">
-        We're experiencing issues loading the trading interface for {name} [
-        {symbol}]. Please try again later.
+        We're experiencing issues loading the trading interface for {name} [{symbol}]. Please try again later.
       </p>
       <div className="mt-4 bg-white p-3 rounded-md text-sm">
         <p className="font-medium">Token Details:</p>
@@ -90,7 +80,7 @@ export const TradeView = ({
   // Safely check ownership with error handling
   useEffect(() => {
     if (!publicClient || !tokenId || !address) {
-      console.error("TradeView: Missing prerequisites for ownership check");
+      console.log("TradeView: Missing prerequisites for ownership check");
       return;
     }
 
@@ -98,6 +88,8 @@ export const TradeView = ({
 
     const checkOwnership = async () => {
       try {
+        console.log(`TradeView: Checking ownership for token ${tokenId.toString()}`);
+
         const lockup = (await publicClient.readContract({
           address: CoinchanAddress,
           abi: CoinchanAbi,
@@ -108,14 +100,11 @@ export const TradeView = ({
         if (!isMounted) return;
 
         const [lockupOwner] = lockup;
-        const isActualOwner =
-          lockupOwner?.toLowerCase() === address.toLowerCase();
+        const isActualOwner = lockupOwner?.toLowerCase() === address.toLowerCase();
+        console.log(`TradeView: Token ${tokenId.toString()} owner check: ${isActualOwner}`);
         setIsOwner(isActualOwner);
       } catch (err) {
-        console.error(
-          `TradeView: Failed to fetch lockup owner for token ${tokenId.toString()}:`,
-          err,
-        );
+        console.error(`TradeView: Failed to fetch lockup owner for token ${tokenId.toString()}:`, err);
         if (isMounted) setIsOwner(false);
       }
     };
@@ -130,10 +119,7 @@ export const TradeView = ({
 
   return (
     <div className="w-full max-w-lg mx-auto flex flex-col gap-4 px-2 py-4 sm:p-6">
-      <button
-        onClick={onBack}
-        className="text-sm self-start underline py-2 px-1 touch-manipulation"
-      >
+      <button onClick={onBack} className="text-sm self-start underline py-2 px-1 touch-manipulation">
         ⬅︎ Back to Explorer
       </button>
 
@@ -146,22 +132,14 @@ export const TradeView = ({
       </div>
 
       {/* Wrap BuySell component in an ErrorBoundary to prevent crashes */}
-      <ErrorBoundary
-        fallback={
-          <BuySellFallback tokenId={tokenId} name={name} symbol={symbol} />
-        }
-      >
+      <ErrorBoundary fallback={<BuySellFallback tokenId={tokenId} name={name} symbol={symbol} />}>
         <BuySell tokenId={tokenId} name={name} symbol={symbol} />
       </ErrorBoundary>
 
       {/* Only show ClaimVested if the user is the owner */}
       {isOwner && (
         <div className="mt-4 sm:mt-6">
-          <ErrorBoundary
-            fallback={
-              <p className="text-red-500">Vesting claim feature unavailable</p>
-            }
-          >
+          <ErrorBoundary fallback={<p className="text-red-500">Vesting claim feature unavailable</p>}>
             <ClaimVested coinId={tokenId} />
           </ErrorBoundary>
         </div>
@@ -177,13 +155,8 @@ export const TradeView = ({
         </ErrorBoundary>
       </div> */}
       <div className="mt-4 sm:mt-6">
-        <ErrorBoundary
-          fallback={<p className="text-red-500">Pool chart unavailable</p>}
-        >
-          <PoolPriceChart
-            poolId={computePoolId(tokenId).toString()}
-            ticker={symbol}
-          />
+        <ErrorBoundary fallback={<p className="text-red-500">Pool chart unavailable</p>}>
+          <PoolPriceChart poolId={computePoolId(tokenId).toString()} ticker={symbol} />
         </ErrorBoundary>
       </div>
     </div>

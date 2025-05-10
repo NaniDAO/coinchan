@@ -20,13 +20,8 @@ interface CandleChartProps {
   interval?: "1m" | "1h" | "1d";
 }
 
-const PoolCandleChart: React.FC<CandleChartProps> = ({
-  poolId,
-  interval = "1h",
-}) => {
-  const [selectedInterval, setSelectedInterval] = useState<"1m" | "1h" | "1d">(
-    interval,
-  );
+const PoolCandleChart: React.FC<CandleChartProps> = ({ poolId, interval = "1h" }) => {
+  const [selectedInterval, setSelectedInterval] = useState<"1m" | "1h" | "1d">(interval);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["poolCandles", poolId, selectedInterval],
@@ -45,9 +40,7 @@ const PoolCandleChart: React.FC<CandleChartProps> = ({
         <button
           onClick={() => handleIntervalChange("1m")}
           className={`px-3 py-1 rounded ${
-            selectedInterval === "1m"
-              ? "bg-blue-500 text-white"
-              : "bg-gray-200 text-gray-700"
+            selectedInterval === "1m" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"
           }`}
         >
           1m
@@ -55,9 +48,7 @@ const PoolCandleChart: React.FC<CandleChartProps> = ({
         <button
           onClick={() => handleIntervalChange("1h")}
           className={`px-3 py-1 rounded ${
-            selectedInterval === "1h"
-              ? "bg-blue-500 text-white"
-              : "bg-gray-200 text-gray-700"
+            selectedInterval === "1h" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"
           }`}
         >
           1h
@@ -65,9 +56,7 @@ const PoolCandleChart: React.FC<CandleChartProps> = ({
         <button
           onClick={() => handleIntervalChange("1d")}
           className={`px-3 py-1 rounded ${
-            selectedInterval === "1d"
-              ? "bg-blue-500 text-white"
-              : "bg-gray-200 text-gray-700"
+            selectedInterval === "1d" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"
           }`}
         >
           1d
@@ -81,9 +70,7 @@ const PoolCandleChart: React.FC<CandleChartProps> = ({
       ) : data && data.length > 0 ? (
         <TVCandlestick rawData={data} />
       ) : (
-        <div className="text-center py-20 text-gray-500">
-          No candle data available.
-        </div>
+        <div className="text-center py-20 text-gray-500">No candle data available.</div>
       )}
     </div>
   );
@@ -149,9 +136,7 @@ const TVCandlestick: React.FC<TVChartProps> = ({ rawData }) => {
     if (!seriesRef.current) return;
 
     // your existing cleaning steps:
-    let filtered = rawData.filter(
-      (d) => !(d.open === d.high && d.high === d.low && d.low === d.close),
-    );
+    let filtered = rawData.filter((d) => !(d.open === d.high && d.high === d.low && d.low === d.close));
     // spike‐filtering at 99th percentile (optional)
     const highs = filtered.map((d) => d.high).sort((a, b) => a - b);
     const cutoff = highs[Math.floor(highs.length * 0.99)] ?? Infinity;
@@ -170,12 +155,7 @@ const TVCandlestick: React.FC<TVChartProps> = ({ rawData }) => {
     chartRef.current?.timeScale().fitContent();
   }, [rawData]);
 
-  return (
-    <div
-      ref={containerRef}
-      style={{ width: "100%", height: "400px", position: "relative" }}
-    />
-  );
+  return <div ref={containerRef} style={{ width: "100%", height: "400px", position: "relative" }} />;
 };
 
 export default PoolCandleChart;

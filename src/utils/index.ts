@@ -50,13 +50,10 @@ export const nowSec = () => BigInt(Math.floor(Date.now() / 1000));
  * @param wait The number of milliseconds to delay
  * @returns A debounced function
  */
-export function debounce<T extends (...args: any[]) => any>(
-  func: T,
-  wait = 300
-): (...args: Parameters<T>) => void {
+export function debounce<T extends (...args: any[]) => any>(func: T, wait = 300): (...args: Parameters<T>) => void {
   let timeout: ReturnType<typeof setTimeout> | null = null;
 
-  return function(this: any, ...args: Parameters<T>): void {
+  return function (this: any, ...args: Parameters<T>): void {
     const context = this;
 
     if (timeout !== null) {

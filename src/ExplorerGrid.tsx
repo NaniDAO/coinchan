@@ -63,22 +63,49 @@ export const ExplorerGrid = ({
 
   // Combined loading state including transitions
   const isPending = isLoading || isTransitioning;
+  // Debug: Log coin data for troubleshooting
+  useEffect(() => {
+    console.log(`ExplorerGrid rendering with ${coins.length} coins, page ${currentPage}/${totalPages}`);
+
+    // Check if we have metadata and images
+    const coinsWithMetadata = coins.filter((coin) => coin.metadata !== null).length;
+    const coinsWithImages = coins.filter((coin) => coin.imageUrl !== null).length;
+    console.log(
+      `ExplorerGrid - Coins with metadata: ${coinsWithMetadata}/${coins.length}, Coins with images: ${coinsWithImages}/${coins.length}`,
+    );
+
+    // Log detailed data about the first few coins
+    if (coins.length > 0) {
+      const sampleSize = Math.min(3, coins.length);
+      for (let i = 0; i < sampleSize; i++) {
+        const coin = coins[i];
+        console.log(`Coin ${i + 1} (ID: ${coin.coinId.toString()})`, {
+          name: coin.name,
+          symbol: coin.symbol,
+          tokenURI: coin.tokenURI,
+          hasMetadata: coin.metadata !== null,
+          metadata: coin.metadata
+            ? {
+                name: coin.metadata.name,
+                symbol: coin.metadata.symbol,
+                image: coin.metadata.image,
+              }
+            : null,
+          imageUrl: coin.imageUrl,
+        });
+      }
+    }
+  }, [coins, currentPage, totalPages]);
 
   return (
     <div className="w-full px-2 sm:px-4">
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center">
           <h2 className="text-lg sm:text-xl font-semibold text-center sm:text-left">
-            {total === 0
-              ? "NO COINS DEPLOYED"
-              : total === 1
-                ? "1 COIN DEPLOYED"
-                : `${total} COINS DEPLOYED`}
+            {total === 0 ? "NO COINS DEPLOYED" : total === 1 ? "1 COIN DEPLOYED" : `${total} COINS DEPLOYED`}
           </h2>
 
-          {searchResults && (
-            <div className="ml-4 text-sm text-gray-500">{searchResults}</div>
-          )}
+          {searchResults && <div className="ml-4 text-sm text-gray-500">{searchResults}</div>}
         </div>
 
         <div className="flex items-center">
@@ -105,10 +132,7 @@ export const ExplorerGrid = ({
         className={`grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 sm:gap-3 min-h-[300px] ${isTransitioning ? "transition-opacity duration-300 opacity-50" : ""}`}
       >
         {coins.map((coin) => (
-          <div
-            key={coin.coinId.toString()}
-            className={isPending ? "opacity-60 pointer-events-none" : ""}
-          >
+          <div key={coin.coinId.toString()} className={isPending ? "opacity-60 pointer-events-none" : ""}>
             <CoinCard coin={coin} onTrade={onTrade} />
           </div>
         ))}
@@ -147,13 +171,7 @@ export const ExplorerGrid = ({
               <span className="w-3 h-3 rounded-full border-2 border-red-500 border-t-transparent animate-spin mr-1"></span>
             </span>
           ) : null}
-          <span
-            className={
-              isTransitioning && direction === "prev" ? "opacity-0" : ""
-            }
-          >
-            Previous
-          </span>
+          <span className={isTransitioning && direction === "prev" ? "opacity-0" : ""}>Previous</span>
         </button>
 
         {/* Page info from parent */}
@@ -177,13 +195,7 @@ export const ExplorerGrid = ({
               <span className="w-3 h-3 rounded-full border-2 border-red-500 border-t-transparent animate-spin mr-1"></span>
             </span>
           ) : null}
-          <span
-            className={
-              isTransitioning && direction === "next" ? "opacity-0" : ""
-            }
-          >
-            Next
-          </span>
+          <span className={isTransitioning && direction === "next" ? "opacity-0" : ""}>Next</span>
         </button>
       </div>
     </div>

@@ -38,9 +38,7 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker }) => {
       ) : data && data.length > 0 ? (
         <TVPriceChart priceData={data} ticker={ticker} />
       ) : (
-        <div className="text-center py-20 text-gray-500">
-          No price data available.
-        </div>
+        <div className="text-center py-20 text-gray-500">No price data available.</div>
       )}
     </div>
   );
@@ -110,12 +108,7 @@ const TVPriceChart: React.FC<{
     chartRef.current.timeScale().fitContent();
   }, [priceData]);
 
-  return (
-    <div
-      ref={containerRef}
-      style={{ width: "100%", height: "400px", position: "relative" }}
-    />
-  );
+  return <div ref={containerRef} style={{ width: "100%", height: "400px", position: "relative" }} />;
 };
 
 export default PoolPriceChart;
