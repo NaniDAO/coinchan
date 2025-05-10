@@ -3,7 +3,7 @@
  * Used by the UnifiedChartComponent
  */
 
-import { CandleData, PricePointData } from "./indexer";
+import { CandleData } from "./indexer";
 
 export interface IndicatorData {
   time: number;

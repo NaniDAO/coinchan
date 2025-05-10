@@ -34,7 +34,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, ArrowDownUp, Plus, Minus } from "lucide-react";
 import { estimateContractGas, simulateContractInteraction } from "./lib/simulate";
-import UnifiedChartComponent from "./UnifiedChartComponent";
+import MinimalChart from "./MinimalChart";
 
 /* ────────────────────────────────────────────────────────────────────────────
   CONSTANTS & HELPERS
@@ -2899,7 +2899,7 @@ export const SwapTile = () => {
                     <div
                       className={`transition-all duration-300 ${showPriceChart ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"}`}
                     >
-                      <UnifiedChartComponent poolId={computePoolId(chartToken.id).toString()} symbol={chartToken.symbol} />
+                      <MinimalChart poolId={computePoolId(chartToken.id).toString()} symbol={chartToken.symbol} />
                     </div>
                   )}
                 </>

@@ -199,7 +199,7 @@ export async function fetchPoolStatistics(poolId: string): Promise<MarketStatist
 
   // Calculate liquidity from reserves
   const reserve0 = data.pool?.reserve0 ? fp18ToFloat(data.pool.reserve0) : 0;
-  const reserve1 = data.pool?.reserve1 ? fp18ToFloat(data.pool.reserve1) : 0;
+  // reserve1 is kept for potential future use
 
   return {
     poolId,
