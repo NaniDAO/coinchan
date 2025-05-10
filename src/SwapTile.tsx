@@ -387,13 +387,11 @@ const useAllTokens = () => {
           })
           .slice(0, 10);
         
-        sortedForDebug.forEach((coin, idx) => {
+        sortedForDebug.forEach((coin) => {
           // Add null check for TypeScript even though we filtered already
           if (coin.id === null) return; // This should never happen due to our filter
           
-          const ethReserves = coin.reserve0 ? formatEther(coin.reserve0) : "0";
-          const liquidityInEth = coin.liquidity ? formatEther(coin.liquidity) : "0";
-          const feePercentage = coin.swapFee ? Number(coin.swapFee) / 100 : 1;
+          // Skip detailed coin logging
           // Skip detailed coin logging
         });
         
@@ -404,9 +402,7 @@ const useAllTokens = () => {
           // Find the coin and ensure it has a non-null ID
           const found = nonEthValidTokens.find(t => t.id === coinId);
           if (found && found.id !== null) { // Additional check for TypeScript
-            const ethReserves = found.reserve0 ? formatEther(found.reserve0) : "0";
-            const liquidityInEth = found.liquidity ? formatEther(found.liquidity) : "0";
-            const feePercentage = found.swapFee ? Number(found.swapFee) / 100 : 1;
+            // Skip detailed logging
             // Found specific coin
           } else {
             // Coin not found in dataset
@@ -910,7 +906,7 @@ const TokenSelector = React.memo(({
             containIntrinsicSize: "0 5000px",
             contain: 'content'
           }}>
-            {tokens.map((token, index) => {
+            {tokens.map((token) => {
               const isSelected =
                 (token.id === null && selectedValue === "eth") ||
                 (token.id !== null && token.id.toString() === selectedValue);
@@ -1362,22 +1358,9 @@ export const SwapTile = () => {
           const validResults = results.filter(r => r !== null);
 
           if (validResults.length > 0) {
-            // Update token balances in the state
-            setTokens(prevTokens => {
-              // Create a map for quick lookup
-              const balanceMap = new Map(validResults.map(r => [r.id.toString(), r.balance]));
-
-              // Update tokens with new balances
-              return prevTokens.map(token => {
-                if (token.id !== null && balanceMap.has(token.id.toString())) {
-                  return {
-                    ...token,
-                    balance: balanceMap.get(token.id.toString())
-                  };
-                }
-                return token;
-              });
-            });
+            // We don't have direct access to setTokens from the hook anymore,
+            // so we need to get updated tokens through the hook's refetch mechanism
+            refetchEthBalance();
           }
         } catch (error) {
           // Failed to refresh token balances
@@ -2104,14 +2087,7 @@ export const SwapTile = () => {
 
       if (!canSwap || !reserves || !sellAmt || !publicClient || !buyToken) {
         // Cannot execute swap - missing prerequisites
-        const prereqInfo = {
-          canSwap: canSwap,
-          hasReserves: !!reserves,
-          hasAddress: !!address,
-          hasSellAmt: !!sellAmt,
-          hasPublicClient: !!publicClient,
-          hasBuyToken: !!buyToken
-        };
+        // Check swap prerequisites
         setTxError("Cannot execute swap. Please ensure you have selected a token pair and entered an amount.");
         return;
       }
@@ -2146,7 +2122,7 @@ export const SwapTile = () => {
         }
 
         // simulate multicall
-        const result = await simulateContractInteraction({
+        await simulateContractInteraction({
           address: ZAAMAddress,
           abi: ZAAMAbi,
           functionName: "swapExactIn",
@@ -2269,7 +2245,7 @@ export const SwapTile = () => {
 
             // Log the calls we're making for debugging
             // simulate multicall
-            const result = await simulateContractInteraction({
+            await simulateContractInteraction({
               address: ZAAMAddress,
               abi: ZAAMAbi,
               functionName: "multicall",
@@ -2284,10 +2260,7 @@ export const SwapTile = () => {
             });
 
             // Simulation complete
-            const simResults = {
-              result: result,
-              gas: gas
-            };
+            // Simulation complete
 
             // Execute the multicall transaction
             const hash = await writeContractAsync({

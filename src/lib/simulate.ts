@@ -25,12 +25,12 @@ export async function simulateContractInteraction({
 }): Promise<any> {
   try {
     // Check if wallet is properly connected and initialized
-    if (!config || !config.state || !config.state.connections || config.state.connections.length === 0) {
+    if (!config || !config.state || !config.state.connections || config.state.connections.size === 0) {
       // Wait briefly to allow wallet connection to initialize
       await new Promise(resolve => setTimeout(resolve, 100));
 
       // If still not connected, throw a more informative error
-      if (!config || !config.state || !config.state.connections || config.state.connections.length === 0) {
+      if (!config || !config.state || !config.state.connections || config.state.connections.size === 0) {
         throw new Error("Wallet connection not initialized. Please refresh and try again.");
       }
     }
@@ -78,12 +78,12 @@ export async function estimateContractGas({
 }): Promise<bigint> {
   try {
     // Check if wallet is properly connected and initialized
-    if (!config || !config.state || !config.state.connections || config.state.connections.length === 0) {
+    if (!config || !config.state || !config.state.connections || config.state.connections.size === 0) {
       // Wait briefly to allow wallet connection to initialize
       await new Promise(resolve => setTimeout(resolve, 100));
 
       // If still not connected, throw a more informative error
-      if (!config || !config.state || !config.state.connections || config.state.connections.length === 0) {
+      if (!config || !config.state || !config.state.connections || config.state.connections.size === 0) {
         throw new Error("Wallet connection not initialized. Please refresh and try again.");
       }
     }
@@ -106,7 +106,7 @@ export async function estimateContractGas({
     }
 
     // Fallback to a safe gas estimate if estimation fails but the basic connection is working
-    if (config && config.state && config.state.connections && config.state.connections.length > 0) {
+    if (config && config.state && config.state.connections && config.state.connections.size > 0) {
       // Return a conservative gas estimate (500,000 gas units) - this is high but better than failing
       return 500000n;
     }
