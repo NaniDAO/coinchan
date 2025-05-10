@@ -27,7 +27,7 @@ export async function simulateContractInteraction({
     // Check if wallet is properly connected and initialized
     if (!config || !config.state || !config.state.connections || config.state.connections.size === 0) {
       // Wait briefly to allow wallet connection to initialize
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // If still not connected, throw a more informative error
       if (!config || !config.state || !config.state.connections || config.state.connections.size === 0) {
@@ -48,7 +48,7 @@ export async function simulateContractInteraction({
     });
   } catch (error) {
     // If the error is about getChainId, it's likely a wallet connection issue
-    if (error instanceof Error && error.message.includes('getChainId')) {
+    if (error instanceof Error && error.message.includes("getChainId")) {
       throw new Error("Wallet connection not ready. Please refresh the page and try again.");
     }
     throw error;
@@ -80,7 +80,7 @@ export async function estimateContractGas({
     // Check if wallet is properly connected and initialized
     if (!config || !config.state || !config.state.connections || config.state.connections.size === 0) {
       // Wait briefly to allow wallet connection to initialize
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // If still not connected, throw a more informative error
       if (!config || !config.state || !config.state.connections || config.state.connections.size === 0) {
@@ -101,7 +101,7 @@ export async function estimateContractGas({
     });
   } catch (error) {
     // If the error is about getChainId, it's likely a wallet connection issue
-    if (error instanceof Error && error.message.includes('getChainId')) {
+    if (error instanceof Error && error.message.includes("getChainId")) {
       throw new Error("Wallet connection not ready. Please refresh the page and try again.");
     }
 

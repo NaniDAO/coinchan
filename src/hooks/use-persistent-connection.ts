@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { useAccount } from 'wagmi';
+import { useEffect } from "react";
+import { useAccount } from "wagmi";
 
 /**
  * Enhanced hook to save wallet address for UI state persistence
@@ -13,18 +13,17 @@ export function usePersistentConnection() {
   // More robust connection persistence logic
   useEffect(() => {
     // When connected and we have an address, store it reliably
-    if (status === 'connected' && address && isConnected) {
-      sessionStorage.setItem('lastConnectedAddress', address);
+    if (status === "connected" && address && isConnected) {
+      sessionStorage.setItem("lastConnectedAddress", address);
       // Clear any connection attempt tracking since we're now connected
-      sessionStorage.removeItem('connectionAttemptType');
+      sessionStorage.removeItem("connectionAttemptType");
     }
 
     // When disconnected, clear connection attempt type
-    if (status === 'disconnected') {
-      sessionStorage.removeItem('connectionAttemptType');
+    if (status === "disconnected") {
+      sessionStorage.removeItem("connectionAttemptType");
       // We don't remove lastConnectedAddress here to allow reconnection UX
     }
-
   }, [address, status, isConnected]);
 
   // Use a cleanup function to handle the case when the app is closed/refreshed
@@ -33,9 +32,9 @@ export function usePersistentConnection() {
       // This runs when component unmounts (app closing or page refresh)
       // We preserve address but clear connection attempt type
       if (address) {
-        sessionStorage.setItem('lastConnectedAddress', address);
+        sessionStorage.setItem("lastConnectedAddress", address);
       }
-      sessionStorage.removeItem('connectionAttemptType');
+      sessionStorage.removeItem("connectionAttemptType");
     };
   }, [address]);
 

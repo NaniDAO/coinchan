@@ -19,7 +19,7 @@ const queryClient = new QueryClient({
       // Retry less aggressively
       retry: 1,
       // Set a reasonable timeout
-      networkMode: 'online',
+      networkMode: "online",
     },
   },
 });

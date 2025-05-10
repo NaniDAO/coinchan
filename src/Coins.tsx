@@ -20,17 +20,8 @@ export const Coins = () => {
   /* ------------------------------------------------------------------
    *  Paged & global coin data
    * ------------------------------------------------------------------ */
-  const {
-    coins,
-    total,
-    page,
-    totalPages,
-    hasNextPage,
-    hasPreviousPage,
-    goToNextPage,
-    goToPreviousPage,
-    isLoading,
-  } = usePagedCoins(PAGE_SIZE);
+  const { coins, total, page, totalPages, hasNextPage, hasPreviousPage, goToNextPage, goToPreviousPage, isLoading } =
+    usePagedCoins(PAGE_SIZE);
 
   const { allCoins, isLoading: isGlobalLoading } = useGlobalCoinsData();
 
@@ -82,23 +73,15 @@ export const Coins = () => {
   /* ------------------------------------------------------------------
    *  Debounced pagination handlers to prevent rapid clicks
    * ------------------------------------------------------------------ */
-  const debouncedNextPage = useMemo(
-    () => debounce(goToNextPage, 350),
-    [goToNextPage]
-  );
+  const debouncedNextPage = useMemo(() => debounce(goToNextPage, 350), [goToNextPage]);
 
-  const debouncedPrevPage = useMemo(
-    () => debounce(goToPreviousPage, 350),
-    [goToPreviousPage]
-  );
+  const debouncedPrevPage = useMemo(() => debounce(goToPreviousPage, 350), [goToPreviousPage]);
 
   /* ------------------------------------------------------------------
    *  Trade view (moved out of conditional return)
    * ------------------------------------------------------------------ */
   // Keeping hook execution consistent in React components.
-  const tradeView = selectedTokenId !== null ? (
-    <TradeView tokenId={selectedTokenId} onBack={closeTrade} />
-  ) : null;
+  const tradeView = selectedTokenId !== null ? <TradeView tokenId={selectedTokenId} onBack={closeTrade} /> : null;
 
   /* ------------------------------------------------------------------
    *  Data for ExplorerGrid
@@ -108,13 +91,9 @@ export const Coins = () => {
   /* ------------------------------------------------------------------
    *  Debug logging
    * ------------------------------------------------------------------ */
-  console.log(
-    `Coins component: ${coins.length} coins • page ${page + 1}/${totalPages}`,
-  );
+  console.log(`Coins component: ${coins.length} coins • page ${page + 1}/${totalPages}`);
   if (isSearchActive) {
-    console.log(
-      `Search mode: ${searchResults.length} results for “${searchQuery}”`,
-    );
+    console.log(`Search mode: ${searchResults.length} results for “${searchQuery}”`);
   }
 
   /* ------------------------------------------------------------------
@@ -169,7 +148,9 @@ export const Coins = () => {
               </svg>
             </div>
           }
-          searchResults={isSearchActive ? `Showing ${searchResults.length} result${searchResults.length !== 1 ? "s" : ""}` : ""}
+          searchResults={
+            isSearchActive ? `Showing ${searchResults.length} result${searchResults.length !== 1 ? "s" : ""}` : ""
+          }
         />
       </>
     )

@@ -97,7 +97,7 @@ export const BuySell = ({
 
   // Get display values with fallbacks
   const { name, symbol, description } = getDisplayValues();
-  
+
   // Fetch the lockup info to determine the custom swap fee and owner
   useEffect(() => {
     if (!publicClient || !tokenId) return; // Removed address dependency so this works even when not connected
@@ -118,13 +118,13 @@ export const BuySell = ({
         if (!isMounted) return;
 
         // Extract values based on the Lockup struct layout: [owner, creation, unlock, vesting, swapFee, claimed]
-        const [lockupOwner, , , , lockupSwapFee, ] = lockup;
-        
+        const [lockupOwner, , , , lockupSwapFee] = lockup;
+
         // Set the swap fee from lockup or use default if not available or zero
         const customSwapFee = lockupSwapFee && lockupSwapFee > 0n ? lockupSwapFee : DEFAULT_SWAP_FEE;
         console.log(`BuySell: Token ${tokenId.toString()} swap fee: ${customSwapFee.toString()}`);
         setSwapFee(customSwapFee);
-        
+
         // Check if the current address is the owner (only if address is connected)
         if (address) {
           const isActualOwner = lockupOwner?.toLowerCase() === address.toLowerCase();
@@ -435,7 +435,7 @@ export const BuySell = ({
                 <span className="font-medium text-blue-600">{(Number(swapFee) / 100).toFixed(2)}%</span>
                 {isOwner && <span className="text-xs text-green-600">(You are the owner)</span>}
               </div>
-              
+
               {/* Market Cap section */}
               {marketCapEth !== null && (
                 <div className="flex items-center gap-1">

@@ -13,7 +13,7 @@ function App() {
   const [view, setView] = useState<"menu" | "form" | "memepaper" | "swap">("swap");
   const [tapCount, setTapCount] = useState(0);
   const [lastTap, setLastTap] = useState(0);
-  
+
   // Use our lightweight persistence hook to maintain UI state across sessions
   usePersistentConnection();
 

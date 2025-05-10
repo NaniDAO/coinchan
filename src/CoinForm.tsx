@@ -156,7 +156,7 @@ export function CoinForm({
   const TOTAL_SUPPLY = 21000000;
   const [poolSupply, setPoolSupply] = useState(TOTAL_SUPPLY);
   const [swapFee, setSwapFee] = useState(100); // Default 1% fee (represented as basis points)
-  const [customFeeInput, setCustomFeeInput] = useState('');
+  const [customFeeInput, setCustomFeeInput] = useState("");
   const [showFeeSelector, setShowFeeSelector] = useState(false);
   const vestingDuration = 15778476;
   const vesting = true;
@@ -177,35 +177,35 @@ export function CoinForm({
   // Calculate estimated market cap
   // Convert fee basis points to percentage string
   const feeToPercentage = (basisPoints: number): string => {
-    return (basisPoints / 100).toFixed(2) + '%';
+    return (basisPoints / 100).toFixed(2) + "%";
   };
-  
+
   // Convert percentage to basis points
   const percentageToBasisPoints = (percentage: number): number => {
     return Math.round(percentage * 100);
   };
-  
+
   // Format percentage input to have max 2 decimal places and be within valid range
   const formatPercentageInput = (value: string): string => {
     // Handle empty or invalid input
-    if (!value || isNaN(parseFloat(value))) return '';
-    
+    if (!value || isNaN(parseFloat(value))) return "";
+
     // Parse the value
     let numValue = parseFloat(value);
-    
+
     // Cap the value at 99.99
     numValue = Math.min(numValue, 99.99);
-    
+
     // If input contains more than 2 decimal places, truncate to 2
-    if (value.includes('.') && value.split('.')[1].length > 2) {
+    if (value.includes(".") && value.split(".")[1].length > 2) {
       return numValue.toFixed(2);
     }
-    
+
     // If we've capped the value, use the fixed format
     if (numValue !== parseFloat(value)) {
       return numValue.toFixed(2);
     }
-    
+
     return value;
   };
 
@@ -541,7 +541,7 @@ export function CoinForm({
                                 }`}
                                 onClick={() => {
                                   setSwapFee(fee);
-                                  setCustomFeeInput('');
+                                  setCustomFeeInput("");
                                   setShowFeeSelector(false);
                                 }}
                               >
@@ -549,11 +549,9 @@ export function CoinForm({
                               </button>
                             ))}
                           </div>
-                          
+
                           <div className="mt-3">
-                            <label className="text-xs font-medium text-gray-600 mb-1 block">
-                              Custom Fee (%)
-                            </label>
+                            <label className="text-xs font-medium text-gray-600 mb-1 block">Custom Fee (%)</label>
                             <div className="flex items-center gap-2">
                               <Input
                                 type="text"
@@ -564,12 +562,12 @@ export function CoinForm({
                                 onChange={(e) => {
                                   // Only allow numbers and up to one decimal point
                                   const value = e.target.value;
-                                  
+
                                   // Validate format (numbers with up to 2 decimal places and max 2 digits before decimal)
-                                  if (value === '' || /^[0-9]{1,2}(\.?[0-9]{0,2})?$/.test(value)) {
+                                  if (value === "" || /^[0-9]{1,2}(\.?[0-9]{0,2})?$/.test(value)) {
                                     // Check if the value exceeds the maximum allowed (99.99)
                                     const numValue = parseFloat(value);
-                                    if (value === '' || isNaN(numValue) || numValue <= 99.99) {
+                                    if (value === "" || isNaN(numValue) || numValue <= 99.99) {
                                       setCustomFeeInput(value);
                                     }
                                   }
@@ -579,33 +577,41 @@ export function CoinForm({
                                   setCustomFeeInput(formatPercentageInput(customFeeInput));
                                 }}
                               />
-                              <Button 
-                                type="button" 
+                              <Button
+                                type="button"
                                 size="sm"
                                 variant="outline"
                                 className="h-8"
                                 onClick={() => {
                                   const customFeePercent = parseFloat(customFeeInput);
-                                  if (!isNaN(customFeePercent) && customFeePercent >= 0.01 && customFeePercent <= 99.99) {
+                                  if (
+                                    !isNaN(customFeePercent) &&
+                                    customFeePercent >= 0.01 &&
+                                    customFeePercent <= 99.99
+                                  ) {
                                     // Convert percentage to basis points for internal use
                                     const basisPoints = percentageToBasisPoints(customFeePercent);
                                     setSwapFee(basisPoints);
                                     setShowFeeSelector(false);
                                   }
                                 }}
-                                disabled={!customFeeInput || 
-                                  isNaN(parseFloat(customFeeInput)) || 
-                                  parseFloat(customFeeInput) < 0.01 || 
+                                disabled={
+                                  !customFeeInput ||
+                                  isNaN(parseFloat(customFeeInput)) ||
+                                  parseFloat(customFeeInput) < 0.01 ||
                                   parseFloat(customFeeInput) > 99.99 ||
-                                  !/^[0-9]{1,2}(\.?[0-9]{0,2})?$/.test(customFeeInput)}
+                                  !/^[0-9]{1,2}(\.?[0-9]{0,2})?$/.test(customFeeInput)
+                                }
                               >
                                 Set
                               </Button>
                             </div>
                             <p className="text-xs text-gray-500 mt-1">
-                              {customFeeInput && !isNaN(parseFloat(customFeeInput)) && /^[0-9]{1,2}(\.?[0-9]{0,2})?$/.test(customFeeInput) ? 
-                                `${customFeeInput}% = ${percentageToBasisPoints(parseFloat(customFeeInput))} basis points` :
-                                'Enter a value between 0.01% and 99.99% (max 2 decimal places)'}
+                              {customFeeInput &&
+                              !isNaN(parseFloat(customFeeInput)) &&
+                              /^[0-9]{1,2}(\.?[0-9]{0,2})?$/.test(customFeeInput)
+                                ? `${customFeeInput}% = ${percentageToBasisPoints(parseFloat(customFeeInput))} basis points`
+                                : "Enter a value between 0.01% and 99.99% (max 2 decimal places)"}
                             </p>
                           </div>
                         </div>

@@ -206,7 +206,7 @@ const useAllTokens = () => {
             abi: CoinsMetadataHelperAbi,
             functionName: "getAllCoinsData",
           });
-          
+
           // Check if we're getting all coins
           if (Array.isArray(allCoinsData) && allCoinsData.length < totalCoinCount) {
             // Fewer coins than expected, using batch fetching
@@ -216,28 +216,28 @@ const useAllTokens = () => {
           // Error fetching all coins data
           allCoinsData = null; // Force fallback
         }
-        
+
         // Fallback: If getAllCoinsData doesn't return all coins or fails,
         // fetch in batches using the getCoinDataBatch method
         if (!allCoinsData) {
           // Use batch fetching as fallback
           const batchSize = 50; // Adjust based on network performance
           const batches = [];
-          
+
           for (let i = 0; i < totalCoinCount; i += batchSize) {
             const end = Math.min(i + batchSize, totalCoinCount);
             // Fetch batch
-            
+
             batches.push(
               publicClient.readContract({
                 address: CoinsMetadataHelperAddress,
                 abi: CoinsMetadataHelperAbi,
                 functionName: "getCoinDataBatch",
                 args: [BigInt(i), BigInt(end)],
-              })
+              }),
             );
           }
-          
+
           const batchResults = await Promise.all(batches);
           // Combine all batches
           allCoinsData = batchResults.flat();
@@ -253,7 +253,7 @@ const useAllTokens = () => {
         }
 
         // Successfully received coins
-        
+
         // Verify that we're getting all coins
         if (allCoinsData.length < totalCoinCount) {
           // Received fewer coins than expected
@@ -309,9 +309,11 @@ const useAllTokens = () => {
               }),
             ]);
 
-            const symbol = symbolResult.status === "fulfilled" ? (symbolResult.value as string) : `C#${coinId.toString()}`;
-            const name = nameResult.status === "fulfilled" ? (nameResult.value as string) : `Coin #${coinId.toString()}`;
-            
+            const symbol =
+              symbolResult.status === "fulfilled" ? (symbolResult.value as string) : `C#${coinId.toString()}`;
+            const name =
+              nameResult.status === "fulfilled" ? (nameResult.value as string) : `Coin #${coinId.toString()}`;
+
             // Extract custom swap fee from lockup if available
             let swapFee = SWAP_FEE; // Default swap fee
             if (lockupResult.status === "fulfilled") {
@@ -342,8 +344,7 @@ const useAllTokens = () => {
                 const now = Date.now();
 
                 // Use cache if it's valid and recent
-                if (cachedBalance && cachedTimestamp &&
-                    (now - parseInt(cachedTimestamp)) < BALANCE_CACHE_VALIDITY_MS) {
+                if (cachedBalance && cachedTimestamp && now - parseInt(cachedTimestamp) < BALANCE_CACHE_VALIDITY_MS) {
                   balance = BigInt(cachedBalance);
                 } else {
                   // Fetch fresh balance from chain
@@ -389,7 +390,7 @@ const useAllTokens = () => {
               reserve0,
               reserve1,
               liquidity, // Include liquidity value from the contract
-              swapFee,   // Include custom swap fee
+              swapFee, // Include custom swap fee
               balance,
             } as TokenMeta;
           } catch (err) {
@@ -401,14 +402,16 @@ const useAllTokens = () => {
         const tokenResults = await Promise.all(tokenPromises);
 
         // Filter out any tokens with fetch errors or null IDs (except ETH token)
-        const validTokens = tokenResults.filter((token): token is TokenMeta => 
-          token !== null && token.id !== undefined && (
+        const validTokens = tokenResults.filter(
+          (token): token is TokenMeta =>
+            token !== null &&
+            token.id !== undefined &&
             // Allow ETH token which has null ID, filter out any other tokens with null ID
-            token.id !== null || token.symbol === "ETH"
-          ));
+            (token.id !== null || token.symbol === "ETH"),
+        );
 
         // Process valid coins
-        
+
         // Now sort tokens by ETH reserves for display
 
         // Sort tokens by ETH reserves (reserve0) from highest to lowest
@@ -416,14 +419,14 @@ const useAllTokens = () => {
           // ETH token (null ID) should always be first
           if (a.id === null) return -1;
           if (b.id === null) return 1;
-          
+
           // Primary sort by ETH reserves (reserve0)
           const reserveA = a.reserve0 || 0n;
           const reserveB = b.reserve0 || 0n;
-          
+
           if (reserveB > reserveA) return 1;
           if (reserveB < reserveA) return -1;
-          
+
           // Secondary sort by liquidity if ETH reserves are equal
           const liquidityA = a.liquidity || 0n;
           const liquidityB = b.liquidity || 0n;
@@ -447,7 +450,7 @@ const useAllTokens = () => {
 
         // Take the top 100 coins by ETH reserves
         const top100ByEthReserves = sortedByEthReserves.slice(0, 100);
-        
+
         // ETH is always first, followed by top 100 by ETH reserves
         const allTokens = [ethTokenWithBalance, ...top100ByEthReserves];
 
@@ -471,484 +474,500 @@ const useAllTokens = () => {
   ENHANCED TOKEN SELECTOR: With thumbnail display
 ──────────────────────────────────────────────────────────────────────────── */
 // Memoize the TokenSelector to prevent unnecessary re-renders when input values change
-const TokenSelector = React.memo(({
-  selectedToken,
-  tokens,
-  onSelect,
-  isEthBalanceFetching = false,
-}: {
-  selectedToken: TokenMeta;
-  tokens: TokenMeta[];
-  onSelect: (token: TokenMeta) => void;
-  isEthBalanceFetching?: boolean;
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const selectedValue = selectedToken.id?.toString() ?? "eth";
+const TokenSelector = React.memo(
+  ({
+    selectedToken,
+    tokens,
+    onSelect,
+    isEthBalanceFetching = false,
+  }: {
+    selectedToken: TokenMeta;
+    tokens: TokenMeta[];
+    onSelect: (token: TokenMeta) => void;
+    isEthBalanceFetching?: boolean;
+  }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const selectedValue = selectedToken.id?.toString() ?? "eth";
 
-  // Handle selection change
-  const handleSelect = (token: TokenMeta) => {
-    onSelect(token);
-    setIsOpen(false);
-  };
-
-  // Helper functions for formatting and display
-
-  // Enhanced format token balance function with special handling for ETH
-  const formatBalance = (token: TokenMeta) => {
-    if (token.balance === undefined) {
-      // For ETH specifically, always show 0 rather than blank
-      return token.id === null ? "0" : "";
-    }
-
-    if (token.balance === 0n) return "0";
-
-    try {
-      // Special case for ETH
-      if (token.id === null) {
-        // Convert ETH balance to string first for precise formatting
-        const ethBalanceStr = formatEther(token.balance);
-        const ethValue = Number(ethBalanceStr);
-
-        if (ethValue === 0) return "0"; // If somehow zero after conversion
-
-        // Display ETH with appropriate precision based on size
-        if (ethValue >= 1000) {
-          return `${Math.floor(ethValue).toLocaleString()}`;
-        } else if (ethValue >= 1) {
-          return ethValue.toFixed(4); // Show 4 decimals for values ≥ 1
-        } else if (ethValue >= 0.001) {
-          return ethValue.toFixed(6); // Show 6 decimals for medium values
-        } else if (ethValue >= 0.0000001) {
-          // For very small values, use 8 decimals (typical for ETH)
-          return ethValue.toFixed(8);
-        } else {
-          // For extremely small values, use readable scientific notation
-          const scientificNotation = ethValue.toExponential(4);
-          return scientificNotation;
-        }
-      }
-
-      // For regular tokens
-      const tokenValue = Number(formatUnits(token.balance, 18));
-
-      if (tokenValue >= 1000) {
-        return `${Math.floor(tokenValue).toLocaleString()}`;
-      } else if (tokenValue >= 1) {
-        return tokenValue.toFixed(3); // 3 decimals for ≥ 1
-      } else if (tokenValue >= 0.001) {
-        return tokenValue.toFixed(4); // 4 decimals for smaller values
-      } else if (tokenValue >= 0.0001) {
-        return tokenValue.toFixed(6); // 6 decimals for tiny values
-      } else if (tokenValue > 0) {
-        return tokenValue.toExponential(2); // Scientific notation for extremely small
-      }
-
-      return "0";
-    } catch (error) {
-      // Error formatting balance
-      return token.id === null ? "0" : ""; // Always return 0 for ETH on error
-    }
-  };
-
-  // Get initials for fallback display
-  const getInitials = (symbol: string) => {
-    return symbol.slice(0, 2).toUpperCase();
-  };
-
-  // Color map for token initials - matching your screenshot
-  const getColorForSymbol = (symbol: string) => {
-    const symbolKey = symbol.toLowerCase();
-    const colorMap: Record<string, { bg: string; text: string }> = {
-      eth: { bg: "bg-black", text: "text-white" },
-      za: { bg: "bg-red-500", text: "text-white" },
-      pe: { bg: "bg-green-700", text: "text-white" },
-      ro: { bg: "bg-red-700", text: "text-white" },
-      "..": { bg: "bg-gray-800", text: "text-white" },
+    // Handle selection change
+    const handleSelect = (token: TokenMeta) => {
+      onSelect(token);
+      setIsOpen(false);
     };
 
-    const initials = symbolKey.slice(0, 2);
-    return colorMap[initials] || { bg: "bg-yellow-500", text: "text-white" };
-  };
+    // Helper functions for formatting and display
 
-  // Custom token image display with improved caching and fallbacks
-  // Memoize the TokenImage to prevent re-renders when parent re-renders
-  const TokenImage = React.memo(({ token }: { token: TokenMeta }) => {
-    const [imageLoaded, setImageLoaded] = useState(false);
-    const [imageError, setImageError] = useState(false);
-    const [actualImageUrl, setActualImageUrl] = useState<string | null>(null);
-    const [failedUrls, setFailedUrls] = useState<Set<string>>(new Set());
-    const [alternativeUrls, setAlternativeUrls] = useState<string[]>([]);
-    const { bg, text } = getColorForSymbol(token.symbol);
-
-    // Cache images in sessionStorage to prevent repeated fetches
-    const cacheKey = `token-image-${token.id ?? 'eth'}-url`;
-
-    // Use sessionStorage to speed up image URL loading
-    useEffect(() => {
-      // First check if we have a cached version
-      try {
-        const cachedUrl = sessionStorage.getItem(cacheKey);
-        if (cachedUrl) {
-          setActualImageUrl(cachedUrl);
-          return;
-        }
-      } catch (e) {
-        // Ignore sessionStorage errors
+    // Enhanced format token balance function with special handling for ETH
+    const formatBalance = (token: TokenMeta) => {
+      if (token.balance === undefined) {
+        // For ETH specifically, always show 0 rather than blank
+        return token.id === null ? "0" : "";
       }
 
-      const fetchMetadata = async () => {
-        if (!token.tokenUri) return;
+      if (token.balance === 0n) return "0";
 
-        // Skip for data URIs like the ETH SVG
-        if (token.tokenUri.startsWith("data:")) {
-          setActualImageUrl(token.tokenUri);
+      try {
+        // Special case for ETH
+        if (token.id === null) {
+          // Convert ETH balance to string first for precise formatting
+          const ethBalanceStr = formatEther(token.balance);
+          const ethValue = Number(ethBalanceStr);
+
+          if (ethValue === 0) return "0"; // If somehow zero after conversion
+
+          // Display ETH with appropriate precision based on size
+          if (ethValue >= 1000) {
+            return `${Math.floor(ethValue).toLocaleString()}`;
+          } else if (ethValue >= 1) {
+            return ethValue.toFixed(4); // Show 4 decimals for values ≥ 1
+          } else if (ethValue >= 0.001) {
+            return ethValue.toFixed(6); // Show 6 decimals for medium values
+          } else if (ethValue >= 0.0000001) {
+            // For very small values, use 8 decimals (typical for ETH)
+            return ethValue.toFixed(8);
+          } else {
+            // For extremely small values, use readable scientific notation
+            const scientificNotation = ethValue.toExponential(4);
+            return scientificNotation;
+          }
+        }
+
+        // For regular tokens
+        const tokenValue = Number(formatUnits(token.balance, 18));
+
+        if (tokenValue >= 1000) {
+          return `${Math.floor(tokenValue).toLocaleString()}`;
+        } else if (tokenValue >= 1) {
+          return tokenValue.toFixed(3); // 3 decimals for ≥ 1
+        } else if (tokenValue >= 0.001) {
+          return tokenValue.toFixed(4); // 4 decimals for smaller values
+        } else if (tokenValue >= 0.0001) {
+          return tokenValue.toFixed(6); // 6 decimals for tiny values
+        } else if (tokenValue > 0) {
+          return tokenValue.toExponential(2); // Scientific notation for extremely small
+        }
+
+        return "0";
+      } catch (error) {
+        // Error formatting balance
+        return token.id === null ? "0" : ""; // Always return 0 for ETH on error
+      }
+    };
+
+    // Get initials for fallback display
+    const getInitials = (symbol: string) => {
+      return symbol.slice(0, 2).toUpperCase();
+    };
+
+    // Color map for token initials - matching your screenshot
+    const getColorForSymbol = (symbol: string) => {
+      const symbolKey = symbol.toLowerCase();
+      const colorMap: Record<string, { bg: string; text: string }> = {
+        eth: { bg: "bg-black", text: "text-white" },
+        za: { bg: "bg-red-500", text: "text-white" },
+        pe: { bg: "bg-green-700", text: "text-white" },
+        ro: { bg: "bg-red-700", text: "text-white" },
+        "..": { bg: "bg-gray-800", text: "text-white" },
+      };
+
+      const initials = symbolKey.slice(0, 2);
+      return colorMap[initials] || { bg: "bg-yellow-500", text: "text-white" };
+    };
+
+    // Custom token image display with improved caching and fallbacks
+    // Memoize the TokenImage to prevent re-renders when parent re-renders
+    const TokenImage = React.memo(
+      ({ token }: { token: TokenMeta }) => {
+        const [imageLoaded, setImageLoaded] = useState(false);
+        const [imageError, setImageError] = useState(false);
+        const [actualImageUrl, setActualImageUrl] = useState<string | null>(null);
+        const [failedUrls, setFailedUrls] = useState<Set<string>>(new Set());
+        const [alternativeUrls, setAlternativeUrls] = useState<string[]>([]);
+        const { bg, text } = getColorForSymbol(token.symbol);
+
+        // Cache images in sessionStorage to prevent repeated fetches
+        const cacheKey = `token-image-${token.id ?? "eth"}-url`;
+
+        // Use sessionStorage to speed up image URL loading
+        useEffect(() => {
+          // First check if we have a cached version
           try {
-            sessionStorage.setItem(cacheKey, token.tokenUri);
+            const cachedUrl = sessionStorage.getItem(cacheKey);
+            if (cachedUrl) {
+              setActualImageUrl(cachedUrl);
+              return;
+            }
           } catch (e) {
             // Ignore sessionStorage errors
           }
-          return;
-        }
 
-        try {
-          // Handle IPFS URIs
-          const uri = token.tokenUri.startsWith("ipfs://")
-            ? `https://content.wrappr.wtf/ipfs/${token.tokenUri.slice(7)}`
-            : token.tokenUri;
+          const fetchMetadata = async () => {
+            if (!token.tokenUri) return;
 
-          // Generate alternative URLs for fallbacks
-          if (token.tokenUri.startsWith("ipfs://")) {
-            const hash = token.tokenUri.slice(7);
-            setAlternativeUrls([
-              `https://cloudflare-ipfs.com/ipfs/${hash}`,
-              `https://ipfs.io/ipfs/${hash}`,
-              `https://gateway.pinata.cloud/ipfs/${hash}`,
-              `https://ipfs.fleek.co/ipfs/${hash}`
-            ]);
-          }
+            // Skip for data URIs like the ETH SVG
+            if (token.tokenUri.startsWith("data:")) {
+              setActualImageUrl(token.tokenUri);
+              try {
+                sessionStorage.setItem(cacheKey, token.tokenUri);
+              } catch (e) {
+                // Ignore sessionStorage errors
+              }
+              return;
+            }
 
-          // Try to fetch as JSON (might be metadata)
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 3000); // Shorter timeout
+            try {
+              // Handle IPFS URIs
+              const uri = token.tokenUri.startsWith("ipfs://")
+                ? `https://content.wrappr.wtf/ipfs/${token.tokenUri.slice(7)}`
+                : token.tokenUri;
 
-          try {
-            const response = await fetch(uri, { signal: controller.signal });
-            clearTimeout(timeoutId);
-
-            const contentType = response.headers.get("content-type");
-
-            // If it's JSON, try to extract image URL
-            if (contentType && contentType.includes("application/json")) {
-              const data = await response.json();
-              let imageUrl = null;
-
-              // Try multiple image field variations
-              if (data.image) {
-                imageUrl = data.image;
-              } else if (data.image_url) {
-                imageUrl = data.image_url;
-              } else if (data.imageUrl) {
-                imageUrl = data.imageUrl;
-              } else if (data.properties?.image) {
-                imageUrl = data.properties.image;
+              // Generate alternative URLs for fallbacks
+              if (token.tokenUri.startsWith("ipfs://")) {
+                const hash = token.tokenUri.slice(7);
+                setAlternativeUrls([
+                  `https://cloudflare-ipfs.com/ipfs/${hash}`,
+                  `https://ipfs.io/ipfs/${hash}`,
+                  `https://gateway.pinata.cloud/ipfs/${hash}`,
+                  `https://ipfs.fleek.co/ipfs/${hash}`,
+                ]);
               }
 
-              if (imageUrl) {
-                // Handle IPFS image URL
-                const formattedUrl = imageUrl.startsWith("ipfs://")
-                  ? `https://content.wrappr.wtf/ipfs/${imageUrl.slice(7)}`
-                  : imageUrl;
+              // Try to fetch as JSON (might be metadata)
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 3000); // Shorter timeout
 
-                setActualImageUrl(formattedUrl);
+              try {
+                const response = await fetch(uri, { signal: controller.signal });
+                clearTimeout(timeoutId);
+
+                const contentType = response.headers.get("content-type");
+
+                // If it's JSON, try to extract image URL
+                if (contentType && contentType.includes("application/json")) {
+                  const data = await response.json();
+                  let imageUrl = null;
+
+                  // Try multiple image field variations
+                  if (data.image) {
+                    imageUrl = data.image;
+                  } else if (data.image_url) {
+                    imageUrl = data.image_url;
+                  } else if (data.imageUrl) {
+                    imageUrl = data.imageUrl;
+                  } else if (data.properties?.image) {
+                    imageUrl = data.properties.image;
+                  }
+
+                  if (imageUrl) {
+                    // Handle IPFS image URL
+                    const formattedUrl = imageUrl.startsWith("ipfs://")
+                      ? `https://content.wrappr.wtf/ipfs/${imageUrl.slice(7)}`
+                      : imageUrl;
+
+                    setActualImageUrl(formattedUrl);
+                    try {
+                      sessionStorage.setItem(cacheKey, formattedUrl);
+                    } catch (e) {
+                      // Ignore sessionStorage errors
+                    }
+                    return;
+                  }
+                }
+
+                // If not valid JSON or no image field, use the URI directly
+                setActualImageUrl(uri);
                 try {
-                  sessionStorage.setItem(cacheKey, formattedUrl);
+                  sessionStorage.setItem(cacheKey, uri);
                 } catch (e) {
                   // Ignore sessionStorage errors
                 }
-                return;
+              } catch (err) {
+                clearTimeout(timeoutId);
+                // Error fetching metadata
+                // Don't mark as error yet, try alternate URLs
+                setFailedUrls((prev) => new Set([...prev, uri]));
               }
+            } catch (err) {
+              // Error handling metadata
+              setImageError(true);
             }
+          };
 
-            // If not valid JSON or no image field, use the URI directly
-            setActualImageUrl(uri);
-            try {
-              sessionStorage.setItem(cacheKey, uri);
-            } catch (e) {
-              // Ignore sessionStorage errors
+          fetchMetadata();
+        }, [token.tokenUri, token.symbol, token.id, cacheKey]);
+
+        // If image fails to load, try alternatives
+        const tryNextAlternative = useCallback(() => {
+          if (alternativeUrls.length > 0) {
+            // Find the next URL that hasn't been tried
+            const nextUrl = alternativeUrls.find((url) => !failedUrls.has(url));
+            if (nextUrl) {
+              // Try alternative URL
+              setActualImageUrl(nextUrl);
+              return;
             }
-          } catch (err) {
-            clearTimeout(timeoutId);
-            // Error fetching metadata
-            // Don't mark as error yet, try alternate URLs
-            setFailedUrls(prev => new Set([...prev, uri]));
           }
-        } catch (err) {
-          // Error handling metadata
+
+          // If we've exhausted all alternatives or have none, show error
           setImageError(true);
-        }
-      };
+        }, [alternativeUrls, failedUrls, token.symbol]);
 
-      fetchMetadata();
-    }, [token.tokenUri, token.symbol, token.id, cacheKey]);
+        // Handle image load error by trying an alternative URL
+        const handleImageError = useCallback(() => {
+          if (actualImageUrl) {
+            setFailedUrls((prev) => new Set([...prev, actualImageUrl]));
+          }
+          tryNextAlternative();
+        }, [actualImageUrl, tryNextAlternative]);
 
-    // If image fails to load, try alternatives
-    const tryNextAlternative = useCallback(() => {
-      if (alternativeUrls.length > 0) {
-        // Find the next URL that hasn't been tried
-        const nextUrl = alternativeUrls.find(url => !failedUrls.has(url));
-        if (nextUrl) {
-          // Try alternative URL
-          setActualImageUrl(nextUrl);
-          return;
-        }
-      }
+        // If token has no URI, show colored initial
+        if (!token.tokenUri) {
+          // Use token ID as a cache key to maintain stable identities
+          const cacheKey = `token-initial-${token.id ?? "eth"}`;
 
-      // If we've exhausted all alternatives or have none, show error
-      setImageError(true);
-    }, [alternativeUrls, failedUrls, token.symbol]);
+          // Check if we have this component cached in sessionStorage
+          try {
+            const cached = sessionStorage.getItem(cacheKey);
+            if (cached === "true") {
+              // We know this token has no URI, use the optimized render path
+              return (
+                <div
+                  className={`w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full text-xs font-medium`}
+                >
+                  {getInitials(token.symbol)}
+                </div>
+              );
+            }
+            // Cache this result for future renders
+            sessionStorage.setItem(cacheKey, "true");
+          } catch (e) {
+            // Ignore sessionStorage errors
+          }
 
-    // Handle image load error by trying an alternative URL
-    const handleImageError = useCallback(() => {
-      if (actualImageUrl) {
-        setFailedUrls(prev => new Set([...prev, actualImageUrl]));
-      }
-      tryNextAlternative();
-    }, [actualImageUrl, tryNextAlternative]);
-
-    // If token has no URI, show colored initial
-    if (!token.tokenUri) {
-      // Use token ID as a cache key to maintain stable identities
-      const cacheKey = `token-initial-${token.id ?? 'eth'}`;
-
-      // Check if we have this component cached in sessionStorage
-      try {
-        const cached = sessionStorage.getItem(cacheKey);
-        if (cached === 'true') {
-          // We know this token has no URI, use the optimized render path
           return (
             <div className={`w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full text-xs font-medium`}>
               {getInitials(token.symbol)}
             </div>
           );
         }
-        // Cache this result for future renders
-        sessionStorage.setItem(cacheKey, 'true');
-      } catch (e) {
-        // Ignore sessionStorage errors
-      }
 
-      return (
-        <div className={`w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full text-xs font-medium`}>
-          {getInitials(token.symbol)}
-        </div>
-      );
-    }
+        // Show loading placeholder if we don't have the actual image URL yet
+        if (!actualImageUrl && !imageError) {
+          return (
+            <div className="relative w-8 h-8 rounded-full overflow-hidden">
+              <div className={`w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full`}>
+                {getInitials(token.symbol)}
+              </div>
+            </div>
+          );
+        }
 
-    // Show loading placeholder if we don't have the actual image URL yet
-    if (!actualImageUrl && !imageError) {
-      return (
-        <div className="relative w-8 h-8 rounded-full overflow-hidden">
-          <div className={`w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full`}>
-            {getInitials(token.symbol)}
+        // Otherwise, try to load the token image
+        return (
+          <div className="relative w-8 h-8 rounded-full overflow-hidden">
+            {/* Show colored initials while loading or on error */}
+            {(!imageLoaded || imageError) && (
+              <div
+                className={`absolute inset-0 w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full text-xs font-medium`}
+              >
+                {getInitials(token.symbol)}
+              </div>
+            )}
+
+            {/* Actual token image */}
+            {actualImageUrl && !imageError && (
+              <img
+                src={actualImageUrl}
+                alt={`${token.symbol} logo`}
+                className={`w-8 h-8 object-cover rounded-full ${imageLoaded ? "opacity-100" : "opacity-0"} transition-opacity duration-200`}
+                onLoad={() => setImageLoaded(true)}
+                onError={handleImageError}
+                loading="lazy"
+              />
+            )}
           </div>
-        </div>
-      );
-    }
-
-    // Otherwise, try to load the token image
-    return (
-      <div className="relative w-8 h-8 rounded-full overflow-hidden">
-        {/* Show colored initials while loading or on error */}
-        {(!imageLoaded || imageError) && (
-          <div
-            className={`absolute inset-0 w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full text-xs font-medium`}
-          >
-            {getInitials(token.symbol)}
-          </div>
-        )}
-
-        {/* Actual token image */}
-        {actualImageUrl && !imageError && (
-          <img
-            src={actualImageUrl}
-            alt={`${token.symbol} logo`}
-            className={`w-8 h-8 object-cover rounded-full ${imageLoaded ? "opacity-100" : "opacity-0"} transition-opacity duration-200`}
-            onLoad={() => setImageLoaded(true)}
-            onError={handleImageError}
-            loading="lazy"
-          />
-        )}
-      </div>
+        );
+      },
+      (prevProps, nextProps) => {
+        // Only re-render if token ID or URI changes
+        return prevProps.token.id === nextProps.token.id && prevProps.token.tokenUri === nextProps.token.tokenUri;
+      },
     );
-  }, (prevProps, nextProps) => {
-    // Only re-render if token ID or URI changes
-    return (
-      prevProps.token.id === nextProps.token.id &&
-      prevProps.token.tokenUri === nextProps.token.tokenUri
-    );
-  });
 
-  return (
-    <div className="relative">
-      {/* Selected token display with thumbnail */}
-      <div
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 cursor-pointer bg-transparent border border-yellow-200 rounded-md px-2 py-1 hover:bg-yellow-50 touch-manipulation"
-      >
-        <TokenImage token={selectedToken} />
-        <div className="flex flex-col">
-          <div className="flex items-center gap-1">
-            <span className="font-medium">{selectedToken.symbol}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="text-xs font-medium text-gray-700 min-w-[50px] h-[14px]">
-              {formatBalance(selectedToken)}
-              {selectedToken.id === null && isEthBalanceFetching && (
-                <span className="text-xs text-yellow-500 ml-1" style={{ animation: "pulse 1.5s infinite" }}>
-                  ·
-                </span>
-              )}
+    return (
+      <div className="relative">
+        {/* Selected token display with thumbnail */}
+        <div
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex items-center gap-2 cursor-pointer bg-transparent border border-yellow-200 rounded-md px-2 py-1 hover:bg-yellow-50 touch-manipulation"
+        >
+          <TokenImage token={selectedToken} />
+          <div className="flex flex-col">
+            <div className="flex items-center gap-1">
+              <span className="font-medium">{selectedToken.symbol}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="text-xs font-medium text-gray-700 min-w-[50px] h-[14px]">
+                {formatBalance(selectedToken)}
+                {selectedToken.id === null && isEthBalanceFetching && (
+                  <span className="text-xs text-yellow-500 ml-1" style={{ animation: "pulse 1.5s infinite" }}>
+                    ·
+                  </span>
+                )}
+              </div>
             </div>
           </div>
+          <svg className="w-4 h-4 ml-1" viewBox="0 0 24 24" stroke="currentColor" fill="none">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+          </svg>
         </div>
-        <svg className="w-4 h-4 ml-1" viewBox="0 0 24 24" stroke="currentColor" fill="none">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-        </svg>
-      </div>
 
-      {/* Dropdown list with thumbnails */}
-      {isOpen && (
-        <div className="absolute z-20 mt-1 w-[calc(100vw-40px)] sm:w-64 max-h-[60vh] sm:max-h-96 overflow-y-auto bg-white border border-yellow-200 shadow-lg rounded-md" style={{ contain: 'content' }}>
-          {/* Search input */}
-          <div className="sticky top-0 bg-white p-2 border-b border-yellow-100">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search by symbol or ID..."
-                onChange={(e) => {
-                  // Use memo version for faster search - throttle search for better performance
-                  const query = e.target.value.toLowerCase();
+        {/* Dropdown list with thumbnails */}
+        {isOpen && (
+          <div
+            className="absolute z-20 mt-1 w-[calc(100vw-40px)] sm:w-64 max-h-[60vh] sm:max-h-96 overflow-y-auto bg-white border border-yellow-200 shadow-lg rounded-md"
+            style={{ contain: "content" }}
+          >
+            {/* Search input */}
+            <div className="sticky top-0 bg-white p-2 border-b border-yellow-100">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search by symbol or ID..."
+                  onChange={(e) => {
+                    // Use memo version for faster search - throttle search for better performance
+                    const query = e.target.value.toLowerCase();
 
-                  // Debounce the search with requestAnimationFrame for better performance
-                  const w = window as any; // Type assertion for the debounce property
-                  if (w.searchDebounce) {
-                    cancelAnimationFrame(w.searchDebounce);
-                  }
-
-                  w.searchDebounce = requestAnimationFrame(() => {
-                    // Get all token items by data attribute - limit to visible ones first
-                    const visibleItems = document.querySelectorAll("[data-token-symbol]:not(.hidden)");
-                    const allItems = document.querySelectorAll("[data-token-symbol]");
-
-                    // Only query all items if no visible items match
-                    const itemsToSearch = visibleItems.length > 0 ? visibleItems : allItems;
-
-                    // Use more efficient iteration
-                    const itemsArray = Array.from(itemsToSearch);
-                    let anyVisible = false;
-
-                    // First pass - show matches
-                    for (let i = 0; i < itemsArray.length; i++) {
-                      const item = itemsArray[i];
-                      const symbol = item.getAttribute("data-token-symbol")?.toLowerCase() || "";
-                      const name = item.getAttribute("data-token-name")?.toLowerCase() || "";
-                      const id = item.getAttribute("data-token-id") || "";
-
-                      if (symbol.includes(query) || name.includes(query) || id.toLowerCase().includes(query)) {
-                        item.classList.remove("hidden");
-                        anyVisible = true;
-                      } else {
-                        item.classList.add("hidden");
-                      }
+                    // Debounce the search with requestAnimationFrame for better performance
+                    const w = window as any; // Type assertion for the debounce property
+                    if (w.searchDebounce) {
+                      cancelAnimationFrame(w.searchDebounce);
                     }
 
-                    // If nothing is visible with current search, try again with all items
-                    if (!anyVisible && visibleItems.length > 0) {
-                      const allItemsArray = Array.from(allItems);
-                      for (let i = 0; i < allItemsArray.length; i++) {
-                        const item = allItemsArray[i];
+                    w.searchDebounce = requestAnimationFrame(() => {
+                      // Get all token items by data attribute - limit to visible ones first
+                      const visibleItems = document.querySelectorAll("[data-token-symbol]:not(.hidden)");
+                      const allItems = document.querySelectorAll("[data-token-symbol]");
+
+                      // Only query all items if no visible items match
+                      const itemsToSearch = visibleItems.length > 0 ? visibleItems : allItems;
+
+                      // Use more efficient iteration
+                      const itemsArray = Array.from(itemsToSearch);
+                      let anyVisible = false;
+
+                      // First pass - show matches
+                      for (let i = 0; i < itemsArray.length; i++) {
+                        const item = itemsArray[i];
                         const symbol = item.getAttribute("data-token-symbol")?.toLowerCase() || "";
                         const name = item.getAttribute("data-token-name")?.toLowerCase() || "";
                         const id = item.getAttribute("data-token-id") || "";
 
                         if (symbol.includes(query) || name.includes(query) || id.toLowerCase().includes(query)) {
                           item.classList.remove("hidden");
+                          anyVisible = true;
                         } else {
                           item.classList.add("hidden");
                         }
                       }
-                    }
-                  });
-                }}
-                className="w-full p-2 pl-8 border border-yellow-200 rounded focus:outline-none focus:ring-2 focus:ring-yellow-300 text-sm"
-              />
-              <svg
-                className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+
+                      // If nothing is visible with current search, try again with all items
+                      if (!anyVisible && visibleItems.length > 0) {
+                        const allItemsArray = Array.from(allItems);
+                        for (let i = 0; i < allItemsArray.length; i++) {
+                          const item = allItemsArray[i];
+                          const symbol = item.getAttribute("data-token-symbol")?.toLowerCase() || "";
+                          const name = item.getAttribute("data-token-name")?.toLowerCase() || "";
+                          const id = item.getAttribute("data-token-id") || "";
+
+                          if (symbol.includes(query) || name.includes(query) || id.toLowerCase().includes(query)) {
+                            item.classList.remove("hidden");
+                          } else {
+                            item.classList.add("hidden");
+                          }
+                        }
+                      }
+                    });
+                  }}
+                  className="w-full p-2 pl-8 border border-yellow-200 rounded focus:outline-none focus:ring-2 focus:ring-yellow-300 text-sm"
                 />
-              </svg>
+                <svg
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              </div>
             </div>
-          </div>
 
-          {/* Pre-compute token list items for better performance with content visibility optimization */}
-          <div className="virtualized-token-list" style={{
-            contentVisibility: 'auto',
-            containIntrinsicSize: "0 5000px",
-            contain: 'content'
-          }}>
-            {tokens.map((token) => {
-              const isSelected =
-                (token.id === null && selectedValue === "eth") ||
-                (token.id !== null && token.id.toString() === selectedValue);
+            {/* Pre-compute token list items for better performance with content visibility optimization */}
+            <div
+              className="virtualized-token-list"
+              style={{
+                contentVisibility: "auto",
+                containIntrinsicSize: "0 5000px",
+                contain: "content",
+              }}
+            >
+              {tokens.map((token) => {
+                const isSelected =
+                  (token.id === null && selectedValue === "eth") ||
+                  (token.id !== null && token.id.toString() === selectedValue);
 
-              // Memoize reserve formatting to improve performance
-              const formatReserves = (token: TokenMeta) => {
-                if (token.id === null) return "";
+                // Memoize reserve formatting to improve performance
+                const formatReserves = (token: TokenMeta) => {
+                  if (token.id === null) return "";
 
-                // Cache key for this computation
-                const cacheKey = `reserve-format-${token.id}`;
-                try {
-                  const cached = sessionStorage.getItem(cacheKey);
-                  if (cached) return cached;
-                } catch (e) {
-                  // Ignore storage errors
-                }
+                  // Cache key for this computation
+                  const cacheKey = `reserve-format-${token.id}`;
+                  try {
+                    const cached = sessionStorage.getItem(cacheKey);
+                    if (cached) return cached;
+                  } catch (e) {
+                    // Ignore storage errors
+                  }
 
-                // Format the custom fee if available (as percentage)
-                const feePercentage = token.swapFee ? Number(token.swapFee) / 100 : 1; // Default is 1%
-                const feeStr = feePercentage % 1 === 0
-                  ? `${feePercentage}%`
-                  : `${feePercentage.toFixed(2)}%`;
+                  // Format the custom fee if available (as percentage)
+                  const feePercentage = token.swapFee ? Number(token.swapFee) / 100 : 1; // Default is 1%
+                  const feeStr = feePercentage % 1 === 0 ? `${feePercentage}%` : `${feePercentage.toFixed(2)}%`;
 
-                // If no liquidity data available or zero liquidity
-                if (!token.liquidity || token.liquidity === 0n) {
-                  // Fall back to reserves if available
-                  if (token.reserve0 && token.reserve0 > 0n) {
-                    // Format ETH reserves to a readable format
-                    const ethValue = Number(formatEther(token.reserve0));
-                    let reserveStr = "";
+                  // If no liquidity data available or zero liquidity
+                  if (!token.liquidity || token.liquidity === 0n) {
+                    // Fall back to reserves if available
+                    if (token.reserve0 && token.reserve0 > 0n) {
+                      // Format ETH reserves to a readable format
+                      const ethValue = Number(formatEther(token.reserve0));
+                      let reserveStr = "";
 
-                    if (ethValue >= 1000) {
-                      reserveStr = `${Math.floor(ethValue).toLocaleString()} ETH`;
-                    } else if (ethValue >= 1.0) {
-                      reserveStr = `${ethValue.toFixed(3)} ETH`;
-                    } else if (ethValue >= 0.001) {
-                      reserveStr = `${ethValue.toFixed(4)} ETH`;
-                    } else if (ethValue >= 0.0001) {
-                      reserveStr = `${ethValue.toFixed(6)} ETH`;
-                    } else if (ethValue > 0) {
-                      reserveStr = `${ethValue.toFixed(8)} ETH`;
+                      if (ethValue >= 1000) {
+                        reserveStr = `${Math.floor(ethValue).toLocaleString()} ETH`;
+                      } else if (ethValue >= 1.0) {
+                        reserveStr = `${ethValue.toFixed(3)} ETH`;
+                      } else if (ethValue >= 0.001) {
+                        reserveStr = `${ethValue.toFixed(4)} ETH`;
+                      } else if (ethValue >= 0.0001) {
+                        reserveStr = `${ethValue.toFixed(6)} ETH`;
+                      } else if (ethValue > 0) {
+                        reserveStr = `${ethValue.toFixed(8)} ETH`;
+                      }
+
+                      const result = `${reserveStr} • ${feeStr}`;
+                      try {
+                        sessionStorage.setItem(cacheKey, result);
+                      } catch (e) {
+                        // Ignore storage errors
+                      }
+                      return result;
                     }
 
-                    const result = `${reserveStr} • ${feeStr}`;
+                    const result = `No liquidity • ${feeStr}`;
                     try {
                       sessionStorage.setItem(cacheKey, result);
                     } catch (e) {
@@ -957,100 +976,93 @@ const TokenSelector = React.memo(({
                     return result;
                   }
 
-                  const result = `No liquidity • ${feeStr}`;
+                  // Format the ETH reserves (reserve0)
+                  const ethReserveValue = Number(formatEther(token.reserve0 || 0n));
+                  let reserveStr = "";
+
+                  if (ethReserveValue >= 10000) {
+                    reserveStr = `${Math.floor(ethReserveValue / 1000)}K ETH`;
+                  } else if (ethReserveValue >= 1000) {
+                    reserveStr = `${(ethReserveValue / 1000).toFixed(1)}K ETH`;
+                  } else if (ethReserveValue >= 1.0) {
+                    reserveStr = `${ethReserveValue.toFixed(2)} ETH`;
+                  } else if (ethReserveValue >= 0.001) {
+                    reserveStr = `${ethReserveValue.toFixed(4)} ETH`;
+                  } else if (ethReserveValue > 0) {
+                    reserveStr = `${ethReserveValue.toFixed(6)} ETH`;
+                  } else {
+                    const result = `No ETH reserves • ${feeStr}`;
+                    try {
+                      sessionStorage.setItem(cacheKey, result);
+                    } catch (e) {
+                      // Ignore storage errors
+                    }
+                    return result;
+                  }
+
+                  const result = `${reserveStr} • ${feeStr}`;
                   try {
                     sessionStorage.setItem(cacheKey, result);
                   } catch (e) {
                     // Ignore storage errors
                   }
                   return result;
-                }
+                };
 
-                // Format the ETH reserves (reserve0)
-                const ethReserveValue = Number(formatEther(token.reserve0 || 0n));
-                let reserveStr = "";
+                const reserves = formatReserves(token);
+                const balance = formatBalance(token);
 
-                if (ethReserveValue >= 10000) {
-                  reserveStr = `${Math.floor(ethReserveValue / 1000)}K ETH`;
-                } else if (ethReserveValue >= 1000) {
-                  reserveStr = `${(ethReserveValue / 1000).toFixed(1)}K ETH`;
-                } else if (ethReserveValue >= 1.0) {
-                  reserveStr = `${ethReserveValue.toFixed(2)} ETH`;
-                } else if (ethReserveValue >= 0.001) {
-                  reserveStr = `${ethReserveValue.toFixed(4)} ETH`;
-                } else if (ethReserveValue > 0) {
-                  reserveStr = `${ethReserveValue.toFixed(6)} ETH`;
-                } else {
-                  const result = `No ETH reserves • ${feeStr}`;
-                  try {
-                    sessionStorage.setItem(cacheKey, result);
-                  } catch (e) {
-                    // Ignore storage errors
-                  }
-                  return result;
-                }
-
-                const result = `${reserveStr} • ${feeStr}`;
-                try {
-                  sessionStorage.setItem(cacheKey, result);
-                } catch (e) {
-                  // Ignore storage errors
-                }
-                return result;
-              };
-
-              const reserves = formatReserves(token);
-              const balance = formatBalance(token);
-
-              return (
-                <div
-                  key={token.id?.toString() ?? "eth"}
-                  onClick={() => handleSelect(token)}
-                  data-token-symbol={token.symbol}
-                  data-token-name={token.name}
-                  data-token-id={token.id?.toString() ?? "eth"}
-                  className={`flex items-center justify-between p-3 sm:p-2 hover:bg-yellow-50 cursor-pointer touch-manipulation ${
-                    isSelected ? "bg-yellow-100" : ""
-                  }`}
-                  style={{
-                    contentVisibility: "auto",
-                    containIntrinsicSize: "0 50px"
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <TokenImage token={token} />
-                    <div className="flex flex-col">
-                      <span className="font-medium">{token.symbol}</span>
-                      {reserves && <span className="text-xs text-gray-500">{reserves}</span>}
+                return (
+                  <div
+                    key={token.id?.toString() ?? "eth"}
+                    onClick={() => handleSelect(token)}
+                    data-token-symbol={token.symbol}
+                    data-token-name={token.name}
+                    data-token-id={token.id?.toString() ?? "eth"}
+                    className={`flex items-center justify-between p-3 sm:p-2 hover:bg-yellow-50 cursor-pointer touch-manipulation ${
+                      isSelected ? "bg-yellow-100" : ""
+                    }`}
+                    style={{
+                      contentVisibility: "auto",
+                      containIntrinsicSize: "0 50px",
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <TokenImage token={token} />
+                      <div className="flex flex-col">
+                        <span className="font-medium">{token.symbol}</span>
+                        {reserves && <span className="text-xs text-gray-500">{reserves}</span>}
+                      </div>
+                    </div>
+                    <div className="text-right min-w-[60px]">
+                      <div className="text-sm font-medium h-[18px]">
+                        {balance}
+                        {token.id === null && isEthBalanceFetching && (
+                          <span className="text-xs text-yellow-500 ml-1" style={{ animation: "pulse 1.5s infinite" }}>
+                            ·
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right min-w-[60px]">
-                    <div className="text-sm font-medium h-[18px]">
-                      {balance}
-                      {token.id === null && isEthBalanceFetching && (
-                        <span className="text-xs text-yellow-500 ml-1" style={{ animation: "pulse 1.5s infinite" }}>
-                          ·
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
-}, (prevProps, nextProps) => {
-  // Custom comparison function to prevent unnecessary re-renders
-  // Only re-render if token identity or selection state changes
-  return (
-    prevProps.selectedToken.id === nextProps.selectedToken.id &&
-    prevProps.tokens.length === nextProps.tokens.length &&
-    prevProps.isEthBalanceFetching === nextProps.isEthBalanceFetching
-  );
-});
+        )}
+      </div>
+    );
+  },
+  (prevProps, nextProps) => {
+    // Custom comparison function to prevent unnecessary re-renders
+    // Only re-render if token identity or selection state changes
+    return (
+      prevProps.selectedToken.id === nextProps.selectedToken.id &&
+      prevProps.tokens.length === nextProps.tokens.length &&
+      prevProps.isEthBalanceFetching === nextProps.isEthBalanceFetching
+    );
+  },
+);
 
 /* ────────────────────────────────────────────────────────────────────────────
   Mode types and constants
@@ -1100,7 +1112,7 @@ export const SwapTile = () => {
           // Use our tracked ethBalance instead of potentially incorrect token.balance
           const safeEthToken = {
             ...ethToken,
-            balance: ethBalance !== undefined ? ethBalance : ethToken.balance
+            balance: ethBalance !== undefined ? ethBalance : ethToken.balance,
           };
 
           // Set the sell token to ETH with the safe balance
@@ -1108,9 +1120,9 @@ export const SwapTile = () => {
         }
       } else if (sellToken.id === null && ethBalance !== undefined && sellToken.balance !== ethBalance) {
         // If ETH is already selected but has wrong balance, update it
-        setSellToken(prev => ({
+        setSellToken((prev) => ({
           ...prev,
-          balance: ethBalance
+          balance: ethBalance,
         }));
       }
 
@@ -1149,9 +1161,9 @@ export const SwapTile = () => {
   const memoizedTokens = React.useMemo(() => tokens, [tokens]);
 
   // Also create a memoized version of non-ETH tokens to avoid conditional hook calls
-  const memoizedNonEthTokens = React.useMemo(() =>
-    memoizedTokens.filter((token) => token.id !== null),
-    [memoizedTokens]
+  const memoizedNonEthTokens = React.useMemo(
+    () => memoizedTokens.filter((token) => token.id !== null),
+    [memoizedTokens],
   );
 
   // Define transaction-related state upfront to avoid reference errors
@@ -1219,25 +1231,31 @@ export const SwapTile = () => {
   }, [tokens]);
 
   // Enhanced token selection handlers with error clearing, memoized to prevent re-renders
-  const handleSellTokenSelect = useCallback((token: TokenMeta) => {
-    // Clear any errors when changing tokens
-    if (txError) setTxError(null);
-    // Reset input values to prevent stale calculations
-    setSellAmt("");
-    setBuyAmt("");
-    // Set the new token
-    setSellToken(token);
-  }, [txError]);
+  const handleSellTokenSelect = useCallback(
+    (token: TokenMeta) => {
+      // Clear any errors when changing tokens
+      if (txError) setTxError(null);
+      // Reset input values to prevent stale calculations
+      setSellAmt("");
+      setBuyAmt("");
+      // Set the new token
+      setSellToken(token);
+    },
+    [txError],
+  );
 
-  const handleBuyTokenSelect = useCallback((token: TokenMeta) => {
-    // Clear any errors when changing tokens
-    if (txError) setTxError(null);
-    // Reset input values to prevent stale calculations
-    setSellAmt("");
-    setBuyAmt("");
-    // Set the new token
-    setBuyToken(token);
-  }, [txError]);
+  const handleBuyTokenSelect = useCallback(
+    (token: TokenMeta) => {
+      // Clear any errors when changing tokens
+      if (txError) setTxError(null);
+      // Reset input values to prevent stale calculations
+      setSellAmt("");
+      setBuyAmt("");
+      // Set the new token
+      setBuyToken(token);
+    },
+    [txError],
+  );
 
   const flipTokens = () => {
     if (!buyToken) return;
@@ -1257,7 +1275,7 @@ export const SwapTile = () => {
     // Ensure wallet connection is properly tracked during token swaps
     // This helps avoid "lost connection" errors when rapidly changing tokens
     if (address && isConnected) {
-      sessionStorage.setItem('lastConnectedAddress', address);
+      sessionStorage.setItem("lastConnectedAddress", address);
     }
   };
 
@@ -1287,16 +1305,14 @@ export const SwapTile = () => {
 
   // Update ethBalance when ETH token balance changes in tokens array
   useEffect(() => {
-    const ethToken = tokens.find(t => t.id === null);
+    const ethToken = tokens.find((t) => t.id === null);
     if (ethToken && (ethBalance === undefined || ethToken.balance !== ethBalance)) {
       setEthBalance(ethToken.balance);
     }
   }, [tokens, ethBalance]);
 
   // Get direct ETH balance from wagmi
-  const {
-    data: wagmiEthBalance,
-  } = useBalance({
+  const { data: wagmiEthBalance } = useBalance({
     address,
     chainId: mainnet.id,
     scopeKey: "wagmiEthBalance",
@@ -1333,15 +1349,15 @@ export const SwapTile = () => {
 
         try {
           // Wait a moment for transaction to fully propagate
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise((resolve) => setTimeout(resolve, 1000));
 
           // Refresh balances for the specific tokens involved in the transaction
-          const tokensToRefresh = [sellToken, buyToken].filter(t => t && t.id !== null);
+          const tokensToRefresh = [sellToken, buyToken].filter((t) => t && t.id !== null);
 
           // Only continue if we have tokens to refresh
           if (tokensToRefresh.length > 0) {
             // Fetch updated balances
-            const balancePromises = tokensToRefresh.map(async token => {
+            const balancePromises = tokensToRefresh.map(async (token) => {
               if (!token || token.id === null) return null;
 
               try {
@@ -1366,7 +1382,7 @@ export const SwapTile = () => {
 
                 return {
                   id: token.id,
-                  balance: newBalance as bigint
+                  balance: newBalance as bigint,
                 };
               } catch (error) {
                 // Failed to get balance
@@ -2114,7 +2130,7 @@ export const SwapTile = () => {
 
       // Wait a moment to ensure wallet connection is stable
       if (publicClient && !publicClient.getChainId) {
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
         if (!publicClient.getChainId) {
           setTxError("Wallet connection not fully established. Please wait a moment and try again.");
           return;
@@ -2211,7 +2227,12 @@ export const SwapTile = () => {
         }
 
         // If we have two different Coin IDs, use the multicall path for Coin to Coin swap
-        if (buyToken?.id !== null && buyToken?.id !== undefined && sellToken.id !== null && buyToken.id !== sellToken.id) {
+        if (
+          buyToken?.id !== null &&
+          buyToken?.id !== undefined &&
+          sellToken.id !== null &&
+          buyToken.id !== sellToken.id
+        ) {
           try {
             // Import our helper dynamically to avoid circular dependencies
             const { createCoinSwapMulticall, estimateCoinToCoinOutput } = await import("./lib/swapHelper");
@@ -2329,16 +2350,15 @@ export const SwapTile = () => {
 
           // Log structured debug info
           const errorInfo = {
-            type: 'wallet_connection_error',
+            type: "wallet_connection_error",
             message: errMsg,
             isConnected,
             hasChainId: !!chainId,
             hasPublicClient: !!publicClient,
-            hasAccount: !!address
+            hasAccount: !!address,
           };
           // Show error info in console
           console.error("Wallet connection error:", errorInfo);
-
         } else if (errMsg.includes("InsufficientOutputAmount")) {
           setTxError("Swap failed due to price movement in low liquidity pool. Try again or use a smaller amount.");
         } else if (errMsg.includes("K(")) {
@@ -2594,33 +2614,33 @@ export const SwapTile = () => {
               <div
                 className={`border-2 border-yellow-300 group rounded-b-2xl p-2 pt-3 focus-within:ring-2 hover:bg-yellow-50 focus-within:ring-primary flex flex-col gap-2 mt-2 ${!(mode === "liquidity" && liquidityMode === "single-eth") ? "" : "hidden"}`}
               >
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">
-                  {mode === "swap" ? "Buy" : liquidityMode === "add" ? "And" : `You'll Receive (${buyToken.symbol})`}
-                </span>
-                <TokenSelector
-                  selectedToken={buyToken}
-                  tokens={memoizedTokens}
-                  onSelect={handleBuyTokenSelect}
-                  isEthBalanceFetching={isEthBalanceFetching}
-                />
-              </div>
-              <div className="flex justify-between items-center">
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  step="any"
-                  placeholder="0.0"
-                  value={buyAmt}
-                  onChange={(e) => syncFromBuy(e.target.value)}
-                  className="text-lg sm:text-xl font-medium w-full focus:outline-none h-10 text-right pr-1"
-                  readOnly={mode === "liquidity" && liquidityMode === "remove"}
-                />
-                {mode === "liquidity" && liquidityMode === "remove" && (
-                  <span className="text-xs text-yellow-600 font-medium">Preview</span>
-                )}
-              </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    {mode === "swap" ? "Buy" : liquidityMode === "add" ? "And" : `You'll Receive (${buyToken.symbol})`}
+                  </span>
+                  <TokenSelector
+                    selectedToken={buyToken}
+                    tokens={memoizedTokens}
+                    onSelect={handleBuyTokenSelect}
+                    isEthBalanceFetching={isEthBalanceFetching}
+                  />
+                </div>
+                <div className="flex justify-between items-center">
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="any"
+                    placeholder="0.0"
+                    value={buyAmt}
+                    onChange={(e) => syncFromBuy(e.target.value)}
+                    className="text-lg sm:text-xl font-medium w-full focus:outline-none h-10 text-right pr-1"
+                    readOnly={mode === "liquidity" && liquidityMode === "remove"}
+                  />
+                  {mode === "liquidity" && liquidityMode === "remove" && (
+                    <span className="text-xs text-yellow-600 font-medium">Preview</span>
+                  )}
+                </div>
               </div>
             </>
           )}
@@ -2757,7 +2777,7 @@ export const SwapTile = () => {
               <span>
                 Pool: {formatEther(reserves.reserve0).substring(0, 8)} ETH /{" "}
                 {formatUnits(reserves.reserve1, 18).substring(0, 8)}{" "}
-                {coinId ? tokens.find(t => t.id === coinId)?.symbol || "Token" : buyToken?.symbol}
+                {coinId ? tokens.find((t) => t.id === coinId)?.symbol || "Token" : buyToken?.symbol}
               </span>
             )}
             <span>Fee: {mode === "swap" && isCoinToCoin ? (Number(SWAP_FEE) * 2) / 100 : Number(SWAP_FEE) / 100}%</span>
@@ -2847,9 +2867,8 @@ export const SwapTile = () => {
             {/* Determine which token to use for the chart - prioritize non-ETH token */}
             {(() => {
               // Get the non-ETH token for the chart
-              const chartToken = buyToken && buyToken.id !== null
-                ? buyToken
-                : (sellToken && sellToken.id !== null ? sellToken : null);
+              const chartToken =
+                buyToken && buyToken.id !== null ? buyToken : sellToken && sellToken.id !== null ? sellToken : null;
 
               // Only show chart button if we have a non-ETH token with a valid ID
               if (!chartToken || chartToken.id === null) return null;
@@ -2858,7 +2877,7 @@ export const SwapTile = () => {
                 <>
                   <div className="flex items-center justify-between mb-2">
                     <button
-                      onClick={() => setShowPriceChart(prev => !prev)}
+                      onClick={() => setShowPriceChart((prev) => !prev)}
                       className="text-xs text-gray-600 flex items-center gap-1 hover:text-gray-900"
                     >
                       {showPriceChart ? "Hide Price Chart" : "Show Price Chart"}
@@ -2872,18 +2891,15 @@ export const SwapTile = () => {
                       </svg>
                     </button>
                     {showPriceChart && (
-                      <div className="text-xs text-gray-500">
-                        {chartToken.symbol}/ETH price history
-                      </div>
+                      <div className="text-xs text-gray-500">{chartToken.symbol}/ETH price history</div>
                     )}
                   </div>
 
                   {showPriceChart && (
-                    <div className={`transition-all duration-300 ${showPriceChart ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"}`}>
-                      <PoolPriceChart
-                        poolId={computePoolId(chartToken.id).toString()}
-                        ticker={chartToken.symbol}
-                      />
+                    <div
+                      className={`transition-all duration-300 ${showPriceChart ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"}`}
+                    >
+                      <PoolPriceChart poolId={computePoolId(chartToken.id).toString()} ticker={chartToken.symbol} />
                     </div>
                   )}
                 </>
