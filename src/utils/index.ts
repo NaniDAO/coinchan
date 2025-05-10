@@ -42,4 +42,32 @@ export const computePoolKey = (coinId: bigint) => ({
  */
 export const nowSec = () => BigInt(Math.floor(Date.now() / 1000));
 
+/**
+ * Create a debounced function that delays invoking the provided function
+ * until after `wait` milliseconds have elapsed since the last invocation.
+ *
+ * @param func The function to debounce
+ * @param wait The number of milliseconds to delay
+ * @returns A debounced function
+ */
+export function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait = 300
+): (...args: Parameters<T>) => void {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+
+  return function(this: any, ...args: Parameters<T>): void {
+    const context = this;
+
+    if (timeout !== null) {
+      clearTimeout(timeout);
+    }
+
+    timeout = setTimeout(() => {
+      func.apply(context, args);
+      timeout = null;
+    }, wait);
+  };
+}
+
 export { pinJsonToPinata, pinImageToPinata, isUserRejectionError, handleWalletError };

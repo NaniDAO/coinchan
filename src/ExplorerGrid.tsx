@@ -1,6 +1,6 @@
 import { CoinCard } from "./components/CoinCard";
 import { type CoinData } from "./hooks/metadata";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 // Default page size
 const PAGE_SIZE = 20;
@@ -17,6 +17,8 @@ export const ExplorerGrid = ({
   currentPage = 1,
   totalPages = 1,
   isSearchActive = false,
+  searchBar,
+  searchResults = "",
 }: {
   coins: CoinData[];
   total: number;
@@ -29,7 +31,38 @@ export const ExplorerGrid = ({
   currentPage?: number;
   totalPages?: number;
   isSearchActive?: boolean;
+  searchBar?: React.ReactNode;
+  searchResults?: string;
 }) => {
+  // Track page transition state for better UX
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [direction, setDirection] = useState<'next' | 'prev' | null>(null);
+
+  // Reset transition state when coins change
+  useEffect(() => {
+    setIsTransitioning(false);
+    setDirection(null);
+  }, [coins]);
+
+  // Enhanced prev/next handlers with transition state
+  const handlePrev = () => {
+    if (canPrev && !isLoading && !isTransitioning) {
+      setIsTransitioning(true);
+      setDirection('prev');
+      onPrev();
+    }
+  };
+
+  const handleNext = () => {
+    if (canNext && !isLoading && !isTransitioning) {
+      setIsTransitioning(true);
+      setDirection('next');
+      onNext();
+    }
+  };
+
+  // Combined loading state including transitions
+  const isPending = isLoading || isTransitioning;
   // Debug: Log coin data for troubleshooting
   useEffect(() => {
     console.log(`ExplorerGrid rendering with ${coins.length} coins, page ${currentPage}/${totalPages}`);
@@ -67,22 +100,44 @@ export const ExplorerGrid = ({
   return (
     <div className="w-full px-2 sm:px-4">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg sm:text-xl font-semibold text-center sm:text-left">
-          {total === 0 ? "NO COINS DEPLOYED" : total === 1 ? "1 COIN DEPLOYED" : `${total} COINS DEPLOYED`}
-        </h2>
+        <div className="flex items-center">
+          <h2 className="text-lg sm:text-xl font-semibold text-center sm:text-left">
+            {total === 0 ? "NO COINS DEPLOYED" : total === 1 ? "1 COIN DEPLOYED" : `${total} COINS DEPLOYED`}
+          </h2>
 
-        {/* Loading indicator */}
-        {isLoading && (
-          <div className="flex items-center">
-            <div className="w-4 h-4 rounded-full border-2 border-red-500 border-t-transparent animate-spin mr-2"></div>
-            <span className="text-sm text-red-500">Loading...</span>
-          </div>
-        )}
+          {searchResults && (
+            <div className="ml-4 text-sm text-gray-500">
+              {searchResults}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center">
+          {/* Search Bar */}
+          {searchBar}
+
+          {/* Enhanced loading indicator */}
+          {isPending && (
+            <div className="flex items-center ml-3">
+              <div className="w-4 h-4 rounded-full border-2 border-red-500 border-t-transparent animate-spin mr-2"></div>
+              <span className="text-sm text-red-500">
+                {isTransitioning
+                  ? direction === 'next'
+                    ? "Loading next page..."
+                    : "Loading previous page..."
+                  : "Loading..."}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 sm:gap-3 min-h-[300px]">
+      <div className={`grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 sm:gap-3 min-h-[300px] ${isTransitioning ? 'transition-opacity duration-300 opacity-50' : ''}`}>
         {coins.map((coin) => (
-          <div key={coin.coinId.toString()} className={isLoading ? "opacity-60 pointer-events-none" : ""}>
+          <div
+            key={coin.coinId.toString()}
+            className={isPending ? "opacity-60 pointer-events-none" : ""}
+          >
             <CoinCard coin={coin} onTrade={onTrade} />
           </div>
         ))}
@@ -108,13 +163,20 @@ export const ExplorerGrid = ({
 
       <div className="pagination-buttons flex justify-between items-center mt-6 mb-4">
         <button
-          onClick={onPrev}
-          disabled={!canPrev || isLoading}
-          className={`px-4 py-2 rounded-md border border-red-300 hover:bg-red-50 touch-manipulation ${
-            !canPrev || isLoading ? "text-gray-400 opacity-50" : "text-red-500 font-bold"
-          }`}
+          onClick={handlePrev}
+          disabled={!canPrev || isPending}
+          aria-label="Go to previous page"
+          className={`px-4 py-2 rounded-md border border-red-300 hover:bg-red-50 touch-manipulation
+            ${!canPrev || isPending ? "text-gray-400 opacity-50 cursor-not-allowed" : "text-red-500 font-bold"}
+            ${isTransitioning && direction === 'prev' ? 'relative bg-red-50' : ''}
+          `}
         >
-          Previous
+          {isTransitioning && direction === 'prev' ? (
+            <span className="absolute inset-0 flex items-center justify-center">
+              <span className="w-3 h-3 rounded-full border-2 border-red-500 border-t-transparent animate-spin mr-1"></span>
+            </span>
+          ) : null}
+          <span className={isTransitioning && direction === 'prev' ? 'opacity-0' : ''}>Previous</span>
         </button>
 
         {/* Page info from parent */}
@@ -125,13 +187,20 @@ export const ExplorerGrid = ({
         )}
 
         <button
-          onClick={onNext}
-          disabled={!canNext || isLoading}
-          className={`px-4 py-2 rounded-md border border-red-300 hover:bg-red-50 touch-manipulation ${
-            !canNext || isLoading ? "text-gray-400 opacity-50" : "text-red-500 font-bold"
-          }`}
+          onClick={handleNext}
+          disabled={!canNext || isPending}
+          aria-label="Go to next page"
+          className={`px-4 py-2 rounded-md border border-red-300 hover:bg-red-50 touch-manipulation
+            ${!canNext || isPending ? "text-gray-400 opacity-50 cursor-not-allowed" : "text-red-500 font-bold"}
+            ${isTransitioning && direction === 'next' ? 'relative bg-red-50' : ''}
+          `}
         >
-          Next
+          {isTransitioning && direction === 'next' ? (
+            <span className="absolute inset-0 flex items-center justify-center">
+              <span className="w-3 h-3 rounded-full border-2 border-red-500 border-t-transparent animate-spin mr-1"></span>
+            </span>
+          ) : null}
+          <span className={isTransitioning && direction === 'next' ? 'opacity-0' : ''}>Next</span>
         </button>
       </div>
     </div>
