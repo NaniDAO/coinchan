@@ -157,8 +157,25 @@ export async function fetchPoolCandles(
     }
 
     // Check if we have valid data
-    if (!data || !data.candles || !data.candles.items || !data.candles.items.length) {
-      console.warn("No candle data returned from API");
+    if (!data) {
+      console.warn("No data returned from API");
+      return []; // Return empty array
+    }
+
+    if (!data.candles) {
+      console.warn("No candles object in API response");
+      console.log("Full response:", responseData);
+      return []; // Return empty array
+    }
+
+    if (!data.candles.items) {
+      console.warn("No items array in candles response");
+      console.log("Candles object:", data.candles);
+      return []; // Return empty array
+    }
+
+    if (!data.candles.items.length) {
+      console.warn(`No candle data returned from API for interval ${interval}`);
       return []; // Return empty array
     }
 

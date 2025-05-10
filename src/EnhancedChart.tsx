@@ -57,6 +57,9 @@ export default function EnhancedChart({
     ? (window as any).ENV_INDEXER_URL || import.meta.env.VITE_INDEXER_URL
     : 'unknown';
 
+  // State for fallback interval
+  const [usingFallbackInterval, setUsingFallbackInterval] = useState<TimeInterval | null>(null);
+
   // Fetch candle data
   const {
     data: candleData,
@@ -68,8 +71,27 @@ export default function EnhancedChart({
     queryFn: async () => {
       try {
         console.log(`Fetching candles for pool ${poolId} with interval ${interval}`);
-        const data = await fetchPoolCandles(poolId, interval);
-        console.log(`Got ${data?.length || 0} candle data points`);
+        let data = await fetchPoolCandles(poolId, interval);
+        console.log(`Got ${data?.length || 0} candle data points for interval ${interval}`);
+
+        // If no data for the selected interval, try a different one
+        if (data.length === 0) {
+          // Fallback intervals in order of preference
+          const fallbackIntervals: TimeInterval[] = ['1d', '4h', '1h', '15m'];
+
+          for (const fallbackInterval of fallbackIntervals) {
+            if (fallbackInterval !== interval) {
+              console.log(`Trying fallback interval ${fallbackInterval}`);
+              data = await fetchPoolCandles(poolId, fallbackInterval);
+              if (data.length > 0) {
+                console.log(`Found ${data.length} candles with fallback interval ${fallbackInterval}`);
+                setUsingFallbackInterval(fallbackInterval);
+                break;
+              }
+            }
+          }
+        }
+
         return data;
       } catch (error) {
         console.error('Error fetching candle data:', error);
@@ -402,7 +424,10 @@ export default function EnhancedChart({
               {displayIntervals.map((option) => (
                 <button
                   key={option.value}
-                  onClick={() => setInterval(option.value)}
+                  onClick={() => {
+                    setInterval(option.value);
+                    setUsingFallbackInterval(null); // Reset fallback when changing interval
+                  }}
                   className={`px-2 py-0.5 text-xs rounded ${
                     interval === option.value
                       ? 'bg-white shadow-sm text-black'
@@ -417,27 +442,34 @@ export default function EnhancedChart({
 
           {/* Indicator controls - visible only when we have data */}
           {(hasData && chartType === 'candle') && (
-            <div className="flex flex-wrap items-center gap-2 mt-2">
-              <button
-                onClick={toggleSMA}
-                className={`px-2 py-0.5 text-xs rounded ${
-                  indicators.showSMA
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                SMA({indicators.smaPeriod})
-              </button>
-              <button
-                onClick={toggleEMA}
-                className={`px-2 py-0.5 text-xs rounded ${
-                  indicators.showEMA
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                EMA({indicators.emaPeriod})
-              </button>
+            <div className="flex flex-wrap items-center justify-between gap-2 mt-2">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={toggleSMA}
+                  className={`px-2 py-0.5 text-xs rounded ${
+                    indicators.showSMA
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  SMA({indicators.smaPeriod})
+                </button>
+                <button
+                  onClick={toggleEMA}
+                  className={`px-2 py-0.5 text-xs rounded ${
+                    indicators.showEMA
+                      ? 'bg-orange-500 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  EMA({indicators.emaPeriod})
+                </button>
+              </div>
+              {usingFallbackInterval && (
+                <div className="text-xs text-amber-600">
+                  <span className="font-medium">Note:</span> Using {usingFallbackInterval} interval data (no data available for {interval})
+                </div>
+              )}
             </div>
           )}
         </CardHeader>
@@ -515,6 +547,9 @@ export default function EnhancedChart({
                   <div className="bg-white p-2 rounded mt-1 overflow-auto max-h-28">
                     <pre>{JSON.stringify(priceData[0], null, 2)}</pre>
                   </div>
+                  <p className="text-sm text-blue-600 mt-2">
+                    Note: price1 = {priceData[0].price1.toFixed(8)} ETH (${(priceData[0].price1 * 3000).toFixed(2)} at $3000/ETH)
+                  </p>
                 </div>
               )}
             </div>
