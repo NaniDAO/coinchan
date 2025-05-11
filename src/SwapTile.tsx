@@ -127,7 +127,7 @@ const computePoolId = (coinId: bigint) =>
   );
 
 // Function to compute a custom pool ID with specific tokens and fee
-const computeCustomPoolId = (id0: bigint, id1: bigint, token0: string, token1: string, swapFee: bigint) =>
+const computeCustomPoolId = (id0: bigint, id1: bigint, token0: `0x${string}`, token1: `0x${string}`, swapFee: bigint) =>
   BigInt(
     keccak256(
       encodeAbiParameters(
