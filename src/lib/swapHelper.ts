@@ -26,14 +26,15 @@ const deadlineTimestamp = () => BigInt(Math.floor(Date.now() / 1000) + DEADLINE_
 /**
  * Compute pool key structure for a coin ID
  * @param coinId The coin ID to trade with ETH
+ * @param customFee Optional custom fee to use (default: 1%)
  * @returns PoolKey structure
  */
-export const computePoolKey = (coinId: bigint) => ({
+export const computePoolKey = (coinId: bigint, customFee: bigint = SWAP_FEE) => ({
   id0: 0n,
   id1: coinId,
   token0: zeroAddress,
   token1: CoinsAddress,
-  swapFee: SWAP_FEE,
+  swapFee: customFee,
 });
 
 /**
@@ -75,12 +76,29 @@ export function createCoinSwapMulticall(
   expectedEthOut: bigint,
   amountOutMinFinal: bigint,
   receiver: Address,
+  customSourcePoolKey?: any, // Optional custom pool key for USDT
+  customTargetPoolKey?: any, // Optional custom pool key for USDT
 ): `0x${string}`[] {
   // Create pool keys for both swaps
-  const sourcePoolKey = computePoolKey(sourceCoinId);
-  const targetPoolKey = computePoolKey(targetCoinId);
+  const sourcePoolKey = customSourcePoolKey || computePoolKey(sourceCoinId);
+  const targetPoolKey = customTargetPoolKey || computePoolKey(targetCoinId);
 
   const deadline = deadlineTimestamp();
+
+  // Check if we're dealing with USDT
+  const isSourceUSDT = customSourcePoolKey &&
+    customSourcePoolKey.token1 === "0xdAC17F958D2ee523a2206206994597C13D831ec7";
+  const isTargetUSDT = customTargetPoolKey &&
+    customTargetPoolKey.token1 === "0xdAC17F958D2ee523a2206206994597C13D831ec7";
+
+  console.log("Creating multihop swap with:", {
+    isSourceUSDT,
+    isTargetUSDT,
+    sourceCoinId: sourceCoinId.toString(),
+    targetCoinId: targetCoinId.toString(),
+    amountIn: amountIn.toString(),
+    expectedEthOut: expectedEthOut.toString()
+  });
 
   // Create the multicall array with functions to call
   const multicallData: `0x${string}`[] = [
@@ -115,12 +133,12 @@ export function createCoinSwapMulticall(
     }) as `0x${string}`,
 
     // 3. Recover any leftover source coins - likely none since we use full amount
-    // but keep for safety in case of execution failure or unusual circumstances
+    // For USDT, recover from USDT address; for regular coins, from CoinsAddress
     encodeFunctionData({
       abi: ZAAMAbi,
       functionName: "recoverTransientBalance",
       args: [
-        CoinsAddress, // Token address for source coin
+        isSourceUSDT ? customSourcePoolKey.token1 : CoinsAddress, // Token address
         sourceCoinId, // Source coin ID
         receiver, // Return any leftovers to the receiver
       ],
@@ -139,12 +157,12 @@ export function createCoinSwapMulticall(
     }) as `0x${string}`,
 
     // 5. Recover any excess target coins (unlikely but possible)
-    // This could happen if the contract has a transient balance of the target coin
+    // For USDT, recover from USDT address; for regular coins, from CoinsAddress
     encodeFunctionData({
       abi: ZAAMAbi,
       functionName: "recoverTransientBalance",
       args: [
-        CoinsAddress, // Token address for target coin
+        isTargetUSDT ? customTargetPoolKey.token1 : CoinsAddress, // Token address
         targetCoinId, // Target coin ID
         receiver, // Return any leftovers to the receiver
       ],
@@ -171,13 +189,15 @@ export function estimateCoinToCoinOutput(
   sourceReserves: { reserve0: bigint; reserve1: bigint },
   targetReserves: { reserve0: bigint; reserve1: bigint },
   slippageBps: bigint = 200n,
+  sourceSwapFee: bigint = SWAP_FEE, // Custom fee for source pool (USDT: 30n)
+  targetSwapFee: bigint = SWAP_FEE, // Custom fee for target pool (USDT: 30n)
 ): { amountOut: bigint; withSlippage: bigint; ethAmountOut: bigint } {
   // First swap: sourceCoin → ETH
   const ethAmountOut = getAmountOut(
     amountIn,
     sourceReserves.reserve1, // Source coin reserve
     sourceReserves.reserve0, // ETH reserve
-    SWAP_FEE,
+    sourceSwapFee, // Use custom fee for source pool
   );
 
   if (ethAmountOut === 0n)
@@ -196,7 +216,7 @@ export function estimateCoinToCoinOutput(
     safeEthAmountOut, // Use the safe ETH amount for estimation
     targetReserves.reserve0, // ETH reserve
     targetReserves.reserve1, // Target coin reserve
-    SWAP_FEE,
+    targetSwapFee, // Use custom fee for target pool
   );
 
   return {
