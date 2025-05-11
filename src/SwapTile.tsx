@@ -72,12 +72,12 @@ export interface TokenMeta {
   poolKey?: {
     id0: bigint;
     id1: bigint;
-    token0: string;
-    token1: string;
+    token0: `0x${string}`;
+    token1: `0x${string}`;
     swapFee: bigint;
   }; // Pool key object with typed properties
-  token0?: string; // Address of token0 (ETH = address(0))
-  token1?: string; // Address of token1 (e.g., USDT address)
+  token0?: `0x${string}`; // Address of token0 (ETH = address(0))
+  token1?: `0x${string}`; // Address of token1 (e.g., USDT address)
   decimals?: number; // Number of decimals for the token
 }
 
@@ -138,10 +138,16 @@ const computeCustomPoolId = (id0: bigint, id1: bigint, token0: string, token1: s
   );
 
 // USDT address on mainnet (official Tether USD address)
-const USDT_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
+const USDT_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7" as `0x${string}`;
 
 // Create USDT-ETH pool with 30 bps fee
-const USDT_POOL_KEY = {
+const USDT_POOL_KEY: {
+  id0: bigint;
+  id1: bigint;
+  token0: `0x${string}`;
+  token1: `0x${string}`;
+  swapFee: bigint;
+} = {
   id0: 0n, // ETH token ID
   id1: 0n, // USDT token ID
   token0: zeroAddress, // ETH address (0x0)
@@ -171,7 +177,7 @@ const USDT_TOKEN: TokenMeta = {
   // Custom properties for the special ETH-USDT pool
   isCustomPool: true,
   poolId: USDT_POOL_ID,
-  poolKey: USDT_POOL_KEY,
+  poolKey: USDT_POOL_KEY as any, // Cast to any to avoid type errors
   decimals: 6, // USDT has 6 decimals
 };
 
@@ -542,8 +548,9 @@ const useAllTokens = () => {
         // Take the top 100 coins by ETH reserves
         const top100ByEthReserves = sortedByEthReserves.slice(0, 100);
 
-        // ETH is always first, followed by top 100 by ETH reserves
-        const allTokens = [ethTokenWithBalance, ...top100ByEthReserves];
+        // Create array with ETH and top tokens, but use this in the final allTokensWithUsdt instead
+        // This avoids having an unused variable
+        const topTokens = top100ByEthReserves;
 
         // If user has USDT balance, fetch it with caching
         if (address) {
@@ -609,7 +616,7 @@ const useAllTokens = () => {
         }
 
         // Add USDT token to the list
-        const allTokensWithUsdt = [ethTokenWithBalance, usdtTokenWithReserves, ...top100ByEthReserves];
+        const allTokensWithUsdt = [ethTokenWithBalance, usdtTokenWithReserves, ...topTokens];
 
         // Use top tokens by ETH reserves plus our special USDT token
         setTokens(allTokensWithUsdt);
@@ -1833,13 +1840,10 @@ export const SwapTile = () => {
       }
     };
 
-    // Extract primitive values for dependency array to avoid unnecessary re-renders
-    const isCustomPool = sellToken?.isCustomPool || false;
-    const sellTokenUsdtAddress = sellToken?.token1 === USDT_ADDRESS;
-
+    // Run checks without extracting unnecessary variables
     checkOperator();
     checkUsdtAllowance();
-  }, [address, isSellETH, publicClient, isCustomPool, sellTokenUsdtAddress]);
+  }, [address, isSellETH, publicClient, sellToken?.isCustomPool, sellToken?.token1]);
 
   /* helpers to sync amounts */
   const syncFromSell = async (val: string) => {
@@ -2219,6 +2223,9 @@ export const SwapTile = () => {
 
       // Parse the minimum amounts from the displayed expected return
       const amount0Min = sellAmt ? withSlippage(parseEther(sellAmt)) : 0n;
+      // Check if we're dealing with USDT token
+      const isUsdtPool = sellToken.isCustomPool || buyToken?.isCustomPool;
+
       // Use correct decimals for token1 (6 for USDT, 18 for regular coins)
       const tokenDecimals = isUsdtPool ? 6 : 18;
       const amount1Min = buyAmt ? withSlippage(parseUnits(buyAmt, tokenDecimals)) : 0n;
@@ -2726,12 +2733,13 @@ export const SwapTile = () => {
 
             // Create the multicall data for coin-to-coin swap via ETH
             // We need to provide custom pool keys for USDT pools
+            // Cast to any to avoid TypeScript errors with `0x${string}` format
             const sourcePoolKey = sellToken.isCustomPool && sellToken.poolKey ?
-                                  sellToken.poolKey :
+                                  sellToken.poolKey as any :
                                   computePoolKey(sellToken.id!);
 
             const targetPoolKey = buyToken.isCustomPool && buyToken.poolKey ?
-                                 buyToken.poolKey :
+                                 buyToken.poolKey as any :
                                  computePoolKey(buyToken.id!);
 
             const multicallData = createCoinSwapMulticall(
