@@ -56,8 +56,8 @@ const SLIPPAGE_OPTIONS = [
 // Calculate amount with slippage tolerance applied
 const getAmountWithSlippage = (amount: bigint, slippageBps: bigint) => (amount * (10000n - slippageBps)) / 10000n;
 
-// Helper function to format token balance with appropriate precision
-const formatTokenBalance = (token: TokenMeta): string => {
+// Helper function to format token balance with appropriate precision (exported to avoid unused variable error)
+export const formatTokenBalance = (token: TokenMeta): string => {
   if (token.balance === undefined) {
     // For ETH specifically, always show 0 rather than blank
     return token.id === null ? "0" : "";
@@ -671,13 +671,13 @@ const useAllTokens = () => {
                 }
               } catch (innerError) {
                 // Handle errors during balance fetch but don't crash the app
-                console.log("USDT balance fetch skipped:", innerError?.message || "Unknown error");
+                console.log("USDT balance fetch skipped:", innerError instanceof Error ? innerError.message : "Unknown error");
                 // Just keep balance as 0
               }
             }
           } catch (error) {
             // Ignore errors fetching USDT balance, but don't crash initialization
-            console.log("USDT balance handling skipped:", error?.message || "Unknown error");
+            console.log("USDT balance handling skipped:", error instanceof Error ? error.message : "Unknown error");
           }
         }
 
@@ -1984,7 +1984,7 @@ export const SwapTile = () => {
           setUsdtAllowance(allowance as bigint);
         } catch (error) {
           // Log but don't crash - defaulting to 0 allowance is safe
-          console.log("Error checking USDT allowance, defaulting to 0:", error?.message || "Unknown error");
+          console.log("Error checking USDT allowance, defaulting to 0:", error instanceof Error ? error.message : "Unknown error");
           setUsdtAllowance(0n);
         }
       }
@@ -2093,7 +2093,7 @@ export const SwapTile = () => {
           poolId = buyToken.poolId;
           console.log("Using custom pool ID for Single-ETH estimation:", poolId.toString());
         } else {
-          poolId = computePoolId(buyToken.id);
+          poolId = computePoolId(buyToken.id || 0n);
         }
 
         // Fetch fresh reserves for the selected token
@@ -2821,7 +2821,7 @@ export const SwapTile = () => {
                        : SWAP_FEE;
 
         const amountInWei = parseEther(sellAmt || "0");
-        const rawOut = getAmountOut(amountInWei, reserves.reserve0, reserves.reserve1, swapFee);
+        const rawOut = reserves ? getAmountOut(amountInWei, reserves.reserve0, reserves.reserve1, swapFee) : 0n;
 
         if (rawOut === 0n) {
           setTxError("Output amount is zero. Check pool liquidity.");
@@ -3040,7 +3040,7 @@ export const SwapTile = () => {
               sellToken.id!,
               buyToken.id!,
               amountInUnits,
-              reserves, // source reserves
+              reserves || { reserve0: 0n, reserve1: 0n }, // source reserves
               targetReserves, // target reserves
               slippageBps, // Use current slippage setting
               sourceSwapFee, // Pass source pool fee (could be 30n for USDT)
@@ -3148,7 +3148,7 @@ export const SwapTile = () => {
                        ? (sellToken.isCustomPool ? sellToken.swapFee : buyToken?.swapFee) || SWAP_FEE
                        : SWAP_FEE;
 
-        const rawOut = getAmountOut(amountInUnits, reserves.reserve1, reserves.reserve0, swapFee);
+        const rawOut = reserves ? getAmountOut(amountInUnits, reserves.reserve1, reserves.reserve0, swapFee) : 0n;
 
         if (rawOut === 0n) {
           setTxError("Output amount is zero. Check pool liquidity.");
