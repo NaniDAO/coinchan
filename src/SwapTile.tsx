@@ -1605,21 +1605,36 @@ export const SwapTile = () => {
      (sellToken.id !== null && buyToken?.id !== null && sellToken.id !== buyToken.id));
   const isSellETH = sellToken.id === null;
   // For custom USDT-ETH pool, we need special logic to determine if it's a multihop
+  // Check if either token is USDT by symbol instead of relying on token1
+  const isSellUSDT = sellToken.isCustomPool && sellToken.symbol === "USDT";
+  const isBuyUSDT = buyToken?.isCustomPool && buyToken?.symbol === "USDT";
+
   // USDT-ETH direct swaps (either direction) should NOT be treated as multihop
   const isDirectUsdtEthSwap =
     // ETH <-> USDT direct swap
-    (sellToken.id === null && buyToken?.isCustomPool && buyToken?.token1 === USDT_ADDRESS) ||
-    (buyToken?.id === null && sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS);
+    (sellToken.id === null && isBuyUSDT) ||
+    (buyToken?.id === null && isSellUSDT);
+
+  // Log the direct USDT swap detection for debugging
+  if (sellToken.isCustomPool || buyToken?.isCustomPool) {
+    console.log("ETH-USDT Swap Detection:", {
+      isDirectUsdtEthSwap,
+      sellIsETH: sellToken.id === null,
+      buyIsETH: buyToken?.id === null,
+      sellIsCustom: sellToken.isCustomPool,
+      buyIsCustom: buyToken?.isCustomPool,
+      isSellUSDT,
+      isBuyUSDT,
+      sellSymbol: sellToken.symbol,
+      buySymbol: buyToken?.symbol
+    });
+  }
 
   const isCoinToCoin =
-    // Don't treat direct ETH-USDT swaps as multihop
-    !isDirectUsdtEthSwap && (
-      // Handle custom pools as special case for non-direct cases
-      (sellToken.isCustomPool && !buyToken?.isCustomPool) ||
-      (!sellToken.isCustomPool && buyToken?.isCustomPool) ||
-      // Regular coin-to-coin logic
-      (sellToken.id !== null && buyToken?.id !== null && buyToken?.id !== undefined && sellToken.id !== buyToken.id)
-    );
+    // Regular coin-to-coin logic (both have non-null IDs and different IDs)
+    (sellToken.id !== null && buyToken?.id !== null && buyToken?.id !== undefined && sellToken.id !== buyToken.id) ||
+    // Handle custom pools only when they're part of a multi-hop (non-direct) swap
+    ((sellToken.isCustomPool || buyToken?.isCustomPool) && !isDirectUsdtEthSwap);
   // Ensure coinId is always a valid bigint, never undefined
   // Special case: if dealing with a custom pool like USDT, we need to use 0n but mark it as valid
   const isCustomPool = sellToken?.isCustomPool || buyToken?.isCustomPool;
@@ -2027,8 +2042,20 @@ export const SwapTile = () => {
       }
 
       try {
-        // Read the pool's total supply
-        const poolId = computePoolId(coinId);
+        // Calculate the pool ID - different method for custom pools
+        const customPoolUsed = sellToken?.isCustomPool || buyToken?.isCustomPool;
+        let poolId;
+
+        if (customPoolUsed) {
+          // Use the custom token's poolId if available
+          const customToken = sellToken?.isCustomPool ? sellToken : buyToken;
+          poolId = customToken?.poolId || USDT_POOL_ID;
+          console.log("Getting pool info for custom pool:", customToken?.symbol, "pool ID:", poolId.toString());
+        } else {
+          // Regular pool ID calculation
+          poolId = computePoolId(coinId);
+        }
+
         const poolInfo = (await publicClient.readContract({
           address: ZAAMAddress,
           abi: ZAAMAbi,
@@ -2065,8 +2092,13 @@ export const SwapTile = () => {
         // Update the input fields with the calculated values
         setSellAmt(ethAmount === 0n ? "" : formatEther(ethAmount));
         // Use the correct decimals for the token (6 for USDT, 18 for regular tokens)
-        const buyTokenDecimals = buyToken?.decimals || 18;
-        setBuyAmt(tokenAmount === 0n ? "" : formatUnits(tokenAmount, buyTokenDecimals));
+        const tokenDecimals = customPoolUsed ?
+          (sellToken?.isCustomPool ? sellToken?.decimals || 6 : buyToken?.decimals || 6) : 18;
+
+        console.log("Preview calculation using decimals:", tokenDecimals, "for",
+                   sellToken?.isCustomPool ? sellToken?.symbol : buyToken?.symbol);
+
+        setBuyAmt(tokenAmount === 0n ? "" : formatUnits(tokenAmount, tokenDecimals));
       } catch (err) {
         console.error("Error calculating remove liquidity amounts:", err);
         setSellAmt("");
@@ -3624,10 +3656,10 @@ export const SwapTile = () => {
         {/* Pool information */}
         {canSwap && reserves && (
           <div className="text-xs text-gray-500 flex justify-between px-1 mt-1">
-            {mode === "swap" && isCoinToCoin &&
-              // Extra check to prevent showing multihop for ETH-USDT direct swaps
-              !(sellToken.id === null && buyToken?.isCustomPool && buyToken?.token1 === USDT_ADDRESS) &&
-              !(buyToken?.id === null && sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS) ? (
+            {mode === "swap" && isCoinToCoin && !isDirectUsdtEthSwap &&
+              // Extra sanity check - don't show multihop if one token is ETH and the other is USDT
+              !((sellToken.id === null && buyToken?.symbol === "USDT") ||
+                (buyToken?.id === null && sellToken.symbol === "USDT")) ? (
               <span className="flex items-center">
                 <span className="bg-yellow-200 text-yellow-800 px-1 rounded mr-1">Multi-hop</span>
                 {sellToken.symbol} → ETH → {buyToken?.symbol}
