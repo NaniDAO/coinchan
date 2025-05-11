@@ -85,6 +85,21 @@ export function createCoinSwapMulticall(
 
   const deadline = deadlineTimestamp();
 
+  // Check if we're dealing with USDT
+  const isSourceUSDT = customSourcePoolKey &&
+    customSourcePoolKey.token1 === "0xdAC17F958D2ee523a2206206994597C13D831ec7";
+  const isTargetUSDT = customTargetPoolKey &&
+    customTargetPoolKey.token1 === "0xdAC17F958D2ee523a2206206994597C13D831ec7";
+
+  console.log("Creating multihop swap with:", {
+    isSourceUSDT,
+    isTargetUSDT,
+    sourceCoinId: sourceCoinId.toString(),
+    targetCoinId: targetCoinId.toString(),
+    amountIn: amountIn.toString(),
+    expectedEthOut: expectedEthOut.toString()
+  });
+
   // Create the multicall array with functions to call
   const multicallData: `0x${string}`[] = [
     // 1. First swap: sourceCoin → ETH (use ZAAM as the receiver to keep ETH for next swap)
@@ -118,12 +133,12 @@ export function createCoinSwapMulticall(
     }) as `0x${string}`,
 
     // 3. Recover any leftover source coins - likely none since we use full amount
-    // but keep for safety in case of execution failure or unusual circumstances
+    // For USDT, recover from USDT address; for regular coins, from CoinsAddress
     encodeFunctionData({
       abi: ZAAMAbi,
       functionName: "recoverTransientBalance",
       args: [
-        CoinsAddress, // Token address for source coin
+        isSourceUSDT ? customSourcePoolKey.token1 : CoinsAddress, // Token address
         sourceCoinId, // Source coin ID
         receiver, // Return any leftovers to the receiver
       ],
@@ -142,12 +157,12 @@ export function createCoinSwapMulticall(
     }) as `0x${string}`,
 
     // 5. Recover any excess target coins (unlikely but possible)
-    // This could happen if the contract has a transient balance of the target coin
+    // For USDT, recover from USDT address; for regular coins, from CoinsAddress
     encodeFunctionData({
       abi: ZAAMAbi,
       functionName: "recoverTransientBalance",
       args: [
-        CoinsAddress, // Token address for target coin
+        isTargetUSDT ? customTargetPoolKey.token1 : CoinsAddress, // Token address
         targetCoinId, // Target coin ID
         receiver, // Return any leftovers to the receiver
       ],
