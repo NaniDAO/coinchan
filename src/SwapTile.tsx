@@ -66,6 +66,19 @@ export interface TokenMeta {
   liquidity?: bigint; // Total liquidity in the pool
   swapFee?: bigint; // Custom swap fee for the pool (default is 100n - 1%)
   balance?: bigint; // User's balance of this token
+  // Below fields are for custom pools (like USDT-ETH)
+  isCustomPool?: boolean; // Flag to identify custom pools
+  poolId?: bigint; // Computed pool ID
+  poolKey?: {
+    id0: bigint;
+    id1: bigint;
+    token0: string;
+    token1: string;
+    swapFee: bigint;
+  }; // Pool key object with typed properties
+  token0?: string; // Address of token0 (ETH = address(0))
+  token1?: string; // Address of token1 (e.g., USDT address)
+  decimals?: number; // Number of decimals for the token
 }
 
 // Inline SVG for ETH
@@ -78,6 +91,12 @@ const ETH_SVG = `<svg fill="#000000" width="800px" height="800px" viewBox="0 0 3
 <path fill-opacity=".298" d="M9 16.22l7.498 4.353v-7.701z"/>
 </g>
 </g>
+</svg>`;
+
+// USDT Tether logo SVG
+const USDT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2000 2000" width="2000" height="2000">
+<path d="M1000,0c552.26,0,1000,447.74,1000,1000S1552.24,2000,1000,2000,0,1552.38,0,1000,447.68,0,1000,0" fill="#53ae94"/>
+<path d="M1123.42,866.76V718H1463.6V491.34H537.28V718H877.5V866.64C601,879.34,393.1,934.1,393.1,999.7s208,120.36,484.4,133.14v476.5h246V1132.8c276-12.74,483.48-67.46,483.48-133s-207.48-120.26-483.48-133m0,225.64v-0.12c-8.54.44-65.84,3.22-123.68,3.22-59.52,0-115.78-2.78-123.68-3.22V999.7c8.12-.44,67.58-5.18,123.68-5.18,58.08,0,115.75,4.74,123.68,5.18v92.7Z" fill="#fff"/>
 </svg>`;
 
 const ETH_TOKEN: TokenMeta = {
@@ -106,6 +125,55 @@ const computePoolId = (coinId: bigint) =>
       ),
     ),
   );
+
+// Function to compute a custom pool ID with specific tokens and fee
+const computeCustomPoolId = (id0: bigint, id1: bigint, token0: string, token1: string, swapFee: bigint) =>
+  BigInt(
+    keccak256(
+      encodeAbiParameters(
+        parseAbiParameters("uint256 id0, uint256 id1, address token0, address token1, uint96 swapFee"),
+        [id0, id1, token0, token1, swapFee],
+      ),
+    ),
+  );
+
+// USDT address on mainnet (official Tether USD address)
+const USDT_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
+
+// Create USDT-ETH pool with 30 bps fee
+const USDT_POOL_KEY = {
+  id0: 0n, // ETH token ID
+  id1: 0n, // USDT token ID
+  token0: zeroAddress, // ETH address (0x0)
+  token1: USDT_ADDRESS, // USDT address
+  swapFee: 30n, // 0.3% fee (30 bps) - Standard Uniswap V2 fee tier
+};
+
+// Compute the pool ID for USDT-ETH
+const USDT_POOL_ID = computeCustomPoolId(
+  USDT_POOL_KEY.id0,
+  USDT_POOL_KEY.id1,
+  USDT_POOL_KEY.token0,
+  USDT_POOL_KEY.token1,
+  USDT_POOL_KEY.swapFee
+);
+
+// Define USDT token
+const USDT_TOKEN: TokenMeta = {
+  id: 0n, // Special USDT token with ID 0
+  name: "Tether USD",
+  symbol: "USDT",
+  tokenUri: `data:image/svg+xml;base64,${btoa(USDT_SVG)}`,
+  reserve0: 1000000000000000000000n, // 1000 ETH (placeholder - will be updated by hook)
+  reserve1: 2000000000000n, // 2M USDT (6 decimals, placeholder)
+  swapFee: 30n, // 0.3% fee tier (30 bps)
+  balance: 0n, // User balance
+  // Custom properties for the special ETH-USDT pool
+  isCustomPool: true,
+  poolId: USDT_POOL_ID,
+  poolKey: USDT_POOL_KEY,
+  decimals: 6, // USDT has 6 decimals
+};
 
 // x*y=k AMM with fee — forward (amountIn → amountOut)
 const getAmountOut = (amountIn: bigint, reserveIn: bigint, reserveOut: bigint, swapFee: bigint) => {
@@ -187,6 +255,29 @@ const useAllTokens = () => {
       }
 
       try {
+        // Fetch USDT-ETH pool reserves first
+        let usdtTokenWithReserves = { ...USDT_TOKEN };
+        try {
+          // Fetch USDT-ETH pool reserves using the poolId
+          const usdtPoolResult = await publicClient.readContract({
+            address: ZAAMAddress,
+            abi: ZAAMAbi,
+            functionName: "pools",
+            args: [USDT_POOL_ID],
+          });
+
+          // Handle the result
+          if (usdtPoolResult) {
+            const poolData = usdtPoolResult as unknown as readonly bigint[];
+            usdtTokenWithReserves.reserve0 = poolData[0]; // ETH reserves
+            usdtTokenWithReserves.reserve1 = poolData[1]; // USDT reserves
+            usdtTokenWithReserves.liquidity = poolData[6] || 0n; // Liquidity
+          }
+        } catch (error) {
+          // If pool doesn't exist yet, use placeholder values
+          console.log("USDT-ETH pool reserves fetch failed, using placeholders");
+        }
+
         // Get the total coin count first to verify
         const countResult = await publicClient.readContract({
           address: CoinchanAddress,
@@ -454,8 +545,74 @@ const useAllTokens = () => {
         // ETH is always first, followed by top 100 by ETH reserves
         const allTokens = [ethTokenWithBalance, ...top100ByEthReserves];
 
-        // Use top tokens by ETH reserves
-        setTokens(allTokens);
+        // If user has USDT balance, fetch it with caching
+        if (address) {
+          try {
+            // Try to get the balance from cache first with same caching mechanism as other tokens
+            const usdtBalanceCacheKey = `coinchan_usdt_balance_${address}`;
+            const usdtBalanceCacheTimestampKey = `${usdtBalanceCacheKey}_timestamp`;
+            const now = Date.now();
+
+            let usdtBalance: bigint = 0n;
+            let shouldFetchFromChain = true;
+
+            // Check for valid cached balance
+            try {
+              const cachedBalance = localStorage.getItem(usdtBalanceCacheKey);
+              const cachedTimestamp = localStorage.getItem(usdtBalanceCacheTimestampKey);
+
+              // Use cache if it's valid and recent
+              if (cachedBalance && cachedTimestamp && now - parseInt(cachedTimestamp) < BALANCE_CACHE_VALIDITY_MS) {
+                usdtBalance = BigInt(cachedBalance);
+                shouldFetchFromChain = false;
+                usdtTokenWithReserves.balance = usdtBalance;
+              }
+            } catch (e) {
+              // Ignore cache errors
+            }
+
+            // Fetch fresh balance from chain if needed
+            if (shouldFetchFromChain) {
+              // Try to get USDT balance from ERC20
+              const freshUsdtBalance = await publicClient.readContract({
+                address: USDT_ADDRESS,
+                abi: [
+                  {
+                    inputs: [{ internalType: "address", name: "account", type: "address" }],
+                    name: "balanceOf",
+                    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+                    stateMutability: "view",
+                    type: "function",
+                  },
+                ],
+                functionName: "balanceOf",
+                args: [address],
+              });
+
+              if (freshUsdtBalance) {
+                usdtBalance = freshUsdtBalance as bigint;
+                usdtTokenWithReserves.balance = usdtBalance;
+
+                // Cache the balance
+                try {
+                  localStorage.setItem(usdtBalanceCacheKey, usdtBalance.toString());
+                  localStorage.setItem(usdtBalanceCacheTimestampKey, now.toString());
+                } catch (e) {
+                  // Ignore storage errors
+                }
+              }
+            }
+          } catch (error) {
+            // Ignore errors fetching USDT balance
+            console.error("Error fetching USDT balance:", error);
+          }
+        }
+
+        // Add USDT token to the list
+        const allTokensWithUsdt = [ethTokenWithBalance, usdtTokenWithReserves, ...top100ByEthReserves];
+
+        // Use top tokens by ETH reserves plus our special USDT token
+        setTokens(allTokensWithUsdt);
       } catch (err) {
         // Error fetching tokens
         setError("Failed to load tokens");
@@ -533,7 +690,9 @@ const TokenSelector = React.memo(
         }
 
         // For regular tokens
-        const tokenValue = Number(formatUnits(token.balance, 18));
+        // Use correct decimals for the token (default to 18)
+        const decimals = token.decimals || 18;
+        const tokenValue = Number(formatUnits(token.balance, decimals));
 
         if (tokenValue >= 1000) {
           return `${Math.floor(tokenValue).toLocaleString()}`;
@@ -838,6 +997,13 @@ const TokenSelector = React.memo(
                     // Use memo version for faster search - throttle search for better performance
                     const query = e.target.value.toLowerCase();
 
+                    // Check for special searches (USDT, Tether, Stable)
+                    const isStableSearch =
+                      query === "usdt" ||
+                      query === "tether" ||
+                      query.includes("stable") ||
+                      query.includes("usd");
+
                     // Debounce the search with requestAnimationFrame for better performance
                     const w = window as any; // Type assertion for the debounce property
                     if (w.searchDebounce) {
@@ -848,6 +1014,14 @@ const TokenSelector = React.memo(
                       // Get all token items by data attribute - limit to visible ones first
                       const visibleItems = document.querySelectorAll("[data-token-symbol]:not(.hidden)");
                       const allItems = document.querySelectorAll("[data-token-symbol]");
+
+                      // Special case: If searching for stablecoins, make sure USDT is visible
+                      if (isStableSearch) {
+                        const usdtItem = document.querySelector("[data-token-symbol='USDT']");
+                        if (usdtItem) {
+                          usdtItem.classList.remove("hidden");
+                        }
+                      }
 
                       // Only query all items if no visible items match
                       const itemsToSearch = visibleItems.length > 0 ? visibleItems : allItems;
@@ -868,6 +1042,15 @@ const TokenSelector = React.memo(
                           anyVisible = true;
                         } else {
                           item.classList.add("hidden");
+                        }
+                      }
+
+                      // For USDT searches, ensure we always check for USDT even if no visible items match
+                      if (isStableSearch && !anyVisible) {
+                        const usdtItem = document.querySelector("[data-token-symbol='USDT']");
+                        if (usdtItem) {
+                          usdtItem.classList.remove("hidden");
+                          anyVisible = true;
                         }
                       }
 
@@ -936,7 +1119,23 @@ const TokenSelector = React.memo(
 
                   // Format the custom fee if available (as percentage)
                   const feePercentage = token.swapFee ? Number(token.swapFee) / 100 : 1; // Default is 1%
-                  const feeStr = feePercentage % 1 === 0 ? `${feePercentage}%` : `${feePercentage.toFixed(2)}%`;
+
+                  // Format fee: For 0.3% (USDT), display it without trailing zeros
+                  // For integer percentages like 1%, show without decimal places
+                  let feeStr;
+                  if (feePercentage % 1 === 0) {
+                    // Integer percentage (e.g., 1%)
+                    feeStr = `${feePercentage.toFixed(0)}%`;
+                  } else if (feePercentage * 10 % 1 === 0) {
+                    // One decimal place needed (e.g., 0.3%)
+                    feeStr = `${feePercentage.toFixed(1)}%`;
+                  } else {
+                    // Two decimal places (e.g., 0.25%)
+                    feeStr = `${feePercentage.toFixed(2)}%`;
+                  }
+
+                  // Handle special case for USDT (6 decimals)
+                  const tokenDecimals = token.decimals || 18;
 
                   // If no liquidity data available or zero liquidity
                   if (!token.liquidity || token.liquidity === 0n) {
@@ -976,30 +1175,68 @@ const TokenSelector = React.memo(
                     return result;
                   }
 
-                  // Format the ETH reserves (reserve0)
-                  const ethReserveValue = Number(formatEther(token.reserve0 || 0n));
+                  // Format the reserves
+                  // For custom pools like USDT-ETH, format differently
                   let reserveStr = "";
 
-                  if (ethReserveValue >= 10000) {
-                    reserveStr = `${Math.floor(ethReserveValue / 1000)}K ETH`;
-                  } else if (ethReserveValue >= 1000) {
-                    reserveStr = `${(ethReserveValue / 1000).toFixed(1)}K ETH`;
-                  } else if (ethReserveValue >= 1.0) {
-                    reserveStr = `${ethReserveValue.toFixed(2)} ETH`;
-                  } else if (ethReserveValue >= 0.001) {
-                    reserveStr = `${ethReserveValue.toFixed(4)} ETH`;
-                  } else if (ethReserveValue > 0) {
-                    reserveStr = `${ethReserveValue.toFixed(6)} ETH`;
-                  } else {
-                    const result = `No ETH reserves • ${feeStr}`;
-                    try {
-                      sessionStorage.setItem(cacheKey, result);
-                    } catch (e) {
-                      // Ignore storage errors
+                  if (token.isCustomPool) {
+                    // Show both reserves
+                    const ethReserveValue = Number(formatEther(token.reserve0 || 0n));
+                    const tokenReserveValue = Number(formatUnits(token.reserve1 || 0n, tokenDecimals));
+
+                    let ethStr = "";
+                    if (ethReserveValue >= 10000) {
+                      ethStr = `${Math.floor(ethReserveValue / 1000)}K ETH`;
+                    } else if (ethReserveValue >= 1000) {
+                      ethStr = `${(ethReserveValue / 1000).toFixed(1)}K ETH`;
+                    } else if (ethReserveValue >= 1.0) {
+                      ethStr = `${ethReserveValue.toFixed(2)} ETH`;
+                    } else if (ethReserveValue > 0) {
+                      ethStr = `${ethReserveValue.toFixed(4)} ETH`;
                     }
-                    return result;
+
+                    let tokenStr = "";
+                    if (tokenReserveValue >= 1000000) {
+                      tokenStr = `${Math.floor(tokenReserveValue / 1000000)}M ${token.symbol}`;
+                    } else if (tokenReserveValue >= 1000) {
+                      tokenStr = `${Math.floor(tokenReserveValue / 1000)}K ${token.symbol}`;
+                    } else {
+                      tokenStr = `${tokenReserveValue.toFixed(2)} ${token.symbol}`;
+                    }
+
+                    // For USDT-ETH pool, format reserves with more clarity
+                    if (token.token1 === USDT_ADDRESS) {
+                      reserveStr = `${ethStr} • ${tokenStr} • ${feeStr}`;
+                    } else {
+                      reserveStr = `${ethStr} / ${tokenStr}`;
+                    }
+                  } else {
+                    // Regular token pools
+                    const ethReserveValue = Number(formatEther(token.reserve0 || 0n));
+
+                    if (ethReserveValue >= 10000) {
+                      reserveStr = `${Math.floor(ethReserveValue / 1000)}K ETH`;
+                    } else if (ethReserveValue >= 1000) {
+                      reserveStr = `${(ethReserveValue / 1000).toFixed(1)}K ETH`;
+                    } else if (ethReserveValue >= 1.0) {
+                      reserveStr = `${ethReserveValue.toFixed(2)} ETH`;
+                    } else if (ethReserveValue >= 0.001) {
+                      reserveStr = `${ethReserveValue.toFixed(4)} ETH`;
+                    } else if (ethReserveValue > 0) {
+                      reserveStr = `${ethReserveValue.toFixed(6)} ETH`;
+                    } else {
+                      const result = `No ETH reserves • ${feeStr}`;
+                      try {
+                        sessionStorage.setItem(cacheKey, result);
+                        return result;
+                      } catch (e) {
+                        // Ignore storage errors
+                        return result;
+                      }
+                    }
                   }
 
+                  // If we have reserveStr, return the result with the fee
                   const result = `${reserveStr} • ${feeStr}`;
                   try {
                     sessionStorage.setItem(cacheKey, result);
@@ -1540,8 +1777,44 @@ export const SwapTile = () => {
 
   /* Check if user has approved ZAAM as operator */
   const [isOperator, setIsOperator] = useState<boolean | null>(null);
+  const [usdtAllowance, setUsdtAllowance] = useState<bigint | null>(null);
 
   useEffect(() => {
+    // Function to check USDT allowance
+    const checkUsdtAllowance = async () => {
+      if (!address || !publicClient) return;
+
+      // Only check if selling USDT (custom pool token)
+      // Be specific about USDT address to avoid checking unrelated custom pools
+      if (sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS) {
+        try {
+          // ERC20 allowance check
+          const allowance = await publicClient.readContract({
+            address: USDT_ADDRESS,
+            abi: [
+              {
+                inputs: [
+                  { internalType: "address", name: "owner", type: "address" },
+                  { internalType: "address", name: "spender", type: "address" }
+                ],
+                name: "allowance",
+                outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+                stateMutability: "view",
+                type: "function",
+              },
+            ],
+            functionName: "allowance",
+            args: [address, ZAAMAddress],
+          });
+
+          setUsdtAllowance(allowance as bigint);
+        } catch (error) {
+          console.error("Error checking USDT allowance:", error);
+          setUsdtAllowance(0n);
+        }
+      }
+    };
+
     const checkOperator = async () => {
       if (!address || !publicClient || isSellETH) return;
 
@@ -1560,8 +1833,13 @@ export const SwapTile = () => {
       }
     };
 
+    // Extract primitive values for dependency array to avoid unnecessary re-renders
+    const isCustomPool = sellToken?.isCustomPool || false;
+    const sellTokenUsdtAddress = sellToken?.token1 === USDT_ADDRESS;
+
     checkOperator();
-  }, [address, isSellETH, publicClient]);
+    checkUsdtAllowance();
+  }, [address, isSellETH, publicClient, isCustomPool, sellTokenUsdtAddress]);
 
   /* helpers to sync amounts */
   const syncFromSell = async (val: string) => {
@@ -1614,7 +1892,9 @@ export const SwapTile = () => {
 
         // Update the input fields with the calculated values
         setSellAmt(ethAmount === 0n ? "" : formatEther(ethAmount));
-        setBuyAmt(tokenAmount === 0n ? "" : formatUnits(tokenAmount, 18));
+        // Use the correct decimals for the token (6 for USDT, 18 for regular tokens)
+        const buyTokenDecimals = buyToken?.decimals || 18;
+        setBuyAmt(tokenAmount === 0n ? "" : formatUnits(tokenAmount, buyTokenDecimals));
       } catch (err) {
         console.error("Error calculating remove liquidity amounts:", err);
         setSellAmt("");
@@ -1694,7 +1974,15 @@ export const SwapTile = () => {
           // Dynamically import helper to avoid circular dependencies
           const { estimateCoinToCoinOutput } = await import("./lib/swapHelper");
 
-          const inUnits = parseUnits(val || "0", 18);
+          // Use correct decimals for the sell token (6 for USDT, 18 for regular coins)
+          const sellTokenDecimals = sellToken?.decimals || 18;
+          const inUnits = parseUnits(val || "0", sellTokenDecimals);
+
+          // Get correct swap fees for both pools
+          const sourceSwapFee = sellToken.isCustomPool ? sellToken.swapFee || SWAP_FEE : SWAP_FEE;
+          const targetSwapFee = buyToken?.isCustomPool ? buyToken.swapFee || SWAP_FEE : SWAP_FEE;
+
+          // Pass custom swap fees for USDT or other custom pools
           const { amountOut } = estimateCoinToCoinOutput(
             sellToken.id,
             buyToken.id,
@@ -1702,13 +1990,13 @@ export const SwapTile = () => {
             reserves,
             targetReserves,
             slippageBps, // Pass the current slippage tolerance setting
+            sourceSwapFee, // Pass source pool fee (could be 30n for USDT)
+            targetSwapFee  // Pass target pool fee (could be 30n for USDT)
           );
 
-          // For debugging purposes, log the estimated ETH intermediary amount
-          if (amountOut > 0n) {
-          }
-
-          setBuyAmt(amountOut === 0n ? "" : formatUnits(amountOut, 18));
+          // Use correct decimals for the buy token (6 for USDT, 18 for regular coins)
+          const buyTokenDecimals = buyToken?.decimals || 18;
+          setBuyAmt(amountOut === 0n ? "" : formatUnits(amountOut, buyTokenDecimals));
         } catch (err) {
           console.error("Error estimating coin-to-coin output:", err);
           setBuyAmt("");
@@ -1717,10 +2005,14 @@ export const SwapTile = () => {
         // ETH → Coin path
         const inWei = parseEther(val || "0");
         const outUnits = getAmountOut(inWei, reserves.reserve0, reserves.reserve1, SWAP_FEE);
-        setBuyAmt(outUnits === 0n ? "" : formatUnits(outUnits, 18));
+        // Use correct decimals for the buy token (6 for USDT, 18 for regular coins)
+        const buyTokenDecimals = buyToken?.decimals || 18;
+        setBuyAmt(outUnits === 0n ? "" : formatUnits(outUnits, buyTokenDecimals));
       } else {
         // Coin → ETH path
-        const inUnits = parseUnits(val || "0", 18);
+        // Use correct decimals for the sell token (6 for USDT, 18 for regular coins)
+        const sellTokenDecimals = sellToken?.decimals || 18;
+        const inUnits = parseUnits(val || "0", sellTokenDecimals);
         const outWei = getAmountOut(inUnits, reserves.reserve1, reserves.reserve0, SWAP_FEE);
         setBuyAmt(outWei === 0n ? "" : formatEther(outWei));
       }
@@ -1744,14 +2036,18 @@ export const SwapTile = () => {
         // Optional: Show a notification that this direction is not supported
       } else if (isSellETH) {
         // ETH → Coin path (calculate ETH input)
-        const outUnits = parseUnits(val || "0", 18);
+        // Use correct decimals for the buy token (6 for USDT, 18 for regular coins)
+        const buyTokenDecimals = buyToken?.decimals || 18;
+        const outUnits = parseUnits(val || "0", buyTokenDecimals);
         const inWei = getAmountIn(outUnits, reserves.reserve0, reserves.reserve1, SWAP_FEE);
         setSellAmt(inWei === 0n ? "" : formatEther(inWei));
       } else {
         // Coin → ETH path (calculate Coin input)
         const outWei = parseEther(val || "0");
         const inUnits = getAmountIn(outWei, reserves.reserve1, reserves.reserve0, SWAP_FEE);
-        setSellAmt(inUnits === 0n ? "" : formatUnits(inUnits, 18));
+        // Use correct decimals for the sell token (6 for USDT, 18 for regular coins)
+        const sellTokenDecimals = sellToken?.decimals || 18;
+        setSellAmt(inUnits === 0n ? "" : formatUnits(inUnits, sellTokenDecimals));
       }
     } catch {
       setSellAmt("");
@@ -1902,6 +2198,7 @@ export const SwapTile = () => {
     }
 
     // Check if burn amount exceeds user's balance
+    // LP tokens always use 18 decimals
     const burnAmount = parseUnits(lpBurnAmount, 18);
     if (burnAmount > lpTokenBalance) {
       setTxError(`You only have ${formatUnits(lpTokenBalance, 18)} LP tokens available`);
@@ -1922,7 +2219,9 @@ export const SwapTile = () => {
 
       // Parse the minimum amounts from the displayed expected return
       const amount0Min = sellAmt ? withSlippage(parseEther(sellAmt)) : 0n;
-      const amount1Min = buyAmt ? withSlippage(parseUnits(buyAmt, 18)) : 0n;
+      // Use correct decimals for token1 (6 for USDT, 18 for regular coins)
+      const tokenDecimals = isUsdtPool ? 6 : 18;
+      const amount1Min = buyAmt ? withSlippage(parseUnits(buyAmt, tokenDecimals)) : 0n;
 
       // Call removeLiquidity on the ZAMM contract
       const hash = await writeContractAsync({
@@ -1969,19 +2268,34 @@ export const SwapTile = () => {
         return;
       }
 
-      const poolKey = computePoolKey(coinId);
+      // Check if we're dealing with the special USDT token
+      let poolKey;
+      const isUsdtPool = sellToken.isCustomPool || buyToken?.isCustomPool;
+
+      if (isUsdtPool) {
+        // Use the custom pool key for USDT-ETH pool
+        const customToken = sellToken.isCustomPool ? sellToken : buyToken;
+        poolKey = customToken?.poolKey || USDT_POOL_KEY;
+      } else {
+        // Regular pool key
+        poolKey = computePoolKey(coinId);
+      }
+
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
       // In ZAMM's design, for all pools:
       // - token0 is always ETH (zeroAddress), id0 is 0
-      // - token1 is always the Coin contract, id1 is the coinId
+      // - token1 is always the Coin contract (or USDT for custom pool), id1 is the coinId
 
       // So we need to ensure:
       // - amount0 is the ETH amount (regardless of which input field the user used)
       // - amount1 is the Coin amount
 
+      // Use correct decimals for token1 (6 for USDT, 18 for regular coins)
+      const tokenDecimals = isUsdtPool ? 6 : 18;
+
       const amount0 = isSellETH ? parseEther(sellAmt) : parseEther(buyAmt); // ETH amount
-      const amount1 = isSellETH ? parseUnits(buyAmt, 18) : parseUnits(sellAmt, 18); // Coin amount
+      const amount1 = isSellETH ? parseUnits(buyAmt, tokenDecimals) : parseUnits(sellAmt, tokenDecimals); // Token amount
 
       // Verify we have valid amounts
       if (amount0 === 0n || amount1 === 0n) {
@@ -1991,10 +2305,66 @@ export const SwapTile = () => {
 
       // Slippage protection will be calculated after getting exact amounts from ZAMMHelper
 
+      // Check for USDT approvals first if using USDT pool
+      if (isUsdtPool && !isSellETH && usdtAllowance !== null && amount1 > usdtAllowance) {
+        try {
+          // First, show a notification about the approval step
+          setTxError("Waiting for USDT approval. Please confirm the transaction...");
+
+          // Max approve (uint256 max)
+          const maxApproval = 2n ** 256n - 1n;
+
+          // Send the approval transaction
+          const approvalHash = await writeContractAsync({
+            address: USDT_ADDRESS,
+            abi: [
+              {
+                inputs: [
+                  { internalType: "address", name: "spender", type: "address" },
+                  { internalType: "uint256", name: "amount", type: "uint256" }
+                ],
+                name: "approve",
+                outputs: [{ internalType: "bool", name: "", type: "bool" }],
+                stateMutability: "nonpayable",
+                type: "function",
+              },
+            ],
+            functionName: "approve",
+            args: [ZAAMAddress, maxApproval],
+          });
+
+          // Show a waiting message
+          setTxError("USDT approval submitted. Waiting for confirmation...");
+
+          // Wait for the transaction to be mined
+          const receipt = await publicClient.waitForTransactionReceipt({
+            hash: approvalHash,
+          });
+
+          // Check if the transaction was successful
+          if (receipt.status === "success") {
+            setUsdtAllowance(maxApproval);
+            setTxError(null); // Clear the message
+          } else {
+            setTxError("USDT approval failed. Please try again.");
+            return;
+          }
+        } catch (err) {
+          // Use our utility to handle wallet errors
+          const errorMsg = handleWalletError(err);
+          if (errorMsg) {
+            console.error("Failed to approve USDT:", err);
+            setTxError("Failed to approve USDT");
+          }
+          return;
+        }
+      }
+
       // Check if the user needs to approve ZAMM as operator for their Coin token
       // This is needed when the user is providing Coin tokens (not just ETH)
       // Since we're always providing Coin tokens in liquidity, we need approval
-      if (isOperator === false) {
+      // Only needed for regular Coin tokens, not for USDT
+      if (!isUsdtPool && isOperator === false) {
         try {
           // First, show a notification about the approval step
           setTxError("Waiting for operator approval. Please confirm the transaction...");
@@ -2143,7 +2513,16 @@ export const SwapTile = () => {
         return;
       }
 
-      const poolKey = computePoolKey(coinId);
+      // Check if we're dealing with the special USDT token
+      let poolKey;
+      if (sellToken.isCustomPool || buyToken?.isCustomPool) {
+        // Use the custom pool key for USDT-ETH pool
+        const customToken = sellToken.isCustomPool ? sellToken : buyToken;
+        poolKey = customToken?.poolKey || USDT_POOL_KEY;
+      } else {
+        // Regular pool key
+        poolKey = computePoolKey(coinId);
+      }
 
       if (isSellETH) {
         const amountInWei = parseEther(sellAmt || "0");
@@ -2183,10 +2562,70 @@ export const SwapTile = () => {
         });
         setTxHash(hash);
       } else {
-        const amountInUnits = parseUnits(sellAmt || "0", 18);
+        // Check if we're dealing with USDT (custom token)
+        const isSellingUsdt = sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS;
+        const decimals = sellToken.decimals || 18;
 
-        // Approve ZAAM as operator if needed
-        if (isOperator === false) {
+        // Parse with correct decimals (6 for USDT, 18 for regular tokens)
+        const amountInUnits = parseUnits(sellAmt || "0", decimals);
+
+        // Special case for USDT: Check and approve USDT allowance
+        if (isSellingUsdt && usdtAllowance !== null && amountInUnits > usdtAllowance) {
+          try {
+            // First, show a notification about the approval step
+            setTxError("Waiting for USDT approval. Please confirm the transaction...");
+
+            // Max approve (uint256 max)
+            const maxApproval = 2n ** 256n - 1n;
+
+            // Send the approval transaction
+            const approvalHash = await writeContractAsync({
+              address: USDT_ADDRESS,
+              abi: [
+                {
+                  inputs: [
+                    { internalType: "address", name: "spender", type: "address" },
+                    { internalType: "uint256", name: "amount", type: "uint256" }
+                  ],
+                  name: "approve",
+                  outputs: [{ internalType: "bool", name: "", type: "bool" }],
+                  stateMutability: "nonpayable",
+                  type: "function",
+                },
+              ],
+              functionName: "approve",
+              args: [ZAAMAddress, maxApproval],
+            });
+
+            // Show a waiting message
+            setTxError("USDT approval submitted. Waiting for confirmation...");
+
+            // Wait for the transaction to be mined
+            const receipt = await publicClient.waitForTransactionReceipt({
+              hash: approvalHash,
+            });
+
+            // Check if the transaction was successful
+            if (receipt.status === "success") {
+              setUsdtAllowance(maxApproval);
+              setTxError(null); // Clear the message
+            } else {
+              setTxError("USDT approval failed. Please try again.");
+              return;
+            }
+          } catch (err) {
+            // Use our utility to handle wallet errors
+            const errorMsg = handleWalletError(err);
+            if (errorMsg) {
+              console.error("Failed to approve USDT:", err);
+              setTxError("Failed to approve USDT");
+            }
+            return;
+          }
+        }
+
+        // Approve ZAAM as operator if needed (for regular tokens, not USDT)
+        if (!isSellingUsdt && isOperator === false) {
           try {
             // First, show a notification about the approval step
             setTxError("Waiting for operator approval. Please confirm the transaction...");
@@ -2238,7 +2677,15 @@ export const SwapTile = () => {
             const { createCoinSwapMulticall, estimateCoinToCoinOutput } = await import("./lib/swapHelper");
 
             // Fetch target coin reserves
-            const targetPoolId = computePoolId(buyToken.id!);
+            let targetPoolId;
+            if (buyToken.isCustomPool && buyToken.poolId) {
+              // Use the custom pool ID for USDT-ETH
+              targetPoolId = buyToken.poolId;
+            } else {
+              // Regular pool ID
+              targetPoolId = computePoolId(buyToken.id!);
+            }
+
             const targetPoolResult = await publicClient.readContract({
               address: ZAAMAddress,
               abi: ZAAMAbi,
@@ -2252,6 +2699,10 @@ export const SwapTile = () => {
               reserve1: targetPoolData[1],
             };
 
+            // Get correct swap fees for both pools
+            const sourceSwapFee = sellToken.isCustomPool ? sellToken.swapFee || SWAP_FEE : SWAP_FEE;
+            const targetSwapFee = buyToken?.isCustomPool ? buyToken.swapFee || SWAP_FEE : SWAP_FEE;
+
             // Estimate the final output amount and intermediate ETH amount
             const {
               amountOut,
@@ -2264,6 +2715,8 @@ export const SwapTile = () => {
               reserves, // source reserves
               targetReserves, // target reserves
               slippageBps, // Use current slippage setting
+              sourceSwapFee, // Pass source pool fee (could be 30n for USDT)
+              targetSwapFee  // Pass target pool fee (could be 30n for USDT)
             );
 
             if (amountOut === 0n) {
@@ -2272,6 +2725,15 @@ export const SwapTile = () => {
             }
 
             // Create the multicall data for coin-to-coin swap via ETH
+            // We need to provide custom pool keys for USDT pools
+            const sourcePoolKey = sellToken.isCustomPool && sellToken.poolKey ?
+                                  sellToken.poolKey :
+                                  computePoolKey(sellToken.id!);
+
+            const targetPoolKey = buyToken.isCustomPool && buyToken.poolKey ?
+                                 buyToken.poolKey :
+                                 computePoolKey(buyToken.id!);
+
             const multicallData = createCoinSwapMulticall(
               sellToken.id!,
               buyToken.id!,
@@ -2279,6 +2741,8 @@ export const SwapTile = () => {
               ethAmountOut, // Pass the estimated ETH output for the second swap
               minAmountOut,
               address,
+              sourcePoolKey, // Custom source pool key
+              targetPoolKey, // Custom target pool key
             );
 
             // Log the calls we're making for debugging
