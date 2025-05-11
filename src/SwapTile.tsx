@@ -661,6 +661,12 @@ const useAllTokens = () => {
                   usdtBalance = freshUsdtBalance as bigint;
                   usdtTokenWithReserves.balance = usdtBalance;
 
+                  console.log("Fetched USDT balance:", {
+                    rawBalance: usdtBalance.toString(),
+                    formattedBalance: formatUnits(usdtBalance, 6), // Always use 6 decimals for USDT
+                    decimals: usdtTokenWithReserves.decimals
+                  });
+
                   // Cache the balance
                   try {
                     localStorage.setItem(usdtBalanceCacheKey, usdtBalance.toString());
@@ -1962,20 +1968,91 @@ export const SwapTile = () => {
   const [isOperator, setIsOperator] = useState<boolean | null>(null);
   const [usdtAllowance, setUsdtAllowance] = useState<bigint | null>(null);
 
+  // Function to check USDT allowance - available in global scope
+  const checkUsdtAllowance = async () => {
+    if (!address || !publicClient) return null;
+
+    try {
+      // Make sure publicClient is fully initialized
+      if (!publicClient.chain) {
+        console.log("Skipping USDT allowance check - publicClient not fully initialized");
+        return null;
+      }
+
+      console.log("Checking USDT allowance for address:", address);
+
+      // ERC20 allowance check
+      const allowance = await publicClient.readContract({
+        address: USDT_ADDRESS,
+        abi: [
+          {
+            inputs: [
+              { internalType: "address", name: "owner", type: "address" },
+              { internalType: "address", name: "spender", type: "address" }
+            ],
+            name: "allowance",
+            outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+            stateMutability: "view",
+            type: "function",
+          },
+        ],
+        functionName: "allowance",
+        args: [address, ZAAMAddress],
+      });
+
+      console.log("USDT allowance result:", (allowance as bigint).toString());
+      setUsdtAllowance(allowance as bigint);
+      return allowance as bigint;
+    } catch (error) {
+      // Log but don't crash - defaulting to 0 allowance is safe
+      console.log("Error checking USDT allowance, defaulting to 0:", error instanceof Error ? error.message : "Unknown error");
+      setUsdtAllowance(0n);
+      return 0n;
+    }
+  };
+
+  // USDT allowance checking effect
   useEffect(() => {
-    // Function to check USDT allowance
-    const checkUsdtAllowance = async () => {
+    // Check for any USDT tokens
+    const checkUsdtRelevance = async () => {
       if (!address || !publicClient) return;
 
-      // Only check if selling USDT (custom pool token)
-      // Be specific about USDT address to avoid checking unrelated custom pools
-      if (sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS) {
+      // Enhanced check for USDT tokens in any position
+      const isUsdtRelevant = (
+        // Check for USDT token1 address match
+        (sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS) ||
+        (buyToken?.isCustomPool && buyToken?.token1 === USDT_ADDRESS) ||
+        // Check for USDT by symbol
+        sellToken.symbol === "USDT" ||
+        buyToken?.symbol === "USDT" ||
+        // Check for custom pool with ID=0 (USDT pool)
+        (sellToken.isCustomPool && sellToken.id === 0n) ||
+        (buyToken?.isCustomPool && buyToken?.id === 0n) ||
+        // Check if we're in liquidity mode with USDT
+        (mode === "liquidity" && (
+          (sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS) ||
+          (buyToken?.isCustomPool && buyToken?.token1 === USDT_ADDRESS)
+        ))
+      );
+
+      // Always log the check attempt
+      console.log("Checking USDT allowance:", {
+        isUsdtRelevant,
+        sellTokenSymbol: sellToken.symbol,
+        buyTokenSymbol: buyToken?.symbol,
+        sellTokenIsCustom: sellToken.isCustomPool,
+        sellTokenAddress: sellToken.token1
+      });
+
+      if (isUsdtRelevant) {
         try {
           // Make sure publicClient is fully initialized
           if (!publicClient.chain) {
             console.log("Skipping USDT allowance check - publicClient not fully initialized");
             return;
           }
+
+          console.log("Performing USDT allowance check...");
 
           // ERC20 allowance check
           const allowance = await publicClient.readContract({
@@ -1996,6 +2073,7 @@ export const SwapTile = () => {
             args: [address, ZAAMAddress],
           });
 
+          console.log("USDT allowance result:", (allowance as bigint).toString());
           setUsdtAllowance(allowance as bigint);
         } catch (error) {
           // Log but don't crash - defaulting to 0 allowance is safe
@@ -2025,8 +2103,17 @@ export const SwapTile = () => {
 
     // Run checks without extracting unnecessary variables
     checkOperator();
-    checkUsdtAllowance();
-  }, [address, isSellETH, publicClient, sellToken?.isCustomPool, sellToken?.token1]);
+
+    // Check if any USDT token is in use and check allowance if needed
+    // Use an IIFE to allow async execution in useEffect
+    (async () => {
+      try {
+        await checkUsdtRelevance();
+      } catch (error) {
+        console.error("Error checking USDT relevance:", error);
+      }
+    })();
+  }, [address, isSellETH, publicClient, sellToken?.isCustomPool, sellToken?.token1, buyToken?.isCustomPool, buyToken?.token1, mode]);
 
   /* helpers to sync amounts */
   const syncFromSell = async (val: string) => {
@@ -2284,6 +2371,107 @@ export const SwapTile = () => {
 
   /* perform swap */
   const nowSec = () => BigInt(Math.floor(Date.now() / 1000));
+
+  // Function to approve USDT token for spending by ZAMM contract
+  const approveUsdtToken = async () => {
+    if (!address || !publicClient || !writeContractAsync) {
+      setTxError("Wallet connection required");
+      return false;
+    }
+
+    try {
+      // We don't need to set the txError here since it's already set by the caller
+      // (to maintain consistent UX with operator approval)
+      console.log("Starting USDT approval process");
+
+      // Standard ERC20 approval for a large amount (max uint256 value would be too gas intensive)
+      // 2^64 should be plenty for most transactions (18.4 quintillion units)
+      const approvalAmount = 2n ** 64n;
+
+      console.log("Requesting approval for USDT amount:", approvalAmount.toString());
+
+      const hash = await writeContractAsync({
+        address: USDT_ADDRESS,
+        abi: [
+          {
+            inputs: [
+              { internalType: "address", name: "spender", type: "address" },
+              { internalType: "uint256", name: "amount", type: "uint256" }
+            ],
+            name: "approve",
+            outputs: [{ internalType: "bool", name: "", type: "bool" }],
+            stateMutability: "nonpayable",
+            type: "function",
+          },
+        ],
+        functionName: "approve",
+        args: [ZAAMAddress, approvalAmount],
+      });
+
+      setTxError("USDT approval submitted. Waiting for confirmation...");
+      console.log("USDT approval transaction submitted:", hash);
+
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash,
+      });
+
+      if (receipt.status === "success") {
+        console.log("USDT approval successful");
+        setTxError(null); // Clear the error message as the approval succeeded
+
+        // Set allowance directly to our approval amount first to ensure UI responsiveness
+        const approvalAmount = 2n ** 64n;
+        setUsdtAllowance(approvalAmount);
+
+        // Optionally refresh allowance in the background for accuracy
+        try {
+          // Refresh the allowance directly without calling checkUsdtAllowance
+          const allowance = await publicClient.readContract({
+            address: USDT_ADDRESS,
+            abi: [
+              {
+                inputs: [
+                  { internalType: "address", name: "owner", type: "address" },
+                  { internalType: "address", name: "spender", type: "address" }
+                ],
+                name: "allowance",
+                outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+                stateMutability: "view",
+                type: "function",
+              },
+            ],
+            functionName: "allowance",
+            args: [address, ZAAMAddress],
+          });
+
+          console.log("Updated USDT allowance after approval:", (allowance as bigint).toString());
+          setUsdtAllowance(allowance as bigint);
+        } catch (err) {
+          console.warn("Failed to refresh USDT allowance, but approval succeeded:", err);
+          // We already set the allowance above, so this is just for logging
+          // No need to set allowance again
+        }
+        return true;
+      } else {
+        console.error("USDT approval transaction failed", receipt);
+        setTxError("USDT approval failed. Please try again.");
+        return false;
+      }
+    } catch (err) {
+      // Handle user rejection separately to avoid alarming errors
+      if (isUserRejectionError(err)) {
+        console.log("User rejected USDT approval");
+        setTxError("USDT approval rejected");
+        return false;
+      }
+
+      // Use our utility to handle other wallet errors
+      const errorMsg = handleWalletError(err);
+      setTxError(errorMsg || "Failed to approve USDT");
+      console.error("USDT approval error:", err);
+      return false;
+    }
+  };
 
   // Execute Single-Sided ETH Liquidity Provision
   const executeSingleETHLiquidity = async () => {
@@ -2567,6 +2755,74 @@ export const SwapTile = () => {
       // Check if we're dealing with the special USDT token
       let poolKey;
       const isUsdtPool = sellToken.isCustomPool || buyToken?.isCustomPool;
+
+      // Enhanced detection of USDT usage for add liquidity
+      // We need to make sure we detect all cases where USDT is being used
+      const isUsingUsdt = (
+        // Standard checks for USDT token address
+        (sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS) ||
+        (buyToken?.isCustomPool && buyToken?.token1 === USDT_ADDRESS) ||
+        // Additional checks by symbol and ID for redundancy
+        sellToken.symbol === "USDT" ||
+        buyToken?.symbol === "USDT" ||
+        // Check for custom pool with ID=0 (USDT pool)
+        (sellToken.isCustomPool && sellToken.id === 0n) ||
+        (buyToken?.isCustomPool && buyToken?.id === 0n)
+      );
+
+      console.log("Add liquidity with possible USDT:", {
+        isUsdtPool,
+        isUsingUsdt,
+        sellTokenSymbol: sellToken.symbol,
+        buyTokenSymbol: buyToken?.symbol,
+        sellTokenIsCustom: sellToken.isCustomPool,
+        sellTokenAddress: sellToken.token1,
+        buyTokenIsCustom: buyToken?.isCustomPool,
+        buyTokenAddress: buyToken?.token1,
+      });
+
+      // Get the amount of USDT being used
+      let usdtAmount = 0n;
+      if (isUsingUsdt) {
+        console.log("USDT token detected for liquidity addition");
+
+        // Determine which token is USDT and get its amount
+        if ((sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS) ||
+            sellToken.symbol === "USDT") {
+          usdtAmount = parseUnits(sellAmt, 6); // USDT has 6 decimals
+          console.log("Using USDT as sell token with amount:", usdtAmount.toString());
+        } else if ((buyToken?.isCustomPool && buyToken?.token1 === USDT_ADDRESS) ||
+                   buyToken?.symbol === "USDT") {
+          usdtAmount = parseUnits(buyAmt, 6); // USDT has 6 decimals
+          console.log("Using USDT as buy token with amount:", usdtAmount.toString());
+        }
+
+        // Check if we need to verify USDT allowance first
+        if (usdtAllowance === null) {
+          console.log("USDT allowance is null, checking now...");
+          await checkUsdtAllowance();
+        }
+
+        // If USDT amount is greater than allowance, request approval
+        if (usdtAllowance === null || usdtAllowance === 0n || usdtAmount > usdtAllowance) {
+          console.log("USDT approval needed for liquidity:", {
+            usdtAmount: usdtAmount.toString(),
+            allowance: usdtAllowance?.toString() || "0"
+          });
+
+          // Maintain consistent UX with operator approval flow
+          setTxError("Waiting for USDT approval. Please confirm the transaction...");
+          const approved = await approveUsdtToken();
+          if (!approved) {
+            return; // Stop if approval failed or was rejected
+          }
+        } else {
+          console.log("USDT already approved for liquidity:", {
+            allowance: usdtAllowance.toString(),
+            requiredAmount: usdtAmount.toString()
+          });
+        }
+      }
 
       if (isUsdtPool) {
         // Use the custom pool key for USDT-ETH pool
@@ -2914,14 +3170,28 @@ export const SwapTile = () => {
         setTxHash(hash);
       } else {
         // Check if we're dealing with USDT (custom token)
-        const isSellingUsdt = sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS;
+        // Improved detection to make sure we don't miss USDT tokens
+        const isSellingUsdt = (
+          sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS
+        ) || (
+          // Double-check by symbol as a fallback
+          sellToken.symbol === "USDT" ||
+          // Also check ID=0 which is used for USDT
+          (sellToken.isCustomPool && sellToken.id === 0n)
+        );
+
         const isBuyingUsdt = buyToken?.isCustomPool && buyToken?.token1 === USDT_ADDRESS;
 
         console.log("Direct swap involving:", {
           sellToken: sellToken.symbol,
           buyToken: buyToken?.symbol,
+          sellTokenId: sellToken.id?.toString(),
+          isCustomPool: sellToken.isCustomPool,
+          token1Address: sellToken.token1,
+          usdtAddress: USDT_ADDRESS,
           isSellingUsdt,
-          isBuyingUsdt
+          isBuyingUsdt,
+          currentAllowance: usdtAllowance?.toString() || "null"
         });
 
         const decimals = sellToken.decimals || 18;
@@ -2930,57 +3200,33 @@ export const SwapTile = () => {
         const amountInUnits = parseUnits(sellAmt || "0", decimals);
 
         // Special case for USDT: Check and approve USDT allowance
-        if (isSellingUsdt && usdtAllowance !== null && amountInUnits > usdtAllowance) {
-          try {
-            // First, show a notification about the approval step
+        if (isSellingUsdt) {
+          console.log("Checking USDT allowance before swap");
+
+          // If allowance is null, it hasn't been checked yet - wait for check to complete
+          if (usdtAllowance === null) {
+            console.log("USDT allowance is null, checking now...");
+            await checkUsdtAllowance();
+          }
+
+          // Now check if we need approval - force approval dialog to appear for any USDT transaction
+          if (usdtAllowance === null || usdtAllowance === 0n || amountInUnits > usdtAllowance) {
+            console.log("USDT approval needed:", {
+              usdtAmount: amountInUnits.toString(),
+              allowance: usdtAllowance?.toString() || "0"
+            });
+
+            // Maintain consistent UX with operator approval flow
             setTxError("Waiting for USDT approval. Please confirm the transaction...");
-
-            // Max approve (uint256 max)
-            const maxApproval = 2n ** 256n - 1n;
-
-            // Send the approval transaction
-            const approvalHash = await writeContractAsync({
-              address: USDT_ADDRESS,
-              abi: [
-                {
-                  inputs: [
-                    { internalType: "address", name: "spender", type: "address" },
-                    { internalType: "uint256", name: "amount", type: "uint256" }
-                  ],
-                  name: "approve",
-                  outputs: [{ internalType: "bool", name: "", type: "bool" }],
-                  stateMutability: "nonpayable",
-                  type: "function",
-                },
-              ],
-              functionName: "approve",
-              args: [ZAAMAddress, maxApproval],
-            });
-
-            // Show a waiting message
-            setTxError("USDT approval submitted. Waiting for confirmation...");
-
-            // Wait for the transaction to be mined
-            const receipt = await publicClient.waitForTransactionReceipt({
-              hash: approvalHash,
-            });
-
-            // Check if the transaction was successful
-            if (receipt.status === "success") {
-              setUsdtAllowance(maxApproval);
-              setTxError(null); // Clear the message
-            } else {
-              setTxError("USDT approval failed. Please try again.");
-              return;
+            const approved = await approveUsdtToken();
+            if (!approved) {
+              return; // Stop if approval failed or was rejected
             }
-          } catch (err) {
-            // Use our utility to handle wallet errors
-            const errorMsg = handleWalletError(err);
-            if (errorMsg) {
-              console.error("Failed to approve USDT:", err);
-              setTxError("Failed to approve USDT");
-            }
-            return;
+          } else {
+            console.log("USDT already approved:", {
+              allowance: usdtAllowance.toString(),
+              requiredAmount: amountInUnits.toString()
+            });
           }
         }
 
@@ -3450,8 +3696,10 @@ export const SwapTile = () => {
                         const ethAmount = ((sellToken.balance as bigint) * 99n) / 100n;
                         syncFromSell(formatEther(ethAmount));
                       } else {
-                        // For other tokens, use the full balance
-                        syncFromSell(formatUnits(sellToken.balance as bigint, 18));
+                        // For other tokens, use the full balance with correct decimals
+                        // Handle non-standard decimals like USDT (6 decimals)
+                        const decimals = sellToken.decimals || 18;
+                        syncFromSell(formatUnits(sellToken.balance as bigint, decimals));
                       }
                     }}
                   >
