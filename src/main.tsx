@@ -2,9 +2,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { WagmiProvider } from "wagmi";
+import { RouterProvider, createRouter } from "@tanstack/react-router";
 
-import App from "./App.tsx";
 import { config } from "./wagmi.ts";
+import { routeTree } from "./routeTree.gen";
 
 import "./index.css";
 
@@ -24,21 +25,37 @@ const queryClient = new QueryClient({
   },
 });
 
-// Only use StrictMode in development to avoid double mounting
-const AppRoot = import.meta.env.DEV ? (
-  <React.StrictMode>
-    <WagmiProvider config={config} reconnectOnMount={true}>
-      <QueryClientProvider client={queryClient}>
-        <App />
-      </QueryClientProvider>
-    </WagmiProvider>
-  </React.StrictMode>
-) : (
+// Create a new router instance
+const router = createRouter({ routeTree });
+
+// Register the router instance for type safety
+declare module "@tanstack/react-router" {
+  interface Register {
+    router: typeof router;
+  }
+}
+
+// Application with all providers
+const AppWithProviders = () => (
   <WagmiProvider config={config} reconnectOnMount={true}>
     <QueryClientProvider client={queryClient}>
-      <App />
+      <RouterProvider router={router} />
     </QueryClientProvider>
   </WagmiProvider>
 );
 
-ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(AppRoot);
+// Only use StrictMode in development to avoid double mounting
+const rootElement = document.getElementById("root") as HTMLElement;
+if (!rootElement.innerHTML) {
+  const root = ReactDOM.createRoot(rootElement);
+
+  if (import.meta.env.DEV) {
+    root.render(
+      <React.StrictMode>
+        <AppWithProviders />
+      </React.StrictMode>,
+    );
+  } else {
+    root.render(<AppWithProviders />);
+  }
+}

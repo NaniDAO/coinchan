@@ -12,7 +12,6 @@ export const ExplorerGrid = ({
   canNext,
   onPrev,
   onNext,
-  onTrade,
   isLoading = false,
   currentPage = 1,
   totalPages = 1,
@@ -26,7 +25,6 @@ export const ExplorerGrid = ({
   canNext: boolean;
   onPrev: () => void;
   onNext: () => void;
-  onTrade: (id: bigint) => void;
   isLoading?: boolean;
   currentPage?: number;
   totalPages?: number;
@@ -69,10 +67,16 @@ export const ExplorerGrid = ({
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center">
           <h2 className="text-lg sm:text-xl font-semibold text-center sm:text-left">
-            {total === 0 ? "NO COINS DEPLOYED" : total === 1 ? "1 COIN DEPLOYED" : `${total} COINS DEPLOYED`}
+            {total === 0
+              ? "NO COINS DEPLOYED"
+              : total === 1
+                ? "1 COIN DEPLOYED"
+                : `${total} COINS DEPLOYED`}
           </h2>
 
-          {searchResults && <div className="ml-4 text-sm text-gray-500">{searchResults}</div>}
+          {searchResults && (
+            <div className="ml-4 text-sm text-gray-500">{searchResults}</div>
+          )}
         </div>
 
         <div className="flex items-center">
@@ -99,8 +103,11 @@ export const ExplorerGrid = ({
         className={`grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 sm:gap-3 min-h-[300px] ${isTransitioning ? "transition-opacity duration-300 opacity-50" : ""}`}
       >
         {coins.map((coin) => (
-          <div key={coin.coinId.toString()} className={isPending ? "opacity-60 pointer-events-none" : ""}>
-            <CoinCard coin={coin} onTrade={onTrade} />
+          <div
+            key={coin.coinId.toString()}
+            className={isPending ? "opacity-60 pointer-events-none" : ""}
+          >
+            <CoinCard coin={coin} />
           </div>
         ))}
 
@@ -138,7 +145,13 @@ export const ExplorerGrid = ({
               <span className="w-3 h-3 rounded-full border-2 border-red-500 border-t-transparent animate-spin mr-1"></span>
             </span>
           ) : null}
-          <span className={isTransitioning && direction === "prev" ? "opacity-0" : ""}>Previous</span>
+          <span
+            className={
+              isTransitioning && direction === "prev" ? "opacity-0" : ""
+            }
+          >
+            Previous
+          </span>
         </button>
 
         {/* Page info from parent */}
@@ -162,7 +175,13 @@ export const ExplorerGrid = ({
               <span className="w-3 h-3 rounded-full border-2 border-red-500 border-t-transparent animate-spin mr-1"></span>
             </span>
           ) : null}
-          <span className={isTransitioning && direction === "next" ? "opacity-0" : ""}>Next</span>
+          <span
+            className={
+              isTransitioning && direction === "next" ? "opacity-0" : ""
+            }
+          >
+            Next
+          </span>
         </button>
       </div>
     </div>
