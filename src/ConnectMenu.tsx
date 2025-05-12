@@ -9,11 +9,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import ConnectionErrorHandler from "@/utils/ConnectionErrorHandler";
+import usePersistentConnection from "./hooks/use-persistent-connection";
 
 const ConnectMenuComponent = () => {
   const { isConnected, address, status } = useAccount();
   const { connect, connectors } = useConnect();
   const [reconnecting, setReconnecting] = useState(false);
+
+  usePersistentConnection();
 
   // Clean up stale connection state on component mount
   useEffect(() => {

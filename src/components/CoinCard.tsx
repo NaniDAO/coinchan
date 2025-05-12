@@ -5,13 +5,13 @@ import {
   formatImageURL,
   getAlternativeImageUrls,
 } from "@/hooks/metadata/use-global-coins-data";
+import { Link } from "@tanstack/react-router";
 
 interface CoinCardProps {
   coin: CoinData;
-  onTrade: (id: bigint) => void;
 }
 
-export const CoinCard = ({ coin, onTrade }: CoinCardProps) => {
+export const CoinCard = ({ coin }: CoinCardProps) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
@@ -152,12 +152,15 @@ export const CoinCard = ({ coin, onTrade }: CoinCardProps) => {
           )}
         </div>
 
-        <button
+        <Link
+          to={`/c/$coinId`}
+          params={{
+            coinId: coin.coinId.toString(),
+          }}
           className="m-0 rounded-full bg-white py-1 px-3 text-red-500 font-extrabold hover:scale-105 hover:underline text-sm touch-manipulation"
-          onClick={() => onTrade(coin.coinId)}
         >
           Trade
-        </button>
+        </Link>
       </CardContent>
     </Card>
   );

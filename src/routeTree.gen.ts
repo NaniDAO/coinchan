@@ -11,20 +11,41 @@
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
-import { Route as AboutImport } from './routes/about'
+import { Route as CreateImport } from './routes/create'
+import { Route as CoinsImport } from './routes/coins'
+import { Route as CoinpaperImport } from './routes/coinpaper'
 import { Route as IndexImport } from './routes/index'
+import { Route as CCoinIdImport } from './routes/c.$coinId'
 
 // Create/Update Routes
 
-const AboutRoute = AboutImport.update({
-  id: '/about',
-  path: '/about',
+const CreateRoute = CreateImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const CoinsRoute = CoinsImport.update({
+  id: '/coins',
+  path: '/coins',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const CoinpaperRoute = CoinpaperImport.update({
+  id: '/coinpaper',
+  path: '/coinpaper',
   getParentRoute: () => rootRoute,
 } as any)
 
 const IndexRoute = IndexImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const CCoinIdRoute = CCoinIdImport.update({
+  id: '/c/$coinId',
+  path: '/c/$coinId',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -39,11 +60,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexImport
       parentRoute: typeof rootRoute
     }
-    '/about': {
-      id: '/about'
-      path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof AboutImport
+    '/coinpaper': {
+      id: '/coinpaper'
+      path: '/coinpaper'
+      fullPath: '/coinpaper'
+      preLoaderRoute: typeof CoinpaperImport
+      parentRoute: typeof rootRoute
+    }
+    '/coins': {
+      id: '/coins'
+      path: '/coins'
+      fullPath: '/coins'
+      preLoaderRoute: typeof CoinsImport
+      parentRoute: typeof rootRoute
+    }
+    '/create': {
+      id: '/create'
+      path: '/create'
+      fullPath: '/create'
+      preLoaderRoute: typeof CreateImport
+      parentRoute: typeof rootRoute
+    }
+    '/c/$coinId': {
+      id: '/c/$coinId'
+      path: '/c/$coinId'
+      fullPath: '/c/$coinId'
+      preLoaderRoute: typeof CCoinIdImport
       parentRoute: typeof rootRoute
     }
   }
@@ -53,37 +95,52 @@ declare module '@tanstack/react-router' {
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
+  '/coinpaper': typeof CoinpaperRoute
+  '/coins': typeof CoinsRoute
+  '/create': typeof CreateRoute
+  '/c/$coinId': typeof CCoinIdRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
+  '/coinpaper': typeof CoinpaperRoute
+  '/coins': typeof CoinsRoute
+  '/create': typeof CreateRoute
+  '/c/$coinId': typeof CCoinIdRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
+  '/coinpaper': typeof CoinpaperRoute
+  '/coins': typeof CoinsRoute
+  '/create': typeof CreateRoute
+  '/c/$coinId': typeof CCoinIdRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about'
+  fullPaths: '/' | '/coinpaper' | '/coins' | '/create' | '/c/$coinId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about'
-  id: '__root__' | '/' | '/about'
+  to: '/' | '/coinpaper' | '/coins' | '/create' | '/c/$coinId'
+  id: '__root__' | '/' | '/coinpaper' | '/coins' | '/create' | '/c/$coinId'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AboutRoute: typeof AboutRoute
+  CoinpaperRoute: typeof CoinpaperRoute
+  CoinsRoute: typeof CoinsRoute
+  CreateRoute: typeof CreateRoute
+  CCoinIdRoute: typeof CCoinIdRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AboutRoute: AboutRoute,
+  CoinpaperRoute: CoinpaperRoute,
+  CoinsRoute: CoinsRoute,
+  CreateRoute: CreateRoute,
+  CCoinIdRoute: CCoinIdRoute,
 }
 
 export const routeTree = rootRoute
@@ -97,14 +154,26 @@ export const routeTree = rootRoute
       "filePath": "__root.tsx",
       "children": [
         "/",
-        "/about"
+        "/coinpaper",
+        "/coins",
+        "/create",
+        "/c/$coinId"
       ]
     },
     "/": {
       "filePath": "index.tsx"
     },
-    "/about": {
-      "filePath": "about.tsx"
+    "/coinpaper": {
+      "filePath": "coinpaper.tsx"
+    },
+    "/coins": {
+      "filePath": "coins.tsx"
+    },
+    "/create": {
+      "filePath": "create.tsx"
+    },
+    "/c/$coinId": {
+      "filePath": "c.$coinId.tsx"
     }
   }
 }
