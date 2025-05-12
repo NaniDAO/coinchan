@@ -133,7 +133,7 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
   return (
     <div className="w-full max-w-lg mx-auto flex flex-col gap-4 px-2 py-4 sm:p-6">
       <Link
-        to="/coins"
+        to="/explore"
         className="text-sm self-start underline py-2 px-1 touch-manipulation"
       >
         ⬅︎ Back to Explorer

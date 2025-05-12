@@ -22,10 +22,10 @@ export const Route = createRootRoute({
           </Link>
           <span className="">/</span>
           <Link
-            to="/coins"
+            to="/explore"
             className="[&.active]:font-bold uppercase hover:text-blue-500 transition-colors"
           >
-            🪙 Coins
+            🗺️ Explore
           </Link>
           <span className="">/</span>
           <Link
