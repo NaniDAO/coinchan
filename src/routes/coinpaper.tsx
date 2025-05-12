@@ -1,3 +1,4 @@
+import { CoinPaper } from "@/CoinPaper";
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/coinpaper")({
@@ -5,5 +6,9 @@ export const Route = createFileRoute("/coinpaper")({
 });
 
 function RouteComponent() {
-  return <div>Hello "/coinpaper"!</div>;
+  return (
+    <div className="mt-2">
+      <CoinPaper />
+    </div>
+  );
 }

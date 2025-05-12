@@ -25,3 +25,5 @@ dist-ssr
 .vercel
 
 .env*
+
+/src/routeTree.gen.ts

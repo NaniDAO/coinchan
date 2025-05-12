@@ -1,3 +1,5 @@
+import { Link } from "@tanstack/react-router";
+
 const stats = [
   { label: "Total Supply", value: "21 000 000", emoji: "💰" },
   { label: "Swap Fee", value: "1 %", emoji: "💱" },
@@ -5,7 +7,7 @@ const stats = [
   { label: "Pool Supply", value: "21 000 000", emoji: "🏦" },
 ];
 
-export const CoinPaper = ({ onCoinClick }: { onCoinClick: () => void }) => (
+export const CoinPaper = () => (
   <div className="paper-container">
     <div className="blob"></div>
     <div className="content">
@@ -24,39 +26,44 @@ export const CoinPaper = ({ onCoinClick }: { onCoinClick: () => void }) => (
 
       <div className="explanation">
         <p className="leading-paragraph">
-          <strong className="text-red-700">Coinchan</strong> is a ruthlessly optimized coin launcher for Ethereum via
-          the <strong className="text-red-700">ERC6909</strong> standard. All <em>21 000 000</em> tokens are initially
-          locked in an AMM pool for fair distribution while creators earn swap fees. Sound good?
+          <strong className="text-red-700">Coinchan</strong> is a ruthlessly
+          optimized coin launcher for Ethereum via the{" "}
+          <strong className="text-red-700">ERC6909</strong> standard. All{" "}
+          <em>21 000 000</em> tokens are initially locked in an AMM pool for
+          fair distribution while creators earn swap fees. Sound good?
         </p>
         <ul className="feature-list">
           <li>
-            <strong className="text-red-700">Total Supply:</strong> Fixed at 21 000 000 — no more can ever be minted.
+            <strong className="text-red-700">Total Supply:</strong> Fixed at 21
+            000 000 — no more can ever be minted.
           </li>
           <li>
-            <strong className="text-red-700">Pool Supply:</strong> 100% of coins go straight into the liquidity pool —
-            everyone trades on the same footing.
+            <strong className="text-red-700">Pool Supply:</strong> 100% of coins
+            go straight into the liquidity pool — everyone trades on the same
+            footing.
           </li>
           <li>
-            <strong className="text-red-700">Swap Fee:</strong> A 1% fee is taken on each trade by the AMM which goes
-            back to the creator.
+            <strong className="text-red-700">Swap Fee:</strong> A 1% fee is
+            taken on each trade by the AMM which goes back to the creator.
           </li>
           <li>
-            <strong className="text-red-700">Vesting:</strong> Creator LP tokens are linearly vested over 6 months to
-            prove long‑term commitment.
+            <strong className="text-red-700">Vesting:</strong> Creator LP tokens
+            are linearly vested over 6 months to prove long‑term commitment.
           </li>
           <li>
-            <strong className="text-red-700">ERC6909:</strong> Extends ERC20 with singleton state (one contract, all
-            coins), metadata (tokenURI) support, and backwards compatibility with existing ERC20 DeFi.
+            <strong className="text-red-700">ERC6909:</strong> Extends ERC20
+            with singleton state (one contract, all coins), metadata (tokenURI)
+            support, and backwards compatibility with existing ERC20 DeFi.
           </li>
         </ul>
       </div>
 
-      <button
+      <Link
+        to="/create"
         className="coin-button mt-6 py-3 px-6 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-all shadow-md hover:shadow-lg"
-        onClick={onCoinClick}
       >
         I want to coin it!
-      </button>
+      </Link>
     </div>
   </div>
 );
