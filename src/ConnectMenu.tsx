@@ -1,7 +1,14 @@
 import { useAccount, useConnect } from "wagmi";
 import React, { useEffect, useState } from "react";
 import { truncAddress } from "./lib/address";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import ConnectionErrorHandler from "@/utils/ConnectionErrorHandler";
 
 const ConnectMenuComponent = () => {
   const { isConnected, address, status } = useAccount();
@@ -49,11 +56,14 @@ const ConnectMenuComponent = () => {
 
     // Determine if this is truly a reconnection
     const lastAddress = sessionStorage.getItem("lastConnectedAddress");
-    const isReconnection = !!lastAddress && sessionStorage.getItem("connectionAttemptType") !== "fresh";
+    const isReconnection =
+      !!lastAddress &&
+      sessionStorage.getItem("connectionAttemptType") !== "fresh";
 
     // Only show reconnecting state if we're actually reconnecting (not first connection)
     // Now using connectionAttemptType to help distinguish context
-    const shouldShowReconnecting = status === "reconnecting" || (status === "connecting" && isReconnection);
+    const shouldShowReconnecting =
+      status === "reconnecting" || (status === "connecting" && isReconnection);
 
     if (shouldShowReconnecting !== reconnecting) {
       setReconnecting(shouldShowReconnecting);
@@ -78,62 +88,85 @@ const ConnectMenuComponent = () => {
     }
   }, [status, address, reconnecting]);
 
-  // When connected - show the address
-  if (isConnected) {
-    return (
-      <div className="flex items-center">
-        <div>{address ? truncAddress(address) : ""}</div>
-        {/* <SignButton /> */}
-      </div>
-    );
-  }
-
-  // When connecting or reconnecting - show appropriate message
-  if (reconnecting) {
-    // Try to get last known address from sessionStorage to display during reconnection
-    const lastAddress = sessionStorage.getItem("lastConnectedAddress");
-
-    return (
-      <div className="flex items-center gap-2">
-        {lastAddress && <div className="opacity-50">{truncAddress(lastAddress)}</div>}
-        <div className="text-xs text-yellow-700 animate-pulse">{lastAddress ? "Reconnecting..." : "Connecting..."}</div>
-      </div>
-    );
-  }
-
-  // Show connecting state for first-time connections
-  if (status === "connecting") {
-    return (
-      <div className="flex items-center gap-2">
-        <div className="text-xs text-yellow-700 animate-pulse">Connecting wallet...</div>
-      </div>
-    );
-  }
-
-  // Normal disconnected state - show connect button
-  return (
-    <Dialog>
-      <DialogTrigger className="appearance-none" asChild>
-        <button className="hover:scale-105 focus:underline">🙏 Connect Wallet</button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Connect Wallet</DialogTitle>
-        </DialogHeader>
-        <div className="flex flex-col gap-4">
-          {connectors.map((connector) => (
-            <button
-              className="flex items-center justify-start hover:scale-105 focus:underline"
-              key={`connector-${connector.id || connector.name}`}
-              onClick={() => connect({ connector })}
-            >
-              <img src={connector.icon ?? "/coinchan-logo.png"} alt={connector.name} className="w-6 h-6 mr-2" />
-              <span>{connector.name}</span>
-            </button>
-          ))}
+  // Render the appropriate UI based on connection state
+  const renderConnectionUI = () => {
+    // When connected - show the address
+    if (isConnected) {
+      return (
+        <div className="flex items-center">
+          <div>{address ? truncAddress(address) : ""}</div>
+          {/* <SignButton /> */}
         </div>
-      </DialogContent>
-    </Dialog>
+      );
+    }
+
+    // When connecting or reconnecting - show appropriate message
+    if (reconnecting) {
+      // Try to get last known address from sessionStorage to display during reconnection
+      const lastAddress = sessionStorage.getItem("lastConnectedAddress");
+
+      return (
+        <div className="flex items-center gap-2">
+          {lastAddress && (
+            <div className="opacity-50">{truncAddress(lastAddress)}</div>
+          )}
+          <div className="text-xs text-yellow-700 animate-pulse">
+            {lastAddress ? "Reconnecting..." : "Connecting..."}
+          </div>
+        </div>
+      );
+    }
+
+    // Show connecting state for first-time connections
+    if (status === "connecting") {
+      return (
+        <div className="flex items-center gap-2">
+          <div className="text-xs text-yellow-700 animate-pulse">
+            Connecting wallet...
+          </div>
+        </div>
+      );
+    }
+
+    // Normal disconnected state - show connect button
+    return (
+      <Dialog>
+        <DialogTrigger className="appearance-none" asChild>
+          <button className="hover:scale-105 focus:underline">
+            🙏 Connect Wallet
+          </button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Connect Wallet</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-4">
+            {connectors.map((connector) => (
+              <button
+                className="flex items-center justify-start hover:scale-105 focus:underline"
+                key={`connector-${connector.id || connector.name}`}
+                onClick={() => connect({ connector })}
+              >
+                <img
+                  src={connector.icon ?? "/coinchan-logo.png"}
+                  alt={connector.name}
+                  className="w-6 h-6 mr-2"
+                />
+                <span>{connector.name}</span>
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
+  // Return both the ConnectionErrorHandler and the UI elements
+  return (
+    <>
+      <ConnectionErrorHandler />
+      {renderConnectionUI()}
+    </>
   );
 };
 
