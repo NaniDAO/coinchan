@@ -150,11 +150,11 @@ export const DisplayTokenUri = ({
         {symbol?.slice(0, 3)}
       </div>
 
-      {/* The actual image - with more logging for debugging */}
+      {/* The actual image - with dark mode enhancement */}
       <img
         src={actualImageUrl}
         alt={`${symbol} logo`}
-        className="absolute inset-0 w-full h-full object-cover"
+        className="absolute inset-0 w-full h-full object-cover dark:brightness-[0.95] dark:contrast-[1.05]"
         style={{ zIndex: 1 }}
         onLoad={() => {
           setImageLoaded(true);

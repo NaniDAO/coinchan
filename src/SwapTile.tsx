@@ -149,8 +149,8 @@ export interface TokenMeta {
   decimals?: number; // Number of decimals for the token
 }
 
-// Inline SVG for ETH
-const ETH_SVG = `<svg fill="#000000" width="800px" height="800px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+// Inline SVG for ETH - with currentColor for theme compatibility
+const ETH_SVG = `<svg fill="currentColor" width="800px" height="800px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
 <g fill-rule="evenodd">
 <path d="M16 32C7.163 32 0 24.837 0 16S7.163 0 16 0s16 7.163 16 16-7.163 16-16 16zm7.994-15.781L16.498 4 9 16.22l7.498 4.353 7.496-4.354zM24 17.616l-7.502 4.351L9 17.617l7.498 10.378L24 17.616z"/>
 <g fill-rule="nonzero">
@@ -166,6 +166,14 @@ const USDT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2000 2000
 <path d="M1000,0c552.26,0,1000,447.74,1000,1000S1552.24,2000,1000,2000,0,1552.38,0,1000,447.68,0,1000,0" fill="#53ae94"/>
 <path d="M1123.42,866.76V718H1463.6V491.34H537.28V718H877.5V866.64C601,879.34,393.1,934.1,393.1,999.7s208,120.36,484.4,133.14v476.5h246V1132.8c276-12.74,483.48-67.46,483.48-133s-207.48-120.26-483.48-133m0,225.64v-0.12c-8.54.44-65.84,3.22-123.68,3.22-59.52,0-115.78-2.78-123.68-3.22V999.7c8.12-.44,67.58-5.18,123.68-5.18,58.08,0,115.75,4.74,123.68,5.18v92.7Z" fill="#fff"/>
 </svg>`;
+
+// Function to get theme-aware ETH SVG
+const getThemeAwareEthSvg = () => {
+  // Check if we're in dark mode
+  const isDarkMode = document.documentElement.classList.contains('dark');
+  // Use the SVG with currentColor that will adapt to theme
+  return ETH_SVG;
+};
 
 const ETH_TOKEN: TokenMeta = {
   id: null,
@@ -4053,10 +4061,10 @@ export const SwapTile = () => {
 
   // Main UI
   return (
-    <Card className="w-full max-w-lg p-4 sm:p-6 border-2 border-yellow-100 shadow-md rounded-xl">
+    <Card className="w-full max-w-lg p-4 sm:p-6 border-2 border-yellow-100 dark:border-yellow-800/50 shadow-md dark:shadow-yellow-900/20 rounded-xl">
       <CardContent className="p-0 sm:p-1 flex flex-col space-y-1">
         {/* Info showing token count */}
-        <div className="text-xs text-gray-500 mb-2">
+        <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
           Available tokens: {tokenCount} (ETH + {tokenCount - 1} coins, sorted
           by liquidity)
         </div>
@@ -4067,17 +4075,17 @@ export const SwapTile = () => {
           onValueChange={(value) => setMode(value as TileMode)}
           className="mb-2"
         >
-          <TabsList className="w-full bg-yellow-50 p-1 rounded-lg border border-yellow-100">
+          <TabsList className="w-full bg-yellow-50 dark:bg-gray-800 p-1 rounded-lg border border-yellow-100 dark:border-gray-700">
             <TabsTrigger
               value="swap"
-              className="flex-1 data-[state=active]:bg-white data-[state=active]:border-yellow-200 data-[state=active]:shadow-sm h-10 touch-manipulation"
+              className="flex-1 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm h-10 touch-manipulation dark:text-gray-200"
             >
               <ArrowDownUp className="h-4 w-4 mr-1" />
               <span className="text-sm sm:text-base">Swap</span>
             </TabsTrigger>
             <TabsTrigger
               value="liquidity"
-              className="flex-1 data-[state=active]:bg-white data-[state=active]:border-yellow-200 data-[state=active]:shadow-sm h-10 touch-manipulation"
+              className="flex-1 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm h-10 touch-manipulation dark:text-gray-200"
             >
               <Plus className="h-4 w-4 mr-1" />
               <span className="text-sm sm:text-base">Liquidity</span>
@@ -4092,24 +4100,24 @@ export const SwapTile = () => {
             onValueChange={(value) => setLiquidityMode(value as LiquidityMode)}
             className="mb-2"
           >
-            <TabsList className="w-full bg-yellow-50 p-1 rounded-lg border border-yellow-100">
+            <TabsList className="w-full bg-yellow-50 dark:bg-gray-800 p-1 rounded-lg border border-yellow-100 dark:border-gray-700">
               <TabsTrigger
                 value="add"
-                className="flex-1 data-[state=active]:bg-white data-[state=active]:border-yellow-200 data-[state=active]:shadow-sm h-10 touch-manipulation"
+                className="flex-1 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm h-10 touch-manipulation dark:text-gray-200"
               >
                 <Plus className="h-4 w-4 mr-1" />
                 <span className="text-xs sm:text-sm">Add</span>
               </TabsTrigger>
               <TabsTrigger
                 value="remove"
-                className="flex-1 data-[state=active]:bg-white data-[state=active]:border-yellow-200 data-[state=active]:shadow-sm h-10 touch-manipulation"
+                className="flex-1 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm h-10 touch-manipulation dark:text-gray-200"
               >
                 <Minus className="h-4 w-4 mr-1" />
                 <span className="text-xs sm:text-sm">Remove</span>
               </TabsTrigger>
               <TabsTrigger
                 value="single-eth"
-                className="flex-1 data-[state=active]:bg-white data-[state=active]:border-yellow-200 data-[state=active]:shadow-sm h-10 touch-manipulation"
+                className="flex-1 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm h-10 touch-manipulation dark:text-gray-200"
               >
                 <span className="text-xs font-medium mr-1">Ξ</span>
                 <span className="text-xs sm:text-sm">Single-ETH</span>
@@ -4156,9 +4164,9 @@ export const SwapTile = () => {
                 placeholder="0.0"
                 value={lpBurnAmount}
                 onChange={(e) => syncFromSell(e.target.value)}
-                className="text-lg sm:text-xl font-medium w-full bg-yellow-50 focus:outline-none h-10 text-right pr-1"
+                className="text-lg sm:text-xl font-medium w-full bg-yellow-50 dark:bg-yellow-900/50 text-gray-900 dark:text-gray-900 focus:outline-none h-10 text-right pr-1"
               />
-              <div className="text-xs text-yellow-600 mt-1">
+              <div className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
                 Enter the amount of LP tokens you want to burn to receive ETH
                 and tokens back.
               </div>
@@ -4167,7 +4175,7 @@ export const SwapTile = () => {
 
           {/* SELL/PROVIDE panel */}
           <div
-            className={`border-2 border-yellow-300 group hover:bg-yellow-50 ${mode === "liquidity" && liquidityMode === "remove" ? "rounded-md" : "rounded-t-2xl"} p-2 pb-4 focus-within:ring-2 focus-within:ring-primary flex flex-col gap-2 ${mode === "liquidity" && liquidityMode === "remove" ? "mt-2" : ""}`}
+            className={`border-2 border-yellow-300 dark:border-yellow-700 group hover:bg-yellow-50 dark:hover:bg-yellow-900/30 ${mode === "liquidity" && liquidityMode === "remove" ? "rounded-md" : "rounded-t-2xl"} p-2 pb-4 focus-within:ring-2 focus-within:ring-primary dark:focus-within:ring-yellow-600 flex flex-col gap-2 ${mode === "liquidity" && liquidityMode === "remove" ? "mt-2" : ""}`}
           >
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">
@@ -4237,7 +4245,7 @@ export const SwapTile = () => {
                 placeholder="0.0"
                 value={sellAmt}
                 onChange={(e) => syncFromSell(e.target.value)}
-                className="text-lg sm:text-xl font-medium w-full focus:outline-none h-10 text-right pr-1"
+                className="text-lg sm:text-xl font-medium w-full text-gray-900 dark:text-gray-900 focus:outline-none h-10 text-right pr-1"
                 readOnly={mode === "liquidity" && liquidityMode === "remove"}
               />
               {mode === "liquidity" && liquidityMode === "remove" && (
@@ -4281,8 +4289,11 @@ export const SwapTile = () => {
           {mode === "swap" && (
             <button
               className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 p-3 rounded-full shadow-xl
-                bg-yellow-500 hover:bg-yellow-600 focus:bg-yellow-600 active:scale-95
-                focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-all z-10 touch-manipulation"
+                bg-yellow-500 hover:bg-yellow-600 focus:bg-yellow-600 
+                dark:bg-yellow-500 dark:hover:bg-yellow-600 dark:focus:bg-yellow-600
+                active:scale-95 
+                focus:outline-none focus:ring-2 focus:ring-yellow-400
+                transition-all z-10 touch-manipulation"
               onClick={flipTokens}
             >
               <ArrowDownUp className="h-5 w-5 text-white" />
@@ -4294,7 +4305,7 @@ export const SwapTile = () => {
             <>
               {/* Single-ETH mode panel */}
               <div
-                className={`border-2 border-yellow-300 group rounded-b-2xl p-2 pt-3 focus-within:ring-2 hover:bg-yellow-50 focus-within:ring-primary flex flex-col gap-2 mt-2 ${mode === "liquidity" && liquidityMode === "single-eth" ? "" : "hidden"}`}
+                className={`border-2 border-yellow-300 dark:border-yellow-700 group rounded-b-2xl p-2 pt-3 focus-within:ring-2 hover:bg-yellow-50 dark:hover:bg-yellow-900/30 focus-within:ring-primary dark:focus-within:ring-yellow-600 flex flex-col gap-2 mt-2 ${mode === "liquidity" && liquidityMode === "single-eth" ? "" : "hidden"}`}
               >
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">
@@ -4323,7 +4334,7 @@ export const SwapTile = () => {
 
               {/* Standard BUY/RECEIVE panel */}
               <div
-                className={`border-2 border-yellow-300 group rounded-b-2xl p-2 pt-3 focus-within:ring-2 hover:bg-yellow-50 focus-within:ring-primary flex flex-col gap-2 mt-2 ${!(mode === "liquidity" && liquidityMode === "single-eth") ? "" : "hidden"}`}
+                className={`border-2 border-yellow-300 dark:border-yellow-700 group rounded-b-2xl p-2 pt-3 focus-within:ring-2 hover:bg-yellow-50 dark:hover:bg-yellow-900/30 focus-within:ring-primary dark:focus-within:ring-yellow-600 flex flex-col gap-2 mt-2 ${!(mode === "liquidity" && liquidityMode === "single-eth") ? "" : "hidden"}`}
               >
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">
@@ -4349,7 +4360,7 @@ export const SwapTile = () => {
                     placeholder="0.0"
                     value={buyAmt}
                     onChange={(e) => syncFromBuy(e.target.value)}
-                    className="text-lg sm:text-xl font-medium w-full focus:outline-none h-10 text-right pr-1"
+                    className="text-lg sm:text-xl font-medium w-full text-gray-900 dark:text-gray-900 focus:outline-none h-10 text-right pr-1"
                     readOnly={
                       mode === "liquidity" && liquidityMode === "remove"
                     }

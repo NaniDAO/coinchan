@@ -19,165 +19,47 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
   Popover,
-  PopoverTrigger,
   PopoverContent,
+  PopoverTrigger,
 } from "@/components/ui/popover";
-import { mainnet } from "viem/chains";
-import { Link } from "@tanstack/react-router";
+import ImageInput from "@/components/ui/image-input";
 
-// CheckTheChain contract ABI for fetching ETH price
-const CheckTheChainAbi = [
-  {
-    inputs: [{ internalType: "string", name: "symbol", type: "string" }],
-    name: "checkPrice",
-    outputs: [
-      { internalType: "uint256", name: "price", type: "uint256" },
-      { internalType: "string", name: "priceStr", type: "string" },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-] as const;
-
-// CheckTheChain contract address
-const CheckTheChainAddress = "0x0000000000cDC1F8d393415455E382c30FBc0a84";
-
-// Define proper types for the ImageInput component
-interface ImageInputProps {
-  onChange: (file: File | File[] | undefined) => void;
+interface FormState {
+  name: string;
+  symbol: string;
+  description: string;
+  ethAmount: string;
+  website: string;
+  discord: string;
+  twitter: string;
 }
 
-// Fixed ImageInput component with drag and drop and preview
-const ImageInput = ({ onChange }: ImageInputProps) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [isDragging, setIsDragging] = useState<boolean>(false);
-
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      handleFile(file);
-      // Reset the input value to ensure onChange fires even if the same file is selected again
-      e.target.value = "";
-    }
-  };
-
-  const handleFile = (file: File) => {
-    setSelectedFileName(file.name);
-
-    // Create preview URL
-    const objectUrl = URL.createObjectURL(file);
-    setPreviewUrl(objectUrl);
-
-    // Call parent onChange handler
-    onChange(file);
-
-    // Clean up the preview URL when component unmounts
-    return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
-    };
-  };
-
-  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-
-    const files = e.dataTransfer.files;
-    if (files?.length) {
-      handleFile(files[0]);
-    }
-  };
-
-  // Clean up the URL when component unmounts
-  useEffect(() => {
-    return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
-    };
-  }, [previewUrl]);
-
-  return (
-    <div className="flex flex-col gap-2">
-      <input
-        ref={fileInputRef}
-        type="file"
-        onChange={handleFileChange}
-        accept="image/*"
-        className="hidden"
-      />
-      <div
-        className={`flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-md ${
-          isDragging ? "border-blue-500 bg-blue-50" : "border-gray-300"
-        } transition-colors duration-200`}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-      >
-        {previewUrl ? (
-          <div className="flex flex-col items-center gap-4">
-            <img
-              src={previewUrl}
-              alt="Preview"
-              className="max-h-32 max-w-full object-contain rounded-md"
-            />
-            <div className="flex flex-col items-center">
-              <p className="text-sm text-gray-500 mb-2">{selectedFileName}</p>
-              <Button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                variant="outline"
-                size="sm"
-              >
-                Change Image
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="text-center">
-            <p className="mb-2">Drag & drop image here</p>
-            <p>or</p>
-            <Button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              variant="outline"
-              className="mt-2"
-            >
-              Browse Files
-            </Button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+const initialFormState: FormState = {
+  name: "",
+  symbol: "",
+  description: "",
+  ethAmount: "0.01",
+  website: "",
+  discord: "",
+  twitter: "",
 };
 
-export function CoinForm() {
-  const [formState, setFormState] = useState({
-    name: "",
-    symbol: "",
-    description: "",
-    logo: "",
-    creatorSupply: "0",
-    ethAmount: "0.01", // Default ETH amount
-  });
+export const CoinForm = () => {
+  const MAX_NAME_LENGTH = 32;
+  const MAX_SYMBOL_LENGTH = 16;
+  const MAX_DESCRIPTION_LENGTH = 400;
 
+  const [formState, setFormState] = useState<FormState>(initialFormState);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [txHash, setTxHash] = useState<string | null>(null);
+
+  // Coin Creation process - tokenURI data
+  const [tokenURI, setTokenURI] = useState<string | null>(null);
+  const [tokenUriHash, setTokenUriHash] = useState("");
+  const [pendingPin, setPendingPin] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageBuffer, setImageBuffer] = useState<ArrayBuffer | null>(null);
   const { address } = useAccount();
 
@@ -189,297 +71,365 @@ export function CoinForm() {
   const vestingDuration = 15778476;
   const vesting = true;
 
-  // Fetch ETH price in USD from CheckTheChain
-  const { data: ethPriceData } = useReadContract({
-    address: CheckTheChainAddress,
-    abi: CheckTheChainAbi,
-    functionName: "checkPrice",
-    args: ["WETH"],
-    chainId: mainnet.id,
-    query: {
-      // Refresh every 60 seconds
-      staleTime: 60_000,
-    },
-  });
-
-  // Calculate estimated market cap
-  // Convert fee basis points to percentage string
-  const feeToPercentage = (basisPoints: number): string => {
-    return (basisPoints / 100).toFixed(2) + "%";
-  };
-
-  // Convert percentage to basis points
-  const percentageToBasisPoints = (percentage: number): number => {
-    return Math.round(percentage * 100);
-  };
-
-  // Format percentage input to have max 2 decimal places and be within valid range
-  const formatPercentageInput = (value: string): string => {
-    // Handle empty or invalid input
-    if (!value || isNaN(parseFloat(value))) return "";
-
-    // Parse the value
-    let numValue = parseFloat(value);
-
-    // Cap the value at 99.99
-    numValue = Math.min(numValue, 99.99);
-
-    // If input contains more than 2 decimal places, truncate to 2
-    if (value.includes(".") && value.split(".")[1].length > 2) {
-      return numValue.toFixed(2);
-    }
-
-    // If we've capped the value, use the fixed format
-    if (numValue !== parseFloat(value)) {
-      return numValue.toFixed(2);
-    }
-
-    return value;
-  };
-
-  const marketCapEstimation = useMemo(() => {
-    if (!ethPriceData) return null;
-
-    // Parse ETH price from the data
-    const priceStr = ethPriceData[1];
-    const ethPriceUsd = parseFloat(priceStr);
-
-    // Check if parsing was successful
-    if (isNaN(ethPriceUsd) || ethPriceUsd === 0) return null;
-
-    // Get ETH amount (reserve0) and token amount (reserve1)
-    const ethAmount = parseFloat(formState.ethAmount) || 0.01;
-
-    // In a XYK pool (x*y=k), the spot price is determined by the ratio of reserves
-    // For ETH to token swap, price = reserve_token / reserve_eth
-    // Initial token price in ETH = ethAmount / poolSupply
-    const initialTokenPriceInEth = ethAmount / poolSupply;
-
-    // Market cap calculation for initial offering
-    // Total fully diluted value = initialTokenPriceInEth * TOTAL_SUPPLY
-    const marketCapEth = initialTokenPriceInEth * TOTAL_SUPPLY;
-
-    // Market cap in USD
-    const marketCapUsd = marketCapEth * ethPriceUsd;
-
-    // Token price in USD
-    const tokenPriceUsd = initialTokenPriceInEth * ethPriceUsd;
-
-    return {
-      eth: marketCapEth,
-      usd: marketCapUsd,
-      tokenPriceUsd: tokenPriceUsd,
-    };
-  }, [ethPriceData, formState.ethAmount, poolSupply]);
-
-  useEffect(() => {
-    const creatorAmount = Number(formState.creatorSupply) || 0;
-    const safeCreatorAmount = Math.min(creatorAmount, TOTAL_SUPPLY);
-    setPoolSupply(TOTAL_SUPPLY - safeCreatorAmount);
-  }, [formState.creatorSupply]);
-
-  const { writeContract, isPending, isSuccess, data, error } =
-    useWriteContract();
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setErrorMessage(null);
-
-    if (!address || !imageBuffer) {
-      // Error will be shown in UI
-      setErrorMessage(
-        !address ? "Wallet not connected" : "Please upload an image",
-      );
-      return;
-    }
-
-    // Validate ETH amount
-    const ethAmount = Number(formState.ethAmount);
-    if (isNaN(ethAmount) || ethAmount <= 0) {
-      setErrorMessage("Please enter a valid ETH amount greater than 0");
-      return;
-    }
-
-    // Validate creator supply
-    const creatorSupplyValue = Number(formState.creatorSupply) || 0;
-    if (creatorSupplyValue > TOTAL_SUPPLY) {
-      setErrorMessage(
-        `Creator supply cannot exceed ${TOTAL_SUPPLY.toLocaleString()} tokens`,
-      );
-      return;
-    }
-
-    // Calculate final pool supply
-    const safeCreatorSupply = Math.min(creatorSupplyValue, TOTAL_SUPPLY);
-    const finalPoolSupply = TOTAL_SUPPLY - safeCreatorSupply;
-
-    try {
-      const fileName = `${formState.name}_logo.png`;
-      const pinataMetadata = { name: fileName };
-
-      const imageHash = await pinImageToPinata(
-        imageBuffer,
-        fileName,
-        pinataMetadata,
-      );
-
-      const tokenUriJson = {
-        name: formState.name,
-        symbol: formState.symbol,
-        description: formState.description,
-        image: imageHash,
-      };
-
-      const tokenUriHash = await pinJsonToPinata(tokenUriJson);
-
-      try {
-        // Use custom ETH amount from form or default to 0.01 if invalid
-        const ethAmount =
-          formState.ethAmount && !isNaN(Number(formState.ethAmount))
-            ? formState.ethAmount
-            : "0.01";
-
-        writeContract({
-          address: CoinchanAddress,
-          abi: CoinchanAbi,
-          functionName: "makeLocked",
-          value: parseEther(ethAmount),
-          args: [
-            formState.name,
-            formState.symbol,
-            tokenUriHash,
-            parseEther(finalPoolSupply.toString()),
-            parseEther(safeCreatorSupply.toString()),
-            BigInt(swapFee), // Uses the custom fee from state
-            address,
-            BigInt(Math.floor(Date.now() / 1000) + vestingDuration),
-            vesting,
-          ],
-        });
-
-        // Show confetti only if the transaction was successful
-        if (!isUserRejectionError(error)) {
-          confetti({
-            particleCount: 666,
-            spread: 666,
-            scalar: 0.9,
-            shapes: ["circle"],
-            gravity: 0.9,
-            colors: ["#f9bd20", "#c17a00", "#fff9e6"],
-          });
-        }
-      } catch (txError) {
-        // Handle wallet rejection silently
-        if (!isUserRejectionError(txError)) {
-          const errorMsg = handleWalletError(txError);
-          if (errorMsg) {
-            setErrorMessage(errorMsg);
-          }
-        }
-      }
-    } catch (pinataError) {
-      // Error will be shown in UI
-      setErrorMessage("Failed to upload image to IPFS. Please try again.");
-    }
-  };
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  // Function to handle form input changes
+  const handleInputChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
-    setFormState({
-      ...formState,
-      [e.target.name]: e.target.value,
+    const { name, value } = e.target;
+
+    if (name === "ethAmount") {
+      // Validate ETH input as a number
+      const numericValue = parseFloat(value);
+      if (
+        value === "" ||
+        (!isNaN(numericValue) && numericValue >= 0 && numericValue <= 5)
+      ) {
+        setFormState((prev) => ({ ...prev, [name]: value }));
+      }
+      return;
+    }
+
+    if (name === "name" && value.length > MAX_NAME_LENGTH) {
+      return;
+    }
+
+    if (name === "symbol" && value.length > MAX_SYMBOL_LENGTH) {
+      return;
+    }
+
+    if (name === "description" && value.length > MAX_DESCRIPTION_LENGTH) {
+      return;
+    }
+
+    setFormState((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Determine the creator supply based on ETH amount
+  const creatorSupplyPercentage = 0.5; // 50% to creator
+  let creatorSupply = Math.round(TOTAL_SUPPLY * creatorSupplyPercentage);
+  const finalPoolSupply = TOTAL_SUPPLY - creatorSupply;
+  const safeCreatorSupply = creatorSupply;
+
+  // Helper function to read file as base64 (for preview)
+  const readFileAsBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
     });
   };
 
-  const handleFileChange = (value: File | File[] | undefined) => {
-    if (value && !Array.isArray(value)) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImageBuffer(e.target?.result as ArrayBuffer);
-      };
-      reader.readAsArrayBuffer(value);
+  // Handle file selection
+  const handleFileChange = async (selectedFile: File) => {
+    setImageFile(selectedFile);
+    try {
+      // Also prepare the ArrayBuffer for IPFS upload
+      const buffer = await selectedFile.arrayBuffer();
+      setImageBuffer(buffer);
+    } catch (error) {
+      console.error("Error reading file:", error);
     }
   };
 
+  // Create a reference for the contract write request to avoid stale closures
+  const contractWriteParamsRef = useRef<{
+    functionName: string;
+    args: any[];
+  } | null>(null);
+
+  // Contract interaction hooks
+  const {
+    writeContract,
+    isPending: isContractWritePending,
+    data: contractTxHash,
+  } = useWriteContract();
+
+  // Function to format fee as percentage string
+  const feeToPercentage = (basisPoints: number) => {
+    return `${(basisPoints / 100).toFixed(2)}%`;
+  };
+
+  // Estimates the market cap as a function of ETH amount and token supply
+  const marketCapEstimation = useMemo(() => {
+    try {
+      // Parse ETH amount as a number (defaulting to 0 if invalid)
+      const ethAmountFloat = parseFloat(formState.ethAmount) || 0;
+
+      // Assume 1 ETH = $3000 USD (simplified estimate)
+      const ethPriceUsd = 3000;
+
+      // Calculate ETH value of the pool
+      const ethValueUsd = ethAmountFloat * ethPriceUsd;
+
+      // Calculate token value based on pool percentage
+      const poolPercentage = finalPoolSupply / TOTAL_SUPPLY;
+      const fullMarketCapUsd = ethValueUsd / poolPercentage;
+
+      // Calculate token price
+      const tokenPriceEth = ethAmountFloat / finalPoolSupply;
+      const tokenPriceUsd = tokenPriceEth * ethPriceUsd;
+
+      return {
+        ethValue: ethAmountFloat,
+        ethValueUsd,
+        marketCapEth: ethAmountFloat / poolPercentage,
+        usd: fullMarketCapUsd,
+        tokenPriceEth,
+        tokenPriceUsd,
+      };
+    } catch (error) {
+      // Return default values on error
+      return {
+        ethValue: 0,
+        ethValueUsd: 0,
+        marketCapEth: 0,
+        usd: 0,
+        tokenPriceEth: 0,
+        tokenPriceUsd: 0,
+      };
+    }
+  }, [formState.ethAmount, finalPoolSupply, TOTAL_SUPPLY]);
+
+  const handleFormReset = () => {
+    // Reset form state
+    setFormState(initialFormState);
+    setImageFile(null);
+    setImageBuffer(null);
+    setTokenURI(null);
+    setTokenUriHash("");
+    setPendingPin(false);
+    setLoading(false);
+    setError(null);
+    setTxHash(null);
+    setSuccess(false);
+  };
+
+  const handleCreateClick = async () => {
+    if (!address) {
+      setError("Please connect your wallet");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Validate required form fields
+      if (
+        !formState.name ||
+        !formState.symbol ||
+        !formState.description ||
+        !formState.ethAmount ||
+        !imageBuffer
+      ) {
+        throw new Error("Please fill in all required fields and add an image");
+      }
+
+      // Validate ETH amount
+      const ethAmount = parseFloat(formState.ethAmount);
+      if (isNaN(ethAmount) || ethAmount <= 0) {
+        throw new Error("Please enter a valid ETH amount greater than 0");
+      }
+
+      // Upload image to IPFS first
+      setPendingPin(true);
+      const { fileUri, fileCID } = await pinImageToPinata(
+        imageBuffer,
+        imageFile!.name
+      );
+
+      console.log("Image pinned with CID:", fileCID);
+      console.log("Image URI:", fileUri);
+
+      // Prepare and pin the metadata
+      const metadata = {
+        name: formState.name,
+        symbol: formState.symbol,
+        description: formState.description,
+        image: fileUri, // The IPFS image URI
+        attributes: [
+          {
+            trait_type: "Coin Name",
+            value: formState.name,
+          },
+          {
+            trait_type: "Symbol",
+            value: formState.symbol,
+          },
+          // Add socials if present
+          ...(formState.website
+            ? [
+                {
+                  trait_type: "Website",
+                  value: formState.website,
+                },
+              ]
+            : []),
+          ...(formState.twitter
+            ? [
+                {
+                  trait_type: "Twitter",
+                  value: formState.twitter,
+                },
+              ]
+            : []),
+          ...(formState.discord
+            ? [
+                {
+                  trait_type: "Discord",
+                  value: formState.discord,
+                },
+              ]
+            : []),
+        ],
+      };
+
+      // Pin metadata to IPFS
+      const { fileUri: metadataUri, fileCID: metadataCID } =
+        await pinJsonToPinata(metadata, `${formState.symbol.toLowerCase()}-metadata.json`);
+
+      console.log("Metadata pinned with CID:", metadataCID);
+      console.log("Metadata URI:", metadataUri);
+
+      // Set the token URI and hash for contract interaction
+      setTokenURI(metadataUri);
+      setTokenUriHash(metadataCID);
+      setPendingPin(false);
+
+      // Prepare contract interaction data
+      contractWriteParamsRef.current = {
+        functionName: "deployToken",
+        args: [
+          formState.name,
+          formState.symbol,
+          tokenUriHash,
+          parseEther(finalPoolSupply.toString()),
+          parseEther(safeCreatorSupply.toString()),
+          BigInt(swapFee), // Uses the custom fee from state
+          address,
+          BigInt(Math.floor(Date.now() / 1000) + vestingDuration),
+          vesting,
+        ],
+      };
+
+      // Execute the contract interaction
+      writeContract({
+        address: CoinchanAddress,
+        abi: CoinchanAbi,
+        functionName: contractWriteParamsRef.current.functionName,
+        args: contractWriteParamsRef.current.args,
+        value: parseEther(formState.ethAmount),
+      });
+    } catch (error) {
+      console.error("Creation error:", error);
+
+      // Handle user rejection vs other errors
+      if (isUserRejectionError(error)) {
+        setError("Transaction rejected by user");
+      } else {
+        const errorMessage = handleWalletError(error);
+        setError(errorMessage || "Failed to create token. Please try again.");
+      }
+      setLoading(false);
+    }
+  };
+
+  // Effect to handle transaction result
+  useEffect(() => {
+    if (contractTxHash) {
+      setTxHash(contractTxHash);
+      setSuccess(true);
+      setLoading(false);
+
+      // Trigger confetti animation on success
+      confetti({
+        particleCount: 200,
+        spread: 70,
+        origin: { y: 0.6 },
+      });
+    }
+  }, [contractTxHash]);
+
   return (
-    <div className="border-2 border-[#b01e0e] rounded-lg p-5">
-      <div>
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="w-full max-w-3xl mx-auto mt-6 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+      <h2 className="text-3xl font-bold mb-6 text-center text-deep-red">
+        Create Coin
+      </h2>
+
+      {success && txHash ? (
+        <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 p-4 rounded-md text-center mb-6">
+          <h3 className="text-lg font-bold text-green-700 dark:text-green-400 mb-2">
+            Success! Your coin has been created.
+          </h3>
+          <p className="text-green-600 dark:text-green-300 mb-4">
+            Transaction Hash:{" "}
+            <a
+              href={`https://etherscan.io/tx/${txHash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-green-800 dark:hover:text-green-200"
+            >
+              {txHash}
+            </a>
+          </p>
+          <Button onClick={handleFormReset} className="mt-2">
+            Create Another Coin
+          </Button>
+        </div>
+      ) : (
+        <form className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
+            <Label htmlFor="name" className="text-md font-semibold">
+              Coin Name
+            </Label>
             <Input
               id="name"
-              type="text"
               name="name"
+              placeholder="e.g., Meme Coin"
               value={formState.name}
-              onChange={handleChange}
-              required
+              onChange={handleInputChange}
+              maxLength={MAX_NAME_LENGTH}
+              className="focus:border-blue-500"
             />
+            <div className="text-xs text-gray-500 dark:text-gray-400 flex justify-end">
+              {formState.name.length}/{MAX_NAME_LENGTH}
+            </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="symbol">Symbol</Label>
+            <Label htmlFor="symbol" className="text-md font-semibold">
+              Symbol
+            </Label>
             <Input
               id="symbol"
-              type="text"
               name="symbol"
+              placeholder="e.g., MEME"
               value={formState.symbol}
-              onChange={handleChange}
-              required
+              onChange={handleInputChange}
+              maxLength={MAX_SYMBOL_LENGTH}
+              className="focus:border-blue-500 uppercase"
             />
+            <div className="text-xs text-gray-500 dark:text-gray-400 flex justify-end">
+              {formState.symbol.length}/{MAX_SYMBOL_LENGTH}
+            </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description" className="text-md font-semibold">
+              Description
+            </Label>
             <Textarea
               id="description"
               name="description"
+              placeholder="Describe your token..."
               value={formState.description}
-              onChange={handleChange}
-              required
+              onChange={handleInputChange}
+              maxLength={MAX_DESCRIPTION_LENGTH}
+              className="min-h-24 focus:border-blue-500"
             />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="creatorSupply">Creator Supply</Label>
-            <Input
-              id="creatorSupply"
-              type="text"
-              name="creatorSupply"
-              placeholder="0"
-              value={formState.creatorSupply}
-              onChange={(e) => {
-                // Check if value exceeds total supply
-                const value = e.target.value;
-                const numValue = Number(value) || 0;
-
-                // If it exceeds total supply, cap it
-                if (numValue > TOTAL_SUPPLY) {
-                  setFormState({
-                    ...formState,
-                    creatorSupply: TOTAL_SUPPLY.toString(),
-                  });
-                } else {
-                  setFormState({
-                    ...formState,
-                    creatorSupply: value,
-                  });
-                }
-              }}
-              max={TOTAL_SUPPLY}
-            />
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-500">
-                Pool Supply: {poolSupply.toLocaleString()} (Total:{" "}
-                {TOTAL_SUPPLY.toLocaleString()})
-              </p>
-              {Number(formState.creatorSupply) >= TOTAL_SUPPLY && (
-                <p className="text-xs text-amber-600">
-                  Max: {TOTAL_SUPPLY.toLocaleString()}
-                </p>
-              )}
+            <div className="text-xs text-gray-500 dark:text-gray-400 flex justify-end">
+              {formState.description.length}/{MAX_DESCRIPTION_LENGTH}
             </div>
           </div>
 
@@ -488,95 +438,152 @@ export function CoinForm() {
             <ImageInput onChange={handleFileChange} />
           </div>
 
-          <div className="space-y-2 border p-4 rounded-md bg-gray-50">
-            <Label htmlFor="ethAmount" className="text-md font-semibold">
-              Initial Liquidity (ETH Amount)
-            </Label>
+          <div className="space-y-2 border p-4 rounded-md bg-gray-50 dark:bg-gray-900/30">
+            <div className="flex justify-between items-center">
+              <Label htmlFor="ethAmount" className="text-md font-semibold">
+                Initial Liquidity (ETH Amount)
+              </Label>
+              <Popover
+                open={showFeeSelector}
+                onOpenChange={setShowFeeSelector}
+              >
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="text-xs flex items-center gap-1 hover:underline cursor-pointer bg-transparent border-none p-0 text-gray-700 dark:text-gray-300"
+                  >
+                    Fee:{" "}
+                    <span className="font-medium text-blue-600 dark:text-blue-400">
+                      {feeToPercentage(swapFee)}
+                    </span>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-3 bg-white dark:bg-gray-800">
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm text-gray-800 dark:text-gray-200">
+                      Customize Swap Fee
+                    </h4>
+                    <p className="text-xs text-gray-600 dark:text-gray-300">
+                      Select a fee percentage for swaps
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      {[25, 50, 100, 150, 200, 300].map((fee) => (
+                        <button
+                          key={fee}
+                          type="button"
+                          className={`text-xs px-3 py-2 rounded border transition-colors ${
+                            swapFee === fee
+                              ? "bg-blue-100 dark:bg-blue-900 border-blue-400 dark:border-blue-500 text-blue-700 dark:text-blue-300 font-medium"
+                              : "border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200"
+                          }`}
+                          onClick={() => {
+                            setSwapFee(fee);
+                            setCustomFeeInput("");
+                            setShowFeeSelector(false);
+                          }}
+                        >
+                          {feeToPercentage(fee)}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="mt-3">
+                      <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                        Custom Fee (%)
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="e.g. 0.75"
+                          className="text-xs h-8"
+                          value={customFeeInput}
+                          onChange={(e) => {
+                            // Only allow numbers and up to one decimal point
+                            const value = e.target.value;
+
+                            // Validate format (numbers with up to 2 decimal places and max 2 digits before decimal)
+                            if (
+                              value === "" ||
+                              /^[0-9]{1,2}(\.?[0-9]{0,2})?$/.test(value)
+                            ) {
+                              // Check if the value exceeds the maximum allowed (99.99)
+                              const numValue = parseFloat(value);
+                              if (
+                                value === "" ||
+                                isNaN(numValue) ||
+                                numValue <= 99.99
+                              ) {
+                                setCustomFeeInput(value);
+                              }
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => {
+                            if (customFeeInput) {
+                              const numericFee = parseFloat(customFeeInput);
+                              if (!isNaN(numericFee) && numericFee > 0) {
+                                // Convert percentage to basis points (e.g., 1.5% → 150)
+                                const feeBasisPoints = Math.round(numericFee * 100);
+                                setSwapFee(feeBasisPoints);
+                                setShowFeeSelector(false);
+                              }
+                            }
+                          }}
+                        >
+                          Set
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
             <div className="flex gap-2 items-center">
               <Input
                 id="ethAmount"
                 type="text"
                 name="ethAmount"
+                inputMode="decimal"
                 placeholder="0.01"
                 value={formState.ethAmount}
-                onChange={handleChange}
-                className="flex-grow"
+                onChange={handleInputChange}
+                className="focus:border-blue-500"
               />
+              <div className="text-md font-medium">ETH</div>
             </div>
-            <div className="flex flex-wrap gap-2 mt-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  setFormState({ ...formState, ethAmount: "0.01" })
-                }
-                className={`transition-all ${formState.ethAmount === "0.01" ? "bg-blue-100 border-blue-300" : ""}`}
-              >
-                0.01 ETH
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  setFormState({ ...formState, ethAmount: "0.033" })
-                }
-                className={`transition-all ${formState.ethAmount === "0.033" ? "bg-blue-100 border-blue-300" : ""}`}
-              >
-                0.033 ETH
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setFormState({ ...formState, ethAmount: "0.5" })}
-                className={`transition-all ${formState.ethAmount === "0.5" ? "bg-blue-100 border-blue-300" : ""}`}
-              >
-                0.5 ETH
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setFormState({ ...formState, ethAmount: "1" })}
-                className={`transition-all ${formState.ethAmount === "1" ? "bg-blue-100 border-blue-300" : ""}`}
-              >
-                1 ETH
-              </Button>
-            </div>
+            <div className="text-xs text-gray-500">Minimum: 0.01 ETH</div>
 
-            {/* Market Cap Estimation */}
-            {marketCapEstimation && (
-              <div className="mt-3 p-3 bg-gray-100 rounded-md border border-gray-200">
-                <h4 className="text-sm font-medium text-gray-700 mb-2">
-                  Launch Projections
-                </h4>
-                <div className="flex flex-col gap-2">
-                  <div className="bg-white p-2 rounded border border-gray-200">
-                    <h5 className="text-xs font-medium text-gray-600">
+            <div className="mt-4 border-t pt-3">
+              <h3 className="text-md font-semibold mb-2">Market Cap Estimate</h3>
+              <div className="bg-white dark:bg-gray-800 rounded-md p-3 border shadow-sm">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <h5 className="text-xs font-medium text-gray-600 dark:text-gray-400">
                       TOKEN PRICE
                     </h5>
                     <div className="flex items-center text-sm mt-1">
-                      <span className="font-medium text-green-600">
+                      <span className="font-medium text-green-600 dark:text-green-400">
                         ${marketCapEstimation.tokenPriceUsd.toFixed(8)}
                       </span>
                     </div>
                   </div>
-
-                  <div className="bg-white p-2 rounded border border-gray-200">
-                    <h5 className="text-xs font-medium text-gray-600">
+                  <div>
+                    <h5 className="text-xs font-medium text-gray-600 dark:text-gray-400">
                       MARKET CAP
                     </h5>
                     <div className="flex flex-col">
                       <div className="flex items-center text-sm">
-                        <span className="text-gray-600 min-w-20">ETH:</span>
+                        <span className="text-gray-600 dark:text-gray-400 min-w-20">ETH:</span>
                         <span className="font-medium">
-                          {formatNumber(marketCapEstimation.eth, 2)} ETH
+                          {formatNumber(marketCapEstimation.marketCapEth, 2)} ETH
                         </span>
                       </div>
-                      <div className="flex items-center text-sm mt-1">
-                        <span className="text-gray-600 min-w-20">USD:</span>
+                      <div className="flex items-center text-sm">
+                        <span className="text-gray-600 dark:text-gray-400 min-w-20">USD:</span>
                         <span className="font-medium">
                           ${formatNumber(marketCapEstimation.usd, 0)}
                         </span>
@@ -585,168 +592,88 @@ export function CoinForm() {
                   </div>
                 </div>
                 <div className="flex items-center mt-2">
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     Based on {formState.ethAmount} ETH liquidity with{" "}
                     {poolSupply.toLocaleString()} coins
                   </p>
-                  <div className="ml-auto">
-                    <Popover
-                      open={showFeeSelector}
-                      onOpenChange={setShowFeeSelector}
-                    >
-                      <PopoverTrigger asChild>
-                        <button
-                          type="button"
-                          className="text-xs px-2 py-1 rounded border border-gray-300 hover:bg-gray-100 transition-colors flex items-center gap-1"
-                        >
-                          Fee:{" "}
-                          <span className="font-semibold text-blue-600">
-                            {feeToPercentage(swapFee)}
-                          </span>
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-64 p-3">
-                        <div className="space-y-2">
-                          <h4 className="font-medium text-sm">
-                            Customize Swap Fee
-                          </h4>
-                          <p className="text-xs text-gray-500">
-                            Select a fee percentage for swaps
-                          </p>
-                          <div className="grid grid-cols-2 gap-2 mt-2">
-                            {[25, 50, 100, 150, 200, 300].map((fee) => (
-                              <button
-                                key={fee}
-                                type="button"
-                                className={`text-xs px-3 py-2 rounded border transition-colors ${
-                                  swapFee === fee
-                                    ? "bg-blue-100 border-blue-400 text-blue-700"
-                                    : "border-gray-300 hover:bg-gray-50"
-                                }`}
-                                onClick={() => {
-                                  setSwapFee(fee);
-                                  setCustomFeeInput("");
-                                  setShowFeeSelector(false);
-                                }}
-                              >
-                                {feeToPercentage(fee)}
-                              </button>
-                            ))}
-                          </div>
-
-                          <div className="mt-3">
-                            <label className="text-xs font-medium text-gray-600 mb-1 block">
-                              Custom Fee (%)
-                            </label>
-                            <div className="flex items-center gap-2">
-                              <Input
-                                type="text"
-                                inputMode="decimal"
-                                placeholder="e.g. 0.75"
-                                className="text-xs h-8"
-                                value={customFeeInput}
-                                onChange={(e) => {
-                                  // Only allow numbers and up to one decimal point
-                                  const value = e.target.value;
-
-                                  // Validate format (numbers with up to 2 decimal places and max 2 digits before decimal)
-                                  if (
-                                    value === "" ||
-                                    /^[0-9]{1,2}(\.?[0-9]{0,2})?$/.test(value)
-                                  ) {
-                                    // Check if the value exceeds the maximum allowed (99.99)
-                                    const numValue = parseFloat(value);
-                                    if (
-                                      value === "" ||
-                                      isNaN(numValue) ||
-                                      numValue <= 99.99
-                                    ) {
-                                      setCustomFeeInput(value);
-                                    }
-                                  }
-                                }}
-                                onBlur={() => {
-                                  // Format on blur to ensure proper format
-                                  setCustomFeeInput(
-                                    formatPercentageInput(customFeeInput),
-                                  );
-                                }}
-                              />
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                className="h-8"
-                                onClick={() => {
-                                  const customFeePercent =
-                                    parseFloat(customFeeInput);
-                                  if (
-                                    !isNaN(customFeePercent) &&
-                                    customFeePercent >= 0.01 &&
-                                    customFeePercent <= 99.99
-                                  ) {
-                                    // Convert percentage to basis points for internal use
-                                    const basisPoints =
-                                      percentageToBasisPoints(customFeePercent);
-                                    setSwapFee(basisPoints);
-                                    setShowFeeSelector(false);
-                                  }
-                                }}
-                                disabled={
-                                  !customFeeInput ||
-                                  isNaN(parseFloat(customFeeInput)) ||
-                                  parseFloat(customFeeInput) < 0.01 ||
-                                  parseFloat(customFeeInput) > 99.99 ||
-                                  !/^[0-9]{1,2}(\.?[0-9]{0,2})?$/.test(
-                                    customFeeInput,
-                                  )
-                                }
-                              >
-                                Set
-                              </Button>
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {customFeeInput &&
-                              !isNaN(parseFloat(customFeeInput)) &&
-                              /^[0-9]{1,2}(\.?[0-9]{0,2})?$/.test(
-                                customFeeInput,
-                              )
-                                ? `${customFeeInput}% = ${percentageToBasisPoints(parseFloat(customFeeInput))} basis points`
-                                : "Enter a value between 0.01% and 99.99% (max 2 decimal places)"}
-                            </p>
-                          </div>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
                 </div>
               </div>
-            )}
+            </div>
           </div>
 
-          <p>
-            Read the{" "}
-            <Link to="/coinpaper" className="[&.active]:font-bold">
-              coinpaper
-            </Link>{" "}
-            to learn more.
-          </p>
+          <div className="space-y-2">
+            <h3 className="text-md font-semibold">Social Media (optional)</h3>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <Label htmlFor="website" className="text-sm">
+                  Website
+                </Label>
+                <Input
+                  id="website"
+                  name="website"
+                  placeholder="https://..."
+                  value={formState.website}
+                  onChange={handleInputChange}
+                  className="focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <Label htmlFor="twitter" className="text-sm">
+                  X/Twitter
+                </Label>
+                <Input
+                  id="twitter"
+                  name="twitter"
+                  placeholder="@username"
+                  value={formState.twitter}
+                  onChange={handleInputChange}
+                  className="focus:border-blue-500"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="discord" className="text-sm">
+                Discord
+              </Label>
+              <Input
+                id="discord"
+                name="discord"
+                placeholder="https://discord.gg/..."
+                value={formState.discord}
+                onChange={handleInputChange}
+                className="focus:border-blue-500"
+              />
+            </div>
+          </div>
 
-          <Button disabled={isPending} type="submit">
-            {isPending ? "Check Wallet" : "Coin It!"}
-          </Button>
-
-          {errorMessage && (
-            <div className="text-sm text-red-600 mt-2">{errorMessage}</div>
-          )}
-
-          {isSuccess && (
-            <div className="text-sm text-green-600 mt-2">
-              Success! Transaction: {JSON.stringify(data)}
+          {error && (
+            <div className="bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 p-4 rounded-md border border-red-200 dark:border-red-800">
+              {error}
             </div>
           )}
+
+          <Button
+            type="button"
+            onClick={handleCreateClick}
+            disabled={loading || isContractWritePending || pendingPin}
+            className="w-full py-2"
+          >
+            {(loading || isContractWritePending) && (
+              <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+            )}
+            {pendingPin
+              ? "Uploading to IPFS..."
+              : loading || isContractWritePending
+              ? "Creating Coin..."
+              : "Create Coin"}
+          </Button>
+
+          <div className="text-xs text-center text-gray-500 dark:text-gray-400 mt-2">
+            * Creating a coin requires ETH for gas + initial liquidity
+          </div>
         </form>
-      </div>
+      )}
     </div>
   );
-}
+};
+

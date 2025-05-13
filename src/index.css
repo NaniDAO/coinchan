@@ -73,6 +73,12 @@ body {
   background: white;
   color: var(--deep-red);
   font-family: var(--font-body);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dark body {
+  background: var(--background);
+  color: var(--foreground);
 }
 
 /* menu & form */
@@ -134,6 +140,14 @@ a:hover {
   background: var(--border);
 }
 
+/* Maintain consistent scrollbars in dark mode */
+.dark::-webkit-scrollbar {
+  background: #333;
+}
+.dark::-webkit-scrollbar-thumb {
+  background: #555;
+}
+
 /* ———————————————————————————————————————————————————————————————
    Larger screens
    ——————————————————————————————————————————————————————————————— */
@@ -175,6 +189,12 @@ a:hover {
   background: var(--border);
   border-radius: 3px;
 }
+.dark .meme-paper::-webkit-scrollbar-track {
+  background: #333;
+}
+.dark .meme-paper::-webkit-scrollbar-thumb {
+  background: #555;
+}
 
 .blob {
   position: absolute;
@@ -196,6 +216,21 @@ a:hover {
   50% {
     opacity: 0.6;
   }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-out forwards;
 }
 
 .content {
@@ -410,8 +445,19 @@ a:hover {
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
   }
   body {
     @apply bg-background text-foreground;
+  }
+  
+  /* Dark mode optimizations */
+  .dark img[src*=".svg"] {
+    filter: brightness(0.85) contrast(1.1);
+  }
+  
+  /* Enhance visibility of certain UI elements in dark mode */
+  .dark a, .dark button:not([disabled]) {
+    text-shadow: 0 0 0.5px currentColor;
   }
 }

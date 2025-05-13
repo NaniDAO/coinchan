@@ -1,6 +1,6 @@
 import { ConnectMenu } from "@/ConnectMenu";
-import { createRootRoute, Link, Outlet } from "@tanstack/react-router";
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { Link, Outlet, createRootRoute } from "@tanstack/react-router";
 
 export const Route = createRootRoute({
   component: () => (
@@ -39,7 +39,9 @@ export const Route = createRootRoute({
       </header>
       {/* <hr /> */}
       <Outlet />
-      <TanStackRouterDevtools />
+      <div className="fixed bottom-4 left-4 z-50 animate-fadeIn">
+        <ThemeToggle />
+      </div>
     </>
   ),
 });

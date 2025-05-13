@@ -124,7 +124,7 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
   );
 
   return (
-    <Card className="flex border-2 border-red-900 rounded-md bg-yellow-50 w-full flex-col items-right p-1 gap-2 shadow">
+    <Card className="flex border-2 border-red-900 dark:border-red-700 rounded-md bg-yellow-50 dark:bg-yellow-900/30 w-full flex-col items-right p-1 gap-2 shadow">
       <CardContent className="flex flex-col items-center justify-center p-2 space-y-2">
         <h3 className="text-center font-extrabold text-xs sm:text-sm truncate w-full">
           {displayName} [{displaySymbol}]
@@ -157,7 +157,7 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
           params={{
             coinId: coin.coinId.toString(),
           }}
-          className="m-0 rounded-full bg-white py-1 px-3 text-red-500 font-extrabold hover:scale-105 hover:underline text-sm touch-manipulation"
+          className="m-0 rounded-full bg-white dark:bg-white/90 py-1 px-3 text-red-500 font-extrabold hover:scale-105 hover:underline text-sm touch-manipulation"
         >
           Trade
         </Link>
