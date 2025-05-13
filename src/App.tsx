@@ -6,11 +6,12 @@ import { CoinForm } from "./CoinForm";
 import Coins from "./Coins";
 import { ConnectMenu } from "./ConnectMenu";
 import SwapTile from "./SwapTile";
+import { SendTile } from "./SendTile";
 import ConnectionErrorHandler from "./utils/ConnectionErrorHandler";
 import usePersistentConnection from "./hooks/use-persistent-connection";
 
 function App() {
-  const [view, setView] = useState<"menu" | "form" | "memepaper" | "swap">("swap");
+  const [view, setView] = useState<"menu" | "form" | "memepaper" | "swap" | "send">("swap");
   const [tapCount, setTapCount] = useState(0);
   const [lastTap, setLastTap] = useState(0);
 
@@ -56,6 +57,10 @@ function App() {
     setView("swap");
   };
 
+  const handleSendClick = () => {
+    setView("send");
+  };
+
   return (
     <main className="p-2 sm:p-3 min-h-screen w-screen flex flex-col justify-center items-center">
       {/* Silent error handler component for wallet connection issues */}
@@ -78,6 +83,7 @@ function App() {
         )}
         {view === "memepaper" && <CoinPaper onCoinClick={handleCoinClick} />}
         {view === "swap" && <SwapTile />}
+        {view === "send" && <SendTile />}
         {view === "menu" && (
           <div className="">
             <div>
@@ -91,7 +97,7 @@ function App() {
               </div>
             </div>
             <div className="w-full">
-              <Coins />
+              <Coins onSend={handleSendClick} />
             </div>
             <div className="main-menu">
               {/* <ConnectMenu /> */}

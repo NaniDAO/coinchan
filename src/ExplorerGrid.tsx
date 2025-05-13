@@ -13,6 +13,7 @@ export const ExplorerGrid = ({
   onPrev,
   onNext,
   onTrade,
+  onSend,
   isLoading = false,
   currentPage = 1,
   totalPages = 1,
@@ -27,6 +28,7 @@ export const ExplorerGrid = ({
   onPrev: () => void;
   onNext: () => void;
   onTrade: (id: bigint) => void;
+  onSend?: () => void;
   isLoading?: boolean;
   currentPage?: number;
   totalPages?: number;
@@ -163,6 +165,16 @@ export const ExplorerGrid = ({
             </span>
           ) : null}
           <span className={isTransitioning && direction === "next" ? "opacity-0" : ""}>Next</span>
+        </button>
+      </div>
+
+      {/* Send button at the bottom of Explorer Grid */}
+      <div className="mt-6 flex justify-center">
+        <button
+          onClick={onSend}
+          className="px-6 py-3 bg-yellow-500 hover:bg-yellow-600 text-white font-bold rounded-md shadow-md transition-colors duration-200"
+        >
+          Send Coins
         </button>
       </div>
     </div>

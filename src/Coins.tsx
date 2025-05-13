@@ -8,7 +8,7 @@ import { debounce } from "./utils";
 // Page size for pagination
 const PAGE_SIZE = 20;
 
-export const Coins = () => {
+export const Coins = ({ onSend }: { onSend?: () => void }) => {
   /* ------------------------------------------------------------------
    *  Local state
    * ------------------------------------------------------------------ */
@@ -111,6 +111,7 @@ export const Coins = () => {
           onPrev={debouncedPrevPage}
           onNext={debouncedNextPage}
           onTrade={openTrade}
+          onSend={onSend}
           isLoading={isLoading || (isSearchActive && isGlobalLoading)}
           currentPage={page + 1}
           totalPages={totalPages}
