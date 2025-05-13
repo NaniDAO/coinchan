@@ -60,17 +60,11 @@ html {
 }
 
 img.logo {
-  width: 80vw; /* fluid on mobile */
-  max-width: 240px; /* never exceed this on small */
-  margin: 0 auto 2rem;
   cursor: pointer;
-  transition: width 0.3s ease, transform 0.3s ease;
+  transition:
+    width 0.3s ease,
+    transform 0.3s ease;
   animation: float 3s ease-in-out infinite;
-}
-img.logo.small {
-  width: 50vw;
-  max-width: 120px;
-  transform: scale(1.1);
 }
 
 body {
@@ -146,11 +140,6 @@ a:hover {
 @media (min-width: 600px) {
   body {
     padding: 0;
-  }
-
-  img.logo {
-    width: 300px;
-    max-width: none;
   }
 
   .paper-container {
@@ -245,7 +234,9 @@ a:hover {
   padding: 16px;
   border-radius: 16px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
   border: 1px solid rgba(0, 0, 0, 0.05);
 }
 

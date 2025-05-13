@@ -26,14 +26,23 @@ import {
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
 import { ZAAMAbi, ZAAMAddress } from "./constants/ZAAM";
 import { ZAMMHelperAbi, ZAMMHelperAddress } from "./constants/ZAMMHelper";
-import { ZAMMSingleLiqETHAbi, ZAMMSingleLiqETHAddress } from "./constants/ZAMMSingleLiqETH";
+import {
+  ZAMMSingleLiqETHAbi,
+  ZAMMSingleLiqETHAddress,
+} from "./constants/ZAMMSingleLiqETH";
 import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
-import { CoinsMetadataHelperAbi, CoinsMetadataHelperAddress } from "./constants/CoinsMetadataHelper";
+import {
+  CoinsMetadataHelperAbi,
+  CoinsMetadataHelperAddress,
+} from "./constants/CoinsMetadataHelper";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, ArrowDownUp, Plus, Minus } from "lucide-react";
-import { estimateContractGas, simulateContractInteraction } from "./lib/simulate";
+import {
+  estimateContractGas,
+  simulateContractInteraction,
+} from "./lib/simulate";
 import PoolPriceChart from "./PoolPriceChart";
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -54,7 +63,8 @@ const SLIPPAGE_OPTIONS = [
 ];
 
 // Calculate amount with slippage tolerance applied
-const getAmountWithSlippage = (amount: bigint, slippageBps: bigint) => (amount * (10000n - slippageBps)) / 10000n;
+const getAmountWithSlippage = (amount: bigint, slippageBps: bigint) =>
+  (amount * (10000n - slippageBps)) / 10000n;
 
 // Helper function to format token balance with appropriate precision (exported to avoid unused variable error)
 export const formatTokenBalance = (token: TokenMeta): string => {
@@ -178,25 +188,36 @@ const computePoolId = (coinId: bigint) =>
   BigInt(
     keccak256(
       encodeAbiParameters(
-        parseAbiParameters("uint256 id0, uint256 id1, address token0, address token1, uint96 swapFee"),
+        parseAbiParameters(
+          "uint256 id0, uint256 id1, address token0, address token1, uint96 swapFee",
+        ),
         [0n, coinId, zeroAddress, CoinsAddress, SWAP_FEE],
       ),
     ),
   );
 
 // Function to compute a custom pool ID with specific tokens and fee
-const computeCustomPoolId = (id0: bigint, id1: bigint, token0: `0x${string}`, token1: `0x${string}`, swapFee: bigint) =>
+const computeCustomPoolId = (
+  id0: bigint,
+  id1: bigint,
+  token0: `0x${string}`,
+  token1: `0x${string}`,
+  swapFee: bigint,
+) =>
   BigInt(
     keccak256(
       encodeAbiParameters(
-        parseAbiParameters("uint256 id0, uint256 id1, address token0, address token1, uint96 swapFee"),
+        parseAbiParameters(
+          "uint256 id0, uint256 id1, address token0, address token1, uint96 swapFee",
+        ),
         [id0, id1, token0, token1, swapFee],
       ),
     ),
   );
 
 // USDT address on mainnet (official Tether USD address)
-const USDT_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7" as `0x${string}`;
+const USDT_ADDRESS =
+  "0xdAC17F958D2ee523a2206206994597C13D831ec7" as `0x${string}`;
 
 // Create USDT-ETH pool with 30 bps fee
 const USDT_POOL_KEY: {
@@ -219,7 +240,7 @@ const USDT_POOL_ID = computeCustomPoolId(
   USDT_POOL_KEY.id1,
   USDT_POOL_KEY.token0,
   USDT_POOL_KEY.token1,
-  USDT_POOL_KEY.swapFee
+  USDT_POOL_KEY.swapFee,
 );
 
 // Define USDT token
@@ -240,7 +261,12 @@ const USDT_TOKEN: TokenMeta = {
 };
 
 // x*y=k AMM with fee — forward (amountIn → amountOut)
-const getAmountOut = (amountIn: bigint, reserveIn: bigint, reserveOut: bigint, swapFee: bigint) => {
+const getAmountOut = (
+  amountIn: bigint,
+  reserveIn: bigint,
+  reserveOut: bigint,
+  swapFee: bigint,
+) => {
   if (amountIn === 0n || reserveIn === 0n || reserveOut === 0n) return 0n;
 
   const amountInWithFee = amountIn * (10000n - swapFee);
@@ -250,8 +276,19 @@ const getAmountOut = (amountIn: bigint, reserveIn: bigint, reserveOut: bigint, s
 };
 
 // inverse — desired amountOut → required amountIn
-const getAmountIn = (amountOut: bigint, reserveIn: bigint, reserveOut: bigint, swapFee: bigint) => {
-  if (amountOut === 0n || reserveIn === 0n || reserveOut === 0n || amountOut >= reserveOut) return 0n;
+const getAmountIn = (
+  amountOut: bigint,
+  reserveIn: bigint,
+  reserveOut: bigint,
+  swapFee: bigint,
+) => {
+  if (
+    amountOut === 0n ||
+    reserveIn === 0n ||
+    reserveOut === 0n ||
+    amountOut >= reserveOut
+  )
+    return 0n;
 
   const numerator = reserveIn * amountOut * 10000n;
   const denominator = (reserveOut - amountOut) * (10000n - swapFee);
@@ -297,7 +334,8 @@ const useAllTokens = () => {
       const prevBal = prevEth.balance;
 
       // keep old balance while a new query is still loading
-      const newBal = ethBalanceSuccess && ethBalance ? ethBalance.value : prevBal;
+      const newBal =
+        ethBalanceSuccess && ethBalance ? ethBalance.value : prevBal;
 
       // if the balance really hasn’t changed, bail out early → no re-render flicker
       if (newBal === prevBal) return prev;
@@ -339,7 +377,9 @@ const useAllTokens = () => {
           }
         } catch (error) {
           // If pool doesn't exist yet, use placeholder values
-          console.log("USDT-ETH pool reserves fetch failed, using placeholders");
+          console.log(
+            "USDT-ETH pool reserves fetch failed, using placeholders",
+          );
         }
 
         // Get the total coin count first to verify
@@ -363,7 +403,10 @@ const useAllTokens = () => {
           });
 
           // Check if we're getting all coins
-          if (Array.isArray(allCoinsData) && allCoinsData.length < totalCoinCount) {
+          if (
+            Array.isArray(allCoinsData) &&
+            allCoinsData.length < totalCoinCount
+          ) {
             // Fewer coins than expected, using batch fetching
             allCoinsData = null; // Force fallback
           }
@@ -423,7 +466,8 @@ const useAllTokens = () => {
             // Handle both tuple object and array response formats
             if (Array.isArray(coinData)) {
               // If it's an array (some contracts return tuples as arrays)
-              [coinId, tokenURI, reserve0, reserve1, poolId, liquidity] = coinData;
+              [coinId, tokenURI, reserve0, reserve1, poolId, liquidity] =
+                coinData;
             } else {
               // If it's an object with properties (standard viem response)
               coinId = coinData.coinId;
@@ -443,37 +487,49 @@ const useAllTokens = () => {
             tokenURI = tokenURI?.toString() || "";
 
             // Fetch more metadata and custom swap fee
-            const [symbolResult, nameResult, lockupResult] = await Promise.allSettled([
-              publicClient.readContract({
-                address: CoinsAddress,
-                abi: CoinsAbi,
-                functionName: "symbol",
-                args: [coinId],
-              }),
-              publicClient.readContract({
-                address: CoinsAddress,
-                abi: CoinsAbi,
-                functionName: "name",
-                args: [coinId],
-              }),
-              publicClient.readContract({
-                address: CoinchanAddress,
-                abi: CoinchanAbi,
-                functionName: "lockups",
-                args: [coinId],
-              }),
-            ]);
+            const [symbolResult, nameResult, lockupResult] =
+              await Promise.allSettled([
+                publicClient.readContract({
+                  address: CoinsAddress,
+                  abi: CoinsAbi,
+                  functionName: "symbol",
+                  args: [coinId],
+                }),
+                publicClient.readContract({
+                  address: CoinsAddress,
+                  abi: CoinsAbi,
+                  functionName: "name",
+                  args: [coinId],
+                }),
+                publicClient.readContract({
+                  address: CoinchanAddress,
+                  abi: CoinchanAbi,
+                  functionName: "lockups",
+                  args: [coinId],
+                }),
+              ]);
 
             const symbol =
-              symbolResult.status === "fulfilled" ? (symbolResult.value as string) : `C#${coinId.toString()}`;
+              symbolResult.status === "fulfilled"
+                ? (symbolResult.value as string)
+                : `C#${coinId.toString()}`;
             const name =
-              nameResult.status === "fulfilled" ? (nameResult.value as string) : `Coin #${coinId.toString()}`;
+              nameResult.status === "fulfilled"
+                ? (nameResult.value as string)
+                : `Coin #${coinId.toString()}`;
 
             // Extract custom swap fee from lockup if available
             let swapFee = SWAP_FEE; // Default swap fee
             if (lockupResult.status === "fulfilled") {
               try {
-                const lockup = lockupResult.value as readonly [string, number, number, boolean, bigint, bigint];
+                const lockup = lockupResult.value as readonly [
+                  string,
+                  number,
+                  number,
+                  boolean,
+                  bigint,
+                  bigint,
+                ];
                 // Extract the swapFee (5th element in the lockups array)
                 if (lockup && lockup.length >= 5) {
                   const lockupSwapFee = lockup[4];
@@ -495,11 +551,17 @@ const useAllTokens = () => {
 
               try {
                 const cachedBalance = localStorage.getItem(balanceCacheKey);
-                const cachedTimestamp = localStorage.getItem(balanceCacheTimestampKey);
+                const cachedTimestamp = localStorage.getItem(
+                  balanceCacheTimestampKey,
+                );
                 const now = Date.now();
 
                 // Use cache if it's valid and recent
-                if (cachedBalance && cachedTimestamp && now - parseInt(cachedTimestamp) < BALANCE_CACHE_VALIDITY_MS) {
+                if (
+                  cachedBalance &&
+                  cachedTimestamp &&
+                  now - parseInt(cachedTimestamp) < BALANCE_CACHE_VALIDITY_MS
+                ) {
                   balance = BigInt(cachedBalance);
                 } else {
                   // Fetch fresh balance from chain
@@ -515,7 +577,10 @@ const useAllTokens = () => {
                   // Save balance to cache
                   try {
                     localStorage.setItem(balanceCacheKey, balance.toString());
-                    localStorage.setItem(balanceCacheTimestampKey, now.toString());
+                    localStorage.setItem(
+                      balanceCacheTimestampKey,
+                      now.toString(),
+                    );
                   } catch (e) {
                     // Cache error, can continue without caching
                   }
@@ -589,16 +654,23 @@ const useAllTokens = () => {
         });
 
         // Get the updated ETH token with balance from current state or use ethBalance directly
-        const currentEthToken = tokens.find((token) => token.id === null) || ETH_TOKEN;
+        const currentEthToken =
+          tokens.find((token) => token.id === null) || ETH_TOKEN;
 
         // Create a new ETH token with balance preserved - ALWAYS prioritize the latest ethBalance
         const ethTokenWithBalance = {
           ...currentEthToken,
           // If we have ethBalance, ALWAYS use it as the most up-to-date value
-          balance: ethBalance?.value !== undefined ? ethBalance.value : currentEthToken.balance,
+          balance:
+            ethBalance?.value !== undefined
+              ? ethBalance.value
+              : currentEthToken.balance,
           // Add formatted balance for debugging
           formattedBalance:
-            ethBalance?.formatted || (currentEthToken.balance ? formatEther(currentEthToken.balance) : "0"),
+            ethBalance?.formatted ||
+            (currentEthToken.balance
+              ? formatEther(currentEthToken.balance)
+              : "0"),
         };
 
         // Update ETH balance when it changes
@@ -625,10 +697,16 @@ const useAllTokens = () => {
             // Check for valid cached balance
             try {
               const cachedBalance = localStorage.getItem(usdtBalanceCacheKey);
-              const cachedTimestamp = localStorage.getItem(usdtBalanceCacheTimestampKey);
+              const cachedTimestamp = localStorage.getItem(
+                usdtBalanceCacheTimestampKey,
+              );
 
               // Use cache if it's valid and recent
-              if (cachedBalance && cachedTimestamp && now - parseInt(cachedTimestamp) < BALANCE_CACHE_VALIDITY_MS) {
+              if (
+                cachedBalance &&
+                cachedTimestamp &&
+                now - parseInt(cachedTimestamp) < BALANCE_CACHE_VALIDITY_MS
+              ) {
                 usdtBalance = BigInt(cachedBalance);
                 shouldFetchFromChain = false;
                 usdtTokenWithReserves.balance = usdtBalance;
@@ -646,9 +724,17 @@ const useAllTokens = () => {
                   address: USDT_ADDRESS,
                   abi: [
                     {
-                      inputs: [{ internalType: "address", name: "account", type: "address" }],
+                      inputs: [
+                        {
+                          internalType: "address",
+                          name: "account",
+                          type: "address",
+                        },
+                      ],
                       name: "balanceOf",
-                      outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+                      outputs: [
+                        { internalType: "uint256", name: "", type: "uint256" },
+                      ],
                       stateMutability: "view",
                       type: "function",
                     },
@@ -664,32 +750,50 @@ const useAllTokens = () => {
                   console.log("Fetched USDT balance:", {
                     rawBalance: usdtBalance.toString(),
                     formattedBalance: formatUnits(usdtBalance, 6), // Always use 6 decimals for USDT
-                    decimals: usdtTokenWithReserves.decimals
+                    decimals: usdtTokenWithReserves.decimals,
                   });
 
                   // Cache the balance
                   try {
-                    localStorage.setItem(usdtBalanceCacheKey, usdtBalance.toString());
-                    localStorage.setItem(usdtBalanceCacheTimestampKey, now.toString());
+                    localStorage.setItem(
+                      usdtBalanceCacheKey,
+                      usdtBalance.toString(),
+                    );
+                    localStorage.setItem(
+                      usdtBalanceCacheTimestampKey,
+                      now.toString(),
+                    );
                   } catch (e) {
                     // Ignore storage errors
                   }
                 }
               } catch (innerError) {
                 // Handle errors during balance fetch but don't crash the app
-                console.log("USDT balance fetch skipped:", innerError instanceof Error ? innerError.message : "Unknown error");
+                console.log(
+                  "USDT balance fetch skipped:",
+                  innerError instanceof Error
+                    ? innerError.message
+                    : "Unknown error",
+                );
                 // Just keep balance as 0
               }
             }
           } catch (error) {
             // Ignore errors fetching USDT balance, but don't crash initialization
-            console.log("USDT balance handling skipped:", error instanceof Error ? error.message : "Unknown error");
+            console.log(
+              "USDT balance handling skipped:",
+              error instanceof Error ? error.message : "Unknown error",
+            );
           }
         }
 
         // Add USDT token to the list, but keep it out of view initially (only show when searched)
         // Place USDT after the top tokens instead of at the top
-        const allTokensWithUsdt = [ethTokenWithBalance, ...topTokens, usdtTokenWithReserves];
+        const allTokensWithUsdt = [
+          ethTokenWithBalance,
+          ...topTokens,
+          usdtTokenWithReserves,
+        ];
 
         // Use top tokens by ETH reserves plus our special USDT token at the end
         setTokens(allTokensWithUsdt);
@@ -819,7 +923,9 @@ const TokenSelector = React.memo(
       ({ token }: { token: TokenMeta }) => {
         const [imageLoaded, setImageLoaded] = useState(false);
         const [imageError, setImageError] = useState(false);
-        const [actualImageUrl, setActualImageUrl] = useState<string | null>(null);
+        const [actualImageUrl, setActualImageUrl] = useState<string | null>(
+          null,
+        );
         const [failedUrls, setFailedUrls] = useState<Set<string>>(new Set());
         const [alternativeUrls, setAlternativeUrls] = useState<string[]>([]);
         const { bg, text } = getColorForSymbol(token.symbol);
@@ -876,7 +982,9 @@ const TokenSelector = React.memo(
               const timeoutId = setTimeout(() => controller.abort(), 3000); // Shorter timeout
 
               try {
-                const response = await fetch(uri, { signal: controller.signal });
+                const response = await fetch(uri, {
+                  signal: controller.signal,
+                });
                 clearTimeout(timeoutId);
 
                 const contentType = response.headers.get("content-type");
@@ -984,7 +1092,9 @@ const TokenSelector = React.memo(
           }
 
           return (
-            <div className={`w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full text-xs font-medium`}>
+            <div
+              className={`w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full text-xs font-medium`}
+            >
               {getInitials(token.symbol)}
             </div>
           );
@@ -994,7 +1104,9 @@ const TokenSelector = React.memo(
         if (!actualImageUrl && !imageError) {
           return (
             <div className="relative w-8 h-8 rounded-full overflow-hidden">
-              <div className={`w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full`}>
+              <div
+                className={`w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full`}
+              >
                 {getInitials(token.symbol)}
               </div>
             </div>
@@ -1029,7 +1141,10 @@ const TokenSelector = React.memo(
       },
       (prevProps, nextProps) => {
         // Only re-render if token ID or URI changes
-        return prevProps.token.id === nextProps.token.id && prevProps.token.tokenUri === nextProps.token.tokenUri;
+        return (
+          prevProps.token.id === nextProps.token.id &&
+          prevProps.token.tokenUri === nextProps.token.tokenUri
+        );
       },
     );
 
@@ -1049,15 +1164,28 @@ const TokenSelector = React.memo(
               <div className="text-xs font-medium text-gray-700 min-w-[50px] h-[14px]">
                 {formatBalance(selectedToken)}
                 {selectedToken.id === null && isEthBalanceFetching && (
-                  <span className="text-xs text-yellow-500 ml-1" style={{ animation: "pulse 1.5s infinite" }}>
+                  <span
+                    className="text-xs text-yellow-500 ml-1"
+                    style={{ animation: "pulse 1.5s infinite" }}
+                  >
                     ·
                   </span>
                 )}
               </div>
             </div>
           </div>
-          <svg className="w-4 h-4 ml-1" viewBox="0 0 24 24" stroke="currentColor" fill="none">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+          <svg
+            className="w-4 h-4 ml-1"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            fill="none"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M19 9l-7 7-7-7"
+            />
           </svg>
         </div>
 
@@ -1092,19 +1220,26 @@ const TokenSelector = React.memo(
 
                     w.searchDebounce = requestAnimationFrame(() => {
                       // Get all token items by data attribute - limit to visible ones first
-                      const visibleItems = document.querySelectorAll("[data-token-symbol]:not(.hidden)");
-                      const allItems = document.querySelectorAll("[data-token-symbol]");
+                      const visibleItems = document.querySelectorAll(
+                        "[data-token-symbol]:not(.hidden)",
+                      );
+                      const allItems = document.querySelectorAll(
+                        "[data-token-symbol]",
+                      );
 
                       // Special case: If searching for stablecoins, make sure USDT is visible
                       if (isStableSearch) {
-                        const usdtItem = document.querySelector("[data-token-symbol='USDT']");
+                        const usdtItem = document.querySelector(
+                          "[data-token-symbol='USDT']",
+                        );
                         if (usdtItem) {
                           usdtItem.classList.remove("hidden");
                         }
                       }
 
                       // Only query all items if no visible items match
-                      const itemsToSearch = visibleItems.length > 0 ? visibleItems : allItems;
+                      const itemsToSearch =
+                        visibleItems.length > 0 ? visibleItems : allItems;
 
                       // Use more efficient iteration
                       const itemsArray = Array.from(itemsToSearch);
@@ -1113,11 +1248,20 @@ const TokenSelector = React.memo(
                       // First pass - show matches
                       for (let i = 0; i < itemsArray.length; i++) {
                         const item = itemsArray[i];
-                        const symbol = item.getAttribute("data-token-symbol")?.toLowerCase() || "";
-                        const name = item.getAttribute("data-token-name")?.toLowerCase() || "";
+                        const symbol =
+                          item
+                            .getAttribute("data-token-symbol")
+                            ?.toLowerCase() || "";
+                        const name =
+                          item.getAttribute("data-token-name")?.toLowerCase() ||
+                          "";
                         const id = item.getAttribute("data-token-id") || "";
 
-                        if (symbol.includes(query) || name.includes(query) || id.toLowerCase().includes(query)) {
+                        if (
+                          symbol.includes(query) ||
+                          name.includes(query) ||
+                          id.toLowerCase().includes(query)
+                        ) {
                           item.classList.remove("hidden");
                           anyVisible = true;
                         } else {
@@ -1127,7 +1271,9 @@ const TokenSelector = React.memo(
 
                       // For USDT searches, ensure we always check for USDT even if no visible items match
                       if (isStableSearch && !anyVisible) {
-                        const usdtItem = document.querySelector("[data-token-symbol='USDT']");
+                        const usdtItem = document.querySelector(
+                          "[data-token-symbol='USDT']",
+                        );
                         if (usdtItem) {
                           usdtItem.classList.remove("hidden");
                           anyVisible = true;
@@ -1139,11 +1285,21 @@ const TokenSelector = React.memo(
                         const allItemsArray = Array.from(allItems);
                         for (let i = 0; i < allItemsArray.length; i++) {
                           const item = allItemsArray[i];
-                          const symbol = item.getAttribute("data-token-symbol")?.toLowerCase() || "";
-                          const name = item.getAttribute("data-token-name")?.toLowerCase() || "";
+                          const symbol =
+                            item
+                              .getAttribute("data-token-symbol")
+                              ?.toLowerCase() || "";
+                          const name =
+                            item
+                              .getAttribute("data-token-name")
+                              ?.toLowerCase() || "";
                           const id = item.getAttribute("data-token-id") || "";
 
-                          if (symbol.includes(query) || name.includes(query) || id.toLowerCase().includes(query)) {
+                          if (
+                            symbol.includes(query) ||
+                            name.includes(query) ||
+                            id.toLowerCase().includes(query)
+                          ) {
                             item.classList.remove("hidden");
                           } else {
                             item.classList.add("hidden");
@@ -1198,7 +1354,9 @@ const TokenSelector = React.memo(
                   }
 
                   // Format the custom fee if available (as percentage)
-                  const feePercentage = token.swapFee ? Number(token.swapFee) / 100 : 1; // Default is 1%
+                  const feePercentage = token.swapFee
+                    ? Number(token.swapFee) / 100
+                    : 1; // Default is 1%
 
                   // Format fee: For 0.3% (USDT), display it without trailing zeros
                   // For integer percentages like 1%, show without decimal places
@@ -1206,7 +1364,7 @@ const TokenSelector = React.memo(
                   if (feePercentage % 1 === 0) {
                     // Integer percentage (e.g., 1%)
                     feeStr = `${feePercentage.toFixed(0)}%`;
-                  } else if (feePercentage * 10 % 1 === 0) {
+                  } else if ((feePercentage * 10) % 1 === 0) {
                     // One decimal place needed (e.g., 0.3%)
                     feeStr = `${feePercentage.toFixed(1)}%`;
                   } else {
@@ -1261,8 +1419,12 @@ const TokenSelector = React.memo(
 
                   if (token.isCustomPool) {
                     // Show both reserves
-                    const ethReserveValue = Number(formatEther(token.reserve0 || 0n));
-                    const tokenReserveValue = Number(formatUnits(token.reserve1 || 0n, tokenDecimals));
+                    const ethReserveValue = Number(
+                      formatEther(token.reserve0 || 0n),
+                    );
+                    const tokenReserveValue = Number(
+                      formatUnits(token.reserve1 || 0n, tokenDecimals),
+                    );
 
                     let ethStr = "";
                     if (ethReserveValue >= 10000) {
@@ -1292,7 +1454,9 @@ const TokenSelector = React.memo(
                     }
                   } else {
                     // Regular token pools
-                    const ethReserveValue = Number(formatEther(token.reserve0 || 0n));
+                    const ethReserveValue = Number(
+                      formatEther(token.reserve0 || 0n),
+                    );
 
                     if (ethReserveValue >= 10000) {
                       reserveStr = `${Math.floor(ethReserveValue / 1000)}K ETH`;
@@ -1348,14 +1512,21 @@ const TokenSelector = React.memo(
                       <TokenImage token={token} />
                       <div className="flex flex-col">
                         <span className="font-medium">{token.symbol}</span>
-                        {reserves && <span className="text-xs text-gray-500">{reserves}</span>}
+                        {reserves && (
+                          <span className="text-xs text-gray-500">
+                            {reserves}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="text-right min-w-[60px]">
                       <div className="text-sm font-medium h-[18px]">
                         {balance}
                         {token.id === null && isEthBalanceFetching && (
-                          <span className="text-xs text-yellow-500 ml-1" style={{ animation: "pulse 1.5s infinite" }}>
+                          <span
+                            className="text-xs text-yellow-500 ml-1"
+                            style={{ animation: "pulse 1.5s infinite" }}
+                          >
                             ·
                           </span>
                         )}
@@ -1391,7 +1562,13 @@ type LiquidityMode = "add" | "remove" | "single-eth";
   SwapTile main component
 ──────────────────────────────────────────────────────────────────────────── */
 export const SwapTile = () => {
-  const { tokens, loading, error: loadError, isEthBalanceFetching, refetchEthBalance } = useAllTokens();
+  const {
+    tokens,
+    loading,
+    error: loadError,
+    isEthBalanceFetching,
+    refetchEthBalance,
+  } = useAllTokens();
   const [sellToken, setSellToken] = useState<TokenMeta>(ETH_TOKEN);
   const [buyToken, setBuyToken] = useState<TokenMeta | null>(null);
   const [mode, setMode] = useState<TileMode>("swap");
@@ -1399,18 +1576,24 @@ export const SwapTile = () => {
 
   // Slippage settings with defaults
   const [slippageBps, setSlippageBps] = useState<bigint>(DEFAULT_SLIPPAGE_BPS);
-  const [singleEthSlippageBps, setSingleEthSlippageBps] = useState<bigint>(DEFAULT_SINGLE_ETH_SLIPPAGE_BPS);
-  const [showSlippageSettings, setShowSlippageSettings] = useState<boolean>(false);
+  const [singleEthSlippageBps, setSingleEthSlippageBps] = useState<bigint>(
+    DEFAULT_SINGLE_ETH_SLIPPAGE_BPS,
+  );
+  const [showSlippageSettings, setShowSlippageSettings] =
+    useState<boolean>(false);
 
   // Price chart visibility
   const [showPriceChart, setShowPriceChart] = useState<boolean>(false);
 
   // Helper functions for slippage calculation
-  const withSlippage = (amount: bigint) => getAmountWithSlippage(amount, slippageBps);
-  const withSingleEthSlippage = (amount: bigint) => getAmountWithSlippage(amount, singleEthSlippageBps);
+  const withSlippage = (amount: bigint) =>
+    getAmountWithSlippage(amount, slippageBps);
+  const withSingleEthSlippage = (amount: bigint) =>
+    getAmountWithSlippage(amount, singleEthSlippageBps);
 
   // Single-ETH estimation values
-  const [singleETHEstimatedCoin, setSingleETHEstimatedCoin] = useState<string>("");
+  const [singleETHEstimatedCoin, setSingleETHEstimatedCoin] =
+    useState<string>("");
 
   // Track ETH balance separately to ensure it's always maintained correctly
   const [ethBalance, setEthBalance] = useState<bigint | undefined>(undefined);
@@ -1435,7 +1618,11 @@ export const SwapTile = () => {
           // Set the sell token to ETH with the safe balance
           setSellToken(safeEthToken);
         }
-      } else if (sellToken.id === null && ethBalance !== undefined && sellToken.balance !== ethBalance) {
+      } else if (
+        sellToken.id === null &&
+        ethBalance !== undefined &&
+        sellToken.balance !== ethBalance
+      ) {
         // If ETH is already selected but has wrong balance, update it
         setSellToken((prev) => ({
           ...prev,
@@ -1447,7 +1634,9 @@ export const SwapTile = () => {
       if (!buyToken || (buyToken.id === null && !buyToken.isCustomPool)) {
         // Find the first non-ETH token with the highest liquidity
         // Also include custom pools like USDT even if their ID is 0
-        const defaultTarget = tokens.find((token) => token.id !== null || token.isCustomPool);
+        const defaultTarget = tokens.find(
+          (token) => token.id !== null || token.isCustomPool,
+        );
         if (defaultTarget) {
           setBuyToken(defaultTarget);
         }
@@ -1502,9 +1691,13 @@ export const SwapTile = () => {
       const shouldUpdate =
         (updatedEthToken.balance &&
           updatedEthToken.balance > 0n &&
-          (!sellToken.balance || sellToken.balance === 0n || updatedEthToken.balance !== sellToken.balance)) ||
+          (!sellToken.balance ||
+            sellToken.balance === 0n ||
+            updatedEthToken.balance !== sellToken.balance)) ||
         // Or if the updated token has no balance but we previously had one, keep the old one
-        ((!updatedEthToken.balance || updatedEthToken.balance === 0n) && sellToken.balance && sellToken.balance > 0n);
+        ((!updatedEthToken.balance || updatedEthToken.balance === 0n) &&
+          sellToken.balance &&
+          sellToken.balance > 0n);
 
       if (shouldUpdate) {
         // Update ETH token with balance changes
@@ -1530,13 +1723,21 @@ export const SwapTile = () => {
       const shouldUpdate =
         (updatedEthToken.balance &&
           updatedEthToken.balance > 0n &&
-          (!buyToken.balance || buyToken.balance === 0n || updatedEthToken.balance !== buyToken.balance)) ||
-        ((!updatedEthToken.balance || updatedEthToken.balance === 0n) && buyToken.balance && buyToken.balance > 0n);
+          (!buyToken.balance ||
+            buyToken.balance === 0n ||
+            updatedEthToken.balance !== buyToken.balance)) ||
+        ((!updatedEthToken.balance || updatedEthToken.balance === 0n) &&
+          buyToken.balance &&
+          buyToken.balance > 0n);
 
       if (shouldUpdate) {
         // Update buyToken ETH balance
 
-        if ((!updatedEthToken.balance || updatedEthToken.balance === 0n) && buyToken.balance && buyToken.balance > 0n) {
+        if (
+          (!updatedEthToken.balance || updatedEthToken.balance === 0n) &&
+          buyToken.balance &&
+          buyToken.balance > 0n
+        ) {
           setBuyToken({
             ...updatedEthToken,
             balance: buyToken.balance,
@@ -1603,12 +1804,14 @@ export const SwapTile = () => {
     buyToken &&
     // Special case for USDT custom pool
     (sellToken.isCustomPool ||
-     buyToken?.isCustomPool ||
-     // Original cases: ETH → Coin or Coin → ETH
-     sellToken.id === null ||
-     buyToken.id === null ||
-     // New case: Coin → Coin (different IDs)
-     (sellToken.id !== null && buyToken?.id !== null && sellToken.id !== buyToken.id));
+      buyToken?.isCustomPool ||
+      // Original cases: ETH → Coin or Coin → ETH
+      sellToken.id === null ||
+      buyToken.id === null ||
+      // New case: Coin → Coin (different IDs)
+      (sellToken.id !== null &&
+        buyToken?.id !== null &&
+        sellToken.id !== buyToken.id));
   const isSellETH = sellToken.id === null;
   // For custom USDT-ETH pool, we need special logic to determine if it's a multihop
   // Check if either token is USDT by symbol instead of relying on token1
@@ -1632,15 +1835,19 @@ export const SwapTile = () => {
       isSellUSDT,
       isBuyUSDT,
       sellSymbol: sellToken.symbol,
-      buySymbol: buyToken?.symbol
+      buySymbol: buyToken?.symbol,
     });
   }
 
   const isCoinToCoin =
     // Regular coin-to-coin logic (both have non-null IDs and different IDs)
-    (sellToken.id !== null && buyToken?.id !== null && buyToken?.id !== undefined && sellToken.id !== buyToken.id) ||
+    (sellToken.id !== null &&
+      buyToken?.id !== null &&
+      buyToken?.id !== undefined &&
+      sellToken.id !== buyToken.id) ||
     // Handle custom pools only when they're part of a multi-hop (non-direct) swap
-    ((sellToken.isCustomPool || buyToken?.isCustomPool) && !isDirectUsdtEthSwap);
+    ((sellToken.isCustomPool || buyToken?.isCustomPool) &&
+      !isDirectUsdtEthSwap);
   // Ensure coinId is always a valid bigint, never undefined
   // Special case: if dealing with a custom pool like USDT, we need to use 0n but mark it as valid
   const isCustomPool = sellToken?.isCustomPool || buyToken?.isCustomPool;
@@ -1656,7 +1863,12 @@ export const SwapTile = () => {
     console.log("Using custom pool coinId:", coinId?.toString());
   } else {
     // For regular pools, ensure valid non-zero ID
-    coinId = (isSellETH ? (buyToken?.id !== undefined ? buyToken.id : 0n) : sellToken.id) ?? 0n;
+    coinId =
+      (isSellETH
+        ? buyToken?.id !== undefined
+          ? buyToken.id
+          : 0n
+        : sellToken.id) ?? 0n;
   }
 
   /* user inputs */
@@ -1664,14 +1876,21 @@ export const SwapTile = () => {
   const [buyAmt, setBuyAmt] = useState("");
 
   /* additional wagmi hooks */
-  const { writeContractAsync, isPending, error: writeError } = useWriteContract();
+  const {
+    writeContractAsync,
+    isPending,
+    error: writeError,
+  } = useWriteContract();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
   const chainId = useChainId();
 
   // Update ethBalance when ETH token balance changes in tokens array
   useEffect(() => {
     const ethToken = tokens.find((t) => t.id === null);
-    if (ethToken && (ethBalance === undefined || ethToken.balance !== ethBalance)) {
+    if (
+      ethToken &&
+      (ethBalance === undefined || ethToken.balance !== ethBalance)
+    ) {
       setEthBalance(ethToken.balance);
     }
   }, [tokens, ethBalance]);
@@ -1717,7 +1936,9 @@ export const SwapTile = () => {
           await new Promise((resolve) => setTimeout(resolve, 1000));
 
           // Refresh balances for the specific tokens involved in the transaction
-          const tokensToRefresh = [sellToken, buyToken].filter((t) => t && t.id !== null);
+          const tokensToRefresh = [sellToken, buyToken].filter(
+            (t) => t && t.id !== null,
+          );
 
           // Only continue if we have tokens to refresh
           if (tokensToRefresh.length > 0) {
@@ -1740,7 +1961,10 @@ export const SwapTile = () => {
 
                 try {
                   localStorage.setItem(balanceCacheKey, newBalance.toString());
-                  localStorage.setItem(balanceCacheTimestampKey, Date.now().toString());
+                  localStorage.setItem(
+                    balanceCacheTimestampKey,
+                    Date.now().toString(),
+                  );
                 } catch (e) {
                   // Cache error, continue without caching
                 }
@@ -1767,7 +1991,14 @@ export const SwapTile = () => {
 
       refreshTokenBalances();
     }
-  }, [isSuccess, refetchEthBalance, publicClient, address, sellToken, buyToken]);
+  }, [
+    isSuccess,
+    refetchEthBalance,
+    publicClient,
+    address,
+    sellToken,
+    buyToken,
+  ]);
 
   // Create ref outside the effect to maintain persistence between renders
   const prevPairRef = useRef<string | null>(null);
@@ -1831,7 +2062,10 @@ export const SwapTile = () => {
       }
 
       // Log for debugging
-      console.log("Fetching reserves for:", isCustomPool ? "custom pool" : `coinId: ${coinId}`);
+      console.log(
+        "Fetching reserves for:",
+        isCustomPool ? "custom pool" : `coinId: ${coinId}`,
+      );
 
       try {
         let poolId;
@@ -1868,7 +2102,14 @@ export const SwapTile = () => {
     };
 
     fetchReserves();
-  }, [coinId, publicClient, sellToken?.isCustomPool, buyToken?.isCustomPool, sellToken?.poolId, buyToken?.poolId]);
+  }, [
+    coinId,
+    publicClient,
+    sellToken?.isCustomPool,
+    buyToken?.isCustomPool,
+    sellToken?.poolId,
+    buyToken?.poolId,
+  ]);
 
   // Fetch target reserves for coin-to-coin swaps
   useEffect(() => {
@@ -1886,7 +2127,12 @@ export const SwapTile = () => {
       if (!isTargetCustomPool && (!buyToken?.id || buyToken.id === 0n)) return;
 
       // Log for debugging
-      console.log("Fetching target reserves for:", isTargetCustomPool ? "custom target pool" : `target coinId: ${buyToken?.id}`);
+      console.log(
+        "Fetching target reserves for:",
+        isTargetCustomPool
+          ? "custom target pool"
+          : `target coinId: ${buyToken?.id}`,
+      );
 
       try {
         let targetPoolId;
@@ -1919,7 +2165,13 @@ export const SwapTile = () => {
     };
 
     fetchTargetReserves();
-  }, [isCoinToCoin, buyToken?.id, publicClient, buyToken?.isCustomPool, buyToken?.poolId]);
+  }, [
+    isCoinToCoin,
+    buyToken?.id,
+    publicClient,
+    buyToken?.isCustomPool,
+    buyToken?.poolId,
+  ]);
 
   // Fetch LP token balance when a pool is selected and user is connected
   useEffect(() => {
@@ -1939,7 +2191,12 @@ export const SwapTile = () => {
           // Use the custom token's poolId if available
           const customToken = sellToken?.isCustomPool ? sellToken : buyToken;
           poolId = customToken?.poolId || USDT_POOL_ID;
-          console.log("Fetching LP balance for custom pool:", customToken?.symbol, "pool ID:", poolId.toString());
+          console.log(
+            "Fetching LP balance for custom pool:",
+            customToken?.symbol,
+            "pool ID:",
+            poolId.toString(),
+          );
         } else {
           // Regular pool ID calculation
           poolId = computePoolId(coinId);
@@ -1953,7 +2210,12 @@ export const SwapTile = () => {
           args: [address, poolId],
         })) as bigint;
 
-        console.log("LP token balance:", formatUnits(balance, 18), "for pool ID:", poolId.toString());
+        console.log(
+          "LP token balance:",
+          formatUnits(balance, 18),
+          "for pool ID:",
+          poolId.toString(),
+        );
         setLpTokenBalance(balance);
       } catch (err) {
         console.error("Failed to fetch LP token balance:", err);
@@ -1962,7 +2224,15 @@ export const SwapTile = () => {
     };
 
     fetchLpBalance();
-  }, [address, publicClient, coinId, sellToken?.isCustomPool, buyToken?.isCustomPool, sellToken?.poolId, buyToken?.poolId]);
+  }, [
+    address,
+    publicClient,
+    coinId,
+    sellToken?.isCustomPool,
+    buyToken?.isCustomPool,
+    sellToken?.poolId,
+    buyToken?.poolId,
+  ]);
 
   /* Check if user has approved ZAAM as operator */
   const [isOperator, setIsOperator] = useState<boolean | null>(null);
@@ -1975,7 +2245,9 @@ export const SwapTile = () => {
     try {
       // Make sure publicClient is fully initialized
       if (!publicClient.chain) {
-        console.log("Skipping USDT allowance check - publicClient not fully initialized");
+        console.log(
+          "Skipping USDT allowance check - publicClient not fully initialized",
+        );
         return null;
       }
 
@@ -1988,7 +2260,7 @@ export const SwapTile = () => {
           {
             inputs: [
               { internalType: "address", name: "owner", type: "address" },
-              { internalType: "address", name: "spender", type: "address" }
+              { internalType: "address", name: "spender", type: "address" },
             ],
             name: "allowance",
             outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
@@ -2005,7 +2277,10 @@ export const SwapTile = () => {
       return allowance as bigint;
     } catch (error) {
       // Log but don't crash - defaulting to 0 allowance is safe
-      console.log("Error checking USDT allowance, defaulting to 0:", error instanceof Error ? error.message : "Unknown error");
+      console.log(
+        "Error checking USDT allowance, defaulting to 0:",
+        error instanceof Error ? error.message : "Unknown error",
+      );
       setUsdtAllowance(0n);
       return 0n;
     }
@@ -2018,7 +2293,7 @@ export const SwapTile = () => {
       if (!address || !publicClient) return;
 
       // Enhanced check for USDT tokens in any position
-      const isUsdtRelevant = (
+      const isUsdtRelevant =
         // Check for USDT token1 address match
         (sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS) ||
         (buyToken?.isCustomPool && buyToken?.token1 === USDT_ADDRESS) ||
@@ -2029,11 +2304,9 @@ export const SwapTile = () => {
         (sellToken.isCustomPool && sellToken.id === 0n) ||
         (buyToken?.isCustomPool && buyToken?.id === 0n) ||
         // Check if we're in liquidity mode with USDT
-        (mode === "liquidity" && (
-          (sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS) ||
-          (buyToken?.isCustomPool && buyToken?.token1 === USDT_ADDRESS)
-        ))
-      );
+        (mode === "liquidity" &&
+          ((sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS) ||
+            (buyToken?.isCustomPool && buyToken?.token1 === USDT_ADDRESS)));
 
       // Always log the check attempt
       console.log("Checking USDT allowance:", {
@@ -2041,14 +2314,16 @@ export const SwapTile = () => {
         sellTokenSymbol: sellToken.symbol,
         buyTokenSymbol: buyToken?.symbol,
         sellTokenIsCustom: sellToken.isCustomPool,
-        sellTokenAddress: sellToken.token1
+        sellTokenAddress: sellToken.token1,
       });
 
       if (isUsdtRelevant) {
         try {
           // Make sure publicClient is fully initialized
           if (!publicClient.chain) {
-            console.log("Skipping USDT allowance check - publicClient not fully initialized");
+            console.log(
+              "Skipping USDT allowance check - publicClient not fully initialized",
+            );
             return;
           }
 
@@ -2061,10 +2336,12 @@ export const SwapTile = () => {
               {
                 inputs: [
                   { internalType: "address", name: "owner", type: "address" },
-                  { internalType: "address", name: "spender", type: "address" }
+                  { internalType: "address", name: "spender", type: "address" },
                 ],
                 name: "allowance",
-                outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+                outputs: [
+                  { internalType: "uint256", name: "", type: "uint256" },
+                ],
                 stateMutability: "view",
                 type: "function",
               },
@@ -2073,11 +2350,17 @@ export const SwapTile = () => {
             args: [address, ZAAMAddress],
           });
 
-          console.log("USDT allowance result:", (allowance as bigint).toString());
+          console.log(
+            "USDT allowance result:",
+            (allowance as bigint).toString(),
+          );
           setUsdtAllowance(allowance as bigint);
         } catch (error) {
           // Log but don't crash - defaulting to 0 allowance is safe
-          console.log("Error checking USDT allowance, defaulting to 0:", error instanceof Error ? error.message : "Unknown error");
+          console.log(
+            "Error checking USDT allowance, defaulting to 0:",
+            error instanceof Error ? error.message : "Unknown error",
+          );
           setUsdtAllowance(0n);
         }
       }
@@ -2113,7 +2396,16 @@ export const SwapTile = () => {
         console.error("Error checking USDT relevance:", error);
       }
     })();
-  }, [address, isSellETH, publicClient, sellToken?.isCustomPool, sellToken?.token1, buyToken?.isCustomPool, buyToken?.token1, mode]);
+  }, [
+    address,
+    isSellETH,
+    publicClient,
+    sellToken?.isCustomPool,
+    sellToken?.token1,
+    buyToken?.isCustomPool,
+    buyToken?.token1,
+    mode,
+  ]);
 
   /* helpers to sync amounts */
   const syncFromSell = async (val: string) => {
@@ -2130,14 +2422,20 @@ export const SwapTile = () => {
 
       try {
         // Calculate the pool ID - different method for custom pools
-        const customPoolUsed = sellToken?.isCustomPool || buyToken?.isCustomPool;
+        const customPoolUsed =
+          sellToken?.isCustomPool || buyToken?.isCustomPool;
         let poolId;
 
         if (customPoolUsed) {
           // Use the custom token's poolId if available
           const customToken = sellToken?.isCustomPool ? sellToken : buyToken;
           poolId = customToken?.poolId || USDT_POOL_ID;
-          console.log("Getting pool info for custom pool:", customToken?.symbol, "pool ID:", poolId.toString());
+          console.log(
+            "Getting pool info for custom pool:",
+            customToken?.symbol,
+            "pool ID:",
+            poolId.toString(),
+          );
         } else {
           // Regular pool ID calculation
           poolId = computePoolId(coinId);
@@ -2179,13 +2477,22 @@ export const SwapTile = () => {
         // Update the input fields with the calculated values
         setSellAmt(ethAmount === 0n ? "" : formatEther(ethAmount));
         // Use the correct decimals for the token (6 for USDT, 18 for regular tokens)
-        const tokenDecimals = customPoolUsed ?
-          (sellToken?.isCustomPool ? sellToken?.decimals || 6 : buyToken?.decimals || 6) : 18;
+        const tokenDecimals = customPoolUsed
+          ? sellToken?.isCustomPool
+            ? sellToken?.decimals || 6
+            : buyToken?.decimals || 6
+          : 18;
 
-        console.log("Preview calculation using decimals:", tokenDecimals, "for",
-                   sellToken?.isCustomPool ? sellToken?.symbol : buyToken?.symbol);
+        console.log(
+          "Preview calculation using decimals:",
+          tokenDecimals,
+          "for",
+          sellToken?.isCustomPool ? sellToken?.symbol : buyToken?.symbol,
+        );
 
-        setBuyAmt(tokenAmount === 0n ? "" : formatUnits(tokenAmount, tokenDecimals));
+        setBuyAmt(
+          tokenAmount === 0n ? "" : formatUnits(tokenAmount, tokenDecimals),
+        );
       } catch (err) {
         console.error("Error calculating remove liquidity amounts:", err);
         setSellAmt("");
@@ -2198,7 +2505,12 @@ export const SwapTile = () => {
     if (mode === "liquidity" && liquidityMode === "single-eth") {
       setSellAmt(val);
       // Allow custom pools like USDT with id=0
-      if (!reserves || !val || !buyToken || (buyToken.id === null && !buyToken.isCustomPool)) {
+      if (
+        !reserves ||
+        !val ||
+        !buyToken ||
+        (buyToken.id === null && !buyToken.isCustomPool)
+      ) {
         setSingleETHEstimatedCoin("");
         return;
       }
@@ -2210,7 +2522,10 @@ export const SwapTile = () => {
         // Check if this is a custom pool like USDT
         if (buyToken.isCustomPool && buyToken.poolId) {
           poolId = buyToken.poolId;
-          console.log("Using custom pool ID for Single-ETH estimation:", poolId.toString());
+          console.log(
+            "Using custom pool ID for Single-ETH estimation:",
+            poolId.toString(),
+          );
         } else {
           poolId = computePoolId(buyToken.id || 0n);
         }
@@ -2237,7 +2552,10 @@ export const SwapTile = () => {
               };
             }
           } catch (err) {
-            console.error(`Failed to fetch reserves for target token ${buyToken.id}:`, err);
+            console.error(
+              `Failed to fetch reserves for target token ${buyToken.id}:`,
+              err,
+            );
             // Continue with existing reserves as fallback
           }
         }
@@ -2246,26 +2564,38 @@ export const SwapTile = () => {
         const halfEthAmount = parseEther(val || "0") / 2n;
 
         // Get correct swap fee for the token (30bps for USDT, default 100bps for regular tokens)
-        const swapFee = buyToken?.isCustomPool ? (buyToken.swapFee || SWAP_FEE) : SWAP_FEE;
+        const swapFee = buyToken?.isCustomPool
+          ? buyToken.swapFee || SWAP_FEE
+          : SWAP_FEE;
 
         console.log("Single-ETH estimation using:", {
           token: buyToken.symbol,
           ethAmount: formatEther(halfEthAmount),
           reserve0: formatEther(targetReserves.reserve0),
-          reserve1: formatUnits(targetReserves.reserve1, buyToken.decimals || 18),
-          swapFee: `${Number(swapFee)/100}%`,
-          isCustomPool: buyToken.isCustomPool
+          reserve1: formatUnits(
+            targetReserves.reserve1,
+            buyToken.decimals || 18,
+          ),
+          swapFee: `${Number(swapFee) / 100}%`,
+          isCustomPool: buyToken.isCustomPool,
         });
 
         // Estimate how many tokens we'll get for half the ETH
-        const estimatedTokens = getAmountOut(halfEthAmount, targetReserves.reserve0, targetReserves.reserve1, swapFee);
+        const estimatedTokens = getAmountOut(
+          halfEthAmount,
+          targetReserves.reserve0,
+          targetReserves.reserve1,
+          swapFee,
+        );
 
         // Update the estimated coin display
         if (estimatedTokens === 0n) {
           setSingleETHEstimatedCoin("");
         } else {
           // Use correct decimals for the token (6 for USDT, 18 for regular tokens)
-          const tokenDecimals = buyToken?.isCustomPool ? (buyToken.decimals || 18) : 18;
+          const tokenDecimals = buyToken?.isCustomPool
+            ? buyToken.decimals || 18
+            : 18;
 
           const formattedTokens = formatUnits(estimatedTokens, tokenDecimals);
           setSingleETHEstimatedCoin(formattedTokens);
@@ -2294,8 +2624,12 @@ export const SwapTile = () => {
           const inUnits = parseUnits(val || "0", sellTokenDecimals);
 
           // Get correct swap fees for both pools
-          const sourceSwapFee = sellToken.isCustomPool ? sellToken.swapFee || SWAP_FEE : SWAP_FEE;
-          const targetSwapFee = buyToken?.isCustomPool ? buyToken.swapFee || SWAP_FEE : SWAP_FEE;
+          const sourceSwapFee = sellToken.isCustomPool
+            ? sellToken.swapFee || SWAP_FEE
+            : SWAP_FEE;
+          const targetSwapFee = buyToken?.isCustomPool
+            ? buyToken.swapFee || SWAP_FEE
+            : SWAP_FEE;
 
           // Pass custom swap fees for USDT or other custom pools
           const { amountOut } = estimateCoinToCoinOutput(
@@ -2306,12 +2640,14 @@ export const SwapTile = () => {
             targetReserves,
             slippageBps, // Pass the current slippage tolerance setting
             sourceSwapFee, // Pass source pool fee (could be 30n for USDT)
-            targetSwapFee  // Pass target pool fee (could be 30n for USDT)
+            targetSwapFee, // Pass target pool fee (could be 30n for USDT)
           );
 
           // Use correct decimals for the buy token (6 for USDT, 18 for regular coins)
           const buyTokenDecimals = buyToken?.decimals || 18;
-          setBuyAmt(amountOut === 0n ? "" : formatUnits(amountOut, buyTokenDecimals));
+          setBuyAmt(
+            amountOut === 0n ? "" : formatUnits(amountOut, buyTokenDecimals),
+          );
         } catch (err) {
           console.error("Error estimating coin-to-coin output:", err);
           setBuyAmt("");
@@ -2319,16 +2655,28 @@ export const SwapTile = () => {
       } else if (isSellETH) {
         // ETH → Coin path
         const inWei = parseEther(val || "0");
-        const outUnits = getAmountOut(inWei, reserves.reserve0, reserves.reserve1, SWAP_FEE);
+        const outUnits = getAmountOut(
+          inWei,
+          reserves.reserve0,
+          reserves.reserve1,
+          SWAP_FEE,
+        );
         // Use correct decimals for the buy token (6 for USDT, 18 for regular coins)
         const buyTokenDecimals = buyToken?.decimals || 18;
-        setBuyAmt(outUnits === 0n ? "" : formatUnits(outUnits, buyTokenDecimals));
+        setBuyAmt(
+          outUnits === 0n ? "" : formatUnits(outUnits, buyTokenDecimals),
+        );
       } else {
         // Coin → ETH path
         // Use correct decimals for the sell token (6 for USDT, 18 for regular coins)
         const sellTokenDecimals = sellToken?.decimals || 18;
         const inUnits = parseUnits(val || "0", sellTokenDecimals);
-        const outWei = getAmountOut(inUnits, reserves.reserve1, reserves.reserve0, SWAP_FEE);
+        const outWei = getAmountOut(
+          inUnits,
+          reserves.reserve1,
+          reserves.reserve0,
+          SWAP_FEE,
+        );
         setBuyAmt(outWei === 0n ? "" : formatEther(outWei));
       }
     } catch {
@@ -2354,15 +2702,27 @@ export const SwapTile = () => {
         // Use correct decimals for the buy token (6 for USDT, 18 for regular coins)
         const buyTokenDecimals = buyToken?.decimals || 18;
         const outUnits = parseUnits(val || "0", buyTokenDecimals);
-        const inWei = getAmountIn(outUnits, reserves.reserve0, reserves.reserve1, SWAP_FEE);
+        const inWei = getAmountIn(
+          outUnits,
+          reserves.reserve0,
+          reserves.reserve1,
+          SWAP_FEE,
+        );
         setSellAmt(inWei === 0n ? "" : formatEther(inWei));
       } else {
         // Coin → ETH path (calculate Coin input)
         const outWei = parseEther(val || "0");
-        const inUnits = getAmountIn(outWei, reserves.reserve1, reserves.reserve0, SWAP_FEE);
+        const inUnits = getAmountIn(
+          outWei,
+          reserves.reserve1,
+          reserves.reserve0,
+          SWAP_FEE,
+        );
         // Use correct decimals for the sell token (6 for USDT, 18 for regular coins)
         const sellTokenDecimals = sellToken?.decimals || 18;
-        setSellAmt(inUnits === 0n ? "" : formatUnits(inUnits, sellTokenDecimals));
+        setSellAmt(
+          inUnits === 0n ? "" : formatUnits(inUnits, sellTokenDecimals),
+        );
       }
     } catch {
       setSellAmt("");
@@ -2388,7 +2748,10 @@ export const SwapTile = () => {
       // 2^64 should be plenty for most transactions (18.4 quintillion units)
       const approvalAmount = 2n ** 64n;
 
-      console.log("Requesting approval for USDT amount:", approvalAmount.toString());
+      console.log(
+        "Requesting approval for USDT amount:",
+        approvalAmount.toString(),
+      );
 
       const hash = await writeContractAsync({
         address: USDT_ADDRESS,
@@ -2396,7 +2759,7 @@ export const SwapTile = () => {
           {
             inputs: [
               { internalType: "address", name: "spender", type: "address" },
-              { internalType: "uint256", name: "amount", type: "uint256" }
+              { internalType: "uint256", name: "amount", type: "uint256" },
             ],
             name: "approve",
             outputs: [{ internalType: "bool", name: "", type: "bool" }],
@@ -2432,10 +2795,12 @@ export const SwapTile = () => {
               {
                 inputs: [
                   { internalType: "address", name: "owner", type: "address" },
-                  { internalType: "address", name: "spender", type: "address" }
+                  { internalType: "address", name: "spender", type: "address" },
                 ],
                 name: "allowance",
-                outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+                outputs: [
+                  { internalType: "uint256", name: "", type: "uint256" },
+                ],
                 stateMutability: "view",
                 type: "function",
               },
@@ -2444,10 +2809,16 @@ export const SwapTile = () => {
             args: [address, ZAAMAddress],
           });
 
-          console.log("Updated USDT allowance after approval:", (allowance as bigint).toString());
+          console.log(
+            "Updated USDT allowance after approval:",
+            (allowance as bigint).toString(),
+          );
           setUsdtAllowance(allowance as bigint);
         } catch (err) {
-          console.warn("Failed to refresh USDT allowance, but approval succeeded:", err);
+          console.warn(
+            "Failed to refresh USDT allowance, but approval succeeded:",
+            err,
+          );
           // We already set the allowance above, so this is just for logging
           // No need to set allowance again
         }
@@ -2524,8 +2895,8 @@ export const SwapTile = () => {
             id1: targetPoolKey.id1.toString(),
             token0: targetPoolKey.token0,
             token1: targetPoolKey.token1,
-            swapFee: targetPoolKey.swapFee.toString()
-          })
+            swapFee: targetPoolKey.swapFee.toString(),
+          }),
         });
       } else {
         // Regular pool key
@@ -2546,7 +2917,10 @@ export const SwapTile = () => {
           if (isCustomPool && buyToken.poolId) {
             // Use the custom pool ID for USDT-ETH
             targetPoolId = buyToken.poolId;
-            console.log("Using custom pool ID for reserves:", targetPoolId.toString());
+            console.log(
+              "Using custom pool ID for reserves:",
+              targetPoolId.toString(),
+            );
           } else {
             // Regular pool ID
             targetPoolId = computePoolId(targetTokenId);
@@ -2565,14 +2939,25 @@ export const SwapTile = () => {
             reserve1: poolData[1],
           };
         } catch (err) {
-          console.error(`Failed to fetch reserves for ${buyToken.symbol}:`, err);
-          setTxError(`Failed to get pool data for ${buyToken.symbol}. Please try again.`);
+          console.error(
+            `Failed to fetch reserves for ${buyToken.symbol}:`,
+            err,
+          );
+          setTxError(
+            `Failed to get pool data for ${buyToken.symbol}. Please try again.`,
+          );
           return;
         }
       }
 
-      if (!targetReserves || targetReserves.reserve0 === 0n || targetReserves.reserve1 === 0n) {
-        setTxError(`No liquidity available for ${buyToken.symbol}. Please select another token.`);
+      if (
+        !targetReserves ||
+        targetReserves.reserve0 === 0n ||
+        targetReserves.reserve1 === 0n
+      ) {
+        setTxError(
+          `No liquidity available for ${buyToken.symbol}. Please select another token.`,
+        );
         return;
       }
 
@@ -2580,11 +2965,18 @@ export const SwapTile = () => {
       const halfEthAmount = ethAmount / 2n;
 
       // Get correct swap fee for the token (30bps for USDT, default 100bps for regular tokens)
-      const swapFee = isCustomPool ? (buyToken.swapFee || SWAP_FEE) : SWAP_FEE;
-      console.log(`Using swap fee: ${Number(swapFee)/100}% for ${buyToken.symbol} in single-ETH liquidity`);
+      const swapFee = isCustomPool ? buyToken.swapFee || SWAP_FEE : SWAP_FEE;
+      console.log(
+        `Using swap fee: ${Number(swapFee) / 100}% for ${buyToken.symbol} in single-ETH liquidity`,
+      );
 
       // Estimate how many tokens we'll get for half the ETH
-      const estimatedTokens = getAmountOut(halfEthAmount, targetReserves.reserve0, targetReserves.reserve1, swapFee);
+      const estimatedTokens = getAmountOut(
+        halfEthAmount,
+        targetReserves.reserve0,
+        targetReserves.reserve1,
+        swapFee,
+      );
 
       // Apply higher slippage tolerance for Single-ETH operations
       const minTokenAmount = withSingleEthSlippage(estimatedTokens);
@@ -2612,7 +3004,12 @@ export const SwapTile = () => {
       setTxHash(hash);
     } catch (err: unknown) {
       // Enhanced error handling with specific messages for common failure cases
-      if (typeof err === "object" && err !== null && "message" in err && typeof err.message === "string") {
+      if (
+        typeof err === "object" &&
+        err !== null &&
+        "message" in err &&
+        typeof err.message === "string"
+      ) {
         if (err.message.includes("InsufficientOutputAmount")) {
           console.error("Slippage too high in low liquidity pool:", err);
           setTxError(
@@ -2655,7 +3052,9 @@ export const SwapTile = () => {
     // LP tokens always use 18 decimals
     const burnAmount = parseUnits(lpBurnAmount, 18);
     if (burnAmount > lpTokenBalance) {
-      setTxError(`You only have ${formatUnits(lpTokenBalance, 18)} LP tokens available`);
+      setTxError(
+        `You only have ${formatUnits(lpTokenBalance, 18)} LP tokens available`,
+      );
       return;
     }
 
@@ -2683,8 +3082,8 @@ export const SwapTile = () => {
             id1: poolKey.id1.toString(),
             token0: poolKey.token0,
             token1: poolKey.token1,
-            swapFee: poolKey.swapFee.toString()
-          })
+            swapFee: poolKey.swapFee.toString(),
+          }),
         });
       } else {
         // Regular pool key
@@ -2698,13 +3097,15 @@ export const SwapTile = () => {
 
       // Use correct decimals for token1 (6 for USDT, 18 for regular coins)
       const tokenDecimals = isUsdtPool ? 6 : 18;
-      const amount1Min = buyAmt ? withSlippage(parseUnits(buyAmt, tokenDecimals)) : 0n;
+      const amount1Min = buyAmt
+        ? withSlippage(parseUnits(buyAmt, tokenDecimals))
+        : 0n;
 
       console.log("Removing liquidity:", {
         burnAmount: formatUnits(burnAmount, 18),
         amount0Min: formatEther(amount0Min),
         amount1Min: formatUnits(amount1Min, tokenDecimals),
-        isUsdtPool
+        isUsdtPool,
       });
 
       // Call removeLiquidity on the ZAMM contract
@@ -2758,7 +3159,7 @@ export const SwapTile = () => {
 
       // Enhanced detection of USDT usage for add liquidity
       // We need to make sure we detect all cases where USDT is being used
-      const isUsingUsdt = (
+      const isUsingUsdt =
         // Standard checks for USDT token address
         (sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS) ||
         (buyToken?.isCustomPool && buyToken?.token1 === USDT_ADDRESS) ||
@@ -2767,8 +3168,7 @@ export const SwapTile = () => {
         buyToken?.symbol === "USDT" ||
         // Check for custom pool with ID=0 (USDT pool)
         (sellToken.isCustomPool && sellToken.id === 0n) ||
-        (buyToken?.isCustomPool && buyToken?.id === 0n)
-      );
+        (buyToken?.isCustomPool && buyToken?.id === 0n);
 
       console.log("Add liquidity with possible USDT:", {
         isUsdtPool,
@@ -2787,14 +3187,24 @@ export const SwapTile = () => {
         console.log("USDT token detected for liquidity addition");
 
         // Determine which token is USDT and get its amount
-        if ((sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS) ||
-            sellToken.symbol === "USDT") {
+        if (
+          (sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS) ||
+          sellToken.symbol === "USDT"
+        ) {
           usdtAmount = parseUnits(sellAmt, 6); // USDT has 6 decimals
-          console.log("Using USDT as sell token with amount:", usdtAmount.toString());
-        } else if ((buyToken?.isCustomPool && buyToken?.token1 === USDT_ADDRESS) ||
-                   buyToken?.symbol === "USDT") {
+          console.log(
+            "Using USDT as sell token with amount:",
+            usdtAmount.toString(),
+          );
+        } else if (
+          (buyToken?.isCustomPool && buyToken?.token1 === USDT_ADDRESS) ||
+          buyToken?.symbol === "USDT"
+        ) {
           usdtAmount = parseUnits(buyAmt, 6); // USDT has 6 decimals
-          console.log("Using USDT as buy token with amount:", usdtAmount.toString());
+          console.log(
+            "Using USDT as buy token with amount:",
+            usdtAmount.toString(),
+          );
         }
 
         // Check if we need to verify USDT allowance first
@@ -2804,14 +3214,20 @@ export const SwapTile = () => {
         }
 
         // If USDT amount is greater than allowance, request approval
-        if (usdtAllowance === null || usdtAllowance === 0n || usdtAmount > usdtAllowance) {
+        if (
+          usdtAllowance === null ||
+          usdtAllowance === 0n ||
+          usdtAmount > usdtAllowance
+        ) {
           console.log("USDT approval needed for liquidity:", {
             usdtAmount: usdtAmount.toString(),
-            allowance: usdtAllowance?.toString() || "0"
+            allowance: usdtAllowance?.toString() || "0",
           });
 
           // Maintain consistent UX with operator approval flow
-          setTxError("Waiting for USDT approval. Please confirm the transaction...");
+          setTxError(
+            "Waiting for USDT approval. Please confirm the transaction...",
+          );
           const approved = await approveUsdtToken();
           if (!approved) {
             return; // Stop if approval failed or was rejected
@@ -2819,7 +3235,7 @@ export const SwapTile = () => {
         } else {
           console.log("USDT already approved for liquidity:", {
             allowance: usdtAllowance.toString(),
-            requiredAmount: usdtAmount.toString()
+            requiredAmount: usdtAmount.toString(),
           });
         }
       }
@@ -2847,7 +3263,9 @@ export const SwapTile = () => {
       const tokenDecimals = isUsdtPool ? 6 : 18;
 
       const amount0 = isSellETH ? parseEther(sellAmt) : parseEther(buyAmt); // ETH amount
-      const amount1 = isSellETH ? parseUnits(buyAmt, tokenDecimals) : parseUnits(sellAmt, tokenDecimals); // Token amount
+      const amount1 = isSellETH
+        ? parseUnits(buyAmt, tokenDecimals)
+        : parseUnits(sellAmt, tokenDecimals); // Token amount
 
       // Verify we have valid amounts
       if (amount0 === 0n || amount1 === 0n) {
@@ -2858,10 +3276,17 @@ export const SwapTile = () => {
       // Slippage protection will be calculated after getting exact amounts from ZAMMHelper
 
       // Check for USDT approvals first if using USDT pool
-      if (isUsdtPool && !isSellETH && usdtAllowance !== null && amount1 > usdtAllowance) {
+      if (
+        isUsdtPool &&
+        !isSellETH &&
+        usdtAllowance !== null &&
+        amount1 > usdtAllowance
+      ) {
         try {
           // First, show a notification about the approval step
-          setTxError("Waiting for USDT approval. Please confirm the transaction...");
+          setTxError(
+            "Waiting for USDT approval. Please confirm the transaction...",
+          );
 
           // Max approve (uint256 max)
           const maxApproval = 2n ** 256n - 1n;
@@ -2873,7 +3298,7 @@ export const SwapTile = () => {
               {
                 inputs: [
                   { internalType: "address", name: "spender", type: "address" },
-                  { internalType: "uint256", name: "amount", type: "uint256" }
+                  { internalType: "uint256", name: "amount", type: "uint256" },
                 ],
                 name: "approve",
                 outputs: [{ internalType: "bool", name: "", type: "bool" }],
@@ -2919,7 +3344,9 @@ export const SwapTile = () => {
       if (!isUsdtPool && isOperator === false) {
         try {
           // First, show a notification about the approval step
-          setTxError("Waiting for operator approval. Please confirm the transaction...");
+          setTxError(
+            "Waiting for operator approval. Please confirm the transaction...",
+          );
 
           // Send the approval transaction
           const approvalHash = await writeContractAsync({
@@ -2930,7 +3357,9 @@ export const SwapTile = () => {
           });
 
           // Show a waiting message
-          setTxError("Operator approval submitted. Waiting for confirmation...");
+          setTxError(
+            "Operator approval submitted. Waiting for confirmation...",
+          );
 
           // Wait for the transaction to be mined
           const receipt = await publicClient.waitForTransactionReceipt({
@@ -2971,7 +3400,11 @@ export const SwapTile = () => {
         });
 
         // Extract the values from the result array
-        const [ethAmount, calcAmount0, calcAmount1] = result as [bigint, bigint, bigint];
+        const [ethAmount, calcAmount0, calcAmount1] = result as [
+          bigint,
+          bigint,
+          bigint,
+        ];
 
         // Detailed logging to help with debugging
 
@@ -3002,7 +3435,10 @@ export const SwapTile = () => {
         // Use our utility to handle wallet errors
         const errorMsg = handleWalletError(calcErr);
         if (errorMsg) {
-          console.error("Error calling ZAMMHelper.calculateRequiredETH:", calcErr);
+          console.error(
+            "Error calling ZAMMHelper.calculateRequiredETH:",
+            calcErr,
+          );
           setTxError("Failed to calculate exact ETH amount");
         }
         return;
@@ -3020,8 +3456,12 @@ export const SwapTile = () => {
             setTxError("Insufficient funds for this transaction");
           } else if (err.message.includes("InvalidMsgVal")) {
             // This is our critical error where the msg.value doesn't match what the contract expects
-            setTxError("Contract rejected ETH value. Please try again with different amounts.");
-            console.error("ZAMM contract rejected the ETH value due to strict msg.value validation.");
+            setTxError(
+              "Contract rejected ETH value. Please try again with different amounts.",
+            );
+            console.error(
+              "ZAMM contract rejected the ETH value due to strict msg.value validation.",
+            );
           } else {
             setTxError("Transaction failed. Please try again.");
           }
@@ -3041,7 +3481,7 @@ export const SwapTile = () => {
         buyTokenId: buyToken?.id?.toString() || "null (ETH)",
         isCustomPoolSwap: isCustomPool,
         isDirectUsdtEthSwap: isDirectUsdtEthSwap || false,
-        isCoinToCoin: isCoinToCoin
+        isCoinToCoin: isCoinToCoin,
       });
 
       // Ensure wallet is connected before proceeding
@@ -3053,7 +3493,9 @@ export const SwapTile = () => {
       if (!canSwap || !sellAmt || !publicClient || !buyToken) {
         // Cannot execute swap - missing prerequisites
         // Check swap prerequisites
-        setTxError("Cannot execute swap. Please ensure you have selected a token pair and entered an amount.");
+        setTxError(
+          "Cannot execute swap. Please ensure you have selected a token pair and entered an amount.",
+        );
         return;
       }
 
@@ -3071,7 +3513,9 @@ export const SwapTile = () => {
       if (publicClient && !publicClient.getChainId) {
         await new Promise((resolve) => setTimeout(resolve, 100));
         if (!publicClient.getChainId) {
-          setTxError("Wallet connection not fully established. Please wait a moment and try again.");
+          setTxError(
+            "Wallet connection not fully established. Please wait a moment and try again.",
+          );
           return;
         }
       }
@@ -3094,9 +3538,14 @@ export const SwapTile = () => {
           id1: poolKey.id1.toString(),
           token0: poolKey.token0,
           token1: poolKey.token1,
-          swapFee: poolKey.swapFee.toString()
+          swapFee: poolKey.swapFee.toString(),
         };
-        console.log("Using custom pool key:", JSON.stringify(safePoolKey), "with poolId:", customToken?.poolId?.toString() || USDT_POOL_ID.toString());
+        console.log(
+          "Using custom pool key:",
+          JSON.stringify(safePoolKey),
+          "with poolId:",
+          customToken?.poolId?.toString() || USDT_POOL_ID.toString(),
+        );
       } else {
         // Regular pool key
         poolKey = computePoolKey(coinId);
@@ -3104,12 +3553,22 @@ export const SwapTile = () => {
 
       if (isSellETH) {
         // Get the correct swap fee (custom fee for USDT, default fee for regular tokens)
-        const swapFee = sellToken.isCustomPool || buyToken?.isCustomPool
-                       ? (sellToken.isCustomPool ? sellToken.swapFee : buyToken?.swapFee) || SWAP_FEE
-                       : SWAP_FEE;
+        const swapFee =
+          sellToken.isCustomPool || buyToken?.isCustomPool
+            ? (sellToken.isCustomPool
+                ? sellToken.swapFee
+                : buyToken?.swapFee) || SWAP_FEE
+            : SWAP_FEE;
 
         const amountInWei = parseEther(sellAmt || "0");
-        const rawOut = reserves ? getAmountOut(amountInWei, reserves.reserve0, reserves.reserve1, swapFee) : 0n;
+        const rawOut = reserves
+          ? getAmountOut(
+              amountInWei,
+              reserves.reserve0,
+              reserves.reserve1,
+              swapFee,
+            )
+          : 0n;
 
         if (rawOut === 0n) {
           setTxError("Output amount is zero. Check pool liquidity.");
@@ -3124,7 +3583,14 @@ export const SwapTile = () => {
           address: ZAAMAddress,
           abi: ZAAMAbi,
           functionName: "swapExactIn",
-          args: [poolKey, amountInWei, withSlippage(rawOut), true, address, deadline],
+          args: [
+            poolKey,
+            amountInWei,
+            withSlippage(rawOut),
+            true,
+            address,
+            deadline,
+          ],
           value: amountInWei,
         });
 
@@ -3132,7 +3598,14 @@ export const SwapTile = () => {
           address: ZAAMAddress,
           abi: ZAAMAbi,
           functionName: "swapExactIn",
-          args: [poolKey, amountInWei, withSlippage(rawOut), true, address, deadline],
+          args: [
+            poolKey,
+            amountInWei,
+            withSlippage(rawOut),
+            true,
+            address,
+            deadline,
+          ],
           value: amountInWei,
         });
 
@@ -3144,11 +3617,12 @@ export const SwapTile = () => {
           id1: poolKey.id1.toString(),
           token0: poolKey.token0,
           token1: poolKey.token1,
-          swapFee: poolKey.swapFee.toString()
+          swapFee: poolKey.swapFee.toString(),
         };
 
         // Check if this is a direct ETH->USDT swap
-        const isUsdtSwap = buyToken?.isCustomPool && buyToken?.token1 === USDT_ADDRESS;
+        const isUsdtSwap =
+          buyToken?.isCustomPool && buyToken?.token1 === USDT_ADDRESS;
 
         console.log("Executing ETH->Coin swap with:", {
           poolKey: JSON.stringify(safePoolKey),
@@ -3156,14 +3630,21 @@ export const SwapTile = () => {
           minOut: withSlippage(rawOut).toString(),
           fee: poolKey.swapFee.toString(),
           fromETH: true,
-          isUsdtSwap
+          isUsdtSwap,
         });
 
         const hash = await writeContractAsync({
           address: ZAAMAddress,
           abi: ZAAMAbi,
           functionName: "swapExactIn",
-          args: [poolKey, amountInWei, withSlippage(rawOut), true, address, deadline],
+          args: [
+            poolKey,
+            amountInWei,
+            withSlippage(rawOut),
+            true,
+            address,
+            deadline,
+          ],
           value: amountInWei,
           gas: gas,
         });
@@ -3171,16 +3652,15 @@ export const SwapTile = () => {
       } else {
         // Check if we're dealing with USDT (custom token)
         // Improved detection to make sure we don't miss USDT tokens
-        const isSellingUsdt = (
-          sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS
-        ) || (
+        const isSellingUsdt =
+          (sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS) ||
           // Double-check by symbol as a fallback
           sellToken.symbol === "USDT" ||
           // Also check ID=0 which is used for USDT
-          (sellToken.isCustomPool && sellToken.id === 0n)
-        );
+          (sellToken.isCustomPool && sellToken.id === 0n);
 
-        const isBuyingUsdt = buyToken?.isCustomPool && buyToken?.token1 === USDT_ADDRESS;
+        const isBuyingUsdt =
+          buyToken?.isCustomPool && buyToken?.token1 === USDT_ADDRESS;
 
         console.log("Direct swap involving:", {
           sellToken: sellToken.symbol,
@@ -3191,7 +3671,7 @@ export const SwapTile = () => {
           usdtAddress: USDT_ADDRESS,
           isSellingUsdt,
           isBuyingUsdt,
-          currentAllowance: usdtAllowance?.toString() || "null"
+          currentAllowance: usdtAllowance?.toString() || "null",
         });
 
         const decimals = sellToken.decimals || 18;
@@ -3210,14 +3690,20 @@ export const SwapTile = () => {
           }
 
           // Now check if we need approval - force approval dialog to appear for any USDT transaction
-          if (usdtAllowance === null || usdtAllowance === 0n || amountInUnits > usdtAllowance) {
+          if (
+            usdtAllowance === null ||
+            usdtAllowance === 0n ||
+            amountInUnits > usdtAllowance
+          ) {
             console.log("USDT approval needed:", {
               usdtAmount: amountInUnits.toString(),
-              allowance: usdtAllowance?.toString() || "0"
+              allowance: usdtAllowance?.toString() || "0",
             });
 
             // Maintain consistent UX with operator approval flow
-            setTxError("Waiting for USDT approval. Please confirm the transaction...");
+            setTxError(
+              "Waiting for USDT approval. Please confirm the transaction...",
+            );
             const approved = await approveUsdtToken();
             if (!approved) {
               return; // Stop if approval failed or was rejected
@@ -3225,7 +3711,7 @@ export const SwapTile = () => {
           } else {
             console.log("USDT already approved:", {
               allowance: usdtAllowance.toString(),
-              requiredAmount: amountInUnits.toString()
+              requiredAmount: amountInUnits.toString(),
             });
           }
         }
@@ -3234,7 +3720,9 @@ export const SwapTile = () => {
         if (!isSellingUsdt && isOperator === false) {
           try {
             // First, show a notification about the approval step
-            setTxError("Waiting for operator approval. Please confirm the transaction...");
+            setTxError(
+              "Waiting for operator approval. Please confirm the transaction...",
+            );
 
             // Send the approval transaction
             const approvalHash = await writeContractAsync({
@@ -3245,7 +3733,9 @@ export const SwapTile = () => {
             });
 
             // Show a waiting message
-            setTxError("Operator approval submitted. Waiting for confirmation...");
+            setTxError(
+              "Operator approval submitted. Waiting for confirmation...",
+            );
 
             // Wait for the transaction to be mined
             const receipt = await publicClient.waitForTransactionReceipt({
@@ -3280,7 +3770,8 @@ export const SwapTile = () => {
         ) {
           try {
             // Import our helper dynamically to avoid circular dependencies
-            const { createCoinSwapMulticall, estimateCoinToCoinOutput } = await import("./lib/swapHelper");
+            const { createCoinSwapMulticall, estimateCoinToCoinOutput } =
+              await import("./lib/swapHelper");
 
             // Fetch target coin reserves
             let targetPoolId;
@@ -3299,15 +3790,20 @@ export const SwapTile = () => {
               args: [targetPoolId],
             });
 
-            const targetPoolData = targetPoolResult as unknown as readonly bigint[];
+            const targetPoolData =
+              targetPoolResult as unknown as readonly bigint[];
             const targetReserves = {
               reserve0: targetPoolData[0],
               reserve1: targetPoolData[1],
             };
 
             // Get correct swap fees for both pools
-            const sourceSwapFee = sellToken.isCustomPool ? sellToken.swapFee || SWAP_FEE : SWAP_FEE;
-            const targetSwapFee = buyToken?.isCustomPool ? buyToken.swapFee || SWAP_FEE : SWAP_FEE;
+            const sourceSwapFee = sellToken.isCustomPool
+              ? sellToken.swapFee || SWAP_FEE
+              : SWAP_FEE;
+            const targetSwapFee = buyToken?.isCustomPool
+              ? buyToken.swapFee || SWAP_FEE
+              : SWAP_FEE;
 
             // Estimate the final output amount and intermediate ETH amount
             const {
@@ -3322,7 +3818,7 @@ export const SwapTile = () => {
               targetReserves, // target reserves
               slippageBps, // Use current slippage setting
               sourceSwapFee, // Pass source pool fee (could be 30n for USDT)
-              targetSwapFee  // Pass target pool fee (could be 30n for USDT)
+              targetSwapFee, // Pass target pool fee (could be 30n for USDT)
             );
 
             if (amountOut === 0n) {
@@ -3333,13 +3829,15 @@ export const SwapTile = () => {
             // Create the multicall data for coin-to-coin swap via ETH
             // We need to provide custom pool keys for USDT pools
             // Cast to any to avoid TypeScript errors with `0x${string}` format
-            const sourcePoolKey = sellToken.isCustomPool && sellToken.poolKey ?
-                                  sellToken.poolKey as any :
-                                  computePoolKey(sellToken.id!);
+            const sourcePoolKey =
+              sellToken.isCustomPool && sellToken.poolKey
+                ? (sellToken.poolKey as any)
+                : computePoolKey(sellToken.id!);
 
-            const targetPoolKey = buyToken.isCustomPool && buyToken.poolKey ?
-                                 buyToken.poolKey as any :
-                                 computePoolKey(buyToken.id!);
+            const targetPoolKey =
+              buyToken.isCustomPool && buyToken.poolKey
+                ? (buyToken.poolKey as any)
+                : computePoolKey(buyToken.id!);
 
             const multicallData = createCoinSwapMulticall(
               sellToken.id!,
@@ -3377,7 +3875,7 @@ export const SwapTile = () => {
               id1: sourcePoolKey.id1.toString(),
               token0: sourcePoolKey.token0,
               token1: sourcePoolKey.token1,
-              swapFee: sourcePoolKey.swapFee.toString()
+              swapFee: sourcePoolKey.swapFee.toString(),
             };
 
             const safeTargetPoolKey = {
@@ -3385,7 +3883,7 @@ export const SwapTile = () => {
               id1: targetPoolKey.id1.toString(),
               token0: targetPoolKey.token0,
               token1: targetPoolKey.token1,
-              swapFee: targetPoolKey.swapFee.toString()
+              swapFee: targetPoolKey.swapFee.toString(),
             };
 
             console.log("Executing Coin->Coin swap with:", {
@@ -3395,7 +3893,7 @@ export const SwapTile = () => {
               targetSwapFee: targetSwapFee.toString(),
               amountIn: amountInUnits.toString(),
               ethEstimate: ethAmountOut.toString(),
-              minOut: minAmountOut.toString()
+              minOut: minAmountOut.toString(),
             });
 
             // Execute the multicall transaction
@@ -3422,11 +3920,21 @@ export const SwapTile = () => {
 
         // Default path for Coin to ETH swap
         // Get the correct swap fee (custom fee for USDT, default fee for regular tokens)
-        const swapFee = sellToken.isCustomPool || buyToken?.isCustomPool
-                       ? (sellToken.isCustomPool ? sellToken.swapFee : buyToken?.swapFee) || SWAP_FEE
-                       : SWAP_FEE;
+        const swapFee =
+          sellToken.isCustomPool || buyToken?.isCustomPool
+            ? (sellToken.isCustomPool
+                ? sellToken.swapFee
+                : buyToken?.swapFee) || SWAP_FEE
+            : SWAP_FEE;
 
-        const rawOut = reserves ? getAmountOut(amountInUnits, reserves.reserve1, reserves.reserve0, swapFee) : 0n;
+        const rawOut = reserves
+          ? getAmountOut(
+              amountInUnits,
+              reserves.reserve1,
+              reserves.reserve0,
+              swapFee,
+            )
+          : 0n;
 
         if (rawOut === 0n) {
           setTxError("Output amount is zero. Check pool liquidity.");
@@ -3443,12 +3951,14 @@ export const SwapTile = () => {
             id1: poolKey.id1.toString(),
             token0: poolKey.token0,
             token1: poolKey.token1,
-            swapFee: poolKey.swapFee.toString()
+            swapFee: poolKey.swapFee.toString(),
           }),
           amountIn: amountInUnits.toString(),
           minOut: withSlippage(rawOut).toString(),
           isSellingUsdt,
-          hasAllowance: isSellingUsdt ? (usdtAllowance !== null && usdtAllowance >= amountInUnits) : "N/A"
+          hasAllowance: isSellingUsdt
+            ? usdtAllowance !== null && usdtAllowance >= amountInUnits
+            : "N/A",
         });
 
         // Execute the swap
@@ -3456,7 +3966,14 @@ export const SwapTile = () => {
           address: ZAAMAddress,
           abi: ZAAMAbi,
           functionName: "swapExactIn",
-          args: [poolKey, amountInUnits, withSlippage(rawOut), false, address, deadline],
+          args: [
+            poolKey,
+            amountInUnits,
+            withSlippage(rawOut),
+            false,
+            address,
+            deadline,
+          ],
         });
         setTxHash(hash);
       }
@@ -3468,18 +3985,29 @@ export const SwapTile = () => {
         console.error("Error details:", {
           name: err.name,
           message: err.message,
-          stack: err.stack
+          stack: err.stack,
         });
       }
 
       // Enhanced error handling with specific messages for common swap failure cases
-      if (typeof err === "object" && err !== null && "message" in err && typeof err.message === "string") {
+      if (
+        typeof err === "object" &&
+        err !== null &&
+        "message" in err &&
+        typeof err.message === "string"
+      ) {
         const errMsg = err.message;
 
         // Handle wallet connection errors
-        if (errMsg.includes("getChainId") || errMsg.includes("connector") || errMsg.includes("connection")) {
+        if (
+          errMsg.includes("getChainId") ||
+          errMsg.includes("connector") ||
+          errMsg.includes("connection")
+        ) {
           // Wallet connection issue
-          setTxError("Wallet connection issue detected. Please refresh the page and try again.");
+          setTxError(
+            "Wallet connection issue detected. Please refresh the page and try again.",
+          );
 
           // Log structured debug info
           const errorInfo = {
@@ -3493,9 +4021,13 @@ export const SwapTile = () => {
           // Show error info in console
           console.error("Wallet connection error:", errorInfo);
         } else if (errMsg.includes("InsufficientOutputAmount")) {
-          setTxError("Swap failed due to price movement in low liquidity pool. Try again or use a smaller amount.");
+          setTxError(
+            "Swap failed due to price movement in low liquidity pool. Try again or use a smaller amount.",
+          );
         } else if (errMsg.includes("K(")) {
-          setTxError("Swap failed due to pool constraints. This usually happens with large orders in small pools.");
+          setTxError(
+            "Swap failed due to pool constraints. This usually happens with large orders in small pools.",
+          );
         } else {
           // Default to standard error handling
           const errorMsg = handleWalletError(err);
@@ -3525,11 +4057,16 @@ export const SwapTile = () => {
       <CardContent className="p-0 sm:p-1 flex flex-col space-y-1">
         {/* Info showing token count */}
         <div className="text-xs text-gray-500 mb-2">
-          Available tokens: {tokenCount} (ETH + {tokenCount - 1} coins, sorted by liquidity)
+          Available tokens: {tokenCount} (ETH + {tokenCount - 1} coins, sorted
+          by liquidity)
         </div>
 
         {/* Mode tabs */}
-        <Tabs value={mode} onValueChange={(value) => setMode(value as TileMode)} className="mb-2">
+        <Tabs
+          value={mode}
+          onValueChange={(value) => setMode(value as TileMode)}
+          className="mb-2"
+        >
           <TabsList className="w-full bg-yellow-50 p-1 rounded-lg border border-yellow-100">
             <TabsTrigger
               value="swap"
@@ -3583,7 +4120,9 @@ export const SwapTile = () => {
 
         {/* Load error notification */}
         {loadError && (
-          <div className="p-2 mb-2 bg-red-50 border border-red-200 rounded text-sm text-red-600">{loadError}</div>
+          <div className="p-2 mb-2 bg-red-50 border border-red-200 rounded text-sm text-red-600">
+            {loadError}
+          </div>
         )}
 
         {/* SELL + FLIP + BUY panel container */}
@@ -3592,12 +4131,18 @@ export const SwapTile = () => {
           {mode === "liquidity" && liquidityMode === "remove" && (
             <div className="border-2 border-yellow-500 group hover:bg-yellow-50 rounded-t-2xl p-3 pb-4 focus-within:ring-2 focus-within:ring-primary flex flex-col gap-2 bg-yellow-50">
               <div className="flex items-center justify-between">
-                <span className="font-medium text-yellow-800">LP Tokens to Burn</span>
+                <span className="font-medium text-yellow-800">
+                  LP Tokens to Burn
+                </span>
                 <div className="flex items-center gap-1">
-                  <span className="text-xs text-yellow-700">Balance: {formatUnits(lpTokenBalance, 18)}</span>
+                  <span className="text-xs text-yellow-700">
+                    Balance: {formatUnits(lpTokenBalance, 18)}
+                  </span>
                   <button
                     className="text-xs bg-yellow-200 hover:bg-yellow-300 text-yellow-800 font-medium px-3 py-1.5 rounded touch-manipulation min-w-[50px]"
-                    onClick={() => syncFromSell(formatUnits(lpTokenBalance, 18))}
+                    onClick={() =>
+                      syncFromSell(formatUnits(lpTokenBalance, 18))
+                    }
                   >
                     MAX
                   </button>
@@ -3614,7 +4159,8 @@ export const SwapTile = () => {
                 className="text-lg sm:text-xl font-medium w-full bg-yellow-50 focus:outline-none h-10 text-right pr-1"
               />
               <div className="text-xs text-yellow-600 mt-1">
-                Enter the amount of LP tokens you want to burn to receive ETH and tokens back.
+                Enter the amount of LP tokens you want to burn to receive ETH
+                and tokens back.
               </div>
             </div>
           )}
@@ -3640,14 +4186,23 @@ export const SwapTile = () => {
                   className={`flex items-center gap-2 bg-transparent border border-yellow-200 rounded-md px-2 py-1 ${mode === "liquidity" && liquidityMode === "single-eth" ? "" : "hidden"}`}
                 >
                   <div className="w-8 h-8 overflow-hidden rounded-full">
-                    <img src={ETH_TOKEN.tokenUri} alt="ETH" className="w-8 h-8 object-cover" />
+                    <img
+                      src={ETH_TOKEN.tokenUri}
+                      alt="ETH"
+                      className="w-8 h-8 object-cover"
+                    />
                   </div>
                   <div className="flex flex-col">
                     <span className="font-medium">ETH</span>
                     <div className="text-xs font-medium text-gray-700 min-w-[50px] h-[14px]">
-                      {sellToken.balance !== undefined ? formatEther(sellToken.balance) : "0"}
+                      {sellToken.balance !== undefined
+                        ? formatEther(sellToken.balance)
+                        : "0"}
                       {isEthBalanceFetching && (
-                        <span className="text-xs text-yellow-500 ml-1" style={{ animation: "pulse 1.5s infinite" }}>
+                        <span
+                          className="text-xs text-yellow-500 ml-1"
+                          style={{ animation: "pulse 1.5s infinite" }}
+                        >
                           ·
                         </span>
                       )}
@@ -3656,7 +4211,13 @@ export const SwapTile = () => {
                 </div>
 
                 {/* Token selector for all other modes */}
-                <div className={mode === "liquidity" && liquidityMode === "single-eth" ? "hidden" : ""}>
+                <div
+                  className={
+                    mode === "liquidity" && liquidityMode === "single-eth"
+                      ? "hidden"
+                      : ""
+                  }
+                >
                   <TokenSelector
                     selectedToken={sellToken}
                     tokens={memoizedTokens}
@@ -3680,26 +4241,33 @@ export const SwapTile = () => {
                 readOnly={mode === "liquidity" && liquidityMode === "remove"}
               />
               {mode === "liquidity" && liquidityMode === "remove" && (
-                <span className="text-xs text-yellow-600 font-medium">Preview</span>
+                <span className="text-xs text-yellow-600 font-medium">
+                  Preview
+                </span>
               )}
               {/* MAX button for using full balance */}
               {sellToken.balance !== undefined &&
                 sellToken.balance > 0n &&
                 (mode === "swap" ||
-                  (mode === "liquidity" && (liquidityMode === "add" || liquidityMode === "single-eth"))) && (
+                  (mode === "liquidity" &&
+                    (liquidityMode === "add" ||
+                      liquidityMode === "single-eth"))) && (
                   <button
                     className="text-xs bg-yellow-100 hover:bg-yellow-200 text-yellow-800 font-medium px-3 py-1.5 rounded touch-manipulation min-w-[50px]"
                     onClick={() => {
                       // For ETH, leave a small amount for gas
                       if (sellToken.id === null) {
                         // Get 99% of ETH balance to leave some for gas
-                        const ethAmount = ((sellToken.balance as bigint) * 99n) / 100n;
+                        const ethAmount =
+                          ((sellToken.balance as bigint) * 99n) / 100n;
                         syncFromSell(formatEther(ethAmount));
                       } else {
                         // For other tokens, use the full balance with correct decimals
                         // Handle non-standard decimals like USDT (6 decimals)
                         const decimals = sellToken.decimals || 18;
-                        syncFromSell(formatUnits(sellToken.balance as bigint, decimals));
+                        syncFromSell(
+                          formatUnits(sellToken.balance as bigint, decimals),
+                        );
                       }
                     }}
                   >
@@ -3729,7 +4297,9 @@ export const SwapTile = () => {
                 className={`border-2 border-yellow-300 group rounded-b-2xl p-2 pt-3 focus-within:ring-2 hover:bg-yellow-50 focus-within:ring-primary flex flex-col gap-2 mt-2 ${mode === "liquidity" && liquidityMode === "single-eth" ? "" : "hidden"}`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Target Token</span>
+                  <span className="text-sm text-muted-foreground">
+                    Target Token
+                  </span>
                   <TokenSelector
                     selectedToken={buyToken}
                     tokens={memoizedNonEthTokens} // Using pre-memoized non-ETH tokens
@@ -3738,11 +4308,16 @@ export const SwapTile = () => {
                   />
                 </div>
                 <div className="flex justify-between items-center">
-                  <div className="text-xl font-medium w-full">{singleETHEstimatedCoin || "0"}</div>
-                  <span className="text-xs text-yellow-600 font-medium">Estimated</span>
+                  <div className="text-xl font-medium w-full">
+                    {singleETHEstimatedCoin || "0"}
+                  </div>
+                  <span className="text-xs text-yellow-600 font-medium">
+                    Estimated
+                  </span>
                 </div>
                 <div className="text-xs text-yellow-600 mt-1">
-                  Half of your ETH will be swapped for {buyToken.symbol} and paired with the remaining ETH.
+                  Half of your ETH will be swapped for {buyToken.symbol} and
+                  paired with the remaining ETH.
                 </div>
               </div>
 
@@ -3752,7 +4327,11 @@ export const SwapTile = () => {
               >
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">
-                    {mode === "swap" ? "Buy" : liquidityMode === "add" ? "And" : `You'll Receive (${buyToken.symbol})`}
+                    {mode === "swap"
+                      ? "Buy"
+                      : liquidityMode === "add"
+                        ? "And"
+                        : `You'll Receive (${buyToken.symbol})`}
                   </span>
                   <TokenSelector
                     selectedToken={buyToken}
@@ -3771,10 +4350,14 @@ export const SwapTile = () => {
                     value={buyAmt}
                     onChange={(e) => syncFromBuy(e.target.value)}
                     className="text-lg sm:text-xl font-medium w-full focus:outline-none h-10 text-right pr-1"
-                    readOnly={mode === "liquidity" && liquidityMode === "remove"}
+                    readOnly={
+                      mode === "liquidity" && liquidityMode === "remove"
+                    }
                   />
                   {mode === "liquidity" && liquidityMode === "remove" && (
-                    <span className="text-xs text-yellow-600 font-medium">Preview</span>
+                    <span className="text-xs text-yellow-600 font-medium">
+                      Preview
+                    </span>
                   )}
                 </div>
               </div>
@@ -3785,7 +4368,8 @@ export const SwapTile = () => {
         {/* Network indicator */}
         {isConnected && chainId !== mainnet.id && (
           <div className="text-xs mt-1 px-2 py-1 bg-yellow-50 border border-yellow-200 rounded text-yellow-700">
-            <strong>Wrong Network:</strong> Please switch to Ethereum mainnet in your wallet to{" "}
+            <strong>Wrong Network:</strong> Please switch to Ethereum mainnet in
+            your wallet to{" "}
             {mode === "swap" ? "swap tokens" : "manage liquidity"}
           </div>
         )}
@@ -3802,7 +4386,9 @@ export const SwapTile = () => {
                 ? `${Number(singleEthSlippageBps) / 100}%`
                 : `${Number(slippageBps) / 100}%`}
             </span>
-            <span className="text-xs text-blue-500">{showSlippageSettings ? "▲" : "▼"}</span>
+            <span className="text-xs text-blue-500">
+              {showSlippageSettings ? "▲" : "▼"}
+            </span>
           </div>
 
           {/* Slippage Settings Panel */}
@@ -3851,7 +4437,10 @@ export const SwapTile = () => {
                         // Convert percentage to basis points
                         const bps = BigInt(Math.floor(value * 100));
 
-                        if (mode === "liquidity" && liquidityMode === "single-eth") {
+                        if (
+                          mode === "liquidity" &&
+                          liquidityMode === "single-eth"
+                        ) {
                           setSingleEthSlippageBps(bps);
                         } else {
                           setSlippageBps(bps);
@@ -3882,7 +4471,9 @@ export const SwapTile = () => {
               <>
                 <p className="font-medium mb-1">Remove Liquidity:</p>
                 <ul className="list-disc pl-4 space-y-0.5">
-                  <li>Your LP balance: {formatUnits(lpTokenBalance, 18)} LP tokens</li>
+                  <li>
+                    Your LP balance: {formatUnits(lpTokenBalance, 18)} LP tokens
+                  </li>
                   <li>Enter amount of LP tokens to burn</li>
                   <li>Preview shows expected return of ETH and tokens</li>
                 </ul>
@@ -3904,12 +4495,18 @@ export const SwapTile = () => {
         {/* Pool information */}
         {canSwap && reserves && (
           <div className="text-xs text-gray-500 flex justify-between px-1 mt-1">
-            {mode === "swap" && isCoinToCoin && !isDirectUsdtEthSwap &&
-              // Extra sanity check - don't show multihop if one token is ETH and the other is USDT
-              !((sellToken.id === null && buyToken?.symbol === "USDT") ||
-                (buyToken?.id === null && sellToken.symbol === "USDT")) ? (
+            {mode === "swap" &&
+            isCoinToCoin &&
+            !isDirectUsdtEthSwap &&
+            // Extra sanity check - don't show multihop if one token is ETH and the other is USDT
+            !(
+              (sellToken.id === null && buyToken?.symbol === "USDT") ||
+              (buyToken?.id === null && sellToken.symbol === "USDT")
+            ) ? (
               <span className="flex items-center">
-                <span className="bg-yellow-200 text-yellow-800 px-1 rounded mr-1">Multi-hop</span>
+                <span className="bg-yellow-200 text-yellow-800 px-1 rounded mr-1">
+                  Multi-hop
+                </span>
                 {sellToken.symbol} → ETH → {buyToken?.symbol}
               </span>
             ) : (
@@ -3918,29 +4515,39 @@ export const SwapTile = () => {
                 {formatUnits(
                   reserves.reserve1,
                   // Use the correct decimals for the token (6 for USDT, 18 for others)
-                  isCustomPool ? (
-                    sellToken.isCustomPool ? sellToken.decimals || 18 : buyToken?.decimals || 18
-                  ) : 18
+                  isCustomPool
+                    ? sellToken.isCustomPool
+                      ? sellToken.decimals || 18
+                      : buyToken?.decimals || 18
+                    : 18,
                 ).substring(0, 8)}{" "}
-                {coinId ? tokens.find((t) => t.id === coinId)?.symbol || "Token" : buyToken?.symbol}
+                {coinId
+                  ? tokens.find((t) => t.id === coinId)?.symbol || "Token"
+                  : buyToken?.symbol}
               </span>
             )}
-            <span>Fee: {
-              // For USDT direct swaps, show the 0.3% fee
-              (isCustomPool && (
+            <span>
+              Fee:{" "}
+              {
+                // For USDT direct swaps, show the 0.3% fee
+                isCustomPool &&
                 // Direct USDT-ETH swaps are not multihop
-                (sellToken.id === null && buyToken?.isCustomPool && buyToken?.token1 === USDT_ADDRESS) ||
-                (buyToken?.id === null && sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS) ||
-                // Other direct USDT swaps
-                !isCoinToCoin
-              ))
-                ? "0.3%"
-                // For multihop swaps, show double fee
-                : (mode === "swap" && isCoinToCoin)
-                  ? (Number(SWAP_FEE) * 2) / 100 + "%"
-                  // Default 1% fee for regular swaps
-                  : Number(SWAP_FEE) / 100 + "%"
-            }</span>
+                ((sellToken.id === null &&
+                  buyToken?.isCustomPool &&
+                  buyToken?.token1 === USDT_ADDRESS) ||
+                  (buyToken?.id === null &&
+                    sellToken.isCustomPool &&
+                    sellToken.token1 === USDT_ADDRESS) ||
+                  // Other direct USDT swaps
+                  !isCoinToCoin)
+                  ? "0.3%"
+                  : // For multihop swaps, show double fee
+                    mode === "swap" && isCoinToCoin
+                    ? (Number(SWAP_FEE) * 2) / 100 + "%"
+                    : // Default 1% fee for regular swaps
+                      Number(SWAP_FEE) / 100 + "%"
+              }
+            </span>
           </div>
         )}
 
@@ -3958,13 +4565,17 @@ export const SwapTile = () => {
           disabled={
             !isConnected ||
             (mode === "swap" && (!canSwap || !sellAmt)) ||
-            (mode === "liquidity" && liquidityMode === "add" && (!canSwap || !sellAmt)) ||
+            (mode === "liquidity" &&
+              liquidityMode === "add" &&
+              (!canSwap || !sellAmt)) ||
             (mode === "liquidity" &&
               liquidityMode === "remove" &&
               (!lpBurnAmount ||
                 parseFloat(lpBurnAmount) <= 0 ||
                 parseUnits(lpBurnAmount || "0", 18) > lpTokenBalance)) ||
-            (mode === "liquidity" && liquidityMode === "single-eth" && (!canSwap || !sellAmt || !reserves)) ||
+            (mode === "liquidity" &&
+              liquidityMode === "single-eth" &&
+              (!canSwap || !sellAmt || !reserves)) ||
             isPending
           }
           className="w-full text-base sm:text-lg mt-4 h-12 touch-manipulation"
@@ -4001,16 +4612,23 @@ export const SwapTile = () => {
         )}
 
         {/* Show actual errors (only if not a user rejection) */}
-        {((writeError && !isUserRejectionError(writeError)) || (txError && !txError.includes("Waiting for"))) && (
+        {((writeError && !isUserRejectionError(writeError)) ||
+          (txError && !txError.includes("Waiting for"))) && (
           <div className="text-sm text-red-600 mt-2">
-            {writeError && !isUserRejectionError(writeError) ? writeError.message : txError}
+            {writeError && !isUserRejectionError(writeError)
+              ? writeError.message
+              : txError}
           </div>
         )}
 
         {/* Success message */}
         {isSuccess && (
           <div className="text-sm text-green-600 mt-2 flex items-center">
-            <svg className="h-3 w-3 mr-2" viewBox="0 0 20 20" fill="currentColor">
+            <svg
+              className="h-3 w-3 mr-2"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
               <path
                 fillRule="evenodd"
                 d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -4028,7 +4646,11 @@ export const SwapTile = () => {
             {(() => {
               // Get the non-ETH token for the chart
               const chartToken =
-                buyToken && buyToken.id !== null ? buyToken : sellToken && sellToken.id !== null ? sellToken : null;
+                buyToken && buyToken.id !== null
+                  ? buyToken
+                  : sellToken && sellToken.id !== null
+                    ? sellToken
+                    : null;
 
               // Only show chart button if we have a non-ETH token with a valid ID
               if (!chartToken || chartToken.id === null) return null;
@@ -4047,11 +4669,18 @@ export const SwapTile = () => {
                         fill="none"
                         stroke="currentColor"
                       >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M19 9l-7 7-7-7"
+                        />
                       </svg>
                     </button>
                     {showPriceChart && (
-                      <div className="text-xs text-gray-500">{chartToken.symbol}/ETH price history</div>
+                      <div className="text-xs text-gray-500">
+                        {chartToken.symbol}/ETH price history
+                      </div>
                     )}
                   </div>
 
@@ -4059,7 +4688,10 @@ export const SwapTile = () => {
                     <div
                       className={`transition-all duration-300 ${showPriceChart ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"}`}
                     >
-                      <PoolPriceChart poolId={computePoolId(chartToken.id).toString()} ticker={chartToken.symbol} />
+                      <PoolPriceChart
+                        poolId={computePoolId(chartToken.id).toString()}
+                        ticker={chartToken.symbol}
+                      />
                     </div>
                   )}
                 </>
@@ -4069,7 +4701,8 @@ export const SwapTile = () => {
         )}
 
         {/* Subtle explorer link */}
-        <div className="text-xs text-gray-400 mt-4 text-center">
+        {/* @TODO Decide if remove fully */}
+        {/* <div className="text-xs text-gray-400 mt-4 text-center">
           <a
             href="#"
             onClick={(e) => {
@@ -4081,7 +4714,7 @@ export const SwapTile = () => {
           >
             View all coins in explorer
           </a>
-        </div>
+        </div> */}
       </CardContent>
     </Card>
   );
