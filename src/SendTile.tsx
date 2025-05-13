@@ -30,6 +30,34 @@ import { cn } from "./lib/utils";
 // Cache constants
 const BALANCE_CACHE_VALIDITY_MS = 60 * 1000; // 1 minute validity for balance caching
 
+// Add CSS animations for token loading states
+const tokenLoadingStyles = `
+@keyframes shimmer {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+.token-loading {
+  animation: shimmer 1.5s infinite;
+  background: linear-gradient(90deg, rgba(255,234,0,0.1) 0%, rgba(255,255,255,0.2) 50%, rgba(255,234,0,0.1) 100%);
+  background-size: 200% 100%;
+  border-radius: 4px;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+`;
+
+// Add styles to document head
+if (typeof document !== 'undefined') {
+  const styleElem = document.createElement('style');
+  styleElem.innerHTML = tokenLoadingStyles;
+  document.head.appendChild(styleElem);
+}
+
 // Constants & helpers
 const ETH_SVG = `<svg fill="#000000" width="800px" height="800px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
 <g fill-rule="evenodd">
@@ -65,6 +93,8 @@ export interface TokenMeta {
   reserve0?: bigint;
   reserve1?: bigint;
   liquidity?: bigint;
+  isFetching?: boolean; // Whether the balance is currently being fetched
+  lastUpdated?: number; // Timestamp when balance was last updated
 }
 
 // Helper function to format token balance with appropriate precision
@@ -168,29 +198,64 @@ const useAllTokens = () => {
     },
   });
 
-  // More robust ETH balance handling
+  // More robust ETH balance handling with visual feedback
   useEffect(() => {
     if (!address) return; // nothing to do when wallet disconnected
 
-    setTokens((prev) => {
-      // find current ETH token inside existing list (if any)
-      const prevEth = prev.find((t) => t.id === null) ?? ETH_TOKEN;
-      const prevBal = prevEth.balance;
+    // Always immediately update with pending state if balance is being fetched
+    if (isEthBalanceFetching) {
+      setTokens((prev) => {
+        // Find current ETH token inside existing list (if any)
+        const prevEth = prev.find((t) => t.id === null) ?? ETH_TOKEN;
+        
+        // Only update if not already in fetching state
+        if (prevEth.isFetching) return prev;
+        
+        // Create new ETH token with fetching state but preserve old balance for stability
+        const nextEth = {
+          ...prevEth,
+          isFetching: true, // Add a flag to indicate loading state
+          balance: prevEth.balance // Keep previous balance during loading
+        };
+        
+        // Return new tokens array with stable references for the rest
+        return [nextEth, ...prev.filter((t) => t.id !== null)];
+      });
+    }
+    // When the new balance arrives, update with the actual value
+    else if (ethBalanceSuccess && ethBalance) {
+      setTokens((prev) => {
+        // Find current ETH token inside existing list (if any)
+        const prevEth = prev.find((t) => t.id === null) ?? ETH_TOKEN;
+        const prevBal = prevEth.balance;
+        const newBal = ethBalance.value;
 
-      // keep old balance while a new query is still loading
-      const newBal =
-        ethBalanceSuccess && ethBalance ? ethBalance.value : prevBal;
+        // If the balance really hasn't changed, just update the fetching state
+        if (newBal === prevBal && !prevEth.isFetching) return prev;
 
-      // if the balance really hasn't changed, bail out early → no re-render flicker
-      if (newBal === prevBal) return prev;
+        // Create a new ETH token with updated balance and fetching state reset
+        const nextEth = {
+          ...prevEth,
+          isFetching: false,
+          balance: newBal,
+          lastUpdated: Date.now() // Add timestamp for caching/staleness checks
+        };
 
-      // otherwise create a *single* new ETH token object
-      const nextEth = { ...prevEth, balance: newBal };
+        // Persist to sessionStorage for faster initialization on next visit
+        try {
+          sessionStorage.setItem('ethToken', JSON.stringify({
+            balance: newBal.toString(),
+            lastUpdated: Date.now()
+          }));
+        } catch (e) {
+          // Ignore storage errors
+        }
 
-      // return new tokens array with stable references for the rest
-      return [nextEth, ...prev.filter((t) => t.id !== null)];
-    });
-  }, [address, ethBalance, ethBalanceSuccess]);
+        // Return new tokens array with stable references for the rest
+        return [nextEth, ...prev.filter((t) => t.id !== null)];
+      });
+    }
+  }, [address, ethBalance, ethBalanceSuccess, isEthBalanceFetching]);
 
   useEffect(() => {
     const fetchTokens = async () => {
@@ -784,6 +849,28 @@ const TokenSelector = memo(
 
         // If token has no URI, show colored initial
         if (!token.tokenUri) {
+          // Use token ID as a cache key to maintain stable identities
+          const cacheKey = `token-initial-${token.id ?? "eth"}`;
+
+          // Check if we have this component cached in sessionStorage
+          try {
+            const cached = sessionStorage.getItem(cacheKey);
+            if (cached === "true") {
+              // We know this token has no URI, use the optimized render path
+              return (
+                <div
+                  className={`w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full text-xs font-medium`}
+                >
+                  {getInitials(token.symbol)}
+                </div>
+              );
+            }
+            // Cache this result for future renders
+            sessionStorage.setItem(cacheKey, "true");
+          } catch (e) {
+            // Ignore sessionStorage errors
+          }
+
           return (
             <div
               className={`w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full text-xs font-medium`}
@@ -857,14 +944,30 @@ const TokenSelector = memo(
               <span className="font-medium">{selectedToken.symbol}</span>
             </div>
             <div className="flex items-center gap-1">
-              <div className="text-xs font-medium text-gray-700 min-w-[50px] h-[14px]">
+              <div 
+                className={`text-xs font-medium text-gray-700 min-w-[50px] h-[14px] ${(
+                  selectedToken.id === null && isEthBalanceFetching) || selectedToken.isFetching
+                    ? 'token-loading px-1 rounded' 
+                    : ''
+                }`}
+              >
                 {formatTokenBalance(selectedToken)}
+                {/* Show loading indicator for ETH */}
                 {selectedToken.id === null && isEthBalanceFetching && (
                   <span
-                    className="text-xs text-yellow-500 ml-1"
+                    className="text-xs text-yellow-500 ml-1 inline-block"
                     style={{ animation: "pulse 1.5s infinite" }}
                   >
-                    ·
+                    ⟳
+                  </span>
+                )}
+                {/* Show loading indicator for other tokens */}
+                {selectedToken.id !== null && selectedToken.isFetching && (
+                  <span
+                    className="text-xs text-yellow-500 ml-1 inline-block"
+                    style={{ animation: "pulse 1.5s infinite" }}
+                  >
+                    ⟳
                   </span>
                 )}
               </div>
@@ -1014,14 +1117,30 @@ const TokenSelector = memo(
                       </div>
                     </div>
                     <div className="text-right min-w-[60px]">
-                      <div className="text-sm font-medium h-[18px]">
+                      <div 
+                        className={`text-sm font-medium h-[18px] ${(
+                          token.id === null && isEthBalanceFetching) || token.isFetching
+                            ? 'token-loading px-1 rounded' 
+                            : ''
+                        }`}
+                      >
                         {safeStr(balance)}
+                        {/* Show loading indicator for ETH */}
                         {token.id === null && isEthBalanceFetching && (
                           <span
-                            className="text-xs text-yellow-500 ml-1"
+                            className="text-xs text-yellow-500 ml-1 inline-block"
                             style={{ animation: "pulse 1.5s infinite" }}
                           >
-                            ·
+                            ⟳
+                          </span>
+                        )}
+                        {/* Show loading indicator for other tokens */}
+                        {token.id !== null && token.isFetching && (
+                          <span
+                            className="text-xs text-yellow-500 ml-1 inline-block"
+                            style={{ animation: "pulse 1.5s infinite" }}
+                          >
+                            ⟳
                           </span>
                         )}
                       </div>
@@ -1421,10 +1540,21 @@ const SendTileComponent = () => {
               value={amount}
               onChange={(e) => handleAmountChange(e.target.value)}
               placeholder="0.0"
-              className="w-full h-12 p-2 border-2 border-yellow-300 rounded focus-within:ring-2 hover:bg-yellow-50 focus-within:ring-primary focus-within:outline-none"
+              className={`w-full h-12 p-2 border-2 border-yellow-300 rounded focus-within:ring-2 hover:bg-yellow-50 focus-within:ring-primary focus-within:outline-none ${
+                selectedToken.isFetching ? 'token-loading' : ''
+              }`}
             />
             <div className="absolute right-2 top-1/2 -translate-y-1/2 font-medium text-sm text-gray-500">
               {safeStr(selectedToken.symbol)}
+              {/* Show loading indicator if token is being fetched */}
+              {selectedToken.isFetching && (
+                <span
+                  className="text-xs text-yellow-500 ml-1 inline-block"
+                  style={{ animation: "pulse 1.5s infinite" }}
+                >
+                  ⟳
+                </span>
+              )}
             </div>
           </div>
 
@@ -1467,7 +1597,7 @@ const SendTileComponent = () => {
         {txHash && (
           <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded">
             <p className="text-sm text-green-800">
-              Transaction submitted!{" "}
+              {isSuccess ? "Transaction successful!" : "Transaction submitted!"}{" "}
               <a
                 href={`https://etherscan.io/tx/${txHash}`}
                 target="_blank"
@@ -1476,6 +1606,15 @@ const SendTileComponent = () => {
               >
                 View on Etherscan
               </a>
+              {/* Show animation while waiting for transaction */}
+              {!isSuccess && (
+                <span
+                  className="inline-block ml-2 text-yellow-600"
+                  style={{ animation: "pulse 1.5s infinite" }}
+                >
+                  (waiting for confirmation...)
+                </span>
+              )}
             </p>
           </div>
         )}

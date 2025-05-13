@@ -4,6 +4,28 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 // Cache constants
 const BALANCE_CACHE_VALIDITY_MS = 60 * 1000; // 1 minute validity for balance caching
 
+// Add CSS animations for token loading states
+const tokenLoadingStyles = `
+@keyframes shimmer {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+.token-loading {
+  animation: shimmer 1.5s infinite;
+  background: linear-gradient(90deg, rgba(255,234,0,0.1) 0%, rgba(255,255,255,0.2) 50%, rgba(255,234,0,0.1) 100%);
+  background-size: 200% 100%;
+  border-radius: 4px;
+}
+`;
+
+// Add styles to document head
+if (typeof document !== 'undefined') {
+  const styleElem = document.createElement('style');
+  styleElem.innerHTML = tokenLoadingStyles;
+  document.head.appendChild(styleElem);
+}
+
 import {
   useWriteContract,
   useWaitForTransactionReceipt,
@@ -134,6 +156,8 @@ export interface TokenMeta {
   liquidity?: bigint; // Total liquidity in the pool
   swapFee?: bigint; // Custom swap fee for the pool (default is 100n - 1%)
   balance?: bigint; // User's balance of this token
+  isFetching?: boolean; // Whether the balance is currently being fetched
+  lastUpdated?: number; // Timestamp when balance was last updated
   // Below fields are for custom pools (like USDT-ETH)
   isCustomPool?: boolean; // Flag to identify custom pools
   poolId?: bigint; // Computed pool ID
@@ -260,6 +284,13 @@ const USDT_TOKEN: TokenMeta = {
   decimals: 6, // USDT has 6 decimals
 };
 
+// Cache for price calculations
+// Limited size with simple eviction of oldest entries
+const amountOutCache = new Map<string, { value: bigint, timestamp: number }>();
+const amountInCache = new Map<string, { value: bigint, timestamp: number }>();
+const PRICE_CACHE_SIZE = 50; // Smaller cache for price calculations
+const PRICE_CACHE_TTL = 2000; // 2 seconds TTL for price calculations
+
 // x*y=k AMM with fee — forward (amountIn → amountOut)
 const getAmountOut = (
   amountIn: bigint,
@@ -267,12 +298,48 @@ const getAmountOut = (
   reserveOut: bigint,
   swapFee: bigint,
 ) => {
+  // Fast path for zero values
   if (amountIn === 0n || reserveIn === 0n || reserveOut === 0n) return 0n;
 
+  // Create cache key from all inputs
+  const cacheKey = `${amountIn.toString()}-${reserveIn.toString()}-${reserveOut.toString()}-${swapFee.toString()}`;
+  const now = Date.now();
+  
+  // Check cache first
+  const cached = amountOutCache.get(cacheKey);
+  if (cached && (now - cached.timestamp < PRICE_CACHE_TTL)) {
+    return cached.value;
+  }
+  
+  // Calculate result if not cached or expired
   const amountInWithFee = amountIn * (10000n - swapFee);
   const numerator = amountInWithFee * reserveOut;
   const denominator = reserveIn * 10000n + amountInWithFee;
-  return numerator / denominator;
+  const result = numerator / denominator;
+  
+  // Manage cache size
+  if (amountOutCache.size >= PRICE_CACHE_SIZE) {
+    // Find oldest entry
+    let oldestKey = null;
+    let oldestTime = Infinity;
+    
+    for (const [key, entry] of amountOutCache.entries()) {
+      if (entry.timestamp < oldestTime) {
+        oldestTime = entry.timestamp;
+        oldestKey = key;
+      }
+    }
+    
+    // Remove oldest entry
+    if (oldestKey) {
+      amountOutCache.delete(oldestKey);
+    }
+  }
+  
+  // Cache the result
+  amountOutCache.set(cacheKey, { value: result, timestamp: now });
+  
+  return result;
 };
 
 // inverse — desired amountOut → required amountIn
@@ -282,6 +349,7 @@ const getAmountIn = (
   reserveOut: bigint,
   swapFee: bigint,
 ) => {
+  // Fast path for impossible scenarios
   if (
     amountOut === 0n ||
     reserveIn === 0n ||
@@ -290,9 +358,44 @@ const getAmountIn = (
   )
     return 0n;
 
+  // Create cache key from all inputs
+  const cacheKey = `${amountOut.toString()}-${reserveIn.toString()}-${reserveOut.toString()}-${swapFee.toString()}`;
+  const now = Date.now();
+  
+  // Check cache first
+  const cached = amountInCache.get(cacheKey);
+  if (cached && (now - cached.timestamp < PRICE_CACHE_TTL)) {
+    return cached.value;
+  }
+  
+  // Calculate result if not cached or expired
   const numerator = reserveIn * amountOut * 10000n;
   const denominator = (reserveOut - amountOut) * (10000n - swapFee);
-  return numerator / denominator + 1n; // +1 for ceiling rounding
+  const result = numerator / denominator + 1n; // +1 for ceiling rounding
+  
+  // Manage cache size
+  if (amountInCache.size >= PRICE_CACHE_SIZE) {
+    // Find oldest entry
+    let oldestKey = null;
+    let oldestTime = Infinity;
+    
+    for (const [key, entry] of amountInCache.entries()) {
+      if (entry.timestamp < oldestTime) {
+        oldestTime = entry.timestamp;
+        oldestKey = key;
+      }
+    }
+    
+    // Remove oldest entry
+    if (oldestKey) {
+      amountInCache.delete(oldestKey);
+    }
+  }
+  
+  // Cache the result
+  amountInCache.set(cacheKey, { value: result, timestamp: now });
+  
+  return result;
 };
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -319,34 +422,70 @@ const useAllTokens = () => {
 
     query: {
       enabled: !!address, // only fetch when wallet connected
+      refetchInterval: 30_000, // Periodically refresh balance every 30s
       staleTime: 30_000, // treat result as “fresh” for 30 s
       // cacheTime not recognised in wagmi’s narrowed types
     },
   });
 
-  // More robust ETH balance handling
+  // More robust ETH balance handling with visual feedback
   useEffect(() => {
     if (!address) return; // nothing to do when wallet disconnected
 
-    setTokens((prev) => {
-      // find current ETH token inside existing list (if any)
-      const prevEth = prev.find((t) => t.id === null) ?? ETH_TOKEN;
-      const prevBal = prevEth.balance;
+    // Always immediately update with pending state if balance is being fetched
+    if (isEthBalanceFetching) {
+      setTokens((prev) => {
+        // Find current ETH token inside existing list (if any)
+        const prevEth = prev.find((t) => t.id === null) ?? ETH_TOKEN;
+        
+        // Only update if not already in fetching state
+        if (prevEth.isFetching) return prev;
+        
+        // Create new ETH token with fetching state but preserve old balance for stability
+        const nextEth = {
+          ...prevEth,
+          isFetching: true, // Add a flag to indicate loading state
+          balance: prevEth.balance // Keep previous balance during loading
+        };
+        
+        // Return new tokens array with stable references for the rest
+        return [nextEth, ...prev.filter((t) => t.id !== null)];
+      });
+    }
+    // When the new balance arrives, update with the actual value
+    else if (ethBalanceSuccess && ethBalance) {
+      setTokens((prev) => {
+        // Find current ETH token inside existing list (if any)
+        const prevEth = prev.find((t) => t.id === null) ?? ETH_TOKEN;
+        const prevBal = prevEth.balance;
+        const newBal = ethBalance.value;
 
-      // keep old balance while a new query is still loading
-      const newBal =
-        ethBalanceSuccess && ethBalance ? ethBalance.value : prevBal;
+        // If the balance really hasn't changed, just update the fetching state
+        if (newBal === prevBal && !prevEth.isFetching) return prev;
 
-      // if the balance really hasn’t changed, bail out early → no re-render flicker
-      if (newBal === prevBal) return prev;
+        // Create a new ETH token with updated balance and fetching state reset
+        const nextEth = {
+          ...prevEth,
+          isFetching: false,
+          balance: newBal,
+          lastUpdated: Date.now() // Add timestamp for caching/staleness checks
+        };
 
-      // otherwise create a *single* new ETH token object
-      const nextEth = { ...prevEth, balance: newBal };
+        // Persist to sessionStorage for faster initialization on next visit
+        try {
+          sessionStorage.setItem('ethToken', JSON.stringify({
+            balance: newBal.toString(),
+            lastUpdated: Date.now()
+          }));
+        } catch (e) {
+          // Ignore storage errors
+        }
 
-      // return new tokens array with stable references for the rest
-      return [nextEth, ...prev.filter((t) => t.id !== null)];
-    });
-  }, [address, ethBalance, ethBalanceSuccess]);
+        // Return new tokens array with stable references for the rest
+        return [nextEth, ...prev.filter((t) => t.id !== null)];
+      });
+    }
+  }, [address, ethBalance, ethBalanceSuccess, isEthBalanceFetching]);
 
   useEffect(() => {
     const fetchTokens = async () => {
@@ -1161,14 +1300,31 @@ const TokenSelector = React.memo(
               <span className="font-medium">{selectedToken.symbol}</span>
             </div>
             <div className="flex items-center gap-1">
-              <div className="text-xs font-medium text-gray-700 min-w-[50px] h-[14px]">
+              <div 
+                className={`text-xs font-medium text-gray-700 min-w-[50px] h-[14px] ${
+                  // Add loading class for better visual feedback
+                  (selectedToken.id === null && isEthBalanceFetching) || selectedToken.isFetching
+                    ? 'token-loading px-1 rounded' 
+                    : ''
+                }`}
+              >
                 {formatBalance(selectedToken)}
+                {/* Show loading indicator for ETH */}
                 {selectedToken.id === null && isEthBalanceFetching && (
                   <span
-                    className="text-xs text-yellow-500 ml-1"
+                    className="text-xs text-yellow-500 ml-1 inline-block"
                     style={{ animation: "pulse 1.5s infinite" }}
                   >
-                    ·
+                    ⟳
+                  </span>
+                )}
+                {/* Show loading indicator for other tokens */}
+                {selectedToken.id !== null && selectedToken.isFetching && (
+                  <span
+                    className="text-xs text-yellow-500 ml-1 inline-block"
+                    style={{ animation: "pulse 1.5s infinite" }}
+                  >
+                    ⟳
                   </span>
                 )}
               </div>
@@ -1520,14 +1676,31 @@ const TokenSelector = React.memo(
                       </div>
                     </div>
                     <div className="text-right min-w-[60px]">
-                      <div className="text-sm font-medium h-[18px]">
+                      <div 
+                        className={`text-sm font-medium h-[18px] ${
+                          // Add loading class when ETH is loading or this specific token is loading
+                          (token.id === null && isEthBalanceFetching) || token.isFetching 
+                            ? 'token-loading px-1' 
+                            : ''
+                        }`}
+                      >
                         {balance}
+                        {/* Show loading indicator for ETH */}
                         {token.id === null && isEthBalanceFetching && (
                           <span
-                            className="text-xs text-yellow-500 ml-1"
+                            className="text-xs text-yellow-500 ml-1 inline-block"
                             style={{ animation: "pulse 1.5s infinite" }}
                           >
-                            ·
+                            ⟳
+                          </span>
+                        )}
+                        {/* Show loading indicator for any token that's being updated */}
+                        {token.id !== null && token.isFetching && (
+                          <span
+                            className="text-xs text-yellow-500 ml-1 inline-block"
+                            style={{ animation: "pulse 1.5s infinite" }}
+                          >
+                            ⟳
                           </span>
                         )}
                       </div>
