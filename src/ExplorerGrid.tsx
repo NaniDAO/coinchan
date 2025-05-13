@@ -185,16 +185,6 @@ export const ExplorerGrid = ({
           </span>
         </button>
       </div>
-
-      {/* Send button at the bottom of Explorer Grid */}
-      <div className="mt-6 flex justify-center">
-        <Link
-          to="/send"
-          className="px-6 py-3 bg-yellow-500 hover:bg-yellow-600 text-white font-bold rounded-md shadow-md transition-colors duration-200"
-        >
-          Send Coins
-        </Link>
-      </div>
     </div>
   );
 };
