@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router";
 import { CoinCard } from "./components/CoinCard";
 import { type CoinData } from "./hooks/metadata";
 import { useEffect, useState } from "react";
