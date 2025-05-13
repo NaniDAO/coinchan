@@ -5,6 +5,7 @@ import {
   useAccount,
   usePublicClient,
   useBalance,
+  useSendTransaction,
 } from "wagmi";
 import { mainnet } from "viem/chains";
 import { handleWalletError, isUserRejectionError } from "./utils";
@@ -13,13 +14,18 @@ import {
   parseUnits,
   formatEther,
   formatUnits,
+  Address,
 } from "viem";
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
 import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
-import { CoinsMetadataHelperAbi, CoinsMetadataHelperAddress } from "./constants/CoinsMetadataHelper";
+import {
+  CoinsMetadataHelperAbi,
+  CoinsMetadataHelperAddress,
+} from "./constants/CoinsMetadataHelper";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { cn } from "./lib/utils";
 
 // Cache constants
 const BALANCE_CACHE_VALIDITY_MS = 60 * 1000; // 1 minute validity for balance caching
@@ -43,7 +49,8 @@ const USDT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2000 2000
 </svg>`;
 
 // USDT address on mainnet (official Tether USD address)
-const USDT_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7" as `0x${string}`;
+const USDT_ADDRESS =
+  "0xdAC17F958D2ee523a2206206994597C13D831ec7" as `0x${string}`;
 
 // Interface for token metadata
 export interface TokenMeta {
@@ -127,7 +134,6 @@ const ETH_TOKEN: TokenMeta = {
   balance: 0n, // Will be updated with actual balance
 };
 
-// Define USDT token
 const USDT_TOKEN: TokenMeta = {
   id: 0n, // Special USDT token with ID 0
   name: "Tether USD",
@@ -172,7 +178,8 @@ const useAllTokens = () => {
       const prevBal = prevEth.balance;
 
       // keep old balance while a new query is still loading
-      const newBal = ethBalanceSuccess && ethBalance ? ethBalance.value : prevBal;
+      const newBal =
+        ethBalanceSuccess && ethBalance ? ethBalance.value : prevBal;
 
       // if the balance really hasn't changed, bail out early → no re-render flicker
       if (newBal === prevBal) return prev;
@@ -201,14 +208,16 @@ const useAllTokens = () => {
           functionName: "getCoinsCount",
         });
         const totalCoinCount = Number(countResult);
-        
+
         console.log(`Found ${totalCoinCount} total coins`);
 
         // Step 1: Try to get all coins data directly from CoinsMetadataHelper
         // This is more efficient than fetching each coin individually and includes liquidity data
         let allCoinsData;
         try {
-          console.log("Attempting to fetch all coins data from CoinsMetadataHelper...");
+          console.log(
+            "Attempting to fetch all coins data from CoinsMetadataHelper...",
+          );
           allCoinsData = await publicClient.readContract({
             address: CoinsMetadataHelperAddress,
             abi: CoinsMetadataHelperAbi,
@@ -216,12 +225,19 @@ const useAllTokens = () => {
           });
 
           // Check if we're getting all coins
-          if (Array.isArray(allCoinsData) && allCoinsData.length < totalCoinCount) {
-            console.log(`Received only ${allCoinsData.length}/${totalCoinCount} coins, falling back to batch fetching`);
+          if (
+            Array.isArray(allCoinsData) &&
+            allCoinsData.length < totalCoinCount
+          ) {
+            console.log(
+              `Received only ${allCoinsData.length}/${totalCoinCount} coins, falling back to batch fetching`,
+            );
             // Fewer coins than expected, using batch fetching
             allCoinsData = null; // Force fallback
           } else {
-            console.log(`Successfully fetched all ${allCoinsData.length} coins data`);
+            console.log(
+              `Successfully fetched all ${allCoinsData.length} coins data`,
+            );
           }
         } catch (error) {
           console.error("Error fetching all coins data:", error);
@@ -254,7 +270,9 @@ const useAllTokens = () => {
           const batchResults = await Promise.all(batches);
           // Combine all batches
           allCoinsData = batchResults.flat();
-          console.log(`Batch fetching completed with ${allCoinsData.length} total coins`);
+          console.log(
+            `Batch fetching completed with ${allCoinsData.length} total coins`,
+          );
         }
 
         // Process the raw data from CoinsMetadataHelper
@@ -270,7 +288,8 @@ const useAllTokens = () => {
               // Handle both tuple object and array response formats
               if (Array.isArray(coinData)) {
                 // If it's an array (some contracts return tuples as arrays)
-                [coinId, tokenURI, reserve0, reserve1, poolId, liquidity] = coinData;
+                [coinId, tokenURI, reserve0, reserve1, poolId, liquidity] =
+                  coinData;
               } else {
                 // If it's an object with properties (standard viem response)
                 coinId = coinData.coinId;
@@ -306,9 +325,13 @@ const useAllTokens = () => {
               ]);
 
               const symbol =
-                symbolResult.status === "fulfilled" ? (symbolResult.value as string) : `C#${coinId.toString()}`;
+                symbolResult.status === "fulfilled"
+                  ? (symbolResult.value as string)
+                  : `C#${coinId.toString()}`;
               const name =
-                nameResult.status === "fulfilled" ? (nameResult.value as string) : `Coin #${coinId.toString()}`;
+                nameResult.status === "fulfilled"
+                  ? (nameResult.value as string)
+                  : `Coin #${coinId.toString()}`;
 
               // Fetch user's balance if address is connected - with caching
               let balance: bigint = 0n;
@@ -319,11 +342,17 @@ const useAllTokens = () => {
 
                 try {
                   const cachedBalance = localStorage.getItem(balanceCacheKey);
-                  const cachedTimestamp = localStorage.getItem(balanceCacheTimestampKey);
+                  const cachedTimestamp = localStorage.getItem(
+                    balanceCacheTimestampKey,
+                  );
                   const now = Date.now();
 
                   // Use cache if it's valid and recent
-                  if (cachedBalance && cachedTimestamp && now - parseInt(cachedTimestamp) < BALANCE_CACHE_VALIDITY_MS) {
+                  if (
+                    cachedBalance &&
+                    cachedTimestamp &&
+                    now - parseInt(cachedTimestamp) < BALANCE_CACHE_VALIDITY_MS
+                  ) {
                     balance = BigInt(cachedBalance);
                   } else {
                     // Fetch fresh balance from chain
@@ -339,7 +368,10 @@ const useAllTokens = () => {
                     // Save balance to cache
                     try {
                       localStorage.setItem(balanceCacheKey, balance.toString());
-                      localStorage.setItem(balanceCacheTimestampKey, now.toString());
+                      localStorage.setItem(
+                        balanceCacheTimestampKey,
+                        now.toString(),
+                      );
                     } catch (e) {
                       // Cache error, can continue without caching
                     }
@@ -380,7 +412,7 @@ const useAllTokens = () => {
           const tokenResults = await Promise.all(tokenPromises);
           // Filter out any tokens with fetch errors
           const validTokens = tokenResults.filter(
-            (token): token is TokenMeta => token !== null
+            (token): token is TokenMeta => token !== null,
           );
 
           // If user has USDT balance, fetch it with caching
@@ -394,9 +426,17 @@ const useAllTokens = () => {
                 address: USDT_ADDRESS,
                 abi: [
                   {
-                    inputs: [{ internalType: "address", name: "account", type: "address" }],
+                    inputs: [
+                      {
+                        internalType: "address",
+                        name: "account",
+                        type: "address",
+                      },
+                    ],
                     name: "balanceOf",
-                    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+                    outputs: [
+                      { internalType: "uint256", name: "", type: "uint256" },
+                    ],
                     stateMutability: "view",
                     type: "function",
                   },
@@ -407,7 +447,10 @@ const useAllTokens = () => {
 
               if (usdtBalance) {
                 usdtTokenWithBalance.balance = usdtBalance as bigint;
-                console.log("USDT balance:", formatUnits(usdtBalance as bigint, 6));
+                console.log(
+                  "USDT balance:",
+                  formatUnits(usdtBalance as bigint, 6),
+                );
               }
             } catch (error) {
               console.log("Failed to fetch USDT balance:", error);
@@ -415,13 +458,17 @@ const useAllTokens = () => {
           }
 
           // Get the updated ETH token with balance
-          const currentEthToken = tokens.find((token) => token.id === null) || ETH_TOKEN;
+          const currentEthToken =
+            tokens.find((token) => token.id === null) || ETH_TOKEN;
 
           // Create a new ETH token with balance preserved
           const ethTokenWithBalance = {
             ...currentEthToken,
             // Use the latest ethBalance if available
-            balance: ethBalance?.value !== undefined ? ethBalance.value : currentEthToken.balance,
+            balance:
+              ethBalance?.value !== undefined
+                ? ethBalance.value
+                : currentEthToken.balance,
           };
 
           // Sort tokens by liquidity (highest first) like in SwapTile
@@ -440,23 +487,35 @@ const useAllTokens = () => {
             // Secondary sort by liquidity if ETH reserves are equal
             const liquidityA = a.liquidity || 0n;
             const liquidityB = b.liquidity || 0n;
-            return liquidityB > liquidityA ? 1 : liquidityB < liquidityA ? -1 : 0;
+            return liquidityB > liquidityA
+              ? 1
+              : liquidityB < liquidityA
+                ? -1
+                : 0;
           });
 
           // Add ETH and USDT to the tokens list, with ETH first, sorted tokens next, and USDT last
-          setTokens([ethTokenWithBalance, ...sortedByEthReserves, usdtTokenWithBalance]);
+          setTokens([
+            ethTokenWithBalance,
+            ...sortedByEthReserves,
+            usdtTokenWithBalance,
+          ]);
           setLoading(false);
         } else {
           // Fallback: No coin metadata found, so use default ETH and USDT
           console.log("No coin metadata found, using default tokens");
 
           // Get the current ETH token
-          const currentEthToken = tokens.find((token) => token.id === null) || ETH_TOKEN;
+          const currentEthToken =
+            tokens.find((token) => token.id === null) || ETH_TOKEN;
 
           // Create a new ETH token with balance preserved
           const ethTokenWithBalance = {
             ...currentEthToken,
-            balance: ethBalance?.value !== undefined ? ethBalance.value : currentEthToken.balance,
+            balance:
+              ethBalance?.value !== undefined
+                ? ethBalance.value
+                : currentEthToken.balance,
           };
 
           // Create default tokens list
@@ -467,10 +526,14 @@ const useAllTokens = () => {
         console.error("Failed to fetch coin metadata:", error);
 
         // Fallback: Use existing ETH token and USDT
-        const currentEthToken = tokens.find((token) => token.id === null) || ETH_TOKEN;
+        const currentEthToken =
+          tokens.find((token) => token.id === null) || ETH_TOKEN;
         const ethTokenWithBalance = {
           ...currentEthToken,
-          balance: ethBalance?.value !== undefined ? ethBalance.value : currentEthToken.balance,
+          balance:
+            ethBalance?.value !== undefined
+              ? ethBalance.value
+              : currentEthToken.balance,
         };
 
         setTokens([ethTokenWithBalance, USDT_TOKEN]);
@@ -486,439 +549,510 @@ const useAllTokens = () => {
 
 // Safe string helper function
 const safeStr = (val: any): string => {
-  if (val === undefined || val === null) return '';
-  if (typeof val === 'string') return val;
-  if (typeof val === 'number') return String(val);
-  if (typeof val === 'bigint') return String(val);
-  return '';
+  if (val === undefined || val === null) return "";
+  if (typeof val === "string") return val;
+  if (typeof val === "number") return String(val);
+  if (typeof val === "bigint") return String(val);
+  return "";
 };
 
 // Custom TokenSelector component for selecting assets - memoized for performance
-const TokenSelector = memo(({
-  selectedToken,
-  tokens,
-  onSelect,
-  isEthBalanceFetching = false,
-}: {
-  selectedToken: TokenMeta;
-  tokens: TokenMeta[];
-  onSelect: (token: TokenMeta) => void;
-  isEthBalanceFetching?: boolean;
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const selectedValue = selectedToken.id?.toString() ?? "eth";
+const TokenSelector = memo(
+  ({
+    selectedToken,
+    tokens,
+    onSelect,
+    isEthBalanceFetching = false,
+    className,
+  }: {
+    selectedToken: TokenMeta;
+    tokens: TokenMeta[];
+    onSelect: (token: TokenMeta) => void;
+    isEthBalanceFetching?: boolean;
+    className?: string;
+  }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const selectedValue = selectedToken.id?.toString() ?? "eth";
 
-  // Handle selection change
-  const handleSelect = (token: TokenMeta) => {
-    onSelect(token);
-    setIsOpen(false);
-  };
-
-  // Get initials for fallback display
-  const getInitials = (symbol: string) => {
-    return symbol.slice(0, 2).toUpperCase();
-  };
-
-  // Color map for token initials
-  const getColorForSymbol = (symbol: string) => {
-    const symbolKey = symbol.toLowerCase();
-    const colorMap: Record<string, { bg: string; text: string }> = {
-      eth: { bg: "bg-black", text: "text-white" },
-      us: { bg: "bg-green-500", text: "text-white" },
-      za: { bg: "bg-red-500", text: "text-white" },
-      pe: { bg: "bg-green-700", text: "text-white" },
-      ro: { bg: "bg-red-700", text: "text-white" },
-      "..": { bg: "bg-gray-800", text: "text-white" },
+    // Handle selection change
+    const handleSelect = (token: TokenMeta) => {
+      onSelect(token);
+      setIsOpen(false);
     };
 
-    const initials = symbolKey.slice(0, 2);
-    return colorMap[initials] || { bg: "bg-yellow-500", text: "text-white" };
-  };
+    // Get initials for fallback display
+    const getInitials = (symbol: string) => {
+      return symbol.slice(0, 2).toUpperCase();
+    };
 
-  // Memoized token image component with improved handling for all token types
-  const TokenImage = memo(({ token }: { token: TokenMeta }) => {
-    const [imageLoaded, setImageLoaded] = useState(false);
-    const [imageError, setImageError] = useState(false);
-    const [actualImageUrl, setActualImageUrl] = useState<string | null>(null);
-    const [failedUrls, setFailedUrls] = useState<Set<string>>(new Set());
-    const [alternativeUrls, setAlternativeUrls] = useState<string[]>([]);
-    const { bg, text } = getColorForSymbol(token.symbol);
+    // Color map for token initials
+    const getColorForSymbol = (symbol: string) => {
+      const symbolKey = symbol.toLowerCase();
+      const colorMap: Record<string, { bg: string; text: string }> = {
+        eth: { bg: "bg-black", text: "text-white" },
+        us: { bg: "bg-green-500", text: "text-white" },
+        za: { bg: "bg-red-500", text: "text-white" },
+        pe: { bg: "bg-green-700", text: "text-white" },
+        ro: { bg: "bg-red-700", text: "text-white" },
+        "..": { bg: "bg-gray-800", text: "text-white" },
+      };
 
-    // Helper function to safely handle IPFS URIs
-    const handleIpfsUri = useCallback((ipfsUri: string) => {
-      if (!ipfsUri.startsWith('ipfs://')) return ipfsUri;
+      const initials = symbolKey.slice(0, 2);
+      return colorMap[initials] || { bg: "bg-yellow-500", text: "text-white" };
+    };
 
-      const hash = ipfsUri.slice(7);
-      return `https://content.wrappr.wtf/ipfs/${hash}`;
-    }, []);
+    // Memoized token image component with improved handling for all token types
+    const TokenImage = memo(
+      ({ token }: { token: TokenMeta }) => {
+        const [imageLoaded, setImageLoaded] = useState(false);
+        const [imageError, setImageError] = useState(false);
+        const [actualImageUrl, setActualImageUrl] = useState<string | null>(
+          null,
+        );
+        const [failedUrls, setFailedUrls] = useState<Set<string>>(new Set());
+        const [alternativeUrls, setAlternativeUrls] = useState<string[]>([]);
+        const { bg, text } = getColorForSymbol(token.symbol);
 
-    // Generate alternative IPFS gateway URLs
-    const getIpfsAlternatives = useCallback((ipfsUri: string) => {
-      if (!ipfsUri.startsWith('ipfs://')) return [];
+        // Helper function to safely handle IPFS URIs
+        const handleIpfsUri = useCallback((ipfsUri: string) => {
+          if (!ipfsUri.startsWith("ipfs://")) return ipfsUri;
 
-      const hash = ipfsUri.slice(7);
-      return [
-        `https://cloudflare-ipfs.com/ipfs/${hash}`,
-        `https://ipfs.io/ipfs/${hash}`,
-        `https://gateway.pinata.cloud/ipfs/${hash}`,
-        `https://ipfs.fleek.co/ipfs/${hash}`,
-      ];
-    }, []);
+          const hash = ipfsUri.slice(7);
+          return `https://content.wrappr.wtf/ipfs/${hash}`;
+        }, []);
 
-    // Cache images in sessionStorage to prevent repeated fetches
-    const cacheKey = `token-image-${token.id ?? "eth"}-url`;
+        // Generate alternative IPFS gateway URLs
+        const getIpfsAlternatives = useCallback((ipfsUri: string) => {
+          if (!ipfsUri.startsWith("ipfs://")) return [];
 
-    // Use sessionStorage to speed up image URL loading
-    useEffect(() => {
-      // First check if we have a cached version
-      try {
-        const cachedUrl = sessionStorage.getItem(cacheKey);
-        if (cachedUrl) {
-          setActualImageUrl(cachedUrl);
-          return;
-        }
-      } catch (e) {
-        // Ignore sessionStorage errors
-      }
+          const hash = ipfsUri.slice(7);
+          return [
+            `https://cloudflare-ipfs.com/ipfs/${hash}`,
+            `https://ipfs.io/ipfs/${hash}`,
+            `https://gateway.pinata.cloud/ipfs/${hash}`,
+            `https://ipfs.fleek.co/ipfs/${hash}`,
+          ];
+        }, []);
 
-      const fetchMetadata = async () => {
-        if (!token.tokenUri) return;
+        // Cache images in sessionStorage to prevent repeated fetches
+        const cacheKey = `token-image-${token.id ?? "eth"}-url`;
 
-        // Skip for data URIs like the ETH SVG
-        if (token.tokenUri.startsWith("data:")) {
-          setActualImageUrl(token.tokenUri);
+        // Use sessionStorage to speed up image URL loading
+        useEffect(() => {
+          // First check if we have a cached version
           try {
-            sessionStorage.setItem(cacheKey, token.tokenUri);
+            const cachedUrl = sessionStorage.getItem(cacheKey);
+            if (cachedUrl) {
+              setActualImageUrl(cachedUrl);
+              return;
+            }
           } catch (e) {
             // Ignore sessionStorage errors
           }
-          return;
-        }
 
-        try {
-          // Handle IPFS URIs immediately to prevent direct IPFS fetch errors
-          if (token.tokenUri.startsWith("ipfs://")) {
-            // Convert IPFS URI to HTTP URL using a gateway
-            const uri = handleIpfsUri(token.tokenUri);
+          const fetchMetadata = async () => {
+            if (!token.tokenUri) return;
 
-            // Set alternative URLs for fallbacks
-            setAlternativeUrls(getIpfsAlternatives(token.tokenUri));
-
-            setActualImageUrl(uri);
-            try {
-              sessionStorage.setItem(cacheKey, uri);
-            } catch (e) {
-              // Ignore sessionStorage errors
+            // Skip for data URIs like the ETH SVG
+            if (token.tokenUri.startsWith("data:")) {
+              setActualImageUrl(token.tokenUri);
+              try {
+                sessionStorage.setItem(cacheKey, token.tokenUri);
+              } catch (e) {
+                // Ignore sessionStorage errors
+              }
+              return;
             }
 
-            // Return early to avoid the fetch - we'll handle the image directly
-            return;
-          }
+            try {
+              // Handle IPFS URIs immediately to prevent direct IPFS fetch errors
+              if (token.tokenUri.startsWith("ipfs://")) {
+                // Convert IPFS URI to HTTP URL using a gateway
+                const uri = handleIpfsUri(token.tokenUri);
 
-          // Process the token URI - convert IPFS to HTTP if needed
-          const uri = handleIpfsUri(token.tokenUri);
+                // Set alternative URLs for fallbacks
+                setAlternativeUrls(getIpfsAlternatives(token.tokenUri));
 
-          // Try to fetch as JSON (might be metadata)
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 3000); // Shorter timeout
-
-          try {
-            const response = await fetch(uri, { signal: controller.signal });
-            clearTimeout(timeoutId);
-
-            const contentType = response.headers.get("content-type");
-
-            // If it's JSON, try to extract image URL
-            if (contentType && contentType.includes("application/json")) {
-              const data = await response.json();
-              let imageUrl = null;
-
-              // Try multiple image field variations
-              if (data.image) {
-                imageUrl = data.image;
-              } else if (data.image_url) {
-                imageUrl = data.image_url;
-              } else if (data.imageUrl) {
-                imageUrl = data.imageUrl;
-              } else if (data.properties?.image) {
-                imageUrl = data.properties.image;
-              }
-
-              if (imageUrl) {
-                // Handle IPFS image URL using our helper
-                const formattedUrl = handleIpfsUri(imageUrl);
-
-                setActualImageUrl(formattedUrl);
+                setActualImageUrl(uri);
                 try {
-                  sessionStorage.setItem(cacheKey, formattedUrl);
+                  sessionStorage.setItem(cacheKey, uri);
                 } catch (e) {
                   // Ignore sessionStorage errors
                 }
+
+                // Return early to avoid the fetch - we'll handle the image directly
                 return;
               }
-            }
 
-            // If not valid JSON or no image field, use the URI directly
-            setActualImageUrl(uri);
-            try {
-              sessionStorage.setItem(cacheKey, uri);
-            } catch (e) {
-              // Ignore sessionStorage errors
+              // Process the token URI - convert IPFS to HTTP if needed
+              const uri = handleIpfsUri(token.tokenUri);
+
+              // Try to fetch as JSON (might be metadata)
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 3000); // Shorter timeout
+
+              try {
+                const response = await fetch(uri, {
+                  signal: controller.signal,
+                });
+                clearTimeout(timeoutId);
+
+                const contentType = response.headers.get("content-type");
+
+                // If it's JSON, try to extract image URL
+                if (contentType && contentType.includes("application/json")) {
+                  const data = await response.json();
+                  let imageUrl = null;
+
+                  // Try multiple image field variations
+                  if (data.image) {
+                    imageUrl = data.image;
+                  } else if (data.image_url) {
+                    imageUrl = data.image_url;
+                  } else if (data.imageUrl) {
+                    imageUrl = data.imageUrl;
+                  } else if (data.properties?.image) {
+                    imageUrl = data.properties.image;
+                  }
+
+                  if (imageUrl) {
+                    // Handle IPFS image URL using our helper
+                    const formattedUrl = handleIpfsUri(imageUrl);
+
+                    setActualImageUrl(formattedUrl);
+                    try {
+                      sessionStorage.setItem(cacheKey, formattedUrl);
+                    } catch (e) {
+                      // Ignore sessionStorage errors
+                    }
+                    return;
+                  }
+                }
+
+                // If not valid JSON or no image field, use the URI directly
+                setActualImageUrl(uri);
+                try {
+                  sessionStorage.setItem(cacheKey, uri);
+                } catch (e) {
+                  // Ignore sessionStorage errors
+                }
+              } catch (err) {
+                clearTimeout(timeoutId);
+                // Error fetching metadata
+                // Don't mark as error yet, try alternate URLs
+                setFailedUrls((prev) => new Set([...prev, uri]));
+              }
+            } catch (err) {
+              // Error handling metadata
+              setImageError(true);
             }
-          } catch (err) {
-            clearTimeout(timeoutId);
-            // Error fetching metadata
-            // Don't mark as error yet, try alternate URLs
-            setFailedUrls((prev) => new Set([...prev, uri]));
+          };
+
+          fetchMetadata();
+        }, [
+          token.tokenUri,
+          token.symbol,
+          token.id,
+          cacheKey,
+          handleIpfsUri,
+          getIpfsAlternatives,
+        ]);
+
+        // If image fails to load, try alternatives
+        const tryNextAlternative = useCallback(() => {
+          if (alternativeUrls.length > 0) {
+            // Find the next URL that hasn't been tried
+            const nextUrl = alternativeUrls.find((url) => !failedUrls.has(url));
+            if (nextUrl) {
+              // Try alternative URL
+              setActualImageUrl(nextUrl);
+              return;
+            }
           }
-        } catch (err) {
-          // Error handling metadata
+
+          // If we've exhausted all alternatives or have none, show error
           setImageError(true);
+        }, [alternativeUrls, failedUrls]);
+
+        // Handle image load error by trying an alternative URL
+        const handleImageError = useCallback(() => {
+          if (actualImageUrl) {
+            setFailedUrls((prev) => new Set([...prev, actualImageUrl]));
+          }
+          tryNextAlternative();
+        }, [actualImageUrl, tryNextAlternative]);
+
+        // If token has no URI, show colored initial
+        if (!token.tokenUri) {
+          return (
+            <div
+              className={`w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full text-xs font-medium`}
+            >
+              {getInitials(token.symbol)}
+            </div>
+          );
         }
-      };
 
-      fetchMetadata();
-    }, [token.tokenUri, token.symbol, token.id, cacheKey, handleIpfsUri, getIpfsAlternatives]);
-
-    // If image fails to load, try alternatives
-    const tryNextAlternative = useCallback(() => {
-      if (alternativeUrls.length > 0) {
-        // Find the next URL that hasn't been tried
-        const nextUrl = alternativeUrls.find((url) => !failedUrls.has(url));
-        if (nextUrl) {
-          // Try alternative URL
-          setActualImageUrl(nextUrl);
-          return;
+        // Show loading placeholder if we don't have the actual image URL yet
+        if (!actualImageUrl && !imageError) {
+          return (
+            <div className="relative w-8 h-8 rounded-full overflow-hidden">
+              <div
+                className={`w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full`}
+              >
+                {getInitials(token.symbol)}
+              </div>
+            </div>
+          );
         }
-      }
 
-      // If we've exhausted all alternatives or have none, show error
-      setImageError(true);
-    }, [alternativeUrls, failedUrls]);
+        // Otherwise, try to load the token image
+        return (
+          <div className="relative w-8 h-8 rounded-full overflow-hidden">
+            {/* Show colored initials while loading or on error */}
+            {(!imageLoaded || imageError) && (
+              <div
+                className={`absolute inset-0 w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full text-xs font-medium`}
+              >
+                {getInitials(token.symbol)}
+              </div>
+            )}
 
-    // Handle image load error by trying an alternative URL
-    const handleImageError = useCallback(() => {
-      if (actualImageUrl) {
-        setFailedUrls((prev) => new Set([...prev, actualImageUrl]));
-      }
-      tryNextAlternative();
-    }, [actualImageUrl, tryNextAlternative]);
-
-    // If token has no URI, show colored initial
-    if (!token.tokenUri) {
-      return (
-        <div className={`w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full text-xs font-medium`}>
-          {getInitials(token.symbol)}
-        </div>
-      );
-    }
-
-    // Show loading placeholder if we don't have the actual image URL yet
-    if (!actualImageUrl && !imageError) {
-      return (
-        <div className="relative w-8 h-8 rounded-full overflow-hidden">
-          <div className={`w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full`}>
-            {getInitials(token.symbol)}
+            {/* Actual token image */}
+            {actualImageUrl && !imageError && (
+              <img
+                src={actualImageUrl}
+                alt={`${token.symbol} logo`}
+                className={`w-8 h-8 object-cover rounded-full ${imageLoaded ? "opacity-100" : "opacity-0"} transition-opacity duration-200`}
+                onLoad={() => setImageLoaded(true)}
+                onError={handleImageError}
+                loading="lazy"
+              />
+            )}
           </div>
-        </div>
-      );
-    }
+        );
+      },
+      (prevProps, nextProps) => {
+        // Only re-render if token ID or URI changes
+        return (
+          prevProps.token.id === nextProps.token.id &&
+          prevProps.token.tokenUri === nextProps.token.tokenUri
+        );
+      },
+    );
 
-    // Otherwise, try to load the token image
     return (
-      <div className="relative w-8 h-8 rounded-full overflow-hidden">
-        {/* Show colored initials while loading or on error */}
-        {(!imageLoaded || imageError) && (
-          <div
-            className={`absolute inset-0 w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full text-xs font-medium`}
-          >
-            {getInitials(token.symbol)}
+      <div className="relative">
+        {/* Selected token display with thumbnail */}
+        <div
+          onClick={() => setIsOpen(!isOpen)}
+          className={cn(
+            "flex items-center gap-2 cursor-pointer bg-transparent border border-yellow-200 rounded-md px-2 py-1 hover:bg-yellow-50 touch-manipulation",
+            className,
+          )}
+        >
+          <TokenImage token={selectedToken} />
+          <div className="flex flex-col">
+            <div className="flex items-center gap-1">
+              <span className="font-medium">{selectedToken.symbol}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="text-xs font-medium text-gray-700 min-w-[50px] h-[14px]">
+                {formatTokenBalance(selectedToken)}
+                {selectedToken.id === null && isEthBalanceFetching && (
+                  <span
+                    className="text-xs text-yellow-500 ml-1"
+                    style={{ animation: "pulse 1.5s infinite" }}
+                  >
+                    ·
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
-        )}
+          <svg
+            className="w-4 h-4 ml-1"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            fill="none"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M19 9l-7 7-7-7"
+            />
+          </svg>
+        </div>
 
-        {/* Actual token image */}
-        {actualImageUrl && !imageError && (
-          <img
-            src={actualImageUrl}
-            alt={`${token.symbol} logo`}
-            className={`w-8 h-8 object-cover rounded-full ${imageLoaded ? "opacity-100" : "opacity-0"} transition-opacity duration-200`}
-            onLoad={() => setImageLoaded(true)}
-            onError={handleImageError}
-            loading="lazy"
-          />
+        {/* Dropdown list with thumbnails */}
+        {isOpen && (
+          <div
+            className="absolute z-20 mt-1 w-[calc(100vw-40px)] sm:w-64 max-h-[60vh] sm:max-h-96 overflow-y-auto bg-white border border-yellow-200 shadow-lg rounded-md"
+            style={{ contain: "content" }}
+          >
+            {/* Search input */}
+            <div className="sticky top-0 bg-white p-2 border-b border-yellow-100">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search by symbol or ID..."
+                  onChange={(e) => {
+                    // Use optimized search with debouncing for better performance
+                    const query = e.target.value.toLowerCase();
+
+                    // Check for special searches (USDT, Tether, Stable)
+                    const isStableSearch =
+                      query === "usdt" ||
+                      query === "tether" ||
+                      query.includes("stable") ||
+                      query.includes("usd");
+
+                    // Debounce the search with requestAnimationFrame for better performance
+                    const w = window as any; // Type assertion for the debounce property
+                    if (w.searchDebounce) {
+                      cancelAnimationFrame(w.searchDebounce);
+                    }
+
+                    w.searchDebounce = requestAnimationFrame(() => {
+                      // Get all token items by data attribute - limit to visible ones first for better performance
+                      const visibleItems = document.querySelectorAll(
+                        "[data-token-symbol]:not(.hidden)",
+                      );
+                      const allItems = document.querySelectorAll(
+                        "[data-token-symbol]",
+                      );
+
+                      // Special case: If searching for stablecoins, make sure USDT is visible
+                      if (isStableSearch) {
+                        const usdtItem = document.querySelector(
+                          "[data-token-symbol='USDT']",
+                        );
+                        if (usdtItem) {
+                          usdtItem.classList.remove("hidden");
+                        }
+                      }
+
+                      // Only query all items if no visible items match
+                      const itemsToSearch =
+                        query.length === 0 || visibleItems.length === 0
+                          ? allItems
+                          : visibleItems;
+                      const itemsArray = Array.from(itemsToSearch);
+
+                      // Search through items with optimized approach
+                      for (let i = 0; i < itemsArray.length; i++) {
+                        const item = itemsArray[i];
+                        const symbol =
+                          item
+                            .getAttribute("data-token-symbol")
+                            ?.toLowerCase() || "";
+                        const name =
+                          item.getAttribute("data-token-name")?.toLowerCase() ||
+                          "";
+                        const id = item.getAttribute("data-token-id") || "";
+
+                        if (
+                          symbol.includes(query) ||
+                          name.includes(query) ||
+                          id.toLowerCase().includes(query)
+                        ) {
+                          item.classList.remove("hidden");
+                        } else {
+                          item.classList.add("hidden");
+                        }
+                      }
+                    });
+                  }}
+                  className="w-full p-2 pl-8 border border-yellow-200 rounded focus:outline-none focus:ring-2 focus:ring-yellow-300 text-sm"
+                />
+                <svg
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              </div>
+            </div>
+
+            {/* Token list */}
+            <div>
+              {tokens.map((token) => {
+                const isSelected =
+                  (token.id === null && selectedValue === "eth") ||
+                  (token.id !== null && token.id.toString() === selectedValue);
+
+                const balance = formatTokenBalance(token);
+
+                return (
+                  <div
+                    key={token.id?.toString() ?? "eth"}
+                    onClick={() => handleSelect(token)}
+                    data-token-symbol={token.symbol}
+                    data-token-name={token.name}
+                    data-token-id={token.id?.toString() ?? "eth"}
+                    className={`flex items-center justify-between p-3 sm:p-2 hover:bg-yellow-50 cursor-pointer touch-manipulation ${
+                      isSelected ? "bg-yellow-100" : ""
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <TokenImage token={token} />
+                      <div className="flex flex-col">
+                        <span className="font-medium">
+                          {safeStr(token.symbol)}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {safeStr(token.name)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right min-w-[60px]">
+                      <div className="text-sm font-medium h-[18px]">
+                        {safeStr(balance)}
+                        {token.id === null && isEthBalanceFetching && (
+                          <span
+                            className="text-xs text-yellow-500 ml-1"
+                            style={{ animation: "pulse 1.5s infinite" }}
+                          >
+                            ·
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         )}
       </div>
     );
-  }, (prevProps, nextProps) => {
-    // Only re-render if token ID or URI changes
-    return prevProps.token.id === nextProps.token.id &&
-           prevProps.token.tokenUri === nextProps.token.tokenUri;
-  });
-
-  return (
-    <div className="relative">
-      {/* Selected token display with thumbnail */}
-      <div
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 cursor-pointer bg-transparent border border-yellow-200 rounded-md px-2 py-1 hover:bg-yellow-50 touch-manipulation"
-      >
-        <TokenImage token={selectedToken} />
-        <div className="flex flex-col">
-          <div className="flex items-center gap-1">
-            <span className="font-medium">{selectedToken.symbol}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="text-xs font-medium text-gray-700 min-w-[50px] h-[14px]">
-              {formatTokenBalance(selectedToken)}
-              {selectedToken.id === null && isEthBalanceFetching && (
-                <span className="text-xs text-yellow-500 ml-1" style={{ animation: "pulse 1.5s infinite" }}>
-                  ·
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-        <svg className="w-4 h-4 ml-1" viewBox="0 0 24 24" stroke="currentColor" fill="none">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-        </svg>
-      </div>
-
-      {/* Dropdown list with thumbnails */}
-      {isOpen && (
-        <div
-          className="absolute z-20 mt-1 w-[calc(100vw-40px)] sm:w-64 max-h-[60vh] sm:max-h-96 overflow-y-auto bg-white border border-yellow-200 shadow-lg rounded-md"
-          style={{ contain: "content" }}
-        >
-          {/* Search input */}
-          <div className="sticky top-0 bg-white p-2 border-b border-yellow-100">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search by symbol or ID..."
-                onChange={(e) => {
-                  // Use optimized search with debouncing for better performance
-                  const query = e.target.value.toLowerCase();
-
-                  // Check for special searches (USDT, Tether, Stable)
-                  const isStableSearch =
-                    query === "usdt" ||
-                    query === "tether" ||
-                    query.includes("stable") ||
-                    query.includes("usd");
-
-                  // Debounce the search with requestAnimationFrame for better performance
-                  const w = window as any; // Type assertion for the debounce property
-                  if (w.searchDebounce) {
-                    cancelAnimationFrame(w.searchDebounce);
-                  }
-
-                  w.searchDebounce = requestAnimationFrame(() => {
-                    // Get all token items by data attribute - limit to visible ones first for better performance
-                    const visibleItems = document.querySelectorAll("[data-token-symbol]:not(.hidden)");
-                    const allItems = document.querySelectorAll("[data-token-symbol]");
-
-                    // Special case: If searching for stablecoins, make sure USDT is visible
-                    if (isStableSearch) {
-                      const usdtItem = document.querySelector("[data-token-symbol='USDT']");
-                      if (usdtItem) {
-                        usdtItem.classList.remove("hidden");
-                      }
-                    }
-
-                    // Only query all items if no visible items match
-                    const itemsToSearch = query.length === 0 || visibleItems.length === 0 ? allItems : visibleItems;
-                    const itemsArray = Array.from(itemsToSearch);
-
-                    // Search through items with optimized approach
-                    for (let i = 0; i < itemsArray.length; i++) {
-                      const item = itemsArray[i];
-                      const symbol = item.getAttribute("data-token-symbol")?.toLowerCase() || "";
-                      const name = item.getAttribute("data-token-name")?.toLowerCase() || "";
-                      const id = item.getAttribute("data-token-id") || "";
-
-                      if (symbol.includes(query) || name.includes(query) || id.toLowerCase().includes(query)) {
-                        item.classList.remove("hidden");
-                      } else {
-                        item.classList.add("hidden");
-                      }
-                    }
-                  });
-                }}
-                className="w-full p-2 pl-8 border border-yellow-200 rounded focus:outline-none focus:ring-2 focus:ring-yellow-300 text-sm"
-              />
-              <svg
-                className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-            </div>
-          </div>
-
-          {/* Token list */}
-          <div>
-            {tokens.map((token) => {
-              const isSelected =
-                (token.id === null && selectedValue === "eth") ||
-                (token.id !== null && token.id.toString() === selectedValue);
-
-              const balance = formatTokenBalance(token);
-
-              return (
-                <div
-                  key={token.id?.toString() ?? "eth"}
-                  onClick={() => handleSelect(token)}
-                  data-token-symbol={token.symbol}
-                  data-token-name={token.name}
-                  data-token-id={token.id?.toString() ?? "eth"}
-                  className={`flex items-center justify-between p-3 sm:p-2 hover:bg-yellow-50 cursor-pointer touch-manipulation ${
-                    isSelected ? "bg-yellow-100" : ""
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <TokenImage token={token} />
-                    <div className="flex flex-col">
-                      <span className="font-medium">{safeStr(token.symbol)}</span>
-                      <span className="text-xs text-gray-500">{safeStr(token.name)}</span>
-                    </div>
-                  </div>
-                  <div className="text-right min-w-[60px]">
-                    <div className="text-sm font-medium h-[18px]">
-                      {safeStr(balance)}
-                      {token.id === null && isEthBalanceFetching && (
-                        <span className="text-xs text-yellow-500 ml-1" style={{ animation: "pulse 1.5s infinite" }}>
-                          ·
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}, (prevProps, nextProps) => {
-  // Custom comparison to prevent unnecessary re-renders
-  return (
-    prevProps.selectedToken.id === nextProps.selectedToken.id &&
-    prevProps.tokens.length === nextProps.tokens.length &&
-    prevProps.isEthBalanceFetching === nextProps.isEthBalanceFetching
-  );
-});
+  },
+  (prevProps, nextProps) => {
+    // Custom comparison to prevent unnecessary re-renders
+    return (
+      prevProps.selectedToken.id === nextProps.selectedToken.id &&
+      prevProps.tokens.length === nextProps.tokens.length &&
+      prevProps.isEthBalanceFetching === nextProps.isEthBalanceFetching
+    );
+  },
+);
 
 // Main SendTile component - Memoized for better performance
 const SendTileComponent = () => {
-  const { tokens, error: loadError, isEthBalanceFetching, refetchEthBalance } = useAllTokens();
+  const {
+    tokens,
+    error: loadError,
+    isEthBalanceFetching,
+    refetchEthBalance,
+  } = useAllTokens();
   const [selectedToken, setSelectedToken] = useState<TokenMeta>(ETH_TOKEN);
   const [recipientAddress, setRecipientAddress] = useState("");
   const [amount, setAmount] = useState("");
@@ -929,49 +1063,62 @@ const SendTileComponent = () => {
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient({ chainId: mainnet.id });
   const { writeContractAsync, isPending } = useWriteContract();
+  const { sendTransactionAsync } = useSendTransaction();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
   // Update selected token when tokens load, with improved error handling
   useEffect(() => {
     if (tokens.length > 0) {
       // Find ETH token in the loaded tokens
-      const ethToken = tokens.find(token => token.id === null);
+      const ethToken = tokens.find((token) => token.id === null);
       if (ethToken) {
         setSelectedToken(ethToken);
-        console.log("Selected ETH token with balance:", ethToken.balance?.toString() || "0");
+        console.log(
+          "Selected ETH token with balance:",
+          ethToken.balance?.toString() || "0",
+        );
       }
-      
+
       // Log all available tokens for debugging
-      console.log("Available tokens:", tokens.map(t => ({
-        symbol: t.symbol, 
-        id: t.id?.toString() || "ETH",
-        balance: t.balance?.toString() || "0"
-      })));
+      console.log(
+        "Available tokens:",
+        tokens.map((t) => ({
+          symbol: t.symbol,
+          id: t.id?.toString() || "ETH",
+          balance: t.balance?.toString() || "0",
+        })),
+      );
     }
   }, [tokens]);
 
   // Handle token selection
-  const handleTokenSelect = useCallback((token: TokenMeta) => {
-    // Clear any errors when changing tokens
-    if (txError) setTxError(null);
-    // Reset input values
-    setAmount("");
-    // Set the new token
-    setSelectedToken(token);
-  }, [txError]);
+  const handleTokenSelect = useCallback(
+    (token: TokenMeta) => {
+      // Clear any errors when changing tokens
+      if (txError) setTxError(null);
+      // Reset input values
+      setAmount("");
+      // Set the new token
+      setSelectedToken(token);
+    },
+    [txError],
+  );
 
   // Handle amount input change
   const handleAmountChange = (value: string) => {
     // Accept only numbers, one decimal point, and no more than 18 decimal places
     if (value === "" || /^(?:\d+(?:\.\d{0,18})?|\.\d{0,18})$/.test(value)) {
       setAmount(value);
-      
+
       try {
         // Parse the amount based on token type
         if (selectedToken.id === null) {
           // ETH: 18 decimals
           setParsedAmount(value ? parseEther(value) : 0n);
-        } else if (selectedToken.isCustomPool && selectedToken.symbol === "USDT") {
+        } else if (
+          selectedToken.isCustomPool &&
+          selectedToken.symbol === "USDT"
+        ) {
           // USDT: 6 decimals
           setParsedAmount(value ? parseUnits(value, 6) : 0n);
         } else {
@@ -992,7 +1139,9 @@ const SendTileComponent = () => {
       return;
     }
 
-    console.log(`MAX clicked for ${selectedToken.symbol} with balance ${selectedToken.balance.toString()}`);
+    console.log(
+      `MAX clicked for ${selectedToken.symbol} with balance ${selectedToken.balance.toString()}`,
+    );
 
     let maxValue: string;
     let maxParsedAmount: bigint;
@@ -1007,7 +1156,7 @@ const SendTileComponent = () => {
       // Parse to number and format to avoid excessive decimals
       const parsedValue = parseFloat(formattedValue).toFixed(6);
       // Remove trailing zeros for cleaner display
-      maxValue = parsedValue.replace(/\.?0+$/, '');
+      maxValue = parsedValue.replace(/\.?0+$/, "");
       maxParsedAmount = ethAmount;
 
       console.log(`ETH MAX: ${maxValue} (${maxParsedAmount.toString()})`);
@@ -1015,7 +1164,7 @@ const SendTileComponent = () => {
       // USDT: 6 decimals
       const formattedValue = formatUnits(selectedToken.balance, 6);
       const parsedValue = parseFloat(formattedValue).toFixed(2);
-      maxValue = parsedValue.replace(/\.?0+$/, ''); // Remove trailing zeros
+      maxValue = parsedValue.replace(/\.?0+$/, ""); // Remove trailing zeros
       maxParsedAmount = selectedToken.balance;
 
       console.log(`USDT MAX: ${maxValue} (${maxParsedAmount.toString()})`);
@@ -1023,7 +1172,7 @@ const SendTileComponent = () => {
       // Regular ERC6909 tokens: 18 decimals
       const formattedValue = formatEther(selectedToken.balance);
       const parsedValue = parseFloat(formattedValue).toFixed(4);
-      maxValue = parsedValue.replace(/\.?0+$/, ''); // Remove trailing zeros
+      maxValue = parsedValue.replace(/\.?0+$/, ""); // Remove trailing zeros
       maxParsedAmount = selectedToken.balance;
 
       console.log(`Token MAX: ${maxValue} (${maxParsedAmount.toString()})`);
@@ -1037,73 +1186,83 @@ const SendTileComponent = () => {
   // Check if send is allowed
   const canSend = useMemo(() => {
     // Must have a valid recipient address
-    if (!recipientAddress || !recipientAddress.startsWith("0x") || recipientAddress.length !== 42) {
+    if (
+      !recipientAddress ||
+      !recipientAddress.startsWith("0x") ||
+      recipientAddress.length !== 42
+    ) {
       return false;
     }
-    
+
     // Amount must be greater than 0 and not exceed balance
-    if (!parsedAmount || parsedAmount <= 0n || !selectedToken.balance || parsedAmount > selectedToken.balance) {
+    if (
+      !parsedAmount ||
+      parsedAmount <= 0n ||
+      !selectedToken.balance ||
+      parsedAmount > selectedToken.balance
+    ) {
       return false;
     }
-    
+
     return true;
   }, [recipientAddress, parsedAmount, selectedToken.balance]);
 
   // Send transaction handler
   const handleSend = async () => {
     if (!address || !isConnected || !publicClient || !canSend) return;
-    
+
     // Clear previous tx state
     setTxHash(undefined);
     setTxError(null);
-    
+
     try {
       // Different logic based on token type
       if (selectedToken.id === null) {
         // Send ETH directly
-        console.log("Sending ETH:", formatEther(parsedAmount), "to", recipientAddress);
+        console.log(
+          "Sending ETH:",
+          formatEther(parsedAmount),
+          "to",
+          recipientAddress,
+        );
 
         // For ETH transfers, use the correct sendTransaction approach
-        const hash = await writeContractAsync({
-          to: recipientAddress as `0x${string}`,
-          data: '0x', // Empty data for simple ETH transfer
+        const hash = await sendTransactionAsync({
+          to: recipientAddress as Address,
           value: parsedAmount, // Amount to send
-          // For native ETH transfers, we need an ABI to avoid the TypeError
-          abi: [
-            {
-              type: 'function',
-              name: 'transfer',
-              inputs: [],
-              outputs: [],
-              stateMutability: 'payable'
-            }
-          ],
-          functionName: 'transfer'
         });
 
         setTxHash(hash);
-      } else if (selectedToken.isCustomPool && selectedToken.symbol === "USDT") {
+      } else if (
+        selectedToken.isCustomPool &&
+        selectedToken.symbol === "USDT"
+      ) {
         // Send USDT (ERC20) - simplified approach
-        console.log("Sending USDT:", formatUnits(parsedAmount, 6), "to", recipientAddress);
-        
+        console.log(
+          "Sending USDT:",
+          formatUnits(parsedAmount, 6),
+          "to",
+          recipientAddress,
+        );
+
         // Define USDT standard ERC20 transfer ABI
         const erc20Abi = [
           {
             inputs: [
               { internalType: "address", name: "to", type: "address" },
-              { internalType: "uint256", name: "value", type: "uint256" }
+              { internalType: "uint256", name: "value", type: "uint256" },
             ],
             name: "transfer",
             outputs: [{ internalType: "bool", name: "", type: "bool" }],
             stateMutability: "nonpayable",
-            type: "function"
-          }
+            type: "function",
+          },
         ];
 
         // ERC20 transfer with detailed logging
         console.log("USDT contract address:", USDT_ADDRESS);
         console.log("USDT amount in raw units:", parsedAmount.toString());
-        
+
         const hash = await writeContractAsync({
           account: address,
           chainId: mainnet.id, // Explicitly set chainId
@@ -1112,32 +1271,40 @@ const SendTileComponent = () => {
           functionName: "transfer",
           args: [recipientAddress as `0x${string}`, parsedAmount],
         });
-        
+
         setTxHash(hash);
       } else {
         // Send ERC6909 token (Coin)
-        console.log(`Sending ${selectedToken.symbol} (ID: ${selectedToken.id}):`, 
-                   formatEther(parsedAmount), "to", recipientAddress);
-        
+        console.log(
+          `Sending ${selectedToken.symbol} (ID: ${selectedToken.id}):`,
+          formatEther(parsedAmount),
+          "to",
+          recipientAddress,
+        );
+
         // ERC6909 transfer with detailed logging
         console.log("Coins contract address:", CoinsAddress);
         console.log("Token ID:", selectedToken.id?.toString());
         console.log("Amount in raw units:", parsedAmount.toString());
-        
+
         const hash = await writeContractAsync({
           account: address,
           chainId: mainnet.id, // Explicitly set chainId
           address: CoinsAddress,
           abi: CoinsAbi,
           functionName: "transfer",
-          args: [recipientAddress as `0x${string}`, selectedToken.id!, parsedAmount],
+          args: [
+            recipientAddress as `0x${string}`,
+            selectedToken.id!,
+            parsedAmount,
+          ],
         });
-        
+
         setTxHash(hash);
       }
     } catch (error) {
       console.error("Send transaction error:", error);
-      
+
       // Handle user rejection gracefully
       if (isUserRejectionError(error)) {
         setTxError("Transaction rejected by user");
@@ -1155,13 +1322,13 @@ const SendTileComponent = () => {
       // Reset UI state
       setAmount("");
       setParsedAmount(0n);
-      
+
       // Display success message
       console.log("Transaction successful: " + txHash);
-      
+
       // Refresh ETH balance
       refetchEthBalance();
-      
+
       // Refresh token balances after a slight delay
       setTimeout(() => {
         refetchEthBalance();
@@ -1171,16 +1338,17 @@ const SendTileComponent = () => {
 
   // Safe string renderer helper to prevent rendering non-string types directly
   const safeStr = (val: any): string => {
-    if (val === undefined || val === null) return '';
-    if (typeof val === 'string') return val;
-    if (typeof val === 'number') return String(val);
-    if (typeof val === 'bigint') return String(val);
-    return '';
+    if (val === undefined || val === null) return "";
+    if (typeof val === "string") return val;
+    if (typeof val === "number") return String(val);
+    if (typeof val === "bigint") return String(val);
+    return "";
   };
 
   // Calculate percent of balance
   const percentOfBalance = useMemo((): number => {
-    if (!selectedToken.balance || selectedToken.balance === 0n || !parsedAmount) return 0;
+    if (!selectedToken.balance || selectedToken.balance === 0n || !parsedAmount)
+      return 0;
 
     // Convert to number explicitly
     const percent = Number((parsedAmount * 100n) / selectedToken.balance);
@@ -1189,44 +1357,59 @@ const SendTileComponent = () => {
 
   return (
     <Card className="border-yellow-200 shadow-md mb-4">
-      <CardContent className="pt-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold text-center">Send Coins</h2>
-        </div>
-        
-        {/* Token selector */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Asset to Send</label>
-          <TokenSelector
-            selectedToken={selectedToken}
-            tokens={tokens.length > 0 ? tokens : [ETH_TOKEN]} // Ensure we always have at least ETH
-            onSelect={handleTokenSelect}
-            isEthBalanceFetching={isEthBalanceFetching}
-          />
-        </div>
-        
+      <CardHeader>
+        <CardTitle>Send Coins</CardTitle>
+      </CardHeader>
+      <CardContent>
         {/* Recipient address input */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Recipient Address</label>
-          <input
-            type="text"
-            value={recipientAddress}
-            onChange={(e) => setRecipientAddress(e.target.value)}
-            placeholder="0x..."
-            className="w-full p-2 border border-yellow-200 rounded focus:outline-none focus:ring-2 focus:ring-yellow-300"
-          />
-          {recipientAddress && (!recipientAddress.startsWith("0x") || recipientAddress.length !== 42) && (
-            <p className="mt-1 text-sm text-red-500">Please enter a valid Ethereum address</p>
-          )}
+        <div className="grid grid-cols-5 gap-4 w-full mb-4">
+          <div className="col-span-3">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Recipient Address
+            </label>
+            <div className="h-12">
+              {" "}
+              {/* Set fixed height to match TokenSelector */}
+              <input
+                type="text"
+                value={recipientAddress}
+                onChange={(e) => setRecipientAddress(e.target.value)}
+                placeholder="0x..."
+                className="w-full p-2 border-2 border-yellow-300 rounded focus-within:ring-2 hover:bg-yellow-50 focus-within:ring-primary focus-within:outline-none h-full"
+              />
+            </div>
+            {recipientAddress &&
+              (!recipientAddress.startsWith("0x") ||
+                recipientAddress.length !== 42) && (
+                <p className="mt-1 text-sm text-red-500">
+                  Please enter a valid Ethereum address
+                </p>
+              )}
+          </div>
+          {/* Token selector */}
+          <div className="col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Asset to Send
+            </label>
+            <TokenSelector
+              selectedToken={selectedToken}
+              tokens={tokens.length > 0 ? tokens : [ETH_TOKEN]} // Ensure we always have at least ETH
+              onSelect={handleTokenSelect}
+              isEthBalanceFetching={isEthBalanceFetching}
+              className="h-12"
+            />
+          </div>
         </div>
-        
+
         {/* Amount input */}
         <div className="mb-4">
           <div className="flex justify-between items-center mb-1">
-            <label className="block text-sm font-medium text-gray-700">Amount</label>
+            <label className="block text-sm font-medium text-gray-700">
+              Amount
+            </label>
             <button
               onClick={handleMaxClick}
-              className="text-xs text-yellow-600 hover:text-yellow-800"
+              className="text-xs text-yellow-600 hover:text-yellow-800 "
               disabled={!selectedToken.balance || selectedToken.balance === 0n}
             >
               MAX
@@ -1238,15 +1421,14 @@ const SendTileComponent = () => {
               value={amount}
               onChange={(e) => handleAmountChange(e.target.value)}
               placeholder="0.0"
-              className="w-full p-2 border border-yellow-200 rounded focus:outline-none focus:ring-2 focus:ring-yellow-300"
+              className="w-full h-12 p-2 border-2 border-yellow-300 rounded focus-within:ring-2 hover:bg-yellow-50 focus-within:ring-primary focus-within:outline-none"
             />
             <div className="absolute right-2 top-1/2 -translate-y-1/2 font-medium text-sm text-gray-500">
               {safeStr(selectedToken.symbol)}
             </div>
           </div>
-          
-          {/* Amount info */}
-          {amount && selectedToken.balance && (
+
+          {amount && typeof selectedToken.balance === "bigint" && (
             <div className="mt-1 text-xs text-gray-500 flex justify-between">
               <span>
                 {percentOfBalance > 100 ? (
@@ -1256,12 +1438,15 @@ const SendTileComponent = () => {
                 )}
               </span>
               <span>
-                Balance: {formatTokenBalance(selectedToken)} {safeStr(selectedToken.symbol)}
+                Balance: {formatTokenBalance(selectedToken)}{" "}
+                {selectedToken.symbol !== undefined
+                  ? safeStr(selectedToken.symbol)
+                  : ""}
               </span>
             </div>
           )}
         </div>
-        
+
         {/* Send button */}
         <Button
           onClick={handleSend}
@@ -1274,10 +1459,10 @@ const SendTileComponent = () => {
               <span>Sending...</span>
             </div>
           ) : (
-            "Send"
+            "Send 🪁"
           )}
         </Button>
-        
+
         {/* Transaction status */}
         {txHash && (
           <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded">
@@ -1294,14 +1479,14 @@ const SendTileComponent = () => {
             </p>
           </div>
         )}
-        
+
         {/* Error message */}
         {txError && (
           <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded">
             <p className="text-sm text-red-800">{txError}</p>
           </div>
         )}
-        
+
         {/* Loading error */}
         {loadError && (
           <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded">

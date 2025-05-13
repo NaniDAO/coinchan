@@ -8,7 +8,7 @@ import { SearchIcon } from "lucide-react";
 // Page size for pagination
 const PAGE_SIZE = 20;
 
-export const Coins = ({ onSend }: { onSend?: () => void }) => {
+export const Coins = () => {
   /* ------------------------------------------------------------------
    *  Local state
    * ------------------------------------------------------------------ */

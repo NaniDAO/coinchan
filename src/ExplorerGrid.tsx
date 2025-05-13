@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { CoinCard } from "./components/CoinCard";
 import { type CoinData } from "./hooks/metadata";
 import { useEffect, useState } from "react";
@@ -187,12 +188,12 @@ export const ExplorerGrid = ({
 
       {/* Send button at the bottom of Explorer Grid */}
       <div className="mt-6 flex justify-center">
-        <button
-          onClick={onSend}
+        <Link
+          to="/send"
           className="px-6 py-3 bg-yellow-500 hover:bg-yellow-600 text-white font-bold rounded-md shadow-md transition-colors duration-200"
         >
           Send Coins
-        </button>
+        </Link>
       </div>
     </div>
   );
