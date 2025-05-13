@@ -29,6 +29,13 @@ export const Route = createRootRoute({
           </Link>
           <span className="">/</span>
           <Link
+            to="/send"
+            className="[&.active]:font-bold uppercase hover:text-blue-500 transition-colors"
+          >
+            🪁 Send
+          </Link>
+          <span className="">/</span>
+          <Link
             to="/create"
             className="[&.active]:font-bold uppercase hover:text-blue-500 transition-colors"
           >
