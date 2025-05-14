@@ -34,7 +34,7 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker }) => {
     activeButton: "all", // Default active button
   });
 
-  const { data, isLoading, error, refetch } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: [
       "poolPricePoints",
       poolId,
