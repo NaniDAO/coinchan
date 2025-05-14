@@ -122,7 +122,6 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
     },
     [coin.coinId],
   );
-  console.log("coin:", coin);
   return (
     <Card className="flex border-2 border-red-900 rounded-md bg-yellow-50 w-full flex-col items-right p-1 gap-2 shadow">
       <CardContent className="flex flex-col items-center justify-center p-2 space-y-2">
