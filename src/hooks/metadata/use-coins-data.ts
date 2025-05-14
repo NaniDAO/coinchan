@@ -51,14 +51,17 @@ export function useCoinsData() {
     queryFn: async () => {
       try {
         // 1) Hit the indexer directly with fetch
-        const resp = await fetch(import.meta.env.VITE_INDEXER_URL!, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            query: ALL_POOLS_QUERY,
-            variables: { limit: 1000 },
-          }),
-        });
+        const resp = await fetch(
+          import.meta.env.VITE_INDEXER_URL! + "/graphql",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              query: ALL_POOLS_QUERY,
+              variables: { limit: 1000 },
+            }),
+          },
+        );
 
         const { data, errors } = await resp.json();
         if (errors && errors.length) {

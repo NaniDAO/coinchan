@@ -13,6 +13,7 @@ import { useCoinData } from "./hooks/metadata";
 import { computePoolId } from "./lib/swapHelper";
 import PoolPriceChart from "./PoolPriceChart";
 import { Link } from "@tanstack/react-router";
+import { PoolEvents } from "./components/PoolEvents";
 
 // Simple error boundary to prevent crashes
 class ErrorBoundary extends Component<
@@ -131,7 +132,7 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
   }, [publicClient, tokenId, address, isSuccess]);
 
   return (
-    <div className="w-full max-w-lg mx-auto flex flex-col gap-4 px-2 py-4 sm:p-6">
+    <div className="w-full max-w-screen mx-auto flex flex-col gap-4 px-2 py-4 sm:p-6">
       <Link
         to="/explore"
         className="text-sm self-start underline py-2 px-1 touch-manipulation"
@@ -183,6 +184,16 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
           fallback={<p className="text-red-500">Pool chart unavailable</p>}
         >
           <PoolPriceChart
+            poolId={computePoolId(tokenId).toString()}
+            ticker={symbol}
+          />
+        </ErrorBoundary>
+      </div>
+      <div className="mt-4 sm:mt-6">
+        <ErrorBoundary
+          fallback={<p className="text-red-500">Pool Events unavailable</p>}
+        >
+          <PoolEvents
             poolId={computePoolId(tokenId).toString()}
             ticker={symbol}
           />

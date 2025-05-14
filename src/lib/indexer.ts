@@ -1,6 +1,6 @@
-import { formatUnits } from "viem"; // lightweight, already in your stack
+import { formatUnits } from "viem";
 
-export const INDEXER_URL = import.meta.env.VITE_INDEXER_URL;
+export const INDEXER_URL = import.meta.env.VITE_INDEXER_URL + "/graphql";
 
 export interface CandleData {
   /** Timestamp in milliseconds */
@@ -29,7 +29,10 @@ export const toEthPerZamm = (raw: string) => {
  * @param interval - one of '1m', '1h', or '1d'
  * @returns array of CandleData sorted by bucketStart ascending
  */
-export async function fetchPoolCandles(poolId: string, interval: "1m" | "1h" | "1d"): Promise<CandleData[]> {
+export async function fetchPoolCandles(
+  poolId: string,
+  interval: "1m" | "1h" | "1d",
+): Promise<CandleData[]> {
   const query = `
     query PoolCandles($poolId: BigInt!, $interval: String!) {
       candles(
@@ -83,7 +86,9 @@ export async function fetchPoolCandles(poolId: string, interval: "1m" | "1h" | "
  * @param poolId - the pool identifier (as a string representing BigInt)
  * @returns array of PricePointData sorted by timestamp descending, with duplicate timestamps removed
  */
-export async function fetchPoolPricePoints(poolId: string): Promise<PricePointData[]> {
+export async function fetchPoolPricePoints(
+  poolId: string,
+): Promise<PricePointData[]> {
   const query = `
     query PoolPricePoints($poolId: BigInt!) {
       pricePoints(
