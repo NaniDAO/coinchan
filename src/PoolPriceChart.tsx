@@ -27,7 +27,11 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker }) => {
     queryFn: () => fetchPoolPricePoints(poolId),
   });
 
-  if (error) console.error(error);
+  if (error) {
+    throw new Error(
+      "Failed to fetch pool price points - " + (error as Error).message,
+    );
+  }
 
   return (
     <div className="w-full">
@@ -38,7 +42,9 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker }) => {
       ) : data && data.length > 0 ? (
         <TVPriceChart priceData={data} ticker={ticker} />
       ) : (
-        <div className="text-center py-20 text-gray-500">No price data available.</div>
+        <div className="text-center py-20 text-gray-500">
+          No price data available.
+        </div>
       )}
     </div>
   );
@@ -49,24 +55,27 @@ const TVPriceChart: React.FC<{
   ticker: string;
 }> = ({ priceData, ticker }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<any>();
-  const priceSeriesRef = useRef<any>();
+  const chartRef = useRef<ReturnType<typeof createChart>>();
+  const priceSeriesRef =
+    useRef<ReturnType<typeof chartRef.current.addSeries>>();
 
   useLayoutEffect(() => {
-    if (!containerRef.current) return;
+    const container = containerRef.current;
+    if (!container) return;
 
-    const chart = createChart(containerRef.current, {
+    // Create chart
+    const chart = createChart(container, {
       layout: {
         background: { type: ColorType.Solid, color: "#ffffff" },
         textColor: "#333",
         attributionLogo: false,
       },
-      width: containerRef.current.clientWidth,
+      width: container.clientWidth,
       height: 400,
       rightPriceScale: {
         autoScale: true,
         scaleMargins: { top: 0.1, bottom: 0.2 },
-        mode: 1, // Price scale mode with logarithmic
+        mode: 1,
       },
       timeScale: { timeVisible: true },
     });
@@ -77,18 +86,23 @@ const TVPriceChart: React.FC<{
       lineWidth: 2,
       title: `ETH / ${ticker}`,
       priceFormat: {
-        type: "price", // use the regular price formatter
-        precision: 8, // force 6 decimal places
-        minMove: 0.000001, // smallest tick size
+        type: "price",
+        precision: 8,
+        minMove: 0.000001,
       } as PriceFormatBuiltIn,
     } as LineSeriesOptions);
 
-    const handleResize = () => {
-      chart.applyOptions({ width: containerRef.current!.clientWidth });
-    };
-    window.addEventListener("resize", handleResize);
+    // ResizeObserver for dynamic container resizing
+    const ro = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        const { width } = entry.contentRect;
+        chart.applyOptions({ width });
+      }
+    });
+    ro.observe(container);
+
     return () => {
-      window.removeEventListener("resize", handleResize);
+      ro.disconnect();
       chart.remove();
     };
   }, [ticker]);
@@ -96,19 +110,28 @@ const TVPriceChart: React.FC<{
   useEffect(() => {
     if (!priceSeriesRef.current || priceData.length === 0) return;
 
+    // Sort ascending by raw timestamp
     const sorted = [...priceData].sort((a, b) => a.timestamp - b.timestamp);
 
-    priceSeriesRef.current.setData(
-      sorted.map((d) => ({
-        time: Math.floor(d.timestamp) as UTCTimestamp,
-        value: d.price1,
-      })),
-    );
+    // Map to fractional-second UTCTimestamp to avoid duplicates
+    const points = sorted.map((d) => ({
+      time: (d.timestamp / 1000) as UTCTimestamp,
+      value: d.price1,
+    }));
 
-    chartRef.current.timeScale().fitContent();
+    // Push data
+    priceSeriesRef.current.setData(points);
+
+    // Fit content to series
+    chartRef.current?.timeScale().fitContent();
   }, [priceData]);
 
-  return <div ref={containerRef} style={{ width: "100%", height: "400px", position: "relative" }} />;
+  return (
+    <div
+      ref={containerRef}
+      style={{ width: "98vw", height: "400px", position: "relative" }}
+    />
+  );
 };
 
 export default PoolPriceChart;
