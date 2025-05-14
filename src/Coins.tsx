@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { ExplorerGrid } from "./ExplorerGrid";
 import { CoinData, usePagedCoins } from "./hooks/metadata";
 import { debounce } from "./utils";
@@ -12,8 +12,6 @@ export const Coins = () => {
    *  Local state
    * ------------------------------------------------------------------ */
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<CoinData[]>([]);
-  const [isSearchActive, setIsSearchActive] = useState(false);
 
   /* ------------------------------------------------------------------
    *  Paged & global coin data
@@ -34,22 +32,22 @@ export const Coins = () => {
   /* ------------------------------------------------------------------
    *  Search handling
    * ------------------------------------------------------------------ */
-  useEffect(() => {
-    const trimmed = searchQuery.trim().toLowerCase();
+  // 1) memoize the trimmed query
+  const trimmedQuery = useMemo(
+    () => searchQuery.trim().toLowerCase(),
+    [searchQuery],
+  );
 
-    if (!trimmed) {
-      setSearchResults([]);
-      setIsSearchActive(false);
-      return;
-    }
+  // 2) derive `searchResults` (and "active" flag) purely from inputs
+  const searchResults = useMemo(() => {
+    if (!trimmedQuery) return [];
 
-    setIsSearchActive(true);
+    // Use the full dataset when it's loaded, fall back to paged data while waiting
+    const dataToSearch = allCoins && allCoins.length > 0 ? allCoins : coins;
 
-    // Use the full dataset when it’s loaded, fall back to paged data while waiting
-    const dataToSearch = allCoins && allCoins.length > 0 ? allCoins : allCoins;
-    const results = dataToSearch.filter((coin) => {
+    return dataToSearch.filter((coin) => {
       // Split the search query into words for multi-term searching
-      const searchTerms = trimmed
+      const searchTerms = trimmedQuery
         .split(/\s+/)
         .filter((term) => term.length > 0);
 
@@ -77,19 +75,12 @@ export const Coins = () => {
         );
       });
     });
+  }, [trimmedQuery, allCoins, coins]);
 
-    console.log("search", {
-      allCoins,
-      results,
-    });
-
-    setSearchResults(results);
-  }, [searchQuery, coins, coins]);
+  const isSearchActive = Boolean(trimmedQuery);
 
   const resetSearch = useCallback(() => {
     setSearchQuery("");
-    setSearchResults([]);
-    setIsSearchActive(false);
   }, []);
 
   /* ------------------------------------------------------------------

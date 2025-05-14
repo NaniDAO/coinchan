@@ -242,6 +242,12 @@ export async function enrichMetadata(coin: CoinData): Promise<CoinData> {
     const uri = coin.tokenURI.startsWith("ipfs://")
       ? `https://content.wrappr.wtf/ipfs/${coin.tokenURI.slice(7)}`
       : coin.tokenURI;
+
+    if (uri.includes("coinit.app")) {
+      // @TODO for now disabling because requests to coinit throw CORS error
+      return coin;
+    }
+
     const resp = await fetch(uri, { signal: AbortSignal.timeout(5000) });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const meta = await resp.json();
@@ -255,7 +261,11 @@ export async function enrichMetadata(coin: CoinData): Promise<CoinData> {
       imageUrl: normalized.image ? formatImageURL(normalized.image) : null,
     };
     return updated;
-  } catch {
+  } catch (e) {
+    console.error("enrichMetadata", {
+      e,
+      coin,
+    });
     return coin;
   }
 }
