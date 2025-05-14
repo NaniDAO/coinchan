@@ -27,6 +27,7 @@ export function usePagedCoins(pageSize = 20) {
 
   return {
     coins: pageItems,
+    allCoins: data,
     total,
     page,
     totalPages,

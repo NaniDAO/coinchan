@@ -20,6 +20,7 @@ export const Coins = () => {
    * ------------------------------------------------------------------ */
   const {
     coins,
+    allCoins,
     total,
     page,
     totalPages,
@@ -45,14 +46,41 @@ export const Coins = () => {
     setIsSearchActive(true);
 
     // Use the full dataset when it’s loaded, fall back to paged data while waiting
-    const dataToSearch = coins && coins.length > 0 ? coins : coins;
-
+    const dataToSearch = allCoins && allCoins.length > 0 ? allCoins : allCoins;
     const results = dataToSearch.filter((coin) => {
-      if (coin.coinId.toString().includes(trimmed)) return true;
-      if (coin.symbol && coin.symbol.toLowerCase().includes(trimmed))
-        return true;
-      if (coin.name && coin.name.toLowerCase().includes(trimmed)) return true;
-      return false;
+      // Split the search query into words for multi-term searching
+      const searchTerms = trimmed
+        .split(/\s+/)
+        .filter((term) => term.length > 0);
+
+      // If no valid search terms, return empty results
+      if (searchTerms.length === 0) return false;
+
+      // Check each property with null/undefined handling
+      const coinId = String(coin.coinId || "");
+      const symbol = (coin.symbol || "").toLowerCase();
+      const name = (coin.name || "").toLowerCase();
+      const description = (coin.description || "").toLowerCase();
+
+      // Check if ALL search terms match at least one property (AND logic between terms)
+      return searchTerms.every((term) => {
+        return (
+          coinId.includes(term) ||
+          symbol.includes(term) ||
+          name.includes(term) ||
+          description.includes(term) ||
+          // Add fuzzy matching for common symbols
+          symbol.replace(/[^a-z0-9]/g, "").includes(term) ||
+          // Match word boundaries in name and description
+          name.match(new RegExp(`\\b${term}`, "i")) ||
+          description.match(new RegExp(`\\b${term}`, "i"))
+        );
+      });
+    });
+
+    console.log("search", {
+      allCoins,
+      results,
     });
 
     setSearchResults(results);
@@ -95,7 +123,7 @@ export const Coins = () => {
         canNext={!isSearchActive && hasNextPage}
         onPrev={debouncedPrevPage}
         onNext={debouncedNextPage}
-        isLoading={isLoading || isSearchActive}
+        isLoading={isLoading}
         currentPage={page + 1}
         totalPages={totalPages}
         isSearchActive={isSearchActive}
