@@ -68,10 +68,7 @@ export function useCoinsData() {
 
         // 2) Map each pool → one CoinData for coin1
         const pools: any[] = data.pools.items;
-        console.log("pools graphql:", {
-          pools,
-          poolsLength: pools.length,
-        });
+
         const coinDataList = pools.map((pool) => {
           const c = pool.coin1;
           const raw: RawCoinData = {
