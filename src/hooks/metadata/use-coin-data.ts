@@ -2,11 +2,11 @@ import { useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createPublicClient, http } from "viem";
 import { mainnet } from "viem/chains";
-import { useGlobalCoinsData, type CoinData } from "./use-global-coins-data";
 import {
   CoinsMetadataHelperAbi,
   CoinsMetadataHelperAddress,
 } from "@/constants/CoinsMetadataHelper";
+import { CoinData } from "./coin-utils";
 
 // Create a public client instance
 const publicClient = createPublicClient({
@@ -19,9 +19,6 @@ const publicClient = createPublicClient({
  * First tries to get the data from the global cache, then falls back to a direct contract call
  */
 export function useCoinData(coinId: bigint) {
-  // Try to get the coin data from the global cache first
-  const { getCoinById, isLoading: isGlobalLoading } = useGlobalCoinsData();
-
   // Direct query for a single coin as a fallback
   const {
     data: directCoinData,
@@ -50,19 +47,14 @@ export function useCoinData(coinId: bigint) {
         throw error;
       }
     },
-    // Only run this query if we can't find the coin in the global cache
-    enabled: !isGlobalLoading && !getCoinById(coinId),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 15 * 60 * 1000, // 15 minutes
   });
 
-  // Get the coin data from the global cache if available
-  const cachedCoin = useMemo(() => getCoinById(coinId), [getCoinById, coinId]);
-
   // Combine the data sources
   const coinData = useMemo(() => {
-    return cachedCoin || directCoinData;
-  }, [cachedCoin, directCoinData]);
+    return directCoinData;
+  }, [directCoinData]);
 
   // Calculate additional derived properties
   const marketCapEth = useMemo(() => {
@@ -83,7 +75,7 @@ export function useCoinData(coinId: bigint) {
   }, [coinData, coinId]);
 
   // Load status
-  const isLoading = isGlobalLoading || isDirectLoading;
+  const isLoading = isDirectLoading;
   const error = directError;
 
   return {
@@ -99,7 +91,7 @@ export function useCoinData(coinId: bigint) {
 // Helper function to process raw coin data from the contract
 async function processRawCoinData(rawData: any): Promise<CoinData> {
   // Extract the fields
-  const coinData: CoinData = {
+  const coinData = {
     coinId: rawData.coinId,
     tokenURI: rawData.tokenURI,
     reserve0: rawData.reserve0,
@@ -118,6 +110,7 @@ async function processRawCoinData(rawData: any): Promise<CoinData> {
   if (coinData.reserve0 > 0n && coinData.reserve1 > 0n) {
     const r0 = parseFloat(coinData.reserve0.toString()) / 1e18;
     const r1 = parseFloat(coinData.reserve1.toString()) / 1e18;
+    // @ts-ignore
     coinData.priceInEth = r0 / r1;
   }
 
@@ -145,6 +138,7 @@ async function processRawCoinData(rawData: any): Promise<CoinData> {
           // Process image URL if present
           if (metadata.image) {
             if (metadata.image.startsWith("ipfs://")) {
+              // @ts-ignore
               coinData.imageUrl = `https://content.wrappr.wtf/ipfs/${metadata.image.slice(7)}`;
             } else {
               coinData.imageUrl = metadata.image;

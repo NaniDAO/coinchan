@@ -1,14 +1,14 @@
 import { Card, CardContent } from "./ui/card";
-import { type CoinData } from "@/hooks/metadata";
 import { useState, useEffect, useCallback, useRef } from "react";
+import { Link } from "@tanstack/react-router";
 import {
+  CoinData,
   formatImageURL,
   getAlternativeImageUrls,
-} from "@/hooks/metadata/use-global-coins-data";
-import { Link } from "@tanstack/react-router";
+} from "@/hooks/metadata/coin-utils";
 
 interface CoinCardProps {
-  coin: CoinData;
+  coin: any;
 }
 
 export const CoinCard = ({ coin }: CoinCardProps) => {
