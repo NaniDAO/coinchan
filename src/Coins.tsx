@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
 import { ExplorerGrid } from "./ExplorerGrid";
-import { CoinData, usePagedCoins } from "./hooks/metadata";
+import { usePagedCoins } from "./hooks/metadata";
 import { debounce } from "./utils";
 import { SearchIcon } from "lucide-react";
 

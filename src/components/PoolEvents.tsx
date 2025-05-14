@@ -1,6 +1,38 @@
-import React, { useRef, useEffect } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { formatEther } from "viem";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { useRef, useEffect } from "react";
+import { formatTimeAgo } from "@/lib/date";
+import { getEtherscanAddressUrl, getEtherscanTxUrl } from "@/lib/explorer";
+import { AddressIcon } from "./AddressIcon";
+import { cn } from "@/lib/utils";
+
+/**
+ * Helper function to get the appropriate color class for event type
+ * @param {string} eventType - The type of event
+ * @returns {string} - The CSS class for coloring
+ */
+const getEventTypeColorClass = (eventType: string): string => {
+  switch (eventType) {
+    case "BUY":
+      return "text-green-600";
+    case "SELL":
+      return "text-red-600";
+    case "LIQADD":
+      return "text-purple-600";
+    case "LIQREM":
+      return "text-orange-600";
+    default:
+      return "text-blue-600";
+  }
+};
 
 /**
  * PoolEvents component
@@ -73,68 +105,115 @@ export function PoolEvents({
   const events = data.pages.flatMap((page) => page.data);
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full bg-white shadow rounded-lg">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-4 py-2 text-left text-sm font-semibold">
-              Timestamp
-            </th>
-            <th className="px-4 py-2 text-left text-sm font-semibold">Type</th>
-            <th className="px-4 py-2 text-right text-sm font-semibold">ETH</th>
-            <th className="px-4 py-2 text-right text-sm font-semibold">
-              {ticker.toUpperCase()}
-            </th>
-            <th className="px-4 py-2 text-right text-sm font-semibold">
-              Maker
-            </th>
-            <th className="px-4 py-2 text-left text-sm font-semibold">Txn</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-200">
-          {events.map((e, idx) => (
-            <tr
-              key={`${e.txhash}-${e.timestamp}-${idx}`}
-              className="hover:bg-gray-50"
-            >
-              <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
-                {new Date(e.timestamp * 1000).toLocaleString()}
-              </td>
-              <td className="px-4 py-2 whitespace-nowrap text-sm text-blue-600">
-                {e.type}
-              </td>
-              <td className="px-4 py-2 whitespace-nowrap text-sm text-right">
-                {e.type === "BUY"
-                  ? Number(formatEther(BigInt(e?.amount0_in ?? "0"))).toFixed(2)
-                  : Number(formatEther(BigInt(e?.amount1_in ?? "0"))).toFixed(
-                      2,
+    <div className="w-full">
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Timestamp</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead className="text-right">ETH</TableHead>
+              <TableHead className="text-right">
+                {ticker.toUpperCase()}
+              </TableHead>
+              <TableHead className="text-right">Maker</TableHead>
+              <TableHead>Txn</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {events.length > 0 ? (
+              events.map((e, idx) => (
+                <TableRow key={`${e.txhash}-${e.timestamp}-${idx}`}>
+                  <TableCell className="whitespace-nowrap">
+                    {formatTimeAgo(e?.timestamp ?? 0)}
+                  </TableCell>
+                  <TableCell className={getEventTypeColorClass(e.type)}>
+                    {e.type}
+                  </TableCell>
+                  <TableCell
+                    className={cn("text-right", getEventTypeColorClass(e.type))}
+                  >
+                    {e.type === "BUY" &&
+                      Number(formatEther(BigInt(e?.amount0_in ?? "0"))).toFixed(
+                        5,
+                      )}
+                    {e.type === "SELL" &&
+                      Number(
+                        formatEther(BigInt(e?.amount0_out ?? "0")),
+                      ).toFixed(5)}
+                    {e.type === "LIQADD" &&
+                      Number(formatEther(BigInt(e?.amount0_in ?? "0"))).toFixed(
+                        5,
+                      )}
+                    {e.type === "LIQREM" &&
+                      Number(
+                        formatEther(BigInt(e?.amount0_out ?? "0")),
+                      ).toFixed(5)}
+                  </TableCell>
+                  <TableCell
+                    className={cn("text-right", getEventTypeColorClass(e.type))}
+                  >
+                    {e.type === "BUY" &&
+                      Number(
+                        formatEther(BigInt(e?.amount1_out ?? "0")),
+                      ).toFixed(5)}
+                    {e.type === "SELL" &&
+                      Number(formatEther(BigInt(e?.amount1_in ?? "0"))).toFixed(
+                        5,
+                      )}
+                    {e.type === "LIQADD" &&
+                      Number(formatEther(BigInt(e?.amount1_in ?? "0"))).toFixed(
+                        5,
+                      )}
+                    {e.type === "LIQREM" &&
+                      Number(
+                        formatEther(BigInt(e?.amount1_out ?? "0")),
+                      ).toFixed(5)}
+                  </TableCell>
+                  <TableCell
+                    className={cn("text-right", getEventTypeColorClass(e.type))}
+                  >
+                    {e.maker ? (
+                      <div className="flex flex-row space-x-1">
+                        <AddressIcon
+                          address={e.maker}
+                          className="h-5 w-5 rounded-lg"
+                        />
+                        <a
+                          href={getEtherscanAddressUrl(e.maker)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-indigo-600 hover:underline"
+                        >
+                          {e.maker.slice(-4)}
+                        </a>
+                      </div>
+                    ) : (
+                      "-"
                     )}
-              </td>
-              <td className="px-4 py-2 whitespace-nowrap text-sm text-right">
-                {e.type === "BUY"
-                  ? Number(formatEther(BigInt(e?.amount1_out ?? "0"))).toFixed(
-                      2,
-                    )
-                  : Number(formatEther(BigInt(e?.amount0_out ?? "0"))).toFixed(
-                      2,
-                    )}
-              </td>
-              <td className="px-4 py-2 whitespace-nowrap text-sm text-right">
-                {e.maker ?? "-"}
-              </td>
-              <td className="px-4 py-2 whitespace-nowrap text-sm text-indigo-600">
-                <a
-                  href={`${import.meta.env.VITE_INDEXER_URL}/graphql/tx/${e.txhash}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {e.txhash.slice(0, 6)}...{e.txhash.slice(-4)}
-                </a>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                  </TableCell>
+                  <TableCell className={cn(getEventTypeColorClass(e.type))}>
+                    <a
+                      href={getEtherscanTxUrl(e.txhash)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-indigo-600 hover:underline"
+                    >
+                      {e.txhash.slice(0, 6)}...{e.txhash.slice(-4)}
+                    </a>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={6} className="h-24 text-center">
+                  No events found
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
       <div ref={loadMoreRef} className="py-4 text-center text-sm text-gray-500">
         {isFetchingNextPage

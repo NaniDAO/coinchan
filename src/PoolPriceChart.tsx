@@ -6,6 +6,7 @@ import {
   UTCTimestamp,
   ColorType,
   PriceFormatBuiltIn,
+  ISeriesApi,
 } from "lightweight-charts";
 import { Spinner } from "@/components/ui/spinner";
 import { useQuery } from "@tanstack/react-query";
@@ -56,8 +57,7 @@ const TVPriceChart: React.FC<{
 }> = ({ priceData, ticker }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<ReturnType<typeof createChart>>();
-  const priceSeriesRef =
-    useRef<ReturnType<typeof chartRef.current.addSeries>>();
+  const priceSeriesRef = useRef<ISeriesApi<"Line">>();
 
   useLayoutEffect(() => {
     const container = containerRef.current;
@@ -129,7 +129,7 @@ const TVPriceChart: React.FC<{
   return (
     <div
       ref={containerRef}
-      style={{ width: "98vw", height: "400px", position: "relative" }}
+      style={{ width: "99vw", height: "400px", position: "relative" }}
     />
   );
 };
