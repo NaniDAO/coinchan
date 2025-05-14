@@ -10,6 +10,11 @@
     "format": "biome format --write src",
     "preview": "vite preview"
   },
+  "vite": {
+    "build": {
+      "outDir": "dist"
+    }
+  },
   "dependencies": {
     "@farcaster/frame-sdk": "latest",
     "@farcaster/frame-wagmi-connector": "latest",
