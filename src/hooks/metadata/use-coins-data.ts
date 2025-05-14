@@ -73,7 +73,7 @@ export function useCoinsData() {
           const c = pool.coin1;
           const raw: RawCoinData = {
             coinId: BigInt(c?.id ?? "0"),
-            tokenURI: c?.tokenURI ?? "",
+            tokenURI: c?.tokenURI?.trim() ?? "",
             reserve0: BigInt(pool?.reserve0 ?? "0"),
             reserve1: BigInt(pool?.reserve1 ?? "0"),
             poolId: BigInt(pool?.id),
@@ -88,7 +88,7 @@ export function useCoinsData() {
             name: c?.name ?? "",
             symbol: c?.symbol ?? "",
             description: c?.description ?? "",
-            imageUrl: c?.imageUrl ?? "",
+            imageUrl: c?.imageUrl?.trim() ?? "",
             metadata: null,
             // @ts-ignore
             price: Number(formatUnits(pool?.price1 ?? "0", c?.decimals ?? 18)),
