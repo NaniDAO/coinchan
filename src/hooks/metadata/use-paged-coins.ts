@@ -6,7 +6,8 @@ export function usePagedCoins(pageSize = 20) {
   const { data = [], isLoading, error } = useCoinsData();
   const [page, setPage] = useState(0);
 
-  const total = data.length;
+  // @ts-ignore
+  const total = data?.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   useEffect(() => {
@@ -14,7 +15,8 @@ export function usePagedCoins(pageSize = 20) {
   }, [page, totalPages]);
 
   const pageItems = useMemo<CoinData[]>(
-    () => data.slice(page * pageSize, page * pageSize + pageSize),
+    // @ts-ignore
+    () => data?.slice(page * pageSize, page * pageSize + pageSize),
     [data, page, pageSize],
   );
 

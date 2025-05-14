@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { ExplorerGrid } from "./ExplorerGrid";
-import { usePagedCoins } from "./hooks/metadata";
-import { useGlobalCoinsData, type CoinData } from "./hooks/metadata";
+import { CoinData, usePagedCoins } from "./hooks/metadata";
 import { debounce } from "./utils";
 import { SearchIcon } from "lucide-react";
 
@@ -24,14 +23,12 @@ export const Coins = () => {
     total,
     page,
     totalPages,
-    hasNextPage,
-    hasPreviousPage,
+    hasNext: hasNextPage,
+    hasPrev: hasPreviousPage,
     goToNextPage,
     goToPreviousPage,
     isLoading,
   } = usePagedCoins(PAGE_SIZE);
-
-  const { allCoins, isLoading: isGlobalLoading } = useGlobalCoinsData();
 
   /* ------------------------------------------------------------------
    *  Search handling
@@ -48,7 +45,7 @@ export const Coins = () => {
     setIsSearchActive(true);
 
     // Use the full dataset when it’s loaded, fall back to paged data while waiting
-    const dataToSearch = allCoins && allCoins.length > 0 ? allCoins : coins;
+    const dataToSearch = coins && coins.length > 0 ? coins : coins;
 
     const results = dataToSearch.filter((coin) => {
       if (coin.coinId.toString().includes(trimmed)) return true;
@@ -59,7 +56,7 @@ export const Coins = () => {
     });
 
     setSearchResults(results);
-  }, [searchQuery, allCoins, coins]);
+  }, [searchQuery, coins, coins]);
 
   const resetSearch = useCallback(() => {
     setSearchQuery("");
@@ -98,7 +95,7 @@ export const Coins = () => {
         canNext={!isSearchActive && hasNextPage}
         onPrev={debouncedPrevPage}
         onNext={debouncedNextPage}
-        isLoading={isLoading || (isSearchActive && isGlobalLoading)}
+        isLoading={isLoading || isSearchActive}
         currentPage={page + 1}
         totalPages={totalPages}
         isSearchActive={isSearchActive}

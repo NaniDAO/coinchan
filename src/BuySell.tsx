@@ -28,7 +28,7 @@ import { useCoinData } from "./hooks/metadata";
 import {
   formatImageURL,
   getAlternativeImageUrls,
-} from "./hooks/metadata/use-global-coins-data";
+} from "./hooks/metadata/coin-utils";
 
 // CheckTheChain contract ABI for fetching ETH price
 const CheckTheChainAbi = [
