@@ -554,6 +554,7 @@ export const BuySell = ({
             onClick={onBuy}
             disabled={!isConnected || isPending || !amount}
             variant="default"
+            className="bg-green-400 hover:bg-green-500"
           >
             {isPending ? "Buying…" : `Buy ${displaySymbol}`}
           </Button>
@@ -595,6 +596,7 @@ export const BuySell = ({
             onClick={onSell}
             disabled={!isConnected || isPending || !amount}
             variant="outline"
+            className=""
           >
             {isPending ? "Selling…" : `Sell ${displaySymbol}`}
           </Button>

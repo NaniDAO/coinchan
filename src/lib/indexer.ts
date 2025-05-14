@@ -12,10 +12,9 @@ export interface CandleData {
 }
 
 export interface PricePointData {
-  /** Timestamp in milliseconds */
-  timestamp: number;
-  price0: number;
-  price1: number;
+  bucket: number;
+  price1: string;
+  timestamp: string;
 }
 
 const fp18ToFloat = (raw: string) => Number(formatUnits(BigInt(raw), 18));
@@ -82,62 +81,52 @@ export async function fetchPoolCandles(
 }
 
 /**
- * Fetches price points for a given pool from the GraphQL indexer.
+ * Fetches price points for a given pool from the API.
  * @param poolId - the pool identifier (as a string representing BigInt)
- * @returns array of PricePointData sorted by timestamp descending, with duplicate timestamps removed
+ * @param startTs - optional start timestamp in milliseconds
+ * @param endTs - optional end timestamp in milliseconds
+ * @param desiredPoints - optional number of data points to return
+ * @returns array of PricePointData sorted by timestamp
  */
 export async function fetchPoolPricePoints(
   poolId: string,
+  startTs?: number,
+  endTs?: number,
+  desiredPoints?: number,
 ): Promise<PricePointData[]> {
-  const query = `
-    query PoolPricePoints($poolId: BigInt!) {
-      pricePoints(
-        where: { poolId: $poolId },
-        orderBy: "timestamp",
-        orderDirection: "desc",
-        limit: 1000
-      ) {
-        items {
-          price1
-          timestamp
-        }
-      }
-    }
-  `;
+  const baseUrl = import.meta.env.VITE_INDEXER_URL + "/api/price-chart";
 
-  const response = await fetch(INDEXER_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query, variables: { poolId } }),
-  });
+  // Build query parameters
+  const params = new URLSearchParams();
+  params.append("poolId", poolId);
+
+  if (startTs !== undefined) {
+    params.append("startTs", startTs.toString());
+  }
+
+  if (endTs !== undefined) {
+    params.append("endTs", endTs.toString());
+  }
+
+  if (desiredPoints !== undefined) {
+    params.append("desiredPoints", desiredPoints.toString());
+  }
+
+  const url = `${baseUrl}?${params.toString()}`;
+
+  const response = await fetch(url);
 
   if (!response.ok) {
     console.error(`Error fetching price points: ${response.statusText}`);
     throw new Error(`Error fetching price points: ${response.statusText}`);
   }
 
-  const { data, errors } = await response.json();
-  if (errors) {
-    console.error(`Error in response: ${JSON.stringify(errors)}`);
-    throw new Error(`GraphQL errors: ${JSON.stringify(errors)}`);
-  }
+  const data = await response.json();
 
   // Map and convert the data
-  const allPricePoints = data.pricePoints.items.map((p: any) => ({
-    timestamp: Number(p.timestamp / 1000),
-    price1: fp18ToFloat(p.price1),
+  return data.data.map((p: any) => ({
+    timestamp: Number(p.timestamp),
+    price0: Number(p.price0),
+    price1: Number(p.price1),
   }));
-
-  // Remove duplicate timestamps by keeping only the first occurrence
-  const uniqueTimestamps = new Set<number>();
-  const uniquePricePoints: PricePointData[] = [];
-
-  for (const point of allPricePoints) {
-    if (!uniqueTimestamps.has(point.timestamp)) {
-      uniqueTimestamps.add(point.timestamp);
-      uniquePricePoints.push(point);
-    }
-  }
-
-  return uniquePricePoints;
 }

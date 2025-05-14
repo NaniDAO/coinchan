@@ -154,12 +154,14 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
           <BuySellFallback tokenId={tokenId} name={name} symbol={symbol} />
         }
       >
-        <BuySell tokenId={tokenId} name={name} symbol={symbol} />
+        <div className="max-w-2xl">
+          <BuySell tokenId={tokenId} name={name} symbol={symbol} />
+        </div>
       </ErrorBoundary>
 
       {/* Only show ClaimVested if the user is the owner */}
       {isOwner && (
-        <div className="mt-4 sm:mt-6">
+        <div className="mt-4 sm:mt-6 max-w-2xl">
           <ErrorBoundary
             fallback={
               <p className="text-red-500">Vesting claim feature unavailable</p>
@@ -185,7 +187,7 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
         >
           <PoolPriceChart
             poolId={computePoolId(tokenId).toString()}
-            ticker={symbol}
+            ticker={symbol ?? "TKN"}
           />
         </ErrorBoundary>
       </div>
