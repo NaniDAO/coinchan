@@ -118,7 +118,7 @@ async function processRawCoinData(rawData: any): Promise<CoinData> {
   if (coinData.tokenURI && coinData.tokenURI !== "N/A") {
     try {
       // Handle IPFS URIs
-      let uri = coinData.tokenURI;
+      let uri = coinData.tokenURI.trim();
       if (uri.startsWith("ipfs://")) {
         uri = `https://content.wrappr.wtf/ipfs/${uri.slice(7)}`;
       }
