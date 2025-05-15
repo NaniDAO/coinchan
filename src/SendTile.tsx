@@ -654,16 +654,16 @@ const TokenSelector = memo(
     const getColorForSymbol = (symbol: string) => {
       const symbolKey = symbol.toLowerCase();
       const colorMap: Record<string, { bg: string; text: string }> = {
-        eth: { bg: "bg-black", text: "text-white" },
-        us: { bg: "bg-green-500", text: "text-white" },
-        za: { bg: "bg-red-500", text: "text-white" },
-        pe: { bg: "bg-green-700", text: "text-white" },
-        ro: { bg: "bg-red-700", text: "text-white" },
-        "..": { bg: "bg-gray-800", text: "text-white" },
+        eth: { bg: "bg-black", text: "text-background" },
+        us: { bg: "bg-chart-2", text: "text-background" },
+        za: { bg: "bg-destructive", text: "text-background" },
+        pe: { bg: "bg-chart-2", text: "text-background" },
+        ro: { bg: "bg-destructive", text: "text-background" },
+        "..": { bg: "bg-muted-foreground", text: "text-background" },
       };
 
       const initials = symbolKey.slice(0, 2);
-      return colorMap[initials] || { bg: "bg-yellow-500", text: "text-white" };
+      return colorMap[initials] || { bg: "bg-primary", text: "text-background" };
     };
 
     // Memoized token image component with improved handling for all token types
@@ -934,7 +934,7 @@ const TokenSelector = memo(
         <div
           onClick={() => setIsOpen(!isOpen)}
           className={cn(
-            "flex items-center gap-2 cursor-pointer bg-transparent border border-yellow-200 rounded-md px-2 py-1 hover:bg-yellow-50 touch-manipulation",
+            "flex items-center gap-2 cursor-pointer bg-transparent border border-primary rounded-md px-2 py-1 hover:bg-secondary-foreground touch-manipulation",
             className,
           )}
         >
@@ -945,7 +945,7 @@ const TokenSelector = memo(
             </div>
             <div className="flex items-center gap-1">
               <div 
-                className={`text-xs font-medium text-gray-700 min-w-[50px] h-[14px] ${(
+                className={`text-xs font-medium text-muted-foreground min-w-[50px] h-[14px] ${(
                   selectedToken.id === null && isEthBalanceFetching) || selectedToken.isFetching
                     ? 'token-loading px-1 rounded' 
                     : ''
@@ -955,7 +955,7 @@ const TokenSelector = memo(
                 {/* Show loading indicator for ETH */}
                 {selectedToken.id === null && isEthBalanceFetching && (
                   <span
-                    className="text-xs text-yellow-500 ml-1 inline-block"
+                    className="text-xs text-primary ml-1 inline-block"
                     style={{ animation: "pulse 1.5s infinite" }}
                   >
                     ⟳
@@ -964,7 +964,7 @@ const TokenSelector = memo(
                 {/* Show loading indicator for other tokens */}
                 {selectedToken.id !== null && selectedToken.isFetching && (
                   <span
-                    className="text-xs text-yellow-500 ml-1 inline-block"
+                    className="text-xs text-primary ml-1 inline-block"
                     style={{ animation: "pulse 1.5s infinite" }}
                   >
                     ⟳
@@ -991,11 +991,11 @@ const TokenSelector = memo(
         {/* Dropdown list with thumbnails */}
         {isOpen && (
           <div
-            className="absolute z-20 mt-1 w-[calc(100vw-40px)] sm:w-64 max-h-[60vh] sm:max-h-96 overflow-y-auto bg-white border border-yellow-200 shadow-lg rounded-md"
+            className="absolute z-20 mt-1 w-[calc(100vw-40px)] sm:w-64 max-h-[60vh] sm:max-h-96 overflow-y-auto bg-background border border-primary/30 shadow-lg rounded-md"
             style={{ contain: "content" }}
           >
             {/* Search input */}
-            <div className="sticky top-0 bg-white p-2 border-b border-yellow-100">
+            <div className="sticky top-0 bg-card p-2 border-b border-primary/20">
               <div className="relative">
                 <input
                   type="text"
@@ -1067,10 +1067,10 @@ const TokenSelector = memo(
                       }
                     });
                   }}
-                  className="w-full p-2 pl-8 border border-yellow-200 rounded focus:outline-none focus:ring-2 focus:ring-yellow-300 text-sm"
+                  className="w-full p-2 pl-8 border border-primary/30 rounded focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
                 />
                 <svg
-                  className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -1101,8 +1101,8 @@ const TokenSelector = memo(
                     data-token-symbol={token.symbol}
                     data-token-name={token.name}
                     data-token-id={token.id?.toString() ?? "eth"}
-                    className={`flex items-center justify-between p-3 sm:p-2 hover:bg-yellow-50 cursor-pointer touch-manipulation ${
-                      isSelected ? "bg-yellow-100" : ""
+                    className={`flex items-center justify-between p-3 sm:p-2 hover:bg-secondary-foreground cursor-pointer touch-manipulation ${
+                      isSelected ? "bg-primary/10" : ""
                     }`}
                   >
                     <div className="flex items-center gap-2">
@@ -1111,7 +1111,7 @@ const TokenSelector = memo(
                         <span className="font-medium">
                           {safeStr(token.symbol)}
                         </span>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-muted-foreground">
                           {safeStr(token.name)}
                         </span>
                       </div>
@@ -1128,7 +1128,7 @@ const TokenSelector = memo(
                         {/* Show loading indicator for ETH */}
                         {token.id === null && isEthBalanceFetching && (
                           <span
-                            className="text-xs text-yellow-500 ml-1 inline-block"
+                            className="text-xs text-primary ml-1 inline-block"
                             style={{ animation: "pulse 1.5s infinite" }}
                           >
                             ⟳
@@ -1137,7 +1137,7 @@ const TokenSelector = memo(
                         {/* Show loading indicator for other tokens */}
                         {token.id !== null && token.isFetching && (
                           <span
-                            className="text-xs text-yellow-500 ml-1 inline-block"
+                            className="text-xs text-primary ml-1 inline-block"
                             style={{ animation: "pulse 1.5s infinite" }}
                           >
                             ⟳
@@ -1475,7 +1475,7 @@ const SendTileComponent = () => {
   }, [selectedToken.balance, parsedAmount]);
 
   return (
-    <Card className="border-yellow-200 shadow-md mb-4">
+    <Card className="border-border shadow-md mb-4">
       <CardHeader>
         <CardTitle>Send Coins</CardTitle>
       </CardHeader>
@@ -1483,7 +1483,7 @@ const SendTileComponent = () => {
         {/* Recipient address input */}
         <div className="grid grid-cols-5 gap-4 w-full mb-4">
           <div className="col-span-3">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground mb-1">
               Recipient Address
             </label>
             <div className="h-12">
@@ -1494,13 +1494,13 @@ const SendTileComponent = () => {
                 value={recipientAddress}
                 onChange={(e) => setRecipientAddress(e.target.value)}
                 placeholder="0x..."
-                className="w-full p-2 border-2 border-yellow-300 rounded focus-within:ring-2 hover:bg-yellow-50 focus-within:ring-primary focus-within:outline-none h-full"
+                className="w-full p-2 border-2 border-primary rounded focus-within:ring-2 hover:bg-secondary-foreground focus-within:ring-primary focus-within:outline-none h-full"
               />
             </div>
             {recipientAddress &&
               (!recipientAddress.startsWith("0x") ||
                 recipientAddress.length !== 42) && (
-                <p className="mt-1 text-sm text-red-500">
+                <p className="mt-1 text-sm text-destructive">
                   Please enter a valid Ethereum address
                 </p>
               )}
@@ -1523,12 +1523,12 @@ const SendTileComponent = () => {
         {/* Amount input */}
         <div className="mb-4">
           <div className="flex justify-between items-center mb-1">
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-foreground">
               Amount
             </label>
             <button
               onClick={handleMaxClick}
-              className="text-xs text-yellow-600 hover:text-yellow-800 "
+              className="text-xs text-primary hover:text-primary/80"
               disabled={!selectedToken.balance || selectedToken.balance === 0n}
             >
               MAX
@@ -1540,16 +1540,16 @@ const SendTileComponent = () => {
               value={amount}
               onChange={(e) => handleAmountChange(e.target.value)}
               placeholder="0.0"
-              className={`w-full h-12 p-2 border-2 border-yellow-300 rounded focus-within:ring-2 hover:bg-yellow-50 focus-within:ring-primary focus-within:outline-none ${
+              className={`w-full h-12 p-2 border-2 border-primary/40 rounded focus-within:ring-2 hover:bg-secondary-foreground focus-within:ring-primary focus-within:outline-none ${
                 selectedToken.isFetching ? 'token-loading' : ''
               }`}
             />
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 font-medium text-sm text-gray-500">
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 font-medium text-sm text-muted-foreground">
               {safeStr(selectedToken.symbol)}
               {/* Show loading indicator if token is being fetched */}
               {selectedToken.isFetching && (
                 <span
-                  className="text-xs text-yellow-500 ml-1 inline-block"
+                  className="text-xs text-primary ml-1 inline-block"
                   style={{ animation: "pulse 1.5s infinite" }}
                 >
                   ⟳
@@ -1559,10 +1559,10 @@ const SendTileComponent = () => {
           </div>
 
           {amount && typeof selectedToken.balance === "bigint" && (
-            <div className="mt-1 text-xs text-gray-500 flex justify-between">
+            <div className="mt-1 text-xs text-muted-foreground flex justify-between">
               <span>
                 {percentOfBalance > 100 ? (
-                  <span className="text-red-500">Insufficient balance</span>
+                  <span className="text-destructive">Insufficient balance</span>
                 ) : (
                   `${percentOfBalance.toFixed(0)}% of balance`
                 )}
@@ -1581,7 +1581,7 @@ const SendTileComponent = () => {
         <Button
           onClick={handleSend}
           disabled={!canSend || isPending}
-          className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded"
+          className="w-full bg-primary hover:bg-primary/80 text-background font-bold py-2 px-4 rounded"
         >
           {isPending ? (
             <div className="flex items-center justify-center">
@@ -1595,8 +1595,8 @@ const SendTileComponent = () => {
 
         {/* Transaction status */}
         {txHash && (
-          <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded">
-            <p className="text-sm text-green-800">
+          <div className="mt-4 p-3 bg-chart-2/10 border border-chart-2/20 rounded">
+            <p className="text-sm text-chart-2">
               {isSuccess ? "Transaction successful!" : "Transaction submitted!"}{" "}
               <a
                 href={`https://etherscan.io/tx/${txHash}`}
@@ -1609,7 +1609,7 @@ const SendTileComponent = () => {
               {/* Show animation while waiting for transaction */}
               {!isSuccess && (
                 <span
-                  className="inline-block ml-2 text-yellow-600"
+                  className="inline-block ml-2 text-primary"
                   style={{ animation: "pulse 1.5s infinite" }}
                 >
                   (waiting for confirmation...)
@@ -1621,15 +1621,15 @@ const SendTileComponent = () => {
 
         {/* Error message */}
         {txError && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded">
-            <p className="text-sm text-red-800">{txError}</p>
+          <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded">
+            <p className="text-sm text-destructive">{txError}</p>
           </div>
         )}
 
         {/* Loading error */}
         {loadError && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded">
-            <p className="text-sm text-red-800">{loadError}</p>
+          <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded">
+            <p className="text-sm text-destructive">{loadError}</p>
           </div>
         )}
       </CardContent>

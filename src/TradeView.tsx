@@ -9,7 +9,6 @@ import {
 import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
 import { mainnet } from "viem/chains";
 import { useCoinData } from "./hooks/metadata";
-// import PoolCandleChart from "./PoolCandleChart";
 import { computePoolId } from "./lib/swapHelper";
 import PoolPriceChart from "./PoolPriceChart";
 import { Link } from "@tanstack/react-router";
@@ -53,15 +52,15 @@ const BuySellFallback = ({
   symbol: string;
 }) => {
   return (
-    <div className="p-4 border border-red-300 bg-red-50 rounded-md">
-      <h3 className="font-medium text-red-700">
+    <div className="p-4 border border-destructive/30 bg-destructive/10 rounded-md">
+      <h3 className="font-medium text-destructive">
         Trading temporarily unavailable
       </h3>
-      <p className="text-sm text-red-600 mt-2">
+      <p className="text-sm text-destructive/80 mt-2">
         We're experiencing issues loading the trading interface for {name} [
         {symbol}]. Please try again later.
       </p>
-      <div className="mt-4 bg-white p-3 rounded-md text-sm">
+      <div className="mt-4 bg-background p-3 rounded-md text-sm border border-border">
         <p className="font-medium">Token Details:</p>
         <p>ID: {tokenId.toString()}</p>
         <p>Name: {name}</p>
@@ -164,7 +163,9 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
         <div className="mt-4 sm:mt-6 max-w-2xl">
           <ErrorBoundary
             fallback={
-              <p className="text-red-500">Vesting claim feature unavailable</p>
+              <p className="text-destructive">
+                Vesting claim feature unavailable
+              </p>
             }
           >
             <ClaimVested coinId={tokenId} />
@@ -176,14 +177,14 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
       {/* <div className="mt-4 sm:mt-6">
         // only data upto 30 april is being returned ??? so removing for now
         <ErrorBoundary
-          fallback={<p className="text-red-500">Pool chart unavailable</p>}
+          fallback={<p className="text-destructive">Pool chart unavailable</p>}
         >
           <PoolCandleChart poolId={computePoolId(tokenId).toString()} />
         </ErrorBoundary>
       </div> */}
       <div className="mt-4 sm:mt-6">
         <ErrorBoundary
-          fallback={<p className="text-red-500">Pool chart unavailable</p>}
+          fallback={<p className="text-destructive">Pool chart unavailable</p>}
         >
           <PoolPriceChart
             poolId={computePoolId(tokenId).toString()}
@@ -193,7 +194,7 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
       </div>
       <div className="mt-4 sm:mt-6">
         <ErrorBoundary
-          fallback={<p className="text-red-500">Pool Events unavailable</p>}
+          fallback={<p className="text-destructive">Pool Events unavailable</p>}
         >
           <PoolEvents
             poolId={computePoolId(tokenId).toString()}

@@ -8,9 +8,8 @@ const stats = [
 ];
 
 export const CoinPaper = () => (
-  <div className="paper-container">
-    <div className="blob"></div>
-    <div className="content">
+  <div className="w-screen flex items-center justify-center">
+    <div className="w-full md:max-w-4xl">
       <h1 className="paper-title">Coinpaper</h1>
       <div className="stats-grid">
         {stats.map(({ label, value, emoji }) => (
@@ -58,12 +57,14 @@ export const CoinPaper = () => (
         </ul>
       </div>
 
-      <Link
-        to="/create"
-        className="coin-button mt-6 py-3 px-6 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-all shadow-md hover:shadow-lg"
-      >
-        I want to coin it!
-      </Link>
+      <div className="py-3 px-6">
+        <Link
+          to="/create"
+          className="bg-primary/10 hover:bg-primary dark:bg-secondary/10 dark:hover:bg-secondary text-white font-bold rounded-lg transition-all shadow-md hover:shadow-lg"
+        >
+          I want to coin it!
+        </Link>
+      </div>
     </div>
   </div>
 );

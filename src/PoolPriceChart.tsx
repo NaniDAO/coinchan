@@ -14,6 +14,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchPoolPricePoints, PricePointData } from "./lib/indexer";
 import { formatEther } from "viem";
 import { Button } from "@/components/ui/button";
+import { useChartTheme } from "./hooks/use-chart-theme";
 
 interface PriceChartProps {
   poolId: string;
@@ -141,7 +142,7 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker }) => {
       ) : data && data.length > 0 ? (
         <TVPriceChart priceData={data} ticker={ticker} />
       ) : (
-        <div className="text-center py-20 text-gray-500">
+        <div className="text-center py-20 text-muted-foreground">
           No price data available.
         </div>
       )}
@@ -156,6 +157,7 @@ const TVPriceChart: React.FC<{
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<ReturnType<typeof createChart>>();
   const priceSeriesRef = useRef<ISeriesApi<"Line">>();
+  const chartTheme = useChartTheme();
 
   useLayoutEffect(() => {
     const container = containerRef.current;
@@ -164,8 +166,8 @@ const TVPriceChart: React.FC<{
     // Create chart
     const chart = createChart(container, {
       layout: {
-        background: { type: ColorType.Solid, color: "#ffffff" },
-        textColor: "#333",
+        background: { type: ColorType.Solid, color: chartTheme.background },
+        textColor: chartTheme.textColor,
         attributionLogo: false,
       },
       autoSize: true,
@@ -180,7 +182,7 @@ const TVPriceChart: React.FC<{
     chartRef.current = chart;
 
     priceSeriesRef.current = chart.addSeries(LineSeries, {
-      color: "#8b5cf6",
+      color: chartTheme.lineColor,
       lineWidth: 2,
       title: `ETH / ${ticker}`,
       priceFormat: {

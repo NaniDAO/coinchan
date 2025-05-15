@@ -6,6 +6,7 @@ import { RouterProvider, createRouter } from "@tanstack/react-router";
 
 import { config } from "./wagmi.ts";
 import { routeTree } from "./routeTree.gen";
+import { ThemeProvider } from "./lib/theme";
 
 import "./index.css";
 
@@ -37,11 +38,13 @@ declare module "@tanstack/react-router" {
 
 // Application with all providers
 const AppWithProviders = () => (
-  <WagmiProvider config={config} reconnectOnMount={true}>
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>
-  </WagmiProvider>
+  <ThemeProvider>
+    <WagmiProvider config={config} reconnectOnMount={true}>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>
+    </WagmiProvider>
+  </ThemeProvider>
 );
 
 // Only use StrictMode in development to avoid double mounting
