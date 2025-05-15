@@ -31,7 +31,7 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker }) => {
     startTs: undefined,
     endTs: undefined,
     desiredPoints: 100, // Default value
-    activeButton: "all", // Default active button
+    activeButton: "1w", // Default active button
   });
 
   const { data, isLoading, error } = useQuery({
