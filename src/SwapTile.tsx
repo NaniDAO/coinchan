@@ -1301,7 +1301,7 @@ const TokenSelector = React.memo(
         {/* Selected token display with thumbnail */}
         <div
           onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-2 cursor-pointer bg-transparent border border-primary/30 rounded-md px-2 py-1 hover:bg-secondary/50 touch-manipulation text-foreground"
+          className="flex items-center gap-2 cursor-pointer bg-transparent border border-primary/30 rounded-md px-2 py-1 hover:bg-secondary-foreground touch-manipulation text-foreground"
         >
           <TokenImage token={selectedToken} />
           <div className="flex flex-col">
@@ -1665,7 +1665,7 @@ const TokenSelector = React.memo(
                     data-token-symbol={token.symbol}
                     data-token-name={token.name}
                     data-token-id={token.id?.toString() ?? "eth"}
-                    className={`flex items-center justify-between p-3 sm:p-2 hover:bg-secondary/50 cursor-pointer touch-manipulation ${
+                    className={`flex items-center justify-between p-3 sm:p-2 hover:bg-secondary-foreground cursor-pointer touch-manipulation ${
                       isSelected ? "bg-primary/10 shadow-[0_0_10px_rgba(0,204,255,0.15)]" : ""
                     }`}
                     style={{
@@ -4249,20 +4249,20 @@ export const SwapTile = () => {
           onValueChange={(value) => setMode(value as TileMode)}
           className="mb-2"
         >
-          <TabsList className="w-full bg-secondary dark:bg-background/50 p-1 rounded-lg border border-border">
+          <TabsList className="w-full bg-secondary dark:bg-background p-1 rounded-lg border border-border">
             <TabsTrigger
               value="swap"
-              className="flex-1 data-[state=active]:bg-background dark:data-[state=active]:bg-card dark:data-[state=active]:shadow-[0_0_10px_rgba(0,204,255,0.15)] dark:data-[state=active]:border-primary/50 data-[state=active]:border-border data-[state=active]:shadow-sm h-10 touch-manipulation dark:text-foreground"
+              className="flex-1 data-[state=active]:bg-background dark:data-[state=active]:bg-card dark:data-[state=active]:shadow-[0_0_10px_rgba(0,204,255,0.15)] dark:data-[state=active]:border-primary data-[state=active]:border-border data-[state=active]:shadow-sm h-10 touch-manipulation dark:text-foreground"
             >
               <ArrowDownUp className="h-4 w-4 mr-1" />
-              <span className="text-sm sm:text-base">Swap</span>
+              <span className="text-sm text-secondary-foreground data-[state=active]:text-foreground">Swap</span>
             </TabsTrigger>
             <TabsTrigger
               value="liquidity"
-              className="flex-1 data-[state=active]:bg-background dark:data-[state=active]:bg-card dark:data-[state=active]:shadow-[0_0_10px_rgba(0,204,255,0.15)] dark:data-[state=active]:border-primary/50 data-[state=active]:border-border data-[state=active]:shadow-sm h-10 touch-manipulation dark:text-foreground"
+              className="flex-1 data-[state=active]:bg-background dark:data-[state=active]:bg-card dark:data-[state=active]:shadow-[0_0_10px_rgba(0,204,255,0.15)] dark:data-[state=active]:border-primary data-[state=active]:border-border data-[state=active]:shadow-sm h-10 touch-manipulation dark:text-foreground"
             >
               <Plus className="h-4 w-4 mr-1" />
-              <span className="text-sm sm:text-base">Liquidity</span>
+              <span className="text-sm text-secondary-foreground  data-[state=active]:text-foreground">Liquidity</span>
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -4311,7 +4311,7 @@ export const SwapTile = () => {
         <div className="relative flex flex-col">
           {/* LP Amount Input (only visible in Remove Liquidity mode) */}
           {mode === "liquidity" && liquidityMode === "remove" && (
-            <div className="border-2 border-primary group hover:bg-secondary/50 rounded-t-2xl p-3 pb-4 focus-within:ring-2 focus-within:ring-primary flex flex-col gap-2 bg-secondary/50">
+            <div className="border-2 border-primary group hover:bg-secondary-foreground rounded-t-2xl p-3 pb-4 focus-within:ring-2 focus-within:ring-primary flex flex-col gap-2 bg-secondary/50">
               <div className="flex items-center justify-between">
                 <span className="font-medium text-foreground">
                   LP Tokens to Burn
@@ -4349,7 +4349,7 @@ export const SwapTile = () => {
 
           {/* SELL/PROVIDE panel */}
           <div
-            className={`border-2 border-primary/40 group hover:bg-secondary/50 ${mode === "liquidity" && liquidityMode === "remove" ? "rounded-md" : "rounded-t-2xl"} p-2 pb-4 focus-within:ring-2 focus-within:ring-primary/60 flex flex-col gap-2 ${mode === "liquidity" && liquidityMode === "remove" ? "mt-2" : ""}`}
+            className={`border-2 border-primary/40 group hover:bg-secondary-foreground ${mode === "liquidity" && liquidityMode === "remove" ? "rounded-md" : "rounded-t-2xl"} p-2 pb-4 focus-within:ring-2 focus-within:ring-primary/60 flex flex-col gap-2 ${mode === "liquidity" && liquidityMode === "remove" ? "mt-2" : ""}`}
           >
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">
@@ -4477,7 +4477,7 @@ export const SwapTile = () => {
             <>
               {/* Single-ETH mode panel */}
               <div
-                className={`border-2 border-primary/40 group rounded-b-2xl p-2 pt-3 focus-within:ring-2 hover:bg-secondary/50 focus-within:ring-primary/60 shadow-[0_0_15px_rgba(0,204,255,0.07)] flex flex-col gap-2 mt-2 ${mode === "liquidity" && liquidityMode === "single-eth" ? "" : "hidden"}`}
+                className={`border-2 border-primary/40 group rounded-b-2xl p-2 pt-3 focus-within:ring-2 hover:bg-secondary-foreground focus-within:ring-primary/60 shadow-[0_0_15px_rgba(0,204,255,0.07)] flex flex-col gap-2 mt-2 ${mode === "liquidity" && liquidityMode === "single-eth" ? "" : "hidden"}`}
               >
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">
@@ -4506,7 +4506,7 @@ export const SwapTile = () => {
 
               {/* Standard BUY/RECEIVE panel */}
               <div
-                className={`border-2 border-primary/40 group rounded-b-2xl p-2 pt-3 focus-within:ring-2 hover:bg-secondary/50 focus-within:ring-primary/60 shadow-[0_0_15px_rgba(0,204,255,0.07)] flex flex-col gap-2 mt-2 ${!(mode === "liquidity" && liquidityMode === "single-eth") ? "" : "hidden"}`}
+                className={`border-2 border-primary/40 group rounded-b-2xl p-2 pt-3 focus-within:ring-2 hover:bg-secondary-foreground focus-within:ring-primary/60 shadow-[0_0_15px_rgba(0,204,255,0.07)] flex flex-col gap-2 mt-2 ${!(mode === "liquidity" && liquidityMode === "single-eth") ? "" : "hidden"}`}
               >
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">

@@ -597,7 +597,7 @@ export function CoinForm() {
                       <PopoverTrigger asChild>
                         <button
                           type="button"
-                          className="text-xs px-2 py-1 rounded border border-input hover:bg-secondary/30 transition-colors flex items-center gap-1"
+                          className="text-xs px-2 py-1 rounded border border-input hover:bg-secondary-foreground transition-colors flex items-center gap-1"
                         >
                           Fee:{" "}
                           <span className="font-semibold text-primary">
@@ -620,8 +620,8 @@ export function CoinForm() {
                                 type="button"
                                 className={`text-xs px-3 py-2 rounded border transition-colors ${
                                   swapFee === fee
-                                    ? "bg-primary/20 border-primary/40 text-primary"
-                                    : "border-input hover:bg-secondary/20"
+                                    ? "bg-primary border-primary text-primary"
+                                    : "border-input hover:bg-secondary-foreground"
                                 }`}
                                 onClick={() => {
                                   setSwapFee(fee);

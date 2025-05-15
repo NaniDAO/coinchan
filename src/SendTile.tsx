@@ -934,7 +934,7 @@ const TokenSelector = memo(
         <div
           onClick={() => setIsOpen(!isOpen)}
           className={cn(
-            "flex items-center gap-2 cursor-pointer bg-transparent border border-primary/30 rounded-md px-2 py-1 hover:bg-secondary/50 touch-manipulation",
+            "flex items-center gap-2 cursor-pointer bg-transparent border border-primary rounded-md px-2 py-1 hover:bg-secondary-foreground touch-manipulation",
             className,
           )}
         >
@@ -1101,7 +1101,7 @@ const TokenSelector = memo(
                     data-token-symbol={token.symbol}
                     data-token-name={token.name}
                     data-token-id={token.id?.toString() ?? "eth"}
-                    className={`flex items-center justify-between p-3 sm:p-2 hover:bg-secondary/50 cursor-pointer touch-manipulation ${
+                    className={`flex items-center justify-between p-3 sm:p-2 hover:bg-secondary-foreground cursor-pointer touch-manipulation ${
                       isSelected ? "bg-primary/10" : ""
                     }`}
                   >
@@ -1494,7 +1494,7 @@ const SendTileComponent = () => {
                 value={recipientAddress}
                 onChange={(e) => setRecipientAddress(e.target.value)}
                 placeholder="0x..."
-                className="w-full p-2 border-2 border-primary/40 rounded focus-within:ring-2 hover:bg-secondary/50 focus-within:ring-primary focus-within:outline-none h-full"
+                className="w-full p-2 border-2 border-primary rounded focus-within:ring-2 hover:bg-secondary-foreground focus-within:ring-primary focus-within:outline-none h-full"
               />
             </div>
             {recipientAddress &&
@@ -1540,7 +1540,7 @@ const SendTileComponent = () => {
               value={amount}
               onChange={(e) => handleAmountChange(e.target.value)}
               placeholder="0.0"
-              className={`w-full h-12 p-2 border-2 border-primary/40 rounded focus-within:ring-2 hover:bg-secondary/50 focus-within:ring-primary focus-within:outline-none ${
+              className={`w-full h-12 p-2 border-2 border-primary/40 rounded focus-within:ring-2 hover:bg-secondary-foreground focus-within:ring-primary focus-within:outline-none ${
                 selectedToken.isFetching ? 'token-loading' : ''
               }`}
             />

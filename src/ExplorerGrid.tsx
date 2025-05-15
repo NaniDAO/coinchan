@@ -135,7 +135,7 @@ export const ExplorerGrid = ({
           onClick={handlePrev}
           disabled={!canPrev || isPending}
           aria-label="Go to previous page"
-          className={`px-4 py-2 rounded-md border border-primary/30 hover:bg-secondary/30 touch-manipulation
+          className={`px-4 py-2 rounded-md border border-primary hover:bg-secondary-foreground touch-manipulation
             ${!canPrev || isPending ? "text-muted-foreground opacity-50 cursor-not-allowed" : "text-primary font-bold"}
             ${isTransitioning && direction === "prev" ? "relative bg-secondary/30" : ""}
           `}
@@ -165,7 +165,7 @@ export const ExplorerGrid = ({
           onClick={handleNext}
           disabled={!canNext || isPending}
           aria-label="Go to next page"
-          className={`px-4 py-2 rounded-md border border-primary/30 hover:bg-secondary/30 touch-manipulation
+          className={`px-4 py-2 rounded-md border border-primary/30 hover:bg-secondary-foreground touch-manipulation
             ${!canNext || isPending ? "text-muted-foreground opacity-50 cursor-not-allowed" : "text-primary font-bold"}
             ${isTransitioning && direction === "next" ? "relative bg-secondary/30" : ""}
           `}
