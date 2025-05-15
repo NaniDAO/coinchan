@@ -1,4 +1,3 @@
-import { Card, CardContent } from "./ui/card";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "@tanstack/react-router";
 import {

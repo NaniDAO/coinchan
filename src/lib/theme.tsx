@@ -1,46 +1,71 @@
-import React, { useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from "react";
 
-// Define available themes - extensible for future themes
-export type ThemeMode = 'light' | 'dark' | string;
+export type ThemeMode = "light" | "dark" | string;
 
-// Simple theme hooks approach
-export function useTheme() {
-  const [theme, setInternalTheme] = useState<ThemeMode>(() => {
-    if (typeof window !== 'undefined') {
-      if (document.documentElement.classList.contains('dark')) {
-        return 'dark';
-      }
-      return localStorage.getItem('theme') || 'light';
+type ThemeContextType = {
+  theme: ThemeMode;
+  setTheme: (theme: ThemeMode) => void;
+  toggleTheme: () => void;
+};
+
+const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [theme, setInternalTheme] = useState<ThemeMode>("light");
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme");
+
+    if (savedTheme) {
+      setTheme(savedTheme);
+    } else if (
+      window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches
+    ) {
+      // If no saved theme, use system preference
+      setTheme("dark");
     }
-    return 'light';
-  });
+  }, []);
 
   const setTheme = (newTheme: ThemeMode) => {
-    if (typeof window === 'undefined') return;
-    
     // Update DOM
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark');
+    if (newTheme === "dark") {
+      document.documentElement.classList.add("dark");
     } else {
-      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.remove("dark");
     }
-    
+
     // Save to localStorage
-    localStorage.setItem('theme', newTheme);
-    
+    localStorage.setItem("theme", newTheme);
+
     // Update state
     setInternalTheme(newTheme);
   };
 
   const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
+    const newTheme = theme === "light" ? "dark" : "light";
     setTheme(newTheme);
   };
 
-  return { theme, setTheme, toggleTheme };
+  const themeContextValue: ThemeContextType = {
+    theme,
+    setTheme,
+    toggleTheme,
+  };
+
+  return (
+    <ThemeContext.Provider value={themeContextValue}>
+      {children}
+    </ThemeContext.Provider>
+  );
 }
 
-// Simple provider that doesn't use context - just for compatibility
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+export function useTheme() {
+  const context = useContext(ThemeContext);
+
+  if (context === undefined) {
+    throw new Error("useTheme must be used within a ThemeProvider");
+  }
+
+  return context;
 }
