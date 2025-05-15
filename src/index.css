@@ -57,6 +57,7 @@
 html {
   font-size: var(--font-size-base);
   -webkit-text-size-adjust: 100%;
+  transition: color-scheme 0.5s ease, background-color 0.5s ease, color 0.5s ease;
 }
 
 img.logo {
@@ -70,9 +71,10 @@ img.logo {
 body {
   min-height: 100vh;
   width: 100vw;
-  background: white;
-  color: var(--deep-red);
+  background-color: var(--background);
+  color: var(--foreground);
   font-family: var(--font-body);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* menu & form */
@@ -90,18 +92,18 @@ label {
   font-family: var(--font-display);
   font-size: 0.8rem;
   text-transform: uppercase;
-  color: var(--deep-red);
+  color: var(--foreground);
   margin-bottom: 0.25rem;
 }
 
 /* misc */
 a {
-  color: var(--accent-blue);
+  color: var(--primary);
   text-decoration: none;
 }
 a:hover {
   text-decoration: underline;
-  color: var(--dark-gold);
+  color: var(--muted-foreground);
 }
 
 /* animations */
@@ -128,10 +130,10 @@ a:hover {
 /* scrollbar (optional) */
 ::-webkit-scrollbar {
   width: 6px;
-  background: var(--bg-mid);
+  background: var(--secondary);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: var(--muted-foreground);
 }
 
 /* ———————————————————————————————————————————————————————————————
@@ -148,9 +150,9 @@ a:hover {
     width: 100%;
     max-width: 900px;
     margin: 0 auto;
-    background-color: var(--cream);
+    background-color: var(--card);
     border-radius: 16px;
-    border: 2px solid var(--deep-red);
+    border: 2px solid var(--primary);
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
     overflow: hidden;
   }
@@ -168,11 +170,11 @@ a:hover {
   border-radius: 24px; /* same as your .meme-paper rounding */
 }
 .meme-paper::-webkit-scrollbar-track {
-  background: var(--bg-mid);
+  background: var(--secondary);
   border-radius: 24px;
 }
 .meme-paper::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: var(--muted-foreground);
   border-radius: 3px;
 }
 
@@ -229,7 +231,7 @@ a:hover {
 .stat-card {
   display: flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.6);
+  background: var(--card);
   backdrop-filter: blur(4px);
   padding: 16px;
   border-radius: 16px;
@@ -237,7 +239,7 @@ a:hover {
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease;
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--border);
 }
 
 .stat-card:hover {
@@ -258,7 +260,7 @@ a:hover {
 .stat-text .label {
   font-size: 13px;
   font-weight: 500;
-  color: #4b5563;
+  color: var(--muted-foreground);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -266,7 +268,7 @@ a:hover {
 .stat-text .value {
   font-size: 20px;
   font-weight: 700;
-  color: var(--deep-red);
+  color: var(--primary);
   margin-top: 4px;
   font-family: var(--font-display);
 }
@@ -275,7 +277,7 @@ a:hover {
   font-family: var(--font-display);
   font-size: 2rem;
   font-weight: 700;
-  color: var(--deep-red);
+  color: var(--primary);
   text-align: center;
   margin-bottom: 24px;
   letter-spacing: 0.05em;
@@ -284,7 +286,7 @@ a:hover {
 
 .explanation {
   margin-top: 16px;
-  color: #374151;
+  color: var(--foreground);
   font-size: 16px;
   line-height: 1.7;
   text-align: left;
@@ -312,7 +314,7 @@ a:hover {
 
 .explanation li::before {
   content: "•";
-  color: var(--deep-red);
+  color: var(--primary);
   font-weight: bold;
   position: absolute;
   left: 0;
@@ -320,14 +322,14 @@ a:hover {
 }
 
 .feature-list li {
-  border-left: 3px solid #f3f4f6;
+  border-left: 3px solid var(--muted);
   padding-left: 16px;
   margin-left: 8px;
   transition: border-color 0.2s ease;
 }
 
 .feature-list li:hover {
-  border-left-color: var(--deep-red);
+  border-left-color: var(--primary);
 }
 
 .coins-container {
@@ -411,7 +413,7 @@ a:hover {
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
+  html, body {
+    @apply bg-background text-foreground transition-colors duration-300;
   }
 }
