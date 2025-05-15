@@ -6,6 +6,7 @@ import {
   formatImageURL,
   getAlternativeImageUrls,
 } from "@/hooks/metadata/coin-utils";
+import { ArrowRightIcon } from "lucide-react";
 
 interface CoinCardProps {
   coin: any;
@@ -123,13 +124,13 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
     [coin.coinId],
   );
   return (
-    <Card className="flex border-2 border-primary/50 rounded-md bg-card w-full flex-col items-right p-1 gap-2 shadow-md hover:shadow-lg transition-all duration-200">
-      <CardContent className="flex flex-col items-center justify-center p-2 space-y-2">
-        <h3 className="text-center font-extrabold text-xs sm:text-sm truncate w-full">
+    <div className="flex border-2 border-primary/50 rounded-md bg-card w-full flex-col items-right gap-2 shadow-md hover:shadow-lg transition-all duration-200">
+      <div className="flex flex-col items-center justify-center space-y-2">
+        <h3 className="p-2 text-center font-extrabold text-xs sm:text-sm truncate w-full">
           {displayName} [{displaySymbol}]
         </h3>
 
-        <div className="w-16 h-16 sm:w-20 sm:h-20 relative">
+        <div className="p-1 w-16 h-16 sm:w-20 sm:h-20 relative">
           {/* Base colored circle (always visible) */}
           <div
             className={`absolute inset-0 flex ${getColorForId(coin.coinId)} text-background justify-center items-center rounded-full`}
@@ -156,11 +157,12 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
           params={{
             coinId: coin.coinId.toString(),
           }}
-          className="m-0 rounded-full bg-primary/10 py-1 px-3 text-primary font-extrabold hover:scale-105 hover:bg-primary/20 transition-all duration-200 text-sm touch-manipulation shadow-sm"
+          className="flex flex-row items-center justify-between m-0 rounded-t-none rounded-b-sm w-full bg-primary/10 py-1 px-3 text-primary-foreground font-extrabold hover:bg-primary/50 transition-all duration-200 text-sm touch-manipulation shadow-sm"
         >
-          Trade
+          <span>Trade</span>
+          <ArrowRightIcon size={16} />
         </Link>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };

@@ -432,7 +432,7 @@ export const BuySell = ({
 
   return (
     <Tabs value={tab} onValueChange={(v) => setTab(v as "buy" | "sell")}>
-      <div className="flex items-start gap-4 mb-4 p-4 bg-card rounded-lg">
+      <div className="flex items-start gap-4 mb-4 p-4 border-muted border-2 bg-muted/10 text-muted-foreground rounded-lg">
         <div className="flex-shrink-0">
           <div className="w-16 h-16 relative">
             {/* Base colored circle (always visible) */}
@@ -459,7 +459,9 @@ export const BuySell = ({
         <div className="flex flex-col flex-grow overflow-hidden">
           <div className="flex items-baseline space-x-2">
             <h3 className="text-lg font-medium truncate">{displayName}</h3>
-            <span className="text-sm text-muted-foreground">[{displaySymbol}]</span>
+            <span className="text-sm text-muted-foreground">
+              [{displaySymbol}]
+            </span>
           </div>
 
           {/* Description */}
@@ -487,7 +489,9 @@ export const BuySell = ({
               {/* Market Cap section */}
               {marketCapEth !== null && (
                 <div className="flex items-center gap-1">
-                  <span className="text-muted-foreground">Est. Market Cap:</span>
+                  <span className="text-muted-foreground">
+                    Est. Market Cap:
+                  </span>
                   <span>{formatNumber(marketCapEth, 2)} ETH</span>
                   {marketCapUsd !== null ? (
                     <span className="ml-1">
@@ -563,7 +567,9 @@ export const BuySell = ({
 
       <TabsContent value="sell">
         <div className="flex flex-col gap-2">
-          <span className="text-sm text-muted-foreground">Using {displaySymbol}</span>
+          <span className="text-sm text-muted-foreground">
+            Using {displaySymbol}
+          </span>
           <div className="relative">
             <Input
               type="number"

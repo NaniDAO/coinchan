@@ -9,7 +9,6 @@ import {
 import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
 import { mainnet } from "viem/chains";
 import { useCoinData } from "./hooks/metadata";
-// import PoolCandleChart from "./PoolCandleChart";
 import { computePoolId } from "./lib/swapHelper";
 import PoolPriceChart from "./PoolPriceChart";
 import { Link } from "@tanstack/react-router";
@@ -164,7 +163,9 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
         <div className="mt-4 sm:mt-6 max-w-2xl">
           <ErrorBoundary
             fallback={
-              <p className="text-destructive">Vesting claim feature unavailable</p>
+              <p className="text-destructive">
+                Vesting claim feature unavailable
+              </p>
             }
           >
             <ClaimVested coinId={tokenId} />

@@ -29,8 +29,8 @@ const tokenLoadingStyles = `
 `;
 
 // Add styles to document head
-if (typeof document !== 'undefined') {
-  const styleElem = document.createElement('style');
+if (typeof document !== "undefined") {
+  const styleElem = document.createElement("style");
   styleElem.innerHTML = tokenLoadingStyles;
   document.head.appendChild(styleElem);
 }
@@ -295,8 +295,8 @@ const USDT_TOKEN: TokenMeta = {
 
 // Cache for price calculations
 // Limited size with simple eviction of oldest entries
-const amountOutCache = new Map<string, { value: bigint, timestamp: number }>();
-const amountInCache = new Map<string, { value: bigint, timestamp: number }>();
+const amountOutCache = new Map<string, { value: bigint; timestamp: number }>();
+const amountInCache = new Map<string, { value: bigint; timestamp: number }>();
 const PRICE_CACHE_SIZE = 50; // Smaller cache for price calculations
 const PRICE_CACHE_TTL = 2000; // 2 seconds TTL for price calculations
 
@@ -313,41 +313,41 @@ const getAmountOut = (
   // Create cache key from all inputs
   const cacheKey = `${amountIn.toString()}-${reserveIn.toString()}-${reserveOut.toString()}-${swapFee.toString()}`;
   const now = Date.now();
-  
+
   // Check cache first
   const cached = amountOutCache.get(cacheKey);
-  if (cached && (now - cached.timestamp < PRICE_CACHE_TTL)) {
+  if (cached && now - cached.timestamp < PRICE_CACHE_TTL) {
     return cached.value;
   }
-  
+
   // Calculate result if not cached or expired
   const amountInWithFee = amountIn * (10000n - swapFee);
   const numerator = amountInWithFee * reserveOut;
   const denominator = reserveIn * 10000n + amountInWithFee;
   const result = numerator / denominator;
-  
+
   // Manage cache size
   if (amountOutCache.size >= PRICE_CACHE_SIZE) {
     // Find oldest entry
     let oldestKey = null;
     let oldestTime = Infinity;
-    
+
     for (const [key, entry] of amountOutCache.entries()) {
       if (entry.timestamp < oldestTime) {
         oldestTime = entry.timestamp;
         oldestKey = key;
       }
     }
-    
+
     // Remove oldest entry
     if (oldestKey) {
       amountOutCache.delete(oldestKey);
     }
   }
-  
+
   // Cache the result
   amountOutCache.set(cacheKey, { value: result, timestamp: now });
-  
+
   return result;
 };
 
@@ -370,40 +370,40 @@ const getAmountIn = (
   // Create cache key from all inputs
   const cacheKey = `${amountOut.toString()}-${reserveIn.toString()}-${reserveOut.toString()}-${swapFee.toString()}`;
   const now = Date.now();
-  
+
   // Check cache first
   const cached = amountInCache.get(cacheKey);
-  if (cached && (now - cached.timestamp < PRICE_CACHE_TTL)) {
+  if (cached && now - cached.timestamp < PRICE_CACHE_TTL) {
     return cached.value;
   }
-  
+
   // Calculate result if not cached or expired
   const numerator = reserveIn * amountOut * 10000n;
   const denominator = (reserveOut - amountOut) * (10000n - swapFee);
   const result = numerator / denominator + 1n; // +1 for ceiling rounding
-  
+
   // Manage cache size
   if (amountInCache.size >= PRICE_CACHE_SIZE) {
     // Find oldest entry
     let oldestKey = null;
     let oldestTime = Infinity;
-    
+
     for (const [key, entry] of amountInCache.entries()) {
       if (entry.timestamp < oldestTime) {
         oldestTime = entry.timestamp;
         oldestKey = key;
       }
     }
-    
+
     // Remove oldest entry
     if (oldestKey) {
       amountInCache.delete(oldestKey);
     }
   }
-  
+
   // Cache the result
   amountInCache.set(cacheKey, { value: result, timestamp: now });
-  
+
   return result;
 };
 
@@ -446,17 +446,17 @@ const useAllTokens = () => {
       setTokens((prev) => {
         // Find current ETH token inside existing list (if any)
         const prevEth = prev.find((t) => t.id === null) ?? ETH_TOKEN;
-        
+
         // Only update if not already in fetching state
         if (prevEth.isFetching) return prev;
-        
+
         // Create new ETH token with fetching state but preserve old balance for stability
         const nextEth = {
           ...prevEth,
           isFetching: true, // Add a flag to indicate loading state
-          balance: prevEth.balance // Keep previous balance during loading
+          balance: prevEth.balance, // Keep previous balance during loading
         };
-        
+
         // Return new tokens array with stable references for the rest
         return [nextEth, ...prev.filter((t) => t.id !== null)];
       });
@@ -477,15 +477,18 @@ const useAllTokens = () => {
           ...prevEth,
           isFetching: false,
           balance: newBal,
-          lastUpdated: Date.now() // Add timestamp for caching/staleness checks
+          lastUpdated: Date.now(), // Add timestamp for caching/staleness checks
         };
 
         // Persist to sessionStorage for faster initialization on next visit
         try {
-          sessionStorage.setItem('ethToken', JSON.stringify({
-            balance: newBal.toString(),
-            lastUpdated: Date.now()
-          }));
+          sessionStorage.setItem(
+            "ethToken",
+            JSON.stringify({
+              balance: newBal.toString(),
+              lastUpdated: Date.now(),
+            }),
+          );
         } catch (e) {
           // Ignore storage errors
         }
@@ -1309,12 +1312,13 @@ const TokenSelector = React.memo(
               <span className="font-medium">{selectedToken.symbol}</span>
             </div>
             <div className="flex items-center gap-1">
-              <div 
+              <div
                 className={`text-xs font-medium text-muted-foreground min-w-[50px] h-[14px] ${
                   // Add loading class for better visual feedback
-                  (selectedToken.id === null && isEthBalanceFetching) || selectedToken.isFetching
-                    ? 'token-loading px-1 rounded bg-transparent' 
-                    : ''
+                  (selectedToken.id === null && isEthBalanceFetching) ||
+                  selectedToken.isFetching
+                    ? "token-loading px-1 rounded bg-transparent"
+                    : ""
                 }`}
               >
                 {formatBalance(selectedToken)}
@@ -1666,7 +1670,9 @@ const TokenSelector = React.memo(
                     data-token-name={token.name}
                     data-token-id={token.id?.toString() ?? "eth"}
                     className={`flex items-center justify-between p-3 sm:p-2 hover:bg-secondary-foreground cursor-pointer touch-manipulation ${
-                      isSelected ? "bg-primary/10 shadow-[0_0_10px_rgba(0,204,255,0.15)]" : ""
+                      isSelected
+                        ? "bg-primary/10 shadow-[0_0_10px_rgba(0,204,255,0.15)]"
+                        : ""
                     }`}
                     style={{
                       contentVisibility: "auto",
@@ -1685,12 +1691,13 @@ const TokenSelector = React.memo(
                       </div>
                     </div>
                     <div className="text-right min-w-[60px]">
-                      <div 
+                      <div
                         className={`text-sm font-medium h-[18px] text-foreground ${
                           // Add loading class when ETH is loading or this specific token is loading
-                          (token.id === null && isEthBalanceFetching) || token.isFetching 
-                            ? 'token-loading px-1 bg-transparent' 
-                            : ''
+                          (token.id === null && isEthBalanceFetching) ||
+                          token.isFetching
+                            ? "token-loading px-1 bg-transparent"
+                            : ""
                         }`}
                       >
                         {balance}
@@ -4249,20 +4256,22 @@ export const SwapTile = () => {
           onValueChange={(value) => setMode(value as TileMode)}
           className="mb-2"
         >
-          <TabsList className="w-full bg-secondary dark:bg-background p-1 rounded-lg border border-border">
+          <TabsList className="w-full bg-primary dark:bg-background p-1 rounded-lg border border-border">
             <TabsTrigger
               value="swap"
-              className="flex-1 data-[state=active]:bg-background dark:data-[state=active]:bg-card dark:data-[state=active]:shadow-[0_0_10px_rgba(0,204,255,0.15)] dark:data-[state=active]:border-primary data-[state=active]:border-border data-[state=active]:shadow-sm h-10 touch-manipulation dark:text-foreground"
+              className="flex-1 data-[state=active]:bg-background dark:data-[state=active]:bg-card dark:data-[state=active]:shadow-[0_0_10px_rgba(0,204,255,0.15)] dark:data-[state=active]:border-primary data-[state=active]:border-border data-[state=active]:shadow-sm h-10 touch-manipulation text-primary-foreground"
             >
               <ArrowDownUp className="h-4 w-4 mr-1" />
-              <span className="text-sm text-secondary-foreground data-[state=active]:text-foreground">Swap</span>
+              <span className="text-sm text-primary-foreground">Swap</span>
             </TabsTrigger>
             <TabsTrigger
               value="liquidity"
-              className="flex-1 data-[state=active]:bg-background dark:data-[state=active]:bg-card dark:data-[state=active]:shadow-[0_0_10px_rgba(0,204,255,0.15)] dark:data-[state=active]:border-primary data-[state=active]:border-border data-[state=active]:shadow-sm h-10 touch-manipulation dark:text-foreground"
+              className="flex-1 data-[state=active]:bg-background dark:data-[state=active]:bg-card dark:data-[state=active]:shadow-[0_0_10px_rgba(0,204,255,0.15)] dark:data-[state=active]:border-primary data-[state=active]:border-border data-[state=active]:shadow-sm h-10 touch-manipulation text-primary-foreground"
             >
               <Plus className="h-4 w-4 mr-1" />
-              <span className="text-sm text-secondary-foreground  data-[state=active]:text-foreground">Liquidity</span>
+              <span className="text-sm text-primary-foreground data-[state=active]:text-foreground">
+                Liquidity
+              </span>
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -4277,21 +4286,21 @@ export const SwapTile = () => {
             <TabsList className="w-full bg-secondary dark:bg-background/80 p-1 rounded-lg border border-border">
               <TabsTrigger
                 value="add"
-                className="flex-1 data-[state=active]:bg-background dark:data-[state=active]:bg-card dark:data-[state=active]:shadow-[0_0_10px_rgba(0,204,255,0.15)] dark:data-[state=active]:border-primary/50 data-[state=active]:border-border data-[state=active]:shadow-sm h-10 touch-manipulation dark:text-foreground"
+                className="flex-1  data-[state=active]:bg-background dark:data-[state=active]:bg-card dark:data-[state=active]:shadow-[0_0_10px_rgba(0,204,255,0.15)] dark:data-[state=active]:border-primary/50 data-[state=active]:border-border data-[state=active]:shadow-sm h-10 touch-manipulation text-primary-foreground"
               >
                 <Plus className="h-4 w-4 mr-1" />
                 <span className="text-xs sm:text-sm">Add</span>
               </TabsTrigger>
               <TabsTrigger
                 value="remove"
-                className="flex-1 data-[state=active]:bg-background dark:data-[state=active]:bg-card dark:data-[state=active]:shadow-[0_0_10px_rgba(0,204,255,0.15)] dark:data-[state=active]:border-primary/50 data-[state=active]:border-border data-[state=active]:shadow-sm h-10 touch-manipulation dark:text-foreground"
+                className="flex-1 data-[state=active]:bg-background dark:data-[state=active]:bg-card dark:data-[state=active]:shadow-[0_0_10px_rgba(0,204,255,0.15)] dark:data-[state=active]:border-primary/50 data-[state=active]:border-border data-[state=active]:shadow-sm h-10 touch-manipulation text-primary-foreground"
               >
                 <Minus className="h-4 w-4 mr-1" />
                 <span className="text-xs sm:text-sm">Remove</span>
               </TabsTrigger>
               <TabsTrigger
                 value="single-eth"
-                className="flex-1 data-[state=active]:bg-background dark:data-[state=active]:bg-card dark:data-[state=active]:shadow-[0_0_10px_rgba(0,204,255,0.15)] dark:data-[state=active]:border-primary/50 data-[state=active]:border-border data-[state=active]:shadow-sm h-10 touch-manipulation dark:text-foreground"
+                className="flex-1 data-[state=active]:bg-background dark:data-[state=active]:bg-card dark:data-[state=active]:shadow-[0_0_10px_rgba(0,204,255,0.15)] dark:data-[state=active]:border-primary/50 data-[state=active]:border-border data-[state=active]:shadow-sm h-10 touch-manipulation text-primary-foreground"
               >
                 <span className="text-xs font-medium mr-1">Ξ</span>
                 <span className="text-xs sm:text-sm">Single-ETH</span>
@@ -4640,7 +4649,7 @@ export const SwapTile = () => {
 
         {/* Mode-specific information */}
         {mode === "liquidity" && (
-          <div className="text-xs bg-secondary/70 border border-primary/30 rounded p-2 mt-2 text-foreground">
+          <div className="text-xs bg-muted/50 border border-primary/30 rounded p-2 mt-2 text-muted-foreground">
             {liquidityMode === "add" ? (
               <>
                 <p className="font-medium mb-1">Adding liquidity provides:</p>
