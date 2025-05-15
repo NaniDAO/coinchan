@@ -376,37 +376,58 @@ a:hover {
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Terminal black background with slight blue tint */
+  --background: #0a0c10;
+  --foreground: #e6f0ff;
+  
+  /* Card/UI element background darker than main bg */
+  --card: #12151a;
+  --card-foreground: #e6f0ff;
+  
+  /* Popover styling similar to cards */
+  --popover: #12151a;
+  --popover-foreground: #e6f0ff;
+  
+  /* Primary neon blueish-cyan color for highlights */
+  --primary: #00ccff;
+  --primary-foreground: #10141f;
+  
+  /* Secondary darker neon elements */
+  --secondary: #202530;
+  --secondary-foreground: #e6f0ff;
+  
+  /* Muted elements */
+  --muted: #1a1e28;
+  --muted-foreground: #a0b0c0;
+  
+  /* Accent color for contrast with primary */
+  --accent: #1a1e28;
+  --accent-foreground: #e6f0ff;
+  
+  /* Destructive red */
+  --destructive: #ff3358;
+  
+  /* Subtle border colors */
+  --border: rgba(0, 204, 255, 0.2);
+  --input: rgba(0, 204, 255, 0.15);
+  --ring: rgba(0, 204, 255, 0.4);
+  
+  /* Chart colors - vibrant neon palette */
+  --chart-1: #00ccff;
+  --chart-2: #33ff99;
+  --chart-3: #ff3358;
+  --chart-4: #cc55ff;
+  --chart-5: #ffcc00;
+  
+  /* Sidebar styling */
+  --sidebar: #12151a;
+  --sidebar-foreground: #e6f0ff;
+  --sidebar-primary: #00ccff;
+  --sidebar-primary-foreground: #e6f0ff;
+  --sidebar-accent: #1a1e28;
+  --sidebar-accent-foreground: #e6f0ff;
+  --sidebar-border: rgba(0, 204, 255, 0.2);
+  --sidebar-ring: rgba(0, 204, 255, 0.4);
 }
 
 @layer base {

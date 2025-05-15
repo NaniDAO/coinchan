@@ -30,14 +30,14 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
   // Simple function to get a color based on token ID
   const getColorForId = (id: bigint) => {
     const colors = [
-      "bg-red-500",
-      "bg-blue-500",
-      "bg-green-500",
-      "bg-yellow-500",
-      "bg-purple-500",
-      "bg-pink-500",
-      "bg-indigo-500",
-      "bg-teal-500",
+      "bg-destructive",
+      "bg-primary",
+      "bg-chart-2",
+      "bg-chart-5",
+      "bg-chart-4",
+      "bg-chart-3",
+      "bg-primary",
+      "bg-chart-1",
     ];
     const index = Number(id % BigInt(colors.length));
     return colors[index];
@@ -123,7 +123,7 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
     [coin.coinId],
   );
   return (
-    <Card className="flex border-2 border-red-900 rounded-md bg-yellow-50 w-full flex-col items-right p-1 gap-2 shadow">
+    <Card className="flex border-2 border-primary/50 rounded-md bg-card w-full flex-col items-right p-1 gap-2 shadow-md hover:shadow-lg transition-all duration-200">
       <CardContent className="flex flex-col items-center justify-center p-2 space-y-2">
         <h3 className="text-center font-extrabold text-xs sm:text-sm truncate w-full">
           {displayName} [{displaySymbol}]
@@ -132,7 +132,7 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
         <div className="w-16 h-16 sm:w-20 sm:h-20 relative">
           {/* Base colored circle (always visible) */}
           <div
-            className={`absolute inset-0 flex ${getColorForId(coin.coinId)} text-white justify-center items-center rounded-full`}
+            className={`absolute inset-0 flex ${getColorForId(coin.coinId)} text-background justify-center items-center rounded-full`}
           >
             {displaySymbol.slice(0, 3)}
           </div>
@@ -156,7 +156,7 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
           params={{
             coinId: coin.coinId.toString(),
           }}
-          className="m-0 rounded-full bg-white py-1 px-3 text-red-500 font-extrabold hover:scale-105 hover:underline text-sm touch-manipulation"
+          className="m-0 rounded-full bg-primary/10 py-1 px-3 text-primary font-extrabold hover:scale-105 hover:bg-primary/20 transition-all duration-200 text-sm touch-manipulation shadow-sm"
         >
           Trade
         </Link>

@@ -14,6 +14,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { useQuery } from "@tanstack/react-query";
 import { fetchPoolCandles, CandleData } from "./lib/indexer";
+import { useChartTheme } from "./hooks/use-chart-theme";
 
 interface CandleChartProps {
   poolId: string;
@@ -40,7 +41,7 @@ const PoolCandleChart: React.FC<CandleChartProps> = ({ poolId, interval = "1h" }
         <button
           onClick={() => handleIntervalChange("1m")}
           className={`px-3 py-1 rounded ${
-            selectedInterval === "1m" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"
+            selectedInterval === "1m" ? "bg-primary text-background" : "bg-secondary text-foreground"
           }`}
         >
           1m
@@ -48,7 +49,7 @@ const PoolCandleChart: React.FC<CandleChartProps> = ({ poolId, interval = "1h" }
         <button
           onClick={() => handleIntervalChange("1h")}
           className={`px-3 py-1 rounded ${
-            selectedInterval === "1h" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"
+            selectedInterval === "1h" ? "bg-primary text-background" : "bg-secondary text-foreground"
           }`}
         >
           1h
@@ -56,7 +57,7 @@ const PoolCandleChart: React.FC<CandleChartProps> = ({ poolId, interval = "1h" }
         <button
           onClick={() => handleIntervalChange("1d")}
           className={`px-3 py-1 rounded ${
-            selectedInterval === "1d" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"
+            selectedInterval === "1d" ? "bg-primary text-background" : "bg-secondary text-foreground"
           }`}
         >
           1d
@@ -70,7 +71,7 @@ const PoolCandleChart: React.FC<CandleChartProps> = ({ poolId, interval = "1h" }
       ) : data && data.length > 0 ? (
         <TVCandlestick rawData={data} />
       ) : (
-        <div className="text-center py-20 text-gray-500">No candle data available.</div>
+        <div className="text-center py-20 text-muted-foreground">No candle data available.</div>
       )}
     </div>
   );
@@ -84,6 +85,7 @@ const TVCandlestick: React.FC<TVChartProps> = ({ rawData }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi>();
   const seriesRef = useRef<ISeriesApi<"Candlestick">>();
+  const chartTheme = useChartTheme();
 
   // 1) chart creation — only once
   useLayoutEffect(() => {
@@ -91,8 +93,8 @@ const TVCandlestick: React.FC<TVChartProps> = ({ rawData }) => {
 
     const chart = createChart(containerRef.current, {
       layout: {
-        background: { type: ColorType.Solid, color: "#ffffff" },
-        textColor: "#333",
+        background: { type: ColorType.Solid, color: chartTheme.background },
+        textColor: chartTheme.textColor,
         attributionLogo: false,
       },
       width: containerRef.current.clientWidth,
@@ -104,10 +106,10 @@ const TVCandlestick: React.FC<TVChartProps> = ({ rawData }) => {
     chartRef.current = chart;
 
     seriesRef.current = chart.addSeries(CandlestickSeries, {
-      upColor: "#34d399",
-      downColor: "#f87171",
-      wickUpColor: "#34d399",
-      wickDownColor: "#f87171",
+      upColor: chartTheme.upColor,
+      downColor: chartTheme.downColor,
+      wickUpColor: chartTheme.wickUpColor,
+      wickDownColor: chartTheme.wickDownColor,
       borderVisible: false,
       wickVisible: true,
       priceFormat: {

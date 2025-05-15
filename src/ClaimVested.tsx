@@ -196,9 +196,9 @@ export const ClaimVested = ({ coinId }: ClaimVestedProps) => {
   // If loading or no coin ID, show loading state
   if (isLoading) {
     return (
-      <Card className="w-full p-4 border border-yellow-200 shadow-sm rounded-lg">
+      <Card className="w-full p-4 border border-primary/30 shadow-sm rounded-lg">
         <CardContent className="p-2 flex justify-center items-center">
-          <Loader2 className="h-5 w-5 animate-spin text-yellow-500" />
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
         </CardContent>
       </Card>
     );
@@ -210,9 +210,9 @@ export const ClaimVested = ({ coinId }: ClaimVestedProps) => {
   }
 
   return (
-    <Card className="w-full p-4 border-2 border-yellow-200 shadow-md rounded-xl">
+    <Card className="w-full p-4 border-2 border-primary/30 shadow-md rounded-xl">
       <CardContent className="p-2">
-        <h3 className="text-lg font-bold mb-2 text-yellow-800">Liquidity Vesting</h3>
+        <h3 className="text-lg font-bold mb-2 text-primary">Liquidity Vesting</h3>
 
         {/* Vesting progress */}
         <div className="mb-4">
@@ -220,20 +220,20 @@ export const ClaimVested = ({ coinId }: ClaimVestedProps) => {
             <span>Vesting Progress</span>
             <span>{calculateVestingPercentage().toFixed(2)}%</span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div className="bg-yellow-500 h-2 rounded-full" style={{ width: `${calculateVestingPercentage()}%` }}></div>
+          <div className="w-full bg-secondary rounded-full h-2">
+            <div className="bg-primary h-2 rounded-full" style={{ width: `${calculateVestingPercentage()}%` }}></div>
           </div>
-          <div className="mt-1 text-xs text-gray-600">{formatTimeRemaining()}</div>
+          <div className="mt-1 text-xs text-muted-foreground">{formatTimeRemaining()}</div>
         </div>
 
         {/* Vestable amount */}
-        <div className="mb-4 p-2 bg-yellow-50 rounded-lg">
+        <div className="mb-4 p-2 bg-secondary/30 rounded-lg">
           <div className="flex justify-between">
             <span className="text-sm">Available to claim:</span>
             <span className="font-bold">{formatUnits(vestableAmount, 18)} LP</span>
           </div>
           {lockupInfo.claimed > 0n && (
-            <div className="flex justify-between mt-1 text-xs text-gray-600">
+            <div className="flex justify-between mt-1 text-xs text-muted-foreground">
               <span>Already claimed:</span>
               <span>{formatUnits(lockupInfo.claimed, 18)} LP</span>
             </div>
@@ -244,7 +244,7 @@ export const ClaimVested = ({ coinId }: ClaimVestedProps) => {
         <Button
           onClick={handleClaimVested}
           disabled={!isConnected || vestableAmount === 0n || isPending}
-          className="w-full bg-yellow-500 hover:bg-yellow-600"
+          className="w-full bg-primary hover:bg-primary/80 text-primary-foreground"
         >
           {isPending ? (
             <span className="flex items-center gap-2">
@@ -257,10 +257,10 @@ export const ClaimVested = ({ coinId }: ClaimVestedProps) => {
         </Button>
 
         {/* Error message */}
-        {txError && <div className="mt-2 text-xs text-red-600">{txError}</div>}
+        {txError && <div className="mt-2 text-xs text-destructive">{txError}</div>}
 
         {/* Success message */}
-        {isSuccess && <div className="mt-2 text-xs text-green-600">Successfully claimed tokens!</div>}
+        {isSuccess && <div className="mt-2 text-xs text-chart-2">Successfully claimed tokens!</div>}
       </CardContent>
     </Card>
   );

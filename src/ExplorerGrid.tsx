@@ -75,7 +75,7 @@ export const ExplorerGrid = ({
           </h2>
 
           {searchResults && (
-            <div className="ml-4 text-sm text-gray-500">{searchResults}</div>
+            <div className="ml-4 text-sm text-muted-foreground">{searchResults}</div>
           )}
         </div>
 
@@ -86,8 +86,8 @@ export const ExplorerGrid = ({
           {/* Enhanced loading indicator */}
           {isPending && (
             <div className="flex items-center ml-3">
-              <div className="w-4 h-4 rounded-full border-2 border-red-500 border-t-transparent animate-spin mr-2"></div>
-              <span className="text-sm text-red-500">
+              <div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin mr-2"></div>
+              <span className="text-sm text-primary">
                 {isTransitioning
                   ? direction === "next"
                     ? "Loading next page..."
@@ -118,13 +118,13 @@ export const ExplorerGrid = ({
           Array.from({ length: Math.min(total, PAGE_SIZE) }).map((_, index) => (
             <div
               key={`skeleton-${index}`}
-              className="flex border-2 border-red-900/30 rounded-md bg-yellow-50/50 w-full flex-col items-right p-1 gap-2 shadow h-32 animate-pulse"
+              className="flex border-2 border-primary/30 rounded-md bg-secondary/30 w-full flex-col items-right p-1 gap-2 shadow h-32 animate-pulse"
             ></div>
           ))}
 
         {/* Show message when no search results */}
         {coins.length === 0 && isSearchActive && (
-          <div className="col-span-3 sm:col-span-4 md:col-span-5 text-center py-8 text-gray-500">
+          <div className="col-span-3 sm:col-span-4 md:col-span-5 text-center py-8 text-muted-foreground">
             No coins found matching your search
           </div>
         )}
@@ -135,14 +135,14 @@ export const ExplorerGrid = ({
           onClick={handlePrev}
           disabled={!canPrev || isPending}
           aria-label="Go to previous page"
-          className={`px-4 py-2 rounded-md border border-red-300 hover:bg-red-50 touch-manipulation
-            ${!canPrev || isPending ? "text-gray-400 opacity-50 cursor-not-allowed" : "text-red-500 font-bold"}
-            ${isTransitioning && direction === "prev" ? "relative bg-red-50" : ""}
+          className={`px-4 py-2 rounded-md border border-primary/30 hover:bg-secondary/30 touch-manipulation
+            ${!canPrev || isPending ? "text-muted-foreground opacity-50 cursor-not-allowed" : "text-primary font-bold"}
+            ${isTransitioning && direction === "prev" ? "relative bg-secondary/30" : ""}
           `}
         >
           {isTransitioning && direction === "prev" ? (
             <span className="absolute inset-0 flex items-center justify-center">
-              <span className="w-3 h-3 rounded-full border-2 border-red-500 border-t-transparent animate-spin mr-1"></span>
+              <span className="w-3 h-3 rounded-full border-2 border-primary border-t-transparent animate-spin mr-1"></span>
             </span>
           ) : null}
           <span
@@ -156,7 +156,7 @@ export const ExplorerGrid = ({
 
         {/* Page info from parent */}
         {total > 0 && !isSearchActive && (
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-muted-foreground">
             Page {currentPage} of {totalPages}
           </span>
         )}
@@ -165,14 +165,14 @@ export const ExplorerGrid = ({
           onClick={handleNext}
           disabled={!canNext || isPending}
           aria-label="Go to next page"
-          className={`px-4 py-2 rounded-md border border-red-300 hover:bg-red-50 touch-manipulation
-            ${!canNext || isPending ? "text-gray-400 opacity-50 cursor-not-allowed" : "text-red-500 font-bold"}
-            ${isTransitioning && direction === "next" ? "relative bg-red-50" : ""}
+          className={`px-4 py-2 rounded-md border border-primary/30 hover:bg-secondary/30 touch-manipulation
+            ${!canNext || isPending ? "text-muted-foreground opacity-50 cursor-not-allowed" : "text-primary font-bold"}
+            ${isTransitioning && direction === "next" ? "relative bg-secondary/30" : ""}
           `}
         >
           {isTransitioning && direction === "next" ? (
             <span className="absolute inset-0 flex items-center justify-center">
-              <span className="w-3 h-3 rounded-full border-2 border-red-500 border-t-transparent animate-spin mr-1"></span>
+              <span className="w-3 h-3 rounded-full border-2 border-primary border-t-transparent animate-spin mr-1"></span>
             </span>
           ) : null}
           <span
