@@ -1,9 +1,13 @@
 import { CoinCard } from "./components/CoinCard";
 import { type CoinData } from "./hooks/metadata";
 import { useEffect, useState } from "react";
+import { ArrowDownAZ, ArrowUpAZ, Coins as CoinsIcon } from "lucide-react";
 
 // Default page size
 const PAGE_SIZE = 20;
+
+// Sort type options
+export type SortType = "liquidity" | "recency";
 
 export const ExplorerGrid = ({
   coins,
@@ -18,6 +22,10 @@ export const ExplorerGrid = ({
   isSearchActive = false,
   searchBar,
   searchResults = "",
+  sortType = "liquidity",
+  sortOrder = "desc",
+  onSortTypeChange,
+  onSortOrderChange,
 }: {
   coins: CoinData[];
   total: number;
@@ -31,16 +39,20 @@ export const ExplorerGrid = ({
   isSearchActive?: boolean;
   searchBar?: React.ReactNode;
   searchResults?: string;
+  sortType?: SortType;
+  sortOrder?: "asc" | "desc";
+  onSortTypeChange?: (type: SortType) => void;
+  onSortOrderChange?: (order: "asc" | "desc") => void;
 }) => {
   // Track page transition state for better UX
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [direction, setDirection] = useState<"next" | "prev" | null>(null);
 
-  // Reset transition state when coins change
+  // Reset transition state when coins change or loading completes
   useEffect(() => {
     setIsTransitioning(false);
     setDirection(null);
-  }, [coins]);
+  }, [coins, isLoading]);
 
   // Enhanced prev/next handlers with transition state
   const handlePrev = () => {
@@ -82,6 +94,56 @@ export const ExplorerGrid = ({
         </div>
 
         <div className="flex items-center">
+          {/* Sort Type Button */}
+          {onSortTypeChange && (
+            <button
+              onClick={() => onSortTypeChange(sortType === "liquidity" ? "recency" : "liquidity")}
+              className={`flex items-center justify-center px-2 py-1 mr-2 rounded-md border ${
+                sortType === "recency" ? "border-accent bg-accent/10" : "border-primary/30"
+              } hover:bg-secondary-foreground text-sm`}
+              aria-label={sortType === "liquidity" ? "Sort by recency" : "Sort by liquidity"}
+              title={sortType === "liquidity" ? "Currently: Sorting by liquidity" : "Currently: Sorting by recency"}
+              disabled={isLoading || isTransitioning}
+            >
+              {sortType === "liquidity" ? (
+                <CoinsIcon className="w-4 h-4 mr-1" />
+              ) : (
+                <ArrowDownAZ className="w-4 h-4 mr-1" />
+              )}
+              <span className="hidden sm:inline">{sortType === "liquidity" ? "Liquidity" : "Recency"}</span>
+            </button>
+          )}
+          
+          {/* Sort Order Button - Now visible for both sort modes */}
+          {onSortOrderChange && (
+            <button
+              onClick={() => onSortOrderChange(sortOrder === "asc" ? "desc" : "asc")}
+              className="flex items-center justify-center px-2 py-1 mr-2 rounded-md border border-primary/30 hover:bg-secondary-foreground text-sm"
+              aria-label={
+                sortType === "recency"
+                  ? (sortOrder === "asc" ? "Sort newest first" : "Sort oldest first")
+                  : (sortOrder === "asc" ? "Sort highest liquidity first" : "Sort lowest liquidity first")
+              }
+              title={
+                sortType === "recency"
+                  ? (sortOrder === "asc" ? "Currently: Oldest first" : "Currently: Newest first")
+                  : (sortOrder === "asc" ? "Currently: Lowest liquidity first" : "Currently: Highest liquidity first")
+              }
+              disabled={isLoading || isTransitioning}
+            >
+              {sortOrder === "asc" ? (
+                <ArrowUpAZ className="w-4 h-4 mr-1" />
+              ) : (
+                <ArrowDownAZ className="w-4 h-4 mr-1" />
+              )}
+              <span className="hidden sm:inline">
+                {sortType === "recency"
+                  ? (sortOrder === "asc" ? "Oldest" : "Newest")
+                  : (sortOrder === "asc" ? "Lowest" : "Highest")}
+              </span>
+            </button>
+          )}
+
           {/* Search Bar */}
           {searchBar}
 
