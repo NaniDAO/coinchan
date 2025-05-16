@@ -124,7 +124,7 @@ const ImageInput = ({ onChange }: ImageInputProps) => {
       />
       <div
         className={`flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-md ${
-          isDragging ? "border-blue-500 bg-blue-50" : "border-gray-300"
+          isDragging ? "border-primary bg-primary/10" : "border-input"
         } transition-colors duration-200`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -138,7 +138,7 @@ const ImageInput = ({ onChange }: ImageInputProps) => {
               className="max-h-32 max-w-full object-contain rounded-md"
             />
             <div className="flex flex-col items-center">
-              <p className="text-sm text-gray-500 mb-2">{selectedFileName}</p>
+              <p className="text-sm text-muted-foreground mb-2">{selectedFileName}</p>
               <Button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
@@ -404,7 +404,7 @@ export function CoinForm() {
   };
 
   return (
-    <div className="border-2 border-[#b01e0e] rounded-lg p-5">
+    <div className="border-2 border-primary rounded-lg p-5 bg-card">
       <div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -471,12 +471,12 @@ export function CoinForm() {
               max={TOTAL_SUPPLY}
             />
             <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 Pool Supply: {poolSupply.toLocaleString()} (Total:{" "}
                 {TOTAL_SUPPLY.toLocaleString()})
               </p>
               {Number(formState.creatorSupply) >= TOTAL_SUPPLY && (
-                <p className="text-xs text-amber-600">
+                <p className="text-xs text-chart-5">
                   Max: {TOTAL_SUPPLY.toLocaleString()}
                 </p>
               )}
@@ -488,7 +488,7 @@ export function CoinForm() {
             <ImageInput onChange={handleFileChange} />
           </div>
 
-          <div className="space-y-2 border p-4 rounded-md bg-gray-50">
+          <div className="space-y-2 border p-4 rounded-md bg-card/80">
             <Label htmlFor="ethAmount" className="text-md font-semibold">
               Initial Liquidity (ETH Amount)
             </Label>
@@ -511,7 +511,7 @@ export function CoinForm() {
                 onClick={() =>
                   setFormState({ ...formState, ethAmount: "0.01" })
                 }
-                className={`transition-all ${formState.ethAmount === "0.01" ? "bg-blue-100 border-blue-300" : ""}`}
+                className={`transition-all ${formState.ethAmount === "0.01" ? "bg-primary/10 border-primary/30" : ""}`}
               >
                 0.01 ETH
               </Button>
@@ -522,7 +522,7 @@ export function CoinForm() {
                 onClick={() =>
                   setFormState({ ...formState, ethAmount: "0.033" })
                 }
-                className={`transition-all ${formState.ethAmount === "0.033" ? "bg-blue-100 border-blue-300" : ""}`}
+                className={`transition-all ${formState.ethAmount === "0.033" ? "bg-primary/10 border-primary/30" : ""}`}
               >
                 0.033 ETH
               </Button>
@@ -531,7 +531,7 @@ export function CoinForm() {
                 variant="outline"
                 size="sm"
                 onClick={() => setFormState({ ...formState, ethAmount: "0.5" })}
-                className={`transition-all ${formState.ethAmount === "0.5" ? "bg-blue-100 border-blue-300" : ""}`}
+                className={`transition-all ${formState.ethAmount === "0.5" ? "bg-primary/10 border-primary/30" : ""}`}
               >
                 0.5 ETH
               </Button>
@@ -540,7 +540,7 @@ export function CoinForm() {
                 variant="outline"
                 size="sm"
                 onClick={() => setFormState({ ...formState, ethAmount: "1" })}
-                className={`transition-all ${formState.ethAmount === "1" ? "bg-blue-100 border-blue-300" : ""}`}
+                className={`transition-all ${formState.ethAmount === "1" ? "bg-primary/10 border-primary/30" : ""}`}
               >
                 1 ETH
               </Button>
@@ -548,35 +548,35 @@ export function CoinForm() {
 
             {/* Market Cap Estimation */}
             {marketCapEstimation && (
-              <div className="mt-3 p-3 bg-gray-100 rounded-md border border-gray-200">
-                <h4 className="text-sm font-medium text-gray-700 mb-2">
+              <div className="mt-3 p-3 bg-secondary/30 rounded-md border border-secondary/50">
+                <h4 className="text-sm font-medium text-foreground mb-2">
                   Launch Projections
                 </h4>
                 <div className="flex flex-col gap-2">
-                  <div className="bg-white p-2 rounded border border-gray-200">
-                    <h5 className="text-xs font-medium text-gray-600">
+                  <div className="bg-card p-2 rounded border border-border">
+                    <h5 className="text-xs font-medium text-muted-foreground">
                       TOKEN PRICE
                     </h5>
                     <div className="flex items-center text-sm mt-1">
-                      <span className="font-medium text-green-600">
+                      <span className="font-medium text-chart-2">
                         ${marketCapEstimation.tokenPriceUsd.toFixed(8)}
                       </span>
                     </div>
                   </div>
 
-                  <div className="bg-white p-2 rounded border border-gray-200">
-                    <h5 className="text-xs font-medium text-gray-600">
+                  <div className="bg-card p-2 rounded border border-border">
+                    <h5 className="text-xs font-medium text-muted-foreground">
                       MARKET CAP
                     </h5>
                     <div className="flex flex-col">
                       <div className="flex items-center text-sm">
-                        <span className="text-gray-600 min-w-20">ETH:</span>
+                        <span className="text-muted-foreground min-w-20">ETH:</span>
                         <span className="font-medium">
                           {formatNumber(marketCapEstimation.eth, 2)} ETH
                         </span>
                       </div>
                       <div className="flex items-center text-sm mt-1">
-                        <span className="text-gray-600 min-w-20">USD:</span>
+                        <span className="text-muted-foreground min-w-20">USD:</span>
                         <span className="font-medium">
                           ${formatNumber(marketCapEstimation.usd, 0)}
                         </span>
@@ -585,7 +585,7 @@ export function CoinForm() {
                   </div>
                 </div>
                 <div className="flex items-center mt-2">
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     Based on {formState.ethAmount} ETH liquidity with{" "}
                     {poolSupply.toLocaleString()} coins
                   </p>
@@ -597,10 +597,10 @@ export function CoinForm() {
                       <PopoverTrigger asChild>
                         <button
                           type="button"
-                          className="text-xs px-2 py-1 rounded border border-gray-300 hover:bg-gray-100 transition-colors flex items-center gap-1"
+                          className="text-xs px-2 py-1 rounded border border-input hover:bg-secondary-foreground transition-colors flex items-center gap-1"
                         >
                           Fee:{" "}
-                          <span className="font-semibold text-blue-600">
+                          <span className="font-semibold text-primary">
                             {feeToPercentage(swapFee)}
                           </span>
                         </button>
@@ -610,7 +610,7 @@ export function CoinForm() {
                           <h4 className="font-medium text-sm">
                             Customize Swap Fee
                           </h4>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-muted-foreground">
                             Select a fee percentage for swaps
                           </p>
                           <div className="grid grid-cols-2 gap-2 mt-2">
@@ -620,8 +620,8 @@ export function CoinForm() {
                                 type="button"
                                 className={`text-xs px-3 py-2 rounded border transition-colors ${
                                   swapFee === fee
-                                    ? "bg-blue-100 border-blue-400 text-blue-700"
-                                    : "border-gray-300 hover:bg-gray-50"
+                                    ? "bg-primary border-primary text-primary"
+                                    : "border-input hover:bg-secondary-foreground"
                                 }`}
                                 onClick={() => {
                                   setSwapFee(fee);
@@ -635,7 +635,7 @@ export function CoinForm() {
                           </div>
 
                           <div className="mt-3">
-                            <label className="text-xs font-medium text-gray-600 mb-1 block">
+                            <label className="text-xs font-medium text-muted-foreground mb-1 block">
                               Custom Fee (%)
                             </label>
                             <div className="flex items-center gap-2">
@@ -705,7 +705,7 @@ export function CoinForm() {
                                 Set
                               </Button>
                             </div>
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-xs text-muted-foreground mt-1">
                               {customFeeInput &&
                               !isNaN(parseFloat(customFeeInput)) &&
                               /^[0-9]{1,2}(\.?[0-9]{0,2})?$/.test(
@@ -737,11 +737,11 @@ export function CoinForm() {
           </Button>
 
           {errorMessage && (
-            <div className="text-sm text-red-600 mt-2">{errorMessage}</div>
+            <div className="text-sm text-destructive mt-2">{errorMessage}</div>
           )}
 
           {isSuccess && (
-            <div className="text-sm text-green-600 mt-2">
+            <div className="text-sm text-chart-2 mt-2">
               Success! Transaction: {JSON.stringify(data)}
             </div>
           )}

@@ -126,7 +126,7 @@ const ConnectMenuComponent = () => {
           {lastAddress && (
             <div className="opacity-50">{truncAddress(lastAddress)}</div>
           )}
-          <div className="text-xs text-yellow-700 animate-pulse">
+          <div className="text-xs text-primary animate-pulse">
             {lastAddress ? "Reconnecting..." : "Connecting..."}
           </div>
         </div>
@@ -137,7 +137,7 @@ const ConnectMenuComponent = () => {
     if (status === "connecting") {
       return (
         <div className="flex items-center gap-2">
-          <div className="text-xs text-yellow-700 animate-pulse">
+          <div className="text-xs text-primary animate-pulse">
             Connecting wallet...
           </div>
         </div>

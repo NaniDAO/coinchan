@@ -432,12 +432,12 @@ export const BuySell = ({
 
   return (
     <Tabs value={tab} onValueChange={(v) => setTab(v as "buy" | "sell")}>
-      <div className="flex items-start gap-4 mb-4 p-4 bg-gray-50 rounded-lg">
+      <div className="flex items-start gap-4 mb-4 p-4 border-muted border-2 bg-muted/10 text-muted-foreground rounded-lg">
         <div className="flex-shrink-0">
           <div className="w-16 h-16 relative">
             {/* Base colored circle (always visible) */}
             <div
-              className={`w-full h-full flex bg-red-500 text-white justify-center items-center rounded-full`}
+              className={`w-full h-full flex bg-destructive text-background justify-center items-center rounded-full`}
             >
               {displaySymbol?.slice(0, 3)}
             </div>
@@ -459,26 +459,28 @@ export const BuySell = ({
         <div className="flex flex-col flex-grow overflow-hidden">
           <div className="flex items-baseline space-x-2">
             <h3 className="text-lg font-medium truncate">{displayName}</h3>
-            <span className="text-sm text-gray-500">[{displaySymbol}]</span>
+            <span className="text-sm text-muted-foreground">
+              [{displaySymbol}]
+            </span>
           </div>
 
           {/* Description */}
-          <p className="text-sm text-gray-600 mt-1 overflow-y-auto max-h-20">
+          <p className="text-sm text-muted-foreground mt-1 overflow-y-auto max-h-20">
             {description || "No description available"}
           </p>
 
           {/* Market Cap Estimation and Swap Fee */}
-          <div className="mt-2 text-xs text-gray-500">
+          <div className="mt-2 text-xs text-muted-foreground">
             <div className="flex flex-col gap-1">
               {/* Always show the swap fee, independent of market cap calculation */}
               <div className="flex items-center gap-1">
-                <span className="text-gray-600">Swap Fee:</span>
+                <span className="text-muted-foreground">Swap Fee:</span>
                 {/* More precise conversion from basis points to percentage */}
-                <span className="font-medium text-blue-600">
+                <span className="font-medium text-primary">
                   {(Number(swapFee) / 100).toFixed(2)}%
                 </span>
                 {isOwner && (
-                  <span className="text-xs text-green-600">
+                  <span className="text-xs text-chart-2">
                     (You are the owner)
                   </span>
                 )}
@@ -487,18 +489,20 @@ export const BuySell = ({
               {/* Market Cap section */}
               {marketCapEth !== null && (
                 <div className="flex items-center gap-1">
-                  <span className="text-gray-600">Est. Market Cap:</span>
+                  <span className="text-muted-foreground">
+                    Est. Market Cap:
+                  </span>
                   <span>{formatNumber(marketCapEth, 2)} ETH</span>
                   {marketCapUsd !== null ? (
                     <span className="ml-1">
                       (~${formatNumber(marketCapUsd, 0)})
                     </span>
                   ) : ethPriceData ? (
-                    <span className="ml-1 text-yellow-500">
+                    <span className="ml-1 text-chart-5">
                       (USD price processing...)
                     </span>
                   ) : (
-                    <span className="ml-1 text-yellow-500">
+                    <span className="ml-1 text-chart-5">
                       (ETH price unavailable)
                     </span>
                   )}
@@ -517,7 +521,7 @@ export const BuySell = ({
                   }
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs text-blue-500 hover:underline"
+                  className="text-xs text-primary hover:underline"
                 >
                   View Token Metadata
                 </a>
@@ -538,7 +542,7 @@ export const BuySell = ({
 
       <TabsContent value="buy">
         <div className="flex flex-col gap-2">
-          <span className="text-sm text-gray-600">Using ETH</span>
+          <span className="text-sm text-muted-foreground">Using ETH</span>
           <Input
             type="number"
             placeholder="Amount ETH"
@@ -554,7 +558,7 @@ export const BuySell = ({
             onClick={onBuy}
             disabled={!isConnected || isPending || !amount}
             variant="default"
-            className="bg-green-400 hover:bg-green-500"
+            className="bg-chart-2 hover:bg-chart-2/80 text-background"
           >
             {isPending ? "Buying…" : `Buy ${displaySymbol}`}
           </Button>
@@ -563,7 +567,9 @@ export const BuySell = ({
 
       <TabsContent value="sell">
         <div className="flex flex-col gap-2">
-          <span className="text-sm text-gray-600">Using {displaySymbol}</span>
+          <span className="text-sm text-muted-foreground">
+            Using {displaySymbol}
+          </span>
           <div className="relative">
             <Input
               type="number"
@@ -578,14 +584,14 @@ export const BuySell = ({
             <span className="text-sm">You will receive ~ {estimated} ETH</span>
             {balance !== undefined ? (
               <button
-                className="self-end text-sm text-gray-600"
+                className="self-end text-sm text-muted-foreground"
                 onClick={() => setAmount(formatUnits(balance, 18))}
               >
                 MAX ({formatUnits(balance, 18)})
               </button>
             ) : (
               <button
-                className="self-end text-sm text-gray-600"
+                className="self-end text-sm text-muted-foreground"
                 disabled={!balance}
               >
                 MAX
@@ -606,7 +612,7 @@ export const BuySell = ({
       {errorMessage && (
         <p className="text-destructive text-sm">{errorMessage}</p>
       )}
-      {isSuccess && <p className="text-green-600 text-sm">Tx confirmed!</p>}
+      {isSuccess && <p className="text-chart-2 text-sm">Tx confirmed!</p>}
     </Tabs>
   );
 };

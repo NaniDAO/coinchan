@@ -22,15 +22,15 @@ import { cn } from "@/lib/utils";
 const getEventTypeColorClass = (eventType: string): string => {
   switch (eventType) {
     case "BUY":
-      return "text-green-600";
+      return "text-chart-2";
     case "SELL":
-      return "text-red-600";
+      return "text-destructive";
     case "LIQADD":
-      return "text-purple-600";
+      return "text-chart-4";
     case "LIQREM":
-      return "text-orange-600";
+      return "text-chart-5";
     default:
-      return "text-blue-600";
+      return "text-primary";
   }
 };
 
@@ -97,7 +97,7 @@ export function PoolEvents({
 
   if (status === "error") {
     return (
-      <p className="text-center p-4 text-red-600">Error: {error.message}</p>
+      <p className="text-center p-4 text-destructive">Error: {error.message}</p>
     );
   }
 

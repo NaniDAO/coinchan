@@ -17,11 +17,20 @@ const tokenLoadingStyles = `
   background-size: 200% 100%;
   border-radius: 4px;
 }
+
+/* Dark mode shimmer effect with neon glow */
+.dark .token-loading {
+  animation: shimmer 1.5s infinite;
+  background: linear-gradient(90deg, rgba(0,204,255,0.05) 0%, rgba(0,204,255,0.15) 50%, rgba(0,204,255,0.05) 100%);
+  background-size: 200% 100%;
+  border-radius: 4px;
+  box-shadow: 0 0 8px rgba(0,204,255,0.2);
+}
 `;
 
 // Add styles to document head
-if (typeof document !== 'undefined') {
-  const styleElem = document.createElement('style');
+if (typeof document !== "undefined") {
+  const styleElem = document.createElement("style");
   styleElem.innerHTML = tokenLoadingStyles;
   document.head.appendChild(styleElem);
 }
@@ -286,8 +295,8 @@ const USDT_TOKEN: TokenMeta = {
 
 // Cache for price calculations
 // Limited size with simple eviction of oldest entries
-const amountOutCache = new Map<string, { value: bigint, timestamp: number }>();
-const amountInCache = new Map<string, { value: bigint, timestamp: number }>();
+const amountOutCache = new Map<string, { value: bigint; timestamp: number }>();
+const amountInCache = new Map<string, { value: bigint; timestamp: number }>();
 const PRICE_CACHE_SIZE = 50; // Smaller cache for price calculations
 const PRICE_CACHE_TTL = 2000; // 2 seconds TTL for price calculations
 
@@ -304,41 +313,41 @@ const getAmountOut = (
   // Create cache key from all inputs
   const cacheKey = `${amountIn.toString()}-${reserveIn.toString()}-${reserveOut.toString()}-${swapFee.toString()}`;
   const now = Date.now();
-  
+
   // Check cache first
   const cached = amountOutCache.get(cacheKey);
-  if (cached && (now - cached.timestamp < PRICE_CACHE_TTL)) {
+  if (cached && now - cached.timestamp < PRICE_CACHE_TTL) {
     return cached.value;
   }
-  
+
   // Calculate result if not cached or expired
   const amountInWithFee = amountIn * (10000n - swapFee);
   const numerator = amountInWithFee * reserveOut;
   const denominator = reserveIn * 10000n + amountInWithFee;
   const result = numerator / denominator;
-  
+
   // Manage cache size
   if (amountOutCache.size >= PRICE_CACHE_SIZE) {
     // Find oldest entry
     let oldestKey = null;
     let oldestTime = Infinity;
-    
+
     for (const [key, entry] of amountOutCache.entries()) {
       if (entry.timestamp < oldestTime) {
         oldestTime = entry.timestamp;
         oldestKey = key;
       }
     }
-    
+
     // Remove oldest entry
     if (oldestKey) {
       amountOutCache.delete(oldestKey);
     }
   }
-  
+
   // Cache the result
   amountOutCache.set(cacheKey, { value: result, timestamp: now });
-  
+
   return result;
 };
 
@@ -361,40 +370,40 @@ const getAmountIn = (
   // Create cache key from all inputs
   const cacheKey = `${amountOut.toString()}-${reserveIn.toString()}-${reserveOut.toString()}-${swapFee.toString()}`;
   const now = Date.now();
-  
+
   // Check cache first
   const cached = amountInCache.get(cacheKey);
-  if (cached && (now - cached.timestamp < PRICE_CACHE_TTL)) {
+  if (cached && now - cached.timestamp < PRICE_CACHE_TTL) {
     return cached.value;
   }
-  
+
   // Calculate result if not cached or expired
   const numerator = reserveIn * amountOut * 10000n;
   const denominator = (reserveOut - amountOut) * (10000n - swapFee);
   const result = numerator / denominator + 1n; // +1 for ceiling rounding
-  
+
   // Manage cache size
   if (amountInCache.size >= PRICE_CACHE_SIZE) {
     // Find oldest entry
     let oldestKey = null;
     let oldestTime = Infinity;
-    
+
     for (const [key, entry] of amountInCache.entries()) {
       if (entry.timestamp < oldestTime) {
         oldestTime = entry.timestamp;
         oldestKey = key;
       }
     }
-    
+
     // Remove oldest entry
     if (oldestKey) {
       amountInCache.delete(oldestKey);
     }
   }
-  
+
   // Cache the result
   amountInCache.set(cacheKey, { value: result, timestamp: now });
-  
+
   return result;
 };
 
@@ -437,17 +446,17 @@ const useAllTokens = () => {
       setTokens((prev) => {
         // Find current ETH token inside existing list (if any)
         const prevEth = prev.find((t) => t.id === null) ?? ETH_TOKEN;
-        
+
         // Only update if not already in fetching state
         if (prevEth.isFetching) return prev;
-        
+
         // Create new ETH token with fetching state but preserve old balance for stability
         const nextEth = {
           ...prevEth,
           isFetching: true, // Add a flag to indicate loading state
-          balance: prevEth.balance // Keep previous balance during loading
+          balance: prevEth.balance, // Keep previous balance during loading
         };
-        
+
         // Return new tokens array with stable references for the rest
         return [nextEth, ...prev.filter((t) => t.id !== null)];
       });
@@ -468,15 +477,18 @@ const useAllTokens = () => {
           ...prevEth,
           isFetching: false,
           balance: newBal,
-          lastUpdated: Date.now() // Add timestamp for caching/staleness checks
+          lastUpdated: Date.now(), // Add timestamp for caching/staleness checks
         };
 
         // Persist to sessionStorage for faster initialization on next visit
         try {
-          sessionStorage.setItem('ethToken', JSON.stringify({
-            balance: newBal.toString(),
-            lastUpdated: Date.now()
-          }));
+          sessionStorage.setItem(
+            "ethToken",
+            JSON.stringify({
+              balance: newBal.toString(),
+              lastUpdated: Date.now(),
+            }),
+          );
         } catch (e) {
           // Ignore storage errors
         }
@@ -1292,7 +1304,7 @@ const TokenSelector = React.memo(
         {/* Selected token display with thumbnail */}
         <div
           onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-2 cursor-pointer bg-transparent border border-yellow-200 rounded-md px-2 py-1 hover:bg-yellow-50 touch-manipulation"
+          className="flex items-center gap-2 cursor-pointer bg-transparent border border-primary/30 rounded-md px-2 py-1 hover:bg-secondary-foreground touch-manipulation text-foreground"
         >
           <TokenImage token={selectedToken} />
           <div className="flex flex-col">
@@ -1300,19 +1312,20 @@ const TokenSelector = React.memo(
               <span className="font-medium">{selectedToken.symbol}</span>
             </div>
             <div className="flex items-center gap-1">
-              <div 
-                className={`text-xs font-medium text-gray-700 min-w-[50px] h-[14px] ${
+              <div
+                className={`text-xs font-medium text-muted-foreground min-w-[50px] h-[14px] ${
                   // Add loading class for better visual feedback
-                  (selectedToken.id === null && isEthBalanceFetching) || selectedToken.isFetching
-                    ? 'token-loading px-1 rounded' 
-                    : ''
+                  (selectedToken.id === null && isEthBalanceFetching) ||
+                  selectedToken.isFetching
+                    ? "token-loading px-1 rounded bg-transparent"
+                    : ""
                 }`}
               >
                 {formatBalance(selectedToken)}
                 {/* Show loading indicator for ETH */}
                 {selectedToken.id === null && isEthBalanceFetching && (
                   <span
-                    className="text-xs text-yellow-500 ml-1 inline-block"
+                    className="text-xs text-primary ml-1 inline-block"
                     style={{ animation: "pulse 1.5s infinite" }}
                   >
                     ⟳
@@ -1321,7 +1334,7 @@ const TokenSelector = React.memo(
                 {/* Show loading indicator for other tokens */}
                 {selectedToken.id !== null && selectedToken.isFetching && (
                   <span
-                    className="text-xs text-yellow-500 ml-1 inline-block"
+                    className="text-xs text-primary ml-1 inline-block"
                     style={{ animation: "pulse 1.5s infinite" }}
                   >
                     ⟳
@@ -1348,11 +1361,11 @@ const TokenSelector = React.memo(
         {/* Dropdown list with thumbnails */}
         {isOpen && (
           <div
-            className="absolute z-20 mt-1 w-[calc(100vw-40px)] sm:w-64 max-h-[60vh] sm:max-h-96 overflow-y-auto bg-white border border-yellow-200 shadow-lg rounded-md"
+            className="absolute z-20 mt-1 w-[calc(100vw-40px)] sm:w-64 max-h-[60vh] sm:max-h-96 overflow-y-auto bg-background border border-primary/30 shadow-lg shadow-[0_0_20px_rgba(0,204,255,0.15)] rounded-md"
             style={{ contain: "content" }}
           >
             {/* Search input */}
-            <div className="sticky top-0 bg-white p-2 border-b border-yellow-100">
+            <div className="sticky top-0 bg-card p-2 border-b border-primary/20">
               <div className="relative">
                 <input
                   type="text"
@@ -1464,10 +1477,10 @@ const TokenSelector = React.memo(
                       }
                     });
                   }}
-                  className="w-full p-2 pl-8 border border-yellow-200 rounded focus:outline-none focus:ring-2 focus:ring-yellow-300 text-sm"
+                  className="w-full p-2 pl-8 border border-primary/30 bg-background/80 rounded focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm text-foreground placeholder-muted-foreground"
                 />
                 <svg
-                  className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -1656,8 +1669,10 @@ const TokenSelector = React.memo(
                     data-token-symbol={token.symbol}
                     data-token-name={token.name}
                     data-token-id={token.id?.toString() ?? "eth"}
-                    className={`flex items-center justify-between p-3 sm:p-2 hover:bg-yellow-50 cursor-pointer touch-manipulation ${
-                      isSelected ? "bg-yellow-100" : ""
+                    className={`flex items-center justify-between p-3 sm:p-2 hover:bg-secondary-foreground cursor-pointer touch-manipulation ${
+                      isSelected
+                        ? "bg-primary/10 shadow-[0_0_10px_rgba(0,204,255,0.15)]"
+                        : ""
                     }`}
                     style={{
                       contentVisibility: "auto",
@@ -1669,26 +1684,27 @@ const TokenSelector = React.memo(
                       <div className="flex flex-col">
                         <span className="font-medium">{token.symbol}</span>
                         {reserves && (
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-muted-foreground">
                             {reserves}
                           </span>
                         )}
                       </div>
                     </div>
                     <div className="text-right min-w-[60px]">
-                      <div 
-                        className={`text-sm font-medium h-[18px] ${
+                      <div
+                        className={`text-sm font-medium h-[18px] text-foreground ${
                           // Add loading class when ETH is loading or this specific token is loading
-                          (token.id === null && isEthBalanceFetching) || token.isFetching 
-                            ? 'token-loading px-1' 
-                            : ''
+                          (token.id === null && isEthBalanceFetching) ||
+                          token.isFetching
+                            ? "token-loading px-1 bg-transparent"
+                            : ""
                         }`}
                       >
                         {balance}
                         {/* Show loading indicator for ETH */}
                         {token.id === null && isEthBalanceFetching && (
                           <span
-                            className="text-xs text-yellow-500 ml-1 inline-block"
+                            className="text-xs text-primary ml-1 inline-block"
                             style={{ animation: "pulse 1.5s infinite" }}
                           >
                             ⟳
@@ -1697,7 +1713,7 @@ const TokenSelector = React.memo(
                         {/* Show loading indicator for any token that's being updated */}
                         {token.id !== null && token.isFetching && (
                           <span
-                            className="text-xs text-yellow-500 ml-1 inline-block"
+                            className="text-xs text-primary ml-1 inline-block"
                             style={{ animation: "pulse 1.5s infinite" }}
                           >
                             ⟳
@@ -4226,10 +4242,10 @@ export const SwapTile = () => {
 
   // Main UI
   return (
-    <Card className="w-full max-w-lg p-4 sm:p-6 border-2 border-yellow-100 shadow-md rounded-xl">
+    <Card className="w-full max-w-lg p-4 sm:p-6 border-2 border-border shadow-md rounded-xl dark:bg-card/95 dark:backdrop-blur-sm dark:shadow-[0_0_20px_rgba(0,204,255,0.07)]">
       <CardContent className="p-0 sm:p-1 flex flex-col space-y-1">
         {/* Info showing token count */}
-        <div className="text-xs text-gray-500 mb-2">
+        <div className="text-xs text-muted-foreground mb-2">
           Available tokens: {tokenCount} (ETH + {tokenCount - 1} coins, sorted
           by liquidity)
         </div>
@@ -4240,20 +4256,22 @@ export const SwapTile = () => {
           onValueChange={(value) => setMode(value as TileMode)}
           className="mb-2"
         >
-          <TabsList className="w-full bg-yellow-50 p-1 rounded-lg border border-yellow-100">
+          <TabsList className="w-full bg-primary dark:bg-background p-1 rounded-lg border border-border">
             <TabsTrigger
               value="swap"
-              className="flex-1 data-[state=active]:bg-white data-[state=active]:border-yellow-200 data-[state=active]:shadow-sm h-10 touch-manipulation"
+              className="flex-1 data-[state=active]:bg-background dark:data-[state=active]:bg-card dark:data-[state=active]:shadow-[0_0_10px_rgba(0,204,255,0.15)] dark:data-[state=active]:border-primary data-[state=active]:border-border data-[state=active]:shadow-sm h-10 touch-manipulation text-primary-foreground"
             >
               <ArrowDownUp className="h-4 w-4 mr-1" />
-              <span className="text-sm sm:text-base">Swap</span>
+              <span className="text-sm text-primary-foreground">Swap</span>
             </TabsTrigger>
             <TabsTrigger
               value="liquidity"
-              className="flex-1 data-[state=active]:bg-white data-[state=active]:border-yellow-200 data-[state=active]:shadow-sm h-10 touch-manipulation"
+              className="flex-1 data-[state=active]:bg-background dark:data-[state=active]:bg-card dark:data-[state=active]:shadow-[0_0_10px_rgba(0,204,255,0.15)] dark:data-[state=active]:border-primary data-[state=active]:border-border data-[state=active]:shadow-sm h-10 touch-manipulation text-primary-foreground"
             >
               <Plus className="h-4 w-4 mr-1" />
-              <span className="text-sm sm:text-base">Liquidity</span>
+              <span className="text-sm text-primary-foreground data-[state=active]:text-foreground">
+                Liquidity
+              </span>
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -4265,24 +4283,24 @@ export const SwapTile = () => {
             onValueChange={(value) => setLiquidityMode(value as LiquidityMode)}
             className="mb-2"
           >
-            <TabsList className="w-full bg-yellow-50 p-1 rounded-lg border border-yellow-100">
+            <TabsList className="w-full bg-secondary dark:bg-background/80 p-1 rounded-lg border border-border">
               <TabsTrigger
                 value="add"
-                className="flex-1 data-[state=active]:bg-white data-[state=active]:border-yellow-200 data-[state=active]:shadow-sm h-10 touch-manipulation"
+                className="flex-1  data-[state=active]:bg-background dark:data-[state=active]:bg-card dark:data-[state=active]:shadow-[0_0_10px_rgba(0,204,255,0.15)] dark:data-[state=active]:border-primary/50 data-[state=active]:border-border data-[state=active]:shadow-sm h-10 touch-manipulation text-primary-foreground"
               >
                 <Plus className="h-4 w-4 mr-1" />
                 <span className="text-xs sm:text-sm">Add</span>
               </TabsTrigger>
               <TabsTrigger
                 value="remove"
-                className="flex-1 data-[state=active]:bg-white data-[state=active]:border-yellow-200 data-[state=active]:shadow-sm h-10 touch-manipulation"
+                className="flex-1 data-[state=active]:bg-background dark:data-[state=active]:bg-card dark:data-[state=active]:shadow-[0_0_10px_rgba(0,204,255,0.15)] dark:data-[state=active]:border-primary/50 data-[state=active]:border-border data-[state=active]:shadow-sm h-10 touch-manipulation text-primary-foreground"
               >
                 <Minus className="h-4 w-4 mr-1" />
                 <span className="text-xs sm:text-sm">Remove</span>
               </TabsTrigger>
               <TabsTrigger
                 value="single-eth"
-                className="flex-1 data-[state=active]:bg-white data-[state=active]:border-yellow-200 data-[state=active]:shadow-sm h-10 touch-manipulation"
+                className="flex-1 data-[state=active]:bg-background dark:data-[state=active]:bg-card dark:data-[state=active]:shadow-[0_0_10px_rgba(0,204,255,0.15)] dark:data-[state=active]:border-primary/50 data-[state=active]:border-border data-[state=active]:shadow-sm h-10 touch-manipulation text-primary-foreground"
               >
                 <span className="text-xs font-medium mr-1">Ξ</span>
                 <span className="text-xs sm:text-sm">Single-ETH</span>
@@ -4293,7 +4311,7 @@ export const SwapTile = () => {
 
         {/* Load error notification */}
         {loadError && (
-          <div className="p-2 mb-2 bg-red-50 border border-red-200 rounded text-sm text-red-600">
+          <div className="p-2 mb-2 bg-destructive/10 border border-destructive/20 rounded text-sm text-destructive">
             {loadError}
           </div>
         )}
@@ -4302,17 +4320,17 @@ export const SwapTile = () => {
         <div className="relative flex flex-col">
           {/* LP Amount Input (only visible in Remove Liquidity mode) */}
           {mode === "liquidity" && liquidityMode === "remove" && (
-            <div className="border-2 border-yellow-500 group hover:bg-yellow-50 rounded-t-2xl p-3 pb-4 focus-within:ring-2 focus-within:ring-primary flex flex-col gap-2 bg-yellow-50">
+            <div className="border-2 border-primary group hover:bg-secondary-foreground rounded-t-2xl p-3 pb-4 focus-within:ring-2 focus-within:ring-primary flex flex-col gap-2 bg-secondary/50">
               <div className="flex items-center justify-between">
-                <span className="font-medium text-yellow-800">
+                <span className="font-medium text-foreground">
                   LP Tokens to Burn
                 </span>
                 <div className="flex items-center gap-1">
-                  <span className="text-xs text-yellow-700">
+                  <span className="text-xs text-muted-foreground">
                     Balance: {formatUnits(lpTokenBalance, 18)}
                   </span>
                   <button
-                    className="text-xs bg-yellow-200 hover:bg-yellow-300 text-yellow-800 font-medium px-3 py-1.5 rounded touch-manipulation min-w-[50px]"
+                    className="text-xs bg-primary/10 hover:bg-primary/20 text-primary font-medium px-3 py-1.5 rounded touch-manipulation min-w-[50px]"
                     onClick={() =>
                       syncFromSell(formatUnits(lpTokenBalance, 18))
                     }
@@ -4329,9 +4347,9 @@ export const SwapTile = () => {
                 placeholder="0.0"
                 value={lpBurnAmount}
                 onChange={(e) => syncFromSell(e.target.value)}
-                className="text-lg sm:text-xl font-medium w-full bg-yellow-50 focus:outline-none h-10 text-right pr-1"
+                className="text-lg sm:text-xl font-medium w-full bg-secondary/50 focus:outline-none h-10 text-right pr-1"
               />
-              <div className="text-xs text-yellow-600 mt-1">
+              <div className="text-xs text-muted-foreground mt-1">
                 Enter the amount of LP tokens you want to burn to receive ETH
                 and tokens back.
               </div>
@@ -4340,7 +4358,7 @@ export const SwapTile = () => {
 
           {/* SELL/PROVIDE panel */}
           <div
-            className={`border-2 border-yellow-300 group hover:bg-yellow-50 ${mode === "liquidity" && liquidityMode === "remove" ? "rounded-md" : "rounded-t-2xl"} p-2 pb-4 focus-within:ring-2 focus-within:ring-primary flex flex-col gap-2 ${mode === "liquidity" && liquidityMode === "remove" ? "mt-2" : ""}`}
+            className={`border-2 border-primary/40 group hover:bg-secondary-foreground ${mode === "liquidity" && liquidityMode === "remove" ? "rounded-md" : "rounded-t-2xl"} p-2 pb-4 focus-within:ring-2 focus-within:ring-primary/60 flex flex-col gap-2 ${mode === "liquidity" && liquidityMode === "remove" ? "mt-2" : ""}`}
           >
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">
@@ -4356,7 +4374,7 @@ export const SwapTile = () => {
               <>
                 {/* ETH-only display for Single-ETH mode */}
                 <div
-                  className={`flex items-center gap-2 bg-transparent border border-yellow-200 rounded-md px-2 py-1 ${mode === "liquidity" && liquidityMode === "single-eth" ? "" : "hidden"}`}
+                  className={`flex items-center gap-2 bg-transparent border border-primary rounded-md px-2 py-1 ${mode === "liquidity" && liquidityMode === "single-eth" ? "" : "hidden"}`}
                 >
                   <div className="w-8 h-8 overflow-hidden rounded-full">
                     <img
@@ -4373,7 +4391,7 @@ export const SwapTile = () => {
                         : "0"}
                       {isEthBalanceFetching && (
                         <span
-                          className="text-xs text-yellow-500 ml-1"
+                          className="text-xs text-primary ml-1"
                           style={{ animation: "pulse 1.5s infinite" }}
                         >
                           ·
@@ -4410,11 +4428,11 @@ export const SwapTile = () => {
                 placeholder="0.0"
                 value={sellAmt}
                 onChange={(e) => syncFromSell(e.target.value)}
-                className="text-lg sm:text-xl font-medium w-full focus:outline-none h-10 text-right pr-1"
+                className="text-lg sm:text-xl font-medium w-full focus:outline-none h-10 text-right pr-1 bg-transparent dark:text-foreground dark:placeholder-primary/50"
                 readOnly={mode === "liquidity" && liquidityMode === "remove"}
               />
               {mode === "liquidity" && liquidityMode === "remove" && (
-                <span className="text-xs text-yellow-600 font-medium">
+                <span className="text-xs text-primary font-medium">
                   Preview
                 </span>
               )}
@@ -4426,7 +4444,7 @@ export const SwapTile = () => {
                     (liquidityMode === "add" ||
                       liquidityMode === "single-eth"))) && (
                   <button
-                    className="text-xs bg-yellow-100 hover:bg-yellow-200 text-yellow-800 font-medium px-3 py-1.5 rounded touch-manipulation min-w-[50px]"
+                    className="text-xs bg-primary/10 hover:bg-primary/20 text-primary font-medium px-3 py-1.5 rounded touch-manipulation min-w-[50px] border border-primary/30 shadow-[0_0_5px_rgba(0,204,255,0.15)]"
                     onClick={() => {
                       // For ETH, leave a small amount for gas
                       if (sellToken.id === null) {
@@ -4454,11 +4472,12 @@ export const SwapTile = () => {
           {mode === "swap" && (
             <button
               className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 p-3 rounded-full shadow-xl
-                bg-yellow-500 hover:bg-yellow-600 focus:bg-yellow-600 active:scale-95
-                focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-all z-10 touch-manipulation"
+                bg-primary hover:bg-primary/80 focus:bg-primary/90 active:scale-95
+                shadow-[0_0_15px_rgba(0,204,255,0.3)]
+                focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all z-10 touch-manipulation"
               onClick={flipTokens}
             >
-              <ArrowDownUp className="h-5 w-5 text-white" />
+              <ArrowDownUp className="h-5 w-5 text-background" />
             </button>
           )}
 
@@ -4467,7 +4486,7 @@ export const SwapTile = () => {
             <>
               {/* Single-ETH mode panel */}
               <div
-                className={`border-2 border-yellow-300 group rounded-b-2xl p-2 pt-3 focus-within:ring-2 hover:bg-yellow-50 focus-within:ring-primary flex flex-col gap-2 mt-2 ${mode === "liquidity" && liquidityMode === "single-eth" ? "" : "hidden"}`}
+                className={`border-2 border-primary/40 group rounded-b-2xl p-2 pt-3 focus-within:ring-2 hover:bg-secondary-foreground focus-within:ring-primary/60 shadow-[0_0_15px_rgba(0,204,255,0.07)] flex flex-col gap-2 mt-2 ${mode === "liquidity" && liquidityMode === "single-eth" ? "" : "hidden"}`}
               >
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">
@@ -4484,11 +4503,11 @@ export const SwapTile = () => {
                   <div className="text-xl font-medium w-full">
                     {singleETHEstimatedCoin || "0"}
                   </div>
-                  <span className="text-xs text-yellow-600 font-medium">
+                  <span className="text-xs text-primary font-medium">
                     Estimated
                   </span>
                 </div>
-                <div className="text-xs text-yellow-600 mt-1">
+                <div className="text-xs text-muted-foreground mt-1">
                   Half of your ETH will be swapped for {buyToken.symbol} and
                   paired with the remaining ETH.
                 </div>
@@ -4496,7 +4515,7 @@ export const SwapTile = () => {
 
               {/* Standard BUY/RECEIVE panel */}
               <div
-                className={`border-2 border-yellow-300 group rounded-b-2xl p-2 pt-3 focus-within:ring-2 hover:bg-yellow-50 focus-within:ring-primary flex flex-col gap-2 mt-2 ${!(mode === "liquidity" && liquidityMode === "single-eth") ? "" : "hidden"}`}
+                className={`border-2 border-primary/40 group rounded-b-2xl p-2 pt-3 focus-within:ring-2 hover:bg-secondary-foreground focus-within:ring-primary/60 shadow-[0_0_15px_rgba(0,204,255,0.07)] flex flex-col gap-2 mt-2 ${!(mode === "liquidity" && liquidityMode === "single-eth") ? "" : "hidden"}`}
               >
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">
@@ -4528,7 +4547,7 @@ export const SwapTile = () => {
                     }
                   />
                   {mode === "liquidity" && liquidityMode === "remove" && (
-                    <span className="text-xs text-yellow-600 font-medium">
+                    <span className="text-xs text-chart-5 font-medium">
                       Preview
                     </span>
                   )}
@@ -4540,7 +4559,7 @@ export const SwapTile = () => {
 
         {/* Network indicator */}
         {isConnected && chainId !== mainnet.id && (
-          <div className="text-xs mt-1 px-2 py-1 bg-yellow-50 border border-yellow-200 rounded text-yellow-700">
+          <div className="text-xs mt-1 px-2 py-1 bg-secondary/70 border border-primary/30 rounded text-foreground">
             <strong>Wrong Network:</strong> Please switch to Ethereum mainnet in
             your wallet to{" "}
             {mode === "swap" ? "swap tokens" : "manage liquidity"}
@@ -4550,7 +4569,7 @@ export const SwapTile = () => {
         {/* Slippage information - clickable to show settings */}
         <div
           onClick={() => setShowSlippageSettings(!showSlippageSettings)}
-          className="text-xs mt-1 px-2 py-1 bg-blue-50 border border-blue-100 rounded text-blue-700 cursor-pointer hover:bg-blue-100 transition-colors"
+          className="text-xs mt-1 px-2 py-1 bg-primary/5 border border-primary/20 rounded text-primary cursor-pointer hover:bg-primary/10 transition-colors"
         >
           <div className="flex justify-between items-center">
             <span>
@@ -4559,7 +4578,7 @@ export const SwapTile = () => {
                 ? `${Number(singleEthSlippageBps) / 100}%`
                 : `${Number(slippageBps) / 100}%`}
             </span>
-            <span className="text-xs text-blue-500">
+            <span className="text-xs text-foreground-secondary">
               {showSlippageSettings ? "▲" : "▼"}
             </span>
           </div>
@@ -4567,7 +4586,7 @@ export const SwapTile = () => {
           {/* Slippage Settings Panel */}
           {showSlippageSettings && (
             <div
-              className="mt-2 p-2 bg-white border border-blue-200 rounded-md shadow-sm"
+              className="mt-2 p-2 bg-primary-background border border-accent rounded-md shadow-sm"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="mb-2">
@@ -4586,15 +4605,15 @@ export const SwapTile = () => {
                             ? singleEthSlippageBps === option.value
                             : slippageBps === option.value
                         )
-                          ? "bg-blue-500 text-white"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary text-secondary-foreground hover:bg-primary"
                       }`}
                     >
                       {option.label}
                     </button>
                   ))}
                   {/* Simple custom slippage input */}
-                  <div className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-gray-100 text-gray-700">
+                  <div className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-secondary/70 text-foreground">
                     <input
                       type="number"
                       inputMode="decimal"
@@ -4630,7 +4649,7 @@ export const SwapTile = () => {
 
         {/* Mode-specific information */}
         {mode === "liquidity" && (
-          <div className="text-xs bg-yellow-50 border border-yellow-200 rounded p-2 mt-2 text-yellow-800">
+          <div className="text-xs bg-muted/50 border border-primary/30 rounded p-2 mt-2 text-muted-foreground">
             {liquidityMode === "add" ? (
               <>
                 <p className="font-medium mb-1">Adding liquidity provides:</p>
@@ -4667,7 +4686,7 @@ export const SwapTile = () => {
 
         {/* Pool information */}
         {canSwap && reserves && (
-          <div className="text-xs text-gray-500 flex justify-between px-1 mt-1">
+          <div className="text-xs text-foreground flex justify-between px-1 mt-1">
             {mode === "swap" &&
             isCoinToCoin &&
             !isDirectUsdtEthSwap &&
@@ -4677,7 +4696,7 @@ export const SwapTile = () => {
               (buyToken?.id === null && sellToken.symbol === "USDT")
             ) ? (
               <span className="flex items-center">
-                <span className="bg-yellow-200 text-yellow-800 px-1 rounded mr-1">
+                <span className="bg-chart-5/20 text-chart-5 px-1 rounded mr-1">
                   Multi-hop
                 </span>
                 {sellToken.symbol} → ETH → {buyToken?.symbol}
@@ -4751,7 +4770,7 @@ export const SwapTile = () => {
               (!canSwap || !sellAmt || !reserves)) ||
             isPending
           }
-          className="w-full text-base sm:text-lg mt-4 h-12 touch-manipulation"
+          className="w-full text-base sm:text-lg mt-4 h-12 touch-manipulation dark:bg-primary dark:text-card dark:hover:bg-primary/90 dark:shadow-[0_0_20px_rgba(0,204,255,0.3)]"
         >
           {isPending ? (
             <span className="flex items-center gap-2">
@@ -4778,7 +4797,7 @@ export const SwapTile = () => {
         {/* Status and error messages */}
         {/* Show transaction statuses */}
         {txError && txError.includes("Waiting for") && (
-          <div className="text-sm text-yellow-600 mt-2 flex items-center">
+          <div className="text-sm text-primary mt-2 flex items-center bg-background/50 p-2 rounded border border-primary/20">
             <Loader2 className="h-3 w-3 animate-spin mr-2" />
             {txError}
           </div>
@@ -4787,7 +4806,7 @@ export const SwapTile = () => {
         {/* Show actual errors (only if not a user rejection) */}
         {((writeError && !isUserRejectionError(writeError)) ||
           (txError && !txError.includes("Waiting for"))) && (
-          <div className="text-sm text-red-600 mt-2">
+          <div className="text-sm text-destructive mt-2 bg-background/50 p-2 rounded border border-destructive/20">
             {writeError && !isUserRejectionError(writeError)
               ? writeError.message
               : txError}
@@ -4796,7 +4815,7 @@ export const SwapTile = () => {
 
         {/* Success message */}
         {isSuccess && (
-          <div className="text-sm text-green-600 mt-2 flex items-center">
+          <div className="text-sm text-chart-2 mt-2 flex items-center bg-background/50 p-2 rounded border border-chart-2/20">
             <svg
               className="h-3 w-3 mr-2"
               viewBox="0 0 20 20"
@@ -4814,7 +4833,7 @@ export const SwapTile = () => {
 
         {/* Price Chart - Only show when a valid pair is selected in swap mode */}
         {mode === "swap" && (
-          <div className="mt-4 border-t border-yellow-100 pt-4">
+          <div className="mt-4 border-t border-primary pt-4">
             {/* Determine which token to use for the chart - prioritize non-ETH token */}
             {(() => {
               // Get the non-ETH token for the chart
@@ -4833,7 +4852,7 @@ export const SwapTile = () => {
                   <div className="flex items-center justify-between mb-2">
                     <button
                       onClick={() => setShowPriceChart((prev) => !prev)}
-                      className="text-xs text-gray-600 flex items-center gap-1 hover:text-gray-900"
+                      className="text-xs text-muted-foreground flex items-center gap-1 hover:text-primary"
                     >
                       {showPriceChart ? "Hide Price Chart" : "Show Price Chart"}
                       <svg
@@ -4851,7 +4870,7 @@ export const SwapTile = () => {
                       </svg>
                     </button>
                     {showPriceChart && (
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-muted-foreground">
                         {chartToken.symbol}/ETH price history
                       </div>
                     )}
