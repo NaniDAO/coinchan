@@ -66,7 +66,7 @@ export const ExplorerGrid = ({
     <div className="w-full px-2 sm:px-4">
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center">
-          <h2 className="text-lg sm:text-xl font-semibold text-center sm:text-left">
+          <h2 className="text-xs md:text-xl font-semibold text-center sm:text-left">
             {total === 0
               ? "NO COINS DEPLOYED"
               : total === 1
@@ -75,7 +75,9 @@ export const ExplorerGrid = ({
           </h2>
 
           {searchResults && (
-            <div className="ml-4 text-sm text-muted-foreground">{searchResults}</div>
+            <div className="ml-4 text-sm text-muted-foreground">
+              {searchResults}
+            </div>
           )}
         </div>
 

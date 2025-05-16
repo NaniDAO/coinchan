@@ -62,7 +62,9 @@ const BuySellFallback = ({
       </p>
       <div className="mt-4 bg-background p-3 rounded-md text-sm border border-border">
         <p className="font-medium">Token Details:</p>
-        <p>ID: {tokenId.toString()}</p>
+        <p className="text-xs md:text-sm break-words break-all whitespace-normal overflow-hidden">
+          ID: {tokenId.toString()}
+        </p>
         <p>Name: {name}</p>
         <p>Symbol: {symbol}</p>
       </div>
