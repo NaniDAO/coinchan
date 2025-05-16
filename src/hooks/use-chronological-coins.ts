@@ -93,8 +93,11 @@ export function useChronologicalCoins() {
           throw new Error("Failed to retrieve coin IDs despite non-zero count");
         }
         
-        // Return the complete list of coin IDs in chronological order
-        return allCoinIds;
+        // Filter out any zero or invalid IDs to prevent "Token 0" issues
+        const validCoinIds = allCoinIds.filter(id => id !== undefined && id > 0n);
+        
+        // Return the complete list of valid coin IDs in chronological order
+        return validCoinIds;
       } catch (error) {
         console.error("Error fetching chronological coins:", error);
         // Rethrow to trigger React Query's retry mechanism

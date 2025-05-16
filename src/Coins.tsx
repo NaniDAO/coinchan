@@ -140,8 +140,18 @@ export const Coins = () => {
     (coinsToSort: CoinData[]): CoinData[] => {
       if (!coinsToSort || coinsToSort.length === 0) return [];
       
+      // Filter out invalid coins (with ID 0 or undefined/null IDs)
+      // This prevents the "Token 0" issue by removing problematic entries
+      const validCoins = coinsToSort.filter(coin => 
+        coin && coin.coinId !== undefined && coin.coinId !== null && 
+        Number(coin.coinId) > 0 // Explicitly exclude ID 0
+      );
+      
+      // If all coins were filtered out, return empty array
+      if (validCoins.length === 0) return [];
+      
       // Always create a copy to avoid mutating the original array
-      const coinsCopy = [...coinsToSort];
+      const coinsCopy = [...validCoins];
 
       if (sortType === "liquidity") {
         // Sort by ETH liquidity (reserve0)
@@ -151,6 +161,13 @@ export const Coins = () => {
           // Safely convert to numbers, handling potential null/undefined values
           const aLiquidity = a?.reserve0 ? Number(a.reserve0) : 0;
           const bLiquidity = b?.reserve0 ? Number(b.reserve0) : 0;
+          
+          // If liquidity values are identical, use coinId as secondary sort
+          if (aLiquidity === bLiquidity) {
+            const aId = Number(a.coinId);
+            const bId = Number(b.coinId);
+            return bId - aId; // Secondary sort by coinId (newest first)
+          }
           
           return sortOrder === "asc"
             ? aLiquidity - bLiquidity  // Ascending (lowest liquidity first)
@@ -165,13 +182,18 @@ export const Coins = () => {
           // This gives us the true chronological position of each coin
           const chronologicalMap = new Map<string, number>();
           chronologicalCoinIds.forEach((id, index) => {
-            if (id !== undefined) {
+            // Skip undefined or zero IDs
+            if (id !== undefined && id > 0n) {
               chronologicalMap.set(String(id), index);
             }
           });
           
           return coinsCopy.sort((a, b) => {
-            if (!a?.coinId || !b?.coinId) return 0;
+            // This check should be redundant due to filtering above,
+            // but keeping it for extra safety
+            if (!a?.coinId || !b?.coinId || Number(a.coinId) === 0 || Number(b.coinId) === 0) {
+              return 0;
+            }
             
             // Get the chronological positions (or high value as fallback)
             const aIndex = chronologicalMap.get(String(a.coinId)) ?? Number.MAX_SAFE_INTEGER;
@@ -186,7 +208,10 @@ export const Coins = () => {
         // 2. Fallback to numeric coinId comparison if chronological data isn't available
         else {
           return coinsCopy.sort((a, b) => {
-            if (!a?.coinId || !b?.coinId) return 0;
+            // This check should be redundant due to filtering above
+            if (!a?.coinId || !b?.coinId || Number(a.coinId) === 0 || Number(b.coinId) === 0) {
+              return 0;
+            }
             
             const aId = Number(a.coinId);
             const bId = Number(b.coinId);
@@ -202,13 +227,23 @@ export const Coins = () => {
   );
 
   /* ------------------------------------------------------------------
+   *  Helper to filter out invalid coins (like Token 0)
+   * ------------------------------------------------------------------ */
+  const filterValidCoins = useCallback((coinsList: CoinData[]): CoinData[] => {
+    return coinsList.filter(coin => 
+      coin && coin.coinId !== undefined && coin.coinId !== null && 
+      Number(coin.coinId) > 0 // Exclude ID 0 and any negative IDs
+    );
+  }, []);
+  
+  /* ------------------------------------------------------------------
    *  Data for ExplorerGrid
    * ------------------------------------------------------------------ */
   const displayCoins = useMemo(() => {
-    // Safety checks for undefined data
-    const validCoins = coins || [];
-    const validAllCoins = allCoinsUnpaged || [];
-    const validSearchResults = searchResults || [];
+    // Safety checks for undefined data and filter out invalid coins
+    const validCoins = filterValidCoins(coins || []);
+    const validAllCoins = filterValidCoins(allCoinsUnpaged || []);
+    const validSearchResults = filterValidCoins(searchResults || []);
     
     // Calculate starting and ending indices for pagination
     const startIdx = page * PAGE_SIZE;
@@ -240,8 +275,9 @@ export const Coins = () => {
       }
     }
     
-    return result;
-  }, [isSearchActive, searchResults, sortType, sortOrder, allCoinsUnpaged, coins, sortCoins, page, PAGE_SIZE]);
+    // Final safety check to ensure no invalid coins make it to the display
+    return result.filter(coin => coin && Number(coin.coinId) > 0);
+  }, [isSearchActive, searchResults, sortType, sortOrder, allCoinsUnpaged, coins, sortCoins, page, PAGE_SIZE, filterValidCoins]);
 
   /* ------------------------------------------------------------------
    *  Render – trade view OR explorer grid
@@ -251,14 +287,22 @@ export const Coins = () => {
       {/* Main grid with search bar passed as prop */}
       <ExplorerGrid
         coins={displayCoins}
-        total={isSearchActive ? (searchResults?.length || 0) : (total || 0)}
+        total={isSearchActive 
+          ? (filterValidCoins(searchResults || []).length) 
+          : (filterValidCoins(sortType === "recency" ? (allCoinsUnpaged || []) : (allCoins || [])).length)
+        }
         canPrev={!isSearchActive && page > 0}
-        canNext={!isSearchActive && ((page + 1) * PAGE_SIZE < ((sortType === "recency" ? allCoinsUnpaged?.length : total) || 0))}
+        canNext={!isSearchActive && ((page + 1) * PAGE_SIZE < filterValidCoins(sortType === "recency" ? (allCoinsUnpaged || []) : (allCoins || [])).length)}
         onPrev={debouncedPrevPage}
         onNext={debouncedNextPage}
         isLoading={isLoading || (sortType === "recency" && isChronologicalLoading)}
         currentPage={page + 1}
-        totalPages={Math.max(1, Math.ceil(((sortType === "recency" ? allCoinsUnpaged?.length : total) || 0) / PAGE_SIZE))}
+        totalPages={Math.max(1, Math.ceil(
+          (isSearchActive 
+            ? filterValidCoins(searchResults || []).length 
+            : filterValidCoins(sortType === "recency" ? (allCoinsUnpaged || []) : (allCoins || [])).length
+          ) / PAGE_SIZE
+        ))}
         isSearchActive={isSearchActive}
         sortType={sortType}
         sortOrder={sortOrder}
