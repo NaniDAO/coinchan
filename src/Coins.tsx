@@ -24,7 +24,6 @@ export const Coins = () => {
   const {
     coins,
     allCoins,
-    total,
     page,
     goToNextPage,
     goToPreviousPage,
@@ -309,6 +308,7 @@ export const Coins = () => {
         onSortTypeChange={handleSortTypeChange}
         onSortOrderChange={handleSortOrderChange}
         /* Unused variables removed from usePagedCoins destructuring:
+         * - total (replaced with direct filtered counts)
          * - totalPages
          * - hasNext (renamed to hasNextPage)
          * - hasPrev (renamed to hasPreviousPage)
