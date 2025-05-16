@@ -1,4 +1,4 @@
-import { useAccount, useConnect } from "wagmi";
+import { useAccount, useConnect, useDisconnect } from "wagmi";
 import React, { useEffect, useState } from "react";
 import { truncAddress } from "./lib/address";
 import {
@@ -10,10 +10,17 @@ import {
 } from "@/components/ui/dialog";
 import ConnectionErrorHandler from "@/utils/ConnectionErrorHandler";
 import usePersistentConnection from "./hooks/use-persistent-connection";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const ConnectMenuComponent = () => {
   const { isConnected, address, status } = useAccount();
   const { connect, connectors } = useConnect();
+  const { disconnect } = useDisconnect();
   const [reconnecting, setReconnecting] = useState(false);
 
   usePersistentConnection();
@@ -93,13 +100,19 @@ const ConnectMenuComponent = () => {
 
   // Render the appropriate UI based on connection state
   const renderConnectionUI = () => {
-    // When connected - show the address
+    // When connected - show the address with dropdown
     if (isConnected) {
       return (
-        <div className="flex items-center">
-          <div>{address ? truncAddress(address) : ""}</div>
-          {/* <SignButton /> */}
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger className="flex items-center hover:scale-105 focus:outline-none">
+            <div>{address ? truncAddress(address) : ""}</div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem onClick={() => disconnect()}>
+              Disconnect
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       );
     }
 
