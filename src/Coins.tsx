@@ -26,9 +26,6 @@ export const Coins = () => {
     allCoins,
     total,
     page,
-    totalPages,
-    hasNext: hasNextPage,
-    hasPrev: hasPreviousPage,
     goToNextPage,
     goToPreviousPage,
     isLoading,
@@ -267,6 +264,11 @@ export const Coins = () => {
         sortOrder={sortOrder}
         onSortTypeChange={handleSortTypeChange}
         onSortOrderChange={handleSortOrderChange}
+        /* Unused variables removed from usePagedCoins destructuring:
+         * - totalPages
+         * - hasNext (renamed to hasNextPage)
+         * - hasPrev (renamed to hasPreviousPage)
+         */
         searchBar={
           <div className="relative">
             <input
