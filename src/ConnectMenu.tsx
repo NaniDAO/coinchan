@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import ConnectionErrorHandler from "@/utils/ConnectionErrorHandler";
+import ConnectionErrorHandler from "@/lib/ConnectionErrorHandler";
 import usePersistentConnection from "./hooks/use-persistent-connection";
 import {
   DropdownMenu,

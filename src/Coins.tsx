@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { ExplorerGrid } from "./ExplorerGrid";
 import { usePagedCoins } from "./hooks/metadata";
-import { debounce } from "./utils";
+import { debounce } from "@/lib/utils";
 import { SearchIcon } from "lucide-react";
 
 // Page size for pagination

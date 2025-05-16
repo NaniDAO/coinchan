@@ -1,27 +1,35 @@
-import { encodeAbiParameters, parseAbiParameters, zeroAddress, encodeFunctionData, Address, keccak256 } from "viem";
+import {
+  encodeAbiParameters,
+  parseAbiParameters,
+  zeroAddress,
+  encodeFunctionData,
+  Address,
+  keccak256,
+} from "viem";
 import { ZAAMAddress, ZAAMAbi } from "../constants/ZAAM";
 import { CoinsAddress } from "../constants/Coins";
 
 /**
  * Constants for AMM operations
  */
-const SWAP_FEE = 100n; // 1% pool fee
-const DEADLINE_SEC = 20 * 60; // 20 minutes
-
-/**
- * Apply slippage tolerance to amount
- * @param amount Raw amount
- * @param slippageBps Slippage tolerance in basis points (e.g., 200 = 2%)
- * @returns Amount with slippage applied
- */
-export const getAmountWithSlippage = (amount: bigint, slippageBps: bigint) =>
-  (amount * (10000n - slippageBps)) / 10000n;
+export const SWAP_FEE = 100n; // 1% pool fee
+export const DEADLINE_SEC = 20 * 60; // 20 minutes
+const SLIPPAGE_BPS = 200n; // 100 basis points = 2 %
 
 /**
  * Generate a deadline timestamp in seconds
  * @returns BigInt of current time + deadline window
  */
-const deadlineTimestamp = () => BigInt(Math.floor(Date.now() / 1000) + DEADLINE_SEC);
+const deadlineTimestamp = () =>
+  BigInt(Math.floor(Date.now() / 1000) + DEADLINE_SEC);
+
+type PoolKey = {
+  id0: bigint;
+  id1: bigint;
+  token0: `0x${string}`;
+  token1: `0x${string}`;
+  swapFee: bigint;
+};
 
 /**
  * Compute pool key structure for a coin ID
@@ -29,7 +37,10 @@ const deadlineTimestamp = () => BigInt(Math.floor(Date.now() / 1000) + DEADLINE_
  * @param customFee Optional custom fee to use (default: 1%)
  * @returns PoolKey structure
  */
-export const computePoolKey = (coinId: bigint, customFee: bigint = SWAP_FEE) => ({
+export const computePoolKey = (
+  coinId: bigint,
+  customFee: bigint = SWAP_FEE,
+): PoolKey => ({
   id0: 0n,
   id1: coinId,
   token0: zeroAddress,
@@ -46,7 +57,9 @@ export const computePoolId = (coinId: bigint) =>
   BigInt(
     keccak256(
       encodeAbiParameters(
-        parseAbiParameters("uint256 id0, uint256 id1, address token0, address token1, uint96 swapFee"),
+        parseAbiParameters(
+          "uint256 id0, uint256 id1, address token0, address token1, uint96 swapFee",
+        ),
         [0n, coinId, zeroAddress, CoinsAddress, SWAP_FEE],
       ),
     ),
@@ -86,9 +99,11 @@ export function createCoinSwapMulticall(
   const deadline = deadlineTimestamp();
 
   // Check if we're dealing with USDT
-  const isSourceUSDT = customSourcePoolKey &&
+  const isSourceUSDT =
+    customSourcePoolKey &&
     customSourcePoolKey.token1 === "0xdAC17F958D2ee523a2206206994597C13D831ec7";
-  const isTargetUSDT = customTargetPoolKey &&
+  const isTargetUSDT =
+    customTargetPoolKey &&
     customTargetPoolKey.token1 === "0xdAC17F958D2ee523a2206206994597C13D831ec7";
 
   console.log("Creating multihop swap with:", {
@@ -97,7 +112,7 @@ export function createCoinSwapMulticall(
     sourceCoinId: sourceCoinId.toString(),
     targetCoinId: targetCoinId.toString(),
     amountIn: amountIn.toString(),
-    expectedEthOut: expectedEthOut.toString()
+    expectedEthOut: expectedEthOut.toString(),
   });
 
   // Create the multicall array with functions to call
@@ -209,7 +224,7 @@ export function estimateCoinToCoinOutput(
 
   // Apply a small safety margin to ethAmountOut to account for potential slippage
   // during the first swap or any execution differences
-  const safeEthAmountOut = getAmountWithSlippage(ethAmountOut, slippageBps);
+  const safeEthAmountOut = withSlippage(ethAmountOut, slippageBps);
 
   // Second swap: ETH → targetCoin
   const targetAmountOut = getAmountOut(
@@ -221,30 +236,131 @@ export function estimateCoinToCoinOutput(
 
   return {
     amountOut: targetAmountOut,
-    withSlippage: getAmountWithSlippage(targetAmountOut, slippageBps),
+    withSlippage: withSlippage(targetAmountOut, slippageBps),
     ethAmountOut: safeEthAmountOut, // Return the safe ETH amount for the second swap
   };
 }
 
-/**
- * Calculate output amount for a swap (from ZAMM contract)
- */
-export function getAmountOut(amountIn: bigint, reserveIn: bigint, reserveOut: bigint, swapFee: bigint) {
+const PRICE_CACHE_SIZE = 50; // Smaller cache for price calculations
+const PRICE_CACHE_TTL = 2000; // 2 seconds TTL for price calculations
+
+const amountOutCache = new Map<string, { value: bigint; timestamp: number }>();
+
+// x*y=k AMM with fee — forward (amountIn → amountOut)
+export const getAmountOut = (
+  amountIn: bigint,
+  reserveIn: bigint,
+  reserveOut: bigint,
+  swapFee: bigint,
+) => {
+  // Fast path for zero values
   if (amountIn === 0n || reserveIn === 0n || reserveOut === 0n) return 0n;
 
+  // Create cache key from all inputs
+  const cacheKey = `${amountIn.toString()}-${reserveIn.toString()}-${reserveOut.toString()}-${swapFee.toString()}`;
+  const now = Date.now();
+
+  // Check cache first
+  const cached = amountOutCache.get(cacheKey);
+  if (cached && now - cached.timestamp < PRICE_CACHE_TTL) {
+    return cached.value;
+  }
+
+  // Calculate result if not cached or expired
   const amountInWithFee = amountIn * (10000n - swapFee);
   const numerator = amountInWithFee * reserveOut;
   const denominator = reserveIn * 10000n + amountInWithFee;
-  return numerator / denominator;
-}
+  const result = numerator / denominator;
 
-/**
- * Calculate input amount for a desired output amount (from ZAMM contract)
- */
-export function getAmountIn(amountOut: bigint, reserveIn: bigint, reserveOut: bigint, swapFee: bigint) {
-  if (amountOut === 0n || reserveIn === 0n || reserveOut === 0n || amountOut >= reserveOut) return 0n;
+  // Manage cache size
+  if (amountOutCache.size >= PRICE_CACHE_SIZE) {
+    // Find oldest entry
+    let oldestKey = null;
+    let oldestTime = Infinity;
 
+    for (const [key, entry] of amountOutCache.entries()) {
+      if (entry.timestamp < oldestTime) {
+        oldestTime = entry.timestamp;
+        oldestKey = key;
+      }
+    }
+
+    // Remove oldest entry
+    if (oldestKey) {
+      amountOutCache.delete(oldestKey);
+    }
+  }
+
+  // Cache the result
+  amountOutCache.set(cacheKey, { value: result, timestamp: now });
+
+  return result;
+};
+
+const amountInCache = new Map<string, { value: bigint; timestamp: number }>();
+
+// inverse — desired amountOut → required amountIn
+export const getAmountIn = (
+  amountOut: bigint,
+  reserveIn: bigint,
+  reserveOut: bigint,
+  swapFee: bigint,
+) => {
+  // Fast path for impossible scenarios
+  if (
+    amountOut === 0n ||
+    reserveIn === 0n ||
+    reserveOut === 0n ||
+    amountOut >= reserveOut
+  )
+    return 0n;
+
+  // Create cache key from all inputs
+  const cacheKey = `${amountOut.toString()}-${reserveIn.toString()}-${reserveOut.toString()}-${swapFee.toString()}`;
+  const now = Date.now();
+
+  // Check cache first
+  const cached = amountInCache.get(cacheKey);
+  if (cached && now - cached.timestamp < PRICE_CACHE_TTL) {
+    return cached.value;
+  }
+
+  // Calculate result if not cached or expired
   const numerator = reserveIn * amountOut * 10000n;
   const denominator = (reserveOut - amountOut) * (10000n - swapFee);
-  return numerator / denominator + 1n;
-}
+  const result = numerator / denominator + 1n; // +1 for ceiling rounding
+
+  // Manage cache size
+  if (amountInCache.size >= PRICE_CACHE_SIZE) {
+    // Find oldest entry
+    let oldestKey = null;
+    let oldestTime = Infinity;
+
+    for (const [key, entry] of amountInCache.entries()) {
+      if (entry.timestamp < oldestTime) {
+        oldestTime = entry.timestamp;
+        oldestKey = key;
+      }
+    }
+
+    // Remove oldest entry
+    if (oldestKey) {
+      amountInCache.delete(oldestKey);
+    }
+  }
+
+  // Cache the result
+  amountInCache.set(cacheKey, { value: result, timestamp: now });
+
+  return result;
+};
+
+/**
+ * Apply slippage tolerance to amount
+ * @param amount Raw amount
+ * @returns Amount with slippage applied
+ */
+export const withSlippage = (
+  amount: bigint,
+  slippageBps: bigint = SLIPPAGE_BPS,
+) => (amount * (10000n - slippageBps)) / 10000n;

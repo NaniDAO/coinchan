@@ -8,13 +8,7 @@ import {
   useChainId,
   usePublicClient,
 } from "wagmi";
-import {
-  parseEther,
-  parseUnits,
-  formatEther,
-  formatUnits,
-  zeroAddress,
-} from "viem";
+import { parseEther, parseUnits, formatEther, formatUnits } from "viem";
 import { formatNumber } from "./lib/utils";
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
 import { ZAAMAbi, ZAAMAddress } from "./constants/ZAAM";
@@ -23,66 +17,23 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { mainnet } from "viem/chains";
-import { handleWalletError } from "./utils";
+import { handleWalletError } from "@/lib/errors";
 import { useCoinData } from "./hooks/metadata";
 import {
   formatImageURL,
   getAlternativeImageUrls,
 } from "./hooks/metadata/coin-utils";
-
-// CheckTheChain contract ABI for fetching ETH price
-const CheckTheChainAbi = [
-  {
-    inputs: [{ internalType: "string", name: "symbol", type: "string" }],
-    name: "checkPrice",
-    outputs: [
-      { internalType: "uint256", name: "price", type: "uint256" },
-      { internalType: "string", name: "priceStr", type: "string" },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-] as const;
-
-// CheckTheChain contract address
-const CheckTheChainAddress = "0x0000000000cDC1F8d393415455E382c30FBc0a84";
-
-const DEFAULT_SWAP_FEE = 100n; // 1% pool fee (default) - will be overridden by custom fee if available
-const SLIPPAGE_BPS = 100n; // 100 basis points = 1 %
-const DEADLINE_SEC = 20 * 60; // 20 minutes
-
-// apply slippage tolerance to an amount
-const withSlippage = (amount: bigint) =>
-  (amount * (10000n - SLIPPAGE_BPS)) / 10000n;
-
-type PoolKey = {
-  id0: bigint;
-  id1: bigint;
-  token0: `0x${string}`;
-  token1: `0x${string}`;
-  swapFee: bigint;
-};
-
-const computePoolKey = (coinId: bigint, customSwapFee: bigint): PoolKey => ({
-  id0: 0n,
-  id1: coinId,
-  token0: zeroAddress,
-  token1: CoinsAddress,
-  swapFee: customSwapFee,
-});
-
-// Unchanged getAmountOut from x*y invariants
-const getAmountOut = (
-  amountIn: bigint,
-  reserveIn: bigint,
-  reserveOut: bigint,
-  swapFee: bigint,
-) => {
-  const amountInWithFee = amountIn * (10000n - swapFee);
-  const numerator = amountInWithFee * reserveOut;
-  const denominator = reserveIn * 10000n + amountInWithFee;
-  return numerator / denominator;
-};
+import {
+  computePoolKey,
+  DEADLINE_SEC,
+  getAmountOut,
+  SWAP_FEE,
+  withSlippage,
+} from "./lib/swap";
+import {
+  CheckTheChainAbi,
+  CheckTheChainAddress,
+} from "./constants/CheckTheChain";
 
 export const BuySell = ({
   tokenId,
@@ -97,7 +48,7 @@ export const BuySell = ({
   const [amount, setAmount] = useState("");
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [swapFee, setSwapFee] = useState<bigint>(DEFAULT_SWAP_FEE);
+  const [swapFee, setSwapFee] = useState<bigint>(SWAP_FEE);
   const [isOwner, setIsOwner] = useState(false);
 
   const { address, isConnected } = useAccount();
@@ -135,9 +86,7 @@ export const BuySell = ({
 
         // Set the swap fee from lockup or use default if not available or zero
         const customSwapFee =
-          lockupSwapFee && lockupSwapFee > 0n
-            ? lockupSwapFee
-            : DEFAULT_SWAP_FEE;
+          lockupSwapFee && lockupSwapFee > 0n ? lockupSwapFee : SWAP_FEE;
         setSwapFee(customSwapFee);
 
         // Check if the current address is the owner (only if address is connected)
@@ -153,7 +102,7 @@ export const BuySell = ({
         );
         // Use default swap fee if there's an error, but only if we haven't already set a custom fee
         if (isMounted) {
-          setSwapFee(DEFAULT_SWAP_FEE);
+          setSwapFee(SWAP_FEE);
           setIsOwner(false);
         }
       }

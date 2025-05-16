@@ -13,7 +13,7 @@ import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
-import { isUserRejectionError } from "./utils";
+import { isUserRejectionError } from "@/lib/errors";
 
 interface ClaimVestedProps {
   coinId: bigint;
@@ -78,7 +78,10 @@ export const ClaimVested = ({ coinId }: ClaimVestedProps) => {
         };
 
         // Verify we have a valid owner address
-        if (!parsedLockup.owner || parsedLockup.owner === "0x0000000000000000000000000000000000000000") {
+        if (
+          !parsedLockup.owner ||
+          parsedLockup.owner === "0x0000000000000000000000000000000000000000"
+        ) {
           setIsLoading(false);
           return;
         }
@@ -111,7 +114,10 @@ export const ClaimVested = ({ coinId }: ClaimVestedProps) => {
 
     const totalDuration = Number(lockupInfo.unlock - lockupInfo.creation);
     const currentTime = BigInt(Math.floor(Date.now() / 1000));
-    const elapsed = Math.min(Number(currentTime - lockupInfo.creation), totalDuration);
+    const elapsed = Math.min(
+      Number(currentTime - lockupInfo.creation),
+      totalDuration,
+    );
 
     return (elapsed / totalDuration) * 100;
   };
@@ -205,14 +211,20 @@ export const ClaimVested = ({ coinId }: ClaimVestedProps) => {
   }
 
   // If no lockup exists or it's not a vesting lockup, don't show this component
-  if (!lockupInfo || (!lockupInfo.vesting && BigInt(Math.floor(Date.now() / 1000)) < lockupInfo.unlock)) {
+  if (
+    !lockupInfo ||
+    (!lockupInfo.vesting &&
+      BigInt(Math.floor(Date.now() / 1000)) < lockupInfo.unlock)
+  ) {
     return null;
   }
 
   return (
     <Card className="w-full p-4 border-2 border-primary/30 shadow-md rounded-xl">
       <CardContent className="p-2">
-        <h3 className="text-lg font-bold mb-2 text-primary">Liquidity Vesting</h3>
+        <h3 className="text-lg font-bold mb-2 text-primary">
+          Liquidity Vesting
+        </h3>
 
         {/* Vesting progress */}
         <div className="mb-4">
@@ -221,16 +233,23 @@ export const ClaimVested = ({ coinId }: ClaimVestedProps) => {
             <span>{calculateVestingPercentage().toFixed(2)}%</span>
           </div>
           <div className="w-full bg-secondary rounded-full h-2">
-            <div className="bg-primary h-2 rounded-full" style={{ width: `${calculateVestingPercentage()}%` }}></div>
+            <div
+              className="bg-primary h-2 rounded-full"
+              style={{ width: `${calculateVestingPercentage()}%` }}
+            ></div>
           </div>
-          <div className="mt-1 text-xs text-muted-foreground">{formatTimeRemaining()}</div>
+          <div className="mt-1 text-xs text-muted-foreground">
+            {formatTimeRemaining()}
+          </div>
         </div>
 
         {/* Vestable amount */}
         <div className="mb-4 p-2 bg-secondary/30 rounded-lg">
           <div className="flex justify-between">
             <span className="text-sm">Available to claim:</span>
-            <span className="font-bold">{formatUnits(vestableAmount, 18)} LP</span>
+            <span className="font-bold">
+              {formatUnits(vestableAmount, 18)} LP
+            </span>
           </div>
           {lockupInfo.claimed > 0n && (
             <div className="flex justify-between mt-1 text-xs text-muted-foreground">
@@ -257,10 +276,16 @@ export const ClaimVested = ({ coinId }: ClaimVestedProps) => {
         </Button>
 
         {/* Error message */}
-        {txError && <div className="mt-2 text-xs text-destructive">{txError}</div>}
+        {txError && (
+          <div className="mt-2 text-xs text-destructive">{txError}</div>
+        )}
 
         {/* Success message */}
-        {isSuccess && <div className="mt-2 text-xs text-chart-2">Successfully claimed tokens!</div>}
+        {isSuccess && (
+          <div className="mt-2 text-xs text-chart-2">
+            Successfully claimed tokens!
+          </div>
+        )}
       </CardContent>
     </Card>
   );
