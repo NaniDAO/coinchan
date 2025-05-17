@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { CoinData } from "./metadata/coin-utils";
 
-interface PricePoint {
+export interface PricePoint {
   timestamp: number;
   price: number;  // Price in ETH
 }
@@ -52,7 +52,7 @@ export function usePriceChanges(coins: CoinData[]) {
       // Calculate price changes for each coin
       const priceChanges = poolEventsResults.map(({ coinId, events }) => {
         // Filter for swap events only
-        const swapEvents = events.filter(e => e.type === "BUY" || e.type === "SELL");
+        const swapEvents = events.filter((e: any) => e.type === "BUY" || e.type === "SELL");
         
         if (swapEvents.length === 0) {
           return {

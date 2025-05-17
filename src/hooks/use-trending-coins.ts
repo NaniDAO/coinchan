@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { CoinData } from "./metadata/coin-utils";
 
-interface PoolEvent {
+// Event data from pool events API
+export interface PoolEvent {
   type: string;
   timestamp: number;
   amount0_in?: string;
@@ -12,13 +13,17 @@ interface PoolEvent {
   txhash: string;
 }
 
-interface TrendingMetrics {
+export interface TrendingMetrics {
   coinId: bigint;
   txCount24h: number;
   volumeEth24h: number;
   uniqueTraders24h: number;
   lastTxTimestamp: number;
   trendingScore: number;
+  movementScore?: number;        // Direction of trading (-1 to 1, sell to buy)
+  velocityScore?: number;        // Speed of recent transactions
+  volumeAcceleration?: number;   // Is volume increasing?
+  recencyFactor?: number;        // How recent was last activity
   isTrending: boolean;
 }
 
@@ -62,13 +67,13 @@ export function useTrendingCoins(coins: CoinData[]) {
       // Calculate trending metrics for each coin
       const trendingMetrics = poolEventsResults.map(({ coinId, events }) => {
         // Filter events to only include BUY and SELL transactions
-        const tradeEvents = events.filter((e: PoolEvent) => 
+        const tradeEvents = events.filter((e: any) => 
           e.type === "BUY" || e.type === "SELL"
         );
         
         // Calculate volume in ETH
         let volumeEth = 0;
-        tradeEvents.forEach((e: PoolEvent) => {
+        tradeEvents.forEach((e: any) => {
           // For BUY events, ETH goes in (amount0_in)
           // For SELL events, ETH comes out (amount0_out)
           const ethAmount = e.type === "BUY" 
@@ -81,17 +86,17 @@ export function useTrendingCoins(coins: CoinData[]) {
         
         // Count unique traders
         const uniqueTraders = new Set(
-          tradeEvents.map((e: PoolEvent) => e.maker).filter(Boolean)
+          tradeEvents.map((e: any) => e.maker).filter(Boolean)
         ).size;
         
         // Get timestamp of most recent transaction
         const lastTxTimestamp = tradeEvents.length > 0 
-          ? Math.max(...tradeEvents.map((e: PoolEvent) => e.timestamp))
+          ? Math.max(...tradeEvents.map((e: any) => e.timestamp))
           : 0;
           
         // Count transactions by type for movement analysis
-        const buyCount = tradeEvents.filter(e => e.type === "BUY").length;
-        const sellCount = tradeEvents.filter(e => e.type === "SELL").length;
+        const buyCount = tradeEvents.filter((e: any) => e.type === "BUY").length;
+        const sellCount = tradeEvents.filter((e: any) => e.type === "SELL").length;
         const txCount = tradeEvents.length;
         
         // Calculate movement score - higher when there's a significant directional trend
