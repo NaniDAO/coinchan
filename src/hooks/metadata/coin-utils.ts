@@ -20,6 +20,22 @@ export type CoinData = RawCoinData & {
   metadata: Record<string, any> | null;
   // Additional derived fields
   priceInEth: number | null;
+  
+  // Trending metrics (optional, populated by useTrendingCoins hook)
+  txCount24h?: number;
+  volumeEth24h?: number;
+  uniqueTraders24h?: number;
+  trendingScore?: number;
+  movementScore?: number;        // Direction of trading (-1 to 1, sell to buy)
+  velocityScore?: number;        // Speed of recent transactions
+  volumeAcceleration?: number;   // Is volume increasing?
+  recencyFactor?: number;        // How recent was last activity
+  isTrending?: boolean;
+  
+  // Price change metrics (optional, populated by usePriceChanges hook)
+  priceChange4h?: number;        // Absolute price change over 4 hours
+  priceChangePct4h?: number;     // Percentage price change over 4 hours
+  hasPriceChangeData?: boolean;  // Whether we have price change data
 };
 
 export function hydrateRawCoin(raw: RawCoinData): CoinData {
