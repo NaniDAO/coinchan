@@ -464,6 +464,19 @@ export const BuySell = ({
             </span>
           </div>
 
+          {/* Token ID in hex format and Etherscan link */}
+          <div className="flex items-center mt-1 text-xs">
+            <span className="text-muted-foreground mr-1">ID: {tokenId.toString()} (0x{tokenId.toString(16)})</span>
+            <a 
+              href={`https://etherscan.io/token/0x${tokenId.toString(16)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline ml-2"
+            >
+              View on Etherscan
+            </a>
+          </div>
+
           {/* Description */}
           <p className="text-sm text-muted-foreground mt-1 overflow-y-auto max-h-20">
             {description || "No description available"}
