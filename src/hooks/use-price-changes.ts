@@ -25,13 +25,16 @@ export function usePriceChanges(coins: CoinData[]) {
 
       const now = Math.floor(Date.now() / 1000);
       const fourHoursAgo = now - 4 * 60 * 60;
+      // Use a longer window (24 hours) to ensure we have enough data points
+      // This helps with coins that have infrequent trading activity
+      const twentyFourHoursAgo = now - 24 * 60 * 60;
 
-      // Fetch events for all pools in parallel
+      // Fetch events for all pools in parallel using the larger time window
       const poolEventsPromises = coins
         .filter(coin => coin.poolId && coin.poolId > 0n)
         .map(async (coin) => {
           try {
-            const url = `${import.meta.env.VITE_INDEXER_URL}/api/events?poolId=${coin.poolId.toString()}&after=${fourHoursAgo}&limit=100`;
+            const url = `${import.meta.env.VITE_INDEXER_URL}/api/events?poolId=${coin.poolId.toString()}&after=${twentyFourHoursAgo}&limit=100`;
             const res = await fetch(url);
             
             if (!res.ok) {
@@ -133,13 +136,24 @@ export function usePriceChanges(coins: CoinData[]) {
         const currentPrice = coins.find(c => c.coinId === coinId)?.priceInEth || 
                              pricePoints[pricePoints.length - 1].price || 0;
         
-        // Find price 4 hours ago (or earliest available)
-        const earliestPrice = pricePoints[0].price;
+        // Find the price closest to the 4-hour mark
+        // First, find all points that are before the 4-hour mark
+        const pointsBeforeFourHours = pricePoints.filter(point => point.timestamp <= fourHoursAgo);
+        
+        // Use the most recent point before the 4-hour mark, or the earliest point if none were before
+        let referencePrice: number;
+        if (pointsBeforeFourHours.length > 0) {
+          // Get the most recent price before the 4-hour mark
+          referencePrice = pointsBeforeFourHours[pointsBeforeFourHours.length - 1].price;
+        } else {
+          // If no points before 4-hour mark, use the earliest available price
+          referencePrice = pricePoints[0].price;
+        }
         
         // Sanity check on both prices before calculating
-        if (!isFinite(currentPrice) || !isFinite(earliestPrice) || 
-            isNaN(currentPrice) || isNaN(earliestPrice) ||
-            currentPrice <= 0 || earliestPrice <= 0) {
+        if (!isFinite(currentPrice) || !isFinite(referencePrice) || 
+            isNaN(currentPrice) || isNaN(referencePrice) ||
+            currentPrice <= 0 || referencePrice <= 0) {
           return {
             coinId,
             priceChange4h: 0,
@@ -149,21 +163,42 @@ export function usePriceChanges(coins: CoinData[]) {
         }
         
         // Calculate absolute and percentage changes
-        const priceChange = currentPrice - earliestPrice;
+        const priceChange = currentPrice - referencePrice;
         
         // Calculate percentage change with additional safety checks
-        let priceChangePct = earliestPrice > 0 
-          ? (priceChange / earliestPrice) * 100 
+        let priceChangePct = referencePrice > 0 
+          ? (priceChange / referencePrice) * 100 
           : 0;
           
         // Sanity check - cap to reasonable range to prevent display issues
         priceChangePct = Math.max(Math.min(priceChangePct, 1000), -100);
         
+        // Determine if we have meaningful data to display
+        // Only set hasData to false if the percentage change is extremely small, since users
+        // mainly care about meaningful price changes
+        const isMeaningfulChange = Math.abs(priceChangePct) >= 0.1;
+        
+        // Calculate the time difference between our reference price and current price
+        // This helps users understand if the change is recent or based on older data
+        let timeSpanHours: number;
+        const latestTimestamp = pricePoints[pricePoints.length - 1].timestamp;
+        const referenceTimestamp = pointsBeforeFourHours.length > 0
+          ? pointsBeforeFourHours[pointsBeforeFourHours.length - 1].timestamp
+          : pricePoints[0].timestamp;
+        
+        timeSpanHours = (latestTimestamp - referenceTimestamp) / 3600;
+        
+        // Set to true if we have: 
+        // 1. At least two price points
+        // 2. A meaningful price change or very recent data (within last 8 hours)
+        const hasData = pricePoints.length >= 2 && 
+          (isMeaningfulChange || timeSpanHours <= 8);
+        
         return {
           coinId,
           priceChange4h: priceChange,
           priceChangePct4h: priceChangePct,
-          hasData: true
+          hasData: hasData
         };
       });
       
