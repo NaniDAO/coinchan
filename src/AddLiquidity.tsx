@@ -1,5 +1,4 @@
 import { Loader2 } from "lucide-react";
-import { TokenSelector } from "./components/TokenSelector";
 import { SuccessMessage } from "./components/SuccessMessage";
 import { Button } from "./components/ui/button";
 import {
@@ -38,6 +37,7 @@ import { ZAMMHelperAbi, ZAMMHelperAddress } from "./constants/ZAMMHelper";
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
 import { nowSec } from "./lib/utils";
 import { mainnet } from "viem/chains";
+import { SwapPanel } from "./components/SwapPanel";
 
 export const AddLiquidity = () => {
   const { isConnected, address } = useAccount();
@@ -1045,97 +1045,52 @@ export const AddLiquidity = () => {
 
   return (
     <div className="relative flex flex-col">
-      {/* SELL/PROVIDE panel */}
-      <div
-        className={`border-2 border-primary/40 group hover:bg-secondary-foreground rounded-t-2xl p-2 pb-4 focus-within:ring-2 focus-within:ring-primary/60 flex flex-col gap-2`}
-      >
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">Provide</span>
-          <div className={""}>
-            <TokenSelector
-              selectedToken={sellToken}
-              tokens={memoizedTokens}
-              onSelect={handleSellTokenSelect}
-              isEthBalanceFetching={isEthBalanceFetching}
-            />
-          </div>
-        </div>
-        <div className="flex justify-between items-center">
-          <input
-            type="number"
-            inputMode="decimal"
-            min="0"
-            step="any"
-            placeholder="0.0"
-            value={sellAmt}
-            onChange={(e) => syncFromSell(e.target.value)}
-            className="text-lg sm:text-xl font-medium w-full focus:outline-none h-10 text-right pr-1 bg-transparent dark:text-foreground dark:placeholder-primary/50"
-            readOnly={false}
-          />
-          {/* MAX button for using full balance */}
-          {sellToken.balance !== undefined && sellToken.balance > 0n && (
-            <button
-              className="text-xs bg-primary/10 hover:bg-primary/20 text-primary font-medium px-3 py-1.5 rounded touch-manipulation min-w-[50px] border border-primary/30 shadow-[0_0_5px_rgba(0,204,255,0.15)]"
-              onClick={() => {
-                // For ETH, leave a small amount for gas
-                if (sellToken.id === null) {
-                  // Get 99% of ETH balance to leave some for gas
-                  const ethAmount =
-                    ((sellToken.balance as bigint) * 99n) / 100n;
-                  syncFromSell(formatEther(ethAmount));
-                } else {
-                  // For other tokens, use the full balance with correct decimals
-                  // Handle non-standard decimals like USDT (6 decimals)
-                  const decimals = sellToken.decimals || 18;
-                  syncFromSell(
-                    formatUnits(sellToken.balance as bigint, decimals),
-                  );
-                }
-              }}
-            >
-              MAX
-            </button>
-          )}
-        </div>
+      {/* Provide panel */}
+      <SwapPanel
+        title="Provide"
+        selectedToken={sellToken}
+        tokens={memoizedTokens}
+        onSelect={handleSellTokenSelect}
+        isEthBalanceFetching={isEthBalanceFetching}
+        amount={sellAmt}
+        onAmountChange={syncFromSell}
+        showMaxButton={
+          !!(sellToken.balance !== undefined && sellToken.balance > 0n)
+        }
+        onMax={() => {
+          if (sellToken.id === null) {
+            const ethAmount = ((sellToken.balance as bigint) * 99n) / 100n;
+            syncFromSell(formatEther(ethAmount));
+          } else {
+            const decimals = sellToken.decimals || 18;
+            syncFromSell(formatUnits(sellToken.balance as bigint, decimals));
+          }
+        }}
+        className="rounded-t-2xl pb-4"
+      />
 
-        {/* Standard BUY/RECEIVE panel */}
-        {buyToken && (
-          <div
-            className={`border-2 border-primary/40 group rounded-b-2xl p-2 pt-3 focus-within:ring-2 hover:bg-secondary-foreground focus-within:ring-primary/60 shadow-[0_0_15px_rgba(0,204,255,0.07)] flex flex-col gap-2 mt-2`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">And</span>
-              <TokenSelector
-                selectedToken={buyToken}
-                tokens={memoizedTokens}
-                onSelect={handleBuyTokenSelect}
-                isEthBalanceFetching={isEthBalanceFetching}
-              />
-            </div>
-            <div className="flex justify-between items-center">
-              <input
-                type="number"
-                inputMode="decimal"
-                min="0"
-                step="any"
-                placeholder="0.0"
-                value={buyAmt}
-                onChange={(e) => syncFromBuy(e.target.value)}
-                className="text-lg sm:text-xl font-medium w-full focus:outline-none h-10 text-right pr-1"
-                readOnly={false}
-              />
-            </div>
-          </div>
-        )}
-      </div>
+      {/* And (second) panel */}
+      {buyToken && (
+        <SwapPanel
+          title="And"
+          selectedToken={buyToken}
+          tokens={memoizedTokens}
+          onSelect={handleBuyTokenSelect}
+          isEthBalanceFetching={isEthBalanceFetching}
+          amount={buyAmt}
+          onAmountChange={syncFromBuy}
+          className="mt-2 rounded-b-2xl pt-3 shadow-[0_0_15px_rgba(0,204,255,0.07)]"
+        />
+      )}
 
       <NetworkError message="manage liquidity" />
 
-      {/* Slippage information - clickable to show settings */}
+      {/* Slippage information */}
       <SlippageSettings
         slippageBps={slippageBps}
         setSlippageBps={setSlippageBps}
       />
+
       <div className="text-xs bg-muted/50 border border-primary/30 rounded p-2 mt-2 text-muted-foreground">
         <p className="font-medium mb-1">Adding liquidity provides:</p>
         <ul className="list-disc pl-4 space-y-0.5">
@@ -1144,6 +1099,7 @@ export const AddLiquidity = () => {
           <li>Withdraw your liquidity anytime</li>
         </ul>
       </div>
+
       <Button
         onClick={executeAddLiquidity}
         disabled={!isConnected || isPending}
@@ -1160,7 +1116,6 @@ export const AddLiquidity = () => {
       </Button>
 
       {/* Status and error messages */}
-      {/* Show transaction statuses */}
       {txError && txError.includes("Waiting for") && (
         <div className="text-sm text-primary mt-2 flex items-center bg-background/50 p-2 rounded border border-primary/20">
           <Loader2 className="h-3 w-3 animate-spin mr-2" />
@@ -1168,7 +1123,6 @@ export const AddLiquidity = () => {
         </div>
       )}
 
-      {/* Show actual errors (only if not a user rejection) */}
       {((writeError && !isUserRejectionError(writeError)) ||
         (txError && !txError.includes("Waiting for"))) && (
         <div className="text-sm text-destructive mt-2 bg-background/50 p-2 rounded border border-destructive/20">
@@ -1178,7 +1132,6 @@ export const AddLiquidity = () => {
         </div>
       )}
 
-      {/* Success message */}
       {isSuccess && <SuccessMessage />}
     </div>
   );

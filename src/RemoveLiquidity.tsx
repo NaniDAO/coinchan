@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
-import { TokenSelector } from "./components/TokenSelector";
 import { Loader2 } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
@@ -27,6 +26,7 @@ import { SuccessMessage } from "./components/SuccessMessage";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { SlippageSettings } from "./components/SlippageSettings";
 import { nowSec } from "./lib/utils";
+import { SwapPanel } from "./components/SwapPanel";
 
 export const RemoveLiquidity = () => {
   const [sellToken, setSellToken] = useState<TokenMeta>(ETH_TOKEN);
@@ -554,67 +554,31 @@ export const RemoveLiquidity = () => {
       </div>
       <div className="relative flex flex-col">
         {/* SELL/PROVIDE panel */}
-        <div
-          className={`border-2 border-primary/40 group hover:bg-secondary-foreground rounded-md p-2 pb-4 focus-within:ring-2 focus-within:ring-primary/60 flex flex-col gap-2 mt-2`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">
-              You'll Receive (ETH)
-            </span>
-            <div className="">
-              <TokenSelector
-                selectedToken={sellToken}
-                tokens={memoizedTokens}
-                onSelect={handleSellTokenSelect}
-                isEthBalanceFetching={isEthBalanceFetching}
-              />
-            </div>
-          </div>
-          <div className="flex justify-between items-center">
-            <input
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="any"
-              placeholder="0.0"
-              value={sellAmt}
-              onChange={(e) => syncFromSell(e.target.value)}
-              className="text-lg sm:text-xl font-medium w-full focus:outline-none h-10 text-right pr-1 bg-transparent dark:text-foreground dark:placeholder-primary/50"
-              readOnly={true}
-            />
-            <span className="text-xs text-primary font-medium">Preview</span>
-          </div>
-        </div>
+        <SwapPanel
+          title="You'll Receive (ETH)"
+          selectedToken={sellToken}
+          tokens={memoizedTokens}
+          onSelect={handleSellTokenSelect}
+          isEthBalanceFetching={isEthBalanceFetching}
+          amount={sellAmt}
+          onAmountChange={syncFromSell}
+          readOnly={true}
+          previewLabel="Preview"
+          className="mt-2 rounded-md p-2 pb-4 focus-within:ring-2 focus-within:ring-primary/60"
+        />
         {buyToken && (
-          <div
-            className={`border-2 border-primary/40 group rounded-b-2xl p-2 pt-3 focus-within:ring-2 hover:bg-secondary-foreground focus-within:ring-primary/60 shadow-[0_0_15px_rgba(0,204,255,0.07)] flex flex-col gap-2 mt-2`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">
-                You'll Receive (${buyToken.symbol})
-              </span>
-              <TokenSelector
-                selectedToken={buyToken}
-                tokens={memoizedTokens}
-                onSelect={handleBuyTokenSelect}
-                isEthBalanceFetching={isEthBalanceFetching}
-              />
-            </div>
-            <div className="flex justify-between items-center">
-              <input
-                type="number"
-                inputMode="decimal"
-                min="0"
-                step="any"
-                placeholder="0.0"
-                value={buyAmt}
-                onChange={(e) => syncFromBuy(e.target.value)}
-                className="text-lg sm:text-xl font-medium w-full focus:outline-none h-10 text-right pr-1"
-                readOnly={true}
-              />
-              <span className="text-xs text-chart-5 font-medium">Preview</span>
-            </div>
-          </div>
+          <SwapPanel
+            title={`You'll Receive (${buyToken.symbol})`}
+            selectedToken={buyToken}
+            tokens={memoizedTokens}
+            onSelect={handleBuyTokenSelect}
+            isEthBalanceFetching={isEthBalanceFetching}
+            amount={buyAmt}
+            onAmountChange={syncFromBuy}
+            readOnly={true}
+            previewLabel="Preview"
+            className="mt-2 rounded-b-2xl pt-3 shadow-[0_0_15px_rgba(0,204,255,0.07)]"
+          />
         )}
 
         {/* Slippage information - clickable to show settings */}
@@ -622,6 +586,16 @@ export const RemoveLiquidity = () => {
           setSlippageBps={setSlippageBps}
           slippageBps={slippageBps}
         />
+        <div className="text-xs bg-muted/50 border border-primary/30 rounded p-2 mt-2 text-muted-foreground">
+          <p className="font-medium mb-1">Remove Liquidity:</p>
+          <ul className="list-disc pl-4 space-y-0.5">
+            <li>
+              Your LP balance: {formatUnits(lpTokenBalance, 18)} LP tokens
+            </li>
+            <li>Enter amount of LP tokens to burn</li>
+            <li>Preview shows expected return of ETH and tokens</li>
+          </ul>
+        </div>
 
         {isConnected && chainId !== mainnet.id && (
           <div className="text-xs mt-1 px-2 py-1 bg-secondary/70 border border-primary/30 rounded text-foreground">

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PoolSwapChart } from "./PoolSwapChart";
-import { ArrowDownUp, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { SuccessMessage } from "./components/SuccessMessage";
 import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
@@ -15,7 +15,6 @@ import {
   withSlippage,
 } from "./lib/swap";
 import { NetworkError } from "./components/NetworkError";
-import { TokenSelector } from "./components/TokenSelector";
 import { useOperatorStatus } from "./hooks/use-operator-status";
 import {
   useAccount,
@@ -42,6 +41,8 @@ import {
 } from "@/lib/simulate";
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
 import { SlippageSettings } from "./components/SlippageSettings";
+import { FlipActionButton } from "./components/FlipActionButton";
+import { SwapPanel } from "./components/SwapPanel";
 
 export const SwapAction = () => {
   const { address, isConnected } = useAccount();
@@ -1306,106 +1307,43 @@ export const SwapAction = () => {
   return (
     <div className="relative flex flex-col">
       {/* SELL + FLIP + BUY panel container */}
+      {/* SELL/PROVIDE panel */}
       <div className="relative flex flex-col">
-        {/* SELL/PROVIDE panel */}
-        <div
-          className={`border-2 border-primary/40 group hover:bg-secondary-foreground rounded-t-2xl p-2 pb-4 focus-within:ring-2 focus-within:ring-primary/60 flex flex-col gap-2`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Sell</span>
-
-            {/* Token selector for all other modes */}
-            <div className={""}>
-              <TokenSelector
-                selectedToken={sellToken}
-                tokens={memoizedTokens}
-                onSelect={handleSellTokenSelect}
-                isEthBalanceFetching={isEthBalanceFetching}
-              />
-            </div>
-          </div>
-          <div className="flex justify-between items-center">
-            <input
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="any"
-              placeholder="0.0"
-              value={sellAmt}
-              onChange={(e) => syncFromSell(e.target.value)}
-              className="text-lg sm:text-xl font-medium w-full focus:outline-none h-10 text-right pr-1 bg-transparent dark:text-foreground dark:placeholder-primary/50"
-              readOnly={false}
-            />
-            {/* MAX button for using full balance */}
-            {sellToken.balance !== undefined && sellToken.balance > 0n && (
-              <button
-                className="text-xs bg-primary/10 hover:bg-primary/20 text-primary font-medium px-3 py-1.5 rounded touch-manipulation min-w-[50px] border border-primary/30 shadow-[0_0_5px_rgba(0,204,255,0.15)]"
-                onClick={() => {
-                  // For ETH, leave a small amount for gas
-                  if (sellToken.id === null) {
-                    // Get 99% of ETH balance to leave some for gas
-                    const ethAmount =
-                      ((sellToken.balance as bigint) * 99n) / 100n;
-                    syncFromSell(formatEther(ethAmount));
-                  } else {
-                    // For other tokens, use the full balance with correct decimals
-                    // Handle non-standard decimals like USDT (6 decimals)
-                    const decimals = sellToken.decimals || 18;
-                    syncFromSell(
-                      formatUnits(sellToken.balance as bigint, decimals),
-                    );
-                  }
-                }}
-              >
-                MAX
-              </button>
-            )}
-          </div>
-        </div>
-
+        <SwapPanel
+          title="Sell"
+          selectedToken={sellToken}
+          tokens={memoizedTokens}
+          onSelect={handleSellTokenSelect}
+          isEthBalanceFetching={isEthBalanceFetching}
+          amount={sellAmt}
+          onAmountChange={syncFromSell}
+          showMaxButton={!!(sellToken.balance && sellToken.balance > 0n)}
+          onMax={() => {
+            if (sellToken.id === null) {
+              const ethAmount = ((sellToken.balance as bigint) * 99n) / 100n;
+              syncFromSell(formatEther(ethAmount));
+            } else {
+              const decimals = sellToken.decimals || 18;
+              syncFromSell(formatUnits(sellToken.balance as bigint, decimals));
+            }
+          }}
+          className="rounded-t-2xl pb-4"
+        />
         {/* FLIP button - only shown in swap mode */}
-        <button
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 p-3 rounded-full shadow-xl
-            bg-primary hover:bg-primary/80 focus:bg-primary/90 active:scale-95
-            shadow-[0_0_15px_rgba(0,204,255,0.3)]
-            focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all z-10 touch-manipulation"
-          onClick={flipTokens}
-        >
-          <ArrowDownUp className="h-5 w-5 text-background" />
-        </button>
-
-        {/* ALL BUY/RECEIVE panels - rendering conditionally with CSS for hook stability */}
-        {/* Standard BUY/RECEIVE panel */}
+        <FlipActionButton onClick={flipTokens} />
         {buyToken && (
-          <div
-            className={`border-2 border-primary/40 group rounded-b-2xl p-2 pt-3 focus-within:ring-2 hover:bg-secondary-foreground focus-within:ring-primary/60 shadow-[0_0_15px_rgba(0,204,255,0.07)] flex flex-col gap-2 mt-2 `}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Buy</span>
-              <TokenSelector
-                selectedToken={buyToken}
-                tokens={memoizedTokens}
-                onSelect={handleBuyTokenSelect}
-                isEthBalanceFetching={isEthBalanceFetching}
-              />
-            </div>
-            <div className="flex justify-between items-center">
-              <input
-                type="number"
-                inputMode="decimal"
-                min="0"
-                step="any"
-                placeholder="0.0"
-                value={buyAmt}
-                onChange={(e) => syncFromBuy(e.target.value)}
-                className="text-lg sm:text-xl font-medium w-full focus:outline-none h-10 text-right pr-1"
-                readOnly={false}
-              />
-            </div>
-          </div>
+          <SwapPanel
+            title="Buy"
+            selectedToken={buyToken}
+            tokens={memoizedTokens}
+            onSelect={handleBuyTokenSelect}
+            isEthBalanceFetching={isEthBalanceFetching}
+            amount={buyAmt}
+            onAmountChange={syncFromBuy}
+            className="mt-2 rounded-b-2xl pt-3 shadow-[0_0_15px_rgba(0,204,255,0.07)]"
+          />
         )}
       </div>
-
       {/* Network indicator */}
       <NetworkError message="swap tokens" />
 

@@ -32,7 +32,7 @@ import { formatEther, formatUnits, parseEther } from "viem";
 import { ZAAMAbi, ZAAMAddress } from "./constants/ZAAM";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import { SlippageSettings } from "./components/SlippageSettings";
-import { TokenSelector } from "./components/TokenSelector";
+import { SwapPanel } from "./components/SwapPanel";
 
 export const SingleEthLiquidity = () => {
   /* State */
@@ -570,124 +570,55 @@ export const SingleEthLiquidity = () => {
 
   return (
     <div>
-      {/* SELL + FLIP + BUY panel container */}
+      {/* SELL + FLIP + BUY (Provide ETH + Target Token) container */}
       <div className="relative flex flex-col">
-        {/* SELL/PROVIDE panel */}
-        <div
-          className={`border-2 border-primary/40 group hover:bg-secondary-foreground rounded-t-2xl p-2 pb-4 focus-within:ring-2 focus-within:ring-primary/60 flex flex-col gap-2`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Provide ETH</span>
-            {/* Render both options but hide one with CSS for hook stability */}
-            {/* ETH-only display for Single-ETH mode */}
-            <div
-              className={`flex items-center gap-2 bg-transparent border border-primary rounded-md px-2 py-1`}
-            >
-              <div className="w-8 h-8 overflow-hidden rounded-full">
-                <img
-                  src={ETH_TOKEN.tokenUri}
-                  alt="ETH"
-                  className="w-8 h-8 object-cover"
-                />
-              </div>
-              <div className="flex flex-col">
-                <span className="font-medium">ETH</span>
-                <div className="text-xs font-medium text-gray-700 min-w-[50px] h-[14px]">
-                  {sellToken.balance !== undefined
-                    ? formatEther(sellToken.balance)
-                    : "0"}
-                  {isEthBalanceFetching && (
-                    <span
-                      className="text-xs text-primary ml-1"
-                      style={{ animation: "pulse 1.5s infinite" }}
-                    >
-                      ·
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="flex justify-between items-center">
-            <input
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="any"
-              placeholder="0.0"
-              value={sellAmt}
-              onChange={(e) => syncFromSell(e.target.value)}
-              className="text-lg sm:text-xl font-medium w-full focus:outline-none h-10 text-right pr-1 bg-transparent dark:text-foreground dark:placeholder-primary/50"
-              readOnly={false}
-            />
-            {/* MAX button for using full balance */}
-            {sellToken.balance !== undefined && sellToken.balance > 0n && (
-              <button
-                className="text-xs bg-primary/10 hover:bg-primary/20 text-primary font-medium px-3 py-1.5 rounded touch-manipulation min-w-[50px] border border-primary/30 shadow-[0_0_5px_rgba(0,204,255,0.15)]"
-                onClick={() => {
-                  // For ETH, leave a small amount for gas
-                  if (sellToken.id === null) {
-                    // Get 99% of ETH balance to leave some for gas
-                    const ethAmount =
-                      ((sellToken.balance as bigint) * 99n) / 100n;
-                    syncFromSell(formatEther(ethAmount));
-                  } else {
-                    // For other tokens, use the full balance with correct decimals
-                    // Handle non-standard decimals like USDT (6 decimals)
-                    const decimals = sellToken.decimals || 18;
-                    syncFromSell(
-                      formatUnits(sellToken.balance as bigint, decimals),
-                    );
-                  }
-                }}
-              >
-                MAX
-              </button>
-            )}
-          </div>
-        </div>
+        <SwapPanel
+          title="Provide ETH"
+          selectedToken={{
+            ...ETH_TOKEN,
+            balance: sellToken.balance,
+            id: null,
+            decimals: 18,
+          }}
+          tokens={[ETH_TOKEN]}
+          onSelect={() => {}}
+          isEthBalanceFetching={isEthBalanceFetching}
+          amount={sellAmt}
+          onAmountChange={syncFromSell}
+          showMaxButton={!!(sellToken.balance && sellToken.balance > 0n)}
+          onMax={() => {
+            // leave a bit for gas
+            const ethAmount = ((sellToken.balance as bigint) * 99n) / 100n;
+            syncFromSell(formatEther(ethAmount));
+          }}
+          className="rounded-t-2xl pb-4"
+        />
 
-        {/* ALL BUY/RECEIVE panels - rendering conditionally with CSS for hook stability */}
+        {/* ALL BUY/RECEIVE panels */}
         {buyToken && (
-          <div
-            className={`border-2 border-primary/40 group rounded-b-2xl p-2 pt-3 focus-within:ring-2 hover:bg-secondary-foreground focus-within:ring-primary/60 shadow-[0_0_15px_rgba(0,204,255,0.07)] flex flex-col gap-2 mt-2`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">
-                Target Token
-              </span>
-              <TokenSelector
-                selectedToken={buyToken}
-                tokens={memoizedNonEthTokens} // Using pre-memoized non-ETH tokens
-                onSelect={handleBuyTokenSelect}
-                isEthBalanceFetching={isEthBalanceFetching}
-              />
-            </div>
-            <div className="flex justify-between items-center">
-              <div className="text-xl font-medium w-full">
-                {singleETHEstimatedCoin || "0"}
-              </div>
-              <span className="text-xs text-primary font-medium">
-                Estimated
-              </span>
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              Half of your ETH will be swapped for {buyToken.symbol} and paired
-              with the remaining ETH.
-            </div>
-          </div>
+          <SwapPanel
+            title="Target Token"
+            selectedToken={buyToken}
+            tokens={memoizedNonEthTokens}
+            onSelect={handleBuyTokenSelect}
+            isEthBalanceFetching={isEthBalanceFetching}
+            amount={singleETHEstimatedCoin || "0"}
+            onAmountChange={() => {}}
+            className="mt-2 rounded-b-2xl pt-3 shadow-[0_0_15px_rgba(0,204,255,0.07)]"
+          />
         )}
       </div>
 
-      <NetworkError message={"manage liquidity"} />
+      <NetworkError message="manage liquidity" />
 
-      {/* Slippage information - clickable to show settings */}
+      {/* Slippage */}
       <SlippageSettings
         setSlippageBps={setSingleEthSlippageBps}
         slippageBps={singleEthSlippageBps}
       />
 
-      <div>
+      {/* Info box */}
+      <div className="text-xs bg-muted/50 border border-primary/30 rounded p-2 mt-2 text-muted-foreground">
         <p className="font-medium mb-1">Single-Sided ETH Liquidity:</p>
         <ul className="list-disc pl-4 space-y-0.5">
           <li>Provide only ETH to participate in a pool</li>
@@ -699,9 +630,7 @@ export const SingleEthLiquidity = () => {
 
       {/* ACTION BUTTON */}
       <Button
-        onClick={
-          executeSingleETHLiquidity // Single-ETH mode
-        }
+        onClick={executeSingleETHLiquidity}
         disabled={!isConnected || isPending}
         className="w-full text-base sm:text-lg mt-4 h-12 touch-manipulation dark:bg-primary dark:text-card dark:hover:bg-primary/90 dark:shadow-[0_0_20px_rgba(0,204,255,0.3)]"
       >
@@ -715,16 +644,13 @@ export const SingleEthLiquidity = () => {
         )}
       </Button>
 
-      {/* Status and error messages */}
-      {/* Show transaction statuses */}
+      {/* Status & errors */}
       {txError && txError.includes("Waiting for") && (
         <div className="text-sm text-primary mt-2 flex items-center bg-background/50 p-2 rounded border border-primary/20">
           <Loader2 className="h-3 w-3 animate-spin mr-2" />
           {txError}
         </div>
       )}
-
-      {/* Show actual errors (only if not a user rejection) */}
       {((writeError && !isUserRejectionError(writeError)) ||
         (txError && !txError.includes("Waiting for"))) && (
         <div className="text-sm text-destructive mt-2 bg-background/50 p-2 rounded border border-destructive/20">
@@ -733,8 +659,6 @@ export const SingleEthLiquidity = () => {
             : txError}
         </div>
       )}
-
-      {/* Success message */}
       {isSuccess && <SuccessMessage />}
     </div>
   );
