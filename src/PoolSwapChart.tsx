@@ -1,9 +1,29 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { computePoolId } from "./lib/swap";
 import PoolPriceChart from "./PoolPriceChart";
+import { ChevronDownIcon } from "lucide-react";
 
-export const PoolSwapChart = ({ sellToken, buyToken }) => {
+interface PoolSwapChartProps {
+  // @TODO
+  sellToken: any;
+  buyToken: any;
+  prevPair: any;
+}
+
+export const PoolSwapChart = ({
+  sellToken,
+  buyToken,
+  prevPair,
+}: PoolSwapChartProps) => {
   const [showPriceChart, setShowPriceChart] = useState<boolean>(false);
+
+  useEffect(() => {
+    const currentPair = [sellToken.id, buyToken?.id].sort().toString();
+
+    if (prevPair !== null && prevPair !== currentPair) {
+      setShowPriceChart(false);
+    }
+  }, [prevPair]);
 
   const chartToken =
     buyToken && buyToken.id !== null

@@ -1,6 +1,529 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PoolSwapChart } from "./PoolSwapChart";
+import { ArrowDownUp, Loader2 } from "lucide-react";
+import { Button } from "./components/ui/button";
+import { SuccessMessage } from "./components/SuccessMessage";
+import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
+import {
+  computePoolId,
+  computePoolKey,
+  DEADLINE_SEC,
+  getAmountIn,
+  getAmountOut,
+  SLIPPAGE_BPS,
+  SWAP_FEE,
+  withSlippage,
+} from "./lib/swap";
+import { NetworkError } from "./components/NetworkError";
+import { TokenSelector } from "./components/TokenSelector";
+import { useOperatorStatus } from "./hooks/use-operator-status";
+import {
+  useAccount,
+  useChainId,
+  usePublicClient,
+  useWaitForTransactionReceipt,
+  useWriteContract,
+} from "wagmi";
+import { handleWalletError, isUserRejectionError } from "./lib/errors";
+import {
+  ETH_TOKEN,
+  TokenMeta,
+  USDT_ADDRESS,
+  USDT_POOL_ID,
+  USDT_POOL_KEY,
+} from "./lib/coins";
+import { useAllCoins } from "./hooks/metadata/use-all-coins";
+import { ZAAMAbi, ZAAMAddress } from "./constants/ZAAM";
+import { mainnet } from "viem/chains";
+import { nowSec } from "./lib/utils";
+import {
+  estimateContractGas,
+  simulateContractInteraction,
+} from "@/lib/simulate";
+import { CoinsAbi, CoinsAddress } from "./constants/Coins";
+import { SlippageSettings } from "./components/SlippageSettings";
 
 export const SwapAction = () => {
+  const { address, isConnected } = useAccount();
+  const { data: isOperator, refetch: refetchOperator } =
+    useOperatorStatus(address);
+  const chainId = useChainId();
+  const publicClient = usePublicClient({
+    chainId,
+  });
+  const { tokens, isEthBalanceFetching } = useAllCoins();
+
+  /* State */
+  /* user inputs */
+  const [sellAmt, setSellAmt] = useState("");
+  const [buyAmt, setBuyAmt] = useState("");
+
+  const [sellToken, setSellToken] = useState<TokenMeta>(ETH_TOKEN);
+  const [buyToken, setBuyToken] = useState<TokenMeta | null>(null);
+
+  const [reserves, setReserves] = useState<{
+    reserve0: bigint;
+    reserve1: bigint;
+  } | null>(null);
+  const [targetReserves, setTargetReserves] = useState<{
+    reserve0: bigint;
+    reserve1: bigint;
+  } | null>(null);
+
+  const [slippageBps, setSlippageBps] = useState<bigint>(SLIPPAGE_BPS);
+
+  const [txHash, setTxHash] = useState<`0x${string}`>();
+  const [txError, setTxError] = useState<string | null>(null);
+  const {
+    writeContractAsync,
+    isPending,
+    error: writeError,
+  } = useWriteContract();
+  const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
+  const [usdtAllowance, setUsdtAllowance] = useState<bigint | null>(null);
+
+  const canSwap =
+    sellToken &&
+    buyToken &&
+    // Special case for USDT custom pool
+    (sellToken.isCustomPool ||
+      buyToken?.isCustomPool ||
+      // Original cases: ETH → Coin or Coin → ETH
+      sellToken.id === null ||
+      buyToken.id === null ||
+      // New case: Coin → Coin (different IDs)
+      (sellToken.id !== null &&
+        buyToken?.id !== null &&
+        sellToken.id !== buyToken.id));
+
+  const prevPairRef = useRef<string | null>(null);
+
+  const isSellETH = sellToken.id === null;
+  // For custom USDT-ETH pool, we need special logic to determine if it's a multihop
+  // Check if either token is USDT by symbol instead of relying on token1
+  const isSellUSDT = sellToken.isCustomPool && sellToken.symbol === "USDT";
+  const isBuyUSDT = buyToken?.isCustomPool && buyToken?.symbol === "USDT";
+
+  // USDT-ETH direct swaps (either direction) should NOT be treated as multihop
+  const isDirectUsdtEthSwap =
+    // ETH <-> USDT direct swap
+    (sellToken.id === null && isBuyUSDT) ||
+    (buyToken?.id === null && isSellUSDT);
+
+  // Log the direct USDT swap detection for debugging
+  if (sellToken.isCustomPool || buyToken?.isCustomPool) {
+    console.log("ETH-USDT Swap Detection:", {
+      isDirectUsdtEthSwap,
+      sellIsETH: sellToken.id === null,
+      buyIsETH: buyToken?.id === null,
+      sellIsCustom: sellToken.isCustomPool,
+      buyIsCustom: buyToken?.isCustomPool,
+      isSellUSDT,
+      isBuyUSDT,
+      sellSymbol: sellToken.symbol,
+      buySymbol: buyToken?.symbol,
+    });
+  }
+
+  const isCoinToCoin =
+    // Regular coin-to-coin logic (both have non-null IDs and different IDs)
+    (sellToken.id !== null &&
+      buyToken?.id !== null &&
+      buyToken?.id !== undefined &&
+      sellToken.id !== buyToken.id) ||
+    // Handle custom pools only when they're part of a multi-hop (non-direct) swap
+    ((sellToken.isCustomPool || buyToken?.isCustomPool) &&
+      !isDirectUsdtEthSwap);
+  // Ensure coinId is always a valid bigint, never undefined
+  // Special case: if dealing with a custom pool like USDT, we need to use 0n but mark it as valid
+  const isCustomPool = sellToken?.isCustomPool || buyToken?.isCustomPool;
+  let coinId;
+
+  if (isCustomPool) {
+    // For custom pools, use the non-ETH token's ID
+    if (isSellETH) {
+      coinId = buyToken?.id ?? 0n;
+    } else {
+      coinId = sellToken?.id ?? 0n;
+    }
+    console.log("Using custom pool coinId:", coinId?.toString());
+  } else {
+    // For regular pools, ensure valid non-zero ID
+    coinId =
+      (isSellETH
+        ? buyToken?.id !== undefined
+          ? buyToken.id
+          : 0n
+        : sellToken.id) ?? 0n;
+  }
+
+  const memoizedTokens = useMemo(() => tokens, [tokens]);
+
+  // Reset UI state when tokens change
+  useEffect(() => {
+    // Reset transaction data
+    setTxHash(undefined);
+    setTxError(null);
+
+    // Reset amounts
+    setSellAmt("");
+    setBuyAmt("");
+  }, [sellToken.id, buyToken?.id]);
+
+  // Fetch reserves directly
+  useEffect(() => {
+    const fetchReserves = async () => {
+      // Check if we're dealing with a custom pool (like USDT)
+      const isCustomPool = sellToken?.isCustomPool || buyToken?.isCustomPool;
+
+      // Skip fetch for invalid params, but explicitly allow custom pools even with id: 0n
+      if (!publicClient) {
+        // Skip if no publicClient available
+        return;
+      }
+
+      // For regular coins (not custom pools), skip if coinId is invalid
+      if (!isCustomPool && (!coinId || coinId === 0n)) {
+        // Skip reserves fetch for invalid regular coin params
+        return;
+      }
+
+      // Log for debugging
+      console.log(
+        "Fetching reserves for:",
+        isCustomPool ? "custom pool" : `coinId: ${coinId}`,
+      );
+
+      try {
+        let poolId;
+
+        // Use the custom pool ID for USDT or similar custom pools
+        if (isCustomPool) {
+          const customToken = sellToken?.isCustomPool ? sellToken : buyToken;
+          poolId = customToken?.poolId || USDT_POOL_ID;
+        } else {
+          // Regular pool ID
+          poolId = computePoolId(coinId);
+        }
+
+        const result = await publicClient.readContract({
+          address: ZAAMAddress,
+          abi: ZAAMAbi,
+          functionName: "pools",
+          args: [poolId],
+        });
+
+        // Handle the returned data structure correctly
+        // The contract might return more fields than just the reserves
+        // Cast to unknown first, then extract the reserves from the array
+        const poolData = result as unknown as readonly bigint[];
+
+        setReserves({
+          reserve0: poolData[0],
+          reserve1: poolData[1],
+        });
+      } catch (err) {
+        // Failed to fetch reserves
+        setReserves(null);
+      }
+    };
+
+    fetchReserves();
+  }, [
+    coinId,
+    publicClient,
+    sellToken?.isCustomPool,
+    buyToken?.isCustomPool,
+    sellToken?.poolId,
+    buyToken?.poolId,
+  ]);
+
+  useEffect(() => {
+    if (!buyToken && tokens.length > 1) {
+      setBuyToken(tokens[1]);
+    }
+  }, [tokens, buyToken]);
+
+  // USDT allowance checking effect
+  useEffect(() => {
+    // Check for any USDT tokens
+    const checkUsdtRelevance = async () => {
+      if (!address || !publicClient) return;
+
+      // Enhanced check for USDT tokens in any position
+      const isUsdtRelevant =
+        // Check for USDT token1 address match
+        (sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS) ||
+        (buyToken?.isCustomPool && buyToken?.token1 === USDT_ADDRESS) ||
+        // Check for USDT by symbol
+        sellToken.symbol === "USDT" ||
+        buyToken?.symbol === "USDT" ||
+        // Check for custom pool with ID=0 (USDT pool)
+        (sellToken.isCustomPool && sellToken.id === 0n) ||
+        (buyToken?.isCustomPool && buyToken?.id === 0n);
+      // Always log the check attempt
+      console.log("Checking USDT allowance:", {
+        isUsdtRelevant,
+        sellTokenSymbol: sellToken.symbol,
+        buyTokenSymbol: buyToken?.symbol,
+        sellTokenIsCustom: sellToken.isCustomPool,
+        sellTokenAddress: sellToken.token1,
+      });
+
+      if (isUsdtRelevant) {
+        try {
+          // Make sure publicClient is fully initialized
+          if (!publicClient.chain) {
+            console.log(
+              "Skipping USDT allowance check - publicClient not fully initialized",
+            );
+            return;
+          }
+
+          console.log("Performing USDT allowance check...");
+
+          // ERC20 allowance check
+          const allowance = await publicClient.readContract({
+            address: USDT_ADDRESS,
+            abi: [
+              {
+                inputs: [
+                  { internalType: "address", name: "owner", type: "address" },
+                  { internalType: "address", name: "spender", type: "address" },
+                ],
+                name: "allowance",
+                outputs: [
+                  { internalType: "uint256", name: "", type: "uint256" },
+                ],
+                stateMutability: "view",
+                type: "function",
+              },
+            ],
+            functionName: "allowance",
+            args: [address, ZAAMAddress],
+          });
+
+          console.log(
+            "USDT allowance result:",
+            (allowance as bigint).toString(),
+          );
+          setUsdtAllowance(allowance as bigint);
+        } catch (error) {
+          // Log but don't crash - defaulting to 0 allowance is safe
+          console.log(
+            "Error checking USDT allowance, defaulting to 0:",
+            error instanceof Error ? error.message : "Unknown error",
+          );
+          setUsdtAllowance(0n);
+        }
+      }
+    };
+
+    // Check if any USDT token is in use and check allowance if needed
+    // Use an IIFE to allow async execution in useEffect
+    (async () => {
+      try {
+        await checkUsdtRelevance();
+      } catch (error) {
+        console.error("Error checking USDT relevance:", error);
+      }
+    })();
+  }, [
+    address,
+    isSellETH,
+    publicClient,
+    sellToken?.isCustomPool,
+    sellToken?.token1,
+    buyToken?.isCustomPool,
+    buyToken?.token1,
+  ]);
+
+  // Fetch target reserves for coin-to-coin swaps
+  useEffect(() => {
+    const fetchTargetReserves = async () => {
+      // Allow custom pools with id: 0n but require a valid pool ID
+      const isTargetCustomPool = buyToken?.isCustomPool;
+
+      // First check if public client is available
+      if (!publicClient) return;
+
+      // Then check if this is a coin-to-coin swap
+      if (!isCoinToCoin) return;
+
+      // For regular tokens (not custom pools), make sure we have a valid ID
+      if (!isTargetCustomPool && (!buyToken?.id || buyToken.id === 0n)) return;
+
+      // Log for debugging
+      console.log(
+        "Fetching target reserves for:",
+        isTargetCustomPool
+          ? "custom target pool"
+          : `target coinId: ${buyToken?.id}`,
+      );
+
+      try {
+        let targetPoolId;
+
+        // Use custom pool ID for special tokens like USDT
+        if (isTargetCustomPool && buyToken?.poolId) {
+          targetPoolId = buyToken.poolId;
+        } else {
+          // Regular pool ID
+          targetPoolId = computePoolId(buyToken.id!);
+        }
+
+        const result = await publicClient.readContract({
+          address: ZAAMAddress,
+          abi: ZAAMAbi,
+          functionName: "pools",
+          args: [targetPoolId],
+        });
+
+        const poolData = result as unknown as readonly bigint[];
+
+        setTargetReserves({
+          reserve0: poolData[0],
+          reserve1: poolData[1],
+        });
+      } catch (err) {
+        console.error("Failed to fetch target reserves:", err);
+        setTargetReserves(null);
+      }
+    };
+
+    fetchTargetReserves();
+  }, [
+    isCoinToCoin,
+    buyToken?.id,
+    publicClient,
+    buyToken?.isCustomPool,
+    buyToken?.poolId,
+  ]);
+
+  const syncFromBuy = async (val: string) => {
+    setBuyAmt(val);
+    if (!canSwap || !reserves) return setSellAmt("");
+
+    try {
+      // Different calculation paths based on swap type
+      if (isCoinToCoin) {
+        // Calculating input from output for coin-to-coin is very complex
+        // Would require a recursive solver to find the right input amount
+        // For UI simplicity, we'll just clear the input and let the user adjust
+        setSellAmt("");
+
+        // Optional: Show a notification that this direction is not supported
+      } else if (isSellETH) {
+        // ETH → Coin path (calculate ETH input)
+        // Use correct decimals for the buy token (6 for USDT, 18 for regular coins)
+        const buyTokenDecimals = buyToken?.decimals || 18;
+        const outUnits = parseUnits(val || "0", buyTokenDecimals);
+        const inWei = getAmountIn(
+          outUnits,
+          reserves.reserve0,
+          reserves.reserve1,
+          SWAP_FEE,
+        );
+        setSellAmt(inWei === 0n ? "" : formatEther(inWei));
+      } else {
+        // Coin → ETH path (calculate Coin input)
+        const outWei = parseEther(val || "0");
+        const inUnits = getAmountIn(
+          outWei,
+          reserves.reserve1,
+          reserves.reserve0,
+          SWAP_FEE,
+        );
+        // Use correct decimals for the sell token (6 for USDT, 18 for regular coins)
+        const sellTokenDecimals = sellToken?.decimals || 18;
+        setSellAmt(
+          inUnits === 0n ? "" : formatUnits(inUnits, sellTokenDecimals),
+        );
+      }
+    } catch {
+      setSellAmt("");
+    }
+  };
+
+  /* helpers to sync amounts */
+  const syncFromSell = async (val: string) => {
+    // Regular Add Liquidity or Swap mode
+    setSellAmt(val);
+    if (!canSwap || !reserves) return setBuyAmt("");
+
+    try {
+      // Different calculation paths based on swap type
+      if (isCoinToCoin && targetReserves && buyToken?.id && sellToken.id) {
+        // For coin-to-coin swaps, we need to estimate a two-hop swap
+        try {
+          // Dynamically import helper to avoid circular dependencies
+          const { estimateCoinToCoinOutput } = await import("./lib/swap");
+
+          // Use correct decimals for the sell token (6 for USDT, 18 for regular coins)
+          const sellTokenDecimals = sellToken?.decimals || 18;
+          const inUnits = parseUnits(val || "0", sellTokenDecimals);
+
+          // Get correct swap fees for both pools
+          const sourceSwapFee = sellToken.isCustomPool
+            ? sellToken.swapFee || SWAP_FEE
+            : SWAP_FEE;
+          const targetSwapFee = buyToken?.isCustomPool
+            ? buyToken.swapFee || SWAP_FEE
+            : SWAP_FEE;
+
+          // Pass custom swap fees for USDT or other custom pools
+          const { amountOut } = estimateCoinToCoinOutput(
+            sellToken.id,
+            buyToken.id,
+            inUnits,
+            reserves,
+            targetReserves,
+            slippageBps, // Pass the current slippage tolerance setting
+            sourceSwapFee, // Pass source pool fee (could be 30n for USDT)
+            targetSwapFee, // Pass target pool fee (could be 30n for USDT)
+          );
+
+          // Use correct decimals for the buy token (6 for USDT, 18 for regular coins)
+          const buyTokenDecimals = buyToken?.decimals || 18;
+          setBuyAmt(
+            amountOut === 0n ? "" : formatUnits(amountOut, buyTokenDecimals),
+          );
+        } catch (err) {
+          console.error("Error estimating coin-to-coin output:", err);
+          setBuyAmt("");
+        }
+      } else if (isSellETH) {
+        // ETH → Coin path
+        const inWei = parseEther(val || "0");
+        const outUnits = getAmountOut(
+          inWei,
+          reserves.reserve0,
+          reserves.reserve1,
+          SWAP_FEE,
+        );
+        // Use correct decimals for the buy token (6 for USDT, 18 for regular coins)
+        const buyTokenDecimals = buyToken?.decimals || 18;
+        setBuyAmt(
+          outUnits === 0n ? "" : formatUnits(outUnits, buyTokenDecimals),
+        );
+      } else {
+        // Coin → ETH path
+        // Use correct decimals for the sell token (6 for USDT, 18 for regular coins)
+        const sellTokenDecimals = sellToken?.decimals || 18;
+        const inUnits = parseUnits(val || "0", sellTokenDecimals);
+        const outWei = getAmountOut(
+          inUnits,
+          reserves.reserve1,
+          reserves.reserve0,
+          SWAP_FEE,
+        );
+        setBuyAmt(outWei === 0n ? "" : formatEther(outWei));
+      }
+    } catch {
+      setBuyAmt("");
+    }
+  };
+
   // Function to approve USDT token for spending by ZAMM contract
   const approveUsdtToken = async () => {
     if (!address || !publicClient || !writeContractAsync) {
@@ -110,6 +633,54 @@ export const SwapAction = () => {
       setTxError(errorMsg || "Failed to approve USDT");
       console.error("USDT approval error:", err);
       return false;
+    }
+  };
+
+  // Function to check USDT allowance - available in global scope
+  const checkUsdtAllowance = async () => {
+    if (!address || !publicClient) return null;
+
+    try {
+      // Make sure publicClient is fully initialized
+      if (!publicClient.chain) {
+        console.log(
+          "Skipping USDT allowance check - publicClient not fully initialized",
+        );
+        return null;
+      }
+
+      console.log("Checking USDT allowance for address:", address);
+
+      // ERC20 allowance check
+      const allowance = await publicClient.readContract({
+        address: USDT_ADDRESS,
+        abi: [
+          {
+            inputs: [
+              { internalType: "address", name: "owner", type: "address" },
+              { internalType: "address", name: "spender", type: "address" },
+            ],
+            name: "allowance",
+            outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+            stateMutability: "view",
+            type: "function",
+          },
+        ],
+        functionName: "allowance",
+        args: [address, ZAAMAddress],
+      });
+
+      console.log("USDT allowance result:", (allowance as bigint).toString());
+      setUsdtAllowance(allowance as bigint);
+      return allowance as bigint;
+    } catch (error) {
+      // Log but don't crash - defaulting to 0 allowance is safe
+      console.log(
+        "Error checking USDT allowance, defaulting to 0:",
+        error instanceof Error ? error.message : "Unknown error",
+      );
+      setUsdtAllowance(0n);
+      return 0n;
     }
   };
 
@@ -385,7 +956,7 @@ export const SwapAction = () => {
 
             // Check if the transaction was successful
             if (receipt.status === "success") {
-              setIsOperator(true);
+              await refetchOperator();
               setTxError(null); // Clear the message
             } else {
               setTxError("Operator approval failed. Please try again.");
@@ -683,10 +1254,268 @@ export const SwapAction = () => {
     }
   };
 
+  const flipTokens = () => {
+    if (!buyToken) return;
+
+    // Clear any errors when flipping tokens
+    if (txError) setTxError(null);
+
+    // Reset input values to prevent stale calculations
+    setSellAmt("");
+    setBuyAmt("");
+
+    // Enhanced flip with better state handling
+    const tempToken = sellToken;
+    setSellToken(buyToken);
+    setBuyToken(tempToken);
+
+    // Ensure wallet connection is properly tracked during token swaps
+    // This helps avoid "lost connection" errors when rapidly changing tokens
+    if (address && isConnected) {
+      sessionStorage.setItem("lastConnectedAddress", address);
+    }
+  };
+
+  const handleBuyTokenSelect = useCallback(
+    (token: TokenMeta) => {
+      // Clear any errors when changing tokens
+      if (txError) setTxError(null);
+      // Reset input values to prevent stale calculations
+      setSellAmt("");
+      setBuyAmt("");
+      // Set the new token
+      setBuyToken(token);
+    },
+    [txError],
+  );
+
+  // Enhanced token selection handlers with error clearing, memoized to prevent re-renders
+  const handleSellTokenSelect = useCallback(
+    (token: TokenMeta) => {
+      // Clear any errors when changing tokens
+      if (txError) setTxError(null);
+      // Reset input values to prevent stale calculations
+      setSellAmt("");
+      setBuyAmt("");
+      // Set the new token
+      setSellToken(token);
+    },
+    [txError],
+  );
+
   return (
     <div className="relative flex flex-col">
+      {/* SELL + FLIP + BUY panel container */}
+      <div className="relative flex flex-col">
+        {/* SELL/PROVIDE panel */}
+        <div
+          className={`border-2 border-primary/40 group hover:bg-secondary-foreground rounded-t-2xl p-2 pb-4 focus-within:ring-2 focus-within:ring-primary/60 flex flex-col gap-2`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Sell</span>
+
+            {/* Token selector for all other modes */}
+            <div className={""}>
+              <TokenSelector
+                selectedToken={sellToken}
+                tokens={memoizedTokens}
+                onSelect={handleSellTokenSelect}
+                isEthBalanceFetching={isEthBalanceFetching}
+              />
+            </div>
+          </div>
+          <div className="flex justify-between items-center">
+            <input
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="any"
+              placeholder="0.0"
+              value={sellAmt}
+              onChange={(e) => syncFromSell(e.target.value)}
+              className="text-lg sm:text-xl font-medium w-full focus:outline-none h-10 text-right pr-1 bg-transparent dark:text-foreground dark:placeholder-primary/50"
+              readOnly={false}
+            />
+            {/* MAX button for using full balance */}
+            {sellToken.balance !== undefined && sellToken.balance > 0n && (
+              <button
+                className="text-xs bg-primary/10 hover:bg-primary/20 text-primary font-medium px-3 py-1.5 rounded touch-manipulation min-w-[50px] border border-primary/30 shadow-[0_0_5px_rgba(0,204,255,0.15)]"
+                onClick={() => {
+                  // For ETH, leave a small amount for gas
+                  if (sellToken.id === null) {
+                    // Get 99% of ETH balance to leave some for gas
+                    const ethAmount =
+                      ((sellToken.balance as bigint) * 99n) / 100n;
+                    syncFromSell(formatEther(ethAmount));
+                  } else {
+                    // For other tokens, use the full balance with correct decimals
+                    // Handle non-standard decimals like USDT (6 decimals)
+                    const decimals = sellToken.decimals || 18;
+                    syncFromSell(
+                      formatUnits(sellToken.balance as bigint, decimals),
+                    );
+                  }
+                }}
+              >
+                MAX
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* FLIP button - only shown in swap mode */}
+        <button
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 p-3 rounded-full shadow-xl
+            bg-primary hover:bg-primary/80 focus:bg-primary/90 active:scale-95
+            shadow-[0_0_15px_rgba(0,204,255,0.3)]
+            focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all z-10 touch-manipulation"
+          onClick={flipTokens}
+        >
+          <ArrowDownUp className="h-5 w-5 text-background" />
+        </button>
+
+        {/* ALL BUY/RECEIVE panels - rendering conditionally with CSS for hook stability */}
+        {/* Standard BUY/RECEIVE panel */}
+        {buyToken && (
+          <div
+            className={`border-2 border-primary/40 group rounded-b-2xl p-2 pt-3 focus-within:ring-2 hover:bg-secondary-foreground focus-within:ring-primary/60 shadow-[0_0_15px_rgba(0,204,255,0.07)] flex flex-col gap-2 mt-2 `}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Buy</span>
+              <TokenSelector
+                selectedToken={buyToken}
+                tokens={memoizedTokens}
+                onSelect={handleBuyTokenSelect}
+                isEthBalanceFetching={isEthBalanceFetching}
+              />
+            </div>
+            <div className="flex justify-between items-center">
+              <input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="any"
+                placeholder="0.0"
+                value={buyAmt}
+                onChange={(e) => syncFromBuy(e.target.value)}
+                className="text-lg sm:text-xl font-medium w-full focus:outline-none h-10 text-right pr-1"
+                readOnly={false}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Network indicator */}
+      <NetworkError message="swap tokens" />
+
+      {/* Slippage information - clickable to show settings */}
+      <SlippageSettings
+        setSlippageBps={setSlippageBps}
+        slippageBps={slippageBps}
+      />
+
+      {/* Pool information */}
+      {canSwap && reserves && (
+        <div className="text-xs text-foreground flex justify-between px-1 mt-1">
+          {isCoinToCoin &&
+          !isDirectUsdtEthSwap &&
+          // Extra sanity check - don't show multihop if one token is ETH and the other is USDT
+          !(
+            (sellToken.id === null && buyToken?.symbol === "USDT") ||
+            (buyToken?.id === null && sellToken.symbol === "USDT")
+          ) ? (
+            <span className="flex items-center">
+              <span className="bg-chart-5/20 text-chart-5 px-1 rounded mr-1">
+                Multi-hop
+              </span>
+              {sellToken.symbol} → ETH → {buyToken?.symbol}
+            </span>
+          ) : (
+            <span>
+              Pool: {formatEther(reserves.reserve0).substring(0, 8)} ETH /{" "}
+              {formatUnits(
+                reserves.reserve1,
+                // Use the correct decimals for the token (6 for USDT, 18 for others)
+                isCustomPool
+                  ? sellToken.isCustomPool
+                    ? sellToken.decimals || 18
+                    : buyToken?.decimals || 18
+                  : 18,
+              ).substring(0, 8)}{" "}
+              {coinId
+                ? tokens.find((t) => t.id === coinId)?.symbol || "Token"
+                : buyToken?.symbol}
+            </span>
+          )}
+          <span>
+            Fee:{" "}
+            {
+              // For USDT direct swaps, show the 0.3% fee
+              isCustomPool &&
+              // Direct USDT-ETH swaps are not multihop
+              ((sellToken.id === null &&
+                buyToken?.isCustomPool &&
+                buyToken?.token1 === USDT_ADDRESS) ||
+                (buyToken?.id === null &&
+                  sellToken.isCustomPool &&
+                  sellToken.token1 === USDT_ADDRESS) ||
+                // Other direct USDT swaps
+                !isCoinToCoin)
+                ? "0.3%" // For multihop swaps, show double fee
+                : isCoinToCoin
+                  ? (Number(SWAP_FEE) * 2) / 100 + "%"
+                  : // Default 1% fee for regular swaps
+                    Number(SWAP_FEE) / 100 + "%"
+            }
+          </span>
+        </div>
+      )}
+
+      {/* ACTION BUTTON */}
+      <Button
+        onClick={executeSwap}
+        disabled={!isConnected || !canSwap || !sellAmt || isPending}
+        className="w-full text-base sm:text-lg mt-4 h-12 touch-manipulation dark:bg-primary dark:text-card dark:hover:bg-primary/90 dark:shadow-[0_0_20px_rgba(0,204,255,0.3)]"
+      >
+        {isPending ? (
+          <span className="flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Swapping…
+          </span>
+        ) : (
+          "Swap"
+        )}
+      </Button>
+
+      {/* Status and error messages */}
+      {/* Show transaction statuses */}
+      {txError && txError.includes("Waiting for") && (
+        <div className="text-sm text-primary mt-2 flex items-center bg-background/50 p-2 rounded border border-primary/20">
+          <Loader2 className="h-3 w-3 animate-spin mr-2" />
+          {txError}
+        </div>
+      )}
+
+      {/* Show actual errors (only if not a user rejection) */}
+      {((writeError && !isUserRejectionError(writeError)) ||
+        (txError && !txError.includes("Waiting for"))) && (
+        <div className="text-sm text-destructive mt-2 bg-background/50 p-2 rounded border border-destructive/20">
+          {writeError && !isUserRejectionError(writeError)
+            ? writeError.message
+            : txError}
+        </div>
+      )}
+
+      {/* Success message */}
+      {isSuccess && <SuccessMessage />}
+
       <div className="mt-4 border-t border-primary pt-4">
-        <PoolSwapChart buyToken={buyToken} sellToken={sellToken} />
+        <PoolSwapChart
+          buyToken={buyToken}
+          sellToken={sellToken}
+          prevPair={prevPairRef.current}
+        />
       </div>
     </div>
   );

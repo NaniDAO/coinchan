@@ -17,6 +17,14 @@ export const DEADLINE_SEC = 20 * 60; // 20 minutes
 export const SLIPPAGE_BPS = 200n; // 100 basis points = 2 %
 export const SINGLE_ETH_SLIPPAGE_BPS = 500n; // 5% default slippage tolerance for Single-ETH operations
 
+export const SLIPPAGE_OPTIONS = [
+  { label: "0.5%", value: 50n },
+  { label: "1%", value: 100n },
+  { label: "2%", value: 200n },
+  { label: "3%", value: 300n },
+  { label: "5%", value: 500n },
+];
+
 /**
  * Generate a deadline timestamp in seconds
  * @returns BigInt of current time + deadline window
