@@ -2,7 +2,7 @@ import { sdk } from "@farcaster/frame-sdk";
 import "../index.css";
 import { useEffect } from "react";
 
-import SwapTile from "../SwapTile";
+import PoolActions from "../PoolActions";
 
 import { createFileRoute } from "@tanstack/react-router";
 
@@ -18,7 +18,7 @@ function RouteComponent() {
   return (
     <main className="p-2 sm:p-3 min-h-[90vh] w-screen flex flex-col justify-center items-center">
       <div className="w-full max-w-lg">
-        <SwapTile />
+        <PoolActions />
       </div>
     </main>
   );

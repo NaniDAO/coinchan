@@ -569,5 +569,12 @@ export const useAllCoins = () => {
     fetchTokens();
   }, [publicClient, address, ethBalance]); // Add ethBalance as a dependency to re-fetch tokens when ETH balance changes
 
-  return { tokens, loading, error, isEthBalanceFetching, refetchEthBalance };
+  return {
+    tokens,
+    tokenCount: tokens?.length,
+    loading,
+    error,
+    isEthBalanceFetching,
+    refetchEthBalance,
+  };
 };

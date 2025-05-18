@@ -9,7 +9,7 @@ import {
   usePublicClient,
 } from "wagmi";
 import { parseEther, parseUnits, formatEther, formatUnits } from "viem";
-import { formatNumber } from "./lib/utils";
+import { formatNumber, nowSec } from "./lib/utils";
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
 import { ZAAMAbi, ZAAMAddress } from "./constants/ZAAM";
 import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
@@ -152,8 +152,6 @@ export const BuySell = ({
     args: address ? [address, ZAAMAddress] : undefined,
     chainId: mainnet.id,
   });
-
-  const nowSec = () => BigInt(Math.floor(Date.now() / 1000));
 
   // calculate the slippage‐adjusted estimate shown in the UI
   const estimated = useMemo(() => {

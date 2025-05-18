@@ -14,7 +14,8 @@ import { CoinsAddress } from "../constants/Coins";
  */
 export const SWAP_FEE = 100n; // 1% pool fee
 export const DEADLINE_SEC = 20 * 60; // 20 minutes
-const SLIPPAGE_BPS = 200n; // 100 basis points = 2 %
+export const SLIPPAGE_BPS = 200n; // 100 basis points = 2 %
+export const SINGLE_ETH_SLIPPAGE_BPS = 500n; // 5% default slippage tolerance for Single-ETH operations
 
 /**
  * Generate a deadline timestamp in seconds
