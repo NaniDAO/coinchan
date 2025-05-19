@@ -8,6 +8,7 @@ import {
 } from "viem";
 import { ZAAMAddress, ZAAMAbi } from "../constants/ZAAM";
 import { CoinsAddress } from "../constants/Coins";
+import { TokenMeta } from "./coins";
 
 /**
  * Constants for AMM operations
@@ -373,3 +374,101 @@ export const withSlippage = (
   amount: bigint,
   slippageBps: bigint = SLIPPAGE_BPS,
 ) => (amount * (10000n - slippageBps)) / 10000n;
+
+export function analyzeTokens(
+  sell: TokenMeta,
+  buy: TokenMeta | null,
+): {
+  isSellETH: boolean;
+  isBuyETH: boolean;
+  isSellUSDT: boolean;
+  isBuyUSDT: boolean;
+  isDirectUsdtEth: boolean;
+  isCustom: boolean;
+  isCoinToCoin: boolean;
+  coinId: bigint;
+  canSwap: boolean;
+} {
+  const isSellETH = sell.id === null;
+  const isBuyETH = buy?.id === null;
+
+  const isSellUSDT = sell.symbol === "USDT";
+  const isBuyUSDT = buy?.symbol === "USDT";
+
+  const isDirectUsdtEth = (isSellETH && isBuyUSDT) || (isBuyETH && isSellUSDT);
+
+  const isCustom = sell.isCustomPool || Boolean(buy?.isCustomPool);
+
+  const isCoinToCoin =
+    !isDirectUsdtEth &&
+    sell.id !== null &&
+    buy?.id !== null &&
+    sell.id !== buy?.id;
+
+  // coinId logic as before…
+  let coinId: bigint;
+  if (isCustom) {
+    coinId = sell.isCustomPool ? (sell.id ?? 0n) : (buy?.id ?? 0n);
+  } else {
+    coinId = isSellETH ? (buy?.id ?? 0n) : (sell.id ?? 0n);
+  }
+
+  // canSwap covers all the cases where we actually want the “Go” button enabled:
+  const canSwap =
+    Boolean(buy) && (isCustom || isSellETH || isBuyETH || isCoinToCoin);
+
+  return {
+    isSellETH,
+    isBuyETH,
+    isSellUSDT,
+    isBuyUSDT,
+    isDirectUsdtEth,
+    isCustom,
+    isCoinToCoin,
+    coinId,
+    canSwap,
+  };
+}
+
+/**
+ * Returns mainPoolId once you have enough info:
+ *  • ETH→Token: sell.id===null but buy.id!=null
+ *  • Token→ETH: sell.id!=null
+ *  • Custom pools: whichever token is custom
+ *
+ * And targetPoolId only for coin-to-coin swaps.
+ */
+export function getPoolIds(
+  sell: TokenMeta,
+  buy: TokenMeta | null,
+  flags: { isCustomPool: boolean; isCoinToCoin: boolean },
+): { mainPoolId?: bigint; targetPoolId?: bigint } {
+  let mainPoolId: bigint | undefined;
+
+  if (flags.isCustomPool) {
+    // custom-pool: pick whichever token is custom
+    const custom = sell.isCustomPool ? sell : buy;
+    if (custom?.poolId != null) mainPoolId = custom.poolId;
+  } else {
+    // non-custom: if sell is a token (not ETH), use sell.id
+    if (sell.id != null) {
+      mainPoolId = computePoolId(sell.id);
+    }
+    // otherwise (sell is ETH), wait until buy!=null and has an id
+    else if (buy?.id != null) {
+      mainPoolId = computePoolId(buy.id);
+    }
+  }
+
+  let targetPoolId: bigint | undefined;
+  if (flags.isCoinToCoin && buy) {
+    // for coin-to-coin, buy must be non-null
+    if (buy.isCustomPool && buy.poolId != null) {
+      targetPoolId = buy.poolId;
+    } else if (buy.id != null) {
+      targetPoolId = computePoolId(buy.id);
+    }
+  }
+
+  return { mainPoolId, targetPoolId };
+}

@@ -9,10 +9,12 @@ import {
   ZAMMSingleLiqETHAddress,
 } from "./constants/ZAMMSingleLiqETH";
 import {
+  analyzeTokens,
   computePoolId,
   computePoolKey,
   DEADLINE_SEC,
   getAmountOut,
+  getPoolIds,
   SINGLE_ETH_SLIPPAGE_BPS,
   SWAP_FEE,
   withSlippage,
@@ -33,6 +35,7 @@ import { ZAAMAbi, ZAAMAddress } from "./constants/ZAAM";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import { SlippageSettings } from "./components/SlippageSettings";
 import { SwapPanel } from "./components/SwapPanel";
+import { useReserves } from "./hooks/use-reserves";
 
 export const SingleEthLiquidity = () => {
   /* State */
@@ -43,10 +46,20 @@ export const SingleEthLiquidity = () => {
   const [sellToken, setSellToken] = useState<TokenMeta>(ETH_TOKEN);
   const [buyToken, setBuyToken] = useState<TokenMeta | null>(null);
 
-  const [reserves, setReserves] = useState<{
-    reserve0: bigint;
-    reserve1: bigint;
-  } | null>(null);
+  const {
+    isCustom: isCustomPool,
+    isCoinToCoin,
+    coinId,
+  } = useMemo(() => analyzeTokens(sellToken, buyToken), [sellToken, buyToken]);
+
+  const { mainPoolId } = getPoolIds(sellToken, buyToken, {
+    isCustomPool,
+    isCoinToCoin,
+  });
+
+  const { data: reserves } = useReserves({
+    poolId: mainPoolId,
+  });
 
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [txError, setTxError] = useState<string | null>(null);
@@ -74,55 +87,6 @@ export const SingleEthLiquidity = () => {
     chainId,
   });
 
-  const isSellETH = sellToken.id === null;
-  // For custom USDT-ETH pool, we need special logic to determine if it's a multihop
-  // Check if either token is USDT by symbol instead of relying on token1
-  const isSellUSDT = sellToken.isCustomPool && sellToken.symbol === "USDT";
-  const isBuyUSDT = buyToken?.isCustomPool && buyToken?.symbol === "USDT";
-
-  // USDT-ETH direct swaps (either direction) should NOT be treated as multihop
-  const isDirectUsdtEthSwap =
-    // ETH <-> USDT direct swap
-    (sellToken.id === null && isBuyUSDT) ||
-    (buyToken?.id === null && isSellUSDT);
-
-  // Log the direct USDT swap detection for debugging
-  if (sellToken.isCustomPool || buyToken?.isCustomPool) {
-    console.log("ETH-USDT Swap Detection:", {
-      isDirectUsdtEthSwap,
-      sellIsETH: sellToken.id === null,
-      buyIsETH: buyToken?.id === null,
-      sellIsCustom: sellToken.isCustomPool,
-      buyIsCustom: buyToken?.isCustomPool,
-      isSellUSDT,
-      isBuyUSDT,
-      sellSymbol: sellToken.symbol,
-      buySymbol: buyToken?.symbol,
-    });
-  }
-
-  // Ensure coinId is always a valid bigint, never undefined
-  // Special case: if dealing with a custom pool like USDT, we need to use 0n but mark it as valid
-  const isCustomPool = sellToken?.isCustomPool || buyToken?.isCustomPool;
-  let coinId;
-
-  if (isCustomPool) {
-    // For custom pools, use the non-ETH token's ID
-    if (isSellETH) {
-      coinId = buyToken?.id ?? 0n;
-    } else {
-      coinId = sellToken?.id ?? 0n;
-    }
-    console.log("Using custom pool coinId:", coinId?.toString());
-  } else {
-    // For regular pools, ensure valid non-zero ID
-    coinId =
-      (isSellETH
-        ? buyToken?.id !== undefined
-          ? buyToken.id
-          : 0n
-        : sellToken.id) ?? 0n;
-  }
   // Create a memoized version of tokens that doesn't change with every render
   const memoizedTokens = useMemo(() => tokens, [tokens]);
   // Also create a memoized version of non-ETH tokens to avoid conditional hook calls
@@ -131,103 +95,15 @@ export const SingleEthLiquidity = () => {
     [memoizedTokens],
   );
 
-  // Fetch reserves directly
-  useEffect(() => {
-    const fetchReserves = async () => {
-      // Check if we're dealing with a custom pool (like USDT)
-      const isCustomPool = sellToken?.isCustomPool || buyToken?.isCustomPool;
-
-      // Skip fetch for invalid params, but explicitly allow custom pools even with id: 0n
-      if (!publicClient) {
-        // Skip if no publicClient available
-        return;
-      }
-
-      // For regular coins (not custom pools), skip if coinId is invalid
-      if (!isCustomPool && (!coinId || coinId === 0n)) {
-        // Skip reserves fetch for invalid regular coin params
-        return;
-      }
-
-      // Log for debugging
-      console.log(
-        "Fetching reserves for:",
-        isCustomPool ? "custom pool" : `coinId: ${coinId}`,
-      );
-
-      try {
-        let poolId;
-
-        // Use the custom pool ID for USDT or similar custom pools
-        if (isCustomPool) {
-          const customToken = sellToken?.isCustomPool ? sellToken : buyToken;
-          poolId = customToken?.poolId || USDT_POOL_ID;
-        } else {
-          // Regular pool ID
-          poolId = computePoolId(coinId);
-        }
-
-        const result = await publicClient.readContract({
-          address: ZAAMAddress,
-          abi: ZAAMAbi,
-          functionName: "pools",
-          args: [poolId],
-        });
-
-        // Handle the returned data structure correctly
-        // The contract might return more fields than just the reserves
-        // Cast to unknown first, then extract the reserves from the array
-        const poolData = result as unknown as readonly bigint[];
-
-        setReserves({
-          reserve0: poolData[0],
-          reserve1: poolData[1],
-        });
-      } catch (err) {
-        // Failed to fetch reserves
-        setReserves(null);
-      }
-    };
-
-    fetchReserves();
-  }, [
-    coinId,
-    publicClient,
-    sellToken?.isCustomPool,
-    buyToken?.isCustomPool,
-    sellToken?.poolId,
-    buyToken?.poolId,
-  ]);
-
   // When switching to single-eth mode, ensure ETH is selected as the sell token
   // and set a default target token if none is selected
   useEffect(() => {
-    // If current sell token is not ETH, set it to ETH
-    if (sellToken.id !== null) {
-      // Find ETH token in tokens list
-      const ethToken = tokens.find((t) => t.id === null);
-
-      if (ethToken) {
-        // Create a new ETH token but ensure it has the correct balance
-        // Use our tracked ethBalance instead of potentially incorrect token.balance
-        const safeEthToken = {
-          ...ethToken,
-          balance:
-            ethBalance !== undefined ? ethBalance.value : ethToken.balance,
-        };
-
-        // Set the sell token to ETH with the safe balance
-        setSellToken(safeEthToken);
-      }
-    } else if (
-      sellToken.id === null &&
-      ethBalance !== undefined &&
-      sellToken.balance !== ethBalance.value
-    ) {
-      // If ETH is already selected but has wrong balance, update it
+    // If ETH is already selected but has wrong balance, update it
+    const ethToken = tokens.find((token) => token.id === null);
+    if (ethToken) {
       setSellToken((prev) => ({
         ...prev,
-        balance: ethBalance.value,
+        balance: ethToken.balance,
       }));
     }
 
@@ -242,7 +118,7 @@ export const SingleEthLiquidity = () => {
         setBuyToken(defaultTarget);
       }
     }
-  }, [tokens, sellToken, buyToken, ethBalance]);
+  }, [tokens, sellToken, buyToken]);
 
   // Reset UI state when tokens change
   useEffect(() => {
@@ -580,7 +456,14 @@ export const SingleEthLiquidity = () => {
             id: null,
             decimals: 18,
           }}
-          tokens={[ETH_TOKEN]}
+          tokens={[
+            {
+              ...ETH_TOKEN,
+              balance: sellToken.balance,
+              id: null,
+              decimals: 18,
+            },
+          ]}
           onSelect={() => {}}
           isEthBalanceFetching={isEthBalanceFetching}
           amount={sellAmt}
@@ -604,6 +487,8 @@ export const SingleEthLiquidity = () => {
             isEthBalanceFetching={isEthBalanceFetching}
             amount={singleETHEstimatedCoin || "0"}
             onAmountChange={() => {}}
+            readOnly={true}
+            previewLabel="Estimated"
             className="mt-2 rounded-b-2xl pt-3 shadow-[0_0_15px_rgba(0,204,255,0.07)]"
           />
         )}
