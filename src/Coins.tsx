@@ -26,7 +26,6 @@ export const Coins = () => {
     allCoins,
     page,
     goToNextPage,
-    goToPreviousPage,
     isLoading,
     setPage,
   } = usePagedCoins(PAGE_SIZE);
@@ -93,9 +92,14 @@ export const Coins = () => {
     [goToNextPage],
   );
 
+  // Fix for previous page bug - force setting the page directly to ensure correct navigation
   const debouncedPrevPage = useMemo(
-    () => debounce(goToPreviousPage, 350),
-    [goToPreviousPage],
+    () => debounce(() => {
+      if (page > 0) {
+        setPage(page - 1);
+      }
+    }, 350),
+    [page, setPage],
   );
 
   /* ------------------------------------------------------------------

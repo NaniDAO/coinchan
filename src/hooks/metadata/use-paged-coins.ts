@@ -11,7 +11,11 @@ export function usePagedCoins(pageSize = 20) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   useEffect(() => {
-    if (page >= totalPages) setPage(totalPages - 1);
+    // Only adjust the page if it's out of range (too high)
+    // This prevents issues with previous page navigation
+    if (page >= totalPages && totalPages > 0) {
+      setPage(totalPages - 1);
+    }
   }, [page, totalPages]);
 
   const pageItems = useMemo<CoinData[]>(
