@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { NetworkError } from "./components/NetworkError";
 import { SuccessMessage } from "./components/SuccessMessage";
-import { ETH_TOKEN, TokenMeta, USDT_POOL_ID, USDT_POOL_KEY } from "./lib/coins";
+import { ETH_TOKEN, TokenMeta, USDT_POOL_KEY } from "./lib/coins";
 import { Button } from "./components/ui/button";
 import { Loader2 } from "lucide-react";
 import {
@@ -21,7 +21,6 @@ import {
 } from "./lib/swap";
 import {
   useAccount,
-  useBalance,
   useChainId,
   usePublicClient,
   useWaitForTransactionReceipt,
@@ -83,9 +82,6 @@ export const SingleEthLiquidity = () => {
   const publicClient = usePublicClient({
     chainId,
   });
-  const { data: ethBalance } = useBalance({
-    chainId,
-  });
 
   // Create a memoized version of tokens that doesn't change with every render
   const memoizedTokens = useMemo(() => tokens, [tokens]);
@@ -99,12 +95,10 @@ export const SingleEthLiquidity = () => {
   // and set a default target token if none is selected
   useEffect(() => {
     // If ETH is already selected but has wrong balance, update it
-    const ethToken = tokens.find((token) => token.id === null);
-    if (ethToken) {
-      setSellToken((prev) => ({
-        ...prev,
-        balance: ethToken.balance,
-      }));
+    if (tokens.length && sellToken.id === null /* ETH */) {
+      // pick the ETH entry from tokens
+      const ethToken = tokens.find((t) => t.id === null);
+      if (ethToken) setSellToken(ethToken);
     }
 
     // If no target token is selected or it's ETH (but not a custom pool like USDT), set a default non-ETH token

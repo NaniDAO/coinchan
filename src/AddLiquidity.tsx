@@ -236,6 +236,14 @@ export const AddLiquidity = () => {
     }
   }, [tokens, buyToken]);
 
+  useEffect(() => {
+    if (tokens.length && sellToken.id === null /* ETH */) {
+      // pick the ETH entry from tokens
+      const ethToken = tokens.find((t) => t.id === null);
+      if (ethToken) setSellToken(ethToken);
+    }
+  }, [tokens]);
+
   /* helpers to sync amounts */
   const syncFromSell = async (val: string) => {
     // Regular Add Liquidity or Swap mode

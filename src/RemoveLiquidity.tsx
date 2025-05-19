@@ -265,6 +265,14 @@ export const RemoveLiquidity = () => {
     }
   }, [tokens, buyToken]);
 
+  useEffect(() => {
+    if (tokens.length && sellToken.id === null /* ETH */) {
+      // pick the ETH entry from tokens
+      const ethToken = tokens.find((t) => t.id === null);
+      if (ethToken) setSellToken(ethToken);
+    }
+  }, [tokens]);
+
   const syncFromBuy = async (val: string) => {
     setBuyAmt(val);
     if (!canSwap || !reserves) return setSellAmt("");

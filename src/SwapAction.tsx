@@ -171,6 +171,14 @@ export const SwapAction = () => {
     setBuyAmt("");
   }, [sellToken.id, buyToken?.id]);
 
+  useEffect(() => {
+    if (tokens.length && sellToken.id === null /* ETH */) {
+      // pick the ETH entry from tokens
+      const ethToken = tokens.find((t) => t.id === null);
+      if (ethToken) setSellToken(ethToken);
+    }
+  }, [tokens]);
+
   // Fetch reserves directly
   useEffect(() => {
     const fetchReserves = async () => {

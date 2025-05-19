@@ -3,6 +3,7 @@ import { memo, useState } from "react";
 import { formatEther, formatUnits } from "viem";
 import { TokenImage } from "./TokenImage";
 import { cn } from "@/lib/utils";
+import { ChevronDownIcon, SearchIcon } from "lucide-react";
 
 export const TokenSelector = memo(
   ({
@@ -135,19 +136,7 @@ export const TokenSelector = memo(
               </div>
             </div>
           </div>
-          <svg
-            className="w-4 h-4 ml-1"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            fill="none"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M19 9l-7 7-7-7"
-            />
-          </svg>
+          <ChevronDownIcon className="w-4 h-4 ml-1" />
         </div>
 
         {/* Dropdown list with thumbnails */}
@@ -271,19 +260,7 @@ export const TokenSelector = memo(
                   }}
                   className="w-full p-2 pl-8 border border-primary/30 bg-background/80 rounded focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm text-foreground placeholder-muted-foreground"
                 />
-                <svg
-                  className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
+                <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               </div>
             </div>
 
@@ -527,6 +504,7 @@ export const TokenSelector = memo(
     // Only re-render if token identity or selection state changes
     return (
       prevProps.selectedToken.id === nextProps.selectedToken.id &&
+      prevProps.selectedToken.balance === nextProps.selectedToken.balance &&
       prevProps.tokens.length === nextProps.tokens.length &&
       prevProps.isEthBalanceFetching === nextProps.isEthBalanceFetching
     );
