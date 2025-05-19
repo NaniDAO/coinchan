@@ -555,7 +555,7 @@ export const BuySell = ({
 
       <TabsContent value="buy">
         <div className="flex flex-col gap-2">
-          <span className="text-sm text-muted-foreground">Using ETH</span>
+          <span className="text-sm font-medium text-green-700">Using ETH</span>
           <Input
             type="number"
             placeholder="Amount ETH"
@@ -564,14 +564,14 @@ export const BuySell = ({
             step="any"
             onChange={(e) => setAmount(e.currentTarget.value)}
           />
-          <span className="text-sm">
+          <span className="text-sm font-medium text-green-800">
             You will receive ~ {estimated} {displaySymbol}
           </span>
           <Button
             onClick={onBuy}
             disabled={!isConnected || isPending || !amount}
             variant="default"
-            className="bg-chart-2 hover:bg-chart-2/80 text-background"
+            className="bg-green-600 hover:bg-green-700 text-white font-bold"
           >
             {isPending ? "Buying…" : `Buy ${displaySymbol}`}
           </Button>
