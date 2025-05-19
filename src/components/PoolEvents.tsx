@@ -22,13 +22,13 @@ import { cn } from "@/lib/utils";
 const getEventTypeColorClass = (eventType: string): string => {
   switch (eventType) {
     case "BUY":
-      return "text-green-700 dark:text-chart-2 font-medium";
+      return "text-green-600 dark:text-green-500 font-semibold";
     case "SELL":
       return "text-destructive font-medium";
     case "LIQADD":
-      return "text-green-800 dark:text-chart-4 font-medium";
+      return "text-green-700 dark:text-green-600 font-semibold";
     case "LIQREM":
-      return "text-red-700 dark:text-chart-5 font-medium";
+      return "text-red-700 dark:text-red-500 font-medium";
     default:
       return "text-primary";
   }
