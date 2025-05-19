@@ -8,6 +8,9 @@ import {
   useChainId,
   usePublicClient,
 } from "wagmi";
+
+// Add global styles
+import "./buysell-styles.css";
 import {
   parseEther,
   parseUnits,
@@ -478,7 +481,7 @@ export const BuySell = ({
           </div>
 
           {/* Description */}
-          <p className="text-sm font-medium dark:text-accent-foreground mt-1 overflow-y-auto max-h-20">
+          <p className="text-sm font-medium description-text mt-1 overflow-y-auto max-h-20">
             {description || "No description available"}
           </p>
 
@@ -502,20 +505,20 @@ export const BuySell = ({
               {/* Market Cap section */}
               {marketCapEth !== null && (
                 <div className="flex items-center gap-1">
-                  <span className="font-medium dark:text-chart-2">
+                  <span className="font-medium market-cap-text">
                     Est. Market Cap:
                   </span>
-                  <span className="dark:text-accent-foreground">{formatNumber(marketCapEth, 2)} ETH</span>
+                  <span className="market-cap-text">{formatNumber(marketCapEth, 2)} ETH</span>
                   {marketCapUsd !== null ? (
-                    <span className="ml-1 dark:text-accent-foreground">
+                    <span className="ml-1 market-cap-text">
                       (~${formatNumber(marketCapUsd, 0)})
                     </span>
                   ) : ethPriceData ? (
-                    <span className="ml-1 text-chart-5">
+                    <span className="ml-1 market-cap-text">
                       (USD price processing...)
                     </span>
                   ) : (
-                    <span className="ml-1 text-chart-5">
+                    <span className="ml-1 market-cap-text">
                       (ETH price unavailable)
                     </span>
                   )}
