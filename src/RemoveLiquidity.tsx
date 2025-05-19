@@ -13,10 +13,12 @@ import {
 import { mainnet } from "viem/chains";
 import { ETH_TOKEN, TokenMeta, USDT_POOL_ID, USDT_POOL_KEY } from "./lib/coins";
 import {
+  analyzeTokens,
   computePoolId,
   computePoolKey,
   DEADLINE_SEC,
   getAmountIn,
+  getPoolIds,
   SLIPPAGE_BPS,
   SWAP_FEE,
   withSlippage,
@@ -27,6 +29,7 @@ import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { SlippageSettings } from "./components/SlippageSettings";
 import { nowSec } from "./lib/utils";
 import { SwapPanel } from "./components/SwapPanel";
+import { useReserves } from "./hooks/use-reserves";
 
 export const RemoveLiquidity = () => {
   const [sellToken, setSellToken] = useState<TokenMeta>(ETH_TOKEN);
@@ -34,10 +37,21 @@ export const RemoveLiquidity = () => {
 
   const [lpTokenBalance, setLpTokenBalance] = useState<bigint>(0n);
   const [lpBurnAmount, setLpBurnAmount] = useState<string>("");
-  const [reserves, setReserves] = useState<{
-    reserve0: bigint;
-    reserve1: bigint;
-  } | null>(null);
+
+  const {
+    isSellETH,
+    isCustom: isCustomPool,
+    isCoinToCoin,
+    coinId,
+    canSwap,
+  } = useMemo(() => analyzeTokens(sellToken, buyToken), [sellToken, buyToken]);
+  const { mainPoolId } = getPoolIds(sellToken, buyToken, {
+    isCustomPool: isCustomPool,
+    isCoinToCoin: isCoinToCoin,
+  });
+  const { data: reserves } = useReserves({
+    poolId: mainPoolId,
+  });
 
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient({ chainId: mainnet.id });
@@ -62,130 +76,7 @@ export const RemoveLiquidity = () => {
   } = useWriteContract();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
-  const isSellETH = sellToken.id === null;
-  // For custom USDT-ETH pool, we need special logic to determine if it's a multihop
-  // Check if either token is USDT by symbol instead of relying on token1
-  const isSellUSDT = sellToken.isCustomPool && sellToken.symbol === "USDT";
-  const isBuyUSDT = buyToken?.isCustomPool && buyToken?.symbol === "USDT";
-
-  const isDirectUsdtEthSwap =
-    // ETH <-> USDT direct swap
-    (sellToken.id === null && isBuyUSDT) ||
-    (buyToken?.id === null && isSellUSDT);
-
-  const isCoinToCoin =
-    // Regular coin-to-coin logic (both have non-null IDs and different IDs)
-    (sellToken.id !== null &&
-      buyToken?.id !== null &&
-      buyToken?.id !== undefined &&
-      sellToken.id !== buyToken.id) ||
-    // Handle custom pools only when they're part of a multi-hop (non-direct) swap
-    ((sellToken.isCustomPool || buyToken?.isCustomPool) &&
-      !isDirectUsdtEthSwap);
-  const isCustomPool = sellToken?.isCustomPool || buyToken?.isCustomPool;
-  let coinId;
-
-  if (isCustomPool) {
-    // For custom pools, use the non-ETH token's ID
-    if (isSellETH) {
-      coinId = buyToken?.id ?? 0n;
-    } else {
-      coinId = sellToken?.id ?? 0n;
-    }
-    console.log("Using custom pool coinId:", coinId?.toString());
-  } else {
-    // For regular pools, ensure valid non-zero ID
-    coinId =
-      (isSellETH
-        ? buyToken?.id !== undefined
-          ? buyToken.id
-          : 0n
-        : sellToken.id) ?? 0n;
-  }
-
   const memoizedTokens = useMemo(() => tokens, [tokens]);
-
-  const canSwap =
-    sellToken &&
-    buyToken &&
-    // Special case for USDT custom pool
-    (sellToken.isCustomPool ||
-      buyToken?.isCustomPool ||
-      // Original cases: ETH → Coin or Coin → ETH
-      sellToken.id === null ||
-      buyToken.id === null ||
-      // New case: Coin → Coin (different IDs)
-      (sellToken.id !== null &&
-        buyToken?.id !== null &&
-        sellToken.id !== buyToken.id));
-
-  // Fetch reserves directly
-  useEffect(() => {
-    const fetchReserves = async () => {
-      // Check if we're dealing with a custom pool (like USDT)
-      const isCustomPool = sellToken?.isCustomPool || buyToken?.isCustomPool;
-
-      // Skip fetch for invalid params, but explicitly allow custom pools even with id: 0n
-      if (!publicClient) {
-        // Skip if no publicClient available
-        return;
-      }
-
-      // For regular coins (not custom pools), skip if coinId is invalid
-      if (!isCustomPool && (!coinId || coinId === 0n)) {
-        // Skip reserves fetch for invalid regular coin params
-        return;
-      }
-
-      // Log for debugging
-      console.log(
-        "Fetching reserves for:",
-        isCustomPool ? "custom pool" : `coinId: ${coinId}`,
-      );
-
-      try {
-        let poolId;
-
-        // Use the custom pool ID for USDT or similar custom pools
-        if (isCustomPool) {
-          const customToken = sellToken?.isCustomPool ? sellToken : buyToken;
-          poolId = customToken?.poolId || USDT_POOL_ID;
-        } else {
-          // Regular pool ID
-          poolId = computePoolId(coinId);
-        }
-
-        const result = await publicClient.readContract({
-          address: ZAAMAddress,
-          abi: ZAAMAbi,
-          functionName: "pools",
-          args: [poolId],
-        });
-
-        // Handle the returned data structure correctly
-        // The contract might return more fields than just the reserves
-        // Cast to unknown first, then extract the reserves from the array
-        const poolData = result as unknown as readonly bigint[];
-
-        setReserves({
-          reserve0: poolData[0],
-          reserve1: poolData[1],
-        });
-      } catch (err) {
-        // Failed to fetch reserves
-        setReserves(null);
-      }
-    };
-
-    fetchReserves();
-  }, [
-    coinId,
-    publicClient,
-    sellToken?.isCustomPool,
-    buyToken?.isCustomPool,
-    sellToken?.poolId,
-    buyToken?.poolId,
-  ]);
 
   // Fetch LP token balance when a pool is selected and user is connected
   useEffect(() => {

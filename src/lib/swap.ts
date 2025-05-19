@@ -8,7 +8,7 @@ import {
 } from "viem";
 import { ZAAMAddress, ZAAMAbi } from "../constants/ZAAM";
 import { CoinsAddress } from "../constants/Coins";
-import { TokenMeta } from "./coins";
+import { TokenMeta, USDT_ADDRESS } from "./coins";
 
 /**
  * Constants for AMM operations
@@ -471,4 +471,35 @@ export function getPoolIds(
   }
 
   return { mainPoolId, targetPoolId };
+}
+
+export function getSwapFee({
+  isCustomPool,
+  sellToken,
+  buyToken,
+  isCoinToCoin,
+}: any): string {
+  // USDT‐direct swaps on a custom pool always show 0.3%
+  const isUsdtDirectSwap =
+    isCustomPool &&
+    ((sellToken.id === null &&
+      buyToken?.isCustomPool &&
+      buyToken.token1 === USDT_ADDRESS) ||
+      (buyToken?.id === null &&
+        sellToken.isCustomPool &&
+        sellToken.token1 === USDT_ADDRESS) ||
+      // other direct USDT swaps (non‐coin‐to‐coin)
+      !isCoinToCoin);
+
+  if (isUsdtDirectSwap) {
+    return "0.3%";
+  }
+
+  // Multihop (coin‐to‐coin) swaps pay double the base fee
+  if (isCoinToCoin) {
+    return `${(Number(SWAP_FEE) * 2) / 100}%`;
+  }
+
+  // All other swaps pay the base fee
+  return `${Number(SWAP_FEE) / 100}%`;
 }
