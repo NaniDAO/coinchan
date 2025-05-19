@@ -459,14 +459,14 @@ export const BuySell = ({
         <div className="flex flex-col flex-grow overflow-hidden">
           <div className="flex items-baseline space-x-2">
             <h3 className="text-lg font-medium truncate">{displayName}</h3>
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm font-medium text-accent dark:text-accent">
               [{displaySymbol}]
             </span>
           </div>
 
           {/* Token ID in hex format and Etherscan link */}
           <div className="flex items-center mt-1 text-xs">
-            <span className="text-muted-foreground mr-1">ID: {tokenId.toString()} (0x{tokenId.toString(16)})</span>
+            <span className="font-medium text-secondary dark:text-chart-2 mr-1">ID: {tokenId.toString()} (0x{tokenId.toString(16)})</span>
             <a 
               href={`https://etherscan.io/token/0x${tokenId.toString(16)}`}
               target="_blank"
@@ -478,16 +478,16 @@ export const BuySell = ({
           </div>
 
           {/* Description */}
-          <p className="text-sm text-muted-foreground mt-1 overflow-y-auto max-h-20">
+          <p className="text-sm font-medium dark:text-accent-foreground mt-1 overflow-y-auto max-h-20">
             {description || "No description available"}
           </p>
 
           {/* Market Cap Estimation and Swap Fee */}
-          <div className="mt-2 text-xs text-muted-foreground">
+          <div className="mt-2 text-xs">
             <div className="flex flex-col gap-1">
               {/* Always show the swap fee, independent of market cap calculation */}
               <div className="flex items-center gap-1">
-                <span className="text-muted-foreground">Swap Fee:</span>
+                <span className="font-medium dark:text-chart-2">Swap Fee:</span>
                 {/* More precise conversion from basis points to percentage */}
                 <span className="font-medium text-primary">
                   {(Number(swapFee) / 100).toFixed(2)}%
@@ -502,12 +502,12 @@ export const BuySell = ({
               {/* Market Cap section */}
               {marketCapEth !== null && (
                 <div className="flex items-center gap-1">
-                  <span className="text-muted-foreground">
+                  <span className="font-medium dark:text-chart-2">
                     Est. Market Cap:
                   </span>
-                  <span>{formatNumber(marketCapEth, 2)} ETH</span>
+                  <span className="dark:text-accent-foreground">{formatNumber(marketCapEth, 2)} ETH</span>
                   {marketCapUsd !== null ? (
-                    <span className="ml-1">
+                    <span className="ml-1 dark:text-accent-foreground">
                       (~${formatNumber(marketCapUsd, 0)})
                     </span>
                   ) : ethPriceData ? (
@@ -580,7 +580,7 @@ export const BuySell = ({
 
       <TabsContent value="sell">
         <div className="flex flex-col gap-2">
-          <span className="text-sm text-muted-foreground">
+          <span className="text-sm font-medium text-accent dark:text-accent">
             Using {displaySymbol}
           </span>
           <div className="relative">
@@ -594,17 +594,17 @@ export const BuySell = ({
             />
           </div>
           <div className="flex flex-col gap-2">
-            <span className="text-sm">You will receive ~ {estimated} ETH</span>
+            <span className="text-sm font-medium">You will receive ~ {estimated} ETH</span>
             {balance !== undefined ? (
               <button
-                className="self-end text-sm text-muted-foreground"
+                className="self-end text-sm font-medium text-chart-2 dark:text-chart-2 hover:text-primary transition-colors"
                 onClick={() => setAmount(formatUnits(balance, 18))}
               >
                 MAX ({formatUnits(balance, 18)})
               </button>
             ) : (
               <button
-                className="self-end text-sm text-muted-foreground"
+                className="self-end text-sm font-medium text-chart-2 dark:text-chart-2"
                 disabled={!balance}
               >
                 MAX
@@ -615,7 +615,7 @@ export const BuySell = ({
             onClick={onSell}
             disabled={!isConnected || isPending || !amount}
             variant="outline"
-            className=""
+            className="dark:border-accent dark:text-accent dark:hover:bg-accent/10"
           >
             {isPending ? "Selling…" : `Sell ${displaySymbol}`}
           </Button>
