@@ -26,7 +26,6 @@ export const Coins = () => {
     allCoins,
     page,
     goToNextPage,
-    goToPreviousPage,
     isLoading,
     setPage,
   } = usePagedCoins(PAGE_SIZE);
