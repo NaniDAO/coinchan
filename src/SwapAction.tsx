@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { SuccessMessage } from "./components/SuccessMessage";
 import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
+import { useTranslation } from "react-i18next";
 import {
   analyzeTokens,
   computePoolId,
@@ -35,6 +36,7 @@ import { useReserves } from "./hooks/use-reserves";
 import { useErc20Allowance } from "./hooks/use-erc20-allowance";
 
 export const SwapAction = () => {
+  const { t } = useTranslation();
   const { address, isConnected } = useAccount();
   const { data: isOperator, refetch: refetchOperator } = useOperatorStatus(address);
   const chainId = useChainId();
@@ -224,21 +226,21 @@ export const SwapAction = () => {
 
       // Ensure wallet is connected before proceeding
       if (!isConnected || !address) {
-        setTxError("Wallet not connected. Please connect your wallet first.");
+        setTxError(t('errors.wallet_connection'));
         return;
       }
 
       if (!canSwap || !sellAmt || !publicClient || !buyToken) {
         // Cannot execute swap - missing prerequisites
         // Check swap prerequisites
-        setTxError("Cannot execute swap. Please ensure you have selected a token pair and entered an amount.");
+        setTxError(t('swap.enter_amount'));
         return;
       }
 
       // Important: For custom pools like USDT, we have to special-case the reserves check
       if (!reserves && !sellToken.isCustomPool && !buyToken.isCustomPool) {
         console.error("Missing reserves for regular pool swap");
-        setTxError("Cannot execute swap. No pool reserves available.");
+        setTxError(t('errors.network_error'));
         return;
       }
 
@@ -249,14 +251,14 @@ export const SwapAction = () => {
       if (publicClient && !publicClient.getChainId) {
         await new Promise((resolve) => setTimeout(resolve, 100));
         if (!publicClient.getChainId) {
-          setTxError("Wallet connection not fully established. Please wait a moment and try again.");
+          setTxError(t('errors.wallet_connection'));
           return;
         }
       }
 
       // Check if we're on mainnet
       if (chainId !== mainnet.id) {
-        setTxError("Please connect to Ethereum mainnet to perform this action");
+        setTxError(t('errors.network_error'));
         return;
       }
 
@@ -296,7 +298,7 @@ export const SwapAction = () => {
         const rawOut = reserves ? getAmountOut(amountInWei, reserves.reserve0, reserves.reserve1, swapFee) : 0n;
 
         if (rawOut === 0n) {
-          setTxError("Output amount is zero. Check pool liquidity.");
+          setTxError(t('swap.insufficient_balance'));
           return;
         }
 
@@ -399,7 +401,7 @@ export const SwapAction = () => {
             });
 
             // Maintain consistent UX with operator approval flow
-            setTxError("Waiting for USDT approval. Please confirm the transaction...");
+            setTxError(`${t('common.waiting')} ${t('common.approve')}...`);
             const approved = await approveUsdtMax();
 
             if (approved === undefined) {
@@ -428,7 +430,7 @@ export const SwapAction = () => {
         if (!isSellingUsdt && isOperator === false) {
           try {
             // First, show a notification about the approval step
-            setTxError("Waiting for operator approval. Please confirm the transaction...");
+            setTxError(`${t('common.waiting')} ${t('common.approve')}...`);
 
             // Send the approval transaction
             const approvalHash = await writeContractAsync({
@@ -439,7 +441,7 @@ export const SwapAction = () => {
             });
 
             // Show a waiting message
-            setTxError("Operator approval submitted. Waiting for confirmation...");
+            setTxError(t('notifications.transaction_sent'));
 
             // Wait for the transaction to be mined
             const receipt = await publicClient.waitForTransactionReceipt({
@@ -451,7 +453,7 @@ export const SwapAction = () => {
               await refetchOperator();
               setTxError(null); // Clear the message
             } else {
-              setTxError("Operator approval failed. Please try again.");
+              setTxError(t('errors.transaction_error'));
               return;
             }
           } catch (err) {
@@ -459,7 +461,7 @@ export const SwapAction = () => {
             const errorMsg = handleWalletError(err);
             if (errorMsg) {
               console.error("Failed to approve operator:", err);
-              setTxError("Failed to approve the swap contract as operator");
+              setTxError(t('errors.transaction_error'));
             }
             return;
           }
@@ -520,7 +522,7 @@ export const SwapAction = () => {
             );
 
             if (amountOut === 0n) {
-              setTxError("Output amount is zero. Check pool liquidity.");
+              setTxError(t('swap.output_zero'));
               return;
             }
 
@@ -606,7 +608,7 @@ export const SwapAction = () => {
             const errorMsg = handleWalletError(err);
             if (errorMsg) {
               console.error("Error in multicall swap:", err);
-              setTxError("Failed to execute coin-to-coin swap");
+              setTxError(t('errors.coin_to_coin_swap_failed'));
             }
             return;
           }
@@ -622,7 +624,7 @@ export const SwapAction = () => {
         const rawOut = reserves ? getAmountOut(amountInUnits, reserves.reserve1, reserves.reserve0, swapFee) : 0n;
 
         if (rawOut === 0n) {
-          setTxError("Output amount is zero. Check pool liquidity.");
+          setTxError(t('swap.insufficient_balance'));
           return;
         }
 
@@ -672,7 +674,7 @@ export const SwapAction = () => {
         // Handle wallet connection errors
         if (errMsg.includes("getChainId") || errMsg.includes("connector") || errMsg.includes("connection")) {
           // Wallet connection issue
-          setTxError("Wallet connection issue detected. Please refresh the page and try again.");
+          setTxError(t('errors.wallet_connection_refresh'));
 
           // Log structured debug info
           const errorInfo = {
@@ -686,9 +688,9 @@ export const SwapAction = () => {
           // Show error info in console
           console.error("Wallet connection error:", errorInfo);
         } else if (errMsg.includes("InsufficientOutputAmount")) {
-          setTxError("Swap failed due to price movement in low liquidity pool. Try again or use a smaller amount.");
+          setTxError(t('errors.insufficient_output_amount'));
         } else if (errMsg.includes("K(")) {
-          setTxError("Swap failed due to pool constraints. This usually happens with large orders in small pools.");
+          setTxError(t('errors.pool_constraints'));
         } else {
           // Default to standard error handling
           const errorMsg = handleWalletError(err);
@@ -698,7 +700,7 @@ export const SwapAction = () => {
         }
       } else {
         // Fallback for non-standard errors
-        setTxError("An unexpected error occurred. Please try again.");
+        setTxError(t('errors.unexpected'));
       }
     }
   };
@@ -758,7 +760,7 @@ export const SwapAction = () => {
       {/* SELL/PROVIDE panel */}
       <div className="relative flex flex-col">
         <SwapPanel
-          title="Sell"
+          title={t('common.sell')}
           selectedToken={sellToken}
           tokens={memoizedTokens}
           onSelect={handleSellTokenSelect}
@@ -781,7 +783,7 @@ export const SwapAction = () => {
         <FlipActionButton onClick={flipTokens} />
         {buyToken && (
           <SwapPanel
-            title="Buy"
+            title={t('common.buy')}
             selectedToken={buyToken}
             tokens={memoizedTokens}
             onSelect={handleBuyTokenSelect}
@@ -793,7 +795,7 @@ export const SwapAction = () => {
         )}
       </div>
       {/* Network indicator */}
-      <NetworkError message="swap tokens" />
+      <NetworkError message={t('swap.title')} />
 
       {/* Slippage information - clickable to show settings */}
       <SlippageSettings setSlippageBps={setSlippageBps} slippageBps={slippageBps} />
@@ -809,12 +811,12 @@ export const SwapAction = () => {
             (buyToken?.id === null && sellToken.symbol === "USDT")
           ) ? (
             <span className="flex items-center">
-              <span className="bg-chart-5/20 text-chart-5 px-1 rounded mr-1">Multi-hop</span>
-              {sellToken.symbol} → ETH → {buyToken?.symbol}
+              <span className="bg-chart-5/20 text-chart-5 px-1 rounded mr-1">{t('swap.route')}</span>
+              {sellToken.symbol} {t('common.to')} ETH {t('common.to')} {buyToken?.symbol}
             </span>
           ) : (
             <span>
-              Pool: {formatEther(reserves.reserve0).substring(0, 8)} ETH /{" "}
+              {t('pool.title')}: {formatEther(reserves.reserve0).substring(0, 8)} ETH /{" "}
               {formatUnits(
                 reserves.reserve1,
                 // Use the correct decimals for the token (6 for USDT, 18 for others)
@@ -824,7 +826,7 @@ export const SwapAction = () => {
             </span>
           )}
           <span>
-            Fee:{" "}
+            {t('swap.price_impact')}:{" "}
             {getSwapFee({
               isCustomPool: isCustomPool,
               sellToken,
@@ -844,16 +846,16 @@ export const SwapAction = () => {
         {isPending ? (
           <span className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Swapping…
+            {t('common.loading')}
           </span>
         ) : (
-          "Swap"
+          t('common.swap')
         )}
       </Button>
 
       {/* Status and error messages */}
       {/* Show transaction statuses */}
-      {txError && txError.includes("Waiting for") && (
+      {txError && txError.includes(t('common.waiting')) && (
         <div className="text-sm text-primary mt-2 flex items-center bg-background/50 p-2 rounded border border-primary/20">
           <Loader2 className="h-3 w-3 animate-spin mr-2" />
           {txError}
@@ -861,7 +863,7 @@ export const SwapAction = () => {
       )}
 
       {/* Show actual errors (only if not a user rejection) */}
-      {((writeError && !isUserRejectionError(writeError)) || (txError && !txError.includes("Waiting for"))) && (
+      {((writeError && !isUserRejectionError(writeError)) || (txError && !txError.includes(t('common.waiting')))) && (
         <div className="text-sm text-destructive mt-2 bg-background/50 p-2 rounded border border-destructive/20">
           {writeError && !isUserRejectionError(writeError) ? writeError.message : txError}
         </div>

@@ -6,11 +6,14 @@ import { useChronologicalCoins } from "./hooks/use-chronological-coins";
 import { SearchIcon } from "lucide-react";
 import { CoinData } from "./hooks/metadata/coin-utils";
 import { debounce } from "./lib/utils";
+import { useTranslation } from "react-i18next";
 
 // Page size for pagination
 const PAGE_SIZE = 20;
 
 export const Coins = () => {
+  const { t } = useTranslation();
+  
   /* ------------------------------------------------------------------
    *  Local state
    * ------------------------------------------------------------------ */
@@ -328,7 +331,7 @@ export const Coins = () => {
           <div className="relative">
             <input
               type="text"
-              placeholder="Search by symbol or ID…"
+              placeholder={t("tokenSelector.search_tokens")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full sm:w-56 p-1 pl-7 border border-primary rounded-md focus:outline-none focus:ring-1 focus:ring-accent text-sm"
@@ -337,7 +340,7 @@ export const Coins = () => {
               <button
                 onClick={resetSearch}
                 className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 hover:text-gray-600"
-                aria-label="Clear search"
+                aria-label={t("common.cancel")}
               >
                 ✕
               </button>
@@ -346,7 +349,7 @@ export const Coins = () => {
           </div>
         }
         searchResults={
-          isSearchActive ? `Showing ${searchResults.length} result${searchResults.length !== 1 ? "s" : ""}` : ""
+          isSearchActive ? `${t("common.showing")} ${searchResults.length} ${searchResults.length !== 1 ? t("common.results") : t("common.result")}` : ""
         }
       />
     </>

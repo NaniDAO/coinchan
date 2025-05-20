@@ -9,6 +9,7 @@ import { routeTree } from "./routeTree.gen";
 import { ThemeProvider } from "./lib/theme";
 
 import "./index.css";
+import "./i18n";
 
 // Configure query client with performance optimizations
 const queryClient = new QueryClient({

@@ -1,5 +1,6 @@
 import { TokenMeta, USDT_ADDRESS } from "@/lib/coins";
 import { memo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits } from "viem";
 import { TokenImage } from "./TokenImage";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,7 @@ export const TokenSelector = memo(
     isEthBalanceFetching?: boolean;
     className?: string;
   }) => {
+    const { t } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
     const selectedValue = selectedToken.id?.toString() ?? "eth";
 
@@ -143,7 +145,7 @@ export const TokenSelector = memo(
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="Search by symbol or ID..."
+                  placeholder={t("tokenSelector.search_tokens")}
                   onChange={(e) => {
                     // Use memo version for faster search - throttle search for better performance
                     const query = e.target.value.toLowerCase();
