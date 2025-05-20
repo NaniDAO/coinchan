@@ -493,10 +493,20 @@ export const SwapAction = () => {
               "Waiting for USDT approval. Please confirm the transaction...",
             );
             const approved = await approveUsdtMax();
-            if (!approved) {
+
+            if (approved === undefined) {
               return; // Stop if approval failed or was rejected
             } else {
-              refetchUsdtAllowance();
+              // wait for tx success
+              const receipt = await publicClient.waitForTransactionReceipt({
+                hash: approved,
+              });
+
+              if (receipt.status === "success") {
+                await refetchUsdtAllowance();
+              } else {
+                return;
+              }
             }
           } else {
             console.log("USDT already approved:", {

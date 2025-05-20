@@ -357,10 +357,19 @@ export const AddLiquidity = () => {
             "Waiting for USDT approval. Please confirm the transaction...",
           );
           const approved = await approveUsdtMax();
-          if (!approved) {
+          if (approved === undefined) {
             return; // Stop if approval failed or was rejected
           } else {
-            await refetchUsdtAllowance();
+            const receipt = await publicClient.waitForTransactionReceipt({
+              hash: approved,
+            });
+
+            // Check if the transaction was successful
+            if (receipt.status === "success") {
+              await refetchUsdtAllowance();
+            }
+
+            return;
           }
         } else {
           console.log("USDT already approved for liquidity:", {
