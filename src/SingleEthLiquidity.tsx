@@ -370,7 +370,7 @@ export const SingleEthLiquidity = () => {
       );
 
       // Min amounts for the addLiquidity portion with higher slippage for less liquid pools
-      const amount0Min = withSlippage(estimatedTokens, singleEthSlippageBps);
+      const amount0Min = withSlippage(halfEthAmount, singleEthSlippageBps);
 
       const amount1Min = withSlippage(estimatedTokens, singleEthSlippageBps);
 
