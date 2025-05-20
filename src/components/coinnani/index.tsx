@@ -50,23 +50,22 @@ export const CoinNani = ({ className }: CoinNaniProps) => {
           initial={{ scale: 0.5, opacity: 0, y: 20 }} // Start small, invisible, slightly lower
           animate={{ scale: 1, opacity: 1, y: 0 }} // Pop to full size, visible, original position
           transition={{ type: "spring", stiffness: 260, damping: 20 }} // Spring animation for pop effect
-          // Styling for the bubble
           className="bg-primary/60 text-primary-foreground p-3 rounded-lg shadow-md whitespace-nowrap text-sm z-10 mb-2 relative" // mb-2 adds space below bubble, relative for tail
         >
           {greeting}
-          {/* Bubble tail - simple triangle using border */}
-          {/* Position tail absolute relative to the bubble div, centered at the bottom */}
           <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-[10px] border-transparent border-t-primary/60"></div>
         </motion.div>
       )}
 
-      {/* Avatar */}
-      <Avatar className="h-10 w-10 z-0">
-        {" "}
-        {/* Adjust size as needed, z-0 ensures avatar is below bubble */}
-        <AvatarImage src="/coinchan.png" alt="Coin Nani Avatar" />
-        <AvatarFallback>CN</AvatarFallback> {/* Fallback text */}
-      </Avatar>
+      <motion.div
+        whileHover={{ scale: 1.2, rotate: [0, -66, 66, 0] }}
+        transition={{ repeat: Infinity, repeatType: "mirror", delay: 0.1 }}
+      >
+        <Avatar className="h-10 w-10 z-0">
+          <AvatarImage src="/coinchan.png" alt="Coin Nani Avatar" />
+          <AvatarFallback>CN</AvatarFallback> {/* Fallback text */}
+        </Avatar>
+      </motion.div>
     </div>
   );
 };
