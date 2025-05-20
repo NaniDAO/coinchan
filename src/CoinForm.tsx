@@ -39,6 +39,7 @@ interface ImageInputProps {
 
 // Fixed ImageInput component with drag and drop and preview
 const ImageInput = ({ onChange }: ImageInputProps) => {
+  const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -120,16 +121,16 @@ const ImageInput = ({ onChange }: ImageInputProps) => {
             <div className="flex flex-col items-center">
               <p className="text-sm text-muted-foreground mb-2">{selectedFileName}</p>
               <Button type="button" onClick={() => fileInputRef.current?.click()} variant="outline" size="sm">
-                {t('common.edit')} {t('create.image')}
+                {t('common.change')}
               </Button>
             </div>
           </div>
         ) : (
           <div className="text-center">
-            <p className="mb-2">{t('create.upload_image')}</p>
-            <p>or</p>
+            <p className="mb-2">{t('common.drag_drop')}</p>
+            <p>{t('common.or')}</p>
             <Button type="button" onClick={() => fileInputRef.current?.click()} variant="outline" className="mt-2">
-              {t('create.upload_image')}
+              {t('common.browse_files')}
             </Button>
           </div>
         )}

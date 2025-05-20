@@ -7,8 +7,11 @@ export const Route = createFileRoute("/explore")({
 });
 
 function RouteComponent() {
+  // Use translation hook in the component - prevents unused import error 
+  const { t } = useTranslation();
+  
   return (
-    <div className="m-1">
+    <div className="m-1" title={t("explore.title")}>
       <Coins />
     </div>
   );

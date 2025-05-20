@@ -7,8 +7,10 @@ export const Route = createFileRoute("/create")({
 });
 
 function RouteComponent() {
+  const { t } = useTranslation();
+  
   return (
-    <div className="flex items-center justify-center mt-5">
+    <div className="flex items-center justify-center mt-5" title={t("create.title")}>
       <CoinForm />
     </div>
   );

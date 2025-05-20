@@ -34,11 +34,7 @@ export function LanguageSwitcher() {
     };
   }, []);
 
-  // Get the current language display
-  const getCurrentLanguageDisplay = () => {
-    const langObj = languages.find(lang => lang.code === currentLanguage);
-    return langObj ? langObj.label : "English";
-  };
+  // No longer needed as we display the globe icon
 
   return (
     <div className="relative" ref={dropdownRef}>

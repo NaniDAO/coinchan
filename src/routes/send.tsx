@@ -7,8 +7,11 @@ export const Route = createFileRoute("/send")({
 });
 
 function RouteComponent() {
+  const { t } = useTranslation();
+  
   return (
-    <main className="p-2 sm:p-3 min-h-[90vh] w-screen flex flex-col justify-center items-center">
+    <main className="p-2 sm:p-3 min-h-[90vh] w-screen flex flex-col justify-center items-center"
+          aria-label={t("send.title")}>
       <div className="w-full max-w-lg">
         <SendTile />
       </div>

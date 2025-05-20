@@ -45,11 +45,7 @@ i18n
       lookupLocalStorage: 'i18nextLng',
 
       // cache user language
-      caches: ['localStorage', 'cookie'],
-      
-      // optional expire and domain for set cookie
-      cookieExpirationDate: new Date(Date.now() + 2 * 365 * 24 * 60 * 60 * 1000), // 2 years
-      cookieDomain: 'coinchan'
+      caches: ['localStorage', 'cookie']
     }
   });
 
