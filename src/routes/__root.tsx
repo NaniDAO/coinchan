@@ -4,19 +4,12 @@ import { createRootRoute, Link, Outlet } from "@tanstack/react-router";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CoinNani } from "@/components/coinnani";
 
 export const Route = createRootRoute({
   component: () => (
     <>
       <header className="p-2 flex items-center justify-between w-full gap-5">
-        <Link to="/coinpaper">
-          <img
-            src="/coinchan-logo.png"
-            alt="Coinchan"
-            className="logo h-10 w-10 dark:invert"
-          />
-        </Link>
-
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center justify-center space-x-4">
           <Link
@@ -90,6 +83,7 @@ export const Route = createRootRoute({
         </Sheet>
       </header>
       {/* <hr /> */}
+      <CoinNani className="absolute bottom-4 right-4" />
       <Outlet />
     </>
   ),
