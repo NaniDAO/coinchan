@@ -15,6 +15,7 @@ import { fetchPoolPricePoints, PricePointData } from "./lib/indexer";
 import { formatEther } from "viem";
 import { Button } from "@/components/ui/button";
 import { useChartTheme } from "./hooks/use-chart-theme";
+import { useTranslation } from "react-i18next";
 
 interface PriceChartProps {
   poolId: string;
@@ -22,6 +23,8 @@ interface PriceChartProps {
 }
 
 const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker }) => {
+  const { t } = useTranslation();
+  
   // Internal state for time controls
   const [timeRange, setTimeRange] = useState<{
     startTs: number | undefined;
@@ -93,7 +96,7 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker }) => {
           onClick={setLast24Hours}
           className="text-xs"
         >
-          24H
+          {t("coin.24h")}
         </Button>
         <Button
           variant={timeRange.activeButton === "1w" ? "default" : "outline"}
@@ -101,7 +104,7 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker }) => {
           onClick={setLastWeek}
           className="text-xs"
         >
-          1W
+          {t("coin.7d")}
         </Button>
         <Button
           variant={timeRange.activeButton === "1m" ? "default" : "outline"}
@@ -109,7 +112,7 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker }) => {
           onClick={setLastMonth}
           className="text-xs"
         >
-          1M
+          {t("coin.30d")}
         </Button>
         <Button
           variant={timeRange.activeButton === "all" ? "default" : "outline"}
@@ -117,7 +120,7 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker }) => {
           onClick={setAllTime}
           className="text-xs"
         >
-          All Time
+          {t("coin.all")}
         </Button>
       </div>
 
@@ -128,7 +131,7 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker }) => {
       ) : data && data.length > 0 ? (
         <TVPriceChart priceData={data} ticker={ticker} />
       ) : (
-        <div className="text-center py-20 text-muted-foreground">No price data available.</div>
+        <div className="text-center py-20 text-muted-foreground">{t("chart.no_data")}</div>
       )}
     </div>
   );
@@ -138,6 +141,7 @@ const TVPriceChart: React.FC<{
   priceData: PricePointData[];
   ticker: string;
 }> = ({ priceData, ticker }) => {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<ReturnType<typeof createChart>>();
   const priceSeriesRef = useRef<ISeriesApi<"Line">>();
@@ -240,7 +244,7 @@ const TVPriceChart: React.FC<{
         // Fit content to series
         chartRef.current?.timeScale().fitContent();
       } else {
-        console.warn("No valid price points available after processing");
+        console.warn(t("chart.no_data"));
       }
     } catch (error) {
       console.error("Error updating price chart:", error);

@@ -1,5 +1,6 @@
 import { SendTile } from "@/SendTile";
 import { createFileRoute } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/send")({
   component: RouteComponent,

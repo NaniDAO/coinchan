@@ -2,6 +2,7 @@ import { CoinCard } from "./components/CoinCard";
 import { type CoinData } from "./hooks/metadata";
 import { useEffect, useState } from "react";
 import { ArrowDownAZ, ArrowUpAZ, Coins as CoinsIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 // Default page size
 const PAGE_SIZE = 20;
@@ -44,6 +45,8 @@ export const ExplorerGrid = ({
   onSortTypeChange?: (type: SortType) => void;
   onSortOrderChange?: (order: "asc" | "desc") => void;
 }) => {
+  const { t } = useTranslation();
+  
   // Track page transition state for better UX
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [direction, setDirection] = useState<"next" | "prev" | null>(null);
@@ -79,7 +82,7 @@ export const ExplorerGrid = ({
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center">
           <h2 className="text-xs md:text-xl font-semibold text-center sm:text-left">
-            {total === 0 ? "NO COINS DEPLOYED" : total === 1 ? "1 COIN DEPLOYED" : `${total} COINS DEPLOYED`}
+            {total === 0 ? t("explore.no_results") : total === 1 ? `1 ${t("common.coin")}` : `${total} ${t("common.coins")}`}
           </h2>
 
           {searchResults && <div className="ml-4 text-sm text-muted-foreground">{searchResults}</div>}
@@ -102,7 +105,7 @@ export const ExplorerGrid = ({
               ) : (
                 <ArrowDownAZ className="w-4 h-4 mr-1" />
               )}
-              <span className="hidden sm:inline">{sortType === "liquidity" ? "Liquidity" : "Recency"}</span>
+              <span className="hidden sm:inline">{sortType === "liquidity" ? t("common.liquidity") : t("explore.new")}</span>
             </button>
           )}
 
@@ -154,9 +157,9 @@ export const ExplorerGrid = ({
               <span className="text-sm text-primary">
                 {isTransitioning
                   ? direction === "next"
-                    ? "Loading next page..."
-                    : "Loading previous page..."
-                  : "Loading..."}
+                    ? t("common.loading_next")
+                    : t("common.loading_previous")
+                  : t("common.loading")}
               </span>
             </div>
           )}
@@ -186,7 +189,7 @@ export const ExplorerGrid = ({
         {/* Show message when no search results */}
         {coins.length === 0 && isSearchActive && (
           <div className="col-span-3 sm:col-span-4 md:col-span-5 text-center py-8 text-muted-foreground">
-            No coins found matching your search
+            {t("explore.no_results")}
           </div>
         )}
       </div>
@@ -206,13 +209,13 @@ export const ExplorerGrid = ({
               <span className="w-3 h-3 rounded-full border-2 border-primary border-t-transparent animate-spin mr-1"></span>
             </span>
           ) : null}
-          <span className={isTransitioning && direction === "prev" ? "opacity-0" : ""}>Previous</span>
+          <span className={isTransitioning && direction === "prev" ? "opacity-0" : ""}>{t("common.previous")}</span>
         </button>
 
         {/* Page info from parent */}
         {total > 0 && !isSearchActive && (
           <span className="text-sm text-muted-foreground">
-            Page {currentPage} of {totalPages}
+            {t("common.page")} {currentPage} {t("common.of")} {totalPages}
           </span>
         )}
 
@@ -230,7 +233,7 @@ export const ExplorerGrid = ({
               <span className="w-3 h-3 rounded-full border-2 border-primary border-t-transparent animate-spin mr-1"></span>
             </span>
           ) : null}
-          <span className={isTransitioning && direction === "next" ? "opacity-0" : ""}>Next</span>
+          <span className={isTransitioning && direction === "next" ? "opacity-0" : ""}>{t("common.next")}</span>
         </button>
       </div>
     </div>

@@ -4,6 +4,7 @@ import { truncAddress } from "./lib/address";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import ConnectionErrorHandler from "@/lib/ConnectionErrorHandler";
 import usePersistentConnection from "./hooks/use-persistent-connection";
+import { useTranslation } from "react-i18next";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,6 +17,7 @@ const ConnectMenuComponent = () => {
   const { connect, connectors } = useConnect();
   const { disconnect } = useDisconnect();
   const [reconnecting, setReconnecting] = useState(false);
+  const { t } = useTranslation();
 
   usePersistentConnection();
 
@@ -99,7 +101,7 @@ const ConnectMenuComponent = () => {
             <div>{address ? truncAddress(address) : ""}</div>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            <DropdownMenuItem onClick={() => disconnect()}>Disconnect</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => disconnect()}>{t("common.disconnect")}</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );
@@ -113,7 +115,7 @@ const ConnectMenuComponent = () => {
       return (
         <div className="flex items-center gap-2">
           {lastAddress && <div className="opacity-50">{truncAddress(lastAddress)}</div>}
-          <div className="text-xs text-primary animate-pulse">{lastAddress ? "Reconnecting..." : "Connecting..."}</div>
+          <div className="text-xs text-primary animate-pulse">{lastAddress ? t("common.loading") : t("common.loading")}</div>
         </div>
       );
     }
@@ -122,7 +124,7 @@ const ConnectMenuComponent = () => {
     if (status === "connecting") {
       return (
         <div className="flex items-center gap-2">
-          <div className="text-xs text-primary animate-pulse">Connecting wallet...</div>
+          <div className="text-xs text-primary animate-pulse">{t("common.loading")}</div>
         </div>
       );
     }
@@ -131,11 +133,11 @@ const ConnectMenuComponent = () => {
     return (
       <Dialog>
         <DialogTrigger className="appearance-none" asChild>
-          <button className="hover:scale-105 focus:underline">🙏 Connect Wallet</button>
+          <button className="hover:scale-105 focus:underline">🙏 {t("common.connect")}</button>
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Connect Wallet</DialogTitle>
+            <DialogTitle>{t("common.connect")}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-4">
             {connectors.map((connector) => (

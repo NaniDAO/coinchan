@@ -1,6 +1,7 @@
 import { sdk } from "@farcaster/frame-sdk";
 import "../index.css";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 import PoolActions from "../PoolActions";
 
