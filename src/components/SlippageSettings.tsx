@@ -30,9 +30,7 @@ export const SlippageSettings = ({
         <span>
           <strong>Slippage Tolerance:</strong> {Number(slippageBps) / 100}%
         </span>
-        <span className="text-xs text-foreground-secondary">
-          {showSlippageSettings ? "▲" : "▼"}
-        </span>
+        <span className="text-xs text-foreground-secondary">{showSlippageSettings ? "▲" : "▼"}</span>
       </div>
 
       {/* Slippage Settings Panel */}

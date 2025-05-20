@@ -1,5 +1,4 @@
-export const CheckTheChainAddress =
-  "0x0000000000cDC1F8d393415455E382c30FBc0a84";
+export const CheckTheChainAddress = "0x0000000000cDC1F8d393415455E382c30FBc0a84";
 
 // CheckTheChain contract ABI for fetching ETH price
 export const CheckTheChainAbi = [

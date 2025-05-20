@@ -177,9 +177,7 @@ export const TokenImage = memo(
         if (cached === "true") {
           // We know this token has no URI, use the optimized render path
           return (
-            <div
-              className={`w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full text-xs font-medium`}
-            >
+            <div className={`w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full text-xs font-medium`}>
               {getInitials(token.symbol)}
             </div>
           );
@@ -191,9 +189,7 @@ export const TokenImage = memo(
       }
 
       return (
-        <div
-          className={`w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full text-xs font-medium`}
-        >
+        <div className={`w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full text-xs font-medium`}>
           {getInitials(token.symbol)}
         </div>
       );
@@ -203,9 +199,7 @@ export const TokenImage = memo(
     if (!actualImageUrl && !imageError) {
       return (
         <div className="relative w-8 h-8 rounded-full overflow-hidden">
-          <div
-            className={`w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full`}
-          >
+          <div className={`w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full`}>
             {getInitials(token.symbol)}
           </div>
         </div>
@@ -240,9 +234,6 @@ export const TokenImage = memo(
   },
   (prevProps, nextProps) => {
     // Only re-render if token ID or URI changes
-    return (
-      prevProps.token.id === nextProps.token.id &&
-      prevProps.token.tokenUri === nextProps.token.tokenUri
-    );
+    return prevProps.token.id === nextProps.token.id && prevProps.token.tokenUri === nextProps.token.tokenUri;
   },
 );

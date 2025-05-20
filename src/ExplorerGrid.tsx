@@ -79,18 +79,10 @@ export const ExplorerGrid = ({
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center">
           <h2 className="text-xs md:text-xl font-semibold text-center sm:text-left">
-            {total === 0
-              ? "NO COINS DEPLOYED"
-              : total === 1
-                ? "1 COIN DEPLOYED"
-                : `${total} COINS DEPLOYED`}
+            {total === 0 ? "NO COINS DEPLOYED" : total === 1 ? "1 COIN DEPLOYED" : `${total} COINS DEPLOYED`}
           </h2>
 
-          {searchResults && (
-            <div className="ml-4 text-sm text-muted-foreground">
-              {searchResults}
-            </div>
-          )}
+          {searchResults && <div className="ml-4 text-sm text-muted-foreground">{searchResults}</div>}
         </div>
 
         <div className="flex items-center">
@@ -113,7 +105,7 @@ export const ExplorerGrid = ({
               <span className="hidden sm:inline">{sortType === "liquidity" ? "Liquidity" : "Recency"}</span>
             </button>
           )}
-          
+
           {/* Sort Order Button - Now visible for both sort modes */}
           {onSortOrderChange && (
             <button
@@ -121,25 +113,33 @@ export const ExplorerGrid = ({
               className="flex items-center justify-center px-2 py-1 mr-2 rounded-md border border-primary/30 hover:bg-secondary-foreground text-sm"
               aria-label={
                 sortType === "recency"
-                  ? (sortOrder === "asc" ? "Sort newest first" : "Sort oldest first")
-                  : (sortOrder === "asc" ? "Sort highest liquidity first" : "Sort lowest liquidity first")
+                  ? sortOrder === "asc"
+                    ? "Sort newest first"
+                    : "Sort oldest first"
+                  : sortOrder === "asc"
+                    ? "Sort highest liquidity first"
+                    : "Sort lowest liquidity first"
               }
               title={
                 sortType === "recency"
-                  ? (sortOrder === "asc" ? "Currently: Oldest first" : "Currently: Newest first")
-                  : (sortOrder === "asc" ? "Currently: Lowest liquidity first" : "Currently: Highest liquidity first")
+                  ? sortOrder === "asc"
+                    ? "Currently: Oldest first"
+                    : "Currently: Newest first"
+                  : sortOrder === "asc"
+                    ? "Currently: Lowest liquidity first"
+                    : "Currently: Highest liquidity first"
               }
               disabled={isLoading || isTransitioning}
             >
-              {sortOrder === "asc" ? (
-                <ArrowUpAZ className="w-4 h-4 mr-1" />
-              ) : (
-                <ArrowDownAZ className="w-4 h-4 mr-1" />
-              )}
+              {sortOrder === "asc" ? <ArrowUpAZ className="w-4 h-4 mr-1" /> : <ArrowDownAZ className="w-4 h-4 mr-1" />}
               <span className="hidden sm:inline">
                 {sortType === "recency"
-                  ? (sortOrder === "asc" ? "Oldest" : "Newest")
-                  : (sortOrder === "asc" ? "Lowest" : "Highest")}
+                  ? sortOrder === "asc"
+                    ? "Oldest"
+                    : "Newest"
+                  : sortOrder === "asc"
+                    ? "Lowest"
+                    : "Highest"}
               </span>
             </button>
           )}
@@ -167,10 +167,7 @@ export const ExplorerGrid = ({
         className={`grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 sm:gap-3 min-h-[300px] ${isTransitioning ? "transition-opacity duration-300 opacity-50" : ""}`}
       >
         {coins.map((coin) => (
-          <div
-            key={coin.coinId.toString()}
-            className={isPending ? "opacity-60 pointer-events-none" : ""}
-          >
+          <div key={coin.coinId.toString()} className={isPending ? "opacity-60 pointer-events-none" : ""}>
             <CoinCard coin={coin} />
           </div>
         ))}
@@ -209,13 +206,7 @@ export const ExplorerGrid = ({
               <span className="w-3 h-3 rounded-full border-2 border-primary border-t-transparent animate-spin mr-1"></span>
             </span>
           ) : null}
-          <span
-            className={
-              isTransitioning && direction === "prev" ? "opacity-0" : ""
-            }
-          >
-            Previous
-          </span>
+          <span className={isTransitioning && direction === "prev" ? "opacity-0" : ""}>Previous</span>
         </button>
 
         {/* Page info from parent */}
@@ -239,13 +230,7 @@ export const ExplorerGrid = ({
               <span className="w-3 h-3 rounded-full border-2 border-primary border-t-transparent animate-spin mr-1"></span>
             </span>
           ) : null}
-          <span
-            className={
-              isTransitioning && direction === "next" ? "opacity-0" : ""
-            }
-          >
-            Next
-          </span>
+          <span className={isTransitioning && direction === "next" ? "opacity-0" : ""}>Next</span>
         </button>
       </div>
     </div>

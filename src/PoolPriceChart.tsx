@@ -36,20 +36,8 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker }) => {
   });
 
   const { data, isLoading, error } = useQuery({
-    queryKey: [
-      "poolPricePoints",
-      poolId,
-      timeRange.startTs,
-      timeRange.endTs,
-      timeRange.desiredPoints,
-    ],
-    queryFn: () =>
-      fetchPoolPricePoints(
-        poolId,
-        timeRange.startTs,
-        timeRange.endTs,
-        timeRange.desiredPoints,
-      ),
+    queryKey: ["poolPricePoints", poolId, timeRange.startTs, timeRange.endTs, timeRange.desiredPoints],
+    queryFn: () => fetchPoolPricePoints(poolId, timeRange.startTs, timeRange.endTs, timeRange.desiredPoints),
   });
 
   // Time range presets
@@ -93,9 +81,7 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker }) => {
   };
 
   if (error) {
-    throw new Error(
-      "Failed to fetch pool price points - " + (error as Error).message,
-    );
+    throw new Error("Failed to fetch pool price points - " + (error as Error).message);
   }
 
   return (
@@ -142,9 +128,7 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker }) => {
       ) : data && data.length > 0 ? (
         <TVPriceChart priceData={data} ticker={ticker} />
       ) : (
-        <div className="text-center py-20 text-muted-foreground">
-          No price data available.
-        </div>
+        <div className="text-center py-20 text-muted-foreground">No price data available.</div>
       )}
     </div>
   );
@@ -209,9 +193,7 @@ const TVPriceChart: React.FC<{
       });
 
       // Convert back to array and sort
-      const sorted = Array.from(uniqueData.values()).sort(
-        (a, b) => parseInt(a.timestamp) - parseInt(b.timestamp),
-      );
+      const sorted = Array.from(uniqueData.values()).sort((a, b) => parseInt(a.timestamp) - parseInt(b.timestamp));
 
       // Map to chart-compatible format and ensure uniqueness of timestamps
       const timestampMap = new Map<number, number>(); // Map to store unique timestamps with their values
@@ -265,13 +247,7 @@ const TVPriceChart: React.FC<{
     }
   }, [priceData]);
 
-  return (
-    <div
-      ref={containerRef}
-      className="w-full"
-      style={{ height: "400px", position: "relative" }}
-    />
-  );
+  return <div ref={containerRef} className="w-full" style={{ height: "400px", position: "relative" }} />;
 };
 
 export default PoolPriceChart;

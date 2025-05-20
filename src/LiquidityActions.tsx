@@ -12,11 +12,7 @@ export const LiquidityActions = () => {
 
   return (
     <div>
-      <Tabs
-        value={liquidityMode}
-        onValueChange={(value) => setLiquidityMode(value as LiquidityMode)}
-        className="mb-2"
-      >
+      <Tabs value={liquidityMode} onValueChange={(value) => setLiquidityMode(value as LiquidityMode)} className="mb-2">
         <TabsList className="w-full bg-secondary dark:bg-background/80 p-1 rounded-lg border border-border">
           <TabsTrigger
             value="add"

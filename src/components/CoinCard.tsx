@@ -1,10 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "@tanstack/react-router";
-import {
-  CoinData,
-  formatImageURL,
-  getAlternativeImageUrls,
-} from "@/hooks/metadata/coin-utils";
+import { CoinData, formatImageURL, getAlternativeImageUrls } from "@/hooks/metadata/coin-utils";
 import { ArrowRightIcon } from "lucide-react";
 
 interface CoinCardProps {
@@ -53,12 +49,7 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
     primaryUrl: string | null;
     baseForFallbacks: string | null;
   } {
-    const candidates = [
-      coin.imageUrl,
-      coin.metadata?.image,
-      coin.metadata?.image_url,
-      coin.metadata?.imageUrl,
-    ];
+    const candidates = [coin.imageUrl, coin.metadata?.image, coin.metadata?.image_url, coin.metadata?.imageUrl];
 
     for (const rawUrl of candidates) {
       if (rawUrl) {
@@ -97,17 +88,12 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
   // Handle image load error with fallback attempt
   const handleImageError = useCallback(
     (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-      console.error(
-        `Image failed to load for coin ${coin.coinId.toString()}:`,
-        e,
-      );
+      console.error(`Image failed to load for coin ${coin.coinId.toString()}:`, e);
 
       // Try next alternative URL if available
       if (alternativeUrlsRef.current.length > 0) {
         // Find the first URL we haven't tried yet
-        const nextUrl = alternativeUrlsRef.current.find(
-          (url) => !attemptedUrlsRef.current.has(url),
-        );
+        const nextUrl = alternativeUrlsRef.current.find((url) => !attemptedUrlsRef.current.has(url));
 
         if (nextUrl) {
           attemptedUrlsRef.current.add(nextUrl);

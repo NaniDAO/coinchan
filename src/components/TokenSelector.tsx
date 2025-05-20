@@ -108,8 +108,7 @@ export const TokenSelector = memo(
               <div
                 className={`text-xs font-medium text-muted-foreground min-w-[50px] h-[14px] ${
                   // Add loading class for better visual feedback
-                  (selectedToken.id === null && isEthBalanceFetching) ||
-                  selectedToken.isFetching
+                  (selectedToken.id === null && isEthBalanceFetching) || selectedToken.isFetching
                     ? "token-loading px-1 rounded bg-transparent"
                     : ""
                 }`}
@@ -117,19 +116,13 @@ export const TokenSelector = memo(
                 {formatBalance(selectedToken)}
                 {/* Show loading indicator for ETH */}
                 {selectedToken.id === null && isEthBalanceFetching && (
-                  <span
-                    className="text-xs text-primary ml-1 inline-block"
-                    style={{ animation: "pulse 1.5s infinite" }}
-                  >
+                  <span className="text-xs text-primary ml-1 inline-block" style={{ animation: "pulse 1.5s infinite" }}>
                     ⟳
                   </span>
                 )}
                 {/* Show loading indicator for other tokens */}
                 {selectedToken.id !== null && selectedToken.isFetching && (
-                  <span
-                    className="text-xs text-primary ml-1 inline-block"
-                    style={{ animation: "pulse 1.5s infinite" }}
-                  >
+                  <span className="text-xs text-primary ml-1 inline-block" style={{ animation: "pulse 1.5s infinite" }}>
                     ⟳
                   </span>
                 )}
@@ -157,10 +150,7 @@ export const TokenSelector = memo(
 
                     // Check for special searches (USDT, Tether, Stable)
                     const isStableSearch =
-                      query === "usdt" ||
-                      query === "tether" ||
-                      query.includes("stable") ||
-                      query.includes("usd");
+                      query === "usdt" || query === "tether" || query.includes("stable") || query.includes("usd");
 
                     // Debounce the search with requestAnimationFrame for better performance
                     const w = window as any; // Type assertion for the debounce property
@@ -170,26 +160,19 @@ export const TokenSelector = memo(
 
                     w.searchDebounce = requestAnimationFrame(() => {
                       // Get all token items by data attribute - limit to visible ones first
-                      const visibleItems = document.querySelectorAll(
-                        "[data-token-symbol]:not(.hidden)",
-                      );
-                      const allItems = document.querySelectorAll(
-                        "[data-token-symbol]",
-                      );
+                      const visibleItems = document.querySelectorAll("[data-token-symbol]:not(.hidden)");
+                      const allItems = document.querySelectorAll("[data-token-symbol]");
 
                       // Special case: If searching for stablecoins, make sure USDT is visible
                       if (isStableSearch) {
-                        const usdtItem = document.querySelector(
-                          "[data-token-symbol='USDT']",
-                        );
+                        const usdtItem = document.querySelector("[data-token-symbol='USDT']");
                         if (usdtItem) {
                           usdtItem.classList.remove("hidden");
                         }
                       }
 
                       // Only query all items if no visible items match
-                      const itemsToSearch =
-                        visibleItems.length > 0 ? visibleItems : allItems;
+                      const itemsToSearch = visibleItems.length > 0 ? visibleItems : allItems;
 
                       // Use more efficient iteration
                       const itemsArray = Array.from(itemsToSearch);
@@ -198,20 +181,11 @@ export const TokenSelector = memo(
                       // First pass - show matches
                       for (let i = 0; i < itemsArray.length; i++) {
                         const item = itemsArray[i];
-                        const symbol =
-                          item
-                            .getAttribute("data-token-symbol")
-                            ?.toLowerCase() || "";
-                        const name =
-                          item.getAttribute("data-token-name")?.toLowerCase() ||
-                          "";
+                        const symbol = item.getAttribute("data-token-symbol")?.toLowerCase() || "";
+                        const name = item.getAttribute("data-token-name")?.toLowerCase() || "";
                         const id = item.getAttribute("data-token-id") || "";
 
-                        if (
-                          symbol.includes(query) ||
-                          name.includes(query) ||
-                          id.toLowerCase().includes(query)
-                        ) {
+                        if (symbol.includes(query) || name.includes(query) || id.toLowerCase().includes(query)) {
                           item.classList.remove("hidden");
                           anyVisible = true;
                         } else {
@@ -221,9 +195,7 @@ export const TokenSelector = memo(
 
                       // For USDT searches, ensure we always check for USDT even if no visible items match
                       if (isStableSearch && !anyVisible) {
-                        const usdtItem = document.querySelector(
-                          "[data-token-symbol='USDT']",
-                        );
+                        const usdtItem = document.querySelector("[data-token-symbol='USDT']");
                         if (usdtItem) {
                           usdtItem.classList.remove("hidden");
                           anyVisible = true;
@@ -235,21 +207,11 @@ export const TokenSelector = memo(
                         const allItemsArray = Array.from(allItems);
                         for (let i = 0; i < allItemsArray.length; i++) {
                           const item = allItemsArray[i];
-                          const symbol =
-                            item
-                              .getAttribute("data-token-symbol")
-                              ?.toLowerCase() || "";
-                          const name =
-                            item
-                              .getAttribute("data-token-name")
-                              ?.toLowerCase() || "";
+                          const symbol = item.getAttribute("data-token-symbol")?.toLowerCase() || "";
+                          const name = item.getAttribute("data-token-name")?.toLowerCase() || "";
                           const id = item.getAttribute("data-token-id") || "";
 
-                          if (
-                            symbol.includes(query) ||
-                            name.includes(query) ||
-                            id.toLowerCase().includes(query)
-                          ) {
+                          if (symbol.includes(query) || name.includes(query) || id.toLowerCase().includes(query)) {
                             item.classList.remove("hidden");
                           } else {
                             item.classList.add("hidden");
@@ -292,9 +254,7 @@ export const TokenSelector = memo(
                   }
 
                   // Format the custom fee if available (as percentage)
-                  const feePercentage = token.swapFee
-                    ? Number(token.swapFee) / 100
-                    : 1; // Default is 1%
+                  const feePercentage = token.swapFee ? Number(token.swapFee) / 100 : 1; // Default is 1%
 
                   // Format fee: For 0.3% (USDT), display it without trailing zeros
                   // For integer percentages like 1%, show without decimal places
@@ -357,12 +317,8 @@ export const TokenSelector = memo(
 
                   if (token.isCustomPool) {
                     // Show both reserves
-                    const ethReserveValue = Number(
-                      formatEther(token.reserve0 || 0n),
-                    );
-                    const tokenReserveValue = Number(
-                      formatUnits(token.reserve1 || 0n, tokenDecimals),
-                    );
+                    const ethReserveValue = Number(formatEther(token.reserve0 || 0n));
+                    const tokenReserveValue = Number(formatUnits(token.reserve1 || 0n, tokenDecimals));
 
                     let ethStr = "";
                     if (ethReserveValue >= 10000) {
@@ -392,9 +348,7 @@ export const TokenSelector = memo(
                     }
                   } else {
                     // Regular token pools
-                    const ethReserveValue = Number(
-                      formatEther(token.reserve0 || 0n),
-                    );
+                    const ethReserveValue = Number(formatEther(token.reserve0 || 0n));
 
                     if (ethReserveValue >= 10000) {
                       reserveStr = `${Math.floor(ethReserveValue / 1000)}K ETH`;
@@ -439,9 +393,7 @@ export const TokenSelector = memo(
                     data-token-name={token.name}
                     data-token-id={token.id?.toString() ?? "eth"}
                     className={`flex items-center justify-between p-3 sm:p-2 hover:bg-secondary-foreground cursor-pointer touch-manipulation ${
-                      isSelected
-                        ? "bg-primary/10 shadow-[0_0_10px_rgba(0,204,255,0.15)]"
-                        : ""
+                      isSelected ? "bg-primary/10 shadow-[0_0_10px_rgba(0,204,255,0.15)]" : ""
                     }`}
                     style={{
                       contentVisibility: "auto",
@@ -452,19 +404,14 @@ export const TokenSelector = memo(
                       <TokenImage token={token} />
                       <div className="flex flex-col">
                         <span className="font-medium">{token.symbol}</span>
-                        {reserves && (
-                          <span className="text-xs text-muted-foreground">
-                            {reserves}
-                          </span>
-                        )}
+                        {reserves && <span className="text-xs text-muted-foreground">{reserves}</span>}
                       </div>
                     </div>
                     <div className="text-right min-w-[60px]">
                       <div
                         className={`text-sm font-medium h-[18px] text-foreground ${
                           // Add loading class when ETH is loading or this specific token is loading
-                          (token.id === null && isEthBalanceFetching) ||
-                          token.isFetching
+                          (token.id === null && isEthBalanceFetching) || token.isFetching
                             ? "token-loading px-1 bg-transparent"
                             : ""
                         }`}

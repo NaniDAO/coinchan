@@ -18,10 +18,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     if (savedTheme) {
       setTheme(savedTheme);
-    } else if (
-      window.matchMedia &&
-      window.matchMedia("(prefers-color-scheme: dark)").matches
-    ) {
+    } else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
       // If no saved theme, use system preference
       setTheme("dark");
     }
@@ -53,11 +50,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     toggleTheme,
   };
 
-  return (
-    <ThemeContext.Provider value={themeContextValue}>
-      {children}
-    </ThemeContext.Provider>
-  );
+  return <ThemeContext.Provider value={themeContextValue}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme() {

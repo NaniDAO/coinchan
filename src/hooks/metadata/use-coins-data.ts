@@ -1,15 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import {
-  RawCoinData,
-  CoinData,
-  hydrateRawCoin,
-  enrichMetadata,
-} from "./coin-utils";
+import { RawCoinData, CoinData, hydrateRawCoin, enrichMetadata } from "./coin-utils";
 import { createPublicClient, http, formatUnits } from "viem";
-import {
-  CoinsMetadataHelperAbi,
-  CoinsMetadataHelperAddress,
-} from "@/constants/CoinsMetadataHelper";
+import { CoinsMetadataHelperAbi, CoinsMetadataHelperAddress } from "@/constants/CoinsMetadataHelper";
 import { mainnet } from "viem/chains";
 
 const publicClient = createPublicClient({
@@ -51,17 +43,14 @@ export function useCoinsData() {
     queryFn: async () => {
       try {
         // 1) Hit the indexer directly with fetch
-        const resp = await fetch(
-          import.meta.env.VITE_INDEXER_URL! + "/graphql",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              query: ALL_POOLS_QUERY,
-              variables: { limit: 1000 },
-            }),
-          },
-        );
+        const resp = await fetch(import.meta.env.VITE_INDEXER_URL! + "/graphql", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            query: ALL_POOLS_QUERY,
+            variables: { limit: 1000 },
+          }),
+        });
 
         const { data, errors } = await resp.json();
         if (errors && errors.length) {
@@ -114,14 +103,7 @@ export function useCoinsData() {
         const raws: RawCoinData[] = rawRpc.map((rc: any) => {
           const arr = Array.isArray(rc)
             ? rc
-            : [
-                rc.coinId,
-                rc.tokenURI,
-                rc.reserve0,
-                rc.reserve1,
-                rc.poolId,
-                rc.liquidity,
-              ];
+            : [rc.coinId, rc.tokenURI, rc.reserve0, rc.reserve1, rc.poolId, rc.liquidity];
           const [coinId, tokenURI, reserve0, reserve1, poolId, liquidity] = arr;
           return {
             coinId: BigInt(coinId ?? 0),

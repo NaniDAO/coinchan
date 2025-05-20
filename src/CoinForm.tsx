@@ -1,12 +1,5 @@
 import confetti from "canvas-confetti";
-import {
-  useState,
-  useEffect,
-  useRef,
-  ChangeEvent,
-  DragEvent,
-  useMemo,
-} from "react";
+import { useState, useEffect, useRef, ChangeEvent, DragEvent, useMemo } from "react";
 import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
 import { useAccount, useWriteContract, useReadContract } from "wagmi";
 import { parseEther } from "viem";
@@ -17,11 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { mainnet } from "viem/chains";
 import { Link } from "@tanstack/react-router";
 
@@ -115,13 +104,7 @@ const ImageInput = ({ onChange }: ImageInputProps) => {
 
   return (
     <div className="flex flex-col gap-2">
-      <input
-        ref={fileInputRef}
-        type="file"
-        onChange={handleFileChange}
-        accept="image/*"
-        className="hidden"
-      />
+      <input ref={fileInputRef} type="file" onChange={handleFileChange} accept="image/*" className="hidden" />
       <div
         className={`flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-md ${
           isDragging ? "border-primary bg-primary/10" : "border-input"
@@ -132,21 +115,10 @@ const ImageInput = ({ onChange }: ImageInputProps) => {
       >
         {previewUrl ? (
           <div className="flex flex-col items-center gap-4">
-            <img
-              src={previewUrl}
-              alt="Preview"
-              className="max-h-32 max-w-full object-contain rounded-md"
-            />
+            <img src={previewUrl} alt="Preview" className="max-h-32 max-w-full object-contain rounded-md" />
             <div className="flex flex-col items-center">
-              <p className="text-sm text-muted-foreground mb-2">
-                {selectedFileName}
-              </p>
-              <Button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                variant="outline"
-                size="sm"
-              >
+              <p className="text-sm text-muted-foreground mb-2">{selectedFileName}</p>
+              <Button type="button" onClick={() => fileInputRef.current?.click()} variant="outline" size="sm">
                 Change Image
               </Button>
             </div>
@@ -155,12 +127,7 @@ const ImageInput = ({ onChange }: ImageInputProps) => {
           <div className="text-center">
             <p className="mb-2">Drag & drop image here</p>
             <p>or</p>
-            <Button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              variant="outline"
-              className="mt-2"
-            >
+            <Button type="button" onClick={() => fileInputRef.current?.click()} variant="outline" className="mt-2">
               Browse Files
             </Button>
           </div>
@@ -280,8 +247,7 @@ export function CoinForm() {
     setPoolSupply(TOTAL_SUPPLY - safeCreatorAmount);
   }, [formState.creatorSupply]);
 
-  const { writeContract, isPending, isSuccess, data, error } =
-    useWriteContract();
+  const { writeContract, isPending, isSuccess, data, error } = useWriteContract();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -290,9 +256,7 @@ export function CoinForm() {
 
     if (!address || !imageBuffer) {
       // Error will be shown in UI
-      setErrorMessage(
-        !address ? "Wallet not connected" : "Please upload an image",
-      );
+      setErrorMessage(!address ? "Wallet not connected" : "Please upload an image");
       return;
     }
 
@@ -306,9 +270,7 @@ export function CoinForm() {
     // Validate creator supply
     const creatorSupplyValue = Number(formState.creatorSupply) || 0;
     if (creatorSupplyValue > TOTAL_SUPPLY) {
-      setErrorMessage(
-        `Creator supply cannot exceed ${TOTAL_SUPPLY.toLocaleString()} tokens`,
-      );
+      setErrorMessage(`Creator supply cannot exceed ${TOTAL_SUPPLY.toLocaleString()} tokens`);
       return;
     }
 
@@ -320,11 +282,7 @@ export function CoinForm() {
       const fileName = `${formState.name}_logo.png`;
       const pinataMetadata = { name: fileName };
 
-      const imageHash = await pinImageToPinata(
-        imageBuffer,
-        fileName,
-        pinataMetadata,
-      );
+      const imageHash = await pinImageToPinata(imageBuffer, fileName, pinataMetadata);
 
       const tokenUriJson = {
         name: formState.name,
@@ -337,10 +295,7 @@ export function CoinForm() {
 
       try {
         // Use custom ETH amount from form or default to 0.01 if invalid
-        const ethAmount =
-          formState.ethAmount && !isNaN(Number(formState.ethAmount))
-            ? formState.ethAmount
-            : "0.01";
+        const ethAmount = formState.ethAmount && !isNaN(Number(formState.ethAmount)) ? formState.ethAmount : "0.01";
 
         writeContract({
           address: CoinchanAddress,
@@ -386,9 +341,7 @@ export function CoinForm() {
     }
   };
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormState({
       ...formState,
       [e.target.name]: e.target.value,
@@ -411,26 +364,12 @@ export function CoinForm() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              type="text"
-              name="name"
-              value={formState.name}
-              onChange={handleChange}
-              required
-            />
+            <Input id="name" type="text" name="name" value={formState.name} onChange={handleChange} required />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="symbol">Symbol</Label>
-            <Input
-              id="symbol"
-              type="text"
-              name="symbol"
-              value={formState.symbol}
-              onChange={handleChange}
-              required
-            />
+            <Input id="symbol" type="text" name="symbol" value={formState.symbol} onChange={handleChange} required />
           </div>
 
           <div className="space-y-2">
@@ -474,13 +413,10 @@ export function CoinForm() {
             />
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                Pool Supply: {poolSupply.toLocaleString()} (Total:{" "}
-                {TOTAL_SUPPLY.toLocaleString()})
+                Pool Supply: {poolSupply.toLocaleString()} (Total: {TOTAL_SUPPLY.toLocaleString()})
               </p>
               {Number(formState.creatorSupply) >= TOTAL_SUPPLY && (
-                <p className="text-xs text-chart-5">
-                  Max: {TOTAL_SUPPLY.toLocaleString()}
-                </p>
+                <p className="text-xs text-chart-5">Max: {TOTAL_SUPPLY.toLocaleString()}</p>
               )}
             </div>
           </div>
@@ -510,9 +446,7 @@ export function CoinForm() {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() =>
-                  setFormState({ ...formState, ethAmount: "0.01" })
-                }
+                onClick={() => setFormState({ ...formState, ethAmount: "0.01" })}
                 className={`transition-all ${formState.ethAmount === "0.01" ? "bg-primary/10 border-primary/30" : ""}`}
               >
                 0.01 ETH
@@ -521,9 +455,7 @@ export function CoinForm() {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() =>
-                  setFormState({ ...formState, ethAmount: "0.033" })
-                }
+                onClick={() => setFormState({ ...formState, ethAmount: "0.033" })}
                 className={`transition-all ${formState.ethAmount === "0.033" ? "bg-primary/10 border-primary/30" : ""}`}
               >
                 0.033 ETH
@@ -551,74 +483,47 @@ export function CoinForm() {
             {/* Market Cap Estimation */}
             {marketCapEstimation && (
               <div className="mt-3 p-3 bg-secondary/30 rounded-md border border-secondary/50">
-                <h4 className="text-sm font-medium text-foreground mb-2">
-                  Launch Projections
-                </h4>
+                <h4 className="text-sm font-medium text-foreground mb-2">Launch Projections</h4>
                 <div className="flex flex-col gap-2">
                   <div className="bg-card p-2 rounded border border-border">
-                    <h5 className="text-xs font-medium text-muted-foreground">
-                      TOKEN PRICE
-                    </h5>
+                    <h5 className="text-xs font-medium text-muted-foreground">TOKEN PRICE</h5>
                     <div className="flex items-center text-sm mt-1">
-                      <span className="font-medium text-chart-2">
-                        ${marketCapEstimation.tokenPriceUsd.toFixed(8)}
-                      </span>
+                      <span className="font-medium text-chart-2">${marketCapEstimation.tokenPriceUsd.toFixed(8)}</span>
                     </div>
                   </div>
 
                   <div className="bg-card p-2 rounded border border-border">
-                    <h5 className="text-xs font-medium text-muted-foreground">
-                      MARKET CAP
-                    </h5>
+                    <h5 className="text-xs font-medium text-muted-foreground">MARKET CAP</h5>
                     <div className="flex flex-col">
                       <div className="flex items-center text-sm">
-                        <span className="text-muted-foreground min-w-20">
-                          ETH:
-                        </span>
-                        <span className="font-medium">
-                          {formatNumber(marketCapEstimation.eth, 2)} ETH
-                        </span>
+                        <span className="text-muted-foreground min-w-20">ETH:</span>
+                        <span className="font-medium">{formatNumber(marketCapEstimation.eth, 2)} ETH</span>
                       </div>
                       <div className="flex items-center text-sm mt-1">
-                        <span className="text-muted-foreground min-w-20">
-                          USD:
-                        </span>
-                        <span className="font-medium">
-                          ${formatNumber(marketCapEstimation.usd, 0)}
-                        </span>
+                        <span className="text-muted-foreground min-w-20">USD:</span>
+                        <span className="font-medium">${formatNumber(marketCapEstimation.usd, 0)}</span>
                       </div>
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center mt-2">
                   <p className="text-xs text-muted-foreground">
-                    Based on {formState.ethAmount} ETH liquidity with{" "}
-                    {poolSupply.toLocaleString()} coins
+                    Based on {formState.ethAmount} ETH liquidity with {poolSupply.toLocaleString()} coins
                   </p>
                   <div className="ml-auto">
-                    <Popover
-                      open={showFeeSelector}
-                      onOpenChange={setShowFeeSelector}
-                    >
+                    <Popover open={showFeeSelector} onOpenChange={setShowFeeSelector}>
                       <PopoverTrigger asChild>
                         <button
                           type="button"
                           className="text-xs px-2 py-1 rounded border border-input hover:bg-secondary-foreground transition-colors flex items-center gap-1"
                         >
-                          Fee:{" "}
-                          <span className="font-semibold text-primary">
-                            {feeToPercentage(swapFee)}
-                          </span>
+                          Fee: <span className="font-semibold text-primary">{feeToPercentage(swapFee)}</span>
                         </button>
                       </PopoverTrigger>
                       <PopoverContent className="w-64 p-3">
                         <div className="space-y-2">
-                          <h4 className="font-medium text-sm">
-                            Customize Swap Fee
-                          </h4>
-                          <p className="text-xs text-muted-foreground">
-                            Select a fee percentage for swaps
-                          </p>
+                          <h4 className="font-medium text-sm">Customize Swap Fee</h4>
+                          <p className="text-xs text-muted-foreground">Select a fee percentage for swaps</p>
                           <div className="grid grid-cols-2 gap-2 mt-2">
                             {[25, 50, 100, 150, 200, 300].map((fee) => (
                               <button
@@ -656,26 +561,17 @@ export function CoinForm() {
                                   const value = e.target.value;
 
                                   // Validate format (numbers with up to 2 decimal places and max 2 digits before decimal)
-                                  if (
-                                    value === "" ||
-                                    /^[0-9]{1,2}(\.?[0-9]{0,2})?$/.test(value)
-                                  ) {
+                                  if (value === "" || /^[0-9]{1,2}(\.?[0-9]{0,2})?$/.test(value)) {
                                     // Check if the value exceeds the maximum allowed (99.99)
                                     const numValue = parseFloat(value);
-                                    if (
-                                      value === "" ||
-                                      isNaN(numValue) ||
-                                      numValue <= 99.99
-                                    ) {
+                                    if (value === "" || isNaN(numValue) || numValue <= 99.99) {
                                       setCustomFeeInput(value);
                                     }
                                   }
                                 }}
                                 onBlur={() => {
                                   // Format on blur to ensure proper format
-                                  setCustomFeeInput(
-                                    formatPercentageInput(customFeeInput),
-                                  );
+                                  setCustomFeeInput(formatPercentageInput(customFeeInput));
                                 }}
                               />
                               <Button
@@ -684,16 +580,14 @@ export function CoinForm() {
                                 variant="outline"
                                 className="h-8"
                                 onClick={() => {
-                                  const customFeePercent =
-                                    parseFloat(customFeeInput);
+                                  const customFeePercent = parseFloat(customFeeInput);
                                   if (
                                     !isNaN(customFeePercent) &&
                                     customFeePercent >= 0.01 &&
                                     customFeePercent <= 99.99
                                   ) {
                                     // Convert percentage to basis points for internal use
-                                    const basisPoints =
-                                      percentageToBasisPoints(customFeePercent);
+                                    const basisPoints = percentageToBasisPoints(customFeePercent);
                                     setSwapFee(basisPoints);
                                     setShowFeeSelector(false);
                                   }
@@ -703,9 +597,7 @@ export function CoinForm() {
                                   isNaN(parseFloat(customFeeInput)) ||
                                   parseFloat(customFeeInput) < 0.01 ||
                                   parseFloat(customFeeInput) > 99.99 ||
-                                  !/^[0-9]{1,2}(\.?[0-9]{0,2})?$/.test(
-                                    customFeeInput,
-                                  )
+                                  !/^[0-9]{1,2}(\.?[0-9]{0,2})?$/.test(customFeeInput)
                                 }
                               >
                                 Set
@@ -714,9 +606,7 @@ export function CoinForm() {
                             <p className="text-xs text-muted-foreground mt-1">
                               {customFeeInput &&
                               !isNaN(parseFloat(customFeeInput)) &&
-                              /^[0-9]{1,2}(\.?[0-9]{0,2})?$/.test(
-                                customFeeInput,
-                              )
+                              /^[0-9]{1,2}(\.?[0-9]{0,2})?$/.test(customFeeInput)
                                 ? `${customFeeInput}% = ${percentageToBasisPoints(parseFloat(customFeeInput))} basis points`
                                 : "Enter a value between 0.01% and 99.99% (max 2 decimal places)"}
                             </p>
@@ -742,15 +632,9 @@ export function CoinForm() {
             {isPending ? "Check Wallet" : "Coin It!"}
           </Button>
 
-          {errorMessage && (
-            <div className="text-sm text-destructive mt-2">{errorMessage}</div>
-          )}
+          {errorMessage && <div className="text-sm text-destructive mt-2">{errorMessage}</div>}
 
-          {isSuccess && (
-            <div className="text-sm text-chart-2 mt-2">
-              Success! Transaction: {JSON.stringify(data)}
-            </div>
-          )}
+          {isSuccess && <div className="text-sm text-chart-2 mt-2">Success! Transaction: {JSON.stringify(data)}</div>}
         </form>
       </div>
     </div>

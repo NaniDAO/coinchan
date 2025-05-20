@@ -58,10 +58,7 @@ export const DisplayTokenUri = ({
         const response = await fetch(uri);
 
         if (!response.ok) {
-          console.error(
-            `DisplayTokenUri for ${symbol}: Fetch failed with status:`,
-            response.status,
-          );
+          console.error(`DisplayTokenUri for ${symbol}: Fetch failed with status:`, response.status);
           throw new Error(`Failed to fetch metadata: ${response.status}`);
         }
 
@@ -82,10 +79,7 @@ export const DisplayTokenUri = ({
 
             setActualImageUrl(imageUrl);
           } else {
-            console.error(
-              `DisplayTokenUri for ${symbol}: No image field in metadata:`,
-              data,
-            );
+            console.error(`DisplayTokenUri for ${symbol}: No image field in metadata:`, data);
             throw new Error("No image in metadata");
           }
         } else {
@@ -94,10 +88,7 @@ export const DisplayTokenUri = ({
           setActualImageUrl(uri);
         }
       } catch (err) {
-        console.error(
-          `DisplayTokenUri for ${symbol}: Error fetching metadata:`,
-          err,
-        );
+        console.error(`DisplayTokenUri for ${symbol}: Error fetching metadata:`, err);
         setImageError(true);
       } finally {
         setIsLoading(false);
@@ -110,9 +101,7 @@ export const DisplayTokenUri = ({
   // Fallback for invalid token URIs
   if (!tokenUri || tokenUri === "N/A") {
     return (
-      <div
-        className={`w-full h-full flex ${bgColor} text-white justify-center items-center rounded-full ${className}`}
-      >
+      <div className={`w-full h-full flex ${bgColor} text-white justify-center items-center rounded-full ${className}`}>
         {symbol?.slice(0, 3)}
       </div>
     );
@@ -132,9 +121,7 @@ export const DisplayTokenUri = ({
   // Error or no image available
   if (imageError || !actualImageUrl) {
     return (
-      <div
-        className={`w-full h-full flex ${bgColor} text-white justify-center items-center rounded-full ${className}`}
-      >
+      <div className={`w-full h-full flex ${bgColor} text-white justify-center items-center rounded-full ${className}`}>
         {symbol?.slice(0, 3)}
       </div>
     );
@@ -144,9 +131,7 @@ export const DisplayTokenUri = ({
   return (
     <div className="relative w-full h-full rounded-full overflow-hidden">
       {/* Fallback that's visible until image loads */}
-      <div
-        className={`absolute inset-0 flex ${bgColor} text-white justify-center items-center`}
-      >
+      <div className={`absolute inset-0 flex ${bgColor} text-white justify-center items-center`}>
         {symbol?.slice(0, 3)}
       </div>
 
@@ -160,11 +145,7 @@ export const DisplayTokenUri = ({
           setImageLoaded(true);
         }}
         onError={(e) => {
-          console.error(
-            `DisplayTokenUri for ${symbol}: Image load error for URL:`,
-            actualImageUrl,
-            e,
-          );
+          console.error(`DisplayTokenUri for ${symbol}: Image load error for URL:`, actualImageUrl, e);
           setImageError(true);
         }}
         loading="eager" // Force eager loading instead of lazy

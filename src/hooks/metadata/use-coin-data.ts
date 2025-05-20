@@ -2,10 +2,7 @@ import { useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createPublicClient, http } from "viem";
 import { mainnet } from "viem/chains";
-import {
-  CoinsMetadataHelperAbi,
-  CoinsMetadataHelperAddress,
-} from "@/constants/CoinsMetadataHelper";
+import { CoinsMetadataHelperAbi, CoinsMetadataHelperAddress } from "@/constants/CoinsMetadataHelper";
 import { CoinData } from "./coin-utils";
 
 // Create a public client instance
@@ -40,10 +37,7 @@ export function useCoinData(coinId: bigint) {
         // Transform and enrich the data
         return await processRawCoinData(rawData as any);
       } catch (error) {
-        console.error(
-          `Error fetching data for coin ${coinId.toString()}:`,
-          error,
-        );
+        console.error(`Error fetching data for coin ${coinId.toString()}:`, error);
         throw error;
       }
     },
@@ -147,10 +141,7 @@ async function processRawCoinData(rawData: any): Promise<CoinData> {
         }
       }
     } catch (error) {
-      console.error(
-        `Error processing metadata for coin ${coinData.coinId.toString()}:`,
-        error,
-      );
+      console.error(`Error processing metadata for coin ${coinData.coinId.toString()}:`, error);
       // We'll just continue with the partial data
     }
   }

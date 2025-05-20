@@ -2,19 +2,10 @@ import { usePublicClient, useAccount } from "wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
 import { mainnet } from "viem/chains";
-import {
-  ETH_TOKEN,
-  USDT_TOKEN,
-  TokenMeta,
-  USDT_POOL_ID,
-  USDT_ADDRESS,
-} from "@/lib/coins";
+import { ETH_TOKEN, USDT_TOKEN, TokenMeta, USDT_POOL_ID, USDT_ADDRESS } from "@/lib/coins";
 import { CoinchanAbi, CoinchanAddress } from "@/constants/Coinchan";
 import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
-import {
-  CoinsMetadataHelperAbi,
-  CoinsMetadataHelperAddress,
-} from "@/constants/CoinsMetadataHelper";
+import { CoinsMetadataHelperAbi, CoinsMetadataHelperAddress } from "@/constants/CoinsMetadataHelper";
 import { ZAAMAbi, ZAAMAddress } from "@/constants/ZAAM";
 import { SWAP_FEE } from "@/lib/swap";
 
@@ -85,14 +76,7 @@ async function fetchOtherCoins(
   const coinPromises = allCoinsData.map(async (coin: any) => {
     const [id, uri, r0, r1, pid, liq] = Array.isArray(coin)
       ? coin
-      : [
-          coin.coinId,
-          coin.tokenURI,
-          coin.reserve0,
-          coin.reserve1,
-          coin.poolId,
-          coin.liquidity,
-        ];
+      : [coin.coinId, coin.tokenURI, coin.reserve0, coin.reserve1, coin.poolId, coin.liquidity];
     const coinId = BigInt(id);
     const [symbol, name, lockup] = await Promise.all([
       publicClient
@@ -166,9 +150,7 @@ async function fetchOtherCoins(
       address: USDT_ADDRESS,
       abi: [
         {
-          inputs: [
-            { internalType: "address", name: "account", type: "address" },
-          ],
+          inputs: [{ internalType: "address", name: "account", type: "address" }],
           name: "balanceOf",
           outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
           stateMutability: "view",
@@ -182,9 +164,7 @@ async function fetchOtherCoins(
   }
 
   // Sort coins by ETH reserves descending
-  const sortedCoins = coins.sort((a, b) =>
-    Number((b.reserve0 || 0n) - (a.reserve0 || 0n)),
-  );
+  const sortedCoins = coins.sort((a, b) => Number((b.reserve0 || 0n) - (a.reserve0 || 0n)));
   return [...sortedCoins, usdtToken];
 }
 

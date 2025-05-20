@@ -19,21 +19,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { mainnet } from "viem/chains";
 import { handleWalletError } from "@/lib/errors";
 import { useCoinData } from "./hooks/metadata";
-import {
-  formatImageURL,
-  getAlternativeImageUrls,
-} from "./hooks/metadata/coin-utils";
-import {
-  computePoolKey,
-  DEADLINE_SEC,
-  getAmountOut,
-  SWAP_FEE,
-  withSlippage,
-} from "./lib/swap";
-import {
-  CheckTheChainAbi,
-  CheckTheChainAddress,
-} from "./constants/CheckTheChain";
+import { formatImageURL, getAlternativeImageUrls } from "./hooks/metadata/coin-utils";
+import { computePoolKey, DEADLINE_SEC, getAmountOut, SWAP_FEE, withSlippage } from "./lib/swap";
+import { CheckTheChainAbi, CheckTheChainAddress } from "./constants/CheckTheChain";
 
 export const BuySell = ({
   tokenId,
@@ -85,21 +73,16 @@ export const BuySell = ({
         const [lockupOwner, , , , lockupSwapFee] = lockup;
 
         // Set the swap fee from lockup or use default if not available or zero
-        const customSwapFee =
-          lockupSwapFee && lockupSwapFee > 0n ? lockupSwapFee : SWAP_FEE;
+        const customSwapFee = lockupSwapFee && lockupSwapFee > 0n ? lockupSwapFee : SWAP_FEE;
         setSwapFee(customSwapFee);
 
         // Check if the current address is the owner (only if address is connected)
         if (address) {
-          const isActualOwner =
-            lockupOwner?.toLowerCase() === address.toLowerCase();
+          const isActualOwner = lockupOwner?.toLowerCase() === address.toLowerCase();
           setIsOwner(isActualOwner);
         }
       } catch (err) {
-        console.error(
-          `BuySell: Failed to fetch lockup info for token ${tokenId.toString()}:`,
-          err,
-        );
+        console.error(`BuySell: Failed to fetch lockup info for token ${tokenId.toString()}:`, err);
         // Use default swap fee if there's an error, but only if we haven't already set a custom fee
         if (isMounted) {
           setSwapFee(SWAP_FEE);
@@ -159,22 +142,12 @@ export const BuySell = ({
     try {
       if (tab === "buy") {
         const inWei = parseEther(amount || "0");
-        const rawOut = getAmountOut(
-          inWei,
-          reserves.reserve0,
-          reserves.reserve1,
-          swapFee,
-        );
+        const rawOut = getAmountOut(inWei, reserves.reserve0, reserves.reserve1, swapFee);
         const minOut = withSlippage(rawOut);
         return formatUnits(minOut, 18);
       } else {
         const inUnits = parseUnits(amount || "0", 18);
-        const rawOut = getAmountOut(
-          inUnits,
-          reserves.reserve1,
-          reserves.reserve0,
-          swapFee,
-        );
+        const rawOut = getAmountOut(inUnits, reserves.reserve1, reserves.reserve0, swapFee);
         const minOut = withSlippage(rawOut);
         return formatEther(minOut);
       }
@@ -197,12 +170,7 @@ export const BuySell = ({
       }
 
       const amountInWei = parseEther(amount || "0");
-      const rawOut = getAmountOut(
-        amountInWei,
-        reserves.reserve0,
-        reserves.reserve1,
-        swapFee,
-      );
+      const rawOut = getAmountOut(amountInWei, reserves.reserve0, reserves.reserve1, swapFee);
       const amountOutMin = withSlippage(rawOut);
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
@@ -261,12 +229,7 @@ export const BuySell = ({
         }
       }
 
-      const rawOut = getAmountOut(
-        amountInUnits,
-        reserves.reserve1,
-        reserves.reserve0,
-        swapFee,
-      );
+      const rawOut = getAmountOut(amountInUnits, reserves.reserve1, reserves.reserve0, swapFee);
       const amountOutMin = withSlippage(rawOut);
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
@@ -341,9 +304,7 @@ export const BuySell = ({
 
     // Generate alternative URLs for fallback
     if (imageSourceForAlternatives) {
-      alternativeUrlsRef.current = getAlternativeImageUrls(
-        imageSourceForAlternatives,
-      );
+      alternativeUrlsRef.current = getAlternativeImageUrls(imageSourceForAlternatives);
     } else {
       alternativeUrlsRef.current = [];
     }
@@ -361,9 +322,7 @@ export const BuySell = ({
     // Try next alternative URL if available
     if (alternativeUrlsRef.current.length > 0) {
       // Find the first URL we haven't tried yet
-      const nextUrl = alternativeUrlsRef.current.find(
-        (url) => !attemptedUrlsRef.current.has(url),
-      );
+      const nextUrl = alternativeUrlsRef.current.find((url) => !attemptedUrlsRef.current.has(url));
 
       if (nextUrl) {
         attemptedUrlsRef.current.add(nextUrl);
@@ -406,15 +365,15 @@ export const BuySell = ({
         <div className="flex flex-col flex-grow overflow-hidden">
           <div className="flex items-baseline space-x-2">
             <h3 className="text-lg font-medium truncate">{displayName}</h3>
-            <span className="text-sm font-medium text-accent dark:text-accent">
-              [{displaySymbol}]
-            </span>
+            <span className="text-sm font-medium text-accent dark:text-accent">[{displaySymbol}]</span>
           </div>
 
           {/* Token ID in hex format and Etherscan link */}
           <div className="flex items-center mt-1 text-xs">
-            <span className="font-medium text-secondary dark:text-chart-2 mr-1">ID: {tokenId.toString()} (0x{tokenId.toString(16)})</span>
-            <a 
+            <span className="font-medium text-secondary dark:text-chart-2 mr-1">
+              ID: {tokenId.toString()} (0x{tokenId.toString(16)})
+            </span>
+            <a
               href={`https://etherscan.io/token/0x${tokenId.toString(16)}`}
               target="_blank"
               rel="noopener noreferrer"
@@ -436,35 +395,21 @@ export const BuySell = ({
               <div className="flex items-center gap-1">
                 <span className="font-medium dark:text-chart-2">Swap Fee:</span>
                 {/* More precise conversion from basis points to percentage */}
-                <span className="font-medium text-primary">
-                  {(Number(swapFee) / 100).toFixed(2)}%
-                </span>
-                {isOwner && (
-                  <span className="text-xs text-chart-2">
-                    (You are the owner)
-                  </span>
-                )}
+                <span className="font-medium text-primary">{(Number(swapFee) / 100).toFixed(2)}%</span>
+                {isOwner && <span className="text-xs text-chart-2">(You are the owner)</span>}
               </div>
 
               {/* Market Cap section */}
               {marketCapEth !== null && (
                 <div className="flex items-center gap-1">
-                  <span className="font-medium market-cap-text">
-                    Est. Market Cap:
-                  </span>
+                  <span className="font-medium market-cap-text">Est. Market Cap:</span>
                   <span className="market-cap-text">{formatNumber(marketCapEth, 2)} ETH</span>
                   {marketCapUsd !== null ? (
-                    <span className="ml-1 market-cap-text">
-                      (~${formatNumber(marketCapUsd, 0)})
-                    </span>
+                    <span className="ml-1 market-cap-text">(~${formatNumber(marketCapUsd, 0)})</span>
                   ) : ethPriceData ? (
-                    <span className="ml-1 market-cap-text">
-                      (USD price processing...)
-                    </span>
+                    <span className="ml-1 market-cap-text">(USD price processing...)</span>
                   ) : (
-                    <span className="ml-1 market-cap-text">
-                      (ETH price unavailable)
-                    </span>
+                    <span className="ml-1 market-cap-text">(ETH price unavailable)</span>
                   )}
                 </div>
               )}
@@ -527,9 +472,7 @@ export const BuySell = ({
 
       <TabsContent value="sell">
         <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium text-accent dark:text-accent">
-            Using {displaySymbol}
-          </span>
+          <span className="text-sm font-medium text-accent dark:text-accent">Using {displaySymbol}</span>
           <div className="relative">
             <Input
               type="number"
@@ -550,10 +493,7 @@ export const BuySell = ({
                 MAX ({formatUnits(balance, 18)})
               </button>
             ) : (
-              <button
-                className="self-end text-sm font-medium text-chart-2 dark:text-chart-2"
-                disabled={!balance}
-              >
+              <button className="self-end text-sm font-medium text-chart-2 dark:text-chart-2" disabled={!balance}>
                 MAX
               </button>
             )}
@@ -569,9 +509,7 @@ export const BuySell = ({
         </div>
       </TabsContent>
 
-      {errorMessage && (
-        <p className="text-destructive text-sm">{errorMessage}</p>
-      )}
+      {errorMessage && <p className="text-destructive text-sm">{errorMessage}</p>}
       {isSuccess && <p className="text-chart-2 text-sm">Tx confirmed!</p>}
     </Tabs>
   );

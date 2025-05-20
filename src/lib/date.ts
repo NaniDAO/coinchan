@@ -20,29 +20,19 @@ export function formatTimeAgo(timestamp: number): string {
   // Format the output
   if (years > 0) {
     const remainingMonths = Math.floor((days % 365) / 30);
-    return remainingMonths > 0
-      ? `${years}y ${remainingMonths}mo ago`
-      : `${years}y ago`;
+    return remainingMonths > 0 ? `${years}y ${remainingMonths}mo ago` : `${years}y ago`;
   } else if (months > 0) {
     const remainingDays = days % 30;
-    return remainingDays > 0
-      ? `${months}mo ${remainingDays}d ago`
-      : `${months}mo ago`;
+    return remainingDays > 0 ? `${months}mo ${remainingDays}d ago` : `${months}mo ago`;
   } else if (days > 0) {
     const remainingHours = hours % 24;
-    return remainingHours > 0
-      ? `${days}d ${remainingHours}h ago`
-      : `${days}d ago`;
+    return remainingHours > 0 ? `${days}d ${remainingHours}h ago` : `${days}d ago`;
   } else if (hours > 0) {
     const remainingMinutes = minutes % 60;
-    return remainingMinutes > 0
-      ? `${hours}h ${remainingMinutes}m ago`
-      : `${hours}h ago`;
+    return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m ago` : `${hours}h ago`;
   } else if (minutes > 0) {
     const remainingSeconds = seconds % 60;
-    return remainingSeconds > 0
-      ? `${minutes}m ${remainingSeconds}s ago`
-      : `${minutes}m ago`;
+    return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s ago` : `${minutes}m ago`;
   } else {
     return `${seconds}s ago`;
   }

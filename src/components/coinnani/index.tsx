@@ -38,12 +38,7 @@ export const CoinNani = ({ className }: CoinNaniProps) => {
   return (
     // Use flex-col and items-center to stack bubble above avatar and center horizontally
     // justify-end to push content to the bottom if container has height
-    <div
-      className={cn(
-        "relative flex flex-col items-center justify-end",
-        className,
-      )}
-    >
+    <div className={cn("relative flex flex-col items-center justify-end", className)}>
       {/* Text Bubble */}
       {showBubble && (
         <motion.div

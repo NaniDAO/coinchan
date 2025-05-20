@@ -11,5 +11,5 @@
 /* Dark mode overrides */
 .dark .market-cap-text,
 .dark .description-text {
-  color: #FFFFFF; /* White in dark mode */
+  color: #ffffff; /* White in dark mode */
 }

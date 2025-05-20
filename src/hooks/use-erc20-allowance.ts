@@ -42,17 +42,12 @@ export function useErc20Allowance({ token, spender }: UseErc20AllowanceArgs) {
   });
 
   // 3️⃣ Send approval when requested
-  const {
-    writeContractAsync,
-    data: approveTxHash,
-    isPending: isApproveTxSending,
-  } = useWriteContract();
+  const { writeContractAsync, data: approveTxHash, isPending: isApproveTxSending } = useWriteContract();
 
   // 4️⃣ Track mining status
-  const { isLoading: isApproveTxMining, isSuccess: isApproveSuccess } =
-    useWaitForTransactionReceipt({
-      hash: approveTxHash,
-    });
+  const { isLoading: isApproveTxMining, isSuccess: isApproveSuccess } = useWaitForTransactionReceipt({
+    hash: approveTxHash,
+  });
 
   // wrapped callback so consumers just call `approve()` without args
   const approveMax = useCallback(async () => {

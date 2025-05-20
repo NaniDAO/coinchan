@@ -28,10 +28,7 @@ export const toEthPerZamm = (raw: string) => {
  * @param interval - one of '1m', '1h', or '1d'
  * @returns array of CandleData sorted by bucketStart ascending
  */
-export async function fetchPoolCandles(
-  poolId: string,
-  interval: "1m" | "1h" | "1d",
-): Promise<CandleData[]> {
+export async function fetchPoolCandles(poolId: string, interval: "1m" | "1h" | "1d"): Promise<CandleData[]> {
   const query = `
     query PoolCandles($poolId: BigInt!, $interval: String!) {
       candles(

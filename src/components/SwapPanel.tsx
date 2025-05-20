@@ -63,9 +63,7 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
           className="text-lg sm:text-xl font-medium w-full focus:outline-none h-10 text-right pr-1 bg-transparent dark:text-foreground dark:placeholder-primary/50"
         />
         {previewLabel ? (
-          <span className="text-xs text-primary font-medium">
-            {previewLabel}
-          </span>
+          <span className="text-xs text-primary font-medium">{previewLabel}</span>
         ) : (
           showMaxButton &&
           onMax && (

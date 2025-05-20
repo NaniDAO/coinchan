@@ -7,10 +7,7 @@ export const config = createConfig({
   chains: [mainnet],
   connectors: [farcasterFrame(), injected(), coinbaseWallet(), metaMask()],
   transports: {
-    [mainnet.id]: fallback([
-      http(import.meta.env.VITE_DRPC_1),
-      http("https://cloudflare-eth.com"),
-    ]),
+    [mainnet.id]: fallback([http(import.meta.env.VITE_DRPC_1), http("https://cloudflare-eth.com")]),
   },
 });
 

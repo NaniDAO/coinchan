@@ -1,13 +1,6 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { formatEther } from "viem";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useRef, useEffect } from "react";
 import { formatTimeAgo } from "@/lib/date";
 import { getEtherscanAddressUrl, getEtherscanTxUrl } from "@/lib/explorer";
@@ -56,14 +49,7 @@ export function PoolEvents({
     return res.json();
   };
 
-  const {
-    data,
-    error,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    status,
-  } = useInfiniteQuery({
+  const { data, error, fetchNextPage, hasNextPage, isFetchingNextPage, status } = useInfiniteQuery({
     queryKey: ["events", poolId],
     queryFn: fetchEvents,
     initialPageParam: Math.floor(Date.now() / 1000),
@@ -96,9 +82,7 @@ export function PoolEvents({
   }
 
   if (status === "error") {
-    return (
-      <p className="text-center p-4 text-destructive">Error: {error.message}</p>
-    );
+    return <p className="text-center p-4 text-destructive">Error: {error.message}</p>;
   }
 
   // Flatten pages
@@ -113,9 +97,7 @@ export function PoolEvents({
               <TableHead>Timestamp</TableHead>
               <TableHead>Type</TableHead>
               <TableHead className="text-right">ETH</TableHead>
-              <TableHead className="text-right">
-                {ticker.toUpperCase()}
-              </TableHead>
+              <TableHead className="text-right">{ticker.toUpperCase()}</TableHead>
               <TableHead className="text-right">Maker</TableHead>
               <TableHead>Txn</TableHead>
             </TableRow>
@@ -124,61 +106,24 @@ export function PoolEvents({
             {events.length > 0 ? (
               events.map((e, idx) => (
                 <TableRow key={`${e.txhash}-${e.timestamp}-${idx}`}>
-                  <TableCell className="whitespace-nowrap">
-                    {formatTimeAgo(e?.timestamp ?? 0)}
+                  <TableCell className="whitespace-nowrap">{formatTimeAgo(e?.timestamp ?? 0)}</TableCell>
+                  <TableCell className={getEventTypeColorClass(e.type)}>{e.type}</TableCell>
+                  <TableCell className={cn("text-right", getEventTypeColorClass(e.type))}>
+                    {e.type === "BUY" && Number(formatEther(BigInt(e?.amount0_in ?? "0"))).toFixed(5)}
+                    {e.type === "SELL" && Number(formatEther(BigInt(e?.amount0_out ?? "0"))).toFixed(5)}
+                    {e.type === "LIQADD" && Number(formatEther(BigInt(e?.amount0_in ?? "0"))).toFixed(5)}
+                    {e.type === "LIQREM" && Number(formatEther(BigInt(e?.amount0_out ?? "0"))).toFixed(5)}
                   </TableCell>
-                  <TableCell className={getEventTypeColorClass(e.type)}>
-                    {e.type}
+                  <TableCell className={cn("text-right", getEventTypeColorClass(e.type))}>
+                    {e.type === "BUY" && Number(formatEther(BigInt(e?.amount1_out ?? "0"))).toFixed(5)}
+                    {e.type === "SELL" && Number(formatEther(BigInt(e?.amount1_in ?? "0"))).toFixed(5)}
+                    {e.type === "LIQADD" && Number(formatEther(BigInt(e?.amount1_in ?? "0"))).toFixed(5)}
+                    {e.type === "LIQREM" && Number(formatEther(BigInt(e?.amount1_out ?? "0"))).toFixed(5)}
                   </TableCell>
-                  <TableCell
-                    className={cn("text-right", getEventTypeColorClass(e.type))}
-                  >
-                    {e.type === "BUY" &&
-                      Number(formatEther(BigInt(e?.amount0_in ?? "0"))).toFixed(
-                        5,
-                      )}
-                    {e.type === "SELL" &&
-                      Number(
-                        formatEther(BigInt(e?.amount0_out ?? "0")),
-                      ).toFixed(5)}
-                    {e.type === "LIQADD" &&
-                      Number(formatEther(BigInt(e?.amount0_in ?? "0"))).toFixed(
-                        5,
-                      )}
-                    {e.type === "LIQREM" &&
-                      Number(
-                        formatEther(BigInt(e?.amount0_out ?? "0")),
-                      ).toFixed(5)}
-                  </TableCell>
-                  <TableCell
-                    className={cn("text-right", getEventTypeColorClass(e.type))}
-                  >
-                    {e.type === "BUY" &&
-                      Number(
-                        formatEther(BigInt(e?.amount1_out ?? "0")),
-                      ).toFixed(5)}
-                    {e.type === "SELL" &&
-                      Number(formatEther(BigInt(e?.amount1_in ?? "0"))).toFixed(
-                        5,
-                      )}
-                    {e.type === "LIQADD" &&
-                      Number(formatEther(BigInt(e?.amount1_in ?? "0"))).toFixed(
-                        5,
-                      )}
-                    {e.type === "LIQREM" &&
-                      Number(
-                        formatEther(BigInt(e?.amount1_out ?? "0")),
-                      ).toFixed(5)}
-                  </TableCell>
-                  <TableCell
-                    className={cn("text-right", getEventTypeColorClass(e.type))}
-                  >
+                  <TableCell className={cn("text-right", getEventTypeColorClass(e.type))}>
                     {e.maker ? (
                       <div className="flex flex-row space-x-1">
-                        <AddressIcon
-                          address={e.maker}
-                          className="h-5 w-5 rounded-lg"
-                        />
+                        <AddressIcon address={e.maker} className="h-5 w-5 rounded-lg" />
                         <a
                           href={getEtherscanAddressUrl(e.maker)}
                           target="_blank"
@@ -216,11 +161,7 @@ export function PoolEvents({
       </div>
 
       <div ref={loadMoreRef} className="py-4 text-center text-sm text-gray-500">
-        {isFetchingNextPage
-          ? "Loading more..."
-          : hasNextPage
-            ? "Scroll to load more"
-            : "No more events"}
+        {isFetchingNextPage ? "Loading more..." : hasNextPage ? "Scroll to load more" : "No more events"}
       </div>
     </div>
   );

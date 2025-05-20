@@ -1,11 +1,6 @@
 import { useEffect, useState } from "react";
 import { Address, Hex } from "viem";
-import {
-  useAccount,
-  useCapabilities,
-  useChainId,
-  useWalletClient,
-} from "wagmi";
+import { useAccount, useCapabilities, useChainId, useWalletClient } from "wagmi";
 
 interface Op {
   to: Address;

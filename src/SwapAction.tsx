@@ -19,29 +19,14 @@ import {
 } from "./lib/swap";
 import { NetworkError } from "./components/NetworkError";
 import { useOperatorStatus } from "./hooks/use-operator-status";
-import {
-  useAccount,
-  useChainId,
-  usePublicClient,
-  useWaitForTransactionReceipt,
-  useWriteContract,
-} from "wagmi";
+import { useAccount, useChainId, usePublicClient, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
-import {
-  ETH_TOKEN,
-  TokenMeta,
-  USDT_ADDRESS,
-  USDT_POOL_ID,
-  USDT_POOL_KEY,
-} from "./lib/coins";
+import { ETH_TOKEN, TokenMeta, USDT_ADDRESS, USDT_POOL_ID, USDT_POOL_KEY } from "./lib/coins";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { ZAAMAbi, ZAAMAddress } from "./constants/ZAAM";
 import { mainnet } from "viem/chains";
 import { nowSec } from "./lib/utils";
-import {
-  estimateContractGas,
-  simulateContractInteraction,
-} from "@/lib/simulate";
+import { estimateContractGas, simulateContractInteraction } from "@/lib/simulate";
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
 import { SlippageSettings } from "./components/SlippageSettings";
 import { FlipActionButton } from "./components/FlipActionButton";
@@ -51,8 +36,7 @@ import { useErc20Allowance } from "./hooks/use-erc20-allowance";
 
 export const SwapAction = () => {
   const { address, isConnected } = useAccount();
-  const { data: isOperator, refetch: refetchOperator } =
-    useOperatorStatus(address);
+  const { data: isOperator, refetch: refetchOperator } = useOperatorStatus(address);
   const chainId = useChainId();
   const publicClient = usePublicClient({
     chainId,
@@ -93,11 +77,7 @@ export const SwapAction = () => {
 
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [txError, setTxError] = useState<string | null>(null);
-  const {
-    writeContractAsync,
-    isPending,
-    error: writeError,
-  } = useWriteContract();
+  const { writeContractAsync, isPending, error: writeError } = useWriteContract();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
   const {
     allowance: usdtAllowance,
@@ -154,27 +134,15 @@ export const SwapAction = () => {
         // Use correct decimals for the buy token (6 for USDT, 18 for regular coins)
         const buyTokenDecimals = buyToken?.decimals || 18;
         const outUnits = parseUnits(val || "0", buyTokenDecimals);
-        const inWei = getAmountIn(
-          outUnits,
-          reserves.reserve0,
-          reserves.reserve1,
-          SWAP_FEE,
-        );
+        const inWei = getAmountIn(outUnits, reserves.reserve0, reserves.reserve1, SWAP_FEE);
         setSellAmt(inWei === 0n ? "" : formatEther(inWei));
       } else {
         // Coin → ETH path (calculate Coin input)
         const outWei = parseEther(val || "0");
-        const inUnits = getAmountIn(
-          outWei,
-          reserves.reserve1,
-          reserves.reserve0,
-          SWAP_FEE,
-        );
+        const inUnits = getAmountIn(outWei, reserves.reserve1, reserves.reserve0, SWAP_FEE);
         // Use correct decimals for the sell token (6 for USDT, 18 for regular coins)
         const sellTokenDecimals = sellToken?.decimals || 18;
-        setSellAmt(
-          inUnits === 0n ? "" : formatUnits(inUnits, sellTokenDecimals),
-        );
+        setSellAmt(inUnits === 0n ? "" : formatUnits(inUnits, sellTokenDecimals));
       }
     } catch {
       setSellAmt("");
@@ -200,12 +168,8 @@ export const SwapAction = () => {
           const inUnits = parseUnits(val || "0", sellTokenDecimals);
 
           // Get correct swap fees for both pools
-          const sourceSwapFee = sellToken.isCustomPool
-            ? sellToken.swapFee || SWAP_FEE
-            : SWAP_FEE;
-          const targetSwapFee = buyToken?.isCustomPool
-            ? buyToken.swapFee || SWAP_FEE
-            : SWAP_FEE;
+          const sourceSwapFee = sellToken.isCustomPool ? sellToken.swapFee || SWAP_FEE : SWAP_FEE;
+          const targetSwapFee = buyToken?.isCustomPool ? buyToken.swapFee || SWAP_FEE : SWAP_FEE;
 
           // Pass custom swap fees for USDT or other custom pools
           const { amountOut } = estimateCoinToCoinOutput(
@@ -221,9 +185,7 @@ export const SwapAction = () => {
 
           // Use correct decimals for the buy token (6 for USDT, 18 for regular coins)
           const buyTokenDecimals = buyToken?.decimals || 18;
-          setBuyAmt(
-            amountOut === 0n ? "" : formatUnits(amountOut, buyTokenDecimals),
-          );
+          setBuyAmt(amountOut === 0n ? "" : formatUnits(amountOut, buyTokenDecimals));
         } catch (err) {
           console.error("Error estimating coin-to-coin output:", err);
           setBuyAmt("");
@@ -231,28 +193,16 @@ export const SwapAction = () => {
       } else if (isSellETH) {
         // ETH → Coin path
         const inWei = parseEther(val || "0");
-        const outUnits = getAmountOut(
-          inWei,
-          reserves.reserve0,
-          reserves.reserve1,
-          SWAP_FEE,
-        );
+        const outUnits = getAmountOut(inWei, reserves.reserve0, reserves.reserve1, SWAP_FEE);
         // Use correct decimals for the buy token (6 for USDT, 18 for regular coins)
         const buyTokenDecimals = buyToken?.decimals || 18;
-        setBuyAmt(
-          outUnits === 0n ? "" : formatUnits(outUnits, buyTokenDecimals),
-        );
+        setBuyAmt(outUnits === 0n ? "" : formatUnits(outUnits, buyTokenDecimals));
       } else {
         // Coin → ETH path
         // Use correct decimals for the sell token (6 for USDT, 18 for regular coins)
         const sellTokenDecimals = sellToken?.decimals || 18;
         const inUnits = parseUnits(val || "0", sellTokenDecimals);
-        const outWei = getAmountOut(
-          inUnits,
-          reserves.reserve1,
-          reserves.reserve0,
-          SWAP_FEE,
-        );
+        const outWei = getAmountOut(inUnits, reserves.reserve1, reserves.reserve0, SWAP_FEE);
         setBuyAmt(outWei === 0n ? "" : formatEther(outWei));
       }
     } catch {
@@ -281,9 +231,7 @@ export const SwapAction = () => {
       if (!canSwap || !sellAmt || !publicClient || !buyToken) {
         // Cannot execute swap - missing prerequisites
         // Check swap prerequisites
-        setTxError(
-          "Cannot execute swap. Please ensure you have selected a token pair and entered an amount.",
-        );
+        setTxError("Cannot execute swap. Please ensure you have selected a token pair and entered an amount.");
         return;
       }
 
@@ -301,9 +249,7 @@ export const SwapAction = () => {
       if (publicClient && !publicClient.getChainId) {
         await new Promise((resolve) => setTimeout(resolve, 100));
         if (!publicClient.getChainId) {
-          setTxError(
-            "Wallet connection not fully established. Please wait a moment and try again.",
-          );
+          setTxError("Wallet connection not fully established. Please wait a moment and try again.");
           return;
         }
       }
@@ -343,20 +289,11 @@ export const SwapAction = () => {
         // Get the correct swap fee (custom fee for USDT, default fee for regular tokens)
         const swapFee =
           sellToken.isCustomPool || buyToken?.isCustomPool
-            ? (sellToken.isCustomPool
-                ? sellToken.swapFee
-                : buyToken?.swapFee) || SWAP_FEE
+            ? (sellToken.isCustomPool ? sellToken.swapFee : buyToken?.swapFee) || SWAP_FEE
             : SWAP_FEE;
 
         const amountInWei = parseEther(sellAmt || "0");
-        const rawOut = reserves
-          ? getAmountOut(
-              amountInWei,
-              reserves.reserve0,
-              reserves.reserve1,
-              swapFee,
-            )
-          : 0n;
+        const rawOut = reserves ? getAmountOut(amountInWei, reserves.reserve0, reserves.reserve1, swapFee) : 0n;
 
         if (rawOut === 0n) {
           setTxError("Output amount is zero. Check pool liquidity.");
@@ -371,14 +308,7 @@ export const SwapAction = () => {
           address: ZAAMAddress,
           abi: ZAAMAbi,
           functionName: "swapExactIn",
-          args: [
-            poolKey,
-            amountInWei,
-            withSlippage(rawOut, slippageBps),
-            true,
-            address,
-            deadline,
-          ],
+          args: [poolKey, amountInWei, withSlippage(rawOut, slippageBps), true, address, deadline],
           value: amountInWei,
         });
 
@@ -386,14 +316,7 @@ export const SwapAction = () => {
           address: ZAAMAddress,
           abi: ZAAMAbi,
           functionName: "swapExactIn",
-          args: [
-            poolKey,
-            amountInWei,
-            withSlippage(rawOut, slippageBps),
-            true,
-            address,
-            deadline,
-          ],
+          args: [poolKey, amountInWei, withSlippage(rawOut, slippageBps), true, address, deadline],
           value: amountInWei,
         });
 
@@ -409,8 +332,7 @@ export const SwapAction = () => {
         };
 
         // Check if this is a direct ETH->USDT swap
-        const isUsdtSwap =
-          buyToken?.isCustomPool && buyToken?.token1 === USDT_ADDRESS;
+        const isUsdtSwap = buyToken?.isCustomPool && buyToken?.token1 === USDT_ADDRESS;
 
         console.log("Executing ETH->Coin swap with:", {
           poolKey: JSON.stringify(safePoolKey),
@@ -425,14 +347,7 @@ export const SwapAction = () => {
           address: ZAAMAddress,
           abi: ZAAMAbi,
           functionName: "swapExactIn",
-          args: [
-            poolKey,
-            amountInWei,
-            withSlippage(rawOut, slippageBps),
-            true,
-            address,
-            deadline,
-          ],
+          args: [poolKey, amountInWei, withSlippage(rawOut, slippageBps), true, address, deadline],
           value: amountInWei,
           gas: gas,
         });
@@ -447,8 +362,7 @@ export const SwapAction = () => {
           // Also check ID=0 which is used for USDT
           (sellToken.isCustomPool && sellToken.id === 0n);
 
-        const isBuyingUsdt =
-          buyToken?.isCustomPool && buyToken?.token1 === USDT_ADDRESS;
+        const isBuyingUsdt = buyToken?.isCustomPool && buyToken?.token1 === USDT_ADDRESS;
 
         console.log("Direct swap involving:", {
           sellToken: sellToken.symbol,
@@ -478,20 +392,14 @@ export const SwapAction = () => {
           }
 
           // Now check if we need approval - force approval dialog to appear for any USDT transaction
-          if (
-            usdtAllowance === undefined ||
-            usdtAllowance === 0n ||
-            amountInUnits > usdtAllowance
-          ) {
+          if (usdtAllowance === undefined || usdtAllowance === 0n || amountInUnits > usdtAllowance) {
             console.log("USDT approval needed:", {
               usdtAmount: amountInUnits.toString(),
               allowance: usdtAllowance?.toString() || "0",
             });
 
             // Maintain consistent UX with operator approval flow
-            setTxError(
-              "Waiting for USDT approval. Please confirm the transaction...",
-            );
+            setTxError("Waiting for USDT approval. Please confirm the transaction...");
             const approved = await approveUsdtMax();
 
             if (approved === undefined) {
@@ -520,9 +428,7 @@ export const SwapAction = () => {
         if (!isSellingUsdt && isOperator === false) {
           try {
             // First, show a notification about the approval step
-            setTxError(
-              "Waiting for operator approval. Please confirm the transaction...",
-            );
+            setTxError("Waiting for operator approval. Please confirm the transaction...");
 
             // Send the approval transaction
             const approvalHash = await writeContractAsync({
@@ -533,9 +439,7 @@ export const SwapAction = () => {
             });
 
             // Show a waiting message
-            setTxError(
-              "Operator approval submitted. Waiting for confirmation...",
-            );
+            setTxError("Operator approval submitted. Waiting for confirmation...");
 
             // Wait for the transaction to be mined
             const receipt = await publicClient.waitForTransactionReceipt({
@@ -570,8 +474,7 @@ export const SwapAction = () => {
         ) {
           try {
             // Import our helper dynamically to avoid circular dependencies
-            const { createCoinSwapMulticall, estimateCoinToCoinOutput } =
-              await import("./lib/swap");
+            const { createCoinSwapMulticall, estimateCoinToCoinOutput } = await import("./lib/swap");
 
             // Fetch target coin reserves
             let targetPoolId;
@@ -590,20 +493,15 @@ export const SwapAction = () => {
               args: [targetPoolId],
             });
 
-            const targetPoolData =
-              targetPoolResult as unknown as readonly bigint[];
+            const targetPoolData = targetPoolResult as unknown as readonly bigint[];
             const targetReserves = {
               reserve0: targetPoolData[0],
               reserve1: targetPoolData[1],
             };
 
             // Get correct swap fees for both pools
-            const sourceSwapFee = sellToken.isCustomPool
-              ? sellToken.swapFee || SWAP_FEE
-              : SWAP_FEE;
-            const targetSwapFee = buyToken?.isCustomPool
-              ? buyToken.swapFee || SWAP_FEE
-              : SWAP_FEE;
+            const sourceSwapFee = sellToken.isCustomPool ? sellToken.swapFee || SWAP_FEE : SWAP_FEE;
+            const targetSwapFee = buyToken?.isCustomPool ? buyToken.swapFee || SWAP_FEE : SWAP_FEE;
 
             // Estimate the final output amount and intermediate ETH amount
             const {
@@ -630,14 +528,10 @@ export const SwapAction = () => {
             // We need to provide custom pool keys for USDT pools
             // Cast to any to avoid TypeScript errors with `0x${string}` format
             const sourcePoolKey =
-              sellToken.isCustomPool && sellToken.poolKey
-                ? (sellToken.poolKey as any)
-                : computePoolKey(sellToken.id!);
+              sellToken.isCustomPool && sellToken.poolKey ? (sellToken.poolKey as any) : computePoolKey(sellToken.id!);
 
             const targetPoolKey =
-              buyToken.isCustomPool && buyToken.poolKey
-                ? (buyToken.poolKey as any)
-                : computePoolKey(buyToken.id!);
+              buyToken.isCustomPool && buyToken.poolKey ? (buyToken.poolKey as any) : computePoolKey(buyToken.id!);
 
             const multicallData = createCoinSwapMulticall(
               sellToken.id!,
@@ -722,19 +616,10 @@ export const SwapAction = () => {
         // Get the correct swap fee (custom fee for USDT, default fee for regular tokens)
         const swapFee =
           sellToken.isCustomPool || buyToken?.isCustomPool
-            ? (sellToken.isCustomPool
-                ? sellToken.swapFee
-                : buyToken?.swapFee) || SWAP_FEE
+            ? (sellToken.isCustomPool ? sellToken.swapFee : buyToken?.swapFee) || SWAP_FEE
             : SWAP_FEE;
 
-        const rawOut = reserves
-          ? getAmountOut(
-              amountInUnits,
-              reserves.reserve1,
-              reserves.reserve0,
-              swapFee,
-            )
-          : 0n;
+        const rawOut = reserves ? getAmountOut(amountInUnits, reserves.reserve1, reserves.reserve0, swapFee) : 0n;
 
         if (rawOut === 0n) {
           setTxError("Output amount is zero. Check pool liquidity.");
@@ -756,9 +641,7 @@ export const SwapAction = () => {
           amountIn: amountInUnits.toString(),
           minOut: withSlippage(rawOut, slippageBps).toString(),
           isSellingUsdt,
-          hasAllowance: isSellingUsdt
-            ? usdtAllowance !== undefined && usdtAllowance >= amountInUnits
-            : "N/A",
+          hasAllowance: isSellingUsdt ? usdtAllowance !== undefined && usdtAllowance >= amountInUnits : "N/A",
         });
 
         // Execute the swap
@@ -766,14 +649,7 @@ export const SwapAction = () => {
           address: ZAAMAddress,
           abi: ZAAMAbi,
           functionName: "swapExactIn",
-          args: [
-            poolKey,
-            amountInUnits,
-            withSlippage(rawOut, slippageBps),
-            false,
-            address,
-            deadline,
-          ],
+          args: [poolKey, amountInUnits, withSlippage(rawOut, slippageBps), false, address, deadline],
         });
         setTxHash(hash);
       }
@@ -790,24 +666,13 @@ export const SwapAction = () => {
       }
 
       // Enhanced error handling with specific messages for common swap failure cases
-      if (
-        typeof err === "object" &&
-        err !== null &&
-        "message" in err &&
-        typeof err.message === "string"
-      ) {
+      if (typeof err === "object" && err !== null && "message" in err && typeof err.message === "string") {
         const errMsg = err.message;
 
         // Handle wallet connection errors
-        if (
-          errMsg.includes("getChainId") ||
-          errMsg.includes("connector") ||
-          errMsg.includes("connection")
-        ) {
+        if (errMsg.includes("getChainId") || errMsg.includes("connector") || errMsg.includes("connection")) {
           // Wallet connection issue
-          setTxError(
-            "Wallet connection issue detected. Please refresh the page and try again.",
-          );
+          setTxError("Wallet connection issue detected. Please refresh the page and try again.");
 
           // Log structured debug info
           const errorInfo = {
@@ -821,13 +686,9 @@ export const SwapAction = () => {
           // Show error info in console
           console.error("Wallet connection error:", errorInfo);
         } else if (errMsg.includes("InsufficientOutputAmount")) {
-          setTxError(
-            "Swap failed due to price movement in low liquidity pool. Try again or use a smaller amount.",
-          );
+          setTxError("Swap failed due to price movement in low liquidity pool. Try again or use a smaller amount.");
         } else if (errMsg.includes("K(")) {
-          setTxError(
-            "Swap failed due to pool constraints. This usually happens with large orders in small pools.",
-          );
+          setTxError("Swap failed due to pool constraints. This usually happens with large orders in small pools.");
         } else {
           // Default to standard error handling
           const errorMsg = handleWalletError(err);
@@ -935,10 +796,7 @@ export const SwapAction = () => {
       <NetworkError message="swap tokens" />
 
       {/* Slippage information - clickable to show settings */}
-      <SlippageSettings
-        setSlippageBps={setSlippageBps}
-        slippageBps={slippageBps}
-      />
+      <SlippageSettings setSlippageBps={setSlippageBps} slippageBps={slippageBps} />
 
       {/* Pool information */}
       {canSwap && reserves && (
@@ -951,9 +809,7 @@ export const SwapAction = () => {
             (buyToken?.id === null && sellToken.symbol === "USDT")
           ) ? (
             <span className="flex items-center">
-              <span className="bg-chart-5/20 text-chart-5 px-1 rounded mr-1">
-                Multi-hop
-              </span>
+              <span className="bg-chart-5/20 text-chart-5 px-1 rounded mr-1">Multi-hop</span>
               {sellToken.symbol} → ETH → {buyToken?.symbol}
             </span>
           ) : (
@@ -962,15 +818,9 @@ export const SwapAction = () => {
               {formatUnits(
                 reserves.reserve1,
                 // Use the correct decimals for the token (6 for USDT, 18 for others)
-                isCustomPool
-                  ? sellToken.isCustomPool
-                    ? sellToken.decimals || 18
-                    : buyToken?.decimals || 18
-                  : 18,
+                isCustomPool ? (sellToken.isCustomPool ? sellToken.decimals || 18 : buyToken?.decimals || 18) : 18,
               ).substring(0, 8)}{" "}
-              {coinId
-                ? tokens.find((t) => t.id === coinId)?.symbol || "Token"
-                : buyToken?.symbol}
+              {coinId ? tokens.find((t) => t.id === coinId)?.symbol || "Token" : buyToken?.symbol}
             </span>
           )}
           <span>
@@ -1011,12 +861,9 @@ export const SwapAction = () => {
       )}
 
       {/* Show actual errors (only if not a user rejection) */}
-      {((writeError && !isUserRejectionError(writeError)) ||
-        (txError && !txError.includes("Waiting for"))) && (
+      {((writeError && !isUserRejectionError(writeError)) || (txError && !txError.includes("Waiting for"))) && (
         <div className="text-sm text-destructive mt-2 bg-background/50 p-2 rounded border border-destructive/20">
-          {writeError && !isUserRejectionError(writeError)
-            ? writeError.message
-            : txError}
+          {writeError && !isUserRejectionError(writeError) ? writeError.message : txError}
         </div>
       )}
 
@@ -1024,11 +871,7 @@ export const SwapAction = () => {
       {isSuccess && <SuccessMessage />}
 
       <div className="mt-4 border-t border-primary pt-4">
-        <PoolSwapChart
-          buyToken={buyToken}
-          sellToken={sellToken}
-          prevPair={prevPairRef.current}
-        />
+        <PoolSwapChart buyToken={buyToken} sellToken={sellToken} prevPair={prevPairRef.current} />
       </div>
     </div>
   );

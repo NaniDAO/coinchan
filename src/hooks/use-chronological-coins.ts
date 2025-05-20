@@ -12,11 +12,7 @@ const publicClient = createPublicClient({
 /**
  * Helper function to retry a failed operation with exponential backoff
  */
-async function retryWithBackoff<T>(
-  operation: () => Promise<T>,
-  maxRetries = 3,
-  baseDelay = 1000
-): Promise<T> {
+async function retryWithBackoff<T>(operation: () => Promise<T>, maxRetries = 3, baseDelay = 1000): Promise<T> {
   let retries = 0;
   let lastError: Error | null = null;
 
@@ -26,17 +22,17 @@ async function retryWithBackoff<T>(
     } catch (err) {
       lastError = err as Error;
       retries++;
-      
+
       if (retries >= maxRetries) break;
-      
+
       // Exponential backoff with jitter
       const delay = baseDelay * Math.pow(2, retries - 1) * (0.5 + Math.random() * 0.5);
-      
+
       // Wait before retry
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
-  
+
   throw lastError || new Error("Operation failed after multiple retries");
 }
 
@@ -57,23 +53,23 @@ export function useChronologicalCoins() {
             functionName: "getCoinsCount",
           }) as Promise<bigint>;
         });
-        
+
         // Convert to number for easier handling
         const totalCoins = Number(coinCount);
-        
+
         if (totalCoins === 0) {
           return [];
         }
-        
+
         // Get all coins (in batches if needed)
         // The contract's getCoins function takes start and finish indices
         // Adjust batch size based on total size
-        const BATCH_SIZE = totalCoins > 2000 ? 250 : (totalCoins > 1000 ? 500 : 1000);
+        const BATCH_SIZE = totalCoins > 2000 ? 250 : totalCoins > 1000 ? 500 : 1000;
         let allCoinIds: bigint[] = [];
-        
+
         for (let i = 0; i < totalCoins; i += BATCH_SIZE) {
           const end = Math.min(i + BATCH_SIZE, totalCoins);
-          
+
           const batch = await retryWithBackoff(async () => {
             return publicClient.readContract({
               address: CoinchanAddress,
@@ -82,20 +78,20 @@ export function useChronologicalCoins() {
               args: [BigInt(i), BigInt(end - 1)],
             }) as Promise<bigint[]>;
           });
-          
+
           if (batch && batch.length > 0) {
             allCoinIds = [...allCoinIds, ...batch];
           }
         }
-        
+
         // Validate results before returning
         if (allCoinIds.length === 0 && totalCoins > 0) {
           throw new Error("Failed to retrieve coin IDs despite non-zero count");
         }
-        
+
         // Filter out any zero or invalid IDs to prevent "Token 0" issues
-        const validCoinIds = allCoinIds.filter(id => id !== undefined && id > 0n);
-        
+        const validCoinIds = allCoinIds.filter((id) => id !== undefined && id > 0n);
+
         // Return the complete list of valid coin IDs in chronological order
         return validCoinIds;
       } catch (error) {
@@ -106,6 +102,6 @@ export function useChronologicalCoins() {
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 3, // Use React Query's built-in retry mechanism
-    retryDelay: attemptIndex => Math.min(1000 * Math.pow(2, attemptIndex), 30000), // Exponential backoff
+    retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 30000), // Exponential backoff
   });
 }

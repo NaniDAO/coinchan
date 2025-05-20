@@ -32,16 +32,11 @@ export const PoolActions = () => {
       <CardContent className="p-0 sm:p-1 flex flex-col space-y-1">
         {/* Info showing token count */}
         <div className="text-xs text-muted-foreground mb-2">
-          Available tokens: {tokenCount} (ETH + {tokenCount - 1} coins, sorted
-          by liquidity)
+          Available tokens: {tokenCount} (ETH + {tokenCount - 1} coins, sorted by liquidity)
         </div>
 
         {/* Mode tabs */}
-        <Tabs
-          value={mode}
-          onValueChange={(value) => setMode(value as TileMode)}
-          className="mb-2"
-        >
+        <Tabs value={mode} onValueChange={(value) => setMode(value as TileMode)} className="mb-2">
           <TabsList className="w-full bg-primary dark:bg-background p-1 rounded-lg border border-border">
             <TabsTrigger
               value="swap"
@@ -55,9 +50,7 @@ export const PoolActions = () => {
               className="flex-1 data-[state=active]:bg-background dark:data-[state=active]:bg-card dark:data-[state=active]:shadow-[0_0_10px_rgba(0,204,255,0.15)] dark:data-[state=active]:border-primary data-[state=active]:border-border data-[state=active]:shadow-sm h-10 touch-manipulation text-primary-foreground"
             >
               <Plus className="h-4 w-4 mr-1" />
-              <span className="text-sm text-primary-foreground data-[state=active]:text-foreground">
-                Liquidity
-              </span>
+              <span className="text-sm text-primary-foreground data-[state=active]:text-foreground">Liquidity</span>
             </TabsTrigger>
           </TabsList>
         </Tabs>

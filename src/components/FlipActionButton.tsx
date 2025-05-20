@@ -5,10 +5,7 @@ interface ActionButtonProps {
   icon?: React.ReactNode;
 }
 
-export const FlipActionButton: React.FC<ActionButtonProps> = ({
-  onClick,
-  icon,
-}) => {
+export const FlipActionButton: React.FC<ActionButtonProps> = ({ onClick, icon }) => {
   return (
     <button
       className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 p-3 rounded-full shadow-xl

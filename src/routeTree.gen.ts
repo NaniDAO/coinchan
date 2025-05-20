@@ -10,160 +10,147 @@
 
 // Import Routes
 
-import { Route as rootRoute } from './routes/__root'
-import { Route as SendImport } from './routes/send'
-import { Route as ExploreImport } from './routes/explore'
-import { Route as CreateImport } from './routes/create'
-import { Route as CoinpaperImport } from './routes/coinpaper'
-import { Route as IndexImport } from './routes/index'
-import { Route as CCoinIdImport } from './routes/c.$coinId'
+import { Route as rootRoute } from "./routes/__root";
+import { Route as SendImport } from "./routes/send";
+import { Route as ExploreImport } from "./routes/explore";
+import { Route as CreateImport } from "./routes/create";
+import { Route as CoinpaperImport } from "./routes/coinpaper";
+import { Route as IndexImport } from "./routes/index";
+import { Route as CCoinIdImport } from "./routes/c.$coinId";
 
 // Create/Update Routes
 
 const SendRoute = SendImport.update({
-  id: '/send',
-  path: '/send',
+  id: "/send",
+  path: "/send",
   getParentRoute: () => rootRoute,
-} as any)
+} as any);
 
 const ExploreRoute = ExploreImport.update({
-  id: '/explore',
-  path: '/explore',
+  id: "/explore",
+  path: "/explore",
   getParentRoute: () => rootRoute,
-} as any)
+} as any);
 
 const CreateRoute = CreateImport.update({
-  id: '/create',
-  path: '/create',
+  id: "/create",
+  path: "/create",
   getParentRoute: () => rootRoute,
-} as any)
+} as any);
 
 const CoinpaperRoute = CoinpaperImport.update({
-  id: '/coinpaper',
-  path: '/coinpaper',
+  id: "/coinpaper",
+  path: "/coinpaper",
   getParentRoute: () => rootRoute,
-} as any)
+} as any);
 
 const IndexRoute = IndexImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => rootRoute,
-} as any)
+} as any);
 
 const CCoinIdRoute = CCoinIdImport.update({
-  id: '/c/$coinId',
-  path: '/c/$coinId',
+  id: "/c/$coinId",
+  path: "/c/$coinId",
   getParentRoute: () => rootRoute,
-} as any)
+} as any);
 
 // Populate the FileRoutesByPath interface
 
-declare module '@tanstack/react-router' {
+declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexImport
-      parentRoute: typeof rootRoute
-    }
-    '/coinpaper': {
-      id: '/coinpaper'
-      path: '/coinpaper'
-      fullPath: '/coinpaper'
-      preLoaderRoute: typeof CoinpaperImport
-      parentRoute: typeof rootRoute
-    }
-    '/create': {
-      id: '/create'
-      path: '/create'
-      fullPath: '/create'
-      preLoaderRoute: typeof CreateImport
-      parentRoute: typeof rootRoute
-    }
-    '/explore': {
-      id: '/explore'
-      path: '/explore'
-      fullPath: '/explore'
-      preLoaderRoute: typeof ExploreImport
-      parentRoute: typeof rootRoute
-    }
-    '/send': {
-      id: '/send'
-      path: '/send'
-      fullPath: '/send'
-      preLoaderRoute: typeof SendImport
-      parentRoute: typeof rootRoute
-    }
-    '/c/$coinId': {
-      id: '/c/$coinId'
-      path: '/c/$coinId'
-      fullPath: '/c/$coinId'
-      preLoaderRoute: typeof CCoinIdImport
-      parentRoute: typeof rootRoute
-    }
+    "/": {
+      id: "/";
+      path: "/";
+      fullPath: "/";
+      preLoaderRoute: typeof IndexImport;
+      parentRoute: typeof rootRoute;
+    };
+    "/coinpaper": {
+      id: "/coinpaper";
+      path: "/coinpaper";
+      fullPath: "/coinpaper";
+      preLoaderRoute: typeof CoinpaperImport;
+      parentRoute: typeof rootRoute;
+    };
+    "/create": {
+      id: "/create";
+      path: "/create";
+      fullPath: "/create";
+      preLoaderRoute: typeof CreateImport;
+      parentRoute: typeof rootRoute;
+    };
+    "/explore": {
+      id: "/explore";
+      path: "/explore";
+      fullPath: "/explore";
+      preLoaderRoute: typeof ExploreImport;
+      parentRoute: typeof rootRoute;
+    };
+    "/send": {
+      id: "/send";
+      path: "/send";
+      fullPath: "/send";
+      preLoaderRoute: typeof SendImport;
+      parentRoute: typeof rootRoute;
+    };
+    "/c/$coinId": {
+      id: "/c/$coinId";
+      path: "/c/$coinId";
+      fullPath: "/c/$coinId";
+      preLoaderRoute: typeof CCoinIdImport;
+      parentRoute: typeof rootRoute;
+    };
   }
 }
 
 // Create and export the route tree
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/coinpaper': typeof CoinpaperRoute
-  '/create': typeof CreateRoute
-  '/explore': typeof ExploreRoute
-  '/send': typeof SendRoute
-  '/c/$coinId': typeof CCoinIdRoute
+  "/": typeof IndexRoute;
+  "/coinpaper": typeof CoinpaperRoute;
+  "/create": typeof CreateRoute;
+  "/explore": typeof ExploreRoute;
+  "/send": typeof SendRoute;
+  "/c/$coinId": typeof CCoinIdRoute;
 }
 
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/coinpaper': typeof CoinpaperRoute
-  '/create': typeof CreateRoute
-  '/explore': typeof ExploreRoute
-  '/send': typeof SendRoute
-  '/c/$coinId': typeof CCoinIdRoute
+  "/": typeof IndexRoute;
+  "/coinpaper": typeof CoinpaperRoute;
+  "/create": typeof CreateRoute;
+  "/explore": typeof ExploreRoute;
+  "/send": typeof SendRoute;
+  "/c/$coinId": typeof CCoinIdRoute;
 }
 
 export interface FileRoutesById {
-  __root__: typeof rootRoute
-  '/': typeof IndexRoute
-  '/coinpaper': typeof CoinpaperRoute
-  '/create': typeof CreateRoute
-  '/explore': typeof ExploreRoute
-  '/send': typeof SendRoute
-  '/c/$coinId': typeof CCoinIdRoute
+  __root__: typeof rootRoute;
+  "/": typeof IndexRoute;
+  "/coinpaper": typeof CoinpaperRoute;
+  "/create": typeof CreateRoute;
+  "/explore": typeof ExploreRoute;
+  "/send": typeof SendRoute;
+  "/c/$coinId": typeof CCoinIdRoute;
 }
 
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/coinpaper'
-    | '/create'
-    | '/explore'
-    | '/send'
-    | '/c/$coinId'
-  fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/coinpaper' | '/create' | '/explore' | '/send' | '/c/$coinId'
-  id:
-    | '__root__'
-    | '/'
-    | '/coinpaper'
-    | '/create'
-    | '/explore'
-    | '/send'
-    | '/c/$coinId'
-  fileRoutesById: FileRoutesById
+  fileRoutesByFullPath: FileRoutesByFullPath;
+  fullPaths: "/" | "/coinpaper" | "/create" | "/explore" | "/send" | "/c/$coinId";
+  fileRoutesByTo: FileRoutesByTo;
+  to: "/" | "/coinpaper" | "/create" | "/explore" | "/send" | "/c/$coinId";
+  id: "__root__" | "/" | "/coinpaper" | "/create" | "/explore" | "/send" | "/c/$coinId";
+  fileRoutesById: FileRoutesById;
 }
 
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  CoinpaperRoute: typeof CoinpaperRoute
-  CreateRoute: typeof CreateRoute
-  ExploreRoute: typeof ExploreRoute
-  SendRoute: typeof SendRoute
-  CCoinIdRoute: typeof CCoinIdRoute
+  IndexRoute: typeof IndexRoute;
+  CoinpaperRoute: typeof CoinpaperRoute;
+  CreateRoute: typeof CreateRoute;
+  ExploreRoute: typeof ExploreRoute;
+  SendRoute: typeof SendRoute;
+  CCoinIdRoute: typeof CCoinIdRoute;
 }
 
 const rootRouteChildren: RootRouteChildren = {
@@ -173,11 +160,9 @@ const rootRouteChildren: RootRouteChildren = {
   ExploreRoute: ExploreRoute,
   SendRoute: SendRoute,
   CCoinIdRoute: CCoinIdRoute,
-}
+};
 
-export const routeTree = rootRoute
-  ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+export const routeTree = rootRoute._addFileChildren(rootRouteChildren)._addFileTypes<FileRouteTypes>();
 
 /* ROUTE_MANIFEST_START
 {

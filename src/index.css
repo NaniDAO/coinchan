@@ -64,17 +64,12 @@
 html {
   font-size: var(--font-size-base);
   -webkit-text-size-adjust: 100%;
-  transition:
-    color-scheme 0.5s ease,
-    background-color 0.5s ease,
-    color 0.5s ease;
+  transition: color-scheme 0.5s ease, background-color 0.5s ease, color 0.5s ease;
 }
 
 img.logo {
   cursor: pointer;
-  transition:
-    width 0.3s ease,
-    transform 0.3s ease;
+  transition: width 0.3s ease, transform 0.3s ease;
   animation: float 3s ease-in-out infinite;
 }
 
@@ -84,9 +79,7 @@ body {
   background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-body);
-  transition:
-    background-color 0.3s ease,
-    color 0.3s ease;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .main-menu {
@@ -233,9 +226,7 @@ a:hover {
   padding: 16px;
   border-radius: 16px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   border: 1px solid var(--border);
 }
 .stat-card:hover {
@@ -395,12 +386,7 @@ a:hover {
   --sidebar-primary-foreground: var(--cream); /* ivory cream */
   --sidebar-accent: var(--dark-gold); /* dark amber */
   --sidebar-accent-foreground: var(--cream); /* ivory cream */
-  --sidebar-border: rgba(
-    249,
-    189,
-    32,
-    0.2
-  ); /* semi-transparent golden yellow */
+  --sidebar-border: rgba(249, 189, 32, 0.2); /* semi-transparent golden yellow */
   --sidebar-ring: rgba(249, 189, 32, 0.4); /* semi-transparent golden yellow */
 }
 
