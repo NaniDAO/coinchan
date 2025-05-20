@@ -1,13 +1,13 @@
 import { CoinCard } from "./components/CoinCard";
 import { type CoinData } from "./hooks/metadata";
 import { useEffect, useState } from "react";
-import { ArrowDownAZ, ArrowUpAZ, Coins as CoinsIcon } from "lucide-react";
+import { ArrowDownAZ, ArrowUpAZ, Coins as CoinsIcon, TrendingUp } from "lucide-react";
 
 // Default page size
 const PAGE_SIZE = 20;
 
 // Sort type options
-export type SortType = "liquidity" | "recency";
+export type SortType = "liquidity" | "recency" | "trending";
 
 export const ExplorerGrid = ({
   coins,
@@ -97,20 +97,37 @@ export const ExplorerGrid = ({
           {/* Sort Type Button */}
           {onSortTypeChange && (
             <button
-              onClick={() => onSortTypeChange(sortType === "liquidity" ? "recency" : "liquidity")}
+              onClick={() => onSortTypeChange(
+                sortType === "liquidity" ? "recency" : 
+                sortType === "recency" ? "trending" : "liquidity"
+              )}
               className={`flex items-center justify-center px-2 py-1 mr-2 rounded-md border ${
-                sortType === "recency" ? "border-accent bg-accent/10" : "border-primary/30"
+                sortType === "recency" ? "border-accent bg-accent/10" : 
+                sortType === "trending" ? "border-chart-2 bg-chart-2/10" :
+                "border-primary/30"
               } hover:bg-secondary-foreground text-sm`}
-              aria-label={sortType === "liquidity" ? "Sort by recency" : "Sort by liquidity"}
-              title={sortType === "liquidity" ? "Currently: Sorting by liquidity" : "Currently: Sorting by recency"}
+              aria-label={
+                sortType === "liquidity" ? "Sort by recency" : 
+                sortType === "recency" ? "Sort by trending" : "Sort by liquidity"
+              }
+              title={
+                sortType === "liquidity" ? "Currently: Sorting by liquidity" : 
+                sortType === "recency" ? "Currently: Sorting by recency" : 
+                "Currently: Sorting by recent trading activity and movement"
+              }
               disabled={isLoading || isTransitioning}
             >
               {sortType === "liquidity" ? (
                 <CoinsIcon className="w-4 h-4 mr-1" />
-              ) : (
+              ) : sortType === "recency" ? (
                 <ArrowDownAZ className="w-4 h-4 mr-1" />
+              ) : (
+                <TrendingUp className="w-4 h-4 mr-1 text-chart-2 animate-pulse" />
               )}
-              <span className="hidden sm:inline">{sortType === "liquidity" ? "Liquidity" : "Recency"}</span>
+              <span className="hidden sm:inline">
+                {sortType === "liquidity" ? "Liquidity" : 
+                 sortType === "recency" ? "Recency" : "Trending"}
+              </span>
             </button>
           )}
           

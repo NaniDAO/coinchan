@@ -5,7 +5,7 @@ import {
   formatImageURL,
   getAlternativeImageUrls,
 } from "@/hooks/metadata/coin-utils";
-import { ArrowRightIcon } from "lucide-react";
+import { ArrowRightIcon, TrendingUp, ArrowUp, ArrowDown } from "lucide-react";
 
 interface CoinCardProps {
   coin: any;
@@ -122,8 +122,58 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
     },
     [coin.coinId],
   );
+  // Format price change for display
+  const formatPriceChange = (pctChange: number | undefined): string => {
+    if (pctChange === undefined || isNaN(pctChange)) return "";
+    
+    // For very small changes (between -0.1 and 0.1), show as 0.0%
+    if (Math.abs(pctChange) < 0.1) return "0.0%";
+    
+    // For other values, format with 1 decimal place
+    return pctChange > 0 
+      ? `+${pctChange.toFixed(1)}%` 
+      : `${pctChange.toFixed(1)}%`;
+  };
+
+  // Determine price change indicator color
+  const getPriceChangeColor = (pctChange: number | undefined): string => {
+    if (pctChange === undefined || isNaN(pctChange)) return "text-muted-foreground";
+    if (Math.abs(pctChange) < 0.1) return "text-muted-foreground"; // Basically no change
+    if (pctChange > 0) return "text-green-500";
+    if (pctChange < 0) return "text-red-500";
+    return "text-muted-foreground";
+  };
+
   return (
-    <div className="flex border-2 border-primary/50 rounded-md bg-card w-full flex-col items-right gap-2 shadow-md hover:shadow-lg transition-all duration-200">
+    <div className="flex border-2 border-primary/50 rounded-md bg-card w-full flex-col items-right gap-2 shadow-md hover:shadow-lg transition-all duration-200 relative">
+      {/* Add trending indicator with enhanced visual feedback */}
+      {coin.isTrending && (
+        <div 
+          className={`absolute top-1 right-1 ${
+            coin.velocityScore && coin.velocityScore > 0.8 ? 'bg-chart-2 animate-pulse' : 'bg-chart-2/90'
+          } text-background rounded-full p-1`} 
+          title={`Trending${
+            coin.movementScore && coin.movementScore > 0.5 ? ' (Strong Buy Pressure)' : 
+            coin.movementScore && coin.movementScore < -0.5 ? ' (Strong Sell Pressure)' : 
+            coin.velocityScore && coin.velocityScore > 0.7 ? ' (High Activity)' : 
+            coin.recencyFactor && coin.recencyFactor > 0.7 ? ' (Recent Activity)' : ''
+          }`}
+        >
+          <TrendingUp size={12} />
+        </div>
+      )}
+      
+      {/* Add 4h price change indicator */}
+      {coin.hasPriceChangeData && coin.priceChangePct4h !== undefined && !isNaN(coin.priceChangePct4h) && (
+        <div 
+          className={`absolute top-1 left-1 ${getPriceChangeColor(coin.priceChangePct4h)} bg-background/70 rounded-md px-1 py-0.5 text-xs font-bold flex items-center`}
+          title="4 hour price change"
+        >
+          {coin.priceChangePct4h > 0.1 && <ArrowUp size={10} className="mr-0.5" />}
+          {coin.priceChangePct4h < -0.1 && <ArrowDown size={10} className="mr-0.5" />}
+          {formatPriceChange(coin.priceChangePct4h)}
+        </div>
+      )}
       <div className="flex flex-col items-center justify-center space-y-2">
         <h3 className="p-2 text-center font-extrabold text-xs sm:text-sm truncate w-full">
           {displayName} [{displaySymbol}]
