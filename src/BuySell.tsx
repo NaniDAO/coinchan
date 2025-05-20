@@ -111,7 +111,7 @@ export const BuySell = ({
   const publicClient = usePublicClient({ chainId: mainnet.id });
 
   // Fetch coin data using our new hook
-  const { coinData, marketCapEth, getDisplayValues } = useCoinData(tokenId);
+  const { coinData, marketCapEth, getDisplayValues, isLoading } = useCoinData(tokenId);
 
   // Get display values with fallbacks
   const { name, symbol, description } = getDisplayValues();
@@ -435,22 +435,22 @@ export const BuySell = ({
 
   return (
     <Tabs value={tab} onValueChange={(v) => setTab(v as "buy" | "sell")}>
-      <div className="flex items-start gap-4 mb-4 p-4 border-muted border-2 bg-muted/10 text-muted-foreground rounded-lg">
+      <div className={`flex items-start gap-4 mb-4 p-4 border-muted border-2 bg-muted/10 text-muted-foreground rounded-lg content-transition ${isLoading ? 'loading' : 'loaded fadeIn'}`}>
         <div className="flex-shrink-0">
           <div className="w-16 h-16 relative">
             {/* Base colored circle (always visible) */}
             <div
-              className={`w-full h-full flex bg-destructive text-background justify-center items-center rounded-full`}
+              className={`w-full h-full flex bg-destructive text-background justify-center items-center rounded-full ${isLoading ? 'animate-pulse' : ''}`}
             >
-              {displaySymbol?.slice(0, 3)}
+              {isLoading ? '...' : displaySymbol?.slice(0, 3)}
             </div>
 
             {/* Use enhanced image loading with fallbacks */}
-            {!imageError && currentImageUrl && (
+            {!isLoading && !imageError && currentImageUrl && (
               <img
                 src={currentImageUrl}
                 alt={`${displaySymbol} logo`}
-                className={`absolute inset-0 w-full h-full rounded-full object-cover transition-opacity duration-200 ${imageLoaded ? "opacity-100" : "opacity-0"}`}
+                className={`absolute inset-0 w-full h-full rounded-full object-cover transition-opacity duration-300 ${imageLoaded ? "opacity-100" : "opacity-0"}`}
                 style={{ zIndex: 1 }}
                 onLoad={() => setImageLoaded(true)}
                 onError={handleImageError}
@@ -461,10 +461,19 @@ export const BuySell = ({
         </div>
         <div className="flex flex-col flex-grow overflow-hidden">
           <div className="flex items-baseline space-x-2">
-            <h3 className="text-lg font-medium truncate">{displayName}</h3>
-            <span className="text-sm font-medium text-accent dark:text-accent">
-              [{displaySymbol}]
-            </span>
+            {isLoading ? (
+              <>
+                <div className="h-6 bg-muted/50 rounded w-32 skeleton"></div>
+                <div className="h-4 bg-muted/50 rounded w-14 skeleton"></div>
+              </>
+            ) : (
+              <>
+                <h3 className="text-lg font-medium truncate content-transition loaded">{displayName}</h3>
+                <span className="text-sm font-medium text-accent dark:text-accent content-transition loaded">
+                  [{displaySymbol}]
+                </span>
+              </>
+            )}
           </div>
 
           {/* Token ID in hex format and Etherscan link */}
@@ -481,9 +490,17 @@ export const BuySell = ({
           </div>
 
           {/* Description */}
-          <p className="text-sm font-medium description-text mt-1 overflow-y-auto max-h-20">
-            {description || "No description available"}
-          </p>
+          {isLoading ? (
+            <div className="mt-1 space-y-1">
+              <div className="h-3 bg-muted/30 rounded w-full skeleton"></div>
+              <div className="h-3 bg-muted/30 rounded w-3/4 skeleton"></div>
+              <div className="h-3 bg-muted/30 rounded w-5/6 skeleton"></div>
+            </div>
+          ) : (
+            <p className="text-sm font-medium description-text mt-1 overflow-y-auto max-h-20 content-transition loaded">
+              {description || "No description available"}
+            </p>
+          )}
 
           {/* Market Cap Estimation and Swap Fee */}
           <div className="mt-2 text-xs">
@@ -491,11 +508,14 @@ export const BuySell = ({
               {/* Always show the swap fee, independent of market cap calculation */}
               <div className="flex items-center gap-1">
                 <span className="font-medium dark:text-chart-2">Swap Fee:</span>
-                {/* More precise conversion from basis points to percentage */}
-                <span className="font-medium text-primary">
-                  {(Number(swapFee) / 100).toFixed(2)}%
-                </span>
-                {isOwner && (
+                {isLoading ? (
+                  <div className="h-3 bg-muted/40 rounded w-10 skeleton"></div>
+                ) : (
+                  <span className="font-medium text-primary transition-opacity duration-300">
+                    {(Number(swapFee) / 100).toFixed(2)}%
+                  </span>
+                )}
+                {!isLoading && isOwner && (
                   <span className="text-xs text-chart-2">
                     (You are the owner)
                   </span>
@@ -503,31 +523,38 @@ export const BuySell = ({
               </div>
 
               {/* Market Cap section */}
-              {marketCapEth !== null && (
+              {isLoading ? (
                 <div className="flex items-center gap-1">
-                  <span className="font-medium market-cap-text">
-                    Est. Market Cap:
-                  </span>
-                  <span className="market-cap-text">{formatNumber(marketCapEth, 2)} ETH</span>
-                  {marketCapUsd !== null ? (
-                    <span className="ml-1 market-cap-text">
-                      (~${formatNumber(marketCapUsd, 0)})
-                    </span>
-                  ) : ethPriceData ? (
-                    <span className="ml-1 market-cap-text">
-                      (USD price processing...)
-                    </span>
-                  ) : (
-                    <span className="ml-1 market-cap-text">
-                      (ETH price unavailable)
-                    </span>
-                  )}
+                  <span className="font-medium market-cap-text">Est. Market Cap:</span>
+                  <div className="h-3 bg-muted/40 rounded w-24 skeleton"></div>
                 </div>
+              ) : (
+                marketCapEth !== null && (
+                  <div className="flex items-center gap-1 transition-opacity duration-300">
+                    <span className="font-medium market-cap-text">
+                      Est. Market Cap:
+                    </span>
+                    <span className="market-cap-text">{formatNumber(marketCapEth, 2)} ETH</span>
+                    {marketCapUsd !== null ? (
+                      <span className="ml-1 market-cap-text">
+                        (~${formatNumber(marketCapUsd, 0)})
+                      </span>
+                    ) : ethPriceData ? (
+                      <span className="ml-1 market-cap-text">
+                        (USD price processing...)
+                      </span>
+                    ) : (
+                      <span className="ml-1 market-cap-text">
+                        (ETH price unavailable)
+                      </span>
+                    )}
+                  </div>
+                )
               )}
             </div>
 
             {/* Token URI link if available */}
-            {coinData?.tokenURI && coinData.tokenURI !== "N/A" && (
+            {!isLoading && coinData?.tokenURI && coinData.tokenURI !== "N/A" && (
               <div className="mt-1">
                 <a
                   href={
@@ -548,11 +575,11 @@ export const BuySell = ({
       </div>
 
       <TabsList>
-        <TabsTrigger value="buy">
-          Buy {displayName} [{displaySymbol}]
+        <TabsTrigger value="buy" className="transition-all duration-300">
+          Buy {isLoading ? "..." : `${displayName} [${displaySymbol}]`}
         </TabsTrigger>
-        <TabsTrigger value="sell">
-          Sell {displayName} [{displaySymbol}]
+        <TabsTrigger value="sell" className="transition-all duration-300">
+          Sell {isLoading ? "..." : `${displayName} [${displaySymbol}]`}
         </TabsTrigger>
       </TabsList>
 
@@ -566,17 +593,19 @@ export const BuySell = ({
             min="0"
             step="any"
             onChange={(e) => setAmount(e.currentTarget.value)}
+            disabled={isLoading}
+            className={isLoading ? "opacity-70" : ""}
           />
           <span className="text-sm font-medium text-green-800">
-            You will receive ~ {estimated} {displaySymbol}
+            You will receive ~ {estimated} {isLoading ? "..." : displaySymbol}
           </span>
           <Button
             onClick={onBuy}
-            disabled={!isConnected || isPending || !amount}
+            disabled={!isConnected || isPending || !amount || isLoading}
             variant="default"
-            className="bg-green-600 hover:bg-green-700 text-white font-bold"
+            className={`bg-green-600 hover:bg-green-700 text-white font-bold transition-opacity duration-300 ${isLoading ? "opacity-70" : ""}`}
           >
-            {isPending ? "Buying…" : `Buy ${displaySymbol}`}
+            {isPending ? "Buying…" : isLoading ? "Loading..." : `Buy ${displaySymbol}`}
           </Button>
         </div>
       </TabsContent>
@@ -584,31 +613,34 @@ export const BuySell = ({
       <TabsContent value="sell">
         <div className="flex flex-col gap-2">
           <span className="text-sm font-medium text-accent dark:text-accent">
-            Using {displaySymbol}
+            Using {isLoading ? "..." : displaySymbol}
           </span>
           <div className="relative">
             <Input
               type="number"
-              placeholder={`Amount ${displaySymbol}`}
+              placeholder={`Amount ${isLoading ? "..." : displaySymbol}`}
               value={amount}
               min="0"
               step="any"
               onChange={(e) => setAmount(e.currentTarget.value)}
+              disabled={isLoading}
+              className={isLoading ? "opacity-70" : ""}
             />
           </div>
           <div className="flex flex-col gap-2">
             <span className="text-sm font-medium">You will receive ~ {estimated} ETH</span>
-            {balance !== undefined ? (
+            {!isLoading && balance !== undefined ? (
               <button
                 className="self-end text-sm font-medium text-chart-2 dark:text-chart-2 hover:text-primary transition-colors"
                 onClick={() => setAmount(formatUnits(balance, 18))}
+                disabled={isLoading}
               >
                 MAX ({formatUnits(balance, 18)})
               </button>
             ) : (
               <button
                 className="self-end text-sm font-medium text-chart-2 dark:text-chart-2"
-                disabled={!balance}
+                disabled={!balance || isLoading}
               >
                 MAX
               </button>
@@ -616,11 +648,11 @@ export const BuySell = ({
           </div>
           <Button
             onClick={onSell}
-            disabled={!isConnected || isPending || !amount}
+            disabled={!isConnected || isPending || !amount || isLoading}
             variant="outline"
-            className="dark:border-accent dark:text-accent dark:hover:bg-accent/10"
+            className={`dark:border-accent dark:text-accent dark:hover:bg-accent/10 transition-opacity duration-300 ${isLoading ? "opacity-70" : ""}`}
           >
-            {isPending ? "Selling…" : `Sell ${displaySymbol}`}
+            {isPending ? "Selling…" : isLoading ? "Loading..." : `Sell ${displaySymbol}`}
           </Button>
         </div>
       </TabsContent>

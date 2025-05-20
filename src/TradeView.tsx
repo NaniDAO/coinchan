@@ -74,7 +74,7 @@ const BuySellFallback = ({
 
 export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
   // Using our new hook to get coin data
-  const { getDisplayValues } = useCoinData(tokenId);
+  const { getDisplayValues, isLoading } = useCoinData(tokenId);
   const { name = "Token", symbol = "TKN" } = getDisplayValues();
 
   const { address } = useAccount();
@@ -142,8 +142,17 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
       </Link>
 
       <div className="flex flex-col items-start gap-2">
-        <h2 className="text-lg sm:text-xl font-semibold">
-          {name} [{symbol}]
+        <h2 className="text-lg sm:text-xl font-semibold transition-opacity duration-300">
+          {isLoading ? (
+            <span className="inline-flex items-center space-x-2">
+              <span className="h-6 bg-muted/40 rounded w-40 skeleton"></span>
+              <span className="h-6 bg-muted/40 rounded w-16 skeleton"></span>
+            </span>
+          ) : (
+            <span className="content-transition loaded">
+              {name} [{symbol}]
+            </span>
+          )}
         </h2>
         {/* Metadata like tokenId */}
         <p className="text-sm">ID: {tokenId.toString()}</p>
