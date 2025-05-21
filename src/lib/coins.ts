@@ -1,4 +1,9 @@
-import { encodeAbiParameters, keccak256, parseAbiParameters, zeroAddress } from "viem";
+import {
+  encodeAbiParameters,
+  keccak256,
+  parseAbiParameters,
+  zeroAddress,
+} from "viem";
 
 export interface TokenMeta {
   id: bigint | null; // null = ETH pseudo-token
@@ -54,7 +59,8 @@ const USDT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2000 2000
 </svg>`;
 
 // USDT address on mainnet (official Tether USD address)
-export const USDT_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7" as `0x${string}`;
+export const USDT_ADDRESS =
+  "0xdAC17F958D2ee523a2206206994597C13D831ec7" as `0x${string}`;
 
 // Create USDT-ETH pool with 30 bps fee
 export const USDT_POOL_KEY: {
@@ -72,11 +78,19 @@ export const USDT_POOL_KEY: {
 };
 
 // Function to compute a custom pool ID with specific tokens and fee
-const computeCustomPoolId = (id0: bigint, id1: bigint, token0: `0x${string}`, token1: `0x${string}`, swapFee: bigint) =>
+const computeCustomPoolId = (
+  id0: bigint,
+  id1: bigint,
+  token0: `0x${string}`,
+  token1: `0x${string}`,
+  swapFee: bigint,
+) =>
   BigInt(
     keccak256(
       encodeAbiParameters(
-        parseAbiParameters("uint256 id0, uint256 id1, address token0, address token1, uint96 swapFee"),
+        parseAbiParameters(
+          "uint256 id0, uint256 id1, address token0, address token1, uint96 swapFee",
+        ),
         [id0, id1, token0, token1, swapFee],
       ),
     ),
