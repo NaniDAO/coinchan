@@ -18,7 +18,7 @@ export const useBatchingSupported = () => {
     if (availableCapabilities) {
       if (availableCapabilities[1] !== undefined) {
         if (availableCapabilities[1].atomic) {
-          if (availableCapabilities[1].atomic.status === "ready") {
+          if (availableCapabilities[1].atomic.status === "supported") {
             return true;
           }
         }
