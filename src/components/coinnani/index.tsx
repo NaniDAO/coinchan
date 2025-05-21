@@ -30,11 +30,19 @@ export const CoinNani = ({ className }: CoinNaniProps) => {
     setGreetingKey(getGreetingKey());
 
     // Trigger bubble animation after a short delay
-    const timer = setTimeout(() => {
+    const showTimer = setTimeout(() => {
       setShowBubble(true);
     }, 500); // Delay to let the avatar appear first
+    
+    // Hide bubble after 3 seconds
+    const hideTimer = setTimeout(() => {
+      setShowBubble(false);
+    }, 3500); // 500ms delay + 3000ms display time
 
-    return () => clearTimeout(timer); // Clean up timer on unmount
+    return () => {
+      clearTimeout(showTimer);
+      clearTimeout(hideTimer);
+    }; // Clean up timers on unmount
   }, []); // Run once on mount
   
   // Update greeting when language changes
