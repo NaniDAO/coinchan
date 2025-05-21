@@ -121,16 +121,16 @@ const ImageInput = ({ onChange }: ImageInputProps) => {
             <div className="flex flex-col items-center">
               <p className="text-sm text-muted-foreground mb-2">{selectedFileName}</p>
               <Button type="button" onClick={() => fileInputRef.current?.click()} variant="outline" size="sm">
-                {t('common.change')}
+                {t("common.change")}
               </Button>
             </div>
           </div>
         ) : (
           <div className="text-center">
-            <p className="mb-2">{t('common.drag_drop')}</p>
-            <p>{t('common.or')}</p>
+            <p className="mb-2">{t("common.drag_drop")}</p>
+            <p>{t("common.or")}</p>
             <Button type="button" onClick={() => fileInputRef.current?.click()} variant="outline" className="mt-2">
-              {t('common.browse_files')}
+              {t("common.browse_files")}
             </Button>
           </div>
         )}
@@ -259,21 +259,21 @@ export function CoinForm() {
 
     if (!address || !imageBuffer) {
       // Error will be shown in UI
-      setErrorMessage(!address ? t('errors.wallet_connection') : t('create.upload_image'));
+      setErrorMessage(!address ? t("errors.wallet_connection") : t("create.upload_image"));
       return;
     }
 
     // Validate ETH amount
     const ethAmount = Number(formState.ethAmount);
     if (isNaN(ethAmount) || ethAmount <= 0) {
-      setErrorMessage(t('errors.invalid_amount'));
+      setErrorMessage(t("errors.invalid_amount"));
       return;
     }
 
     // Validate creator supply
     const creatorSupplyValue = Number(formState.creatorSupply) || 0;
     if (creatorSupplyValue > TOTAL_SUPPLY) {
-      setErrorMessage(t('errors.insufficient_balance'));
+      setErrorMessage(t("errors.insufficient_balance"));
       return;
     }
 
@@ -340,7 +340,7 @@ export function CoinForm() {
       }
     } catch (pinataError) {
       // Error will be shown in UI
-      setErrorMessage(t('errors.network_error'));
+      setErrorMessage(t("errors.network_error"));
     }
   };
 
@@ -366,17 +366,17 @@ export function CoinForm() {
       <div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">{t('create.name')}</Label>
+            <Label htmlFor="name">{t("create.name")}</Label>
             <Input id="name" type="text" name="name" value={formState.name} onChange={handleChange} required />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="symbol">{t('create.symbol')}</Label>
+            <Label htmlFor="symbol">{t("create.symbol")}</Label>
             <Input id="symbol" type="text" name="symbol" value={formState.symbol} onChange={handleChange} required />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">{t('create.description')}</Label>
+            <Label htmlFor="description">{t("create.description")}</Label>
             <Textarea
               id="description"
               name="description"
@@ -387,7 +387,7 @@ export function CoinForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="creatorSupply">{t('create.supply')}</Label>
+            <Label htmlFor="creatorSupply">{t("create.supply")}</Label>
             <Input
               id="creatorSupply"
               type="text"
@@ -416,22 +416,25 @@ export function CoinForm() {
             />
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                {t('pool.liquidity')}: {poolSupply.toLocaleString()} ({t('coin.total_supply')}: {TOTAL_SUPPLY.toLocaleString()})
+                {t("pool.liquidity")}: {poolSupply.toLocaleString()} ({t("coin.total_supply")}:{" "}
+                {TOTAL_SUPPLY.toLocaleString()})
               </p>
               {Number(formState.creatorSupply) >= TOTAL_SUPPLY && (
-                <p className="text-xs text-chart-5">{t('common.max')}: {TOTAL_SUPPLY.toLocaleString()}</p>
+                <p className="text-xs text-chart-5">
+                  {t("common.max")}: {TOTAL_SUPPLY.toLocaleString()}
+                </p>
               )}
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="logo">{t('create.image')}</Label>
+            <Label htmlFor="logo">{t("create.image")}</Label>
             <ImageInput onChange={handleFileChange} />
           </div>
 
           <div className="space-y-2 border p-4 rounded-md bg-card/80">
             <Label htmlFor="ethAmount" className="text-md font-semibold">
-              {t('pool.liquidity')} (ETH {t('common.amount')})
+              {t("pool.liquidity")} (ETH {t("common.amount")})
             </Label>
             <div className="flex gap-2 items-center">
               <Input
@@ -489,14 +492,14 @@ export function CoinForm() {
                 <h4 className="text-sm font-medium text-foreground mb-2">Launch Projections</h4>
                 <div className="flex flex-col gap-2">
                   <div className="bg-card p-2 rounded border border-border">
-                    <h5 className="text-xs font-medium text-muted-foreground">{t('coin.price').toUpperCase()}</h5>
+                    <h5 className="text-xs font-medium text-muted-foreground">{t("coin.price").toUpperCase()}</h5>
                     <div className="flex items-center text-sm mt-1">
                       <span className="font-medium text-chart-2">${marketCapEstimation.tokenPriceUsd.toFixed(8)}</span>
                     </div>
                   </div>
 
                   <div className="bg-card p-2 rounded border border-border">
-                    <h5 className="text-xs font-medium text-muted-foreground">{t('coin.market_cap').toUpperCase()}</h5>
+                    <h5 className="text-xs font-medium text-muted-foreground">{t("coin.market_cap").toUpperCase()}</h5>
                     <div className="flex flex-col">
                       <div className="flex items-center text-sm">
                         <span className="text-muted-foreground min-w-20">ETH:</span>
@@ -511,7 +514,8 @@ export function CoinForm() {
                 </div>
                 <div className="flex items-center mt-2">
                   <p className="text-xs text-muted-foreground">
-                    {t('pool.liquidity')}: {formState.ethAmount} ETH {t('common.with')} {poolSupply.toLocaleString()} {t('coin.circulating_supply').toLowerCase()}
+                    {t("pool.liquidity")}: {formState.ethAmount} ETH {t("common.with")} {poolSupply.toLocaleString()}{" "}
+                    {t("coin.circulating_supply").toLowerCase()}
                   </p>
                   <div className="ml-auto">
                     <Popover open={showFeeSelector} onOpenChange={setShowFeeSelector}>
@@ -520,13 +524,14 @@ export function CoinForm() {
                           type="button"
                           className="text-xs px-2 py-1 rounded border border-input hover:bg-secondary-foreground transition-colors flex items-center gap-1"
                         >
-                          {t('swap.slippage')}: <span className="font-semibold text-primary">{feeToPercentage(swapFee)}</span>
+                          {t("swap.slippage")}:{" "}
+                          <span className="font-semibold text-primary">{feeToPercentage(swapFee)}</span>
                         </button>
                       </PopoverTrigger>
                       <PopoverContent className="w-64 p-3">
                         <div className="space-y-2">
-                          <h4 className="font-medium text-sm">{t('swap.slippage')}</h4>
-                          <p className="text-xs text-muted-foreground">{t('swap.max_slippage')}</p>
+                          <h4 className="font-medium text-sm">{t("swap.slippage")}</h4>
+                          <p className="text-xs text-muted-foreground">{t("swap.max_slippage")}</p>
                           <div className="grid grid-cols-2 gap-2 mt-2">
                             {[25, 50, 100, 150, 200, 300].map((fee) => (
                               <button
@@ -550,7 +555,7 @@ export function CoinForm() {
 
                           <div className="mt-3">
                             <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                              {t('swap.slippage')} (%)
+                              {t("swap.slippage")} (%)
                             </label>
                             <div className="flex items-center gap-2">
                               <Input
@@ -603,7 +608,7 @@ export function CoinForm() {
                                   !/^[0-9]{1,2}(\.?[0-9]{0,2})?$/.test(customFeeInput)
                                 }
                               >
-                                {t('common.confirm')}
+                                {t("common.confirm")}
                               </Button>
                             </div>
                             <p className="text-xs text-muted-foreground mt-1">
@@ -611,7 +616,7 @@ export function CoinForm() {
                               !isNaN(parseFloat(customFeeInput)) &&
                               /^[0-9]{1,2}(\.?[0-9]{0,2})?$/.test(customFeeInput)
                                 ? `${customFeeInput}% = ${percentageToBasisPoints(parseFloat(customFeeInput))} basis points`
-                                : t('errors.invalid_amount')}
+                                : t("errors.invalid_amount")}
                             </p>
                           </div>
                         </div>
@@ -624,20 +629,24 @@ export function CoinForm() {
           </div>
 
           <p>
-            {t('coinpaper.view')}{" "}
+            {t("coinpaper.view")}{" "}
             <Link to="/coinpaper" className="[&.active]:font-bold">
-              {t('common.coinpaper')}
+              {t("common.coinpaper")}
             </Link>{" "}
-            {t('coinpaper.content')}.
+            {t("coinpaper.content")}.
           </p>
 
           <Button disabled={isPending} type="submit">
-            {isPending ? t('common.loading') : t('create.title')}
+            {isPending ? t("common.loading") : t("create.title")}
           </Button>
 
           {errorMessage && <div className="text-sm text-destructive mt-2">{errorMessage}</div>}
 
-          {isSuccess && <div className="text-sm text-chart-2 mt-2">{t('create.success')} {JSON.stringify(data)}</div>}
+          {isSuccess && (
+            <div className="text-sm text-chart-2 mt-2">
+              {t("create.success")} {JSON.stringify(data)}
+            </div>
+          )}
         </form>
       </div>
     </div>

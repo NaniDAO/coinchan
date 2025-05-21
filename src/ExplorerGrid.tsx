@@ -46,7 +46,7 @@ export const ExplorerGrid = ({
   onSortOrderChange?: (order: "asc" | "desc") => void;
 }) => {
   const { t } = useTranslation();
-  
+
   // Track page transition state for better UX
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [direction, setDirection] = useState<"next" | "prev" | null>(null);
@@ -82,7 +82,11 @@ export const ExplorerGrid = ({
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center">
           <h2 className="text-xs md:text-xl font-semibold text-center sm:text-left">
-            {total === 0 ? t("explore.no_results") : total === 1 ? `1 ${t("common.coin")}` : `${total} ${t("common.coins")}`}
+            {total === 0
+              ? t("explore.no_results")
+              : total === 1
+                ? `1 ${t("common.coin")}`
+                : `${total} ${t("common.coins")}`}
           </h2>
 
           {searchResults && <div className="ml-4 text-sm text-muted-foreground">{searchResults}</div>}
@@ -96,8 +100,12 @@ export const ExplorerGrid = ({
               className={`flex items-center justify-center px-2 py-1 mr-2 rounded-md border ${
                 sortType === "recency" ? "border-accent bg-accent/10" : "border-primary/30"
               } hover:bg-secondary-foreground text-sm`}
-              aria-label={sortType === "liquidity" ? "Sort by recency" : "Sort by liquidity"}
-              title={sortType === "liquidity" ? "Currently: Sorting by liquidity" : "Currently: Sorting by recency"}
+              aria-label={sortType === "liquidity" ? t("explore.sort_by_recency") : t("explore.sort_by_liquidity")}
+              title={
+                sortType === "liquidity"
+                  ? t("explore.currently_sorting_by_liquidity")
+                  : t("explore.currently_sorting_by_recency")
+              }
               disabled={isLoading || isTransitioning}
             >
               {sortType === "liquidity" ? (
@@ -105,7 +113,9 @@ export const ExplorerGrid = ({
               ) : (
                 <ArrowDownAZ className="w-4 h-4 mr-1" />
               )}
-              <span className="hidden sm:inline">{sortType === "liquidity" ? t("common.liquidity") : t("explore.new")}</span>
+              <span className="hidden sm:inline">
+                {sortType === "liquidity" ? t("common.liquidity") : t("explore.new")}
+              </span>
             </button>
           )}
 
@@ -117,20 +127,20 @@ export const ExplorerGrid = ({
               aria-label={
                 sortType === "recency"
                   ? sortOrder === "asc"
-                    ? "Sort newest first"
-                    : "Sort oldest first"
+                    ? t("explore.sort_newest_first")
+                    : t("explore.sort_oldest_first")
                   : sortOrder === "asc"
-                    ? "Sort highest liquidity first"
-                    : "Sort lowest liquidity first"
+                    ? t("explore.sort_highest_liquidity_first")
+                    : t("explore.sort_lowest_liquidity_first")
               }
               title={
                 sortType === "recency"
                   ? sortOrder === "asc"
-                    ? "Currently: Oldest first"
-                    : "Currently: Newest first"
+                    ? t("explore.currently_oldest_first")
+                    : t("explore.currently_newest_first")
                   : sortOrder === "asc"
-                    ? "Currently: Lowest liquidity first"
-                    : "Currently: Highest liquidity first"
+                    ? t("explore.currently_lowest_liquidity_first")
+                    : t("explore.currently_highest_liquidity_first")
               }
               disabled={isLoading || isTransitioning}
             >
@@ -138,11 +148,11 @@ export const ExplorerGrid = ({
               <span className="hidden sm:inline">
                 {sortType === "recency"
                   ? sortOrder === "asc"
-                    ? "Oldest"
-                    : "Newest"
+                    ? t("explore.oldest")
+                    : t("explore.newest")
                   : sortOrder === "asc"
-                    ? "Lowest"
-                    : "Highest"}
+                    ? t("explore.lowest")
+                    : t("explore.highest")}
               </span>
             </button>
           )}

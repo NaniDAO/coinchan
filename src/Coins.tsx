@@ -13,7 +13,7 @@ const PAGE_SIZE = 20;
 
 export const Coins = () => {
   const { t } = useTranslation();
-  
+
   /* ------------------------------------------------------------------
    *  Local state
    * ------------------------------------------------------------------ */
@@ -349,7 +349,9 @@ export const Coins = () => {
           </div>
         }
         searchResults={
-          isSearchActive ? `${t("common.showing")} ${searchResults.length} ${searchResults.length !== 1 ? t("common.results") : t("common.result")}` : ""
+          isSearchActive
+            ? `${t("common.showing")} ${searchResults.length} ${searchResults.length !== 1 ? t("common.results") : t("common.result")}`
+            : ""
         }
       />
     </>

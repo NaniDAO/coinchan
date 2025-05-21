@@ -6,6 +6,7 @@ import { formatTimeAgo } from "@/lib/date";
 import { getEtherscanAddressUrl, getEtherscanTxUrl } from "@/lib/explorer";
 import { AddressIcon } from "./AddressIcon";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 /**
  * Helper function to get the appropriate color class for event type
@@ -39,6 +40,7 @@ export function PoolEvents({
   poolId: string;
   ticker: string;
 }) {
+  const { t } = useTranslation();
   // Fetch function for react-query infinite query
   const fetchEvents = async ({ pageParam = Math.floor(Date.now() / 1000) }) => {
     const url = `${import.meta.env.VITE_INDEXER_URL}/api/events?poolId=${poolId}&before=${pageParam}&limit=50`;
@@ -78,11 +80,15 @@ export function PoolEvents({
   }, [fetchNextPage, hasNextPage]);
 
   if (status === "pending") {
-    return <p className="text-center p-4">Loading events...</p>;
+    return <p className="text-center p-4">{t("chart.loading_events")}</p>;
   }
 
   if (status === "error") {
-    return <p className="text-center p-4 text-destructive">Error: {error.message}</p>;
+    return (
+      <p className="text-center p-4 text-destructive">
+        {t("errors.error")}: {error.message}
+      </p>
+    );
   }
 
   // Flatten pages
@@ -94,12 +100,12 @@ export function PoolEvents({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Timestamp</TableHead>
-              <TableHead>Type</TableHead>
+              <TableHead>{t("chart.timestamp")}</TableHead>
+              <TableHead>{t("chart.type")}</TableHead>
               <TableHead className="text-right">ETH</TableHead>
               <TableHead className="text-right">{ticker.toUpperCase()}</TableHead>
-              <TableHead className="text-right">Maker</TableHead>
-              <TableHead>Txn</TableHead>
+              <TableHead className="text-right">{t("chart.maker")}</TableHead>
+              <TableHead>{t("chart.transaction")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -107,7 +113,7 @@ export function PoolEvents({
               events.map((e, idx) => (
                 <TableRow key={`${e.txhash}-${e.timestamp}-${idx}`}>
                   <TableCell className="whitespace-nowrap">{formatTimeAgo(e?.timestamp ?? 0)}</TableCell>
-                  <TableCell className={getEventTypeColorClass(e.type)}>{e.type}</TableCell>
+                  <TableCell className={getEventTypeColorClass(e.type)}>{t(`chart.event_types.${e.type}`)}</TableCell>
                   <TableCell className={cn("text-right", getEventTypeColorClass(e.type))}>
                     {e.type === "BUY" && Number(formatEther(BigInt(e?.amount0_in ?? "0"))).toFixed(5)}
                     {e.type === "SELL" && Number(formatEther(BigInt(e?.amount0_out ?? "0"))).toFixed(5)}
@@ -152,7 +158,7 @@ export function PoolEvents({
             ) : (
               <TableRow>
                 <TableCell colSpan={6} className="h-24 text-center">
-                  No events found
+                  {t("chart.no_events")}
                 </TableCell>
               </TableRow>
             )}
@@ -161,7 +167,11 @@ export function PoolEvents({
       </div>
 
       <div ref={loadMoreRef} className="py-4 text-center text-sm text-gray-500">
-        {isFetchingNextPage ? "Loading more..." : hasNextPage ? "Scroll to load more" : "No more events"}
+        {isFetchingNextPage
+          ? t("chart.loading_more")
+          : hasNextPage
+            ? t("chart.scroll_to_load_more")
+            : t("chart.no_more_events")}
       </div>
     </div>
   );

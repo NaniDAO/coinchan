@@ -8,7 +8,7 @@ export const Route = createFileRoute("/coinpaper")({
 
 function RouteComponent() {
   const { t } = useTranslation();
-  
+
   return (
     <div className="mt-2" title={t("coinpaper.title")}>
       <CoinPaper />
