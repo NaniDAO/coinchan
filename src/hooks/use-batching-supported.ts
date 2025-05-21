@@ -15,12 +15,11 @@ export const useBatchingSupported = () => {
     // indicate support for the 'atomic' capability.
     // The error message indicates 'atomicBatch' is incorrect and 'atomic'
     // with a 'status' property is the correct structure.
+    console.log("Available Capabilities:", availableCapabilities);
     if (availableCapabilities) {
-      if (availableCapabilities[1] !== undefined) {
-        if (availableCapabilities[1].atomic) {
-          if (availableCapabilities[1].atomic.status === "supported") {
-            return true;
-          }
+      if (availableCapabilities.atomic) {
+        if (availableCapabilities.atomic.status === "ready") {
+          return true;
         }
       }
     }
