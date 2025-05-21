@@ -585,7 +585,7 @@ export const SwapAction = () => {
             </span>
           )}
           <span>
-            {t("swap.price_impact")}:{" "}
+            {t("common.fee")}:{" "}
             {getSwapFee({
               isCustomPool: isCustomPool,
               sellToken,
