@@ -337,6 +337,28 @@ export const SwapAction = () => {
         throw new Error("No swap calls generated");
       }
 
+      if (calls.length === 1) {
+        console.log("SwapCalls: [Executing 1 call]");
+        const hash = await sendTransactionAsync({
+          account: address,
+          chainId: mainnet.id,
+          data: calls[0].data,
+          to: calls[0].to,
+          value: calls[0].value,
+        });
+
+        const receipt = await publicClient.waitForTransactionReceipt({
+          hash,
+        });
+
+        if (receipt.status === "success") {
+          console.log("SwapCalls: [Transaction Successful]");
+        } else {
+          console.log("SwapCalls: [Transaction Failed]");
+          throw new Error("Transaction failed");
+        }
+      }
+
       if (calls.length > 1) {
         // Either approval or setOperator call is there
         if (isBatchingSupported) {
