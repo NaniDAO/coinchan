@@ -14,12 +14,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { isUserRejectionError } from "@/lib/errors";
+import { useTranslation } from "react-i18next";
 
 interface ClaimVestedProps {
   coinId: bigint;
 }
 
 export const ClaimVested = ({ coinId }: ClaimVestedProps) => {
+  const { t } = useTranslation();
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient({ chainId: mainnet.id });
   const chainId = useChainId();
@@ -151,7 +153,7 @@ export const ClaimVested = ({ coinId }: ClaimVestedProps) => {
           // Only set error if it's not a user rejection
           if (!isUserRejectionError(err)) {
             console.error("Failed to switch to Ethereum mainnet:", err);
-            setTxError("Failed to switch to Ethereum mainnet");
+            setTxError(t("errors.failed_switch_network"));
           }
           return;
         }
@@ -177,18 +179,18 @@ export const ClaimVested = ({ coinId }: ClaimVestedProps) => {
       // For contract errors, we still want to show specific messages
       if (err instanceof Error) {
         if (err.message.includes("Pending")) {
-          setTxError("Tokens are not vestable yet");
+          setTxError(t("errors.tokens_not_vestable"));
         } else if (err.message.includes("NothingToVest")) {
-          setTxError("No tokens available to vest");
+          setTxError(t("errors.no_tokens_to_vest"));
         } else if (err.message.includes("Unauthorized")) {
-          setTxError("Only the creator can claim vested tokens");
+          setTxError(t("errors.only_creator_can_claim"));
         } else {
           console.error("Error claiming vested tokens:", err);
-          setTxError("Transaction failed. Please try again.");
+          setTxError(t("errors.transaction_retry"));
         }
       } else {
         console.error("Unknown error during claim:", err);
-        setTxError("Transaction failed. Please try again.");
+        setTxError(t("errors.transaction_retry"));
       }
     }
   };
@@ -212,12 +214,12 @@ export const ClaimVested = ({ coinId }: ClaimVestedProps) => {
   return (
     <Card className="w-full p-4 border-2 border-primary/30 shadow-md rounded-xl">
       <CardContent className="p-2">
-        <h3 className="text-lg font-bold mb-2 text-primary">Liquidity Vesting</h3>
+        <h3 className="text-lg font-bold mb-2 text-primary">{t("coin.liquidity_vesting")}</h3>
 
         {/* Vesting progress */}
         <div className="mb-4">
           <div className="flex justify-between text-xs mb-1">
-            <span>Vesting Progress</span>
+            <span>{t("coin.vesting_progress")}</span>
             <span>{calculateVestingPercentage().toFixed(2)}%</span>
           </div>
           <div className="w-full bg-secondary rounded-full h-2">
@@ -229,12 +231,12 @@ export const ClaimVested = ({ coinId }: ClaimVestedProps) => {
         {/* Vestable amount */}
         <div className="mb-4 p-2 bg-secondary/30 rounded-lg">
           <div className="flex justify-between">
-            <span className="text-sm">Available to claim:</span>
+            <span className="text-sm">{t("coin.available_to_claim")}:</span>
             <span className="font-bold">{formatUnits(vestableAmount, 18)} LP</span>
           </div>
           {lockupInfo.claimed > 0n && (
             <div className="flex justify-between mt-1 text-xs text-muted-foreground">
-              <span>Already claimed:</span>
+              <span>{t("coin.already_claimed")}:</span>
               <span>{formatUnits(lockupInfo.claimed, 18)} LP</span>
             </div>
           )}
@@ -249,10 +251,10 @@ export const ClaimVested = ({ coinId }: ClaimVestedProps) => {
           {isPending ? (
             <span className="flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Claiming...
+              {t("coin.claiming")}
             </span>
           ) : (
-            "Claim Vested LP Tokens"
+            t("coin.claim_vested_lp_tokens")
           )}
         </Button>
 
@@ -260,7 +262,7 @@ export const ClaimVested = ({ coinId }: ClaimVestedProps) => {
         {txError && <div className="mt-2 text-xs text-destructive">{txError}</div>}
 
         {/* Success message */}
-        {isSuccess && <div className="mt-2 text-xs text-chart-2">Successfully claimed tokens!</div>}
+        {isSuccess && <div className="mt-2 text-xs text-chart-2">{t("coin.successfully_claimed_tokens")}</div>}
       </CardContent>
     </Card>
   );

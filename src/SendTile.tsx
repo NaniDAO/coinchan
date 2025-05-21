@@ -10,6 +10,7 @@ import { Loader2 } from "lucide-react";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { ETH_TOKEN, TokenMeta, USDT_ADDRESS } from "./lib/coins";
 import { TokenSelector } from "./components/TokenSelector";
+import { useTranslation } from "react-i18next";
 
 // Helper function to format token balance with appropriate precision
 export const formatTokenBalance = (token: TokenMeta): string => {
@@ -80,6 +81,7 @@ const safeStr = (val: any): string => {
 
 // Main SendTile component - Memoized for better performance
 const SendTileComponent = () => {
+  const { t } = useTranslation();
   const { tokens, error: loadError, isEthBalanceFetching, refetchEthBalance } = useAllCoins();
   const [selectedToken, setSelectedToken] = useState<TokenMeta>(ETH_TOKEN);
   const [recipientAddress, setRecipientAddress] = useState("");
@@ -301,10 +303,10 @@ const SendTileComponent = () => {
 
       // Handle user rejection gracefully
       if (isUserRejectionError(error)) {
-        setTxError("Transaction rejected by user");
+        setTxError(t("errors.rejected_transaction"));
       } else {
         // Handle contract errors
-        const errorMsg = handleWalletError(error) || "Transaction failed";
+        const errorMsg = handleWalletError(error) || t("errors.transaction_error");
         setTxError(errorMsg);
       }
     }
@@ -342,13 +344,13 @@ const SendTileComponent = () => {
   return (
     <Card className="border-border shadow-md mb-4">
       <CardHeader>
-        <CardTitle>Send Coins</CardTitle>
+        <CardTitle>{t("send.title")}</CardTitle>
       </CardHeader>
       <CardContent>
         {/* Recipient address input */}
         <div className="grid grid-cols-5 gap-4 w-full mb-4">
           <div className="col-span-3">
-            <label className="block text-sm font-medium text-foreground mb-1">Recipient Address</label>
+            <label className="block text-sm font-medium text-foreground mb-1">{t("send.recipient_address")}</label>
             <div className="h-12">
               {" "}
               {/* Set fixed height to match TokenSelector */}
@@ -361,12 +363,12 @@ const SendTileComponent = () => {
               />
             </div>
             {recipientAddress && (!recipientAddress.startsWith("0x") || recipientAddress.length !== 42) && (
-              <p className="mt-1 text-sm text-destructive">Please enter a valid Ethereum address</p>
+              <p className="mt-1 text-sm text-destructive">{t("errors.invalid_address")}</p>
             )}
           </div>
           {/* Token selector */}
           <div className="col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Asset to Send</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t("send.asset_to_send")}</label>
             <TokenSelector
               selectedToken={selectedToken}
               tokens={tokens.length > 0 ? tokens : [ETH_TOKEN]} // Ensure we always have at least ETH
@@ -380,13 +382,13 @@ const SendTileComponent = () => {
         {/* Amount input */}
         <div className="mb-4">
           <div className="flex justify-between items-center mb-1">
-            <label className="block text-sm font-medium text-foreground">Amount</label>
+            <label className="block text-sm font-medium text-foreground">{t("common.amount")}</label>
             <button
               onClick={handleMaxClick}
               className="text-xs text-primary hover:text-primary/80"
               disabled={!selectedToken.balance || selectedToken.balance === 0n}
             >
-              MAX
+              {t("common.max")}
             </button>
           </div>
           <div className="relative">
@@ -414,13 +416,13 @@ const SendTileComponent = () => {
             <div className="mt-1 text-xs text-muted-foreground flex justify-between">
               <span>
                 {percentOfBalance > 100 ? (
-                  <span className="text-destructive">Insufficient balance</span>
+                  <span className="text-destructive">{t("send.insufficient_balance")}</span>
                 ) : (
-                  `${percentOfBalance.toFixed(0)}% of balance`
+                  `${percentOfBalance.toFixed(0)}% ${t("common.of")} ${t("common.balance").toLowerCase()}`
                 )}
               </span>
               <span>
-                Balance: {formatTokenBalance(selectedToken)}{" "}
+                {t("common.balance")}: {formatTokenBalance(selectedToken)}{" "}
                 {selectedToken.symbol !== undefined ? safeStr(selectedToken.symbol) : ""}
               </span>
             </div>
@@ -436,10 +438,10 @@ const SendTileComponent = () => {
           {isPending ? (
             <div className="flex items-center justify-center">
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              <span>Sending...</span>
+              <span>{t("send.sending")}</span>
             </div>
           ) : (
-            "Send 🪁"
+            <>{t("common.send")} 🪁</>
           )}
         </Button>
 
@@ -447,19 +449,19 @@ const SendTileComponent = () => {
         {txHash && (
           <div className="mt-4 p-3 bg-chart-2/10 border border-chart-2/20 rounded">
             <p className="text-sm text-chart-2">
-              {isSuccess ? "Transaction successful!" : "Transaction submitted!"}{" "}
+              {isSuccess ? t("send.send_success") : t("notifications.transaction_sent")}{" "}
               <a
                 href={`https://etherscan.io/tx/${txHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline"
               >
-                View on Etherscan
+                {t("common.view_on_etherscan")}
               </a>
               {/* Show animation while waiting for transaction */}
               {!isSuccess && (
                 <span className="inline-block ml-2 text-primary" style={{ animation: "pulse 1.5s infinite" }}>
-                  (waiting for confirmation...)
+                  ({t("notifications.waiting_confirmation")})
                 </span>
               )}
             </p>

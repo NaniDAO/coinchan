@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { CoinData, formatImageURL, getAlternativeImageUrls } from "@/hooks/metadata/coin-utils";
 import { ArrowRightIcon } from "lucide-react";
 
@@ -8,6 +9,7 @@ interface CoinCardProps {
 }
 
 export const CoinCard = ({ coin }: CoinCardProps) => {
+  const { t } = useTranslation();
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
@@ -127,7 +129,7 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
           {!imageError && currentImageUrl && (
             <img
               src={currentImageUrl}
-              alt={`${displaySymbol} logo`}
+              alt={`${displaySymbol} ${t("common.logo")}`}
               className={`absolute inset-0 w-full h-full rounded-full object-cover transition-opacity duration-200 ${imageLoaded ? "opacity-100" : "opacity-0"}`}
               style={{ zIndex: 1 }}
               onLoad={() => setImageLoaded(true)}
@@ -144,7 +146,7 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
           }}
           className="flex flex-row items-center justify-between m-0 rounded-t-none rounded-b-sm w-full bg-primary/10 py-1 px-3 text-primary-foreground font-extrabold hover:bg-primary/50 transition-all duration-200 text-sm touch-manipulation shadow-sm"
         >
-          <span>Trade</span>
+          <span>{t("coin.chart")}</span>
           <ArrowRightIcon size={16} />
         </Link>
       </div>

@@ -115,7 +115,9 @@ const ConnectMenuComponent = () => {
       return (
         <div className="flex items-center gap-2">
           {lastAddress && <div className="opacity-50">{truncAddress(lastAddress)}</div>}
-          <div className="text-xs text-primary animate-pulse">{lastAddress ? t("common.loading") : t("common.loading")}</div>
+          <div className="text-xs text-primary animate-pulse">
+            {lastAddress ? t("common.loading") : t("common.loading")}
+          </div>
         </div>
       );
     }

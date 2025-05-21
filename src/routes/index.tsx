@@ -13,14 +13,16 @@ export const Route = createFileRoute("/")({
 
 function RouteComponent() {
   const { t } = useTranslation();
-  
+
   useEffect(() => {
     sdk.actions.ready(); // @TODO farcaster integration
   }, []);
 
   return (
-    <main className="p-2 sm:p-3 min-h-[90vh] w-screen flex flex-col justify-center items-center" 
-          aria-label={t("pool.title")}>
+    <main
+      className="p-2 sm:p-3 min-h-[90vh] w-screen flex flex-col justify-center items-center"
+      aria-label={t("pool.title")}
+    >
       <div className="w-full max-w-lg">
         <PoolActions />
       </div>
