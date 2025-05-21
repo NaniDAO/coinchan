@@ -2,30 +2,32 @@ import { cn } from "@/lib/utils";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 interface CoinNaniProps {
   className?: string;
 }
 
-// Function to get greeting based on time
-const getGreeting = () => {
+// Function to get greeting based on time and language
+const getGreetingKey = () => {
   const hour = new Date().getHours();
   if (hour >= 5 && hour < 11) {
-    return "おはよう！"; // Ohayou gozaimasu! - Good morning (5 AM to 10:59 AM)
+    return "coinNani.morning"; // Morning (5 AM to 10:59 AM)
   } else if (hour >= 11 && hour < 18) {
-    return "こんにちは！"; // Konnichiwa! - Hello/Good afternoon (11 AM to 5:59 PM)
+    return "coinNani.afternoon"; // Afternoon (11 AM to 5:59 PM)
   } else {
-    return "こんばんは！"; // Konbanwa! - Good evening (6 PM to 4:59 AM)
+    return "coinNani.evening"; // Evening (6 PM to 4:59 AM)
   }
 };
 
 export const CoinNani = ({ className }: CoinNaniProps) => {
-  const [greeting, setGreeting] = useState("");
+  const { t, i18n } = useTranslation();
+  const [greetingKey, setGreetingKey] = useState("");
   const [showBubble, setShowBubble] = useState(false);
 
   useEffect(() => {
-    // Set greeting immediately
-    setGreeting(getGreeting());
+    // Set greeting key immediately
+    setGreetingKey(getGreetingKey());
 
     // Trigger bubble animation after a short delay
     const timer = setTimeout(() => {
@@ -34,6 +36,12 @@ export const CoinNani = ({ className }: CoinNaniProps) => {
 
     return () => clearTimeout(timer); // Clean up timer on unmount
   }, []); // Run once on mount
+  
+  // Update greeting when language changes
+  useEffect(() => {
+    // Re-render greeting when language changes
+    setGreetingKey(getGreetingKey());
+  }, [i18n.language]);
 
   return (
     // Use flex-col and items-center to stack bubble above avatar and center horizontally
@@ -47,7 +55,7 @@ export const CoinNani = ({ className }: CoinNaniProps) => {
           transition={{ type: "spring", stiffness: 260, damping: 20 }} // Spring animation for pop effect
           className="bg-primary/60 text-primary-foreground p-3 rounded-lg shadow-md whitespace-nowrap text-sm z-10 mb-2 relative" // mb-2 adds space below bubble, relative for tail
         >
-          {greeting}
+          {t(greetingKey)}
           <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-[10px] border-transparent border-t-primary/60"></div>
         </motion.div>
       )}
