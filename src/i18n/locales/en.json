@@ -272,5 +272,10 @@
     "selected": "Selected",
     "balance": "Balance",
     "no_balance": "No balance"
+  },
+  "coinNani": {
+    "morning": "Good morning!",
+    "afternoon": "Good afternoon!",
+    "evening": "Good evening!"
   }
 }

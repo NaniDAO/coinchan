@@ -272,5 +272,10 @@
     "selected": "已选择",
     "balance": "余额",
     "no_balance": "无余额"
+  },
+  "coinNani": {
+    "morning": "早上好！",
+    "afternoon": "下午好！",
+    "evening": "晚上好！"
   }
 }

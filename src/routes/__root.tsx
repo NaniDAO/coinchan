@@ -64,7 +64,7 @@ export const Route = createRootRoute({
         </Sheet>
       </header>
       {/* <hr /> */}
-      <CoinNani className="absolute bottom-4 right-4" />
+      <CoinNani className="fixed bottom-4 right-4 z-10" />
       <Outlet />
     </>
     );
