@@ -251,7 +251,7 @@ const TVPriceChart: React.FC<{
     }
   }, [priceData]);
 
-  return <div ref={containerRef} className="w-full" style={{ height: "400px", position: "relative" }} />;
+  return <div ref={containerRef} className="w-full" style={{ height: "400px", position: "relative", zIndex: 1 }} />;
 };
 
 export default PoolPriceChart;

@@ -118,7 +118,7 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
   }, [publicClient, tokenId, address, isSuccess]);
 
   return (
-    <div className="w-full max-w-screen mx-auto flex flex-col gap-4 px-2 py-4 sm:p-6">
+    <div className="w-full max-w-screen mx-auto flex flex-col gap-4 px-2 py-4 pb-16 sm:p-6 sm:pb-16">
       <Link to="/explore" className="text-sm self-start underline py-2 px-1 touch-manipulation">
         ⬅︎ Back to Explorer
       </Link>
