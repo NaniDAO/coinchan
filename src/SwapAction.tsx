@@ -7,38 +7,37 @@ import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
 import { useTranslation } from "react-i18next";
 import {
   analyzeTokens,
-  computePoolId,
   computePoolKey,
-  DEADLINE_SEC,
   getAmountIn,
   getAmountOut,
   getPoolIds,
   SLIPPAGE_BPS,
   SWAP_FEE,
-  withSlippage,
   getSwapFee,
 } from "./lib/swap";
 import { NetworkError } from "./components/NetworkError";
-import { useOperatorStatus } from "./hooks/use-operator-status";
-import { useAccount, useChainId, usePublicClient, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import {
+  useAccount,
+  useChainId,
+  usePublicClient,
+  useSendCalls,
+  useSendTransaction,
+  useWaitForTransactionReceipt,
+} from "wagmi";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
-import { ETH_TOKEN, TokenMeta, USDT_ADDRESS, USDT_POOL_ID, USDT_POOL_KEY } from "./lib/coins";
+import { ETH_TOKEN, TokenMeta, USDT_POOL_ID, USDT_POOL_KEY } from "./lib/coins";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
-import { ZAAMAbi, ZAAMAddress } from "./constants/ZAAM";
 import { mainnet } from "viem/chains";
-import { nowSec } from "./lib/utils";
-import { estimateContractGas, simulateContractInteraction } from "@/lib/simulate";
-import { CoinsAbi, CoinsAddress } from "./constants/Coins";
 import { SlippageSettings } from "./components/SlippageSettings";
 import { FlipActionButton } from "./components/FlipActionButton";
 import { SwapPanel } from "./components/SwapPanel";
 import { useReserves } from "./hooks/use-reserves";
-import { useErc20Allowance } from "./hooks/use-erc20-allowance";
+import { buildSwapCalls } from "./lib/build-swap-calls";
+import { useBatchingSupported } from "./hooks/use-batching-supported";
 
 export const SwapAction = () => {
   const { t } = useTranslation();
   const { address, isConnected } = useAccount();
-  const { data: isOperator, refetch: refetchOperator } = useOperatorStatus(address);
   const chainId = useChainId();
   const publicClient = usePublicClient({
     chainId,
@@ -79,16 +78,14 @@ export const SwapAction = () => {
 
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [txError, setTxError] = useState<string | null>(null);
-  const { writeContractAsync, isPending, error: writeError } = useWriteContract();
-  const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
   const {
-    allowance: usdtAllowance,
-    refetchAllowance: refetchUsdtAllowance,
-    approveMax: approveUsdtMax,
-  } = useErc20Allowance({
-    token: USDT_ADDRESS,
-    spender: ZAAMAddress,
-  });
+    sendTransactionAsync,
+    isPending,
+    error: writeError,
+  } = useSendTransaction();
+  const { sendCalls } = useSendCalls();
+  const isBatchingSupported = useBatchingSupported();
+  const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
   const prevPairRef = useRef<string | null>(null);
 
   const memoizedTokens = useMemo(() => tokens, [tokens]);
@@ -136,15 +133,27 @@ export const SwapAction = () => {
         // Use correct decimals for the buy token (6 for USDT, 18 for regular coins)
         const buyTokenDecimals = buyToken?.decimals || 18;
         const outUnits = parseUnits(val || "0", buyTokenDecimals);
-        const inWei = getAmountIn(outUnits, reserves.reserve0, reserves.reserve1, SWAP_FEE);
+        const inWei = getAmountIn(
+          outUnits,
+          reserves.reserve0,
+          reserves.reserve1,
+          SWAP_FEE,
+        );
         setSellAmt(inWei === 0n ? "" : formatEther(inWei));
       } else {
         // Coin → ETH path (calculate Coin input)
         const outWei = parseEther(val || "0");
-        const inUnits = getAmountIn(outWei, reserves.reserve1, reserves.reserve0, SWAP_FEE);
+        const inUnits = getAmountIn(
+          outWei,
+          reserves.reserve1,
+          reserves.reserve0,
+          SWAP_FEE,
+        );
         // Use correct decimals for the sell token (6 for USDT, 18 for regular coins)
         const sellTokenDecimals = sellToken?.decimals || 18;
-        setSellAmt(inUnits === 0n ? "" : formatUnits(inUnits, sellTokenDecimals));
+        setSellAmt(
+          inUnits === 0n ? "" : formatUnits(inUnits, sellTokenDecimals),
+        );
       }
     } catch {
       setSellAmt("");
@@ -170,8 +179,12 @@ export const SwapAction = () => {
           const inUnits = parseUnits(val || "0", sellTokenDecimals);
 
           // Get correct swap fees for both pools
-          const sourceSwapFee = sellToken.isCustomPool ? sellToken.swapFee || SWAP_FEE : SWAP_FEE;
-          const targetSwapFee = buyToken?.isCustomPool ? buyToken.swapFee || SWAP_FEE : SWAP_FEE;
+          const sourceSwapFee = sellToken.isCustomPool
+            ? sellToken.swapFee || SWAP_FEE
+            : SWAP_FEE;
+          const targetSwapFee = buyToken?.isCustomPool
+            ? buyToken.swapFee || SWAP_FEE
+            : SWAP_FEE;
 
           // Pass custom swap fees for USDT or other custom pools
           const { amountOut } = estimateCoinToCoinOutput(
@@ -187,7 +200,9 @@ export const SwapAction = () => {
 
           // Use correct decimals for the buy token (6 for USDT, 18 for regular coins)
           const buyTokenDecimals = buyToken?.decimals || 18;
-          setBuyAmt(amountOut === 0n ? "" : formatUnits(amountOut, buyTokenDecimals));
+          setBuyAmt(
+            amountOut === 0n ? "" : formatUnits(amountOut, buyTokenDecimals),
+          );
         } catch (err) {
           console.error("Error estimating coin-to-coin output:", err);
           setBuyAmt("");
@@ -195,16 +210,28 @@ export const SwapAction = () => {
       } else if (isSellETH) {
         // ETH → Coin path
         const inWei = parseEther(val || "0");
-        const outUnits = getAmountOut(inWei, reserves.reserve0, reserves.reserve1, SWAP_FEE);
+        const outUnits = getAmountOut(
+          inWei,
+          reserves.reserve0,
+          reserves.reserve1,
+          SWAP_FEE,
+        );
         // Use correct decimals for the buy token (6 for USDT, 18 for regular coins)
         const buyTokenDecimals = buyToken?.decimals || 18;
-        setBuyAmt(outUnits === 0n ? "" : formatUnits(outUnits, buyTokenDecimals));
+        setBuyAmt(
+          outUnits === 0n ? "" : formatUnits(outUnits, buyTokenDecimals),
+        );
       } else {
         // Coin → ETH path
         // Use correct decimals for the sell token (6 for USDT, 18 for regular coins)
         const sellTokenDecimals = sellToken?.decimals || 18;
         const inUnits = parseUnits(val || "0", sellTokenDecimals);
-        const outWei = getAmountOut(inUnits, reserves.reserve1, reserves.reserve0, SWAP_FEE);
+        const outWei = getAmountOut(
+          inUnits,
+          reserves.reserve1,
+          reserves.reserve0,
+          SWAP_FEE,
+        );
         setBuyAmt(outWei === 0n ? "" : formatEther(outWei));
       }
     } catch {
@@ -226,21 +253,21 @@ export const SwapAction = () => {
 
       // Ensure wallet is connected before proceeding
       if (!isConnected || !address) {
-        setTxError(t('errors.wallet_connection'));
+        setTxError(t("errors.wallet_connection"));
         return;
       }
 
       if (!canSwap || !sellAmt || !publicClient || !buyToken) {
         // Cannot execute swap - missing prerequisites
         // Check swap prerequisites
-        setTxError(t('swap.enter_amount'));
+        setTxError(t("swap.enter_amount"));
         return;
       }
 
       // Important: For custom pools like USDT, we have to special-case the reserves check
       if (!reserves && !sellToken.isCustomPool && !buyToken.isCustomPool) {
         console.error("Missing reserves for regular pool swap");
-        setTxError(t('errors.network_error'));
+        setTxError(t("errors.network_error"));
         return;
       }
 
@@ -251,14 +278,14 @@ export const SwapAction = () => {
       if (publicClient && !publicClient.getChainId) {
         await new Promise((resolve) => setTimeout(resolve, 100));
         if (!publicClient.getChainId) {
-          setTxError(t('errors.wallet_connection'));
+          setTxError(t("errors.wallet_connection"));
           return;
         }
       }
 
       // Check if we're on mainnet
       if (chainId !== mainnet.id) {
-        setTxError(t('errors.network_error'));
+        setTxError(t("errors.network_error"));
         return;
       }
 
@@ -287,373 +314,61 @@ export const SwapAction = () => {
         poolKey = computePoolKey(coinId);
       }
 
-      if (isSellETH) {
-        // Get the correct swap fee (custom fee for USDT, default fee for regular tokens)
-        const swapFee =
-          sellToken.isCustomPool || buyToken?.isCustomPool
-            ? (sellToken.isCustomPool ? sellToken.swapFee : buyToken?.swapFee) || SWAP_FEE
-            : SWAP_FEE;
+      if (reserves === undefined) {
+        throw new Error("Reserves not found");
+      }
 
-        const amountInWei = parseEther(sellAmt || "0");
-        const rawOut = reserves ? getAmountOut(amountInWei, reserves.reserve0, reserves.reserve1, swapFee) : 0n;
+      const calls = await buildSwapCalls({
+        address,
+        sellToken,
+        buyToken,
+        sellAmt: sellAmt,
+        buyAmt: buyAmt,
+        reserves,
+        slippageBps,
+        targetReserves,
+        publicClient,
+      });
 
-        if (rawOut === 0n) {
-          setTxError(t('swap.insufficient_balance'));
-          return;
-        }
+      console.log("SwapCalls:", calls);
 
-        // Create a deadline timestamp
-        const deadline = nowSec() + BigInt(DEADLINE_SEC);
+      if (calls.length === 0) {
+        console.log("SwapCalls: [No swap calls generated]");
+        throw new Error("No swap calls generated");
+      }
 
-        // simulate multicall
-        await simulateContractInteraction({
-          address: ZAAMAddress,
-          abi: ZAAMAbi,
-          functionName: "swapExactIn",
-          args: [poolKey, amountInWei, withSlippage(rawOut, slippageBps), true, address, deadline],
-          value: amountInWei,
-        });
+      if (calls.length > 1) {
+        // Either approval or setOperator call is there
+        if (isBatchingSupported) {
+          console.log("SwapCalls: [Batching Supported, Sending Calls]");
+          sendCalls({ calls });
+        } else {
+          console.log(
+            "SwapCalls: [Batching Not Supported, Sequentially Executing Calls]",
+          );
 
-        const gas = await estimateContractGas({
-          address: ZAAMAddress,
-          abi: ZAAMAbi,
-          functionName: "swapExactIn",
-          args: [poolKey, amountInWei, withSlippage(rawOut, slippageBps), true, address, deadline],
-          value: amountInWei,
-        });
-
-        // Simulation complete
-
-        // Create a safe version of poolKey for logging
-        const safePoolKey = {
-          id0: poolKey.id0.toString(),
-          id1: poolKey.id1.toString(),
-          token0: poolKey.token0,
-          token1: poolKey.token1,
-          swapFee: poolKey.swapFee.toString(),
-        };
-
-        // Check if this is a direct ETH->USDT swap
-        const isUsdtSwap = buyToken?.isCustomPool && buyToken?.token1 === USDT_ADDRESS;
-
-        console.log("Executing ETH->Coin swap with:", {
-          poolKey: JSON.stringify(safePoolKey),
-          amountIn: amountInWei.toString(),
-          minOut: withSlippage(rawOut, slippageBps).toString(),
-          fee: poolKey.swapFee.toString(),
-          fromETH: true,
-          isUsdtSwap,
-        });
-
-        const hash = await writeContractAsync({
-          address: ZAAMAddress,
-          abi: ZAAMAbi,
-          functionName: "swapExactIn",
-          args: [poolKey, amountInWei, withSlippage(rawOut, slippageBps), true, address, deadline],
-          value: amountInWei,
-          gas: gas,
-        });
-        setTxHash(hash);
-      } else {
-        // Check if we're dealing with USDT (custom token)
-        // Improved detection to make sure we don't miss USDT tokens
-        const isSellingUsdt =
-          (sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS) ||
-          // Double-check by symbol as a fallback
-          sellToken.symbol === "USDT" ||
-          // Also check ID=0 which is used for USDT
-          (sellToken.isCustomPool && sellToken.id === 0n);
-
-        const isBuyingUsdt = buyToken?.isCustomPool && buyToken?.token1 === USDT_ADDRESS;
-
-        console.log("Direct swap involving:", {
-          sellToken: sellToken.symbol,
-          buyToken: buyToken?.symbol,
-          sellTokenId: sellToken.id?.toString(),
-          isCustomPool: sellToken.isCustomPool,
-          token1Address: sellToken.token1,
-          usdtAddress: USDT_ADDRESS,
-          isSellingUsdt,
-          isBuyingUsdt,
-          currentAllowance: usdtAllowance?.toString() || "null",
-        });
-
-        const decimals = sellToken.decimals || 18;
-
-        // Parse with correct decimals (6 for USDT, 18 for regular tokens)
-        const amountInUnits = parseUnits(sellAmt || "0", decimals);
-
-        // Special case for USDT: Check and approve USDT allowance
-        if (isSellingUsdt) {
-          console.log("Checking USDT allowance before swap");
-
-          // If allowance is undefined, it hasn't been checked yet - wait for check to complete
-          if (usdtAllowance === undefined) {
-            console.log("USDT allowance is null, checking now...");
-            await refetchUsdtAllowance();
-          }
-
-          // Now check if we need approval - force approval dialog to appear for any USDT transaction
-          if (usdtAllowance === undefined || usdtAllowance === 0n || amountInUnits > usdtAllowance) {
-            console.log("USDT approval needed:", {
-              usdtAmount: amountInUnits.toString(),
-              allowance: usdtAllowance?.toString() || "0",
+          // sequentially execute while waiting for each transaction to be mined
+          for (const call of calls) {
+            console.log("SwapCalls: [Executing Call]", call);
+            const hash = await sendTransactionAsync({
+              to: call.to,
+              value: call.value,
+              data: call.data,
+              chainId: mainnet.id,
             });
 
-            // Maintain consistent UX with operator approval flow
-            setTxError(`${t('common.waiting')} ${t('common.approve')}...`);
-            const approved = await approveUsdtMax();
-
-            if (approved === undefined) {
-              return; // Stop if approval failed or was rejected
-            } else {
-              // wait for tx success
-              const receipt = await publicClient.waitForTransactionReceipt({
-                hash: approved,
-              });
-
-              if (receipt.status === "success") {
-                await refetchUsdtAllowance();
-              } else {
-                return;
-              }
-            }
-          } else {
-            console.log("USDT already approved:", {
-              allowance: usdtAllowance.toString(),
-              requiredAmount: amountInUnits.toString(),
-            });
-          }
-        }
-
-        // Approve ZAAM as operator if needed (for regular tokens, not USDT)
-        if (!isSellingUsdt && isOperator === false) {
-          try {
-            // First, show a notification about the approval step
-            setTxError(`${t('common.waiting')} ${t('common.approve')}...`);
-
-            // Send the approval transaction
-            const approvalHash = await writeContractAsync({
-              address: CoinsAddress,
-              abi: CoinsAbi,
-              functionName: "setOperator",
-              args: [ZAAMAddress, true],
-            });
-
-            // Show a waiting message
-            setTxError(t('notifications.transaction_sent'));
-
-            // Wait for the transaction to be mined
             const receipt = await publicClient.waitForTransactionReceipt({
-              hash: approvalHash,
+              hash,
             });
 
-            // Check if the transaction was successful
             if (receipt.status === "success") {
-              await refetchOperator();
-              setTxError(null); // Clear the message
+              console.log("Transaction successful");
             } else {
-              setTxError(t('errors.transaction_error'));
-              return;
+              console.error("Transaction failed");
+              throw new Error("Swap execution failed");
             }
-          } catch (err) {
-            // Use our utility to handle wallet errors
-            const errorMsg = handleWalletError(err);
-            if (errorMsg) {
-              console.error("Failed to approve operator:", err);
-              setTxError(t('errors.transaction_error'));
-            }
-            return;
           }
         }
-
-        // If we have two different Coin IDs, use the multicall path for Coin to Coin swap
-        if (
-          buyToken?.id !== null &&
-          buyToken?.id !== undefined &&
-          sellToken.id !== null &&
-          buyToken.id !== sellToken.id
-        ) {
-          try {
-            // Import our helper dynamically to avoid circular dependencies
-            const { createCoinSwapMulticall, estimateCoinToCoinOutput } = await import("./lib/swap");
-
-            // Fetch target coin reserves
-            let targetPoolId;
-            if (buyToken.isCustomPool && buyToken.poolId) {
-              // Use the custom pool ID for USDT-ETH
-              targetPoolId = buyToken.poolId;
-            } else {
-              // Regular pool ID
-              targetPoolId = computePoolId(buyToken.id!);
-            }
-
-            const targetPoolResult = await publicClient.readContract({
-              address: ZAAMAddress,
-              abi: ZAAMAbi,
-              functionName: "pools",
-              args: [targetPoolId],
-            });
-
-            const targetPoolData = targetPoolResult as unknown as readonly bigint[];
-            const targetReserves = {
-              reserve0: targetPoolData[0],
-              reserve1: targetPoolData[1],
-            };
-
-            // Get correct swap fees for both pools
-            const sourceSwapFee = sellToken.isCustomPool ? sellToken.swapFee || SWAP_FEE : SWAP_FEE;
-            const targetSwapFee = buyToken?.isCustomPool ? buyToken.swapFee || SWAP_FEE : SWAP_FEE;
-
-            // Estimate the final output amount and intermediate ETH amount
-            const {
-              amountOut,
-              withSlippage: minAmountOut,
-              ethAmountOut,
-            } = estimateCoinToCoinOutput(
-              sellToken.id!,
-              buyToken.id!,
-              amountInUnits,
-              reserves || { reserve0: 0n, reserve1: 0n }, // source reserves
-              targetReserves, // target reserves
-              slippageBps, // Use current slippage setting
-              sourceSwapFee, // Pass source pool fee (could be 30n for USDT)
-              targetSwapFee, // Pass target pool fee (could be 30n for USDT)
-            );
-
-            if (amountOut === 0n) {
-              setTxError(t('swap.output_zero'));
-              return;
-            }
-
-            // Create the multicall data for coin-to-coin swap via ETH
-            // We need to provide custom pool keys for USDT pools
-            // Cast to any to avoid TypeScript errors with `0x${string}` format
-            const sourcePoolKey =
-              sellToken.isCustomPool && sellToken.poolKey ? (sellToken.poolKey as any) : computePoolKey(sellToken.id!);
-
-            const targetPoolKey =
-              buyToken.isCustomPool && buyToken.poolKey ? (buyToken.poolKey as any) : computePoolKey(buyToken.id!);
-
-            const multicallData = createCoinSwapMulticall(
-              sellToken.id!,
-              buyToken.id!,
-              amountInUnits,
-              ethAmountOut, // Pass the estimated ETH output for the second swap
-              minAmountOut,
-              address,
-              sourcePoolKey, // Custom source pool key
-              targetPoolKey, // Custom target pool key
-            );
-
-            // Log the calls we're making for debugging
-            // simulate multicall
-            await simulateContractInteraction({
-              address: ZAAMAddress,
-              abi: ZAAMAbi,
-              functionName: "multicall",
-              args: [multicallData],
-            });
-
-            const gas = await estimateContractGas({
-              address: ZAAMAddress,
-              abi: ZAAMAbi,
-              functionName: "multicall",
-              args: [multicallData],
-            });
-
-            // Simulation complete
-            // Simulation complete
-
-            // Create safe versions of pool keys for logging
-            const safeSourcePoolKey = {
-              id0: sourcePoolKey.id0.toString(),
-              id1: sourcePoolKey.id1.toString(),
-              token0: sourcePoolKey.token0,
-              token1: sourcePoolKey.token1,
-              swapFee: sourcePoolKey.swapFee.toString(),
-            };
-
-            const safeTargetPoolKey = {
-              id0: targetPoolKey.id0.toString(),
-              id1: targetPoolKey.id1.toString(),
-              token0: targetPoolKey.token0,
-              token1: targetPoolKey.token1,
-              swapFee: targetPoolKey.swapFee.toString(),
-            };
-
-            console.log("Executing Coin->Coin swap with:", {
-              sourcePoolKey: JSON.stringify(safeSourcePoolKey),
-              targetPoolKey: JSON.stringify(safeTargetPoolKey),
-              sourceSwapFee: sourceSwapFee.toString(),
-              targetSwapFee: targetSwapFee.toString(),
-              amountIn: amountInUnits.toString(),
-              ethEstimate: ethAmountOut.toString(),
-              minOut: minAmountOut.toString(),
-            });
-
-            // Execute the multicall transaction
-            const hash = await writeContractAsync({
-              address: ZAAMAddress,
-              abi: ZAAMAbi,
-              functionName: "multicall",
-              args: [multicallData],
-              gas,
-            });
-
-            setTxHash(hash);
-            return;
-          } catch (err) {
-            // Use our utility to handle wallet errors
-            const errorMsg = handleWalletError(err);
-            if (errorMsg) {
-              console.error("Error in multicall swap:", err);
-              setTxError(t('errors.coin_to_coin_swap_failed'));
-            }
-            return;
-          }
-        }
-
-        // Default path for Coin to ETH swap
-        // Get the correct swap fee (custom fee for USDT, default fee for regular tokens)
-        const swapFee =
-          sellToken.isCustomPool || buyToken?.isCustomPool
-            ? (sellToken.isCustomPool ? sellToken.swapFee : buyToken?.swapFee) || SWAP_FEE
-            : SWAP_FEE;
-
-        const rawOut = reserves ? getAmountOut(amountInUnits, reserves.reserve1, reserves.reserve0, swapFee) : 0n;
-
-        if (rawOut === 0n) {
-          setTxError(t('swap.insufficient_balance'));
-          return;
-        }
-
-        // Create a deadline timestamp
-        const deadline = nowSec() + BigInt(DEADLINE_SEC);
-
-        // Add debugging info
-        console.log("Executing Coin->ETH swap with:", {
-          poolKey: JSON.stringify({
-            id0: poolKey.id0.toString(),
-            id1: poolKey.id1.toString(),
-            token0: poolKey.token0,
-            token1: poolKey.token1,
-            swapFee: poolKey.swapFee.toString(),
-          }),
-          amountIn: amountInUnits.toString(),
-          minOut: withSlippage(rawOut, slippageBps).toString(),
-          isSellingUsdt,
-          hasAllowance: isSellingUsdt ? usdtAllowance !== undefined && usdtAllowance >= amountInUnits : "N/A",
-        });
-
-        // Execute the swap
-        const hash = await writeContractAsync({
-          address: ZAAMAddress,
-          abi: ZAAMAbi,
-          functionName: "swapExactIn",
-          args: [poolKey, amountInUnits, withSlippage(rawOut, slippageBps), false, address, deadline],
-        });
-        setTxHash(hash);
       }
     } catch (err: unknown) {
       console.error("Swap execution error:", err);
@@ -668,13 +383,22 @@ export const SwapAction = () => {
       }
 
       // Enhanced error handling with specific messages for common swap failure cases
-      if (typeof err === "object" && err !== null && "message" in err && typeof err.message === "string") {
+      if (
+        typeof err === "object" &&
+        err !== null &&
+        "message" in err &&
+        typeof err.message === "string"
+      ) {
         const errMsg = err.message;
 
         // Handle wallet connection errors
-        if (errMsg.includes("getChainId") || errMsg.includes("connector") || errMsg.includes("connection")) {
+        if (
+          errMsg.includes("getChainId") ||
+          errMsg.includes("connector") ||
+          errMsg.includes("connection")
+        ) {
           // Wallet connection issue
-          setTxError(t('errors.wallet_connection_refresh'));
+          setTxError(t("errors.wallet_connection_refresh"));
 
           // Log structured debug info
           const errorInfo = {
@@ -688,9 +412,9 @@ export const SwapAction = () => {
           // Show error info in console
           console.error("Wallet connection error:", errorInfo);
         } else if (errMsg.includes("InsufficientOutputAmount")) {
-          setTxError(t('errors.insufficient_output_amount'));
+          setTxError(t("errors.insufficient_output_amount"));
         } else if (errMsg.includes("K(")) {
-          setTxError(t('errors.pool_constraints'));
+          setTxError(t("errors.pool_constraints"));
         } else {
           // Default to standard error handling
           const errorMsg = handleWalletError(err);
@@ -700,7 +424,7 @@ export const SwapAction = () => {
         }
       } else {
         // Fallback for non-standard errors
-        setTxError(t('errors.unexpected'));
+        setTxError(t("errors.unexpected"));
       }
     }
   };
@@ -760,7 +484,7 @@ export const SwapAction = () => {
       {/* SELL/PROVIDE panel */}
       <div className="relative flex flex-col">
         <SwapPanel
-          title={t('common.sell')}
+          title={t("common.sell")}
           selectedToken={sellToken}
           tokens={memoizedTokens}
           onSelect={handleSellTokenSelect}
@@ -783,7 +507,7 @@ export const SwapAction = () => {
         <FlipActionButton onClick={flipTokens} />
         {buyToken && (
           <SwapPanel
-            title={t('common.buy')}
+            title={t("common.buy")}
             selectedToken={buyToken}
             tokens={memoizedTokens}
             onSelect={handleBuyTokenSelect}
@@ -795,10 +519,13 @@ export const SwapAction = () => {
         )}
       </div>
       {/* Network indicator */}
-      <NetworkError message={t('swap.title')} />
+      <NetworkError message={t("swap.title")} />
 
       {/* Slippage information - clickable to show settings */}
-      <SlippageSettings setSlippageBps={setSlippageBps} slippageBps={slippageBps} />
+      <SlippageSettings
+        setSlippageBps={setSlippageBps}
+        slippageBps={slippageBps}
+      />
 
       {/* Pool information */}
       {canSwap && reserves && (
@@ -811,22 +538,32 @@ export const SwapAction = () => {
             (buyToken?.id === null && sellToken.symbol === "USDT")
           ) ? (
             <span className="flex items-center">
-              <span className="bg-chart-5/20 text-chart-5 px-1 rounded mr-1">{t('swap.route')}</span>
-              {sellToken.symbol} {t('common.to')} ETH {t('common.to')} {buyToken?.symbol}
+              <span className="bg-chart-5/20 text-chart-5 px-1 rounded mr-1">
+                {t("swap.route")}
+              </span>
+              {sellToken.symbol} {t("common.to")} ETH {t("common.to")}{" "}
+              {buyToken?.symbol}
             </span>
           ) : (
             <span>
-              {t('pool.title')}: {formatEther(reserves.reserve0).substring(0, 8)} ETH /{" "}
+              {t("pool.title")}:{" "}
+              {formatEther(reserves.reserve0).substring(0, 8)} ETH /{" "}
               {formatUnits(
                 reserves.reserve1,
                 // Use the correct decimals for the token (6 for USDT, 18 for others)
-                isCustomPool ? (sellToken.isCustomPool ? sellToken.decimals || 18 : buyToken?.decimals || 18) : 18,
+                isCustomPool
+                  ? sellToken.isCustomPool
+                    ? sellToken.decimals || 18
+                    : buyToken?.decimals || 18
+                  : 18,
               ).substring(0, 8)}{" "}
-              {coinId ? tokens.find((t) => t.id === coinId)?.symbol || "Token" : buyToken?.symbol}
+              {coinId
+                ? tokens.find((t) => t.id === coinId)?.symbol || "Token"
+                : buyToken?.symbol}
             </span>
           )}
           <span>
-            {t('swap.price_impact')}:{" "}
+            {t("swap.price_impact")}:{" "}
             {getSwapFee({
               isCustomPool: isCustomPool,
               sellToken,
@@ -846,16 +583,16 @@ export const SwapAction = () => {
         {isPending ? (
           <span className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
-            {t('common.loading')}
+            {t("common.loading")}
           </span>
         ) : (
-          t('common.swap')
+          t("common.swap")
         )}
       </Button>
 
       {/* Status and error messages */}
       {/* Show transaction statuses */}
-      {txError && txError.includes(t('common.waiting')) && (
+      {txError && txError.includes(t("common.waiting")) && (
         <div className="text-sm text-primary mt-2 flex items-center bg-background/50 p-2 rounded border border-primary/20">
           <Loader2 className="h-3 w-3 animate-spin mr-2" />
           {txError}
@@ -863,9 +600,12 @@ export const SwapAction = () => {
       )}
 
       {/* Show actual errors (only if not a user rejection) */}
-      {((writeError && !isUserRejectionError(writeError)) || (txError && !txError.includes(t('common.waiting')))) && (
+      {((writeError && !isUserRejectionError(writeError)) ||
+        (txError && !txError.includes(t("common.waiting")))) && (
         <div className="text-sm text-destructive mt-2 bg-background/50 p-2 rounded border border-destructive/20">
-          {writeError && !isUserRejectionError(writeError) ? writeError.message : txError}
+          {writeError && !isUserRejectionError(writeError)
+            ? writeError.message
+            : txError}
         </div>
       )}
 
@@ -873,7 +613,11 @@ export const SwapAction = () => {
       {isSuccess && <SuccessMessage />}
 
       <div className="mt-4 border-t border-primary pt-4">
-        <PoolSwapChart buyToken={buyToken} sellToken={sellToken} prevPair={prevPairRef.current} />
+        <PoolSwapChart
+          buyToken={buyToken}
+          sellToken={sellToken}
+          prevPair={prevPairRef.current}
+        />
       </div>
     </div>
   );
