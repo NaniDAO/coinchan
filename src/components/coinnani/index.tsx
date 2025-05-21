@@ -1,11 +1,16 @@
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
 interface CoinNaniProps {
   className?: string;
+}
+
+interface LastShownData {
+  timestamp: number; // Unix timestamp in ms
+  period: string; // The greeting key that was shown
 }
 
 // Function to get greeting based on time and language
@@ -20,45 +25,105 @@ const getGreetingKey = () => {
   }
 };
 
+const LOCAL_STORAGE_KEY = "coinNaniLastShown";
+const MIN_HIDE_DURATION_MS = 3 * 60 * 60 * 1000; // 3 hours
+const SHOW_DURATION_MS = 30 * 1000; // 30 seconds
+const INITIAL_DELAY_MS = 500; // Delay before showing bubble
+
 export const CoinNani = ({ className }: CoinNaniProps) => {
   const { t, i18n } = useTranslation();
   const [greetingKey, setGreetingKey] = useState("");
-  const [showBubble, setShowBubble] = useState(false);
+  const [shouldRenderComponent, setShouldRenderComponent] = useState<
+    boolean | undefined
+  >(undefined);
+
+  // Refs for timer IDs, to ensure cleanup
+  const showTimer = useRef<number>();
+  const hideTimer = useRef<number>();
 
   useEffect(() => {
-    // Set greeting key immediately
-    setGreetingKey(getGreetingKey());
+    const currentPeriod = getGreetingKey();
+    setGreetingKey(currentPeriod);
 
-    // Trigger bubble animation after a short delay
-    const timer = setTimeout(() => {
-      setShowBubble(true);
-    }, 500); // Delay to let the avatar appear first
+    if (typeof window === "undefined" || !window.localStorage) {
+      setShouldRenderComponent(false);
+      return;
+    }
 
-    return () => clearTimeout(timer); // Clean up timer on unmount
-  }, []); // Run once on mount
-  
-  // Update greeting when language changes
+    // Retrieve last shown data
+    let lastShownData: LastShownData | null = null;
+    const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+
+    if (storedData) {
+      try {
+        lastShownData = JSON.parse(storedData);
+      } catch (e) {
+        console.error("Failed to parse CoinNani localStorage data:", e);
+        localStorage.removeItem(LOCAL_STORAGE_KEY);
+      }
+    }
+
+    const now = Date.now();
+    const lastShownTime = lastShownData?.timestamp || 0;
+    const lastShownPeriod = lastShownData?.period;
+
+    // Determine if we should show this session
+    const shouldShowThisSession =
+      !lastShownData ||
+      currentPeriod !== lastShownPeriod ||
+      now - lastShownTime > MIN_HIDE_DURATION_MS;
+
+    setShouldRenderComponent(shouldShowThisSession);
+
+    if (shouldShowThisSession) {
+      // Schedule bubble show
+      showTimer.current = window.setTimeout(() => {
+        setShouldRenderComponent(true);
+        // Mark as shown immediately
+        localStorage.setItem(
+          LOCAL_STORAGE_KEY,
+          JSON.stringify({ timestamp: Date.now(), period: currentPeriod }),
+        );
+        // Schedule bubble hide
+        hideTimer.current = window.setTimeout(() => {
+          setShouldRenderComponent(false);
+        }, SHOW_DURATION_MS);
+      }, INITIAL_DELAY_MS);
+    }
+
+    return () => {
+      // Cleanup both timers
+      if (showTimer.current) clearTimeout(showTimer.current);
+      if (hideTimer.current) clearTimeout(hideTimer.current);
+    };
+  }, []);
+
+  // Update greeting on language change
   useEffect(() => {
-    // Re-render greeting when language changes
     setGreetingKey(getGreetingKey());
   }, [i18n.language]);
 
+  // If still initializing or should not render at all
+  if (!shouldRenderComponent) {
+    return null;
+  }
+
   return (
-    // Use flex-col and items-center to stack bubble above avatar and center horizontally
-    // justify-end to push content to the bottom if container has height
-    <div className={cn("relative flex flex-col items-center justify-end", className)}>
-      {/* Text Bubble */}
-      {showBubble && (
-        <motion.div
-          initial={{ scale: 0.5, opacity: 0, y: 20 }} // Start small, invisible, slightly lower
-          animate={{ scale: 1, opacity: 1, y: 0 }} // Pop to full size, visible, original position
-          transition={{ type: "spring", stiffness: 260, damping: 20 }} // Spring animation for pop effect
-          className="bg-primary/60 text-primary-foreground p-3 rounded-lg shadow-md whitespace-nowrap text-sm z-10 mb-2 relative" // mb-2 adds space below bubble, relative for tail
-        >
-          {t(greetingKey)}
-          <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-[10px] border-transparent border-t-primary/60"></div>
-        </motion.div>
+    <div
+      className={cn(
+        "relative flex flex-col items-center justify-end",
+        className,
       )}
+    >
+      <motion.div
+        initial={{ scale: 0.5, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 260, damping: 20 }}
+        className="bg-primary/60 text-primary-foreground p-3 rounded-lg shadow-md whitespace-nowrap text-sm z-10 mb-2 relative"
+      >
+        {t(greetingKey)}
+        <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-[10px] border-transparent border-t-primary/60" />
+      </motion.div>
 
       <motion.div
         whileHover={{ scale: 1.2, rotate: [0, -66, 66, 0] }}
@@ -66,7 +131,7 @@ export const CoinNani = ({ className }: CoinNaniProps) => {
       >
         <Avatar className="h-10 w-10 z-0">
           <AvatarImage src="/coinchan.png" alt="Coin Nani Avatar" />
-          <AvatarFallback>CN</AvatarFallback> {/* Fallback text */}
+          <AvatarFallback>CN</AvatarFallback>
         </Avatar>
       </motion.div>
     </div>
