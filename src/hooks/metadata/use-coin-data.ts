@@ -25,11 +25,6 @@ export function useCoinData(coinId: bigint) {
     queryFn: async () => {
       const data = await processRawCoinData(rawData as any);
 
-      console.log("useCoinData data", {
-        rawData,
-        data,
-      });
-
       let coinData: CoinData & {
         marketCapEth: number | undefined;
       } = {
@@ -40,8 +35,6 @@ export function useCoinData(coinId: bigint) {
         const FIXED_SUPPLY = 21_000_000;
         coinData.marketCapEth = data.priceInEth * FIXED_SUPPLY;
       }
-
-      console.log("useCoinData coinData", data);
 
       return coinData;
     },
