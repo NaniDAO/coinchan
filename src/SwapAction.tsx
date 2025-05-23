@@ -147,7 +147,7 @@ export const SwapAction = () => {
           outUnits,
           reserves.reserve0,
           reserves.reserve1,
-          SWAP_FEE,
+          buyToken?.swapFee ?? SWAP_FEE,
         );
         setSellAmt(inWei === 0n ? "" : formatEther(inWei));
       } else {
@@ -157,7 +157,7 @@ export const SwapAction = () => {
           outWei,
           reserves.reserve1,
           reserves.reserve0,
-          SWAP_FEE,
+          sellToken?.swapFee ?? SWAP_FEE,
         );
         // Use correct decimals for the sell token (6 for USDT, 18 for regular coins)
         const sellTokenDecimals = sellToken?.decimals || 18;
@@ -237,13 +237,13 @@ export const SwapAction = () => {
           inWei,
           reserves.reserve0,
           reserves.reserve1,
-          sellToken?.swapFee ?? SWAP_FEE,
+          buyToken?.swapFee ?? SWAP_FEE,
         );
         console.log("SyncFromSell: [ETH → Coin path]", {
           inWei,
           reserve0: reserves.reserve0,
           reserve1: reserves.reserve1,
-          swapFee: sellToken?.swapFee ?? SWAP_FEE,
+          swapFee: buyToken?.swapFee ?? SWAP_FEE,
           outUnits,
         });
         // Use correct decimals for the buy token (6 for USDT, 18 for regular coins)
