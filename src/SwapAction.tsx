@@ -117,6 +117,16 @@ export const SwapAction = () => {
 
   const syncFromBuy = async (val: string) => {
     setBuyAmt(val);
+    console.log("SyncFromBuy:", {
+      buyAmount: val,
+      canSwap,
+      reserves,
+      isCoinToCoin,
+      targetReserves,
+      buyToken,
+      sellToken,
+      isSellETH,
+    });
     if (!canSwap || !reserves) return setSellAmt("");
 
     try {
@@ -164,8 +174,19 @@ export const SwapAction = () => {
   const syncFromSell = async (val: string) => {
     // Regular Add Liquidity or Swap mode
     setSellAmt(val);
+    console.log("SyncFromSell:", {
+      sellAmount: val,
+      canSwap,
+      reserves,
+      isCoinToCoin,
+      targetReserves,
+      buyToken,
+      sellToken,
+      isSellETH,
+      mainPoolId,
+      targetPoolId,
+    });
     if (!canSwap || !reserves) return setBuyAmt("");
-
     try {
       // Different calculation paths based on swap type
       if (isCoinToCoin && targetReserves && buyToken?.id && sellToken.id) {
@@ -208,14 +229,23 @@ export const SwapAction = () => {
           setBuyAmt("");
         }
       } else if (isSellETH) {
+        console.log("SyncFromSell: [Is Sell ETH]");
+
         // ETH → Coin path
         const inWei = parseEther(val || "0");
         const outUnits = getAmountOut(
           inWei,
           reserves.reserve0,
           reserves.reserve1,
-          SWAP_FEE,
+          sellToken?.swapFee ?? SWAP_FEE,
         );
+        console.log("SyncFromSell: [ETH → Coin path]", {
+          inWei,
+          reserve0: reserves.reserve0,
+          reserve1: reserves.reserve1,
+          swapFee: sellToken?.swapFee ?? SWAP_FEE,
+          outUnits,
+        });
         // Use correct decimals for the buy token (6 for USDT, 18 for regular coins)
         const buyTokenDecimals = buyToken?.decimals || 18;
         setBuyAmt(
@@ -249,6 +279,9 @@ export const SwapAction = () => {
         isCustomPoolSwap: isCustomPool,
         isDirectUsdtEthSwap: isDirectUsdtEthSwap || false,
         isCoinToCoin: isCoinToCoin,
+        canSwap,
+        sellAmt,
+        buyAmt,
       });
 
       // Ensure wallet is connected before proceeding

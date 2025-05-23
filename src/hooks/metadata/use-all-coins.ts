@@ -2,10 +2,19 @@ import { usePublicClient, useAccount } from "wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
 import { mainnet } from "viem/chains";
-import { ETH_TOKEN, USDT_TOKEN, TokenMeta, USDT_POOL_ID, USDT_ADDRESS } from "@/lib/coins";
+import {
+  ETH_TOKEN,
+  USDT_TOKEN,
+  TokenMeta,
+  USDT_POOL_ID,
+  USDT_ADDRESS,
+} from "@/lib/coins";
 import { CoinchanAbi, CoinchanAddress } from "@/constants/Coinchan";
 import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
-import { CoinsMetadataHelperAbi, CoinsMetadataHelperAddress } from "@/constants/CoinsMetadataHelper";
+import {
+  CoinsMetadataHelperAbi,
+  CoinsMetadataHelperAddress,
+} from "@/constants/CoinsMetadataHelper";
 import { ZAAMAbi, ZAAMAddress } from "@/constants/ZAAM";
 import { SWAP_FEE } from "@/lib/swap";
 
@@ -29,10 +38,155 @@ async function fetchEthBalance(
   return ETH_TOKEN;
 }
 
+// --- 1) GraphQL query to fetch all pools + coin1 metadata ---
+const GET_ALL_COIN_POOLS = `
+  query GetAllCoinPools {
+    pools(limit: 1000, orderBy: "reserve0", orderDirection: "desc") {
+      items {
+        id          # poolId
+        reserve0
+        reserve1
+        swapFee
+        coin1 {
+          id
+          symbol
+          name
+          tokenURI
+          imageUrl
+        }
+      }
+    }
+  }
+`;
+
+async function fetchCoinPoolsViaGraphQL() {
+  const res = await fetch(import.meta.env.VITE_INDEXER_URL + "/graphql", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query: GET_ALL_COIN_POOLS }),
+  });
+  if (!res.ok) throw new Error("GraphQL fetch failed");
+  const { data, errors } = await res.json();
+  if (errors?.length) throw new Error(errors[0].message);
+  return data.pools.items as Array<{
+    id: string;
+    reserve0: string;
+    reserve1: string;
+    swapFee: number;
+    coin1: {
+      id: string;
+      symbol: string;
+      name: string;
+      tokenURI: string;
+      imageUrl: string;
+    };
+  }>;
+}
+
+/**
+ * Fetch all on-chain coins **metadata** via GraphQL + user balances on-chain.
+ * Falls back to your old `getAllCoinsData` helper if the GQL request errors.
+ */
+async function fetchOtherCoins(
+  publicClient: ReturnType<typeof usePublicClient> | undefined,
+  address: Address | undefined,
+): Promise<TokenMeta[]> {
+  if (!publicClient) throw new Error("Public client not available");
+
+  let pools: Awaited<ReturnType<typeof fetchCoinPoolsViaGraphQL>>;
+  try {
+    pools = await fetchCoinPoolsViaGraphQL();
+  } catch {
+    // fallback to your original batching logic
+    // (just paste your old fetchOtherCoins here)
+    return originalFetchOtherCoins(publicClient, address);
+  }
+
+  let metas: TokenMeta[];
+  try {
+    // map GraphQL → TokenMeta skeleton
+    metas = pools
+      .filter((p) => p?.coin1?.id != null && p?.swapFee != null)
+      .map((p) => ({
+        id: BigInt(p.coin1.id),
+        symbol: p.coin1.symbol,
+        name: p.coin1.name,
+        tokenUri: p.coin1.tokenURI,
+        reserve0: BigInt(p.reserve0),
+        reserve1: BigInt(p.reserve1),
+        poolId: BigInt(p.id),
+        liquidity: 0n, // your subgraph doesn’t track total liquidity?
+        swapFee: BigInt(p.swapFee), // basis points
+        balance: 0n, // to be filled in next step
+      }));
+  } catch (error) {
+    console.error("useAllCoins: [failed to map pools to TokenMeta]", error);
+  }
+
+  // now fetch balances in parallel
+  const withBalances = await Promise.all(
+    metas.map(async (m) => {
+      if (!address) return m;
+      try {
+        if (m.id === null) {
+          // it is ETH so skip
+          return m;
+        }
+
+        const bal = (await publicClient.readContract({
+          address: CoinsAddress,
+          abi: CoinsAbi,
+          functionName: "balanceOf",
+          args: [address, m.id],
+        })) as bigint;
+        return { ...m, balance: bal };
+      } catch {
+        return m;
+      }
+    }),
+  );
+
+  // finally tack on USDT pool as before
+  const usdtToken: TokenMeta = { ...USDT_TOKEN };
+  try {
+    const poolData = await publicClient.readContract({
+      address: ZAAMAddress,
+      abi: ZAAMAbi,
+      functionName: "pools",
+      args: [USDT_POOL_ID],
+    });
+    usdtToken.reserve0 = poolData[0];
+    usdtToken.reserve1 = poolData[1];
+  } catch {}
+  if (address) {
+    try {
+      const usdtBal = (await publicClient.readContract({
+        address: USDT_ADDRESS,
+        abi: [
+          {
+            inputs: [
+              { internalType: "address", name: "account", type: "address" },
+            ],
+            name: "balanceOf",
+            outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+            stateMutability: "view",
+            type: "function",
+          },
+        ],
+        functionName: "balanceOf",
+        args: [address],
+      })) as bigint;
+      usdtToken.balance = usdtBal;
+    } catch {}
+  }
+
+  return [...withBalances, usdtToken];
+}
+
 /**
  * Fetch all on-chain coins and USDT (excluding ETH)
  */
-async function fetchOtherCoins(
+async function originalFetchOtherCoins(
   publicClient: ReturnType<typeof usePublicClient> | undefined,
   address: Address | undefined,
 ): Promise<TokenMeta[]> {
@@ -76,7 +230,14 @@ async function fetchOtherCoins(
   const coinPromises = allCoinsData.map(async (coin: any) => {
     const [id, uri, r0, r1, pid, liq] = Array.isArray(coin)
       ? coin
-      : [coin.coinId, coin.tokenURI, coin.reserve0, coin.reserve1, coin.poolId, coin.liquidity];
+      : [
+          coin.coinId,
+          coin.tokenURI,
+          coin.reserve0,
+          coin.reserve1,
+          coin.poolId,
+          coin.liquidity,
+        ];
     const coinId = BigInt(id);
     const [symbol, name, lockup] = await Promise.all([
       publicClient
@@ -150,7 +311,9 @@ async function fetchOtherCoins(
       address: USDT_ADDRESS,
       abi: [
         {
-          inputs: [{ internalType: "address", name: "account", type: "address" }],
+          inputs: [
+            { internalType: "address", name: "account", type: "address" },
+          ],
           name: "balanceOf",
           outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
           stateMutability: "view",
@@ -164,7 +327,9 @@ async function fetchOtherCoins(
   }
 
   // Sort coins by ETH reserves descending
-  const sortedCoins = coins.sort((a, b) => Number((b.reserve0 || 0n) - (a.reserve0 || 0n)));
+  const sortedCoins = coins.sort((a, b) =>
+    Number((b.reserve0 || 0n) - (a.reserve0 || 0n)),
+  );
   return [...sortedCoins, usdtToken];
 }
 
@@ -175,7 +340,7 @@ export function useAllCoins() {
   const publicClient = usePublicClient({ chainId: mainnet.id });
   const { address } = useAccount();
 
-  // ETH balance query
+  // ETH balance
   const {
     data: ethToken,
     isLoading: isEthBalanceFetching,
@@ -190,7 +355,7 @@ export function useAllCoins() {
     refetchOnMount: false,
   });
 
-  // Other coins query
+  // Other coins + pools via GraphQL → TokenMeta
   const {
     data: otherTokens,
     isLoading: isOtherLoading,
