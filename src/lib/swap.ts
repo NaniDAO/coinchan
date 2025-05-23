@@ -497,9 +497,9 @@ export function getSwapFee({
 
   // Multihop (coin‐to‐coin) swaps pay double the base fee
   if (isCoinToCoin) {
-    return `${(Number(SWAP_FEE) * 2) / 100}%`;
+    return `${(Number(buyToken?.swapFee ?? SWAP_FEE) * 2) / 100}%`;
   }
 
   // All other swaps pay the base fee
-  return `${Number(SWAP_FEE) / 100}%`;
+  return `${Number(buyToken?.swapFee ?? SWAP_FEE) / 100}%`;
 }
