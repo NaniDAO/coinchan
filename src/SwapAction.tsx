@@ -157,7 +157,7 @@ export const SwapAction = () => {
           outWei,
           reserves.reserve1,
           reserves.reserve0,
-          sellToken?.swapFee ?? SWAP_FEE,
+          buyToken?.swapFee ?? SWAP_FEE,
         );
         // Use correct decimals for the sell token (6 for USDT, 18 for regular coins)
         const sellTokenDecimals = sellToken?.decimals || 18;
