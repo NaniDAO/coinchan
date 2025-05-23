@@ -16,6 +16,8 @@ import { PoolEvents } from "./components/PoolEvents";
 
 // Add global styles
 import "./buysell-styles.css";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
+import { CoinHolders } from "./components/CoinHolders";
 
 // Simple error boundary to prevent crashes
 class ErrorBoundary extends Component<
@@ -195,35 +197,47 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
         </div>
       )}
 
-      {/* Only show Unlock if the user is the owner */}
-      {/* <div className="mt-4 sm:mt-6">
-        // only data upto 30 april is being returned ??? so removing for now
-        <ErrorBoundary
-          fallback={<p className="text-destructive">Pool chart unavailable</p>}
-        >
-          <PoolCandleChart poolId={computePoolId(tokenId).toString()} />
-        </ErrorBoundary>
-      </div> */}
-      <div className="mt-4 sm:mt-6">
-        <ErrorBoundary
-          fallback={<p className="text-destructive">Pool chart unavailable</p>}
-        >
-          <PoolPriceChart
-            poolId={computePoolId(tokenId).toString()}
-            ticker={symbol ?? "TKN"}
-          />
-        </ErrorBoundary>
-      </div>
-      <div className="mt-4 sm:mt-6">
-        <ErrorBoundary
-          fallback={<p className="text-destructive">Pool Events unavailable</p>}
-        >
-          <PoolEvents
-            poolId={computePoolId(tokenId).toString()}
-            ticker={symbol}
-          />
-        </ErrorBoundary>
-      </div>
+      <Tabs>
+        <TabsList>
+          <TabsTrigger value="chart">Chart</TabsTrigger>
+          <TabsTrigger value="holders">Holders</TabsTrigger>
+          <TabsTrigger value="activity">Activity</TabsTrigger>
+        </TabsList>
+        <TabsContent value="chart" className="mt-4 sm:mt-6">
+          <ErrorBoundary
+            fallback={
+              <p className="text-destructive">Pool chart unavailable</p>
+            }
+          >
+            <PoolPriceChart
+              poolId={computePoolId(tokenId).toString()}
+              ticker={symbol ?? "TKN"}
+            />
+          </ErrorBoundary>
+        </TabsContent>
+        <TabsContent value="holders" className="mt-4 sm:mt-6">
+          <ErrorBoundary
+            fallback={
+              <p className="text-destructive">Pool holders unavailable</p>
+            }
+          >
+            <CoinHolders coinId={tokenId.toString()} ticker={symbol ?? "TKN"} />
+          </ErrorBoundary>
+        </TabsContent>
+        <TabsContent value="activity" className="mt-4 sm:mt-6">
+          <ErrorBoundary
+            fallback={
+              <p className="text-destructive">Pool Activity unavailable</p>
+            }
+          >
+            <PoolEvents
+              poolId={computePoolId(tokenId).toString()}
+              ticker={symbol}
+            />
+          </ErrorBoundary>
+        </TabsContent>
+      </Tabs>
+      <div className="mt-4 sm:mt-6"></div>
     </div>
   );
 };
