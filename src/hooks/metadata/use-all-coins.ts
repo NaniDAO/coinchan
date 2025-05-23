@@ -102,7 +102,7 @@ async function fetchOtherCoins(
     return originalFetchOtherCoins(publicClient, address);
   }
 
-  let metas: TokenMeta[];
+  let metas: TokenMeta[] = []; // Initialize metas to an empty array
   try {
     // map GraphQL → TokenMeta skeleton
     metas = pools
@@ -121,6 +121,7 @@ async function fetchOtherCoins(
       }));
   } catch (error) {
     console.error("useAllCoins: [failed to map pools to TokenMeta]", error);
+    // metas remains [] if mapping fails
   }
 
   // now fetch balances in parallel
@@ -128,8 +129,11 @@ async function fetchOtherCoins(
     metas.map(async (m) => {
       if (!address) return m;
       try {
-        if (m.id === null) {
-          // it is ETH so skip
+        // m.id can be null or undefined depending on the filter/map logic, but the filter should prevent null id.
+        // Added a check for id not being undefined as well, though filter should handle null.
+        if (m.id == null) {
+          // This case should ideally not happen with the filter above
+          // but as a safeguard, skip if coinId is null/undefined
           return m;
         }
 
