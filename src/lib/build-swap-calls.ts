@@ -138,12 +138,12 @@ export async function buildSwapCalls(
     const sourcePoolKey =
       sellToken.isCustomPool && sellToken.poolKey
         ? (sellToken.poolKey as any)
-        : computePoolKey(sellToken.id!);
+        : computePoolKey(sellToken.id!, sellToken?.swapFee ?? SWAP_FEE);
 
     const targetPoolKey =
       buyToken.isCustomPool && buyToken.poolKey
         ? (buyToken.poolKey as any)
-        : computePoolKey(buyToken.id!);
+        : computePoolKey(buyToken.id!, buyToken?.swapFee ?? SWAP_FEE);
 
     const multicallData = createCoinSwapMulticall(
       sellToken.id!,
@@ -171,7 +171,12 @@ export async function buildSwapCalls(
         ? sellToken.isCustomPool
           ? sellToken.poolKey!
           : buyToken.poolKey!
-        : computePoolKey(isSellETH ? buyToken.id! : sellToken.id!);
+        : computePoolKey(
+            isSellETH ? buyToken.id! : sellToken.id!,
+            isSellETH
+              ? (buyToken?.swapFee ?? SWAP_FEE)
+              : (sellToken?.swapFee ?? SWAP_FEE),
+          );
     const fromETH = isSellETH;
     const args = [
       poolKey,
