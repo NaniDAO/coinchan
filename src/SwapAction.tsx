@@ -565,7 +565,7 @@ export const SwapAction = () => {
         {/* FLIP button - only shown in swap mode */}
         <FlipActionButton 
           onClick={flipTokens} 
-          className={isSliderVisible ? "top-[calc(50%+2rem)]" : ""}
+          className={isSliderVisible ? "top-[calc(50%+4rem)]" : ""}
         />
         {buyToken && (
           <SwapPanel
