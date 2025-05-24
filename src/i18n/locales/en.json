@@ -162,6 +162,8 @@
     "customize_fee": "Customize Swap Fee",
     "custom_fee": "Custom Fee (%)",
     "select_fee": "Select a fee percentage for swaps",
+    "swap_fee": "Swap Fee",
+    "max_swap_fee": "Max swap fee",
     "max_value": "Max",
     "coin_it": "Coin It!"
   },

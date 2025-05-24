@@ -1,5 +1,6 @@
 import { TokenMeta } from "@/lib/coins";
 import { memo, useCallback, useEffect, useState } from "react";
+import { EthereumIcon } from "./EthereumIcon";
 
 const getInitials = (symbol: string) => {
   return symbol.slice(0, 2).toUpperCase();
@@ -28,6 +29,16 @@ export const TokenImage = memo(
     const [failedUrls, setFailedUrls] = useState<Set<string>>(new Set());
     const [alternativeUrls, setAlternativeUrls] = useState<string[]>([]);
     const { bg, text } = getColorForSymbol(token.symbol);
+
+    // Check if this is the ETH token
+    const isEthToken = token.id === null && token.symbol === "ETH";
+
+    // If this is ETH, use the theme-aware Ethereum icon
+    if (isEthToken) {
+      return (
+        <EthereumIcon className="w-8 h-8 rounded-full" />
+      );
+    }
 
     // Cache images in sessionStorage to prevent repeated fetches
     const cacheKey = `token-image-${token.id ?? "eth"}-url`;

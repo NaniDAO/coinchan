@@ -520,13 +520,13 @@ export function CoinForm() {
                           type="button"
                           className="text-xs px-2 py-1 rounded border border-input hover:bg-secondary-foreground transition-colors flex items-center gap-1"
                         >
-                          {t('swap.slippage')}: <span className="font-semibold text-primary">{feeToPercentage(swapFee)}</span>
+                          {t('create.swap_fee')}: <span className="font-semibold text-primary">{feeToPercentage(swapFee)}</span>
                         </button>
                       </PopoverTrigger>
                       <PopoverContent className="w-64 p-3">
                         <div className="space-y-2">
-                          <h4 className="font-medium text-sm">{t('swap.slippage')}</h4>
-                          <p className="text-xs text-muted-foreground">{t('swap.max_slippage')}</p>
+                          <h4 className="font-medium text-sm">{t('create.swap_fee')}</h4>
+                          <p className="text-xs text-muted-foreground">{t('create.max_swap_fee')}</p>
                           <div className="grid grid-cols-2 gap-2 mt-2">
                             {[25, 50, 100, 150, 200, 300].map((fee) => (
                               <button
@@ -550,7 +550,7 @@ export function CoinForm() {
 
                           <div className="mt-3">
                             <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                              {t('swap.slippage')} (%)
+                              {t('create.swap_fee')} (%)
                             </label>
                             <div className="flex items-center gap-2">
                               <Input

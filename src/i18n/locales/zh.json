@@ -162,6 +162,8 @@
     "customize_fee": "自定义兑换费用",
     "custom_fee": "自定义费用（%）",
     "select_fee": "选择兑换费用百分比",
+    "swap_fee": "兑换费用",
+    "max_swap_fee": "最大兑换费用",
     "max_value": "最大值",
     "coin_it": "创建币种！"
   },
