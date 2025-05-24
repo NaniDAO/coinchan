@@ -90,6 +90,9 @@ export const SwapAction = () => {
 
   const memoizedTokens = useMemo(() => tokens, [tokens]);
 
+  // Check if percentage slider is visible in sell panel
+  const isSliderVisible = sellToken.balance && sellToken.balance > 0n;
+
   // Reset UI state when tokens change
   useEffect(() => {
     // Reset transaction data
@@ -556,10 +559,14 @@ export const SwapAction = () => {
               syncFromSell(formatUnits(sellToken.balance as bigint, decimals));
             }
           }}
+          showPercentageSlider={true}
           className="rounded-t-2xl pb-4"
         />
         {/* FLIP button - only shown in swap mode */}
-        <FlipActionButton onClick={flipTokens} />
+        <FlipActionButton 
+          onClick={flipTokens} 
+          className={isSliderVisible ? "top-[calc(50%+4rem)]" : ""}
+        />
         {buyToken && (
           <SwapPanel
             title={t("common.buy")}

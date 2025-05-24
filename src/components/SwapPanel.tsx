@@ -1,7 +1,9 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { TokenSelector } from "./TokenSelector";
 import { TokenMeta } from "@/lib/coins";
 import { cn } from "@/lib/utils";
+import { PercentageSlider } from "./ui/percentage-slider";
+import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
 
 interface SwapPanelProps {
   title: string;
@@ -17,6 +19,10 @@ interface SwapPanelProps {
   readOnly?: boolean;
   /** Label to display when in preview mode */
   previewLabel?: string;
+  /** Show percentage slider for input assistance */
+  showPercentageSlider?: boolean;
+  /** Callback when percentage changes */
+  onPercentageChange?: (percentage: number) => void;
   className?: string;
 }
 
@@ -32,8 +38,57 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
   onMax,
   readOnly = false,
   previewLabel,
+  showPercentageSlider = false,
+  onPercentageChange,
   className = "",
 }) => {
+  const [percentage, setPercentage] = useState(0);
+
+  // Calculate current percentage based on amount and balance
+  useEffect(() => {
+    if (!showPercentageSlider || !selectedToken.balance || !amount) {
+      setPercentage(0);
+      return;
+    }
+
+    try {
+      const balance = selectedToken.balance as bigint;
+      const amountBigInt = selectedToken.id === null 
+        ? parseEther(amount) 
+        : parseUnits(amount, selectedToken.decimals || 18);
+      
+      if (balance > 0n) {
+        const calculatedPercentage = Number((amountBigInt * 100n) / balance);
+        setPercentage(Math.min(100, Math.max(0, calculatedPercentage)));
+      }
+    } catch {
+      setPercentage(0);
+    }
+  }, [amount, selectedToken.balance, selectedToken.id, selectedToken.decimals, showPercentageSlider]);
+
+  const handlePercentageChange = (newPercentage: number) => {
+    setPercentage(newPercentage);
+    
+    if (!selectedToken.balance) return;
+    
+    const balance = selectedToken.balance as bigint;
+    let calculatedAmount;
+    
+    if (selectedToken.id === null) {
+      // ETH - apply 1% gas discount for 100%
+      const adjustedBalance = newPercentage === 100 
+        ? (balance * 99n) / 100n 
+        : (balance * BigInt(newPercentage)) / 100n;
+      calculatedAmount = formatEther(adjustedBalance);
+    } else {
+      // Other tokens - use full balance
+      const adjustedBalance = (balance * BigInt(newPercentage)) / 100n;
+      calculatedAmount = formatUnits(adjustedBalance, selectedToken.decimals || 18);
+    }
+    
+    onAmountChange(calculatedAmount);
+    onPercentageChange?.(newPercentage);
+  };
   return (
     <div
       className={cn(
@@ -76,6 +131,17 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
           )
         )}
       </div>
+      
+      {/* Percentage slider - only show for sell panels when there's a balance */}
+      {showPercentageSlider && selectedToken.balance && selectedToken.balance > 0n ? (
+        <div className="mt-2 pt-2 border-t border-primary/20">
+          <PercentageSlider
+            value={percentage}
+            onChange={handlePercentageChange}
+            disabled={isEthBalanceFetching || readOnly}
+          />
+        </div>
+      ) : null}
     </div>
   );
 };

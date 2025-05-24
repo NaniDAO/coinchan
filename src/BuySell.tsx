@@ -7,6 +7,7 @@ import {
   useSwitchChain,
   useChainId,
   usePublicClient,
+  useBalance,
 } from "wagmi";
 
 // Add global styles
@@ -19,6 +20,7 @@ import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { PercentageSlider } from "@/components/ui/percentage-slider";
 import { mainnet } from "viem/chains";
 import { handleWalletError } from "@/lib/errors";
 import { useCoinData } from "./hooks/metadata";
@@ -53,6 +55,7 @@ export const BuySell = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [swapFee, setSwapFee] = useState<bigint>(SWAP_FEE);
   const [isOwner, setIsOwner] = useState(false);
+  const [buyPercentage, setBuyPercentage] = useState(0);
 
   const { address, isConnected } = useAccount();
   const { writeContractAsync, isPending } = useWriteContract();
@@ -150,6 +153,12 @@ export const BuySell = ({
     chainId: mainnet.id,
   });
 
+  // Fetch ETH balance for percentage slider
+  const { data: ethBalance } = useBalance({
+    address: address,
+    chainId: mainnet.id,
+  });
+
   // fetch allowance / operator state
   const { data: isOperator } = useReadContract({
     address: CoinsAddress,
@@ -188,6 +197,39 @@ export const BuySell = ({
       return "0";
     }
   }, [amount, reserves, tab, swapFee]);
+
+  // Handle percentage slider change for buy tab
+  const handleBuyPercentageChange = useCallback((percentage: number) => {
+    setBuyPercentage(percentage);
+    
+    if (!ethBalance?.value) return;
+    
+    // Apply gas discount for 100% (1% discount)
+    const adjustedBalance = percentage === 100 
+      ? (ethBalance.value * 99n) / 100n 
+      : (ethBalance.value * BigInt(percentage)) / 100n;
+    
+    const newAmount = formatEther(adjustedBalance);
+    setAmount(newAmount);
+  }, [ethBalance?.value]);
+
+  // Update percentage when amount changes manually
+  useEffect(() => {
+    if (tab !== "buy" || !ethBalance?.value || !amount) {
+      setBuyPercentage(0);
+      return;
+    }
+
+    try {
+      const amountWei = parseEther(amount);
+      if (ethBalance.value > 0n) {
+        const calculatedPercentage = Number((amountWei * 100n) / ethBalance.value);
+        setBuyPercentage(Math.min(100, Math.max(0, calculatedPercentage)));
+      }
+    } catch {
+      setBuyPercentage(0);
+    }
+  }, [amount, ethBalance?.value, tab]);
 
   // BUY using ETH → token
   const onBuy = async () => {
@@ -562,6 +604,18 @@ export const BuySell = ({
             disabled={isLoading}
             className={isLoading ? "opacity-70" : ""}
           />
+          
+          {/* Percentage slider for ETH balance */}
+          {ethBalance?.value && ethBalance.value > 0n && isConnected ? (
+            <div className="mt-2 pt-2 border-t border-primary/20">
+              <PercentageSlider
+                value={buyPercentage}
+                onChange={handleBuyPercentageChange}
+                disabled={isLoading}
+              />
+            </div>
+          ) : null}
+          
           <span className="text-sm font-medium text-green-800">
             You will receive ~ {estimated} {isLoading ? "..." : displaySymbol}
           </span>
