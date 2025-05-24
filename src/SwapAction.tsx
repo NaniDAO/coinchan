@@ -556,6 +556,7 @@ export const SwapAction = () => {
               syncFromSell(formatUnits(sellToken.balance as bigint, decimals));
             }
           }}
+          showPercentageSlider={true}
           className="rounded-t-2xl pb-4"
         />
         {/* FLIP button - only shown in swap mode */}
