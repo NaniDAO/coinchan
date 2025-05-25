@@ -1,8 +1,21 @@
 import { useState, useEffect, useCallback, useMemo, memo } from "react";
-import { useWriteContract, useWaitForTransactionReceipt, useAccount, usePublicClient, useSendTransaction } from "wagmi";
+import {
+  useWriteContract,
+  useWaitForTransactionReceipt,
+  useAccount,
+  usePublicClient,
+  useSendTransaction,
+} from "wagmi";
 import { mainnet } from "viem/chains";
 import { handleWalletError, isUserRejectionError } from "@/lib/errors";
-import { parseEther, parseUnits, formatEther, formatUnits, Address } from "viem";
+import {
+  parseEther,
+  parseUnits,
+  formatEther,
+  formatUnits,
+  Address,
+  erc20Abi,
+} from "viem";
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -80,7 +93,12 @@ const safeStr = (val: any): string => {
 
 // Main SendTile component - Memoized for better performance
 const SendTileComponent = () => {
-  const { tokens, error: loadError, isEthBalanceFetching, refetchEthBalance } = useAllCoins();
+  const {
+    tokens,
+    error: loadError,
+    isEthBalanceFetching,
+    refetchEthBalance,
+  } = useAllCoins();
   const [selectedToken, setSelectedToken] = useState<TokenMeta>(ETH_TOKEN);
   const [recipientAddress, setRecipientAddress] = useState("");
   const [amount, setAmount] = useState("");
@@ -93,28 +111,6 @@ const SendTileComponent = () => {
   const { writeContractAsync, isPending } = useWriteContract();
   const { sendTransactionAsync } = useSendTransaction();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
-
-  // Update selected token when tokens load, with improved error handling
-  useEffect(() => {
-    if (tokens.length > 0) {
-      // Find ETH token in the loaded tokens
-      const ethToken = tokens.find((token) => token.id === null);
-      if (ethToken) {
-        setSelectedToken(ethToken);
-        console.log("Selected ETH token with balance:", ethToken.balance?.toString() || "0");
-      }
-
-      // Log all available tokens for debugging
-      console.log(
-        "Available tokens:",
-        tokens.map((t) => ({
-          symbol: t.symbol,
-          id: t.id?.toString() || "ETH",
-          balance: t.balance?.toString() || "0",
-        })),
-      );
-    }
-  }, [tokens]);
 
   // Handle token selection
   const handleTokenSelect = useCallback(
@@ -140,7 +136,10 @@ const SendTileComponent = () => {
         if (selectedToken.id === null) {
           // ETH: 18 decimals
           setParsedAmount(value ? parseEther(value) : 0n);
-        } else if (selectedToken.isCustomPool && selectedToken.symbol === "USDT") {
+        } else if (
+          selectedToken.isCustomPool &&
+          selectedToken.symbol === "USDT"
+        ) {
           // USDT: 6 decimals
           setParsedAmount(value ? parseUnits(value, 6) : 0n);
         } else {
@@ -161,7 +160,9 @@ const SendTileComponent = () => {
       return;
     }
 
-    console.log(`MAX clicked for ${selectedToken.symbol} with balance ${selectedToken.balance.toString()}`);
+    console.log(
+      `MAX clicked for ${selectedToken.symbol} with balance ${selectedToken.balance.toString()}`,
+    );
 
     let maxValue: string;
     let maxParsedAmount: bigint;
@@ -206,12 +207,21 @@ const SendTileComponent = () => {
   // Check if send is allowed
   const canSend = useMemo(() => {
     // Must have a valid recipient address
-    if (!recipientAddress || !recipientAddress.startsWith("0x") || recipientAddress.length !== 42) {
+    if (
+      !recipientAddress ||
+      !recipientAddress.startsWith("0x") ||
+      recipientAddress.length !== 42
+    ) {
       return false;
     }
 
     // Amount must be greater than 0 and not exceed balance
-    if (!parsedAmount || parsedAmount <= 0n || !selectedToken.balance || parsedAmount > selectedToken.balance) {
+    if (
+      !parsedAmount ||
+      parsedAmount <= 0n ||
+      !selectedToken.balance ||
+      parsedAmount > selectedToken.balance
+    ) {
       return false;
     }
 
@@ -230,7 +240,12 @@ const SendTileComponent = () => {
       // Different logic based on token type
       if (selectedToken.id === null) {
         // Send ETH directly
-        console.log("Sending ETH:", formatEther(parsedAmount), "to", recipientAddress);
+        console.log(
+          "Sending ETH:",
+          formatEther(parsedAmount),
+          "to",
+          recipientAddress,
+        );
 
         // For ETH transfers, use the correct sendTransaction approach
         const hash = await sendTransactionAsync({
@@ -239,23 +254,17 @@ const SendTileComponent = () => {
         });
 
         setTxHash(hash);
-      } else if (selectedToken.isCustomPool && selectedToken.symbol === "USDT") {
+      } else if (
+        selectedToken.isCustomPool &&
+        selectedToken.symbol === "USDT"
+      ) {
         // Send USDT (ERC20) - simplified approach
-        console.log("Sending USDT:", formatUnits(parsedAmount, 6), "to", recipientAddress);
-
-        // Define USDT standard ERC20 transfer ABI
-        const erc20Abi = [
-          {
-            inputs: [
-              { internalType: "address", name: "to", type: "address" },
-              { internalType: "uint256", name: "value", type: "uint256" },
-            ],
-            name: "transfer",
-            outputs: [{ internalType: "bool", name: "", type: "bool" }],
-            stateMutability: "nonpayable",
-            type: "function",
-          },
-        ];
+        console.log(
+          "Sending USDT:",
+          formatUnits(parsedAmount, 6),
+          "to",
+          recipientAddress,
+        );
 
         // ERC20 transfer with detailed logging
         console.log("USDT contract address:", USDT_ADDRESS);
@@ -291,7 +300,11 @@ const SendTileComponent = () => {
           address: CoinsAddress,
           abi: CoinsAbi,
           functionName: "transfer",
-          args: [recipientAddress as `0x${string}`, selectedToken.id!, parsedAmount],
+          args: [
+            recipientAddress as `0x${string}`,
+            selectedToken.id!,
+            parsedAmount,
+          ],
         });
 
         setTxHash(hash);
@@ -332,7 +345,8 @@ const SendTileComponent = () => {
 
   // Calculate percent of balance
   const percentOfBalance = useMemo((): number => {
-    if (!selectedToken.balance || selectedToken.balance === 0n || !parsedAmount) return 0;
+    if (!selectedToken.balance || selectedToken.balance === 0n || !parsedAmount)
+      return 0;
 
     // Convert to number explicitly
     const percent = Number((parsedAmount * 100n) / selectedToken.balance);
@@ -348,7 +362,9 @@ const SendTileComponent = () => {
         {/* Recipient address input */}
         <div className="grid grid-cols-5 gap-4 w-full mb-4">
           <div className="col-span-3">
-            <label className="block text-sm font-medium text-foreground mb-1">Recipient Address</label>
+            <label className="block text-sm font-medium text-foreground mb-1">
+              Recipient Address
+            </label>
             <div className="h-12">
               {" "}
               {/* Set fixed height to match TokenSelector */}
@@ -360,13 +376,19 @@ const SendTileComponent = () => {
                 className="w-full p-2 border-2 border-primary rounded focus-within:ring-2 hover:bg-secondary-foreground focus-within:ring-primary focus-within:outline-none h-full"
               />
             </div>
-            {recipientAddress && (!recipientAddress.startsWith("0x") || recipientAddress.length !== 42) && (
-              <p className="mt-1 text-sm text-destructive">Please enter a valid Ethereum address</p>
-            )}
+            {recipientAddress &&
+              (!recipientAddress.startsWith("0x") ||
+                recipientAddress.length !== 42) && (
+                <p className="mt-1 text-sm text-destructive">
+                  Please enter a valid Ethereum address
+                </p>
+              )}
           </div>
           {/* Token selector */}
           <div className="col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Asset to Send</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Asset to Send
+            </label>
             <TokenSelector
               selectedToken={selectedToken}
               tokens={tokens.length > 0 ? tokens : [ETH_TOKEN]} // Ensure we always have at least ETH
@@ -380,7 +402,9 @@ const SendTileComponent = () => {
         {/* Amount input */}
         <div className="mb-4">
           <div className="flex justify-between items-center mb-1">
-            <label className="block text-sm font-medium text-foreground">Amount</label>
+            <label className="block text-sm font-medium text-foreground">
+              Amount
+            </label>
             <button
               onClick={handleMaxClick}
               className="text-xs text-primary hover:text-primary/80"
@@ -403,7 +427,10 @@ const SendTileComponent = () => {
               {safeStr(selectedToken.symbol)}
               {/* Show loading indicator if token is being fetched */}
               {selectedToken.isFetching && (
-                <span className="text-xs text-primary ml-1 inline-block" style={{ animation: "pulse 1.5s infinite" }}>
+                <span
+                  className="text-xs text-primary ml-1 inline-block"
+                  style={{ animation: "pulse 1.5s infinite" }}
+                >
                   ⟳
                 </span>
               )}
@@ -421,7 +448,9 @@ const SendTileComponent = () => {
               </span>
               <span>
                 Balance: {formatTokenBalance(selectedToken)}{" "}
-                {selectedToken.symbol !== undefined ? safeStr(selectedToken.symbol) : ""}
+                {selectedToken.symbol !== undefined
+                  ? safeStr(selectedToken.symbol)
+                  : ""}
               </span>
             </div>
           )}
@@ -458,7 +487,10 @@ const SendTileComponent = () => {
               </a>
               {/* Show animation while waiting for transaction */}
               {!isSuccess && (
-                <span className="inline-block ml-2 text-primary" style={{ animation: "pulse 1.5s infinite" }}>
+                <span
+                  className="inline-block ml-2 text-primary"
+                  style={{ animation: "pulse 1.5s infinite" }}
+                >
                   (waiting for confirmation...)
                 </span>
               )}
