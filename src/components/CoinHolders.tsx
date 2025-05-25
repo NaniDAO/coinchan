@@ -1,7 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { ResponsiveContainer, Tooltip, Treemap } from "recharts";
-import { formatUnits } from "viem";
+import { formatUnits, parseEther } from "viem";
+import { Table, TableBody, TableCell, TableHead, TableRow } from "./ui/table";
+import { useReadContract } from "wagmi";
+import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
+import { mainnet } from "viem/chains";
 
 interface Holder {
   address: string;
@@ -38,7 +42,12 @@ export const CoinHolders = ({
   if (isLoading || !data) return <div>Loading...</div>;
   if (error) return <div>Error: {error.message}</div>;
 
-  return <CoinHoldersTreemap data={data} symbol={symbol} />;
+  return (
+    <div>
+      <CoinHoldersTreemap data={data} symbol={symbol} />
+      <CoinHoldersTable coinId={BigInt(coinId)} data={data} symbol={symbol} />
+    </div>
+  );
 };
 
 export const CoinHoldersTreemap = ({
@@ -151,8 +160,6 @@ const interpolateColor = (t: number): string => {
 const CustomTreemapContent = (props: any) => {
   const { x, y, width, height, name, address, color } = props;
 
-  console.log("CustomTreemapContent", props);
-
   return (
     <a
       href={`https://etherscan.io/address/${address}`}
@@ -185,5 +192,63 @@ const CustomTreemapContent = (props: any) => {
         ) : null}
       </g>
     </a>
+  );
+};
+
+const DEFAULT_TOTAL_SUPPLY = 21_000_000;
+
+const CoinHoldersTable = ({
+  data,
+  coinId,
+  symbol,
+}: {
+  data: Holder[];
+  coinId: bigint;
+  symbol: string;
+}) => {
+  const { data: totalSupply } = useReadContract({
+    address: CoinsAddress,
+    abi: CoinsAbi,
+    functionName: "totalSupply",
+    args: [coinId],
+    chainId: mainnet.id,
+  });
+
+  return (
+    <Table>
+      <TableHead>
+        <TableRow>
+          <TableHead>Address</TableHead>
+          <TableHead>Amount</TableHead>
+          <TableHead>Percentage</TableHead>
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {data.map((holder, index) => {
+          return (
+            <TableRow key={index}>
+              <TableCell>{holder.address}</TableCell>
+              <TableCell>
+                {formatUnits(BigInt(holder.balance), 18)} {symbol}
+              </TableCell>
+              <TableCell>
+                {Number(
+                  (
+                    (parseFloat(formatUnits(BigInt(holder.balance), 18)) /
+                      parseFloat(
+                        totalSupply
+                          ? formatUnits(totalSupply, 18)
+                          : DEFAULT_TOTAL_SUPPLY.toString(),
+                      )) *
+                    100
+                  ).toString(),
+                ).toFixed(4)}
+                %
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
   );
 };
