@@ -1,0 +1,23 @@
+name: Audit Dependencies
+
+on:
+  pull_request:
+  schedule:
+    - cron: "0 0 * * 0"
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit for vulnerabilities
+        run: pnpm audit --audit-level=moderate
