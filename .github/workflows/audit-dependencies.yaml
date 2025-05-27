@@ -7,21 +7,17 @@ on:
 
 jobs:
   audit:
-    name: Run npm audit
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
         with:
-          node-version: "18"
-          cache: "npm"
+          version: 9
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Audit for vulnerabilities
-        run: npm audit --audit-level=moderate
+        run: pnpm audit --audit-level=moderate
