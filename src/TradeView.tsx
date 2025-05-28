@@ -78,7 +78,7 @@ const BuySellFallback = ({
 
 export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
   // Using our new hook to get coin data
-  const { data, isLoading, isError, error } = useCoinData(tokenId);
+  const { data, isLoading } = useCoinData(tokenId);
   const name = data && data.name !== null ? data.name : "Token";
   const symbol = data && data.symbol !== null ? data.symbol : "TKN";
 
