@@ -5,6 +5,12 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function trunc(value: number | string, length: number = 3): string {
+  return (
+    value.toString().slice(0, length) + "..." + value.toString().slice(-length)
+  );
+}
+
 /**
  * Helper to create a nowSec function for deadline calculations
  * @returns Current timestamp in seconds as BigInt
@@ -32,7 +38,10 @@ export function formatNumber(value: number, decimals: number = 2): string {
  * @param wait The number of milliseconds to delay
  * @returns A debounced function
  */
-export function debounce<T extends (...args: any[]) => any>(func: T, wait = 300): (...args: Parameters<T>) => void {
+export function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait = 300,
+): (...args: Parameters<T>) => void {
   let timeout: ReturnType<typeof setTimeout> | null = null;
 
   return function (this: any, ...args: Parameters<T>): void {

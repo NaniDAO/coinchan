@@ -5,6 +5,7 @@
     "success": "Success",
     "connect": "Connect Wallet",
     "disconnect": "Disconnect",
+    "asset_overview": "Asset View",
     "send": "Send",
     "buy": "Buy",
     "sell": "Sell",
