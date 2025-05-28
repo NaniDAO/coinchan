@@ -16,6 +16,7 @@ import { PoolEvents } from "./components/PoolEvents";
 
 // Add global styles
 import "./buysell-styles.css";
+import { CoinPreview } from "./components/CoinPreview";
 
 // Simple error boundary to prevent crashes
 class ErrorBoundary extends Component<
@@ -77,7 +78,7 @@ const BuySellFallback = ({
 
 export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
   // Using our new hook to get coin data
-  const { data, isLoading, isError, error } = useCoinData(tokenId);
+  const { data, isLoading } = useCoinData(tokenId);
   const name = data && data.name !== null ? data.name : "Token";
   const symbol = data && data.symbol !== null ? data.symbol : "TKN";
 
@@ -136,13 +137,6 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
     };
   }, [publicClient, tokenId, address, isSuccess]);
 
-  console.log("TradeView Data:", {
-    data,
-    isLoading,
-    isError,
-    error,
-  });
-
   return (
     <div className="w-full max-w-screen mx-auto flex flex-col gap-4 px-2 py-4 pb-16 sm:p-6 sm:pb-16">
       <Link
@@ -152,22 +146,12 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
         ⬅︎ Back to Explorer
       </Link>
 
-      <div className="flex flex-col items-start gap-2">
-        <h2 className="text-lg sm:text-xl font-semibold transition-opacity duration-300">
-          {isLoading ? (
-            <span className="inline-flex items-center space-x-2">
-              <span className="h-6 bg-muted/40 rounded w-40 skeleton"></span>
-              <span className="h-6 bg-muted/40 rounded w-16 skeleton"></span>
-            </span>
-          ) : (
-            <span className="content-transition loaded">
-              {name} [{symbol}]
-            </span>
-          )}
-        </h2>
-        {/* Metadata like tokenId */}
-        <p className="text-sm">ID: {tokenId.toString()}</p>
-      </div>
+      <CoinPreview
+        coinId={tokenId}
+        name={name}
+        symbol={symbol}
+        isLoading={isLoading}
+      />
 
       {/* Wrap BuySell component in an ErrorBoundary to prevent crashes */}
       <ErrorBoundary

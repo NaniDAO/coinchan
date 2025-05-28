@@ -66,7 +66,8 @@
     "results": "results",
     "coin": "coin",
     "loading_next": "Loading next page...",
-    "loading_previous": "Loading previous page..."
+    "loading_previous": "Loading previous page...",
+    "with": "with"
   },
   "header": {
     "connect": "Connect Wallet",
@@ -138,7 +139,7 @@
     "total_amount": "Total Amount"
   },
   "create": {
-    "title": "Create Coin",
+    "title": "Coin It!",
     "name": "Name",
     "symbol": "Symbol",
     "supply": "Supply",
@@ -165,7 +166,9 @@
     "swap_fee": "Swap Fee",
     "max_swap_fee": "Max swap fee",
     "max_value": "Max",
-    "coin_it": "Coin It!"
+    "coin_it": "Coin It!",
+    "preview": "Preview",
+    "settings": "Settings"
   },
   "explore": {
     "title": "Explore",
@@ -184,7 +187,7 @@
   },
   "coinpaper": {
     "title": "Coin Paper",
-    "view": "View Coin Paper",
+    "view": "View",
     "edit": "Edit Coin Paper",
     "publish": "Publish Coin Paper",
     "content": "Content",
