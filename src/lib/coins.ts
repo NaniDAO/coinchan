@@ -1,8 +1,13 @@
+import { CoinsAddress } from "@/constants/Coins";
 import {
   encodeAbiParameters,
   keccak256,
   parseAbiParameters,
   zeroAddress,
+  encodePacked,
+  Address,
+  Hex,
+  getAddress,
 } from "viem";
 
 export interface TokenMeta {
@@ -122,14 +127,41 @@ export const USDT_TOKEN: TokenMeta = {
   decimals: 6, // USDT has 6 decimals
 };
 
-export const computeCoinId = (name: string, symbol: string): bigint =>
-  BigInt(
-    BigInt(
-      keccak256(
-        encodeAbiParameters(parseAbiParameters("string name, string symbol"), [
-          name,
-          symbol,
-        ]),
-      ),
-    ) & 0xffffffffffffffffffffffffffffffffffffffffn,
+const INIT_CODE_HASH: Hex =
+  "0x6594461b4ce3b23f6cbdcdcf50388d5f444bf59a82f6e868dfd5ef2bfa13f6d4"; // the 0x6594…f6d4 init code hash
+
+/**
+ * Predicts the same uint256 ID as your Solidity _predictId function.
+ * @param name   The token/coin name
+ * @param symbol The token/coin symbol
+ * @returns      The uint256 “predicted” address cast to bigint
+ */
+export function computeCoinId(
+  name: string,
+  symbol: string,
+): {
+  id: bigint;
+  address: Address;
+} {
+  // salt = keccak256(abi.encodePacked(name, COINS, symbol))
+  const salt = keccak256(
+    encodePacked(["string", "address", "string"], [name, CoinsAddress, symbol]),
   );
+
+  // data = abi.encodePacked(0xff, COINS, salt, INIT_CODE_HASH)
+  const packed = encodePacked(
+    ["bytes1", "address", "bytes32", "bytes32"],
+    ["0xff", CoinsAddress, salt, INIT_CODE_HASH],
+  );
+
+  // hash = keccak256(data)
+  const hash = keccak256(packed);
+
+  // take the lower-160 bits (last 20 bytes) → same as uint160(uint256(hash))
+  const addressHex = "0x" + hash.slice(-40);
+
+  return {
+    id: BigInt(addressHex),
+    address: getAddress(addressHex),
+  };
+}

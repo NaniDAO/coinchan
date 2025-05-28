@@ -566,9 +566,14 @@ export function CoinForm() {
               <CoinPreview
                 name={formState.name}
                 symbol={formState.symbol}
-                coinId={computeCoinId(formState.name, formState.symbol)}
+                coinId={computeCoinId(formState.name, formState.symbol).id}
                 isLoading={!formState.name || !formState.symbol}
               />
+              <span>
+                (Address:{" "}
+                {computeCoinId(formState.name, formState.symbol).address})
+              </span>
+
               <p className="text-sm font-medium description-text mt-1 overflow-y-auto max-h-20 content-transition loaded">
                 {formState.description ?? "Set description"}
               </p>
