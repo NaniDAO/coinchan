@@ -1,125 +1,132 @@
-import { useCallback, useState } from "react";
-import { useDropzone } from "react-dropzone";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Image as ImageIcon, X } from "lucide-react";
-import { motion } from "framer-motion";
+import { ChangeEvent, DragEvent, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Button } from "./button";
 
+// Define proper types for the ImageInput component
 interface ImageInputProps {
-  /**
-   * Receive the selected file(s) when the list changes.
-   * If `multiple` is `false`, you'll get a single `File` or `undefined`.
-   * If `multiple` is `true`, you'll get an array of `File`s.
-   */
-  onChange?: (value: File | File[] | undefined) => void;
-  /** Allow selecting more than one image. */
-  multiple?: boolean;
-  /** Tailwind className merged with the root card. */
-  className?: string;
+  onChange: (file: File | File[] | undefined) => void;
 }
 
-/**
- * ImageInput – drag‑and‑drop image uploader built with **react‑dropzone**, **shadcn/ui**, and **Tailwind CSS**.
- *
- * ```tsx
- * <ImageInput onChange={(file) => handleImageChange(file)} />
- * ```
- */
-export default function ImageInput({ onChange, multiple = false, className = "" }: ImageInputProps) {
-  const [files, setFiles] = useState<(File & { preview: string })[]>([]);
+// Fixed ImageInput component with drag and drop and preview
+export const ImageInput = ({ onChange }: ImageInputProps) => {
+  const { t } = useTranslation();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
 
-  const onDrop = useCallback(
-    (accepted: File[]) => {
-      const mapped = accepted.map((file) =>
-        Object.assign(file, {
-          preview: URL.createObjectURL(file),
-        }),
-      );
-
-      setFiles((prev) => (multiple ? [...prev, ...mapped] : mapped));
-      onChange?.(multiple ? mapped : mapped[0]);
-    },
-    [multiple, onChange],
-  );
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: { "image/*": [] },
-    multiple,
-  });
-
-  const removeFile = (index: number) => {
-    setFiles((prev) => {
-      const next = prev.filter((_, i) => i !== index);
-      onChange?.(multiple ? next : next[0]);
-      return next;
-    });
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFile(file);
+      // Reset the input value to ensure onChange fires even if the same file is selected again
+      e.target.value = "";
+    }
   };
 
+  const handleFile = (file: File) => {
+    setSelectedFileName(file.name);
+
+    // Create preview URL
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
+
+    // Call parent onChange handler
+    onChange(file);
+
+    // Clean up the preview URL when component unmounts
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  };
+
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
+    if (files?.length) {
+      handleFile(files[0]);
+    }
+  };
+
+  // Clean up the URL when component unmounts
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
   return (
-    <Card
-      {...getRootProps()}
-      className={`w-full p-4 rounded-2xl border-2 border-dashed border-muted-foreground/30 shadow-sm transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40 ${
-        isDragActive ? "bg-muted/25" : ""
-      } ${className}`}
-    >
-      <input {...getInputProps()} />
-
-      {/* Placeholder / call‑to‑action */}
-      {files.length === 0 && (
-        <div className="flex flex-col items-center justify-center gap-2">
-          <ImageIcon className="w-12 h-12 opacity-60" aria-hidden />
-          <p className="text-sm text-muted-foreground select-none">
-            {isDragActive ? "Drop the image here …" : "Drag & drop or click to select an image"}
-          </p>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={(e) => {
-              e.preventDefault();
-              // Forward click to hidden input
-              (e.currentTarget.parentElement?.previousSibling as HTMLInputElement)?.click();
-            }}
-          >
-            Browse files
-          </Button>
-        </div>
-      )}
-
-      {/* Previews */}
-      {files.length > 0 && (
-        <CardContent className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          {files.map((file, idx) => (
-            <motion.div
-              key={file.name}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.2 }}
-              className="relative group"
-            >
-              <img
-                src={file.preview}
-                alt={file.name}
-                className="w-full h-32 object-cover rounded-xl"
-                onLoad={() => URL.revokeObjectURL(file.preview)}
-              />
+    <div className="flex flex-col gap-2">
+      <input
+        ref={fileInputRef}
+        type="file"
+        onChange={handleFileChange}
+        accept="image/*"
+        className="hidden"
+      />
+      <div
+        className={`flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-md ${
+          isDragging ? "border-primary bg-primary/10" : "border-input"
+        } transition-colors duration-200`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        {previewUrl ? (
+          <div className="flex flex-col items-center gap-4">
+            <img
+              src={previewUrl}
+              alt="Preview"
+              className="max-h-32 max-w-full object-contain rounded-md"
+            />
+            <div className="flex flex-col items-center">
+              <p className="text-sm text-muted-foreground mb-2">
+                {selectedFileName}
+              </p>
               <Button
                 type="button"
-                size="icon"
-                variant="ghost"
-                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 backdrop-blur"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  removeFile(idx);
-                }}
+                onClick={() => fileInputRef.current?.click()}
+                variant="outline"
+                size="sm"
               >
-                <X className="w-4 h-4" />
+                {t("common.change")}
               </Button>
-            </motion.div>
-          ))}
-        </CardContent>
-      )}
-    </Card>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center">
+            <p className="mb-2">{t("common.drag_drop")}</p>
+            <p>{t("common.or")}</p>
+            <Button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              variant="outline"
+              className="mt-2"
+            >
+              {t("common.browse_files")}
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
   );
-}
+};
