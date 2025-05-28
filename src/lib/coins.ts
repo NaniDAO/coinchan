@@ -121,3 +121,15 @@ export const USDT_TOKEN: TokenMeta = {
   poolKey: USDT_POOL_KEY as any, // Cast to any to avoid type errors
   decimals: 6, // USDT has 6 decimals
 };
+
+export const computeCoinId = (name: string, symbol: string): bigint =>
+  BigInt(
+    BigInt(
+      keccak256(
+        encodeAbiParameters(parseAbiParameters("string name, string symbol"), [
+          name,
+          symbol,
+        ]),
+      ),
+    ) & 0xffffffffffffffffffffffffffffffffffffffffn,
+  );
