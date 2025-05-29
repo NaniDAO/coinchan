@@ -1,6 +1,6 @@
 import { BuySell } from "./BuySell";
 import { ClaimVested } from "./ClaimVested";
-import { useEffect, useState, Component, ReactNode } from "react";
+import { useEffect, useState } from "react";
 import {
   useAccount,
   usePublicClient,
@@ -17,33 +17,7 @@ import { PoolEvents } from "./components/PoolEvents";
 // Add global styles
 import "./buysell-styles.css";
 import { CoinPreview } from "./components/CoinPreview";
-
-// Simple error boundary to prevent crashes
-class ErrorBoundary extends Component<
-  { children: ReactNode; fallback: ReactNode },
-  { hasError: boolean }
-> {
-  constructor(props: { children: ReactNode; fallback: ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-
-  componentDidCatch(error: Error) {
-    console.error("Component Error:", error);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return this.props.fallback;
-    }
-
-    return this.props.children;
-  }
-}
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 // Fallback component for BuySell when it crashes
 const BuySellFallback = ({

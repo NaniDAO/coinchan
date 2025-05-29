@@ -5,6 +5,7 @@
     "success": "成功",
     "connect": "连接钱包",
     "disconnect": "断开连接",
+    "asset_overview": "资产总览",
     "send": "发送",
     "buy": "买入",
     "sell": "卖出",
