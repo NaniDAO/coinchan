@@ -1,10 +1,10 @@
 import { useReadContract } from "wagmi";
-import { ZAAMAbi, ZAAMAddress } from "../constants/ZAAM";
+import { ZAMMAbi, ZAMMAddress } from "../constants/ZAAM";
 
 export function useReserves({ poolId }: { poolId: bigint | undefined }) {
   return useReadContract({
-    address: ZAAMAddress,
-    abi: ZAAMAbi,
+    address: ZAMMAddress,
+    abi: ZAMMAbi,
     functionName: "pools",
     args: poolId ? [poolId] : undefined,
     query: {

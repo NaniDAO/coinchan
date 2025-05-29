@@ -15,7 +15,7 @@ import "./buysell-styles.css";
 import { parseEther, parseUnits, formatEther, formatUnits } from "viem";
 import { formatNumber, nowSec } from "./lib/utils";
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
-import { ZAAMAbi, ZAAMAddress } from "./constants/ZAAM";
+import { ZAMMAbi, ZAMMAddress } from "./constants/ZAAM";
 import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -164,7 +164,7 @@ export const BuySell = ({
     address: CoinsAddress,
     abi: CoinsAbi,
     functionName: "isOperator",
-    args: address ? [address, ZAAMAddress] : undefined,
+    args: address ? [address, ZAMMAddress] : undefined,
     chainId: mainnet.id,
   });
 
@@ -199,19 +199,23 @@ export const BuySell = ({
   }, [amount, reserves, tab, swapFee]);
 
   // Handle percentage slider change for buy tab
-  const handleBuyPercentageChange = useCallback((percentage: number) => {
-    setBuyPercentage(percentage);
-    
-    if (!ethBalance?.value) return;
-    
-    // Apply gas discount for 100% (1% discount)
-    const adjustedBalance = percentage === 100 
-      ? (ethBalance.value * 99n) / 100n 
-      : (ethBalance.value * BigInt(percentage)) / 100n;
-    
-    const newAmount = formatEther(adjustedBalance);
-    setAmount(newAmount);
-  }, [ethBalance?.value]);
+  const handleBuyPercentageChange = useCallback(
+    (percentage: number) => {
+      setBuyPercentage(percentage);
+
+      if (!ethBalance?.value) return;
+
+      // Apply gas discount for 100% (1% discount)
+      const adjustedBalance =
+        percentage === 100
+          ? (ethBalance.value * 99n) / 100n
+          : (ethBalance.value * BigInt(percentage)) / 100n;
+
+      const newAmount = formatEther(adjustedBalance);
+      setAmount(newAmount);
+    },
+    [ethBalance?.value],
+  );
 
   // Update percentage when amount changes manually
   useEffect(() => {
@@ -223,7 +227,9 @@ export const BuySell = ({
     try {
       const amountWei = parseEther(amount);
       if (ethBalance.value > 0n) {
-        const calculatedPercentage = Number((amountWei * 100n) / ethBalance.value);
+        const calculatedPercentage = Number(
+          (amountWei * 100n) / ethBalance.value,
+        );
         setBuyPercentage(Math.min(100, Math.max(0, calculatedPercentage)));
       }
     } catch {
@@ -256,8 +262,8 @@ export const BuySell = ({
 
       const poolKey = computePoolKey(tokenId, swapFee);
       const hash = await writeContractAsync({
-        address: ZAAMAddress,
-        abi: ZAAMAbi,
+        address: ZAMMAddress,
+        abi: ZAMMAbi,
         functionName: "swapExactIn",
         args: [poolKey, amountInWei, amountOutMin, true, address, deadline],
         value: amountInWei,
@@ -295,7 +301,7 @@ export const BuySell = ({
             address: CoinsAddress,
             abi: CoinsAbi,
             functionName: "setOperator",
-            args: [ZAAMAddress, true],
+            args: [ZAMMAddress, true],
             chainId: mainnet.id,
           });
         } catch (approvalErr) {
@@ -320,8 +326,8 @@ export const BuySell = ({
 
       const poolKey = computePoolKey(tokenId, swapFee);
       const hash = await writeContractAsync({
-        address: ZAAMAddress,
-        abi: ZAAMAbi,
+        address: ZAMMAddress,
+        abi: ZAMMAbi,
         functionName: "swapExactIn",
         args: [poolKey, amountInUnits, amountOutMin, false, address, deadline],
         chainId: mainnet.id,
@@ -604,7 +610,7 @@ export const BuySell = ({
             disabled={isLoading}
             className={isLoading ? "opacity-70" : ""}
           />
-          
+
           {/* Percentage slider for ETH balance */}
           {ethBalance?.value && ethBalance.value > 0n && isConnected ? (
             <div className="mt-2 pt-2 border-t border-primary/20">
@@ -615,7 +621,7 @@ export const BuySell = ({
               />
             </div>
           ) : null}
-          
+
           <span className="text-sm font-medium text-green-800">
             You will receive ~ {estimated} {isLoading ? "..." : displaySymbol}
           </span>

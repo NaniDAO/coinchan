@@ -1,7 +1,8 @@
 import { Address } from "viem";
 
-export const ZAAMAddress = "0x00000000000008882D72EfA6cCE4B6a40b24C860" as Address;
-export const ZAAMAbi = [
+export const ZAMMAddress =
+  "0x00000000000008882D72EfA6cCE4B6a40b24C860" as Address;
+export const ZAMMAbi = [
   { inputs: [], stateMutability: "payable", type: "constructor" },
   { inputs: [], name: "Expired", type: "error" },
   { inputs: [], name: "InsufficientInputAmount", type: "error" },
@@ -18,10 +19,30 @@ export const ZAAMAbi = [
   {
     anonymous: false,
     inputs: [
-      { indexed: true, internalType: "uint256", name: "poolId", type: "uint256" },
-      { indexed: true, internalType: "address", name: "sender", type: "address" },
-      { indexed: false, internalType: "uint256", name: "amount0", type: "uint256" },
-      { indexed: false, internalType: "uint256", name: "amount1", type: "uint256" },
+      {
+        indexed: true,
+        internalType: "uint256",
+        name: "poolId",
+        type: "uint256",
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "sender",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "amount0",
+        type: "uint256",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "amount1",
+        type: "uint256",
+      },
       { indexed: true, internalType: "address", name: "to", type: "address" },
     ],
     name: "Burn",
@@ -30,10 +51,30 @@ export const ZAAMAbi = [
   {
     anonymous: false,
     inputs: [
-      { indexed: true, internalType: "uint256", name: "poolId", type: "uint256" },
-      { indexed: true, internalType: "address", name: "sender", type: "address" },
-      { indexed: false, internalType: "uint256", name: "amount0", type: "uint256" },
-      { indexed: false, internalType: "uint256", name: "amount1", type: "uint256" },
+      {
+        indexed: true,
+        internalType: "uint256",
+        name: "poolId",
+        type: "uint256",
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "sender",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "amount0",
+        type: "uint256",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "amount1",
+        type: "uint256",
+      },
     ],
     name: "Mint",
     type: "event",
@@ -41,12 +82,42 @@ export const ZAAMAbi = [
   {
     anonymous: false,
     inputs: [
-      { indexed: true, internalType: "uint256", name: "poolId", type: "uint256" },
-      { indexed: true, internalType: "address", name: "sender", type: "address" },
-      { indexed: false, internalType: "uint256", name: "amount0In", type: "uint256" },
-      { indexed: false, internalType: "uint256", name: "amount1In", type: "uint256" },
-      { indexed: false, internalType: "uint256", name: "amount0Out", type: "uint256" },
-      { indexed: false, internalType: "uint256", name: "amount1Out", type: "uint256" },
+      {
+        indexed: true,
+        internalType: "uint256",
+        name: "poolId",
+        type: "uint256",
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "sender",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "amount0In",
+        type: "uint256",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "amount1In",
+        type: "uint256",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "amount0Out",
+        type: "uint256",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "amount1Out",
+        type: "uint256",
+      },
       { indexed: true, internalType: "address", name: "to", type: "address" },
     ],
     name: "Swap",
@@ -55,9 +126,24 @@ export const ZAAMAbi = [
   {
     anonymous: false,
     inputs: [
-      { indexed: true, internalType: "uint256", name: "poolId", type: "uint256" },
-      { indexed: false, internalType: "uint112", name: "reserve0", type: "uint112" },
-      { indexed: false, internalType: "uint112", name: "reserve1", type: "uint112" },
+      {
+        indexed: true,
+        internalType: "uint256",
+        name: "poolId",
+        type: "uint256",
+      },
+      {
+        indexed: false,
+        internalType: "uint112",
+        name: "reserve0",
+        type: "uint112",
+      },
+      {
+        indexed: false,
+        internalType: "uint112",
+        name: "reserve1",
+        type: "uint112",
+      },
     ],
     name: "Sync",
     type: "event",
@@ -66,7 +152,12 @@ export const ZAAMAbi = [
     anonymous: false,
     inputs: [
       { indexed: false, internalType: "string", name: "uri", type: "string" },
-      { indexed: true, internalType: "uint256", name: "coinId", type: "uint256" },
+      {
+        indexed: true,
+        internalType: "uint256",
+        name: "coinId",
+        type: "uint256",
+      },
     ],
     name: "URI",
     type: "event",
@@ -198,8 +289,16 @@ export const ZAAMAbi = [
       { internalType: "uint112", name: "reserve0", type: "uint112" },
       { internalType: "uint112", name: "reserve1", type: "uint112" },
       { internalType: "uint32", name: "blockTimestampLast", type: "uint32" },
-      { internalType: "uint256", name: "price0CumulativeLast", type: "uint256" },
-      { internalType: "uint256", name: "price1CumulativeLast", type: "uint256" },
+      {
+        internalType: "uint256",
+        name: "price0CumulativeLast",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "price1CumulativeLast",
+        type: "uint256",
+      },
       { internalType: "uint256", name: "kLast", type: "uint256" },
       { internalType: "uint256", name: "supply", type: "uint256" },
     ],

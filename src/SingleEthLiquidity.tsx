@@ -30,7 +30,7 @@ import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { mainnet } from "viem/chains";
 import { nowSec } from "./lib/utils";
 import { formatEther, formatUnits, parseEther } from "viem";
-import { ZAAMAbi, ZAAMAddress } from "./constants/ZAAM";
+import { ZAMMAbi, ZAMMAddress } from "./constants/ZAAM";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import { SlippageSettings } from "./components/SlippageSettings";
 import { SwapPanel } from "./components/SwapPanel";
@@ -162,8 +162,8 @@ export const SingleEthLiquidity = () => {
       if (buyToken.id !== coinId || buyToken.isCustomPool) {
         try {
           const result = await publicClient?.readContract({
-            address: ZAAMAddress,
-            abi: ZAAMAbi,
+            address: ZAMMAddress,
+            abi: ZAMMAbi,
             functionName: "pools",
             args: [poolId],
           });
@@ -315,8 +315,8 @@ export const SingleEthLiquidity = () => {
           }
 
           const result = await publicClient.readContract({
-            address: ZAAMAddress,
-            abi: ZAAMAbi,
+            address: ZAMMAddress,
+            abi: ZAMMAbi,
             functionName: "pools",
             args: [targetPoolId],
           });

@@ -23,7 +23,7 @@ import {
   SWAP_FEE,
   withSlippage,
 } from "./lib/swap";
-import { ZAAMAbi, ZAAMAddress } from "./constants/ZAAM";
+import { ZAMMAbi, ZAMMAddress } from "./constants/ZAAM";
 import { SuccessMessage } from "./components/SuccessMessage";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { SlippageSettings } from "./components/SlippageSettings";
@@ -109,8 +109,8 @@ export const RemoveLiquidity = () => {
 
         // Read the user's LP token balance for this pool
         const balance = (await publicClient.readContract({
-          address: ZAAMAddress,
-          abi: ZAAMAbi,
+          address: ZAMMAddress,
+          abi: ZAMMAbi,
           functionName: "balanceOf",
           args: [address, poolId],
         })) as bigint;
@@ -241,8 +241,8 @@ export const RemoveLiquidity = () => {
       }
 
       const poolInfo = (await publicClient.readContract({
-        address: ZAAMAddress,
-        abi: ZAAMAbi,
+        address: ZAMMAddress,
+        abi: ZAMMAbi,
         functionName: "pools",
         args: [poolId],
       })) as any;
@@ -375,8 +375,8 @@ export const RemoveLiquidity = () => {
 
       // Call removeLiquidity on the ZAMM contract
       const hash = await writeContractAsync({
-        address: ZAAMAddress,
-        abi: ZAAMAbi,
+        address: ZAMMAddress,
+        abi: ZAMMAbi,
         functionName: "removeLiquidity",
         args: [poolKey, burnAmount, amount0Min, amount1Min, address, deadline],
       });

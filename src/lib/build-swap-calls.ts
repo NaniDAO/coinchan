@@ -1,7 +1,7 @@
 import { encodeFunctionData, erc20Abi, maxUint256, parseUnits } from "viem";
 import type { Address, Hex, PublicClient } from "viem";
 import { USDT_ADDRESS, type TokenMeta } from "@/lib/coins";
-import { ZAAMAbi, ZAAMAddress } from "@/constants/ZAAM";
+import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
 import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
 import {
   computePoolKey,
@@ -70,7 +70,7 @@ export async function buildSwapCalls(
       address: USDT_ADDRESS,
       abi: erc20Abi,
       functionName: "allowance",
-      args: [address, ZAAMAddress],
+      args: [address, ZAMMAddress],
     });
 
     if (allowance < sellAmtInUnits) {
@@ -79,7 +79,7 @@ export async function buildSwapCalls(
         data: encodeFunctionData({
           abi: erc20Abi,
           functionName: "approve",
-          args: [ZAAMAddress, maxUint256],
+          args: [ZAMMAddress, maxUint256],
         }) as Hex,
       });
     }
@@ -91,7 +91,7 @@ export async function buildSwapCalls(
       address: CoinsAddress,
       abi: CoinsAbi,
       functionName: "isOperator",
-      args: [address, ZAAMAddress],
+      args: [address, ZAMMAddress],
     });
 
     if (!isOperator) {
@@ -100,7 +100,7 @@ export async function buildSwapCalls(
         data: encodeFunctionData({
           abi: CoinsAbi,
           functionName: "setOperator",
-          args: [ZAAMAddress, true],
+          args: [ZAMMAddress, true],
         }) as Hex,
       });
     }
@@ -157,9 +157,9 @@ export async function buildSwapCalls(
     );
 
     calls.push({
-      to: ZAAMAddress,
+      to: ZAMMAddress,
       data: encodeFunctionData({
-        abi: ZAAMAbi,
+        abi: ZAMMAbi,
         functionName: "multicall",
         args: [multicallData],
       }) as Hex,
@@ -187,9 +187,9 @@ export async function buildSwapCalls(
       deadline,
     ] as const;
     const call: Call = {
-      to: ZAAMAddress,
+      to: ZAMMAddress,
       data: encodeFunctionData({
-        abi: ZAAMAbi,
+        abi: ZAMMAbi,
         functionName: "swapExactIn",
         args,
       }) as Hex,

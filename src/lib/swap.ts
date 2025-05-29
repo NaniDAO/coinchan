@@ -6,7 +6,7 @@ import {
   Address,
   keccak256,
 } from "viem";
-import { ZAAMAddress, ZAAMAbi } from "../constants/ZAAM";
+import { ZAMMAddress, ZAMMAbi } from "../constants/ZAAM";
 import { CoinsAddress } from "../constants/Coins";
 import { TokenMeta, USDT_ADDRESS } from "./coins";
 
@@ -130,14 +130,14 @@ export function createCoinSwapMulticall(
     // 1. First swap: sourceCoin → ETH (use ZAAM as the receiver to keep ETH for next swap)
     // This will consume the entire input amount of source coin
     encodeFunctionData({
-      abi: ZAAMAbi,
+      abi: ZAMMAbi,
       functionName: "swapExactIn",
       args: [
         sourcePoolKey,
         amountIn,
         0n, // No minimum for intermediate ETH output since we're controlling the flow
         false, // false means we're swapping from token1 (Coin) to token0 (ETH)
-        ZAAMAddress, // Important: Send to the contract itself for second swap
+        ZAMMAddress, // Important: Send to the contract itself for second swap
         deadline,
       ],
     }) as `0x${string}`,
@@ -145,7 +145,7 @@ export function createCoinSwapMulticall(
     // 2. Second swap: ETH → targetCoin
     // Use the expected ETH output from first swap (with safety margin)
     encodeFunctionData({
-      abi: ZAAMAbi,
+      abi: ZAMMAbi,
       functionName: "swapExactIn",
       args: [
         targetPoolKey,
@@ -160,7 +160,7 @@ export function createCoinSwapMulticall(
     // 3. Recover any leftover source coins - likely none since we use full amount
     // For USDT, recover from USDT address; for regular coins, from CoinsAddress
     encodeFunctionData({
-      abi: ZAAMAbi,
+      abi: ZAMMAbi,
       functionName: "recoverTransientBalance",
       args: [
         isSourceUSDT ? customSourcePoolKey.token1 : CoinsAddress, // Token address
@@ -172,7 +172,7 @@ export function createCoinSwapMulticall(
     // 4. Recover any leftover ETH from the intermediate step
     // This is expected to happen if our ETH estimate isn't exact
     encodeFunctionData({
-      abi: ZAAMAbi,
+      abi: ZAMMAbi,
       functionName: "recoverTransientBalance",
       args: [
         zeroAddress, // ETH is represented by zero address
@@ -184,7 +184,7 @@ export function createCoinSwapMulticall(
     // 5. Recover any excess target coins (unlikely but possible)
     // For USDT, recover from USDT address; for regular coins, from CoinsAddress
     encodeFunctionData({
-      abi: ZAAMAbi,
+      abi: ZAMMAbi,
       functionName: "recoverTransientBalance",
       args: [
         isTargetUSDT ? customTargetPoolKey.token1 : CoinsAddress, // Token address

@@ -22,7 +22,7 @@ import {
   useWriteContract,
 } from "wagmi";
 import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
-import { ZAAMAbi, ZAAMAddress } from "./constants/ZAAM";
+import { ZAMMAbi, ZAMMAddress } from "./constants/ZAAM";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import { useWaitForTransactionReceipt } from "wagmi";
 import { ETH_TOKEN, TokenMeta, USDT_ADDRESS, USDT_POOL_KEY } from "./lib/coins";
@@ -82,7 +82,7 @@ export const AddLiquidity = () => {
     approveMax: approveUsdtMax,
   } = useErc20Allowance({
     token: USDT_ADDRESS,
-    spender: ZAAMAddress,
+    spender: ZAMMAddress,
   });
 
   const [txHash, setTxHash] = useState<`0x${string}`>();
@@ -469,7 +469,7 @@ export const AddLiquidity = () => {
             address: CoinsAddress,
             abi: CoinsAbi,
             functionName: "setOperator",
-            args: [ZAAMAddress, true],
+            args: [ZAMMAddress, true],
           });
 
           // Show a waiting message
@@ -531,8 +531,8 @@ export const AddLiquidity = () => {
         // Use the ethAmount from ZAMMHelper as the exact value to send
         // IMPORTANT: We should also use the exact calculated amounts for amount0Desired and amount1Desired
         const hash = await writeContractAsync({
-          address: ZAAMAddress,
-          abi: ZAAMAbi,
+          address: ZAMMAddress,
+          abi: ZAMMAbi,
           functionName: "addLiquidity",
           args: [
             poolKey,

@@ -15,7 +15,7 @@ import {
   CoinsMetadataHelperAbi,
   CoinsMetadataHelperAddress,
 } from "@/constants/CoinsMetadataHelper";
-import { ZAAMAbi, ZAAMAddress } from "@/constants/ZAAM";
+import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
 import { SWAP_FEE } from "@/lib/swap";
 
 /**
@@ -154,8 +154,8 @@ async function fetchOtherCoins(
   const usdtToken: TokenMeta = { ...USDT_TOKEN };
   try {
     const poolData = await publicClient.readContract({
-      address: ZAAMAddress,
-      abi: ZAAMAbi,
+      address: ZAMMAddress,
+      abi: ZAMMAbi,
       functionName: "pools",
       args: [USDT_POOL_ID],
     });
@@ -302,8 +302,8 @@ async function originalFetchOtherCoins(
   const usdtToken: TokenMeta = { ...USDT_TOKEN };
   try {
     const poolData = (await publicClient.readContract({
-      address: ZAAMAddress,
-      abi: ZAAMAbi,
+      address: ZAMMAddress,
+      abi: ZAMMAbi,
       functionName: "pools",
       args: [USDT_POOL_ID],
     })) as [bigint, bigint, number, bigint, bigint, bigint, bigint];

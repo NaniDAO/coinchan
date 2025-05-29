@@ -1,7 +1,7 @@
 import { useReadContract } from "wagmi";
 import { Address } from "viem";
 import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
-import { ZAAMAddress } from "@/constants/ZAAM";
+import { ZAMMAddress } from "@/constants/ZAAM";
 import { mainnet } from "viem/chains";
 
 export function useOperatorStatus(address: Address | undefined) {
@@ -9,7 +9,7 @@ export function useOperatorStatus(address: Address | undefined) {
     address: CoinsAddress,
     abi: CoinsAbi,
     functionName: "isOperator",
-    args: address ? [address, ZAAMAddress] : undefined,
+    args: address ? [address, ZAMMAddress] : undefined,
     chainId: mainnet.id, // Default to mainnet
   });
 }
