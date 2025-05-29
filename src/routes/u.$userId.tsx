@@ -1,21 +1,13 @@
 import { ActivityTable } from "@/components/ActivityTable";
 import { CoinBalanceTable } from "@/components/CoinBalanceTable";
 import ErrorFallback, { ErrorBoundary } from "@/components/ErrorBoundary";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AccountTransfer, useGetAccount } from "@/hooks/use-get-account";
-import { formatTimeAgo } from "@/lib/date";
-import { trunc } from "@/lib/utils";
-import { createFileRoute, Link } from "@tanstack/react-router";
+
+import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { formatEther, getAddress } from "viem";
+import { getAddress } from "viem";
 
 export const Route = createFileRoute("/u/$userId")({
   component: RouteComponent,
