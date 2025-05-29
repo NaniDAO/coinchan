@@ -134,7 +134,7 @@ export interface AccountTransfer {
   };
 }
 
-interface AccountCoinsBalanceOf {
+export interface AccountCoinsBalanceOf {
   address: string;
   balance: string;
   coinId: string;

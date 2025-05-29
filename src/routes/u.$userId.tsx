@@ -1,3 +1,6 @@
+import { ActivityTable } from "@/components/ActivityTable";
+import { CoinBalanceTable } from "@/components/CoinBalanceTable";
+import ErrorFallback, { ErrorBoundary } from "@/components/ErrorBoundary";
 import {
   Table,
   TableBody,
@@ -51,82 +54,24 @@ function RouteComponent() {
           <TabsTrigger value="activity">Activity</TabsTrigger>
         </TabsList>
         <TabsContent value="coins">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Coin</TableHead>
-                <TableHead>Balance</TableHead>
-                <TableHead>Updated At</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data?.coinsBalanceOf?.items?.map((bal) => (
-                <TableRow key={bal.coinId}>
-                  <Link
-                    to={`/c/$coinId`}
-                    params={{
-                      coinId: bal.coinId,
-                    }}
-                  >
-                    <TableCell>
-                      {bal.coin.name}[{bal.coin.symbol}]({trunc(bal.coinId)})
-                    </TableCell>
-                  </Link>
-                  <TableCell>
-                    {parseFloat(
-                      formatEther(BigInt(bal?.balance ?? "0")),
-                    ).toFixed(5)}
-                  </TableCell>
-                  <TableCell>
-                    {bal.updatedAt ? formatTimeAgo(Number(bal.updatedAt)) : "-"}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <ErrorBoundary
+            fallback={
+              <ErrorFallback errorMessage="Error rendering coin balance activity" />
+            }
+          >
+            {data?.coinsBalanceOf?.items && (
+              <CoinBalanceTable data={data?.coinsBalanceOf?.items} />
+            )}
+          </ErrorBoundary>
         </TabsContent>
         <TabsContent value="activity">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Amount</TableHead>
-                <TableHead>From</TableHead>
-                <TableHead>To</TableHead>
-                <TableHead>Sender</TableHead>
-                <TableHead>Block</TableHead>
-                <TableHead>Time</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {transferActivity.map((transfer) => (
-                <TableRow key={transfer.id}>
-                  <TableCell>
-                    {parseFloat(
-                      formatEther(BigInt(transfer?.amount ?? "0")),
-                    ).toFixed(5)}{" "}
-                    {transfer.coin.symbol}
-                  </TableCell>
-                  <TableCell>
-                    {transfer.from?.address
-                      ? trunc(transfer.from?.address)
-                      : "-"}
-                  </TableCell>
-                  <TableCell>
-                    {transfer.to?.address ? trunc(transfer.to?.address) : "-"}
-                  </TableCell>
-                  <TableCell>
-                    {transfer.sender?.address
-                      ? trunc(transfer.sender?.address)
-                      : "-"}
-                  </TableCell>
-                  <TableCell>{transfer.blockNumber}</TableCell>
-                  <TableCell>
-                    {formatTimeAgo(Number(transfer.createdAt))}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <ErrorBoundary
+            fallback={
+              <ErrorFallback errorMessage="An error occurred while rendering activity data." />
+            }
+          >
+            <ActivityTable data={transferActivity} />
+          </ErrorBoundary>
         </TabsContent>
       </Tabs>
     </div>
