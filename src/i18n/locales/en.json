@@ -119,7 +119,9 @@
     "token_approval": "Token Approval",
     "waiting_approval": "Waiting for approval",
     "approve_token": "Approve {token}",
-    "approve_spending": "Approve {token} spending"
+    "approve_spending": "Approve {token} spending",
+    "instant": "Instant",
+    "limit_order": "Limit Order"
   },
   "send": {
     "title": "Send",

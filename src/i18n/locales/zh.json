@@ -118,7 +118,9 @@
     "token_approval": "代币批准",
     "waiting_approval": "等待批准",
     "approve_token": "批准 {token}",
-    "approve_spending": "批准 {token} 花费"
+    "approve_spending": "批准 {token} 花费",
+    "instant": "即时",
+    "limit_order": "限价订单"
   },
   "send": {
     "title": "发送",
