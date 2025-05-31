@@ -17,7 +17,8 @@ import { PoolEvents } from "./components/PoolEvents";
 // Add global styles
 import "./buysell-styles.css";
 import { CoinPreview } from "./components/CoinPreview";
-import { ErrorBoundary } from "./components/ErrorBoundary";
+import ErrorFallback, { ErrorBoundary } from "./components/ErrorBoundary";
+import { VotePanel } from "./components/VotePanel";
 
 // Fallback component for BuySell when it crashes
 const BuySellFallback = ({
@@ -137,6 +138,11 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
           <BuySell tokenId={tokenId} name={name} symbol={symbol} />
         </div>
       </ErrorBoundary>
+      <ErrorBoundary
+        fallback={<ErrorFallback errorMessage="Error rendering voting panel" />}
+      >
+        <VotePanel coinId={tokenId} />
+      </ErrorBoundary>
 
       {/* Only show ClaimVested if the user is the owner */}
       {isOwner && (
@@ -152,16 +158,6 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
           </ErrorBoundary>
         </div>
       )}
-
-      {/* Only show Unlock if the user is the owner */}
-      {/* <div className="mt-4 sm:mt-6">
-        // only data upto 30 april is being returned ??? so removing for now
-        <ErrorBoundary
-          fallback={<p className="text-destructive">Pool chart unavailable</p>}
-        >
-          <PoolCandleChart poolId={computePoolId(tokenId).toString()} />
-        </ErrorBoundary>
-      </div> */}
       <div className="mt-4 sm:mt-6">
         <ErrorBoundary
           fallback={<p className="text-destructive">Pool chart unavailable</p>}
