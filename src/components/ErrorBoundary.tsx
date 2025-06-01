@@ -1,10 +1,7 @@
 import React, { Component, ReactNode } from "react";
 
 // Simple error boundary to prevent crashes
-export class ErrorBoundary extends Component<
-  { children: ReactNode; fallback: ReactNode },
-  { hasError: boolean }
-> {
+export class ErrorBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { hasError: boolean }> {
   constructor(props: { children: ReactNode; fallback: ReactNode }) {
     super(props);
     this.state = { hasError: false };

@@ -1,19 +1,19 @@
-import i18n from 'i18next';
-import { initReactI18next } from 'react-i18next';
-import LanguageDetector from 'i18next-browser-languagedetector';
+import i18n from "i18next";
+import { initReactI18next } from "react-i18next";
+import LanguageDetector from "i18next-browser-languagedetector";
 
 // Import translations
-import translationEN from './locales/en.json';
-import translationZH from './locales/zh.json';
+import translationEN from "./locales/en.json";
+import translationZH from "./locales/zh.json";
 
 // the translations
 const resources = {
   en: {
-    translation: translationEN
+    translation: translationEN,
   },
   zh: {
-    translation: translationZH
-  }
+    translation: translationZH,
+  },
 };
 
 i18n
@@ -24,29 +24,29 @@ i18n
   // init i18next
   .init({
     resources,
-    fallbackLng: 'en',
-    
+    fallbackLng: "en",
+
     // common namespace used around the full app
-    defaultNS: 'translation',
-    
-    keySeparator: '.',
-    
+    defaultNS: "translation",
+
+    keySeparator: ".",
+
     interpolation: {
-      escapeValue: false // react already safes from xss
+      escapeValue: false, // react already safes from xss
     },
-    
+
     detection: {
       // order and from where user language should be detected
-      order: ['querystring', 'cookie', 'localStorage', 'navigator', 'htmlTag'],
+      order: ["querystring", "cookie", "localStorage", "navigator", "htmlTag"],
 
       // keys or params to lookup language from
-      lookupQuerystring: 'lng',
-      lookupCookie: 'i18next',
-      lookupLocalStorage: 'i18nextLng',
+      lookupQuerystring: "lng",
+      lookupCookie: "i18next",
+      lookupLocalStorage: "i18nextLng",
 
       // cache user language
-      caches: ['localStorage', 'cookie']
-    }
+      caches: ["localStorage", "cookie"],
+    },
   });
 
 export default i18n;

@@ -74,8 +74,10 @@ export const AddLiquidity = () => {
   const [slippageBps, setSlippageBps] = useState<bigint>(SLIPPAGE_BPS);
 
   /* Check if user has approved ZAAM as operator */
-  const { data: isOperator, refetch: refetchOperator } =
-    useOperatorStatus(address);
+  const { data: isOperator, refetch: refetchOperator } = useOperatorStatus({
+    address,
+    operator: ZAMMAddress,
+  });
   const {
     allowance: usdtAllowance,
     refetchAllowance: refetchUsdtAllowance,

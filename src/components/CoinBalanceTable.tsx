@@ -1,11 +1,4 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { trunc } from "@/lib/utils";
 import { formatTimeAgo } from "@/lib/date";
 import { Link } from "@tanstack/react-router";
@@ -39,12 +32,8 @@ export function CoinBalanceTable({ data }: CoinBalanceTableProps) {
                 {bal?.coin?.name}[{bal?.coin?.symbol}]({trunc(bal?.coinId)})
               </TableCell>
             </Link>
-            <TableCell>
-              {parseFloat(formatEther(BigInt(bal?.balance ?? "0"))).toFixed(5)}
-            </TableCell>
-            <TableCell>
-              {bal?.updatedAt ? formatTimeAgo(Number(bal?.updatedAt)) : "-"}
-            </TableCell>
+            <TableCell>{parseFloat(formatEther(BigInt(bal?.balance ?? "0"))).toFixed(5)}</TableCell>
+            <TableCell>{bal?.updatedAt ? formatTimeAgo(Number(bal?.updatedAt)) : "-"}</TableCell>
           </TableRow>
         ))}
       </TableBody>
