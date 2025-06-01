@@ -281,6 +281,10 @@
   },
   "orders": {
     "title": "订单",
+    "add_filter": "筛选",
+    "only_my_orders": "仅显示我的订单",
+    "exclude_my_orders": "排除我的订单",
+    "ownership": "归属",
     "my_orders": "我的订单",
     "all_orders": "所有订单",
     "active_orders": "活跃订单",
@@ -319,7 +323,8 @@
     "filled": "已成交",
     "loading_orders": "加载订单中...",
     "refresh": "刷新",
-    "view_on_explorer": "在浏览器中查看"
+    "view_on_explorer": "在浏览器中查看",
+    "no_filtered_orders": "没有符合筛选条件的订单"
   },
   "coinNani": {
     "morning": "早上好！",

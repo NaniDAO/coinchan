@@ -284,6 +284,9 @@
   },
   "orders": {
     "title": "Orders",
+    "add_filter": "Filter",
+    "only_my_orders": "Only My Orders",
+    "exclude_my_orders": "Exclude My Orders",
     "my_orders": "My Orders",
     "all_orders": "All Orders",
     "active_orders": "Active Orders",
@@ -322,7 +325,9 @@
     "filled": "Filled",
     "loading_orders": "Loading orders...",
     "refresh": "Refresh",
-    "view_on_explorer": "View on Explorer"
+    "view_on_explorer": "View on Explorer",
+    "no_filtered_orders": "No filtered orders found",
+    "ownership": "Ownership"
   },
   "coinNani": {
     "morning": "Good morning!",

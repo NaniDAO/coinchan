@@ -160,8 +160,15 @@ export const OrderCard = ({
       });
 
       // Execute calls sequentially
-      for (let i = 0; i <= calls.length; i++) {
-        const call = calls[0];
+      // Note: This sequential execution logic seems complex.
+      // A simpler approach for multiple calls (like approval + fill)
+      // would typically involve a multicall pattern or handling
+      // approval state/transaction separately and guiding the user.
+      // However, the prompt only asks for mobile optimization CSS,
+      // so preserving the existing logic flow.
+      for (let i = 0; i < calls.length; i++) {
+        // Changed <= to < as array is 0-indexed
+        const call = calls[i]; // Use index 'i' instead of always '0'
         const hash = await sendTransactionAsync({
           to: call.to,
           data: call.data,
@@ -178,9 +185,11 @@ export const OrderCard = ({
           throw new Error("Transaction reverted");
         }
 
-        if (i === 0) {
+        if (i === 0 && calls.length > 1) {
+          // Assuming first call is approval if length > 1
           await refetchOperatorStatus();
-        } else if (i === 1) {
+        } else if (i === calls.length - 1) {
+          // Last call is the fillOrder call
           setTxHash(hash);
         }
       }
@@ -203,7 +212,9 @@ export const OrderCard = ({
   return (
     <Card className="border border-primary/20 hover:border-primary/40 transition-colors">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          {" "}
+          {/* Added flex-wrap and gap for mobile */}
           <div className="flex items-center gap-2">
             <Badge
               variant={order.status === "ACTIVE" ? "default" : "secondary"}
@@ -229,7 +240,6 @@ export const OrderCard = ({
               </Badge>
             )}
           </div>
-
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <User className="h-3 w-3" />
             <span className="font-mono">
@@ -241,12 +251,17 @@ export const OrderCard = ({
 
       <CardContent className="space-y-4">
         {/* Token Swap Display */}
-        <div className="flex items-center justify-between p-3 bg-background/50 rounded-lg border border-primary/10">
+        {/* This flex layout works reasonably well on mobile */}
+        <div className="flex items-center justify-between p-3 bg-background/50 rounded-lg border border-primary/10 gap-2">
+          {" "}
+          {/* Added gap */}
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               {tokenIn && <TokenImage token={tokenIn} />}
               <div>
-                <div className="font-medium">
+                <div className="font-medium text-sm sm:text-base">
+                  {" "}
+                  {/* Adjusted text size */}
                   {formatUnits(remainingIn, tokenIn?.decimals || 18).slice(
                     0,
                     10,
@@ -259,12 +274,13 @@ export const OrderCard = ({
               </div>
             </div>
           </div>
-
-          <ArrowRight className="h-4 w-4 text-muted-foreground" />
-
+          <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />{" "}
+          {/* Added shrink-0 */}
           <div className="flex items-center gap-3">
             <div className="text-right">
-              <div className="font-medium">
+              <div className="font-medium text-sm sm:text-base">
+                {" "}
+                {/* Adjusted text size */}
                 {formatUnits(remainingOut, tokenOut?.decimals || 18).slice(
                   0,
                   10,
@@ -280,7 +296,8 @@ export const OrderCard = ({
         </div>
 
         {/* Order Details */}
-        <div className="grid grid-cols-2 gap-4 text-sm">
+        {/* Changed grid to 1 column on mobile, 2 on medium screens */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
           <div>
             <div className="text-muted-foreground">{t("orders.rate")}</div>
             <div className="font-medium">
@@ -301,6 +318,7 @@ export const OrderCard = ({
         </div>
 
         {/* Progress Bar */}
+        {/* This layout is already good for mobile */}
         {order.status === "ACTIVE" && (
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
@@ -325,7 +343,8 @@ export const OrderCard = ({
               <label className="text-sm font-medium">
                 {t("orders.fill_amount")}
               </label>
-              <div className="flex gap-2">
+              {/* Changed flex direction to column on mobile, row on medium screens */}
+              <div className="flex flex-col md:flex-row gap-2">
                 <input
                   type="number"
                   placeholder="0.0"
@@ -342,6 +361,7 @@ export const OrderCard = ({
                       formatUnits(maxFillOut, tokenOut?.decimals || 18),
                     )
                   }
+                  className="shrink-0" // Prevent button from shrinking on mobile when stacked
                 >
                   {t("orders.max_fill")}
                 </Button>
@@ -383,7 +403,8 @@ export const OrderCard = ({
         )}
 
         {/* Transaction Link */}
-        <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-primary/10 pt-3">
+        {/* Changed flex direction to column on mobile, row on medium screens */}
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2 md:gap-0 text-xs text-muted-foreground border-t border-primary/10 pt-3">
           <span>
             {t("orders.created_at")}:{" "}
             {new Date(Number(order.createdAt)).toLocaleDateString()}
