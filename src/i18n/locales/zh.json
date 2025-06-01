@@ -315,6 +315,8 @@
     "fill_success": "订单成交成功",
     "fill_failed": "订单成交失败",
     "cancel_order": "取消订单",
+    "cancelling": "取消中...",
+    "cancel_success": "订单取消成功",
     "order_hash": "订单哈希",
     "created_at": "创建时间",
     "updated_at": "更新时间",
