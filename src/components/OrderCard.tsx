@@ -109,9 +109,6 @@ export const OrderCard = ({
         return;
       }
 
-      // Calculate corresponding input amount
-      const fillInAmount = (amtIn * fillAmountBigInt) / amtOut;
-
       const calls: Array<{
         to: `0x${string}`;
         data: `0x${string}`;
