@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PoolSwapChart } from "./PoolSwapChart";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckIcon, ExternalLink } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { Button } from "./components/ui/button";
-import { SuccessMessage } from "./components/SuccessMessage";
 import { formatEther, formatUnits, parseEther, parseUnits, encodeFunctionData } from "viem";
 import { useTranslation } from "react-i18next";
 import {
@@ -857,7 +857,20 @@ export const SwapAction = () => {
       )}
 
       {/* Success message */}
-      {isSuccess && <SuccessMessage />}
+      {isSuccess && (
+        <div className="text-sm text-chart-2 mt-2 flex items-center justify-between bg-background/50 p-2 rounded border border-chart-2/20">
+          <div className="flex items-center">
+            <CheckIcon className="h-3 w-3 mr-2" />
+            {swapMode === "limit" ? t("swap.order_created") : "Transaction confirmed!"}
+          </div>
+          {swapMode === "limit" && (
+            <Link to="/orders" className="flex items-center gap-1 text-chart-2 hover:text-chart-2/80 transition-colors text-xs">
+              {t("swap.view_orders")}
+              <ExternalLink className="h-3 w-3" />
+            </Link>
+          )}
+        </div>
+      )}
 
       <div className="mt-4 border-t border-primary pt-4">
         <PoolSwapChart buyToken={buyToken} sellToken={sellToken} prevPair={prevPairRef.current} />

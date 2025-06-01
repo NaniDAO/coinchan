@@ -121,7 +121,9 @@
     "approve_token": "批准 {token}",
     "approve_spending": "批准 {token} 花费",
     "instant": "即时",
-    "limit_order": "限价订单"
+    "limit_order": "限价订单",
+    "order_created": "订单创建成功！",
+    "view_orders": "查看订单"
   },
   "send": {
     "title": "发送",
