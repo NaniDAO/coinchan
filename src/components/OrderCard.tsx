@@ -21,7 +21,6 @@ import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
 import { mainnet } from "viem/chains";
 import { handleWalletError } from "@/lib/errors";
 import { useOperatorStatus } from "@/hooks/use-operator-status";
-import { ZAMMAddress } from "@/constants/ZAAM";
 
 interface OrderCardProps {
   order: Order;
