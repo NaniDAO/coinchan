@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { formatUnits, formatEther, parseUnits, parseEther, encodeFunctionData } from "viem";
+import { formatUnits, parseUnits, encodeFunctionData } from "viem";
 import { useAccount, useSendTransaction, useWaitForTransactionReceipt } from "wagmi";
 import { Card, CardContent, CardHeader } from "./ui/card";
 import { Button } from "./ui/button";
@@ -71,7 +71,6 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
 
   // Calculate max fillable amount
   const maxFillOut = remainingOut;
-  const maxFillIn = order.partialFill ? (amtIn * remainingOut) / amtOut : remainingIn;
 
   const handleFillOrder = async () => {
     if (!address || !tokenIn || !tokenOut) return;
@@ -211,7 +210,7 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
         <div className="flex items-center justify-between p-3 bg-background/50 rounded-lg border border-primary/10">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <TokenImage token={tokenIn} size="sm" />
+              {tokenIn && <TokenImage token={tokenIn} />}
               <div>
                 <div className="font-medium">
                   {formatUnits(remainingIn, tokenIn?.decimals || 18).slice(0, 10)} {tokenIn?.symbol || "ETH"}
@@ -230,7 +229,7 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
               </div>
               <div className="text-xs text-muted-foreground">{t("orders.token_out")}</div>
             </div>
-            <TokenImage token={tokenOut} size="sm" />
+            {tokenOut && <TokenImage token={tokenOut} />}
           </div>
         </div>
 
