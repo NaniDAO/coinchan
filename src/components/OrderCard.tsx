@@ -119,8 +119,8 @@ export const OrderCard = ({
       }> = [];
 
       // For ETH orders, send ETH value
-      const value = tokenOutId === null ? fillInAmount : 0n;
-      console.log("tokenInId", tokenInId, isOperator);
+      const value = tokenOutId === null ? fillAmountBigInt : 0n;
+
       // If filling with tokens (not ETH), may need operator approval
       if (tokenOutId !== null && isOperator === false) {
         // Check if we need to set operator approval
