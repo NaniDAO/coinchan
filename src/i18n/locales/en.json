@@ -122,7 +122,9 @@
     "approve_token": "Approve {token}",
     "approve_spending": "Approve {token} spending",
     "instant": "Instant",
-    "limit_order": "Limit Order"
+    "limit_order": "Limit Order",
+    "order_created": "Order created successfully!",
+    "view_orders": "View Orders"
   },
   "send": {
     "title": "Send",
