@@ -24,6 +24,10 @@ export const Route = createRootRoute({
               🗺️ {t("common.explore")}
             </Link>
             <span className="">/</span>
+            <Link to="/orders" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
+              📋 {t("common.orders")}
+            </Link>
+            <span className="">/</span>
             <Link to="/send" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
               🪁 {t("common.send")}
             </Link>
@@ -52,6 +56,9 @@ export const Route = createRootRoute({
                 </Link>
                 <Link to="/explore" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
                   🗺️ {t("common.explore")}
+                </Link>
+                <Link to="/orders" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
+                  📋 {t("common.orders")}
                 </Link>
                 <Link to="/send" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
                   🪁 {t("common.send")}

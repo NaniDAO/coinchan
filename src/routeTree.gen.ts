@@ -12,6 +12,7 @@
 
 import { Route as rootRoute } from "./routes/__root";
 import { Route as SendImport } from "./routes/send";
+import { Route as OrdersImport } from "./routes/orders";
 import { Route as ExploreImport } from "./routes/explore";
 import { Route as CreateImport } from "./routes/create";
 import { Route as CoinpaperImport } from "./routes/coinpaper";
@@ -24,6 +25,12 @@ import { Route as CCoinIdImport } from "./routes/c.$coinId";
 const SendRoute = SendImport.update({
   id: "/send",
   path: "/send",
+  getParentRoute: () => rootRoute,
+} as any);
+
+const OrdersRoute = OrdersImport.update({
+  id: "/orders",
+  path: "/orders",
   getParentRoute: () => rootRoute,
 } as any);
 
@@ -95,6 +102,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof ExploreImport;
       parentRoute: typeof rootRoute;
     };
+    "/orders": {
+      id: "/orders";
+      path: "/orders";
+      fullPath: "/orders";
+      preLoaderRoute: typeof OrdersImport;
+      parentRoute: typeof rootRoute;
+    };
     "/send": {
       id: "/send";
       path: "/send";
@@ -126,6 +140,7 @@ export interface FileRoutesByFullPath {
   "/coinpaper": typeof CoinpaperRoute;
   "/create": typeof CreateRoute;
   "/explore": typeof ExploreRoute;
+  "/orders": typeof OrdersRoute;
   "/send": typeof SendRoute;
   "/c/$coinId": typeof CCoinIdRoute;
   "/u/$userId": typeof UUserIdRoute;
@@ -136,6 +151,7 @@ export interface FileRoutesByTo {
   "/coinpaper": typeof CoinpaperRoute;
   "/create": typeof CreateRoute;
   "/explore": typeof ExploreRoute;
+  "/orders": typeof OrdersRoute;
   "/send": typeof SendRoute;
   "/c/$coinId": typeof CCoinIdRoute;
   "/u/$userId": typeof UUserIdRoute;
@@ -147,6 +163,7 @@ export interface FileRoutesById {
   "/coinpaper": typeof CoinpaperRoute;
   "/create": typeof CreateRoute;
   "/explore": typeof ExploreRoute;
+  "/orders": typeof OrdersRoute;
   "/send": typeof SendRoute;
   "/c/$coinId": typeof CCoinIdRoute;
   "/u/$userId": typeof UUserIdRoute;
@@ -154,10 +171,10 @@ export interface FileRoutesById {
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
-  fullPaths: "/" | "/coinpaper" | "/create" | "/explore" | "/send" | "/c/$coinId" | "/u/$userId";
+  fullPaths: "/" | "/coinpaper" | "/create" | "/explore" | "/orders" | "/send" | "/c/$coinId" | "/u/$userId";
   fileRoutesByTo: FileRoutesByTo;
-  to: "/" | "/coinpaper" | "/create" | "/explore" | "/send" | "/c/$coinId" | "/u/$userId";
-  id: "__root__" | "/" | "/coinpaper" | "/create" | "/explore" | "/send" | "/c/$coinId" | "/u/$userId";
+  to: "/" | "/coinpaper" | "/create" | "/explore" | "/orders" | "/send" | "/c/$coinId" | "/u/$userId";
+  id: "__root__" | "/" | "/coinpaper" | "/create" | "/explore" | "/orders" | "/send" | "/c/$coinId" | "/u/$userId";
   fileRoutesById: FileRoutesById;
 }
 
@@ -166,6 +183,7 @@ export interface RootRouteChildren {
   CoinpaperRoute: typeof CoinpaperRoute;
   CreateRoute: typeof CreateRoute;
   ExploreRoute: typeof ExploreRoute;
+  OrdersRoute: typeof OrdersRoute;
   SendRoute: typeof SendRoute;
   CCoinIdRoute: typeof CCoinIdRoute;
   UUserIdRoute: typeof UUserIdRoute;
@@ -176,6 +194,7 @@ const rootRouteChildren: RootRouteChildren = {
   CoinpaperRoute: CoinpaperRoute,
   CreateRoute: CreateRoute,
   ExploreRoute: ExploreRoute,
+  OrdersRoute: OrdersRoute,
   SendRoute: SendRoute,
   CCoinIdRoute: CCoinIdRoute,
   UUserIdRoute: UUserIdRoute,
@@ -193,6 +212,7 @@ export const routeTree = rootRoute._addFileChildren(rootRouteChildren)._addFileT
         "/coinpaper",
         "/create",
         "/explore",
+        "/orders",
         "/send",
         "/c/$coinId",
         "/u/$userId"
@@ -209,6 +229,9 @@ export const routeTree = rootRoute._addFileChildren(rootRouteChildren)._addFileT
     },
     "/explore": {
       "filePath": "explore.tsx"
+    },
+    "/orders": {
+      "filePath": "orders.tsx"
     },
     "/send": {
       "filePath": "send.tsx"
