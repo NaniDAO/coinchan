@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Loader2, RefreshCcw } from "lucide-react";
 import { OrderCard } from "./OrderCard";
 import { OrdersDebug } from "./OrdersDebug";
+import { useOrdersDirect } from "@/hooks/use-orders-direct";
 import { INDEXER_URL } from "@/lib/indexer";
 
 export interface Order {
@@ -35,6 +36,13 @@ export const OrdersPage = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
+  
+  // Direct blockchain query as fallback
+  const { 
+    data: directOrders, 
+    isLoading: directLoading, 
+    refetch: refetchDirect 
+  } = useOrdersDirect();
 
   const fetchOrders = useCallback(async (showRefreshing = false) => {
     if (showRefreshing) setRefreshing(true);
@@ -120,12 +128,26 @@ export const OrdersPage = () => {
 
   const handleRefresh = () => {
     fetchOrders(true);
+    refetchDirect();
   };
+
+  // Use direct orders if GraphQL fails
+  useEffect(() => {
+    if (directOrders && directOrders.length > 0) {
+      console.log("Using direct blockchain orders:", directOrders);
+      setOrders(directOrders);
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [directOrders]);
 
   const handleOrderFilled = useCallback(() => {
     // Refresh orders after a successful fill
-    setTimeout(() => fetchOrders(true), 2000);
-  }, [fetchOrders]);
+    setTimeout(() => {
+      fetchOrders(true);
+      refetchDirect();
+    }, 2000);
+  }, [fetchOrders, refetchDirect]);
 
   const filterOrders = (orders: Order[], filter: string) => {
     switch (filter) {
@@ -146,7 +168,8 @@ export const OrdersPage = () => {
 
   const filteredOrders = filterOrders(orders, activeTab);
 
-  if (loading) {
+  // Show loading if both are loading
+  if ((loading && orders.length === 0) || (directLoading && !directOrders)) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="flex items-center gap-2">
@@ -173,8 +196,29 @@ export const OrdersPage = () => {
         </Button>
       </div>
 
+      {/* Indexer Status Information */}
+      {directOrders && directOrders.length > 0 && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+          <div className="flex items-center gap-2">
+            <span className="text-amber-600 dark:text-amber-400">⚠️</span>
+            <div className="text-sm">
+              <p className="font-medium text-amber-800 dark:text-amber-200">
+                Using Direct Blockchain Query
+              </p>
+              <p className="text-amber-700 dark:text-amber-300">
+                Orders are being fetched directly from the blockchain. Some features may be limited. 
+                Showing orders from the last ~1000 blocks (~3.5 hours).
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Debug Information - Remove in production */}
-      <OrdersDebug />
+      <details className="border border-primary/20 rounded p-4">
+        <summary className="cursor-pointer text-sm font-medium">Debug Information (Click to expand)</summary>
+        <OrdersDebug />
+      </details>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-5">
