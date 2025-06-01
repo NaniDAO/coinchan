@@ -24,7 +24,7 @@ interface PriceChartProps {
 
 const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker }) => {
   const { t } = useTranslation();
-  
+
   // Internal state for time controls
   const [timeRange, setTimeRange] = useState<{
     startTs: number | undefined;

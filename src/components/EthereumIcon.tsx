@@ -82,18 +82,12 @@ const ETH_DARK_SVG = `<svg width="800px" height="800px" viewBox="0 0 32 32" xmln
 
 export function EthereumIcon({ className }: { className?: string }) {
   const { theme } = useTheme();
-  
+
   // Use the colorful dark mode SVG when in dark mode, original for light mode
   const svgContent = theme === "dark" ? ETH_DARK_SVG : ETH_LIGHT_SVG;
   const dataUri = `data:image/svg+xml;base64,${btoa(svgContent)}`;
-  
-  return (
-    <img 
-      src={dataUri} 
-      alt="Ethereum" 
-      className={className}
-    />
-  );
+
+  return <img src={dataUri} alt="Ethereum" className={className} />;
 }
 
 // Export the data URIs for use in TokenMeta

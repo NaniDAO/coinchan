@@ -26,9 +26,7 @@ function RouteComponent() {
       data?.transfersTo?.items?.forEach((transfer) => transfers.push(transfer));
     }
     if (data?.transfersFrom?.items?.length !== 0) {
-      data?.transfersFrom?.items?.forEach((transfer) =>
-        transfers.push(transfer),
-      );
+      data?.transfersFrom?.items?.forEach((transfer) => transfers.push(transfer));
     }
 
     // sort transfers by timestamp
@@ -46,22 +44,12 @@ function RouteComponent() {
           <TabsTrigger value="activity">Activity</TabsTrigger>
         </TabsList>
         <TabsContent value="coins">
-          <ErrorBoundary
-            fallback={
-              <ErrorFallback errorMessage="Error rendering coin balance activity" />
-            }
-          >
-            {data?.coinsBalanceOf?.items && (
-              <CoinBalanceTable data={data?.coinsBalanceOf?.items} />
-            )}
+          <ErrorBoundary fallback={<ErrorFallback errorMessage="Error rendering coin balance activity" />}>
+            {data?.coinsBalanceOf?.items && <CoinBalanceTable data={data?.coinsBalanceOf?.items} />}
           </ErrorBoundary>
         </TabsContent>
         <TabsContent value="activity">
-          <ErrorBoundary
-            fallback={
-              <ErrorFallback errorMessage="An error occurred while rendering activity data." />
-            }
-          >
+          <ErrorBoundary fallback={<ErrorFallback errorMessage="An error occurred while rendering activity data." />}>
             <ActivityTable data={transferActivity} />
           </ErrorBoundary>
         </TabsContent>

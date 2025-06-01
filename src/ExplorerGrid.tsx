@@ -46,7 +46,7 @@ export const ExplorerGrid = ({
   onSortOrderChange?: (order: "asc" | "desc") => void;
 }) => {
   const { t } = useTranslation();
-  
+
   // Track page transition state for better UX
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [direction, setDirection] = useState<"next" | "prev" | null>(null);
@@ -82,7 +82,11 @@ export const ExplorerGrid = ({
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center">
           <h2 className="text-xs md:text-xl font-semibold text-center sm:text-left">
-            {total === 0 ? t("explore.no_results") : total === 1 ? `1 ${t("common.coin")}` : `${total} ${t("common.coins")}`}
+            {total === 0
+              ? t("explore.no_results")
+              : total === 1
+                ? `1 ${t("common.coin")}`
+                : `${total} ${t("common.coins")}`}
           </h2>
 
           {searchResults && <div className="ml-4 text-sm text-muted-foreground">{searchResults}</div>}
@@ -105,7 +109,9 @@ export const ExplorerGrid = ({
               ) : (
                 <ArrowDownAZ className="w-4 h-4 mr-1" />
               )}
-              <span className="hidden sm:inline">{sortType === "liquidity" ? t("common.liquidity") : t("explore.new")}</span>
+              <span className="hidden sm:inline">
+                {sortType === "liquidity" ? t("common.liquidity") : t("explore.new")}
+              </span>
             </button>
           )}
 

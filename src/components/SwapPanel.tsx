@@ -53,10 +53,9 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
 
     try {
       const balance = selectedToken.balance as bigint;
-      const amountBigInt = selectedToken.id === null 
-        ? parseEther(amount) 
-        : parseUnits(amount, selectedToken.decimals || 18);
-      
+      const amountBigInt =
+        selectedToken.id === null ? parseEther(amount) : parseUnits(amount, selectedToken.decimals || 18);
+
       if (balance > 0n) {
         const calculatedPercentage = Number((amountBigInt * 100n) / balance);
         setPercentage(Math.min(100, Math.max(0, calculatedPercentage)));
@@ -68,24 +67,22 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
 
   const handlePercentageChange = (newPercentage: number) => {
     setPercentage(newPercentage);
-    
+
     if (!selectedToken.balance) return;
-    
+
     const balance = selectedToken.balance as bigint;
     let calculatedAmount;
-    
+
     if (selectedToken.id === null) {
       // ETH - apply 1% gas discount for 100%
-      const adjustedBalance = newPercentage === 100 
-        ? (balance * 99n) / 100n 
-        : (balance * BigInt(newPercentage)) / 100n;
+      const adjustedBalance = newPercentage === 100 ? (balance * 99n) / 100n : (balance * BigInt(newPercentage)) / 100n;
       calculatedAmount = formatEther(adjustedBalance);
     } else {
       // Other tokens - use full balance
       const adjustedBalance = (balance * BigInt(newPercentage)) / 100n;
       calculatedAmount = formatUnits(adjustedBalance, selectedToken.decimals || 18);
     }
-    
+
     onAmountChange(calculatedAmount);
     onPercentageChange?.(newPercentage);
   };
@@ -131,7 +128,7 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
           )
         )}
       </div>
-      
+
       {/* Percentage slider - only show for sell panels when there's a balance */}
       {showPercentageSlider && selectedToken.balance && selectedToken.balance > 0n ? (
         <div className="mt-2 pt-2 border-t border-primary/20">

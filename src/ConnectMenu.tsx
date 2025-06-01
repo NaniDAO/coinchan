@@ -1,13 +1,7 @@
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 import React, { useEffect, useState } from "react";
 import { truncAddress } from "./lib/address";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import ConnectionErrorHandler from "@/lib/ConnectionErrorHandler";
 import usePersistentConnection from "./hooks/use-persistent-connection";
 import { useTranslation } from "react-i18next";
@@ -70,14 +64,11 @@ const ConnectMenuComponent = () => {
 
     // Determine if this is truly a reconnection
     const lastAddress = sessionStorage.getItem("lastConnectedAddress");
-    const isReconnection =
-      !!lastAddress &&
-      sessionStorage.getItem("connectionAttemptType") !== "fresh";
+    const isReconnection = !!lastAddress && sessionStorage.getItem("connectionAttemptType") !== "fresh";
 
     // Only show reconnecting state if we're actually reconnecting (not first connection)
     // Now using connectionAttemptType to help distinguish context
-    const shouldShowReconnecting =
-      status === "reconnecting" || (status === "connecting" && isReconnection);
+    const shouldShowReconnecting = status === "reconnecting" || (status === "connecting" && isReconnection);
 
     if (shouldShowReconnecting !== reconnecting) {
       setReconnecting(shouldShowReconnecting);
@@ -121,9 +112,7 @@ const ConnectMenuComponent = () => {
             >
               {t("common.asset_overview")}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => disconnect()}>
-              {t("common.disconnect")}
-            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => disconnect()}>{t("common.disconnect")}</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );
@@ -136,9 +125,7 @@ const ConnectMenuComponent = () => {
 
       return (
         <div className="flex items-center gap-2">
-          {lastAddress && (
-            <div className="opacity-50">{truncAddress(lastAddress)}</div>
-          )}
+          {lastAddress && <div className="opacity-50">{truncAddress(lastAddress)}</div>}
           <div className="text-xs text-primary animate-pulse">
             {lastAddress ? t("common.loading") : t("common.loading")}
           </div>
@@ -150,9 +137,7 @@ const ConnectMenuComponent = () => {
     if (status === "connecting") {
       return (
         <div className="flex items-center gap-2">
-          <div className="text-xs text-primary animate-pulse">
-            {t("common.loading")}
-          </div>
+          <div className="text-xs text-primary animate-pulse">{t("common.loading")}</div>
         </div>
       );
     }
@@ -161,9 +146,7 @@ const ConnectMenuComponent = () => {
     return (
       <Dialog>
         <DialogTrigger className="appearance-none" asChild>
-          <button className="hover:scale-105 focus:underline">
-            🙏 {t("common.connect")}
-          </button>
+          <button className="hover:scale-105 focus:underline">🙏 {t("common.connect")}</button>
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
@@ -176,11 +159,7 @@ const ConnectMenuComponent = () => {
                 key={`connector-${connector.id || connector.name}`}
                 onClick={() => connect({ connector })}
               >
-                <img
-                  src={connector.icon ?? "/coinchan-logo.png"}
-                  alt={connector.name}
-                  className="w-6 h-6 mr-2"
-                />
+                <img src={connector.icon ?? "/coinchan-logo.png"} alt={connector.name} className="w-6 h-6 mr-2" />
                 <span>{connector.name}</span>
               </button>
             ))}
