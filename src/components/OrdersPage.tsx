@@ -5,6 +5,7 @@ import { Button } from "./ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Loader2, RefreshCcw } from "lucide-react";
 import { OrderCard } from "./OrderCard";
+import { OrdersDebug } from "./OrdersDebug";
 import { INDEXER_URL } from "@/lib/indexer";
 
 export interface Order {
@@ -40,12 +41,16 @@ export const OrdersPage = () => {
     else setLoading(true);
 
     try {
+      // Log environment info for debugging
+      console.log("Indexer URL:", INDEXER_URL);
+      console.log("Environment VITE_INDEXER_URL:", import.meta.env.VITE_INDEXER_URL);
+      
       const query = `
         query GetOrders {
           orders(
             orderBy: "createdAt",
             orderDirection: "desc",
-            first: 100
+            limit: 100
           ) {
             items {
               id
@@ -70,24 +75,36 @@ export const OrdersPage = () => {
         }
       `;
 
+      console.log("Sending GraphQL query:", query);
+
       const response = await fetch(INDEXER_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query }),
       });
 
+      console.log("Response status:", response.status, response.statusText);
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error("HTTP error response:", errorText);
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }
 
-      const { data, errors } = await response.json();
+      const responseText = await response.text();
+      console.log("Raw response:", responseText);
+      
+      const { data, errors } = JSON.parse(responseText);
 
-      if (errors) {
+      if (errors && errors.length > 0) {
         console.error("GraphQL errors:", errors);
-        throw new Error("Failed to fetch orders");
+        throw new Error(`GraphQL errors: ${JSON.stringify(errors)}`);
       }
 
-      setOrders(data.orders.items || []);
+      console.log("Parsed data:", data);
+      const orders = data?.orders?.items || [];
+      console.log(`Found ${orders.length} orders:`, orders);
+      setOrders(orders);
     } catch (error) {
       console.error("Error fetching orders:", error);
       setOrders([]);
@@ -155,6 +172,9 @@ export const OrdersPage = () => {
           {t("orders.refresh")}
         </Button>
       </div>
+
+      {/* Debug Information - Remove in production */}
+      <OrdersDebug />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-5">
