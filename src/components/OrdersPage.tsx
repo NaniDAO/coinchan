@@ -297,9 +297,7 @@ const OrderList = ({ orders, currentUser, onOrderFilled }: OrderListProps) => {
       <div className="text-center py-6">
         {" "}
         {/* Slightly less padding for tab content */}
-        <p className="text-muted-foreground">
-          {t("orders.no_orders_filtered") || t("orders.no_orders")}
-        </p>{" "}
+        <p className="text-muted-foreground">{t("orders.no_orders")}</p>{" "}
         {/* Use a specific key or fallback */}
       </div>
     );
