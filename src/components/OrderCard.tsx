@@ -43,10 +43,13 @@ export const OrderCard = ({
     });
   const [fillAmount, setFillAmount] = useState("");
   const [txError, setTxError] = useState<string | null>(null);
+  const [cancelTxError, setCancelTxError] = useState<string | null>(null);
 
   const { sendTransactionAsync, isPending } = useSendTransaction();
   const [txHash, setTxHash] = useState<`0x${string}`>();
+  const [cancelTxHash, setCancelTxHash] = useState<`0x${string}`>();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
+  const { isSuccess: isCancelSuccess } = useWaitForTransactionReceipt({ hash: cancelTxHash });
   const publicClient = usePublicClient({
     chainId: mainnet.id,
   });
@@ -200,12 +203,66 @@ export const OrderCard = ({
     }
   };
 
+  const handleCancelOrder = async () => {
+    if (!address || !tokenIn || !tokenOut) return;
+
+    try {
+      console.log("handleCancelOrder:", address, tokenIn, tokenOut);
+      setCancelTxError(null);
+
+      // Encode cancelOrder call
+      const cancelOrderData = encodeFunctionData({
+        abi: CookbookAbi,
+        functionName: "cancelOrder",
+        args: [
+          order.tokenIn as `0x${string}`,
+          BigInt(order.idIn),
+          BigInt(order.amtIn),
+          order.tokenOut as `0x${string}`,
+          BigInt(order.idOut),
+          BigInt(order.amtOut),
+          BigInt(Math.floor(new Date(Number(order.deadline)).getTime() / 1000)),
+          order.partialFill,
+        ],
+      });
+
+      const hash = await sendTransactionAsync({
+        to: CookbookAddress,
+        data: cancelOrderData,
+        chainId: mainnet.id,
+      });
+
+      // wait for transaction to mine
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash,
+      });
+
+      if (receipt.status !== "success") {
+        throw new Error("Transaction reverted");
+      }
+
+      setCancelTxHash(hash);
+    } catch (error) {
+      console.error("Cancel order error:", error);
+      const errorMsg = handleWalletError(error);
+      setCancelTxError(errorMsg || "Failed to cancel order");
+    }
+  };
+
   // Handle successful transaction
   if (isSuccess && txHash) {
     setTimeout(() => {
       setTxHash(undefined);
       setFillAmount("");
       onOrderFilled();
+    }, 2000);
+  }
+
+  // Handle successful cancel transaction
+  if (isCancelSuccess && cancelTxHash) {
+    setTimeout(() => {
+      setCancelTxHash(undefined);
+      onOrderFilled(); // This will refresh the orders list
     }, 2000);
   }
 
@@ -333,6 +390,39 @@ export const OrderCard = ({
               {formatUnits(amtOut, tokenOut?.decimals || 18).slice(0, 8)}{" "}
               {tokenOut?.symbol || "ETH"} {t("orders.filled")}
             </div>
+          </div>
+        )}
+
+        {/* Cancel Interface for own orders */}
+        {isOwnOrder && order.status === "ACTIVE" && address && (
+          <div className="border-t border-primary/10 pt-4 space-y-3">
+            <Button
+              onClick={handleCancelOrder}
+              disabled={isPending}
+              variant="destructive"
+              className="w-full"
+            >
+              {isPending ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {t("orders.cancelling")}
+                </span>
+              ) : (
+                t("orders.cancel_order")
+              )}
+            </Button>
+
+            {cancelTxError && (
+              <div className="text-sm text-destructive bg-destructive/10 p-2 rounded border border-destructive/20">
+                {cancelTxError}
+              </div>
+            )}
+
+            {isCancelSuccess && (
+              <div className="text-sm text-green-600 bg-green-500/10 p-2 rounded border border-green-500/20">
+                {t("orders.cancel_success")}
+              </div>
+            )}
           </div>
         )}
 
