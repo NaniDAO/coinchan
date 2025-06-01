@@ -266,13 +266,13 @@ export const OrderFilterPills = ({
         <div className="flex flex-wrap gap-2">
           {activePills.map((pill) => (
             <div
-              key={`${pill.key}-${pill.value ?? "true"}`}
+              key={`${pill.key}-${pill.label ?? "true"}`}
               className="flex items-center gap-1 px-3 py-1 rounded-full bg-muted text-sm"
             >
               <span>{pill.label}</span>
               <button
                 onClick={() =>
-                  removeFilter(pill.key as keyof FilterState, pill.value)
+                  removeFilter(pill.key as keyof FilterState, pill.label)
                 }
                 className="text-muted-foreground hover:text-foreground" // Add hover state for clarity
               >
