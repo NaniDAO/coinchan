@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { formatUnits, parseUnits, encodeFunctionData } from "viem";
 import {
   useAccount,
+  usePublicClient,
   useSendTransaction,
   useWaitForTransactionReceipt,
 } from "wagmi";
@@ -19,6 +20,8 @@ import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
 import { mainnet } from "viem/chains";
 import { handleWalletError } from "@/lib/errors";
+import { useOperatorStatus } from "@/hooks/use-operator-status";
+import { ZAMMAddress } from "@/constants/ZAAM";
 
 interface OrderCardProps {
   order: Order;
@@ -34,13 +37,20 @@ export const OrderCard = ({
   const { t } = useTranslation();
   const { address } = useAccount();
   const { tokens } = useAllCoins();
+  const { data: isOperator, refetch: refetchOperatorStatus } =
+    useOperatorStatus({
+      address,
+      operator: CookbookAddress,
+    });
   const [fillAmount, setFillAmount] = useState("");
   const [txError, setTxError] = useState<string | null>(null);
 
   const { sendTransactionAsync, isPending } = useSendTransaction();
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
-
+  const publicClient = usePublicClient({
+    chainId: mainnet.id,
+  });
   // Parse order data
   const tokenInId = order.idIn === "0" ? null : BigInt(order.idIn);
   const tokenOutId = order.idOut === "0" ? null : BigInt(order.idOut);
@@ -88,6 +98,7 @@ export const OrderCard = ({
     if (!address || !tokenIn || !tokenOut) return;
 
     try {
+      console.log("handleFillOrder:", address, tokenIn, tokenOut);
       setTxError(null);
 
       // Parse fill amount
@@ -110,9 +121,9 @@ export const OrderCard = ({
 
       // For ETH orders, send ETH value
       const value = tokenInId === null ? fillInAmount : 0n;
-
+      console.log("tokenInId", tokenInId, isOperator);
       // If filling with tokens (not ETH), may need operator approval
-      if (tokenInId !== null) {
+      if (tokenOutId !== null && isOperator === false) {
         // Check if we need to set operator approval
         // This would require checking current approval status
         // For now, we'll include it as it's safer
@@ -153,7 +164,8 @@ export const OrderCard = ({
       });
 
       // Execute calls sequentially
-      for (const call of calls) {
+      for (let i = 0; i <= calls.length; i++) {
+        const call = calls[0];
         const hash = await sendTransactionAsync({
           to: call.to,
           data: call.data,
@@ -161,7 +173,18 @@ export const OrderCard = ({
           chainId: mainnet.id,
         });
 
-        if (call === calls[calls.length - 1]) {
+        // wait for transaction to mine
+        const receipt = await publicClient.waitForTransactionReceipt({
+          hash,
+        });
+
+        if (receipt.status !== "success") {
+          throw new Error("Transaction reverted");
+        }
+
+        if (i === 0) {
+          await refetchOperatorStatus();
+        } else if (i === 1) {
           setTxHash(hash);
         }
       }
