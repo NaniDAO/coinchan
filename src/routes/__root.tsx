@@ -17,20 +17,26 @@ export const Route = createRootRoute({
     const { theme } = useTheme();
 
     return (
-      <>
+      <main
+        className={cn(
+          "min-w-screen max-w-screen min-h-screen",
+          theme === "dark"
+            ? "bg-gradient-to-br from-[#0e0a0a] via-[#190f1b] to-[#2c0f1d]"
+            : "bg-gradient-to-tr from-[#fff8ec] via-[#faf4ff] to-[#e7f0ff]",
+        )}
+      >
         <header
           className={cn(
-            "p-2 flex items-center justify-between w-full gap-5 border-b border-white/10 dark:border-white/10 shadow-md bg-gradient-to-tr",
+            "p-2 flex items-center backdrop-blur-xl justify-between w-full gap-5 border-b shadow-md",
             theme === "dark"
-              ? "from-neutral-900 via-neutral-900 to-neutral-950"
-              : "from-yellow-50 via-yellow-100 to-yellow-100",
+              ? "bg-black/10 border-white/10"
+              : "bg-white/10 border-white/10",
           )}
         >
           {/* Desktop Navigation */}
           <nav
             className={cn(
-              "backdrop-blur-lg px-2 rounded-lg hidden md:flex w-full items-center justify-center space-x-4",
-              theme === "dark" ? "bg-black/20" : "bg-white/10",
+              "px-2 rounded-lg hidden md:flex w-full items-center justify-center space-x-4",
             )}
           >
             <Link
@@ -118,9 +124,9 @@ export const Route = createRootRoute({
           </Sheet>
         </header>
         {/* <hr /> */}
-        <CoinNani className="fixed bottom-4 right-4 z-10" />
+        <CoinNani className="bg-auto fixed bottom-4 right-4 z-10" />
         <Outlet />
-      </>
+      </main>
     );
   },
 });

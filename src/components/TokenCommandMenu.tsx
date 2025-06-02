@@ -12,6 +12,7 @@ import { SearchIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme";
 import { TokenImage } from "./TokenImage";
+import { Link } from "@tanstack/react-router";
 
 export function TokenCommandMenu() {
   const { theme } = useTheme();
@@ -35,6 +36,7 @@ export function TokenCommandMenu() {
   const filteredTokens = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
+
     return tokens.filter(
       (t) =>
         (t.name && t.name.toLowerCase().includes(q)) ||
@@ -78,18 +80,20 @@ export function TokenCommandMenu() {
       </div>
 
       {/* Command Dialog */}
-      <CommandDialog open={open} onOpenChange={setOpen}>
+      <CommandDialog
+        className={cn(
+          "backdrop-blur-md rounded-xl p-2 shadow-xl",
+          isDark ? "bg-black/20" : "bg-white/30",
+        )}
+        open={open}
+        onOpenChange={setOpen}
+      >
         <CommandInput
           placeholder="Search tokens..."
           value={query}
           onValueChange={setQuery}
         />
-        <CommandList
-          className={cn(
-            "backdrop-blur-lg rounded-xl p-2",
-            isDark ? "bg-black/30" : "bg-white/30",
-          )}
-        >
+        <CommandList className={cn("p-2")}>
           {filteredTokens.length === 0 ? (
             <CommandEmpty>No tokens found.</CommandEmpty>
           ) : (
@@ -103,21 +107,22 @@ export function TokenCommandMenu() {
                     setOpen(false);
                   }}
                 >
-                  <div className="flex items-center space-x-2">
-                    {/* {token.imageUrl ? (
-                      <img
-                        src={token.imageUrl}
-                        alt={`${token.symbol} logo`}
-                        className="h-5 w-5 rounded-full"
-                      />
-                    ) : (
-                      <div className="h-5 w-5 bg-gray-500 rounded-full" />
-                    )} */}
-                    <TokenImage token={token} />
-                    <div className="flex flex-col text-left">
-                      <span className="font-medium">{token.symbol}</span>
-                      <span className="text-xs opacity-70">{token.name}</span>
+                  <div className="flex justify-between w-full items-center space-x-2">
+                    <div className="flex items-center space-x-2">
+                      <TokenImage token={token} />
+                      <div className="flex flex-col text-left">
+                        <span className="font-medium">{token.symbol}</span>
+                        <span className="text-xs opacity-70">{token.name}</span>
+                      </div>
                     </div>
+                    {token?.id !== null && (
+                      <Link
+                        to="/c/$coinId"
+                        params={{ coinId: token.id.toString() }}
+                      >
+                        View
+                      </Link>
+                    )}
                   </div>
                 </CommandItem>
               ))}
