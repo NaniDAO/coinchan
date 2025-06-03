@@ -31,8 +31,8 @@ const useCurrentVotes = ({ coinId }: { coinId: bigint }) => {
       console.log("Fetching vote summary", result);
 
       return {
-        upVotes: result.upvotes,
-        downVotes: result.downvotes,
+        upVotes: Number(formatEther(result.upvotes)).toFixed(2),
+        downVotes: Number(formatEther(result.downvotes)).toFixed(2),
       };
     },
   });
