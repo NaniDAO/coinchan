@@ -3,6 +3,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { WagmiProvider } from "wagmi";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
+import { Toaster } from "sonner";
 
 import { config } from "./wagmi.ts";
 import { routeTree } from "./routeTree.gen";
@@ -43,6 +44,7 @@ const AppWithProviders = () => (
     <WagmiProvider config={config} reconnectOnMount={true}>
       <QueryClientProvider client={queryClient}>
         <RouterProvider router={router} />
+        <Toaster />
       </QueryClientProvider>
     </WagmiProvider>
   </ThemeProvider>

@@ -1,6 +1,7 @@
 {
   "common": {
     "loading": "Loading...",
+    "votes": "Votes",
     "error": "Error",
     "success": "Success",
     "connect": "Connect Wallet",

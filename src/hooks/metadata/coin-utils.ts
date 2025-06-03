@@ -20,6 +20,7 @@ export type CoinData = RawCoinData & {
   metadata: Record<string, any> | null;
   // Additional derived fields
   priceInEth: number | null;
+  votes?: bigint;
 };
 
 export function hydrateRawCoin(raw: RawCoinData): CoinData {
@@ -32,9 +33,11 @@ export function hydrateRawCoin(raw: RawCoinData): CoinData {
     metadata: null,
     priceInEth:
       raw.reserve0 > 0n && raw.reserve1 > 0n
-        ? Number(formatEther(raw.reserve0)) / Number(formatUnits(raw.reserve1, 18))
+        ? Number(formatEther(raw.reserve0)) /
+          Number(formatUnits(raw.reserve1, 18))
         : null,
   };
+  // No change needed in function body as votes is now optional in CoinData type
   return cd;
 }
 
@@ -87,7 +90,9 @@ export function getAlternativeImageUrls(imageURL: string): string[] {
 }
 
 // Process token URI to get metadata
-export async function processTokenURI(tokenURI: string): Promise<Record<string, any> | null> {
+export async function processTokenURI(
+  tokenURI: string,
+): Promise<Record<string, any> | null> {
   if (!tokenURI || tokenURI === "N/A") {
     return null;
   }
@@ -137,7 +142,10 @@ export async function processTokenURI(tokenURI: string): Promise<Record<string, 
               break;
             }
           } catch (altError) {
-            console.warn(`Alternative gateway ${IPFS_GATEWAYS[i]} failed:`, altError);
+            console.warn(
+              `Alternative gateway ${IPFS_GATEWAYS[i]} failed:`,
+              altError,
+            );
           }
         }
       }
@@ -170,7 +178,10 @@ export async function processTokenURI(tokenURI: string): Promise<Record<string, 
         try {
           metadata = JSON.parse(cleanedText);
         } catch (secondJsonError) {
-          console.error("Failed to parse JSON even after cleaning:", secondJsonError);
+          console.error(
+            "Failed to parse JSON even after cleaning:",
+            secondJsonError,
+          );
           return null;
         }
       }
@@ -253,10 +264,6 @@ export async function enrichMetadata(coin: CoinData): Promise<CoinData> {
     };
     return updated;
   } catch (e) {
-    console.error("enrichMetadata", {
-      e,
-      coin,
-    });
     return coin;
   }
 }
@@ -296,10 +303,16 @@ function normalizeMetadata(metadata: Record<string, any>): Record<string, any> {
     // Check if image is in a nested field like 'properties.image'
     if (!normalized.image && normalized.properties) {
       for (const field of ["image", ...possibleImageFields]) {
-        if (normalized.properties[field] && typeof normalized.properties[field] === "string") {
+        if (
+          normalized.properties[field] &&
+          typeof normalized.properties[field] === "string"
+        ) {
           normalized.image = normalized.properties[field];
           break;
-        } else if (normalized.properties[field]?.url && typeof normalized.properties[field].url === "string") {
+        } else if (
+          normalized.properties[field]?.url &&
+          typeof normalized.properties[field].url === "string"
+        ) {
           normalized.image = normalized.properties[field].url;
           break;
         }
@@ -309,7 +322,9 @@ function normalizeMetadata(metadata: Record<string, any>): Record<string, any> {
     // Check for media arrays
     if (!normalized.image && Array.isArray(normalized.media)) {
       const mediaItem = normalized.media.find(
-        (item: any) => item && (item.type?.includes("image") || item.mimeType?.includes("image")),
+        (item: any) =>
+          item &&
+          (item.type?.includes("image") || item.mimeType?.includes("image")),
       );
       if (mediaItem?.uri || mediaItem?.url) {
         normalized.image = mediaItem.uri || mediaItem.url;
