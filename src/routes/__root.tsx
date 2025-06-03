@@ -12,61 +12,68 @@ export const Route = createRootRoute({
   component: () => {
     const { t } = useTranslation();
     return (
-    <>
-      <header className="p-2 flex items-center justify-between w-full gap-5">
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center justify-center space-x-4">
-          <Link to="/" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
-            📈 {t("common.swap")}
-          </Link>
-          <span className="">/</span>
-          <Link to="/explore" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
-            🗺️ {t("common.explore")}
-          </Link>
-          <span className="">/</span>
-          <Link to="/send" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
-            🪁 {t("common.send")}
-          </Link>
-          <span className="">/</span>
-          <Link to="/create" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
-            ✨ {t("common.create")}
-          </Link>
-        </nav>
+      <>
+        <header className="p-2 flex items-center justify-between w-full gap-5">
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center justify-center space-x-4">
+            <Link to="/" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
+              📈 {t("common.swap")}
+            </Link>
+            <span className="">/</span>
+            <Link to="/explore" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
+              🗺️ {t("common.explore")}
+            </Link>
+            <span className="">/</span>
+            <Link to="/orders" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
+              📋 {t("common.orders")}
+            </Link>
+            <span className="">/</span>
+            <Link to="/send" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
+              🪁 {t("common.send")}
+            </Link>
+            <span className="">/</span>
+            <Link to="/create" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
+              ✨ {t("common.create")}
+            </Link>
+          </nav>
 
-        <div className="flex items-center gap-2">
-          <ConnectMenu />
-          <ThemeToggle />
-          <LanguageSwitcher />
-        </div>
-        {/* Mobile Navigation */}
-        <Sheet>
-          <SheetTrigger asChild className="md:hidden">
-            <Button variant="ghost" size="icon">
-              <Menu className="h-6 w-6" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="right" className="p-2">
-            <nav className="flex flex-col space-y-4 mt-8">
-              <Link to="/" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
-                📈 {t("common.swap")}
-              </Link>
-              <Link to="/explore" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
-                🗺️ {t("common.explore")}
-              </Link>
-              <Link to="/send" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
-                🪁 {t("common.send")}
-              </Link>
-              <Link to="/create" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
-                ✨ {t("common.create")}
-              </Link>
-            </nav>
-          </SheetContent>
-        </Sheet>
-      </header>
-      {/* <hr /> */}
-      <CoinNani className="fixed bottom-4 right-4 z-10" />
-      <Outlet />
-    </>
+          <div className="flex items-center gap-2">
+            <ConnectMenu />
+            <ThemeToggle />
+            <LanguageSwitcher />
+          </div>
+          {/* Mobile Navigation */}
+          <Sheet>
+            <SheetTrigger asChild className="md:hidden">
+              <Button variant="ghost" size="icon">
+                <Menu className="h-6 w-6" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="p-2">
+              <nav className="flex flex-col space-y-4 mt-8">
+                <Link to="/" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
+                  📈 {t("common.swap")}
+                </Link>
+                <Link to="/explore" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
+                  🗺️ {t("common.explore")}
+                </Link>
+                <Link to="/orders" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
+                  📋 {t("common.orders")}
+                </Link>
+                <Link to="/send" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
+                  🪁 {t("common.send")}
+                </Link>
+                <Link to="/create" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
+                  ✨ {t("common.create")}
+                </Link>
+              </nav>
+            </SheetContent>
+          </Sheet>
+        </header>
+        {/* <hr /> */}
+        <CoinNani className="fixed bottom-4 right-4 z-10" />
+        <Outlet />
+      </>
     );
   },
 });

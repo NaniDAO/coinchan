@@ -207,9 +207,7 @@ export const useGetAccount = ({ address }: { address?: Address }) => {
         try {
           const errorBody = await response.json();
           if (errorBody.errors && errorBody.errors.length > 0) {
-            errorMessage = errorBody.errors
-              .map((err: any) => err.message)
-              .join(", ");
+            errorMessage = errorBody.errors.map((err: any) => err.message).join(", ");
           } else if (errorBody.message) {
             errorMessage = errorBody.message;
           }
@@ -222,9 +220,7 @@ export const useGetAccount = ({ address }: { address?: Address }) => {
       const result = await response.json();
 
       if (result.errors) {
-        throw new Error(
-          result.errors.map((err: any) => err.message).join(", "),
-        );
+        throw new Error(result.errors.map((err: any) => err.message).join(", "));
       }
 
       return result.data.account as AccountData;

@@ -21,23 +21,20 @@ export const PercentageSlider: React.FC<PercentageSliderProps> = ({
         <span className="text-xs text-muted-foreground">Amount</span>
         <span className="text-xs text-primary font-medium">{value}%</span>
       </div>
-      
+
       <div className="relative">
         {/* Slider track */}
         <div className="h-2 bg-muted rounded-full relative">
           {/* Progress fill */}
-          <div
-            className="h-full bg-primary rounded-full transition-all duration-200"
-            style={{ width: `${value}%` }}
-          />
-          
+          <div className="h-full bg-primary rounded-full transition-all duration-200" style={{ width: `${value}%` }} />
+
           {/* Slider thumb */}
           <div
             className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-primary rounded-full border-2 border-background shadow-lg transition-all duration-200 hover:scale-110 cursor-pointer"
             style={{ left: `calc(${value}% - 8px)` }}
           />
         </div>
-        
+
         {/* Range input overlay */}
         <input
           type="range"
@@ -50,7 +47,7 @@ export const PercentageSlider: React.FC<PercentageSliderProps> = ({
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
         />
       </div>
-      
+
       {/* Quick percentage buttons */}
       <div className="flex justify-between">
         {percentageSteps.map((step) => (
@@ -60,9 +57,7 @@ export const PercentageSlider: React.FC<PercentageSliderProps> = ({
             disabled={disabled}
             className={cn(
               "text-xs px-2 py-1 rounded transition-all duration-200 hover:bg-primary/20 disabled:opacity-50 disabled:cursor-not-allowed",
-              value === step 
-                ? "bg-primary/20 text-primary font-medium" 
-                : "text-muted-foreground hover:text-primary"
+              value === step ? "bg-primary/20 text-primary font-medium" : "text-muted-foreground hover:text-primary",
             )}
           >
             {step}%

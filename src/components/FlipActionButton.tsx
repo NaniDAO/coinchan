@@ -15,7 +15,7 @@ export const FlipActionButton: React.FC<ActionButtonProps> = ({ onClick, icon, c
         "bg-primary hover:bg-primary/80 focus:bg-primary/90 active:scale-95",
         "shadow-[0_0_15px_rgba(0,204,255,0.3)]",
         "focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all z-10 touch-manipulation",
-        className
+        className,
       )}
       onClick={onClick}
     >

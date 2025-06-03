@@ -10,18 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { mainnet } from "viem/chains";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import {
-  CheckTheChainAbi,
-  CheckTheChainAddress,
-} from "./constants/CheckTheChain";
+import { CheckTheChainAbi, CheckTheChainAddress } from "./constants/CheckTheChain";
 import { ImageInput } from "./components/ui/image-input";
 import { CoinPreview } from "./components/CoinPreview";
 import { computeCoinId } from "./lib/coins";
@@ -138,8 +131,7 @@ export function CoinForm() {
     setPoolSupply(TOTAL_SUPPLY - safeCreatorAmount);
   }, [formState.creatorSupply]);
 
-  const { writeContract, isPending, isSuccess, data, error } =
-    useWriteContract();
+  const { writeContract, isPending, isSuccess, data, error } = useWriteContract();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -148,9 +140,7 @@ export function CoinForm() {
 
     if (!address || !imageBuffer) {
       // Error will be shown in UI
-      setErrorMessage(
-        !address ? t("errors.wallet_connection") : t("create.upload_image"),
-      );
+      setErrorMessage(!address ? t("errors.wallet_connection") : t("create.upload_image"));
       return;
     }
 
@@ -176,11 +166,7 @@ export function CoinForm() {
       const fileName = `${formState.name}_logo.png`;
       const pinataMetadata = { name: fileName };
 
-      const imageHash = await pinImageToPinata(
-        imageBuffer,
-        fileName,
-        pinataMetadata,
-      );
+      const imageHash = await pinImageToPinata(imageBuffer, fileName, pinataMetadata);
 
       const tokenUriJson = {
         name: formState.name,
@@ -193,10 +179,7 @@ export function CoinForm() {
 
       try {
         // Use custom ETH amount from form or default to 0.01 if invalid
-        const ethAmount =
-          formState.ethAmount && !isNaN(Number(formState.ethAmount))
-            ? formState.ethAmount
-            : "0.01";
+        const ethAmount = formState.ethAmount && !isNaN(Number(formState.ethAmount)) ? formState.ethAmount : "0.01";
 
         writeContract({
           address: CoinchanAddress,
@@ -242,9 +225,7 @@ export function CoinForm() {
     }
   };
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormState({
       ...formState,
       [e.target.name]: e.target.value,
@@ -270,33 +251,17 @@ export function CoinForm() {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-1 space-y-1 lg:grid-cols-2 lg:space-x-2 p-5 bg-card">
         <div className="flex flex-col space-y-2">
-          <h2 className="bg-primary text-primary-foreground px-2 w-full">
-            {t("create.settings")}
-          </h2>
+          <h2 className="bg-primary text-primary-foreground px-2 w-full">{t("create.settings")}</h2>
           {/* Name Input */}
           <div className="space-y-2">
             <Label htmlFor="name">{t("create.name")}</Label>
-            <Input
-              id="name"
-              type="text"
-              name="name"
-              value={formState.name}
-              onChange={handleChange}
-              required
-            />
+            <Input id="name" type="text" name="name" value={formState.name} onChange={handleChange} required />
           </div>
 
           {/* Symbol Input */}
           <div className="space-y-2">
             <Label htmlFor="symbol">{t("create.symbol")}</Label>
-            <Input
-              id="symbol"
-              type="text"
-              name="symbol"
-              value={formState.symbol}
-              onChange={handleChange}
-              required
-            />
+            <Input id="symbol" type="text" name="symbol" value={formState.symbol} onChange={handleChange} required />
           </div>
 
           {/* Description Textarea Input */}
@@ -314,9 +279,7 @@ export function CoinForm() {
           <div className="flex flex-row items-start gap-4">
             {/* Creator Supply Input */}
             <div className="space-y-2">
-              <Label htmlFor="creatorSupply">
-                {t("create.creator_supply")}
-              </Label>
+              <Label htmlFor="creatorSupply">{t("create.creator_supply")}</Label>
               <Input
                 id="creatorSupply"
                 type="text"
@@ -346,8 +309,8 @@ export function CoinForm() {
               />
               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">
-                  {t("pool.liquidity")}: {poolSupply.toLocaleString()} (
-                  {t("coin.total_supply")}: {TOTAL_SUPPLY.toLocaleString()})
+                  {t("pool.liquidity")}: {poolSupply.toLocaleString()} ({t("coin.total_supply")}:{" "}
+                  {TOTAL_SUPPLY.toLocaleString()})
                 </p>
                 {Number(formState.creatorSupply) >= TOTAL_SUPPLY && (
                   <p className="text-xs text-chart-5">
@@ -367,19 +330,13 @@ export function CoinForm() {
                     className="h-9 text-sm px-2 py-1 rounded-md w-[180px] border border-input hover:bg-secondary-foreground transition-colors flex items-center gap-1"
                   >
                     <span className="w-[100px]">{t("create.swap_fee")}: </span>
-                    <span className="font-semibold text-primary">
-                      {feeToPercentage(swapFee)}
-                    </span>
+                    <span className="font-semibold text-primary">{feeToPercentage(swapFee)}</span>
                   </button>
                 </PopoverTrigger>
                 <PopoverContent className="w-64 p-3">
                   <div className="space-y-2">
-                    <h4 className="font-medium text-sm">
-                      {t("create.swap_fee")}
-                    </h4>
-                    <p className="text-xs text-muted-foreground">
-                      {t("create.max_swap_fee")}
-                    </p>
+                    <h4 className="font-medium text-sm">{t("create.swap_fee")}</h4>
+                    <p className="text-xs text-muted-foreground">{t("create.max_swap_fee")}</p>
                     <div className="grid grid-cols-2 gap-2 mt-2">
                       {[25, 50, 100, 150, 200, 300].map((fee) => (
                         <button
@@ -417,26 +374,17 @@ export function CoinForm() {
                             const value = e.target.value;
 
                             // Validate format (numbers with up to 2 decimal places and max 2 digits before decimal)
-                            if (
-                              value === "" ||
-                              /^[0-9]{1,2}(\.?[0-9]{0,2})?$/.test(value)
-                            ) {
+                            if (value === "" || /^[0-9]{1,2}(\.?[0-9]{0,2})?$/.test(value)) {
                               // Check if the value exceeds the maximum allowed (99.99)
                               const numValue = parseFloat(value);
-                              if (
-                                value === "" ||
-                                isNaN(numValue) ||
-                                numValue <= 99.99
-                              ) {
+                              if (value === "" || isNaN(numValue) || numValue <= 99.99) {
                                 setCustomFeeInput(value);
                               }
                             }
                           }}
                           onBlur={() => {
                             // Format on blur to ensure proper format
-                            setCustomFeeInput(
-                              formatPercentageInput(customFeeInput),
-                            );
+                            setCustomFeeInput(formatPercentageInput(customFeeInput));
                           }}
                         />
                         <Button
@@ -446,14 +394,9 @@ export function CoinForm() {
                           className="h-8"
                           onClick={() => {
                             const customFeePercent = parseFloat(customFeeInput);
-                            if (
-                              !isNaN(customFeePercent) &&
-                              customFeePercent >= 0.01 &&
-                              customFeePercent <= 99.99
-                            ) {
+                            if (!isNaN(customFeePercent) && customFeePercent >= 0.01 && customFeePercent <= 99.99) {
                               // Convert percentage to basis points for internal use
-                              const basisPoints =
-                                percentageToBasisPoints(customFeePercent);
+                              const basisPoints = percentageToBasisPoints(customFeePercent);
                               setSwapFee(basisPoints);
                               setShowFeeSelector(false);
                             }
@@ -509,9 +452,7 @@ export function CoinForm() {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() =>
-                  setFormState({ ...formState, ethAmount: "0.01" })
-                }
+                onClick={() => setFormState({ ...formState, ethAmount: "0.01" })}
                 className={`transition-all ${formState.ethAmount === "0.01" ? "bg-primary/10 border-primary/30" : ""}`}
               >
                 0.01 ETH
@@ -520,9 +461,7 @@ export function CoinForm() {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() =>
-                  setFormState({ ...formState, ethAmount: "0.033" })
-                }
+                onClick={() => setFormState({ ...formState, ethAmount: "0.033" })}
                 className={`transition-all ${formState.ethAmount === "0.033" ? "bg-primary/10 border-primary/30" : ""}`}
               >
                 0.033 ETH
@@ -549,9 +488,7 @@ export function CoinForm() {
           </div>
         </div>
         <div className="flex flex-col space-y-2">
-          <h2 className="bg-secondary text-secondary-foreground px-2 w-full">
-            {t("create.preview")}
-          </h2>
+          <h2 className="bg-secondary text-secondary-foreground px-2 w-full">{t("create.preview")}</h2>
           <div className="relative flex flex-row items-center">
             {previewUrl && (
               <img
@@ -569,10 +506,7 @@ export function CoinForm() {
                 coinId={computeCoinId(formState.name, formState.symbol).id}
                 isLoading={!formState.name || !formState.symbol}
               />
-              <span>
-                (Address:{" "}
-                {computeCoinId(formState.name, formState.symbol).address})
-              </span>
+              <span>(Address: {computeCoinId(formState.name, formState.symbol).address})</span>
 
               <p className="text-sm font-medium description-text mt-1 overflow-y-auto max-h-20 content-transition loaded">
                 {formState.description ?? "Set description"}
@@ -582,49 +516,32 @@ export function CoinForm() {
           {/* Market Cap Estimation */}
           {marketCapEstimation && (
             <div className="mt-3 p-3 bg-secondary/30 rounded-md border border-secondary/50">
-              <h4 className="text-sm font-medium text-foreground mb-2">
-                Launch Projections
-              </h4>
+              <h4 className="text-sm font-medium text-foreground mb-2">Launch Projections</h4>
               <div className="flex flex-col gap-2">
                 <div className="bg-card p-2 rounded border border-border">
-                  <h5 className="text-xs font-medium text-muted-foreground">
-                    {t("coin.price").toUpperCase()}
-                  </h5>
+                  <h5 className="text-xs font-medium text-muted-foreground">{t("coin.price").toUpperCase()}</h5>
                   <div className="flex items-center text-sm mt-1">
-                    <span className="font-medium text-chart-2">
-                      ${marketCapEstimation.tokenPriceUsd.toFixed(8)}
-                    </span>
+                    <span className="font-medium text-chart-2">${marketCapEstimation.tokenPriceUsd.toFixed(8)}</span>
                   </div>
                 </div>
 
                 <div className="bg-card p-2 rounded border border-border">
-                  <h5 className="text-xs font-medium text-muted-foreground">
-                    {t("coin.market_cap").toUpperCase()}
-                  </h5>
+                  <h5 className="text-xs font-medium text-muted-foreground">{t("coin.market_cap").toUpperCase()}</h5>
                   <div className="flex flex-col">
                     <div className="flex items-center text-sm">
-                      <span className="text-muted-foreground min-w-20">
-                        ETH:
-                      </span>
-                      <span className="font-medium">
-                        {formatNumber(marketCapEstimation.eth, 2)} ETH
-                      </span>
+                      <span className="text-muted-foreground min-w-20">ETH:</span>
+                      <span className="font-medium">{formatNumber(marketCapEstimation.eth, 2)} ETH</span>
                     </div>
                     <div className="flex items-center text-sm mt-1">
-                      <span className="text-muted-foreground min-w-20">
-                        USD:
-                      </span>
-                      <span className="font-medium">
-                        ${formatNumber(marketCapEstimation.usd, 0)}
-                      </span>
+                      <span className="text-muted-foreground min-w-20">USD:</span>
+                      <span className="font-medium">${formatNumber(marketCapEstimation.usd, 0)}</span>
                     </div>
                   </div>
                 </div>
               </div>
               <div className="flex items-center mt-2">
                 <p className="text-xs text-muted-foreground">
-                  {t("pool.liquidity")}: {formState.ethAmount} ETH{" "}
-                  {t("common.with")} {poolSupply.toLocaleString()}{" "}
+                  {t("pool.liquidity")}: {formState.ethAmount} ETH {t("common.with")} {poolSupply.toLocaleString()}{" "}
                   {t("coin.circulating_supply").toLowerCase()}
                 </p>
               </div>
@@ -633,9 +550,7 @@ export function CoinForm() {
           <Button disabled={isPending} type="submit">
             {isPending ? t("common.loading") : t("create.title")}
           </Button>
-          {errorMessage && (
-            <div className="text-sm text-destructive mt-2">{errorMessage}</div>
-          )}
+          {errorMessage && <div className="text-sm text-destructive mt-2">{errorMessage}</div>}
           {isSuccess && (
             <div className="text-sm text-chart-2 mt-2">
               {t("create.success")} {JSON.stringify(data)}
