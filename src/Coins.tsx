@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
-import { ExplorerGrid } from "./ExplorerGrid";
+import { ExplorerGrid, SortType } from "./ExplorerGrid";
 import { usePagedCoins } from "./hooks/metadata";
 import { useCoinsData } from "./hooks/metadata/use-coins-data";
 import { useChronologicalCoins } from "./hooks/use-chronological-coins";
@@ -7,30 +7,35 @@ import { SearchIcon } from "lucide-react";
 import { CoinData } from "./hooks/metadata/coin-utils";
 import { debounce } from "./lib/utils";
 import { useTranslation } from "react-i18next";
+import { formatEther } from "viem";
 
 // Page size for pagination
 const PAGE_SIZE = 20;
 
 export const Coins = () => {
   const { t } = useTranslation();
-  
+
   /* ------------------------------------------------------------------
    *  Local state
    * ------------------------------------------------------------------ */
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortType, setSortType] = useState<"liquidity" | "recency">("liquidity");
+  const [sortType, setSortType] = useState<SortType>("liquidity");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   /* ------------------------------------------------------------------
    *  Paged & global coin data
    * ------------------------------------------------------------------ */
-  const { coins, allCoins, page, goToNextPage, isLoading, setPage } = usePagedCoins(PAGE_SIZE);
+  const { coins, allCoins, page, goToNextPage, isLoading, setPage } =
+    usePagedCoins(PAGE_SIZE);
 
   /* ------------------------------------------------------------------
    *  Search handling
    * ------------------------------------------------------------------ */
   // 1) memoize the trimmed query
-  const trimmedQuery = useMemo(() => searchQuery.trim().toLowerCase(), [searchQuery]);
+  const trimmedQuery = useMemo(
+    () => searchQuery.trim().toLowerCase(),
+    [searchQuery],
+  );
 
   // 2) derive `searchResults` (and "active" flag) purely from inputs
   const searchResults = useMemo(() => {
@@ -41,7 +46,9 @@ export const Coins = () => {
 
     return dataToSearch.filter((coin) => {
       // Split the search query into words for multi-term searching
-      const searchTerms = trimmedQuery.split(/\s+/).filter((term) => term.length > 0);
+      const searchTerms = trimmedQuery
+        .split(/\s+/)
+        .filter((term) => term.length > 0);
 
       // If no valid search terms, return empty results
       if (searchTerms.length === 0) return false;
@@ -60,9 +67,7 @@ export const Coins = () => {
           name.includes(term) ||
           description.includes(term) ||
           // Add fuzzy matching for common symbols
-          symbol
-            .replace(/[^a-z0-9]/g, "")
-            .includes(term) ||
+          symbol.replace(/[^a-z0-9]/g, "").includes(term) ||
           // Match word boundaries in name and description
           name.match(new RegExp(`\\b${term}`, "i")) ||
           description.match(new RegExp(`\\b${term}`, "i"))
@@ -80,7 +85,10 @@ export const Coins = () => {
   /* ------------------------------------------------------------------
    *  Debounced pagination handlers to prevent rapid clicks
    * ------------------------------------------------------------------ */
-  const debouncedNextPage = useMemo(() => debounce(goToNextPage, 350), [goToNextPage]);
+  const debouncedNextPage = useMemo(
+    () => debounce(goToNextPage, 350),
+    [goToNextPage],
+  );
 
   // Fix for previous page bug - force setting the page directly to ensure correct navigation
   const debouncedPrevPage = useMemo(
@@ -101,7 +109,8 @@ export const Coins = () => {
   /* ------------------------------------------------------------------
    *  Get chronological coin IDs directly from the contract for accurate recency sorting
    * ------------------------------------------------------------------ */
-  const { data: chronologicalCoinIds = [], isLoading: isChronologicalLoading } = useChronologicalCoins();
+  const { data: chronologicalCoinIds = [], isLoading: isChronologicalLoading } =
+    useChronologicalCoins();
 
   /* ------------------------------------------------------------------
    *  Sorting handlers
@@ -110,14 +119,17 @@ export const Coins = () => {
   const { refetch: refetchChronologicalData } = useChronologicalCoins();
 
   const handleSortTypeChange = useCallback(
-    (newSortType: "liquidity" | "recency") => {
+    (newSortType: SortType) => {
       setSortType(newSortType);
       // Reset to page 1 when changing sort type
       if (sortType !== newSortType) {
         setPage(0);
 
         // If switching to recency sort type, ensure we have the chronological data
-        if (newSortType === "recency" && (!chronologicalCoinIds || chronologicalCoinIds.length === 0)) {
+        if (
+          newSortType === "recency" &&
+          (!chronologicalCoinIds || chronologicalCoinIds.length === 0)
+        ) {
           // Explicitly trigger a refetch to ensure we have the data
           refetchChronologicalData();
         }
@@ -140,7 +152,11 @@ export const Coins = () => {
       // Filter out invalid coins (with ID 0 or undefined/null IDs)
       // This prevents the "Token 0" issue by removing problematic entries
       const validCoins = coinsToSort.filter(
-        (coin) => coin && coin.coinId !== undefined && coin.coinId !== null && Number(coin.coinId) > 0, // Explicitly exclude ID 0
+        (coin) =>
+          coin &&
+          coin.coinId !== undefined &&
+          coin.coinId !== null &&
+          Number(coin.coinId) > 0, // Explicitly exclude ID 0
       );
 
       // If all coins were filtered out, return empty array
@@ -169,6 +185,23 @@ export const Coins = () => {
             ? aLiquidity - bLiquidity // Ascending (lowest liquidity first)
             : bLiquidity - aLiquidity; // Descending (highest liquidity first)
         });
+      } else if (sortType === "votes") {
+        console.log("Sorting By Votes:", coinsCopy);
+        return coinsCopy.sort((a, b) => {
+          // Convert BigInt to number (or fallback to 0)
+          const aVotes =
+            a.votes !== undefined ? Number(formatEther(a.votes)) : 0;
+          const bVotes =
+            b.votes !== undefined ? Number(formatEther(b.votes)) : 0;
+
+          if (aVotes === bVotes) {
+            // Tiebreaker: use coinId descending when votes are equal
+            return sortOrder === "asc"
+              ? Number(a.coinId) - Number(b.coinId)
+              : Number(b.coinId) - Number(a.coinId);
+          }
+          return sortOrder === "asc" ? aVotes - bVotes : bVotes - aVotes;
+        });
       } else {
         // For recency sorting, there are two approaches:
 
@@ -187,13 +220,20 @@ export const Coins = () => {
           return coinsCopy.sort((a, b) => {
             // This check should be redundant due to filtering above,
             // but keeping it for extra safety
-            if (!a?.coinId || !b?.coinId || Number(a.coinId) === 0 || Number(b.coinId) === 0) {
+            if (
+              !a?.coinId ||
+              !b?.coinId ||
+              Number(a.coinId) === 0 ||
+              Number(b.coinId) === 0
+            ) {
               return 0;
             }
 
             // Get the chronological positions (or high value as fallback)
-            const aIndex = chronologicalMap.get(String(a.coinId)) ?? Number.MAX_SAFE_INTEGER;
-            const bIndex = chronologicalMap.get(String(b.coinId)) ?? Number.MAX_SAFE_INTEGER;
+            const aIndex =
+              chronologicalMap.get(String(a.coinId)) ?? Number.MAX_SAFE_INTEGER;
+            const bIndex =
+              chronologicalMap.get(String(b.coinId)) ?? Number.MAX_SAFE_INTEGER;
 
             // Sort by chronological index, with ascending/descending option
             return sortOrder === "asc"
@@ -205,7 +245,12 @@ export const Coins = () => {
         else {
           return coinsCopy.sort((a, b) => {
             // This check should be redundant due to filtering above
-            if (!a?.coinId || !b?.coinId || Number(a.coinId) === 0 || Number(b.coinId) === 0) {
+            if (
+              !a?.coinId ||
+              !b?.coinId ||
+              Number(a.coinId) === 0 ||
+              Number(b.coinId) === 0
+            ) {
               return 0;
             }
 
@@ -227,7 +272,11 @@ export const Coins = () => {
    * ------------------------------------------------------------------ */
   const filterValidCoins = useCallback((coinsList: CoinData[]): CoinData[] => {
     return coinsList.filter(
-      (coin) => coin && coin.coinId !== undefined && coin.coinId !== null && Number(coin.coinId) > 0, // Exclude ID 0 and any negative IDs
+      (coin) =>
+        coin &&
+        coin.coinId !== undefined &&
+        coin.coinId !== null &&
+        Number(coin.coinId) > 0, // Exclude ID 0 and any negative IDs
     );
   }, []);
 
@@ -296,24 +345,34 @@ export const Coins = () => {
         total={
           isSearchActive
             ? filterValidCoins(searchResults || []).length
-            : filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || []).length
+            : filterValidCoins(
+                sortType === "recency" ? allCoinsUnpaged || [] : allCoins || [],
+              ).length
         }
         canPrev={!isSearchActive && page > 0}
         canNext={
           !isSearchActive &&
           (page + 1) * PAGE_SIZE <
-            filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || []).length
+            filterValidCoins(
+              sortType === "recency" ? allCoinsUnpaged || [] : allCoins || [],
+            ).length
         }
         onPrev={debouncedPrevPage}
         onNext={debouncedNextPage}
-        isLoading={isLoading || (sortType === "recency" && isChronologicalLoading)}
+        isLoading={
+          isLoading || (sortType === "recency" && isChronologicalLoading)
+        }
         currentPage={page + 1}
         totalPages={Math.max(
           1,
           Math.ceil(
             (isSearchActive
               ? filterValidCoins(searchResults || []).length
-              : filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || []).length) / PAGE_SIZE,
+              : filterValidCoins(
+                  sortType === "recency"
+                    ? allCoinsUnpaged || []
+                    : allCoins || [],
+                ).length) / PAGE_SIZE,
           ),
         )}
         isSearchActive={isSearchActive}
@@ -349,7 +408,9 @@ export const Coins = () => {
           </div>
         }
         searchResults={
-          isSearchActive ? `${t("common.showing")} ${searchResults.length} ${searchResults.length !== 1 ? t("common.results") : t("common.result")}` : ""
+          isSearchActive
+            ? `${t("common.showing")} ${searchResults.length} ${searchResults.length !== 1 ? t("common.results") : t("common.result")}`
+            : ""
         }
       />
     </>

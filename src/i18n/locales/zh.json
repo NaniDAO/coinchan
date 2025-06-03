@@ -1,6 +1,7 @@
 {
   "common": {
     "loading": "加载中...",
+    "votes": "支持数",
     "error": "错误",
     "success": "成功",
     "connect": "连接钱包",
