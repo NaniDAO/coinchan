@@ -70,7 +70,8 @@
     "coin": "coin",
     "loading_next": "Loading next page...",
     "loading_previous": "Loading previous page...",
-    "with": "with"
+    "with": "with",
+    "launch": "Launch"
   },
   "header": {
     "connect": "Connect Wallet",

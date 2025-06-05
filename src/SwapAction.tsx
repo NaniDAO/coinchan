@@ -864,7 +864,10 @@ export const SwapAction = () => {
             {swapMode === "limit" ? t("swap.order_created") : "Transaction confirmed!"}
           </div>
           {swapMode === "limit" && (
-            <Link to="/orders" className="flex items-center gap-1 text-chart-2 hover:text-chart-2/80 transition-colors text-xs">
+            <Link
+              to="/orders"
+              className="flex items-center gap-1 text-chart-2 hover:text-chart-2/80 transition-colors text-xs"
+            >
               {t("swap.view_orders")}
               <ExternalLink className="h-3 w-3" />
             </Link>

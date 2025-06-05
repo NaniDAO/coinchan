@@ -1,12 +1,7 @@
 import { CoinCard } from "./components/CoinCard";
 import { type CoinData } from "./hooks/metadata";
 import { useEffect, useState } from "react";
-import {
-  ArrowDownAZ,
-  ArrowUpAZ,
-  Coins as CoinsIcon,
-  ThumbsUp,
-} from "lucide-react";
+import { ArrowDownAZ, ArrowUpAZ, Coins as CoinsIcon, ThumbsUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 // Default page size
@@ -94,11 +89,7 @@ export const ExplorerGrid = ({
                 : `${total} ${t("common.coins")}`}
           </h2>
 
-          {searchResults && (
-            <div className="ml-4 text-sm text-muted-foreground">
-              {searchResults}
-            </div>
-          )}
+          {searchResults && <div className="ml-4 text-sm text-muted-foreground">{searchResults}</div>}
         </div>
 
         <div className="flex items-center">
@@ -126,9 +117,7 @@ export const ExplorerGrid = ({
                 disabled={isLoading || isTransitioning}
               >
                 <CoinsIcon className="w-4 h-4 mr-1" />
-                <span className="hidden sm:inline">
-                  {t("common.liquidity")}
-                </span>
+                <span className="hidden sm:inline">{t("common.liquidity")}</span>
               </button>
 
               {/* Recency button */}
@@ -182,9 +171,7 @@ export const ExplorerGrid = ({
           {/* Sort Order Button - Now visible for both sort modes */}
           {onSortOrderChange && (
             <button
-              onClick={() =>
-                onSortOrderChange(sortOrder === "asc" ? "desc" : "asc")
-              }
+              onClick={() => onSortOrderChange(sortOrder === "asc" ? "desc" : "asc")}
               className="flex items-center justify-center px-2 py-1 mr-2 rounded-md border border-primary/30 hover:bg-secondary-foreground text-sm"
               aria-label={
                 sortType === "recency"
@@ -214,11 +201,7 @@ export const ExplorerGrid = ({
               }
               disabled={isLoading || isTransitioning}
             >
-              {sortOrder === "asc" ? (
-                <ArrowUpAZ className="w-4 h-4 mr-1" />
-              ) : (
-                <ArrowDownAZ className="w-4 h-4 mr-1" />
-              )}
+              {sortOrder === "asc" ? <ArrowUpAZ className="w-4 h-4 mr-1" /> : <ArrowDownAZ className="w-4 h-4 mr-1" />}
               <span className="hidden sm:inline">
                 {sortType === "recency"
                   ? sortOrder === "asc"
@@ -258,10 +241,7 @@ export const ExplorerGrid = ({
         className={`grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 sm:gap-3 min-h-[300px] ${isTransitioning ? "transition-opacity duration-300 opacity-50" : ""}`}
       >
         {coins.map((coin) => (
-          <div
-            key={coin.coinId.toString()}
-            className={isPending ? "opacity-60 pointer-events-none" : ""}
-          >
+          <div key={coin.coinId.toString()} className={isPending ? "opacity-60 pointer-events-none" : ""}>
             <CoinCard coin={coin} />
           </div>
         ))}
@@ -300,13 +280,7 @@ export const ExplorerGrid = ({
               <span className="w-3 h-3 rounded-full border-2 border-primary border-t-transparent animate-spin mr-1"></span>
             </span>
           ) : null}
-          <span
-            className={
-              isTransitioning && direction === "prev" ? "opacity-0" : ""
-            }
-          >
-            {t("common.previous")}
-          </span>
+          <span className={isTransitioning && direction === "prev" ? "opacity-0" : ""}>{t("common.previous")}</span>
         </button>
 
         {/* Page info from parent */}
@@ -330,13 +304,7 @@ export const ExplorerGrid = ({
               <span className="w-3 h-3 rounded-full border-2 border-primary border-t-transparent animate-spin mr-1"></span>
             </span>
           ) : null}
-          <span
-            className={
-              isTransitioning && direction === "next" ? "opacity-0" : ""
-            }
-          >
-            {t("common.next")}
-          </span>
+          <span className={isTransitioning && direction === "next" ? "opacity-0" : ""}>{t("common.next")}</span>
         </button>
       </div>
     </div>

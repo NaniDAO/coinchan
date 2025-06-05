@@ -3,11 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useAccount } from "wagmi";
 import { Button } from "./ui/button"; // Keep existing import path
 // New imports for pills
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover"; // Import from prompt path
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"; // Import from prompt path
 import { Checkbox } from "@/components/ui/checkbox"; // Import from prompt path
 import { X, Loader2, RefreshCcw } from "lucide-react"; // Keep existing and add X explicitely
 import { OrderCard } from "./OrderCard";
@@ -166,8 +162,7 @@ export const OrderFilterPills = ({
     });
     // Only show ownership pills if address is connected
     if (address) {
-      if (filters.onlyMine)
-        pills.push({ label: t("orders.only_my_orders"), key: "onlyMine" }); // Use translation
+      if (filters.onlyMine) pills.push({ label: t("orders.only_my_orders"), key: "onlyMine" }); // Use translation
       if (filters.excludeMine)
         pills.push({
           label: t("orders.exclude_my_orders"),
@@ -188,8 +183,7 @@ export const OrderFilterPills = ({
         <PopoverContent className="w-64">
           <div className="space-y-4">
             <div className="space-y-2">
-              <p className="text-sm font-medium">{t("orders.status")}</p>{" "}
-              {/* Use translation */}
+              <p className="text-sm font-medium">{t("orders.status")}</p> {/* Use translation */}
               {(["ACTIVE", "COMPLETED", "CANCELLED"] as const).map(
                 (
                   s, // Use 'as const' for type safety
@@ -198,15 +192,9 @@ export const OrderFilterPills = ({
                     <Checkbox
                       checked={filters.status.includes(s)}
                       onCheckedChange={(checked) => {
-                        const newStatus = checked
-                          ? [...filters.status, s]
-                          : filters.status.filter((st) => st !== s);
+                        const newStatus = checked ? [...filters.status, s] : filters.status.filter((st) => st !== s);
                         updateFilters({
-                          status: newStatus as (
-                            | "ACTIVE"
-                            | "COMPLETED"
-                            | "CANCELLED"
-                          )[],
+                          status: newStatus as ("ACTIVE" | "COMPLETED" | "CANCELLED")[],
                         }); // Cast for type safety
                       }}
                     />
@@ -222,8 +210,7 @@ export const OrderFilterPills = ({
             {/* Only show ownership filters if address is connected */}
             {address && (
               <div className="space-y-2">
-                <p className="text-sm font-medium">{t("orders.ownership")}</p>{" "}
-                {/* Use translation */}
+                <p className="text-sm font-medium">{t("orders.ownership")}</p> {/* Use translation */}
                 <div className="flex items-center gap-2">
                   <Checkbox
                     checked={filters.onlyMine}
@@ -236,8 +223,7 @@ export const OrderFilterPills = ({
                       }
                     }}
                   />
-                  <span className="text-sm">{t("orders.only_my_orders")}</span>{" "}
-                  {/* Use translation */}
+                  <span className="text-sm">{t("orders.only_my_orders")}</span> {/* Use translation */}
                 </div>
                 <div className="flex items-center gap-2">
                   <Checkbox
@@ -251,10 +237,7 @@ export const OrderFilterPills = ({
                       }
                     }}
                   />
-                  <span className="text-sm">
-                    {t("orders.exclude_my_orders")}
-                  </span>{" "}
-                  {/* Use translation */}
+                  <span className="text-sm">{t("orders.exclude_my_orders")}</span> {/* Use translation */}
                 </div>
               </div>
             )}
@@ -271,9 +254,7 @@ export const OrderFilterPills = ({
             >
               <span>{pill.label}</span>
               <button
-                onClick={() =>
-                  removeFilter(pill.key as keyof FilterState, pill.label)
-                }
+                onClick={() => removeFilter(pill.key as keyof FilterState, pill.label)}
                 className="text-muted-foreground hover:text-foreground" // Add hover state for clarity
               >
                 <X className="w-3 h-3" />
@@ -331,21 +312,16 @@ export const OrdersPage = () => {
 
       return orders.filter((order) => {
         // Status filter: Include if status list is empty or order status is in the list
-        const statusMatch =
-          currentFilters.status.length === 0 ||
-          currentFilters.status.includes(order.status);
+        const statusMatch = currentFilters.status.length === 0 || currentFilters.status.includes(order.status);
 
         // Ownership filter:
         // Applies only if address is connected AND (onlyMine or excludeMine is true)
-        const ownershipFilterActive =
-          address && (currentFilters.onlyMine || currentFilters.excludeMine);
+        const ownershipFilterActive = address && (currentFilters.onlyMine || currentFilters.excludeMine);
 
         const ownershipMatch =
           !ownershipFilterActive || // If filter is not active, it matches
-          (currentFilters.onlyMine &&
-            order.maker.toLowerCase() === address?.toLowerCase()) || // If onlyMine, check maker
-          (currentFilters.excludeMine &&
-            order.maker.toLowerCase() !== address?.toLowerCase()); // If excludeMine, check maker
+          (currentFilters.onlyMine && order.maker.toLowerCase() === address?.toLowerCase()) || // If onlyMine, check maker
+          (currentFilters.excludeMine && order.maker.toLowerCase() !== address?.toLowerCase()); // If excludeMine, check maker
 
         // An order matches if both status and ownership filters match
         return statusMatch && ownershipMatch;
@@ -366,9 +342,7 @@ export const OrdersPage = () => {
       <div className="flex items-center justify-center py-12">
         <div className="flex items-center gap-2">
           <Loader2 className="h-5 w-5 animate-spin" />
-          <span className="text-muted-foreground">
-            {t("orders.loading_orders")}
-          </span>
+          <span className="text-muted-foreground">{t("orders.loading_orders")}</span>
         </div>
       </div>
     );
@@ -378,9 +352,7 @@ export const OrdersPage = () => {
   if (error && !orders) {
     return (
       <div className="text-center py-12">
-        <p className="text-red-500">
-          {t("orders.error_fetching", { message: error.message })}
-        </p>
+        <p className="text-red-500">{t("orders.error_fetching", { message: error.message })}</p>
       </div>
     );
   }
@@ -393,13 +365,11 @@ export const OrdersPage = () => {
     // If filters === defaultFilters and orders.length === 0, this is the right message.
     // If filters !== defaultFilters and filteredOrders.length === 0, OrderList shows its message.
     // Let's check if filters are default to avoid showing this if filters caused the emptiness.
-    const isDefaultFilter =
-      filters.status.length === 0 && !filters.onlyMine && !filters.excludeMine;
+    const isDefaultFilter = filters.status.length === 0 && !filters.onlyMine && !filters.excludeMine;
     if (isDefaultFilter) {
       return (
         <div className="text-center py-12">
-          <p className="text-muted-foreground">{t("orders.no_orders")}</p>{" "}
-          {/* This should mean 'No orders at all' */}
+          <p className="text-muted-foreground">{t("orders.no_orders")}</p> {/* This should mean 'No orders at all' */}
         </div>
       );
     }
@@ -418,9 +388,7 @@ export const OrdersPage = () => {
           disabled={isFetching} // Use isFetching from react-query
           className="flex items-center gap-2"
         >
-          <RefreshCcw
-            className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`}
-          />
+          <RefreshCcw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
           {t("orders.refresh")}
         </Button>
       </div>
@@ -433,17 +401,13 @@ export const OrdersPage = () => {
       {/* The OrderList component will show 'No orders' if filteredOrders is empty */}
       {/* Only render OrderList if the raw data fetch was successful and returned some data initially OR if we are currently fetching but had previous data*/}
       {
-        (orders && orders.length > 0) ||
-        (isFetching && filteredOrders.length > 0) ? ( // Render if we have initial data OR if we are fetching but already have filtered data
+        (orders && orders.length > 0) || (isFetching && filteredOrders.length > 0) ? ( // Render if we have initial data OR if we are fetching but already have filtered data
           <OrderList
             orders={filteredOrders} // Pass the filtered data
             currentUser={address}
             onOrderFilled={handleOrderFilled}
           />
-        ) : !isLoading &&
-          !isFetching &&
-          filteredOrders.length === 0 &&
-          (orders?.length ?? 0) > 0 ? (
+        ) : !isLoading && !isFetching && filteredOrders.length === 0 && (orders?.length ?? 0) > 0 ? (
           // This state occurs when data was fetched, but applying filters results in an empty list.
           // The OrderList component's internal empty state message handles this case.
           // We don't need a separate div here, the OrderList component renders the message.
@@ -486,9 +450,7 @@ const OrderList = ({ orders, currentUser, onOrderFilled }: OrderListProps) => {
   if (!orders || orders.length === 0) {
     return (
       <div className="text-center py-6">
-        <p className="text-muted-foreground">
-          {t("orders.no_filtered_orders") || t("orders.no_orders")}
-        </p>{" "}
+        <p className="text-muted-foreground">{t("orders.no_filtered_orders") || t("orders.no_orders")}</p>{" "}
         {/* Consider adding a specific key for filtered empty state */}
       </div>
     );
@@ -497,12 +459,7 @@ const OrderList = ({ orders, currentUser, onOrderFilled }: OrderListProps) => {
   return (
     <div className="space-y-4">
       {orders.map((order) => (
-        <OrderCard
-          key={order.id}
-          order={order}
-          currentUser={currentUser}
-          onOrderFilled={onOrderFilled}
-        />
+        <OrderCard key={order.id} order={order} currentUser={currentUser} onOrderFilled={onOrderFilled} />
       ))}
     </div>
   );

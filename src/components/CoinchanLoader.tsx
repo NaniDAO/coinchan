@@ -16,7 +16,7 @@ const CoinchanLoader: React.FC = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     ctx.imageSmoothingEnabled = false;
@@ -26,19 +26,19 @@ const CoinchanLoader: React.FC = () => {
     const pixelsPerFrame = 8;
 
     const img = new Image();
-    img.src = '/eth_logo_8bit_trans.png';
+    img.src = "/eth_logo_8bit_trans.png";
 
     img.onload = () => {
       // Build reduced palette buffer
       const scale = targetHeight / img.height;
       const targetW = Math.round(img.width * scale);
 
-      const off = document.createElement('canvas');
+      const off = document.createElement("canvas");
       off.width = targetW;
       off.height = targetHeight;
-      const offCtx = off.getContext('2d');
+      const offCtx = off.getContext("2d");
       if (!offCtx) return;
-      
+
       offCtx.imageSmoothingEnabled = false;
       offCtx.drawImage(img, 0, 0, targetW, targetHeight);
 
@@ -51,11 +51,12 @@ const CoinchanLoader: React.FC = () => {
           const a = data[i + 3];
           if (a > 0) {
             pixels.push({
-              x, y,
+              x,
+              y,
               r: data[i],
               g: data[i + 1],
               b: data[i + 2],
-              a
+              a,
             });
           }
         }
@@ -77,12 +78,7 @@ const CoinchanLoader: React.FC = () => {
         for (let i = 0; i < pixelsPerFrame && pixels.length; i++) {
           const p = pixels.pop()!;
           ctx.fillStyle = `rgba(${p.r},${p.g},${p.b},${p.a / 255})`;
-          ctx.fillRect(
-            p.x * pixelScale,
-            p.y * pixelScale,
-            pixelScale,
-            pixelScale
-          );
+          ctx.fillRect(p.x * pixelScale, p.y * pixelScale, pixelScale, pixelScale);
         }
         if (pixels.length) {
           requestAnimationFrame(drawBatch);
@@ -94,11 +90,7 @@ const CoinchanLoader: React.FC = () => {
 
   return (
     <div className="flex justify-center items-center p-4">
-      <canvas 
-        ref={canvasRef}
-        className="w-64 h-64"
-        style={{ imageRendering: 'pixelated' }}
-      />
+      <canvas ref={canvasRef} className="w-64 h-64" style={{ imageRendering: "pixelated" }} />
     </div>
   );
 };
