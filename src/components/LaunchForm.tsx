@@ -1,9 +1,9 @@
-import React, { useState, FormEvent } from "react";
+import { useState, FormEvent, useMemo } from "react";
 import { useWriteContract } from "wagmi";
-import { ZAMMLaunchAddress, ZAMMLaunchAbi } from "@/constants/ZAMMLaunch"; // Ensure these are correctly defined
-import { pinImageToPinata, pinJsonToPinata } from "@/lib/pinata"; // Ensure these utilities exist and work
+import { ZAMMLaunchAddress, ZAMMLaunchAbi } from "@/constants/ZAMMLaunch";
+import { pinImageToPinata, pinJsonToPinata } from "@/lib/pinata";
 
-// Import shadcn components
+// shadcn components
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,11 +15,24 @@ import {
   CardContent,
   CardFooter,
 } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // Optional: for success/error messages
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ImageInput } from "@/components/ui/image-input";
 
-// Helper to convert File to Buffer
-const fileToBuffer = (file: File): Promise<Buffer> => {
-  return new Promise((resolve, reject) => {
+// recharts for interactive bonding‑curve visual
+import {
+  ResponsiveContainer,
+  ComposedChart, // 👈  instead of BarChart
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Bar,
+  Line,
+} from "recharts";
+
+// helper to convert File → Buffer
+const fileToBuffer = (file: File): Promise<Buffer> =>
+  new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
       if (reader.result instanceof ArrayBuffer) {
@@ -28,19 +41,18 @@ const fileToBuffer = (file: File): Promise<Buffer> => {
         reject(new Error("Failed to read file as ArrayBuffer"));
       }
     };
-    reader.onerror = (error) => reject(error);
+    reader.onerror = reject;
     reader.readAsArrayBuffer(file);
   });
-};
 
 interface Tranche {
-  coins: string; // Use string to handle large numbers from input
-  price: string; // Use string to handle large numbers from input
+  coins: string; // uint96 as string
+  price: string; // ETH (or wei) as string
 }
 
 export const LaunchForm = () => {
   const [creatorSupply, setCreatorSupply] = useState("");
-  const [creatorUnlockDate, setCreatorUnlockDate] = useState<string>(""); // Use string for date input
+  const [creatorUnlockDate, setCreatorUnlockDate] = useState<string>("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [tranches, setTranches] = useState<Tranche[]>([
     { coins: "", price: "" },
@@ -50,129 +62,131 @@ export const LaunchForm = () => {
 
   const { data: hash, error, isPending, writeContract } = useWriteContract();
 
-  const handleAddTranche = () => {
+  /* ---------- bonding‑curve helpers ---------- */
+  const chartData = useMemo(() => {
+    // map + keep original index so we can update state later
+    return tranches
+      .map((t, i) => ({
+        originalIndex: i,
+        priceNum: parseFloat(t.price || "0"),
+        name: `T${i + 1}`,
+      }))
+      .sort((a, b) => a.priceNum - b.priceNum);
+  }, [tranches]);
+
+  const handleBarClick = (originalIndex: number) => {
+    const current = tranches[originalIndex]?.price || "0";
+    const next = prompt("Enter new price for this tranche (ETH)", current);
+    if (next !== null) {
+      handleTrancheChange(originalIndex, "price", next);
+    }
+  };
+
+  /* ---------- form state helpers ---------- */
+  const handleAddTranche = () =>
     setTranches([...tranches, { coins: "", price: "" }]);
-  };
-
-  const handleRemoveTranche = (index: number) => {
-    setTranches(tranches.filter((_, i) => i !== index));
-  };
-
+  const handleRemoveTranche = (idx: number) =>
+    setTranches(tranches.filter((_, i) => i !== idx));
   const handleTrancheChange = (
-    index: number,
+    idx: number,
     field: keyof Tranche,
     value: string,
-  ) => {
-    const newTranches = tranches.map((tranche, i) =>
-      i === index ? { ...tranche, [field]: value } : tranche,
+  ) =>
+    setTranches(
+      tranches.map((t, i) => (i === idx ? { ...t, [field]: value } : t)),
     );
-    setTranches(newTranches);
+
+  const handleImageFileChange = (value: File | File[] | undefined) => {
+    if (value instanceof File) setImageFile(value);
+    else if (Array.isArray(value) && value.length) setImageFile(value[0]);
+    else setImageFile(null);
   };
 
-  const handleSubmit = async (event: FormEvent) => {
-    event.preventDefault();
+  /* ---------- submit ---------- */
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!imageFile) return alert("Select an image file");
+    if (!tranches.length) return alert("Add at least one tranche");
 
-    if (!imageFile) {
-      alert("Please select an image file."); // Consider using a shadcn Dialog or Toast for this
-      return;
-    }
-
-    if (tranches.length === 0) {
-      alert("Please add at least one tranche."); // Consider using a shadcn Dialog or Toast for this
-      return;
-    }
-
-    // Convert date string to Unix timestamp (seconds)
-    const unlockTimestamp = creatorUnlockDate
-      ? Math.floor(new Date(creatorUnlockDate).getTime() / 1000)
+    const unlockTs = creatorUnlockDate
+      ? Math.floor(new Date(creatorUnlockDate).getTime() / 1_000)
       : 0;
 
-    // Prepare Pinata metadata
-    const pinataMetadata = {
-      name: imageFile.name,
-    };
-
     try {
-      // Upload image to Pinata
-      const imageBuffer = await fileToBuffer(imageFile);
-      const imageHash = await pinImageToPinata(
-        imageBuffer,
+      const imgHash = await pinImageToPinata(
+        await fileToBuffer(imageFile),
         imageFile.name,
-        pinataMetadata,
+        { name: imageFile.name },
       );
-      const imageUrl = `ipfs://${imageHash}`; // Construct IPFS URI
-
-      // Prepare token URI JSON
-      const tokenUriJson = {
+      const imageUrl = `ipfs://${imgHash}`;
+      const tokenJsonHash = await pinJsonToPinata({
         name: metadataName || imageFile.name,
-        description: metadataDescription || "",
+        description: metadataDescription,
         image: imageUrl,
-        // Add other metadata fields as needed for ERC-6909 or similar standards
-      };
+      });
+      const uri = `ipfs://${tokenJsonHash}`;
 
-      // Upload JSON to Pinata
-      const tokenUriHash = await pinJsonToPinata(tokenUriJson);
-      const uri = `ipfs://${tokenUriHash}`; // Construct IPFS URI for the metadata
-
-      // Prepare tranche data for contract call
       const trancheCoins = tranches.map((t) => BigInt(t.coins));
-      const tranchePrice = tranches.map((t) => BigInt(t.price));
-
-      // Prepare other arguments for contract call
-      const creatorSupplyBigInt = BigInt(creatorSupply || 0);
-      const creatorUnlockBigInt = BigInt(unlockTimestamp); // Timestamp is uint256
+      const tranchePrices = tranches.map((t) => BigInt(t.price));
 
       writeContract({
         abi: ZAMMLaunchAbi,
         address: ZAMMLaunchAddress,
         functionName: "launch",
         args: [
-          creatorSupplyBigInt,
-          creatorUnlockBigInt,
+          BigInt(creatorSupply || 0),
+          BigInt(unlockTs),
           uri,
           trancheCoins,
-          tranchePrice,
+          tranchePrices,
         ],
       });
-    } catch (e) {
-      console.error("Error during form submission or Pinata upload:", e);
-      // Consider using a shadcn Toast for this
-      alert(`Failed to launch: ${e instanceof Error ? e.message : String(e)}`);
+    } catch (err) {
+      console.error(err);
+      alert(
+        `Failed to launch: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 p-4 max-w-md mx-auto">
-      {" "}
-      {/* Added some padding and max-width */}
+    <form onSubmit={handleSubmit} className="space-y-6 p-4 max-w-2xl mx-auto">
+      {/* creator supply & unlock */}
       <div className="grid w-full items-center gap-1.5">
         <Label htmlFor="creatorSupply">Creator Supply (uint96)</Label>
         <Input
-          type="number"
           id="creatorSupply"
+          type="number"
           value={creatorSupply}
           onChange={(e) => setCreatorSupply(e.target.value)}
-          placeholder="e.g., 1000000"
+          placeholder="e.g. 1000000"
           required
         />
       </div>
       <div className="grid w-full items-center gap-1.5">
-        <Label htmlFor="creatorUnlock">Creator Unlock Time (Date/Time)</Label>
+        <Label htmlFor="creatorUnlock">Creator Unlock Time</Label>
         <Input
-          type="datetime-local"
           id="creatorUnlock"
+          type="datetime-local"
           value={creatorUnlockDate}
           onChange={(e) => setCreatorUnlockDate(e.target.value)}
         />
       </div>
+
+      {/* token logo */}
+      <div className="space-y-2">
+        <Label htmlFor="imageFile">Coin Image</Label>
+        <ImageInput onChange={handleImageFileChange} />
+      </div>
+
+      {/* metadata */}
       <div className="grid w-full items-center gap-1.5">
         <Label htmlFor="metadataName">Metadata Name</Label>
         <Input
-          type="text"
           id="metadataName"
           value={metadataName}
           onChange={(e) => setMetadataName(e.target.value)}
-          placeholder="e.g., My Awesome Coin"
+          placeholder="My Awesome Coin"
           required
         />
       </div>
@@ -180,113 +194,112 @@ export const LaunchForm = () => {
         <Label htmlFor="metadataDescription">Metadata Description</Label>
         <Textarea
           id="metadataDescription"
+          rows={3}
           value={metadataDescription}
           onChange={(e) => setMetadataDescription(e.target.value)}
-          rows={3}
           placeholder="A brief description of the coin"
         />
       </div>
-      <div className="grid w-full items-center gap-1.5">
-        <Label htmlFor="imageFile">Coin Image (for URI)</Label>
-        {/* shadcn Input doesn't style type="file" well, keeping native with minimal classes */}
-        <input
-          type="file"
-          id="imageFile"
-          accept="image/*"
-          onChange={(e) => setImageFile(e.target.files?.[0] || null)}
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          required
-        />
-      </div>
+
+      {/* ----- bonding curve visual + tranche editor ----- */}
       <Card>
-        {" "}
-        {/* Use Card for the Tranches section */}
         <CardHeader>
-          <CardTitle>Tranches</CardTitle>
+          <CardTitle>Bonding Curve – Click bars to edit price</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {" "}
-          {/* Applied space-y to content */}
-          {tranches.map((tranche, index) => (
-            <div
-              key={index}
-              className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 items-end border-b pb-4 last:border-b-0 last:pb-0"
+        <CardContent className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart /* Bar + line in one go */
+              data={chartData}
+              margin={{ top: 10, right: 10, bottom: 10, left: 10 }}
             >
-              {" "}
-              {/* Added flex-col for small screens, border/padding for separation */}
-              <div className="flex-grow grid w-full items-center gap-1.5">
-                <Label htmlFor={`trancheCoins-${index}`}>
-                  Tranche Coins (uint96)
-                </Label>
-                <Input
-                  type="number"
-                  id={`trancheCoins-${index}`}
-                  value={tranche.coins}
-                  onChange={(e) =>
-                    handleTrancheChange(index, "coins", e.target.value)
-                  }
-                  required
-                />
-              </div>
-              <div className="flex-grow grid w-full items-center gap-1.5">
-                <Label htmlFor={`tranchePrice-${index}`}>
-                  Tranche Price (ETH in wei, uint96)
-                </Label>
-                <Input
-                  type="number"
-                  id={`tranchePrice-${index}`}
-                  value={tranche.price}
-                  onChange={(e) =>
-                    handleTrancheChange(index, "price", e.target.value)
-                  }
-                  required
-                />
-              </div>
-              {tranches.length > 1 && (
-                <Button
-                  type="button"
-                  variant="destructive" // Using destructive variant for remove
-                  size="sm" // Using small size button
-                  onClick={() => handleRemoveTranche(index)}
-                  className="w-full sm:w-auto" // Make button full width on small screens
-                >
-                  Remove
-                </Button>
-              )}
-            </div>
-          ))}
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+
+              {/* bars stay interactive */}
+              <Bar
+                dataKey="priceNum"
+                fill="#000"
+                onClick={(d, idx) =>
+                  handleBarClick(chartData[idx].originalIndex)
+                }
+              />
+
+              {/* cyan curve on top of the bars */}
+              <Line
+                type="monotone"
+                dataKey="priceNum"
+                stroke="#00e5ff" // or whatever hex you like
+                strokeWidth={2}
+                dot={false}
+                isAnimationActive={false} // makes editing snappier
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
         </CardContent>
-        <CardFooter className="flex justify-end pt-4">
-          {" "}
-          {/* Use CardFooter for button */}
-          <Button
-            type="button"
-            variant="outline" // Using outline variant for add
-            onClick={handleAddTranche}
-          >
+        <CardFooter className="flex justify-end">
+          <Button type="button" variant="outline" onClick={handleAddTranche}>
             Add Tranche
           </Button>
         </CardFooter>
       </Card>
-      <Button
-        type="submit"
-        disabled={isPending}
-        className="w-full" // Make button full width
-      >
-        {isPending ? "Launching..." : "Launch Coin Sale"}
+
+      {/* tranche raw inputs – allow granular control + coins */}
+      {tranches.map((tranche, idx) => (
+        <div
+          key={idx}
+          className="flex flex-col sm:flex-row items-end gap-4 border-b pb-4 last:border-b-0 last:pb-0"
+        >
+          <div className="flex-grow grid w-full items-center gap-1.5">
+            <Label htmlFor={`trancheCoins-${idx}`}>Coins (uint96)</Label>
+            <Input
+              id={`trancheCoins-${idx}`}
+              type="number"
+              value={tranche.coins}
+              onChange={(e) =>
+                handleTrancheChange(idx, "coins", e.target.value)
+              }
+              required
+            />
+          </div>
+          <div className="flex-grow grid w-full items-center gap-1.5">
+            <Label htmlFor={`tranchePrice-${idx}`}>Price (ETH)</Label>
+            <Input
+              id={`tranchePrice-${idx}`}
+              type="number"
+              value={tranche.price}
+              onChange={(e) =>
+                handleTrancheChange(idx, "price", e.target.value)
+              }
+              required
+            />
+          </div>
+          {tranches.length > 1 && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => handleRemoveTranche(idx)}
+            >
+              Remove
+            </Button>
+          )}
+        </div>
+      ))}
+
+      {/* submit */}
+      <Button type="submit" disabled={isPending} className="w-full">
+        {isPending ? "Launching…" : "Launch Coin Sale"}
       </Button>
+
       {hash && (
         <Alert className="mt-4">
-          {" "}
-          {/* Use Alert for success message */}
           <AlertTitle>Transaction Sent!</AlertTitle>
           <AlertDescription>Check transaction hash: {hash}</AlertDescription>
         </Alert>
       )}
       {error && (
         <Alert variant="destructive" className="mt-4">
-          {" "}
-          {/* Use Alert for error message */}
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error.message}</AlertDescription>
         </Alert>
