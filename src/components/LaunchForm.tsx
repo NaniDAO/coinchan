@@ -221,7 +221,7 @@ export const LaunchForm = () => {
               <Bar
                 dataKey="priceNum"
                 fill="#000"
-                onClick={(d, idx) =>
+                onClick={(_d, idx) =>
                   handleBarClick(chartData[idx].originalIndex)
                 }
               />
