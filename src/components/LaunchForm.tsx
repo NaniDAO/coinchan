@@ -30,7 +30,8 @@ import {
   Line,
 } from "recharts";
 import { parseEther } from "viem";
-
+import { toast } from "sonner";
+import { generateRandomSlug } from "@/lib/utils";
 interface Tranche {
   coins: string; // uint96 as string
   price: string; // ETH (or wei) as string
@@ -108,11 +109,12 @@ export const LaunchForm = () => {
       : 0;
 
     try {
-      const fileName = `${metadataName}_logo.png`;
+      const fileName = `${generateRandomSlug()}_logo.png`;
 
       const imgUri = await pinImageToPinata(imageBuffer, fileName, {
         name: fileName,
       });
+
       const uri = await pinJsonToPinata({
         name: metadataName || fileName,
         description: metadataDescription,
@@ -136,7 +138,7 @@ export const LaunchForm = () => {
       });
     } catch (err) {
       console.error(err);
-      alert(
+      toast.error(
         `Failed to launch: ${err instanceof Error ? err.message : String(err)}`,
       );
     }

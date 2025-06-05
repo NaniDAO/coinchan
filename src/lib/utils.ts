@@ -6,7 +6,9 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function trunc(value: number | string, length: number = 3): string {
-  return value.toString().slice(0, length) + "..." + value.toString().slice(-length);
+  return (
+    value.toString().slice(0, length) + "..." + value.toString().slice(-length)
+  );
 }
 
 /**
@@ -36,7 +38,10 @@ export function formatNumber(value: number, decimals: number = 2): string {
  * @param wait The number of milliseconds to delay
  * @returns A debounced function
  */
-export function debounce<T extends (...args: any[]) => any>(func: T, wait = 300): (...args: Parameters<T>) => void {
+export function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait = 300,
+): (...args: Parameters<T>) => void {
   let timeout: ReturnType<typeof setTimeout> | null = null;
 
   return function (this: any, ...args: Parameters<T>): void {
@@ -52,3 +57,69 @@ export function debounce<T extends (...args: any[]) => any>(func: T, wait = 300)
     }, wait);
   };
 }
+
+export const generateRandomSlug = () => {
+  const words = [
+    "apple",
+    "banana",
+    "cherry",
+    "date",
+    "elderberry",
+    "fig",
+    "grape",
+    "honeydew",
+    "kiwi",
+    "lemon",
+    "mango",
+    "nectarine",
+    "orange",
+    "papaya",
+    "quince",
+    "raspberry",
+    "strawberry",
+    "tangerine",
+    "ugli",
+    "vanilla",
+    "watermelon",
+    "xigua",
+    "yuzu",
+    "zucchini",
+    "apricot",
+    "blueberry",
+    "cranberry",
+    "durian",
+    "eggplant",
+    "gooseberry",
+    "huckleberry",
+    "jackfruit",
+    "kumquat",
+    "lime",
+    "lychee",
+    "mulberry",
+    "olive",
+    "pear",
+    "peach",
+    "plum",
+    "pomegranate",
+    "pineapple",
+    "rhubarb",
+    "satsuma",
+    "tomato",
+    "walnut",
+    "pecan",
+    "almond",
+    "cashew",
+    "pistachio",
+  ];
+
+  const getRandomWord = () => {
+    const randomIndex = Math.floor(Math.random() * words.length);
+    return words[randomIndex];
+  };
+
+  const word1 = getRandomWord();
+  const word2 = getRandomWord();
+  const word3 = getRandomWord();
+
+  return `${word1}-${word2}-${word3}`;
+};
