@@ -111,9 +111,7 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
           <BuySell tokenId={tokenId} name={name} symbol={symbol} />
         </div>
       </ErrorBoundary>
-      <ErrorBoundary
-        fallback={<ErrorFallback errorMessage="Error rendering voting panel" />}
-      >
+      <ErrorBoundary fallback={<ErrorFallback errorMessage="Error rendering voting panel" />}>
         <VotePanel coinId={tokenId} />
       </ErrorBoundary>
 
