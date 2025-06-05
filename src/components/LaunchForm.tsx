@@ -113,18 +113,16 @@ export const LaunchForm = () => {
       : 0;
 
     try {
-      const imgHash = await pinImageToPinata(
+      const imgUri = await pinImageToPinata(
         await fileToBuffer(imageFile),
         imageFile.name,
         { name: imageFile.name },
       );
-      const imageUrl = `ipfs://${imgHash}`;
-      const tokenJsonHash = await pinJsonToPinata({
+      const uri = await pinJsonToPinata({
         name: metadataName || imageFile.name,
         description: metadataDescription,
-        image: imageUrl,
+        image: imgUri,
       });
-      const uri = `ipfs://${tokenJsonHash}`;
 
       const trancheCoins = tranches.map((t) => BigInt(t.coins));
       const tranchePrices = tranches.map((t) => BigInt(t.price));
