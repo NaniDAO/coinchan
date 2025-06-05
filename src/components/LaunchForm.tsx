@@ -29,21 +29,7 @@ import {
   Bar,
   Line,
 } from "recharts";
-
-// helper to convert File → Buffer
-const fileToBuffer = (file: File): Promise<Buffer> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (reader.result instanceof ArrayBuffer) {
-        resolve(Buffer.from(reader.result));
-      } else {
-        reject(new Error("Failed to read file as ArrayBuffer"));
-      }
-    };
-    reader.onerror = reject;
-    reader.readAsArrayBuffer(file);
-  });
+import { parseEther } from "viem";
 
 interface Tranche {
   coins: string; // uint96 as string
@@ -53,7 +39,7 @@ interface Tranche {
 export const LaunchForm = () => {
   const [creatorSupply, setCreatorSupply] = useState("");
   const [creatorUnlockDate, setCreatorUnlockDate] = useState<string>("");
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageBuffer, setImageBuffer] = useState<ArrayBuffer | null>(null);
   const [tranches, setTranches] = useState<Tranche[]>([
     { coins: "", price: "" },
   ]);
@@ -97,15 +83,24 @@ export const LaunchForm = () => {
     );
 
   const handleImageFileChange = (value: File | File[] | undefined) => {
-    if (value instanceof File) setImageFile(value);
-    else if (Array.isArray(value) && value.length) setImageFile(value[0]);
-    else setImageFile(null);
+    if (value && !Array.isArray(value)) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImageBuffer(e.target?.result as ArrayBuffer);
+        // const blob = new Blob([e.target?.result as ArrayBuffer], {
+        //   type: value.type,
+        // });
+        // const url = URL.createObjectURL(blob);
+        // setPreviewUrl(url);
+      };
+      reader.readAsArrayBuffer(value);
+    }
   };
 
   /* ---------- submit ---------- */
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!imageFile) return alert("Select an image file");
+    if (!imageBuffer) return alert("Select an image file");
     if (!tranches.length) return alert("Add at least one tranche");
 
     const unlockTs = creatorUnlockDate
@@ -113,19 +108,19 @@ export const LaunchForm = () => {
       : 0;
 
     try {
-      const imgUri = await pinImageToPinata(
-        await fileToBuffer(imageFile),
-        imageFile.name,
-        { name: imageFile.name },
-      );
+      const fileName = `${metadataName}_logo.png`;
+
+      const imgUri = await pinImageToPinata(imageBuffer, fileName, {
+        name: fileName,
+      });
       const uri = await pinJsonToPinata({
-        name: metadataName || imageFile.name,
+        name: metadataName || fileName,
         description: metadataDescription,
         image: imgUri,
       });
 
-      const trancheCoins = tranches.map((t) => BigInt(t.coins));
-      const tranchePrices = tranches.map((t) => BigInt(t.price));
+      const trancheCoins = tranches.map((t) => parseEther(t.coins));
+      const tranchePrices = tranches.map((t) => parseEther(t.price));
 
       writeContract({
         abi: ZAMMLaunchAbi,
