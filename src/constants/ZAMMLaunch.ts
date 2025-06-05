@@ -1,0 +1,112 @@
+export const ZAMMLaunchAddress = "0x0000000000bb8883cbed6d69cdbe1013613c7cda";
+export const ZAMMLaunchAbi = [
+  { inputs: [], stateMutability: "payable", type: "constructor" },
+  { inputs: [], name: "BadIndex", type: "error" },
+  { inputs: [], name: "Finalized", type: "error" },
+  { inputs: [], name: "InvalidArray", type: "error" },
+  { inputs: [], name: "InvalidMsgVal", type: "error" },
+  { inputs: [], name: "NoRaise", type: "error" },
+  { inputs: [], name: "Pending", type: "error" },
+  { inputs: [], name: "Unauthorized", type: "error" },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, internalType: "address", name: "buyer", type: "address" },
+      { indexed: true, internalType: "uint256", name: "coinId", type: "uint256" },
+      { indexed: false, internalType: "uint256", name: "ethIn", type: "uint256" },
+      { indexed: false, internalType: "uint128", name: "coinsOut", type: "uint128" },
+    ],
+    name: "Buy",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, internalType: "uint256", name: "coinId", type: "uint256" },
+      { indexed: false, internalType: "uint256", name: "ethLp", type: "uint256" },
+      { indexed: false, internalType: "uint256", name: "coinLp", type: "uint256" },
+      { indexed: false, internalType: "uint256", name: "lpMinted", type: "uint256" },
+    ],
+    name: "Finalize",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, internalType: "address", name: "creator", type: "address" },
+      { indexed: true, internalType: "uint256", name: "coinId", type: "uint256" },
+      { indexed: false, internalType: "uint96", name: "saleSupply", type: "uint96" },
+    ],
+    name: "Launch",
+    type: "event",
+  },
+  {
+    inputs: [
+      { internalType: "uint256", name: "coinId", type: "uint256" },
+      { internalType: "uint256", name: "trancheIdx", type: "uint256" },
+    ],
+    name: "buy",
+    outputs: [{ internalType: "uint128", name: "coinsOut", type: "uint128" }],
+    stateMutability: "payable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "uint256", name: "poolSupply", type: "uint256" },
+      { internalType: "uint256", name: "creatorSupply", type: "uint256" },
+      { internalType: "uint256", name: "creatorUnlock", type: "uint256" },
+      { internalType: "string", name: "uri", type: "string" },
+    ],
+    name: "coinWithPool",
+    outputs: [
+      { internalType: "uint256", name: "coinId", type: "uint256" },
+      { internalType: "uint256", name: "lp", type: "uint256" },
+    ],
+    stateMutability: "payable",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "uint256", name: "coinId", type: "uint256" }],
+    name: "finalize",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "uint96", name: "creatorSupply", type: "uint96" },
+      { internalType: "uint256", name: "creatorUnlock", type: "uint256" },
+      { internalType: "string", name: "uri", type: "string" },
+      { internalType: "uint96[]", name: "trancheCoins", type: "uint96[]" },
+      { internalType: "uint96[]", name: "tranchePrice", type: "uint96[]" },
+    ],
+    name: "launch",
+    outputs: [{ internalType: "uint256", name: "coinId", type: "uint256" }],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "uint256", name: "coinId", type: "uint256" }],
+    name: "sales",
+    outputs: [
+      { internalType: "address", name: "creator", type: "address" },
+      { internalType: "uint96", name: "deadlineLast", type: "uint96" },
+      { internalType: "uint256", name: "coinId", type: "uint256" },
+      { internalType: "uint128", name: "ethRaised", type: "uint128" },
+      { internalType: "uint128", name: "coinsSold", type: "uint128" },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "uint256", name: "coinId", type: "uint256" },
+      { internalType: "uint256", name: "trancheIdx", type: "uint256" },
+    ],
+    name: "trancheRemainingWei",
+    outputs: [{ internalType: "uint96", name: "weiRemaining", type: "uint96" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  { stateMutability: "payable", type: "receive" },
+] as const;

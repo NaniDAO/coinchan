@@ -16,24 +16,46 @@ export const Route = createRootRoute({
         <header className="p-2 flex items-center justify-between w-full gap-5">
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center justify-center space-x-4">
-            <Link to="/" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
+            <Link
+              to="/"
+              className="[&.active]:font-bold uppercase hover:text-primary transition-colors"
+            >
               📈 {t("common.swap")}
             </Link>
             <span className="">/</span>
-            <Link to="/explore" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
+            <Link
+              to="/explore"
+              className="[&.active]:font-bold uppercase hover:text-primary transition-colors"
+            >
               🗺️ {t("common.explore")}
             </Link>
             <span className="">/</span>
-            <Link to="/orders" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
+            <Link
+              to="/orders"
+              className="[&.active]:font-bold uppercase hover:text-primary transition-colors"
+            >
               📋 {t("common.orders")}
             </Link>
             <span className="">/</span>
-            <Link to="/send" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
+            <Link
+              to="/send"
+              className="[&.active]:font-bold uppercase hover:text-primary transition-colors"
+            >
               🪁 {t("common.send")}
             </Link>
             <span className="">/</span>
-            <Link to="/create" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
+            <Link
+              to="/create"
+              className="[&.active]:font-bold uppercase hover:text-primary transition-colors"
+            >
               ✨ {t("common.create")}
+            </Link>
+            <span className="">/</span>
+            <Link
+              to="/launch"
+              className="[&.active]:font-bold uppercase hover:text-primary transition-colors"
+            >
+              🚀 {t("common.launch")}
             </Link>
           </nav>
 
@@ -51,20 +73,41 @@ export const Route = createRootRoute({
             </SheetTrigger>
             <SheetContent side="right" className="p-2">
               <nav className="flex flex-col space-y-4 mt-8">
-                <Link to="/" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
+                <Link
+                  to="/"
+                  className="[&.active]:font-bold uppercase hover:text-primary transition-colors"
+                >
                   📈 {t("common.swap")}
                 </Link>
-                <Link to="/explore" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
+                <Link
+                  to="/explore"
+                  className="[&.active]:font-bold uppercase hover:text-primary transition-colors"
+                >
                   🗺️ {t("common.explore")}
                 </Link>
-                <Link to="/orders" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
+                <Link
+                  to="/orders"
+                  className="[&.active]:font-bold uppercase hover:text-primary transition-colors"
+                >
                   📋 {t("common.orders")}
                 </Link>
-                <Link to="/send" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
+                <Link
+                  to="/send"
+                  className="[&.active]:font-bold uppercase hover:text-primary transition-colors"
+                >
                   🪁 {t("common.send")}
                 </Link>
-                <Link to="/create" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
+                <Link
+                  to="/create"
+                  className="[&.active]:font-bold uppercase hover:text-primary transition-colors"
+                >
                   ✨ {t("common.create")}
+                </Link>
+                <Link
+                  to="/launch"
+                  className="[&.active]:font-bold uppercase hover:text-primary transition-colors"
+                >
+                  🚀 {t("common.launch")}
                 </Link>
               </nav>
             </SheetContent>
