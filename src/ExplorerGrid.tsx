@@ -3,6 +3,7 @@ import { type CoinData } from "./hooks/metadata";
 import { useEffect, useState } from "react";
 import { ArrowDownAZ, ArrowUpAZ, Coins as CoinsIcon, ThumbsUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { LoadingLogo } from "./components/ui/loading-logo";
 
 // Default page size
 const PAGE_SIZE = 20;
@@ -224,7 +225,7 @@ export const ExplorerGrid = ({
           {/* Enhanced loading indicator */}
           {isPending && (
             <div className="flex items-center ml-3">
-              <div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin mr-2"></div>
+              <LoadingLogo size="sm" className="mr-2" />
               <span className="text-sm text-primary">
                 {isTransitioning
                   ? direction === "next"
@@ -277,7 +278,7 @@ export const ExplorerGrid = ({
         >
           {isTransitioning && direction === "prev" ? (
             <span className="absolute inset-0 flex items-center justify-center">
-              <span className="w-3 h-3 rounded-full border-2 border-primary border-t-transparent animate-spin mr-1"></span>
+              <LoadingLogo size="sm" className="scale-75" />
             </span>
           ) : null}
           <span className={isTransitioning && direction === "prev" ? "opacity-0" : ""}>{t("common.previous")}</span>
@@ -301,7 +302,7 @@ export const ExplorerGrid = ({
         >
           {isTransitioning && direction === "next" ? (
             <span className="absolute inset-0 flex items-center justify-center">
-              <span className="w-3 h-3 rounded-full border-2 border-primary border-t-transparent animate-spin mr-1"></span>
+              <LoadingLogo size="sm" className="scale-75" />
             </span>
           ) : null}
           <span className={isTransitioning && direction === "next" ? "opacity-0" : ""}>{t("common.next")}</span>

@@ -27,6 +27,7 @@ import { useCoinData } from "./hooks/metadata";
 import { formatImageURL, getAlternativeImageUrls } from "./hooks/metadata/coin-utils";
 import { computePoolKey, DEADLINE_SEC, getAmountOut, SWAP_FEE, withSlippage } from "./lib/swap";
 import { CheckTheChainAbi, CheckTheChainAddress } from "./constants/CheckTheChain";
+import { LoadingLogo } from "@/components/ui/loading-logo";
 
 export const BuySell = ({
   tokenId,
@@ -559,7 +560,19 @@ export const BuySell = ({
             variant="default"
             className={`bg-green-600 hover:bg-green-700 text-white font-bold transition-opacity duration-300 ${isLoading ? "opacity-70" : ""}`}
           >
-            {isPending ? "Buying…" : isLoading ? "Loading..." : `Buy ${displaySymbol}`}
+            {isPending ? (
+              <span className="flex items-center gap-2">
+                <LoadingLogo size="sm" className="scale-75" />
+                Buying…
+              </span>
+            ) : isLoading ? (
+              <span className="flex items-center gap-2">
+                <LoadingLogo size="sm" className="scale-75" />
+                Loading...
+              </span>
+            ) : (
+              `Buy ${displaySymbol}`
+            )}
           </Button>
         </div>
       </TabsContent>
@@ -606,7 +619,19 @@ export const BuySell = ({
             variant="outline"
             className={`dark:border-accent dark:text-accent dark:hover:bg-accent/10 transition-opacity duration-300 ${isLoading ? "opacity-70" : ""}`}
           >
-            {isPending ? "Selling…" : isLoading ? "Loading..." : `Sell ${displaySymbol}`}
+            {isPending ? (
+              <span className="flex items-center gap-2">
+                <LoadingLogo size="sm" className="scale-75" />
+                Selling…
+              </span>
+            ) : isLoading ? (
+              <span className="flex items-center gap-2">
+                <LoadingLogo size="sm" className="scale-75" />
+                Loading...
+              </span>
+            ) : (
+              `Sell ${displaySymbol}`
+            )}
           </Button>
         </div>
       </TabsContent>
