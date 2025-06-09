@@ -54,7 +54,7 @@ export const CoinPaper = () => (
 
       <div className="py-3 px-6">
         <Link
-          to="/create"
+          to="/launch"
           className="bg-primary/10 hover:bg-primary dark:bg-secondary/10 dark:hover:bg-secondary text-white font-bold rounded-lg transition-all shadow-md hover:shadow-lg"
         >
           I want to coin it!

@@ -1,122 +1,97 @@
 import { ConnectMenu } from "@/ConnectMenu";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import { createRootRoute, Link, Outlet } from "@tanstack/react-router";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { CoinNani } from "@/components/coinnani";
-import { useTranslation } from "react-i18next";
+import { ZammLogo } from "@/components/ZammLogo";
+import { createRootRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 
 export const Route = createRootRoute({
   component: () => {
-    const { t } = useTranslation();
+    const location = useLocation();
+
+    const handleLogoClick = () => {
+      // Reset the landing page state and reload
+      localStorage.removeItem('zamm-visited');
+      window.location.reload();
+    };
+
     return (
-      <>
-        <header className="p-2 flex items-center justify-between w-full gap-5">
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center justify-center space-x-4">
+      <div className="terminal-window">
+        <div className="window-header">
+          <div style={{ width: '60px' }}></div>
+          <div>═══════════ ZAMM DeFi v1.0 ═══════════</div>
+          <div style={{ width: '60px' }}></div>
+        </div>
+
+        <div className="window-content">
+          {/* App Header */}
+          <div className="app-header">
+            <div className="app-logo">
+              <ZammLogo size="medium" onClick={handleLogoClick} />
+            </div>
+            <div className="wallet-section">
+              <ConnectMenu />
+              <ThemeToggle />
+              <LanguageSwitcher />
+            </div>
+          </div>
+
+          {/* Terminal Navigation Bar */}
+          <div className="nav-bar">
             <Link
               to="/"
-              className="[&.active]:font-bold uppercase hover:text-primary transition-colors"
+              className={`nav-item ${location.pathname === '/' ? 'active' : ''}`}
             >
-              📈 {t("common.swap")}
+              SWAP
             </Link>
-            <span className="">/</span>
             <Link
               to="/explore"
-              className="[&.active]:font-bold uppercase hover:text-primary transition-colors"
+              className={`nav-item ${location.pathname === '/explore' ? 'active' : ''}`}
             >
-              🗺️ {t("common.explore")}
+              COINS
             </Link>
-            <span className="">/</span>
             <Link
               to="/orders"
-              className="[&.active]:font-bold uppercase hover:text-primary transition-colors"
+              className={`nav-item ${location.pathname === '/orders' ? 'active' : ''}`}
             >
-              📋 {t("common.orders")}
+              ORDERS
             </Link>
-            <span className="">/</span>
             <Link
               to="/send"
-              className="[&.active]:font-bold uppercase hover:text-primary transition-colors"
+              className={`nav-item ${location.pathname === '/send' ? 'active' : ''}`}
             >
-              🪁 {t("common.send")}
+              SEND
             </Link>
-            <span className="">/</span>
-            <Link
-              to="/create"
-              className="[&.active]:font-bold uppercase hover:text-primary transition-colors"
-            >
-              ✨ {t("common.create")}
-            </Link>
-            <span className="">/</span>
             <Link
               to="/launch"
-              className="[&.active]:font-bold uppercase hover:text-primary transition-colors"
+              className={`nav-item ${location.pathname === '/launch' ? 'active' : ''}`}
             >
-              🚀 {t("common.launch")}
+              LAUNCH
             </Link>
-          </nav>
-
-          <div className="flex items-center gap-2">
-            <ConnectMenu />
-            <ThemeToggle />
-            <LanguageSwitcher />
           </div>
-          {/* Mobile Navigation */}
-          <Sheet>
-            <SheetTrigger asChild className="md:hidden">
-              <Button variant="ghost" size="icon">
-                <Menu className="h-6 w-6" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="p-2">
-              <nav className="flex flex-col space-y-4 mt-8">
-                <Link
-                  to="/"
-                  className="[&.active]:font-bold uppercase hover:text-primary transition-colors"
-                >
-                  📈 {t("common.swap")}
-                </Link>
-                <Link
-                  to="/explore"
-                  className="[&.active]:font-bold uppercase hover:text-primary transition-colors"
-                >
-                  🗺️ {t("common.explore")}
-                </Link>
-                <Link
-                  to="/orders"
-                  className="[&.active]:font-bold uppercase hover:text-primary transition-colors"
-                >
-                  📋 {t("common.orders")}
-                </Link>
-                <Link
-                  to="/send"
-                  className="[&.active]:font-bold uppercase hover:text-primary transition-colors"
-                >
-                  🪁 {t("common.send")}
-                </Link>
-                <Link
-                  to="/create"
-                  className="[&.active]:font-bold uppercase hover:text-primary transition-colors"
-                >
-                  ✨ {t("common.create")}
-                </Link>
-                <Link
-                  to="/launch"
-                  className="[&.active]:font-bold uppercase hover:text-primary transition-colors"
-                >
-                  🚀 {t("common.launch")}
-                </Link>
-              </nav>
-            </SheetContent>
-          </Sheet>
-        </header>
-        {/* <hr /> */}
-        <CoinNani className="fixed bottom-4 right-4 z-10" />
-        <Outlet />
-      </>
+
+          {/* Page Content */}
+          <div className="app-page">
+            <Outlet />
+          </div>
+        </div>
+
+        {/* Ticker Tape */}
+        <div className="ticker">
+          <div className="ticker__track">
+            <span className="ticker__item">ZAMM Ξ2.53</span>
+            <span className="ticker__item">ETH Ξ3,142.85</span>
+            <span className="ticker__item">WBTC Ξ98,234.00</span>
+            <span className="ticker__item">DAI Ξ1.00</span>
+            <span className="ticker__item">USDC Ξ1.00</span>
+            {/* Repeat for seamless loop */}
+            <span className="ticker__item">ZAMM Ξ2.53</span>
+            <span className="ticker__item">ETH Ξ3,142.85</span>
+            <span className="ticker__item">WBTC Ξ98,234.00</span>
+            <span className="ticker__item">DAI Ξ1.00</span>
+            <span className="ticker__item">USDC Ξ1.00</span>
+          </div>
+        </div>
+      </div>
     );
   },
 });

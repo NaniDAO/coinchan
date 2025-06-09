@@ -15,7 +15,6 @@ import { Route as SendImport } from './routes/send'
 import { Route as OrdersImport } from './routes/orders'
 import { Route as LaunchImport } from './routes/launch'
 import { Route as ExploreImport } from './routes/explore'
-import { Route as CreateImport } from './routes/create'
 import { Route as CoinpaperImport } from './routes/coinpaper'
 import { Route as IndexImport } from './routes/index'
 import { Route as UUserIdImport } from './routes/u.$userId'
@@ -44,12 +43,6 @@ const LaunchRoute = LaunchImport.update({
 const ExploreRoute = ExploreImport.update({
   id: '/explore',
   path: '/explore',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const CreateRoute = CreateImport.update({
-  id: '/create',
-  path: '/create',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -93,13 +86,6 @@ declare module '@tanstack/react-router' {
       path: '/coinpaper'
       fullPath: '/coinpaper'
       preLoaderRoute: typeof CoinpaperImport
-      parentRoute: typeof rootRoute
-    }
-    '/create': {
-      id: '/create'
-      path: '/create'
-      fullPath: '/create'
-      preLoaderRoute: typeof CreateImport
       parentRoute: typeof rootRoute
     }
     '/explore': {
@@ -152,7 +138,6 @@ declare module '@tanstack/react-router' {
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/coinpaper': typeof CoinpaperRoute
-  '/create': typeof CreateRoute
   '/explore': typeof ExploreRoute
   '/launch': typeof LaunchRoute
   '/orders': typeof OrdersRoute
@@ -164,7 +149,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/coinpaper': typeof CoinpaperRoute
-  '/create': typeof CreateRoute
   '/explore': typeof ExploreRoute
   '/launch': typeof LaunchRoute
   '/orders': typeof OrdersRoute
@@ -177,7 +161,6 @@ export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
   '/coinpaper': typeof CoinpaperRoute
-  '/create': typeof CreateRoute
   '/explore': typeof ExploreRoute
   '/launch': typeof LaunchRoute
   '/orders': typeof OrdersRoute
@@ -191,7 +174,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/coinpaper'
-    | '/create'
     | '/explore'
     | '/launch'
     | '/orders'
@@ -202,7 +184,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/coinpaper'
-    | '/create'
     | '/explore'
     | '/launch'
     | '/orders'
@@ -213,7 +194,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/coinpaper'
-    | '/create'
     | '/explore'
     | '/launch'
     | '/orders'
@@ -226,7 +206,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CoinpaperRoute: typeof CoinpaperRoute
-  CreateRoute: typeof CreateRoute
   ExploreRoute: typeof ExploreRoute
   LaunchRoute: typeof LaunchRoute
   OrdersRoute: typeof OrdersRoute
@@ -238,7 +217,6 @@ export interface RootRouteChildren {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CoinpaperRoute: CoinpaperRoute,
-  CreateRoute: CreateRoute,
   ExploreRoute: ExploreRoute,
   LaunchRoute: LaunchRoute,
   OrdersRoute: OrdersRoute,
@@ -259,7 +237,6 @@ export const routeTree = rootRoute
       "children": [
         "/",
         "/coinpaper",
-        "/create",
         "/explore",
         "/launch",
         "/orders",
@@ -273,9 +250,6 @@ export const routeTree = rootRoute
     },
     "/coinpaper": {
       "filePath": "coinpaper.tsx"
-    },
-    "/create": {
-      "filePath": "create.tsx"
     },
     "/explore": {
       "filePath": "explore.tsx"
