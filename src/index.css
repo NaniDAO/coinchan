@@ -25,7 +25,7 @@
     --font-body: "Courier New", Courier, monospace;
 
     /* Fixed font sizes for retro feel */
-    font-size-base: 14px;
+    --font-size-base: 14px;
     --radius: 0px; /* No rounded corners */
 
     /* Light mode: Classic macOS terminal */
@@ -78,7 +78,7 @@
 }
 
 html {
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-base); /* Use CSS variable */
   -webkit-text-size-adjust: 100%;
   overflow-x: hidden;
 }
@@ -92,21 +92,21 @@ body {
   min-height: 100vh;
 }
 
-/* Terminal Window Base */
+/* Terminal Window Base - Exact match to Redesign.html */
 .terminal-window {
   background: var(--terminal-white);
   border: 3px solid var(--terminal-black);
   margin: 20px auto;
-  max-width: 900px; /* Increased width */
+  max-width: 800px; /* Exact match to Redesign.html */
   box-shadow: 4px 4px 0 var(--terminal-black);
   position: relative;
 }
 
-/* Window Header */
+/* Window Header - Exact match to Redesign.html */
 .window-header {
   background: var(--terminal-black);
   color: var(--terminal-white);
-  padding: 8px;
+  padding: 4px; /* Exact match to Redesign.html */
   text-align: center;
   font-weight: bold;
   border-bottom: 3px solid var(--terminal-black);
@@ -117,11 +117,11 @@ body {
   font-size: 14px;
 }
 
-/* Window Content */
+/* Window Content - Exact match to Redesign.html */
 .window-content {
-  padding: 30px;
-  min-height: 500px; /* Increased min height */
-  padding-bottom: 3rem; /* More space for ticker */
+  padding: 20px; /* Exact match to Redesign.html */
+  min-height: 400px; /* Exact match to Redesign.html */
+  padding-bottom: 2.5rem; /* Exact match to Redesign.html */
 }
 
 /* Logo Styles */
@@ -171,11 +171,11 @@ body {
   opacity: 0;
 }
 
-/* Terminal UI Components */
+/* Terminal UI Components - Exact Redesign.html dimensions */
 .button {
   background: var(--terminal-white);
   border: 2px solid var(--terminal-black);
-  padding: 8px 16px;
+  padding: 8px 16px; /* Exact match */
   cursor: pointer;
   font-family: inherit;
   font-weight: bold;
@@ -202,7 +202,7 @@ body {
 
 .input-field {
   border: 2px solid var(--terminal-black);
-  padding: 8px;
+  padding: 8px; /* Exact match */
   font-family: inherit;
   width: 100%;
   background: var(--terminal-white);
@@ -211,27 +211,27 @@ body {
 
 .input-field:focus {
   outline: none;
-  box-shadow: 0 0 0 1px var(--terminal-black);
+  box-shadow: none;
 }
 
-/* Navigation */
+/* Navigation - Exact match to Redesign.html */
 .nav-bar {
   border-top: 2px solid var(--terminal-black);
   border-bottom: 2px solid var(--terminal-black);
-  padding: 15px;
-  margin: 25px 0;
+  padding: 10px; /* Exact match to Redesign.html */
+  margin: 20px 0; /* Exact match to Redesign.html */
   display: flex;
   justify-content: space-around;
-  gap: 10px;
+  gap: 0; /* No gap in Redesign.html */
 }
 
 .nav-item {
   cursor: pointer;
-  padding: 8px 16px;
+  padding: 5px 10px; /* Exact match to Redesign.html */
   border: 2px solid transparent;
   transition: all 0.1s;
-  font-weight: bold;
-  font-family: var(--font-display);
+  font-weight: normal; /* Redesign.html doesn't use bold */
+  font-family: var(--font-body); /* Use body font to match Redesign.html */
   text-decoration: none;
   color: var(--terminal-black);
   flex: 1;
@@ -330,8 +330,7 @@ body {
   background: var(--terminal-gray);
 }
 
-/* Cards and Containers */
-.token-select,
+/* Cards and Containers - Exact Redesign.html dimensions */
 .coin-card,
 .stat-box,
 .position-card {
@@ -341,7 +340,6 @@ body {
   transition: all 0.1s;
 }
 
-.token-select:hover,
 .coin-card:hover {
   background: var(--terminal-black);
   color: var(--terminal-white);
@@ -351,22 +349,25 @@ body {
 
 .swap-container {
   border: 3px solid var(--terminal-black);
-  padding: 30px;
+  padding: 20px; /* Exact match from Redesign.html */
   margin: 20px 0;
   background: var(--terminal-gray);
-  box-shadow: 4px 4px 0 var(--terminal-black);
 }
 
 .token-select {
   border: 2px solid var(--terminal-black);
-  padding: 15px;
-  margin: 15px 0;
+  padding: 10px; /* Exact match from Redesign.html */
+  margin: 10px 0; /* Exact match from Redesign.html */
   cursor: pointer;
   display: flex;
   justify-content: space-between;
   align-items: center;
   background: var(--terminal-white);
   font-family: var(--font-body);
+}
+
+.token-select:hover {
+  background: var(--terminal-dark-gray); /* Exact match from Redesign.html */
 }
 
 /* Modal */
@@ -433,13 +434,13 @@ body {
   display: block;
 }
 
-/* App Header */
+/* App Header - Exact match to Redesign.html */
 .app-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
-  padding: 0 10px;
+  margin-bottom: 20px; /* Exact match to Redesign.html */
+  padding: 0; /* Remove padding to match Redesign.html */
 }
 
 .app-logo {
@@ -447,20 +448,20 @@ body {
 }
 
 .app-logo .svg-logo {
-  margin: 0;
+  margin: 0; /* Exact match to Redesign.html */
   text-align: left;
   display: inline-block;
-  min-height: auto;
+  min-height: auto; /* Reset min-height for app header, matching Redesign.html */
 }
 
 .app-logo .static-logo,
 .app-logo .loading-diamond {
-  margin: 0;
+  margin: 0; /* Exact match to Redesign.html */
 }
 
 .app-logo .loading-diamond {
-  left: 0;
-  transform: none;
+  left: 0; /* Exact match to Redesign.html */
+  transform: none; /* Exact match to Redesign.html */
 }
 
 .wallet-section {

@@ -14,6 +14,7 @@ import { Route as rootRoute } from './routes/__root'
 import { Route as SendImport } from './routes/send'
 import { Route as OrdersImport } from './routes/orders'
 import { Route as LaunchImport } from './routes/launch'
+import { Route as LandingImport } from './routes/landing'
 import { Route as ExploreImport } from './routes/explore'
 import { Route as CoinpaperImport } from './routes/coinpaper'
 import { Route as IndexImport } from './routes/index'
@@ -37,6 +38,12 @@ const OrdersRoute = OrdersImport.update({
 const LaunchRoute = LaunchImport.update({
   id: '/launch',
   path: '/launch',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const LandingRoute = LandingImport.update({
+  id: '/landing',
+  path: '/landing',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -95,6 +102,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExploreImport
       parentRoute: typeof rootRoute
     }
+    '/landing': {
+      id: '/landing'
+      path: '/landing'
+      fullPath: '/landing'
+      preLoaderRoute: typeof LandingImport
+      parentRoute: typeof rootRoute
+    }
     '/launch': {
       id: '/launch'
       path: '/launch'
@@ -139,6 +153,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/coinpaper': typeof CoinpaperRoute
   '/explore': typeof ExploreRoute
+  '/landing': typeof LandingRoute
   '/launch': typeof LaunchRoute
   '/orders': typeof OrdersRoute
   '/send': typeof SendRoute
@@ -150,6 +165,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/coinpaper': typeof CoinpaperRoute
   '/explore': typeof ExploreRoute
+  '/landing': typeof LandingRoute
   '/launch': typeof LaunchRoute
   '/orders': typeof OrdersRoute
   '/send': typeof SendRoute
@@ -162,6 +178,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/coinpaper': typeof CoinpaperRoute
   '/explore': typeof ExploreRoute
+  '/landing': typeof LandingRoute
   '/launch': typeof LaunchRoute
   '/orders': typeof OrdersRoute
   '/send': typeof SendRoute
@@ -175,6 +192,7 @@ export interface FileRouteTypes {
     | '/'
     | '/coinpaper'
     | '/explore'
+    | '/landing'
     | '/launch'
     | '/orders'
     | '/send'
@@ -185,6 +203,7 @@ export interface FileRouteTypes {
     | '/'
     | '/coinpaper'
     | '/explore'
+    | '/landing'
     | '/launch'
     | '/orders'
     | '/send'
@@ -195,6 +214,7 @@ export interface FileRouteTypes {
     | '/'
     | '/coinpaper'
     | '/explore'
+    | '/landing'
     | '/launch'
     | '/orders'
     | '/send'
@@ -207,6 +227,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CoinpaperRoute: typeof CoinpaperRoute
   ExploreRoute: typeof ExploreRoute
+  LandingRoute: typeof LandingRoute
   LaunchRoute: typeof LaunchRoute
   OrdersRoute: typeof OrdersRoute
   SendRoute: typeof SendRoute
@@ -218,6 +239,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CoinpaperRoute: CoinpaperRoute,
   ExploreRoute: ExploreRoute,
+  LandingRoute: LandingRoute,
   LaunchRoute: LaunchRoute,
   OrdersRoute: OrdersRoute,
   SendRoute: SendRoute,
@@ -238,6 +260,7 @@ export const routeTree = rootRoute
         "/",
         "/coinpaper",
         "/explore",
+        "/landing",
         "/launch",
         "/orders",
         "/send",
@@ -253,6 +276,9 @@ export const routeTree = rootRoute
     },
     "/explore": {
       "filePath": "explore.tsx"
+    },
+    "/landing": {
+      "filePath": "landing.tsx"
     },
     "/launch": {
       "filePath": "launch.tsx"

@@ -2,17 +2,21 @@ import { ConnectMenu } from "@/ConnectMenu";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { ZammLogo } from "@/components/ZammLogo";
-import { createRootRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
+import { createRootRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 
 export const Route = createRootRoute({
   component: () => {
     const location = useLocation();
+    const navigate = useNavigate();
 
     const handleLogoClick = () => {
-      // Reset the landing page state and reload
-      localStorage.removeItem('zamm-visited');
-      window.location.reload();
+      navigate({ to: '/landing' });
     };
+
+    // Check if we're on landing page
+    if (location.pathname === '/landing') {
+      return <Outlet />;
+    }
 
     return (
       <div className="terminal-window">
