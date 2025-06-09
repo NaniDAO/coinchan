@@ -32,6 +32,7 @@ import {
   Tooltip,
   Bar,
   Line,
+  Area,
 } from "recharts";
 import { parseEther } from "viem";
 import { toast } from "sonner";
@@ -73,7 +74,17 @@ export const LaunchForm = () => {
       creatorUnlockDate: "",
       metadataName: "",
       metadataDescription: "",
-      tranches: [{ coins: defaultTranche.coins, price: defaultTranche.price }],
+      tranches: [
+        { coins: defaultTranche.coins, price: defaultTranche.price },
+        {
+          coins: defaultTranche.coins,
+          price: defaultTranche.price + defaultTranche.price * 1,
+        },
+        {
+          coins: defaultTranche.coins,
+          price: defaultTranche.price + defaultTranche.price * 2,
+        },
+      ],
     },
   });
 
@@ -282,36 +293,115 @@ export const LaunchForm = () => {
         </div>
         <div className="space-y-2">
           {/* ----- bonding curve visual + tranche editor ----- */}
-          <div>
-            <h3>Bonding Curve – Click bars to edit price</h3>
+          <div className="bg-sidebar rounded-2xl shadow-sm p-4">
+            <h3 className="text-lg font-semibold mb-1">Bonding Curve</h3>
+            <label className="text-sm text-gray-500 mb-4 block">
+              click bars to edit prices
+            </label>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart /* Bar + line in one go */
+                <ComposedChart
                   data={chartData}
-                  margin={{ top: 10, right: 10, bottom: 10, left: 10 }}
+                  margin={{ top: 10, right: 20, bottom: 10, left: 10 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
+                  <defs>
+                    <linearGradient
+                      id="priceGradient"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop offset="0%" stopColor="#00e5ff" stopOpacity={0.8} />
+                      <stop
+                        offset="100%"
+                        stopColor="#00e5ff"
+                        stopOpacity={0.2}
+                      />
+                    </linearGradient>
+                    <linearGradient
+                      id="lineGradient"
+                      x1="0"
+                      y1="0"
+                      x2="1"
+                      y2="0"
+                    >
+                      <stop offset="0%" stopColor="#00e5ff" />
+                      <stop offset="100%" stopColor="#4dd0e1" />
+                    </linearGradient>
+                  </defs>
+
+                  <CartesianGrid
+                    horizontal={true}
+                    vertical={false}
+                    stroke="#e2e8f0"
+                    strokeDasharray="1 4"
+                  />
+
+                  <XAxis
+                    dataKey="name"
+                    axisLine={{ stroke: "#cbd5e0" }}
+                    tickLine={false}
+                    tick={{ fill: "#4a5568", fontSize: 12 }}
+                  />
+
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "#4a5568", fontSize: 12 }}
+                  />
+
+                  <Tooltip
+                    content={({ active, payload, label }) => {
+                      if (!active || !payload?.length) return null;
+                      return (
+                        <div className="bg-white p-2 rounded shadow-lg text-sm">
+                          <div className="text-gray-600 mb-1">{label}</div>
+                          <div className="font-medium text-blue-500">
+                            {typeof payload[0]?.value === "number"
+                              ? payload[0].value.toFixed(4)
+                              : payload[0]?.value}{" "}
+                            ETH
+                          </div>
+                        </div>
+                      );
+                    }}
+                  />
+
+                  <Area
+                    type="monotone"
+                    dataKey="priceNum"
+                    fill="url(#priceGradient)"
+                    fillOpacity={0.15}
+                    stroke="none"
+                  />
 
                   {/* bars stay interactive */}
                   <Bar
                     dataKey="priceNum"
-                    fill="#000"
+                    fill="url(#priceGradient)"
+                    radius={[6, 6, 0, 0]}
                     onClick={(_d, idx) =>
                       handleBarClick(chartData[idx].originalIndex)
                     }
+                    isAnimationActive
+                    animationDuration={800}
                   />
 
                   {/* cyan curve on top of the bars */}
                   <Line
                     type="monotone"
                     dataKey="priceNum"
-                    stroke="#00e5ff" // or whatever hex you like
-                    strokeWidth={2}
-                    dot={false}
-                    isAnimationActive={false} // makes editing snappier
+                    stroke="url(#lineGradient)"
+                    strokeWidth={3}
+                    dot={{
+                      r: 4,
+                      fill: "#00e5ff",
+                      stroke: "#fff",
+                      strokeWidth: 2,
+                    }}
+                    activeDot={{ r: 6 }}
+                    isAnimationActive
                   />
                 </ComposedChart>
               </ResponsiveContainer>
