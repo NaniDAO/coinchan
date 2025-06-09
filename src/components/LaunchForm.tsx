@@ -1,22 +1,26 @@
-import { useState, FormEvent, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useWriteContract } from "wagmi";
 import { ZAMMLaunchAddress, ZAMMLaunchAbi } from "@/constants/ZAMMLaunch";
 import { pinImageToPinata, pinJsonToPinata } from "@/lib/pinata";
+import { z } from "zod";
+import { useForm, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 // shadcn components
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ImageInput } from "@/components/ui/image-input";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 
 // recharts for interactive bonding‑curve visual
 import {
@@ -32,80 +36,91 @@ import {
 import { parseEther } from "viem";
 import { toast } from "sonner";
 import { generateRandomSlug } from "@/lib/utils";
-interface Tranche {
-  coins: string; // uint96 as string
-  price: string; // ETH (or wei) as string
-}
+import { XIcon } from "lucide-react";
+
+const defaultTranche = {
+  coins: 1000000,
+  price: 0.01,
+};
+
+// Validation schema with zod
+const launchFormSchema = z.object({
+  creatorSupply: z.coerce.number().min(1, "Creator supply is required"),
+  creatorUnlockDate: z.string().optional(),
+  metadataName: z.string().min(1, "Name is required"),
+  metadataSymbol: z.string().min(1, "Symbol is required").max(5),
+  metadataDescription: z.string().optional(),
+  tranches: z
+    .array(
+      z.object({
+        coins: z.coerce.number().min(0, "Coins amount is required"),
+        price: z.coerce.number().min(0, "Price is required"),
+      }),
+    )
+    .min(1, "At least one tranche is required"),
+});
+
+type LaunchFormValues = z.infer<typeof launchFormSchema>;
 
 export const LaunchForm = () => {
-  const [creatorSupply, setCreatorSupply] = useState("");
-  const [creatorUnlockDate, setCreatorUnlockDate] = useState<string>("");
-  const [imageBuffer, setImageBuffer] = useState<ArrayBuffer | null>(null);
-  const [tranches, setTranches] = useState<Tranche[]>([
-    { coins: "", price: "" },
-  ]);
-  const [metadataName, setMetadataName] = useState("");
-  const [metadataDescription, setMetadataDescription] = useState("");
-
   const { data: hash, error, isPending, writeContract } = useWriteContract();
 
+  // React Hook Form with zod resolver
+  const form = useForm<LaunchFormValues>({
+    resolver: zodResolver(launchFormSchema),
+    defaultValues: {
+      creatorSupply: 1000000,
+      creatorUnlockDate: "",
+      metadataName: "",
+      metadataDescription: "",
+      tranches: [{ coins: defaultTranche.coins, price: defaultTranche.price }],
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "tranches",
+  });
+
+  // Keep track of the image buffer outside of the form state
+  const [imageBuffer, setImageBuffer] = useState<ArrayBuffer | null>(null);
+
   /* ---------- bonding‑curve helpers ---------- */
-  const chartData = useMemo(() => {
-    // map + keep original index so we can update state later
-    return tranches
-      .map((t, i) => ({
-        originalIndex: i,
-        priceNum: parseFloat(t.price || "0"),
-        name: `T${i + 1}`,
-      }))
-      .sort((a, b) => a.priceNum - b.priceNum);
-  }, [tranches]);
+  // Watch all tranches to ensure the chart updates on any change
+  const watchedTranches = form.watch("tranches");
 
   const handleBarClick = (originalIndex: number) => {
-    const current = tranches[originalIndex]?.price || "0";
-    const next = prompt("Enter new price for this tranche (ETH)", current);
+    const current = form.getValues(`tranches.${originalIndex}.price`) || "0";
+    const next = prompt(
+      "Enter new price for this tranche (ETH)",
+      current.toString(),
+    );
     if (next !== null) {
-      handleTrancheChange(originalIndex, "price", next);
+      form.setValue(`tranches.${originalIndex}.price`, parseFloat(next), {
+        shouldValidate: true,
+      });
     }
   };
-
-  /* ---------- form state helpers ---------- */
-  const handleAddTranche = () =>
-    setTranches([...tranches, { coins: "", price: "" }]);
-  const handleRemoveTranche = (idx: number) =>
-    setTranches(tranches.filter((_, i) => i !== idx));
-  const handleTrancheChange = (
-    idx: number,
-    field: keyof Tranche,
-    value: string,
-  ) =>
-    setTranches(
-      tranches.map((t, i) => (i === idx ? { ...t, [field]: value } : t)),
-    );
 
   const handleImageFileChange = (value: File | File[] | undefined) => {
     if (value && !Array.isArray(value)) {
       const reader = new FileReader();
       reader.onload = (e) => {
         setImageBuffer(e.target?.result as ArrayBuffer);
-        // const blob = new Blob([e.target?.result as ArrayBuffer], {
-        //   type: value.type,
-        // });
-        // const url = URL.createObjectURL(blob);
-        // setPreviewUrl(url);
       };
       reader.readAsArrayBuffer(value);
     }
   };
 
   /* ---------- submit ---------- */
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!imageBuffer) return alert("Select an image file");
-    if (!tranches.length) return alert("Add at least one tranche");
+  const onSubmit = async (data: LaunchFormValues) => {
+    if (!imageBuffer) {
+      toast.error("Please select an image file");
+      return;
+    }
 
-    const unlockTs = creatorUnlockDate
-      ? Math.floor(new Date(creatorUnlockDate).getTime() / 1_000)
+    const unlockTs = data.creatorUnlockDate
+      ? Math.floor(new Date(data.creatorUnlockDate).getTime() / 1_000)
       : 0;
 
     try {
@@ -116,21 +131,25 @@ export const LaunchForm = () => {
       });
 
       const uri = await pinJsonToPinata({
-        name: metadataName || fileName,
-        symbol: metadataSymbol,
-        description: metadataDescription,
+        name: data.metadataName || fileName,
+        symbol: data.metadataSymbol || "",
+        description: data.metadataDescription,
         image: imgUri,
       });
 
-      const trancheCoins = tranches.map((t) => parseEther(t.coins));
-      const tranchePrices = tranches.map((t) => parseEther(t.price));
+      const trancheCoins = data.tranches.map((t) =>
+        parseEther(t.coins.toString()),
+      );
+      const tranchePrices = data.tranches.map((t) =>
+        parseEther(t.price.toString()),
+      );
 
       writeContract({
         abi: ZAMMLaunchAbi,
         address: ZAMMLaunchAddress,
         functionName: "launch",
         args: [
-          parseEther(creatorSupply) ?? 0n,
+          parseEther(data.creatorSupply.toString()) ?? 0n,
           BigInt(unlockTs),
           uri,
           trancheCoins,
@@ -145,165 +164,256 @@ export const LaunchForm = () => {
     }
   };
 
+  const chartData = useMemo(() => {
+    return watchedTranches
+      .map((t, i) => ({
+        originalIndex: i,
+        priceNum: t.price,
+        name: `T${i + 1}`,
+      }))
+      .sort((a, b) => a.priceNum - b.priceNum);
+  }, [watchedTranches]);
+
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="grid grid-cols-2 space-x-2 p-4 w-screen mx-auto"
-    >
-      <div className="space-y-2">
-        {/* creator supply & unlock */}
-        <div className="grid w-full items-center gap-1.5">
-          <Label htmlFor="creatorSupply">Creator Supply (uint96)</Label>
-          <Input
-            id="creatorSupply"
-            type="number"
-            value={creatorSupply}
-            onChange={(e) => setCreatorSupply(e.target.value)}
-            placeholder="e.g. 1000000"
-            required
-          />
-        </div>
-        <div className="grid w-full items-center gap-1.5">
-          <Label htmlFor="creatorUnlock">Creator Unlock Time</Label>
-          <Input
-            id="creatorUnlock"
-            type="datetime-local"
-            value={creatorUnlockDate}
-            onChange={(e) => setCreatorUnlockDate(e.target.value)}
-          />
-        </div>
-
-        {/* token logo */}
+    <Form {...form}>
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="grid grid-cols-2 space-x-2 p-4 w-screen mx-auto"
+      >
         <div className="space-y-2">
-          <Label htmlFor="imageFile">Coin Image</Label>
-          <ImageInput onChange={handleImageFileChange} />
-        </div>
-
-        {/* metadata */}
-        <div className="grid w-full items-center gap-1.5">
-          <Label htmlFor="metadataName"> Name</Label>
-          <Input
-            id="metadataName"
-            value={metadataName}
-            onChange={(e) => setMetadataName(e.target.value)}
-            placeholder="My Awesome Coin"
-            required
+          {/* creator supply & unlock */}
+          <FormField
+            control={form.control}
+            name="creatorSupply"
+            render={({ field }) => (
+              <FormItem className="grid w-full items-center gap-1.5">
+                <FormLabel htmlFor="creatorSupply">
+                  Creator Supply (uint96)
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    id="creatorSupply"
+                    type="number"
+                    placeholder="e.g. 1000000"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-        </div>
-        <div className="grid w-full items-center gap-1.5">
-          <Label htmlFor="metadataDescription">Description</Label>
-          <Textarea
-            id="metadataDescription"
-            rows={3}
-            value={metadataDescription}
-            onChange={(e) => setMetadataDescription(e.target.value)}
-            placeholder="A brief description of the coin"
+
+          <FormField
+            control={form.control}
+            name="creatorUnlockDate"
+            render={({ field }) => (
+              <FormItem className="grid w-full items-center gap-1.5">
+                <FormLabel htmlFor="creatorUnlock">
+                  Creator Unlock Time
+                </FormLabel>
+                <FormControl>
+                  <Input id="creatorUnlock" type="datetime-local" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-        </div>
-      </div>
-      <div className="space-y-2">
-        {/* ----- bonding curve visual + tranche editor ----- */}
-        <div>
-          <h3>Bonding Curve – Click bars to edit price</h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart /* Bar + line in one go */
-                data={chartData}
-                margin={{ top: 10, right: 10, bottom: 10, left: 10 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
 
-                {/* bars stay interactive */}
-                <Bar
-                  dataKey="priceNum"
-                  fill="#000"
-                  onClick={(_d, idx) =>
-                    handleBarClick(chartData[idx].originalIndex)
-                  }
-                />
-
-                {/* cyan curve on top of the bars */}
-                <Line
-                  type="monotone"
-                  dataKey="priceNum"
-                  stroke="#00e5ff" // or whatever hex you like
-                  strokeWidth={2}
-                  dot={false}
-                  isAnimationActive={false} // makes editing snappier
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="flex justify-end">
-            <Button type="button" variant="outline" onClick={handleAddTranche}>
-              Add Tranche
-            </Button>
-          </div>
-        </div>
-
-        {/* tranche raw inputs – allow granular control + coins */}
-        {tranches.map((tranche, idx) => (
-          <div
-            key={idx}
-            className="flex flex-col sm:flex-row items-end gap-4 border-b pb-4 last:border-b-0 last:pb-0"
-          >
-            <div className="flex-grow grid w-full items-center gap-1.5">
-              <Label htmlFor={`trancheCoins-${idx}`}>Coins (uint96)</Label>
-              <Input
-                id={`trancheCoins-${idx}`}
-                type="number"
-                value={tranche.coins}
-                onChange={(e) =>
-                  handleTrancheChange(idx, "coins", e.target.value)
-                }
-                required
-              />
-            </div>
-            <div className="flex-grow grid w-full items-center gap-1.5">
-              <Label htmlFor={`tranchePrice-${idx}`}>Price (ETH)</Label>
-              <Input
-                id={`tranchePrice-${idx}`}
-                type="number"
-                value={tranche.price}
-                onChange={(e) =>
-                  handleTrancheChange(idx, "price", e.target.value)
-                }
-                required
-              />
-            </div>
-            {tranches.length > 1 && (
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => handleRemoveTranche(idx)}
-              >
-                Remove
-              </Button>
+          {/* token logo */}
+          <div className="space-y-2">
+            <Label htmlFor="imageFile">Coin Image</Label>
+            <ImageInput onChange={handleImageFileChange} />
+            {!imageBuffer && form.formState.isSubmitted && (
+              <p className="text-sm text-red-500">Image is required</p>
             )}
           </div>
-        ))}
 
-        {/* submit */}
-        <Button type="submit" disabled={isPending} className="w-full">
-          {isPending ? "Launching…" : "Launch Coin Sale"}
-        </Button>
+          {/* metadata */}
+          <FormField
+            control={form.control}
+            name="metadataName"
+            render={({ field }) => (
+              <FormItem className="grid w-full items-center gap-1.5">
+                <FormLabel htmlFor="metadataName">Name</FormLabel>
+                <FormControl>
+                  <Input
+                    id="metadataName"
+                    placeholder="My Awesome Coin"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        {hash && (
-          <Alert className="mt-4">
-            <AlertTitle>Transaction Sent!</AlertTitle>
-            <AlertDescription>Check transaction hash: {hash}</AlertDescription>
-          </Alert>
-        )}
-        {error && (
-          <Alert variant="destructive" className="mt-4">
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error.message}</AlertDescription>
-          </Alert>
-        )}
-      </div>
-    </form>
+          <FormField
+            control={form.control}
+            name="metadataSymbol"
+            render={({ field }) => (
+              <FormItem className="grid w-full items-center gap-1.5">
+                <FormLabel htmlFor="metadataSymbol">Symbol</FormLabel>
+                <FormControl>
+                  <Input id="metadataSymbol" placeholder="MYC" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="metadataDescription"
+            render={({ field }) => (
+              <FormItem className="grid w-full items-center gap-1.5">
+                <FormLabel htmlFor="metadataDescription">Description</FormLabel>
+                <FormControl>
+                  <Textarea
+                    id="metadataDescription"
+                    rows={3}
+                    placeholder="A brief description of the coin"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        <div className="space-y-2">
+          {/* ----- bonding curve visual + tranche editor ----- */}
+          <div>
+            <h3>Bonding Curve – Click bars to edit price</h3>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart /* Bar + line in one go */
+                  data={chartData}
+                  margin={{ top: 10, right: 10, bottom: 10, left: 10 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+
+                  {/* bars stay interactive */}
+                  <Bar
+                    dataKey="priceNum"
+                    fill="#000"
+                    onClick={(_d, idx) =>
+                      handleBarClick(chartData[idx].originalIndex)
+                    }
+                  />
+
+                  {/* cyan curve on top of the bars */}
+                  <Line
+                    type="monotone"
+                    dataKey="priceNum"
+                    stroke="#00e5ff" // or whatever hex you like
+                    strokeWidth={2}
+                    dot={false}
+                    isAnimationActive={false} // makes editing snappier
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  append({
+                    coins: defaultTranche.coins,
+                    price: parseFloat(
+                      (
+                        Number(defaultTranche.price) +
+                        chartData.length * Number(defaultTranche.price)
+                      ).toFixed(2),
+                    ),
+                  })
+                }
+              >
+                Add Tranche
+              </Button>
+            </div>
+          </div>
+          <div className="max-h-[35vh]  pr-1 overflow-y-scroll">
+            {/* tranche raw inputs – allow granular control + coins */}
+            {fields.map((field, idx) => (
+              <div
+                key={field.id}
+                className="flex flex-col sm:flex-row items-end gap-4 pb-4 last:pb-0"
+              >
+                <FormField
+                  control={form.control}
+                  name={`tranches.${idx}.coins`}
+                  render={({ field }) => (
+                    <FormItem className="flex-grow grid w-full items-center gap-1.5">
+                      <FormLabel htmlFor={`trancheCoins-${idx}`}>
+                        Coins
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          id={`trancheCoins-${idx}`}
+                          type="number"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name={`tranches.${idx}.price`}
+                  render={({ field }) => (
+                    <FormItem className="flex-grow grid w-full items-center gap-1.5">
+                      <FormLabel htmlFor={`tranchePrice-${idx}`}>
+                        Price (ETH)
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          id={`tranchePrice-${idx}`}
+                          type="number"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {fields.length > 1 && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => remove(idx)}
+                  >
+                    <XIcon />
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+          {/* submit */}
+          <Button type="submit" disabled={isPending} className="mt-2 w-full">
+            {isPending ? "Launching…" : "Launch Coin Sale"}
+          </Button>
+
+          {hash && (
+            <Alert className="mt-4">
+              <AlertTitle>Transaction Sent!</AlertTitle>
+              <AlertDescription>
+                Check transaction hash: {hash}
+              </AlertDescription>
+            </Alert>
+          )}
+          {error && (
+            <Alert variant="destructive" className="mt-4">
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error.message}</AlertDescription>
+            </Alert>
+          )}
+        </div>
+      </form>
+    </Form>
   );
 };
