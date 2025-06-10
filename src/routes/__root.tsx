@@ -3,7 +3,6 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { ZammLogo } from "@/components/ZammLogo";
 import { PoolsTicker } from "@/components/PoolsTicker";
-import { SwapsTicker } from "@/components/SwapsTicker";
 import { createRootRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 
 export const Route = createRootRoute({
@@ -22,9 +21,6 @@ export const Route = createRootRoute({
 
     return (
       <div className="terminal-window">
-        {/* Recent Swaps Ticker at top */}
-        <SwapsTicker />
-        
         <div className="window-header">
           <div style={{ width: '60px' }}></div>
           <div>═══════════ ZAMM DeFi v1.0 ═══════════</div>

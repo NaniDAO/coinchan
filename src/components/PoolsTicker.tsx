@@ -15,13 +15,13 @@ export const PoolsTicker: React.FC<PoolsTickerProps> = ({ className = "" }) => {
           <>
             {topPools.map((pool) => (
               <span key={`first-${pool.poolId}`} className="ticker__item">
-                {pool.coinSymbol} • {pool.pricePerToken} • Liq: {pool.ethAmount}
+                {pool.coinSymbol} {pool.ethAmount}
               </span>
             ))}
             {/* Repeat for seamless loop */}
             {topPools.map((pool) => (
               <span key={`second-${pool.poolId}`} className="ticker__item">
-                {pool.coinSymbol} • {pool.pricePerToken} • Liq: {pool.ethAmount}
+                {pool.coinSymbol} {pool.ethAmount}
               </span>
             ))}
           </>
