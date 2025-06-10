@@ -122,7 +122,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
             <ProtocolStat 
               label="COINS"
               primary={protocolStats?.totalCoins?.toString() || '0'}
-              secondary={`Active: ${protocolStats?.activeCoins || 0}`}
+              secondary={`Live on ZAMM`}
             />
           </div>
         </div>
