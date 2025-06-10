@@ -225,6 +225,15 @@ body {
   gap: 0; /* No gap in Redesign.html */
 }
 
+/* Filter Navigation Bar - Matches main nav styling */
+.filter-nav-bar {
+  border-top: 2px solid var(--terminal-black);
+  border-bottom: 2px solid var(--terminal-black);
+  padding: 10px;
+  margin: 20px 0;
+  background: var(--terminal-white);
+}
+
 .nav-item {
   cursor: pointer;
   padding: 5px 10px; /* Exact match to Redesign.html */
@@ -236,6 +245,14 @@ body {
   color: var(--terminal-black);
   flex: 1;
   text-align: center;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: fit-content;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 12px;
 }
 
 .nav-item:hover,
@@ -243,6 +260,11 @@ body {
   border: 2px solid var(--terminal-black);
   background: var(--terminal-black);
   color: var(--terminal-white);
+}
+
+.nav-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Loading and Progress */
@@ -467,6 +489,26 @@ body {
   .coin-grid {
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     gap: 10px;
+  }
+  
+  .filter-nav-bar {
+    padding: 8px;
+    margin: 16px 0;
+  }
+  
+  .filter-nav-bar .flex {
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
+  }
+  
+  .filter-nav-bar .flex:first-child {
+    width: 100%;
+  }
+  
+  .nav-item {
+    padding: 8px 12px;
+    font-size: 11px;
   }
 }
 

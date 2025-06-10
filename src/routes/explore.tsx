@@ -1,6 +1,5 @@
 import Coins from "@/Coins";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/explore")({
   component: RouteComponent,
@@ -33,36 +32,50 @@ function RouteComponent() {
         ═══ COIN EXPLORER ═══
       </h2>
 
-      <div style={{ margin: '20px 0' }}>
-        <Input
-          placeholder="Search coins..."
-          className="w-full input-field"
-        />
-      </div>
 
+      <div className="ascii-divider">════════════════════════════════════</div>
+      
       <div style={{ 
         display: 'flex', 
-        gap: '10px', 
+        gap: '12px', 
         margin: '20px 0',
-        width: '100%'
+        width: '100%',
+        justifyContent: 'center'
       }}>
-        <div
-          className="feature-button"
-          style={{ flex: 1 }}
+        <button
+          className="button"
           onClick={handleLaunch}
+          style={{ 
+            padding: '12px 20px',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
         >
-          <span style={{ fontSize: '20px', color: 'var(--diamond-blue)' }}>+</span>
-          <span>LAUNCH</span>
-        </div>
-        <div
-          className="feature-button"
-          style={{ flex: 1 }}
+          <span style={{ fontSize: '16px', color: 'var(--diamond-blue)' }}>+</span>
+          LAUNCH
+        </button>
+        
+        <button
+          className="button"
           onClick={handleSend}
+          style={{ 
+            padding: '12px 20px',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
         >
-          <span style={{ fontSize: '18px', color: 'var(--diamond-pink)' }}>→</span>
-          <span>SEND</span>
-        </div>
+          <span style={{ fontSize: '16px', color: 'var(--diamond-pink)' }}>→</span>
+          SEND
+        </button>
       </div>
+      
+      <div className="ascii-divider">════════════════════════════════════</div>
       
       <Coins />
     </div>
