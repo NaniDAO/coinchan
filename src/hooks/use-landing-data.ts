@@ -25,14 +25,30 @@ export const useLandingData = () => {
       const results = await Promise.allSettled([
         // Fetch current gas price (this works reliably)
         publicClient?.getGasPrice(),
-        // Check indexer health with a simple GraphQL query
+        // Check indexer health with a more comprehensive query to ensure data is loaded
         fetch(INDEXER_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ 
-            query: `query Health { pools(first: 1) { items { id } } }` 
+            query: `query Health { 
+              pools(first: 10) { 
+                items { 
+                  id 
+                  reserve0 
+                  reserve1 
+                  coin1 { 
+                    symbol 
+                  } 
+                } 
+              } 
+            }` 
           }),
-        }).then(r => r.ok && r.json().then(data => !data.errors)),
+        }).then(async r => {
+          if (!r.ok) return false;
+          const data = await r.json();
+          // Check that we have actual pool data, not just empty results
+          return !data.errors && data?.pools?.items?.length > 0 && data.pools.items[0]?.coin1?.symbol;
+        }),
       ]);
 
       const [gasPriceResult, indexerHealthResult] = results;

@@ -92,7 +92,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
             />
             <StatsCard 
               label="Network Status:" 
-              value={landingData?.isAppReady ? 'READY' : (landingData?.networkStatus === 'error' ? 'ERROR' : 'LOADING')}
+              value={landingData?.isAppReady ? 'CONNECTED' : (landingData?.networkStatus === 'error' ? 'ERROR' : 'LOADING')}
               color={landingData?.isAppReady ? '#66d9a6' : (landingData?.networkStatus === 'error' ? '#ff6b6b' : '#ffa500')}
             />
           </div>
