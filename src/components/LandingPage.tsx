@@ -48,17 +48,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
           autoStartAnimation={true}
         />
 
-        <h1 className="text-center my-5" style={{ fontFamily: 'var(--font-display)' }}>
+        <h1 style={{ textAlign: 'center', margin: '20px 0', fontFamily: 'var(--font-display)' }}>
           ZAMM DEFI
         </h1>
 
         <div className="ascii-divider">════════════════════════════════════</div>
 
-        <div className="text-center my-8">
-          <p className="mb-5" aria-live="polite">
+        <div style={{ textAlign: 'center', margin: '30px 0' }}>
+          <p style={{ marginBottom: '20px' }} aria-live="polite">
             {finalText || text}
           </p>
-          <div className="loading-bar mx-auto my-5" style={{ width: '300px' }}>
+          <div className="loading-bar" style={{ width: '300px', margin: '20px auto' }}>
             <div 
               className="loading-fill" 
               style={{ width: `${progress}%` }}
@@ -67,8 +67,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
           <p>[{Math.round(progress)}%]</p>
         </div>
 
-        <section className="my-10 text-sm" aria-label="Network Statistics">
-          <div className="max-w-lg mx-auto">
+        {/* Stats Cards */}
+        <div style={{ margin: '40px 0', fontSize: '14px' }}>
+          <div style={{ maxWidth: '500px', margin: '0 auto' }}>
             <StatsCard 
               label="ETH Price:" 
               value={landingData?.ethPrice || 'Loading...'} 
@@ -93,7 +94,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
 
           <div className="ascii-divider">════════════════════════════════════</div>
 
-          <div className="grid grid-cols-3 gap-5 mt-8 max-w-2xl mx-auto">
+          {/* Protocol Stats */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '20px',
+            marginTop: '30px',
+            maxWidth: '600px',
+            marginLeft: 'auto',
+            marginRight: 'auto'
+          }}>
             <ProtocolStat 
               label="ETH SWAPPED"
               primary={protocolStats?.totalEthSwapped || 'Loading...'}
@@ -110,14 +120,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
               secondary={`Active: ${protocolStats?.activeCoins || 0}`}
             />
           </div>
-        </section>
+        </div>
 
-        <div className="text-center my-10">
+        <div style={{ textAlign: 'center', margin: '40px 0' }}>
           <button
-            className="button text-base px-6 py-3"
+            className="button"
             onClick={handleEnterApp}
             disabled={!enterEnabled}
-            style={{ opacity: enterEnabled ? 1 : 0.5 }}
+            style={{ 
+              opacity: enterEnabled ? 1 : 0.5,
+              fontSize: '16px',
+              padding: '12px 24px'
+            }}
             aria-label="Enter the ZAMM application"
           >
             ENTER ZAMM
@@ -126,7 +140,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
 
         <div className="ascii-divider">════════════════════════════════════</div>
 
-        <p className="text-center my-5 text-xs tracking-wider">
+        <p style={{ 
+          textAlign: 'center', 
+          margin: '20px 0', 
+          fontSize: '12px',
+          letterSpacing: '1px'
+        }}>
           EVM PRAGUE • FAIR LAUNCHES • CHEAP FEES
         </p>
       </div>
@@ -155,22 +174,29 @@ const StatsCard: React.FC<{
   value: string;
   color: string;
 }> = React.memo(({ label, value, color }) => (
-  <div className="flex justify-between items-center p-4 border-2 mb-4" 
-       style={{ 
-         borderColor: 'var(--terminal-black)',
-         background: 'linear-gradient(90deg, #f8f8f8 0%, #ffffff 100%)'
-       }}>
-    <div className="flex items-center gap-2">
-      <div 
-        className="w-2 h-2 rounded-full" 
-        style={{ backgroundColor: color }}
-      />
-      <span className="font-bold">{label}</span>
+  <div style={{
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '15px 20px',
+    border: '2px solid var(--terminal-black)',
+    marginBottom: '15px',
+    background: 'linear-gradient(90deg, #f8f8f8 0%, #ffffff 100%)'
+  }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      <div style={{
+        width: '8px',
+        height: '8px',
+        background: color,
+        borderRadius: '50%'
+      }}></div>
+      <span style={{ fontWeight: 'bold' }}>{label}</span>
     </div>
-    <span 
-      className="font-bold font-mono"
-      style={{ color }}
-    >
+    <span style={{
+      color: color,
+      fontWeight: 'bold',
+      fontFamily: 'monospace'
+    }}>
       {value}
     </span>
   </div>
@@ -183,18 +209,29 @@ const ProtocolStat: React.FC<{
   primary: string;
   secondary: string;
 }> = React.memo(({ label, primary, secondary }) => (
-  <div className="text-center p-5 border-2" 
-       style={{ 
-         borderColor: 'var(--terminal-black)',
-         backgroundColor: '#f9f9f9'
-       }}>
-    <div className="text-xs mb-2 text-gray-600 font-bold tracking-wide">
+  <div style={{
+    textAlign: 'center',
+    padding: '20px',
+    border: '2px solid var(--terminal-black)',
+    background: '#f9f9f9'
+  }}>
+    <div style={{
+      fontSize: '11px',
+      marginBottom: '8px',
+      color: '#666',
+      fontWeight: 'bold',
+      letterSpacing: '1px'
+    }}>
       {label}
     </div>
-    <div className="font-bold text-lg mb-1">
+    <div style={{ 
+      fontWeight: 'bold', 
+      fontSize: '18px', 
+      marginBottom: '5px' 
+    }}>
       {primary}
     </div>
-    <div className="text-xs text-gray-600">
+    <div style={{ fontSize: '11px', color: '#666' }}>
       {secondary}
     </div>
   </div>
