@@ -79,7 +79,8 @@ export const ExplorerGrid = ({
   const isPending = isLoading || isTransitioning;
 
   return (
-    <div className="w-full px-2 sm:px-4">
+    <div className="w-full max-w-full"
+         style={{ padding: '0' }}>
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center">
           <h2 className="text-xs md:text-xl font-semibold text-center sm:text-left">
@@ -239,7 +240,7 @@ export const ExplorerGrid = ({
       </div>
 
       <div
-        className={`grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 sm:gap-3 min-h-[300px] ${isTransitioning ? "transition-opacity duration-300 opacity-50" : ""}`}
+        className={`coin-explorer-grid min-h-[300px] ${isTransitioning ? "transition-opacity duration-300 opacity-50" : ""}`}
       >
         {coins.map((coin) => (
           <div key={coin.coinId.toString()} className={isPending ? "opacity-60 pointer-events-none" : ""}>
@@ -260,7 +261,7 @@ export const ExplorerGrid = ({
 
         {/* Show message when no search results */}
         {coins.length === 0 && isSearchActive && (
-          <div className="col-span-3 sm:col-span-4 md:col-span-5 text-center py-8 text-muted-foreground">
+          <div className="col-span-full text-center py-8 text-muted-foreground">
             {t("explore.no_results")}
           </div>
         )}

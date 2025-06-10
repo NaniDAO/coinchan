@@ -400,6 +400,40 @@ body {
   margin: 20px 0;
 }
 
+/* Updated coin grid for better spacing and layout */
+.coin-explorer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr));
+  gap: 16px;
+  width: 100%;
+  margin: 20px 0;
+  padding: 0;
+  justify-content: start;
+  align-items: start;
+}
+
+/* Ensure coin cards in explorer grid have consistent size and styling */
+.coin-explorer-grid > div {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+/* Enhance coin cards for retro terminal aesthetic */
+.coin-explorer-grid .border-primary\/50 {
+  border: 2px solid var(--terminal-black) !important;
+  background: var(--terminal-white) !important;
+  transition: all 0.1s ease;
+}
+
+.coin-explorer-grid .border-primary\/50:hover {
+  background: var(--terminal-black) !important;
+  color: var(--terminal-white) !important;
+  transform: translate(-2px, -2px);
+  box-shadow: 4px 4px 0 var(--terminal-black);
+}
+
+/* Legacy coin-grid for backward compatibility */
 .coin-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -417,6 +451,17 @@ body {
   .stats-grid {
     grid-template-columns: 1fr;
     gap: 15px;
+  }
+  
+  .coin-explorer-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(120px, 100%), 1fr));
+    gap: 12px;
+    margin: 16px 0;
+  }
+  
+  .coin-explorer-grid .border-primary\/50:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 2px 2px 0 var(--terminal-black);
   }
   
   .coin-grid {
