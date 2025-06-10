@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ZammLogo } from './ZammLogo';
 import { useLandingData, useSimpleLoadingProgress } from '../hooks/use-landing-data';
 import { useProtocolStats } from '../hooks/use-protocol-stats';
+import { useTopPools } from '../hooks/use-top-pools';
 
 interface LandingPageProps {
   onEnterApp?: () => void;
@@ -11,6 +12,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
   const { data: landingData } = useLandingData();
   const { data: protocolStats } = useProtocolStats();
   const { data: loadingData } = useSimpleLoadingProgress();
+  const { data: topPools = [] } = useTopPools();
   const progress = loadingData?.progress || 0;
   const text = loadingData?.text || 'Initializing...';
   const stage = loadingData?.stage || 'loading';
@@ -156,17 +158,28 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
       </div>
 
       {/* Ticker Tape */}
-      <div className="ticker" role="marquee" aria-label="Live price ticker">
+      <div className="ticker" role="marquee" aria-label="Live top pools ticker">
         <div className="ticker__track" aria-hidden="true">
-          <span className="ticker__item">ZAMM $2.53</span>
-          <span className="ticker__item">ETH $3,200.00</span>
-          <span className="ticker__item">WBTC $98,234.00</span>
-          <span className="ticker__item">DAI $1.00</span>
-          {/* Repeat for seamless loop */}
-          <span className="ticker__item">ZAMM $2.53</span>
-          <span className="ticker__item">ETH $3,200.00</span>
-          <span className="ticker__item">WBTC $98,234.00</span>
-          <span className="ticker__item">DAI $1.00</span>
+          {topPools.length > 0 ? (
+            <>
+              {topPools.map((pool) => (
+                <span key={`first-${pool.poolId}`} className="ticker__item">
+                  {pool.coinSymbol} {pool.ethAmount}
+                </span>
+              ))}
+              {/* Repeat for seamless loop */}
+              {topPools.map((pool) => (
+                <span key={`second-${pool.poolId}`} className="ticker__item">
+                  {pool.coinSymbol} {pool.ethAmount}
+                </span>
+              ))}
+            </>
+          ) : (
+            <>
+              <span className="ticker__item">Loading pools...</span>
+              <span className="ticker__item">Loading pools...</span>
+            </>
+          )}
         </div>
       </div>
     </div>
