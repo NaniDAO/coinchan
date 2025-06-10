@@ -369,11 +369,22 @@ body {
   box-shadow: 4px 4px 0 var(--terminal-black);
 }
 
+/* Terminal form containers */
+.terminal-form-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 0;
+}
+
 .swap-container {
   border: 3px solid var(--terminal-black);
   padding: 20px; /* Exact match from Redesign.html */
   margin: 20px 0;
   background: var(--terminal-gray);
+  width: 100%;
+  max-width: 100%;
 }
 
 .token-select {
