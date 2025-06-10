@@ -16,6 +16,10 @@ function RouteComponent() {
     navigate({ to: '/send' });
   };
 
+  const handleOrders = () => {
+    navigate({ to: '/orders' });
+  };
+
   return (
     <div style={{ 
       padding: '20px 0',
@@ -37,42 +41,37 @@ function RouteComponent() {
       
       <div style={{ 
         display: 'flex', 
-        gap: '12px', 
+        gap: '10px', 
         margin: '20px 0',
         width: '100%',
         justifyContent: 'center'
       }}>
-        <button
-          className="button"
+        <div 
+          className="feature-button"
           onClick={handleLaunch}
-          style={{ 
-            padding: '12px 20px',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
+          style={{ flex: 1, maxWidth: '150px' }}
         >
-          <span style={{ fontSize: '16px', color: 'var(--diamond-blue)' }}>+</span>
-          LAUNCH
-        </button>
+          <span style={{ fontSize: '20px', color: '#00d4ff' }}>+</span>
+          <span>LAUNCH</span>
+        </div>
         
-        <button
-          className="button"
+        <div 
+          className="feature-button"
           onClick={handleSend}
-          style={{ 
-            padding: '12px 20px',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
+          style={{ flex: 1, maxWidth: '150px' }}
         >
-          <span style={{ fontSize: '16px', color: 'var(--diamond-pink)' }}>→</span>
-          SEND
-        </button>
+          <span style={{ fontSize: '18px', color: '#ff6b9d' }}>→</span>
+          <span>SEND</span>
+        </div>
+
+        <div 
+          className="feature-button"
+          onClick={handleOrders}
+          style={{ flex: 1, maxWidth: '150px' }}
+        >
+          <span style={{ fontSize: '18px', color: '#ffe066' }}>📋</span>
+          <span>ORDERS</span>
+        </div>
       </div>
       
       <div className="ascii-divider">════════════════════════════════════</div>

@@ -29,14 +29,12 @@ export const PoolActions = () => {
   // Main UI
   return (
     <div className="swap-container">
-      {/* Header with mode switcher */}
+      {/* Header with mode switcher matching HTML design */}
       <div style={{
         display: 'flex',
-        justifyContent: 'center',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '30px',
-        flexDirection: 'column',
-        gap: '20px'
+        marginBottom: '20px'
       }}>
         <h2 style={{ 
           margin: 0,
@@ -46,46 +44,30 @@ export const PoolActions = () => {
           fontSize: '18px'
         }}>═══ SWAP TERMINAL ═══</h2>
         
-        <div style={{
-          display: 'flex',
-          gap: '0',
-          border: '2px solid var(--terminal-black)',
-          background: 'var(--terminal-gray)',
-          padding: '3px'
-        }}>
+        <div className="button-group">
           <button
+            className={`button ${mode === 'swap' ? 'swap-mode-active' : ''}`}
             onClick={() => setMode('swap')}
-            style={{
-              background: mode === 'swap' ? 'var(--terminal-black)' : 'transparent',
-              color: mode === 'swap' ? 'var(--terminal-white)' : 'var(--terminal-black)',
+            style={{ 
+              padding: '8px 12px', 
+              fontSize: '12px',
               border: 'none',
-              padding: '12px 24px',
-              fontSize: '13px',
-              fontWeight: 'bold',
-              textTransform: 'uppercase',
-              cursor: 'pointer',
-              transition: 'all 0.1s ease',
-              fontFamily: 'var(--font-body)'
+              margin: '0'
             }}
           >
             SWAP
           </button>
           <button
+            className={`button ${mode === 'liquidity' ? 'swap-mode-active' : ''}`}
             onClick={() => setMode('liquidity')}
-            style={{
-              background: mode === 'liquidity' ? 'var(--terminal-black)' : 'transparent',
-              color: mode === 'liquidity' ? 'var(--terminal-white)' : 'var(--terminal-black)',
+            style={{ 
+              padding: '8px 12px', 
+              fontSize: '12px',
               border: 'none',
-              padding: '12px 24px',
-              fontSize: '13px',
-              fontWeight: 'bold',
-              textTransform: 'uppercase',
-              cursor: 'pointer',
-              transition: 'all 0.1s ease',
-              fontFamily: 'var(--font-body)'
+              margin: '0'
             }}
           >
-            LIQUIDITY
+            ADD
           </button>
         </div>
       </div>

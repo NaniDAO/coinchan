@@ -54,22 +54,16 @@ export const Route = createRootRoute({
               COINS
             </Link>
             <Link
-              to="/orders"
-              className={`nav-item ${location.pathname === '/orders' ? 'active' : ''}`}
+              to="/dashboard"
+              className={`nav-item ${location.pathname === '/dashboard' ? 'active' : ''}`}
             >
-              ORDERS
+              DASHBOARD
             </Link>
             <Link
-              to="/send"
-              className={`nav-item ${location.pathname === '/send' ? 'active' : ''}`}
+              to="/about"
+              className={`nav-item ${location.pathname === '/about' ? 'active' : ''}`}
             >
-              SEND
-            </Link>
-            <Link
-              to="/launch"
-              className={`nav-item ${location.pathname === '/launch' ? 'active' : ''}`}
-            >
-              LAUNCH
+              ABOUT
             </Link>
           </div>
 

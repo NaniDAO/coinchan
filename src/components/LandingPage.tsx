@@ -32,6 +32,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
     }
   };
 
+  const handleLogoClick = () => {
+    // Trigger logo animation - handled by ZammLogo component
+  };
+
 
   return (
     <div className="terminal-window">
@@ -44,6 +48,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
       <div className="window-content">
         <ZammLogo 
           size="landing" 
+          onClick={handleLogoClick}
           isLoading={progress < 100}
           autoStartAnimation={true}
         />
