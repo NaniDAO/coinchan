@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AnimatedLogo } from './ui/animated-logo';
 
 interface ZammLogoProps {
@@ -6,21 +6,38 @@ interface ZammLogoProps {
   isLoading?: boolean;
   onClick?: () => void;
   className?: string;
+  autoStartAnimation?: boolean;
 }
 
 export const ZammLogo: React.FC<ZammLogoProps> = ({ 
   size = 'medium', 
   isLoading = false, 
   onClick,
-  className = '' 
+  className = '',
+  autoStartAnimation = false
 }) => {
   const [isLoadingState, setIsLoadingState] = useState(isLoading);
 
+  // Auto-start animation for landing page
+  useEffect(() => {
+    if (autoStartAnimation && size === 'landing') {
+      // Delay slightly to match Redesign.html behavior
+      const timer = setTimeout(() => {
+        setIsLoadingState(true);
+        setTimeout(() => setIsLoadingState(false), 3200); // 3.2s animation duration
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [autoStartAnimation, size]);
+
   const handleClick = () => {
     if (onClick) {
-      // Trigger loading animation
-      setIsLoadingState(true);
-      setTimeout(() => setIsLoadingState(false), 3200); // 3.2s animation
+      if (size === 'landing') {
+        // For landing page, trigger loading animation
+        setIsLoadingState(true);
+        setTimeout(() => setIsLoadingState(false), 3200); // 3.2s animation
+      }
       onClick();
     }
   };

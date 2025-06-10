@@ -61,7 +61,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
         <ZammLogo 
           size="landing" 
           onClick={handleLogoClick}
-          className="landing-logo"
+          autoStartAnimation={true}
         />
 
         <h1 style={{ textAlign: 'center', margin: '20px 0', fontFamily: 'var(--font-display)' }}>

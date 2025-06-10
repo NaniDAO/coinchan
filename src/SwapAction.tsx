@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PoolSwapChart } from "./PoolSwapChart";
-import { Loader2, CheckIcon, ExternalLink } from "lucide-react";
+import { CheckIcon, ExternalLink } from "lucide-react";
+import { LoadingLogo } from "./components/ui/loading-logo";
 import { Link } from "@tanstack/react-router";
 import { Button } from "./components/ui/button";
 import { formatEther, formatUnits, parseEther, parseUnits, encodeFunctionData } from "viem";
@@ -830,7 +831,7 @@ export const SwapAction = () => {
       >
         {isPending ? (
           <span className="flex items-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <LoadingLogo size="sm" />
             {t("common.loading")}
           </span>
         ) : swapMode === "instant" ? (
@@ -844,7 +845,7 @@ export const SwapAction = () => {
       {/* Show transaction statuses */}
       {txError && txError.includes(t("common.waiting")) && (
         <div className="text-sm text-primary mt-2 flex items-center bg-background/50 p-2 rounded border border-primary/20">
-          <Loader2 className="h-3 w-3 animate-spin mr-2" />
+          <LoadingLogo size="sm" className="mr-2 scale-75" />
           {txError}
         </div>
       )}

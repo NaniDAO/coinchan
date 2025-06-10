@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { LiquidityActions } from "./LiquidityActions";
 import { SwapAction } from "./SwapAction";
-import CoinchanLoader from "./components/CoinchanLoader";
+import { LoadingLogo } from "./components/ui/loading-logo";
 
 /* ────────────────────────────────────────────────────────────────────────────
   Mode types and constants
@@ -19,7 +19,11 @@ export const PoolActions = () => {
 
   // Loading state
   if (loading) {
-    return <CoinchanLoader />;
+    return (
+      <div className="flex items-center justify-center py-12">
+        <LoadingLogo size="lg" />
+      </div>
+    );
   }
 
   // Main UI

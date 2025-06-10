@@ -478,9 +478,52 @@ body {
   border: 1px solid var(--terminal-black);
 }
 
-/* Landing Page Specific */
-.landing .svg-logo {
-  min-height: 240px; /* Reserve space for landing page logo */
+/* Landing Page Specific - Exact match to Redesign.html */
+.landing-logo {
+  text-align: center;
+  margin: 20px auto;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+  position: relative;
+  display: block;
+  width: fit-content;
+  min-height: 240px; /* Ensure space is always reserved for landing page logo */
+}
+
+.landing-logo:hover {
+  transform: scale(1.05);
+}
+
+.landing-logo:active {
+  transform: scale(0.98);
+}
+
+.landing-logo .static-logo,
+.landing-logo .loading-diamond {
+  transition: opacity 0.1s ease;
+  display: block;
+  margin: 0 auto;
+}
+
+.landing-logo .static-logo {
+  opacity: 1;
+}
+
+.landing-logo .loading-diamond {
+  opacity: 0;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.landing-logo .loading-diamond.active {
+  opacity: 1;
+}
+
+.landing-logo .static-logo.hidden {
+  opacity: 0;
 }
 
 /* Feature Buttons */

@@ -42,8 +42,8 @@ export const Route = createRootRoute({
           {/* Terminal Navigation Bar */}
           <div className="nav-bar">
             <Link
-              to="/"
-              className={`nav-item ${location.pathname === '/' ? 'active' : ''}`}
+              to="/swap"
+              className={`nav-item ${location.pathname === '/swap' ? 'active' : ''}`}
             >
               SWAP
             </Link>

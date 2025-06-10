@@ -6,7 +6,7 @@ import { parseEther, parseUnits, formatEther, formatUnits, Address, erc20Abi } f
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { LoadingLogo } from "./components/ui/loading-logo";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { ETH_TOKEN, TokenMeta, USDT_ADDRESS } from "./lib/coins";
 import { TokenSelector } from "./components/TokenSelector";
@@ -399,7 +399,7 @@ const SendTileComponent = () => {
         >
           {isPending ? (
             <div className="flex items-center justify-center">
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              <LoadingLogo size="sm" className="mr-2" />
               <span>Sending...</span>
             </div>
           ) : (

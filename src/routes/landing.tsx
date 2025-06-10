@@ -9,7 +9,7 @@ function RouteComponent() {
   const navigate = useNavigate();
 
   const handleEnterApp = () => {
-    navigate({ to: "/" });
+    navigate({ to: "/swap" });
   };
 
   return <LandingPage onEnterApp={handleEnterApp} />;

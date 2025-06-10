@@ -11,6 +11,7 @@
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
+import { Route as SwapImport } from './routes/swap'
 import { Route as SendImport } from './routes/send'
 import { Route as OrdersImport } from './routes/orders'
 import { Route as LaunchImport } from './routes/launch'
@@ -22,6 +23,12 @@ import { Route as UUserIdImport } from './routes/u.$userId'
 import { Route as CCoinIdImport } from './routes/c.$coinId'
 
 // Create/Update Routes
+
+const SwapRoute = SwapImport.update({
+  id: '/swap',
+  path: '/swap',
+  getParentRoute: () => rootRoute,
+} as any)
 
 const SendRoute = SendImport.update({
   id: '/send',
@@ -130,6 +137,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SendImport
       parentRoute: typeof rootRoute
     }
+    '/swap': {
+      id: '/swap'
+      path: '/swap'
+      fullPath: '/swap'
+      preLoaderRoute: typeof SwapImport
+      parentRoute: typeof rootRoute
+    }
     '/c/$coinId': {
       id: '/c/$coinId'
       path: '/c/$coinId'
@@ -157,6 +171,7 @@ export interface FileRoutesByFullPath {
   '/launch': typeof LaunchRoute
   '/orders': typeof OrdersRoute
   '/send': typeof SendRoute
+  '/swap': typeof SwapRoute
   '/c/$coinId': typeof CCoinIdRoute
   '/u/$userId': typeof UUserIdRoute
 }
@@ -169,6 +184,7 @@ export interface FileRoutesByTo {
   '/launch': typeof LaunchRoute
   '/orders': typeof OrdersRoute
   '/send': typeof SendRoute
+  '/swap': typeof SwapRoute
   '/c/$coinId': typeof CCoinIdRoute
   '/u/$userId': typeof UUserIdRoute
 }
@@ -182,6 +198,7 @@ export interface FileRoutesById {
   '/launch': typeof LaunchRoute
   '/orders': typeof OrdersRoute
   '/send': typeof SendRoute
+  '/swap': typeof SwapRoute
   '/c/$coinId': typeof CCoinIdRoute
   '/u/$userId': typeof UUserIdRoute
 }
@@ -196,6 +213,7 @@ export interface FileRouteTypes {
     | '/launch'
     | '/orders'
     | '/send'
+    | '/swap'
     | '/c/$coinId'
     | '/u/$userId'
   fileRoutesByTo: FileRoutesByTo
@@ -207,6 +225,7 @@ export interface FileRouteTypes {
     | '/launch'
     | '/orders'
     | '/send'
+    | '/swap'
     | '/c/$coinId'
     | '/u/$userId'
   id:
@@ -218,6 +237,7 @@ export interface FileRouteTypes {
     | '/launch'
     | '/orders'
     | '/send'
+    | '/swap'
     | '/c/$coinId'
     | '/u/$userId'
   fileRoutesById: FileRoutesById
@@ -231,6 +251,7 @@ export interface RootRouteChildren {
   LaunchRoute: typeof LaunchRoute
   OrdersRoute: typeof OrdersRoute
   SendRoute: typeof SendRoute
+  SwapRoute: typeof SwapRoute
   CCoinIdRoute: typeof CCoinIdRoute
   UUserIdRoute: typeof UUserIdRoute
 }
@@ -243,6 +264,7 @@ const rootRouteChildren: RootRouteChildren = {
   LaunchRoute: LaunchRoute,
   OrdersRoute: OrdersRoute,
   SendRoute: SendRoute,
+  SwapRoute: SwapRoute,
   CCoinIdRoute: CCoinIdRoute,
   UUserIdRoute: UUserIdRoute,
 }
@@ -264,6 +286,7 @@ export const routeTree = rootRoute
         "/launch",
         "/orders",
         "/send",
+        "/swap",
         "/c/$coinId",
         "/u/$userId"
       ]
@@ -288,6 +311,9 @@ export const routeTree = rootRoute
     },
     "/send": {
       "filePath": "send.tsx"
+    },
+    "/swap": {
+      "filePath": "swap.tsx"
     },
     "/c/$coinId": {
       "filePath": "c.$coinId.tsx"
