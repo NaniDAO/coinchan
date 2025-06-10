@@ -1,43 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { ZammLogo } from './ZammLogo';
+import { useLandingData, useLoadingProgress } from '../hooks/use-landing-data';
+import { useProtocolStats } from '../hooks/use-protocol-stats';
 
 interface LandingPageProps {
   onEnterApp?: () => void;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
-  const [loadingProgress, setLoadingProgress] = useState(0);
-  const [loadingText, setLoadingText] = useState('Loading Ethereum...');
+  const { data: landingData } = useLandingData();
+  const { data: protocolStats } = useProtocolStats();
+  const { progress, text, stage } = useLoadingProgress(landingData?.isAppReady || false);
+  const [finalText, setFinalText] = useState('');
   const [enterEnabled, setEnterEnabled] = useState(false);
 
   useEffect(() => {
-    // Simulate loading progress
-    const interval = setInterval(() => {
-      setLoadingProgress(prev => {
-        const increment = Math.random() * 12 + 3;
-        const newProgress = Math.min(prev + increment, 100);
-        
-        if (newProgress >= 100) {
-          clearInterval(interval);
-          
-          // Fade to "Initialized"
-          setTimeout(() => {
-            setLoadingText('Initialized');
-          }, 400);
-          
-          // Then fade to slogan
-          setTimeout(() => {
-            setLoadingText('The Efficient Ethereum Exchange');
-            setEnterEnabled(true);
-          }, 1800);
-        }
-        
-        return newProgress;
-      });
-    }, 150);
-
-    return () => clearInterval(interval);
-  }, []);
+    if (stage === 'complete' && landingData?.isAppReady) {
+      setTimeout(() => {
+        setFinalText('The Efficient Ethereum Exchange');
+        setEnterEnabled(true);
+      }, 1000);
+    }
+  }, [stage, landingData?.isAppReady]);
 
   const handleEnterApp = () => {
     if (onEnterApp) {
@@ -61,6 +45,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
         <ZammLogo 
           size="landing" 
           onClick={handleLogoClick}
+          isLoading={progress < 100}
           autoStartAnimation={true}
         />
 
@@ -71,14 +56,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
         <div className="ascii-divider">════════════════════════════════════</div>
 
         <div style={{ textAlign: 'center', margin: '30px 0' }}>
-          <p id="loadingText" style={{ marginBottom: '20px' }}>{loadingText}</p>
+          <p id="loadingText" style={{ marginBottom: '20px' }}>
+            {finalText || text}
+          </p>
           <div className="loading-bar" style={{ width: '300px', margin: '20px auto' }}>
             <div 
               className="loading-fill" 
-              style={{ width: `${loadingProgress}%` }}
+              style={{ width: `${progress}%` }}
             ></div>
           </div>
-          <p>[{Math.round(loadingProgress)}%]</p>
+          <p>[{Math.round(progress)}%]</p>
         </div>
 
         {/* Stats Cards */}
@@ -86,23 +73,23 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
           <div style={{ maxWidth: '500px', margin: '0 auto' }}>
             <StatsCard 
               label="ETH Price:" 
-              value="$2,525.51" 
+              value={landingData?.ethPrice || 'Loading...'} 
               color="#00d4ff"
             />
             <StatsCard 
               label="Gas Price:" 
-              value="1.1 GWEI" 
+              value={landingData?.gasPrice || 'Loading...'}
               color="#ffe066"
             />
             <StatsCard 
               label="Launch Cost:" 
-              value="$1.33" 
+              value={landingData?.launchCost || 'Loading...'}
               color="#ff6b9d"
             />
             <StatsCard 
               label="Network Status:" 
-              value="READY" 
-              color="#66d9a6"
+              value={landingData?.isAppReady ? 'READY' : (landingData?.networkStatus === 'error' ? 'ERROR' : 'LOADING')}
+              color={landingData?.isAppReady ? '#66d9a6' : (landingData?.networkStatus === 'error' ? '#ff6b6b' : '#ffa500')}
             />
           </div>
 
@@ -120,18 +107,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
           }}>
             <ProtocolStat 
               label="ETH SWAPPED"
-              primary="7,698.880857 Ξ"
-              secondary="($19,439,594.80)"
+              primary={protocolStats?.totalEthSwapped || 'Loading...'}
+              secondary={protocolStats?.totalEthSwappedUsd || ''}
             />
             <ProtocolStat 
               label="SWAPS"
-              primary="30,515"
-              secondary="24H: +234"
+              primary={protocolStats?.totalSwaps?.toLocaleString() || '0'}
+              secondary={`24H: +${protocolStats?.swaps24h || 0}`}
             />
             <ProtocolStat 
               label="COINS"
-              primary="321"
-              secondary="Active: 142"
+              primary={protocolStats?.totalCoins?.toString() || '0'}
+              secondary={`Active: ${protocolStats?.activeCoins || 0}`}
             />
           </div>
         </div>
