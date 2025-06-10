@@ -6,9 +6,9 @@ import { SwapAction } from "./SwapAction";
 import { LoadingLogo } from "./components/ui/loading-logo";
 
 /* ────────────────────────────────────────────────────────────────────────────
-  Mode types and constants
+  Mode types and constants - Simplified to focus on core swap functionality
 ──────────────────────────────────────────────────────────────────────────── */
-type TileMode = "swap" | "add" | "remove";
+type TileMode = "swap" | "liquidity";
 
 /* ────────────────────────────────────────────────────────────────────────────
   Pool Actions - Terminal Style
@@ -32,32 +32,60 @@ export const PoolActions = () => {
       {/* Header with mode switcher */}
       <div style={{
         display: 'flex',
-        justifyContent: 'space-between',
+        justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: '20px'
+        marginBottom: '30px',
+        flexDirection: 'column',
+        gap: '20px'
       }}>
-        <h2 style={{ margin: 0 }}>═══ SWAP TERMINAL ═══</h2>
-        <div className="button-group">
+        <h2 style={{ 
+          margin: 0,
+          fontFamily: 'var(--font-display)',
+          textTransform: 'uppercase',
+          letterSpacing: '2px',
+          fontSize: '18px'
+        }}>═══ SWAP TERMINAL ═══</h2>
+        
+        <div style={{
+          display: 'flex',
+          gap: '0',
+          border: '2px solid var(--terminal-black)',
+          background: 'var(--terminal-gray)',
+          padding: '3px'
+        }}>
           <button
-            className={`button ${mode === 'swap' ? 'swap-mode-active' : ''}`}
             onClick={() => setMode('swap')}
-            style={{ padding: '8px 12px', fontSize: '12px' }}
+            style={{
+              background: mode === 'swap' ? 'var(--terminal-black)' : 'transparent',
+              color: mode === 'swap' ? 'var(--terminal-white)' : 'var(--terminal-black)',
+              border: 'none',
+              padding: '12px 24px',
+              fontSize: '13px',
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+              cursor: 'pointer',
+              transition: 'all 0.1s ease',
+              fontFamily: 'var(--font-body)'
+            }}
           >
             SWAP
           </button>
           <button
-            className={`button ${mode === 'add' ? 'swap-mode-active' : ''}`}
-            onClick={() => setMode('add')}
-            style={{ padding: '8px 12px', fontSize: '12px' }}
+            onClick={() => setMode('liquidity')}
+            style={{
+              background: mode === 'liquidity' ? 'var(--terminal-black)' : 'transparent',
+              color: mode === 'liquidity' ? 'var(--terminal-white)' : 'var(--terminal-black)',
+              border: 'none',
+              padding: '12px 24px',
+              fontSize: '13px',
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+              cursor: 'pointer',
+              transition: 'all 0.1s ease',
+              fontFamily: 'var(--font-body)'
+            }}
           >
-            ADD
-          </button>
-          <button
-            className={`button ${mode === 'remove' ? 'swap-mode-active' : ''}`}
-            onClick={() => setMode('remove')}
-            style={{ padding: '8px 12px', fontSize: '12px' }}
-          >
-            REMOVE
+            LIQUIDITY
           </button>
         </div>
       </div>
@@ -88,8 +116,7 @@ export const PoolActions = () => {
 
       {/* Content based on mode */}
       {mode === "swap" && <SwapAction />}
-      {mode === "add" && <LiquidityActions />}
-      {mode === "remove" && <LiquidityActions />}
+      {mode === "liquidity" && <LiquidityActions />}
     </div>
   );
 };
