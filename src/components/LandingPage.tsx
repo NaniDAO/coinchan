@@ -158,26 +158,46 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
       </div>
 
       {/* Ticker Tape */}
-      <div className="ticker" role="marquee" aria-label="Live top pools ticker">
+      <div className="ticker" role="marquee" aria-label="Live top 20 coins ticker">
         <div className="ticker__track" aria-hidden="true">
           {topPools.length > 0 ? (
             <>
-              {topPools.map((pool) => (
-                <span key={`first-${pool.poolId}`} className="ticker__item">
-                  {pool.coinSymbol} {pool.ethAmount}
-                </span>
-              ))}
+              {topPools.map((pool) => {
+                // Calculate USD price if ETH price is available
+                const ethPriceUsd = landingData?.ethPriceUsd || 3200; // Fallback to 3200
+                const priceEth = parseFloat(pool.pricePerToken.replace(' Ξ', ''));
+                const priceUsd = priceEth * ethPriceUsd;
+                const formattedUsdPrice = priceUsd >= 0.01 
+                  ? `$${priceUsd.toFixed(4).replace(/\.?0+$/, '')}`
+                  : `$${priceUsd.toExponential(2)}`;
+                
+                return (
+                  <span key={`first-${pool.poolId}`} className="ticker__item">
+                    {pool.coinSymbol} • {pool.pricePerToken} • {formattedUsdPrice} • Liq: {pool.ethAmount}
+                  </span>
+                );
+              })}
               {/* Repeat for seamless loop */}
-              {topPools.map((pool) => (
-                <span key={`second-${pool.poolId}`} className="ticker__item">
-                  {pool.coinSymbol} {pool.ethAmount}
-                </span>
-              ))}
+              {topPools.map((pool) => {
+                // Calculate USD price if ETH price is available
+                const ethPriceUsd = landingData?.ethPriceUsd || 3200; // Fallback to 3200
+                const priceEth = parseFloat(pool.pricePerToken.replace(' Ξ', ''));
+                const priceUsd = priceEth * ethPriceUsd;
+                const formattedUsdPrice = priceUsd >= 0.01 
+                  ? `$${priceUsd.toFixed(4).replace(/\.?0+$/, '')}`
+                  : `$${priceUsd.toExponential(2)}`;
+                
+                return (
+                  <span key={`second-${pool.poolId}`} className="ticker__item">
+                    {pool.coinSymbol} • {pool.pricePerToken} • {formattedUsdPrice} • Liq: {pool.ethAmount}
+                  </span>
+                );
+              })}
             </>
           ) : (
             <>
-              <span className="ticker__item">Loading pools...</span>
-              <span className="ticker__item">Loading pools...</span>
+              <span className="ticker__item">Loading top 20 coins...</span>
+              <span className="ticker__item">Loading top 20 coins...</span>
             </>
           )}
         </div>

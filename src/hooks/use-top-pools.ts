@@ -5,19 +5,24 @@ import { INDEXER_URL } from '../lib/indexer';
 export interface TopPoolData {
   poolId: string;
   coinSymbol: string;
+  coinName: string;
   ethAmount: string;
   ethReserve: bigint;
+  tokenReserve: bigint;
+  pricePerToken: string; // ETH per token
+  pricePerTokenUsd?: string; // USD per token (when ETH price is available)
 }
 
 const GET_TOP_POOLS = `
   query GetTopPools {
-    pools(limit: 10, orderBy: "reserve0", orderDirection: "desc") {
+    pools(limit: 20, orderBy: "reserve0", orderDirection: "desc") {
       items {
         id
         reserve0
         reserve1
         coin1 {
           symbol
+          name
         }
       }
     }
@@ -47,22 +52,36 @@ async function fetchTopPoolsData(): Promise<TopPoolData[]> {
     }
 
     return data.pools.items
-      .filter((pool: any) => pool.coin1?.symbol && BigInt(pool.reserve0) > 0n)
+      .filter((pool: any) => pool.coin1?.symbol && BigInt(pool.reserve0) > 0n && BigInt(pool.reserve1) > 0n)
       .map((pool: any) => {
         const ethReserve = BigInt(pool.reserve0);
+        const tokenReserve = BigInt(pool.reserve1);
         const ethAmount = formatEther(ethReserve);
         
-        // Format ETH amount for display (limit to 2 decimal places for large amounts, more for small)
+        // Calculate price per token (ETH/token)
+        const pricePerTokenWei = (ethReserve * BigInt(10**18)) / tokenReserve;
+        const pricePerTokenEth = formatEther(pricePerTokenWei);
+        const priceValue = parseFloat(pricePerTokenEth);
+        
+        // Format ETH amount for display
         const ethValue = parseFloat(ethAmount);
         const formattedEth = ethValue >= 1 
           ? ethValue.toFixed(2)
           : ethValue.toFixed(6).replace(/\.?0+$/, '');
 
+        // Format price per token - show more precision for very small values
+        const formattedPrice = priceValue >= 0.001 
+          ? priceValue.toFixed(6).replace(/\.?0+$/, '')
+          : priceValue.toExponential(2);
+
         return {
           poolId: pool.id,
           coinSymbol: pool.coin1.symbol,
+          coinName: pool.coin1.name || pool.coin1.symbol,
           ethAmount: `${formattedEth} Ξ`,
           ethReserve: ethReserve,
+          tokenReserve: tokenReserve,
+          pricePerToken: `${formattedPrice} Ξ`,
         };
       });
   } catch (error) {
