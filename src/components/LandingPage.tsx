@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ZammLogo } from './ZammLogo';
-import { useLandingData, useLoadingProgress } from '../hooks/use-landing-data';
+import { useLandingData, useSimpleLoadingProgress } from '../hooks/use-landing-data';
 import { useProtocolStats } from '../hooks/use-protocol-stats';
+import { useAppPreloader } from '../hooks/use-app-preloader';
 
 interface LandingPageProps {
   onEnterApp?: () => void;
@@ -10,18 +11,22 @@ interface LandingPageProps {
 export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
   const { data: landingData } = useLandingData();
   const { data: protocolStats } = useProtocolStats();
-  const { progress, text, stage } = useLoadingProgress(landingData?.isAppReady || false);
+  const { isPreloaded, coinCount } = useAppPreloader();
+  const { data: loadingData } = useSimpleLoadingProgress(Boolean(landingData?.isAppReady && isPreloaded));
+  const progress = loadingData?.progress || 0;
+  const text = loadingData?.text || 'Initializing...';
+  const stage = loadingData?.stage || 'loading';
   const [finalText, setFinalText] = useState('');
   const [enterEnabled, setEnterEnabled] = useState(false);
 
   useEffect(() => {
-    if (stage === 'complete' && landingData?.isAppReady) {
+    if (stage === 'complete' && landingData?.isAppReady && isPreloaded) {
       setTimeout(() => {
         setFinalText('The Efficient Ethereum Exchange');
         setEnterEnabled(true);
       }, 1000);
     }
-  }, [stage, landingData?.isAppReady]);
+  }, [stage, landingData?.isAppReady, isPreloaded]);
 
   const handleEnterApp = () => {
     if (onEnterApp) {
@@ -117,7 +122,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
             />
             <ProtocolStat 
               label="COINS"
-              primary={protocolStats?.totalCoins?.toString() || '0'}
+              primary={Math.max(coinCount, protocolStats?.totalCoins || 0).toString()}
               secondary={`Active: ${protocolStats?.activeCoins || 0}`}
             />
           </div>
