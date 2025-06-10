@@ -220,10 +220,16 @@ export const ExplorerGrid = ({
           onClick={handlePrev}
           disabled={!canPrev || isPending}
           aria-label="Go to previous page"
-          className={`px-4 py-2 rounded-md border border-primary hover:bg-secondary-foreground touch-manipulation
-            ${!canPrev || isPending ? "text-muted-foreground opacity-50 cursor-not-allowed" : "text-primary font-bold"}
-            ${isTransitioning && direction === "prev" ? "relative bg-secondary/30" : ""}
-          `}
+          className="button touch-manipulation relative"
+          style={{
+            padding: '12px 20px',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            textTransform: 'uppercase',
+            opacity: (!canPrev || isPending) ? '0.5' : '1',
+            cursor: (!canPrev || isPending) ? 'not-allowed' : 'pointer',
+            minWidth: '100px'
+          }}
         >
           {isTransitioning && direction === "prev" ? (
             <span className="absolute inset-0 flex items-center justify-center">
@@ -235,7 +241,16 @@ export const ExplorerGrid = ({
 
         {/* Page info from parent */}
         {total > 0 && !isSearchActive && (
-          <span className="text-sm text-muted-foreground">
+          <span 
+            className="text-sm font-bold"
+            style={{
+              fontFamily: 'var(--font-body)',
+              color: 'var(--terminal-black)',
+              padding: '8px 16px',
+              background: 'var(--terminal-gray)',
+              border: '1px solid var(--terminal-black)'
+            }}
+          >
             {t("common.page")} {currentPage} {t("common.of")} {totalPages}
           </span>
         )}
@@ -244,10 +259,16 @@ export const ExplorerGrid = ({
           onClick={handleNext}
           disabled={!canNext || isPending}
           aria-label="Go to next page"
-          className={`px-4 py-2 rounded-md border border-primary/30 hover:bg-secondary-foreground touch-manipulation
-            ${!canNext || isPending ? "text-muted-foreground opacity-50 cursor-not-allowed" : "text-primary font-bold"}
-            ${isTransitioning && direction === "next" ? "relative bg-secondary/30" : ""}
-          `}
+          className="button touch-manipulation relative"
+          style={{
+            padding: '12px 20px',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            textTransform: 'uppercase',
+            opacity: (!canNext || isPending) ? '0.5' : '1',
+            cursor: (!canNext || isPending) ? 'not-allowed' : 'pointer',
+            minWidth: '100px'
+          }}
         >
           {isTransitioning && direction === "next" ? (
             <span className="absolute inset-0 flex items-center justify-center">
