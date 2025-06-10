@@ -58,10 +58,10 @@ async function fetchTopPoolsData(): Promise<TopPoolData[]> {
         const tokenReserve = BigInt(pool.reserve1);
         const ethAmount = formatEther(ethReserve);
         
-        // Calculate price per token (ETH/token)
-        const pricePerTokenWei = (ethReserve * BigInt(10**18)) / tokenReserve;
-        const pricePerTokenEth = formatEther(pricePerTokenWei);
-        const priceValue = parseFloat(pricePerTokenEth);
+        // Calculate price per token (ETH/token) - maintain precision
+        const ethReserveFloat = parseFloat(formatEther(ethReserve));
+        const tokenReserveFloat = parseFloat(formatEther(tokenReserve));
+        const pricePerTokenEth = ethReserveFloat / tokenReserveFloat;
         
         // Format ETH amount for display
         const ethValue = parseFloat(ethAmount);
@@ -69,10 +69,19 @@ async function fetchTopPoolsData(): Promise<TopPoolData[]> {
           ? ethValue.toFixed(2)
           : ethValue.toFixed(6).replace(/\.?0+$/, '');
 
-        // Format price per token - show more precision for very small values
-        const formattedPrice = priceValue >= 0.001 
-          ? priceValue.toFixed(6).replace(/\.?0+$/, '')
-          : priceValue.toExponential(2);
+        // Format price per token with better logic
+        let formattedPrice: string;
+        if (pricePerTokenEth >= 1) {
+          formattedPrice = pricePerTokenEth.toFixed(4);
+        } else if (pricePerTokenEth >= 0.0001) {
+          formattedPrice = pricePerTokenEth.toFixed(6);
+        } else if (pricePerTokenEth >= 0.000001) {
+          formattedPrice = pricePerTokenEth.toFixed(8);
+        } else {
+          formattedPrice = pricePerTokenEth.toExponential(3);
+        }
+        // Clean up trailing zeros
+        formattedPrice = formattedPrice.replace(/\.?0+$/, '');
 
         return {
           poolId: pool.id,

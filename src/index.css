@@ -121,7 +121,7 @@ body {
 .window-content {
   padding: 20px; /* Exact match to Redesign.html */
   min-height: 400px; /* Exact match to Redesign.html */
-  padding-bottom: 2.5rem; /* Exact match to Redesign.html */
+  padding-bottom: 60px; /* Space for bottom ticker */
 }
 
 /* Logo Styles */
@@ -293,24 +293,32 @@ body {
 
 /* Ticker Tape */
 .ticker {
-  position: absolute;
-  bottom: 0;
-  left: 0;
+  position: relative;
   width: 100%;
   background: var(--terminal-white);
   border-top: 2px solid var(--terminal-black);
+  border-bottom: 2px solid var(--terminal-black);
   overflow: hidden;
-  box-shadow: 0 -2px 0 var(--terminal-black);
   font-family: monospace;
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 12px;
+  line-height: 1.8;
+  height: 30px;
+}
+
+/* Specific positioning for landing page ticker */
+.terminal-window .ticker:last-child {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  border-bottom: none;
+  box-shadow: 0 -2px 0 var(--terminal-black);
 }
 
 .ticker__track {
   display: inline-block;
   white-space: nowrap;
   padding-left: 100%;
-  animation: ticker-scroll 20s linear infinite;
+  animation: ticker-scroll 60s linear infinite;
 }
 
 .ticker__item {

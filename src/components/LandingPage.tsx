@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ZammLogo } from './ZammLogo';
 import { useLandingData, useSimpleLoadingProgress } from '../hooks/use-landing-data';
 import { useProtocolStats } from '../hooks/use-protocol-stats';
-import { useTopPools } from '../hooks/use-top-pools';
+import { PoolsTicker } from './PoolsTicker';
 
 interface LandingPageProps {
   onEnterApp?: () => void;
@@ -12,7 +12,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
   const { data: landingData } = useLandingData();
   const { data: protocolStats } = useProtocolStats();
   const { data: loadingData } = useSimpleLoadingProgress();
-  const { data: topPools = [] } = useTopPools();
   const progress = loadingData?.progress || 0;
   const text = loadingData?.text || 'Initializing...';
   const stage = loadingData?.stage || 'loading';
@@ -158,50 +157,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
       </div>
 
       {/* Ticker Tape */}
-      <div className="ticker" role="marquee" aria-label="Live top 20 coins ticker">
-        <div className="ticker__track" aria-hidden="true">
-          {topPools.length > 0 ? (
-            <>
-              {topPools.map((pool) => {
-                // Calculate USD price if ETH price is available
-                const ethPriceUsd = landingData?.ethPriceUsd || 3200; // Fallback to 3200
-                const priceEth = parseFloat(pool.pricePerToken.replace(' Ξ', ''));
-                const priceUsd = priceEth * ethPriceUsd;
-                const formattedUsdPrice = priceUsd >= 0.01 
-                  ? `$${priceUsd.toFixed(4).replace(/\.?0+$/, '')}`
-                  : `$${priceUsd.toExponential(2)}`;
-                
-                return (
-                  <span key={`first-${pool.poolId}`} className="ticker__item">
-                    {pool.coinSymbol} • {pool.pricePerToken} • {formattedUsdPrice} • Liq: {pool.ethAmount}
-                  </span>
-                );
-              })}
-              {/* Repeat for seamless loop */}
-              {topPools.map((pool) => {
-                // Calculate USD price if ETH price is available
-                const ethPriceUsd = landingData?.ethPriceUsd || 3200; // Fallback to 3200
-                const priceEth = parseFloat(pool.pricePerToken.replace(' Ξ', ''));
-                const priceUsd = priceEth * ethPriceUsd;
-                const formattedUsdPrice = priceUsd >= 0.01 
-                  ? `$${priceUsd.toFixed(4).replace(/\.?0+$/, '')}`
-                  : `$${priceUsd.toExponential(2)}`;
-                
-                return (
-                  <span key={`second-${pool.poolId}`} className="ticker__item">
-                    {pool.coinSymbol} • {pool.pricePerToken} • {formattedUsdPrice} • Liq: {pool.ethAmount}
-                  </span>
-                );
-              })}
-            </>
-          ) : (
-            <>
-              <span className="ticker__item">Loading top 20 coins...</span>
-              <span className="ticker__item">Loading top 20 coins...</span>
-            </>
-          )}
-        </div>
-      </div>
+      <PoolsTicker />
     </div>
   );
 };

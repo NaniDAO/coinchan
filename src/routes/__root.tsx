@@ -2,6 +2,8 @@ import { ConnectMenu } from "@/ConnectMenu";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { ZammLogo } from "@/components/ZammLogo";
+import { PoolsTicker } from "@/components/PoolsTicker";
+import { SwapsTicker } from "@/components/SwapsTicker";
 import { createRootRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 
 export const Route = createRootRoute({
@@ -20,6 +22,9 @@ export const Route = createRootRoute({
 
     return (
       <div className="terminal-window">
+        {/* Recent Swaps Ticker at top */}
+        <SwapsTicker />
+        
         <div className="window-header">
           <div style={{ width: '60px' }}></div>
           <div>═══════════ ZAMM DeFi v1.0 ═══════════</div>
@@ -73,22 +78,8 @@ export const Route = createRootRoute({
           </div>
         </div>
 
-        {/* Ticker Tape */}
-        <div className="ticker">
-          <div className="ticker__track">
-            <span className="ticker__item">ZAMM Ξ2.53</span>
-            <span className="ticker__item">ETH Ξ3,142.85</span>
-            <span className="ticker__item">WBTC Ξ98,234.00</span>
-            <span className="ticker__item">DAI Ξ1.00</span>
-            <span className="ticker__item">USDC Ξ1.00</span>
-            {/* Repeat for seamless loop */}
-            <span className="ticker__item">ZAMM Ξ2.53</span>
-            <span className="ticker__item">ETH Ξ3,142.85</span>
-            <span className="ticker__item">WBTC Ξ98,234.00</span>
-            <span className="ticker__item">DAI Ξ1.00</span>
-            <span className="ticker__item">USDC Ξ1.00</span>
-          </div>
-        </div>
+        {/* Pools Ticker at bottom */}
+        <PoolsTicker />
       </div>
     );
   },
