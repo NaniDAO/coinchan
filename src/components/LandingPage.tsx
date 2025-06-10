@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { ZammLogo } from './ZammLogo';
 import { useLandingData, useSimpleLoadingProgress } from '../hooks/use-landing-data';
 import { useProtocolStats } from '../hooks/use-protocol-stats';
-import { useAppPreloader } from '../hooks/use-app-preloader';
 
 interface LandingPageProps {
   onEnterApp?: () => void;
@@ -11,8 +10,7 @@ interface LandingPageProps {
 export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
   const { data: landingData } = useLandingData();
   const { data: protocolStats } = useProtocolStats();
-  const { isPreloaded, coinCount } = useAppPreloader();
-  const { data: loadingData } = useSimpleLoadingProgress(Boolean(landingData?.isAppReady && isPreloaded));
+  const { data: loadingData } = useSimpleLoadingProgress();
   const progress = loadingData?.progress || 0;
   const text = loadingData?.text || 'Initializing...';
   const stage = loadingData?.stage || 'loading';
@@ -20,13 +18,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
   const [enterEnabled, setEnterEnabled] = useState(false);
 
   useEffect(() => {
-    if (stage === 'complete' && landingData?.isAppReady && isPreloaded) {
+    if (stage === 'complete') {
       setTimeout(() => {
         setFinalText('The Efficient Ethereum Exchange');
         setEnterEnabled(true);
       }, 1000);
     }
-  }, [stage, landingData?.isAppReady, isPreloaded]);
+  }, [stage]);
 
   const handleEnterApp = () => {
     if (onEnterApp) {
@@ -34,9 +32,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
     }
   };
 
-  const handleLogoClick = () => {
-    // Logo animation is handled by the ZammLogo component
-  };
 
   return (
     <div className="terminal-window">
@@ -49,22 +44,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
       <div className="window-content">
         <ZammLogo 
           size="landing" 
-          onClick={handleLogoClick}
           isLoading={progress < 100}
           autoStartAnimation={true}
         />
 
-        <h1 style={{ textAlign: 'center', margin: '20px 0', fontFamily: 'var(--font-display)' }}>
+        <h1 className="text-center my-5" style={{ fontFamily: 'var(--font-display)' }}>
           ZAMM DEFI
         </h1>
 
         <div className="ascii-divider">════════════════════════════════════</div>
 
-        <div style={{ textAlign: 'center', margin: '30px 0' }}>
-          <p id="loadingText" style={{ marginBottom: '20px' }}>
+        <div className="text-center my-8">
+          <p className="mb-5" aria-live="polite">
             {finalText || text}
           </p>
-          <div className="loading-bar" style={{ width: '300px', margin: '20px auto' }}>
+          <div className="loading-bar mx-auto my-5" style={{ width: '300px' }}>
             <div 
               className="loading-fill" 
               style={{ width: `${progress}%` }}
@@ -73,9 +67,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
           <p>[{Math.round(progress)}%]</p>
         </div>
 
-        {/* Stats Cards */}
-        <div style={{ margin: '40px 0', fontSize: '14px' }}>
-          <div style={{ maxWidth: '500px', margin: '0 auto' }}>
+        <section className="my-10 text-sm" aria-label="Network Statistics">
+          <div className="max-w-lg mx-auto">
             <StatsCard 
               label="ETH Price:" 
               value={landingData?.ethPrice || 'Loading...'} 
@@ -100,16 +93,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
 
           <div className="ascii-divider">════════════════════════════════════</div>
 
-          {/* Protocol Stats */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '20px',
-            marginTop: '30px',
-            maxWidth: '600px',
-            marginLeft: 'auto',
-            marginRight: 'auto'
-          }}>
+          <div className="grid grid-cols-3 gap-5 mt-8 max-w-2xl mx-auto">
             <ProtocolStat 
               label="ETH SWAPPED"
               primary={protocolStats?.totalEthSwapped || 'Loading...'}
@@ -122,22 +106,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
             />
             <ProtocolStat 
               label="COINS"
-              primary={Math.max(coinCount, protocolStats?.totalCoins || 0).toString()}
+              primary={protocolStats?.totalCoins?.toString() || '0'}
               secondary={`Active: ${protocolStats?.activeCoins || 0}`}
             />
           </div>
-        </div>
+        </section>
 
-        <div style={{ textAlign: 'center', margin: '40px 0' }}>
+        <div className="text-center my-10">
           <button
-            className="button"
+            className="button text-base px-6 py-3"
             onClick={handleEnterApp}
             disabled={!enterEnabled}
-            style={{ 
-              opacity: enterEnabled ? 1 : 0.5,
-              fontSize: '16px',
-              padding: '12px 24px'
-            }}
+            style={{ opacity: enterEnabled ? 1 : 0.5 }}
+            aria-label="Enter the ZAMM application"
           >
             ENTER ZAMM
           </button>
@@ -145,28 +126,23 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
 
         <div className="ascii-divider">════════════════════════════════════</div>
 
-        <p style={{ 
-          textAlign: 'center', 
-          margin: '20px 0', 
-          fontSize: '12px',
-          letterSpacing: '1px'
-        }}>
+        <p className="text-center my-5 text-xs tracking-wider">
           EVM PRAGUE • FAIR LAUNCHES • CHEAP FEES
         </p>
       </div>
 
       {/* Ticker Tape */}
-      <div className="ticker">
-        <div className="ticker__track">
-          <span className="ticker__item">ZAMM Ξ2.53</span>
-          <span className="ticker__item">ETH Ξ3,142.85</span>
-          <span className="ticker__item">WBTC Ξ98,234.00</span>
-          <span className="ticker__item">DAI Ξ1.00</span>
+      <div className="ticker" role="marquee" aria-label="Live price ticker">
+        <div className="ticker__track" aria-hidden="true">
+          <span className="ticker__item">ZAMM $2.53</span>
+          <span className="ticker__item">ETH $3,200.00</span>
+          <span className="ticker__item">WBTC $98,234.00</span>
+          <span className="ticker__item">DAI $1.00</span>
           {/* Repeat for seamless loop */}
-          <span className="ticker__item">ZAMM Ξ2.53</span>
-          <span className="ticker__item">ETH Ξ3,142.85</span>
-          <span className="ticker__item">WBTC Ξ98,234.00</span>
-          <span className="ticker__item">DAI Ξ1.00</span>
+          <span className="ticker__item">ZAMM $2.53</span>
+          <span className="ticker__item">ETH $3,200.00</span>
+          <span className="ticker__item">WBTC $98,234.00</span>
+          <span className="ticker__item">DAI $1.00</span>
         </div>
       </div>
     </div>
@@ -178,67 +154,51 @@ const StatsCard: React.FC<{
   label: string;
   value: string;
   color: string;
-}> = ({ label, value, color }) => (
-  <div style={{
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '15px 20px',
-    border: '2px solid var(--terminal-black)',
-    marginBottom: '15px',
-    background: 'linear-gradient(90deg, #f8f8f8 0%, #ffffff 100%)'
-  }}>
-    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-      <div style={{
-        width: '8px',
-        height: '8px',
-        background: color,
-        borderRadius: '50%'
-      }}></div>
-      <span style={{ fontWeight: 'bold' }}>{label}</span>
+}> = React.memo(({ label, value, color }) => (
+  <div className="flex justify-between items-center p-4 border-2 mb-4" 
+       style={{ 
+         borderColor: 'var(--terminal-black)',
+         background: 'linear-gradient(90deg, #f8f8f8 0%, #ffffff 100%)'
+       }}>
+    <div className="flex items-center gap-2">
+      <div 
+        className="w-2 h-2 rounded-full" 
+        style={{ backgroundColor: color }}
+      />
+      <span className="font-bold">{label}</span>
     </div>
-    <span style={{
-      color: color,
-      fontWeight: 'bold',
-      fontFamily: 'monospace'
-    }}>
+    <span 
+      className="font-bold font-mono"
+      style={{ color }}
+    >
       {value}
     </span>
   </div>
-);
+));
+StatsCard.displayName = 'StatsCard';
 
 // Protocol Stats Component
 const ProtocolStat: React.FC<{
   label: string;
   primary: string;
   secondary: string;
-}> = ({ label, primary, secondary }) => (
-  <div style={{
-    textAlign: 'center',
-    padding: '20px',
-    border: '2px solid var(--terminal-black)',
-    background: '#f9f9f9'
-  }}>
-    <div style={{
-      fontSize: '11px',
-      marginBottom: '8px',
-      color: '#666',
-      fontWeight: 'bold',
-      letterSpacing: '1px'
-    }}>
+}> = React.memo(({ label, primary, secondary }) => (
+  <div className="text-center p-5 border-2" 
+       style={{ 
+         borderColor: 'var(--terminal-black)',
+         backgroundColor: '#f9f9f9'
+       }}>
+    <div className="text-xs mb-2 text-gray-600 font-bold tracking-wide">
       {label}
     </div>
-    <div style={{ 
-      fontWeight: 'bold', 
-      fontSize: '18px', 
-      marginBottom: '5px' 
-    }}>
+    <div className="font-bold text-lg mb-1">
       {primary}
     </div>
-    <div style={{ fontSize: '11px', color: '#666' }}>
+    <div className="text-xs text-gray-600">
       {secondary}
     </div>
   </div>
-);
+));
+ProtocolStat.displayName = 'ProtocolStat';
 
 export default LandingPage;

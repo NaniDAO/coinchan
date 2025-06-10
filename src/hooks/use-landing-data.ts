@@ -71,53 +71,29 @@ export const useLandingData = () => {
   });
 };
 
-// Hook for loading progress that tracks actual app readiness
-export const useLoadingProgress = (isAppReady: boolean) => {
+// Simple loading progress that always completes
+export const useSimpleLoadingProgress = () => {
   return useQuery({
-    queryKey: ['loading-progress', isAppReady],
-    queryFn: async (): Promise<{ progress: number; text: string; stage: string }> => {
-      // Simulate loading stages with delays
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      if (!isAppReady) {
-        return { progress: 20, text: 'Connecting to Ethereum...', stage: 'loading' };
-      }
-      
-      await new Promise(resolve => setTimeout(resolve, 800));
-      return { progress: 60, text: 'Loading network data...', stage: 'loading' };
-    },
-    enabled: true,
-    refetchInterval: isAppReady ? false : 1000, // Keep checking until ready
-    refetchOnWindowFocus: false,
-    retry: false,
-  });
-};
-
-// Simplified version that always reaches 100%
-export const useSimpleLoadingProgress = (isAppReady: boolean) => {
-  return useQuery({
-    queryKey: ['simple-loading', isAppReady],
+    queryKey: ['simple-loading'],
     queryFn: async () => {
+      // Simulate realistic loading stages
       const stages = [
-        { progress: 20, text: 'Connecting to Ethereum...', delay: 600 },
-        { progress: 40, text: 'Fetching network data...', delay: 800 },
-        { progress: 60, text: 'Checking indexer status...', delay: 700 },
-        { progress: 80, text: 'Loading contracts...', delay: 600 },
-        { progress: 100, text: 'Initialized', delay: 500 },
+        { progress: 20, text: 'Connecting to Ethereum...', delay: 400 },
+        { progress: 50, text: 'Loading network data...', delay: 600 },
+        { progress: 80, text: 'Checking contracts...', delay: 500 },
+        { progress: 100, text: 'Initialized', delay: 400 },
       ];
 
       for (const stage of stages) {
         await new Promise(resolve => setTimeout(resolve, stage.delay));
-        if (stage.progress === 100 || isAppReady) {
-          return { 
-            progress: 100, 
-            text: isAppReady ? 'Initialized' : 'Ready',
-            stage: 'complete'
-          };
-        }
+        // Don't return early, let it complete all stages
       }
 
-      return { progress: 100, text: 'Ready', stage: 'complete' };
+      return { 
+        progress: 100, 
+        text: 'Initialized',
+        stage: 'complete'
+      };
     },
     enabled: true,
     refetchOnWindowFocus: false,
