@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { ZammLogo } from './ZammLogo';
 import { useLandingData, useSimpleLoadingProgress } from '../hooks/use-landing-data';
 import { useProtocolStats } from '../hooks/use-protocol-stats';
-import { PoolsTicker } from './PoolsTicker';
 
 interface LandingPageProps {
   onEnterApp?: () => void;
@@ -156,8 +155,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
         </p>
       </div>
 
-      {/* Ticker Tape */}
-      <PoolsTicker />
     </div>
   );
 };

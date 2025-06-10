@@ -121,7 +121,7 @@ body {
 .window-content {
   padding: 20px; /* Exact match to Redesign.html */
   min-height: 400px; /* Exact match to Redesign.html */
-  padding-bottom: 50px; /* Space for bottom ticker */
+  padding-bottom: 2.5rem; /* Exact match to Redesign.html */
 }
 
 /* Logo Styles */
@@ -291,43 +291,6 @@ body {
   font-family: monospace;
 }
 
-/* Ticker Tape */
-.ticker {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  background: var(--terminal-white);
-  border-top: 2px solid var(--terminal-black);
-  overflow: hidden;
-  box-shadow: 0 -2px 0 var(--terminal-black);
-  font-family: monospace;
-  font-size: 14px;
-  line-height: 1.5;
-  height: 35px;
-}
-
-.ticker__track {
-  display: inline-block;
-  white-space: nowrap;
-  padding-left: 100%;
-  animation: ticker-scroll 60s linear infinite;
-}
-
-.ticker__item {
-  display: inline-block;
-  padding: 0 2rem;
-  color: var(--terminal-black);
-}
-
-@keyframes ticker-scroll {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(-100%);
-  }
-}
 
 /* Tables */
 .table {
