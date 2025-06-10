@@ -89,7 +89,7 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
   return (
     <div
       className={cn(
-        `border-2 border-primary/40 group hover:bg-secondary-foreground p-2 flex flex-col gap-2 focus-within:ring-2 focus-within:ring-primary/60`,
+        `swap-panel-hover p-2 flex flex-col gap-2`,
         className,
       )}
     >
@@ -112,7 +112,12 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
           value={amount}
           onChange={(e) => onAmountChange(e.target.value)}
           readOnly={readOnly}
-          className="text-lg sm:text-xl font-medium w-full focus:outline-none h-10 text-right pr-1 bg-transparent dark:text-foreground dark:placeholder-primary/50"
+          className="form-input-hover text-lg sm:text-xl font-medium w-full focus:outline-none h-10 text-right pr-1 bg-transparent"
+          style={{ 
+            fontFamily: 'var(--font-body)', 
+            color: 'var(--terminal-black)',
+            border: 'none'
+          }}
         />
         {previewLabel ? (
           <span className="text-xs text-primary font-medium">{previewLabel}</span>
@@ -120,8 +125,14 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
           showMaxButton &&
           onMax && (
             <button
-              className="text-xs bg-primary/10 hover:bg-primary/20 text-primary font-medium px-3 py-1.5 rounded touch-manipulation min-w-[50px] border border-primary/30 shadow-[0_0_5px_rgba(0,204,255,0.15)]"
+              className="button"
               onClick={onMax}
+              style={{
+                fontSize: '10px',
+                padding: '4px 8px',
+                textTransform: 'uppercase',
+                minWidth: '50px'
+              }}
             >
               MAX
             </button>

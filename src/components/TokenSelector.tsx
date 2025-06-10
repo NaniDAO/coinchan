@@ -97,9 +97,14 @@ export const TokenSelector = memo(
         <div
           onClick={() => setIsOpen(!isOpen)}
           className={cn(
-            "flex items-center gap-2 cursor-pointer bg-transparent border border-primary/30 rounded-md px-2 py-1 hover:bg-secondary-foreground touch-manipulation text-foreground",
+            "token-selector-hover flex items-center gap-2 cursor-pointer px-2 py-1 touch-manipulation",
             className,
           )}
+          style={{
+            fontFamily: 'var(--font-body)',
+            color: 'var(--terminal-black)',
+            borderRadius: '0px'
+          }}
         >
           <TokenImage token={selectedToken} />
           <div className="flex flex-col">
@@ -137,11 +142,20 @@ export const TokenSelector = memo(
         {/* Dropdown list with thumbnails */}
         {isOpen && (
           <div
-            className="absolute z-20 mt-1 w-[calc(100vw-40px)] sm:w-64 max-h-[60vh] sm:max-h-96 overflow-y-auto bg-background border border-primary/30 shadow-lg shadow-[0_0_20px_rgba(0,204,255,0.15)] rounded-md"
-            style={{ contain: "content" }}
+            className="absolute z-20 mt-1 w-[calc(100vw-40px)] sm:w-64 max-h-[60vh] sm:max-h-96 overflow-y-auto border-2 border-solid"
+            style={{ 
+              contain: "content",
+              background: 'var(--terminal-white)',
+              borderColor: 'var(--terminal-black)',
+              boxShadow: '4px 4px 0 var(--terminal-black)',
+              borderRadius: '0px'
+            }}
           >
             {/* Search input */}
-            <div className="sticky top-0 bg-card p-2 border-b border-primary/20">
+            <div className="sticky top-0 p-2" style={{ 
+              background: 'var(--terminal-gray)',
+              borderBottom: '2px solid var(--terminal-black)'
+            }}>
               <div className="relative">
                 <input
                   type="text"
@@ -222,9 +236,13 @@ export const TokenSelector = memo(
                       }
                     });
                   }}
-                  className="w-full p-2 pl-8 border border-primary/30 bg-background/80 rounded focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm text-foreground placeholder-muted-foreground"
+                  className="input-field w-full pl-8"
+                  style={{ 
+                    fontSize: '14px',
+                    fontFamily: 'var(--font-body)'
+                  }}
                 />
-                <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--terminal-black)' }} />
               </div>
             </div>
 
@@ -394,12 +412,26 @@ export const TokenSelector = memo(
                     data-token-symbol={token.symbol}
                     data-token-name={token.name}
                     data-token-id={token.id?.toString() ?? "eth"}
-                    className={`flex items-center justify-between p-3 sm:p-2 hover:bg-secondary-foreground cursor-pointer touch-manipulation ${
-                      isSelected ? "bg-primary/10 shadow-[0_0_10px_rgba(0,204,255,0.15)]" : ""
+                    className={`flex items-center justify-between p-3 sm:p-2 cursor-pointer touch-manipulation ${
+                      isSelected ? "" : ""
                     }`}
                     style={{
                       contentVisibility: "auto",
                       containIntrinsicSize: "0 50px",
+                      fontFamily: 'var(--font-body)',
+                      color: 'var(--terminal-black)',
+                      background: isSelected ? 'var(--terminal-dark-gray)' : 'transparent',
+                      transition: 'all 0.1s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isSelected) {
+                        e.currentTarget.style.background = 'var(--terminal-gray)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isSelected) {
+                        e.currentTarget.style.background = 'transparent';
+                      }
                     }}
                   >
                     <div className="flex items-center gap-2">

@@ -387,6 +387,44 @@ body {
   max-width: 100%;
 }
 
+/* Graceful hover effects for forms */
+.swap-panel-hover {
+  transition: all 0.15s ease;
+  border: 2px solid var(--terminal-black);
+  background: var(--terminal-white);
+}
+
+.swap-panel-hover:hover {
+  background: var(--terminal-gray);
+  box-shadow: 2px 2px 0 var(--terminal-black);
+  transform: translate(-1px, -1px);
+}
+
+.token-selector-hover {
+  transition: all 0.1s ease;
+  border: 1px solid var(--terminal-black);
+  background: var(--terminal-white);
+}
+
+.token-selector-hover:hover {
+  background: var(--terminal-dark-gray);
+  border: 2px solid var(--terminal-black);
+}
+
+/* Form input hover effects */
+.form-input-hover {
+  transition: all 0.1s ease;
+}
+
+.form-input-hover:hover {
+  background: var(--terminal-gray);
+}
+
+.form-input-hover:focus {
+  background: var(--terminal-white);
+  box-shadow: 0 0 0 2px var(--terminal-black);
+}
+
 .token-select {
   border: 2px solid var(--terminal-black);
   padding: 10px; /* Exact match from Redesign.html */
