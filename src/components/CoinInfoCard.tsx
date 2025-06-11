@@ -1,6 +1,6 @@
 import { getAlternativeImageUrls } from "@/hooks/metadata";
 import { formatNumber } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 
 interface CoinInfoCardProps {
   coinId: bigint;
@@ -33,6 +33,51 @@ export const CoinInfoCard = ({
   tokenURI,
   isLoading,
 }: CoinInfoCardProps) => {
+  // State for tracking image loading and errors
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
+  const alternativeUrlsRef = useRef<string[]>([]);
+  const attemptedUrlsRef = useRef<Set<string>>(new Set());
+
+  // Initialize image loading
+  useEffect(() => {
+    if (!imageUrl) return;
+
+    setImageLoaded(false);
+    setImageError(false);
+    attemptedUrlsRef.current = new Set();
+
+    // Generate alternative URLs for fallback
+    alternativeUrlsRef.current = getAlternativeImageUrls(imageUrl);
+
+    setCurrentImageUrl(imageUrl);
+    attemptedUrlsRef.current.add(imageUrl);
+  }, [imageUrl]);
+
+  // Handle image load error with fallback attempt
+  const handleImageError = useCallback(() => {
+    console.error(`Image failed to load for coin ${coinId.toString()}`);
+
+    // Try next alternative URL if available
+    if (alternativeUrlsRef.current.length > 0) {
+      // Find the first URL we haven't tried yet
+      const nextUrl = alternativeUrlsRef.current.find(
+        (url) => !attemptedUrlsRef.current.has(url),
+      );
+
+      if (nextUrl) {
+        attemptedUrlsRef.current.add(nextUrl);
+        setCurrentImageUrl(nextUrl);
+        // Don't set error yet, we're trying an alternative
+        return;
+      }
+    }
+
+    // If we've exhausted all alternatives, mark as error
+    setImageError(true);
+  }, [coinId]);
+
   return (
     <div
       className={`flex items-start gap-4 mb-4 p-4 border-muted border-2 bg-muted/10 text-muted-foreground rounded-lg content-transition ${isLoading ? "loading" : "loaded fadeIn"}`}
@@ -46,13 +91,17 @@ export const CoinInfoCard = ({
             {isLoading ? "TKN" : symbol}
           </div>
           {/* Use enhanced image loading with fallbacks */}
-          <img
-            src={imageUrl}
-            alt={`${symbol} logo`}
-            className={`absolute inset-0 w-full h-full rounded-full object-cover transition-opacity duration-300 ${isLoading ? "opacity-100" : "opacity-0"}`}
-            style={{ zIndex: 1 }}
-            loading="lazy"
-          />
+          {!isLoading && !imageError && currentImageUrl && (
+            <img
+              src={currentImageUrl}
+              alt={`${symbol} logo`}
+              className={`absolute inset-0 w-full h-full rounded-full object-cover transition-opacity duration-300 ${imageLoaded ? "opacity-100" : "opacity-0"}`}
+              style={{ zIndex: 1 }}
+              onLoad={() => setImageLoaded(true)}
+              onError={handleImageError}
+              loading="lazy"
+            />
+          )}
         </div>
       </div>
       <div className="flex flex-col flex-grow overflow-hidden">

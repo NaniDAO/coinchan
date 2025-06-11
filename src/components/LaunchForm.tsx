@@ -22,10 +22,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 
-// recharts for interactive bonding‑curve visual
 import {
   ResponsiveContainer,
-  ComposedChart, // 👈  instead of BarChart
+  ComposedChart,
   CartesianGrid,
   XAxis,
   YAxis,
