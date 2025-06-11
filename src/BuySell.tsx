@@ -31,6 +31,7 @@ import {
   getAmountOut,
   SWAP_FEE,
   withSlippage,
+  ZAMMPoolKey,
 } from "./lib/swap";
 import {
   CheckTheChainAbi,
@@ -242,7 +243,11 @@ export const BuySell = ({
       const amountOutMin = withSlippage(rawOut);
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
-      const poolKey = computePoolKey(tokenId, swapFee);
+      const poolKey = computePoolKey(
+        tokenId,
+        swapFee,
+        CoinsAddress,
+      ) as ZAMMPoolKey;
       const hash = await writeContractAsync({
         address: ZAMMAddress,
         abi: ZAMMAbi,
@@ -299,7 +304,11 @@ export const BuySell = ({
       const amountOutMin = withSlippage(rawOut);
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
-      const poolKey = computePoolKey(tokenId, swapFee);
+      const poolKey = computePoolKey(
+        tokenId,
+        swapFee,
+        CoinsAddress,
+      ) as ZAMMPoolKey;
       const hash = await writeContractAsync({
         address: ZAMMAddress,
         abi: ZAMMAbi,

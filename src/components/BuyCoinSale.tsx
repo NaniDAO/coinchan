@@ -11,11 +11,13 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Legend,
 } from "recharts";
 import { formatEther } from "viem";
 import { Badge } from "./ui/badge";
 import { PillIndicator } from "./ui/pill";
 import { Button } from "./ui/button";
+import { BuySellCookbookCoin } from "./BuySellCookbookCoin";
 
 const statusToPillVariant = (status: string) => {
   switch (status) {
@@ -103,8 +105,8 @@ export const BuyCoinSale = ({
   if (!sale) return <div>Sale not found</div>;
 
   // @TODO
-  // if (sale.status === "FINALIZED")
-  //   return <BuySellCookbookCoin coinId={coinId} symbol={symbol} />;
+  if (sale.status === "FINALIZED")
+    return <BuySellCookbookCoin coinId={coinId} symbol={symbol} />;
 
   const activeTranches = sale.tranches.items.filter(
     (tranche: Tranche) =>
@@ -153,8 +155,8 @@ export const BuyCoinSale = ({
               >
                 <defs>
                   <linearGradient id="soldGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#8884d8" stopOpacity={0.8} />
-                    <stop offset="100%" stopColor="#8884d8" stopOpacity={0.2} />
+                    <stop offset="0%" stopColor="#ef4444" stopOpacity={0.8} />
+                    <stop offset="100%" stopColor="#ef4444" stopOpacity={0.2} />
                   </linearGradient>
                   <linearGradient
                     id="remainingGradient"
@@ -163,8 +165,8 @@ export const BuyCoinSale = ({
                     x2="0"
                     y2="1"
                   >
-                    <stop offset="0%" stopColor="#82ca9d" stopOpacity={0.8} />
-                    <stop offset="100%" stopColor="#82ca9d" stopOpacity={0.2} />
+                    <stop offset="0%" stopColor="#facc15" stopOpacity={0.8} />
+                    <stop offset="100%" stopColor="#facc15" stopOpacity={0.2} />
                   </linearGradient>
                   <linearGradient
                     id="priceGradient"
@@ -202,24 +204,39 @@ export const BuyCoinSale = ({
                   tick={{ fill: "#4a5568", fontSize: 12 }}
                 />
 
+                <Legend
+                  payload={[
+                    { value: "Sold", type: "square", color: "#ef4444" },
+                    { value: "Remaining", type: "square", color: "#facc15" },
+                    { value: "Price (ETH)", type: "line", color: "#00e5ff" },
+                  ]}
+                />
+
                 <Tooltip
                   content={({ active, payload, label }) => {
                     if (!active || !payload?.length) return null;
+                    const data = payload[0].payload;
                     return (
                       <div className="bg-white p-2 rounded shadow-lg text-sm">
                         <div className="text-gray-600 mb-1">{label}</div>
-                        <div className="font-medium text-purple-500">
-                          Sold: {payload[0]?.value?.toFixed(4)} {symbol}
+                        <div className="font-medium text-red-500">
+                          Sold: {data.sold.toFixed(4)} {symbol}
                         </div>
-                        <div className="font-medium text-green-500">
-                          Remaining: {payload[1]?.value?.toFixed(4)} {symbol}
+                        <div className="font-medium text-yellow-500">
+                          Remaining: {data.remaining.toFixed(4)} {symbol}
                         </div>
                         <div className="font-medium text-blue-500">
-                          Price: {payload[2]?.value?.toFixed(4)} ETH
+                          Price: {data.price.toFixed(4)} ETH
+                        </div>
+                        <div className="font-medium text-sm text-gray-600">
+                          {(
+                            (100 * data.sold) /
+                            (data.sold + data.remaining)
+                          ).toFixed(1)}
+                          % Sold
                         </div>
                         <div className="text-xs text-gray-500 mt-1">
-                          Deadline:{" "}
-                          {chartData.find((d) => d.name === label)?.deadline}
+                          Deadline: {data.deadline}
                         </div>
                       </div>
                     );
@@ -242,6 +259,7 @@ export const BuyCoinSale = ({
                   name="Sold"
                   isAnimationActive
                   animationDuration={800}
+                  barSize={50}
                 />
 
                 <Bar
@@ -252,6 +270,7 @@ export const BuyCoinSale = ({
                   name="Remaining"
                   isAnimationActive
                   animationDuration={800}
+                  barSize={50}
                 />
 
                 <Line
