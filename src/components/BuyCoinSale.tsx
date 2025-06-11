@@ -1,5 +1,4 @@
 import { ZAMMLaunchAbi, ZAMMLaunchAddress } from "@/constants/ZAMMLaunch";
-import { useQuery } from "@tanstack/react-query";
 import { useWriteContract } from "wagmi";
 import {
   ComposedChart,
@@ -13,11 +12,14 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import { formatEther } from "viem";
+import { formatEther, parseEther } from "viem";
 import { Badge } from "./ui/badge";
 import { PillIndicator } from "./ui/pill";
 import { Button } from "./ui/button";
-import { BuySellCookbookCoin } from "./BuySellCookbookCoin";
+import { useState, useMemo, useEffect } from "react";
+import { Input } from "./ui/input";
+import { twMerge } from "tailwind-merge";
+import { useCoinSale } from "@/hooks/use-coin-sale";
 
 const statusToPillVariant = (status: string) => {
   switch (status) {
@@ -30,56 +32,6 @@ const statusToPillVariant = (status: string) => {
     default:
       return "info";
   }
-};
-
-const useCoinSale = ({ coinId }: { coinId: string }) => {
-  return useQuery({
-    queryKey: ["coin-sale", coinId],
-    queryFn: async () => {
-      const response = await fetch(
-        import.meta.env.VITE_INDEXER_URL + "/graphql",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            query: `
-              query SaleQuery {
-                sales(where: {coinId: "${coinId}"}) {
-                  items {
-                    blockNumber
-                    coinId
-                    coinsSold
-                    createdAt
-                    creator
-                    deadlineLast
-                    ethRaised
-                    id
-                    saleSupply
-                    status
-                    tranches {
-                      items {
-                        coins
-                        deadline
-                        price
-                        remaining
-                        trancheIndex
-                        sold
-                      }
-                    }
-                  }
-                }
-              }
-            `,
-          }),
-        },
-      );
-
-      const json = await response.json();
-      return json.data.sales.items[0];
-    },
-  });
 };
 
 interface Tranche {
@@ -101,23 +53,59 @@ export const BuyCoinSale = ({
   const { data: sale, isLoading } = useCoinSale({ coinId: coinId.toString() });
   const { writeContract } = useWriteContract();
 
+  // ──────────────── NEW LOCAL STATE ────────────────
+  const [selected, setSelected] = useState<number | null>(null); // trancheIndex
+  const [ethInput, setEthInput] = useState<string>(""); // user's typed ETH
+
+  // Pick cheapest tranche as default when data arrives
+  useEffect(() => {
+    if (!sale) return;
+
+    const actives = sale.tranches.items.filter(
+      (tranche: Tranche) =>
+        parseInt(tranche.remaining) > 0 &&
+        new Date(Number(tranche.deadline) * 1000) > new Date(),
+    );
+
+    if (actives.length) {
+      const cheapest = actives.reduce((p: Tranche, c: Tranche) =>
+        BigInt(p.price) < BigInt(c.price) ? p : c,
+      );
+      setSelected(cheapest.trancheIndex);
+    }
+  }, [sale]);
+
+  const chosenTranche: Tranche | undefined = useMemo(
+    () =>
+      sale?.tranches.items.find((t: Tranche) => t.trancheIndex === selected),
+    [sale, selected],
+  );
+
+  const estimate = useMemo(() => {
+    if (!chosenTranche || !ethInput) return undefined;
+    try {
+      const weiInput = BigInt(parseFloat(ethInput) * 1e18);
+      const priceWei = BigInt(chosenTranche.price);
+      const coinsWei = BigInt(chosenTranche.coins);
+      // price represents ETH to buy *all* coins in tranche
+      // so coinsBought = weiInput * coinsWei / priceWei
+      const coinsBoughtWei = (weiInput * coinsWei) / priceWei;
+      return Number(formatEther(coinsBoughtWei));
+    } catch {
+      return undefined;
+    }
+  }, [chosenTranche, ethInput]);
+
   if (isLoading) return <div>Loading...</div>;
   if (!sale) return <div>Sale not found</div>;
 
-  // @TODO
-  if (sale.status === "FINALIZED")
-    return <BuySellCookbookCoin coinId={coinId} symbol={symbol} />;
+  // if (sale.status === "FINALIZED")
+  //   return <BuySellCookbookCoin coinId={coinId} symbol={symbol} />;
 
   const activeTranches = sale.tranches.items.filter(
     (tranche: Tranche) =>
       parseInt(tranche.remaining) > 0 &&
       new Date(Number(tranche.deadline) * 1000) > new Date(),
-  );
-
-  const cheapestTranche = activeTranches.reduce(
-    (prev: Tranche, curr: Tranche) =>
-      BigInt(prev.price) < BigInt(curr.price) ? prev : curr,
-    activeTranches[0],
   );
 
   // Prepare data for recharts
@@ -129,6 +117,8 @@ export const BuyCoinSale = ({
     priceNum: Number(formatEther(BigInt(tranche.price))), // For the line chart
     deadline: new Date(Number(tranche.deadline) * 1000).toLocaleString(),
     trancheIndex: tranche.trancheIndex,
+    // Flag for active state
+    isSelected: tranche.trancheIndex === selected,
   }));
 
   return (
@@ -260,6 +250,9 @@ export const BuyCoinSale = ({
                   isAnimationActive
                   animationDuration={800}
                   barSize={50}
+                  // Instead of a function, use a static className based on a computed value
+                  className="opacity-90"
+                  style={{ opacity: 1 }}
                 />
 
                 <Bar
@@ -271,6 +264,9 @@ export const BuyCoinSale = ({
                   isAnimationActive
                   animationDuration={800}
                   barSize={50}
+                  // Instead of a function, use a static className based on a computed value
+                  className="opacity-90"
+                  style={{ opacity: 1 }}
                 />
 
                 <Line
@@ -294,27 +290,77 @@ export const BuyCoinSale = ({
         </div>
       </div>
 
-      {cheapestTranche && (
+      {/* ──────────────── ACTIVE TRANCHES SELECTOR ──────────────── */}
+      <h3 className="text-lg font-semibold mt-4 mb-2 px-2">Choose a tranche</h3>
+      <div className="grid sm:grid-cols-2 gap-3 px-2">
+        {activeTranches.map((t: Tranche) => {
+          const isChosen = selected === t.trancheIndex;
+          return (
+            <button
+              key={t.trancheIndex}
+              onClick={() => setSelected(t.trancheIndex)}
+              className={twMerge(
+                "p-4 rounded-2xl bg-sidebar border transition",
+                isChosen
+                  ? "border-accent shadow-[0_0_12px_var(--tw-shadow-color)] shadow-accent/70"
+                  : "border-secondary hover:border-accent/60",
+              )}
+            >
+              <div className="font-semibold mb-1">Tranche {t.trancheIndex}</div>
+              <div className="text-sm">
+                Price: {formatEther(BigInt(t.price))} ETH
+              </div>
+              <div className="text-sm">
+                Remaining: {formatEther(BigInt(t.remaining))} {symbol}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ──────────────── INPUT & ESTIMATE ──────────────── */}
+      {chosenTranche && (
         <div className="mt-4 p-4 bg-sidebar rounded-2xl shadow-sm mx-2 mb-2">
-          <h3 className="text-lg font-semibold mb-2">
-            Buy from cheapest active tranche
-          </h3>
-          <div className="mb-4">
-            Price: {formatEther(BigInt(cheapestTranche.price))} ETH
+          <label className="block text-sm font-medium mb-1">
+            Enter ETH to spend on Tranche {chosenTranche.trancheIndex}
+          </label>
+          <Input
+            type="number"
+            min="0"
+            step="0.0001"
+            placeholder="0.0"
+            value={ethInput}
+            onChange={(e) => setEthInput(e.target.value)}
+            className="mb-3"
+          />
+          <div className="text-sm mb-4">
+            {estimate ? (
+              <>
+                ≈{" "}
+                <span className="font-semibold">
+                  {estimate.toLocaleString()}
+                </span>{" "}
+                {symbol}
+              </>
+            ) : (
+              "Estimate will appear here"
+            )}
           </div>
           <Button
             className="w-full"
+            disabled={!ethInput || !Number(ethInput)}
             onClick={() => {
+              if (!chosenTranche) return;
               writeContract({
                 address: ZAMMLaunchAddress,
                 abi: ZAMMLaunchAbi,
                 functionName: "buy",
-                args: [coinId, BigInt(cheapestTranche.trancheIndex)],
-                value: BigInt(cheapestTranche.price),
+                args: [coinId, BigInt(chosenTranche.trancheIndex)],
+                value: parseEther(ethInput),
               });
             }}
           >
-            Buy from Tranche {cheapestTranche.trancheIndex}
+            Buy with {ethInput || "0"} ETH
           </Button>
         </div>
       )}
