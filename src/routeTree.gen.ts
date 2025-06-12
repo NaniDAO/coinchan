@@ -8,132 +8,56 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-// Import Routes
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as SendRouteImport } from './routes/send'
+import { Route as OrdersRouteImport } from './routes/orders'
+import { Route as LaunchRouteImport } from './routes/launch'
+import { Route as ExploreRouteImport } from './routes/explore'
+import { Route as CoinpaperRouteImport } from './routes/coinpaper'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as UUserIdRouteImport } from './routes/u.$userId'
+import { Route as CCoinIdRouteImport } from './routes/c.$coinId'
 
-import { Route as rootRoute } from './routes/__root'
-import { Route as SendImport } from './routes/send'
-import { Route as OrdersImport } from './routes/orders'
-import { Route as LaunchImport } from './routes/launch'
-import { Route as ExploreImport } from './routes/explore'
-import { Route as CoinpaperImport } from './routes/coinpaper'
-import { Route as IndexImport } from './routes/index'
-import { Route as UUserIdImport } from './routes/u.$userId'
-import { Route as CCoinIdImport } from './routes/c.$coinId'
-
-// Create/Update Routes
-
-const SendRoute = SendImport.update({
+const SendRoute = SendRouteImport.update({
   id: '/send',
   path: '/send',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const OrdersRoute = OrdersImport.update({
+const OrdersRoute = OrdersRouteImport.update({
   id: '/orders',
   path: '/orders',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const LaunchRoute = LaunchImport.update({
+const LaunchRoute = LaunchRouteImport.update({
   id: '/launch',
   path: '/launch',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const ExploreRoute = ExploreImport.update({
+const ExploreRoute = ExploreRouteImport.update({
   id: '/explore',
   path: '/explore',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const CoinpaperRoute = CoinpaperImport.update({
+const CoinpaperRoute = CoinpaperRouteImport.update({
   id: '/coinpaper',
   path: '/coinpaper',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const IndexRoute = IndexImport.update({
+const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const UUserIdRoute = UUserIdImport.update({
+const UUserIdRoute = UUserIdRouteImport.update({
   id: '/u/$userId',
   path: '/u/$userId',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const CCoinIdRoute = CCoinIdImport.update({
+const CCoinIdRoute = CCoinIdRouteImport.update({
   id: '/c/$coinId',
   path: '/c/$coinId',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-// Populate the FileRoutesByPath interface
-
-declare module '@tanstack/react-router' {
-  interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexImport
-      parentRoute: typeof rootRoute
-    }
-    '/coinpaper': {
-      id: '/coinpaper'
-      path: '/coinpaper'
-      fullPath: '/coinpaper'
-      preLoaderRoute: typeof CoinpaperImport
-      parentRoute: typeof rootRoute
-    }
-    '/explore': {
-      id: '/explore'
-      path: '/explore'
-      fullPath: '/explore'
-      preLoaderRoute: typeof ExploreImport
-      parentRoute: typeof rootRoute
-    }
-    '/launch': {
-      id: '/launch'
-      path: '/launch'
-      fullPath: '/launch'
-      preLoaderRoute: typeof LaunchImport
-      parentRoute: typeof rootRoute
-    }
-    '/orders': {
-      id: '/orders'
-      path: '/orders'
-      fullPath: '/orders'
-      preLoaderRoute: typeof OrdersImport
-      parentRoute: typeof rootRoute
-    }
-    '/send': {
-      id: '/send'
-      path: '/send'
-      fullPath: '/send'
-      preLoaderRoute: typeof SendImport
-      parentRoute: typeof rootRoute
-    }
-    '/c/$coinId': {
-      id: '/c/$coinId'
-      path: '/c/$coinId'
-      fullPath: '/c/$coinId'
-      preLoaderRoute: typeof CCoinIdImport
-      parentRoute: typeof rootRoute
-    }
-    '/u/$userId': {
-      id: '/u/$userId'
-      path: '/u/$userId'
-      fullPath: '/u/$userId'
-      preLoaderRoute: typeof UUserIdImport
-      parentRoute: typeof rootRoute
-    }
-  }
-}
-
-// Create and export the route tree
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -145,7 +69,6 @@ export interface FileRoutesByFullPath {
   '/c/$coinId': typeof CCoinIdRoute
   '/u/$userId': typeof UUserIdRoute
 }
-
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/coinpaper': typeof CoinpaperRoute
@@ -156,9 +79,8 @@ export interface FileRoutesByTo {
   '/c/$coinId': typeof CCoinIdRoute
   '/u/$userId': typeof UUserIdRoute
 }
-
 export interface FileRoutesById {
-  __root__: typeof rootRoute
+  __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/coinpaper': typeof CoinpaperRoute
   '/explore': typeof ExploreRoute
@@ -168,7 +90,6 @@ export interface FileRoutesById {
   '/c/$coinId': typeof CCoinIdRoute
   '/u/$userId': typeof UUserIdRoute
 }
-
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
@@ -202,7 +123,6 @@ export interface FileRouteTypes {
     | '/u/$userId'
   fileRoutesById: FileRoutesById
 }
-
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CoinpaperRoute: typeof CoinpaperRoute
@@ -212,6 +132,67 @@ export interface RootRouteChildren {
   SendRoute: typeof SendRoute
   CCoinIdRoute: typeof CCoinIdRoute
   UUserIdRoute: typeof UUserIdRoute
+}
+
+declare module '@tanstack/react-router' {
+  interface FileRoutesByPath {
+    '/send': {
+      id: '/send'
+      path: '/send'
+      fullPath: '/send'
+      preLoaderRoute: typeof SendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/orders': {
+      id: '/orders'
+      path: '/orders'
+      fullPath: '/orders'
+      preLoaderRoute: typeof OrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/launch': {
+      id: '/launch'
+      path: '/launch'
+      fullPath: '/launch'
+      preLoaderRoute: typeof LaunchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/explore': {
+      id: '/explore'
+      path: '/explore'
+      fullPath: '/explore'
+      preLoaderRoute: typeof ExploreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/coinpaper': {
+      id: '/coinpaper'
+      path: '/coinpaper'
+      fullPath: '/coinpaper'
+      preLoaderRoute: typeof CoinpaperRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/u/$userId': {
+      id: '/u/$userId'
+      path: '/u/$userId'
+      fullPath: '/u/$userId'
+      preLoaderRoute: typeof UUserIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/c/$coinId': {
+      id: '/c/$coinId'
+      path: '/c/$coinId'
+      fullPath: '/c/$coinId'
+      preLoaderRoute: typeof CCoinIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+  }
 }
 
 const rootRouteChildren: RootRouteChildren = {
@@ -224,51 +205,6 @@ const rootRouteChildren: RootRouteChildren = {
   CCoinIdRoute: CCoinIdRoute,
   UUserIdRoute: UUserIdRoute,
 }
-
-export const routeTree = rootRoute
+export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-/* ROUTE_MANIFEST_START
-{
-  "routes": {
-    "__root__": {
-      "filePath": "__root.tsx",
-      "children": [
-        "/",
-        "/coinpaper",
-        "/explore",
-        "/launch",
-        "/orders",
-        "/send",
-        "/c/$coinId",
-        "/u/$userId"
-      ]
-    },
-    "/": {
-      "filePath": "index.tsx"
-    },
-    "/coinpaper": {
-      "filePath": "coinpaper.tsx"
-    },
-    "/explore": {
-      "filePath": "explore.tsx"
-    },
-    "/launch": {
-      "filePath": "launch.tsx"
-    },
-    "/orders": {
-      "filePath": "orders.tsx"
-    },
-    "/send": {
-      "filePath": "send.tsx"
-    },
-    "/c/$coinId": {
-      "filePath": "c.$coinId.tsx"
-    },
-    "/u/$userId": {
-      "filePath": "u.$userId.tsx"
-    }
-  }
-}
-ROUTE_MANIFEST_END */
