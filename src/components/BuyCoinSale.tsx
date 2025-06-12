@@ -20,6 +20,7 @@ import { useState, useMemo, useEffect } from "react";
 import { Input } from "./ui/input";
 import { twMerge } from "tailwind-merge";
 import { useCoinSale } from "@/hooks/use-coin-sale";
+import { BuySellCookbookCoin } from "./BuySellCookbookCoin";
 
 const statusToPillVariant = (status: string) => {
   switch (status) {
@@ -99,8 +100,8 @@ export const BuyCoinSale = ({
   if (isLoading) return <div>Loading...</div>;
   if (!sale) return <div>Sale not found</div>;
 
-  // if (sale.status === "FINALIZED")
-  //   return <BuySellCookbookCoin coinId={coinId} symbol={symbol} />;
+  if (sale.status === "FINALIZED")
+    return <BuySellCookbookCoin coinId={coinId} symbol={symbol} />;
 
   const activeTranches = sale.tranches.items.filter(
     (tranche: Tranche) =>
