@@ -9,15 +9,24 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SwapRouteImport } from './routes/swap'
 import { Route as SendRouteImport } from './routes/send'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as LaunchRouteImport } from './routes/launch'
+import { Route as LandingRouteImport } from './routes/landing'
 import { Route as ExploreRouteImport } from './routes/explore'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CoinpaperRouteImport } from './routes/coinpaper'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UUserIdRouteImport } from './routes/u.$userId'
 import { Route as CCoinIdRouteImport } from './routes/c.$coinId'
 
+const SwapRoute = SwapRouteImport.update({
+  id: '/swap',
+  path: '/swap',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SendRoute = SendRouteImport.update({
   id: '/send',
   path: '/send',
@@ -33,14 +42,29 @@ const LaunchRoute = LaunchRouteImport.update({
   path: '/launch',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LandingRoute = LandingRouteImport.update({
+  id: '/landing',
+  path: '/landing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ExploreRoute = ExploreRouteImport.update({
   id: '/explore',
   path: '/explore',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CoinpaperRoute = CoinpaperRouteImport.update({
   id: '/coinpaper',
   path: '/coinpaper',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -63,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/coinpaper': typeof CoinpaperRoute
+  '/dashboard': typeof DashboardRoute
   '/explore': typeof ExploreRoute
   '/landing': typeof LandingRoute
   '/launch': typeof LaunchRoute
@@ -76,6 +101,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/coinpaper': typeof CoinpaperRoute
+  '/dashboard': typeof DashboardRoute
   '/explore': typeof ExploreRoute
   '/landing': typeof LandingRoute
   '/launch': typeof LaunchRoute
@@ -90,6 +116,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/coinpaper': typeof CoinpaperRoute
+  '/dashboard': typeof DashboardRoute
   '/explore': typeof ExploreRoute
   '/landing': typeof LandingRoute
   '/launch': typeof LaunchRoute
@@ -105,6 +132,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/coinpaper'
+    | '/dashboard'
     | '/explore'
     | '/landing'
     | '/launch'
@@ -118,6 +146,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/coinpaper'
+    | '/dashboard'
     | '/explore'
     | '/landing'
     | '/launch'
@@ -131,6 +160,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/coinpaper'
+    | '/dashboard'
     | '/explore'
     | '/landing'
     | '/launch'
@@ -145,6 +175,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   CoinpaperRoute: typeof CoinpaperRoute
+  DashboardRoute: typeof DashboardRoute
   ExploreRoute: typeof ExploreRoute
   LandingRoute: typeof LandingRoute
   LaunchRoute: typeof LaunchRoute
@@ -157,6 +188,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/swap': {
+      id: '/swap'
+      path: '/swap'
+      fullPath: '/swap'
+      preLoaderRoute: typeof SwapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/send': {
       id: '/send'
       path: '/send'
@@ -178,6 +216,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LaunchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/landing': {
+      id: '/landing'
+      path: '/landing'
+      fullPath: '/landing'
+      preLoaderRoute: typeof LandingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/explore': {
       id: '/explore'
       path: '/explore'
@@ -185,11 +230,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExploreRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/coinpaper': {
       id: '/coinpaper'
       path: '/coinpaper'
       fullPath: '/coinpaper'
       preLoaderRoute: typeof CoinpaperRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -220,6 +279,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   CoinpaperRoute: CoinpaperRoute,
+  DashboardRoute: DashboardRoute,
   ExploreRoute: ExploreRoute,
   LandingRoute: LandingRoute,
   LaunchRoute: LaunchRoute,

@@ -38,7 +38,7 @@ import {
   CheckTheChainAddress,
 } from "./constants/CheckTheChain";
 import { CoinInfoCard } from "./components/CoinInfoCard";
-
+import { LoadingLogo } from "./components/ui/loading-logo";
 
 export const BuySell = ({
   tokenId,
