@@ -272,7 +272,7 @@
     "confirmed": "已确认"
   },
   "tokenSelector": {
-    "search_tokens": "搜索代币",
+    "search_tokens": "按名称或ID搜索币种",
     "token_list": "代币列表",
     "popular_tokens": "热门代币",
     "your_tokens": "你的代币",

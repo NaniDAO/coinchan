@@ -39,6 +39,7 @@ import {
 } from "./constants/CheckTheChain";
 import { CoinInfoCard } from "./components/CoinInfoCard";
 
+
 export const BuySell = ({
   tokenId,
   name: propName,
@@ -409,11 +410,19 @@ export const BuySell = ({
             variant="default"
             className={`bg-green-600 hover:bg-green-700 text-white font-bold transition-opacity duration-300 ${isLoading ? "opacity-70" : ""}`}
           >
-            {isPending
-              ? "Buying…"
-              : isLoading
-                ? "Loading..."
-                : `Buy ${displaySymbol}`}
+            {isPending ? (
+              <span className="flex items-center gap-2">
+                <LoadingLogo size="sm" className="scale-75" />
+                Buying…
+              </span>
+            ) : isLoading ? (
+              <span className="flex items-center gap-2">
+                <LoadingLogo size="sm" className="scale-75" />
+                Loading...
+              </span>
+            ) : (
+              `Buy ${displaySymbol}`
+            )}
           </Button>
         </div>
       </TabsContent>
@@ -462,11 +471,19 @@ export const BuySell = ({
             variant="outline"
             className={`dark:border-accent dark:text-accent dark:hover:bg-accent/10 transition-opacity duration-300 ${isLoading ? "opacity-70" : ""}`}
           >
-            {isPending
-              ? "Selling…"
-              : isLoading
-                ? "Loading..."
-                : `Sell ${displaySymbol}`}
+            {isPending ? (
+              <span className="flex items-center gap-2">
+                <LoadingLogo size="sm" className="scale-75" />
+                Selling…
+              </span>
+            ) : isLoading ? (
+              <span className="flex items-center gap-2">
+                <LoadingLogo size="sm" className="scale-75" />
+                Loading...
+              </span>
+            ) : (
+              `Sell ${displaySymbol}`
+            )}
           </Button>
         </div>
       </TabsContent>

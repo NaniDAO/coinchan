@@ -5,13 +5,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import ConnectionErrorHandler from "@/lib/ConnectionErrorHandler";
 import usePersistentConnection from "./hooks/use-persistent-connection";
 import { useTranslation } from "react-i18next";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useNavigate } from "@tanstack/react-router";
 
 const ConnectMenuComponent = () => {
   const { isConnected, address, status } = useAccount();
@@ -19,7 +12,6 @@ const ConnectMenuComponent = () => {
   const { disconnect } = useDisconnect();
   const [reconnecting, setReconnecting] = useState(false);
   const { t } = useTranslation();
-  const navigate = useNavigate();
 
   usePersistentConnection();
 
@@ -98,23 +90,18 @@ const ConnectMenuComponent = () => {
     // When connected - show the address with dropdown
     if (isConnected) {
       return (
-        <DropdownMenu>
-          <DropdownMenuTrigger className="flex items-center hover:scale-105 focus:outline-none">
-            <div>{address ? truncAddress(address) : ""}</div>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuItem
-              onClick={() => {
-                if (!address) return;
-                // Navigate to the user's profile page
-                navigate({ to: "/u/$userId", params: { userId: address } });
-              }}
-            >
-              {t("common.asset_overview")}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => disconnect()}>{t("common.disconnect")}</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <span style={{ display: 'inline-flex', gap: '10px', alignItems: 'center' }}>
+          <span className="wallet-address">
+            {address ? truncAddress(address) : ""}
+          </span>
+          <button 
+            className="button"
+            onClick={() => disconnect()}
+            style={{ marginLeft: '10px', padding: '5px 10px', fontSize: '12px' }}
+          >
+            DISCONNECT
+          </button>
+        </span>
       );
     }
 
@@ -127,7 +114,7 @@ const ConnectMenuComponent = () => {
         <div className="flex items-center gap-2">
           {lastAddress && <div className="opacity-50">{truncAddress(lastAddress)}</div>}
           <div className="text-xs text-primary animate-pulse">
-            {lastAddress ? t("common.loading") : t("common.loading")}
+            {t("common.loading")}
           </div>
         </div>
       );
@@ -146,7 +133,7 @@ const ConnectMenuComponent = () => {
     return (
       <Dialog>
         <DialogTrigger className="appearance-none" asChild>
-          <button className="hover:scale-105 focus:underline">🙏 {t("common.connect")}</button>
+          <button className="button">CONNECT WALLET</button>
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>

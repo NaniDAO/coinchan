@@ -3,321 +3,693 @@
 
 @layer base {
   :root {
-    /* Prosperity palette */
-    --gold: #f9bd20; /* golden yellow */
-    --dark-gold: #c17a00; /* dark amber */
-    --cream: #fff9e6; /* ivory cream */
-    --deep-red: #b01e0e; /* rich crimson */
-    --accent-blue: #b01e0e; /* rich crimson (accent) */
-    --bg-mid: #fff5d6; /* light cream */
+    /* Retro macOS Terminal Design System */
+    --terminal-black: #000000;
+    --terminal-white: #ffffff;
+    --terminal-gray: #f0f0f0;
+    --terminal-dark-gray: #e0e0e0;
+    --terminal-border: #000000;
+    --terminal-shadow: rgba(0, 0, 0, 0.5);
+    
+    /* Color accents for the diamond logo */
+    --diamond-pink: #FF6B9D;
+    --diamond-blue: #00D4FF;
+    --diamond-yellow: #FFE066;
+    --diamond-green: #66D9A6;
+    --diamond-orange: #FF9F40;
+    --diamond-purple: #B967DB;
 
-    --border: var(--gold); /* golden yellow */
+    --border: var(--terminal-border);
 
-    --font-display: "Courier New", Courier, monospace;
+    --font-display: "Chicago", "VT323", "Courier New", Courier, monospace;
     --font-body: "Courier New", Courier, monospace;
 
-    /* fluid font-size between 14px and 18px */
-    font-size-base: clamp(0.875rem, 4vw, 1.125rem);
-    --radius: 0.3rem;
+    /* Fixed font sizes for retro feel */
+    --font-size-base: 14px;
+    --radius: 0px; /* No rounded corners */
 
-    /* Light mode: bright McDonald's colors */
-    --background: #fff; /* Pure White */
-    --foreground: #b01e0e; /* crimson red */
-    --card: #ffffff; /* white */
-    --card-foreground: #b01e0e; /* crimson red */
-    --popover: #ffffff; /* white */
-    --popover-foreground: #b01e0e; /* crimson red */
+    /* Light mode: Classic macOS terminal */
+    --background: var(--terminal-black); /* Black desktop */
+    --foreground: var(--terminal-black); /* Black text */
+    --card: var(--terminal-white); /* White window */
+    --card-foreground: var(--terminal-black); /* Black text on white */
+    --popover: var(--terminal-white);
+    --popover-foreground: var(--terminal-black);
 
-    --primary: #ffcc00; /* golden yellow */
-    --primary-foreground: #1e0b00; /* dark brown */
-    --secondary: var(--deep-red); /* crimson red */
-    --secondary-foreground: var(--cream); /* ivory cream */
-    --muted: #ffe680; /* pale gold */
-    --muted-foreground: #4a0800; /* dark brownish */
-    --accent: var(--dark-gold); /* dark amber */
-    --accent-foreground: var(--cream); /* ivory cream */
-    --destructive: var(--deep-red); /* crimson red */
+    --primary: var(--terminal-black); /* Black for primary actions */
+    --primary-foreground: var(--terminal-white); /* White text on black */
+    --secondary: var(--terminal-gray); /* Gray for secondary */
+    --secondary-foreground: var(--terminal-black);
+    --muted: var(--terminal-gray);
+    --muted-foreground: var(--terminal-black);
+    --accent: var(--terminal-black);
+    --accent-foreground: var(--terminal-white);
+    --destructive: var(--terminal-black);
 
-    --input: #fff3cc; /* pale yellow */
-    --ring: var(--gold); /* golden yellow */
+    --input: var(--terminal-white);
+    --ring: var(--terminal-black);
 
-    --chart-1: var(--gold); /* golden yellow */
-    --chart-2: var(--deep-red); /* crimson red */
-    --chart-3: #e87a00; /* bright orange */
-    --chart-4: #ffdc73; /* light orange */
-    --chart-5: #c1272d; /* deep red */
+    /* Chart colors using diamond palette */
+    --chart-1: var(--diamond-blue);
+    --chart-2: var(--diamond-pink);
+    --chart-3: var(--diamond-yellow);
+    --chart-4: var(--diamond-green);
+    --chart-5: var(--diamond-orange);
 
-    --sidebar: #ffffff; /* white */
-    --sidebar-foreground: #b01e0e; /* crimson red */
-    --sidebar-primary: var(--gold); /* golden yellow */
-    --sidebar-primary-foreground: #1e0b00; /* dark brown */
-    --sidebar-accent: var(--deep-red); /* crimson red */
-    --sidebar-accent-foreground: #ffffff; /* white */
-    --sidebar-border: var(--gold); /* golden yellow */
-    --sidebar-ring: var(--gold); /* golden yellow */
+    --sidebar: var(--terminal-white);
+    --sidebar-foreground: var(--terminal-black);
+    --sidebar-primary: var(--terminal-black);
+    --sidebar-primary-foreground: var(--terminal-white);
+    --sidebar-accent: var(--terminal-gray);
+    --sidebar-accent-foreground: var(--terminal-black);
+    --sidebar-border: var(--terminal-black);
+    --sidebar-ring: var(--terminal-black);
   }
 }
 
 /* ———————————————————————————————————————————————————————————————
-   Base (mobile-first)
+   Retro macOS Terminal Base Styles
    ——————————————————————————————————————————————————————————————— */
-html {
-  font-size: var(--font-size-base);
-  -webkit-text-size-adjust: 100%;
-  transition: color-scheme 0.5s ease, background-color 0.5s ease, color 0.5s ease;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-img.logo {
-  cursor: pointer;
-  transition: width 0.3s ease, transform 0.3s ease;
-  animation: float 3s ease-in-out infinite;
+html {
+  font-size: var(--font-size-base); /* Use CSS variable */
+  -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
 }
 
 body {
-  min-height: 100vh;
-  width: 100vw;
-  background-color: var(--background);
-  color: var(--foreground);
   font-family: var(--font-body);
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-.main-menu {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  align-items: stretch;
-  justify-content: center;
-}
-
-label {
-  display: block;
-  font-family: var(--font-display);
-  font-size: 0.8rem;
-  text-transform: uppercase;
+  background: var(--background);
   color: var(--foreground);
-  margin-bottom: 0.25rem;
+  line-height: 1.4;
+  overflow-x: hidden;
+  min-height: 100vh;
 }
 
-a {
-  color: var(--primary);
-  text-decoration: none;
-}
-a:hover {
-  text-decoration: underline;
-  color: var(--muted-foreground);
-}
-
-@keyframes floatIn {
-  from {
-    opacity: 0;
-    transform: translateY(2rem);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-8px);
-  }
+/* Terminal Window Base - Exact match to Redesign.html */
+.terminal-window {
+  background: var(--terminal-white);
+  border: 3px solid var(--terminal-black);
+  margin: 20px auto;
+  max-width: 800px; /* Exact match to Redesign.html */
+  box-shadow: 4px 4px 0 var(--terminal-black);
+  position: relative;
 }
 
-::-webkit-scrollbar {
-  width: 6px;
-  background: var(--secondary);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--muted-foreground);
-}
-
-@media (min-width: 600px) {
-  body {
-    padding: 0;
-  }
-  .paper-container {
-    position: relative;
-    padding: 2.5rem;
-    width: 100%;
-    max-width: 900px;
-    margin: 0 auto;
-    background-color: var(--card);
-    border-radius: 16px;
-    border: 2px solid var(--primary);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
-  }
-  .main-menu {
-    flex-direction: row;
-    gap: 1rem;
-    align-items: center;
-  }
-}
-
-.meme-paper::-webkit-scrollbar {
-  width: 6px;
-  background-clip: padding-box;
-  border-radius: 24px;
-}
-.meme-paper::-webkit-scrollbar-track {
-  background: var(--secondary);
-  border-radius: 24px;
-}
-.meme-paper::-webkit-scrollbar-thumb {
-  background: var(--muted-foreground);
-  border-radius: 3px;
-}
-
-.blob {
-  position: absolute;
-  top: -64px;
-  right: -64px;
-  width: 224px;
-  height: 224px;
-  background: #fecf6c; /* warm yellow */
-  border-radius: 50%;
-  opacity: 0.3;
-  animation: pulse 4s ease-in-out infinite;
-}
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 0.3;
-  }
-  50% {
-    opacity: 0.6;
-  }
-}
-
-.content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-}
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(1, 1fr);
-  gap: 12px;
-  margin-bottom: 24px;
-  width: 100%;
-}
-@media (min-width: 640px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-@media (min-width: 768px) {
-  .stats-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-.stat-card {
-  display: flex;
-  align-items: center;
-  background: var(--card);
-  backdrop-filter: blur(4px);
-  padding: 16px;
-  border-radius: 16px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  border: 1px solid var(--border);
-}
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border-color: var(--gold);
-}
-.stat-icon {
-  font-size: 2rem;
-  margin-right: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 40px;
-}
-.stat-text .label {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--muted-foreground);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-.stat-text .value {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--primary);
-  margin-top: 4px;
-  font-family: var(--font-display);
-}
-
-.paper-title {
-  font-family: var(--font-display);
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--primary);
+/* Window Header - Exact match to Redesign.html */
+.window-header {
+  background: var(--terminal-black);
+  color: var(--terminal-white);
+  padding: 4px; /* Exact match to Redesign.html */
   text-align: center;
-  margin-bottom: 24px;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  font-weight: bold;
+  border-bottom: 3px solid var(--terminal-black);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-display);
+  font-size: 14px;
 }
-.explanation {
-  margin-top: 16px;
-  color: var(--foreground);
-  font-size: 16px;
-  line-height: 1.7;
-  text-align: left;
-  max-width: 800px;
+
+/* Window Content - Exact match to Redesign.html */
+.window-content {
+  padding: 20px; /* Exact match to Redesign.html */
+  min-height: 400px; /* Exact match to Redesign.html */
+  padding-bottom: 2.5rem; /* Exact match to Redesign.html */
+}
+
+/* Logo Styles */
+.svg-logo {
+  text-align: center;
+  margin: 20px auto;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+  position: relative;
+  display: block;
+  width: fit-content;
+}
+
+.svg-logo:hover {
+  transform: scale(1.05);
+}
+
+.svg-logo:active {
+  transform: scale(0.98);
+}
+
+.static-logo,
+.loading-diamond {
+  transition: opacity 0.1s ease;
+  display: block;
   margin: 0 auto;
 }
-.leading-paragraph {
-  font-size: 1.1rem;
-  margin-bottom: 1.5rem;
-  line-height: 1.7;
+
+.static-logo {
+  opacity: 1;
 }
-.explanation ul {
-  padding-left: 16px;
-  margin-top: 16px;
-  list-style-type: none;
-}
-.explanation li {
-  margin-bottom: 12px;
-  position: relative;
-  padding-left: 24px;
-}
-.explanation li::before {
-  content: "•";
-  color: var(--primary);
-  font-weight: bold;
+
+.loading-diamond {
+  opacity: 0;
   position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.loading-diamond.active {
+  opacity: 1;
+}
+
+.static-logo.hidden {
+  opacity: 0;
+}
+
+/* Terminal UI Components - Exact Redesign.html dimensions */
+.button {
+  background: var(--terminal-white);
+  border: 2px solid var(--terminal-black);
+  padding: 8px 16px; /* Exact match */
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: bold;
+  transition: all 0.1s;
+  display: inline-block;
+  text-decoration: none;
+  color: var(--terminal-black);
+}
+
+.button:hover {
+  background: var(--terminal-black);
+  color: var(--terminal-white);
+}
+
+.button:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.input-field {
+  border: 2px solid var(--terminal-black);
+  padding: 8px; /* Exact match */
+  font-family: inherit;
+  width: 100%;
+  background: var(--terminal-white);
+  color: var(--terminal-black);
+}
+
+.input-field:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+/* Navigation - Exact match to Redesign.html */
+.nav-bar {
+  border-top: 2px solid var(--terminal-black);
+  border-bottom: 2px solid var(--terminal-black);
+  padding: 10px; /* Exact match to Redesign.html */
+  margin: 20px 0; /* Exact match to Redesign.html */
+  display: flex;
+  justify-content: space-around;
+  gap: 0; /* No gap in Redesign.html */
+}
+
+/* Filter Navigation Bar - Matches main nav styling */
+.filter-nav-bar {
+  border-top: 2px solid var(--terminal-black);
+  border-bottom: 2px solid var(--terminal-black);
+  padding: 10px;
+  margin: 20px 0;
+  background: var(--terminal-white);
+}
+
+.nav-item {
+  cursor: pointer;
+  padding: 5px 10px; /* Exact match to Redesign.html */
+  border: 2px solid transparent;
+  transition: all 0.1s;
+  font-weight: normal; /* Redesign.html doesn't use bold */
+  font-family: var(--font-body); /* Use body font to match Redesign.html */
+  text-decoration: none;
+  color: var(--terminal-black);
+  flex: 1;
+  text-align: center;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: fit-content;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 12px;
+}
+
+.nav-item:hover,
+.nav-item.active {
+  border: 2px solid var(--terminal-black);
+  background: var(--terminal-black);
+  color: var(--terminal-white);
+}
+
+.nav-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Loading and Progress */
+.loading-bar {
+  border: 2px solid var(--terminal-black);
+  height: 20px;
+  margin: 10px 0;
+  position: relative;
+  background: var(--terminal-white);
+}
+
+.loading-fill {
+  background: var(--terminal-black);
+  height: 100%;
+  width: 0%;
+  transition: width 0.3s;
+}
+
+/* ASCII Dividers */
+.ascii-divider {
+  text-align: center;
+  margin: 20px 0;
+  font-size: 12px;
+  font-family: monospace;
+}
+
+
+/* Tables */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+}
+
+.table th,
+.table td {
+  border: 1px solid var(--terminal-black);
+  padding: 8px;
+  text-align: left;
+}
+
+.table th {
+  background: var(--terminal-black);
+  color: var(--terminal-white);
+  font-weight: bold;
+}
+
+.table tr:hover {
+  background: var(--terminal-gray);
+}
+
+/* Cards and Containers - Exact Redesign.html dimensions */
+.coin-card,
+.stat-box,
+.position-card {
+  border: 2px solid var(--terminal-black);
+  padding: 15px;
+  background: var(--terminal-white);
+  transition: all 0.1s;
+}
+
+.coin-card:hover {
+  background: var(--terminal-black);
+  color: var(--terminal-white);
+  transform: translate(-2px, -2px);
+  box-shadow: 4px 4px 0 var(--terminal-black);
+}
+
+/* Terminal form containers */
+.terminal-form-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 0;
+}
+
+.swap-container {
+  border: 3px solid var(--terminal-black);
+  padding: 20px; /* Exact match from Redesign.html */
+  margin: 20px 0;
+  background: var(--terminal-gray);
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Graceful hover effects for forms */
+.swap-panel-hover {
+  transition: all 0.15s ease;
+  border: 2px solid var(--terminal-black);
+  background: var(--terminal-white);
+}
+
+.swap-panel-hover:hover {
+  background: var(--terminal-gray);
+  box-shadow: 2px 2px 0 var(--terminal-black);
+  transform: translate(-1px, -1px);
+}
+
+.token-selector-hover {
+  transition: all 0.1s ease;
+  border: 1px solid var(--terminal-black);
+  background: var(--terminal-white);
+}
+
+.token-selector-hover:hover {
+  background: var(--terminal-dark-gray);
+  border: 2px solid var(--terminal-black);
+}
+
+/* Form input hover effects */
+.form-input-hover {
+  transition: all 0.1s ease;
+}
+
+.form-input-hover:hover {
+  background: var(--terminal-gray);
+}
+
+.form-input-hover:focus {
+  background: var(--terminal-white);
+  box-shadow: 0 0 0 2px var(--terminal-black);
+}
+
+.token-select {
+  border: 2px solid var(--terminal-black);
+  padding: 10px; /* Exact match from Redesign.html */
+  margin: 10px 0; /* Exact match from Redesign.html */
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--terminal-white);
+  font-family: var(--font-body);
+}
+
+.token-select:hover {
+  background: var(--terminal-dark-gray); /* Exact match from Redesign.html */
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
   left: 0;
-  font-size: 1.2em;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
 }
-.feature-list li {
-  border-left: 3px solid var(--muted);
-  padding-left: 16px;
-  margin-left: 8px;
-  transition: border-color 0.2s ease;
+
+.modal {
+  background: var(--terminal-white);
+  border: 3px solid var(--terminal-black);
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 8px 8px 0 var(--terminal-black);
 }
-.feature-list li:hover {
-  border-left-color: var(--primary);
+
+/* Grids */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin: 20px 0;
 }
-.coins-container {
-  margin-bottom: 20px;
+
+/* Updated coin grid for better spacing and layout */
+.coin-explorer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr));
   gap: 16px;
+  width: 100%;
+  margin: 20px 0;
+  padding: 0;
+  justify-content: start;
+  align-items: start;
+}
+
+/* Ensure coin cards in explorer grid have consistent size and styling */
+.coin-explorer-grid > div {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+/* Enhance coin cards for retro terminal aesthetic */
+.coin-explorer-grid .border-primary\/50 {
+  border: 2px solid var(--terminal-black) !important;
+  background: var(--terminal-white) !important;
+  transition: all 0.1s ease;
+}
+
+.coin-explorer-grid .border-primary\/50:hover {
+  background: var(--terminal-black) !important;
+  color: var(--terminal-white) !important;
+  transform: translate(-2px, -2px);
+  box-shadow: 4px 4px 0 var(--terminal-black);
+}
+
+/* Legacy coin-grid for backward compatibility */
+.coin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 15px;
+  margin: 20px 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .terminal-window {
+    margin: 10px;
+    max-width: calc(100vw - 20px);
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .coin-explorer-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(120px, 100%), 1fr));
+    gap: 12px;
+    margin: 16px 0;
+  }
+  
+  .coin-explorer-grid .border-primary\/50:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 2px 2px 0 var(--terminal-black);
+  }
+  
+  .coin-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+  }
+  
+  .filter-nav-bar {
+    padding: 8px;
+    margin: 16px 0;
+  }
+  
+  .filter-nav-bar .flex {
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
+  }
+  
+  .filter-nav-bar .flex:first-child {
+    width: 100%;
+  }
+  
+  .nav-item {
+    padding: 8px 12px;
+    font-size: 11px;
+  }
+}
+
+/* Page Management */
+.page {
+  display: none;
+}
+
+.page.active {
+  display: block;
+}
+
+/* App Header - Exact match to Redesign.html */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px; /* Exact match to Redesign.html */
+  padding: 0; /* Remove padding to match Redesign.html */
+}
+
+.app-logo {
+  flex-shrink: 0;
+}
+
+.app-logo .svg-logo {
+  margin: 0; /* Exact match to Redesign.html */
+  text-align: left;
+  display: inline-block;
+  min-height: auto; /* Reset min-height for app header, matching Redesign.html */
+}
+
+.app-logo .static-logo,
+.app-logo .loading-diamond {
+  margin: 0; /* Exact match to Redesign.html */
+}
+
+.app-logo .loading-diamond {
+  left: 0; /* Exact match to Redesign.html */
+  transform: none; /* Exact match to Redesign.html */
+}
+
+.wallet-section {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wallet-address {
+  font-family: monospace;
+  background: var(--terminal-gray);
+  padding: 4px 8px;
+  border: 1px solid var(--terminal-black);
+}
+
+/* Landing Page Specific - Exact match to Redesign.html */
+.landing-logo {
+  text-align: center;
+  margin: 20px auto;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+  position: relative;
+  display: block;
+  width: fit-content;
+  min-height: 240px; /* Ensure space is always reserved for landing page logo */
+}
+
+.landing-logo:hover {
+  transform: scale(1.05);
+}
+
+.landing-logo:active {
+  transform: scale(0.98);
+}
+
+.landing-logo .static-logo,
+.landing-logo .loading-diamond {
+  transition: opacity 0.1s ease;
+  display: block;
+  margin: 0 auto;
+}
+
+.landing-logo .static-logo {
+  opacity: 1;
+}
+
+.landing-logo .loading-diamond {
+  opacity: 0;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.landing-logo .loading-diamond.active {
+  opacity: 1;
+}
+
+.landing-logo .static-logo.hidden {
+  opacity: 0;
+}
+
+/* Feature Buttons */
+.feature-button {
+  border: 2px solid var(--terminal-black);
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: bold;
+  background: linear-gradient(145deg, var(--terminal-white), var(--terminal-gray));
+}
+
+.feature-button:hover {
+  background: linear-gradient(145deg, var(--terminal-gray), var(--terminal-dark-gray));
+  transform: translateY(-1px);
+  box-shadow: 2px 2px 4px var(--terminal-shadow);
+}
+
+/* Button Groups */
+.button-group {
+  display: flex;
+  gap: 5px;
+  border: 2px solid var(--terminal-black);
+  background: var(--terminal-gray);
+  padding: 2px;
+}
+
+.button-group .button {
+  border: none;
+  margin: 0;
+  flex: 1;
+}
+
+/* Active states */
+.swap-mode-active {
+  background: var(--terminal-black) !important;
+  color: var(--terminal-white) !important;
+}
+
+/* Progress bars */
+.progress-bar {
+  border: 1px solid var(--terminal-black);
+  height: 10px;
+  margin: 5px 0;
+}
+
+.progress-fill {
+  background: var(--terminal-black);
+  height: 100%;
+}
+
+/* Loading text transitions */
+#loadingText {
+  transition: opacity 0.4s ease-in-out;
+  opacity: 1;
 }
 
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -351,55 +723,23 @@ a:hover {
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* For now, we maintain the same retro terminal look in both light and dark modes */
+/* Future enhancement: could add green terminal mode for dark theme */
 .dark {
-  /* Neon city-night prosperity palette */
-  --background: #000014; /* ultra-dark blue */
-  --foreground: var(--gold); /* golden yellow */
-  --card: #10001a; /* very dark violet */
-  --card-foreground: var(--gold); /* golden yellow */
-  --popover: #10001a; /* very dark violet */
-  --popover-foreground: var(--gold); /* golden yellow */
-
-  --primary: var(--deep-red); /* crimson red */
-  --primary-foreground: var(--cream); /* ivory cream */
-  --secondary: var(--dark-gold); /* dark amber */
-  --secondary-foreground: #1e0b00; /* dark brown */
-  --muted: #4a0800; /* dark maroon */
-  --muted-foreground: #ffe680; /* pale gold */
-  --accent: #ffe680; /* pale gold */
-  --accent-foreground: #000014; /* ultra-dark blue */
-  --destructive: var(--deep-red); /* crimson red */
-
-  --border: rgba(249, 189, 32, 0.2); /* semi-transparent golden yellow */
-  --input: rgba(249, 189, 32, 0.15); /* semi-transparent golden yellow */
-  --ring: rgba(249, 189, 32, 0.4); /* semi-transparent golden yellow */
-
-  --chart-1: var(--gold); /* golden yellow */
-  --chart-2: #ffe680; /* pale gold */
-  --chart-3: var(--deep-red); /* crimson red */
-  --chart-4: #e87a00; /* bright orange */
-  --chart-5: #c1272d; /* deep red */
-
-  --sidebar: #000014; /* ultra-dark blue */
-  --sidebar-foreground: var(--gold); /* golden yellow */
-  --sidebar-primary: var(--deep-red); /* crimson red */
-  --sidebar-primary-foreground: var(--cream); /* ivory cream */
-  --sidebar-accent: var(--dark-gold); /* dark amber */
-  --sidebar-accent-foreground: var(--cream); /* ivory cream */
-  --sidebar-border: rgba(249, 189, 32, 0.2); /* semi-transparent golden yellow */
-  --sidebar-ring: rgba(249, 189, 32, 0.4); /* semi-transparent golden yellow */
+  /* Keep the same terminal aesthetic - future enhancement for green screen */
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
   html,
   body {
-    @apply bg-background text-foreground transition-colors duration-300;
+    @apply bg-background text-foreground;
   }
 }
 
+/* Retro Terminal Shimmer Effect */
 @keyframes shimmer {
   0% {
     opacity: 0.5;
@@ -416,24 +756,39 @@ a:hover {
   animation: shimmer 1.5s infinite;
   background: linear-gradient(
     90deg,
-    rgba(255, 234, 0, 0.1) 0%,
-    rgba(255, 255, 255, 0.2) 50%,
-    rgba(255, 234, 0, 0.1) 100%
+    var(--terminal-gray) 0%,
+    var(--terminal-white) 50%,
+    var(--terminal-gray) 100%
   );
   background-size: 200% 100%;
-  border-radius: 4px;
+  border: 1px solid var(--terminal-black);
 }
 
-/* Dark mode shimmer effect with neon glow */
-.dark .token-loading {
-  animation: shimmer 1.5s infinite;
-  background: linear-gradient(
-    90deg,
-    rgba(0, 204, 255, 0.05) 0%,
-    rgba(0, 204, 255, 0.15) 50%,
-    rgba(0, 204, 255, 0.05) 100%
-  );
-  background-size: 200% 100%;
-  border-radius: 4px;
-  box-shadow: 0 0 8px rgba(0, 204, 255, 0.2);
+/* Utility classes for retro styling */
+.retro-border {
+  border: 2px solid var(--terminal-black);
+}
+
+.retro-shadow {
+  box-shadow: 4px 4px 0 var(--terminal-black);
+}
+
+.retro-button-active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+/* Hide scrollbars or style them minimally */
+::-webkit-scrollbar {
+  width: 16px;
+  background: var(--terminal-gray);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--terminal-black);
+  border: 2px solid var(--terminal-gray);
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--terminal-gray);
 }

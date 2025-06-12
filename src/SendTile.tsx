@@ -4,9 +4,7 @@ import { mainnet } from "viem/chains";
 import { handleWalletError, isUserRejectionError } from "@/lib/errors";
 import { parseEther, parseUnits, formatEther, formatUnits, Address, erc20Abi } from "viem";
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { LoadingLogo } from "./components/ui/loading-logo";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { ETH_TOKEN, TokenMeta, USDT_ADDRESS } from "./lib/coins";
 import { TokenSelector } from "./components/TokenSelector";
@@ -304,50 +302,72 @@ const SendTileComponent = () => {
   }, [selectedToken.balance, parsedAmount]);
 
   return (
-    <Card className="border-border shadow-md mb-4">
-      <CardHeader>
-        <CardTitle>Send Coins</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <div className="terminal-form-container">
+      <div className="swap-container">
+        <h3 style={{ 
+          marginBottom: '20px',
+          textAlign: 'center',
+          fontFamily: 'var(--font-display)',
+          textTransform: 'uppercase',
+          letterSpacing: '1px',
+          fontSize: '16px'
+        }}>
+          ═══ TRANSFER TOKENS ═══
+        </h3>
+
         {/* Recipient address input */}
-        <div className="grid grid-cols-5 gap-4 w-full mb-4">
-          <div className="col-span-3">
-            <label className="block text-sm font-medium text-foreground mb-1">Recipient Address</label>
-            <div className="h-12">
-              {" "}
-              {/* Set fixed height to match TokenSelector */}
-              <input
-                type="text"
-                value={recipientAddress}
-                onChange={(e) => setRecipientAddress(e.target.value)}
-                placeholder="0x..."
-                className="w-full p-2 border-2 border-primary rounded focus-within:ring-2 hover:bg-secondary-foreground focus-within:ring-primary focus-within:outline-none h-full"
-              />
-            </div>
-            {recipientAddress && (!recipientAddress.startsWith("0x") || recipientAddress.length !== 42) && (
-              <p className="mt-1 text-sm text-destructive">Please enter a valid Ethereum address</p>
-            )}
-          </div>
-          {/* Token selector */}
-          <div className="col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Asset to Send</label>
-            <TokenSelector
-              selectedToken={selectedToken}
-              tokens={tokens.length > 0 ? tokens : [ETH_TOKEN]} // Ensure we always have at least ETH
-              onSelect={handleTokenSelect}
-              isEthBalanceFetching={isEthBalanceFetching}
-              className="h-12"
-            />
-          </div>
+        <div style={{ marginBottom: '20px' }}>
+          <label className="block text-sm font-bold mb-2" style={{ fontFamily: 'var(--font-body)' }}>
+            RECIPIENT ADDRESS:
+          </label>
+          <input
+            type="text"
+            value={recipientAddress}
+            onChange={(e) => setRecipientAddress(e.target.value)}
+            placeholder="0x..."
+            className="input-field"
+            style={{ width: '100%' }}
+          />
+          {recipientAddress && (!recipientAddress.startsWith("0x") || recipientAddress.length !== 42) && (
+            <p className="mt-2 text-sm" style={{ color: 'var(--diamond-pink)', fontWeight: 'bold' }}>
+              ⚠ Please enter a valid Ethereum address
+            </p>
+          )}
+        </div>
+
+        {/* Token selector */}
+        <div style={{ marginBottom: '20px' }}>
+          <label className="block text-sm font-bold mb-2" style={{ fontFamily: 'var(--font-body)' }}>
+            ASSET TO SEND:
+          </label>
+          <TokenSelector
+            selectedToken={selectedToken}
+            tokens={tokens.length > 0 ? tokens : [ETH_TOKEN]} // Ensure we always have at least ETH
+            onSelect={handleTokenSelect}
+            isEthBalanceFetching={isEthBalanceFetching}
+            className="w-full"
+          />
         </div>
 
         {/* Amount input */}
-        <div className="mb-4">
-          <div className="flex justify-between items-center mb-1">
-            <label className="block text-sm font-medium text-foreground">Amount</label>
+        <div style={{ marginBottom: '20px' }}>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            marginBottom: '8px' 
+          }}>
+            <label className="block text-sm font-bold" style={{ fontFamily: 'var(--font-body)' }}>
+              AMOUNT:
+            </label>
             <button
               onClick={handleMaxClick}
-              className="text-xs text-primary hover:text-primary/80"
+              className="button"
+              style={{ 
+                fontSize: '10px', 
+                padding: '4px 8px',
+                textTransform: 'uppercase'
+              }}
               disabled={!selectedToken.balance || selectedToken.balance === 0n}
             >
               MAX
@@ -359,15 +379,16 @@ const SendTileComponent = () => {
               value={amount}
               onChange={(e) => handleAmountChange(e.target.value)}
               placeholder="0.0"
-              className={`w-full h-12 p-2 border-2 border-primary/40 rounded focus-within:ring-2 hover:bg-secondary-foreground focus-within:ring-primary focus-within:outline-none ${
-                selectedToken.isFetching ? "token-loading" : ""
-              }`}
+              className={`input-field ${selectedToken.isFetching ? "token-loading" : ""}`}
+              style={{ width: '100%', paddingRight: '80px' }}
             />
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 font-medium text-sm text-muted-foreground">
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 font-bold text-sm" 
+                 style={{ fontFamily: 'var(--font-body)' }}>
               {safeStr(selectedToken.symbol)}
               {/* Show loading indicator if token is being fetched */}
               {selectedToken.isFetching && (
-                <span className="text-xs text-primary ml-1 inline-block" style={{ animation: "pulse 1.5s infinite" }}>
+                <span className="text-xs ml-1 inline-block" 
+                      style={{ animation: "pulse 1.5s infinite", color: 'var(--diamond-blue)' }}>
                   ⟳
                 </span>
               )}
@@ -375,16 +396,21 @@ const SendTileComponent = () => {
           </div>
 
           {amount && typeof selectedToken.balance === "bigint" && (
-            <div className="mt-1 text-xs text-muted-foreground flex justify-between">
+            <div className="mt-2 text-xs font-bold" 
+                 style={{ 
+                   display: 'flex', 
+                   justifyContent: 'space-between',
+                   fontFamily: 'var(--font-body)'
+                 }}>
               <span>
                 {percentOfBalance > 100 ? (
-                  <span className="text-destructive">Insufficient balance</span>
+                  <span style={{ color: 'var(--diamond-pink)' }}>⚠ INSUFFICIENT BALANCE</span>
                 ) : (
-                  `${percentOfBalance.toFixed(0)}% of balance`
+                  `${percentOfBalance.toFixed(0)}% OF BALANCE`
                 )}
               </span>
               <span>
-                Balance: {formatTokenBalance(selectedToken)}{" "}
+                BALANCE: {formatTokenBalance(selectedToken)}{" "}
                 {selectedToken.symbol !== undefined ? safeStr(selectedToken.symbol) : ""}
               </span>
             </div>
@@ -392,38 +418,70 @@ const SendTileComponent = () => {
         </div>
 
         {/* Send button */}
-        <Button
+        <button
           onClick={handleSend}
           disabled={!canSend || isPending}
-          className="w-full bg-primary hover:bg-primary/80 text-background font-bold py-2 px-4 rounded"
+          className="button"
+          style={{ 
+            width: '100%', 
+            padding: '15px',
+            fontSize: '16px',
+            fontWeight: 'bold',
+            textTransform: 'uppercase',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px'
+          }}
         >
           {isPending ? (
-            <div className="flex items-center justify-center">
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              <span>Sending...</span>
-            </div>
+            <>
+              <LoadingLogo size="sm" />
+              <span>SENDING...</span>
+            </>
           ) : (
-            "Send 🪁"
+            <>
+              <span>SEND</span>
+              <span style={{ color: 'var(--diamond-blue)' }}>🪁</span>
+            </>
           )}
-        </Button>
+        </button>
 
         {/* Transaction status */}
         {txHash && (
-          <div className="mt-4 p-3 bg-chart-2/10 border border-chart-2/20 rounded">
-            <p className="text-sm text-chart-2">
-              {isSuccess ? "Transaction successful!" : "Transaction submitted!"}{" "}
+          <div className="mt-4 p-3" 
+               style={{ 
+                 border: '2px solid var(--diamond-green)',
+                 background: 'var(--terminal-gray)',
+                 fontFamily: 'var(--font-body)'
+               }}>
+            <p className="text-sm font-bold">
+              <span style={{ color: 'var(--diamond-green)' }}>
+                {isSuccess ? "✓ TRANSACTION SUCCESSFUL!" : "⏳ TRANSACTION SUBMITTED!"}
+              </span>{" "}
               <a
                 href={`https://etherscan.io/tx/${txHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline"
+                className="button"
+                style={{ 
+                  fontSize: '10px', 
+                  padding: '4px 8px',
+                  marginLeft: '8px',
+                  textDecoration: 'none'
+                }}
               >
-                View on Etherscan
+                VIEW ON ETHERSCAN
               </a>
               {/* Show animation while waiting for transaction */}
               {!isSuccess && (
-                <span className="inline-block ml-2 text-primary" style={{ animation: "pulse 1.5s infinite" }}>
-                  (waiting for confirmation...)
+                <span className="inline-block ml-2" 
+                      style={{ 
+                        animation: "pulse 1.5s infinite",
+                        color: 'var(--diamond-blue)',
+                        fontWeight: 'bold'
+                      }}>
+                  (WAITING FOR CONFIRMATION...)
                 </span>
               )}
             </p>
@@ -432,19 +490,33 @@ const SendTileComponent = () => {
 
         {/* Error message */}
         {txError && (
-          <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded">
-            <p className="text-sm text-destructive">{txError}</p>
+          <div className="mt-4 p-3" 
+               style={{ 
+                 border: '2px solid var(--diamond-pink)',
+                 background: 'var(--terminal-gray)',
+                 fontFamily: 'var(--font-body)'
+               }}>
+            <p className="text-sm font-bold" style={{ color: 'var(--diamond-pink)' }}>
+              ⚠ ERROR: {txError.toUpperCase()}
+            </p>
           </div>
         )}
 
         {/* Loading error */}
         {loadError && (
-          <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded">
-            <p className="text-sm text-destructive">{loadError}</p>
+          <div className="mt-4 p-3" 
+               style={{ 
+                 border: '2px solid var(--diamond-pink)',
+                 background: 'var(--terminal-gray)',
+                 fontFamily: 'var(--font-body)'
+               }}>
+            <p className="text-sm font-bold" style={{ color: 'var(--diamond-pink)' }}>
+              ⚠ LOADING ERROR: {loadError.toUpperCase()}
+            </p>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 

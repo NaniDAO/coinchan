@@ -19,6 +19,7 @@ import "./buysell-styles.css";
 import { CoinPreview } from "./components/CoinPreview";
 import ErrorFallback, { ErrorBoundary } from "./components/ErrorBoundary";
 import { VotePanel } from "./components/VotePanel";
+import { LoadingLogo } from "./components/ui/loading-logo";
 
 // Fallback component for BuySell when it crashes
 export const BuySellFallback = ({
@@ -111,6 +112,21 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
       isMounted = false;
     };
   }, [publicClient, tokenId, address, isSuccess]);
+
+  // Show loading logo during initial data fetch
+  if (isLoading) {
+    return (
+      <div className="w-full max-w-screen mx-auto flex flex-col gap-4 px-2 py-4 pb-16 sm:p-6 sm:pb-16">
+        <Link to="/explore" className="text-sm self-start underline py-2 px-1 touch-manipulation">
+          ⬅︎ Back to Explorer
+        </Link>
+        <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+          <LoadingLogo size="lg" />
+          <p className="text-sm text-muted-foreground">Loading token data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-screen mx-auto flex flex-col gap-4 px-2 py-4 pb-16 sm:p-6 sm:pb-16">

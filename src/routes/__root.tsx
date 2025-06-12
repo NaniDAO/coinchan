@@ -1,62 +1,79 @@
 import { ConnectMenu } from "@/ConnectMenu";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import { createRootRoute, Link, Outlet } from "@tanstack/react-router";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { CoinNani } from "@/components/coinnani";
-import { useTranslation } from "react-i18next";
+import { ZammLogo } from "@/components/ZammLogo";
+import { createRootRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 
 export const Route = createRootRoute({
   component: () => {
-    const { t } = useTranslation();
+    const location = useLocation();
+    const navigate = useNavigate();
+
+    const handleLogoClick = () => {
+      navigate({ to: '/landing' });
+    };
+
+    // Check if we're on landing page
+    if (location.pathname === '/landing') {
+      return <Outlet />;
+    }
+
     return (
-      <>
-        <header className="p-2 flex items-center justify-between w-full gap-5">
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center justify-center space-x-4">
+      <div className="terminal-window">
+        <div className="window-header">
+          <div style={{ width: '60px' }}></div>
+          <div>═══════════ ZAMM DeFi v1.0 ═══════════</div>
+          <div style={{ width: '60px' }}></div>
+        </div>
+
+        <div className="window-content">
+          {/* App Header */}
+          <div className="app-header">
+            <div className="app-logo">
+              <ZammLogo size="medium" onClick={handleLogoClick} />
+            </div>
+            <div className="wallet-section">
+              <ConnectMenu />
+              <ThemeToggle />
+              <LanguageSwitcher />
+            </div>
+          </div>
+
+          {/* Terminal Navigation Bar */}
+          <div className="nav-bar">
             <Link
-              to="/"
-              className="[&.active]:font-bold uppercase hover:text-primary transition-colors"
+              to="/swap"
+              className={`nav-item ${location.pathname === '/swap' ? 'active' : ''}`}
             >
-              📈 {t("common.swap")}
+              SWAP
             </Link>
-            <span className="">/</span>
             <Link
               to="/explore"
-              className="[&.active]:font-bold uppercase hover:text-primary transition-colors"
+              className={`nav-item ${location.pathname === '/explore' ? 'active' : ''}`}
             >
-              🗺️ {t("common.explore")}
+              COINS
             </Link>
-            <span className="">/</span>
             <Link
-              to="/orders"
-              className="[&.active]:font-bold uppercase hover:text-primary transition-colors"
+              to="/dashboard"
+              className={`nav-item ${location.pathname === '/dashboard' ? 'active' : ''}`}
             >
-              📋 {t("common.orders")}
+              DASHBOARD
             </Link>
-            <span className="">/</span>
             <Link
-              to="/send"
-              className="[&.active]:font-bold uppercase hover:text-primary transition-colors"
+              to="/about"
+              className={`nav-item ${location.pathname === '/about' ? 'active' : ''}`}
             >
-              🪁 {t("common.send")}
+              ABOUT
             </Link>
-            <span className="">/</span>
-            <Link
-              to="/launch"
-              className="[&.active]:font-bold uppercase hover:text-primary transition-colors"
-            >
-              🚀 {t("common.launch")}
-            </Link>
-          </nav>
-
-          <div className="flex items-center gap-2">
-            <ConnectMenu />
-            <ThemeToggle />
-            <LanguageSwitcher />
           </div>
+
+          {/* Page Content */}
+          <div className="app-page">
+            <Outlet />
+          </div>
+        </div>
+
+      </div>
           {/* Mobile Navigation */}
           <Sheet>
             <SheetTrigger asChild className="md:hidden">

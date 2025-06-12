@@ -61,32 +61,41 @@ const CCoinIdRoute = CCoinIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/coinpaper': typeof CoinpaperRoute
   '/explore': typeof ExploreRoute
+  '/landing': typeof LandingRoute
   '/launch': typeof LaunchRoute
   '/orders': typeof OrdersRoute
   '/send': typeof SendRoute
+  '/swap': typeof SwapRoute
   '/c/$coinId': typeof CCoinIdRoute
   '/u/$userId': typeof UUserIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/coinpaper': typeof CoinpaperRoute
   '/explore': typeof ExploreRoute
+  '/landing': typeof LandingRoute
   '/launch': typeof LaunchRoute
   '/orders': typeof OrdersRoute
   '/send': typeof SendRoute
+  '/swap': typeof SwapRoute
   '/c/$coinId': typeof CCoinIdRoute
   '/u/$userId': typeof UUserIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/coinpaper': typeof CoinpaperRoute
   '/explore': typeof ExploreRoute
+  '/landing': typeof LandingRoute
   '/launch': typeof LaunchRoute
   '/orders': typeof OrdersRoute
   '/send': typeof SendRoute
+  '/swap': typeof SwapRoute
   '/c/$coinId': typeof CCoinIdRoute
   '/u/$userId': typeof UUserIdRoute
 }
@@ -94,42 +103,54 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
     | '/coinpaper'
     | '/explore'
+    | '/landing'
     | '/launch'
     | '/orders'
     | '/send'
+    | '/swap'
     | '/c/$coinId'
     | '/u/$userId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
     | '/coinpaper'
     | '/explore'
+    | '/landing'
     | '/launch'
     | '/orders'
     | '/send'
+    | '/swap'
     | '/c/$coinId'
     | '/u/$userId'
   id:
     | '__root__'
     | '/'
+    | '/about'
     | '/coinpaper'
     | '/explore'
+    | '/landing'
     | '/launch'
     | '/orders'
     | '/send'
+    | '/swap'
     | '/c/$coinId'
     | '/u/$userId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
   CoinpaperRoute: typeof CoinpaperRoute
   ExploreRoute: typeof ExploreRoute
+  LandingRoute: typeof LandingRoute
   LaunchRoute: typeof LaunchRoute
   OrdersRoute: typeof OrdersRoute
   SendRoute: typeof SendRoute
+  SwapRoute: typeof SwapRoute
   CCoinIdRoute: typeof CCoinIdRoute
   UUserIdRoute: typeof UUserIdRoute
 }
@@ -197,11 +218,14 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
   CoinpaperRoute: CoinpaperRoute,
   ExploreRoute: ExploreRoute,
+  LandingRoute: LandingRoute,
   LaunchRoute: LaunchRoute,
   OrdersRoute: OrdersRoute,
   SendRoute: SendRoute,
+  SwapRoute: SwapRoute,
   CCoinIdRoute: CCoinIdRoute,
   UUserIdRoute: UUserIdRoute,
 }

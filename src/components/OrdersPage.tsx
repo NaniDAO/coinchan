@@ -5,7 +5,8 @@ import { Button } from "./ui/button"; // Keep existing import path
 // New imports for pills
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"; // Import from prompt path
 import { Checkbox } from "@/components/ui/checkbox"; // Import from prompt path
-import { X, Loader2, RefreshCcw } from "lucide-react"; // Keep existing and add X explicitely
+import { X, RefreshCcw } from "lucide-react"; // Keep existing and add X explicitely
+import { LoadingLogo } from "./ui/loading-logo";
 import { OrderCard } from "./OrderCard";
 import { INDEXER_URL } from "@/lib/indexer";
 import { useQuery } from "@tanstack/react-query";
@@ -341,7 +342,7 @@ export const OrdersPage = () => {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="flex items-center gap-2">
-          <Loader2 className="h-5 w-5 animate-spin" />
+          <LoadingLogo size="sm" />
           <span className="text-muted-foreground">{t("orders.loading_orders")}</span>
         </div>
       </div>
@@ -428,7 +429,7 @@ export const OrdersPage = () => {
       {/* Show overlay if fetching AND there are orders currently being displayed */}
       {isFetching && filteredOrders.length > 0 && (
         <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <LoadingLogo size="lg" />
         </div>
       )}
     </div>

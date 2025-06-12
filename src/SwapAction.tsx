@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PoolSwapChart } from "./PoolSwapChart";
-import { Loader2, CheckIcon, ExternalLink } from "lucide-react";
+import { CheckIcon, ExternalLink } from "lucide-react";
+import { LoadingLogo } from "./components/ui/loading-logo";
 import { Link } from "@tanstack/react-router";
-import { Button } from "./components/ui/button";
 import { formatEther, formatUnits, parseEther, parseUnits, encodeFunctionData } from "viem";
 import { useTranslation } from "react-i18next";
 import {
@@ -106,8 +106,7 @@ export const SwapAction = () => {
     },
   });
 
-  // Check if percentage slider is visible in sell panel
-  const isSliderVisible = sellToken.balance && sellToken.balance > 0n;
+  // Note: Previously used for flip button positioning, now using centered layout
 
   // Reset UI state when tokens change
   useEffect(() => {
@@ -655,27 +654,46 @@ export const SwapAction = () => {
 
   return (
     <div className="relative flex flex-col">
-      {/* Subtle Mode Toggle */}
-      <div className="flex items-center justify-end mb-2">
-        <div className="inline-flex items-center gap-1 text-xs">
+      {/* Terminal Mode Toggle */}
+      <div className="flex items-center justify-center mb-4">
+        <div style={{
+          display: 'inline-flex',
+          gap: '0',
+          border: '2px solid var(--terminal-black)',
+          background: 'var(--terminal-gray)',
+          padding: '2px'
+        }}>
           <button
             onClick={() => setSwapMode("instant")}
-            className={`px-2 py-1 rounded text-xs transition-all ${
-              swapMode === "instant"
-                ? "text-foreground underline underline-offset-2"
-                : "text-muted-foreground hover:text-foreground/80"
-            }`}
+            style={{
+              background: swapMode === "instant" ? 'var(--terminal-black)' : 'transparent',
+              color: swapMode === "instant" ? 'var(--terminal-white)' : 'var(--terminal-black)',
+              border: 'none',
+              padding: '6px 12px',
+              fontSize: '11px',
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+              cursor: 'pointer',
+              transition: 'all 0.1s ease',
+              fontFamily: 'var(--font-body)'
+            }}
           >
             {t("swap.instant")}
           </button>
-          <span className="text-muted-foreground/40">•</span>
           <button
             onClick={() => setSwapMode("limit")}
-            className={`px-2 py-1 rounded text-xs transition-all ${
-              swapMode === "limit"
-                ? "text-foreground underline underline-offset-2"
-                : "text-muted-foreground hover:text-foreground/80"
-            }`}
+            style={{
+              background: swapMode === "limit" ? 'var(--terminal-black)' : 'transparent',
+              color: swapMode === "limit" ? 'var(--terminal-white)' : 'var(--terminal-black)',
+              border: 'none',
+              padding: '6px 12px',
+              fontSize: '11px',
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+              cursor: 'pointer',
+              transition: 'all 0.1s ease',
+              fontFamily: 'var(--font-body)'
+            }}
           >
             {t("swap.limit_order")}
           </button>
@@ -683,8 +701,8 @@ export const SwapAction = () => {
       </div>
 
       {/* SELL + FLIP + BUY panel container */}
-      {/* SELL/PROVIDE panel */}
-      <div className="relative flex flex-col">
+      <div className="relative flex flex-col" style={{ gap: '16px', margin: '20px 0' }}>
+        {/* SELL panel */}
         <SwapPanel
           title={t("common.sell")}
           selectedToken={sellToken}
@@ -704,10 +722,15 @@ export const SwapAction = () => {
             }
           }}
           showPercentageSlider={true}
-          className="rounded-t-2xl pb-4"
+          className="pb-4"
         />
-        {/* FLIP button - only shown in swap mode */}
-        <FlipActionButton onClick={flipTokens} className={isSliderVisible ? "top-[calc(50%+3rem)]" : ""} />
+        
+        {/* FLIP button - centered with better positioning */}
+        <div className="flex justify-center">
+          <FlipActionButton onClick={flipTokens} className="" />
+        </div>
+        
+        {/* BUY panel */}
         {buyToken && (
           <SwapPanel
             title={t("common.buy")}
@@ -717,7 +740,7 @@ export const SwapAction = () => {
             isEthBalanceFetching={isEthBalanceFetching}
             amount={buyAmt}
             onAmountChange={syncFromBuy}
-            className="mt-2 rounded-b-2xl pt-3 shadow-[0_0_15px_rgba(0,204,255,0.07)]"
+            className="pt-4"
           />
         )}
       </div>
@@ -817,7 +840,7 @@ export const SwapAction = () => {
       )}
 
       {/* ACTION BUTTON */}
-      <Button
+      <button
         onClick={swapMode === "instant" ? executeSwap : createOrder}
         disabled={
           !isConnected ||
@@ -826,11 +849,23 @@ export const SwapAction = () => {
           (swapMode === "instant" && !canSwap) ||
           (swapMode === "limit" && (!buyAmt || !buyToken))
         }
-        className="w-full text-base sm:text-lg mt-4 h-12 touch-manipulation dark:bg-primary dark:text-card dark:hover:bg-primary/90 dark:shadow-[0_0_20px_rgba(0,204,255,0.3)]"
+        className="button w-full touch-manipulation"
+        style={{
+          marginTop: '24px',
+          padding: '16px',
+          fontSize: '16px',
+          fontWeight: 'bold',
+          textTransform: 'uppercase',
+          minHeight: '56px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px'
+        }}
       >
         {isPending ? (
           <span className="flex items-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <LoadingLogo size="sm" />
             {t("common.loading")}
           </span>
         ) : swapMode === "instant" ? (
@@ -838,13 +873,13 @@ export const SwapAction = () => {
         ) : (
           "Create Order"
         )}
-      </Button>
+      </button>
 
       {/* Status and error messages */}
       {/* Show transaction statuses */}
       {txError && txError.includes(t("common.waiting")) && (
         <div className="text-sm text-primary mt-2 flex items-center bg-background/50 p-2 rounded border border-primary/20">
-          <Loader2 className="h-3 w-3 animate-spin mr-2" />
+          <LoadingLogo size="sm" className="mr-2 scale-75" />
           {txError}
         </div>
       )}

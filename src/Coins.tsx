@@ -342,24 +342,38 @@ export const Coins = () => {
          * - hasPrev (renamed to hasPreviousPage)
          */
         searchBar={
-          <div className="relative">
+          <div className="relative w-full">
             <input
               type="text"
               placeholder={t("tokenSelector.search_tokens")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full sm:w-56 p-1 pl-7 border border-primary rounded-md focus:outline-none focus:ring-1 focus:ring-accent text-sm"
+              className="input-field w-full pl-10 pr-8"
+              style={{ 
+                fontSize: '14px',
+                fontFamily: 'var(--font-body)',
+                padding: '10px 32px 10px 40px'
+              }}
             />
             {searchQuery && (
               <button
                 onClick={resetSearch}
-                className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 hover:text-gray-600"
+                className="button absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 text-center text-xs font-bold"
                 aria-label={t("common.cancel")}
+                style={{ 
+                  lineHeight: '1',
+                  fontSize: '12px',
+                  padding: '2px',
+                  minWidth: '24px'
+                }}
               >
                 ✕
               </button>
             )}
-            <SearchIcon className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+            <SearchIcon 
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" 
+              style={{ color: 'var(--terminal-black)' }} 
+            />
           </div>
         }
         searchResults={
