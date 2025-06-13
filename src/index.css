@@ -1,70 +1,100 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-
 @layer base {
   :root {
     /* Retro macOS Terminal Design System */
     --terminal-black: #000000;
     --terminal-white: #ffffff;
-    --terminal-gray: #f0f0f0;
-    --terminal-dark-gray: #e0e0e0;
-    --terminal-border: #000000;
+    --terminal-gray: #eaeaea;
+    --terminal-dark-gray: #d6d6d6;
     --terminal-shadow: rgba(0, 0, 0, 0.5);
-    
-    /* Color accents for the diamond logo */
-    --diamond-pink: #FF6B9D;
-    --diamond-blue: #00D4FF;
-    --diamond-yellow: #FFE066;
-    --diamond-green: #66D9A6;
-    --diamond-orange: #FF9F40;
-    --diamond-purple: #B967DB;
 
-    --border: var(--terminal-border);
+    /* Optional retro paper white */
+    --terminal-warm-white: #fdfdfd;
+
+    --border: #000000;
 
     --font-display: "Chicago", "VT323", "Courier New", Courier, monospace;
     --font-body: "Courier New", Courier, monospace;
 
-    /* Fixed font sizes for retro feel */
     --font-size-base: 14px;
-    --radius: 0px; /* No rounded corners */
+    --radius: 0px;
 
-    /* Light mode: Classic macOS terminal */
-    --background: var(--terminal-black); /* Black desktop */
-    --foreground: var(--terminal-black); /* Black text */
-    --card: var(--terminal-white); /* White window */
-    --card-foreground: var(--terminal-black); /* Black text on white */
-    --popover: var(--terminal-white);
-    --popover-foreground: var(--terminal-black);
+    /* Light Mode - Classic macOS terminal look */
+    --background: var(--terminal-warm-white);
+    --foreground: #111111;
 
-    --primary: var(--terminal-black); /* Black for primary actions */
-    --primary-foreground: var(--terminal-white); /* White text on black */
-    --secondary: var(--terminal-gray); /* Gray for secondary */
-    --secondary-foreground: var(--terminal-black);
+    --card: #ffffff;
+    --card-foreground: #111111;
+
+    --popover: #ffffff;
+    --popover-foreground: #111111;
+
+    --primary: #000000;
+    --primary-foreground: #ffffff;
+
+    --secondary: var(--terminal-dark-gray);
+    --secondary-foreground: #111111;
+
     --muted: var(--terminal-gray);
-    --muted-foreground: var(--terminal-black);
-    --accent: var(--terminal-black);
-    --accent-foreground: var(--terminal-white);
-    --destructive: var(--terminal-black);
+    --muted-foreground: #555555;
 
-    --input: var(--terminal-white);
-    --ring: var(--terminal-black);
+    --accent: #000000;
+    --accent-foreground: #ffffff;
 
-    /* Chart colors using diamond palette */
-    --chart-1: var(--diamond-blue);
-    --chart-2: var(--diamond-pink);
-    --chart-3: var(--diamond-yellow);
-    --chart-4: var(--diamond-green);
-    --chart-5: var(--diamond-orange);
+    --destructive: #000000;
 
-    --sidebar: var(--terminal-white);
-    --sidebar-foreground: var(--terminal-black);
-    --sidebar-primary: var(--terminal-black);
-    --sidebar-primary-foreground: var(--terminal-white);
-    --sidebar-accent: var(--terminal-gray);
-    --sidebar-accent-foreground: var(--terminal-black);
-    --sidebar-border: var(--terminal-black);
-    --sidebar-ring: var(--terminal-black);
+    --input: #ffffff;
+    --ring: #111111;
+
+    --sidebar: #f8f8f8;
+    --sidebar-foreground: #111111;
+    --sidebar-primary: #000000;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #e6e6e6;
+    --sidebar-accent-foreground: #111111;
+    --sidebar-border: #000000;
+    --sidebar-ring: #111111;
   }
+}
+
+/* Dark Mode - Black & White Inverted Theme */
+.dark {
+  --background: #000000;
+  --foreground: #ffffff;
+
+  --card: #111111;
+  --card-foreground: #ffffff;
+
+  --popover: #000000;
+  --popover-foreground: #ffffff;
+
+  --primary: #ffffff;
+  --primary-foreground: #000000;
+
+  --secondary: #222222;
+  --secondary-foreground: #ffffff;
+
+  --muted: #333333;
+  --muted-foreground: #dddddd;
+
+  --accent: #ffffff;
+  --accent-foreground: #000000;
+
+  --destructive: #ffffff;
+
+  --border: #ffffff;
+  --input: #111111;
+  --ring: #ffffff;
+
+  --sidebar: #111111;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #ffffff;
+  --sidebar-primary-foreground: #000000;
+  --sidebar-accent: #222222;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #ffffff;
+  --sidebar-ring: #ffffff;
 }
 
 /* ———————————————————————————————————————————————————————————————
@@ -78,7 +108,7 @@
 }
 
 html {
-  font-size: var(--font-size-base); /* Use CSS variable */
+  font-size: var(--font-size-base);
   -webkit-text-size-adjust: 100%;
   overflow-x: hidden;
 }
@@ -90,38 +120,6 @@ body {
   line-height: 1.4;
   overflow-x: hidden;
   min-height: 100vh;
-}
-
-/* Terminal Window Base - Exact match to Redesign.html */
-.terminal-window {
-  background: var(--terminal-white);
-  border: 3px solid var(--terminal-black);
-  margin: 20px auto;
-  max-width: 800px; /* Exact match to Redesign.html */
-  box-shadow: 4px 4px 0 var(--terminal-black);
-  position: relative;
-}
-
-/* Window Header - Exact match to Redesign.html */
-.window-header {
-  background: var(--terminal-black);
-  color: var(--terminal-white);
-  padding: 4px; /* Exact match to Redesign.html */
-  text-align: center;
-  font-weight: bold;
-  border-bottom: 3px solid var(--terminal-black);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-family: var(--font-display);
-  font-size: 14px;
-}
-
-/* Window Content - Exact match to Redesign.html */
-.window-content {
-  padding: 20px; /* Exact match to Redesign.html */
-  min-height: 400px; /* Exact match to Redesign.html */
-  padding-bottom: 2.5rem; /* Exact match to Redesign.html */
 }
 
 /* Logo Styles */
@@ -175,7 +173,7 @@ body {
 .button {
   background: var(--terminal-white);
   border: 2px solid var(--terminal-black);
-  padding: 8px 16px; /* Exact match */
+  padding: 8px 16px;
   cursor: pointer;
   font-family: inherit;
   font-weight: bold;
@@ -202,7 +200,7 @@ body {
 
 .input-field {
   border: 2px solid var(--terminal-black);
-  padding: 8px; /* Exact match */
+  padding: 8px;
   font-family: inherit;
   width: 100%;
   background: var(--terminal-white);
@@ -218,11 +216,11 @@ body {
 .nav-bar {
   border-top: 2px solid var(--terminal-black);
   border-bottom: 2px solid var(--terminal-black);
-  padding: 10px; /* Exact match to Redesign.html */
-  margin: 20px 0; /* Exact match to Redesign.html */
+  padding: 10px;
+  margin: 20px 0;
   display: flex;
   justify-content: space-around;
-  gap: 0; /* No gap in Redesign.html */
+  gap: 0;
 }
 
 /* Filter Navigation Bar - Matches main nav styling */
@@ -236,11 +234,11 @@ body {
 
 .nav-item {
   cursor: pointer;
-  padding: 5px 10px; /* Exact match to Redesign.html */
+  padding: 5px 10px;
   border: 2px solid transparent;
   transition: all 0.1s;
-  font-weight: normal; /* Redesign.html doesn't use bold */
-  font-family: var(--font-body); /* Use body font to match Redesign.html */
+  font-weight: normal;
+  font-family: var(--font-body);
   text-decoration: none;
   color: var(--terminal-black);
   flex: 1;
@@ -267,22 +265,6 @@ body {
   cursor: not-allowed;
 }
 
-/* Loading and Progress */
-.loading-bar {
-  border: 2px solid var(--terminal-black);
-  height: 20px;
-  margin: 10px 0;
-  position: relative;
-  background: var(--terminal-white);
-}
-
-.loading-fill {
-  background: var(--terminal-black);
-  height: 100%;
-  width: 0%;
-  transition: width 0.3s;
-}
-
 /* ASCII Dividers */
 .ascii-divider {
   text-align: center;
@@ -290,7 +272,6 @@ body {
   font-size: 12px;
   font-family: monospace;
 }
-
 
 /* Tables */
 .table {
@@ -344,7 +325,7 @@ body {
 
 .swap-container {
   border: 3px solid var(--terminal-black);
-  padding: 20px; /* Exact match from Redesign.html */
+  padding: 20px;
   margin: 20px 0;
   background: var(--terminal-gray);
   width: 100%;
@@ -391,8 +372,8 @@ body {
 
 .token-select {
   border: 2px solid var(--terminal-black);
-  padding: 10px; /* Exact match from Redesign.html */
-  margin: 10px 0; /* Exact match from Redesign.html */
+  padding: 10px;
+  margin: 10px 0;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
@@ -402,7 +383,7 @@ body {
 }
 
 .token-select:hover {
-  background: var(--terminal-dark-gray); /* Exact match from Redesign.html */
+  background: var(--terminal-dark-gray);
 }
 
 /* Modal */
@@ -478,47 +459,42 @@ body {
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-  .terminal-window {
-    margin: 10px;
-    max-width: calc(100vw - 20px);
-  }
-  
   .stats-grid {
     grid-template-columns: 1fr;
     gap: 15px;
   }
-  
+
   .coin-explorer-grid {
     grid-template-columns: repeat(auto-fill, minmax(min(120px, 100%), 1fr));
     gap: 12px;
     margin: 16px 0;
   }
-  
+
   .coin-explorer-grid .border-primary\/50:hover {
     transform: translate(-1px, -1px);
     box-shadow: 2px 2px 0 var(--terminal-black);
   }
-  
+
   .coin-grid {
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     gap: 10px;
   }
-  
+
   .filter-nav-bar {
     padding: 8px;
     margin: 16px 0;
   }
-  
+
   .filter-nav-bar .flex {
     flex-direction: column;
     gap: 8px;
     align-items: stretch;
   }
-  
+
   .filter-nav-bar .flex:first-child {
     width: 100%;
   }
-  
+
   .nav-item {
     padding: 8px 12px;
     font-size: 11px;
@@ -539,8 +515,8 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px; /* Exact match to Redesign.html */
-  padding: 0; /* Remove padding to match Redesign.html */
+  margin-bottom: 20px;
+  padding: 0;
 }
 
 .app-logo {
@@ -548,27 +524,20 @@ body {
 }
 
 .app-logo .svg-logo {
-  margin: 0; /* Exact match to Redesign.html */
+  margin: 0;
   text-align: left;
   display: inline-block;
-  min-height: auto; /* Reset min-height for app header, matching Redesign.html */
+  min-height: auto;
 }
 
 .app-logo .static-logo,
 .app-logo .loading-diamond {
-  margin: 0; /* Exact match to Redesign.html */
+  margin: 0;
 }
 
 .app-logo .loading-diamond {
-  left: 0; /* Exact match to Redesign.html */
-  transform: none; /* Exact match to Redesign.html */
-}
-
-.wallet-section {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  left: 0;
+  transform: none;
 }
 
 .wallet-address {
@@ -587,7 +556,7 @@ body {
   position: relative;
   display: block;
   width: fit-content;
-  min-height: 240px; /* Ensure space is always reserved for landing page logo */
+  min-height: 240px;
 }
 
 .landing-logo:hover {
@@ -637,11 +606,19 @@ body {
   justify-content: center;
   gap: 8px;
   font-weight: bold;
-  background: linear-gradient(145deg, var(--terminal-white), var(--terminal-gray));
+  background: linear-gradient(
+    145deg,
+    var(--terminal-white),
+    var(--terminal-gray)
+  );
 }
 
 .feature-button:hover {
-  background: linear-gradient(145deg, var(--terminal-gray), var(--terminal-dark-gray));
+  background: linear-gradient(
+    145deg,
+    var(--terminal-gray),
+    var(--terminal-dark-gray)
+  );
   transform: translateY(-1px);
   box-shadow: 2px 2px 4px var(--terminal-shadow);
 }
@@ -721,12 +698,6 @@ body {
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-}
-
-/* For now, we maintain the same retro terminal look in both light and dark modes */
-/* Future enhancement: could add green terminal mode for dark theme */
-.dark {
-  /* Keep the same terminal aesthetic - future enhancement for green screen */
 }
 
 @layer base {

@@ -1,10 +1,16 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { LandingPage } from "@/components/LandingPage";
 
 export const Route = createFileRoute("/")({
-  beforeLoad: () => {
-    throw redirect({
-      to: "/landing",
-    });
-  },
-  component: () => null,
+  component: RouteComponent,
 });
+
+function RouteComponent() {
+  const navigate = useNavigate();
+
+  const handleEnterApp = () => {
+    navigate({ to: "/swap" });
+  };
+
+  return <LandingPage onEnterApp={handleEnterApp} />;
+}

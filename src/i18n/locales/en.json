@@ -71,7 +71,9 @@
     "loading_next": "Loading next page...",
     "loading_previous": "Loading previous page...",
     "with": "with",
-    "launch": "Launch"
+    "launch": "Launch",
+    "dashboard": "Dashboard",
+    "about": "About"
   },
   "header": {
     "connect": "Connect Wallet",

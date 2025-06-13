@@ -70,7 +70,9 @@
     "coin": "个币种",
     "loading_next": "加载下一页...",
     "loading_previous": "加载上一页...",
-    "launch": "发行"
+    "launch": "发行",
+    "dashboard": "仪表盘",
+    "about": "关于"
   },
   "header": {
     "connect": "连接钱包",

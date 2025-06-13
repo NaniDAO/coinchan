@@ -1,7 +1,13 @@
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 import React, { useEffect, useState } from "react";
 import { truncAddress } from "./lib/address";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import ConnectionErrorHandler from "@/lib/ConnectionErrorHandler";
 import usePersistentConnection from "./hooks/use-persistent-connection";
 import { useTranslation } from "react-i18next";
@@ -56,11 +62,14 @@ const ConnectMenuComponent = () => {
 
     // Determine if this is truly a reconnection
     const lastAddress = sessionStorage.getItem("lastConnectedAddress");
-    const isReconnection = !!lastAddress && sessionStorage.getItem("connectionAttemptType") !== "fresh";
+    const isReconnection =
+      !!lastAddress &&
+      sessionStorage.getItem("connectionAttemptType") !== "fresh";
 
     // Only show reconnecting state if we're actually reconnecting (not first connection)
     // Now using connectionAttemptType to help distinguish context
-    const shouldShowReconnecting = status === "reconnecting" || (status === "connecting" && isReconnection);
+    const shouldShowReconnecting =
+      status === "reconnecting" || (status === "connecting" && isReconnection);
 
     if (shouldShowReconnecting !== reconnecting) {
       setReconnecting(shouldShowReconnecting);
@@ -85,19 +94,42 @@ const ConnectMenuComponent = () => {
     }
   }, [status, address, reconnecting]);
 
+  // Helper function to get connector icon
+  const getConnectorIcon = (connector: any) => {
+    if (connector.icon) {
+      return connector.icon;
+    }
+
+    // Handle common connector types
+    const connectorName = connector.name.toLowerCase();
+    if (connectorName.includes("metamask")) {
+      return "https://raw.githubusercontent.com/MetaMask/brand-resources/master/SVG/metamask-fox.svg";
+    }
+    if (connectorName.includes("coinbase")) {
+      return "https://avatars.githubusercontent.com/u/18060234?s=280&v=4";
+    }
+    if (
+      connectorName.includes("injected") ||
+      connectorName.includes("browser")
+    ) {
+      return "/wallet-icon.svg";
+    }
+
+    return "/coinchan-logo.png";
+  };
+
   // Render the appropriate UI based on connection state
   const renderConnectionUI = () => {
     // When connected - show the address with dropdown
     if (isConnected) {
       return (
-        <span style={{ display: 'inline-flex', gap: '10px', alignItems: 'center' }}>
-          <span className="wallet-address">
+        <span className="inline-flex gap-2.5 items-center">
+          <span className="wallet-address font-['Chicago'] text-sm">
             {address ? truncAddress(address) : ""}
           </span>
-          <button 
-            className="button"
+          <button
+            className="px-4 py-2.5 tracking-wider text-xs font-['Chicago'] bg-terminal-gray border border-terminal-black shadow-[2px_2px_0px_rgba(0,0,0,1)] active:shadow-[1px_1px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] transition-all uppercase dark:shadow-[2px_2px_0px_rgba(255,255,255,0.3)] dark:active:shadow-[1px_1px_0px_rgba(255,255,255,0.3)]"
             onClick={() => disconnect()}
-            style={{ marginLeft: '10px', padding: '5px 10px', fontSize: '12px' }}
           >
             DISCONNECT
           </button>
@@ -112,8 +144,12 @@ const ConnectMenuComponent = () => {
 
       return (
         <div className="flex items-center gap-2">
-          {lastAddress && <div className="opacity-50">{truncAddress(lastAddress)}</div>}
-          <div className="text-xs text-primary animate-pulse">
+          {lastAddress && (
+            <div className="opacity-50 font-['Chicago']">
+              {truncAddress(lastAddress)}
+            </div>
+          )}
+          <div className="text-xs text-primary animate-pulse font-['Chicago']">
             {t("common.loading")}
           </div>
         </div>
@@ -124,7 +160,9 @@ const ConnectMenuComponent = () => {
     if (status === "connecting") {
       return (
         <div className="flex items-center gap-2">
-          <div className="text-xs text-primary animate-pulse">{t("common.loading")}</div>
+          <div className="text-xs text-primary animate-pulse font-['Chicago']">
+            {t("common.loading")}
+          </div>
         </div>
       );
     }
@@ -132,21 +170,29 @@ const ConnectMenuComponent = () => {
     // Normal disconnected state - show connect button
     return (
       <Dialog>
-        <DialogTrigger className="appearance-none" asChild>
-          <button className="button">CONNECT WALLET</button>
+        <DialogTrigger asChild>
+          <button className="px-5 py-2.5 tracking-wider font-['Chicago'] bg-secondary-background border border-terminal-black shadow-[2px_2px_0px_rgba(0,0,0,1)] active:shadow-[1px_1px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] transition-all uppercase dark:shadow-[2px_2px_0px_rgba(255,255,255,0.3)] dark:active:shadow-[1px_1px_0px_rgba(255,255,255,0.3)]">
+            {t("common.connect")}
+          </button>
         </DialogTrigger>
-        <DialogContent>
+        <DialogContent className="p-4 bg-secondary-background border-2 border-terminal-black shadow-[4px_4px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_rgba(255,255,255,0.3)]">
           <DialogHeader>
-            <DialogTitle>{t("common.connect")}</DialogTitle>
+            <DialogTitle className="font-['Chicago'] text-lg">
+              {t("common.connect")}
+            </DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-4">
             {connectors.map((connector) => (
               <button
-                className="flex items-center justify-start hover:scale-105 focus:underline"
+                className="flex items-center justify-start px-4 py-3 font-['Chicago'] bg-terminal-gray border border-terminal-black shadow-[2px_2px_0px_rgba(0,0,0,1)] active:shadow-[1px_1px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] hover:bg-terminal-dark-gray transition-all dark:shadow-[2px_2px_0px_rgba(255,255,255,0.3)] dark:active:shadow-[1px_1px_0px_rgba(255,255,255,0.3)]"
                 key={`connector-${connector.id || connector.name}`}
                 onClick={() => connect({ connector })}
               >
-                <img src={connector.icon ?? "/coinchan-logo.png"} alt={connector.name} className="w-6 h-6 mr-2" />
+                <img
+                  src={getConnectorIcon(connector)}
+                  alt={connector.name}
+                  className="w-6 h-6 mr-3"
+                />
                 <span>{connector.name}</span>
               </button>
             ))}
