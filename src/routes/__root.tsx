@@ -11,16 +11,18 @@ import {
 } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import UserSettingsMenu from "@/components/UserSettingsMenu";
 
 export const Route = createRootRoute({
   component: () => {
     const location = useLocation();
     const navigate = useNavigate();
     const { t } = useTranslation();
-
     const handleLogoClick = () => {
       navigate({ to: "/" });
     };
+
+    const showLogo = location?.pathname !== "/";
 
     return (
       <>
@@ -31,26 +33,39 @@ export const Route = createRootRoute({
             </div>
           </div>
 
-          <div className="bg-background flex flex-row items-center justify-between px-2">
-            {/* App Header */}
-            <div className="app-logo">
-              <ZammLogo size="small" onClick={handleLogoClick} />
+          <main className="mt-0 max-w-screen flex flex-col items-center justify-center !space-y-0 bg-foreground">
+            <div className="w-[70vw]">
+              <div
+                className={cn(
+                  "!p-2 bg-background text-foreground flex flex-row items-center outline-2 outline-offset-2 outline-background",
+                  showLogo ? "justify-between" : "justify-end",
+                )}
+              >
+                {/* App Header */}
+                {showLogo && (
+                  <div>
+                    <ZammLogo
+                      className="!m-0"
+                      size="small"
+                      onClick={handleLogoClick}
+                    />
+                  </div>
+                )}
+                <div className="shrink-0 flex items-center gap-2.5 mr-10">
+                  <ConnectMenu />
+                  <UserSettingsMenu />
+                </div>
+              </div>
+              <Outlet />
             </div>
-            <div className="shrink-0 flex items-center gap-2.5 mr-10">
-              <ConnectMenu />
-              <ThemeToggle />
-              <LanguageSwitcher />
-            </div>
-          </div>
-
-          <Outlet />
+          </main>
 
           {/* Terminal Navigation Bar */}
-          <div className="border-t-2 border-b-2 border-border py-[10px] my-[20px] flex justify-around gap-0">
+          <div className="z-50 border-t-2 border-b-2 border-border fixed bottom-0 left-0 right-0 flex justify-around gap-0 bg-background">
             <Link
               to="/swap"
               className={cn(
-                "cursor-pointer px-[10px] py-[5px] border-2 border-transparent transition-all duration-100 font-normal font-body no-underline text-foreground flex-1 text-center flex items-center justify-center min-w-fit uppercase tracking-[0.5px] text-xs hover:bg-accent",
+                "h-12 cursor-pointer border-2 border-transparent transition-all duration-100 font-extrabold font-body no-underline text-foreground flex-1 text-center flex items-center justify-center min-w-fit uppercase tracking-wide text-lg hover:bg-accent hover:text-accent-foreground",
                 location.pathname === "/swap" ? "active" : "",
               )}
             >
@@ -59,7 +74,7 @@ export const Route = createRootRoute({
             <Link
               to="/explore"
               className={cn(
-                "cursor-pointer px-[10px] py-[5px] border-2 border-transparent transition-all duration-100 font-normal font-body no-underline text-foreground flex-1 text-center flex items-center justify-center min-w-fit uppercase tracking-[0.5px] text-xs hover:bg-accent",
+                "h-12 cursor-pointer border-2 border-transparent transition-all duration-100 font-extrabold font-body no-underline text-foreground flex-1 text-center flex items-center justify-center min-w-fit uppercase tracking-wide text-lg hover:bg-accent hover:text-accent-foreground",
                 location.pathname === "/explore" ? "active" : "",
               )}
             >
@@ -68,7 +83,7 @@ export const Route = createRootRoute({
             <Link
               to="/about"
               className={cn(
-                "cursor-pointer px-[10px] py-[5px] border-2 border-transparent transition-all duration-100 font-normal font-body no-underline text-foreground flex-1 text-center flex items-center justify-center min-w-fit uppercase tracking-[0.5px] text-xs hover:bg-accent",
+                "h-12 cursor-pointer border-2 border-transparent transition-all duration-100 font-extrabold font-body no-underline text-foreground flex-1 text-center flex items-center justify-center min-w-fit uppercase tracking-wide text-lg hover:bg-accent hover:text-accent-foreground",
                 location.pathname === "/about" ? "active" : "",
               )}
             >

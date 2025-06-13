@@ -4,8 +4,8 @@
     "votes": "Votes",
     "error": "Error",
     "success": "Success",
-    "connect": "Connect Wallet",
-    "disconnect": "Disconnect",
+    "connect": "Login",
+    "disconnect": "Logout",
     "asset_overview": "Asset View",
     "send": "Send",
     "buy": "Buy",
@@ -76,8 +76,8 @@
     "about": "About"
   },
   "header": {
-    "connect": "Connect Wallet",
-    "disconnect": "Disconnect"
+    "connect": "Login",
+    "disconnect": "Logout"
   },
   "pool": {
     "title": "Pool",

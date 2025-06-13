@@ -11,6 +11,7 @@ import {
 import ConnectionErrorHandler from "@/lib/ConnectionErrorHandler";
 import usePersistentConnection from "./hooks/use-persistent-connection";
 import { useTranslation } from "react-i18next";
+import { AddressIcon } from "./components/AddressIcon";
 
 const ConnectMenuComponent = () => {
   const { isConnected, address, status } = useAccount();
@@ -103,16 +104,16 @@ const ConnectMenuComponent = () => {
     // Handle common connector types
     const connectorName = connector.name.toLowerCase();
     if (connectorName.includes("metamask")) {
-      return "https://raw.githubusercontent.com/MetaMask/brand-resources/master/SVG/metamask-fox.svg";
+      return "/metamask.svg";
     }
     if (connectorName.includes("coinbase")) {
-      return "https://avatars.githubusercontent.com/u/18060234?s=280&v=4";
+      return "/coinbase.png";
     }
     if (
       connectorName.includes("injected") ||
       connectorName.includes("browser")
     ) {
-      return "/wallet-icon.svg";
+      return "/wallet-icon.webp";
     }
 
     return "/coinchan-logo.png";
@@ -124,14 +125,17 @@ const ConnectMenuComponent = () => {
     if (isConnected) {
       return (
         <span className="inline-flex gap-2.5 items-center">
-          <span className="wallet-address font-['Chicago'] text-sm">
-            {address ? truncAddress(address) : ""}
-          </span>
           <button
-            className="px-4 py-2.5 tracking-wider text-xs font-['Chicago'] bg-terminal-gray border border-terminal-black shadow-[2px_2px_0px_rgba(0,0,0,1)] active:shadow-[1px_1px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] transition-all uppercase dark:shadow-[2px_2px_0px_rgba(255,255,255,0.3)] dark:active:shadow-[1px_1px_0px_rgba(255,255,255,0.3)]"
+            className="!py-1 !px-2 flex flex-row items-center uppercase tracking-wider font-['Chicago'] bg-secondary-background text-secondary-foreground border border-terminal-black shadow-[2px_2px_0px_rgba(0,0,0,1)] active:shadow-[1px_1px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] transition-all dark:shadow-[2px_2px_0px_rgba(255,255,255,0.3)] dark:active:shadow-[1px_1px_0px_rgba(255,255,255,0.3)]"
             onClick={() => disconnect()}
           >
-            DISCONNECT
+            {address ? (
+              <AddressIcon
+                address={address}
+                className="!mr-2 !h-4 !w-4 !rounded-lg border-1 border-background"
+              />
+            ) : null}
+            <span>{address ? truncAddress(address) : ""}</span>
           </button>
         </span>
       );
@@ -139,16 +143,8 @@ const ConnectMenuComponent = () => {
 
     // When connecting or reconnecting - show appropriate message
     if (reconnecting) {
-      // Try to get last known address from sessionStorage to display during reconnection
-      const lastAddress = sessionStorage.getItem("lastConnectedAddress");
-
       return (
         <div className="flex items-center gap-2">
-          {lastAddress && (
-            <div className="opacity-50 font-['Chicago']">
-              {truncAddress(lastAddress)}
-            </div>
-          )}
           <div className="text-xs text-primary animate-pulse font-['Chicago']">
             {t("common.loading")}
           </div>
@@ -170,28 +166,26 @@ const ConnectMenuComponent = () => {
     // Normal disconnected state - show connect button
     return (
       <Dialog>
-        <DialogTrigger asChild>
-          <button className="px-5 py-2.5 tracking-wider font-['Chicago'] bg-secondary-background border border-terminal-black shadow-[2px_2px_0px_rgba(0,0,0,1)] active:shadow-[1px_1px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] transition-all uppercase dark:shadow-[2px_2px_0px_rgba(255,255,255,0.3)] dark:active:shadow-[1px_1px_0px_rgba(255,255,255,0.3)]">
-            {t("common.connect")}
-          </button>
+        <DialogTrigger className="!py-1 !px-2 uppercase tracking-wider font-['Chicago'] bg-secondary-background text-secondary-foreground border border-terminal-black shadow-[2px_2px_0px_rgba(0,0,0,1)] active:shadow-[1px_1px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] transition-all dark:shadow-[2px_2px_0px_rgba(255,255,255,0.3)] dark:active:shadow-[1px_1px_0px_rgba(255,255,255,0.3)]">
+          {t("common.connect")}
         </DialogTrigger>
-        <DialogContent className="p-4 bg-secondary-background border-2 border-terminal-black shadow-[4px_4px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_rgba(255,255,255,0.3)]">
+        <DialogContent className="!p-4 !bg-secondary-background border-2 border-terminal-black shadow-[4px_4px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_rgba(255,255,255,0.3)]">
           <DialogHeader>
-            <DialogTitle className="font-['Chicago'] text-lg">
+            <DialogTitle className="font-['Chicago'] uppercase tracking-widest text-lg">
               {t("common.connect")}
             </DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-4">
             {connectors.map((connector) => (
               <button
-                className="flex items-center justify-start px-4 py-3 font-['Chicago'] bg-terminal-gray border border-terminal-black shadow-[2px_2px_0px_rgba(0,0,0,1)] active:shadow-[1px_1px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] hover:bg-terminal-dark-gray transition-all dark:shadow-[2px_2px_0px_rgba(255,255,255,0.3)] dark:active:shadow-[1px_1px_0px_rgba(255,255,255,0.3)]"
+                className="!py-1 !px-2 uppercase tracking-wider font-['Chicago'] bg-secondary-background text-secondary-foreground border border-terminal-black shadow-[2px_2px_0px_rgba(0,0,0,1)] active:shadow-[1px_1px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] transition-all dark:shadow-[2px_2px_0px_rgba(255,255,255,0.3)] dark:active:shadow-[1px_1px_0px_rgba(255,255,255,0.3)] flex items-center"
                 key={`connector-${connector.id || connector.name}`}
                 onClick={() => connect({ connector })}
               >
                 <img
                   src={getConnectorIcon(connector)}
                   alt={connector.name}
-                  className="w-6 h-6 mr-3"
+                  className="w-6 h-6 !mr-3"
                 />
                 <span>{connector.name}</span>
               </button>

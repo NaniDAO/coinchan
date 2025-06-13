@@ -61,7 +61,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
   };
 
   return (
-    <div className="bg-background text-foreground">
+    <div className="outline-2 outline-offset-2 outline-background !mb-[50px] bg-background !h-full m-0 text-foreground">
       <ZammLogo
         size="landing"
         onClick={handleLogoClick}
@@ -69,15 +69,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
         autoStartAnimation={true}
       />
 
-      <h1
-        style={{
-          textAlign: "center",
-          margin: "20px 0",
-          fontFamily: "var(--font-display)",
-        }}
-      >
-        ZAMM DEFI
-      </h1>
+      <h1 className="m-1 text-center">ZAMM DEFI</h1>
 
       <div className="ascii-divider">════════════════════════════════════</div>
 
