@@ -393,12 +393,7 @@ export const Coins = () => {
               placeholder={t("tokenSelector.search_tokens")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="input-field w-full pl-10 pr-8"
-              style={{
-                fontSize: "14px",
-                fontFamily: "var(--font-body)",
-                padding: "10px 32px 10px 40px",
-              }}
+              className="border-2 border-border p-2 bg-muted text-muted focus:outline-none focus:text-foreground focus:shadow-none w-full pl-10 pr-8 text-sm font-body py-2.5 px-10"
             />
             {searchQuery && (
               <button

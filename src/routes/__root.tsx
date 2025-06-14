@@ -24,8 +24,8 @@ export const Route = createRootRoute({
 
     return (
       <>
-        <div className="bg-background border-b-2 border-border relative">
-          <div className="bg-foreground text-primary-foreground p-1 w-full text-center font-bold border-b-[3px] border-border flex justify-center items-center font-display text-sm">
+        <div className="bg-background relative">
+          <div className="bg-foreground text-primary-foreground p-1 w-full text-center font-bold flex justify-center items-center font-display text-sm">
             <div className="text-primary-foreground text-center">
               ═══════════ ZAMM DeFi v1.0 ═══════════
             </div>

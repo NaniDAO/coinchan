@@ -60,41 +60,41 @@
 
 /* Dark Mode - Black & White Inverted Theme */
 .dark {
-  --background: #000000;
-  --foreground: #ffffff;
+  --background: #121212;
+  --foreground: #d6d6d6;
 
-  --card: #111111;
-  --card-foreground: #ffffff;
+  --card: #1a1a1a;
+  --card-foreground: #dddddd;
 
-  --popover: #000000;
-  --popover-foreground: #ffffff;
+  --popover: #1a1a1a;
+  --popover-foreground: #dddddd;
 
-  --primary: #ffffff;
-  --primary-foreground: #000000;
+  --primary: #d6d6d6;
+  --primary-foreground: #1a1a1a;
 
-  --secondary: #222222;
-  --secondary-foreground: #ffffff;
+  --secondary: #2a2a2a;
+  --secondary-foreground: #eaeaea;
 
-  --muted: #333333;
-  --muted-foreground: #dddddd;
+  --muted: #2e2e2e;
+  --muted-foreground: #b0b0b0;
 
-  --accent: #ffffff;
-  --accent-foreground: #000000;
+  --accent: #d6d6d6;
+  --accent-foreground: #121212;
 
-  --destructive: #ffffff;
+  --destructive: #ff5555;
 
-  --border: #ffffff;
-  --input: #111111;
-  --ring: #ffffff;
+  --border: #f4f4f4;
+  --input: #1e1e1e;
+  --ring: #777777;
 
-  --sidebar: #111111;
-  --sidebar-foreground: #ffffff;
-  --sidebar-primary: #ffffff;
-  --sidebar-primary-foreground: #000000;
-  --sidebar-accent: #222222;
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #ffffff;
-  --sidebar-ring: #ffffff;
+  --sidebar: #1a1a1a;
+  --sidebar-foreground: #cccccc;
+  --sidebar-primary: #eaeaea;
+  --sidebar-primary-foreground: #121212;
+  --sidebar-accent: #2a2a2a;
+  --sidebar-accent-foreground: #dcdcdc;
+  --sidebar-border: #3a3a3a;
+  --sidebar-ring: #777777;
 }
 
 /* Dark mode datetime-local calendar icon fix */
@@ -176,21 +176,6 @@ body {
 
 .static-logo.hidden {
   opacity: 0;
-}
-
-/* Terminal UI Components - Exact Redesign.html dimensions */
-.input-field {
-  border: 2px solid var(--terminal-black);
-  padding: 8px;
-  font-family: inherit;
-  width: 100%;
-  background: var(--terminal-white);
-  color: var(--terminal-black);
-}
-
-.input-field:focus {
-  outline: none;
-  box-shadow: none;
 }
 
 /* Navigation - Exact match to Redesign.html */
