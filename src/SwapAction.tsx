@@ -13,7 +13,6 @@ import {
 import { useTranslation } from "react-i18next";
 import {
   analyzeTokens,
-  computePoolKey,
   getAmountIn,
   getAmountOut,
   getPoolIds,
@@ -32,7 +31,7 @@ import {
   useWaitForTransactionReceipt,
 } from "wagmi";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
-import { ETH_TOKEN, TokenMeta, USDT_POOL_ID, USDT_POOL_KEY } from "./lib/coins";
+import { ETH_TOKEN, TokenMeta } from "./lib/coins";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { mainnet } from "viem/chains";
 import { SlippageSettings } from "./components/SlippageSettings";
@@ -340,25 +339,6 @@ export const SwapAction = () => {
       if (chainId !== mainnet.id) {
         setTxError(t("errors.network_error"));
         return;
-      }
-
-      // Check if we're dealing with the special USDT token
-      let poolKey;
-      if (sellToken.isCustomPool || buyToken?.isCustomPool) {
-        // Use the custom pool key for USDT-ETH pool
-        const customToken = sellToken.isCustomPool ? sellToken : buyToken;
-        poolKey = customToken?.poolKey || USDT_POOL_KEY;
-        // Create a safe version of poolKey for logging
-        const safePoolKey = {
-          id0: poolKey.id0.toString(),
-          id1: poolKey.id1.toString(),
-          token0: poolKey.token0,
-          token1: poolKey.token1,
-          swapFee: poolKey.swapFee.toString(),
-        };
-      } else {
-        // Regular pool key
-        poolKey = computePoolKey(coinId);
       }
 
       if (reserves === undefined) {

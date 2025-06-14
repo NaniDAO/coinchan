@@ -13,8 +13,8 @@ import { useTheme } from "@/lib/theme";
 import { useTranslation } from "react-i18next";
 
 export function UserSettingsMenu() {
-  const { theme, toggleTheme } = useTheme();
-  const { i18n, t } = useTranslation();
+  const { toggleTheme } = useTheme();
+  const { i18n } = useTranslation();
   const currentLanguage = i18n.language;
 
   const languages = [

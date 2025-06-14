@@ -99,5 +99,4 @@ function RouteComponent() {
       </div>
     </div>
   );
-  c;
 }

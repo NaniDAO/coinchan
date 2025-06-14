@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
 import { Loader2 } from "lucide-react";
-import { Button } from "./components/ui/button";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import {
   useAccount,

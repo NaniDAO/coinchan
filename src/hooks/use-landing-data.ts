@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { usePublicClient } from "wagmi";
-import { formatEther, formatUnits } from "viem";
+import { formatUnits } from "viem";
 import {
   CheckTheChainAbi,
   CheckTheChainAddress,

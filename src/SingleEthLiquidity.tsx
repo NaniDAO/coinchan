@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { NetworkError } from "./components/NetworkError";
 import { SuccessMessage } from "./components/SuccessMessage";
 import { ETH_TOKEN, TokenMeta, USDT_POOL_KEY } from "./lib/coins";
-import { Button } from "./components/ui/button";
 import { Loader2 } from "lucide-react";
 import {
   ZAMMSingleLiqETHAbi,

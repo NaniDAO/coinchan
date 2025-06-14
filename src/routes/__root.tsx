@@ -1,6 +1,4 @@
 import { ConnectMenu } from "@/ConnectMenu";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { ZammLogo } from "@/components/ZammLogo";
 import {
   createRootRoute,
