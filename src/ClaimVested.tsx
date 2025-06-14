@@ -12,7 +12,7 @@ import { mainnet } from "viem/chains";
 import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { LoadingLogo } from "./components/ui/loading-logo";
 import { isUserRejectionError } from "@/lib/errors";
 
 interface ClaimVestedProps {
@@ -198,7 +198,7 @@ export const ClaimVested = ({ coinId }: ClaimVestedProps) => {
     return (
       <Card className="w-full p-4 border border-primary/30 shadow-sm rounded-lg">
         <CardContent className="p-2 flex justify-center items-center">
-          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          <LoadingLogo size="default" />
         </CardContent>
       </Card>
     );
@@ -248,7 +248,7 @@ export const ClaimVested = ({ coinId }: ClaimVestedProps) => {
         >
           {isPending ? (
             <span className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <LoadingLogo size="sm" />
               Claiming...
             </span>
           ) : (
