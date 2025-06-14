@@ -665,7 +665,7 @@ export const SwapAction = () => {
             className={`px-3 py-1.5 text-xs font-bold uppercase cursor-pointer transition-all duration-100 font-body hover:opacity-80 focus:ring-2 focus:ring-primary/50 focus:outline-none ${
               swapMode === "instant"
                 ? "bg-accent text-accent-foreground"
-                : "bg-transparent text-foreground"
+                : "bg-transparent text-muted-foreground dark:text-gray-200"
             }`}
           >
             {t("swap.instant")}
@@ -675,7 +675,7 @@ export const SwapAction = () => {
             className={`px-3 py-1.5 text-xs font-bold uppercase cursor-pointer transition-all duration-100 font-body hover:opacity-80 focus:ring-2 focus:ring-primary/50 focus:outline-none ${
               swapMode === "limit"
                 ? "bg-accent text-accent-foreground"
-                : "bg-transparent text-terminal-black"
+                : "bg-transparent text-muted-foreground dark:text-gray-200"
             }`}
           >
             {t("swap.limit_order")}
@@ -749,7 +749,7 @@ export const SwapAction = () => {
           <div className="space-y-3">
             {/* Partial Fill Toggle */}
             <div className="flex items-center justify-between">
-              <label className="text-sm text-foreground">
+              <label className="text-sm text-muted-foreground dark:text-gray-300">
                 Allow Partial Fill
               </label>
               <button
@@ -768,7 +768,7 @@ export const SwapAction = () => {
 
             {/* Deadline Selector */}
             <div className="flex items-center justify-between">
-              <label className="text-sm text-foreground">
+              <label className="text-sm text-muted-foreground dark:text-gray-300">
                 Expires In
               </label>
               <select
@@ -786,7 +786,7 @@ export const SwapAction = () => {
             {/* Exchange Rate Display */}
             {sellAmt && buyAmt && buyToken && (
               <div className="pt-2 border-t border-primary/10">
-                <div className="text-xs text-foreground">
+                <div className="text-xs text-muted-foreground dark:text-gray-300">
                   Rate: 1 {sellToken.symbol} ={" "}
                   {(parseFloat(buyAmt) / parseFloat(sellAmt)).toFixed(6)}{" "}
                   {buyToken.symbol}

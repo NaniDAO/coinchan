@@ -242,7 +242,7 @@ export const TokenSelector = memo(
                     fontFamily: 'var(--font-body)'
                   }}
                 />
-                <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--terminal-black)' }} />
+                <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground dark:text-gray-400" />
               </div>
             </div>
 
@@ -419,13 +419,13 @@ export const TokenSelector = memo(
                       contentVisibility: "auto",
                       containIntrinsicSize: "0 50px",
                       fontFamily: 'var(--font-body)',
-                      color: 'var(--terminal-black)',
-                      background: isSelected ? 'var(--terminal-dark-gray)' : 'transparent',
+                      color: 'var(--foreground)',
+                      background: isSelected ? 'var(--muted)' : 'transparent',
                       transition: 'all 0.1s ease'
                     }}
                     onMouseEnter={(e) => {
                       if (!isSelected) {
-                        e.currentTarget.style.background = 'var(--terminal-gray)';
+                        e.currentTarget.style.background = 'var(--muted)';
                       }
                     }}
                     onMouseLeave={(e) => {
@@ -438,7 +438,7 @@ export const TokenSelector = memo(
                       <TokenImage token={token} />
                       <div className="flex flex-col">
                         <span className="font-medium">{token.symbol}</span>
-                        {reserves && <span className="text-xs text-muted-foreground">{reserves}</span>}
+                        {reserves && <span className="text-xs text-muted-foreground dark:text-gray-400">{reserves}</span>}
                       </div>
                     </div>
                     <div className="text-right min-w-[60px]">
