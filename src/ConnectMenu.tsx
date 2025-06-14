@@ -126,7 +126,7 @@ const ConnectMenuComponent = () => {
       return (
         <span className="inline-flex gap-2.5 items-center">
           <button
-            className="!py-1 !px-2 flex flex-row items-center uppercase tracking-wider font-['Chicago'] bg-secondary-background text-secondary-foreground border border-terminal-black shadow-[2px_2px_0px_rgba(0,0,0,1)] active:shadow-[1px_1px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] transition-all dark:shadow-[2px_2px_0px_rgba(255,255,255,0.3)] dark:active:shadow-[1px_1px_0px_rgba(255,255,255,0.3)]"
+            className="!py-1 !px-2 flex flex-row items-center uppercase tracking-wider font-['Chicago'] bg-secondary-background text-secondary-foreground border border-border shadow-[2px_2px_0px_rgba(0,0,0,1)] active:shadow-[1px_1px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] transition-all dark:shadow-[2px_2px_0px_rgba(255,255,255,0.3)] dark:active:shadow-[1px_1px_0px_rgba(255,255,255,0.3)]"
             onClick={() => disconnect()}
           >
             {address ? (
@@ -166,10 +166,10 @@ const ConnectMenuComponent = () => {
     // Normal disconnected state - show connect button
     return (
       <Dialog>
-        <DialogTrigger className="!py-1 !px-2 uppercase tracking-wider font-['Chicago'] bg-secondary-background text-secondary-foreground border border-terminal-black shadow-[2px_2px_0px_rgba(0,0,0,1)] active:shadow-[1px_1px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] transition-all dark:shadow-[2px_2px_0px_rgba(255,255,255,0.3)] dark:active:shadow-[1px_1px_0px_rgba(255,255,255,0.3)]">
+        <DialogTrigger className="!py-1 !px-2 uppercase tracking-wider font-['Chicago'] bg-secondary-background text-secondary-foreground border border-border shadow-[2px_2px_0px_rgba(0,0,0,1)] active:shadow-[1px_1px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] transition-all dark:shadow-[2px_2px_0px_rgba(255,255,255,0.3)] dark:active:shadow-[1px_1px_0px_rgba(255,255,255,0.3)]">
           {t("common.connect")}
         </DialogTrigger>
-        <DialogContent className="!p-4 !bg-secondary-background border-2 border-terminal-black shadow-[4px_4px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_rgba(255,255,255,0.3)]">
+        <DialogContent className="!p-4 !bg-secondary-background border-2 border-border shadow-[4px_4px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_rgba(255,255,255,0.3)]">
           <DialogHeader>
             <DialogTitle className="font-['Chicago'] uppercase tracking-widest text-lg">
               {t("common.connect")}
@@ -178,7 +178,7 @@ const ConnectMenuComponent = () => {
           <div className="flex flex-col gap-4">
             {connectors.map((connector) => (
               <button
-                className="!py-1 !px-2 uppercase tracking-wider font-['Chicago'] bg-secondary-background text-secondary-foreground border border-terminal-black shadow-[2px_2px_0px_rgba(0,0,0,1)] active:shadow-[1px_1px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] transition-all dark:shadow-[2px_2px_0px_rgba(255,255,255,0.3)] dark:active:shadow-[1px_1px_0px_rgba(255,255,255,0.3)] flex items-center"
+                className="!py-1 !px-2 uppercase tracking-wider font-['Chicago'] bg-secondary-background text-secondary-foreground border border-border shadow-[2px_2px_0px_rgba(0,0,0,1)] active:shadow-[1px_1px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] transition-all dark:shadow-[2px_2px_0px_rgba(255,255,255,0.3)] dark:active:shadow-[1px_1px_0px_rgba(255,255,255,0.3)] flex items-center"
                 key={`connector-${connector.id || connector.name}`}
                 onClick={() => connect({ connector })}
               >

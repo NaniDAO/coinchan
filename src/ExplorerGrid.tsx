@@ -1,7 +1,12 @@
 import { CoinCard } from "./components/CoinCard";
 import { type CoinData } from "./hooks/metadata";
 import { useEffect, useState } from "react";
-import { ArrowDownAZ, ArrowUpAZ, Coins as CoinsIcon, ThumbsUp } from "lucide-react";
+import {
+  ArrowDownAZ,
+  ArrowUpAZ,
+  Coins as CoinsIcon,
+  ThumbsUp,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { LoadingLogo } from "./components/ui/loading-logo";
 
@@ -48,17 +53,14 @@ export const ExplorerGrid = ({
 }) => {
   const { t } = useTranslation();
 
-  // Track page transition state for better UX
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [direction, setDirection] = useState<"next" | "prev" | null>(null);
 
-  // Reset transition state when coins change or loading completes
   useEffect(() => {
     setIsTransitioning(false);
     setDirection(null);
   }, [coins, isLoading]);
 
-  // Enhanced prev/next handlers with transition state
   const handlePrev = () => {
     if (canPrev && !isLoading && !isTransitioning) {
       setIsTransitioning(true);
@@ -75,12 +77,10 @@ export const ExplorerGrid = ({
     }
   };
 
-  // Combined loading state including transitions
   const isPending = isLoading || isTransitioning;
 
   return (
-    <div className="w-full max-w-full" style={{ padding: '0' }}>
-      {/* Search Bar Section */}
+    <div className="w-full max-w-full p-0">
       {searchBar && (
         <div className="mb-4">
           {searchBar}
@@ -92,14 +92,9 @@ export const ExplorerGrid = ({
         </div>
       )}
 
-      {/* Results Count and Loading */}
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center">
-          <h2 className="text-sm md:text-lg font-bold" style={{ 
-            fontFamily: 'var(--font-display)',
-            textTransform: 'uppercase',
-            letterSpacing: '1px'
-          }}>
+          <h2 className="text-sm md:text-lg font-bold font-display uppercase tracking-wider">
             {total === 0
               ? t("explore.no_results")
               : total === 1
@@ -108,11 +103,10 @@ export const ExplorerGrid = ({
           </h2>
         </div>
 
-        {/* Loading indicator */}
         {isPending && (
           <div className="flex items-center">
             <LoadingLogo size="sm" className="mr-2" />
-            <span className="text-sm" style={{ fontFamily: 'var(--font-body)' }}>
+            <span className="text-sm font-body">
               {isTransitioning
                 ? direction === "next"
                   ? t("common.loading_next")
@@ -123,35 +117,43 @@ export const ExplorerGrid = ({
         )}
       </div>
 
-      {/* Filter Tabs Section - Terminal Style */}
-      <div className="filter-nav-bar mb-6">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          {/* Sort Type Tabs */}
+      <div className="mb-6">
+        <div className="p-2 !mb-2 flex items-center justify-between flex-wrap gap-2">
           {onSortTypeChange && (
             <div className="flex">
               <button
                 onClick={() => onSortTypeChange("liquidity")}
-                className={`nav-item ${sortType === "liquidity" ? "active" : ""}`}
+                className={`flex items-center !px-3 !py-2 text-sm font-medium ${
+                  sortType === "liquidity"
+                    ? "bg-primary text-white"
+                    : "bg-gray-100"
+                }`}
                 title={t("common.sort_by", { field: t("common.liquidity") })}
                 disabled={isLoading || isTransitioning}
               >
                 <CoinsIcon className="w-4 h-4 mr-1" />
                 LIQUIDITY
               </button>
-              
+
               <button
                 onClick={() => onSortTypeChange("recency")}
-                className={`nav-item ${sortType === "recency" ? "active" : ""}`}
+                className={`flex items-center px-3 py-2 text-sm font-medium ${
+                  sortType === "recency"
+                    ? "bg-primary text-white"
+                    : "bg-gray-100"
+                }`}
                 title={t("common.sort_by", { field: t("explore.new") })}
                 disabled={isLoading || isTransitioning}
               >
                 <ArrowDownAZ className="w-4 h-4 mr-1" />
                 NEW
               </button>
-              
+
               <button
                 onClick={() => onSortTypeChange("votes")}
-                className={`nav-item ${sortType === "votes" ? "active" : ""}`}
+                className={`flex items-center px-3 py-2 text-sm font-medium ${
+                  sortType === "votes" ? "bg-primary text-white" : "bg-gray-100"
+                }`}
                 title={t("common.sort_by", { field: t("common.votes") })}
                 disabled={isLoading || isTransitioning}
               >
@@ -161,42 +163,60 @@ export const ExplorerGrid = ({
             </div>
           )}
 
-          {/* Sort Order Button */}
           {onSortOrderChange && (
             <button
-              onClick={() => onSortOrderChange(sortOrder === "asc" ? "desc" : "asc")}
-              className="button"
-              style={{ fontSize: '12px', padding: '6px 12px' }}
+              onClick={() =>
+                onSortOrderChange(sortOrder === "asc" ? "desc" : "asc")
+              }
+              className="flex items-center px-3 py-2 text-xs font-medium bg-gray-100"
               title={
                 sortType === "recency"
-                  ? sortOrder === "asc" ? "Currently: Oldest first" : "Currently: Newest first"
+                  ? sortOrder === "asc"
+                    ? "Currently: Oldest first"
+                    : "Currently: Newest first"
                   : sortType === "votes"
-                    ? sortOrder === "asc" ? "Currently: Lowest votes first" : "Currently: Highest votes first"
-                    : sortOrder === "asc" ? "Currently: Lowest liquidity first" : "Currently: Highest liquidity first"
+                    ? sortOrder === "asc"
+                      ? "Currently: Lowest votes first"
+                      : "Currently: Highest votes first"
+                    : sortOrder === "asc"
+                      ? "Currently: Lowest liquidity first"
+                      : "Currently: Highest liquidity first"
               }
               disabled={isLoading || isTransitioning}
             >
-              {sortOrder === "asc" ? <ArrowUpAZ className="w-4 h-4 mr-1" /> : <ArrowDownAZ className="w-4 h-4 mr-1" />}
+              {sortOrder === "asc" ? (
+                <ArrowUpAZ className="w-4 h-4 mr-1" />
+              ) : (
+                <ArrowDownAZ className="w-4 h-4 mr-1" />
+              )}
               {sortType === "recency"
-                ? sortOrder === "asc" ? "OLDEST" : "NEWEST"
+                ? sortOrder === "asc"
+                  ? "OLDEST"
+                  : "NEWEST"
                 : sortType === "votes"
-                  ? sortOrder === "asc" ? "LOWEST" : "HIGHEST"
-                  : sortOrder === "asc" ? "LOWEST" : "HIGHEST"}
+                  ? sortOrder === "asc"
+                    ? "LOWEST"
+                    : "HIGHEST"
+                  : sortOrder === "asc"
+                    ? "LOWEST"
+                    : "HIGHEST"}
             </button>
           )}
         </div>
       </div>
 
       <div
-        className={`coin-explorer-grid min-h-[300px] ${isTransitioning ? "transition-opacity duration-300 opacity-50" : ""}`}
+        className={`grid grid-cols-3 gap-4 min-h-[300px] ${isTransitioning ? "transition-opacity duration-300 opacity-50" : ""}`}
       >
         {coins.map((coin) => (
-          <div key={coin.coinId.toString()} className={isPending ? "opacity-60 pointer-events-none" : ""}>
+          <div
+            key={coin.coinId.toString()}
+            className={isPending ? "opacity-60 pointer-events-none" : ""}
+          >
             <CoinCard coin={coin} />
           </div>
         ))}
 
-        {/* Show skeleton loaders for empty grid during initial load */}
         {coins.length === 0 &&
           total > 0 &&
           !isSearchActive &&
@@ -207,7 +227,6 @@ export const ExplorerGrid = ({
             ></div>
           ))}
 
-        {/* Show message when no search results */}
         {coins.length === 0 && isSearchActive && (
           <div className="col-span-full text-center py-8 text-muted-foreground">
             {t("explore.no_results")}
@@ -215,42 +234,31 @@ export const ExplorerGrid = ({
         )}
       </div>
 
-      <div className="pagination-buttons flex justify-between items-center mt-6 mb-4">
+      <div className="flex justify-between items-center mt-6 mb-4">
         <button
           onClick={handlePrev}
           disabled={!canPrev || isPending}
           aria-label="Go to previous page"
-          className="button touch-manipulation relative"
-          style={{
-            padding: '12px 20px',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            textTransform: 'uppercase',
-            opacity: (!canPrev || isPending) ? '0.5' : '1',
-            cursor: (!canPrev || isPending) ? 'not-allowed' : 'pointer',
-            minWidth: '100px'
-          }}
+          className={`relative px-5 py-3 text-sm font-bold uppercase min-w-[100px] ${
+            !canPrev || isPending ? "opacity-50 cursor-not-allowed" : ""
+          }`}
         >
           {isTransitioning && direction === "prev" ? (
             <span className="absolute inset-0 flex items-center justify-center">
               <LoadingLogo size="sm" className="scale-75" />
             </span>
           ) : null}
-          <span className={isTransitioning && direction === "prev" ? "opacity-0" : ""}>{t("common.previous")}</span>
+          <span
+            className={
+              isTransitioning && direction === "prev" ? "opacity-0" : ""
+            }
+          >
+            {t("common.previous")}
+          </span>
         </button>
 
-        {/* Page info from parent */}
         {total > 0 && !isSearchActive && (
-          <span 
-            className="text-sm font-bold"
-            style={{
-              fontFamily: 'var(--font-body)',
-              color: 'var(--terminal-black)',
-              padding: '8px 16px',
-              background: 'var(--terminal-gray)',
-              border: '1px solid var(--terminal-black)'
-            }}
-          >
+          <span className="px-4 py-2 text-sm font-bold font-body bg-gray-100 border border-gray-900">
             {t("common.page")} {currentPage} {t("common.of")} {totalPages}
           </span>
         )}
@@ -259,23 +267,22 @@ export const ExplorerGrid = ({
           onClick={handleNext}
           disabled={!canNext || isPending}
           aria-label="Go to next page"
-          className="button touch-manipulation relative"
-          style={{
-            padding: '12px 20px',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            textTransform: 'uppercase',
-            opacity: (!canNext || isPending) ? '0.5' : '1',
-            cursor: (!canNext || isPending) ? 'not-allowed' : 'pointer',
-            minWidth: '100px'
-          }}
+          className={`relative px-5 py-3 text-sm font-bold uppercase min-w-[100px] ${
+            !canNext || isPending ? "opacity-50 cursor-not-allowed" : ""
+          }`}
         >
           {isTransitioning && direction === "next" ? (
             <span className="absolute inset-0 flex items-center justify-center">
               <LoadingLogo size="sm" className="scale-75" />
             </span>
           ) : null}
-          <span className={isTransitioning && direction === "next" ? "opacity-0" : ""}>{t("common.next")}</span>
+          <span
+            className={
+              isTransitioning && direction === "next" ? "opacity-0" : ""
+            }
+          >
+            {t("common.next")}
+          </span>
         </button>
       </div>
     </div>

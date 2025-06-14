@@ -101,20 +101,17 @@
    Retro macOS Terminal Base Styles
    ——————————————————————————————————————————————————————————————— */
 
-* {
+html {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-}
-
-html {
   font-size: var(--font-size-base);
   -webkit-text-size-adjust: 100%;
   overflow-x: hidden;
 }
 
 body {
-  font-family: var(--font-body);
+  /* font-family: var(--font-body); */
   background: var(--background);
   color: var(--foreground);
   line-height: 1.4;
@@ -170,34 +167,6 @@ body {
 }
 
 /* Terminal UI Components - Exact Redesign.html dimensions */
-.button {
-  background: var(--terminal-white);
-  border: 2px solid var(--terminal-black);
-  padding: 8px 16px;
-  cursor: pointer;
-  font-family: inherit;
-  font-weight: bold;
-  transition: all 0.1s;
-  display: inline-block;
-  text-decoration: none;
-  color: var(--terminal-black);
-}
-
-.button:hover {
-  background: var(--terminal-black);
-  color: var(--terminal-white);
-}
-
-.button:active {
-  transform: translate(2px, 2px);
-  box-shadow: none;
-}
-
-.button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 .input-field {
   border: 2px solid var(--terminal-black);
   padding: 8px;
@@ -323,15 +292,6 @@ body {
   padding: 0;
 }
 
-.swap-container {
-  border: 3px solid var(--terminal-black);
-  padding: 20px;
-  margin: 20px 0;
-  background: var(--terminal-gray);
-  width: 100%;
-  max-width: 100%;
-}
-
 /* Graceful hover effects for forms */
 .swap-panel-hover {
   transition: all 0.15s ease;
@@ -416,47 +376,6 @@ body {
   margin: 20px 0;
 }
 
-/* Updated coin grid for better spacing and layout */
-.coin-explorer-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr));
-  gap: 16px;
-  width: 100%;
-  margin: 20px 0;
-  padding: 0;
-  justify-content: start;
-  align-items: start;
-}
-
-/* Ensure coin cards in explorer grid have consistent size and styling */
-.coin-explorer-grid > div {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-}
-
-/* Enhance coin cards for retro terminal aesthetic */
-.coin-explorer-grid .border-primary\/50 {
-  border: 2px solid var(--terminal-black) !important;
-  background: var(--terminal-white) !important;
-  transition: all 0.1s ease;
-}
-
-.coin-explorer-grid .border-primary\/50:hover {
-  background: var(--terminal-black) !important;
-  color: var(--terminal-white) !important;
-  transform: translate(-2px, -2px);
-  box-shadow: 4px 4px 0 var(--terminal-black);
-}
-
-/* Legacy coin-grid for backward compatibility */
-.coin-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 15px;
-  margin: 20px 0;
-}
-
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .stats-grid {
@@ -501,24 +420,6 @@ body {
   }
 }
 
-/* Page Management */
-.page {
-  display: none;
-}
-
-.page.active {
-  display: block;
-}
-
-/* App Header - Exact match to Redesign.html */
-.app-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  padding: 0;
-}
-
 .app-logo {
   flex-shrink: 0;
 }
@@ -538,13 +439,6 @@ body {
 .app-logo .loading-diamond {
   left: 0;
   transform: none;
-}
-
-.wallet-address {
-  font-family: monospace;
-  background: var(--terminal-gray);
-  padding: 4px 8px;
-  border: 1px solid var(--terminal-black);
 }
 
 /* Landing Page Specific - Exact match to Redesign.html */
@@ -593,73 +487,6 @@ body {
 
 .landing-logo .static-logo.hidden {
   opacity: 0;
-}
-
-/* Feature Buttons */
-.feature-button {
-  border: 2px solid var(--terminal-black);
-  padding: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-weight: bold;
-  background: linear-gradient(
-    145deg,
-    var(--terminal-white),
-    var(--terminal-gray)
-  );
-}
-
-.feature-button:hover {
-  background: linear-gradient(
-    145deg,
-    var(--terminal-gray),
-    var(--terminal-dark-gray)
-  );
-  transform: translateY(-1px);
-  box-shadow: 2px 2px 4px var(--terminal-shadow);
-}
-
-/* Button Groups */
-.button-group {
-  display: flex;
-  gap: 5px;
-  border: 2px solid var(--terminal-black);
-  background: var(--terminal-gray);
-  padding: 2px;
-}
-
-.button-group .button {
-  border: none;
-  margin: 0;
-  flex: 1;
-}
-
-/* Active states */
-.swap-mode-active {
-  background: var(--terminal-black) !important;
-  color: var(--terminal-white) !important;
-}
-
-/* Progress bars */
-.progress-bar {
-  border: 1px solid var(--terminal-black);
-  height: 10px;
-  margin: 5px 0;
-}
-
-.progress-fill {
-  background: var(--terminal-black);
-  height: 100%;
-}
-
-/* Loading text transitions */
-#loadingText {
-  transition: opacity 0.4s ease-in-out;
-  opacity: 1;
 }
 
 @theme inline {
@@ -735,18 +562,20 @@ body {
   border: 1px solid var(--terminal-black);
 }
 
-/* Utility classes for retro styling */
-.retro-border {
-  border: 2px solid var(--terminal-black);
+@keyframes terminal-ping {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.05);
+  }
 }
 
-.retro-shadow {
-  box-shadow: 4px 4px 0 var(--terminal-black);
-}
-
-.retro-button-active {
-  transform: translate(2px, 2px);
-  box-shadow: none;
+.animate-terminal-ping {
+  animation: terminal-ping 0.4s ease-in-out;
 }
 
 /* Hide scrollbars or style them minimally */

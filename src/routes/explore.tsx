@@ -9,73 +9,42 @@ function RouteComponent() {
   const navigate = useNavigate();
 
   const handleLaunch = () => {
-    navigate({ to: '/launch' });
+    navigate({ to: "/launch" });
   };
 
   const handleSend = () => {
-    navigate({ to: '/send' });
+    navigate({ to: "/send" });
   };
 
   const handleOrders = () => {
-    navigate({ to: '/orders' });
+    navigate({ to: "/orders" });
   };
 
   return (
-    <div style={{ 
-      padding: '20px 0',
-      width: '100%',
-      maxWidth: '100%'
-    }}>
-      <h2 style={{ 
-        textAlign: 'center', 
-        marginBottom: '20px',
-        fontFamily: 'var(--font-display)',
-        textTransform: 'uppercase',
-        letterSpacing: '2px'
-      }}>
-        ═══ COIN EXPLORER ═══
+    <div className="!p-5 !mb-[50px]">
+      <h2 className="text-center mb-5 font-display uppercase tracking-[2px]">
+        COIN EXPLORER
       </h2>
 
-
-      <div className="ascii-divider">════════════════════════════════════</div>
-      
-      <div style={{ 
-        display: 'flex', 
-        gap: '10px', 
-        margin: '20px 0',
-        width: '100%',
-        justifyContent: 'center'
-      }}>
-        <div 
-          className="feature-button"
-          onClick={handleLaunch}
-          style={{ flex: 1, maxWidth: '150px' }}
-        >
-          <span style={{ fontSize: '20px', color: '#00d4ff' }}>+</span>
-          <span>LAUNCH</span>
-        </div>
-        
-        <div 
-          className="feature-button"
-          onClick={handleSend}
-          style={{ flex: 1, maxWidth: '150px' }}
-        >
-          <span style={{ fontSize: '18px', color: '#ff6b9d' }}>→</span>
-          <span>SEND</span>
-        </div>
-
-        <div 
-          className="feature-button"
-          onClick={handleOrders}
-          style={{ flex: 1, maxWidth: '150px' }}
-        >
-          <span style={{ fontSize: '18px', color: '#ffe066' }}>📋</span>
-          <span>ORDERS</span>
-        </div>
+      <div className="mb-6 flex gap-3 justify-center font-display text-sm tracking-widest">
+        {[
+          { label: "LAUNCH", icon: "+", onClick: handleLaunch },
+          { label: "SEND", icon: "→", onClick: handleSend },
+          { label: "ORDERS", icon: "📋", onClick: handleOrders },
+        ].map(({ label, icon, onClick }) => (
+          <button
+            key={label}
+            onClick={onClick}
+            className="group coin-card uppercase px-4 py-3 w-full max-w-[150px] border-2 border-terminal-black bg-terminal-white text-terminal-black flex items-center justify-center gap-2 transition-all duration-150 ease-in-out hover:bg-terminal-black hover:text-terminal-white hover:shadow-[3px_3px_0_var(--terminal-black)] hover:-translate-x-[1px] hover:-translate-y-[1px] active:translate-x-0 active:translate-y-0 active:shadow-none"
+          >
+            <span className="text-lg group-hover:animate-terminal-ping">
+              {icon}
+            </span>
+            <span>{label}</span>
+          </button>
+        ))}
       </div>
-      
-      <div className="ascii-divider">════════════════════════════════════</div>
-      
+
       <Coins />
     </div>
   );

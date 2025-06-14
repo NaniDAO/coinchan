@@ -4,6 +4,7 @@ import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { LiquidityActions } from "./LiquidityActions";
 import { SwapAction } from "./SwapAction";
 import { LoadingLogo } from "./components/ui/loading-logo";
+import { cn } from "./lib/utils";
 
 /* ────────────────────────────────────────────────────────────────────────────
   Mode types and constants - Simplified to focus on core swap functionality
@@ -20,7 +21,7 @@ export const PoolActions = () => {
   // Loading state
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
+      <div className="p-2 flex items-center justify-center py-12">
         <LoadingLogo size="lg" />
       </div>
     );
@@ -28,77 +29,57 @@ export const PoolActions = () => {
 
   // Main UI
   return (
-    <div className="swap-container">
+    <div className="w-full !mb-10 mt-5 mx-auto !p-4 bg-background ">
       {/* Header with mode switcher matching HTML design */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '20px'
-      }}>
-        <h2 style={{ 
-          margin: 0,
-          fontFamily: 'var(--font-display)',
-          textTransform: 'uppercase',
-          letterSpacing: '2px',
-          fontSize: '18px'
-        }}>═══ SWAP TERMINAL ═══</h2>
-        
-        <div className="button-group">
+      <div className="flex justify-end items-center mb-5">
+        <h2 className="sr-only m-0 font-display uppercase tracking-widest text-lg">
+          SWAP TERMINAL
+        </h2>
+
+        <div className="flex p-0.5 gap-0">
           <button
-            className={`button ${mode === 'swap' ? 'swap-mode-active' : ''}`}
-            onClick={() => setMode('swap')}
-            style={{ 
-              padding: '8px 12px', 
-              fontSize: '12px',
-              border: 'none',
-              margin: '0'
-            }}
+            className={cn(
+              `!px-2 !py-1 text-xs border-2 transition-colors hover:!text-underline`,
+              mode === "swap"
+                ? "bg-background text-foreground"
+                : "bg-accent text-accent-foreground",
+            )}
+            onClick={() => setMode("swap")}
           >
             SWAP
           </button>
           <button
-            className={`button ${mode === 'liquidity' ? 'swap-mode-active' : ''}`}
-            onClick={() => setMode('liquidity')}
-            style={{ 
-              padding: '8px 12px', 
-              fontSize: '12px',
-              border: 'none',
-              margin: '0'
-            }}
+            className={cn(
+              `!px-2 !py-1 text-xs border-2 transition-colors hover:!text-underline`,
+              mode === "liquidity"
+                ? "bg-background text-foreground"
+                : "bg-accent text-accent-foreground",
+            )}
+            onClick={() => setMode("liquidity")}
           >
             ADD
           </button>
         </div>
       </div>
 
-      {/* Info showing token count */}
-      <div style={{ 
-        fontSize: '12px', 
-        marginBottom: '20px',
-        textAlign: 'center',
-        fontFamily: 'monospace'
-      }}>
-        Available tokens: {tokenCount} (ETH + {tokenCount - 1} coins)
-      </div>
-
       {/* Load error notification */}
       {loadError && (
-        <div style={{
-          padding: '10px',
-          marginBottom: '20px',
-          backgroundColor: 'var(--terminal-gray)',
-          border: '2px solid var(--terminal-black)',
-          fontSize: '12px',
-          textAlign: 'center'
-        }}>
+        <div className="p-2.5 mb-5 bg-terminal-gray border-2 border-terminal-black text-xs text-center">
           {loadError}
         </div>
       )}
 
       {/* Content based on mode */}
-      {mode === "swap" && <SwapAction />}
-      {mode === "liquidity" && <LiquidityActions />}
+      <div className="w-full flex items-center justify-center">
+        <div className="relative flex flex-col !w-xl outline-2 outline-offset-1 border-1 border-foreground outline-foreground p-5">
+          {mode === "swap" && <SwapAction />}
+          {mode === "liquidity" && <LiquidityActions />}
+          {/* Info showing token count */}
+          <div className="text-xs mt-5 text-center font-mono">
+            Available tokens: {tokenCount} (ETH + {tokenCount - 1} coins)
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

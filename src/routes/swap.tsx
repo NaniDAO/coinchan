@@ -15,9 +15,5 @@ function RouteComponent() {
     sdk.actions.ready(); // @TODO farcaster integration
   }, []);
 
-  return (
-    <div style={{ padding: '20px 0' }}>
-      <PoolActions />
-    </div>
-  );
+  return <PoolActions />;
 }

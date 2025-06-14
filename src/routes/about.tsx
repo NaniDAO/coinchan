@@ -11,32 +11,32 @@ function RouteComponent() {
   };
 
   return (
-    <div>
-      <h2 style={{ textAlign: 'center', marginBottom: '20px' }}>
-        ═══ ABOUT ZAMM ═══
-      </h2>
+    <div
+      className="py-5"
+      style={{
+        fontFamily: "var(--font-display)",
+      }}
+    >
+      <h2 className="text-center mb-5 !font-display">About ZAMM</h2>
 
-      <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', margin: '20px 0' }}>
-          <ZammLogo 
-            size="large" 
-            onClick={handleLogoClick}
-          />
+      <div className="max-w-[600px] mx-auto">
+        <div className="text-center my-5">
+          <ZammLogo size="large" onClick={handleLogoClick} />
         </div>
 
-        <p style={{ margin: '20px 0' }}>
-          ZAMM is a decentralized automated market maker (AMM) protocol
-          built for the modern DeFi ecosystem. Inspired by the simplicity
-          and elegance of early computing interfaces, ZAMM brings fair
-          launches and minimal fees to everyone.
+        <p className="my-5 font-display">
+          ZAMM is a decentralized automated market maker (AMM) protocol built
+          for the modern DeFi ecosystem. Inspired by the simplicity and elegance
+          of early computing interfaces, ZAMM brings fair launches and minimal
+          fees to everyone.
         </p>
 
         <div className="ascii-divider">
           ════════════════════════════════════
         </div>
 
-        <h3 style={{ margin: '20px 0' }}>FEATURES:</h3>
-        <ul style={{ listStyle: 'none', padding: 0 }}>
+        <h3 className="my-5 font-display">FEATURES:</h3>
+        <ul className="list-none p-0">
           <li>▸ Fair launch sandbox</li>
           <li>▸ Community governance</li>
           <li>▸ Hyperoptimized for L1</li>
@@ -46,44 +46,52 @@ function RouteComponent() {
           ════════════════════════════════════
         </div>
 
-        <p style={{ textAlign: 'center', margin: '30px 0' }}>
-          <button 
-            className="button"
+        <p className="text-center my-7">
+          <button
+            className="button m-1 font-display"
             onClick={() => {
-              const newWindow = window.open('https://docs.zamm.eth.limo', '_blank');
+              const newWindow = window.open(
+                "https://docs.zamm.eth.limo",
+                "_blank",
+              );
               if (newWindow) newWindow.opener = null;
             }}
-            style={{ margin: '5px' }}
           >
             DOCS
           </button>
-          <button 
-            className="button"
+          <button
+            className="button m-1 font-display"
             onClick={() => {
-              const newWindow = window.open('https://wp.zamm.eth.limo', '_blank');
+              const newWindow = window.open(
+                "https://wp.zamm.eth.limo",
+                "_blank",
+              );
               if (newWindow) newWindow.opener = null;
             }}
-            style={{ margin: '5px' }}
           >
             WHITEPAPER
           </button>
-          <button 
-            className="button"
+          <button
+            className="button m-1 font-display"
             onClick={() => {
-              const newWindow = window.open('https://github.com/zamm-protocol', '_blank');
+              const newWindow = window.open(
+                "https://github.com/zamm-protocol",
+                "_blank",
+              );
               if (newWindow) newWindow.opener = null;
             }}
-            style={{ margin: '5px' }}
           >
             GITHUB
           </button>
-          <button 
-            className="button"
+          <button
+            className="button m-1 font-display"
             onClick={() => {
-              const newWindow = window.open('https://discourse.zamm.eth.limo', '_blank');
+              const newWindow = window.open(
+                "https://discourse.zamm.eth.limo",
+                "_blank",
+              );
               if (newWindow) newWindow.opener = null;
             }}
-            style={{ margin: '5px' }}
           >
             DISCOURSE
           </button>
@@ -91,4 +99,5 @@ function RouteComponent() {
       </div>
     </div>
   );
+  c;
 }

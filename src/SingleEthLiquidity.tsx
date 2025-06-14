@@ -506,10 +506,16 @@ export const SingleEthLiquidity = () => {
       </div>
 
       {/* ACTION BUTTON */}
-      <Button
+      <button
         onClick={executeSingleETHLiquidity}
         disabled={!isConnected || isPending}
-        className="w-full text-base sm:text-lg mt-4 h-12 touch-manipulation dark:bg-primary dark:text-card dark:hover:bg-primary/90 dark:shadow-[0_0_20px_rgba(0,204,255,0.3)]"
+        className={`mt-2 w-full button text-base px-8 py-4 bg-primary text-primary-foreground font-bold rounded-lg transform transition-all duration-200
+          ${
+            !isConnected || isPending
+              ? "opacity-50 cursor-not-allowed"
+              : "opacity-100 hover:scale-105 hover:shadow-lg focus:ring-4 focus:ring-primary/50 focus:outline-none"
+          }
+        `}
       >
         {isPending ? (
           <span className="flex items-center gap-2">
@@ -519,7 +525,7 @@ export const SingleEthLiquidity = () => {
         ) : (
           "Add Single-ETH Liquidity"
         )}
-      </Button>
+      </button>
 
       {/* Status & errors */}
       {txError && txError.includes("Waiting for") && (

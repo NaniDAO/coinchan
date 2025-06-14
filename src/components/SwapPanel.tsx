@@ -54,7 +54,9 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
     try {
       const balance = selectedToken.balance as bigint;
       const amountBigInt =
-        selectedToken.id === null ? parseEther(amount) : parseUnits(amount, selectedToken.decimals || 18);
+        selectedToken.id === null
+          ? parseEther(amount)
+          : parseUnits(amount, selectedToken.decimals || 18);
 
       if (balance > 0n) {
         const calculatedPercentage = Number((amountBigInt * 100n) / balance);
@@ -63,7 +65,13 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
     } catch {
       setPercentage(0);
     }
-  }, [amount, selectedToken.balance, selectedToken.id, selectedToken.decimals, showPercentageSlider]);
+  }, [
+    amount,
+    selectedToken.balance,
+    selectedToken.id,
+    selectedToken.decimals,
+    showPercentageSlider,
+  ]);
 
   const handlePercentageChange = (newPercentage: number) => {
     setPercentage(newPercentage);
@@ -75,24 +83,25 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
 
     if (selectedToken.id === null) {
       // ETH - apply 1% gas discount for 100%
-      const adjustedBalance = newPercentage === 100 ? (balance * 99n) / 100n : (balance * BigInt(newPercentage)) / 100n;
+      const adjustedBalance =
+        newPercentage === 100
+          ? (balance * 99n) / 100n
+          : (balance * BigInt(newPercentage)) / 100n;
       calculatedAmount = formatEther(adjustedBalance);
     } else {
       // Other tokens - use full balance
       const adjustedBalance = (balance * BigInt(newPercentage)) / 100n;
-      calculatedAmount = formatUnits(adjustedBalance, selectedToken.decimals || 18);
+      calculatedAmount = formatUnits(
+        adjustedBalance,
+        selectedToken.decimals || 18,
+      );
     }
 
     onAmountChange(calculatedAmount);
     onPercentageChange?.(newPercentage);
   };
   return (
-    <div
-      className={cn(
-        `swap-panel-hover p-2 flex flex-col gap-2`,
-        className,
-      )}
-    >
+    <div className={cn(`swap-panel-hover p-2 flex flex-col gap-2`, className)}>
       <div className="flex items-center justify-between">
         <span className="text-sm text-muted-foreground">{title}</span>
         <TokenSelector
@@ -113,14 +122,16 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
           onChange={(e) => onAmountChange(e.target.value)}
           readOnly={readOnly}
           className="form-input-hover text-lg sm:text-xl font-medium w-full focus:outline-none h-10 text-right pr-1 bg-transparent"
-          style={{ 
-            fontFamily: 'var(--font-body)', 
-            color: 'var(--terminal-black)',
-            border: 'none'
+          style={{
+            fontFamily: "var(--font-body)",
+            color: "var(--terminal-black)",
+            border: "none",
           }}
         />
         {previewLabel ? (
-          <span className="text-xs text-primary font-medium">{previewLabel}</span>
+          <span className="ml-1 text-xs text-primary font-medium">
+            {previewLabel}
+          </span>
         ) : (
           showMaxButton &&
           onMax && (
@@ -128,10 +139,10 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
               className="button"
               onClick={onMax}
               style={{
-                fontSize: '10px',
-                padding: '4px 8px',
-                textTransform: 'uppercase',
-                minWidth: '50px'
+                fontSize: "10px",
+                padding: "4px 8px",
+                textTransform: "uppercase",
+                minWidth: "50px",
               }}
             >
               MAX
@@ -141,7 +152,9 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
       </div>
 
       {/* Percentage slider - only show for sell panels when there's a balance */}
-      {showPercentageSlider && selectedToken.balance && selectedToken.balance > 0n ? (
+      {showPercentageSlider &&
+      selectedToken.balance &&
+      selectedToken.balance > 0n ? (
         <div className="mt-2 pt-2 border-t border-primary/20">
           <PercentageSlider
             value={percentage}

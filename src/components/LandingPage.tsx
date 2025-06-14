@@ -73,22 +73,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
 
       <div className="ascii-divider">════════════════════════════════════</div>
 
-      <div style={{ textAlign: "center", margin: "30px 0" }}>
+      <div className="text-center my-[30px]">
         <p
-          style={{
-            marginBottom: "20px",
-            maxWidth: "400px",
-            margin: "0 auto",
-            overflowWrap: "break-word",
-          }}
+          className="mb-5 max-w-[400px] mx-auto break-words"
           aria-live="polite"
         >
           {progressText}
         </p>
-        <div
-          className="h-5 my-2.5 relative bg-background border-2 border-foreground"
-          style={{ width: "300px", margin: "20px auto" }}
-        >
+        <div className="h-5 my-2.5 relative bg-background border-2 border-foreground w-[300px] mx-auto">
           <div
             className="h-full w-0 bg-card-foreground transition-[width] duration-300"
             style={{ width: `${progress}%` }}
@@ -98,8 +90,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
       </div>
 
       {/* Stats Cards */}
-      <div style={{ margin: "40px 0", fontSize: "var(--font-size-base)" }}>
-        <div style={{ maxWidth: "500px", margin: "0 auto" }}>
+      <div className="my-10 text-base">
+        <div className="max-w-[500px] mx-auto">
           <StatsCard
             label="ETH Price:"
             value={landingData?.ethPrice || "Loading..."}
@@ -122,17 +114,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
         </div>
 
         {/* Protocol Stats */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: "20px",
-            marginTop: "30px",
-            maxWidth: "600px",
-            marginLeft: "auto",
-            marginRight: "auto",
-          }}
-        >
+        <div className="grid grid-cols-3 gap-5 mt-[30px] max-w-[600px] mx-auto">
           <ProtocolStat
             label="ETH SWAPPED"
             primary={protocolStats?.totalEthSwapped || "-"}
@@ -148,16 +130,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
         </div>
       </div>
 
-      <div style={{ textAlign: "center", margin: "40px 0" }}>
+      <div className="text-center my-10">
         <button
-          className="button"
+          className={`button text-base px-8 py-4 bg-primary text-primary-foreground font-bold rounded-lg transform transition-all duration-200
+            ${enterEnabled ? "opacity-100 hover:scale-105 hover:shadow-lg focus:ring-4 focus:ring-primary/50 focus:outline-none" : "opacity-50 cursor-not-allowed"}
+          `}
           onClick={handleEnterApp}
           disabled={!enterEnabled}
-          style={{
-            opacity: enterEnabled ? 1 : 0.5,
-            fontSize: "16px",
-            padding: "12px 24px",
-          }}
           aria-label="Enter the ZAMM application"
         >
           ENTER ZAMM
@@ -166,14 +145,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
 
       <div className="ascii-divider">════════════════════════════════════</div>
 
-      <p
-        style={{
-          textAlign: "center",
-          margin: "20px 0",
-          fontSize: "12px",
-          letterSpacing: "1px",
-        }}
-      >
+      <p className="text-center my-5 text-xs tracking-wider">
         EVM PRAGUE • FAIR LAUNCHES • CHEAP FEES
       </p>
     </div>
@@ -186,35 +158,12 @@ const StatsCard: React.FC<{
   value: string;
   color: string;
 }> = React.memo(({ label, value, color }) => (
-  <div
-    style={{
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      padding: "15px 20px",
-      border: "2px solid var(--border)",
-      marginBottom: "15px",
-      background: "var(--background)",
-    }}
-  >
-    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-      <div
-        style={{
-          width: "8px",
-          height: "8px",
-          background: color,
-          borderRadius: "50%",
-        }}
-      ></div>
-      <span style={{ fontWeight: "bold" }}>{label}</span>
+  <div className="flex justify-between items-center px-5 py-[15px] border-2 border-border mb-[15px] bg-background">
+    <div className="flex items-center gap-[10px]">
+      <div className="w-2 h-2 rounded-full" style={{ background: color }}></div>
+      <span className="font-bold">{label}</span>
     </div>
-    <span
-      style={{
-        color: color,
-        fontWeight: "bold",
-        fontFamily: "var(--font-body)",
-      }}
-    >
+    <span className="font-bold font-body" style={{ color: color }}>
       {value}
     </span>
   </div>

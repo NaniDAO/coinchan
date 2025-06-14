@@ -26,7 +26,7 @@ export const Route = createRootRoute({
 
     return (
       <>
-        <div className="bg-background border-b-2 border-border mx-auto my-5 relative md:mx-5">
+        <div className="bg-background border-b-2 border-border relative">
           <div className="bg-foreground text-primary-foreground p-1 w-full text-center font-bold border-b-[3px] border-border flex justify-center items-center font-display text-sm">
             <div className="text-primary-foreground text-center">
               ═══════════ ZAMM DeFi v1.0 ═══════════
@@ -56,7 +56,9 @@ export const Route = createRootRoute({
                   <UserSettingsMenu />
                 </div>
               </div>
-              <Outlet />
+              <div className="min-h-screen bg-background border-2 border-border relative z-0">
+                <Outlet />
+              </div>
             </div>
           </main>
 
