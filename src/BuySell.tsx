@@ -377,7 +377,7 @@ export const BuySell = ({
         </TabsTrigger>
       </TabsList>
 
-      <TabsContent value="buy">
+      <TabsContent value="buy" className="max-w-2xl">
         <div className="flex flex-col gap-2">
           <span className="text-sm font-medium text-green-700">Using ETH</span>
           <Input
@@ -427,7 +427,7 @@ export const BuySell = ({
         </div>
       </TabsContent>
 
-      <TabsContent value="sell">
+      <TabsContent value="sell" className="max-w-2xl">
         <div className="flex flex-col gap-2">
           <span className="text-sm font-medium text-accent dark:text-accent">
             Using {isLoading ? "..." : displaySymbol}

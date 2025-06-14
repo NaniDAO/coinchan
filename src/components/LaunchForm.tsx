@@ -236,7 +236,7 @@ export const LaunchForm = () => {
   return (
     <form
       onSubmit={onSubmit}
-      className="grid grid-cols-2 space-x-2 p-4 w-screen mx-auto"
+      className="grid grid-cols-1 space-x-2 p-4 min-h-screeen mb-20 mx-auto"
     >
       <div className="space-y-2">
         {/* creator supply & unlock */}
@@ -328,7 +328,7 @@ export const LaunchForm = () => {
       </div>
       <div className="space-y-2">
         {/* ----- bonding curve visual + tranche editor ----- */}
-        <div className="bg-sidebar rounded-2xl shadow-sm p-4">
+        <div className="rounded-2xl shadow-sm p-4">
           <h3 className="text-lg font-semibold mb-1">Bonding Curve</h3>
           <label className="text-sm text-gray-500 mb-4 block">
             click bars to edit prices

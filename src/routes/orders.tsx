@@ -10,17 +10,11 @@ function RouteComponent() {
   const { t } = useTranslation();
 
   return (
-    <div style={{ padding: '20px 0' }}>
-      <h2 style={{ 
-        textAlign: 'center', 
-        marginBottom: '20px',
-        fontFamily: 'var(--font-display)',
-        textTransform: 'uppercase',
-        letterSpacing: '2px'
-      }}>
+    <div className="p-5">
+      <h2 className="text-center mb-5 font-display uppercase tracking-[2px]">
         ═══ {t("orders.title")} ═══
       </h2>
-      
+
       <div className="orders-container">
         <OrdersPage />
       </div>

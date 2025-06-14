@@ -117,7 +117,10 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
   if (isLoading) {
     return (
       <div className="w-full max-w-screen mx-auto flex flex-col gap-4 px-2 py-4 pb-16 sm:p-6 sm:pb-16">
-        <Link to="/explore" className="text-sm self-start underline py-2 px-1 touch-manipulation">
+        <Link
+          to="/explore"
+          className="text-sm self-start underline py-2 px-1 touch-manipulation"
+        >
           ⬅︎ Back to Explorer
         </Link>
         <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
@@ -129,7 +132,7 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
   }
 
   return (
-    <div className="w-full max-w-screen mx-auto flex flex-col gap-4 px-2 py-4 pb-16 sm:p-6 sm:pb-16">
+    <div className="w-full mx-auto flex flex-col gap-4 px-2 py-4 pb-16 sm:p-6 sm:pb-16">
       <Link
         to="/explore"
         className="text-sm self-start underline py-2 px-1 touch-manipulation"
@@ -150,7 +153,7 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
           <BuySellFallback tokenId={tokenId} name={name} symbol={symbol} />
         }
       >
-        <div className="max-w-2xl">
+        <div>
           <BuySell tokenId={tokenId} name={name} symbol={symbol} />
         </div>
       </ErrorBoundary>
