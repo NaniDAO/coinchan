@@ -110,14 +110,14 @@ export const VotePanel = ({ coinId }: VotePanelProps) => {
     <div className="flex items-center text-foreground justify-start gap-2 mt-2">
       <button
         onClick={() => handleVote(true)}
-        className="flex items-center gap-1 text-sm font-mono border border-green-500 px-3 py-1 rounded-md hover:bg-green-500 hover:text-black transition-all duration-150 shadow-sm active:scale-[0.98]"
+        className="flex items-center gap-1 text-sm font-mono border border-green-500 px-3 py-1 rounded-md hover:bg-green-500 hover:text-white dark:hover:text-black transition-all duration-150 shadow-sm active:scale-[0.98]"      
       >
         <ThumbsUpIcon size={16} />
         <span>{data?.upVotes ?? "-"}</span>
       </button>
       <button
         onClick={() => handleVote(false)}
-        className="flex items-center gap-1 text-sm font-mono border border-red-500 px-3 py-1 rounded-md hover:bg-red-500 hover:text-black transition-all duration-150 shadow-sm active:scale-[0.98]"
+        className="flex items-center gap-1 text-sm font-mono border border-red-500 px-3 py-1 rounded-md hover:bg-red-500 hover:text-white dark:hover:text-black transition-all duration-150 shadow-sm active:scale-[0.98]"
       >
         <ThumbsDownIcon size={16} />
         <span>{data?.downVotes ?? "-"}</span>
