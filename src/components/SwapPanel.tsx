@@ -101,9 +101,14 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
     onPercentageChange?.(newPercentage);
   };
   return (
-    <div className={cn(`swap-panel-hover p-2 flex flex-col gap-2`, className)}>
+    <div
+      className={cn(
+        `transition-all duration-150 ease-in-out border-2 border-terminal-black bg-terminal-white hover:shadow-[2px_2px_0_var(--terminal-black)] p-2 flex flex-col gap-2`,
+        className,
+      )}
+    >
       <div className="flex items-center justify-between">
-        <span className="text-sm text-muted-foreground dark:text-slate-200 font-medium">{title}</span>
+        <span className="text-sm text-foreground font-medium">{title}</span>
         <TokenSelector
           selectedToken={selectedToken}
           tokens={tokens}
@@ -121,28 +126,18 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
           value={amount}
           onChange={(e) => onAmountChange(e.target.value)}
           readOnly={readOnly}
-          className="form-input-hover text-lg sm:text-xl font-medium w-full focus:outline-none h-10 text-right pr-1 bg-transparent text-gray-900 dark:text-gray-100"
-          style={{
-            fontFamily: "var(--font-body)",
-            border: "none",
-          }}
+          className="transition-all duration-100 ease-in hover:bg-secondary focus:bg-muted focus:shadow-[0_0_0_2px_var(--terminal-black)] text-lg sm:text-xl font-medium w-full focus:outline-none h-10 text-right pr-1 text-foreground font-body border-none"
         />
         {previewLabel ? (
-          <span className="ml-1 text-xs text-primary font-medium">
+          <span className="ml-1 text-xs text-foreground font-medium">
             {previewLabel}
           </span>
         ) : (
           showMaxButton &&
           onMax && (
             <button
-              className="button"
+              className="bg-terminal-black dark:bg-terminal-white text-terminal-white dark:text-terminal-black hover:opacity-90 text-[10px] px-2 py-1 uppercase min-w-[50px]"
               onClick={onMax}
-              style={{
-                fontSize: "10px",
-                padding: "4px 8px",
-                textTransform: "uppercase",
-                minWidth: "50px",
-              }}
             >
               MAX
             </button>
@@ -150,11 +145,10 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
         )}
       </div>
 
-      {/* Percentage slider - only show for sell panels when there's a balance */}
       {showPercentageSlider &&
       selectedToken.balance &&
       selectedToken.balance > 0n ? (
-        <div className="mt-2 pt-2 border-t border-primary/20">
+        <div className="mt-2 pt-2 border-t border-terminal-black dark:border-terminal-white/20">
           <PercentageSlider
             value={percentage}
             onChange={handlePercentageChange}

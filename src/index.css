@@ -328,20 +328,6 @@ body {
   border: 2px solid var(--terminal-black);
 }
 
-/* Form input hover effects */
-.form-input-hover {
-  transition: all 0.1s ease;
-}
-
-.form-input-hover:hover {
-  background: var(--terminal-gray);
-}
-
-.form-input-hover:focus {
-  background: var(--terminal-white);
-  box-shadow: 0 0 0 2px var(--terminal-black);
-}
-
 .token-select {
   border: 2px solid var(--terminal-black);
   padding: 10px;
