@@ -103,7 +103,7 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
   return (
     <div className={cn(`swap-panel-hover p-2 flex flex-col gap-2`, className)}>
       <div className="flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">{title}</span>
+        <span className="text-sm text-foreground font-medium">{title}</span>
         <TokenSelector
           selectedToken={selectedToken}
           tokens={tokens}
@@ -124,7 +124,7 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
           className="form-input-hover text-lg sm:text-xl font-medium w-full focus:outline-none h-10 text-right pr-1 bg-transparent"
           style={{
             fontFamily: "var(--font-body)",
-            color: "var(--terminal-black)",
+            color: "var(--foreground)",
             border: "none",
           }}
         />

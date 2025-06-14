@@ -659,13 +659,13 @@ export const SwapAction = () => {
     <div className="relative w-full flex flex-col">
       {/* Terminal Mode Toggle */}
       <div className="flex items-center justify-center mb-4">
-        <div className="inline-flex gap-0 border-2 border-terminal-black bg-terminal-gray p-0.5">
+        <div className="inline-flex gap-0 border-2 border-border bg-muted p-0.5">
           <button
             onClick={() => setSwapMode("instant")}
             className={`px-3 py-1.5 text-xs font-bold uppercase cursor-pointer transition-all duration-100 font-body hover:opacity-80 focus:ring-2 focus:ring-primary/50 focus:outline-none ${
               swapMode === "instant"
                 ? "bg-accent text-accent-foreground"
-                : "bg-transparent text-terminal-black"
+                : "bg-transparent text-foreground"
             }`}
           >
             {t("swap.instant")}
@@ -749,7 +749,7 @@ export const SwapAction = () => {
           <div className="space-y-3">
             {/* Partial Fill Toggle */}
             <div className="flex items-center justify-between">
-              <label className="text-sm text-muted-foreground">
+              <label className="text-sm text-foreground">
                 Allow Partial Fill
               </label>
               <button
@@ -768,7 +768,7 @@ export const SwapAction = () => {
 
             {/* Deadline Selector */}
             <div className="flex items-center justify-between">
-              <label className="text-sm text-muted-foreground">
+              <label className="text-sm text-foreground">
                 Expires In
               </label>
               <select
@@ -786,7 +786,7 @@ export const SwapAction = () => {
             {/* Exchange Rate Display */}
             {sellAmt && buyAmt && buyToken && (
               <div className="pt-2 border-t border-primary/10">
-                <div className="text-xs text-muted-foreground">
+                <div className="text-xs text-foreground">
                   Rate: 1 {sellToken.symbol} ={" "}
                   {(parseFloat(buyAmt) / parseFloat(sellAmt)).toFixed(6)}{" "}
                   {buyToken.symbol}

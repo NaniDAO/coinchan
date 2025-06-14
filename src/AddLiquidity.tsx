@@ -652,7 +652,7 @@ export const AddLiquidity = () => {
         setSlippageBps={setSlippageBps}
       />
 
-      <div className="text-xs bg-muted/50 border border-primary/30 rounded p-2 mt-2 text-muted-foreground">
+      <div className="text-xs bg-muted/50 border border-primary/30 rounded p-2 mt-2 text-foreground">
         <p className="font-medium mb-1">Adding liquidity provides:</p>
         <ul className="list-disc pl-4 space-y-0.5">
           <li>LP tokens as a proof of your position</li>

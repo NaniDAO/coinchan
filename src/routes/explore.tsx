@@ -35,7 +35,7 @@ function RouteComponent() {
           <button
             key={label}
             onClick={onClick}
-            className="group coin-card uppercase px-4 py-3 w-full max-w-[150px] border-2 border-border bg-background text-foreground flex items-center justify-center gap-2 transition-all duration-150 ease-in-out hover:bg-primary hover:text-primary-foreground hover:shadow-[3px_3px_0_var(--border)] hover:-translate-x-[1px] hover:-translate-y-[1px] active:translate-x-0 active:translate-y-0 active:shadow-none dark:text-foreground dark:hover:text-primary-foreground"
+            className="group uppercase px-4 py-3 w-full max-w-[150px] border-2 border-border bg-background text-foreground flex items-center justify-center gap-2 transition-all duration-150 ease-in-out hover:bg-primary hover:text-primary-foreground hover:shadow-[3px_3px_0_var(--border)] hover:-translate-x-[1px] hover:-translate-y-[1px] active:translate-x-0 active:translate-y-0 active:shadow-none"
           >
             <span className="text-lg group-hover:animate-terminal-ping">
               {icon}
