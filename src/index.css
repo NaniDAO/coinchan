@@ -97,6 +97,18 @@
   --sidebar-ring: #ffffff;
 }
 
+/* Dark mode datetime-local calendar icon fix */
+.dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
+
+.dark input[type="date"]::-webkit-calendar-picker-indicator,
+.dark input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
+
 /* ———————————————————————————————————————————————————————————————
    Retro macOS Terminal Base Styles
    ——————————————————————————————————————————————————————————————— */

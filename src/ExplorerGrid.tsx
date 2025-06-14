@@ -126,7 +126,7 @@ export const ExplorerGrid = ({
                 className={`flex items-center !px-3 !py-2 text-sm font-medium ${
                   sortType === "liquidity"
                     ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80 dark:text-foreground dark:hover:text-foreground"
                 }`}
                 title={t("common.sort_by", { field: t("common.liquidity") })}
                 disabled={isLoading || isTransitioning}
@@ -140,7 +140,7 @@ export const ExplorerGrid = ({
                 className={`flex items-center px-3 py-2 text-sm font-medium ${
                   sortType === "recency"
                     ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80 dark:text-foreground dark:hover:text-foreground"
                 }`}
                 title={t("common.sort_by", { field: t("explore.new") })}
                 disabled={isLoading || isTransitioning}
@@ -152,7 +152,7 @@ export const ExplorerGrid = ({
               <button
                 onClick={() => onSortTypeChange("votes")}
                 className={`flex items-center px-3 py-2 text-sm font-medium ${
-                  sortType === "votes" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  sortType === "votes" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80 dark:text-foreground dark:hover:text-foreground"
                 }`}
                 title={t("common.sort_by", { field: t("common.votes") })}
                 disabled={isLoading || isTransitioning}
@@ -168,7 +168,7 @@ export const ExplorerGrid = ({
               onClick={() =>
                 onSortOrderChange(sortOrder === "asc" ? "desc" : "asc")
               }
-              className="flex items-center px-3 py-2 text-xs font-medium bg-muted text-muted-foreground hover:bg-muted/80"
+              className="flex items-center px-3 py-2 text-xs font-medium bg-muted text-muted-foreground hover:bg-muted/80 dark:text-foreground dark:hover:text-foreground"
               title={
                 sortType === "recency"
                   ? sortOrder === "asc"
@@ -239,7 +239,7 @@ export const ExplorerGrid = ({
           onClick={handlePrev}
           disabled={!canPrev || isPending}
           aria-label="Go to previous page"
-          className={`relative px-5 py-3 text-sm font-bold uppercase min-w-[100px] bg-secondary text-secondary-foreground border border-border hover:bg-secondary/80 transition-colors ${
+          className={`relative px-5 py-3 text-sm font-bold uppercase min-w-[100px] bg-secondary text-secondary-foreground border border-border hover:bg-secondary/80 transition-colors dark:text-foreground dark:hover:text-foreground ${
             !canPrev || isPending ? "opacity-50 cursor-not-allowed" : ""
           }`}
         >
@@ -258,7 +258,7 @@ export const ExplorerGrid = ({
         </button>
 
         {total > 0 && !isSearchActive && (
-          <span className="px-4 py-2 text-sm font-bold font-body bg-muted text-muted-foreground border border-border">
+          <span className="px-4 py-2 text-sm font-bold font-body bg-muted text-muted-foreground border border-border dark:text-foreground">
             {t("common.page")} {currentPage} {t("common.of")} {totalPages}
           </span>
         )}
@@ -267,7 +267,7 @@ export const ExplorerGrid = ({
           onClick={handleNext}
           disabled={!canNext || isPending}
           aria-label="Go to next page"
-          className={`relative px-5 py-3 text-sm font-bold uppercase min-w-[100px] bg-secondary text-secondary-foreground border border-border hover:bg-secondary/80 transition-colors ${
+          className={`relative px-5 py-3 text-sm font-bold uppercase min-w-[100px] bg-secondary text-secondary-foreground border border-border hover:bg-secondary/80 transition-colors dark:text-foreground dark:hover:text-foreground ${
             !canNext || isPending ? "opacity-50 cursor-not-allowed" : ""
           }`}
         >

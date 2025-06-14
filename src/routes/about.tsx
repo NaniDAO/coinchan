@@ -25,11 +25,9 @@ function RouteComponent() {
         </div>
 
         <p className="my-5 font-display">
-          ZAMM is a decentralized automated market maker (AMM) protocol built
-          for the modern DeFi ecosystem. Inspired by the simplicity and elegance
-          of early computing interfaces, ZAMM brings fair launches and minimal
-          fees to everyone.
-        </p>
+ZAMM makes it easy to create and trade coins on Ethereum.
+Create your own coins, sell them directly to others, or set up trading pools to earn fees - all in one simple, low-cost platform. ZAMM works with all token types and lets you customize features like fees and trading rules.
+Perfect for experimenting with new DeFi ideas without the complexity.        </p>
 
         <div className="ascii-divider">
           ════════════════════════════════════
@@ -48,7 +46,7 @@ function RouteComponent() {
 
         <p className="text-center my-7">
           <button
-            className="button m-1 font-display"
+            className="button m-1 font-display transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-[6px_6px_0_var(--border)] hover:bg-primary hover:text-primary-foreground hover:-translate-x-[2px] hover:-translate-y-[2px] active:scale-95 active:translate-x-0 active:translate-y-0 active:shadow-none"
             onClick={() => {
               const newWindow = window.open(
                 "https://docs.zamm.eth.limo",
@@ -60,7 +58,7 @@ function RouteComponent() {
             DOCS
           </button>
           <button
-            className="button m-1 font-display"
+            className="button m-1 font-display transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-[6px_6px_0_var(--border)] hover:bg-primary hover:text-primary-foreground hover:-translate-x-[2px] hover:-translate-y-[2px] active:scale-95 active:translate-x-0 active:translate-y-0 active:shadow-none"
             onClick={() => {
               const newWindow = window.open(
                 "https://wp.zamm.eth.limo",
@@ -72,10 +70,10 @@ function RouteComponent() {
             WHITEPAPER
           </button>
           <button
-            className="button m-1 font-display"
+            className="button m-1 font-display transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-[6px_6px_0_var(--border)] hover:bg-primary hover:text-primary-foreground hover:-translate-x-[2px] hover:-translate-y-[2px] active:scale-95 active:translate-x-0 active:translate-y-0 active:shadow-none"
             onClick={() => {
               const newWindow = window.open(
-                "https://github.com/zamm-protocol",
+                "https://github.com/zammdefi/ZAMM",
                 "_blank",
               );
               if (newWindow) newWindow.opener = null;
@@ -84,10 +82,10 @@ function RouteComponent() {
             GITHUB
           </button>
           <button
-            className="button m-1 font-display"
+            className="button m-1 font-display transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-[6px_6px_0_var(--border)] hover:bg-primary hover:text-primary-foreground hover:-translate-x-[2px] hover:-translate-y-[2px] active:scale-95 active:translate-x-0 active:translate-y-0 active:shadow-none"
             onClick={() => {
               const newWindow = window.open(
-                "https://discourse.zamm.eth.limo",
+                "https://zamm.discourse.group/",
                 "_blank",
               );
               if (newWindow) newWindow.opener = null;
