@@ -80,8 +80,8 @@ export const useLandingData = () => {
       return {
         ethPrice: `$${ethPriceUsd.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
         gasPrice: Number(formatUnits(gasPrice, 9)).toFixed(2) + " GWEI",
-        launchCost: launchCostUsd.toFixed(2).toString() + " $",
-        coinCost: coinCostUsd.toFixed(2).toString() + " $",
+        launchCost: `$${launchCostUsd.toFixed(2)}`,
+        coinCost: `$${coinCostUsd.toFixed(2)}`,
       };
     },
     refetchInterval: 30000, // Refetch every 30 seconds
