@@ -10,34 +10,35 @@ export interface LandingData {
   ethPrice: string;
   gasPrice: string;
   launchCost: string;
+  coinCost: string;
 }
 
 export const loadingStateTips = [
-  "Tip: Limit orders let you set your desired price and walk away - no need to watch charts all day!",
-  "Did you know? ERC6909 tokens are more gas-efficient than traditional ERC20s, saving you money on every trade.",
-  "Pro tip: Always check the gas price before making large trades - sometimes waiting an hour can save you significant fees.",
-  "Zamm is a singleton DEX, meaning all liquidity is pooled together for better prices and deeper markets.",
-  "Remember: High gas prices during network congestion affect everyone - patience can save you money.",
-  "Fact: Slippage tolerance protects you from price movements during trade execution, but setting it too low might cause failures.",
-  "Trading wisdom: Dollar-cost averaging into positions can help reduce the impact of market volatility.",
-  "The best traders know when not to trade - sometimes the best move is no move at all.",
-  "Tip: Limit orders can be used both for buying dips and taking profits at target prices.",
-  "ERC6909's multi-token standard allows for more efficient batch operations compared to individual ERC20 transfers.",
-  "Market insight: Liquidity tends to be lower during off-peak hours, which may result in higher slippage.",
-  "Remember: Never invest more than you can afford to lose - DeFi markets can be volatile.",
-  "Pro tip: Check multiple sources for token information before trading unfamiliar assets.",
-  "Gas optimization: Bundling multiple operations can sometimes be more efficient than separate transactions.",
-  "Zamm's architecture ensures that your trades get the best available prices across all available liquidity.",
-  "Fun fact: Checking charts every 5 minutes doesn't make your portfolio go up faster, but it does make time go slower.",
-  "Remember: 'Buy the dip' works great until you realize it's actually a canyon, not a dip.",
-  "Pro tip: If you're stress-eating while trading, you're either doing it wrong or you're doing it very, very right.",
-  "Wisdom: The market can stay irrational longer than your coffee can stay warm.",
-  "Truth: Every crypto influencer's prediction is 100% accurate... until it isn't.",
-  "Life hack: Diamond hands are great, but sometimes you need opposable thumbs to actually trade.",
-  "Reality check: Your technical analysis is very impressive, but the market didn't read your charts.",
-  "Fact: Whales don't actually live in the ocean - they live in your notifications, moving markets at 3 AM.",
-  "Reminder: HODL is not just a typo, it's a lifestyle choice that may or may not pay your rent.",
-  "Warning: Gas fees may cause sudden urges to become a Bitcoin maximalist.",
+  "ZAMM combines constant product AMMs with embedded orderbooks - get the best of both worlds!",
+  "Did you know? ZAMM uses ERC6909 multi-token standard, allowing one contract to manage all tokens efficiently.",
+  "ZAMM's singleton architecture means deeper liquidity and better prices across all trading pairs.",
+  "Pro tip: ZAMM's orderbook supports partial fills - your large orders can execute gradually at better prices.",
+  "Ethereum trivia: Gas prices are measured in Gwei (1 Gwei = 0.000000001 ETH). Currently tracking live prices!",
+  "ZAMM innovation: Transient storage enables efficient multi-hop swaps without intermediate token transfers.",
+  "Fun fact: Ethereum's total value locked (TVL) in DeFi protocols exceeds $50 billion across thousands of projects.",
+  "ZAMM's timelock mechanism lets you schedule token unlocks - perfect for vesting schedules and security.",
+  "Ethereum history: The network launched on July 30, 2015, and has processed over 1 billion transactions since.",
+  "ZAMM tip: Hook system allows custom logic before/after trades - enabling advanced DeFi strategies.",
+  "Did you know? Ethereum's PoS consensus uses ~99.95% less energy than Bitcoin's PoW system.",
+  "ZAMM's limit orders never expire unless you set a deadline - set and forget trading at its finest!",
+  "Ethereum fact: Block times average 12 seconds, with gas limits around 30 million gas per block.",
+  "ZAMM innovation: Fee collection happens via liquidity provider rewards, not direct trading fees.",
+  "ZAMM's constant product formula (x * y = k) ensures liquidity is always available for trades.",
+  "Ethereum trivia: The network upgrade 'The Merge' happened on September 15, 2022, switching to Proof of Stake.",
+  "ZAMM tip: Minimum liquidity prevents pool draining attacks while maintaining fair token distribution.",
+  "Fun fact: Ethereum's native currency is technically called 'Ether', while ETH is just the ticker symbol.",
+  "ZAMM's reentrancy protection uses transient storage - gas-efficient security built into the core.",
+  "ZAMM advantage: Single contract deployment means lower gas costs for all operations.",
+  "Did you know? Ethereum addresses are derived from public keys using Keccak-256 hashing algorithm.",
+  "ZAMM's price oracles update automatically with each trade - always reflecting true market conditions.",
+  "ZAMM's orderbook entries are stored efficiently - even large order books consume minimal gas.",
+  "ZAMM tip: Multi-token batching reduces transaction costs when trading multiple pairs simultaneously.",
+  "Remember: Ethereum's censorship resistance makes it the backbone of decentralized finance worldwide!",
 ];
 
 export const getRandomLoadingText = () => {
@@ -46,6 +47,7 @@ export const getRandomLoadingText = () => {
 };
 
 const LAUNCH_COST_GAS = 365030n;
+const COIN_COST_GAS = 54938n;
 
 export const useLandingData = () => {
   const publicClient = usePublicClient();
@@ -71,11 +73,15 @@ export const useLandingData = () => {
 
       const launchCostUsd =
         Number(formatUnits(LAUNCH_COST_GAS * gasPrice, 18)) * ethPriceUsd;
+      
+      const coinCostUsd =
+        Number(formatUnits(COIN_COST_GAS * gasPrice, 18)) * ethPriceUsd;
 
       return {
         ethPrice: `$${ethPriceUsd.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
         gasPrice: Number(formatUnits(gasPrice, 9)).toFixed(2) + " GWEI",
-        launchCost: launchCostUsd.toFixed(2).toString() + " $",
+        launchCost: `$${launchCostUsd.toFixed(2)}`,
+        coinCost: `$${coinCostUsd.toFixed(2)}`,
       };
     },
     refetchInterval: 30000, // Refetch every 30 seconds
