@@ -11,6 +11,7 @@ import {
 } from "@/lib/swap";
 import { nowSec } from "@/lib/utils";
 import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { parseEther, parseUnits, formatEther, formatUnits } from "viem";
 import {
   useWriteContract,
@@ -28,6 +29,7 @@ export const BuySellCookbookCoin = ({
   coinId: bigint;
   symbol: string;
 }) => {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<"buy" | "sell">("buy");
   const [amount, setAmount] = useState("");
   const [txHash, setTxHash] = useState<`0x${string}`>();
@@ -111,55 +113,55 @@ export const BuySellCookbookCoin = ({
       setTxHash(hash);
     } catch (error) {
       console.error(error);
-      setErrorMessage("Transaction failed");
+      setErrorMessage(t("create.transaction_failed"));
     }
   };
 
   return (
     <Tabs value={tab} onValueChange={(v) => setTab(v as "buy" | "sell")}>
       <TabsList>
-        <TabsTrigger value="buy">Buy {symbol}</TabsTrigger>
-        <TabsTrigger value="sell">Sell {symbol}</TabsTrigger>
+        <TabsTrigger value="buy">{t("create.buy_token", { token: symbol })}</TabsTrigger>
+        <TabsTrigger value="sell">{t("create.sell_token", { token: symbol })}</TabsTrigger>
       </TabsList>
 
       <TabsContent value="buy">
         <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium">Using ETH</span>
+          <span className="text-sm font-medium">{t("create.using_token", { token: "ETH" })}</span>
           <Input
             type="number"
-            placeholder="Amount ETH"
+            placeholder={t("create.amount_token", { token: "ETH" })}
             value={amount}
             onChange={(e) => setAmount(e.currentTarget.value)}
           />
           <span className="text-sm font-medium">
-            You will receive ~ {estimated} {symbol}
+            {t("create.you_will_receive", { amount: estimated, token: symbol })}
           </span>
           <Button
             onClick={() => handleSwap("buy")}
             disabled={!isConnected || isPending || !amount}
           >
-            {isPending ? "Buying…" : `Buy ${symbol}`}
+            {isPending ? t("swap.swapping") : t("create.buy_token", { token: symbol })}
           </Button>
         </div>
       </TabsContent>
 
       <TabsContent value="sell">
         <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium">Using {symbol}</span>
+          <span className="text-sm font-medium">{t("create.using_token", { token: symbol })}</span>
           <Input
             type="number"
-            placeholder={`Amount ${symbol}`}
+            placeholder={t("create.amount_token", { token: symbol })}
             value={amount}
             onChange={(e) => setAmount(e.currentTarget.value)}
           />
           <span className="text-sm font-medium">
-            You will receive ~ {estimated} ETH
+            {t("create.you_will_receive", { amount: estimated, token: "ETH" })}
           </span>
           <Button
             onClick={() => handleSwap("sell")}
             disabled={!isConnected || isPending || !amount}
           >
-            {isPending ? "Selling…" : `Sell ${symbol}`}
+            {isPending ? t("swap.swapping") : t("create.sell_token", { token: symbol })}
           </Button>
         </div>
       </TabsContent>
@@ -168,7 +170,7 @@ export const BuySellCookbookCoin = ({
         <p className="text-destructive text-sm">{errorMessage}</p>
       )}
       {isSuccess && (
-        <p className="text-green-600 text-sm">Transaction confirmed!</p>
+        <p className="text-green-600 text-sm">{t("create.transaction_confirmed")}</p>
       )}
     </Tabs>
   );

@@ -166,7 +166,7 @@ const ConnectMenuComponent = () => {
     // Normal disconnected state - show connect button
     return (
       <Dialog>
-        <DialogTrigger className="!py-1 !px-2 uppercase tracking-wider font-['Chicago'] bg-secondary-background text-secondary-foreground border border-border shadow-[2px_2px_0px_rgba(0,0,0,1)] active:shadow-[1px_1px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] transition-all dark:shadow-[2px_2px_0px_rgba(255,255,255,0.3)] dark:active:shadow-[1px_1px_0px_rgba(255,255,255,0.3)]">
+        <DialogTrigger className="!py-1 !px-2 uppercase tracking-wider font-['Chicago'] bg-secondary-background text-secondary-foreground border border-border shadow-[2px_2px_0px_rgba(0,0,0,1)] active:shadow-[1px_1px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-[6px_6px_0_var(--border)] hover:bg-primary hover:text-primary-foreground hover:-translate-x-[2px] hover:-translate-y-[2px] active:scale-95 active:translate-x-0 active:translate-y-0 active:shadow-none dark:shadow-[2px_2px_0px_rgba(255,255,255,0.3)] dark:active:shadow-[1px_1px_0px_rgba(255,255,255,0.3)]">
           {t("common.connect")}
         </DialogTrigger>
         <DialogContent className="!p-4 !bg-secondary-background border-2 border-border shadow-[4px_4px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_rgba(255,255,255,0.3)]">
