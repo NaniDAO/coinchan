@@ -10,6 +10,7 @@ export interface LandingData {
   ethPrice: string;
   gasPrice: string;
   launchCost: string;
+  coinCost: string;
 }
 
 export const loadingStateTips = [
@@ -46,6 +47,7 @@ export const getRandomLoadingText = () => {
 };
 
 const LAUNCH_COST_GAS = 365030n;
+const COIN_COST_GAS = 54938n;
 
 export const useLandingData = () => {
   const publicClient = usePublicClient();
@@ -71,11 +73,15 @@ export const useLandingData = () => {
 
       const launchCostUsd =
         Number(formatUnits(LAUNCH_COST_GAS * gasPrice, 18)) * ethPriceUsd;
+      
+      const coinCostUsd =
+        Number(formatUnits(COIN_COST_GAS * gasPrice, 18)) * ethPriceUsd;
 
       return {
         ethPrice: `$${ethPriceUsd.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
         gasPrice: Number(formatUnits(gasPrice, 9)).toFixed(2) + " GWEI",
         launchCost: launchCostUsd.toFixed(2).toString() + " $",
+        coinCost: coinCostUsd.toFixed(2).toString() + " $",
       };
     },
     refetchInterval: 30000, // Refetch every 30 seconds
