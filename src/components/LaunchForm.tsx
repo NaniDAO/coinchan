@@ -12,7 +12,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ImageInput } from "@/components/ui/image-input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { TrancheInfoDialog } from "@/components/TrancheInfoDialog";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 
@@ -299,6 +298,10 @@ export const LaunchForm = () => {
 
       if (validatedData.mode === "simple") {
         // Use simple coin function from Cookbook
+        if (!account) {
+          toast.error("Please connect your wallet");
+          return;
+        }
         writeContract({
           abi: CookbookAbi,
           address: CookbookAddress,
