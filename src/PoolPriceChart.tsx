@@ -9,7 +9,7 @@ import {
   ISeriesApi,
   PriceScaleMode,
 } from "lightweight-charts";
-import { Spinner } from "@/components/ui/spinner";
+import { LoadingLogo } from "@/components/ui/loading-logo";
 import { useQuery } from "@tanstack/react-query";
 import { fetchPoolPricePoints, PricePointData } from "./lib/indexer";
 import { formatEther } from "viem";
@@ -126,7 +126,7 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker }) => {
 
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
-          <Spinner />
+          <LoadingLogo />
         </div>
       ) : data && data.length > 0 ? (
         <TVPriceChart priceData={data} ticker={ticker} />

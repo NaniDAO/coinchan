@@ -1,17 +1,17 @@
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 import React, { useEffect, useState } from "react";
 import { truncAddress } from "./lib/address";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import ConnectionErrorHandler from "@/lib/ConnectionErrorHandler";
 import usePersistentConnection from "./hooks/use-persistent-connection";
 import { useTranslation } from "react-i18next";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useNavigate } from "@tanstack/react-router";
+import { AddressIcon } from "./components/AddressIcon";
 
 const ConnectMenuComponent = () => {
   const { isConnected, address, status } = useAccount();
@@ -19,7 +19,6 @@ const ConnectMenuComponent = () => {
   const { disconnect } = useDisconnect();
   const [reconnecting, setReconnecting] = useState(false);
   const { t } = useTranslation();
-  const navigate = useNavigate();
 
   usePersistentConnection();
 
@@ -64,11 +63,14 @@ const ConnectMenuComponent = () => {
 
     // Determine if this is truly a reconnection
     const lastAddress = sessionStorage.getItem("lastConnectedAddress");
-    const isReconnection = !!lastAddress && sessionStorage.getItem("connectionAttemptType") !== "fresh";
+    const isReconnection =
+      !!lastAddress &&
+      sessionStorage.getItem("connectionAttemptType") !== "fresh";
 
     // Only show reconnecting state if we're actually reconnecting (not first connection)
     // Now using connectionAttemptType to help distinguish context
-    const shouldShowReconnecting = status === "reconnecting" || (status === "connecting" && isReconnection);
+    const shouldShowReconnecting =
+      status === "reconnecting" || (status === "connecting" && isReconnection);
 
     if (shouldShowReconnecting !== reconnecting) {
       setReconnecting(shouldShowReconnecting);
@@ -93,41 +95,58 @@ const ConnectMenuComponent = () => {
     }
   }, [status, address, reconnecting]);
 
+  // Helper function to get connector icon
+  const getConnectorIcon = (connector: any) => {
+    if (connector.icon) {
+      return connector.icon;
+    }
+
+    // Handle common connector types
+    const connectorName = connector.name.toLowerCase();
+    if (connectorName.includes("metamask")) {
+      return "/metamask.svg";
+    }
+    if (connectorName.includes("coinbase")) {
+      return "/coinbase.png";
+    }
+    if (
+      connectorName.includes("injected") ||
+      connectorName.includes("browser")
+    ) {
+      return "/wallet-icon.webp";
+    }
+
+    return "/coinchan-logo.png";
+  };
+
   // Render the appropriate UI based on connection state
   const renderConnectionUI = () => {
     // When connected - show the address with dropdown
     if (isConnected) {
       return (
-        <DropdownMenu>
-          <DropdownMenuTrigger className="flex items-center hover:scale-105 focus:outline-none">
-            <div>{address ? truncAddress(address) : ""}</div>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuItem
-              onClick={() => {
-                if (!address) return;
-                // Navigate to the user's profile page
-                navigate({ to: "/u/$userId", params: { userId: address } });
-              }}
-            >
-              {t("common.asset_overview")}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => disconnect()}>{t("common.disconnect")}</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <span className="inline-flex gap-2.5 items-center">
+          <button
+            className="!py-1 !px-2 flex flex-row items-center uppercase tracking-wider font-['Chicago'] bg-secondary-background text-secondary-foreground border border-border shadow-[2px_2px_0px_rgba(0,0,0,1)] active:shadow-[1px_1px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] transition-all dark:shadow-[2px_2px_0px_rgba(255,255,255,0.3)] dark:active:shadow-[1px_1px_0px_rgba(255,255,255,0.3)]"
+            onClick={() => disconnect()}
+          >
+            {address ? (
+              <AddressIcon
+                address={address}
+                className="!mr-2 !h-4 !w-4 !rounded-lg border-1 border-background"
+              />
+            ) : null}
+            <span>{address ? truncAddress(address) : ""}</span>
+          </button>
+        </span>
       );
     }
 
     // When connecting or reconnecting - show appropriate message
     if (reconnecting) {
-      // Try to get last known address from sessionStorage to display during reconnection
-      const lastAddress = sessionStorage.getItem("lastConnectedAddress");
-
       return (
         <div className="flex items-center gap-2">
-          {lastAddress && <div className="opacity-50">{truncAddress(lastAddress)}</div>}
-          <div className="text-xs text-primary animate-pulse">
-            {lastAddress ? t("common.loading") : t("common.loading")}
+          <div className="text-xs text-primary animate-pulse font-['Chicago']">
+            {t("common.loading")}
           </div>
         </div>
       );
@@ -137,7 +156,9 @@ const ConnectMenuComponent = () => {
     if (status === "connecting") {
       return (
         <div className="flex items-center gap-2">
-          <div className="text-xs text-primary animate-pulse">{t("common.loading")}</div>
+          <div className="text-xs text-primary animate-pulse font-['Chicago']">
+            {t("common.loading")}
+          </div>
         </div>
       );
     }
@@ -145,21 +166,27 @@ const ConnectMenuComponent = () => {
     // Normal disconnected state - show connect button
     return (
       <Dialog>
-        <DialogTrigger className="appearance-none" asChild>
-          <button className="hover:scale-105 focus:underline">🙏 {t("common.connect")}</button>
+        <DialogTrigger className="!py-1 !px-2 uppercase tracking-wider font-['Chicago'] bg-secondary-background text-secondary-foreground border border-border shadow-[2px_2px_0px_rgba(0,0,0,1)] active:shadow-[1px_1px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-[6px_6px_0_var(--border)] hover:bg-primary hover:text-primary-foreground hover:-translate-x-[2px] hover:-translate-y-[2px] active:scale-95 active:translate-x-0 active:translate-y-0 active:shadow-none dark:shadow-[2px_2px_0px_rgba(255,255,255,0.3)] dark:active:shadow-[1px_1px_0px_rgba(255,255,255,0.3)]">
+          {t("common.connect")}
         </DialogTrigger>
-        <DialogContent>
+        <DialogContent className="!p-4 !bg-secondary-background border-2 border-border shadow-[4px_4px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_rgba(255,255,255,0.3)]">
           <DialogHeader>
-            <DialogTitle>{t("common.connect")}</DialogTitle>
+            <DialogTitle className="font-['Chicago'] uppercase tracking-widest text-lg">
+              {t("common.connect")}
+            </DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-4">
             {connectors.map((connector) => (
               <button
-                className="flex items-center justify-start hover:scale-105 focus:underline"
+                className="!py-1 !px-2 uppercase tracking-wider font-['Chicago'] bg-secondary-background text-secondary-foreground border border-border shadow-[2px_2px_0px_rgba(0,0,0,1)] active:shadow-[1px_1px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] transition-all dark:shadow-[2px_2px_0px_rgba(255,255,255,0.3)] dark:active:shadow-[1px_1px_0px_rgba(255,255,255,0.3)] flex items-center"
                 key={`connector-${connector.id || connector.name}`}
                 onClick={() => connect({ connector })}
               >
-                <img src={connector.icon ?? "/coinchan-logo.png"} alt={connector.name} className="w-6 h-6 mr-2" />
+                <img
+                  src={getConnectorIcon(connector)}
+                  alt={connector.name}
+                  className="w-6 h-6 !mr-3"
+                />
                 <span>{connector.name}</span>
               </button>
             ))}

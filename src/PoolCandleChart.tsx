@@ -11,7 +11,7 @@ import {
   ColorType,
   PriceFormatBuiltIn,
 } from "lightweight-charts";
-import { Spinner } from "@/components/ui/spinner";
+import { LoadingLogo } from "@/components/ui/loading-logo";
 import { useQuery } from "@tanstack/react-query";
 import { fetchPoolCandles, CandleData } from "./lib/indexer";
 import { useChartTheme } from "./hooks/use-chart-theme";
@@ -66,7 +66,7 @@ const PoolCandleChart: React.FC<CandleChartProps> = ({ poolId, interval = "1h" }
 
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
-          <Spinner />
+          <LoadingLogo />
         </div>
       ) : data && data.length > 0 ? (
         <TVCandlestick rawData={data} />

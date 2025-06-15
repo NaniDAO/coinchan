@@ -10,6 +10,7 @@ import {
   estimateCoinToCoinOutput,
   SWAP_FEE,
   withSlippage,
+  ZAMMPoolKey,
 } from "@/lib/swap";
 import { nowSec } from "./utils";
 
@@ -34,8 +35,20 @@ export interface SwapParams {
  * Builds the sequence of calls to perform a swap on-chain,
  * internally checking allowances and operator status.
  */
-export async function buildSwapCalls(params: SwapParams & { publicClient: PublicClient }): Promise<Call[]> {
-  const { address, sellToken, buyToken, sellAmt, buyAmt, reserves, slippageBps, targetReserves, publicClient } = params;
+export async function buildSwapCalls(
+  params: SwapParams & { publicClient: PublicClient },
+): Promise<Call[]> {
+  const {
+    address,
+    sellToken,
+    buyToken,
+    sellAmt,
+    buyAmt,
+    reserves,
+    slippageBps,
+    targetReserves,
+    publicClient,
+  } = params;
   const calls: Call[] = [];
 
   const isSellETH = sellToken.id === null;
@@ -46,7 +59,10 @@ export async function buildSwapCalls(params: SwapParams & { publicClient: Public
   const decimals = sellToken.decimals || 18;
   // Parse with correct decimals (6 for USDT, 18 for regular tokens)
   const sellAmtInUnits = parseUnits(sellAmt || "0", decimals);
-  const minBuyAmount = withSlippage(parseUnits(buyAmt || "0", buyToken.decimals || 18), slippageBps);
+  const minBuyAmount = withSlippage(
+    parseUnits(buyAmt || "0", buyToken.decimals || 18),
+    slippageBps,
+  );
   const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
   // 1. If selling USDT, check allowance and add approve if needed
@@ -93,23 +109,29 @@ export async function buildSwapCalls(params: SwapParams & { publicClient: Public
 
   // 3. Build the swap call(s)
   if (isCoinToCoin) {
-    if (!targetReserves) throw new Error("targetReserves are required for coin-to-coin swaps");
+    if (!targetReserves)
+      throw new Error("targetReserves are required for coin-to-coin swaps");
 
     // Get correct swap fees for both pools
-    const sourceSwapFee = sellToken.isCustomPool ? sellToken.swapFee || SWAP_FEE : SWAP_FEE;
-    const targetSwapFee = buyToken?.isCustomPool ? buyToken.swapFee || SWAP_FEE : SWAP_FEE;
+    const sourceSwapFee = sellToken.isCustomPool
+      ? sellToken.swapFee || SWAP_FEE
+      : SWAP_FEE;
+    const targetSwapFee = buyToken?.isCustomPool
+      ? buyToken.swapFee || SWAP_FEE
+      : SWAP_FEE;
 
     // Estimate the final output amount and intermediate ETH amount
-    const { withSlippage: minAmountOut, ethAmountOut } = estimateCoinToCoinOutput(
-      sellToken.id!,
-      buyToken.id!,
-      sellAmtInUnits,
-      reserves || { reserve0: 0n, reserve1: 0n }, // source reserves
-      targetReserves, // target reserves
-      slippageBps, // Use current slippage setting
-      sourceSwapFee, // Pass source pool fee (could be 30n for USDT)
-      targetSwapFee, // Pass target pool fee (could be 30n for USDT)
-    );
+    const { withSlippage: minAmountOut, ethAmountOut } =
+      estimateCoinToCoinOutput(
+        sellToken.id!,
+        buyToken.id!,
+        sellAmtInUnits,
+        reserves || { reserve0: 0n, reserve1: 0n }, // source reserves
+        targetReserves, // target reserves
+        slippageBps, // Use current slippage setting
+        sourceSwapFee, // Pass source pool fee (could be 30n for USDT)
+        targetSwapFee, // Pass target pool fee (could be 30n for USDT)
+      );
 
     // Create the multicall data for coin-to-coin swap via ETH
     // We need to provide custom pool keys for USDT pools
@@ -150,12 +172,21 @@ export async function buildSwapCalls(params: SwapParams & { publicClient: Public
         ? sellToken.isCustomPool
           ? sellToken.poolKey!
           : buyToken.poolKey!
-        : computePoolKey(
+        : (computePoolKey(
             isSellETH ? buyToken.id! : sellToken.id!,
-            isSellETH ? (buyToken?.swapFee ?? SWAP_FEE) : (sellToken?.swapFee ?? SWAP_FEE),
-          );
+            isSellETH
+              ? (buyToken?.swapFee ?? SWAP_FEE)
+              : (sellToken?.swapFee ?? SWAP_FEE),
+          ) as ZAMMPoolKey);
     const fromETH = isSellETH;
-    const args = [poolKey, sellAmtInUnits, minBuyAmount, fromETH, address, deadline] as const;
+    const args = [
+      poolKey,
+      sellAmtInUnits,
+      minBuyAmount,
+      fromETH,
+      address,
+      deadline,
+    ] as const;
     const call: Call = {
       to: ZAMMAddress,
       data: encodeFunctionData({

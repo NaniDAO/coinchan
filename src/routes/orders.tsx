@@ -10,10 +10,14 @@ function RouteComponent() {
   const { t } = useTranslation();
 
   return (
-    <main className="p-2 sm:p-3 min-h-[90vh] w-screen flex flex-col" aria-label={t("orders.title")}>
-      <div className="w-full max-w-6xl mx-auto">
+    <div className="p-5">
+      <h2 className="text-center mb-5 font-display uppercase tracking-[2px]">
+        ═══ {t("orders.title")} ═══
+      </h2>
+
+      <div className="orders-container">
         <OrdersPage />
       </div>
-    </main>
+    </div>
   );
 }

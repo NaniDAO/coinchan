@@ -10,5 +10,5 @@ export function AddressIcon({
   className?: string;
 }) {
   const imageSrc = useMemo(() => blo(address), [address]);
-  return <img alt={address} src={imageSrc} className={className} />;
+  return <img alt={address + " icon"} src={imageSrc} className={className} />;
 }
