@@ -21,6 +21,7 @@ import { LoadingLogo } from "./components/ui/loading-logo";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { ETH_TOKEN, TokenMeta, USDT_ADDRESS } from "./lib/coins";
 import { TokenSelector } from "./components/TokenSelector";
+import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
 
 // Helper function to format token balance with appropriate precision
 export const formatTokenBalance = (token: TokenMeta): string => {
@@ -247,12 +248,16 @@ const SendTileComponent = () => {
         console.log("Coins contract address:", CoinsAddress);
         console.log("Token ID:", selectedToken.id?.toString());
         console.log("Amount in raw units:", parsedAmount.toString());
+        console.log("Token Source:", selectedToken?.source);
 
         const hash = await writeContractAsync({
           account: address,
           chainId: mainnet.id,
-          address: CoinsAddress,
-          abi: CoinsAbi,
+          address:
+            selectedToken?.source === "COOKBOOK"
+              ? CookbookAddress
+              : CoinsAddress,
+          abi: selectedToken?.source === "COOKBOOK" ? CookbookAbi : CoinsAbi,
           functionName: "transfer",
           args: [
             recipientAddress as `0x${string}`,

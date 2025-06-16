@@ -13,6 +13,7 @@ import {
   ZAMMPoolKey,
 } from "@/lib/swap";
 import { nowSec } from "./utils";
+import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 
 export type Call = {
   to: Address;
@@ -157,6 +158,7 @@ export async function buildSwapCalls(
       targetPoolKey, // Custom target pool key
     );
 
+    // @TODO: add multihop support for cookbook
     calls.push({
       to: ZAMMAddress,
       data: encodeFunctionData({
@@ -177,8 +179,16 @@ export async function buildSwapCalls(
             isSellETH
               ? (buyToken?.swapFee ?? SWAP_FEE)
               : (sellToken?.swapFee ?? SWAP_FEE),
+            isSellETH
+              ? buyToken.source === "ZAMM"
+                ? CoinsAddress
+                : CookbookAddress
+              : sellToken.source === "ZAMM"
+                ? CoinsAddress
+                : CookbookAddress,
           ) as ZAMMPoolKey);
     const fromETH = isSellETH;
+    const source = fromETH ? buyToken.source : sellToken.source;
     const args = [
       poolKey,
       sellAmtInUnits,
@@ -188,9 +198,9 @@ export async function buildSwapCalls(
       deadline,
     ] as const;
     const call: Call = {
-      to: ZAMMAddress,
+      to: source === "ZAMM" ? ZAMMAddress : CookbookAddress,
       data: encodeFunctionData({
-        abi: ZAMMAbi,
+        abi: source === "ZAMM" ? ZAMMAbi : CookbookAbi,
         functionName: "swapExactIn",
         args,
       }) as Hex,
