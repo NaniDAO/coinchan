@@ -399,21 +399,24 @@ export const LaunchForm = () => {
           )}
         </div>
 
-        <div className="grid w-full items-center gap-1.5">
-          <Label htmlFor="creatorUnlockDate">Creator Unlock Time</Label>
-          <Input
-            id="creatorUnlockDate"
-            name="creatorUnlockDate"
-            type="datetime-local"
-            value={formData.creatorUnlockDate}
-            onChange={handleInputChange}
-          />
-          {errors["creatorUnlockDate"] && (
-            <p className="text-sm text-red-500">
-              {errors["creatorUnlockDate"]}
-            </p>
-          )}
-        </div>
+        {/* Creator Unlock Time - only show for tranche and pool modes */}
+        {(formData.mode === "tranche" || formData.mode === "pool") && (
+          <div className="grid w-full items-center gap-1.5">
+            <Label htmlFor="creatorUnlockDate">Creator Unlock Time</Label>
+            <Input
+              id="creatorUnlockDate"
+              name="creatorUnlockDate"
+              type="datetime-local"
+              value={formData.creatorUnlockDate}
+              onChange={handleInputChange}
+            />
+            {errors["creatorUnlockDate"] && (
+              <p className="text-sm text-red-500">
+                {errors["creatorUnlockDate"]}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Launch Mode Selector */}
         <div className="grid w-full items-center gap-3">
