@@ -356,7 +356,7 @@
   "landing": {
     "title": "ZAMM DEFI",
     "tagline": "高效的以太坊交易所",
-    "progress_loading": "[{progress}%]",
+    "progress_loading": "[{{progress}}%]",
     "enter_zamm": "进入 ZAMM",
     "enter_app_aria": "进入 ZAMM 应用程序",
     "features": "EVM 布拉格 • 公平发行 • 低廉费用",
