@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { ZammLogo } from "./ZammLogo";
 import {
-  getRandomLoadingText,
+  useRandomLoadingText,
   useLandingData,
 } from "../hooks/use-landing-data";
 import { useProtocolStats } from "../hooks/use-protocol-stats";
@@ -12,9 +13,11 @@ interface LandingPageProps {
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
+  const { t } = useTranslation();
   const { data: landingData, isLoading: isLoadingLandingData } =
     useLandingData();
   const { data: protocolStats } = useProtocolStats();
+  const getRandomLoadingText = useRandomLoadingText();
   const [progressText, setProgressText] = useState("");
   const [progress, setProgress] = useState(0);
   const [enterEnabled, setEnterEnabled] = useState(false);
@@ -31,7 +34,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
     if (isLoading === false) {
       setTimeout(() => {
         setProgress(100);
-        setProgressText("The Efficient Ethereum Exchange");
+        setProgressText(t('landing.tagline'));
         setEnterEnabled(true);
       }, 1000);
     } else {
@@ -48,7 +51,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
 
       return () => clearInterval(interval);
     }
-  }, [isLoading]);
+  }, [isLoading, t, getRandomLoadingText]);
 
   const handleEnterApp = () => {
     if (onEnterApp) {
@@ -69,7 +72,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
         autoStartAnimation={true}
       />
 
-      <h1 className="m-1 text-center">ZAMM DEFI</h1>
+      <h1 className="m-1 text-center">{t('landing.title')}</h1>
 
       <div className="ascii-divider">════════════════════════════════════</div>
 
@@ -86,30 +89,30 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
             style={{ width: `${progress}%` }}
           ></div>
         </div>
-        <p>[{Math.round(progress)}%]</p>
+        <p>{t('landing.progress_loading', { progress: Math.round(progress) })}</p>
       </div>
 
       {/* Stats Cards */}
       <div className="my-10 text-base">
         <div className="max-w-[500px] mx-auto">
           <StatsCard
-            label="ETH Price:"
-            value={landingData?.ethPrice || "Loading..."}
+            label={t('landing.stats.eth_price')}
+            value={landingData?.ethPrice || t('landing.stats.loading')}
             color="var(--diamond-blue)"
           />
           <StatsCard
-            label="Gas Price:"
-            value={landingData?.gasPrice || "Loading..."}
+            label={t('landing.stats.gas_price')}
+            value={landingData?.gasPrice || t('landing.stats.loading')}
             color="var(--diamond-yellow)"
           />
           <StatsCard
-            label="Coin Cost:"
-            value={landingData?.coinCost || "Loading..."}
+            label={t('landing.stats.coin_cost')}
+            value={landingData?.coinCost || t('landing.stats.loading')}
             color="var(--diamond-green)"
           />
           <StatsCard
-            label="Launch Cost:"
-            value={landingData?.launchCost || "Loading..."}
+            label={t('landing.stats.launch_cost')}
+            value={landingData?.launchCost || t('landing.stats.loading')}
             color="var(--diamond-pink)"
           />
         </div>
@@ -121,15 +124,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
         {/* Protocol Stats */}
         <div className="grid grid-cols-3 gap-5 mt-[30px] max-w-[600px] mx-auto">
           <ProtocolStat
-            label="ETH SWAPPED"
+            label={t('landing.stats.eth_swapped')}
             primary={protocolStats?.totalEthSwapped || "-"}
           />
           <ProtocolStat
-            label="SWAPS"
+            label={t('landing.stats.swaps')}
             primary={protocolStats?.totalSwaps || "-"}
           />
           <ProtocolStat
-            label="COINS"
+            label={t('landing.stats.coins')}
             primary={protocolStats?.totalCoins || "-"}
           />
         </div>
@@ -142,16 +145,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
           `}
           onClick={handleEnterApp}
           disabled={!enterEnabled}
-          aria-label="Enter the ZAMM application"
+          aria-label={t('landing.enter_app_aria')}
         >
-          ENTER ZAMM
+          {t('landing.enter_zamm')}
         </button>
       </div>
 
       <div className="ascii-divider">════════════════════════════════════</div>
 
       <p className="text-center my-5 text-xs tracking-wider">
-        EVM PRAGUE • FAIR LAUNCHES • CHEAP FEES
+        {t('landing.features')}
       </p>
     </div>
   );
