@@ -70,6 +70,7 @@
     "coin": "个币种",
     "loading_next": "从ZAMM获取更多数据...",
     "loading_previous": "加载上一页结果...",
+    "with": "与",
     "launch": "发行",
     "dashboard": "仪表盘",
     "about": "关于"
@@ -108,7 +109,7 @@
     "insufficient_balance": "余额不足",
     "enter_amount": "输入金额",
     "select_token": "选择代币",
-    "price_impact": "价格影响",
+    "price_impact": "滑点",
     "minimum_received": "最少获得",
     "route": "路径",
     "swapping": "正在通过ZAMM池寻找最优路径...",
@@ -148,7 +149,7 @@
     "total_amount": "总金额"
   },
   "create": {
-    "title": "创建币种",
+    "title": "铸币吧！",
     "name": "名称",
     "symbol": "符号",
     "supply": "供应量",
@@ -168,7 +169,7 @@
     "token_price": "代币价格",
     "market_cap": "市值",
     "eth": "ETH",
-    "usd": "美元",
+    "usd": "USD",
     "customize_fee": "自定义兑换费用",
     "custom_fee": "自定义费用（%）",
     "select_fee": "选择兑换费用百分比",
@@ -176,6 +177,8 @@
     "max_swap_fee": "最大兑换费用",
     "max_value": "最大值",
     "coin_it": "创建币种！",
+    "preview": "预览",
+    "settings": "设置",
     "create_simple_coin": "创建简单币种",
     "create_coin_with_pool": "创建带池币种",
     "launch_coin_sale": "发起币种销售",
@@ -205,7 +208,7 @@
   },
   "coinpaper": {
     "title": "币种简介",
-    "view": "查看币种简介",
+    "view": "查看",
     "edit": "编辑币种简介",
     "publish": "发布币种简介",
     "content": "内容",
@@ -229,8 +232,8 @@
     "transactions": "交易",
     "price_chart": "价格图表",
     "time_periods": "时间周期",
-    "1h": "1小时",
-    "24h": "24小时",
+    "1h": "1H",
+    "24h": "24H",
     "7d": "7天",
     "30d": "30天",
     "all": "全部",
@@ -270,7 +273,7 @@
     "user_denied": "用户拒绝交易",
     "gas_estimation_failed": "Gas估算失败",
     "contract_error": "合约错误",
-    "price_impact_too_high": "价格影响过大",
+    "price_impact_too_high": "滑点过高",
     "unknown_error": "发生未知错误"
   },
   "notifications": {
