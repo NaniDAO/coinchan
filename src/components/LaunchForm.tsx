@@ -93,26 +93,27 @@ const PoolIcon = () => (
   </svg>
 );
 
-const LAUNCH_MODES = {
+// Note: LAUNCH_MODES will be moved inside component to access translations
+const getLaunchModes = (t: any) => ({
   simple: {
     id: "simple",
-    title: "Simple Coin",
-    description: "Create a basic token with metadata",
+    title: t("create.simple_coin_title"),
+    description: t("create.simple_coin_description"),
     icon: <CoinIcon />,
   },
   tranche: {
     id: "tranche", 
-    title: "Tranche Sale",
-    description: "Launch with custom price curve & sale",
+    title: t("create.tranche_sale_title"),
+    description: t("create.tranche_sale_description"),
     icon: <ChartIcon />,
   },
   pool: {
     id: "pool",
-    title: "Coin with Pool", 
-    description: "Create token + add your own liquidity",
+    title: t("create.coin_with_pool_title"), 
+    description: t("create.coin_with_pool_description"),
     icon: <PoolIcon />,
   },
-} as const;
+});
 
 // Validation schema with zod
 const launchFormSchema = z.object({
@@ -162,6 +163,8 @@ export const LaunchForm = () => {
   const { data: hash, error, isPending, writeContract } = useWriteContract();
   const { address: account } = useAccount();
   const { t } = useTranslation();
+  
+  const LAUNCH_MODES = getLaunchModes(t);
 
   // State for form data instead of react-hook-form
   const [formData, setFormData] = useState<LaunchFormValues>({
@@ -275,7 +278,7 @@ export const LaunchForm = () => {
   /* ---------- bonding‑curve helpers ---------- */
   const handleBarClick = (originalIndex: number) => {
     const current = formData.tranches[originalIndex].price.toString();
-    const next = prompt("Enter new price for this tranche (ETH)", current);
+    const next = prompt(t("create.error_enter_price"), current);
     if (next !== null) {
       handleTrancheChange(originalIndex, "price", next);
     }
@@ -302,7 +305,7 @@ export const LaunchForm = () => {
       setErrors({});
 
       if (!imageBuffer) {
-        toast.error("Please select an image file");
+        toast.error(t("create.error_select_image"));
         return;
       }
 
@@ -328,7 +331,7 @@ export const LaunchForm = () => {
       if (validatedData.mode === "simple") {
         // Use simple coin function from Cookbook
         if (!account) {
-          toast.error("Please connect your wallet");
+          toast.error(t("create.error_connect_wallet"));
           return;
         }
         writeContract({
@@ -386,11 +389,11 @@ export const LaunchForm = () => {
           formattedErrors[path] = error.message;
         });
         setErrors(formattedErrors);
-        toast.error("Please fix the form errors");
+        toast.error(t("create.error_fix_form"));
       } else {
         console.error(err);
         toast.error(
-          `Failed to launch: ${err instanceof Error ? err.message : String(err)}`,
+          `${t("create.error_failed_launch")}: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
     }
@@ -414,7 +417,7 @@ export const LaunchForm = () => {
       <div className="space-y-2">
         {/* creator supply & unlock */}
         <div className="grid w-full items-center gap-1.5">
-          <Label htmlFor="creatorSupply">Creator Supply</Label>
+          <Label htmlFor="creatorSupply">{t("create.creator_supply")}</Label>
           <Input
             id="creatorSupply"
             name="creatorSupply"
@@ -431,7 +434,7 @@ export const LaunchForm = () => {
         {/* Creator Unlock Time - only show for tranche and pool modes */}
         {(formData.mode === "tranche" || formData.mode === "pool") && (
           <div className="grid w-full items-center gap-1.5">
-            <Label htmlFor="creatorUnlockDate">Creator Unlock Time</Label>
+            <Label htmlFor="creatorUnlockDate">{t("create.creator_unlock_time")}</Label>
             <Input
               id="creatorUnlockDate"
               name="creatorUnlockDate"
@@ -449,7 +452,7 @@ export const LaunchForm = () => {
 
         {/* Launch Mode Selector */}
         <div className="grid w-full items-center gap-3">
-          <Label className="text-base font-semibold">Launch Type</Label>
+          <Label className="text-base font-semibold">{t("create.launch_type")}</Label>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {Object.values(LAUNCH_MODES).map((mode) => (
               <label
@@ -494,7 +497,7 @@ export const LaunchForm = () => {
         {formData.mode === "pool" && (
           <>
             <div className="grid w-full items-center gap-1.5">
-              <Label htmlFor="poolSupply">Pool Supply (tokens for liquidity)</Label>
+              <Label htmlFor="poolSupply">{t("create.pool_supply_label")}</Label>
               <Input
                 id="poolSupply"
                 name="poolSupply"
@@ -504,7 +507,7 @@ export const LaunchForm = () => {
                 onChange={handleInputChange}
               />
               <div className="text-xs text-gray-500">
-                Tokens that will be paired with your ETH in the liquidity pool
+                {t("create.pool_help_text")}
               </div>
               {errors["poolSupply"] && (
                 <p className="text-sm text-red-500">{errors["poolSupply"]}</p>
@@ -512,18 +515,18 @@ export const LaunchForm = () => {
             </div>
 
             <div className="grid w-full items-center gap-1.5">
-              <Label htmlFor="ethAmount">ETH Amount (initial liquidity)</Label>
+              <Label htmlFor="ethAmount">{t("create.eth_amount_label")}</Label>
               <Input
                 id="ethAmount"
                 name="ethAmount"
                 type="number"
                 step="0.001"
-                placeholder="e.g. 0.1"
+                placeholder={t("create.placeholder_eth_amount")}
                 value={formData.ethAmount || ""}
                 onChange={handleInputChange}
               />
               <div className="text-xs text-gray-500">
-                ETH you'll provide to create the initial liquidity pool
+                {t("create.eth_help_text")}
                 {formData.poolSupply && formData.ethAmount && formData.ethAmount > 0 && (
                   <span className="ml-2 text-blue-600 font-medium">
                     → {((formData.ethAmount || 0) / (formData.poolSupply || 1)).toFixed(8)} ETH per token
@@ -539,20 +542,20 @@ export const LaunchForm = () => {
 
         {/* token logo */}
         <div className="space-y-2">
-          <Label htmlFor="imageFile">Coin Image</Label>
+          <Label htmlFor="imageFile">{t("create.coin_image")}</Label>
           <ImageInput onChange={handleImageFileChange} />
           {!imageBuffer && isSubmitted && (
-            <p className="text-sm text-red-500">Image is required</p>
+            <p className="text-sm text-red-500">{t("create.error_image_required")}</p>
           )}
         </div>
 
         {/* metadata */}
         <div className="grid w-full items-center gap-1.5">
-          <Label htmlFor="metadataName">Name</Label>
+          <Label htmlFor="metadataName">{t("create.name")}</Label>
           <Input
             id="metadataName"
             name="metadataName"
-            placeholder="My Coin"
+            placeholder={t("create.placeholder_coin_name")}
             value={formData.metadataName}
             onChange={handleInputChange}
           />
@@ -562,11 +565,11 @@ export const LaunchForm = () => {
         </div>
 
         <div className="grid w-full items-center gap-1.5">
-          <Label htmlFor="metadataSymbol">Symbol</Label>
+          <Label htmlFor="metadataSymbol">{t("create.symbol")}</Label>
           <Input
             id="metadataSymbol"
             name="metadataSymbol"
-            placeholder="MYC"
+            placeholder={t("create.placeholder_symbol")}
             value={formData.metadataSymbol}
             onChange={handleInputChange}
           />
@@ -576,12 +579,12 @@ export const LaunchForm = () => {
         </div>
 
         <div className="grid w-full items-center gap-1.5">
-          <Label htmlFor="metadataDescription">Description</Label>
+          <Label htmlFor="metadataDescription">{t("create.description")}</Label>
           <Textarea
             id="metadataDescription"
             name="metadataDescription"
             rows={3}
-            placeholder="A brief description of the coin"
+            placeholder={t("create.placeholder_description")}
             value={formData.metadataDescription || ""}
             onChange={handleInputChange}
           />
@@ -598,11 +601,11 @@ export const LaunchForm = () => {
         <>
         <div className="rounded-2xl shadow-sm p-4">
           <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-lg font-semibold">Bonding Curve</h3>
+            <h3 className="text-lg font-semibold">{t("create.bonding_curve")}</h3>
             <TrancheInfoDialog />
           </div>
           <label className="text-sm text-gray-500 mb-4 block">
-            click bars to edit prices • <span className="text-blue-500">click info icon to learn more</span>
+            {t("create.bonding_curve_help")}
           </label>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
@@ -704,7 +707,7 @@ export const LaunchForm = () => {
           </div>
           <div className="flex justify-end">
             <Button type="button" variant="outline" onClick={addTranche}>
-              Add Tranche
+              {t("create.add_tranche")}
             </Button>
           </div>
         </div>
@@ -716,7 +719,7 @@ export const LaunchForm = () => {
               className="flex flex-col sm:flex-row items-end gap-4 pb-4 last:pb-0"
             >
               <div className="flex-grow grid w-full items-center gap-1.5">
-                <Label htmlFor={`trancheCoins-${idx}`}>Coins</Label>
+                <Label htmlFor={`trancheCoins-${idx}`}>{t("create.coins")}</Label>
                 <Input
                   id={`trancheCoins-${idx}`}
                   type="text"
@@ -732,7 +735,7 @@ export const LaunchForm = () => {
                 )}
               </div>
               <div className="flex-grow grid w-full items-center gap-1.5">
-                <Label htmlFor={`tranchePrice-${idx}`}>Price (ETH)</Label>
+                <Label htmlFor={`tranchePrice-${idx}`}>{t("create.price_eth")}</Label>
                 <Input
                   id={`tranchePrice-${idx}`}
                   type="number"
@@ -766,17 +769,17 @@ export const LaunchForm = () => {
         {/* Pool Mode Visualization */}
         {formData.mode === "pool" && (
           <div className="rounded-2xl shadow-sm p-4">
-            <h3 className="text-lg font-semibold mb-1">Pool Configuration</h3>
+            <h3 className="text-lg font-semibold mb-1">{t("create.pool_configuration")}</h3>
             <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="font-medium">Pool Supply:</span>
+                  <span className="font-medium">{t("create.pool_supply_display")}</span>
                   <div className="text-lg font-bold text-blue-600">
-                    {(formData.poolSupply || 0).toLocaleString()} tokens
+                    {(formData.poolSupply || 0).toLocaleString()} {t("create.tokens")}
                   </div>
                 </div>
                 <div>
-                  <span className="font-medium">ETH Liquidity:</span>
+                  <span className="font-medium">{t("create.eth_liquidity")}</span>
                   <div className="text-lg font-bold text-blue-600">
                     {formData.ethAmount || 0} ETH
                   </div>
@@ -788,34 +791,34 @@ export const LaunchForm = () => {
                 <div className="mt-4 space-y-3 border-t border-blue-200 dark:border-blue-800 pt-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Starting Price:</span>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t("create.starting_price")}</span>
                       <div className="text-xl font-bold text-blue-600">
                         {((formData.ethAmount || 0) / (formData.poolSupply || 1)).toFixed(8)} ETH
                       </div>
-                      <div className="text-xs text-gray-500">per token</div>
+                      <div className="text-xs text-gray-500">{t("create.per_token")}</div>
                     </div>
                     <div>
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Supply:</span>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t("create.total_supply")}</span>
                       <div className="text-xl font-bold text-blue-600">
                         {((formData.poolSupply || 0) + (formData.creatorSupply || 0)).toLocaleString()}
                       </div>
-                      <div className="text-xs text-gray-500">tokens</div>
+                      <div className="text-xs text-gray-500">{t("create.tokens")}</div>
                     </div>
                   </div>
                   
                   <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
-                    <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Pool Breakdown:</div>
+                    <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("create.pool_breakdown")}</div>
                     <div className="space-y-1 text-xs">
                       <div className="flex justify-between">
-                        <span>Pool liquidity:</span>
+                        <span>{t("create.pool_liquidity")}</span>
                         <span className="font-medium">{((formData.poolSupply || 0) / ((formData.poolSupply || 0) + (formData.creatorSupply || 0)) * 100).toFixed(1)}%</span>
                       </div>
                       <div className="flex justify-between">
-                        <span>Creator allocation:</span>
+                        <span>{t("create.creator_allocation")}</span>
                         <span className="font-medium">{((formData.creatorSupply || 0) / ((formData.poolSupply || 0) + (formData.creatorSupply || 0)) * 100).toFixed(1)}%</span>
                       </div>
                       <div className="flex justify-between">
-                        <span>Initial market cap:</span>
+                        <span>{t("create.initial_market_cap")}</span>
                         <span className="font-medium">{(((formData.ethAmount || 0) / (formData.poolSupply || 1)) * ((formData.poolSupply || 0) + (formData.creatorSupply || 0))).toFixed(4)} ETH</span>
                       </div>
                     </div>
@@ -829,20 +832,20 @@ export const LaunchForm = () => {
                     if (price < 0.000001) {
                       return (
                         <div className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 p-2 rounded">
-                          ⚠️ Very low starting price - consider reducing pool supply or increasing ETH
+                          {t("create.low_price_warning")}
                         </div>
                       );
                     }
                     if (marketCap > 100) {
                       return (
                         <div className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 p-2 rounded">
-                          ⚠️ High initial market cap ({marketCap.toFixed(2)} ETH) - consider adjusting parameters
+                          {t("create.high_market_cap_warning", { marketCap: marketCap.toFixed(2) })}
                         </div>
                       );
                     }
                     return (
                       <div className="text-xs text-green-600 bg-green-50 dark:bg-green-900/20 p-2 rounded">
-                        ✅ Pool configuration looks good
+                        {t("create.pool_config_good")}
                       </div>
                     );
                   })()}
@@ -852,7 +855,7 @@ export const LaunchForm = () => {
               {/* Empty State */}
               {(!formData.poolSupply || !formData.ethAmount || formData.ethAmount <= 0 || formData.poolSupply <= 0) && (
                 <div className="mt-4 text-center text-gray-500 text-sm p-4 border-t border-blue-200 dark:border-blue-800">
-                  Enter pool supply and ETH amount to see price calculations
+                  {t("create.enter_pool_help")}
                 </div>
               )}
             </div>
@@ -869,13 +872,13 @@ export const LaunchForm = () => {
 
         {hash && (
           <Alert className="mt-4">
-            <AlertTitle>Transaction Sent!</AlertTitle>
-            <AlertDescription>Check transaction hash: {hash}</AlertDescription>
+            <AlertTitle>{t("create.success_transaction_sent")}</AlertTitle>
+            <AlertDescription>{t("create.success_check_hash", { hash })}</AlertDescription>
           </Alert>
         )}
         {error && (
           <Alert variant="destructive" className="mt-4">
-            <AlertTitle>Error</AlertTitle>
+            <AlertTitle>{t("create.error_title")}</AlertTitle>
             <AlertDescription>{error.message}</AlertDescription>
           </Alert>
         )}

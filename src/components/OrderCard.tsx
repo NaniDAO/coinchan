@@ -94,7 +94,7 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
       const fillAmountBigInt = parseUnits(fillAmount || "0", outDecimals);
 
       if (fillAmountBigInt === 0n || fillAmountBigInt > maxFillOut) {
-        setTxError("Invalid fill amount");
+        setTxError(t("send.invalid_amount"));
         return;
       }
 
@@ -171,7 +171,7 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
         });
 
         if (receipt.status !== "success") {
-          throw new Error("Transaction reverted");
+          throw new Error(t("create.transaction_failed"));
         }
 
         if (i === 0 && calls.length > 1) {
@@ -185,7 +185,7 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
     } catch (error) {
       console.error("Fill order error:", error);
       const errorMsg = handleWalletError(error);
-      setTxError(errorMsg || "Failed to fill order");
+      setTxError(errorMsg || t("orders.fill_failed"));
     }
   };
 
@@ -224,14 +224,14 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
       });
 
       if (receipt.status !== "success") {
-        throw new Error("Transaction reverted");
+        throw new Error(t("create.transaction_failed"));
       }
 
       setCancelTxHash(hash);
     } catch (error) {
       console.error("Cancel order error:", error);
       const errorMsg = handleWalletError(error);
-      setCancelTxError(errorMsg || "Failed to cancel order");
+      setCancelTxError(errorMsg || t("orders.cancel_failed"));
     }
   };
 
