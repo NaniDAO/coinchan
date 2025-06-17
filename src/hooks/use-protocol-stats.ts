@@ -11,13 +11,9 @@ export const useProtocolStats = () => {
   return useQuery<ProtocolStats>({
     queryKey: ["protocol-stats"],
     queryFn: async () => {
-      const stats = await fetch(
-        `${import.meta.env.VITE_INDEXER_URL}/api/protocol-stats`,
-      ).then((res) => res.json());
+      const stats = await fetch(`${import.meta.env.VITE_INDEXER_URL}/api/protocol-stats`).then((res) => res.json());
 
-      const totalEthSwapped = Number(
-        formatEther(stats.totalEthSwapped),
-      ).toFixed(2);
+      const totalEthSwapped = Number(formatEther(stats.totalEthSwapped)).toFixed(2);
 
       return {
         totalEthSwapped: `${totalEthSwapped} Ξ`,

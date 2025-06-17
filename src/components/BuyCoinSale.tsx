@@ -63,22 +63,17 @@ export const BuyCoinSale = ({
     if (!sale) return;
 
     const actives = sale.tranches.items.filter(
-      (tranche: Tranche) =>
-        parseInt(tranche.remaining) > 0 &&
-        new Date(Number(tranche.deadline) * 1000) > new Date(),
+      (tranche: Tranche) => parseInt(tranche.remaining) > 0 && new Date(Number(tranche.deadline) * 1000) > new Date(),
     );
 
     if (actives.length) {
-      const cheapest = actives.reduce((p: Tranche, c: Tranche) =>
-        BigInt(p.price) < BigInt(c.price) ? p : c,
-      );
+      const cheapest = actives.reduce((p: Tranche, c: Tranche) => (BigInt(p.price) < BigInt(c.price) ? p : c));
       setSelected(cheapest.trancheIndex);
     }
   }, [sale]);
 
   const chosenTranche: Tranche | undefined = useMemo(
-    () =>
-      sale?.tranches.items.find((t: Tranche) => t.trancheIndex === selected),
+    () => sale?.tranches.items.find((t: Tranche) => t.trancheIndex === selected),
     [sale, selected],
   );
 
@@ -100,13 +95,10 @@ export const BuyCoinSale = ({
   if (isLoading) return <div>Loading...</div>;
   if (!sale) return <div>Sale not found</div>;
 
-  if (sale.status === "FINALIZED")
-    return <BuySellCookbookCoin coinId={coinId} symbol={symbol} />;
+  if (sale.status === "FINALIZED") return <BuySellCookbookCoin coinId={coinId} symbol={symbol} />;
 
   const activeTranches = sale.tranches.items.filter(
-    (tranche: Tranche) =>
-      parseInt(tranche.remaining) > 0 &&
-      new Date(Number(tranche.deadline) * 1000) > new Date(),
+    (tranche: Tranche) => parseInt(tranche.remaining) > 0 && new Date(Number(tranche.deadline) * 1000) > new Date(),
   );
 
   // Prepare data for recharts
@@ -140,32 +132,17 @@ export const BuyCoinSale = ({
         <div className="bg-sidebar rounded-2xl shadow-sm p-4">
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart
-                data={chartData}
-                margin={{ top: 10, right: 20, bottom: 10, left: 10 }}
-              >
+              <ComposedChart data={chartData} margin={{ top: 10, right: 20, bottom: 10, left: 10 }}>
                 <defs>
                   <linearGradient id="soldGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#ef4444" stopOpacity={0.8} />
                     <stop offset="100%" stopColor="#ef4444" stopOpacity={0.2} />
                   </linearGradient>
-                  <linearGradient
-                    id="remainingGradient"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
+                  <linearGradient id="remainingGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#facc15" stopOpacity={0.8} />
                     <stop offset="100%" stopColor="#facc15" stopOpacity={0.2} />
                   </linearGradient>
-                  <linearGradient
-                    id="priceGradient"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
+                  <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#00e5ff" stopOpacity={0.8} />
                     <stop offset="100%" stopColor="#00e5ff" stopOpacity={0.2} />
                   </linearGradient>
@@ -175,12 +152,7 @@ export const BuyCoinSale = ({
                   </linearGradient>
                 </defs>
 
-                <CartesianGrid
-                  horizontal={true}
-                  vertical={false}
-                  stroke="#e2e8f0"
-                  strokeDasharray="1 4"
-                />
+                <CartesianGrid horizontal={true} vertical={false} stroke="#e2e8f0" strokeDasharray="1 4" />
 
                 <XAxis
                   dataKey="name"
@@ -189,11 +161,7 @@ export const BuyCoinSale = ({
                   tick={{ fill: "#4a5568", fontSize: 12 }}
                 />
 
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "#4a5568", fontSize: 12 }}
-                />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: "#4a5568", fontSize: 12 }} />
 
                 <Legend
                   payload={[
@@ -216,31 +184,17 @@ export const BuyCoinSale = ({
                         <div className="font-medium text-yellow-500">
                           Remaining: {data.remaining.toFixed(4)} {symbol}
                         </div>
-                        <div className="font-medium text-blue-500">
-                          Price: {data.price.toFixed(4)} ETH
-                        </div>
+                        <div className="font-medium text-blue-500">Price: {data.price.toFixed(4)} ETH</div>
                         <div className="font-medium text-sm text-gray-600">
-                          {(
-                            (100 * data.sold) /
-                            (data.sold + data.remaining)
-                          ).toFixed(1)}
-                          % Sold
+                          {((100 * data.sold) / (data.sold + data.remaining)).toFixed(1)}% Sold
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          Deadline: {data.deadline}
-                        </div>
+                        <div className="text-xs text-gray-500 mt-1">Deadline: {data.deadline}</div>
                       </div>
                     );
                   }}
                 />
 
-                <Area
-                  type="monotone"
-                  dataKey="priceNum"
-                  fill="url(#priceGradient)"
-                  fillOpacity={0.15}
-                  stroke="none"
-                />
+                <Area type="monotone" dataKey="priceNum" fill="url(#priceGradient)" fillOpacity={0.15} stroke="none" />
 
                 <Bar
                   dataKey="sold"
@@ -308,9 +262,7 @@ export const BuyCoinSale = ({
               )}
             >
               <div className="font-semibold mb-1">Tranche {t.trancheIndex}</div>
-              <div className="text-sm">
-                Price: {formatEther(BigInt(t.price))} ETH
-              </div>
+              <div className="text-sm">Price: {formatEther(BigInt(t.price))} ETH</div>
               <div className="text-sm">
                 Remaining: {formatEther(BigInt(t.remaining))} {symbol}
               </div>
@@ -337,11 +289,7 @@ export const BuyCoinSale = ({
           <div className="text-sm mb-4">
             {estimate ? (
               <>
-                ≈{" "}
-                <span className="font-semibold">
-                  {estimate.toLocaleString()}
-                </span>{" "}
-                {symbol}
+                ≈ <span className="font-semibold">{estimate.toLocaleString()}</span> {symbol}
               </>
             ) : (
               "Estimate will appear here"

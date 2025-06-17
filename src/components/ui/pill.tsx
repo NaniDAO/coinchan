@@ -6,11 +6,7 @@ export type PillIndicatorProps = {
   className?: string;
 };
 
-export const PillIndicator = ({
-  variant = "success",
-  pulse = false,
-  className,
-}: PillIndicatorProps) => (
+export const PillIndicator = ({ variant = "success", pulse = false, className }: PillIndicatorProps) => (
   <span className="relative flex size-2">
     {pulse && (
       <span

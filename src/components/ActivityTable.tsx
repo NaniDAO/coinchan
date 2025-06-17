@@ -13,124 +13,162 @@ const formatAddress = (address: string | null | undefined): string => {
 
 export const ActivityTable = ({ data }: { data: AccountTransfer[] }) => {
   return (
-    <div style={{ 
-      border: '2px solid var(--terminal-black)', 
-      background: 'var(--terminal-white)',
-      margin: '20px 0' 
-    }}>
+    <div
+      style={{
+        border: "2px solid var(--terminal-black)",
+        background: "var(--terminal-white)",
+        margin: "20px 0",
+      }}
+    >
       <Table>
         <TableHeader>
-          <TableRow style={{ background: 'var(--terminal-black)' }}>
-            <TableHead style={{ 
-              color: 'var(--terminal-white)', 
-              fontFamily: 'var(--font-body)', 
-              fontWeight: 'bold',
-              padding: '12px 8px',
-              fontSize: '12px',
-              textTransform: 'uppercase'
-            }}>Amount</TableHead>
-            <TableHead style={{ 
-              color: 'var(--terminal-white)', 
-              fontFamily: 'var(--font-body)', 
-              fontWeight: 'bold',
-              padding: '12px 8px',
-              fontSize: '12px',
-              textTransform: 'uppercase'
-            }}>From</TableHead>
-            <TableHead style={{ 
-              color: 'var(--terminal-white)', 
-              fontFamily: 'var(--font-body)', 
-              fontWeight: 'bold',
-              padding: '12px 8px',
-              fontSize: '12px',
-              textTransform: 'uppercase'
-            }}>To</TableHead>
-            <TableHead style={{ 
-              color: 'var(--terminal-white)', 
-              fontFamily: 'var(--font-body)', 
-              fontWeight: 'bold',
-              padding: '12px 8px',
-              fontSize: '12px',
-              textTransform: 'uppercase'
-            }}>Sender</TableHead>
-            <TableHead style={{ 
-              color: 'var(--terminal-white)', 
-              fontFamily: 'var(--font-body)', 
-              fontWeight: 'bold',
-              padding: '12px 8px',
-              fontSize: '12px',
-              textTransform: 'uppercase'
-            }}>Block</TableHead>
-            <TableHead style={{ 
-              color: 'var(--terminal-white)', 
-              fontFamily: 'var(--font-body)', 
-              fontWeight: 'bold',
-              padding: '12px 8px',
-              fontSize: '12px',
-              textTransform: 'uppercase'
-            }}>Time</TableHead>
+          <TableRow style={{ background: "var(--terminal-black)" }}>
+            <TableHead
+              style={{
+                color: "var(--terminal-white)",
+                fontFamily: "var(--font-body)",
+                fontWeight: "bold",
+                padding: "12px 8px",
+                fontSize: "12px",
+                textTransform: "uppercase",
+              }}
+            >
+              Amount
+            </TableHead>
+            <TableHead
+              style={{
+                color: "var(--terminal-white)",
+                fontFamily: "var(--font-body)",
+                fontWeight: "bold",
+                padding: "12px 8px",
+                fontSize: "12px",
+                textTransform: "uppercase",
+              }}
+            >
+              From
+            </TableHead>
+            <TableHead
+              style={{
+                color: "var(--terminal-white)",
+                fontFamily: "var(--font-body)",
+                fontWeight: "bold",
+                padding: "12px 8px",
+                fontSize: "12px",
+                textTransform: "uppercase",
+              }}
+            >
+              To
+            </TableHead>
+            <TableHead
+              style={{
+                color: "var(--terminal-white)",
+                fontFamily: "var(--font-body)",
+                fontWeight: "bold",
+                padding: "12px 8px",
+                fontSize: "12px",
+                textTransform: "uppercase",
+              }}
+            >
+              Sender
+            </TableHead>
+            <TableHead
+              style={{
+                color: "var(--terminal-white)",
+                fontFamily: "var(--font-body)",
+                fontWeight: "bold",
+                padding: "12px 8px",
+                fontSize: "12px",
+                textTransform: "uppercase",
+              }}
+            >
+              Block
+            </TableHead>
+            <TableHead
+              style={{
+                color: "var(--terminal-white)",
+                fontFamily: "var(--font-body)",
+                fontWeight: "bold",
+                padding: "12px 8px",
+                fontSize: "12px",
+                textTransform: "uppercase",
+              }}
+            >
+              Time
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {data.map((transfer, index) => (
-            <TableRow 
+            <TableRow
               key={transfer.id}
-              style={{ 
-                background: index % 2 === 0 ? 'var(--terminal-white)' : 'var(--terminal-gray)',
-                borderBottom: '1px solid var(--terminal-black)'
+              style={{
+                background: index % 2 === 0 ? "var(--terminal-white)" : "var(--terminal-gray)",
+                borderBottom: "1px solid var(--terminal-black)",
               }}
             >
-              <TableCell style={{ 
-                fontFamily: 'var(--font-body)', 
-                padding: '12px 8px',
-                fontSize: '13px',
-                fontWeight: 'bold',
-                color: 'var(--terminal-black)'
-              }}>
+              <TableCell
+                style={{
+                  fontFamily: "var(--font-body)",
+                  padding: "12px 8px",
+                  fontSize: "13px",
+                  fontWeight: "bold",
+                  color: "var(--terminal-black)",
+                }}
+              >
                 {parseFloat(formatEther(BigInt(transfer?.amount ?? "0"))).toFixed(5)} {transfer?.coin?.symbol}
               </TableCell>
-              <TableCell style={{ 
-                fontFamily: 'monospace', 
-                padding: '12px 8px',
-                fontSize: '12px',
-                color: 'var(--terminal-black)',
-                minWidth: '120px'
-              }}>
+              <TableCell
+                style={{
+                  fontFamily: "monospace",
+                  padding: "12px 8px",
+                  fontSize: "12px",
+                  color: "var(--terminal-black)",
+                  minWidth: "120px",
+                }}
+              >
                 {formatAddress(transfer?.from?.address)}
               </TableCell>
-              <TableCell style={{ 
-                fontFamily: 'monospace', 
-                padding: '12px 8px',
-                fontSize: '12px',
-                color: 'var(--terminal-black)',
-                minWidth: '120px'
-              }}>
+              <TableCell
+                style={{
+                  fontFamily: "monospace",
+                  padding: "12px 8px",
+                  fontSize: "12px",
+                  color: "var(--terminal-black)",
+                  minWidth: "120px",
+                }}
+              >
                 {formatAddress(transfer?.to?.address)}
               </TableCell>
-              <TableCell style={{ 
-                fontFamily: 'monospace', 
-                padding: '12px 8px',
-                fontSize: '12px',
-                color: 'var(--terminal-black)',
-                minWidth: '120px'
-              }}>
+              <TableCell
+                style={{
+                  fontFamily: "monospace",
+                  padding: "12px 8px",
+                  fontSize: "12px",
+                  color: "var(--terminal-black)",
+                  minWidth: "120px",
+                }}
+              >
                 {formatAddress(transfer?.sender?.address)}
               </TableCell>
-              <TableCell style={{ 
-                fontFamily: 'var(--font-body)', 
-                padding: '12px 8px',
-                fontSize: '13px',
-                color: 'var(--terminal-black)'
-              }}>
+              <TableCell
+                style={{
+                  fontFamily: "var(--font-body)",
+                  padding: "12px 8px",
+                  fontSize: "13px",
+                  color: "var(--terminal-black)",
+                }}
+              >
                 {transfer?.blockNumber}
               </TableCell>
-              <TableCell style={{ 
-                fontFamily: 'var(--font-body)', 
-                padding: '12px 8px',
-                fontSize: '12px',
-                color: 'var(--terminal-black)',
-                minWidth: '80px'
-              }}>
+              <TableCell
+                style={{
+                  fontFamily: "var(--font-body)",
+                  padding: "12px 8px",
+                  fontSize: "12px",
+                  color: "var(--terminal-black)",
+                  minWidth: "80px",
+                }}
+              >
                 {formatTimeAgo(Number(transfer?.createdAt))}
               </TableCell>
             </TableRow>

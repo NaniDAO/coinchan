@@ -1,19 +1,14 @@
 import { InfoIcon, XIcon } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogTrigger,
-  DialogClose,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
 export function TrancheInfoDialog() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button 
-          variant="ghost" 
-          size="sm" 
+        <Button
+          variant="ghost"
+          size="sm"
           className="h-6 w-6 p-0 text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-all hover:scale-110 active:scale-95"
           title="Learn how tranche sales work"
         >
@@ -27,7 +22,7 @@ export function TrancheInfoDialog() {
           <XIcon className="h-4 w-4" />
           <span className="sr-only">Close</span>
         </DialogClose>
-        
+
         <div className="space-y-6">
           {/* Header */}
           <div className="text-center bg-background border-2 border-border shadow-[4px_4px_0_var(--border)] p-4">
@@ -48,9 +43,15 @@ export function TrancheInfoDialog() {
                 <div className="flex-1">
                   <h3 className="text-lg mb-3 text-foreground font-mono">1. Create Your Coin</h3>
                   <ul className="text-sm text-muted-foreground space-y-1 font-mono">
-                    <li className="flex items-start gap-2"><span className="text-[#00D4FF]">{'>>>'}</span> Mint new coin with custom supply</li>
-                    <li className="flex items-start gap-2"><span className="text-[#00D4FF]">{'>>>'}</span> Set creator allocation (time-lockable)</li>
-                    <li className="flex items-start gap-2"><span className="text-[#00D4FF]">{'>>>'}</span> Reserve tokens for sale + liquidity</li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#00D4FF]">{">>>"}</span> Mint new coin with custom supply
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#00D4FF]">{">>>"}</span> Set creator allocation (time-lockable)
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#00D4FF]">{">>>"}</span> Reserve tokens for sale + liquidity
+                    </li>
                   </ul>
                 </div>
               </div>
@@ -67,10 +68,18 @@ export function TrancheInfoDialog() {
                 <div className="flex-1">
                   <h3 className="text-lg mb-3 text-foreground font-mono">2. Design Price Curve</h3>
                   <ul className="text-sm text-muted-foreground space-y-1 font-mono">
-                    <li className="flex items-start gap-2"><span className="text-[#66D9A6]">{'>>>'}</span> Create price tranches (staircase)</li>
-                    <li className="flex items-start gap-2"><span className="text-[#66D9A6]">{'>>>'}</span> Each tranche = different price</li>
-                    <li className="flex items-start gap-2"><span className="text-[#66D9A6]">{'>>>'}</span> Early buyers get better rates</li>
-                    <li className="flex items-start gap-2"><span className="text-[#66D9A6]">{'>>>'}</span> Max duration: 1 week</li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#66D9A6]">{">>>"}</span> Create price tranches (staircase)
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#66D9A6]">{">>>"}</span> Each tranche = different price
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#66D9A6]">{">>>"}</span> Early buyers get better rates
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#66D9A6]">{">>>"}</span> Max duration: 1 week
+                    </li>
                   </ul>
                 </div>
               </div>
@@ -87,10 +96,18 @@ export function TrancheInfoDialog() {
                 <div className="flex-1">
                   <h3 className="text-lg mb-3 text-foreground font-mono">3. Public Sale Begins</h3>
                   <ul className="text-sm text-muted-foreground space-y-1 font-mono">
-                    <li className="flex items-start gap-2"><span className="text-[#FF6B9D]">{'>>>'}</span> Buyers purchase from tranches</li>
-                    <li className="flex items-start gap-2"><span className="text-[#FF6B9D]">{'>>>'}</span> Lower prices sell first</li>
-                    <li className="flex items-start gap-2"><span className="text-[#FF6B9D]">{'>>>'}</span> ETH goes to liquidity pool</li>
-                    <li className="flex items-start gap-2"><span className="text-[#FF6B9D]">{'>>>'}</span> Unsold tokens → pool</li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#FF6B9D]">{">>>"}</span> Buyers purchase from tranches
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#FF6B9D]">{">>>"}</span> Lower prices sell first
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#FF6B9D]">{">>>"}</span> ETH goes to liquidity pool
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#FF6B9D]">{">>>"}</span> Unsold tokens → pool
+                    </li>
                   </ul>
                 </div>
               </div>
@@ -137,10 +154,18 @@ export function TrancheInfoDialog() {
                 <div className="flex-1">
                   <h3 className="text-lg mb-3 text-foreground font-mono">4. Liquidity Pool Goes Live</h3>
                   <ul className="text-sm text-muted-foreground space-y-1 font-mono">
-                    <li className="flex items-start gap-2"><span className="text-[#B967DB]">{'>>>'}</span> ETH + coins → trading pool</li>
-                    <li className="flex items-start gap-2"><span className="text-[#B967DB]">{'>>>'}</span> Hybrid AMM/orderbook enabled</li>
-                    <li className="flex items-start gap-2"><span className="text-[#B967DB]">{'>>>'}</span> Continuous liquidity available</li>
-                    <li className="flex items-start gap-2"><span className="text-[#B967DB]">{'>>>'}</span> Creator tokens unlockable</li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#B967DB]">{">>>"}</span> ETH + coins → trading pool
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#B967DB]">{">>>"}</span> Hybrid AMM/orderbook enabled
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#B967DB]">{">>>"}</span> Continuous liquidity available
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#B967DB]">{">>>"}</span> Creator tokens unlockable
+                    </li>
                   </ul>
                 </div>
               </div>
@@ -149,9 +174,7 @@ export function TrancheInfoDialog() {
 
           {/* Key Features */}
           <div className="bg-background border-2 border-border shadow-[4px_4px_0_var(--border)] p-4">
-            <h3 className="text-lg text-foreground text-center mb-4 font-mono">
-              Key Features
-            </h3>
+            <h3 className="text-lg text-foreground text-center mb-4 font-mono">Key Features</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
               <div className="flex items-center gap-3 p-2 bg-background border border-border font-mono">
                 <span className="text-[#66D9A6] font-bold">[✓]</span>

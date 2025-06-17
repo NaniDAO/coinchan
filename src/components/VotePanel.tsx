@@ -24,9 +24,9 @@ const useCurrentVotes = ({ coinId }: { coinId: bigint }) => {
   return useQuery({
     queryKey: ["votes", coinId.toString()],
     queryFn: async () => {
-      const result = await fetch(
-        `${VITE_ZAMMHUB_URL}/api/votes/summary?coinId=${coinId.toString()}`,
-      ).then((res) => res.json());
+      const result = await fetch(`${VITE_ZAMMHUB_URL}/api/votes/summary?coinId=${coinId.toString()}`).then((res) =>
+        res.json(),
+      );
 
       return {
         upVotes: Number(formatEther(result.upvotes)).toFixed(2),
@@ -85,9 +85,7 @@ export const VotePanel = ({ coinId }: VotePanelProps) => {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(
-          `Vote failed with status ${response.status}: ${error.error}`,
-        );
+        throw new Error(`Vote failed with status ${response.status}: ${error.error}`);
       }
 
       const data = (await response.json()) as VoteCastResponse;
@@ -98,11 +96,7 @@ export const VotePanel = ({ coinId }: VotePanelProps) => {
       );
     } catch (error) {
       console.error(error);
-      toast.error(
-        error instanceof Error
-          ? error.message || "Failed to submit vote"
-          : "Failed to submit vote",
-      );
+      toast.error(error instanceof Error ? error.message || "Failed to submit vote" : "Failed to submit vote");
     }
   };
 
@@ -110,7 +104,7 @@ export const VotePanel = ({ coinId }: VotePanelProps) => {
     <div className="flex items-center text-foreground justify-start gap-2 mt-2">
       <button
         onClick={() => handleVote(true)}
-        className="flex items-center gap-1 text-sm font-mono border border-green-500 px-3 py-1 rounded-md hover:bg-green-500 hover:text-white dark:hover:text-black transition-all duration-150 shadow-sm active:scale-[0.98]"      
+        className="flex items-center gap-1 text-sm font-mono border border-green-500 px-3 py-1 rounded-md hover:bg-green-500 hover:text-white dark:hover:text-black transition-all duration-150 shadow-sm active:scale-[0.98]"
       >
         <ThumbsUpIcon size={16} />
         <span>{data?.upVotes ?? "-"}</span>

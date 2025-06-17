@@ -54,9 +54,7 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
     try {
       const balance = selectedToken.balance as bigint;
       const amountBigInt =
-        selectedToken.id === null
-          ? parseEther(amount)
-          : parseUnits(amount, selectedToken.decimals || 18);
+        selectedToken.id === null ? parseEther(amount) : parseUnits(amount, selectedToken.decimals || 18);
 
       if (balance > 0n) {
         const calculatedPercentage = Number((amountBigInt * 100n) / balance);
@@ -65,13 +63,7 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
     } catch {
       setPercentage(0);
     }
-  }, [
-    amount,
-    selectedToken.balance,
-    selectedToken.id,
-    selectedToken.decimals,
-    showPercentageSlider,
-  ]);
+  }, [amount, selectedToken.balance, selectedToken.id, selectedToken.decimals, showPercentageSlider]);
 
   const handlePercentageChange = (newPercentage: number) => {
     setPercentage(newPercentage);
@@ -83,18 +75,12 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
 
     if (selectedToken.id === null) {
       // ETH - apply 1% gas discount for 100%
-      const adjustedBalance =
-        newPercentage === 100
-          ? (balance * 99n) / 100n
-          : (balance * BigInt(newPercentage)) / 100n;
+      const adjustedBalance = newPercentage === 100 ? (balance * 99n) / 100n : (balance * BigInt(newPercentage)) / 100n;
       calculatedAmount = formatEther(adjustedBalance);
     } else {
       // Other tokens - use full balance
       const adjustedBalance = (balance * BigInt(newPercentage)) / 100n;
-      calculatedAmount = formatUnits(
-        adjustedBalance,
-        selectedToken.decimals || 18,
-      );
+      calculatedAmount = formatUnits(adjustedBalance, selectedToken.decimals || 18);
     }
 
     onAmountChange(calculatedAmount);
@@ -129,9 +115,7 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
           className="transition-all duration-100 ease-in hover:bg-secondary focus:bg-muted focus:shadow-[0_0_0_2px_var(--terminal-black)] text-lg sm:text-xl font-medium w-full focus:outline-none h-10 text-right pr-1 text-foreground font-body border-none"
         />
         {previewLabel ? (
-          <span className="ml-1 text-xs text-foreground font-medium">
-            {previewLabel}
-          </span>
+          <span className="ml-1 text-xs text-foreground font-medium">{previewLabel}</span>
         ) : (
           showMaxButton &&
           onMax && (
@@ -145,9 +129,7 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
         )}
       </div>
 
-      {showPercentageSlider &&
-      selectedToken.balance &&
-      selectedToken.balance > 0n ? (
+      {showPercentageSlider && selectedToken.balance && selectedToken.balance > 0n ? (
         <div className="mt-2 pt-2 border-t border-terminal-black dark:border-terminal-white/20">
           <PercentageSlider
             value={percentage}

@@ -1,10 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { ZammLogo } from "./ZammLogo";
-import {
-  useRandomLoadingText,
-  useLandingData,
-} from "../hooks/use-landing-data";
+import { useRandomLoadingText, useLandingData } from "../hooks/use-landing-data";
 import { useProtocolStats } from "../hooks/use-protocol-stats";
 import { Card } from "./ui/card";
 import { SwapModal } from "./SwapModal";
@@ -15,8 +12,7 @@ interface LandingPageProps {
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
   const { t } = useTranslation();
-  const { data: landingData, isLoading: isLoadingLandingData } =
-    useLandingData();
+  const { data: landingData, isLoading: isLoadingLandingData } = useLandingData();
   const { data: protocolStats } = useProtocolStats();
   const getRandomLoadingText = useRandomLoadingText();
   const [progressText, setProgressText] = useState("");
@@ -66,22 +62,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
 
   return (
     <div className="outline-2 outline-offset-2 outline-background !mb-[50px] bg-background !h-full m-0 text-foreground">
-      <ZammLogo
-        size="landing"
-        onClick={handleLogoClick}
-        isLoading={isLoading}
-        autoStartAnimation={true}
-      />
+      <ZammLogo size="landing" onClick={handleLogoClick} isLoading={isLoading} autoStartAnimation={true} />
 
       <h1 className="m-1 text-center">{t("landing.title")}</h1>
 
       <div className="ascii-divider">════════════════════════════════════</div>
 
       <div className="text-center my-[30px]">
-        <p
-          className="mb-5 max-w-[400px] mx-auto break-words"
-          aria-live="polite"
-        >
+        <p className="mb-5 max-w-[400px] mx-auto break-words" aria-live="polite">
           {progressText}
         </p>
         <div className="h-5 my-2.5 relative bg-background border-2 border-foreground w-[300px] mx-auto">
@@ -90,9 +78,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
             style={{ width: `${progress}%` }}
           ></div>
         </div>
-        <p>
-          {t("landing.progress_loading", { progress: Math.round(progress) })}
-        </p>
+        <p>{t("landing.progress_loading", { progress: Math.round(progress) })}</p>
       </div>
 
       {/* Stats Cards */}
@@ -120,9 +106,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
           />
         </div>
 
-        <div className="ascii-divider">
-          ════════════════════════════════════
-        </div>
+        <div className="ascii-divider">════════════════════════════════════</div>
 
         {/* Protocol Stats */}
         <div className="grid grid-cols-3 gap-5 mt-[30px] max-w-[600px] mx-auto">
@@ -160,9 +144,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
       <div className="ascii-divider">════════════════════════════════════</div>
 
       <SwapModal />
-      <p className="text-center my-5 text-xs tracking-wider">
-        {t("landing.features")}
-      </p>
+      <p className="text-center my-5 text-xs tracking-wider">{t("landing.features")}</p>
     </div>
   );
 };
@@ -204,9 +186,7 @@ const ProtocolStat: React.FC<{
   color?: string;
 }> = React.memo(({ label, primary, color }) => (
   <Card className="text-center p-5 border-2 border-border bg-background h-2xl py-2 flex flex-col hover:shadow-lg transition-all duration-200 relative">
-    <div className="text-lg text-muted-foreground font-bold tracking-wider">
-      {label}
-    </div>
+    <div className="text-lg text-muted-foreground font-bold tracking-wider">{label}</div>
     <div
       className="font-bold text-2xl flex items-center justify-center overflow-hidden mt-2"
       style={{

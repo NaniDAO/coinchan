@@ -62,9 +62,7 @@ export const CoinInfoCard = ({
     // Try next alternative URL if available
     if (alternativeUrlsRef.current.length > 0) {
       // Find the first URL we haven't tried yet
-      const nextUrl = alternativeUrlsRef.current.find(
-        (url) => !attemptedUrlsRef.current.has(url),
-      );
+      const nextUrl = alternativeUrlsRef.current.find((url) => !attemptedUrlsRef.current.has(url));
 
       if (nextUrl) {
         attemptedUrlsRef.current.add(nextUrl);
@@ -113,9 +111,7 @@ export const CoinInfoCard = ({
             </>
           ) : (
             <>
-              <h3 className="text-lg font-medium truncate content-transition loaded">
-                {name}
-              </h3>
+              <h3 className="text-lg font-medium truncate content-transition loaded">{name}</h3>
               <span className="text-sm font-medium text-accent dark:text-accent content-transition loaded">
                 [{symbol}]
               </span>
@@ -126,8 +122,7 @@ export const CoinInfoCard = ({
         {/* Token ID in hex format and Etherscan link */}
         <div className="flex items-center mt-1 text-xs">
           <span className="font-medium text-secondary dark:text-chart-2 mr-1">
-            ID: {coinId.toString()}{" "}
-            {type === "COOKBOOK" ? null : `(0x${coinId.toString(16)})`}
+            ID: {coinId.toString()} {type === "COOKBOOK" ? null : `(0x${coinId.toString(16)})`}
           </span>
           {type === "COOKBOOK" ? null : (
             <a
@@ -167,42 +162,26 @@ export const CoinInfoCard = ({
                   {(Number(swapFee) / 100).toFixed(2)}%
                 </span>
               )}
-              {!isLoading && isOwner && (
-                <span className="text-xs text-chart-2">
-                  (You are the owner)
-                </span>
-              )}
+              {!isLoading && isOwner && <span className="text-xs text-chart-2">(You are the owner)</span>}
             </div>
 
             {/* Market Cap section */}
             {isLoading ? (
               <div className="flex items-center gap-1">
-                <span className="font-medium market-cap-text">
-                  Est. Market Cap:
-                </span>
+                <span className="font-medium market-cap-text">Est. Market Cap:</span>
                 <div className="h-3 bg-muted/40 rounded w-24 skeleton"></div>
               </div>
             ) : (
               marketCapEth !== null && (
                 <div className="flex items-center gap-1 transition-opacity duration-300">
-                  <span className="font-medium market-cap-text">
-                    Est. Market Cap:
-                  </span>
-                  <span className="market-cap-text">
-                    {marketCapEth ? formatNumber(marketCapEth, 2) : "N/A"} ETH
-                  </span>
+                  <span className="font-medium market-cap-text">Est. Market Cap:</span>
+                  <span className="market-cap-text">{marketCapEth ? formatNumber(marketCapEth, 2) : "N/A"} ETH</span>
                   {marketCapUsd !== null ? (
-                    <span className="ml-1 market-cap-text">
-                      (~${formatNumber(marketCapUsd, 0)})
-                    </span>
+                    <span className="ml-1 market-cap-text">(~${formatNumber(marketCapUsd, 0)})</span>
                   ) : isEthPriceData ? (
-                    <span className="ml-1 market-cap-text">
-                      (USD price processing...)
-                    </span>
+                    <span className="ml-1 market-cap-text">(USD price processing...)</span>
                   ) : (
-                    <span className="ml-1 market-cap-text">
-                      (ETH price unavailable)
-                    </span>
+                    <span className="ml-1 market-cap-text">(ETH price unavailable)</span>
                   )}
                 </div>
               )
@@ -214,9 +193,7 @@ export const CoinInfoCard = ({
             <div className="mt-1">
               <a
                 href={
-                  tokenURI.startsWith("ipfs://")
-                    ? `https://content.wrappr.wtf/ipfs/${tokenURI.slice(7)}`
-                    : tokenURI
+                  tokenURI.startsWith("ipfs://") ? `https://content.wrappr.wtf/ipfs/${tokenURI.slice(7)}` : tokenURI
                 }
                 target="_blank"
                 rel="noopener noreferrer"

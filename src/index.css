@@ -57,12 +57,12 @@
     --sidebar-ring: #111111;
 
     /* Diamond Logo Colors */
-    --diamond-pink: #FF6B9D;
-    --diamond-blue: #00D4FF;
-    --diamond-yellow: #FFE066;
-    --diamond-green: #66D9A6;
-    --diamond-orange: #FF9F40;
-    --diamond-purple: #B967DB;
+    --diamond-pink: #ff6b9d;
+    --diamond-blue: #00d4ff;
+    --diamond-yellow: #ffe066;
+    --diamond-green: #66d9a6;
+    --diamond-orange: #ff9f40;
+    --diamond-purple: #b967db;
   }
 }
 
@@ -105,12 +105,12 @@
   --sidebar-ring: #777777;
 
   /* Diamond Logo Colors - Same in dark mode */
-  --diamond-pink: #FF6B9D;
-  --diamond-blue: #00D4FF;
-  --diamond-yellow: #FFE066;
-  --diamond-green: #66D9A6;
-  --diamond-orange: #FF9F40;
-  --diamond-purple: #B967DB;
+  --diamond-pink: #ff6b9d;
+  --diamond-blue: #00d4ff;
+  --diamond-yellow: #ffe066;
+  --diamond-green: #66d9a6;
+  --diamond-orange: #ff9f40;
+  --diamond-purple: #b967db;
 }
 
 /* Dark mode datetime-local calendar icon fix */
@@ -551,12 +551,7 @@ body {
 
 .token-loading {
   animation: shimmer 1.5s infinite;
-  background: linear-gradient(
-    90deg,
-    var(--terminal-gray) 0%,
-    var(--terminal-white) 50%,
-    var(--terminal-gray) 100%
-  );
+  background: linear-gradient(90deg, var(--terminal-gray) 0%, var(--terminal-white) 50%, var(--terminal-gray) 100%);
   background-size: 200% 100%;
   border: 1px solid var(--terminal-black);
 }

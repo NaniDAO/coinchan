@@ -76,13 +76,7 @@ export const ImageInput = ({ onChange }: ImageInputProps) => {
 
   return (
     <div className="flex flex-col gap-2 bg-muted">
-      <input
-        ref={fileInputRef}
-        type="file"
-        onChange={handleFileChange}
-        accept="image/*"
-        className="hidden"
-      />
+      <input ref={fileInputRef} type="file" onChange={handleFileChange} accept="image/*" className="hidden" />
       <div
         className={`flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-md ${
           isDragging ? "border-primary bg-primary/10" : "border-input"
@@ -93,21 +87,10 @@ export const ImageInput = ({ onChange }: ImageInputProps) => {
       >
         {previewUrl ? (
           <div className="flex flex-col items-center gap-4">
-            <img
-              src={previewUrl}
-              alt="Preview"
-              className="max-h-32 max-w-full object-contain rounded-md"
-            />
+            <img src={previewUrl} alt="Preview" className="max-h-32 max-w-full object-contain rounded-md" />
             <div className="flex flex-col items-center">
-              <p className="text-sm text-muted-foreground mb-2">
-                {selectedFileName}
-              </p>
-              <Button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                variant="outline"
-                size="sm"
-              >
+              <p className="text-sm text-muted-foreground mb-2">{selectedFileName}</p>
+              <Button type="button" onClick={() => fileInputRef.current?.click()} variant="outline" size="sm">
                 {t("common.change")}
               </Button>
             </div>
@@ -116,12 +99,7 @@ export const ImageInput = ({ onChange }: ImageInputProps) => {
           <div className="text-center">
             <p className="mb-2">{t("common.drag_drop")}</p>
             <p>{t("common.or")}</p>
-            <Button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              variant="outline"
-              className="mt-2"
-            >
+            <Button type="button" onClick={() => fileInputRef.current?.click()} variant="outline" className="mt-2">
               {t("common.browse_files")}
             </Button>
           </div>

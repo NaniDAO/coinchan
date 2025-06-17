@@ -1,12 +1,7 @@
 import { CoinCard } from "./components/CoinCard";
 import { type CoinData } from "./hooks/metadata";
 import { useEffect, useState } from "react";
-import {
-  ArrowDownAZ,
-  ArrowUpAZ,
-  Coins as CoinsIcon,
-  ThumbsUp,
-} from "lucide-react";
+import { ArrowDownAZ, ArrowUpAZ, Coins as CoinsIcon, ThumbsUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { LoadingLogo } from "./components/ui/loading-logo";
 
@@ -84,11 +79,7 @@ export const ExplorerGrid = ({
       {searchBar && (
         <div className="mb-4">
           {searchBar}
-          {searchResults && (
-            <div className="mt-2 text-sm text-muted-foreground text-center">
-              {searchResults}
-            </div>
-          )}
+          {searchResults && <div className="mt-2 text-sm text-muted-foreground text-center">{searchResults}</div>}
         </div>
       )}
 
@@ -152,7 +143,9 @@ export const ExplorerGrid = ({
               <button
                 onClick={() => onSortTypeChange("votes")}
                 className={`flex items-center px-3 py-2 text-sm font-medium ${
-                  sortType === "votes" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80 dark:text-foreground dark:hover:text-foreground"
+                  sortType === "votes"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80 dark:text-foreground dark:hover:text-foreground"
                 }`}
                 title={t("common.sort_by", { field: t("common.votes") })}
                 disabled={isLoading || isTransitioning}
@@ -165,9 +158,7 @@ export const ExplorerGrid = ({
 
           {onSortOrderChange && (
             <button
-              onClick={() =>
-                onSortOrderChange(sortOrder === "asc" ? "desc" : "asc")
-              }
+              onClick={() => onSortOrderChange(sortOrder === "asc" ? "desc" : "asc")}
               className="flex items-center px-3 py-2 text-xs font-medium bg-muted text-muted-foreground hover:bg-muted/80 dark:text-foreground dark:hover:text-foreground"
               title={
                 sortType === "recency"
@@ -184,11 +175,7 @@ export const ExplorerGrid = ({
               }
               disabled={isLoading || isTransitioning}
             >
-              {sortOrder === "asc" ? (
-                <ArrowUpAZ className="w-4 h-4 mr-1" />
-              ) : (
-                <ArrowDownAZ className="w-4 h-4 mr-1" />
-              )}
+              {sortOrder === "asc" ? <ArrowUpAZ className="w-4 h-4 mr-1" /> : <ArrowDownAZ className="w-4 h-4 mr-1" />}
               {sortType === "recency"
                 ? sortOrder === "asc"
                   ? t("explore.oldest").toUpperCase()
@@ -209,10 +196,7 @@ export const ExplorerGrid = ({
         className={`grid grid-cols-3 gap-4 min-h-[300px] ${isTransitioning ? "transition-opacity duration-300 opacity-50" : ""}`}
       >
         {coins.map((coin) => (
-          <div
-            key={coin.coinId.toString()}
-            className={isPending ? "opacity-60 pointer-events-none" : ""}
-          >
+          <div key={coin.coinId.toString()} className={isPending ? "opacity-60 pointer-events-none" : ""}>
             <CoinCard coin={coin} />
           </div>
         ))}
@@ -228,9 +212,7 @@ export const ExplorerGrid = ({
           ))}
 
         {coins.length === 0 && isSearchActive && (
-          <div className="col-span-full text-center py-8 text-muted-foreground">
-            {t("explore.no_results")}
-          </div>
+          <div className="col-span-full text-center py-8 text-muted-foreground">{t("explore.no_results")}</div>
         )}
       </div>
 
@@ -248,13 +230,7 @@ export const ExplorerGrid = ({
               <LoadingLogo size="sm" className="scale-75" />
             </span>
           ) : null}
-          <span
-            className={
-              isTransitioning && direction === "prev" ? "opacity-0" : ""
-            }
-          >
-            {t("common.previous")}
-          </span>
+          <span className={isTransitioning && direction === "prev" ? "opacity-0" : ""}>{t("common.previous")}</span>
         </button>
 
         {total > 0 && !isSearchActive && (
@@ -276,13 +252,7 @@ export const ExplorerGrid = ({
               <LoadingLogo size="sm" className="scale-75" />
             </span>
           ) : null}
-          <span
-            className={
-              isTransitioning && direction === "next" ? "opacity-0" : ""
-            }
-          >
-            {t("common.next")}
-          </span>
+          <span className={isTransitioning && direction === "next" ? "opacity-0" : ""}>{t("common.next")}</span>
         </button>
       </div>
     </div>

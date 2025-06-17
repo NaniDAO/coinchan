@@ -17,9 +17,7 @@ export const LiquidityActions = () => {
           <button
             className={cn(
               `!px-2 flex flex-row items-center justify-center !py-1 text-xs border-2 transition-colors hover:!text-underline`,
-              liquidityMode === "add"
-                ? "bg-background text-foreground"
-                : "bg-accent text-accent-foreground",
+              liquidityMode === "add" ? "bg-background text-foreground" : "bg-accent text-accent-foreground",
             )}
             onClick={() => setLiquidityMode("add")}
           >
@@ -29,9 +27,7 @@ export const LiquidityActions = () => {
           <button
             className={cn(
               `!px-2 !py-1 flex flex-row items-center justify-center text-xs border-2 transition-colors hover:!text-underline`,
-              liquidityMode === "remove"
-                ? "bg-background text-foreground"
-                : "bg-accent text-accent-foreground",
+              liquidityMode === "remove" ? "bg-background text-foreground" : "bg-accent text-accent-foreground",
             )}
             onClick={() => setLiquidityMode("remove")}
           >
@@ -41,9 +37,7 @@ export const LiquidityActions = () => {
           <button
             className={cn(
               `!px-2 !py-1 flex flex-row items-center justify-center text-xs border-2 transition-colors hover:!text-underline`,
-              liquidityMode === "single-eth"
-                ? "bg-background text-foreground"
-                : "bg-accent text-accent-foreground",
+              liquidityMode === "single-eth" ? "bg-background text-foreground" : "bg-accent text-accent-foreground",
             )}
             onClick={() => setLiquidityMode("single-eth")}
           >

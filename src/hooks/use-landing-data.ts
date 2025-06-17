@@ -2,10 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { usePublicClient } from "wagmi";
 import { formatUnits } from "viem";
 import { useTranslation } from "react-i18next";
-import {
-  CheckTheChainAbi,
-  CheckTheChainAddress,
-} from "@/constants/CheckTheChain";
+import { CheckTheChainAbi, CheckTheChainAddress } from "@/constants/CheckTheChain";
 
 export interface LandingData {
   ethPrice: string;
@@ -16,8 +13,8 @@ export interface LandingData {
 
 export const useRandomLoadingText = () => {
   const { t } = useTranslation();
-  const loadingTips = t('landing.loading_tips', { returnObjects: true }) as string[];
-  
+  const loadingTips = t("landing.loading_tips", { returnObjects: true }) as string[];
+
   const getRandomLoadingText = () => {
     const randomIndex = Math.floor(Math.random() * loadingTips.length);
     return loadingTips[randomIndex];
@@ -51,11 +48,9 @@ export const useLandingData = () => {
 
       const ethPriceUsd = Number(ethPrice[1]);
 
-      const launchCostUsd =
-        Number(formatUnits(LAUNCH_COST_GAS * gasPrice, 18)) * ethPriceUsd;
-      
-      const coinCostUsd =
-        Number(formatUnits(COIN_COST_GAS * gasPrice, 18)) * ethPriceUsd;
+      const launchCostUsd = Number(formatUnits(LAUNCH_COST_GAS * gasPrice, 18)) * ethPriceUsd;
+
+      const coinCostUsd = Number(formatUnits(COIN_COST_GAS * gasPrice, 18)) * ethPriceUsd;
 
       return {
         ethPrice: `$${ethPriceUsd.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,

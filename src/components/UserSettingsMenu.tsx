@@ -50,11 +50,7 @@ export function UserSettingsMenu() {
                 className="!px-2 !py-1 bg-background text-foreground !border !border-foreground"
                 onClick={() => changeLanguage(lang.code)}
               >
-                <span
-                  className={currentLanguage === lang.code ? "font-bold" : ""}
-                >
-                  {lang.label}
-                </span>
+                <span className={currentLanguage === lang.code ? "font-bold" : ""}>{lang.label}</span>
               </DropdownMenuItem>
             ))}
           </DropdownMenuSubContent>

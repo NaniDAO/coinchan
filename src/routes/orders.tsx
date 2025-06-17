@@ -11,9 +11,7 @@ function RouteComponent() {
 
   return (
     <div className="p-5">
-      <h2 className="text-center mb-5 font-display uppercase tracking-[2px]">
-        ═══ {t("orders.title")} ═══
-      </h2>
+      <h2 className="text-center mb-5 font-display uppercase tracking-[2px]">═══ {t("orders.title")} ═══</h2>
 
       <div className="orders-container">
         <OrdersPage />

@@ -6,9 +6,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function trunc(value: number | string, length: number = 3): string {
-  return (
-    value.toString().slice(0, length) + "..." + value.toString().slice(-length)
-  );
+  return value.toString().slice(0, length) + "..." + value.toString().slice(-length);
 }
 
 /**
@@ -37,9 +35,9 @@ export function formatNumber(value: number, decimals: number = 2): string {
  * @returns Formatted string with commas, no decimals for integers
  */
 export function formatNumberInput(value: number | string): string {
-  const num = typeof value === 'string' ? parseFloat(value) : value;
-  if (isNaN(num)) return '';
-  
+  const num = typeof value === "string" ? parseFloat(value) : value;
+  if (isNaN(num)) return "";
+
   // For whole numbers, don't show decimals
   if (Number.isInteger(num)) {
     return new Intl.NumberFormat("en-US", {
@@ -47,7 +45,7 @@ export function formatNumberInput(value: number | string): string {
       maximumFractionDigits: 0,
     }).format(num);
   }
-  
+
   // For decimals, preserve the original precision
   return new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 0,
@@ -62,7 +60,7 @@ export function formatNumberInput(value: number | string): string {
  */
 export function parseNumberInput(value: string): number {
   // Remove commas and parse
-  const cleaned = value.replace(/,/g, '');
+  const cleaned = value.replace(/,/g, "");
   return parseFloat(cleaned);
 }
 
@@ -72,7 +70,7 @@ export function parseNumberInput(value: string): number {
  * @returns Cleaned string suitable for number parsing
  */
 export function cleanNumberInput(value: string): string {
-  return value.replace(/,/g, '');
+  return value.replace(/,/g, "");
 }
 
 /**
@@ -83,10 +81,7 @@ export function cleanNumberInput(value: string): string {
  * @param wait The number of milliseconds to delay
  * @returns A debounced function
  */
-export function debounce<T extends (...args: any[]) => any>(
-  func: T,
-  wait = 300,
-): (...args: Parameters<T>) => void {
+export function debounce<T extends (...args: any[]) => any>(func: T, wait = 300): (...args: Parameters<T>) => void {
   let timeout: ReturnType<typeof setTimeout> | null = null;
 
   return function (this: any, ...args: Parameters<T>): void {
@@ -108,15 +103,12 @@ export function debounce<T extends (...args: any[]) => any>(
  * @param value The input value
  * @param callback Function to call with the cleaned numeric value
  */
-export function handleNumberInputChange(
-  value: string,
-  callback: (cleanValue: string) => void
-): void {
+export function handleNumberInputChange(value: string, callback: (cleanValue: string) => void): void {
   // Remove commas for processing
   const cleaned = cleanNumberInput(value);
-  
+
   // Only allow numbers, decimals, and empty string
-  if (cleaned === '' || /^\d*\.?\d*$/.test(cleaned)) {
+  if (cleaned === "" || /^\d*\.?\d*$/.test(cleaned)) {
     callback(cleaned);
   }
 }
