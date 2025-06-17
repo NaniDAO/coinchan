@@ -31,6 +31,51 @@ export function formatNumber(value: number, decimals: number = 2): string {
 }
 
 /**
+ * Format a number for display in input fields with comma thousands separators
+ * Handles integers without decimals for token amounts
+ * @param value The number to format
+ * @returns Formatted string with commas, no decimals for integers
+ */
+export function formatNumberInput(value: number | string): string {
+  const num = typeof value === 'string' ? parseFloat(value) : value;
+  if (isNaN(num)) return '';
+  
+  // For whole numbers, don't show decimals
+  if (Number.isInteger(num)) {
+    return new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(num);
+  }
+  
+  // For decimals, preserve the original precision
+  return new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 20, // Allow many decimals for precise values
+  }).format(num);
+}
+
+/**
+ * Parse a formatted number string (with commas) back to a number
+ * @param value The formatted string to parse
+ * @returns The parsed number, or NaN if invalid
+ */
+export function parseNumberInput(value: string): number {
+  // Remove commas and parse
+  const cleaned = value.replace(/,/g, '');
+  return parseFloat(cleaned);
+}
+
+/**
+ * Clean and validate number input, removing commas for processing
+ * @param value The input value
+ * @returns Cleaned string suitable for number parsing
+ */
+export function cleanNumberInput(value: string): string {
+  return value.replace(/,/g, '');
+}
+
+/**
  * Create a debounced function that delays invoking the provided function
  * until after `wait` milliseconds have elapsed since the last invocation.
  *
@@ -56,6 +101,24 @@ export function debounce<T extends (...args: any[]) => any>(
       timeout = null;
     }, wait);
   };
+}
+
+/**
+ * Handle number input change with comma formatting
+ * @param value The input value
+ * @param callback Function to call with the cleaned numeric value
+ */
+export function handleNumberInputChange(
+  value: string,
+  callback: (cleanValue: string) => void
+): void {
+  // Remove commas for processing
+  const cleaned = cleanNumberInput(value);
+  
+  // Only allow numbers, decimals, and empty string
+  if (cleaned === '' || /^\d*\.?\d*$/.test(cleaned)) {
+    callback(cleaned);
+  }
 }
 
 export const generateRandomSlug = () => {

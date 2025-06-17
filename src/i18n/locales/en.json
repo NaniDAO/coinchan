@@ -193,6 +193,7 @@
   },
   "explore": {
     "title": "Explore",
+    "coin_explorer": "Coin Explorer",
     "search": "Search",
     "trending": "Trending",
     "new": "New",
@@ -204,7 +205,17 @@
     "load_more": "Load More",
     "token_details": "Token Details",
     "view_token": "View Token",
-    "view_all": "View All"
+    "view_all": "View All",
+    "oldest": "Oldest",
+    "newest": "Newest",
+    "lowest": "Lowest",
+    "highest": "Highest",
+    "sort_order_oldest_first": "Currently: Oldest first",
+    "sort_order_newest_first": "Currently: Newest first",
+    "sort_order_lowest_votes_first": "Currently: Lowest votes first",
+    "sort_order_highest_votes_first": "Currently: Highest votes first",
+    "sort_order_lowest_liquidity_first": "Currently: Lowest liquidity first",
+    "sort_order_highest_liquidity_first": "Currently: Highest liquidity first"
   },
   "coinpaper": {
     "title": "Coin Paper",

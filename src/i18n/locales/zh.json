@@ -193,6 +193,7 @@
   },
   "explore": {
     "title": "探索",
+    "coin_explorer": "币种浏览器",
     "search": "搜索",
     "trending": "热门",
     "new": "最新",
@@ -204,7 +205,17 @@
     "load_more": "加载更多",
     "token_details": "代币详情",
     "view_token": "查看代币",
-    "view_all": "查看全部"
+    "view_all": "查看全部",
+    "oldest": "最旧",
+    "newest": "最新",
+    "lowest": "最低",
+    "highest": "最高",
+    "sort_order_oldest_first": "当前：最旧优先",
+    "sort_order_newest_first": "当前：最新优先",
+    "sort_order_lowest_votes_first": "当前：最低支持数优先",
+    "sort_order_highest_votes_first": "当前：最高支持数优先",
+    "sort_order_lowest_liquidity_first": "当前：最低流动性优先",
+    "sort_order_highest_liquidity_first": "当前：最高流动性优先"
   },
   "coinpaper": {
     "title": "币种简介",

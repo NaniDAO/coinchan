@@ -28,12 +28,12 @@ import {
 } from "recharts";
 import { parseEther } from "viem";
 import { toast } from "sonner";
-import { generateRandomSlug } from "@/lib/utils";
+import { generateRandomSlug, formatNumberInput, handleNumberInputChange } from "@/lib/utils";
 import { XIcon } from "lucide-react";
 
 const defaultTranche = {
-  coins: 1000000,
-  price: 0.01,
+  coins: 300000000,
+  price: 1,
 };
 
 type LaunchMode = "simple" | "tranche" | "pool";
@@ -116,7 +116,7 @@ const LAUNCH_MODES = {
 
 // Validation schema with zod
 const launchFormSchema = z.object({
-  mode: z.enum(["simple", "tranche", "pool"]).default("simple"),
+  mode: z.enum(["simple", "tranche", "pool"]).default("tranche"),
   creatorSupply: z.coerce.number().min(1, "Creator supply is required"),
   creatorUnlockDate: z.string().optional(),
   metadataName: z.string().min(1, "Name is required"),
@@ -165,13 +165,13 @@ export const LaunchForm = () => {
 
   // State for form data instead of react-hook-form
   const [formData, setFormData] = useState<LaunchFormValues>({
-    mode: "simple",
-    creatorSupply: 1000000,
+    mode: "tranche",
+    creatorSupply: 100000000,
     creatorUnlockDate: "",
     metadataName: "",
     metadataSymbol: "",
     metadataDescription: "",
-    poolSupply: 1000000,
+    poolSupply: 900000000,
     ethAmount: 0.1,
     tranches: [
       { coins: defaultTranche.coins, price: defaultTranche.price },
@@ -197,6 +197,19 @@ export const LaunchForm = () => {
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
+    
+    // Handle number inputs that need comma formatting
+    if (name === 'creatorSupply' || name === 'poolSupply') {
+      handleNumberInputChange(value, (cleanValue) => {
+        setFormData((prev) => ({
+          ...prev,
+          [name]: cleanValue,
+        }));
+      });
+      return;
+    }
+    
+    // Handle regular inputs
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -208,9 +221,25 @@ export const LaunchForm = () => {
     field: "coins" | "price",
     value: string,
   ) => {
+    // Handle coins field with comma formatting
+    if (field === 'coins') {
+      handleNumberInputChange(value, (cleanValue) => {
+        setFormData((prev) => {
+          const newTranches = [...prev.tranches];
+          newTranches[index][field] = parseFloat(cleanValue) || 0;
+          return {
+            ...prev,
+            tranches: newTranches,
+          };
+        });
+      });
+      return;
+    }
+    
+    // Handle price field normally (small decimal values)
     setFormData((prev) => {
       const newTranches = [...prev.tranches];
-      newTranches[index][field] = parseFloat(value);
+      newTranches[index][field] = parseFloat(value) || 0;
       return {
         ...prev,
         tranches: newTranches,
@@ -320,7 +349,7 @@ export const LaunchForm = () => {
           functionName: "coinWithPool",
           args: [
             parseEther(validatedData.poolSupply?.toString() || "0"),
-            parseEther(validatedData.creatorSupply.toString()) ?? 0n,
+            parseEther(validatedData.creatorSupply.toString()),
             BigInt(unlockTs),
             uri,
           ],
@@ -340,7 +369,7 @@ export const LaunchForm = () => {
           address: ZAMMLaunchAddress,
           functionName: "launch",
           args: [
-            parseEther(validatedData.creatorSupply.toString()) ?? 0n,
+            parseEther(validatedData.creatorSupply.toString()),
             BigInt(unlockTs),
             uri,
             trancheCoins,
@@ -389,9 +418,9 @@ export const LaunchForm = () => {
           <Input
             id="creatorSupply"
             name="creatorSupply"
-            type="number"
-            placeholder="e.g. 1000000"
-            value={formData.creatorSupply}
+            type="text"
+            placeholder="e.g. 100,000,000"
+            value={formatNumberInput(formData.creatorSupply)}
             onChange={handleInputChange}
           />
           {errors["creatorSupply"] && (
@@ -469,9 +498,9 @@ export const LaunchForm = () => {
               <Input
                 id="poolSupply"
                 name="poolSupply"
-                type="number"
-                placeholder="e.g. 1000000"
-                value={formData.poolSupply || ""}
+                type="text"
+                placeholder="e.g. 900,000,000"
+                value={formData.poolSupply ? formatNumberInput(formData.poolSupply) : ""}
                 onChange={handleInputChange}
               />
               <div className="text-xs text-gray-500">
@@ -690,8 +719,8 @@ export const LaunchForm = () => {
                 <Label htmlFor={`trancheCoins-${idx}`}>Coins</Label>
                 <Input
                   id={`trancheCoins-${idx}`}
-                  type="number"
-                  value={tranche.coins}
+                  type="text"
+                  value={formatNumberInput(tranche.coins)}
                   onChange={(e) =>
                     handleTrancheChange(idx, "coins", e.target.value)
                   }
