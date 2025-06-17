@@ -253,7 +253,10 @@
     "error": "Error",
     "loading_error": "Loading Error",
     "invalid_address_warning": "Please enter a valid Ethereum address",
-    "transaction_rejected": "Transaction rejected by user"
+    "transaction_rejected": "Transaction rejected by user",
+    "success_launch_id": "Launched coin!",
+    "success_check_launch_id": "Check your launched coin ID {{coinId}} at:",
+    "success_view_coin": "zamm.finance/c/{{coinId}}"
   },
   "explore": {
     "title": "Explore",

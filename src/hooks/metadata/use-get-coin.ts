@@ -17,13 +17,15 @@ interface GetCoinData {
 
 const fetchCoinData = async (coinId: string) => {
   try {
-    const response = await fetch(import.meta.env.VITE_INDEXER_URL + "/graphql", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        query: `
+    const response = await fetch(
+      import.meta.env.VITE_INDEXER_URL + "/graphql",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query: `
         query GetCoinData {
           coin(id: "${coinId.toString()}") {
             id
@@ -44,8 +46,9 @@ const fetchCoinData = async (coinId: string) => {
           }
         }
       `,
-      }),
-    });
+        }),
+      },
+    );
 
     const json = await response.json();
     const coin = json.data.coin;
@@ -59,8 +62,12 @@ const fetchCoinData = async (coinId: string) => {
       tokenURI: coin.tokenURI ? coin.tokenURI : "",
       decimals: coin.decimals,
       totalSupply: BigInt(coin.totalSupply),
-      poolId: BigInt(coin.pools.items?.[0]?.id) ?? undefined,
-      swapFee: coin.pools.items?.[0]?.swapFee ? BigInt(coin.pools.items?.[0]?.swapFee) : undefined,
+      poolId: coin.pools.items?.[0]?.id
+        ? BigInt(coin.pools.items?.[0]?.id)
+        : undefined,
+      swapFee: coin.pools.items?.[0]?.swapFee
+        ? BigInt(coin.pools.items?.[0]?.swapFee)
+        : "100",
       marketCapEth:
         Number(formatEther(BigInt(coin?.totalSupply ?? 0n))) *
         Number(formatEther(BigInt(coin?.pools.items?.[0]?.price1 ?? 0n))),

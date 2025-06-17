@@ -253,7 +253,10 @@
     "error": "错误",
     "loading_error": "加载错误",
     "invalid_address_warning": "请输入有效的以太坊地址",
-    "transaction_rejected": "用户拒绝交易"
+    "transaction_rejected": "用户拒绝交易",
+    "success_launch_id": "币种已发行！",
+    "success_check_launch_id": "在以下位置查看您的发行币种ID {{coinId}}：",
+    "success_view_coin": "zamm.finance/c/{{coinId}}"
   },
   "explore": {
     "title": "探索",
