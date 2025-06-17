@@ -22,6 +22,7 @@ import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { ETH_TOKEN, TokenMeta, USDT_ADDRESS } from "./lib/coins";
 import { TokenSelector } from "./components/TokenSelector";
 import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
+import { useTranslation } from "react-i18next";
 
 // Helper function to format token balance with appropriate precision
 export const formatTokenBalance = (token: TokenMeta): string => {
@@ -81,6 +82,7 @@ const safeStr = (val: any): string => {
 };
 
 const SendTileComponent = () => {
+  const { t } = useTranslation();
   const {
     tokens,
     error: loadError,
@@ -272,9 +274,9 @@ const SendTileComponent = () => {
       console.error("Send transaction error:", error);
 
       if (isUserRejectionError(error)) {
-        setTxError("Transaction rejected by user");
+        setTxError(t("create.transaction_rejected"));
       } else {
-        const errorMsg = handleWalletError(error) || "Transaction failed";
+        const errorMsg = handleWalletError(error) || t("create.transaction_failed");
         setTxError(errorMsg);
       }
     }
@@ -308,7 +310,7 @@ const SendTileComponent = () => {
       <div className="max-w-lg border-2 border-border  p-2 outline outline-offset-2 outline-border mx-auto">
         <div className="mb-5">
           <label className="block text-sm font-bold mb-2 font-body">
-            RECIPIENT ADDRESS:
+            {t("create.recipient_address").toUpperCase()}:
           </label>
           <input
             type="text"
@@ -321,14 +323,14 @@ const SendTileComponent = () => {
             (!recipientAddress.startsWith("0x") ||
               recipientAddress.length !== 42) && (
               <p className="mt-2 text-sm text-destructive font-bold">
-                ⚠ Please enter a valid Ethereum address
+                ⚠ {t("create.invalid_address_warning")}
               </p>
             )}
         </div>
 
         <div className="mb-5">
           <label className="block text-sm font-bold mb-2 font-body">
-            ASSET TO SEND:
+            {t("create.asset_to_send").toUpperCase()}:
           </label>
           <TokenSelector
             selectedToken={selectedToken}
@@ -341,13 +343,13 @@ const SendTileComponent = () => {
 
         <div className="mb-5">
           <div className="flex justify-between items-center mb-2">
-            <label className="block text-sm font-bold font-body">AMOUNT:</label>
+            <label className="block text-sm font-bold font-body">{t("create.amount").toUpperCase()}:</label>
             <button
               onClick={handleMaxClick}
               className="px-2 py-1 text-xs uppercase bg-secondary hover:bg-secondary/80 rounded disabled:opacity-50"
               disabled={!selectedToken.balance || selectedToken.balance === 0n}
             >
-              MAX
+              {t("create.max").toUpperCase()}
             </button>
           </div>
           <div className="relative">
@@ -375,14 +377,14 @@ const SendTileComponent = () => {
               <span>
                 {percentOfBalance > 100 ? (
                   <span className="text-destructive">
-                    ⚠ INSUFFICIENT BALANCE
+                    ⚠ {t("create.insufficient_balance").toUpperCase()}
                   </span>
                 ) : (
-                  `${percentOfBalance.toFixed(0)}% OF BALANCE`
+                  `${percentOfBalance.toFixed(0)}${t("create.percent_of_balance")}`
                 )}
               </span>
               <span>
-                BALANCE: {formatTokenBalance(selectedToken)}{" "}
+                {t("create.balance").toUpperCase()}: {formatTokenBalance(selectedToken)}{" "}
                 {selectedToken.symbol !== undefined
                   ? safeStr(selectedToken.symbol)
                   : ""}
@@ -399,11 +401,11 @@ const SendTileComponent = () => {
           {isPending ? (
             <>
               <LoadingLogo size="sm" />
-              <span>SENDING...</span>
+              <span>{t("create.sending").toUpperCase()}</span>
             </>
           ) : (
             <>
-              <span>SEND</span>
+              <span>{t("create.send").toUpperCase()}</span>
               <span className="text-primary-foreground/80">🪁</span>
             </>
           )}
@@ -414,8 +416,8 @@ const SendTileComponent = () => {
             <p className="text-sm font-bold">
               <span className="text-accent">
                 {isSuccess
-                  ? "✓ TRANSACTION SUCCESSFUL!"
-                  : "⏳ TRANSACTION SUBMITTED!"}
+                  ? `✓ ${t("create.transaction_successful").toUpperCase()}`
+                  : `⏳ ${t("create.transaction_submitted").toUpperCase()}`}
               </span>{" "}
               <a
                 href={`https://etherscan.io/tx/${txHash}`}
@@ -423,11 +425,11 @@ const SendTileComponent = () => {
                 rel="noopener noreferrer"
                 className="px-2 py-1 text-xs bg-secondary hover:bg-secondary/80 rounded ml-2 no-underline"
               >
-                VIEW ON ETHERSCAN
+                {t("create.view_on_etherscan").toUpperCase()}
               </a>
               {!isSuccess && (
                 <span className="inline-block ml-2 text-accent font-bold animate-pulse">
-                  (WAITING FOR CONFIRMATION...)
+                  {t("create.waiting_for_confirmation").toUpperCase()}
                 </span>
               )}
             </p>
@@ -437,7 +439,7 @@ const SendTileComponent = () => {
         {txError && (
           <div className="mt-4 p-3 border-2 border-destructive bg-card font-body">
             <p className="text-sm font-bold text-destructive">
-              ⚠ ERROR: {txError.toUpperCase()}
+              ⚠ {t("create.error").toUpperCase()}: {txError.toUpperCase()}
             </p>
           </div>
         )}
@@ -445,7 +447,7 @@ const SendTileComponent = () => {
         {loadError && (
           <div className="mt-4 p-3 border-2 border-destructive bg-card font-body">
             <p className="text-sm font-bold text-destructive">
-              ⚠ LOADING ERROR: {loadError.toUpperCase()}
+              ⚠ {t("create.loading_error").toUpperCase()}: {loadError.toUpperCase()}
             </p>
           </div>
         )}
