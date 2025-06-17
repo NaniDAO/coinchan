@@ -1,5 +1,6 @@
 import Coins from "@/Coins";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/explore")({
   component: RouteComponent,
@@ -7,6 +8,7 @@ export const Route = createFileRoute("/explore")({
 
 function RouteComponent() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleLaunch = () => {
     navigate({ to: "/launch" });
@@ -23,14 +25,14 @@ function RouteComponent() {
   return (
     <div className="!p-5 !mb-[50px]">
       <h2 className="text-center mb-5 font-display uppercase tracking-[2px]">
-        COIN EXPLORER
+        {t("explore.coin_explorer")}
       </h2>
 
       <div className="mb-6 flex gap-3 justify-center font-display text-sm tracking-widest">
         {[
-          { label: "LAUNCH", icon: "+", onClick: handleLaunch },
-          { label: "SEND", icon: "→", onClick: handleSend },
-          { label: "ORDERS", icon: "📋", onClick: handleOrders },
+          { label: t("common.launch"), icon: "+", onClick: handleLaunch },
+          { label: t("common.send"), icon: "→", onClick: handleSend },
+          { label: t("common.orders"), icon: "📋", onClick: handleOrders },
         ].map(({ label, icon, onClick }) => (
           <button
             key={label}

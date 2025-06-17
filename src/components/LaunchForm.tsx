@@ -28,192 +28,67 @@ import {
 } from "recharts";
 import { parseEther } from "viem";
 import { toast } from "sonner";
-import { generateRandomSlug } from "@/lib/utils";
+import { generateRandomSlug, formatNumberInput, handleNumberInputChange } from "@/lib/utils";
 import { XIcon } from "lucide-react";
 
 const defaultTranche = {
-  coins: 1000000,
-  price: 0.01,
+  coins: 300000000,
+  price: 1,
 };
 
 type LaunchMode = "simple" | "tranche" | "pool";
 
 const CoinIcon = () => (
-  <svg
-    width="24"
-    height="29"
-    viewBox="0 0 200 240"
-    xmlns="http://www.w3.org/2000/svg"
-    className="inline-block"
-  >
-    <path
-      d="M100,120 L100,30 A90,90 0 0,1 177.9,75 Z"
-      fill="#FF6B9D"
-      stroke="#000000"
-      stroke-width="2"
-    />
-    <path
-      d="M100,120 L177.9,75 A90,90 0 0,1 177.9,165 Z"
-      fill="#00D4FF"
-      stroke="#000000"
-      stroke-width="2"
-    />
-    <path
-      d="M100,120 L177.9,165 A90,90 0 0,1 100,210 Z"
-      fill="#66D9A6"
-      stroke="#000000"
-      stroke-width="2"
-    />
-    <path
-      d="M100,120 L100,210 A90,90 0 0,1 22.1,165 Z"
-      fill="#B967DB"
-      stroke="#000000"
-      stroke-width="2"
-    />
-    <path
-      d="M100,120 L22.1,165 A90,90 0 0,1 22.1,75 Z"
-      fill="#FF9F40"
-      stroke="#000000"
-      stroke-width="2"
-    />
-    <path
-      d="M100,120 L22.1,75 A90,90 0 0,1 100,30 Z"
-      fill="#FFE066"
-      stroke="#000000"
-      stroke-width="2"
-    />
+  <svg width="24" height="29" viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg" className="inline-block">
+    <path d="M100,120 L100,30 A90,90 0 0,1 177.9,75 Z"
+          fill="#FF6B9D" stroke="#000000" stroke-width="2"/>
+    <path d="M100,120 L177.9,75 A90,90 0 0,1 177.9,165 Z"
+          fill="#00D4FF" stroke="#000000" stroke-width="2"/>
+    <path d="M100,120 L177.9,165 A90,90 0 0,1 100,210 Z"
+          fill="#66D9A6" stroke="#000000" stroke-width="2"/>
+    <path d="M100,120 L100,210 A90,90 0 0,1 22.1,165 Z"
+          fill="#B967DB" stroke="#000000" stroke-width="2"/>
+    <path d="M100,120 L22.1,165 A90,90 0 0,1 22.1,75 Z"
+          fill="#FF9F40" stroke="#000000" stroke-width="2"/>
+    <path d="M100,120 L22.1,75 A90,90 0 0,1 100,30 Z"
+          fill="#FFE066" stroke="#000000" stroke-width="2"/>
   </svg>
 );
 
 const ChartIcon = () => (
-  <svg
-    width="24"
-    height="29"
-    viewBox="0 0 200 240"
-    xmlns="http://www.w3.org/2000/svg"
-    className="inline-block"
-  >
-    <line
-      x1="30"
-      y1="200"
-      x2="170"
-      y2="200"
-      stroke="#000000"
-      stroke-width="2"
-    />
-    <line x1="40" y1="40" x2="40" y2="200" stroke="#000000" stroke-width="2" />
-    <line
-      x1="40"
-      y1="120"
-      x2="170"
-      y2="120"
-      stroke="#000000"
-      stroke-width="1"
-      stroke-dasharray="4,4"
-    />
-    <line
-      x1="40"
-      y1="160"
-      x2="170"
-      y2="160"
-      stroke="#000000"
-      stroke-width="1"
-      stroke-dasharray="4,4"
-    />
-    <rect
-      x="55"
-      y="160"
-      width="20"
-      height="40"
-      fill="#FF6B9D"
-      stroke="#000000"
-      stroke-width="2"
-    />
-    <rect
-      x="85"
-      y="120"
-      width="20"
-      height="80"
-      fill="#00D4FF"
-      stroke="#000000"
-      stroke-width="2"
-    />
-    <rect
-      x="115"
-      y="90"
-      width="20"
-      height="110"
-      fill="#FFE066"
-      stroke="#000000"
-      stroke-width="2"
-    />
-    <rect
-      x="145"
-      y="50"
-      width="20"
-      height="150"
-      fill="#66D9A6"
-      stroke="#000000"
-      stroke-width="2"
-    />
+  <svg width="24" height="29" viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg" className="inline-block">
+    <line x1="30" y1="200" x2="170" y2="200" stroke="#000000" stroke-width="2"/>
+    <line x1="40" y1="40" x2="40" y2="200" stroke="#000000" stroke-width="2"/>
+    <line x1="40" y1="120" x2="170" y2="120" stroke="#000000" stroke-width="1" stroke-dasharray="4,4"/>
+    <line x1="40" y1="160" x2="170" y2="160" stroke="#000000" stroke-width="1" stroke-dasharray="4,4"/>
+    <rect x="55" y="160" width="20" height="40" fill="#FF6B9D" stroke="#000000" stroke-width="2"/>
+    <rect x="85" y="120" width="20" height="80" fill="#00D4FF" stroke="#000000" stroke-width="2"/>
+    <rect x="115" y="90" width="20" height="110" fill="#FFE066" stroke="#000000" stroke-width="2"/>
+    <rect x="145" y="50" width="20" height="150" fill="#66D9A6" stroke="#000000" stroke-width="2"/>
   </svg>
 );
 
 const PoolIcon = () => (
-  <svg
-    width="24"
-    height="29"
-    viewBox="0 0 200 240"
-    xmlns="http://www.w3.org/2000/svg"
-    className="inline-block"
-  >
-    <path
-      d="M100,20
-             C135,70 160,110 160,160
-             C160,200 130,220 100,220
-             C70,220 40,200 40,160
+  <svg width="24" height="29" viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg" className="inline-block">
+    <path d="M100,20 
+             C135,70 160,110 160,160 
+             C160,200 130,220 100,220 
+             C70,220 40,200 40,160 
              C40,110 65,70 100,20 Z"
-      fill="#AEEFFF"
-      stroke="#000000"
-      stroke-width="2"
-    />
+          fill="#AEEFFF" stroke="#000000" stroke-width="2"/>
     <g transform="translate(50,90) scale(0.5)">
-      <path
-        d="M100,120 L100,30 A90,90 0 0,1 177.9,75 Z"
-        fill="#FF6B9D"
-        stroke="#000000"
-        stroke-width="2"
-      />
-      <path
-        d="M100,120 L177.9,75 A90,90 0 0,1 177.9,165 Z"
-        fill="#00D4FF"
-        stroke="#000000"
-        stroke-width="2"
-      />
-      <path
-        d="M100,120 L177.9,165 A90,90 0 0,1 100,210 Z"
-        fill="#66D9A6"
-        stroke="#000000"
-        stroke-width="2"
-      />
-      <path
-        d="M100,120 L100,210 A90,90 0 0,1 22.1,165 Z"
-        fill="#B967DB"
-        stroke="#000000"
-        stroke-width="2"
-      />
-      <path
-        d="M100,120 L22.1,165 A90,90 0 0,1 22.1,75 Z"
-        fill="#FF9F40"
-        stroke="#000000"
-        stroke-width="2"
-      />
-      <path
-        d="M100,120 L22.1,75 A90,90 0 0,1 100,30 Z"
-        fill="#FFE066"
-        stroke="#000000"
-        stroke-width="2"
-      />
+      <path d="M100,120 L100,30 A90,90 0 0,1 177.9,75 Z"
+            fill="#FF6B9D" stroke="#000000" stroke-width="2"/>
+      <path d="M100,120 L177.9,75 A90,90 0 0,1 177.9,165 Z"
+            fill="#00D4FF" stroke="#000000" stroke-width="2"/>
+      <path d="M100,120 L177.9,165 A90,90 0 0,1 100,210 Z"
+            fill="#66D9A6" stroke="#000000" stroke-width="2"/>
+      <path d="M100,120 L100,210 A90,90 0 0,1 22.1,165 Z"
+            fill="#B967DB" stroke="#000000" stroke-width="2"/>
+      <path d="M100,120 L22.1,165 A90,90 0 0,1 22.1,75 Z"
+            fill="#FF9F40" stroke="#000000" stroke-width="2"/>
+      <path d="M100,120 L22.1,75 A90,90 0 0,1 100,30 Z"
+            fill="#FFE066" stroke="#000000" stroke-width="2"/>
     </g>
   </svg>
 );
@@ -226,71 +101,60 @@ const LAUNCH_MODES = {
     icon: <CoinIcon />,
   },
   tranche: {
-    id: "tranche",
+    id: "tranche", 
     title: "Tranche Sale",
     description: "Launch with custom price curve & sale",
     icon: <ChartIcon />,
   },
   pool: {
     id: "pool",
-    title: "Coin with Pool",
+    title: "Coin with Pool", 
     description: "Create token + add your own liquidity",
     icon: <PoolIcon />,
   },
 } as const;
 
 // Validation schema with zod
-const launchFormSchema = z
-  .object({
-    mode: z.enum(["simple", "tranche", "pool"]).default("simple"),
-    creatorSupply: z.coerce.number().min(1, "Creator supply is required"),
-    creatorUnlockDate: z.string().optional(),
-    metadataName: z.string().min(1, "Name is required"),
-    metadataSymbol: z.string().min(1, "Symbol is required").max(5),
-    metadataDescription: z.string().optional(),
-    poolSupply: z.coerce.number().min(0, "Pool supply is required").optional(),
-    ethAmount: z.coerce.number().min(0, "ETH amount is required").optional(),
-    tranches: z
-      .array(
-        z.object({
-          coins: z.coerce.number().min(0, "Coins amount is required"),
-          price: z.coerce.number().min(0, "Price is required"),
-        }),
-      )
-      .min(1, "At least one tranche is required"),
-  })
-  .refine(
-    (data) => {
-      if (data.mode === "pool") {
-        return (
-          data.poolSupply &&
-          data.poolSupply > 0 &&
-          data.ethAmount &&
-          data.ethAmount > 0
-        );
-      }
-      if (data.mode === "tranche") {
-        return data.tranches.length > 0;
-      }
-      return true; // simple mode only needs basic fields
-    },
-    {
-      message: "Invalid configuration for selected mode",
-      path: ["mode"],
-    },
-  )
-  .transform((data) => {
-    // For simple mode, clear tranche data to avoid validation issues
-    if (data.mode === "simple") {
-      return {
-        ...data,
-        tranches: [],
-        poolSupply: undefined,
-        ethAmount: undefined,
-      };
-    }
-    return data;
-  });
+const launchFormSchema = z.object({
+  mode: z.enum(["simple", "tranche", "pool"]).default("tranche"),
+  creatorSupply: z.coerce.number().min(1, "Creator supply is required"),
+  creatorUnlockDate: z.string().optional(),
+  metadataName: z.string().min(1, "Name is required"),
+  metadataSymbol: z.string().min(1, "Symbol is required").max(5),
+  metadataDescription: z.string().optional(),
+  poolSupply: z.coerce.number().min(0, "Pool supply is required").optional(),
+  ethAmount: z.coerce.number().min(0, "ETH amount is required").optional(),
+  tranches: z
+    .array(
+      z.object({
+        coins: z.coerce.number().min(0, "Coins amount is required"),
+        price: z.coerce.number().min(0, "Price is required"),
+      }),
+    )
+    .min(1, "At least one tranche is required"),
+}).refine((data) => {
+  if (data.mode === "pool") {
+    return data.poolSupply && data.poolSupply > 0 && data.ethAmount && data.ethAmount > 0;
+  }
+  if (data.mode === "tranche") {
+    return data.tranches.length > 0;
+  }
+  return true; // simple mode only needs basic fields
+}, {
+  message: "Invalid configuration for selected mode",
+  path: ["mode"],
+}).transform((data) => {
+  // For simple mode, clear tranche data to avoid validation issues
+  if (data.mode === "simple") {
+    return {
+      ...data,
+      tranches: [],
+      poolSupply: undefined,
+      ethAmount: undefined,
+    };
+  }
+  return data;
+});
 
 type LaunchFormValues = z.infer<typeof launchFormSchema>;
 
@@ -301,13 +165,13 @@ export const LaunchForm = () => {
 
   // State for form data instead of react-hook-form
   const [formData, setFormData] = useState<LaunchFormValues>({
-    mode: "simple",
-    creatorSupply: 1000000,
+    mode: "tranche",
+    creatorSupply: 100000000,
     creatorUnlockDate: "",
     metadataName: "",
     metadataSymbol: "",
     metadataDescription: "",
-    poolSupply: 1000000,
+    poolSupply: 900000000,
     ethAmount: 0.1,
     tranches: [
       { coins: defaultTranche.coins, price: defaultTranche.price },
@@ -333,6 +197,19 @@ export const LaunchForm = () => {
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
+    
+    // Handle number inputs that need comma formatting
+    if (name === 'creatorSupply' || name === 'poolSupply') {
+      handleNumberInputChange(value, (cleanValue) => {
+        setFormData((prev) => ({
+          ...prev,
+          [name]: cleanValue,
+        }));
+      });
+      return;
+    }
+    
+    // Handle regular inputs
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -344,9 +221,25 @@ export const LaunchForm = () => {
     field: "coins" | "price",
     value: string,
   ) => {
+    // Handle coins field with comma formatting
+    if (field === 'coins') {
+      handleNumberInputChange(value, (cleanValue) => {
+        setFormData((prev) => {
+          const newTranches = [...prev.tranches];
+          newTranches[index][field] = parseFloat(cleanValue) || 0;
+          return {
+            ...prev,
+            tranches: newTranches,
+          };
+        });
+      });
+      return;
+    }
+    
+    // Handle price field normally (small decimal values)
     setFormData((prev) => {
       const newTranches = [...prev.tranches];
-      newTranches[index][field] = parseFloat(value);
+      newTranches[index][field] = parseFloat(value) || 0;
       return {
         ...prev,
         tranches: newTranches,
@@ -456,7 +349,7 @@ export const LaunchForm = () => {
           functionName: "coinWithPool",
           args: [
             parseEther(validatedData.poolSupply?.toString() || "0"),
-            parseEther(validatedData.creatorSupply.toString()) ?? 0n,
+            parseEther(validatedData.creatorSupply.toString()),
             BigInt(unlockTs),
             uri,
           ],
@@ -476,7 +369,7 @@ export const LaunchForm = () => {
           address: ZAMMLaunchAddress,
           functionName: "launch",
           args: [
-            parseEther(validatedData.creatorSupply.toString()) ?? 0n,
+            parseEther(validatedData.creatorSupply.toString()),
             BigInt(unlockTs),
             uri,
             trancheCoins,
@@ -525,9 +418,9 @@ export const LaunchForm = () => {
           <Input
             id="creatorSupply"
             name="creatorSupply"
-            type="number"
-            placeholder="e.g. 1000000"
-            value={formData.creatorSupply}
+            type="text"
+            placeholder="e.g. 100,000,000"
+            value={formatNumberInput(formData.creatorSupply)}
             onChange={handleInputChange}
           />
           {errors["creatorSupply"] && (
@@ -556,17 +449,15 @@ export const LaunchForm = () => {
 
         {/* Launch Mode Selector */}
         <div className="grid w-full items-center gap-3">
-          <Label className="text-base font-semibold text-foreground">
-            Launch Type
-          </Label>
+          <Label className="text-base font-semibold">Launch Type</Label>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {Object.values(LAUNCH_MODES).map((mode) => (
               <label
                 key={mode.id}
-                className={`relative flex flex-col p-4 border-2 cursor-pointer transition-all hover:shadow-md ${
+                className={`relative flex flex-col p-4 rounded-lg border-2 cursor-pointer transition-all hover:shadow-md ${
                   formData.mode === mode.id
-                    ? "border-primary bg-accent/20"
-                    : "border-border hover:border-border/60"
+                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                    : "border-gray-200 hover:border-gray-300"
                 }`}
               >
                 <input
@@ -575,26 +466,19 @@ export const LaunchForm = () => {
                   value={mode.id}
                   checked={formData.mode === mode.id}
                   onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      mode: e.target.value as LaunchMode,
-                    }))
+                    setFormData((prev) => ({ ...prev, mode: e.target.value as LaunchMode }))
                   }
                   className="sr-only"
                 />
                 <div className="flex items-start gap-3">
                   <div className="text-2xl">{mode.icon}</div>
                   <div className="flex-1">
-                    <div className="font-semibold text-sm text-foreground">
-                      {mode.title}
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {mode.description}
-                    </div>
+                    <div className="font-semibold text-sm">{mode.title}</div>
+                    <div className="text-xs text-gray-600 mt-1">{mode.description}</div>
                   </div>
                   {formData.mode === mode.id && (
-                    <div className="w-4 h-4 bg-primary flex items-center justify-center">
-                      <div className="w-2 h-2 bg-primary-foreground"></div>
+                    <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                      <div className="w-2 h-2 bg-white rounded-full"></div>
                     </div>
                   )}
                 </div>
@@ -602,7 +486,7 @@ export const LaunchForm = () => {
             ))}
           </div>
           {errors["mode"] && (
-            <p className="text-sm text-destructive">{errors["mode"]}</p>
+            <p className="text-sm text-red-500">{errors["mode"]}</p>
           )}
         </div>
 
@@ -610,15 +494,13 @@ export const LaunchForm = () => {
         {formData.mode === "pool" && (
           <>
             <div className="grid w-full items-center gap-1.5">
-              <Label htmlFor="poolSupply">
-                Pool Supply (tokens for liquidity)
-              </Label>
+              <Label htmlFor="poolSupply">Pool Supply (tokens for liquidity)</Label>
               <Input
                 id="poolSupply"
                 name="poolSupply"
-                type="number"
-                placeholder="e.g. 1000000"
-                value={formData.poolSupply || ""}
+                type="text"
+                placeholder="e.g. 900,000,000"
+                value={formData.poolSupply ? formatNumberInput(formData.poolSupply) : ""}
                 onChange={handleInputChange}
               />
               <div className="text-xs text-gray-500">
@@ -642,17 +524,11 @@ export const LaunchForm = () => {
               />
               <div className="text-xs text-gray-500">
                 ETH you'll provide to create the initial liquidity pool
-                {formData.poolSupply &&
-                  formData.ethAmount &&
-                  formData.ethAmount > 0 && (
-                    <span className="ml-2 text-blue-600 font-medium">
-                      →{" "}
-                      {(
-                        (formData.ethAmount || 0) / (formData.poolSupply || 1)
-                      ).toFixed(8)}{" "}
-                      ETH per token
-                    </span>
-                  )}
+                {formData.poolSupply && formData.ethAmount && formData.ethAmount > 0 && (
+                  <span className="ml-2 text-blue-600 font-medium">
+                    → {((formData.ethAmount || 0) / (formData.poolSupply || 1)).toFixed(8)} ETH per token
+                  </span>
+                )}
               </div>
               {errors["ethAmount"] && (
                 <p className="text-sm text-red-500">{errors["ethAmount"]}</p>
@@ -719,191 +595,174 @@ export const LaunchForm = () => {
       <div className="space-y-2">
         {/* ----- bonding curve visual + tranche editor ----- */}
         {formData.mode === "tranche" && (
-          <>
-            <div className="rounded-2xl shadow-sm p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="text-lg font-semibold">Bonding Curve</h3>
-                <TrancheInfoDialog />
-              </div>
-              <label className="text-sm text-gray-500 mb-4 block">
-                click bars to edit prices •{" "}
-                <span className="text-blue-500">
-                  click info icon to learn more
-                </span>
-              </label>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart
-                    data={chartData}
-                    margin={{ top: 10, right: 20, bottom: 10, left: 10 }}
+        <>
+        <div className="rounded-2xl shadow-sm p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="text-lg font-semibold">Bonding Curve</h3>
+            <TrancheInfoDialog />
+          </div>
+          <label className="text-sm text-gray-500 mb-4 block">
+            click bars to edit prices • <span className="text-blue-500">click info icon to learn more</span>
+          </label>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart
+                data={chartData}
+                margin={{ top: 10, right: 20, bottom: 10, left: 10 }}
+              >
+                <defs>
+                  <linearGradient
+                    id="priceGradient"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
                   >
-                    <defs>
-                      <linearGradient
-                        id="priceGradient"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="0%"
-                          stopColor="#00e5ff"
-                          stopOpacity={0.8}
-                        />
-                        <stop
-                          offset="100%"
-                          stopColor="#00e5ff"
-                          stopOpacity={0.2}
-                        />
-                      </linearGradient>
-                      <linearGradient
-                        id="lineGradient"
-                        x1="0"
-                        y1="0"
-                        x2="1"
-                        y2="0"
-                      >
-                        <stop offset="0%" stopColor="#00e5ff" />
-                        <stop offset="100%" stopColor="#4dd0e1" />
-                      </linearGradient>
-                    </defs>
+                    <stop offset="0%" stopColor="#00e5ff" stopOpacity={0.8} />
+                    <stop offset="100%" stopColor="#00e5ff" stopOpacity={0.2} />
+                  </linearGradient>
+                  <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#00e5ff" />
+                    <stop offset="100%" stopColor="#4dd0e1" />
+                  </linearGradient>
+                </defs>
 
-                    <CartesianGrid
-                      horizontal={true}
-                      vertical={false}
-                      stroke="#e2e8f0"
-                      strokeDasharray="1 4"
-                    />
+                <CartesianGrid
+                  horizontal={true}
+                  vertical={false}
+                  stroke="#e2e8f0"
+                  strokeDasharray="1 4"
+                />
 
-                    <XAxis
-                      dataKey="name"
-                      axisLine={{ stroke: "#cbd5e0" }}
-                      tickLine={false}
-                      tick={{ fill: "#4a5568", fontSize: 12 }}
-                    />
+                <XAxis
+                  dataKey="name"
+                  axisLine={{ stroke: "#cbd5e0" }}
+                  tickLine={false}
+                  tick={{ fill: "#4a5568", fontSize: 12 }}
+                />
 
-                    <YAxis
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: "#4a5568", fontSize: 12 }}
-                    />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "#4a5568", fontSize: 12 }}
+                />
 
-                    <Tooltip
-                      content={({ active, payload, label }) => {
-                        if (!active || !payload?.length) return null;
-                        return (
-                          <div className="bg-white p-2 rounded shadow-lg text-sm">
-                            <div className="text-gray-600 mb-1">{label}</div>
-                            <div className="font-medium text-blue-500">
-                              {typeof payload[0]?.value === "number"
-                                ? payload[0].value.toFixed(4)
-                                : payload[0]?.value}{" "}
-                              ETH
-                            </div>
-                          </div>
-                        );
-                      }}
-                    />
+                <Tooltip
+                  content={({ active, payload, label }) => {
+                    if (!active || !payload?.length) return null;
+                    return (
+                      <div className="bg-white p-2 rounded shadow-lg text-sm">
+                        <div className="text-gray-600 mb-1">{label}</div>
+                        <div className="font-medium text-blue-500">
+                          {typeof payload[0]?.value === "number"
+                            ? payload[0].value.toFixed(4)
+                            : payload[0]?.value}{" "}
+                          ETH
+                        </div>
+                      </div>
+                    );
+                  }}
+                />
 
-                    <Area
-                      type="monotone"
-                      dataKey="priceNum"
-                      fill="url(#priceGradient)"
-                      fillOpacity={0.15}
-                      stroke="none"
-                    />
+                <Area
+                  type="monotone"
+                  dataKey="priceNum"
+                  fill="url(#priceGradient)"
+                  fillOpacity={0.15}
+                  stroke="none"
+                />
 
-                    {/* bars stay interactive */}
-                    <Bar
-                      dataKey="priceNum"
-                      fill="url(#priceGradient)"
-                      radius={[6, 6, 0, 0]}
-                      onClick={(_d, idx) =>
-                        handleBarClick(chartData[idx].originalIndex)
-                      }
-                      isAnimationActive
-                      animationDuration={800}
-                    />
+                {/* bars stay interactive */}
+                <Bar
+                  dataKey="priceNum"
+                  fill="url(#priceGradient)"
+                  radius={[6, 6, 0, 0]}
+                  onClick={(_d, idx) =>
+                    handleBarClick(chartData[idx].originalIndex)
+                  }
+                  isAnimationActive
+                  animationDuration={800}
+                />
 
-                    {/* cyan curve on top of the bars */}
-                    <Line
-                      type="monotone"
-                      dataKey="priceNum"
-                      stroke="url(#lineGradient)"
-                      strokeWidth={3}
-                      dot={{
-                        r: 4,
-                        fill: "#00e5ff",
-                        stroke: "#fff",
-                        strokeWidth: 2,
-                      }}
-                      activeDot={{ r: 6 }}
-                      isAnimationActive
-                    />
-                  </ComposedChart>
-                </ResponsiveContainer>
+                {/* cyan curve on top of the bars */}
+                <Line
+                  type="monotone"
+                  dataKey="priceNum"
+                  stroke="url(#lineGradient)"
+                  strokeWidth={3}
+                  dot={{
+                    r: 4,
+                    fill: "#00e5ff",
+                    stroke: "#fff",
+                    strokeWidth: 2,
+                  }}
+                  activeDot={{ r: 6 }}
+                  isAnimationActive
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="flex justify-end">
+            <Button type="button" variant="outline" onClick={addTranche}>
+              Add Tranche
+            </Button>
+          </div>
+        </div>
+        <div className="max-h-[35vh] pr-1 overflow-y-scroll">
+          {/* tranche raw inputs – allow granular control + coins */}
+          {formData.tranches.map((tranche, idx) => (
+            <div
+              key={idx}
+              className="flex flex-col sm:flex-row items-end gap-4 pb-4 last:pb-0"
+            >
+              <div className="flex-grow grid w-full items-center gap-1.5">
+                <Label htmlFor={`trancheCoins-${idx}`}>Coins</Label>
+                <Input
+                  id={`trancheCoins-${idx}`}
+                  type="text"
+                  value={formatNumberInput(tranche.coins)}
+                  onChange={(e) =>
+                    handleTrancheChange(idx, "coins", e.target.value)
+                  }
+                />
+                {errors[`tranches.${idx}.coins`] && (
+                  <p className="text-sm text-red-500">
+                    {errors[`tranches.${idx}.coins`]}
+                  </p>
+                )}
               </div>
-              <div className="flex justify-end">
-                <Button type="button" variant="outline" onClick={addTranche}>
-                  Add Tranche
-                </Button>
+              <div className="flex-grow grid w-full items-center gap-1.5">
+                <Label htmlFor={`tranchePrice-${idx}`}>Price (ETH)</Label>
+                <Input
+                  id={`tranchePrice-${idx}`}
+                  type="number"
+                  value={tranche.price}
+                  onChange={(e) =>
+                    handleTrancheChange(idx, "price", e.target.value)
+                  }
+                />
+                {errors[`tranches.${idx}.price`] && (
+                  <p className="text-sm text-red-500">
+                    {errors[`tranches.${idx}.price`]}
+                  </p>
+                )}
               </div>
-            </div>
-            <div className="max-h-[35vh] pr-1 overflow-y-scroll">
-              {/* tranche raw inputs – allow granular control + coins */}
-              {formData.tranches.map((tranche, idx) => (
-                <div
-                  key={idx}
-                  className="flex flex-col sm:flex-row items-end gap-4 pb-4 last:pb-0"
+              {formData.tranches.length > 1 && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => removeTranche(idx)}
+                  type="button"
                 >
-                  <div className="flex-grow grid w-full items-center gap-1.5">
-                    <Label htmlFor={`trancheCoins-${idx}`}>Coins</Label>
-                    <Input
-                      id={`trancheCoins-${idx}`}
-                      type="number"
-                      value={tranche.coins}
-                      onChange={(e) =>
-                        handleTrancheChange(idx, "coins", e.target.value)
-                      }
-                    />
-                    {errors[`tranches.${idx}.coins`] && (
-                      <p className="text-sm text-red-500">
-                        {errors[`tranches.${idx}.coins`]}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex-grow grid w-full items-center gap-1.5">
-                    <Label htmlFor={`tranchePrice-${idx}`}>Price (ETH)</Label>
-                    <Input
-                      id={`tranchePrice-${idx}`}
-                      type="number"
-                      value={tranche.price}
-                      onChange={(e) =>
-                        handleTrancheChange(idx, "price", e.target.value)
-                      }
-                    />
-                    {errors[`tranches.${idx}.price`] && (
-                      <p className="text-sm text-red-500">
-                        {errors[`tranches.${idx}.price`]}
-                      </p>
-                    )}
-                  </div>
-                  {formData.tranches.length > 1 && (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => removeTranche(idx)}
-                      type="button"
-                    >
-                      <XIcon />
-                    </Button>
-                  )}
-                </div>
-              ))}
+                  <XIcon />
+                </Button>
+              )}
             </div>
-          </>
+          ))}
+        </div>
+        </>
         )}
-
+        
         {/* Pool Mode Visualization */}
         {formData.mode === "pool" && (
           <div className="rounded-2xl shadow-sm p-4">
@@ -923,124 +782,75 @@ export const LaunchForm = () => {
                   </div>
                 </div>
               </div>
-
+              
               {/* Enhanced Price Calculations */}
-              {formData.poolSupply &&
-                formData.ethAmount &&
-                formData.ethAmount > 0 &&
-                formData.poolSupply > 0 && (
-                  <div className="mt-4 space-y-3 border-t border-blue-200 dark:border-blue-800 pt-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                          Starting Price:
-                        </span>
-                        <div className="text-xl font-bold text-blue-600">
-                          {(
-                            (formData.ethAmount || 0) /
-                            (formData.poolSupply || 1)
-                          ).toFixed(8)}{" "}
-                          ETH
-                        </div>
-                        <div className="text-xs text-gray-500">per token</div>
+              {formData.poolSupply && formData.ethAmount && formData.ethAmount > 0 && formData.poolSupply > 0 && (
+                <div className="mt-4 space-y-3 border-t border-blue-200 dark:border-blue-800 pt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Starting Price:</span>
+                      <div className="text-xl font-bold text-blue-600">
+                        {((formData.ethAmount || 0) / (formData.poolSupply || 1)).toFixed(8)} ETH
                       </div>
-                      <div>
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                          Total Supply:
-                        </span>
-                        <div className="text-xl font-bold text-blue-600">
-                          {(
-                            (formData.poolSupply || 0) +
-                            (formData.creatorSupply || 0)
-                          ).toLocaleString()}
-                        </div>
-                        <div className="text-xs text-gray-500">tokens</div>
+                      <div className="text-xs text-gray-500">per token</div>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Supply:</span>
+                      <div className="text-xl font-bold text-blue-600">
+                        {((formData.poolSupply || 0) + (formData.creatorSupply || 0)).toLocaleString()}
+                      </div>
+                      <div className="text-xs text-gray-500">tokens</div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
+                    <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Pool Breakdown:</div>
+                    <div className="space-y-1 text-xs">
+                      <div className="flex justify-between">
+                        <span>Pool liquidity:</span>
+                        <span className="font-medium">{((formData.poolSupply || 0) / ((formData.poolSupply || 0) + (formData.creatorSupply || 0)) * 100).toFixed(1)}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Creator allocation:</span>
+                        <span className="font-medium">{((formData.creatorSupply || 0) / ((formData.poolSupply || 0) + (formData.creatorSupply || 0)) * 100).toFixed(1)}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Initial market cap:</span>
+                        <span className="font-medium">{(((formData.ethAmount || 0) / (formData.poolSupply || 1)) * ((formData.poolSupply || 0) + (formData.creatorSupply || 0))).toFixed(4)} ETH</span>
                       </div>
                     </div>
-
-                    <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
-                      <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Pool Breakdown:
-                      </div>
-                      <div className="space-y-1 text-xs">
-                        <div className="flex justify-between">
-                          <span>Pool liquidity:</span>
-                          <span className="font-medium">
-                            {(
-                              ((formData.poolSupply || 0) /
-                                ((formData.poolSupply || 0) +
-                                  (formData.creatorSupply || 0))) *
-                              100
-                            ).toFixed(1)}
-                            %
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Creator allocation:</span>
-                          <span className="font-medium">
-                            {(
-                              ((formData.creatorSupply || 0) /
-                                ((formData.poolSupply || 0) +
-                                  (formData.creatorSupply || 0))) *
-                              100
-                            ).toFixed(1)}
-                            %
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Initial market cap:</span>
-                          <span className="font-medium">
-                            {(
-                              ((formData.ethAmount || 0) /
-                                (formData.poolSupply || 1)) *
-                              ((formData.poolSupply || 0) +
-                                (formData.creatorSupply || 0))
-                            ).toFixed(4)}{" "}
-                            ETH
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Price Validation Feedback */}
-                    {(() => {
-                      const price =
-                        (formData.ethAmount || 0) / (formData.poolSupply || 1);
-                      const marketCap =
-                        price *
-                        ((formData.poolSupply || 0) +
-                          (formData.creatorSupply || 0));
-
-                      if (price < 0.000001) {
-                        return (
-                          <div className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 p-2 rounded">
-                            ⚠️ Very low starting price - consider reducing pool
-                            supply or increasing ETH
-                          </div>
-                        );
-                      }
-                      if (marketCap > 100) {
-                        return (
-                          <div className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 p-2 rounded">
-                            ⚠️ High initial market cap ({marketCap.toFixed(2)}{" "}
-                            ETH) - consider adjusting parameters
-                          </div>
-                        );
-                      }
+                  </div>
+                  
+                  {/* Price Validation Feedback */}
+                  {(() => {
+                    const price = (formData.ethAmount || 0) / (formData.poolSupply || 1);
+                    const marketCap = price * ((formData.poolSupply || 0) + (formData.creatorSupply || 0));
+                    
+                    if (price < 0.000001) {
                       return (
-                        <div className="text-xs text-green-600 bg-green-50 dark:bg-green-900/20 p-2 rounded">
-                          ✅ Pool configuration looks good
+                        <div className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 p-2 rounded">
+                          ⚠️ Very low starting price - consider reducing pool supply or increasing ETH
                         </div>
                       );
-                    })()}
-                  </div>
-                )}
-
+                    }
+                    if (marketCap > 100) {
+                      return (
+                        <div className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 p-2 rounded">
+                          ⚠️ High initial market cap ({marketCap.toFixed(2)} ETH) - consider adjusting parameters
+                        </div>
+                      );
+                    }
+                    return (
+                      <div className="text-xs text-green-600 bg-green-50 dark:bg-green-900/20 p-2 rounded">
+                        ✅ Pool configuration looks good
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+              
               {/* Empty State */}
-              {(!formData.poolSupply ||
-                !formData.ethAmount ||
-                formData.ethAmount <= 0 ||
-                formData.poolSupply <= 0) && (
+              {(!formData.poolSupply || !formData.ethAmount || formData.ethAmount <= 0 || formData.poolSupply <= 0) && (
                 <div className="mt-4 text-center text-gray-500 text-sm p-4 border-t border-blue-200 dark:border-blue-800">
                   Enter pool supply and ETH amount to see price calculations
                 </div>
@@ -1048,16 +858,13 @@ export const LaunchForm = () => {
             </div>
           </div>
         )}
-
+        
         {/* submit */}
         <Button type="submit" disabled={isPending} className="mt-2 w-full">
-          {isPending
-            ? t("create.creating")
-            : formData.mode === "simple"
-              ? t("create.create_simple_coin")
-              : formData.mode === "pool"
-                ? t("create.create_coin_with_pool")
-                : t("create.launch_coin_sale")}
+          {isPending ? t("create.creating") : 
+           formData.mode === "simple" ? t("create.create_simple_coin") :
+           formData.mode === "pool" ? t("create.create_coin_with_pool") : 
+           t("create.launch_coin_sale")}
         </Button>
 
         {hash && (

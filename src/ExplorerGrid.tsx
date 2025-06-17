@@ -132,7 +132,7 @@ export const ExplorerGrid = ({
                 disabled={isLoading || isTransitioning}
               >
                 <CoinsIcon className="w-4 h-4 mr-1" />
-                LIQUIDITY
+                {t("common.liquidity").toUpperCase()}
               </button>
 
               <button
@@ -146,7 +146,7 @@ export const ExplorerGrid = ({
                 disabled={isLoading || isTransitioning}
               >
                 <ArrowDownAZ className="w-4 h-4 mr-1" />
-                NEW
+                {t("explore.new").toUpperCase()}
               </button>
 
               <button
@@ -158,7 +158,7 @@ export const ExplorerGrid = ({
                 disabled={isLoading || isTransitioning}
               >
                 <ThumbsUp className="w-4 h-4 mr-1" />
-                VOTES
+                {t("common.votes").toUpperCase()}
               </button>
             </div>
           )}
@@ -172,15 +172,15 @@ export const ExplorerGrid = ({
               title={
                 sortType === "recency"
                   ? sortOrder === "asc"
-                    ? "Currently: Oldest first"
-                    : "Currently: Newest first"
+                    ? t("explore.sort_order_oldest_first")
+                    : t("explore.sort_order_newest_first")
                   : sortType === "votes"
                     ? sortOrder === "asc"
-                      ? "Currently: Lowest votes first"
-                      : "Currently: Highest votes first"
+                      ? t("explore.sort_order_lowest_votes_first")
+                      : t("explore.sort_order_highest_votes_first")
                     : sortOrder === "asc"
-                      ? "Currently: Lowest liquidity first"
-                      : "Currently: Highest liquidity first"
+                      ? t("explore.sort_order_lowest_liquidity_first")
+                      : t("explore.sort_order_highest_liquidity_first")
               }
               disabled={isLoading || isTransitioning}
             >
@@ -191,15 +191,15 @@ export const ExplorerGrid = ({
               )}
               {sortType === "recency"
                 ? sortOrder === "asc"
-                  ? "OLDEST"
-                  : "NEWEST"
+                  ? t("explore.oldest").toUpperCase()
+                  : t("explore.newest").toUpperCase()
                 : sortType === "votes"
                   ? sortOrder === "asc"
-                    ? "LOWEST"
-                    : "HIGHEST"
+                    ? t("explore.lowest").toUpperCase()
+                    : t("explore.highest").toUpperCase()
                   : sortOrder === "asc"
-                    ? "LOWEST"
-                    : "HIGHEST"}
+                    ? t("explore.lowest").toUpperCase()
+                    : t("explore.highest").toUpperCase()}
             </button>
           )}
         </div>
