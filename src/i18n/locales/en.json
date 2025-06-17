@@ -253,8 +253,7 @@
     "error": "Error",
     "loading_error": "Loading Error",
     "invalid_address_warning": "Please enter a valid Ethereum address",
-    "transaction_rejected": "Transaction rejected by user",
-    "transaction_failed": "Transaction failed"
+    "transaction_rejected": "Transaction rejected by user"
   },
   "explore": {
     "title": "Explore",

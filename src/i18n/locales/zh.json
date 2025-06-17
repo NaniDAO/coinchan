@@ -253,8 +253,7 @@
     "error": "错误",
     "loading_error": "加载错误",
     "invalid_address_warning": "请输入有效的以太坊地址",
-    "transaction_rejected": "用户拒绝交易",
-    "transaction_failed": "交易失败"
+    "transaction_rejected": "用户拒绝交易"
   },
   "explore": {
     "title": "探索",
