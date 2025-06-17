@@ -666,7 +666,7 @@ export const SwapAction = () => {
             className={`px-3 py-1.5 text-xs font-bold uppercase cursor-pointer transition-all duration-100 font-body hover:opacity-80 focus:ring-2 focus:ring-primary/50 focus:outline-none ${
               swapMode === "limit"
                 ? "bg-accent text-accent-foreground"
-                : "bg-transparent text-muted-foreground dark:text-gray-200"
+                : "bg-transparent text-foreground/70 dark:text-gray-200"
             }`}
           >
             {t("swap.limit_order")}
