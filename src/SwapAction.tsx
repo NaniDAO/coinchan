@@ -656,7 +656,7 @@ export const SwapAction = () => {
             className={`px-3 py-1.5 text-xs font-bold uppercase cursor-pointer transition-all duration-100 font-body hover:opacity-80 focus:ring-2 focus:ring-primary/50 focus:outline-none ${
               swapMode === "instant"
                 ? "bg-accent text-secondary-foreground"
-                : "bg-transparent text-foreground"
+                : "bg-transparent text-background"
             }`}
           >
             {t("swap.instant")}
