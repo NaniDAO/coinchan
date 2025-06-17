@@ -32,7 +32,7 @@ function RouteComponent() {
         {[
           { label: t("common.launch"), icon: "+", onClick: handleLaunch },
           { label: t("common.send"), icon: "→", onClick: handleSend },
-          { label: t("common.orders"), icon: "📋", onClick: handleOrders },
+          { label: t("common.orders"), icon: "○", onClick: handleOrders },
         ].map(({ label, icon, onClick }) => (
           <button
             key={label}

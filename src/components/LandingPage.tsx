@@ -126,14 +126,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
           <ProtocolStat
             label={t('landing.stats.eth_swapped')}
             primary={protocolStats?.totalEthSwapped || "-"}
+            color="var(--diamond-orange)"
           />
           <ProtocolStat
             label={t('landing.stats.swaps')}
             primary={protocolStats?.totalSwaps || "-"}
+            color="var(--diamond-purple)"
           />
           <ProtocolStat
             label={t('landing.stats.coins')}
             primary={protocolStats?.totalCoins || "-"}
+            color="var(--diamond-blue)"
           />
         </div>
       </div>
@@ -166,12 +169,24 @@ const StatsCard: React.FC<{
   value: string;
   color: string;
 }> = React.memo(({ label, value, color }) => (
-  <div className="flex justify-between items-center px-5 py-[15px] border-2 border-border mb-[15px] bg-background">
+  <div className="flex justify-between items-center px-5 py-[15px] border-2 border-border mb-[15px] bg-background hover:shadow-lg transition-all duration-200">
     <div className="flex items-center gap-[10px]">
-      <div className="w-2 h-2 rounded-full" style={{ background: color }}></div>
+      <div 
+        className="w-3 h-3 rounded-full shadow-sm" 
+        style={{ 
+          background: color,
+          boxShadow: `0 0 8px ${color}40`
+        }}
+      ></div>
       <span className="font-bold">{label}</span>
     </div>
-    <span className="font-bold font-body" style={{ color: color }}>
+    <span 
+      className="font-bold font-body text-lg tracking-wide" 
+      style={{ 
+        color: color,
+        textShadow: `0 0 12px ${color}60`
+      }}
+    >
       {value}
     </span>
   </div>
@@ -182,12 +197,28 @@ StatsCard.displayName = "StatsCard";
 const ProtocolStat: React.FC<{
   label: string;
   primary: string;
-}> = React.memo(({ label, primary }) => (
-  <Card className="text-center p-5 border-2 border-border bg-background h-2xl py-2 flex flex-col">
+  color?: string;
+}> = React.memo(({ label, primary, color }) => (
+  <Card className="text-center p-5 border-2 border-border bg-background h-2xl py-2 flex flex-col hover:shadow-lg transition-all duration-200 relative">
+    {color && (
+      <div 
+        className="absolute top-2 right-2 w-2 h-2 rounded-full" 
+        style={{ 
+          background: color,
+          boxShadow: `0 0 6px ${color}50`
+        }}
+      ></div>
+    )}
     <div className="text-lg text-muted-foreground font-bold tracking-wider">
       {label}
     </div>
-    <div className="font-bold text-lg flex items-center justify-center overflow-hidden">
+    <div 
+      className="font-bold text-2xl flex items-center justify-center overflow-hidden mt-2" 
+      style={{ 
+        color: color || 'inherit',
+        textShadow: color ? `0 0 10px ${color}40` : 'none'
+      }}
+    >
       <div className="truncate">{primary}</div>
     </div>
   </Card>
