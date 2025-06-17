@@ -55,6 +55,14 @@
     --sidebar-accent-foreground: #111111;
     --sidebar-border: #000000;
     --sidebar-ring: #111111;
+
+    /* Diamond Logo Colors */
+    --diamond-pink: #FF6B9D;
+    --diamond-blue: #00D4FF;
+    --diamond-yellow: #FFE066;
+    --diamond-green: #66D9A6;
+    --diamond-orange: #FF9F40;
+    --diamond-purple: #B967DB;
   }
 }
 
@@ -95,6 +103,14 @@
   --sidebar-accent-foreground: #dcdcdc;
   --sidebar-border: #3a3a3a;
   --sidebar-ring: #777777;
+
+  /* Diamond Logo Colors - Same in dark mode */
+  --diamond-pink: #FF6B9D;
+  --diamond-blue: #00D4FF;
+  --diamond-yellow: #FFE066;
+  --diamond-green: #66D9A6;
+  --diamond-orange: #FF9F40;
+  --diamond-purple: #B967DB;
 }
 
 /* Dark mode datetime-local calendar icon fix */
