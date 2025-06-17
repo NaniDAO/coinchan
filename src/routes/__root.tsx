@@ -1,78 +1,96 @@
 import { ConnectMenu } from "@/ConnectMenu";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
-import { createRootRoute, Link, Outlet } from "@tanstack/react-router";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { CoinNani } from "@/components/coinnani";
+import { ZammLogo } from "@/components/ZammLogo";
+import {
+  createRootRoute,
+  Link,
+  Outlet,
+  useLocation,
+  useNavigate,
+} from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
+import { cn } from "@/lib/utils";
+import UserSettingsMenu from "@/components/UserSettingsMenu";
 
 export const Route = createRootRoute({
   component: () => {
+    const location = useLocation();
+    const navigate = useNavigate();
     const { t } = useTranslation();
+    const handleLogoClick = () => {
+      navigate({ to: "/" });
+    };
+
+    const showLogo = location?.pathname !== "/";
+
     return (
       <>
-        <header className="p-2 flex items-center justify-between w-full gap-5">
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center justify-center space-x-4">
-            <Link to="/" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
-              📈 {t("common.swap")}
-            </Link>
-            <span className="">/</span>
-            <Link to="/explore" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
-              🗺️ {t("common.explore")}
-            </Link>
-            <span className="">/</span>
-            <Link to="/orders" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
-              📋 {t("common.orders")}
-            </Link>
-            <span className="">/</span>
-            <Link to="/send" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
-              🪁 {t("common.send")}
-            </Link>
-            <span className="">/</span>
-            <Link to="/create" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
-              ✨ {t("common.create")}
-            </Link>
-          </nav>
-
-          <div className="flex items-center gap-2">
-            <ConnectMenu />
-            <ThemeToggle />
-            <LanguageSwitcher />
+        <div className="bg-background relative">
+          <div className="bg-foreground text-primary-foreground p-1 w-full text-center font-bold flex justify-center items-center font-display text-sm">
+            <div className="text-primary-foreground text-center">
+              ═══════════ ZAMM DeFi v1.0 ═══════════
+            </div>
           </div>
-          {/* Mobile Navigation */}
-          <Sheet>
-            <SheetTrigger asChild className="md:hidden">
-              <Button variant="ghost" size="icon">
-                <Menu className="h-6 w-6" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="p-2">
-              <nav className="flex flex-col space-y-4 mt-8">
-                <Link to="/" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
-                  📈 {t("common.swap")}
-                </Link>
-                <Link to="/explore" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
-                  🗺️ {t("common.explore")}
-                </Link>
-                <Link to="/orders" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
-                  📋 {t("common.orders")}
-                </Link>
-                <Link to="/send" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
-                  🪁 {t("common.send")}
-                </Link>
-                <Link to="/create" className="[&.active]:font-bold uppercase hover:text-primary transition-colors">
-                  ✨ {t("common.create")}
-                </Link>
-              </nav>
-            </SheetContent>
-          </Sheet>
-        </header>
-        {/* <hr /> */}
-        <CoinNani className="fixed bottom-4 right-4 z-10" />
-        <Outlet />
+
+          <main className="mt-0 max-w-screen flex flex-col items-center justify-center !space-y-0 bg-foreground">
+            <div className="w-[70vw]">
+              <div
+                className={cn(
+                  "!p-2 bg-background text-foreground flex flex-row items-center outline-2 outline-offset-2 outline-background",
+                  showLogo ? "justify-between" : "justify-end",
+                )}
+              >
+                {/* App Header */}
+                {showLogo && (
+                  <div>
+                    <ZammLogo
+                      className="!m-0"
+                      size="small"
+                      onClick={handleLogoClick}
+                    />
+                  </div>
+                )}
+                <div className="shrink-0 flex items-center gap-2.5 mr-10">
+                  <ConnectMenu />
+                  <UserSettingsMenu />
+                </div>
+              </div>
+              <div className="min-h-screen bg-background border-2 border-border relative z-0">
+                <Outlet />
+              </div>
+            </div>
+          </main>
+
+          {/* Terminal Navigation Bar */}
+          <div className="z-50 border-t-2 border-b-2 border-border fixed bottom-0 left-0 right-0 flex justify-around gap-0 bg-background">
+            <Link
+              to="/swap"
+              className={cn(
+                "h-12 cursor-pointer border-2 border-transparent transition-all duration-100 font-extrabold font-body no-underline text-foreground flex-1 text-center flex items-center justify-center min-w-fit uppercase tracking-wide text-lg hover:bg-accent hover:text-accent-foreground",
+                location.pathname === "/swap" ? "active" : "",
+              )}
+            >
+              {t("common.swap")}
+            </Link>
+            <Link
+              to="/explore"
+              className={cn(
+                "h-12 cursor-pointer border-2 border-transparent transition-all duration-100 font-extrabold font-body no-underline text-foreground flex-1 text-center flex items-center justify-center min-w-fit uppercase tracking-wide text-lg hover:bg-accent hover:text-accent-foreground",
+                location.pathname === "/explore" ? "active" : "",
+              )}
+            >
+              {t("common.coins")}
+            </Link>
+            <Link
+              to="/about"
+              className={cn(
+                "h-12 cursor-pointer border-2 border-transparent transition-all duration-100 font-extrabold font-body no-underline text-foreground flex-1 text-center flex items-center justify-center min-w-fit uppercase tracking-wide text-lg hover:bg-accent hover:text-accent-foreground",
+                location.pathname === "/about" ? "active" : "",
+              )}
+            >
+              {t("common.about")}
+            </Link>
+          </div>
+        </div>
       </>
     );
   },

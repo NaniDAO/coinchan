@@ -1,75 +1,78 @@
 import { useState, useEffect, useCallback, useMemo, memo } from "react";
-import { useWriteContract, useWaitForTransactionReceipt, useAccount, usePublicClient, useSendTransaction } from "wagmi";
+import {
+  useWriteContract,
+  useWaitForTransactionReceipt,
+  useAccount,
+  usePublicClient,
+  useSendTransaction,
+} from "wagmi";
 import { mainnet } from "viem/chains";
 import { handleWalletError, isUserRejectionError } from "@/lib/errors";
-import { parseEther, parseUnits, formatEther, formatUnits, Address, erc20Abi } from "viem";
+import {
+  parseEther,
+  parseUnits,
+  formatEther,
+  formatUnits,
+  Address,
+  erc20Abi,
+} from "viem";
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { LoadingLogo } from "./components/ui/loading-logo";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { ETH_TOKEN, TokenMeta, USDT_ADDRESS } from "./lib/coins";
 import { TokenSelector } from "./components/TokenSelector";
+import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
+import { useTranslation } from "react-i18next";
 
 // Helper function to format token balance with appropriate precision
 export const formatTokenBalance = (token: TokenMeta): string => {
   if (token.balance === undefined) {
-    // For ETH specifically, always show 0 rather than blank
     return token.id === null ? "0" : "";
   }
 
   if (token.balance === 0n) return "0";
 
   try {
-    // Special case for ETH
     if (token.id === null) {
-      // Convert ETH balance to string first for precise formatting
       const ethBalanceStr = formatEther(token.balance);
       const ethValue = Number(ethBalanceStr);
 
-      if (ethValue === 0) return "0"; // If somehow zero after conversion
+      if (ethValue === 0) return "0";
 
-      // Display ETH with appropriate precision based on size
       if (ethValue >= 1000) {
         return `${Math.floor(ethValue).toLocaleString()}`;
       } else if (ethValue >= 1) {
-        return ethValue.toFixed(4); // Show 4 decimals for values ≥ 1
+        return ethValue.toFixed(4);
       } else if (ethValue >= 0.001) {
-        return ethValue.toFixed(6); // Show 6 decimals for medium values
+        return ethValue.toFixed(6);
       } else if (ethValue >= 0.0000001) {
-        // For very small values, use 8 decimals (typical for ETH)
         return ethValue.toFixed(8);
       } else {
-        // For extremely small values, use readable scientific notation
         return ethValue.toExponential(4);
       }
     }
 
-    // For regular tokens
-    // Use correct decimals for the token (default to 18)
     const decimals = token.decimals || 18;
     const tokenValue = Number(formatUnits(token.balance, decimals));
 
     if (tokenValue >= 1000) {
       return `${Math.floor(tokenValue).toLocaleString()}`;
     } else if (tokenValue >= 1) {
-      return tokenValue.toFixed(3); // 3 decimals for ≥ 1
+      return tokenValue.toFixed(3);
     } else if (tokenValue >= 0.001) {
-      return tokenValue.toFixed(4); // 4 decimals for smaller values
+      return tokenValue.toFixed(4);
     } else if (tokenValue >= 0.0001) {
-      return tokenValue.toFixed(6); // 6 decimals for tiny values
+      return tokenValue.toFixed(6);
     } else if (tokenValue > 0) {
-      return tokenValue.toExponential(2); // Scientific notation for extremely small
+      return tokenValue.toExponential(2);
     }
 
     return "0";
   } catch (error) {
-    // Error formatting balance
-    return token.id === null ? "0" : ""; // Always return 0 for ETH on error
+    return token.id === null ? "0" : "";
   }
 };
 
-// Safe string helper function
 const safeStr = (val: any): string => {
   if (val === undefined || val === null) return "";
   if (typeof val === "string") return val;
@@ -78,9 +81,14 @@ const safeStr = (val: any): string => {
   return "";
 };
 
-// Main SendTile component - Memoized for better performance
 const SendTileComponent = () => {
-  const { tokens, error: loadError, isEthBalanceFetching, refetchEthBalance } = useAllCoins();
+  const { t } = useTranslation();
+  const {
+    tokens,
+    error: loadError,
+    isEthBalanceFetching,
+    refetchEthBalance,
+  } = useAllCoins();
   const [selectedToken, setSelectedToken] = useState<TokenMeta>(ETH_TOKEN);
   const [recipientAddress, setRecipientAddress] = useState("");
   const [amount, setAmount] = useState("");
@@ -94,35 +102,28 @@ const SendTileComponent = () => {
   const { sendTransactionAsync } = useSendTransaction();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
-  // Handle token selection
   const handleTokenSelect = useCallback(
     (token: TokenMeta) => {
-      // Clear any errors when changing tokens
       if (txError) setTxError(null);
-      // Reset input values
       setAmount("");
-      // Set the new token
       setSelectedToken(token);
     },
     [txError],
   );
 
-  // Handle amount input change
   const handleAmountChange = (value: string) => {
-    // Accept only numbers, one decimal point, and no more than 18 decimal places
     if (value === "" || /^(?:\d+(?:\.\d{0,18})?|\.\d{0,18})$/.test(value)) {
       setAmount(value);
 
       try {
-        // Parse the amount based on token type
         if (selectedToken.id === null) {
-          // ETH: 18 decimals
           setParsedAmount(value ? parseEther(value) : 0n);
-        } else if (selectedToken.isCustomPool && selectedToken.symbol === "USDT") {
-          // USDT: 6 decimals
+        } else if (
+          selectedToken.isCustomPool &&
+          selectedToken.symbol === "USDT"
+        ) {
           setParsedAmount(value ? parseUnits(value, 6) : 0n);
         } else {
-          // Regular ERC6909 tokens: 18 decimals
           setParsedAmount(value ? parseEther(value) : 0n);
         }
       } catch (error) {
@@ -132,111 +133,113 @@ const SendTileComponent = () => {
     }
   };
 
-  // Max button handler
   const handleMaxClick = () => {
     if (!selectedToken.balance || selectedToken.balance === 0n) {
       console.log("MAX clicked but token has no balance");
       return;
     }
 
-    console.log(`MAX clicked for ${selectedToken.symbol} with balance ${selectedToken.balance.toString()}`);
+    console.log(
+      `MAX clicked for ${selectedToken.symbol} with balance ${selectedToken.balance.toString()}`,
+    );
 
     let maxValue: string;
     let maxParsedAmount: bigint;
 
     if (selectedToken.id === null) {
-      // For ETH, use a percentage-based approach (like in SwapTile) to leave gas
-      // Use 99% of balance to ensure there's always enough for gas
       const ethAmount = (selectedToken.balance * 99n) / 100n;
-
-      // Format to a reasonable number of decimal places
       const formattedValue = formatEther(ethAmount);
-      // Parse to number and format to avoid excessive decimals
       const parsedValue = parseFloat(formattedValue).toFixed(6);
-      // Remove trailing zeros for cleaner display
       maxValue = parsedValue.replace(/\.?0+$/, "");
       maxParsedAmount = ethAmount;
 
       console.log(`ETH MAX: ${maxValue} (${maxParsedAmount.toString()})`);
     } else if (selectedToken.isCustomPool && selectedToken.symbol === "USDT") {
-      // USDT: 6 decimals
       const formattedValue = formatUnits(selectedToken.balance, 6);
       const parsedValue = parseFloat(formattedValue).toFixed(2);
-      maxValue = parsedValue.replace(/\.?0+$/, ""); // Remove trailing zeros
+      maxValue = parsedValue.replace(/\.?0+$/, "");
       maxParsedAmount = selectedToken.balance;
 
       console.log(`USDT MAX: ${maxValue} (${maxParsedAmount.toString()})`);
     } else {
-      // Regular ERC6909 tokens: 18 decimals
       const formattedValue = formatEther(selectedToken.balance);
       const parsedValue = parseFloat(formattedValue).toFixed(4);
-      maxValue = parsedValue.replace(/\.?0+$/, ""); // Remove trailing zeros
+      maxValue = parsedValue.replace(/\.?0+$/, "");
       maxParsedAmount = selectedToken.balance;
 
       console.log(`Token MAX: ${maxValue} (${maxParsedAmount.toString()})`);
     }
 
-    // Set UI values and update the parsed amount
     setAmount(maxValue);
     setParsedAmount(maxParsedAmount);
   };
 
-  // Check if send is allowed
   const canSend = useMemo(() => {
-    // Must have a valid recipient address
-    if (!recipientAddress || !recipientAddress.startsWith("0x") || recipientAddress.length !== 42) {
+    if (
+      !recipientAddress ||
+      !recipientAddress.startsWith("0x") ||
+      recipientAddress.length !== 42
+    ) {
       return false;
     }
 
-    // Amount must be greater than 0 and not exceed balance
-    if (!parsedAmount || parsedAmount <= 0n || !selectedToken.balance || parsedAmount > selectedToken.balance) {
+    if (
+      !parsedAmount ||
+      parsedAmount <= 0n ||
+      !selectedToken.balance ||
+      parsedAmount > selectedToken.balance
+    ) {
       return false;
     }
 
     return true;
   }, [recipientAddress, parsedAmount, selectedToken.balance]);
 
-  // Send transaction handler
   const handleSend = async () => {
     if (!address || !isConnected || !publicClient || !canSend) return;
 
-    // Clear previous tx state
     setTxHash(undefined);
     setTxError(null);
 
     try {
-      // Different logic based on token type
       if (selectedToken.id === null) {
-        // Send ETH directly
-        console.log("Sending ETH:", formatEther(parsedAmount), "to", recipientAddress);
+        console.log(
+          "Sending ETH:",
+          formatEther(parsedAmount),
+          "to",
+          recipientAddress,
+        );
 
-        // For ETH transfers, use the correct sendTransaction approach
         const hash = await sendTransactionAsync({
           to: recipientAddress as Address,
-          value: parsedAmount, // Amount to send
+          value: parsedAmount,
         });
 
         setTxHash(hash);
-      } else if (selectedToken.isCustomPool && selectedToken.symbol === "USDT") {
-        // Send USDT (ERC20) - simplified approach
-        console.log("Sending USDT:", formatUnits(parsedAmount, 6), "to", recipientAddress);
-
-        // ERC20 transfer with detailed logging
+      } else if (
+        selectedToken.isCustomPool &&
+        selectedToken.symbol === "USDT"
+      ) {
+        console.log(
+          "Sending USDT:",
+          formatUnits(parsedAmount, 6),
+          "to",
+          recipientAddress,
+        );
         console.log("USDT contract address:", USDT_ADDRESS);
         console.log("USDT amount in raw units:", parsedAmount.toString());
 
         const hash = await writeContractAsync({
           account: address,
-          chainId: mainnet.id, // Explicitly set chainId
+          chainId: mainnet.id,
           address: USDT_ADDRESS,
-          abi: erc20Abi, // Use the variable to avoid inline definition
+          abi: erc20Abi,
           functionName: "transfer",
           args: [recipientAddress as `0x${string}`, parsedAmount],
         });
 
         setTxHash(hash);
       } else {
-        // Send ERC6909 token (Coin)
         console.log(
           `Sending ${selectedToken.symbol} (ID: ${selectedToken.id}):`,
           formatEther(parsedAmount),
@@ -244,18 +247,25 @@ const SendTileComponent = () => {
           recipientAddress,
         );
 
-        // ERC6909 transfer with detailed logging
         console.log("Coins contract address:", CoinsAddress);
         console.log("Token ID:", selectedToken.id?.toString());
         console.log("Amount in raw units:", parsedAmount.toString());
+        console.log("Token Source:", selectedToken?.source);
 
         const hash = await writeContractAsync({
           account: address,
-          chainId: mainnet.id, // Explicitly set chainId
-          address: CoinsAddress,
-          abi: CoinsAbi,
+          chainId: mainnet.id,
+          address:
+            selectedToken?.source === "COOKBOOK"
+              ? CookbookAddress
+              : CoinsAddress,
+          abi: selectedToken?.source === "COOKBOOK" ? CookbookAbi : CoinsAbi,
           functionName: "transfer",
-          args: [recipientAddress as `0x${string}`, selectedToken.id!, parsedAmount],
+          args: [
+            recipientAddress as `0x${string}`,
+            selectedToken.id!,
+            parsedAmount,
+          ],
         });
 
         setTxHash(hash);
@@ -263,94 +273,83 @@ const SendTileComponent = () => {
     } catch (error) {
       console.error("Send transaction error:", error);
 
-      // Handle user rejection gracefully
       if (isUserRejectionError(error)) {
-        setTxError("Transaction rejected by user");
+        setTxError(t("create.transaction_rejected"));
       } else {
-        // Handle contract errors
-        const errorMsg = handleWalletError(error) || "Transaction failed";
+        const errorMsg = handleWalletError(error) || t("create.transaction_failed");
         setTxError(errorMsg);
       }
     }
   };
 
-  // Success handling - refresh balances
   useEffect(() => {
     if (isSuccess && txHash) {
-      // Reset UI state
       setAmount("");
       setParsedAmount(0n);
 
-      // Display success message
       console.log("Transaction successful: " + txHash);
 
-      // Refresh ETH balance
       refetchEthBalance();
 
-      // Refresh token balances after a slight delay
       setTimeout(() => {
         refetchEthBalance();
-      }, 1500); // Extra refresh after 1.5s to ensure balances are updated
+      }, 1500);
     }
   }, [isSuccess, txHash, refetchEthBalance]);
 
-  // Calculate percent of balance
   const percentOfBalance = useMemo((): number => {
-    if (!selectedToken.balance || selectedToken.balance === 0n || !parsedAmount) return 0;
+    if (!selectedToken.balance || selectedToken.balance === 0n || !parsedAmount)
+      return 0;
 
-    // Convert to number explicitly
     const percent = Number((parsedAmount * 100n) / selectedToken.balance);
     return Number.isFinite(percent) ? percent : 0;
   }, [selectedToken.balance, parsedAmount]);
 
   return (
-    <Card className="border-border shadow-md mb-4">
-      <CardHeader>
-        <CardTitle>Send Coins</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {/* Recipient address input */}
-        <div className="grid grid-cols-5 gap-4 w-full mb-4">
-          <div className="col-span-3">
-            <label className="block text-sm font-medium text-foreground mb-1">Recipient Address</label>
-            <div className="h-12">
-              {" "}
-              {/* Set fixed height to match TokenSelector */}
-              <input
-                type="text"
-                value={recipientAddress}
-                onChange={(e) => setRecipientAddress(e.target.value)}
-                placeholder="0x..."
-                className="w-full p-2 border-2 border-primary rounded focus-within:ring-2 hover:bg-secondary-foreground focus-within:ring-primary focus-within:outline-none h-full"
-              />
-            </div>
-            {recipientAddress && (!recipientAddress.startsWith("0x") || recipientAddress.length !== 42) && (
-              <p className="mt-1 text-sm text-destructive">Please enter a valid Ethereum address</p>
+    <div className="p-6 bg-background text-foreground ">
+      <div className="max-w-lg border-2 border-border  p-2 outline outline-offset-2 outline-border mx-auto">
+        <div className="mb-5">
+          <label className="block text-sm font-bold mb-2 font-body">
+            {t("create.recipient_address").toUpperCase()}:
+          </label>
+          <input
+            type="text"
+            value={recipientAddress}
+            onChange={(e) => setRecipientAddress(e.target.value)}
+            placeholder="0x..."
+            className="w-full px-3 py-2 bg-input border border-border rounded focus:outline-none focus:border-accent"
+          />
+          {recipientAddress &&
+            (!recipientAddress.startsWith("0x") ||
+              recipientAddress.length !== 42) && (
+              <p className="mt-2 text-sm text-destructive font-bold">
+                ⚠ {t("create.invalid_address_warning")}
+              </p>
             )}
-          </div>
-          {/* Token selector */}
-          <div className="col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Asset to Send</label>
-            <TokenSelector
-              selectedToken={selectedToken}
-              tokens={tokens.length > 0 ? tokens : [ETH_TOKEN]} // Ensure we always have at least ETH
-              onSelect={handleTokenSelect}
-              isEthBalanceFetching={isEthBalanceFetching}
-              className="h-12"
-            />
-          </div>
         </div>
 
-        {/* Amount input */}
-        <div className="mb-4">
-          <div className="flex justify-between items-center mb-1">
-            <label className="block text-sm font-medium text-foreground">Amount</label>
+        <div className="mb-5">
+          <label className="block text-sm font-bold mb-2 font-body">
+            {t("create.asset_to_send").toUpperCase()}:
+          </label>
+          <TokenSelector
+            selectedToken={selectedToken}
+            tokens={tokens.length > 0 ? tokens : [ETH_TOKEN]}
+            onSelect={handleTokenSelect}
+            isEthBalanceFetching={isEthBalanceFetching}
+            className="w-full"
+          />
+        </div>
+
+        <div className="mb-5">
+          <div className="flex justify-between items-center mb-2">
+            <label className="block text-sm font-bold font-body">{t("create.amount").toUpperCase()}:</label>
             <button
               onClick={handleMaxClick}
-              className="text-xs text-primary hover:text-primary/80"
+              className="px-2 py-1 text-xs uppercase bg-secondary hover:bg-secondary/80 rounded disabled:opacity-50"
               disabled={!selectedToken.balance || selectedToken.balance === 0n}
             >
-              MAX
+              {t("create.max").toUpperCase()}
             </button>
           </div>
           <div className="relative">
@@ -359,15 +358,14 @@ const SendTileComponent = () => {
               value={amount}
               onChange={(e) => handleAmountChange(e.target.value)}
               placeholder="0.0"
-              className={`w-full h-12 p-2 border-2 border-primary/40 rounded focus-within:ring-2 hover:bg-secondary-foreground focus-within:ring-primary focus-within:outline-none ${
-                selectedToken.isFetching ? "token-loading" : ""
+              className={`w-full px-3 py-2 pr-20 bg-input border border-border rounded focus:outline-none focus:border-accent ${
+                selectedToken.isFetching ? "animate-pulse" : ""
               }`}
             />
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 font-medium text-sm text-muted-foreground">
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 font-bold text-sm font-body">
               {safeStr(selectedToken.symbol)}
-              {/* Show loading indicator if token is being fetched */}
               {selectedToken.isFetching && (
-                <span className="text-xs text-primary ml-1 inline-block" style={{ animation: "pulse 1.5s infinite" }}>
+                <span className="text-xs ml-1 inline-block text-accent animate-spin">
                   ⟳
                 </span>
               )}
@@ -375,78 +373,87 @@ const SendTileComponent = () => {
           </div>
 
           {amount && typeof selectedToken.balance === "bigint" && (
-            <div className="mt-1 text-xs text-muted-foreground flex justify-between">
+            <div className="mt-2 text-xs font-bold font-body flex justify-between">
               <span>
                 {percentOfBalance > 100 ? (
-                  <span className="text-destructive">Insufficient balance</span>
+                  <span className="text-destructive">
+                    ⚠ {t("create.insufficient_balance").toUpperCase()}
+                  </span>
                 ) : (
-                  `${percentOfBalance.toFixed(0)}% of balance`
+                  `${percentOfBalance.toFixed(0)}${t("create.percent_of_balance")}`
                 )}
               </span>
               <span>
-                Balance: {formatTokenBalance(selectedToken)}{" "}
-                {selectedToken.symbol !== undefined ? safeStr(selectedToken.symbol) : ""}
+                {t("create.balance").toUpperCase()}: {formatTokenBalance(selectedToken)}{" "}
+                {selectedToken.symbol !== undefined
+                  ? safeStr(selectedToken.symbol)
+                  : ""}
               </span>
             </div>
           )}
         </div>
 
-        {/* Send button */}
-        <Button
+        <button
           onClick={handleSend}
           disabled={!canSend || isPending}
-          className="w-full bg-primary hover:bg-primary/80 text-background font-bold py-2 px-4 rounded"
+          className="w-full py-4 text-base font-bold uppercase bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted rounded flex items-center justify-center gap-2"
         >
           {isPending ? (
-            <div className="flex items-center justify-center">
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              <span>Sending...</span>
-            </div>
+            <>
+              <LoadingLogo size="sm" />
+              <span>{t("create.sending").toUpperCase()}</span>
+            </>
           ) : (
-            "Send 🪁"
+            <>
+              <span>{t("create.send").toUpperCase()}</span>
+              <span className="text-primary-foreground/80">🪁</span>
+            </>
           )}
-        </Button>
+        </button>
 
-        {/* Transaction status */}
         {txHash && (
-          <div className="mt-4 p-3 bg-chart-2/10 border border-chart-2/20 rounded">
-            <p className="text-sm text-chart-2">
-              {isSuccess ? "Transaction successful!" : "Transaction submitted!"}{" "}
+          <div className="mt-4 p-3 border-2 border-accent bg-card font-body">
+            <p className="text-sm font-bold">
+              <span className="text-accent">
+                {isSuccess
+                  ? `✓ ${t("create.transaction_successful").toUpperCase()}`
+                  : `⏳ ${t("create.transaction_submitted").toUpperCase()}`}
+              </span>{" "}
               <a
                 href={`https://etherscan.io/tx/${txHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline"
+                className="px-2 py-1 text-xs bg-secondary hover:bg-secondary/80 rounded ml-2 no-underline"
               >
-                View on Etherscan
+                {t("create.view_on_etherscan").toUpperCase()}
               </a>
-              {/* Show animation while waiting for transaction */}
               {!isSuccess && (
-                <span className="inline-block ml-2 text-primary" style={{ animation: "pulse 1.5s infinite" }}>
-                  (waiting for confirmation...)
+                <span className="inline-block ml-2 text-accent font-bold animate-pulse">
+                  {t("create.waiting_for_confirmation").toUpperCase()}
                 </span>
               )}
             </p>
           </div>
         )}
 
-        {/* Error message */}
         {txError && (
-          <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded">
-            <p className="text-sm text-destructive">{txError}</p>
+          <div className="mt-4 p-3 border-2 border-destructive bg-card font-body">
+            <p className="text-sm font-bold text-destructive">
+              ⚠ {t("create.error").toUpperCase()}: {txError.toUpperCase()}
+            </p>
           </div>
         )}
 
-        {/* Loading error */}
         {loadError && (
-          <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded">
-            <p className="text-sm text-destructive">{loadError}</p>
+          <div className="mt-4 p-3 border-2 border-destructive bg-card font-body">
+            <p className="text-sm font-bold text-destructive">
+              ⚠ {t("create.loading_error").toUpperCase()}: {loadError.toUpperCase()}
+            </p>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 
-// Export memoized version of the component for better performance
 export const SendTile = memo(SendTileComponent);
