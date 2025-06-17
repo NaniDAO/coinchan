@@ -1,13 +1,14 @@
 import { useReadContract } from "wagmi";
 import { ZAMMAbi, ZAMMAddress } from "../constants/ZAAM";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
+import { CoinSource } from "@/lib/coins";
 
 export function useReserves({
   poolId,
   source = "ZAMM",
 }: {
   poolId: bigint | undefined;
-  source?: "COOKBOOK" | "ZAMM";
+  source?: CoinSource;
 }) {
   return useReadContract({
     address: source === "ZAMM" ? ZAMMAddress : CookbookAddress,

@@ -495,11 +495,19 @@ export function getPoolIds(
   } else {
     // non-custom: if sell is a token (not ETH), use sell.id
     if (sell.id != null) {
-      mainPoolId = computePoolId(sell.id, sell.swapFee);
+      mainPoolId = computePoolId(
+        sell.id,
+        sell.swapFee,
+        sell.source === "ZAMM" ? CoinsAddress : CookbookAddress,
+      );
     }
     // otherwise (sell is ETH), wait until buy!=null and has an id
     else if (buy?.id != null) {
-      mainPoolId = computePoolId(buy.id, buy.swapFee);
+      mainPoolId = computePoolId(
+        buy.id,
+        buy.swapFee,
+        buy.source === "ZAMM" ? CoinsAddress : CookbookAddress,
+      );
     }
   }
 
@@ -509,7 +517,11 @@ export function getPoolIds(
     if (buy.isCustomPool && buy.poolId != null) {
       targetPoolId = buy.poolId;
     } else if (buy.id != null) {
-      targetPoolId = computePoolId(buy.id);
+      targetPoolId = computePoolId(
+        buy.id,
+        buy.swapFee,
+        buy.source === "ZAMM" ? CoinsAddress : CookbookAddress,
+      );
     }
   }
 

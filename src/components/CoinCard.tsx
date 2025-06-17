@@ -134,7 +134,7 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
           <div
             className={`absolute inset-0 flex ${getColorForId(coin.coinId)} text-background justify-center items-center rounded-full`}
           >
-            {displaySymbol.slice(0, 3)}
+            {displaySymbol?.slice(0, 3)}
           </div>
 
           {/* Image (displayed on top if available and loaded successfully) */}

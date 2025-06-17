@@ -83,6 +83,7 @@ export const SwapAction = () => {
 
   const { data: reserves } = useReserves({
     poolId: mainPoolId,
+    source: sellToken?.id === null ? buyToken?.source : sellToken.source,
   });
   const { data: targetReserves } = useReserves({
     poolId: targetPoolId,
@@ -157,16 +158,6 @@ export const SwapAction = () => {
     // Only sync amounts in instant mode
     if (swapMode === "limit") return;
 
-    console.log("SyncFromBuy:", {
-      buyAmount: val,
-      canSwap,
-      reserves,
-      isCoinToCoin,
-      targetReserves,
-      buyToken,
-      sellToken,
-      isSellETH,
-    });
     if (!canSwap || !reserves) return setSellAmt("");
 
     try {

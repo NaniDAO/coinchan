@@ -242,7 +242,7 @@ export const TokenSelector = memo(
               </div>
             </div>
 
-            <div className="bg-black z-10 content-visibility-auto intrinsic-h-[5000px] contain-content">
+            <div className="bg-background z-10 content-visibility-auto intrinsic-h-[5000px] contain-content">
               {tokens.map((token) => {
                 const isSelected =
                   (token.id === null && selectedValue === "eth") ||
