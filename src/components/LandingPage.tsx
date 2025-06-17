@@ -7,6 +7,7 @@ import {
 } from "../hooks/use-landing-data";
 import { useProtocolStats } from "../hooks/use-protocol-stats";
 import { Card } from "./ui/card";
+import { SwapModal } from "./SwapModal";
 
 interface LandingPageProps {
   onEnterApp?: () => void;
@@ -34,7 +35,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
     if (isLoading === false) {
       setTimeout(() => {
         setProgress(100);
-        setProgressText(t('landing.tagline'));
+        setProgressText(t("landing.tagline"));
         setEnterEnabled(true);
       }, 1000);
     } else {
@@ -72,7 +73,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
         autoStartAnimation={true}
       />
 
-      <h1 className="m-1 text-center">{t('landing.title')}</h1>
+      <h1 className="m-1 text-center">{t("landing.title")}</h1>
 
       <div className="ascii-divider">════════════════════════════════════</div>
 
@@ -89,30 +90,32 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
             style={{ width: `${progress}%` }}
           ></div>
         </div>
-        <p>{t('landing.progress_loading', { progress: Math.round(progress) })}</p>
+        <p>
+          {t("landing.progress_loading", { progress: Math.round(progress) })}
+        </p>
       </div>
 
       {/* Stats Cards */}
       <div className="my-10 text-base">
         <div className="max-w-[500px] mx-auto">
           <StatsCard
-            label={t('landing.stats.eth_price')}
-            value={landingData?.ethPrice || t('landing.stats.loading')}
+            label={t("landing.stats.eth_price")}
+            value={landingData?.ethPrice || t("landing.stats.loading")}
             color="var(--diamond-blue)"
           />
           <StatsCard
-            label={t('landing.stats.gas_price')}
-            value={landingData?.gasPrice || t('landing.stats.loading')}
+            label={t("landing.stats.gas_price")}
+            value={landingData?.gasPrice || t("landing.stats.loading")}
             color="var(--diamond-yellow)"
           />
           <StatsCard
-            label={t('landing.stats.coin_cost')}
-            value={landingData?.coinCost || t('landing.stats.loading')}
+            label={t("landing.stats.coin_cost")}
+            value={landingData?.coinCost || t("landing.stats.loading")}
             color="var(--diamond-green)"
           />
           <StatsCard
-            label={t('landing.stats.launch_cost')}
-            value={landingData?.launchCost || t('landing.stats.loading')}
+            label={t("landing.stats.launch_cost")}
+            value={landingData?.launchCost || t("landing.stats.loading")}
             color="var(--diamond-pink)"
           />
         </div>
@@ -124,17 +127,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
         {/* Protocol Stats */}
         <div className="grid grid-cols-3 gap-5 mt-[30px] max-w-[600px] mx-auto">
           <ProtocolStat
-            label={t('landing.stats.eth_swapped')}
+            label={t("landing.stats.eth_swapped")}
             primary={protocolStats?.totalEthSwapped || "-"}
             color="var(--diamond-orange)"
           />
           <ProtocolStat
-            label={t('landing.stats.swaps')}
+            label={t("landing.stats.swaps")}
             primary={protocolStats?.totalSwaps || "-"}
             color="var(--diamond-purple)"
           />
           <ProtocolStat
-            label={t('landing.stats.coins')}
+            label={t("landing.stats.coins")}
             primary={protocolStats?.totalCoins || "-"}
             color="var(--diamond-blue)"
           />
@@ -148,16 +151,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
           `}
           onClick={handleEnterApp}
           disabled={!enterEnabled}
-          aria-label={t('landing.enter_app_aria')}
+          aria-label={t("landing.enter_app_aria")}
         >
-          {t('landing.enter_zamm')}
+          {t("landing.enter_zamm")}
         </button>
       </div>
 
       <div className="ascii-divider">════════════════════════════════════</div>
 
+      <SwapModal />
       <p className="text-center my-5 text-xs tracking-wider">
-        {t('landing.features')}
+        {t("landing.features")}
       </p>
     </div>
   );
@@ -171,20 +175,20 @@ const StatsCard: React.FC<{
 }> = React.memo(({ label, value, color }) => (
   <div className="flex justify-between items-center px-5 py-[15px] border-2 border-border mb-[15px] bg-background hover:shadow-lg transition-all duration-200">
     <div className="flex items-center gap-[10px]">
-      <div 
-        className="w-3 h-3 rounded-full shadow-sm" 
-        style={{ 
+      <div
+        className="w-3 h-3 rounded-full shadow-sm"
+        style={{
           background: color,
-          boxShadow: `0 0 8px ${color}40`
+          boxShadow: `0 0 8px ${color}40`,
         }}
       ></div>
       <span className="font-bold">{label}</span>
     </div>
-    <span 
-      className="font-bold font-body text-lg tracking-wide" 
-      style={{ 
+    <span
+      className="font-bold font-body text-lg tracking-wide"
+      style={{
         color: color,
-        textShadow: `0 0 12px ${color}60`
+        textShadow: `0 0 12px ${color}60`,
       }}
     >
       {value}
@@ -201,22 +205,22 @@ const ProtocolStat: React.FC<{
 }> = React.memo(({ label, primary, color }) => (
   <Card className="text-center p-5 border-2 border-border bg-background h-2xl py-2 flex flex-col hover:shadow-lg transition-all duration-200 relative">
     {color && (
-      <div 
-        className="absolute top-2 right-2 w-2 h-2 rounded-full" 
-        style={{ 
+      <div
+        className="absolute top-2 right-2 w-2 h-2 rounded-full"
+        style={{
           background: color,
-          boxShadow: `0 0 6px ${color}50`
+          boxShadow: `0 0 6px ${color}50`,
         }}
       ></div>
     )}
     <div className="text-lg text-muted-foreground font-bold tracking-wider">
       {label}
     </div>
-    <div 
-      className="font-bold text-2xl flex items-center justify-center overflow-hidden mt-2" 
-      style={{ 
-        color: color || 'inherit',
-        textShadow: color ? `0 0 10px ${color}40` : 'none'
+    <div
+      className="font-bold text-2xl flex items-center justify-center overflow-hidden mt-2"
+      style={{
+        color: color || "inherit",
+        textShadow: color ? `0 0 10px ${color}40` : "none",
       }}
     >
       <div className="truncate">{primary}</div>
