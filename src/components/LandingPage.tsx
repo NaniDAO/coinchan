@@ -187,7 +187,7 @@ const StatsCard: React.FC<{
     <span
       className="font-bold font-body text-lg tracking-wide"
       style={{
-        color: color,
+        // color: color,
         textShadow: `0 0 12px ${color}60`,
       }}
     >
@@ -204,22 +204,13 @@ const ProtocolStat: React.FC<{
   color?: string;
 }> = React.memo(({ label, primary, color }) => (
   <Card className="text-center p-5 border-2 border-border bg-background h-2xl py-2 flex flex-col hover:shadow-lg transition-all duration-200 relative">
-    {color && (
-      <div
-        className="absolute top-2 right-2 w-2 h-2 rounded-full"
-        style={{
-          background: color,
-          boxShadow: `0 0 6px ${color}50`,
-        }}
-      ></div>
-    )}
     <div className="text-lg text-muted-foreground font-bold tracking-wider">
       {label}
     </div>
     <div
       className="font-bold text-2xl flex items-center justify-center overflow-hidden mt-2"
       style={{
-        color: color || "inherit",
+        // color: color || "inherit",
         textShadow: color ? `0 0 10px ${color}40` : "none",
       }}
     >
