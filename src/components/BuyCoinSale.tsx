@@ -54,7 +54,7 @@ export const BuyCoinSale = ({
   const { data: sale, isLoading } = useCoinSale({ coinId: coinId.toString() });
   const { writeContract } = useWriteContract();
   const { address } = useAccount();
-  const { data: balanceData } = useBalance({ address, watch: true });
+  const { data: balanceData } = useBalance({ address });
 
   // ──────────────── LOCAL STATE ────────────────
   const [selected, setSelected] = useState<number | null>(null); // trancheIndex
@@ -172,7 +172,147 @@ export const BuyCoinSale = ({
                 data={chartData}
                 margin={{ top: 10, right: 20, bottom: 10, left: 10 }}
               >
-                {/* ... gradients and chart setup unchanged ... */}
+                <defs>
+                  <linearGradient id="soldGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#ef4444" stopOpacity={0.8} />
+                    <stop offset="100%" stopColor="#ef4444" stopOpacity={0.2} />
+                  </linearGradient>
+                  <linearGradient
+                    id="remainingGradient"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop offset="0%" stopColor="#facc15" stopOpacity={0.8} />
+                    <stop offset="100%" stopColor="#facc15" stopOpacity={0.2} />
+                  </linearGradient>
+                  <linearGradient
+                    id="priceGradient"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop offset="0%" stopColor="#00e5ff" stopOpacity={0.8} />
+                    <stop offset="100%" stopColor="#00e5ff" stopOpacity={0.2} />
+                  </linearGradient>
+                  <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#00e5ff" />
+                    <stop offset="100%" stopColor="#4dd0e1" />
+                  </linearGradient>
+                </defs>
+
+                <CartesianGrid
+                  horizontal={true}
+                  vertical={false}
+                  stroke="#e2e8f0"
+                  strokeDasharray="1 4"
+                />
+
+                <XAxis
+                  dataKey="name"
+                  axisLine={{ stroke: "#cbd5e0" }}
+                  tickLine={false}
+                  tick={{ fill: "#4a5568", fontSize: 12 }}
+                />
+
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "#4a5568", fontSize: 12 }}
+                />
+
+                <Legend
+                  payload={[
+                    { value: "Sold", type: "square", color: "#ef4444" },
+                    { value: "Remaining", type: "square", color: "#facc15" },
+                    { value: "Price (ETH)", type: "line", color: "#00e5ff" },
+                  ]}
+                />
+
+                <Tooltip
+                  content={({ active, payload, label }) => {
+                    if (!active || !payload?.length) return null;
+                    const data = payload[0].payload;
+                    return (
+                      <div className="bg-white p-2 rounded shadow-lg text-sm">
+                        <div className="text-gray-600 mb-1">{label}</div>
+                        <div className="font-medium text-red-500">
+                          Sold: {data.sold.toFixed(4)} {symbol}
+                        </div>
+                        <div className="font-medium text-yellow-500">
+                          Remaining: {data.remaining.toFixed(4)} {symbol}
+                        </div>
+                        <div className="font-medium text-blue-500">
+                          Price: {data.price.toFixed(4)} ETH
+                        </div>
+                        <div className="font-medium text-sm text-gray-600">
+                          {(
+                            (100 * data.sold) /
+                            (data.sold + data.remaining)
+                          ).toFixed(1)}
+                          % Sold
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          Deadline: {data.deadline}
+                        </div>
+                      </div>
+                    );
+                  }}
+                />
+
+                <Area
+                  type="monotone"
+                  dataKey="priceNum"
+                  fill="url(#priceGradient)"
+                  fillOpacity={0.15}
+                  stroke="none"
+                />
+
+                <Bar
+                  dataKey="sold"
+                  stackId="a"
+                  fill="url(#soldGradient)"
+                  radius={[6, 0, 0, 6]}
+                  name="Sold"
+                  isAnimationActive
+                  animationDuration={800}
+                  barSize={50}
+                  // Instead of a function, use a static className based on a computed value
+                  className="opacity-90"
+                  style={{ opacity: 1 }}
+                />
+
+                <Bar
+                  dataKey="remaining"
+                  stackId="a"
+                  fill="url(#remainingGradient)"
+                  radius={[0, 6, 6, 0]}
+                  name="Remaining"
+                  isAnimationActive
+                  animationDuration={800}
+                  barSize={50}
+                  // Instead of a function, use a static className based on a computed value
+                  className="opacity-90"
+                  style={{ opacity: 1 }}
+                />
+
+                <Line
+                  type="monotone"
+                  dataKey="priceNum"
+                  stroke="url(#lineGradient)"
+                  strokeWidth={3}
+                  dot={{
+                    r: 4,
+                    fill: "#00e5ff",
+                    stroke: "#fff",
+                    strokeWidth: 2,
+                  }}
+                  activeDot={{ r: 6 }}
+                  name="Price (ETH)"
+                  isAnimationActive
+                />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
