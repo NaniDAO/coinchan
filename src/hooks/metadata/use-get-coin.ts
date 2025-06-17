@@ -1,3 +1,4 @@
+import { SWAP_FEE } from "@/lib/swap";
 import { useQuery } from "@tanstack/react-query";
 import { formatEther } from "viem";
 
@@ -67,7 +68,7 @@ const fetchCoinData = async (coinId: string) => {
         : undefined,
       swapFee: coin.pools.items?.[0]?.swapFee
         ? BigInt(coin.pools.items?.[0]?.swapFee)
-        : "100",
+        : SWAP_FEE,
       marketCapEth:
         Number(formatEther(BigInt(coin?.totalSupply ?? 0n))) *
         Number(formatEther(BigInt(coin?.pools.items?.[0]?.price1 ?? 0n))),
