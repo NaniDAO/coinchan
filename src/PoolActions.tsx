@@ -72,7 +72,7 @@ export const PoolActions = () => {
           {mode === "liquidity" && <LiquidityActions />}
           {/* Info showing token count */}
           <div className="text-xs mt-5 text-center font-mono">
-            Available tokens: {tokenCount} (ETH + {tokenCount - 1} coins)
+            {t("common.available_tokens")} {tokenCount} {t("common.eth_plus_coins", { count: tokenCount - 1 })}
           </div>
         </div>
       </div>

@@ -375,14 +375,14 @@ export const RemoveLiquidity = () => {
     <div className="relative flex flex-col">
       <div className="border-2 border-primary group hover:bg-secondary hover:text-secondary-foreground rounded-t-2xl p-3 pb-4 focus-within:ring-2 focus-within:ring-primary flex flex-col gap-2 bg-secondary/50">
         <div className="flex items-center justify-between">
-          <span className="font-medium text-foreground">LP Tokens to Burn</span>
+          <span className="font-medium text-foreground">{t("common.lp_tokens_to_burn_label")}</span>
           <div className="flex items-center gap-1">
-            <span className="text-xs text-muted-foreground">Balance: {formatUnits(lpTokenBalance, 18)}</span>
+            <span className="text-xs text-muted-foreground">{t("common.balance_colon")} {formatUnits(lpTokenBalance, 18)}</span>
             <button
               className="text-xs bg-primary/10 hover:bg-primary/20 text-primary font-medium px-3 py-1.5 rounded touch-manipulation min-w-[50px]"
               onClick={() => syncFromSell(formatUnits(lpTokenBalance, 18))}
             >
-              MAX
+              {t("common.max")}
             </button>
           </div>
         </div>

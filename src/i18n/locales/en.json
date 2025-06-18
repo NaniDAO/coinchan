@@ -100,7 +100,13 @@
     "available_to_claim": "Available to claim:",
     "already_claimed": "Already claimed:",
     "vesting_progress": "Vesting Progress",
-    "create_order": "Create Order"
+    "create_order": "Create Order",
+    "preview": "Preview",
+    "lp_tokens_to_burn_label": "LP Tokens to Burn",
+    "balance_colon": "Balance:",
+    "slippage_tolerance_colon": "Slippage Tolerance:",
+    "available_tokens": "Available tokens:",
+    "eth_plus_coins": "(ETH + {{count}} coins)"
   },
   "header": {
     "connect": "Login",
@@ -360,6 +366,7 @@
     "all": "All",
     "show_chart": "Show Price Chart",
     "hide_chart": "Hide Price Chart",
+    "price_history": "price history",
     "price_change": "Price Change",
     "high": "High",
     "low": "Low",
@@ -374,6 +381,7 @@
     "time": "Time",
     "date": "Date",
     "no_data": "No data available",
+    "no_candle_data": "No candle data available.",
     "price_chart": "Price Chart",
     "trade_history": "Trade History",
     "liquidity_chart": "Liquidity Chart",
@@ -500,7 +508,8 @@
     "max": "MAX",
     "estimate_placeholder": "Estimate will appear here",
     "buy": "Buy",
-    "sweep_tranche": "Sweep tranche"
+    "sweep_tranche": "Sweep tranche",
+    "sequential_filling_note": "Only the cheapest available tranche can be purchased"
   },
   "about": {
     "title": "About ZAMM",

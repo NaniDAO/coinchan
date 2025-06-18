@@ -100,7 +100,13 @@
     "available_to_claim": "可领取：",
     "already_claimed": "已领取：",
     "vesting_progress": "归属进度",
-    "create_order": "创建订单"
+    "create_order": "创建订单",
+    "preview": "预览",
+    "lp_tokens_to_burn_label": "要销毁的LP代币",
+    "balance_colon": "余额：",
+    "slippage_tolerance_colon": "滑点容忍度：",
+    "available_tokens": "可用代币：",
+    "eth_plus_coins": "（ETH + {{count}} 个代币）"
   },
   "header": {
     "connect": "连接钱包",
@@ -360,6 +366,7 @@
     "all": "全部",
     "show_chart": "显示价格图表",
     "hide_chart": "隐藏价格图表",
+    "price_history": "价格历史",
     "price_change": "价格变化",
     "high": "最高",
     "low": "最低",
@@ -374,6 +381,7 @@
     "time": "时间",
     "date": "日期",
     "no_data": "无可用数据",
+    "no_candle_data": "无可用K线数据。",
     "price_chart": "价格图表",
     "trade_history": "交易历史",
     "liquidity_chart": "流动性图表",
@@ -500,7 +508,8 @@
     "max": "最大",
     "estimate_placeholder": "估算将在此处显示",
     "buy": "买入",
-    "sweep_tranche": "清理分期"
+    "sweep_tranche": "清理分期",
+    "sequential_filling_note": "只能购买最便宜的可用分期"
   },
   "about": {
     "title": "关于 ZAMM",
