@@ -733,7 +733,7 @@ export const SwapAction = () => {
         <div className="mt-4 p-3 bg-background/50 rounded-lg border border-primary/20">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-medium text-foreground">
-              Order Settings
+              {t("common.order_settings")}
             </span>
           </div>
 
@@ -741,7 +741,7 @@ export const SwapAction = () => {
             {/* Partial Fill Toggle */}
             <div className="flex items-center justify-between">
               <label className="text-sm text-muted-foreground">
-                Allow Partial Fill
+                {t("common.allow_partial_fill")}
               </label>
               <button
                 onClick={() => setPartialFill(!partialFill)}
@@ -760,17 +760,17 @@ export const SwapAction = () => {
             {/* Deadline Selector */}
             <div className="flex items-center justify-between">
               <label className="text-sm text-muted-foreground dark:text-gray-300">
-                Expires In
+                {t("common.expires_in")}
               </label>
               <select
                 value={deadline}
                 onChange={(e) => setDeadline(Number(e.target.value))}
                 className="bg-background border border-primary/20 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
               >
-                <option value={1}>1 day</option>
-                <option value={2}>2 days</option>
-                <option value={7}>1 week</option>
-                <option value={30}>1 month</option>
+                <option value={1}>{t("common.one_day")}</option>
+                <option value={2}>{t("common.two_days")}</option>
+                <option value={7}>{t("common.one_week")}</option>
+                <option value={30}>{t("common.one_month")}</option>
               </select>
             </div>
 
