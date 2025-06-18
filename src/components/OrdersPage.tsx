@@ -10,6 +10,7 @@ import { LoadingLogo } from "./ui/loading-logo";
 import { OrderCard } from "./OrderCard";
 import { INDEXER_URL } from "@/lib/indexer";
 import { useQuery } from "@tanstack/react-query";
+import { ZAMMLaunchAddress } from "@/constants/ZAMMLaunch";
 
 export interface Order {
   id: string; // orderHash
@@ -312,6 +313,10 @@ export const OrdersPage = () => {
       if (!orders) return []; // Handle case where orders data hasn't loaded yet
 
       return orders.filter((order) => {
+        // Exclude launchpad orders completely (where maker is ZAMMLaunch contract)
+        const isLaunchpadOrder = order.maker.toLowerCase() === ZAMMLaunchAddress.toLowerCase();
+        if (isLaunchpadOrder) return false;
+
         // Status filter: Include if status list is empty or order status is in the list
         const statusMatch = currentFilters.status.length === 0 || currentFilters.status.includes(order.status);
 
