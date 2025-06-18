@@ -20,7 +20,7 @@ export interface Order {
   tokenOut: string;
   idOut: string;
   amtOut: string;
-  // Modified type based on prompt: deadline is a unix timestamp in ms (number)
+  // deadline is a unix timestamp in seconds (number)
   deadline: number;
   partialFill: boolean;
   inDone: string;

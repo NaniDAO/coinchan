@@ -61,7 +61,7 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
   const remainingIn = amtIn - inDone;
 
   // Check if order is expired
-  const deadline = new Date(Number(order.deadline));
+  const deadline = new Date(Number(order.deadline) * 1000);
   const isExpired = deadline < new Date();
   const isOwnOrder = currentUser && order.maker.toLowerCase() === currentUser.toLowerCase();
   const canFill = !isOwnOrder && order.status === "ACTIVE" && !isExpired && remainingOut > 0n;
@@ -136,7 +136,7 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
           order.tokenOut as `0x${string}`,
           BigInt(order.idOut),
           BigInt(order.amtOut),
-          BigInt(Math.floor(new Date(Number(order.deadline)).getTime() / 1000)),
+          BigInt(order.deadline),
           order.partialFill,
           fillAmountBigInt,
         ],
@@ -207,7 +207,7 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
           order.tokenOut as `0x${string}`,
           BigInt(order.idOut),
           BigInt(order.amtOut),
-          BigInt(Math.floor(new Date(Number(order.deadline)).getTime() / 1000)),
+          BigInt(order.deadline),
           order.partialFill,
         ],
       });
