@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { NetworkError } from "./components/NetworkError";
 import { SuccessMessage } from "./components/SuccessMessage";
 import { ETH_TOKEN, TokenMeta, USDT_POOL_KEY } from "./lib/coins";
@@ -28,6 +29,7 @@ import { SwapPanel } from "./components/SwapPanel";
 import { useReserves } from "./hooks/use-reserves";
 
 export const SingleEthLiquidity = () => {
+  const { t } = useTranslation();
   /* State */
   /* user inputs */
   const [sellAmt, setSellAmt] = useState("");
@@ -372,7 +374,7 @@ export const SingleEthLiquidity = () => {
       {/* SELL + FLIP + BUY (Provide ETH + Target Token) container */}
       <div className="relative flex flex-col">
         <SwapPanel
-          title="Provide ETH"
+          title={t("common.provide_eth")}
           selectedToken={{
             ...ETH_TOKEN,
             balance: sellToken.balance,
@@ -403,7 +405,7 @@ export const SingleEthLiquidity = () => {
         {/* ALL BUY/RECEIVE panels */}
         {buyToken && (
           <SwapPanel
-            title="Target Token"
+            title={t("common.target_token")}
             selectedToken={buyToken}
             tokens={memoizedNonEthTokens}
             onSelect={handleBuyTokenSelect}
@@ -411,7 +413,7 @@ export const SingleEthLiquidity = () => {
             amount={singleETHEstimatedCoin || "0"}
             onAmountChange={() => {}}
             readOnly={true}
-            previewLabel="Estimated"
+            previewLabel={t("common.estimated")}
             className="mt-2 rounded-b-2xl pt-3 shadow-[0_0_15px_rgba(0,204,255,0.07)]"
           />
         )}
@@ -424,12 +426,12 @@ export const SingleEthLiquidity = () => {
 
       {/* Info box */}
       <div className="text-xs bg-muted/50 border border-primary/30 rounded p-2 mt-2 text-muted-foreground">
-        <p className="font-medium mb-1">Single-Sided ETH Liquidity:</p>
+        <p className="font-medium mb-1">{t("pool.single_sided_eth_liquidity")}</p>
         <ul className="list-disc pl-4 space-y-0.5">
-          <li>Provide only ETH to participate in a pool</li>
-          <li>Half your ETH is swapped to tokens automatically</li>
-          <li>Remaining ETH + tokens are added as liquidity</li>
-          <li>Earn {Number(SWAP_FEE) / 100}% fees from trades</li>
+          <li>{t("pool.provide_only_eth")}</li>
+          <li>{t("pool.half_eth_swapped")}</li>
+          <li>{t("pool.remaining_eth_added")}</li>
+          <li>{t("pool.earn_fees_from_trades", { fee: Number(SWAP_FEE) / 100 })}</li>
         </ul>
       </div>
 
@@ -448,10 +450,10 @@ export const SingleEthLiquidity = () => {
         {isPending ? (
           <span className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Adding Single-ETH Liquidity…
+            {t("common.adding_liquidity")}
           </span>
         ) : (
-          "Add Single-ETH Liquidity"
+          t("pool.add")
         )}
       </button>
 

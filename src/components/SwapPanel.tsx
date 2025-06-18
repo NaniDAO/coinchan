@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { TokenSelector } from "./TokenSelector";
 import { TokenMeta } from "@/lib/coins";
 import { cn } from "@/lib/utils";
@@ -42,6 +43,7 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
   onPercentageChange,
   className = "",
 }) => {
+  const { t } = useTranslation();
   const [percentage, setPercentage] = useState(0);
 
   // Calculate current percentage based on amount and balance
@@ -123,7 +125,7 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
               className="bg-terminal-black dark:bg-terminal-white text-terminal-white dark:text-terminal-black hover:opacity-90 text-[10px] px-2 py-1 uppercase min-w-[50px]"
               onClick={onMax}
             >
-              MAX
+              {t("common.max")}
             </button>
           )
         )}

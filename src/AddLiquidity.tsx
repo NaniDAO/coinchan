@@ -14,6 +14,7 @@ import {
   ZAMMPoolKey,
 } from "./lib/swap";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useOperatorStatus } from "./hooks/use-operator-status";
 import { useAccount, useChainId, usePublicClient, useWriteContract } from "wagmi";
 import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
@@ -33,6 +34,7 @@ import { useReserves } from "./hooks/use-reserves";
 import { useErc20Allowance } from "./hooks/use-erc20-allowance";
 
 export const AddLiquidity = () => {
+  const { t } = useTranslation();
   const { isConnected, address } = useAccount();
   const chainId = useChainId();
   const publicClient = usePublicClient({
@@ -571,11 +573,11 @@ export const AddLiquidity = () => {
       <SlippageSettings slippageBps={slippageBps} setSlippageBps={setSlippageBps} />
 
       <div className="text-xs bg-muted/50 border border-primary/30 rounded p-2 mt-2 text-muted-foreground dark:text-gray-300">
-        <p className="font-medium mb-1">Adding liquidity provides:</p>
+        <p className="font-medium mb-1">{t("pool.adding_liquidity_provides")}</p>
         <ul className="list-disc pl-4 space-y-0.5">
-          <li>LP tokens as a proof of your position</li>
-          <li>Earn {Number(SWAP_FEE) / 100}% fees from trades</li>
-          <li>Withdraw your liquidity anytime</li>
+          <li>{t("pool.lp_tokens_proof")}</li>
+          <li>{t("pool.earn_fees_from_trades", { fee: Number(SWAP_FEE) / 100 })}</li>
+          <li>{t("pool.withdraw_anytime")}</li>
         </ul>
       </div>
 
@@ -593,10 +595,10 @@ export const AddLiquidity = () => {
         {isPending ? (
           <span className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Adding Single-ETH Liquidity…
+            {t("common.adding_liquidity")}
           </span>
         ) : (
-          "Add Liquidity"
+          t("pool.add")
         )}
       </button>
 

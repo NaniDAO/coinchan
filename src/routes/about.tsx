@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { ZammLogo } from "@/components/ZammLogo";
 
 export const Route = createFileRoute("/about")({
@@ -6,6 +7,7 @@ export const Route = createFileRoute("/about")({
 });
 
 function RouteComponent() {
+  const { t } = useTranslation();
   const handleLogoClick = () => {
     // Logo animation handled by ZammLogo component
   };
@@ -17,7 +19,7 @@ function RouteComponent() {
         fontFamily: "var(--font-display)",
       }}
     >
-      <h2 className="text-center mb-5 !font-display">About ZAMM</h2>
+      <h2 className="text-center mb-5 !font-display">{t("about.title")}</h2>
 
       <div className="max-w-[600px] mx-auto">
         <div className="text-center my-5">
@@ -25,19 +27,16 @@ function RouteComponent() {
         </div>
 
         <p className="my-5 font-display">
-          ZAMM makes it easy to create and trade coins on Ethereum. Create your own coins, sell them directly to others,
-          or set up trading pools to earn fees - all in one simple, low-cost platform. ZAMM works with all token types
-          and lets you customize features like fees and trading rules. Perfect for experimenting with new DeFi ideas
-          without the complexity.{" "}
+          {t("about.description")}
         </p>
 
         <div className="ascii-divider">════════════════════════════════════</div>
 
-        <h3 className="my-5 font-display">FEATURES:</h3>
+        <h3 className="my-5 font-display">{t("about.features_title")}</h3>
         <ul className="list-none p-0">
-          <li>▸ Fair launch sandbox</li>
-          <li>▸ Community governance</li>
-          <li>▸ Hyperoptimized for L1</li>
+          <li>▸ {t("about.fair_launch")}</li>
+          <li>▸ {t("about.community_governance")}</li>
+          <li>▸ {t("about.hyperoptimized")}</li>
         </ul>
 
         <div className="ascii-divider">════════════════════════════════════</div>
@@ -50,7 +49,7 @@ function RouteComponent() {
               if (newWindow) newWindow.opener = null;
             }}
           >
-            DOCS
+            {t("about.docs")}
           </button>
           <button
             className="button m-1 font-display transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-[6px_6px_0_var(--border)] hover:bg-primary hover:text-primary-foreground hover:-translate-x-[2px] hover:-translate-y-[2px] active:scale-95 active:translate-x-0 active:translate-y-0 active:shadow-none"
@@ -59,7 +58,7 @@ function RouteComponent() {
               if (newWindow) newWindow.opener = null;
             }}
           >
-            WHITEPAPER
+            {t("about.whitepaper")}
           </button>
           <button
             className="button m-1 font-display transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-[6px_6px_0_var(--border)] hover:bg-primary hover:text-primary-foreground hover:-translate-x-[2px] hover:-translate-y-[2px] active:scale-95 active:translate-x-0 active:translate-y-0 active:shadow-none"
@@ -68,7 +67,7 @@ function RouteComponent() {
               if (newWindow) newWindow.opener = null;
             }}
           >
-            GITHUB
+            {t("about.github")}
           </button>
           <button
             className="button m-1 font-display transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-[6px_6px_0_var(--border)] hover:bg-primary hover:text-primary-foreground hover:-translate-x-[2px] hover:-translate-y-[2px] active:scale-95 active:translate-x-0 active:translate-y-0 active:shadow-none"
@@ -77,7 +76,7 @@ function RouteComponent() {
               if (newWindow) newWindow.opener = null;
             }}
           >
-            DISCOURSE
+            {t("about.discourse")}
           </button>
         </p>
       </div>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
 import { Loader2 } from "lucide-react";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
@@ -26,6 +27,7 @@ import { SwapPanel } from "./components/SwapPanel";
 import { useReserves } from "./hooks/use-reserves";
 
 export const RemoveLiquidity = () => {
+  const { t } = useTranslation();
   const [sellToken, setSellToken] = useState<TokenMeta>(ETH_TOKEN);
   const [buyToken, setBuyToken] = useState<TokenMeta | null>(null);
 
@@ -393,13 +395,13 @@ export const RemoveLiquidity = () => {
           className="text-lg sm:text-xl font-medium w-full bg-secondary/50 focus:outline-none h-10 text-right pr-1"
         />
         <div className="text-xs text-muted-foreground mt-1">
-          Enter the amount of LP tokens you want to burn to receive ETH and tokens back.
+          {t("pool.lp_burn_help")}
         </div>
       </div>
       <div className="relative flex flex-col">
         {/* SELL/PROVIDE panel */}
         <SwapPanel
-          title="You'll Receive (ETH)"
+          title={t("common.you_will_receive_eth")}
           selectedToken={sellToken}
           tokens={memoizedTokens}
           onSelect={handleSellTokenSelect}
@@ -407,12 +409,12 @@ export const RemoveLiquidity = () => {
           amount={sellAmt}
           onAmountChange={syncFromSell}
           readOnly={true}
-          previewLabel="Preview"
+          previewLabel={t("common.preview")}
           className="mt-2 rounded-md p-2 pb-4 focus-within:ring-2 focus-within:ring-primary/60"
         />
         {buyToken && (
           <SwapPanel
-            title={`You'll Receive (${buyToken.symbol})`}
+            title={t("common.you_will_receive_token", { token: buyToken.symbol })}
             selectedToken={buyToken}
             tokens={memoizedTokens}
             onSelect={handleBuyTokenSelect}
@@ -420,7 +422,7 @@ export const RemoveLiquidity = () => {
             amount={buyAmt}
             onAmountChange={syncFromBuy}
             readOnly={true}
-            previewLabel="Preview"
+            previewLabel={t("common.preview")}
             className="mt-2 rounded-b-2xl pt-3 shadow-[0_0_15px_rgba(0,204,255,0.07)]"
           />
         )}
@@ -428,11 +430,11 @@ export const RemoveLiquidity = () => {
         {/* Slippage information - clickable to show settings */}
         <SlippageSettings setSlippageBps={setSlippageBps} slippageBps={slippageBps} />
         <div className="text-xs bg-muted/50 border border-primary/30 rounded p-2 mt-2 text-muted-foreground">
-          <p className="font-medium mb-1">Remove Liquidity:</p>
+          <p className="font-medium mb-1">{t("pool.remove_liquidity_info")}</p>
           <ul className="list-disc pl-4 space-y-0.5">
-            <li>Your LP balance: {formatUnits(lpTokenBalance, 18)} LP tokens</li>
-            <li>Enter amount of LP tokens to burn</li>
-            <li>Preview shows expected return of ETH and tokens</li>
+            <li>{t("pool.your_lp_balance", { balance: formatUnits(lpTokenBalance, 18) })}</li>
+            <li>{t("pool.enter_lp_amount")}</li>
+            <li>{t("pool.preview_expected_return")}</li>
           </ul>
         </div>
 
@@ -466,10 +468,10 @@ export const RemoveLiquidity = () => {
           {isPending ? (
             <span className="flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Processing...
+              {t("common.processing")}
             </span>
           ) : (
-            "Remove Liquidity"
+            t("pool.remove")
           )}
         </button>
         {/* Status and error messages */}
