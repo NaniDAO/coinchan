@@ -97,31 +97,6 @@ export const BuyCoinSale = ({
   /* real-time tranche remaining amounts from blockchain */
   const [trancheRemainingWei, setTrancheRemainingWei] = useState<Map<number, bigint>>(new Map());
 
-  /* get cheapest available tranche (use real-time blockchain data) */
-  const cheapestAvailableTranche = useMemo(() => {
-    if (!sale) return null;
-    const active = sale.tranches.items.filter((t: Tranche) => isTrancheSelectable(t));
-    if (!active.length) return null;
-    
-    // Sort by price and return the cheapest available tranche
-    return active.reduce((cheapest: Tranche, current: Tranche) =>
-      BigInt(cheapest.price) < BigInt(current.price) ? cheapest : current,
-    );
-  }, [sale, trancheRemainingWei]);
-
-  /* auto-select cheapest available tranche */
-  useEffect(() => {
-    if (cheapestAvailableTranche) {
-      setSelected(cheapestAvailableTranche.trancheIndex);
-    }
-  }, [cheapestAvailableTranche]);
-
-  const tranche: Tranche | undefined = useMemo(
-    () =>
-      sale?.tranches.items.find((t: Tranche) => t.trancheIndex === selected),
-    [sale, selected],
-  );
-
   /* check if a tranche is selectable (use real-time blockchain data) */
   const isTrancheSelectable = useCallback((trancheToCheck: Tranche) => {
     // Check deadline first (from indexer data)
@@ -138,6 +113,31 @@ export const BuyCoinSale = ({
     // Fallback to indexer data if blockchain data not yet loaded
     return BigInt(trancheToCheck.remaining) > 0n;
   }, [trancheRemainingWei]);
+
+  /* get cheapest available tranche (use real-time blockchain data) */
+  const cheapestAvailableTranche = useMemo(() => {
+    if (!sale) return null;
+    const active = sale.tranches.items.filter((t: Tranche) => isTrancheSelectable(t));
+    if (!active.length) return null;
+    
+    // Sort by price and return the cheapest available tranche
+    return active.reduce((cheapest: Tranche, current: Tranche) =>
+      BigInt(cheapest.price) < BigInt(current.price) ? cheapest : current,
+    );
+  }, [sale, isTrancheSelectable]);
+
+  /* auto-select cheapest available tranche */
+  useEffect(() => {
+    if (cheapestAvailableTranche) {
+      setSelected(cheapestAvailableTranche.trancheIndex);
+    }
+  }, [cheapestAvailableTranche]);
+
+  const tranche: Tranche | undefined = useMemo(
+    () =>
+      sale?.tranches.items.find((t: Tranche) => t.trancheIndex === selected),
+    [sale, selected],
+  );
 
   /* compute atomic lot when tranche changes */
   useEffect(() => {
