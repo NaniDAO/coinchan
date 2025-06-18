@@ -280,7 +280,8 @@ export const BuyCoinSale = ({
                 <CartesianGrid horizontal vertical={false} stroke={chartTheme.textColor} strokeOpacity={0.2} strokeDasharray="2 4" />
 
                 <XAxis dataKey="name" axisLine={{ stroke: chartTheme.textColor, strokeOpacity: 0.3 }} tickLine={false} tick={{ fill: chartTheme.textColor, fontSize: 11, fontFamily: 'monospace' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: chartTheme.textColor, fontSize: 11, fontFamily: 'monospace' }} />
+                <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fill: chartTheme.textColor, fontSize: 11, fontFamily: 'monospace' }} />
+                <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fill: chartTheme.lineColor, fontSize: 11, fontFamily: 'monospace' }} />
 
                 <Legend
                   wrapperStyle={{ fontFamily: 'monospace', fontSize: '12px' }}
@@ -316,10 +317,10 @@ export const BuyCoinSale = ({
                   }}
                 />
 
-                <Area type="monotone" dataKey="priceNum" fill="url(#priceGradient)" fillOpacity={0.15} stroke="none" />
-                <Bar dataKey="sold"      stackId="a" fill="url(#soldGradient)"      radius={[6,0,0,6]} barSize={50} />
-                <Bar dataKey="remaining" stackId="a" fill="url(#remainingGradient)" radius={[0,6,6,0]} barSize={50} />
-                <Line type="monotone" dataKey="priceNum" stroke="url(#lineGradient)" strokeWidth={3}
+                <Area yAxisId="right" type="monotone" dataKey="priceNum" fill="url(#priceGradient)" fillOpacity={0.15} stroke="none" />
+                <Bar yAxisId="left" dataKey="sold"      stackId="a" fill="url(#soldGradient)"      radius={[6,0,0,6]} barSize={50} />
+                <Bar yAxisId="left" dataKey="remaining" stackId="a" fill="url(#remainingGradient)" radius={[0,6,6,0]} barSize={50} />
+                <Line yAxisId="right" type="monotone" dataKey="priceNum" stroke="url(#lineGradient)" strokeWidth={3}
                       dot={{ r:4, fill: chartTheme.lineColor, stroke: chartTheme.background, strokeWidth:2 }} activeDot={{ r:6, fill: chartTheme.lineColor }} />
               </ComposedChart>
             </ResponsiveContainer>
