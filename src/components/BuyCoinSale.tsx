@@ -93,21 +93,21 @@ export const BuyCoinSale = ({
   const [Cstar, setCstar] = useState<bigint>(0n);
   const [remainderWei, setRemainderWei] = useState<bigint | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  
+  /* real-time tranche remaining amounts from blockchain */
+  const [trancheRemainingWei, setTrancheRemainingWei] = useState<Map<number, bigint>>(new Map());
 
-  /* get cheapest available tranche (allows all unfilled tranches) */
+  /* get cheapest available tranche (use real-time blockchain data) */
   const cheapestAvailableTranche = useMemo(() => {
     if (!sale) return null;
-    const active = sale.tranches.items.filter(
-      (t: Tranche) =>
-        BigInt(t.remaining) > 0n && Number(t.deadline) * 1000 > Date.now(),
-    );
+    const active = sale.tranches.items.filter((t: Tranche) => isTrancheSelectable(t));
     if (!active.length) return null;
     
-    // Sort by price and return the cheapest unfilled tranche
+    // Sort by price and return the cheapest available tranche
     return active.reduce((cheapest: Tranche, current: Tranche) =>
       BigInt(cheapest.price) < BigInt(current.price) ? cheapest : current,
     );
-  }, [sale]);
+  }, [sale, trancheRemainingWei]);
 
   /* auto-select cheapest available tranche */
   useEffect(() => {
@@ -122,10 +122,22 @@ export const BuyCoinSale = ({
     [sale, selected],
   );
 
-  /* check if a tranche is selectable (all unfilled tranches can be selected) */
+  /* check if a tranche is selectable (use real-time blockchain data) */
   const isTrancheSelectable = useCallback((trancheToCheck: Tranche) => {
-    return BigInt(trancheToCheck.remaining) > 0n && Number(trancheToCheck.deadline) * 1000 > Date.now();
-  }, []);
+    // Check deadline first (from indexer data)
+    if (Number(trancheToCheck.deadline) * 1000 <= Date.now()) {
+      return false;
+    }
+    
+    // Use real-time blockchain data for remaining amount
+    const realTimeRemaining = trancheRemainingWei.get(trancheToCheck.trancheIndex);
+    if (realTimeRemaining !== undefined) {
+      return realTimeRemaining > 0n;
+    }
+    
+    // Fallback to indexer data if blockchain data not yet loaded
+    return BigInt(trancheToCheck.remaining) > 0n;
+  }, [trancheRemainingWei]);
 
   /* compute atomic lot when tranche changes */
   useEffect(() => {
@@ -157,6 +169,37 @@ export const BuyCoinSale = ({
       setRemainderWei(rem);
     })();
   }, [tranche, refreshKey, publicClient, coinId]);
+
+  /* refresh real-time remaining amounts for all tranches */
+  useEffect(() => {
+    (async () => {
+      if (!sale || !publicClient) {
+        setTrancheRemainingWei(new Map());
+        return;
+      }
+      
+      const remainingMap = new Map<number, bigint>();
+      
+      // Fetch remaining amounts for all tranches in parallel
+      const promises = sale.tranches.items.map(async (t: Tranche) => {
+        try {
+          const remaining = (await publicClient.readContract({
+            address: ZAMMLaunchAddress,
+            abi: ZAMMLaunchAbi,
+            functionName: "trancheRemainingWei",
+            args: [coinId, BigInt(t.trancheIndex)],
+          })) as bigint;
+          remainingMap.set(t.trancheIndex, remaining);
+        } catch (error) {
+          console.warn(`Failed to fetch remaining for tranche ${t.trancheIndex}:`, error);
+          remainingMap.set(t.trancheIndex, 0n);
+        }
+      });
+      
+      await Promise.all(promises);
+      setTrancheRemainingWei(remainingMap);
+    })();
+  }, [sale, refreshKey, publicClient, coinId]);
 
   const lotsFromEth = (rawWei: bigint) => (Pstar === 0n ? 0n : rawWei / Pstar);
   const lotsFromToken = (rawTok: bigint) =>
@@ -216,7 +259,23 @@ export const BuyCoinSale = ({
     if (mode === "ETH") {
       if (balanceData?.value) setEthInput(formatEther(balanceData.value));
     } else {
-      const remainingTokWei = BigInt(tranche.remaining);
+      // Use real-time blockchain data if available, otherwise fall back to indexer data
+      const realTimeRemainingWei = trancheRemainingWei.get(tranche.trancheIndex);
+      let remainingTokWei: bigint;
+      
+      if (realTimeRemainingWei !== undefined) {
+        // Calculate remaining tokens from remaining wei
+        const tranchePriceWei = BigInt(tranche.price);
+        const trancheCoinsWei = BigInt(tranche.coins);
+        if (tranchePriceWei > 0n) {
+          remainingTokWei = (realTimeRemainingWei * trancheCoinsWei) / tranchePriceWei;
+        } else {
+          remainingTokWei = BigInt(tranche.remaining);
+        }
+      } else {
+        remainingTokWei = BigInt(tranche.remaining);
+      }
+      
       const lots = lotsFromToken(remainingTokWei);
       setTokenInput(formatEther(lots * Cstar));
     }
@@ -228,28 +287,49 @@ export const BuyCoinSale = ({
   if (sale.status === "FINALIZED")
     return <BuySellCookbookCoin coinId={coinId} symbol={symbol} />;
 
-  const activeTranches = sale.tranches.items.filter(
-    (t: Tranche) =>
-      BigInt(t.remaining) > 0n &&
-      Number(t.deadline) * 1000 > Date.now(),
-  ).sort((a: Tranche, b: Tranche) => {
-    // Sort by price ascending for consistent ordering
-    const priceA = BigInt(a.price);
-    const priceB = BigInt(b.price);
-    return priceA < priceB ? -1 : priceA > priceB ? 1 : 0;
-  });
+  const activeTranches = sale.tranches.items.filter((t: Tranche) => isTrancheSelectable(t))
+    .sort((a: Tranche, b: Tranche) => {
+      // Sort by price ascending for consistent ordering
+      const priceA = BigInt(a.price);
+      const priceB = BigInt(b.price);
+      return priceA < priceB ? -1 : priceA > priceB ? 1 : 0;
+    });
 
   /* chart data */
-  const chartData = sale.tranches.items.map((t: Tranche) => ({
-    name: `Tranche ${t.trancheIndex}`,
-    sold: Number(formatEther(BigInt(t.sold))),
-    remaining: Number(formatEther(BigInt(t.remaining))),
-    price: Number(formatEther(BigInt(t.price))),
-    priceNum: Number(formatEther(BigInt(t.price))),
-    deadline: new Date(Number(t.deadline) * 1000).toLocaleString(),
-    trancheIndex: t.trancheIndex,
-    isSelected: t.trancheIndex === selected,
-  }));
+  const chartData = useMemo(() => sale.tranches.items.map((t: Tranche) => {
+    // Use real-time blockchain data if available
+    const realTimeRemainingWei = trancheRemainingWei.get(t.trancheIndex);
+    let remainingTokens: bigint;
+    let soldTokens: bigint;
+    
+    if (realTimeRemainingWei !== undefined) {
+      // Calculate remaining tokens from remaining wei
+      const tranchePriceWei = BigInt(t.price);
+      const trancheCoinsWei = BigInt(t.coins);
+      if (tranchePriceWei > 0n) {
+        remainingTokens = (realTimeRemainingWei * trancheCoinsWei) / tranchePriceWei;
+        soldTokens = trancheCoinsWei - remainingTokens;
+      } else {
+        remainingTokens = BigInt(t.remaining);
+        soldTokens = BigInt(t.sold);
+      }
+    } else {
+      // Fallback to indexer data
+      remainingTokens = BigInt(t.remaining);
+      soldTokens = BigInt(t.sold);
+    }
+    
+    return {
+      name: `Tranche ${t.trancheIndex}`,
+      sold: Number(formatEther(soldTokens)),
+      remaining: Number(formatEther(remainingTokens)),
+      price: Number(formatEther(BigInt(t.price))),
+      priceNum: Number(formatEther(BigInt(t.price))),
+      deadline: new Date(Number(t.deadline) * 1000).toLocaleString(),
+      trancheIndex: t.trancheIndex,
+      isSelected: t.trancheIndex === selected,
+    };
+  }), [sale.tranches.items, trancheRemainingWei, selected]);
 
   /* chart theme */
   const chartTheme = useChartTheme();
@@ -403,7 +483,24 @@ export const BuyCoinSale = ({
                   {isDisabled && <div className="text-xs bg-gray-400 text-white px-2 py-1 rounded font-bold">LOCKED</div>}
                 </div>
                 <div className="text-sm mb-1">{t('sale.price')} {formatEther(BigInt(tranche.price))} ETH</div>
-                <div className="text-sm">{t('sale.remaining_colon')} {formatEther(BigInt(tranche.remaining))} {symbol}</div>
+                <div className="text-sm">
+                  {t('sale.remaining_colon')} {
+                    (() => {
+                      // Use real-time blockchain data if available
+                      const realTimeRemainingWei = trancheRemainingWei.get(tranche.trancheIndex);
+                      if (realTimeRemainingWei !== undefined) {
+                        const tranchePriceWei = BigInt(tranche.price);
+                        const trancheCoinsWei = BigInt(tranche.coins);
+                        if (tranchePriceWei > 0n) {
+                          const remainingTokens = (realTimeRemainingWei * trancheCoinsWei) / tranchePriceWei;
+                          return formatEther(remainingTokens);
+                        }
+                      }
+                      // Fallback to indexer data
+                      return formatEther(BigInt(tranche.remaining));
+                    })()
+                  } {symbol}
+                </div>
               </button>
             );
           })}
