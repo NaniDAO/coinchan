@@ -205,6 +205,8 @@ export const RemoveLiquidity = () => {
         poolId = computePoolId(coinId, sellToken?.swapFee ?? SWAP_FEE);
       }
 
+      if (!publicClient) return;
+      
       const poolInfo = (await publicClient.readContract({
         address: ZAMMAddress,
         abi: ZAMMAbi,
