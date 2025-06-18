@@ -116,7 +116,7 @@ export const BuyCoinSale = ({
 
   /* get cheapest available tranche (use real-time blockchain data) */
   const cheapestAvailableTranche = useMemo(() => {
-    if (!sale) return null;
+    if (!sale?.tranches?.items) return null;
     const active = sale.tranches.items.filter((t: Tranche) => isTrancheSelectable(t));
     if (!active.length) return null;
     
@@ -124,7 +124,7 @@ export const BuyCoinSale = ({
     return active.reduce((cheapest: Tranche, current: Tranche) =>
       BigInt(cheapest.price) < BigInt(current.price) ? cheapest : current,
     );
-  }, [sale, trancheRemainingWei]);
+  }, [sale, trancheRemainingWei, isTrancheSelectable]);
 
   /* auto-select cheapest available tranche */
   useEffect(() => {
@@ -135,7 +135,7 @@ export const BuyCoinSale = ({
 
   const tranche: Tranche | undefined = useMemo(
     () =>
-      sale?.tranches.items.find((t: Tranche) => t.trancheIndex === selected),
+      sale?.tranches?.items?.find((t: Tranche) => t.trancheIndex === selected),
     [sale, selected],
   );
 
@@ -173,7 +173,7 @@ export const BuyCoinSale = ({
   /* refresh real-time remaining amounts for all tranches */
   useEffect(() => {
     (async () => {
-      if (!sale || !publicClient) {
+      if (!sale?.tranches?.items || !publicClient) {
         setTrancheRemainingWei(new Map());
         return;
       }
@@ -287,16 +287,21 @@ export const BuyCoinSale = ({
   if (sale.status === "FINALIZED")
     return <BuySellCookbookCoin coinId={coinId} symbol={symbol} />;
 
-  const activeTranches = sale.tranches.items.filter((t: Tranche) => isTrancheSelectable(t))
-    .sort((a: Tranche, b: Tranche) => {
-      // Sort by price ascending for consistent ordering
-      const priceA = BigInt(a.price);
-      const priceB = BigInt(b.price);
-      return priceA < priceB ? -1 : priceA > priceB ? 1 : 0;
-    });
+  const activeTranches = useMemo(() => {
+    if (!sale?.tranches?.items) return [];
+    return sale.tranches.items.filter((t: Tranche) => isTrancheSelectable(t))
+      .sort((a: Tranche, b: Tranche) => {
+        // Sort by price ascending for consistent ordering
+        const priceA = BigInt(a.price);
+        const priceB = BigInt(b.price);
+        return priceA < priceB ? -1 : priceA > priceB ? 1 : 0;
+      });
+  }, [sale?.tranches?.items, isTrancheSelectable]);
 
   /* chart data */
-  const chartData = useMemo(() => sale.tranches.items.map((t: Tranche) => {
+  const chartData = useMemo(() => {
+    if (!sale?.tranches?.items) return [];
+    return sale.tranches.items.map((t: Tranche) => {
     // Use real-time blockchain data if available
     const realTimeRemainingWei = trancheRemainingWei.get(t.trancheIndex);
     let remainingTokens: bigint;
@@ -329,7 +334,8 @@ export const BuyCoinSale = ({
       trancheIndex: t.trancheIndex,
       isSelected: t.trancheIndex === selected,
     };
-  }), [sale.tranches.items, trancheRemainingWei, selected]);
+  });
+  }, [sale?.tranches?.items, trancheRemainingWei, selected]);
 
   /* chart theme */
   const chartTheme = useChartTheme();
@@ -350,7 +356,7 @@ export const BuyCoinSale = ({
 
       <CardContent>
         <div className="font-mono text-sm mb-6">
-          {t('sale.supply')} {formatEther(BigInt(sale.saleSupply))} {symbol}
+          {t('sale.supply')} {sale?.saleSupply ? formatEther(BigInt(sale.saleSupply)) : '0'} {symbol}
         </div>
         
         <h3 className="font-mono text-lg font-bold mb-4">{t('sale.tranches')}</h3>
