@@ -40,7 +40,7 @@ const fetchAllOrders = async (): Promise<Order[]> => {
       orders(
         orderBy: "createdAt",
         orderDirection: "desc",
-        limit: 100
+        limit: 500
       ) {
         items {
           id
