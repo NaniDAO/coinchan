@@ -262,6 +262,7 @@ export const LaunchForm = () => {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitted(true);
+    if (!publicClient) return;
 
     try {
       // Validate with zod

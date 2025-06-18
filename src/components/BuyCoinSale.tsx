@@ -8,11 +8,13 @@
     • Includes dust-sweeper button (unchanged logic).
    ------------------------------------------------------------------ */
 
+import { ZAMMLaunchAbi, ZAMMLaunchAddress } from "@/constants/ZAMMLaunch";
 import {
-  ZAMMLaunchAbi,
-  ZAMMLaunchAddress,
-} from "@/constants/ZAMMLaunch";
-import { useWriteContract, usePublicClient, useAccount, useBalance } from "wagmi";
+  useWriteContract,
+  usePublicClient,
+  useAccount,
+  useBalance,
+} from "wagmi";
 import {
   ComposedChart,
   Bar,
@@ -74,21 +76,21 @@ export const BuyCoinSale = ({
 }) => {
   /* chain + account hooks */
   const { data: sale, isLoading } = useCoinSale({ coinId: coinId.toString() });
-  const { writeContract }         = useWriteContract();
-  const publicClient              = usePublicClient();
-  const { address }               = useAccount();
-  const { data: balanceData }     = useBalance({ address });
-  const { t }                     = useTranslation();
+  const { writeContract } = useWriteContract();
+  const publicClient = usePublicClient();
+  const { address } = useAccount();
+  const { data: balanceData } = useBalance({ address });
+  const { t } = useTranslation();
 
   /* ui state */
-  const [selected, setSelected]   = useState<number | null>(null);
-  const [mode, setMode]           = useState<"ETH" | "TOKEN">("ETH");
-  const [ethInput, setEthInput]   = useState<string>("");
+  const [selected, setSelected] = useState<number | null>(null);
+  const [mode, setMode] = useState<"ETH" | "TOKEN">("ETH");
+  const [ethInput, setEthInput] = useState<string>("");
   const [tokenInput, setTokenInput] = useState<string>("");
 
   /* dust-helper */
-  const [Pstar, setPstar]         = useState<bigint>(0n);
-  const [Cstar, setCstar]         = useState<bigint>(0n);
+  const [Pstar, setPstar] = useState<bigint>(0n);
+  const [Cstar, setCstar] = useState<bigint>(0n);
   const [remainderWei, setRemainderWei] = useState<bigint | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -97,8 +99,7 @@ export const BuyCoinSale = ({
     if (!sale) return null;
     const active = sale.tranches.items.filter(
       (t: Tranche) =>
-        BigInt(t.remaining) > 0n &&
-        Number(t.deadline) * 1000 > Date.now(),
+        BigInt(t.remaining) > 0n && Number(t.deadline) * 1000 > Date.now(),
     );
     if (!active.length) return null;
     
@@ -116,7 +117,8 @@ export const BuyCoinSale = ({
   }, [cheapestAvailableTranche]);
 
   const tranche: Tranche | undefined = useMemo(
-    () => sale?.tranches.items.find((t: Tranche) => t.trancheIndex === selected),
+    () =>
+      sale?.tranches.items.find((t: Tranche) => t.trancheIndex === selected),
     [sale, selected],
   );
 
@@ -134,7 +136,7 @@ export const BuyCoinSale = ({
     }
     const priceWei = BigInt(tranche.price);
     const coinsWei = BigInt(tranche.coins);
-    const g        = gcd(priceWei, coinsWei);
+    const g = gcd(priceWei, coinsWei);
     setPstar(priceWei / g);
     setCstar(coinsWei / g);
   }, [tranche]);
@@ -146,7 +148,7 @@ export const BuyCoinSale = ({
         setRemainderWei(null);
         return;
       }
-      const rem = (await publicClient.readContract({
+      const rem = (await publicClient?.readContract({
         address: ZAMMLaunchAddress,
         abi: ZAMMLaunchAbi,
         functionName: "trancheRemainingWei",
@@ -178,9 +180,9 @@ export const BuyCoinSale = ({
     }
     try {
       const rawTokWei = tokenInput.trim() ? parseEther(tokenInput.trim()) : 0n;
-      const lots      = lotsFromToken(rawTokWei);      // floor
-      const tokWei    = lots * Cstar;
-      const ethWei    = lots * Pstar;
+      const lots = lotsFromToken(rawTokWei); // floor
+      const tokWei = lots * Cstar;
+      const ethWei = lots * Pstar;
       return { tokenWeiRounded: tokWei, ethWeiForTokens: ethWei };
     } catch {
       return { tokenWeiRounded: 0n, ethWeiForTokens: 0n };
@@ -201,7 +203,10 @@ export const BuyCoinSale = ({
 
   /* sweep eligibility */
   const sweepable =
-    remainderWei !== null && Pstar !== 0n && remainderWei % Pstar === 0n && remainderWei > 0n;
+    remainderWei !== null &&
+    Pstar !== 0n &&
+    remainderWei % Pstar === 0n &&
+    remainderWei > 0n;
 
   const onTxSent = () => setRefreshKey((k) => k + 1);
 
@@ -209,8 +214,7 @@ export const BuyCoinSale = ({
   const handleMax = () => {
     if (!tranche) return;
     if (mode === "ETH") {
-      if (balanceData?.value)
-        setEthInput(formatEther(balanceData.value));
+      if (balanceData?.value) setEthInput(formatEther(balanceData.value));
     } else {
       const remainingTokWei = BigInt(tranche.remaining);
       const lots = lotsFromToken(remainingTokWei);
@@ -219,8 +223,8 @@ export const BuyCoinSale = ({
   };
 
   /* early exits */
-  if (isLoading) return <div>{t('sale.loading')}</div>;
-  if (!sale)     return <div>{t('sale.not_found')}</div>;
+  if (isLoading) return <div>{t("sale.loading")}</div>;
+  if (!sale) return <div>{t("sale.not_found")}</div>;
   if (sale.status === "FINALIZED")
     return <BuySellCookbookCoin coinId={coinId} symbol={symbol} />;
 
@@ -273,13 +277,17 @@ export const BuyCoinSale = ({
         <Card className="p-4 mb-6">
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData} margin={{ top: 10, right: 20, bottom: 10, left: 10 }}>
+              <ComposedChart
+                data={chartData}
+                margin={{ top: 10, right: 20, bottom: 10, left: 10 }}
+              >
                 {/* … same svg gradients, axes, tooltip, bars & line as previous version … */}
                 <defs>
                   <linearGradient id="soldGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={chartTheme.downColor} stopOpacity={0.8} />
                     <stop offset="100%" stopColor={chartTheme.downColor} stopOpacity={0.2} />
                   </linearGradient>
+                  
                   <linearGradient id="remainingGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={chartTheme.upColor} stopOpacity={0.8} />
                     <stop offset="100%" stopColor={chartTheme.upColor} stopOpacity={0.2} />
