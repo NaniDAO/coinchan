@@ -1,16 +1,24 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { WagmiProvider } from "wagmi";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { Toaster } from "sonner";
 
 import { config } from "./wagmi.ts";
 import { routeTree } from "./routeTree.gen";
-import { ThemeProvider } from "./lib/theme";
+import { ThemeProvider, useTheme } from "./lib/theme";
+import "@rainbow-me/rainbowkit/styles.css";
+import {
+  darkTheme,
+  lightTheme,
+  Locale,
+  RainbowKitProvider,
+} from "@rainbow-me/rainbowkit";
+import { WagmiProvider } from "wagmi";
 
 import "./index.css";
 import "./i18n";
+import { useTranslation } from "react-i18next";
 
 // Configure query client with performance optimizations
 const queryClient = new QueryClient({
@@ -39,16 +47,54 @@ declare module "@tanstack/react-router" {
 }
 
 // Application with all providers
-const AppWithProviders = () => (
-  <ThemeProvider>
-    <WagmiProvider config={config} reconnectOnMount={true}>
-      <QueryClientProvider client={queryClient}>
+const AppWithProviders = () => {
+  return (
+    <ThemeProvider>
+      <WalletProviders>
         <RouterProvider router={router} />
         <Toaster />
+      </WalletProviders>
+    </ThemeProvider>
+  );
+};
+
+export const WalletProviders = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => {
+  const { theme } = useTheme();
+  const { i18n } = useTranslation();
+  return (
+    <WagmiProvider config={config} reconnectOnMount={true}>
+      <QueryClientProvider client={queryClient}>
+        <RainbowKitProvider
+          coolMode
+          locale={(i18n.language as Locale) ?? "en-US"}
+          theme={
+            theme === "light"
+              ? lightTheme({
+                  borderRadius: "small",
+                  accentColor: "#000a0a",
+                  accentColorForeground: "#eaeaea",
+                  overlayBlur: "small",
+                  fontStack: "system",
+                })
+              : darkTheme({
+                  borderRadius: "small",
+                  accentColor: "#eaeaea",
+                  accentColorForeground: "#000a0a",
+                  overlayBlur: "small",
+                  fontStack: "system",
+                })
+          }
+        >
+          {children}
+        </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
-  </ThemeProvider>
-);
+  );
+};
 
 // Only use StrictMode in development to avoid double mounting
 const rootElement = document.getElementById("root") as HTMLElement;
