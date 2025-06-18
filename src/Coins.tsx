@@ -21,7 +21,6 @@ export const Coins = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortType, setSortType] = useState<SortType>("liquidity");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const [coinTypeFilter, setCoinTypeFilter] = useState<"all" | "launch" | "trading">("all");
 
   /* ------------------------------------------------------------------
    *  Paged & global coin data
@@ -42,10 +41,6 @@ export const Coins = () => {
     const dataToSearch = allCoins && allCoins.length > 0 ? allCoins : coins;
 
     return dataToSearch.filter((coin) => {
-      // First apply coin type filter
-      if (coinTypeFilter === "launch" && !coin.saleStatus) return false;
-      if (coinTypeFilter === "trading" && coin.saleStatus) return false;
-
       // Split the search query into words for multi-term searching
       const searchTerms = trimmedQuery.split(/\s+/).filter((term) => term.length > 0);
 
@@ -75,7 +70,7 @@ export const Coins = () => {
         );
       });
     });
-  }, [trimmedQuery, allCoins, coins, coinTypeFilter]);
+  }, [trimmedQuery, allCoins, coins]);
 
   const isSearchActive = Boolean(trimmedQuery);
 
@@ -188,6 +183,18 @@ export const Coins = () => {
           }
           return sortOrder === "asc" ? aVotes - bVotes : bVotes - aVotes;
         });
+      } else if (sortType === "launch") {
+        // Filter for only ACTIVE sales and sort by recency (newest first by default)
+        const activeSales = coinsCopy.filter(coin => coin.saleStatus === "ACTIVE");
+        
+        return activeSales.sort((a, b) => {
+          const aId = Number(a.coinId);
+          const bId = Number(b.coinId);
+          
+          return sortOrder === "asc"
+            ? aId - bId // Ascending (oldest first - assuming lower IDs are older)
+            : bId - aId; // Descending (newest first - assuming higher IDs are newer)
+        });
       } else {
         // For recency sorting, there are two approaches:
 
@@ -250,24 +257,15 @@ export const Coins = () => {
     );
   }, []);
 
-  /* ------------------------------------------------------------------
-   *  Helper to filter coins by type (launch/trading/all)
-   * ------------------------------------------------------------------ */
-  const filterCoinsByType = useCallback((coinsList: CoinData[]): CoinData[] => {
-    if (coinTypeFilter === "all") return coinsList;
-    if (coinTypeFilter === "launch") return coinsList.filter(coin => coin.saleStatus);
-    if (coinTypeFilter === "trading") return coinsList.filter(coin => !coin.saleStatus);
-    return coinsList;
-  }, [coinTypeFilter]);
 
   /* ------------------------------------------------------------------
    *  Data for ExplorerGrid
    * ------------------------------------------------------------------ */
   const displayCoins = useMemo(() => {
     // Safety checks for undefined data and filter out invalid coins
-    const validCoins = filterCoinsByType(filterValidCoins(coins || []));
-    const validAllCoins = filterCoinsByType(filterValidCoins(allCoinsUnpaged || []));
-    const validSearchResults = filterValidCoins(searchResults || []); // Search already applies coin type filter
+    const validCoins = filterValidCoins(coins || []);
+    const validAllCoins = filterValidCoins(allCoinsUnpaged || []);
+    const validSearchResults = filterValidCoins(searchResults || []);
 
     // Calculate starting and ending indices for pagination
     const startIdx = page * PAGE_SIZE;
@@ -312,8 +310,6 @@ export const Coins = () => {
     page,
     PAGE_SIZE,
     filterValidCoins,
-    filterCoinsByType,
-    coinTypeFilter,
   ]);
 
   /* ------------------------------------------------------------------
@@ -327,13 +323,17 @@ export const Coins = () => {
         total={
           isSearchActive
             ? filterValidCoins(searchResults || []).length
-            : filterCoinsByType(filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || [])).length
+            : sortType === "launch"
+              ? filterValidCoins(allCoins || []).filter(coin => coin.saleStatus === "ACTIVE").length
+              : filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || []).length
         }
         canPrev={!isSearchActive && page > 0}
         canNext={
           !isSearchActive &&
           (page + 1) * PAGE_SIZE <
-            filterCoinsByType(filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || [])).length
+            (sortType === "launch"
+              ? filterValidCoins(allCoins || []).filter(coin => coin.saleStatus === "ACTIVE").length
+              : filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || []).length)
         }
         onPrev={debouncedPrevPage}
         onNext={debouncedNextPage}
@@ -344,7 +344,9 @@ export const Coins = () => {
           Math.ceil(
             (isSearchActive
               ? filterValidCoins(searchResults || []).length
-              : filterCoinsByType(filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || [])).length) / PAGE_SIZE,
+              : sortType === "launch"
+                ? filterValidCoins(allCoins || []).filter(coin => coin.saleStatus === "ACTIVE").length
+                : filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || []).length) / PAGE_SIZE,
           ),
         )}
         isSearchActive={isSearchActive}
@@ -352,8 +354,6 @@ export const Coins = () => {
         sortOrder={sortOrder}
         onSortTypeChange={handleSortTypeChange}
         onSortOrderChange={handleSortOrderChange}
-        coinTypeFilter={coinTypeFilter}
-        onCoinTypeFilterChange={setCoinTypeFilter}
         /* Unused variables removed from usePagedCoins destructuring:
          * - total (replaced with direct filtered counts)
          * - totalPages

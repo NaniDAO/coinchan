@@ -1,7 +1,7 @@
 import { CoinCard } from "./components/CoinCard";
 import { type CoinData } from "./hooks/metadata";
 import { useEffect, useState } from "react";
-import { ArrowDownAZ, ArrowUpAZ, Coins as CoinsIcon, ThumbsUp } from "lucide-react";
+import { ArrowDownAZ, ArrowUpAZ, Coins as CoinsIcon, ThumbsUp, Rocket } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { LoadingLogo } from "./components/ui/loading-logo";
 
@@ -9,7 +9,7 @@ import { LoadingLogo } from "./components/ui/loading-logo";
 const PAGE_SIZE = 20;
 
 // Sort type options
-export type SortType = "liquidity" | "recency" | "votes";
+export type SortType = "liquidity" | "recency" | "votes" | "launch";
 
 export const ExplorerGrid = ({
   coins,
@@ -28,8 +28,6 @@ export const ExplorerGrid = ({
   sortOrder = "desc",
   onSortTypeChange,
   onSortOrderChange,
-  coinTypeFilter = "all",
-  onCoinTypeFilterChange,
 }: {
   coins: CoinData[];
   total: number;
@@ -47,8 +45,6 @@ export const ExplorerGrid = ({
   sortOrder?: "asc" | "desc";
   onSortTypeChange?: (type: SortType) => void;
   onSortOrderChange?: (order: "asc" | "desc") => void;
-  coinTypeFilter?: "all" | "launch" | "trading";
-  onCoinTypeFilterChange?: (filter: "all" | "launch" | "trading") => void;
 }) => {
   const { t } = useTranslation();
 
@@ -113,49 +109,6 @@ export const ExplorerGrid = ({
       </div>
 
       <div className="mb-6">
-        {/* Coin Type Filter */}
-        {onCoinTypeFilterChange && (
-          <div className="p-2 !mb-2 flex items-center justify-center flex-wrap gap-2">
-            <div className="flex">
-              <button
-                onClick={() => onCoinTypeFilterChange("all")}
-                className={`flex items-center px-3 py-2 text-sm font-medium ${
-                  coinTypeFilter === "all"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80 dark:text-foreground dark:hover:text-foreground"
-                }`}
-                disabled={isLoading || isTransitioning}
-              >
-                {t("explore.all_coins")}
-              </button>
-
-              <button
-                onClick={() => onCoinTypeFilterChange("launch")}
-                className={`flex items-center px-3 py-2 text-sm font-medium ${
-                  coinTypeFilter === "launch"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80 dark:text-foreground dark:hover:text-foreground"
-                }`}
-                disabled={isLoading || isTransitioning}
-              >
-                {t("explore.launch_sales")}
-              </button>
-
-              <button
-                onClick={() => onCoinTypeFilterChange("trading")}
-                className={`flex items-center px-3 py-2 text-sm font-medium ${
-                  coinTypeFilter === "trading"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80 dark:text-foreground dark:hover:text-foreground"
-                }`}
-                disabled={isLoading || isTransitioning}
-              >
-                {t("explore.trading_pools")}
-              </button>
-            </div>
-          </div>
-        )}
-
         <div className="p-2 !mb-2 flex items-center justify-between flex-wrap gap-2">
           {onSortTypeChange && (
             <div className="flex">
@@ -199,6 +152,20 @@ export const ExplorerGrid = ({
               >
                 <ThumbsUp className="w-4 h-4 mr-1" />
                 {t("common.votes").toUpperCase()}
+              </button>
+
+              <button
+                onClick={() => onSortTypeChange("launch")}
+                className={`flex items-center px-3 py-2 text-sm font-medium ${
+                  sortType === "launch"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80 dark:text-foreground dark:hover:text-foreground"
+                }`}
+                title={t("common.sort_by", { field: t("explore.launch_sales") })}
+                disabled={isLoading || isTransitioning}
+              >
+                <Rocket className="w-4 h-4 mr-1" />
+                {t("explore.launch_sales").toUpperCase()}
               </button>
             </div>
           )}
