@@ -106,7 +106,9 @@
     "balance_colon": "Balance:",
     "slippage_tolerance_colon": "Slippage Tolerance:",
     "available_tokens": "Available tokens:",
-    "eth_plus_coins": "(ETH + {{count}} coins)"
+    "eth_plus_coins": "(ETH + {{count}} coins)",
+    "provide": "Provide",
+    "and": "And"
   },
   "header": {
     "connect": "Login",

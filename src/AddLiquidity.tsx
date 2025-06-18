@@ -533,7 +533,7 @@ export const AddLiquidity = () => {
     <div className="relative flex flex-col">
       {/* Provide panel */}
       <SwapPanel
-        title="Provide"
+        title={t("common.provide")}
         selectedToken={sellToken}
         tokens={memoizedTokens}
         onSelect={handleSellTokenSelect}
@@ -556,7 +556,7 @@ export const AddLiquidity = () => {
       {/* And (second) panel */}
       {buyToken && (
         <SwapPanel
-          title="And"
+          title={t("common.and")}
           selectedToken={buyToken}
           tokens={memoizedTokens}
           onSelect={handleBuyTokenSelect}
