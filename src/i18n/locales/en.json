@@ -55,6 +55,7 @@
     "fee": "Fee",
     "multi_hop": "Multi-hop",
     "pool": "Pool",
+    "single_eth": "Single-ETH",
     "change": "Change",
     "browse_files": "Browse Files",
     "select_file": "Select File",

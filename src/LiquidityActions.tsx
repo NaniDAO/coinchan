@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { MinusIcon, PlusIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { RemoveLiquidity } from "./RemoveLiquidity";
 import { SingleEthLiquidity } from "./SingleEthLiquidity";
 import { AddLiquidity } from "./AddLiquidity";
@@ -8,6 +9,7 @@ import { cn } from "@/lib/utils";
 type LiquidityMode = "add" | "remove" | "single-eth";
 
 export const LiquidityActions = () => {
+  const { t } = useTranslation();
   const [liquidityMode, setLiquidityMode] = useState<LiquidityMode>("add");
 
   return (
@@ -22,7 +24,7 @@ export const LiquidityActions = () => {
             onClick={() => setLiquidityMode("add")}
           >
             <PlusIcon className="h-4 w-4 mr-1" />
-            <span>Add</span>
+            <span>{t("common.add")}</span>
           </button>
           <button
             className={cn(
@@ -32,7 +34,7 @@ export const LiquidityActions = () => {
             onClick={() => setLiquidityMode("remove")}
           >
             <MinusIcon className="h-4 w-4 mr-1" />
-            <span>Remove</span>
+            <span>{t("common.remove")}</span>
           </button>
           <button
             className={cn(
@@ -42,7 +44,7 @@ export const LiquidityActions = () => {
             onClick={() => setLiquidityMode("single-eth")}
           >
             <span className="text-xs font-medium mr-1">Ξ</span>
-            <span>Single-ETH</span>
+            <span>{t("common.single_eth")}</span>
           </button>
         </div>
       </div>

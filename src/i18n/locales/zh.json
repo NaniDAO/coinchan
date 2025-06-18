@@ -55,6 +55,7 @@
     "fee": "费用",
     "multi_hop": "多跳",
     "pool": "资金池",
+    "single_eth": "单-ETH",
     "change": "更改",
     "browse_files": "浏览文件",
     "select_file": "选择文件",
