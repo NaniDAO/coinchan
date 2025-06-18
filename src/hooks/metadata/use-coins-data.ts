@@ -22,6 +22,7 @@ const ALL_POOLS_QUERY = `
   sales(where: {status_not: FINALIZED}) {
       items {
         id
+        status
         coin {
           id
           name
