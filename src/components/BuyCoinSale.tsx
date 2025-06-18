@@ -124,7 +124,7 @@ export const BuyCoinSale = ({
     return active.reduce((cheapest: Tranche, current: Tranche) =>
       BigInt(cheapest.price) < BigInt(current.price) ? cheapest : current,
     );
-  }, [sale, isTrancheSelectable]);
+  }, [sale, trancheRemainingWei]);
 
   /* auto-select cheapest available tranche */
   useEffect(() => {
