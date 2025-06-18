@@ -1,7 +1,12 @@
 import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { formatUnits, parseUnits, encodeFunctionData } from "viem";
-import { useAccount, usePublicClient, useSendTransaction, useWaitForTransactionReceipt } from "wagmi";
+import {
+  useAccount,
+  usePublicClient,
+  useSendTransaction,
+  useWaitForTransactionReceipt,
+} from "wagmi";
 import { Card, CardContent, CardHeader } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -23,14 +28,19 @@ interface OrderCardProps {
   onOrderFilled: () => void;
 }
 
-export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps) => {
+export const OrderCard = ({
+  order,
+  currentUser,
+  onOrderFilled,
+}: OrderCardProps) => {
   const { t } = useTranslation();
   const { address } = useAccount();
   const { tokens } = useAllCoins();
-  const { data: isOperator, refetch: refetchOperatorStatus } = useOperatorStatus({
-    address,
-    operator: CookbookAddress,
-  });
+  const { data: isOperator, refetch: refetchOperatorStatus } =
+    useOperatorStatus({
+      address,
+      operator: CookbookAddress,
+    });
   const [fillAmount, setFillAmount] = useState("");
   const [txError, setTxError] = useState<string | null>(null);
   const [cancelTxError, setCancelTxError] = useState<string | null>(null);
@@ -39,7 +49,9 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [cancelTxHash, setCancelTxHash] = useState<`0x${string}`>();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
-  const { isSuccess: isCancelSuccess } = useWaitForTransactionReceipt({ hash: cancelTxHash });
+  const { isSuccess: isCancelSuccess } = useWaitForTransactionReceipt({
+    hash: cancelTxHash,
+  });
   const publicClient = usePublicClient({
     chainId: mainnet.id,
   });
@@ -47,8 +59,10 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
   const tokenInId = order.idIn === "0" ? null : BigInt(order.idIn);
   const tokenOutId = order.idOut === "0" ? null : BigInt(order.idOut);
 
-  const tokenIn = tokenInId === null ? ETH_TOKEN : tokens.find((t) => t.id === tokenInId);
-  const tokenOut = tokenOutId === null ? ETH_TOKEN : tokens.find((t) => t.id === tokenOutId);
+  const tokenIn =
+    tokenInId === null ? ETH_TOKEN : tokens.find((t) => t.id === tokenInId);
+  const tokenOut =
+    tokenOutId === null ? ETH_TOKEN : tokens.find((t) => t.id === tokenOutId);
 
   const amtIn = BigInt(order.amtIn);
   const amtOut = BigInt(order.amtOut);
@@ -63,8 +77,10 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
   // Check if order is expired
   const deadline = new Date(Number(order.deadline) * 1000);
   const isExpired = deadline < new Date();
-  const isOwnOrder = currentUser && order.maker.toLowerCase() === currentUser.toLowerCase();
-  const canFill = !isOwnOrder && order.status === "ACTIVE" && !isExpired && remainingOut > 0n;
+  const isOwnOrder =
+    currentUser && order.maker.toLowerCase() === currentUser.toLowerCase();
+  const canFill =
+    !isOwnOrder && order.status === "ACTIVE" && !isExpired && remainingOut > 0n;
 
   // Calculate exchange rate
   const rate = useMemo(() => {
@@ -84,6 +100,7 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
 
   const handleFillOrder = async () => {
     if (!address || !tokenIn || !tokenOut) return;
+    if (!publicClient) return;
 
     try {
       console.log("handleFillOrder:", address, tokenIn, tokenOut);
@@ -191,6 +208,7 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
 
   const handleCancelOrder = async () => {
     if (!address || !tokenIn || !tokenOut) return;
+    if (!publicClient) return;
 
     try {
       console.log("handleCancelOrder:", address, tokenIn, tokenOut);
@@ -270,7 +288,10 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
               {t(`orders.${order.status.toLowerCase()}`)}
             </Badge>
             {isExpired && (
-              <Badge variant="destructive" className="bg-red-500/20 text-red-600 border-red-500/30">
+              <Badge
+                variant="destructive"
+                className="bg-red-500/20 text-red-600 border-red-500/30"
+              >
                 {t("orders.expired")}
               </Badge>
             )}
@@ -302,21 +323,34 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
                 <div className="font-medium text-sm sm:text-base">
                   {" "}
                   {/* Adjusted text size */}
-                  {formatUnits(remainingIn, tokenIn?.decimals || 18).slice(0, 10)} {tokenIn?.symbol || "ETH"}
+                  {formatUnits(remainingIn, tokenIn?.decimals || 18).slice(
+                    0,
+                    10,
+                  )}{" "}
+                  {tokenIn?.symbol || "ETH"}
                 </div>
-                <div className="text-xs text-muted-foreground">{t("orders.token_in")}</div>
+                <div className="text-xs text-muted-foreground">
+                  {t("orders.token_in")}
+                </div>
               </div>
             </div>
           </div>
-          <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" /> {/* Added shrink-0 */}
+          <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />{" "}
+          {/* Added shrink-0 */}
           <div className="flex items-center gap-3">
             <div className="text-right">
               <div className="font-medium text-sm sm:text-base">
                 {" "}
                 {/* Adjusted text size */}
-                {formatUnits(remainingOut, tokenOut?.decimals || 18).slice(0, 10)} {tokenOut?.symbol || "ETH"}
+                {formatUnits(remainingOut, tokenOut?.decimals || 18).slice(
+                  0,
+                  10,
+                )}{" "}
+                {tokenOut?.symbol || "ETH"}
               </div>
-              <div className="text-xs text-muted-foreground">{t("orders.token_out")}</div>
+              <div className="text-xs text-muted-foreground">
+                {t("orders.token_out")}
+              </div>
             </div>
             {tokenOut && <TokenImage token={tokenOut} />}
           </div>
@@ -328,7 +362,8 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
           <div>
             <div className="text-muted-foreground">{t("orders.rate")}</div>
             <div className="font-medium">
-              1 {tokenIn?.symbol || "ETH"} = {rate.toFixed(6)} {tokenOut?.symbol || "ETH"}
+              1 {tokenIn?.symbol || "ETH"} = {rate.toFixed(6)}{" "}
+              {tokenOut?.symbol || "ETH"}
             </div>
           </div>
 
@@ -337,8 +372,9 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
             <div className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
               <span className={isExpired ? "text-red-500" : ""}>
-                {Number(order.deadline) === 0 || isExpired ? t("orders.expired") : 
-                 `${deadline.toLocaleDateString()} ${deadline.toLocaleTimeString()}`}
+                {Number(order.deadline) === 0 || isExpired
+                  ? t("orders.expired")
+                  : `${deadline.toLocaleDateString()} ${deadline.toLocaleTimeString()}`}
               </span>
             </div>
           </div>
@@ -349,14 +385,16 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
         {order.status === "ACTIVE" && (
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">{t("orders.fill_progress")}</span>
+              <span className="text-muted-foreground">
+                {t("orders.fill_progress")}
+              </span>
               <span>{progress.toFixed(1)}%</span>
             </div>
             <Progress value={progress} className="h-2" />
             <div className="text-xs text-muted-foreground">
               {formatUnits(outDone, tokenOut?.decimals || 18).slice(0, 8)} /{" "}
-              {formatUnits(amtOut, tokenOut?.decimals || 18).slice(0, 8)} {tokenOut?.symbol || "ETH"}{" "}
-              {t("orders.filled")}
+              {formatUnits(amtOut, tokenOut?.decimals || 18).slice(0, 8)}{" "}
+              {tokenOut?.symbol || "ETH"} {t("orders.filled")}
             </div>
           </div>
         )}
@@ -364,7 +402,12 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
         {/* Cancel Interface for own orders */}
         {isOwnOrder && order.status === "ACTIVE" && address && (
           <div className="border-t border-primary/10 pt-4 space-y-3">
-            <Button onClick={handleCancelOrder} disabled={isPending} variant="destructive" className="w-full">
+            <Button
+              onClick={handleCancelOrder}
+              disabled={isPending}
+              variant="destructive"
+              className="w-full"
+            >
               {isPending ? (
                 <span className="flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -393,7 +436,9 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
         {canFill && address && (
           <div className="border-t border-primary/10 pt-4 space-y-3">
             <div className="space-y-2">
-              <label className="text-sm font-medium">{t("orders.fill_amount")}</label>
+              <label className="text-sm font-medium">
+                {t("orders.fill_amount")}
+              </label>
               {/* Changed flex direction to column on mobile, row on medium screens */}
               <div className="flex flex-col md:flex-row gap-2">
                 <input
@@ -407,14 +452,20 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setFillAmount(formatUnits(maxFillOut, tokenOut?.decimals || 18))}
+                  onClick={() =>
+                    setFillAmount(
+                      formatUnits(maxFillOut, tokenOut?.decimals || 18),
+                    )
+                  }
                   className="shrink-0" // Prevent button from shrinking on mobile when stacked
                 >
                   {t("orders.max_fill")}
                 </Button>
               </div>
               <div className="text-xs text-muted-foreground">
-                Max: {formatUnits(maxFillOut, tokenOut?.decimals || 18).slice(0, 10)} {tokenOut?.symbol || "ETH"}
+                Max:{" "}
+                {formatUnits(maxFillOut, tokenOut?.decimals || 18).slice(0, 10)}{" "}
+                {tokenOut?.symbol || "ETH"}
               </div>
             </div>
 
@@ -451,7 +502,8 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
         {/* Changed flex direction to column on mobile, row on medium screens */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2 md:gap-0 text-xs text-muted-foreground border-t border-primary/10 pt-3">
           <span>
-            {t("orders.created_at")}: {new Date(Number(order.createdAt)).toLocaleDateString()}
+            {t("orders.created_at")}:{" "}
+            {new Date(Number(order.createdAt)).toLocaleDateString()}
           </span>
           <a
             href={`https://etherscan.io/tx/${order.txHash}`}
