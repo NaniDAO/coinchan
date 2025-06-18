@@ -4,6 +4,7 @@ import { createRootRoute, Link, Outlet, useLocation, useNavigate } from "@tansta
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import UserSettingsMenu from "@/components/UserSettingsMenu";
+import { appkit } from "@/constants/appkit";
 
 export const Route = createRootRoute({
   component: () => {
@@ -78,7 +79,8 @@ export const Route = createRootRoute({
               {t("common.about")}
             </Link>
           </div>
-        </div>
+          </div>
+          {appkit.modal}
       </>
     );
   },

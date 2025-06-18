@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { ZammLogo } from "./ZammLogo";
 import { useRandomLoadingText, useLandingData } from "../hooks/use-landing-data";
@@ -23,32 +23,32 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
     if (isLoadingLandingData === false && landingData !== undefined) {
       return false;
     }
-
     return true;
   }, [isLoadingLandingData, landingData]);
 
+  const updateProgress = useCallback(() => {
+    setProgress((prevProgress) => {
+      if (isLoading && prevProgress < 90) {
+        return Math.min(prevProgress + Math.random() * 3, 90);
+      }
+      return prevProgress;
+    });
+  }, [isLoading]);
+
   useEffect(() => {
-    if (isLoading === false) {
-      setTimeout(() => {
+    if (!isLoading) {
+      const timer = setTimeout(() => {
         setProgress(100);
         setProgressText(t("landing.tagline"));
         setEnterEnabled(true);
       }, 1000);
-    } else {
-      setProgressText(getRandomLoadingText());
-
-      const interval = setInterval(() => {
-        setProgress((prevProgress) => {
-          if (isLoading && prevProgress < 90) {
-            return Math.min(prevProgress + Math.random() * 3, 90);
-          }
-          return prevProgress;
-        });
-      }, 200);
-
-      return () => clearInterval(interval);
+      return () => clearTimeout(timer);
     }
-  }, [isLoading, t, getRandomLoadingText]);
+
+    setProgressText(getRandomLoadingText());
+    const interval = setInterval(updateProgress, 200);
+    return () => clearInterval(interval);
+  }, [isLoading, t, getRandomLoadingText, updateProgress]);
 
   const handleEnterApp = () => {
     if (onEnterApp) {
@@ -169,7 +169,6 @@ const StatsCard: React.FC<{
     <span
       className="font-bold font-body text-lg tracking-wide"
       style={{
-        // color: color,
         textShadow: `0 0 12px ${color}60`,
       }}
     >
@@ -190,7 +189,6 @@ const ProtocolStat: React.FC<{
     <div
       className="font-bold text-2xl flex items-center justify-center overflow-hidden mt-2"
       style={{
-        // color: color || "inherit",
         textShadow: color ? `0 0 10px ${color}40` : "none",
       }}
     >
