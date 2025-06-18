@@ -125,6 +125,7 @@ export function useCoinsData() {
                 votes[cd?.coinId?.toString()] !== undefined
                   ? BigInt(votes[cd?.coinId?.toString()])
                   : 0n,
+              saleStatus: null,
             };
 
             return enrichMetadata(cd);
@@ -154,6 +155,7 @@ export function useCoinsData() {
                 votes[cd?.coinId?.toString()] !== undefined
                   ? BigInt(votes[cd?.coinId?.toString()])
                   : 0n,
+              saleStatus: sale.status as 'ACTIVE' | 'EXPIRED' | 'FINALIZED',
             };
 
             return enrichMetadata(cd);

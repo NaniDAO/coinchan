@@ -21,6 +21,8 @@ export type CoinData = RawCoinData & {
   // Additional derived fields
   priceInEth: number | null;
   votes?: bigint;
+  // Sale status for ZAMM Launch coins
+  saleStatus?: 'ACTIVE' | 'EXPIRED' | 'FINALIZED' | null;
 };
 
 export function hydrateRawCoin(raw: RawCoinData): CoinData {
