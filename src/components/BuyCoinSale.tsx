@@ -30,7 +30,7 @@ import { Badge } from "./ui/badge";
 import { PillIndicator } from "./ui/pill";
 import { Button } from "./ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardAction } from "./ui/card";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Input } from "./ui/input";
 import { cn } from "@/lib/utils";
@@ -92,26 +92,38 @@ export const BuyCoinSale = ({
   const [remainderWei, setRemainderWei] = useState<bigint | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  /* pick cheapest tranche as default */
-  useEffect(() => {
-    if (!sale) return;
+  /* get cheapest available tranche (enforces sequential filling) */
+  const cheapestAvailableTranche = useMemo(() => {
+    if (!sale) return null;
     const active = sale.tranches.items.filter(
       (t: Tranche) =>
         BigInt(t.remaining) > 0n &&
         Number(t.deadline) * 1000 > Date.now(),
     );
-    if (active.length) {
-      const cheapest = active.reduce((p: Tranche, c: Tranche) =>
-        BigInt(p.price) < BigInt(c.price) ? p : c,
-      );
-      setSelected(cheapest.trancheIndex);
-    }
+    if (!active.length) return null;
+    
+    // Sort by price and return the cheapest unfilled tranche
+    return active.reduce((cheapest: Tranche, current: Tranche) =>
+      BigInt(cheapest.price) < BigInt(current.price) ? cheapest : current,
+    );
   }, [sale]);
+
+  /* auto-select cheapest available tranche */
+  useEffect(() => {
+    if (cheapestAvailableTranche) {
+      setSelected(cheapestAvailableTranche.trancheIndex);
+    }
+  }, [cheapestAvailableTranche]);
 
   const tranche: Tranche | undefined = useMemo(
     () => sale?.tranches.items.find((t: Tranche) => t.trancheIndex === selected),
     [sale, selected],
   );
+
+  /* check if a tranche is selectable (only cheapest available can be selected) */
+  const isTrancheSelectable = useCallback((trancheToCheck: Tranche) => {
+    return cheapestAvailableTranche?.trancheIndex === trancheToCheck.trancheIndex;
+  }, [cheapestAvailableTranche]);
 
   /* compute atomic lot when tranche changes */
   useEffect(() => {
@@ -216,7 +228,12 @@ export const BuyCoinSale = ({
     (t: Tranche) =>
       BigInt(t.remaining) > 0n &&
       Number(t.deadline) * 1000 > Date.now(),
-  );
+  ).sort((a: Tranche, b: Tranche) => {
+    // Sort by price ascending for consistent ordering
+    const priceA = BigInt(a.price);
+    const priceB = BigInt(b.price);
+    return priceA < priceB ? -1 : priceA > priceB ? 1 : 0;
+  });
 
   /* chart data */
   const chartData = sale.tranches.items.map((t: Tranche) => ({
@@ -346,22 +363,37 @@ export const BuyCoinSale = ({
         </div>
 
         {/* tranche selector */}
-        <h3 className="font-mono text-lg font-bold mb-4">{t('sale.choose_tranche')}</h3>
+        <h3 className="font-mono text-lg font-bold mb-2">{t('sale.choose_tranche')}</h3>
+        <p className="font-mono text-sm text-muted-foreground mb-4">
+          {t('sale.sequential_filling_note', 'Only the cheapest available tranche can be purchased')}
+        </p>
         <div className="grid sm:grid-cols-2 gap-4 mb-6">
           {activeTranches.map((tranche: Tranche) => {
             const isChosen = selected === tranche.trancheIndex;
+            const isSelectable = isTrancheSelectable(tranche);
+            const isDisabled = !isSelectable;
+            
             return (
               <button
                 key={tranche.trancheIndex}
-                onClick={() => setSelected(tranche.trancheIndex)}
+                onClick={() => isSelectable && setSelected(tranche.trancheIndex)}
+                disabled={isDisabled}
                 className={cn(
-                  "p-4 bg-card border-2 border-border font-mono text-left transition-all shadow-[4px_4px_0_var(--border)]",
-                  "hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_var(--border)]",
-                  "active:translate-x-[2px] active:translate-y-[2px] active:shadow-none",
-                  isChosen && "bg-primary text-primary-foreground border-primary shadow-[4px_4px_0_var(--primary)]"
+                  "p-4 border-2 font-mono text-left transition-all shadow-[4px_4px_0_var(--border)]",
+                  isDisabled 
+                    ? "bg-muted text-muted-foreground border-muted cursor-not-allowed opacity-60"
+                    : cn(
+                        "bg-card border-border hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_var(--border)]",
+                        "active:translate-x-[2px] active:translate-y-[2px] active:shadow-none",
+                        isChosen && "bg-primary text-primary-foreground border-primary shadow-[4px_4px_0_var(--primary)]"
+                      )
                 )}
               >
-                <div className="font-bold mb-2">{t('sale.tranche')} {tranche.trancheIndex}</div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="font-bold">{t('sale.tranche')} {tranche.trancheIndex}</div>
+                  {isSelectable && <div className="text-xs bg-green-500 text-white px-2 py-1 rounded font-bold">AVAILABLE</div>}
+                  {isDisabled && <div className="text-xs bg-gray-400 text-white px-2 py-1 rounded font-bold">LOCKED</div>}
+                </div>
                 <div className="text-sm mb-1">{t('sale.price')} {formatEther(BigInt(tranche.price))} ETH</div>
                 <div className="text-sm">{t('sale.remaining_colon')} {formatEther(BigInt(tranche.remaining))} {symbol}</div>
               </button>
