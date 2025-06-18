@@ -511,7 +511,8 @@
     "estimate_placeholder": "估算将在此处显示",
     "buy": "买入",
     "sweep_tranche": "清理分期",
-    "sequential_filling_note": "只能购买最便宜的可用分期"
+    "sequential_filling_note": "只能购买最便宜的可用分期",
+    "available_tranches_note": "您可以从任何可用的分期中购买"
   },
   "about": {
     "title": "关于 ZAMM",

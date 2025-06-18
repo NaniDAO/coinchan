@@ -511,7 +511,8 @@
     "estimate_placeholder": "Estimate will appear here",
     "buy": "Buy",
     "sweep_tranche": "Sweep tranche",
-    "sequential_filling_note": "Only the cheapest available tranche can be purchased"
+    "sequential_filling_note": "Only the cheapest available tranche can be purchased",
+    "available_tranches_note": "You can purchase from any available tranche"
   },
   "about": {
     "title": "About ZAMM",

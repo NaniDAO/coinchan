@@ -94,7 +94,7 @@ export const BuyCoinSale = ({
   const [remainderWei, setRemainderWei] = useState<bigint | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  /* get cheapest available tranche (enforces sequential filling) */
+  /* get cheapest available tranche (allows all unfilled tranches) */
   const cheapestAvailableTranche = useMemo(() => {
     if (!sale) return null;
     const active = sale.tranches.items.filter(
@@ -122,10 +122,10 @@ export const BuyCoinSale = ({
     [sale, selected],
   );
 
-  /* check if a tranche is selectable (only cheapest available can be selected) */
+  /* check if a tranche is selectable (all unfilled tranches can be selected) */
   const isTrancheSelectable = useCallback((trancheToCheck: Tranche) => {
-    return cheapestAvailableTranche?.trancheIndex === trancheToCheck.trancheIndex;
-  }, [cheapestAvailableTranche]);
+    return BigInt(trancheToCheck.remaining) > 0n && Number(trancheToCheck.deadline) * 1000 > Date.now();
+  }, []);
 
   /* compute atomic lot when tranche changes */
   useEffect(() => {
@@ -373,7 +373,7 @@ export const BuyCoinSale = ({
         {/* tranche selector */}
         <h3 className="font-mono text-lg font-bold mb-2">{t('sale.choose_tranche')}</h3>
         <p className="font-mono text-sm text-muted-foreground mb-4">
-          {t('sale.sequential_filling_note', 'Only the cheapest available tranche can be purchased')}
+          {t('sale.available_tranches_note', 'You can purchase from any available tranche')}
         </p>
         <div className="grid sm:grid-cols-2 gap-4 mb-6">
           {activeTranches.map((tranche: Tranche) => {
