@@ -1,5 +1,6 @@
 import { SLIPPAGE_OPTIONS } from "@/lib/swap";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface SlippageOption {
   label: string;
@@ -19,6 +20,7 @@ export const SlippageSettings = ({
   slippageOptions = SLIPPAGE_OPTIONS,
   className = "",
 }: SlippageSettingsProps) => {
+  const { t } = useTranslation();
   const [showSlippageSettings, setShowSlippageSettings] = useState(false);
 
   return (
@@ -28,7 +30,7 @@ export const SlippageSettings = ({
     >
       <div className="flex justify-between items-center">
         <span>
-          <strong>Slippage Tolerance:</strong> {Number(slippageBps) / 100}%
+          <strong>{t("common.slippage_tolerance_colon")}</strong> {Number(slippageBps) / 100}%
         </span>
         <span className="text-xs text-foreground-secondary">{showSlippageSettings ? "▲" : "▼"}</span>
       </div>

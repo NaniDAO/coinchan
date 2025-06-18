@@ -1,4 +1,5 @@
 import React, { useRef, useLayoutEffect, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   createChart,
   CrosshairMode,
@@ -22,6 +23,7 @@ interface CandleChartProps {
 }
 
 const PoolCandleChart: React.FC<CandleChartProps> = ({ poolId, interval = "1h" }) => {
+  const { t } = useTranslation();
   const [selectedInterval, setSelectedInterval] = useState<"1m" | "1h" | "1d">(interval);
 
   const { data, isLoading, error } = useQuery({
@@ -71,7 +73,7 @@ const PoolCandleChart: React.FC<CandleChartProps> = ({ poolId, interval = "1h" }
       ) : data && data.length > 0 ? (
         <TVCandlestick rawData={data} />
       ) : (
-        <div className="text-center py-20 text-muted-foreground">No candle data available.</div>
+        <div className="text-center py-20 text-muted-foreground">{t("chart.no_candle_data")}</div>
       )}
     </div>
   );

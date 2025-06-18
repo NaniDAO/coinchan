@@ -873,7 +873,7 @@ export const SwapAction = () => {
         ) : swapMode === "instant" ? (
           t("common.swap")
         ) : (
-          "Create Order"
+          t("common.create_order")
         )}
       </button>
 

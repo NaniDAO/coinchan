@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { LiquidityActions } from "./LiquidityActions";
@@ -15,6 +16,7 @@ type TileMode = "swap" | "liquidity";
   Pool Actions - Terminal Style
 ──────────────────────────────────────────────────────────────────────────── */
 export const PoolActions = () => {
+  const { t } = useTranslation();
   const [mode, setMode] = useState<TileMode>("swap");
   const { tokenCount, loading, error: loadError } = useAllCoins();
 
@@ -42,7 +44,7 @@ export const PoolActions = () => {
             )}
             onClick={() => setMode("swap")}
           >
-            SWAP
+{t("common.swap").toUpperCase()}
           </button>
           <button
             className={cn(
@@ -51,7 +53,7 @@ export const PoolActions = () => {
             )}
             onClick={() => setMode("liquidity")}
           >
-            ADD
+{t("common.add").toUpperCase()}
           </button>
         </div>
       </div>
@@ -70,7 +72,7 @@ export const PoolActions = () => {
           {mode === "liquidity" && <LiquidityActions />}
           {/* Info showing token count */}
           <div className="text-xs mt-5 text-center font-mono">
-            Available tokens: {tokenCount} (ETH + {tokenCount - 1} coins)
+            {t("common.available_tokens")} {tokenCount} {t("common.eth_plus_coins", { count: tokenCount - 1 })}
           </div>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 interface PercentageSliderProps {
   value: number;
@@ -13,12 +14,13 @@ export const PercentageSlider: React.FC<PercentageSliderProps> = ({
   className = "",
   disabled = false,
 }) => {
+  const { t } = useTranslation();
   const percentageSteps = [0, 25, 50, 75, 100];
 
   return (
     <div className={cn("flex flex-col gap-2", className)}>
       <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">Amount</span>
+        <span className="text-xs text-muted-foreground">{t("common.amount")}</span>
         <span className="text-xs text-primary font-medium">{value}%</span>
       </div>
 

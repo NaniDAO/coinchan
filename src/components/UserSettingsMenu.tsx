@@ -14,7 +14,7 @@ import { useTranslation } from "react-i18next";
 
 export function UserSettingsMenu() {
   const { toggleTheme } = useTheme();
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const currentLanguage = i18n.language;
 
   const languages = [
@@ -30,18 +30,18 @@ export function UserSettingsMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger className="!p-2 flex items-center justify-center hover:scale-110 focus:scale-115 focus:outline-none">
         <span className="text-lg">ⓘ</span>
-        <span className="sr-only">User Settings</span>
+        <span className="sr-only">{t("common.settings")}</span>
       </DropdownMenuTrigger>
 
       <DropdownMenuContent className="w-48">
         <DropdownMenuLabel className="!px-2 !py-1 bg-foreground text-background !border !border-background">
-          Settings
+          {t("common.settings")}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
 
         <DropdownMenuSub>
           <DropdownMenuSubTrigger className="!px-2 !py-1 bg-background text-foreground !border !border-foreground">
-            <span>Language</span>
+            <span>{t("common.language")}</span>
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
             {languages.map((lang) => (
@@ -60,7 +60,7 @@ export function UserSettingsMenu() {
           className="!px-2 !py-1 bg-background text-foreground !border !border-foreground"
           onClick={toggleTheme}
         >
-          Theme
+          {t("common.theme")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
