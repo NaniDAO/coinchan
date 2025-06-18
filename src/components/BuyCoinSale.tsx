@@ -29,12 +29,14 @@ import { formatEther, parseEther } from "viem";
 import { Badge } from "./ui/badge";
 import { PillIndicator } from "./ui/pill";
 import { Button } from "./ui/button";
+import { Card, CardHeader, CardTitle, CardContent, CardAction } from "./ui/card";
 import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Input } from "./ui/input";
-import { twMerge } from "tailwind-merge";
+import { cn } from "@/lib/utils";
 import { useCoinSale } from "@/hooks/use-coin-sale";
 import { BuySellCookbookCoin } from "./BuySellCookbookCoin";
+import { useChartTheme } from "@/hooks/use-chart-theme";
 
 /* ───────── helpers ───────── */
 
@@ -228,59 +230,64 @@ export const BuyCoinSale = ({
     isSelected: t.trancheIndex === selected,
   }));
 
+  /* chart theme */
+  const chartTheme = useChartTheme();
+
   /* ─────────────────────────── JSX ─────────────────────────── */
 
   return (
-    <div className="border-2 border-secondary">
-      {/* header */}
-      <div className="flex justify-between items-center p-2 border-b border-secondary">
-        <h2 className="text-xl font-bold">{t('sale.title')}</h2>
-        <Badge variant="outline">
-          <PillIndicator variant={statusToPillVariant(sale.status)} pulse />
-          <span className="ml-1">{sale.status}</span>
-        </Badge>
-      </div>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="font-mono text-xl">{t('sale.title')}</CardTitle>
+        <CardAction>
+          <Badge variant="outline" className="font-mono">
+            <PillIndicator variant={statusToPillVariant(sale.status)} pulse />
+            <span className="ml-1">{sale.status}</span>
+          </Badge>
+        </CardAction>
+      </CardHeader>
 
-      {/* stats & chart */}
-      <div className="p-2">
-        <div>
+      <CardContent>
+        <div className="font-mono text-sm mb-6">
           {t('sale.supply')} {formatEther(BigInt(sale.saleSupply))} {symbol}
         </div>
-        <h3 className="text-lg font-semibold mt-4 mb-2">{t('sale.tranches')}</h3>
-        <div className="bg-sidebar rounded-2xl shadow-sm p-4">
+        
+        <h3 className="font-mono text-lg font-bold mb-4">{t('sale.tranches')}</h3>
+        <Card className="p-4 mb-6">
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={chartData} margin={{ top: 10, right: 20, bottom: 10, left: 10 }}>
                 {/* … same svg gradients, axes, tooltip, bars & line as previous version … */}
                 <defs>
                   <linearGradient id="soldGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#ef4444" stopOpacity={0.8} />
-                    <stop offset="100%" stopColor="#ef4444" stopOpacity={0.2} />
+                    <stop offset="0%" stopColor={chartTheme.downColor} stopOpacity={0.8} />
+                    <stop offset="100%" stopColor={chartTheme.downColor} stopOpacity={0.2} />
                   </linearGradient>
                   <linearGradient id="remainingGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#facc15" stopOpacity={0.8} />
-                    <stop offset="100%" stopColor="#facc15" stopOpacity={0.2} />
+                    <stop offset="0%" stopColor={chartTheme.upColor} stopOpacity={0.8} />
+                    <stop offset="100%" stopColor={chartTheme.upColor} stopOpacity={0.2} />
                   </linearGradient>
                   <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#00e5ff" stopOpacity={0.8} />
-                    <stop offset="100%" stopColor="#00e5ff" stopOpacity={0.2} />
+                    <stop offset="0%" stopColor={chartTheme.lineColor} stopOpacity={0.8} />
+                    <stop offset="100%" stopColor={chartTheme.lineColor} stopOpacity={0.2} />
                   </linearGradient>
                   <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#00e5ff" />
-                    <stop offset="100%" stopColor="#4dd0e1" />
+                    <stop offset="0%" stopColor={chartTheme.lineColor} />
+                    <stop offset="100%" stopColor={chartTheme.lineColor} stopOpacity={0.7} />
                   </linearGradient>
                 </defs>
 
-                <CartesianGrid horizontal vertical={false} stroke="#e2e8f0" strokeDasharray="1 4" />
+                <CartesianGrid horizontal vertical={false} stroke={chartTheme.textColor} strokeOpacity={0.2} strokeDasharray="2 4" />
 
-                <XAxis dataKey="name" axisLine={{ stroke: "#cbd5e0" }} tickLine={false} tick={{ fill: "#4a5568", fontSize: 12 }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: "#4a5568", fontSize: 12 }} />
+                <XAxis dataKey="name" axisLine={{ stroke: chartTheme.textColor, strokeOpacity: 0.3 }} tickLine={false} tick={{ fill: chartTheme.textColor, fontSize: 11, fontFamily: 'monospace' }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: chartTheme.textColor, fontSize: 11, fontFamily: 'monospace' }} />
 
                 <Legend
+                  wrapperStyle={{ fontFamily: 'monospace', fontSize: '12px' }}
                   payload={[
-                    { value: t('sale.sold'), type: "square", color: "#ef4444" },
-                    { value: t('sale.remaining'), type: "square", color: "#facc15" },
-                    { value: t('sale.price_eth'), type: "line",  color: "#00e5ff" },
+                    { value: t('sale.sold'), type: "square", color: chartTheme.downColor },
+                    { value: t('sale.remaining'), type: "square", color: chartTheme.upColor },
+                    { value: t('sale.price_eth'), type: "line",  color: chartTheme.lineColor },
                   ]}
                 />
 
@@ -289,21 +296,21 @@ export const BuyCoinSale = ({
                     if (!active || !payload?.length) return null;
                     const d = payload[0].payload;
                     return (
-                      <div className="bg-white p-2 rounded shadow-lg text-sm">
-                        <div className="text-gray-600 mb-1">{label}</div>
-                        <div className="font-medium text-red-500">
+                      <div className="bg-card border-2 border-border p-3 shadow-[4px_4px_0_var(--border)] font-mono text-xs">
+                        <div className="text-muted-foreground mb-2 font-bold">{label}</div>
+                        <div className="font-bold text-destructive mb-1">
                           {t('sale.sold_colon')} {d.sold.toFixed(4)} {symbol}
                         </div>
-                        <div className="font-medium text-yellow-500">
+                        <div className="font-bold text-warning mb-1">
                           {t('sale.remaining_colon')} {d.remaining.toFixed(4)} {symbol}
                         </div>
-                        <div className="font-medium text-blue-500">
+                        <div className="font-bold text-primary mb-1">
                           {t('sale.price_colon')} {d.price.toFixed(4)} ETH
                         </div>
-                        <div className="font-medium text-sm text-gray-600">
+                        <div className="font-bold text-sm text-muted-foreground mb-1">
                           {((100 * d.sold) / (d.sold + d.remaining)).toFixed(1)}{t('sale.percent_sold')}
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">{t('sale.deadline')} {d.deadline}</div>
+                        <div className="text-xs text-muted-foreground mt-2 border-t border-border pt-1">{t('sale.deadline')} {d.deadline}</div>
                       </div>
                     );
                   }}
@@ -313,128 +320,140 @@ export const BuyCoinSale = ({
                 <Bar dataKey="sold"      stackId="a" fill="url(#soldGradient)"      radius={[6,0,0,6]} barSize={50} />
                 <Bar dataKey="remaining" stackId="a" fill="url(#remainingGradient)" radius={[0,6,6,0]} barSize={50} />
                 <Line type="monotone" dataKey="priceNum" stroke="url(#lineGradient)" strokeWidth={3}
-                      dot={{ r:4, fill:"#00e5ff", stroke:"#fff", strokeWidth:2 }} activeDot={{ r:6 }} />
+                      dot={{ r:4, fill: chartTheme.lineColor, stroke: chartTheme.background, strokeWidth:2 }} activeDot={{ r:6, fill: chartTheme.lineColor }} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
-        </div>
-      </div>
-
-      {/* spend/buy toggle */}
-      <div className="flex space-x-2 px-2 mt-4">
-        <button onClick={() => setMode("ETH")} className={twMerge("px-4 py-2 rounded-lg", mode==="ETH"   ? "bg-accent text-white" : "bg-sidebar")}>
-          {t('sale.spend_eth')}
-        </button>
-        <button onClick={() => setMode("TOKEN")} className={twMerge("px-4 py-2 rounded-lg", mode==="TOKEN" ? "bg-accent text-white" : "bg-sidebar")}>
-          {t('sale.buy_tokens')}
-        </button>
-      </div>
-
-      {/* tranche selector */}
-      <h3 className="text-lg font-semibold mt-4 mb-2 px-2">{t('sale.choose_tranche')}</h3>
-      <div className="grid sm:grid-cols-2 gap-3 px-2">
-        {activeTranches.map((tranche: Tranche) => {
-          const isChosen = selected === tranche.trancheIndex;
-          return (
-            <button
-              key={tranche.trancheIndex}
-              onClick={() => setSelected(tranche.trancheIndex)}
-              className={twMerge(
-                "p-4 rounded-2xl bg-sidebar border transition",
-                isChosen ? "border-accent shadow-[0_0_12px_var(--tw-shadow-color)] shadow-accent/70"
-                          : "border-secondary hover:border-accent/60",
-              )}
-            >
-              <div className="font-semibold mb-1">{t('sale.tranche')} {tranche.trancheIndex}</div>
-              <div className="text-sm">{t('sale.price')} {formatEther(BigInt(tranche.price))} ETH</div>
-              <div className="text-sm">{t('sale.remaining_colon')} {formatEther(BigInt(tranche.remaining))} {symbol}</div>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* input & buttons */}
-      {tranche && (
-        <div className="mt-4 p-4 bg-sidebar rounded-2xl shadow-sm mx-2 mb-2">
-          <label className="block text-sm font-medium mb-1">
-            {mode==="ETH"
-              ? t('sale.enter_eth_spend', { trancheIndex: tranche.trancheIndex })
-              : t('sale.enter_token_amount', { symbol })}
-          </label>
-
-          <div className="flex items-center mb-3">
-            <Input
-              type="number"
-              min="0"
-              step={mode==="ETH" ? "0.0001" : "1"}
-              placeholder="0.0"
-              value={mode==="ETH" ? ethInput : tokenInput}
-              onChange={(e) => mode==="ETH" ? setEthInput(e.target.value) : setTokenInput(e.target.value)}
-            />
-            <button onClick={handleMax} className="ml-2 px-3 py-1 text-sm font-medium bg-sidebar rounded">
-              {t('sale.max')}
-            </button>
-          </div>
-
-          {/* live estimate */}
-          <div className="text-sm mb-4">
-            {mode==="ETH"
-              ? estimateTokens
-                  ? <>≈ <span className="font-semibold">{parseFloat(estimateTokens).toLocaleString()}</span> {symbol}</>
-                  : t('sale.estimate_placeholder')
-              : estimateEth
-                  ? <>≈ <span className="font-semibold">{parseFloat(estimateEth).toLocaleString()}</span> ETH</>
-                  : t('sale.estimate_placeholder')}
-          </div>
-
-          {/* buy button */}
-          <Button
-            className="w-full mb-2"
-            disabled={
-              mode==="ETH"   ? sanitisedWei===0n
-                             : tokenWeiRounded===0n || ethWeiForTokens===0n
-            }
-            onClick={() => {
-              if (!tranche) return;
-              const valueWei = mode==="ETH" ? sanitisedWei : ethWeiForTokens;
-              writeContract({
-                address: ZAMMLaunchAddress,
-                abi: ZAMMLaunchAbi,
-                functionName: "buy",
-                args: [coinId, BigInt(tranche.trancheIndex)],
-                value: valueWei,
-              });
-              onTxSent();
-            }}
+        </Card>
+        
+        {/* spend/buy toggle */}
+        <div className="flex gap-2 mb-6">
+          <Button 
+            variant={mode === "ETH" ? "default" : "outline"}
+            onClick={() => setMode("ETH")}
+            className="flex-1"
           >
-            {t('sale.buy')}&nbsp;
-            {mode==="ETH"
-              ? `${formatEther(sanitisedWei || 0n)} ETH`
-              : `${formatEther(tokenWeiRounded || 0n)} ${symbol}`}
+            {t('sale.spend_eth')}
           </Button>
+          <Button 
+            variant={mode === "TOKEN" ? "default" : "outline"}
+            onClick={() => setMode("TOKEN")}
+            className="flex-1"
+          >
+            {t('sale.buy_tokens')}
+          </Button>
+        </div>
 
-          {/* dust sweep */}
-          {sweepable && (
+        {/* tranche selector */}
+        <h3 className="font-mono text-lg font-bold mb-4">{t('sale.choose_tranche')}</h3>
+        <div className="grid sm:grid-cols-2 gap-4 mb-6">
+          {activeTranches.map((tranche: Tranche) => {
+            const isChosen = selected === tranche.trancheIndex;
+            return (
+              <button
+                key={tranche.trancheIndex}
+                onClick={() => setSelected(tranche.trancheIndex)}
+                className={cn(
+                  "p-4 bg-card border-2 border-border font-mono text-left transition-all shadow-[4px_4px_0_var(--border)]",
+                  "hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_var(--border)]",
+                  "active:translate-x-[2px] active:translate-y-[2px] active:shadow-none",
+                  isChosen && "bg-primary text-primary-foreground border-primary shadow-[4px_4px_0_var(--primary)]"
+                )}
+              >
+                <div className="font-bold mb-2">{t('sale.tranche')} {tranche.trancheIndex}</div>
+                <div className="text-sm mb-1">{t('sale.price')} {formatEther(BigInt(tranche.price))} ETH</div>
+                <div className="text-sm">{t('sale.remaining_colon')} {formatEther(BigInt(tranche.remaining))} {symbol}</div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* input & buttons */}
+        {tranche && (
+          <Card className="p-4">
+            <label className="block text-sm font-mono font-bold mb-3">
+              {mode==="ETH"
+                ? t('sale.enter_eth_spend', { trancheIndex: tranche.trancheIndex })
+                : t('sale.enter_token_amount', { symbol })}
+            </label>
+
+            <div className="flex gap-2 mb-4">
+              <Input
+                type="number"
+                min="0"
+                step={mode==="ETH" ? "0.0001" : "1"}
+                placeholder="0.0"
+                value={mode==="ETH" ? ethInput : tokenInput}
+                onChange={(e) => mode==="ETH" ? setEthInput(e.target.value) : setTokenInput(e.target.value)}
+                className="flex-1"
+              />
+              <Button onClick={handleMax} size="sm" variant="outline">
+                {t('sale.max')}
+              </Button>
+            </div>
+
+            {/* live estimate */}
+            <div className="text-sm font-mono mb-4 p-2 bg-muted border border-border">
+              {mode==="ETH"
+                ? estimateTokens
+                    ? <>≈ <span className="font-bold text-primary">{parseFloat(estimateTokens).toLocaleString()}</span> {symbol}</>
+                    : t('sale.estimate_placeholder')
+                : estimateEth
+                    ? <>≈ <span className="font-bold text-primary">{parseFloat(estimateEth).toLocaleString()}</span> ETH</>
+                    : t('sale.estimate_placeholder')}
+            </div>
+
+            {/* buy button */}
             <Button
-              variant="secondary"
-              className="w-full"
+              className="w-full mb-3"
+              size="lg"
+              disabled={
+                mode==="ETH"   ? sanitisedWei===0n
+                               : tokenWeiRounded===0n || ethWeiForTokens===0n
+              }
               onClick={() => {
-                if (!tranche || remainderWei===null) return;
+                if (!tranche) return;
+                const valueWei = mode==="ETH" ? sanitisedWei : ethWeiForTokens;
                 writeContract({
                   address: ZAMMLaunchAddress,
                   abi: ZAMMLaunchAbi,
                   functionName: "buy",
                   args: [coinId, BigInt(tranche.trancheIndex)],
-                  value: remainderWei,
+                  value: valueWei,
                 });
                 onTxSent();
               }}
             >
-              {t('sale.sweep_tranche')} ({formatEther(remainderWei!)} ETH)
+              {t('sale.buy')}&nbsp;
+              {mode==="ETH"
+                ? `${formatEther(sanitisedWei || 0n)} ETH`
+                : `${formatEther(tokenWeiRounded || 0n)} ${symbol}`}
             </Button>
-          )}
-        </div>
-      )}
-    </div>
+
+            {/* dust sweep */}
+            {sweepable && (
+              <Button
+                variant="secondary"
+                className="w-full"
+                size="lg"
+                onClick={() => {
+                  if (!tranche || remainderWei===null) return;
+                  writeContract({
+                    address: ZAMMLaunchAddress,
+                    abi: ZAMMLaunchAbi,
+                    functionName: "buy",
+                    args: [coinId, BigInt(tranche.trancheIndex)],
+                    value: remainderWei,
+                  });
+                  onTxSent();
+                }}
+              >
+                {t('sale.sweep_tranche')} ({formatEther(remainderWei!)} ETH)
+              </Button>
+            )}
+          </Card>
+        )}
+      </CardContent>
+    </Card>
   );
 };
