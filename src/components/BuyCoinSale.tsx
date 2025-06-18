@@ -1,5 +1,16 @@
-import { ZAMMLaunchAbi, ZAMMLaunchAddress } from "@/constants/ZAMMLaunch";
-import { useWriteContract } from "wagmi";
+/*  BuyCoinSale.ts
+    —————————————————————————————————————————————————————————————————
+    • Rounds every msg.value to the tranche’s irreducible lot P*,
+      preventing creation of unfillable dust.
+    • Shows a “Sweep dust” button only when the remainder is already a
+      clean multiple of P*, so the click is guaranteed to succeed.
+   ------------------------------------------------------------------ */
+
+import {
+  ZAMMLaunchAbi,
+  ZAMMLaunchAddress,
+} from "@/constants/ZAMMLaunch";
+import { useWriteContract, usePublicClient } from "wagmi";
 import {
   ComposedChart,
   Bar,
@@ -22,6 +33,17 @@ import { twMerge } from "tailwind-merge";
 import { useCoinSale } from "@/hooks/use-coin-sale";
 import { BuySellCookbookCoin } from "./BuySellCookbookCoin";
 
+/* ───────────────────────────────────────────────────────────── */
+
+interface Tranche {
+  coins: string;
+  deadline: string;
+  price: string;
+  remaining: string;
+  trancheIndex: number;
+  sold: string;
+}
+
 const statusToPillVariant = (status: string) => {
   switch (status) {
     case "ACTIVE":
@@ -35,14 +57,17 @@ const statusToPillVariant = (status: string) => {
   }
 };
 
-interface Tranche {
-  coins: string;
-  deadline: string;
-  price: string;
-  remaining: string;
-  trancheIndex: number;
-  sold: string;
-}
+/* bigint gcd */
+const gcd = (a: bigint, b: bigint): bigint => {
+  while (b !== 0n) {
+    const t = b;
+    b = a % b;
+    a = t;
+  }
+  return a;
+};
+
+/* ───────────────────────────────────────────────────────────── */
 
 export const BuyCoinSale = ({
   coinId,
@@ -51,23 +76,32 @@ export const BuyCoinSale = ({
   coinId: bigint;
   symbol: string;
 }) => {
-  const { data: sale, isLoading } = useCoinSale({ coinId: coinId.toString() });
+  const { data: sale, isLoading } = useCoinSale({
+    coinId: coinId.toString(),
+  });
   const { writeContract } = useWriteContract();
+  const publicClient = usePublicClient();
 
-  // ──────────────── NEW LOCAL STATE ────────────────
-  const [selected, setSelected] = useState<number | null>(null); // trancheIndex
-  const [ethInput, setEthInput] = useState<string>(""); // user's typed ETH
+  const [selected, setSelected] = useState<number | null>(null);
+  const [ethInput, setEthInput] = useState<string>("");
+  const [sanitisedWei, setSanitisedWei] = useState<bigint>(0n);
 
-  // Pick cheapest tranche as default when data arrives
+  const [remainderWei, setRemainderWei] = useState<bigint | null>(null);
+  const [pStar, setPStar] = useState<bigint>(0n);
+  const [refreshKey, setRefreshKey] = useState(0); // bump after each tx to refresh remainder
+
+  /* pick cheapest active tranche by default */
   useEffect(() => {
     if (!sale) return;
-
     const actives = sale.tranches.items.filter(
-      (tranche: Tranche) => parseInt(tranche.remaining) > 0 && new Date(Number(tranche.deadline) * 1000) > new Date(),
+      (t: Tranche) =>
+        BigInt(t.remaining) > 0n &&
+        Number(t.deadline) * 1000 > Date.now(),
     );
-
     if (actives.length) {
-      const cheapest = actives.reduce((p: Tranche, c: Tranche) => (BigInt(p.price) < BigInt(c.price) ? p : c));
+      const cheapest = actives.reduce((p: Tranche, c: Tranche) =>
+        BigInt(p.price) < BigInt(c.price) ? p : c,
+      );
       setSelected(cheapest.trancheIndex);
     }
   }, [sale]);
@@ -77,62 +111,116 @@ export const BuyCoinSale = ({
     [sale, selected],
   );
 
-  const estimate = useMemo(() => {
-    if (!chosenTranche || !ethInput) return undefined;
+  /* round input to multiple of P* */
+  useEffect(() => {
+    if (!chosenTranche) {
+      setSanitisedWei(0n);
+      setPStar(0n);
+      return;
+    }
     try {
-      const weiInput = BigInt(parseFloat(ethInput) * 1e18);
       const priceWei = BigInt(chosenTranche.price);
       const coinsWei = BigInt(chosenTranche.coins);
-      // price represents ETH to buy *all* coins in tranche
-      // so coinsBought = weiInput * coinsWei / priceWei
-      const coinsBoughtWei = (weiInput * coinsWei) / priceWei;
+      const P = priceWei / gcd(priceWei, coinsWei);
+      setPStar(P);
+
+      const rawWei = ethInput.trim() ? parseEther(ethInput.trim()) : 0n;
+      setSanitisedWei((rawWei / P) * P);
+    } catch {
+      setSanitisedWei(0n);
+      setPStar(0n);
+    }
+  }, [ethInput, chosenTranche]);
+
+  /* fetch on-chain remainder whenever tranche changes or after tx */
+  useEffect(() => {
+    (async () => {
+      if (!chosenTranche) {
+        setRemainderWei(null);
+        return;
+      }
+      try {
+        const rem = (await publicClient.readContract({
+          address: ZAMMLaunchAddress,
+          abi: ZAMMLaunchAbi,
+          functionName: "trancheRemainingWei",
+          args: [coinId, BigInt(chosenTranche.trancheIndex)],
+        })) as bigint;
+        setRemainderWei(rem);
+      } catch {
+        setRemainderWei(null);
+      }
+    })();
+  }, [chosenTranche, refreshKey, publicClient, coinId]);
+
+  const estimate = useMemo(() => {
+    if (!chosenTranche || sanitisedWei === 0n) return undefined;
+    try {
+      const priceWei = BigInt(chosenTranche.price);
+      const coinsWei = BigInt(chosenTranche.coins);
+      const coinsBoughtWei = (sanitisedWei * coinsWei) / priceWei;
       return Number(formatEther(coinsBoughtWei));
     } catch {
       return undefined;
     }
-  }, [chosenTranche, ethInput]);
+  }, [chosenTranche, sanitisedWei]);
 
+  /* early exits */
   if (isLoading) return <div>Loading...</div>;
   if (!sale) return <div>Sale not found</div>;
-
   if (sale.status === "FINALIZED") return <BuySellCookbookCoin coinId={coinId} symbol={symbol} />;
 
   const activeTranches = sale.tranches.items.filter(
-    (tranche: Tranche) => parseInt(tranche.remaining) > 0 && new Date(Number(tranche.deadline) * 1000) > new Date(),
+    (t: Tranche) =>
+      BigInt(t.remaining) > 0n && Number(t.deadline) * 1000 > Date.now(),
   );
 
-  // Prepare data for recharts
-  const chartData = sale.tranches.items.map((tranche: Tranche) => ({
-    name: `Tranche ${tranche.trancheIndex}`,
-    sold: Number(formatEther(BigInt(tranche.sold))),
-    remaining: Number(formatEther(BigInt(tranche.remaining))),
-    price: Number(formatEther(BigInt(tranche.price))),
-    priceNum: Number(formatEther(BigInt(tranche.price))), // For the line chart
-    deadline: new Date(Number(tranche.deadline) * 1000).toLocaleString(),
-    trancheIndex: tranche.trancheIndex,
-    // Flag for active state
-    isSelected: tranche.trancheIndex === selected,
+  /* sweep eligibility */
+  const sweepable =
+    remainderWei !== null && remainderWei > 0n && pStar !== 0n && remainderWei % pStar === 0n;
+
+  const onTxSent = () => setRefreshKey((n) => n + 1);
+
+  /* chart data */
+  const chartData = sale.tranches.items.map((t: Tranche) => ({
+    name: `Tranche ${t.trancheIndex}`,
+    sold: Number(formatEther(BigInt(t.sold))),
+    remaining: Number(formatEther(BigInt(t.remaining))),
+    price: Number(formatEther(BigInt(t.price))),
+    priceNum: Number(formatEther(BigInt(t.price))),
+    deadline: new Date(Number(t.deadline) * 1000).toLocaleString(),
+    trancheIndex: t.trancheIndex,
+    isSelected: t.trancheIndex === selected,
   }));
+
+  /* ───────────────────────────────────────────── JSX ───────────────────────────────────────────── */
 
   return (
     <div className="border-2 border-secondary">
+      {/* header */}
       <div className="flex justify-between items-center p-2 border-b border-secondary">
-        <h2 className="text-xl font-bold ">Sale</h2>
+        <h2 className="text-xl font-bold">Sale</h2>
         <Badge variant="outline">
           <PillIndicator variant={statusToPillVariant(sale.status)} pulse />
           <span className="ml-1">{sale.status}</span>
         </Badge>
       </div>
 
+      {/* global stats & chart */}
       <div className="p-2">
         <div>
           Supply: {formatEther(BigInt(sale.saleSupply))} {symbol}
         </div>
+
         <h3 className="text-lg font-semibold mt-4 mb-2">Tranches</h3>
+
         <div className="bg-sidebar rounded-2xl shadow-sm p-4">
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData} margin={{ top: 10, right: 20, bottom: 10, left: 10 }}>
+              <ComposedChart
+                data={chartData}
+                margin={{ top: 10, right: 20, bottom: 10, left: 10 }}
+              >
                 <defs>
                   <linearGradient id="soldGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#ef4444" stopOpacity={0.8} />
@@ -152,7 +240,7 @@ export const BuyCoinSale = ({
                   </linearGradient>
                 </defs>
 
-                <CartesianGrid horizontal={true} vertical={false} stroke="#e2e8f0" strokeDasharray="1 4" />
+                <CartesianGrid horizontal vertical={false} stroke="#e2e8f0" strokeDasharray="1 4" />
 
                 <XAxis
                   dataKey="name"
@@ -174,21 +262,23 @@ export const BuyCoinSale = ({
                 <Tooltip
                   content={({ active, payload, label }) => {
                     if (!active || !payload?.length) return null;
-                    const data = payload[0].payload;
+                    const d = payload[0].payload;
                     return (
                       <div className="bg-white p-2 rounded shadow-lg text-sm">
                         <div className="text-gray-600 mb-1">{label}</div>
                         <div className="font-medium text-red-500">
-                          Sold: {data.sold.toFixed(4)} {symbol}
+                          Sold: {d.sold.toFixed(4)} {symbol}
                         </div>
                         <div className="font-medium text-yellow-500">
-                          Remaining: {data.remaining.toFixed(4)} {symbol}
+                          Remaining: {d.remaining.toFixed(4)} {symbol}
                         </div>
-                        <div className="font-medium text-blue-500">Price: {data.price.toFixed(4)} ETH</div>
+                        <div className="font-medium text-blue-500">
+                          Price: {d.price.toFixed(4)} ETH
+                        </div>
                         <div className="font-medium text-sm text-gray-600">
-                          {((100 * data.sold) / (data.sold + data.remaining)).toFixed(1)}% Sold
+                          {((100 * d.sold) / (d.sold + d.remaining)).toFixed(1)}% Sold
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">Deadline: {data.deadline}</div>
+                        <div className="text-xs text-gray-500 mt-1">Deadline: {d.deadline}</div>
                       </div>
                     );
                   }}
@@ -205,11 +295,8 @@ export const BuyCoinSale = ({
                   isAnimationActive
                   animationDuration={800}
                   barSize={50}
-                  // Instead of a function, use a static className based on a computed value
                   className="opacity-90"
-                  style={{ opacity: 1 }}
                 />
-
                 <Bar
                   dataKey="remaining"
                   stackId="a"
@@ -219,9 +306,7 @@ export const BuyCoinSale = ({
                   isAnimationActive
                   animationDuration={800}
                   barSize={50}
-                  // Instead of a function, use a static className based on a computed value
                   className="opacity-90"
-                  style={{ opacity: 1 }}
                 />
 
                 <Line
@@ -229,12 +314,7 @@ export const BuyCoinSale = ({
                   dataKey="priceNum"
                   stroke="url(#lineGradient)"
                   strokeWidth={3}
-                  dot={{
-                    r: 4,
-                    fill: "#00e5ff",
-                    stroke: "#fff",
-                    strokeWidth: 2,
-                  }}
+                  dot={{ r: 4, fill: "#00e5ff", stroke: "#fff", strokeWidth: 2 }}
                   activeDot={{ r: 6 }}
                   name="Price (ETH)"
                   isAnimationActive
@@ -245,7 +325,7 @@ export const BuyCoinSale = ({
         </div>
       </div>
 
-      {/* ──────────────── ACTIVE TRANCHES SELECTOR ──────────────── */}
+      {/* tranche selector */}
       <h3 className="text-lg font-semibold mt-4 mb-2 px-2">Choose a tranche</h3>
       <div className="grid sm:grid-cols-2 gap-3 px-2">
         {activeTranches.map((t: Tranche) => {
@@ -271,12 +351,13 @@ export const BuyCoinSale = ({
         })}
       </div>
 
-      {/* ──────────────── INPUT & ESTIMATE ──────────────── */}
+      {/* input & buttons */}
       {chosenTranche && (
         <div className="mt-4 p-4 bg-sidebar rounded-2xl shadow-sm mx-2 mb-2">
           <label className="block text-sm font-medium mb-1">
             Enter ETH to spend on Tranche {chosenTranche.trancheIndex}
           </label>
+
           <Input
             type="number"
             min="0"
@@ -286,8 +367,9 @@ export const BuyCoinSale = ({
             onChange={(e) => setEthInput(e.target.value)}
             className="mb-3"
           />
+
           <div className="text-sm mb-4">
-            {estimate ? (
+            {estimate !== undefined ? (
               <>
                 ≈ <span className="font-semibold">{estimate.toLocaleString()}</span> {symbol}
               </>
@@ -295,9 +377,11 @@ export const BuyCoinSale = ({
               "Estimate will appear here"
             )}
           </div>
+
+          {/* Buy button */}
           <Button
-            className="w-full"
-            disabled={!ethInput || !Number(ethInput)}
+            className="w-full mb-2"
+            disabled={sanitisedWei === 0n}
             onClick={() => {
               if (!chosenTranche) return;
               writeContract({
@@ -305,12 +389,34 @@ export const BuyCoinSale = ({
                 abi: ZAMMLaunchAbi,
                 functionName: "buy",
                 args: [coinId, BigInt(chosenTranche.trancheIndex)],
-                value: parseEther(ethInput),
+                value: sanitisedWei,
               });
+              onTxSent();
             }}
           >
-            Buy with {ethInput || "0"} ETH
+            Buy with {formatEther(sanitisedWei)} ETH
           </Button>
+
+          {/* Sweep dust button */}
+          {sweepable && (
+            <Button
+              variant="secondary"
+              className="w-full"
+              onClick={() => {
+                if (!chosenTranche || remainderWei === null) return;
+                writeContract({
+                  address: ZAMMLaunchAddress,
+                  abi: ZAMMLaunchAbi,
+                  functionName: "buy",
+                  args: [coinId, BigInt(chosenTranche.trancheIndex)],
+                  value: remainderWei,
+                });
+                onTxSent();
+              }}
+            >
+              Sweep dust ({formatEther(remainderWei!)} ETH)
+            </Button>
+          )}
         </div>
       )}
     </div>
