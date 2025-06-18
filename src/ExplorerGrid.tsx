@@ -1,7 +1,7 @@
 import { CoinCard } from "./components/CoinCard";
 import { type CoinData } from "./hooks/metadata";
 import { useEffect, useState } from "react";
-import { ArrowDownAZ, ArrowUpAZ, Coins as CoinsIcon, ThumbsUp } from "lucide-react";
+import { ArrowDownAZ, ArrowUpAZ, Coins as CoinsIcon, ThumbsUp, Rocket } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { LoadingLogo } from "./components/ui/loading-logo";
 
@@ -9,7 +9,7 @@ import { LoadingLogo } from "./components/ui/loading-logo";
 const PAGE_SIZE = 20;
 
 // Sort type options
-export type SortType = "liquidity" | "recency" | "votes";
+export type SortType = "liquidity" | "recency" | "votes" | "launch";
 
 export const ExplorerGrid = ({
   coins,
@@ -152,6 +152,20 @@ export const ExplorerGrid = ({
               >
                 <ThumbsUp className="w-4 h-4 mr-1" />
                 {t("common.votes").toUpperCase()}
+              </button>
+
+              <button
+                onClick={() => onSortTypeChange("launch")}
+                className={`flex items-center px-3 py-2 text-sm font-medium ${
+                  sortType === "launch"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80 dark:text-foreground dark:hover:text-foreground"
+                }`}
+                title={t("common.sort_by", { field: t("explore.launch_sales") })}
+                disabled={isLoading || isTransitioning}
+              >
+                <Rocket className="w-4 h-4 mr-1" />
+                {t("explore.launch_sales").toUpperCase()}
               </button>
             </div>
           )}
