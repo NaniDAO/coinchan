@@ -52,17 +52,17 @@ const getLaunchModes = (t: any) => ({
     description: t("create.simple_coin_description"),
     icon: <CoinIcon />,
   },
-  tranche: {
-    id: "tranche",
-    title: t("create.tranche_sale_title"),
-    description: t("create.tranche_sale_description"),
-    icon: <ChartIcon />,
-  },
   pool: {
     id: "pool",
     title: t("create.coin_with_pool_title"),
     description: t("create.coin_with_pool_description"),
     icon: <PoolIcon />,
+  },
+  tranche: {
+    id: "tranche",
+    title: t("create.tranche_sale_title"),
+    description: t("create.tranche_sale_description"),
+    icon: <ChartIcon />,
   },
 });
 
@@ -408,6 +408,40 @@ export const LaunchForm = () => {
     }
   };
 
+  // Robust calculation helpers
+  const calculatePrice = () => {
+    if (!formData.ethAmount || !formData.poolSupply || 
+        formData.ethAmount <= 0 || formData.poolSupply <= 0) {
+      return null;
+    }
+    const price = formData.ethAmount / formData.poolSupply;
+    return isFinite(price) && price > 0 ? price : null;
+  };
+
+  const calculateMarketCap = () => {
+    const price = calculatePrice();
+    if (!price || !formData.creatorSupply || formData.creatorSupply < 0) {
+      return null;
+    }
+    const totalSupply = (formData.poolSupply || 0) + formData.creatorSupply;
+    const marketCap = price * totalSupply;
+    return isFinite(marketCap) && marketCap > 0 ? marketCap : null;
+  };
+
+  const formatPrice = (price: number | null) => {
+    if (price === null) return "--";
+    if (price < 0.000000000001) return "< 0.000000000001";
+    if (price > 1000000) return price.toExponential(4);
+    return price.toFixed(12);
+  };
+
+  const formatMarketCap = (marketCap: number | null) => {
+    if (marketCap === null) return "--";
+    if (marketCap < 0.0001) return "< 0.0001";
+    if (marketCap > 1000000) return marketCap.toExponential(4);
+    return marketCap.toFixed(4);
+  };
+
   const chartData = useMemo(() => {
     return formData.tranches
       .map((t, i) => ({
@@ -570,10 +604,10 @@ export const LaunchForm = () => {
               />
               <div className="text-xs text-gray-500">
                 {t("create.eth_help_text")}
-                {formData.poolSupply && formData.poolSupply > 0 && formData.ethAmount && formData.ethAmount > 0 && (
+                {calculatePrice() && (
                     <span className="ml-2 text-blue-600 font-medium">
                       →{" "}
-                      {(formData.ethAmount / formData.poolSupply).toFixed(12)}{" "}
+                      {formatPrice(calculatePrice())}{" "}
                       ETH per coin
                     </span>
                   )}
@@ -885,9 +919,7 @@ export const LaunchForm = () => {
                         {t("create.starting_price")}
                       </div>
                       <div className="text-xl font-bold font-mono">
-                        {formData.poolSupply && formData.poolSupply > 0 && formData.ethAmount && formData.ethAmount > 0
-                          ? (formData.ethAmount / formData.poolSupply).toFixed(12)
-                          : "--"}
+                        {formatPrice(calculatePrice())}
                       </div>
                       <div className="text-xs font-mono text-muted-foreground uppercase">
                         ETH per coin
@@ -941,12 +973,7 @@ export const LaunchForm = () => {
                       <div className="flex justify-between pt-1">
                         <span className="uppercase tracking-wide">{t("create.initial_market_cap")}</span>
                         <span className="font-bold">
-                          {(
-                            ((formData.ethAmount || 0) /
-                              (formData.poolSupply || 1)) *
-                            ((formData.poolSupply || 0) +
-                              (formData.creatorSupply || 0))
-                          ).toFixed(4)} ETH
+                          {formatMarketCap(calculateMarketCap())} ETH
                         </span>
                       </div>
                     </div>
@@ -954,12 +981,18 @@ export const LaunchForm = () => {
 
                   {/* Price Validation Feedback */}
                   {(() => {
-                    const price =
-                      (formData.ethAmount || 0) / (formData.poolSupply || 1);
-                    const marketCap =
-                      price *
-                      ((formData.poolSupply || 0) +
-                        (formData.creatorSupply || 0));
+                    const price = calculatePrice();
+                    const marketCap = calculateMarketCap();
+
+                    if (!price || !marketCap) {
+                      return (
+                        <div className="bg-background border-2 border-border p-3 shadow-[2px_2px_0_var(--border)] border-gray-400">
+                          <div className="text-xs font-mono font-semibold text-gray-600 uppercase tracking-wide">
+                            ℹ️ {t("create.enter_pool_help")}
+                          </div>
+                        </div>
+                      );
+                    }
 
                     if (price < 0.000001) {
                       return (
@@ -975,7 +1008,7 @@ export const LaunchForm = () => {
                         <div className="bg-background border-2 border-border p-3 shadow-[2px_2px_0_var(--border)] border-amber-500">
                           <div className="text-xs font-mono font-semibold text-amber-600 uppercase tracking-wide">
                             ⚠ {t("create.high_market_cap_warning", {
-                              marketCap: marketCap.toFixed(2),
+                              marketCap: formatMarketCap(marketCap),
                             })}
                           </div>
                         </div>
