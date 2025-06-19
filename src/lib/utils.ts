@@ -113,6 +113,45 @@ export function handleNumberInputChange(value: string, callback: (cleanValue: st
   }
 }
 
+/**
+ * Format a deadline timestamp for display
+ * @param deadline Unix timestamp in seconds
+ * @returns Object with formatted time and urgency level
+ */
+export function formatDeadline(deadline: number): {
+  text: string;
+  urgency: "expired" | "urgent" | "warning" | "normal";
+} {
+  const now = Date.now();
+  const deadlineMs = deadline * 1000;
+  const timeDiff = deadlineMs - now;
+
+  if (timeDiff <= 0) {
+    return { text: "EXPIRED", urgency: "expired" };
+  }
+
+  const minutes = Math.floor(timeDiff / (1000 * 60));
+  const hours = Math.floor(timeDiff / (1000 * 60 * 60));
+  const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+
+  if (minutes < 60) {
+    return { 
+      text: `${minutes}m left`, 
+      urgency: minutes < 30 ? "urgent" : "warning" 
+    };
+  } else if (hours < 24) {
+    return { 
+      text: `${hours}h left`, 
+      urgency: hours < 6 ? "urgent" : hours < 12 ? "warning" : "normal" 
+    };
+  } else {
+    return { 
+      text: `${days}d left`, 
+      urgency: days < 2 ? "warning" : "normal" 
+    };
+  }
+}
+
 export const generateRandomSlug = () => {
   const words = [
     "apple",
