@@ -266,7 +266,7 @@
     "pool_liquidity": "Pool liquidity:",
     "creator_allocation": "Creator allocation:",
     "initial_market_cap": "Initial market cap:",
-    "pool_help_text": "Tokens that will be paired with your ETH in the liquidity pool",
+    "pool_help_text": "Coins that will be paired with your ETH in the liquidity pool",
     "eth_help_text": "ETH you'll provide to create the initial liquidity pool",
     "bonding_curve_help": "click bars to edit prices • click info icon to learn more",
     "enter_pool_help": "Enter pool supply and ETH amount to see price calculations",
