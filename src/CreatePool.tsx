@@ -95,37 +95,39 @@ const FeeSettings = ({ feeBps, setFeeBps, className = "" }: FeeSettingsProps) =>
 
 // Helper function to create pool key for Cookbook pools
 const createCookbookPoolKey = (tokenA: TokenMeta, tokenB: TokenMeta, feeBps: bigint): CookbookPoolKey => {
-  // For Cookbook pools, we need to determine the correct pool structure
-  // Handle ETH-Token pairs
+  // Handle ETH-Token pairs (the common case for pool creation)
   if (tokenA.id === null) {
     // tokenA is ETH, tokenB is the other token
+    const tokenAddress = tokenB.source === "ZAMM" ? CoinsAddress : CookbookAddress;
     return {
       id0: 0n,
       id1: BigInt(tokenB.id || 0),
       token0: zeroAddress,
-      token1: CookbookAddress, // Cookbook pools use CookbookAddress as token1
+      token1: tokenAddress,
       feeOrHook: feeBps,
     };
   } else if (tokenB.id === null) {
     // tokenB is ETH, tokenA is the other token  
+    const tokenAddress = tokenA.source === "ZAMM" ? CoinsAddress : CookbookAddress;
     return {
       id0: 0n,
       id1: BigInt(tokenA.id || 0),
       token0: zeroAddress,
-      token1: CookbookAddress, // Cookbook pools use CookbookAddress as token1
+      token1: tokenAddress,
       feeOrHook: feeBps,
     };
   } else {
-    // For token-token pairs, we need to create a different structure
-    // This follows the same pattern as computePoolKey but adapted for Cookbook
+    // For token-token pairs, determine the appropriate addresses based on source
     // Sort by coin ID to ensure deterministic ordering
     const [token0, token1] = tokenA.id! < tokenB.id! ? [tokenA, tokenB] : [tokenB, tokenA];
+    const token0Address = token0.source === "ZAMM" ? CoinsAddress : CookbookAddress;
+    const token1Address = token1.source === "ZAMM" ? CoinsAddress : CookbookAddress;
     
     return {
       id0: BigInt(token0.id || 0),
       id1: BigInt(token1.id || 0),
-      token0: CookbookAddress,
-      token1: CookbookAddress,
+      token0: token0Address,
+      token1: token1Address,
       feeOrHook: feeBps,
     };
   }
@@ -133,7 +135,9 @@ const createCookbookPoolKey = (tokenA: TokenMeta, tokenB: TokenMeta, feeBps: big
 
 // Helper function to check if token needs operator approval
 const needsOperatorApproval = (token: TokenMeta): boolean => {
-  return token.token1 !== CookbookAddress;
+  // Only ZAMM coins (external coins) need operator approval
+  // Cookbook coins don't need operator approval since they're internal
+  return token.source === "ZAMM";
 };
 
 export const CreatePool = () => {
