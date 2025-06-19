@@ -570,15 +570,10 @@ export const LaunchForm = () => {
               />
               <div className="text-xs text-gray-500">
                 {t("create.eth_help_text")}
-                {formData.poolSupply &&
-                  formData.ethAmount &&
-                  formData.ethAmount > 0 &&
-                  formData.poolSupply > 0 && (
+                {formData.poolSupply > 0 && formData.ethAmount > 0 && (
                     <span className="ml-2 text-blue-600 font-medium">
                       →{" "}
-                      {(
-                        (formData.ethAmount || 0) / (formData.poolSupply || 1)
-                      ).toFixed(8)}{" "}
+                      {(formData.ethAmount / formData.poolSupply).toFixed(12)}{" "}
                       ETH per coin
                     </span>
                   )}
@@ -890,8 +885,8 @@ export const LaunchForm = () => {
                         {t("create.starting_price")}
                       </div>
                       <div className="text-xl font-bold font-mono">
-                        {formData.poolSupply && formData.ethAmount && formData.ethAmount > 0 && formData.poolSupply > 0
-                          ? ((formData.ethAmount || 0) / (formData.poolSupply || 1)).toFixed(8)
+                        {formData.poolSupply > 0 && formData.ethAmount > 0
+                          ? (formData.ethAmount / formData.poolSupply).toFixed(12)
                           : "--"}
                       </div>
                       <div className="text-xs font-mono text-muted-foreground uppercase">
