@@ -36,7 +36,6 @@ import {
 import { XIcon } from "lucide-react";
 import { ChartIcon, CoinIcon, PoolIcon } from "./ui/icons";
 import { Link } from "@tanstack/react-router";
-import { AnimatedLogo } from "./ui/animated-logo";
 
 const defaultTranche = {
   coins: 300000000,
@@ -70,7 +69,7 @@ const getLaunchModes = (t: any) => ({
 // Validation schema with zod
 const launchFormSchema = z
   .object({
-    mode: z.enum(["simple", "tranche", "pool"]).default("tranche"),
+    mode: z.enum(["simple", "tranche", "pool"]).default("pool"),
     creatorSupply: z.coerce.number().min(1, "Creator supply is required"),
     creatorUnlockDate: z.string().optional(),
     metadataName: z.string().min(1, "Name is required"),
@@ -133,7 +132,7 @@ export const LaunchForm = () => {
 
   // State for form data instead of react-hook-form
   const [formData, setFormData] = useState<LaunchFormValues>({
-    mode: "tranche",
+    mode: "pool",
     creatorSupply: 100000000,
     creatorUnlockDate: "",
     metadataName: "",
@@ -516,14 +515,9 @@ export const LaunchForm = () => {
                   
                   {/* Upgrading overlay for tranche mode */}
                   {isTrancheMode && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-gray-900/80 rounded-lg">
-                      <div className="flex flex-col items-center gap-2">
-                        <div className="w-12 h-12">
-                          <AnimatedLogo size="sm" animated={false} />
-                        </div>
-                        <div className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                          {t("create.upgrading")}
-                        </div>
+                    <div className="absolute inset-0 flex items-center justify-center bg-white/90 dark:bg-gray-900/90 rounded-lg">
+                      <div className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                        {t("create.upgrading")}
                       </div>
                     </div>
                   )}
