@@ -570,7 +570,7 @@ export const LaunchForm = () => {
               />
               <div className="text-xs text-gray-500">
                 {t("create.eth_help_text")}
-                {formData.poolSupply > 0 && formData.ethAmount > 0 && (
+                {formData.poolSupply && formData.poolSupply > 0 && formData.ethAmount && formData.ethAmount > 0 && (
                     <span className="ml-2 text-blue-600 font-medium">
                       →{" "}
                       {(formData.ethAmount / formData.poolSupply).toFixed(12)}{" "}
@@ -885,7 +885,7 @@ export const LaunchForm = () => {
                         {t("create.starting_price")}
                       </div>
                       <div className="text-xl font-bold font-mono">
-                        {formData.poolSupply > 0 && formData.ethAmount > 0
+                        {formData.poolSupply && formData.poolSupply > 0 && formData.ethAmount && formData.ethAmount > 0
                           ? (formData.ethAmount / formData.poolSupply).toFixed(12)
                           : "--"}
                       </div>
