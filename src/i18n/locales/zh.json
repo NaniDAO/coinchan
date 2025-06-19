@@ -212,6 +212,7 @@
     "enter_description": "输入币种描述",
     "upload_image": "上传图片",
     "creating": "正在ZAMM上铸造您的币种...",
+    "upgrading": "升级中...",
     "success": "币种创建成功！",
     "initial_liquidity": "初始流动性（ETH 数量）",
     "launch_projections": "发行预测",

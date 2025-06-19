@@ -36,6 +36,7 @@ import {
 import { XIcon } from "lucide-react";
 import { ChartIcon, CoinIcon, PoolIcon } from "./ui/icons";
 import { Link } from "@tanstack/react-router";
+import { AnimatedLogo } from "./ui/animated-logo";
 
 const defaultTranche = {
   coins: 300000000,
@@ -467,44 +468,68 @@ export const LaunchForm = () => {
             {t("create.launch_type")}
           </Label>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {Object.values(LAUNCH_MODES).map((mode) => (
-              <label
-                key={mode.id}
-                className={`relative flex flex-col p-4 rounded-lg border-2 cursor-pointer transition-all hover:shadow-md ${
-                  formData.mode === mode.id
-                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="mode"
-                  value={mode.id}
-                  checked={formData.mode === mode.id}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      mode: e.target.value as LaunchMode,
-                    }))
-                  }
-                  className="sr-only"
-                />
-                <div className="flex items-start gap-3">
-                  <div className="text-2xl">{mode.icon}</div>
-                  <div className="flex-1">
-                    <div className="font-semibold text-sm">{mode.title}</div>
-                    <div className="text-xs text-gray-600 mt-1">
-                      {mode.description}
+            {Object.values(LAUNCH_MODES).map((mode) => {
+              const isTrancheMode = mode.id === "tranche";
+              const isDisabled = isTrancheMode; // Disable tranche mode
+              
+              return (
+                <label
+                  key={mode.id}
+                  className={`relative flex flex-col p-4 rounded-lg border-2 transition-all ${
+                    isDisabled
+                      ? "border-gray-300 bg-gray-100 dark:bg-gray-800 cursor-not-allowed opacity-60"
+                      : formData.mode === mode.id
+                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 cursor-pointer hover:shadow-md"
+                        : "border-gray-200 hover:border-gray-300 cursor-pointer hover:shadow-md"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="mode"
+                    value={mode.id}
+                    checked={formData.mode === mode.id && !isDisabled}
+                    onChange={(e) => {
+                      if (!isDisabled) {
+                        setFormData((prev) => ({
+                          ...prev,
+                          mode: e.target.value as LaunchMode,
+                        }));
+                      }
+                    }}
+                    disabled={isDisabled}
+                    className="sr-only"
+                  />
+                  <div className="flex items-start gap-3">
+                    <div className="text-2xl">{mode.icon}</div>
+                    <div className="flex-1">
+                      <div className="font-semibold text-sm">{mode.title}</div>
+                      <div className="text-xs text-gray-600 mt-1">
+                        {mode.description}
+                      </div>
                     </div>
+                    {formData.mode === mode.id && !isDisabled && (
+                      <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                      </div>
+                    )}
                   </div>
-                  {formData.mode === mode.id && (
-                    <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                  
+                  {/* Upgrading overlay for tranche mode */}
+                  {isTrancheMode && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-gray-900/80 rounded-lg">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-12 h-12">
+                          <AnimatedLogo size="sm" animated={false} />
+                        </div>
+                        <div className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                          {t("create.upgrading")}
+                        </div>
+                      </div>
                     </div>
                   )}
-                </div>
-              </label>
-            ))}
+                </label>
+              );
+            })}
           </div>
           {errors["mode"] && (
             <p className="text-sm text-red-500">{errors["mode"]}</p>
