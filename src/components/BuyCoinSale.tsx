@@ -32,6 +32,7 @@ import { Badge } from "./ui/badge";
 import { PillIndicator } from "./ui/pill";
 import { Button } from "./ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardAction } from "./ui/card";
+import { Clock } from "lucide-react";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Input } from "./ui/input";
@@ -39,6 +40,7 @@ import { cn } from "@/lib/utils";
 import { useCoinSale } from "@/hooks/use-coin-sale";
 import { BuySellCookbookCoin } from "./BuySellCookbookCoin";
 import { useChartTheme } from "@/hooks/use-chart-theme";
+import { formatDeadline } from "@/lib/utils";
 
 /* ───────── helpers ───────── */
 
@@ -256,6 +258,9 @@ export const BuyCoinSale = ({
 
   /* ─────────────────────────── JSX ─────────────────────────── */
 
+  // Get the overall tranche sale deadline (deadlineLast)
+  const saleDeadlineInfo = sale.deadlineLast ? formatDeadline(Number(sale.deadlineLast)) : null;
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -267,6 +272,20 @@ export const BuyCoinSale = ({
           </Badge>
         </CardAction>
       </CardHeader>
+
+      {/* Sale deadline banner */}
+      {saleDeadlineInfo && (
+        <div className={cn(
+          "mx-6 mb-4 p-3 rounded-lg border font-mono text-sm font-bold flex items-center gap-2",
+          saleDeadlineInfo.urgency === "expired" && "bg-destructive/20 border-destructive text-destructive",
+          saleDeadlineInfo.urgency === "urgent" && "bg-orange-500/20 border-orange-500 text-orange-700 dark:text-orange-300",
+          saleDeadlineInfo.urgency === "warning" && "bg-yellow-500/20 border-yellow-500 text-yellow-700 dark:text-yellow-300",
+          saleDeadlineInfo.urgency === "normal" && "bg-green-500/20 border-green-500 text-green-700 dark:text-green-300"
+        )}>
+          <Clock size={16} />
+          {saleDeadlineInfo.urgency === "expired" ? "Sale finalization deadline expired" : `Sale finalization deadline: ${saleDeadlineInfo.text}`}
+        </div>
+      )}
 
       <CardContent>
         <div className="font-mono text-sm mb-6">

@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "@tanstack/react-router";
 import { CoinData, formatImageURL, getAlternativeImageUrls } from "@/hooks/metadata/coin-utils";
-import { ArrowRightIcon } from "lucide-react";
+import { ArrowRightIcon, Clock } from "lucide-react";
+import { useCoinSale } from "@/hooks/use-coin-sale";
+import { formatDeadline, cn } from "@/lib/utils";
 
 interface CoinCardProps {
   coin: any;
@@ -13,6 +15,11 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
   const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
   const alternativeUrlsRef = useRef<string[]>([]);
   const attemptedUrlsRef = useRef<Set<string>>(new Set());
+
+  // Fetch tranche sale data if coin has active sales
+  const { data: saleData } = useCoinSale({ 
+    coinId: coin.coinId.toString() 
+  });
 
   // Reset states when coin changes
   useEffect(() => {
@@ -42,6 +49,10 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
   // Display values with fallbacks
   const displayName = coin.name || `Token ${coin.coinId.toString()}`;
   const displaySymbol = coin.symbol || "TKN";
+
+  // Get the overall sale finalization deadline
+  const saleDeadline = saleData?.deadlineLast;
+  const deadlineInfo = saleDeadline ? formatDeadline(Number(saleDeadline)) : null;
   // FIX: Centralized image URL resolution logic for clarity and maintainability.
   // Consolidates multiple potential sources (coin.imageUrl, metadata.image, etc.) into a single prioritized check.
   // Improves render consistency and simplifies fallback image handling.
@@ -114,6 +125,20 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
         <h3 className="p-2 text-center font-extrabold text-xs sm:text-sm truncate w-full">
           {displayName} [{displaySymbol}]
         </h3>
+
+        {/* Deadline badge for active tranche sales */}
+        {deadlineInfo && (
+          <div className={cn(
+            "flex items-center gap-1 px-2 py-1 text-xs font-mono font-bold rounded-full",
+            deadlineInfo.urgency === "expired" && "bg-destructive text-destructive-foreground",
+            deadlineInfo.urgency === "urgent" && "bg-orange-500 text-white animate-pulse",
+            deadlineInfo.urgency === "warning" && "bg-yellow-500 text-black",
+            deadlineInfo.urgency === "normal" && "bg-green-500 text-white"
+          )}>
+            <Clock size={10} />
+            {deadlineInfo.text}
+          </div>
+        )}
 
         <div className="p-1 w-16 h-16 sm:w-20 sm:h-20 relative">
           {/* Base colored circle (always visible) */}
