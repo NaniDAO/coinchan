@@ -875,9 +875,6 @@ export const LaunchForm = () => {
                 {t("create.pool_configuration")}
               </h3>
             </div>
-            <label className="text-sm text-muted-foreground mb-6 block font-mono">
-              {t("create.bonding_curve_help")}
-            </label>
 
             {/* Main Pool Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -996,28 +993,37 @@ export const LaunchForm = () => {
 
                     if (price < 0.000001) {
                       return (
-                        <div className="bg-background border-2 border-border p-3 shadow-[2px_2px_0_var(--border)] border-amber-500">
-                          <div className="text-xs font-mono font-semibold text-amber-600 uppercase tracking-wide">
-                            ⚠ {t("create.low_price_warning")}
+                        <div className="bg-background border-2 border-border p-3 shadow-[2px_2px_0_var(--border)] border-blue-400">
+                          <div className="text-xs font-mono font-semibold text-blue-600 uppercase tracking-wide">
+                            {t("create.low_price_suggestion")}
                           </div>
                         </div>
                       );
                     }
                     if (marketCap > 100) {
                       return (
-                        <div className="bg-background border-2 border-border p-3 shadow-[2px_2px_0_var(--border)] border-amber-500">
-                          <div className="text-xs font-mono font-semibold text-amber-600 uppercase tracking-wide">
-                            ⚠ {t("create.high_market_cap_warning", {
+                        <div className="bg-background border-2 border-border p-3 shadow-[2px_2px_0_var(--border)] border-purple-400">
+                          <div className="text-xs font-mono font-semibold text-purple-600 uppercase tracking-wide">
+                            {t("create.high_market_cap_ambitious", {
                               marketCap: formatMarketCap(marketCap),
                             })}
                           </div>
                         </div>
                       );
                     }
+                    if (price < 0.01 && marketCap < 10) {
+                      return (
+                        <div className="bg-background border-2 border-border p-3 shadow-[2px_2px_0_var(--border)] border-green-400">
+                          <div className="text-xs font-mono font-semibold text-green-600 uppercase tracking-wide">
+                            {t("create.organic_growth_setup")}
+                          </div>
+                        </div>
+                      );
+                    }
                     return (
-                      <div className="bg-background border-2 border-border p-3 shadow-[2px_2px_0_var(--border)] border-green-500">
-                        <div className="text-xs font-mono font-semibold text-green-600 uppercase tracking-wide">
-                          ✓ {t("create.pool_config_good")}
+                      <div className="bg-background border-2 border-border p-3 shadow-[2px_2px_0_var(--border)] border-emerald-400">
+                        <div className="text-xs font-mono font-semibold text-emerald-600 uppercase tracking-wide">
+                          {t("create.pool_config_balanced")}
                         </div>
                       </div>
                     );
