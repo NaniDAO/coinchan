@@ -875,9 +875,6 @@ export const LaunchForm = () => {
                 {t("create.pool_configuration")}
               </h3>
             </div>
-            <label className="text-sm text-muted-foreground mb-6 block font-mono">
-              {t("create.bonding_curve_help")}
-            </label>
 
             {/* Main Pool Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
