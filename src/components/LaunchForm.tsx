@@ -839,157 +839,175 @@ export const LaunchForm = () => {
 
         {/* Pool Mode Visualization */}
         {formData.mode === "pool" && (
-          <div className="rounded-2xl shadow-sm p-4">
-            <h3 className="text-lg font-semibold mb-1">
-              {t("create.pool_configuration")}
-            </h3>
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="font-medium">
-                    {t("create.pool_supply_display")}
-                  </span>
-                  <div className="text-lg font-bold text-blue-600">
-                    {(formData.poolSupply || 0).toLocaleString()}{" "}
-                    {t("create.tokens")}
-                  </div>
+          <div className="bg-card text-card-foreground border-2 border-border shadow-[4px_4px_0_var(--border)] p-6 transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_var(--border)]">
+            <div className="flex items-center gap-2 mb-4">
+              <h3 className="text-lg font-semibold font-mono">
+                {t("create.pool_configuration")}
+              </h3>
+            </div>
+            <label className="text-sm text-muted-foreground mb-6 block font-mono">
+              {t("create.bonding_curve_help")}
+            </label>
+
+            {/* Main Pool Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div className="bg-background border-2 border-border p-4 shadow-[2px_2px_0_var(--border)]">
+                <div className="text-xs font-mono text-muted-foreground uppercase tracking-wide mb-1">
+                  {t("create.pool_supply_display")}
                 </div>
-                <div>
-                  <span className="font-medium">
-                    {t("create.eth_liquidity")}
-                  </span>
-                  <div className="text-lg font-bold text-blue-600">
-                    {formData.ethAmount || 0} ETH
-                  </div>
+                <div className="text-2xl font-bold font-mono">
+                  {(formData.poolSupply || 0).toLocaleString()}
+                </div>
+                <div className="text-xs font-mono text-muted-foreground uppercase">
+                  {t("create.tokens")}
                 </div>
               </div>
+              
+              <div className="bg-background border-2 border-border p-4 shadow-[2px_2px_0_var(--border)]">
+                <div className="text-xs font-mono text-muted-foreground uppercase tracking-wide mb-1">
+                  {t("create.eth_liquidity")}
+                </div>
+                <div className="text-2xl font-bold font-mono">
+                  {formData.ethAmount || 0}
+                </div>
+                <div className="text-xs font-mono text-muted-foreground uppercase">
+                  ETH
+                </div>
+              </div>
+            </div>
 
-              {/* Enhanced Price Calculations */}
-              {formData.poolSupply &&
-                formData.ethAmount &&
-                formData.ethAmount > 0 &&
-                formData.poolSupply > 0 && (
-                  <div className="mt-4 space-y-3 border-t border-blue-200 dark:border-blue-800 pt-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                          {t("create.starting_price")}
-                        </span>
-                        <div className="text-xl font-bold text-blue-600">
-                          {(
-                            (formData.ethAmount || 0) /
-                            (formData.poolSupply || 1)
-                          ).toFixed(8)}{" "}
-                          ETH
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {t("create.per_token")}
-                        </div>
+            {/* Price Calculations - Only show if we have valid data */}
+            {formData.poolSupply &&
+              formData.ethAmount &&
+              formData.ethAmount > 0 &&
+              formData.poolSupply > 0 && (
+                <>
+                  {/* Starting Price & Total Supply */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div className="bg-background border-2 border-border p-4 shadow-[2px_2px_0_var(--border)]">
+                      <div className="text-xs font-mono text-muted-foreground uppercase tracking-wide mb-1">
+                        {t("create.starting_price")}
                       </div>
-                      <div>
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                          {t("create.total_supply")}
-                        </span>
-                        <div className="text-xl font-bold text-blue-600">
-                          {(
-                            (formData.poolSupply || 0) +
-                            (formData.creatorSupply || 0)
-                          ).toLocaleString()}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {t("create.tokens")}
-                        </div>
+                      <div className="text-xl font-bold font-mono">
+                        {(
+                          (formData.ethAmount || 0) /
+                          (formData.poolSupply || 1)
+                        ).toFixed(8)}
+                      </div>
+                      <div className="text-xs font-mono text-muted-foreground uppercase">
+                        ETH {t("create.per_token")}
                       </div>
                     </div>
 
-                    <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
-                      <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {t("create.pool_breakdown")}
+                    <div className="bg-background border-2 border-border p-4 shadow-[2px_2px_0_var(--border)]">
+                      <div className="text-xs font-mono text-muted-foreground uppercase tracking-wide mb-1">
+                        {t("create.total_supply")}
                       </div>
-                      <div className="space-y-1 text-xs">
-                        <div className="flex justify-between">
-                          <span>{t("create.pool_liquidity")}</span>
-                          <span className="font-medium">
-                            {(
-                              ((formData.poolSupply || 0) /
-                                ((formData.poolSupply || 0) +
-                                  (formData.creatorSupply || 0))) *
-                              100
-                            ).toFixed(1)}
-                            %
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>{t("create.creator_allocation")}</span>
-                          <span className="font-medium">
-                            {(
-                              ((formData.creatorSupply || 0) /
-                                ((formData.poolSupply || 0) +
-                                  (formData.creatorSupply || 0))) *
-                              100
-                            ).toFixed(1)}
-                            %
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>{t("create.initial_market_cap")}</span>
-                          <span className="font-medium">
-                            {(
-                              ((formData.ethAmount || 0) /
-                                (formData.poolSupply || 1)) *
+                      <div className="text-xl font-bold font-mono">
+                        {(
+                          (formData.poolSupply || 0) +
+                          (formData.creatorSupply || 0)
+                        ).toLocaleString()}
+                      </div>
+                      <div className="text-xs font-mono text-muted-foreground uppercase">
+                        {t("create.tokens")}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Pool Breakdown */}
+                  <div className="bg-background border-2 border-border p-4 shadow-[2px_2px_0_var(--border)] mb-4">
+                    <div className="text-sm font-mono font-semibold mb-3 uppercase tracking-wide">
+                      {t("create.pool_breakdown")}
+                    </div>
+                    <div className="space-y-2 font-mono text-sm">
+                      <div className="flex justify-between border-b border-border pb-1">
+                        <span className="uppercase tracking-wide">{t("create.pool_liquidity")}</span>
+                        <span className="font-bold">
+                          {(
+                            ((formData.poolSupply || 0) /
                               ((formData.poolSupply || 0) +
-                                (formData.creatorSupply || 0))
-                            ).toFixed(4)}{" "}
-                            ETH
-                          </span>
-                        </div>
+                                (formData.creatorSupply || 0))) *
+                            100
+                          ).toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between border-b border-border pb-1">
+                        <span className="uppercase tracking-wide">{t("create.creator_allocation")}</span>
+                        <span className="font-bold">
+                          {(
+                            ((formData.creatorSupply || 0) /
+                              ((formData.poolSupply || 0) +
+                                (formData.creatorSupply || 0))) *
+                            100
+                          ).toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between pt-1">
+                        <span className="uppercase tracking-wide">{t("create.initial_market_cap")}</span>
+                        <span className="font-bold">
+                          {(
+                            ((formData.ethAmount || 0) /
+                              (formData.poolSupply || 1)) *
+                            ((formData.poolSupply || 0) +
+                              (formData.creatorSupply || 0))
+                          ).toFixed(4)} ETH
+                        </span>
                       </div>
                     </div>
+                  </div>
 
-                    {/* Price Validation Feedback */}
-                    {(() => {
-                      const price =
-                        (formData.ethAmount || 0) / (formData.poolSupply || 1);
-                      const marketCap =
-                        price *
-                        ((formData.poolSupply || 0) +
-                          (formData.creatorSupply || 0));
+                  {/* Price Validation Feedback */}
+                  {(() => {
+                    const price =
+                      (formData.ethAmount || 0) / (formData.poolSupply || 1);
+                    const marketCap =
+                      price *
+                      ((formData.poolSupply || 0) +
+                        (formData.creatorSupply || 0));
 
-                      if (price < 0.000001) {
-                        return (
-                          <div className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 p-2 rounded">
-                            {t("create.low_price_warning")}
+                    if (price < 0.000001) {
+                      return (
+                        <div className="bg-background border-2 border-border p-3 shadow-[2px_2px_0_var(--border)] border-amber-500">
+                          <div className="text-xs font-mono font-semibold text-amber-600 uppercase tracking-wide">
+                            ⚠ {t("create.low_price_warning")}
                           </div>
-                        );
-                      }
-                      if (marketCap > 100) {
-                        return (
-                          <div className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 p-2 rounded">
-                            {t("create.high_market_cap_warning", {
+                        </div>
+                      );
+                    }
+                    if (marketCap > 100) {
+                      return (
+                        <div className="bg-background border-2 border-border p-3 shadow-[2px_2px_0_var(--border)] border-amber-500">
+                          <div className="text-xs font-mono font-semibold text-amber-600 uppercase tracking-wide">
+                            ⚠ {t("create.high_market_cap_warning", {
                               marketCap: marketCap.toFixed(2),
                             })}
                           </div>
-                        );
-                      }
-                      return (
-                        <div className="text-xs text-green-600 bg-green-50 dark:bg-green-900/20 p-2 rounded">
-                          {t("create.pool_config_good")}
                         </div>
                       );
-                    })()}
-                  </div>
-                )}
+                    }
+                    return (
+                      <div className="bg-background border-2 border-border p-3 shadow-[2px_2px_0_var(--border)] border-green-500">
+                        <div className="text-xs font-mono font-semibold text-green-600 uppercase tracking-wide">
+                          ✓ {t("create.pool_config_good")}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </>
+              )}
 
-              {/* Empty State */}
-              {(!formData.poolSupply ||
-                !formData.ethAmount ||
-                formData.ethAmount <= 0 ||
-                formData.poolSupply <= 0) && (
-                <div className="mt-4 text-center text-gray-500 text-sm p-4 border-t border-blue-200 dark:border-blue-800">
+            {/* Empty State */}
+            {(!formData.poolSupply ||
+              !formData.ethAmount ||
+              formData.ethAmount <= 0 ||
+              formData.poolSupply <= 0) && (
+              <div className="bg-background border-2 border-border p-6 shadow-[2px_2px_0_var(--border)] text-center">
+                <div className="text-sm font-mono text-muted-foreground uppercase tracking-wide">
                   {t("create.enter_pool_help")}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         )}
 
