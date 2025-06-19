@@ -32,7 +32,7 @@ export const Route = createRootRoute({
           </div>
 
           <main className="mt-0 max-w-screen flex flex-col items-center justify-center !space-y-0 bg-foreground">
-            <div className="w-[70vw]">
+            <div className="w-screen lg:w-[70vw]">
               <div
                 className={cn(
                   "!p-2 bg-background text-foreground flex flex-row items-center outline-2 outline-offset-2 outline-background",
