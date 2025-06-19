@@ -15,7 +15,7 @@ import { nowSec } from "./lib/utils";
 import { mainnet } from "viem/chains";
 import { SwapPanel } from "./components/SwapPanel";
 import { useErc20Allowance } from "./hooks/use-erc20-allowance";
-import { CookbookPoolKey } from "./lib/swap";
+import { CookbookPoolKey, computePoolKey } from "./lib/swap";
 
 // Fee tier options for pool creation
 const FEE_OPTIONS = [
@@ -93,33 +93,42 @@ const FeeSettings = ({ feeBps, setFeeBps, className = "" }: FeeSettingsProps) =>
   );
 };
 
-// Helper function to sort tokens and create pool key
-const createPoolKey = (tokenA: TokenMeta, tokenB: TokenMeta, feeBps: bigint): CookbookPoolKey => {
-  // Always put ETH first (token0), then sort other tokens by address
-  let token0: TokenMeta, token1: TokenMeta;
-  
+// Helper function to create pool key for Cookbook pools
+const createCookbookPoolKey = (tokenA: TokenMeta, tokenB: TokenMeta, feeBps: bigint): CookbookPoolKey => {
+  // For Cookbook pools, we need to determine the correct pool structure
+  // Handle ETH-Token pairs
   if (tokenA.id === null) {
-    // tokenA is ETH
-    token0 = tokenA;
-    token1 = tokenB;
+    // tokenA is ETH, tokenB is the other token
+    return {
+      id0: 0n,
+      id1: BigInt(tokenB.id || 0),
+      token0: zeroAddress,
+      token1: CookbookAddress, // Cookbook pools use CookbookAddress as token1
+      feeOrHook: feeBps,
+    };
   } else if (tokenB.id === null) {
-    // tokenB is ETH
-    token0 = tokenB;
-    token1 = tokenA;
+    // tokenB is ETH, tokenA is the other token  
+    return {
+      id0: 0n,
+      id1: BigInt(tokenA.id || 0),
+      token0: zeroAddress,
+      token1: CookbookAddress, // Cookbook pools use CookbookAddress as token1
+      feeOrHook: feeBps,
+    };
   } else {
-    // Neither is ETH, sort by address
-    const addressA = tokenA.token1 || "";
-    const addressB = tokenB.token1 || "";
-    [token0, token1] = addressA < addressB ? [tokenA, tokenB] : [tokenB, tokenA];
+    // For token-token pairs, we need to create a different structure
+    // This follows the same pattern as computePoolKey but adapted for Cookbook
+    // Sort by coin ID to ensure deterministic ordering
+    const [token0, token1] = tokenA.id! < tokenB.id! ? [tokenA, tokenB] : [tokenB, tokenA];
+    
+    return {
+      id0: BigInt(token0.id || 0),
+      id1: BigInt(token1.id || 0),
+      token0: CookbookAddress,
+      token1: CookbookAddress,
+      feeOrHook: feeBps,
+    };
   }
-
-  return {
-    id0: token0.id === null ? 0n : BigInt(token0.id),
-    id1: BigInt(token1.id || 0),
-    token0: token0.id === null ? zeroAddress : (token0.token1 as `0x${string}`),
-    token1: token1.token1 as `0x${string}`,
-    feeOrHook: feeBps,
-  };
 };
 
 // Helper function to check if token needs operator approval
@@ -202,8 +211,8 @@ export const CreatePool = () => {
     setTxError(null);
 
     try {
-      // Create pool key with proper sorting
-      const poolKey = createPoolKey(token0, token1, feeBps);
+      // Create pool key for Cookbook
+      const poolKey = createCookbookPoolKey(token0, token1, feeBps);
       
       // Determine amounts based on pool key ordering
       const amount0Desired = token0.id === null 
