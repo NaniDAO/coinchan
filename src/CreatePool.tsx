@@ -15,7 +15,7 @@ import { nowSec } from "./lib/utils";
 import { mainnet } from "viem/chains";
 import { SwapPanel } from "./components/SwapPanel";
 import { useErc20Allowance } from "./hooks/use-erc20-allowance";
-import { CookbookPoolKey, computePoolKey } from "./lib/swap";
+import { CookbookPoolKey } from "./lib/swap";
 
 // Fee tier options for pool creation
 const FEE_OPTIONS = [
