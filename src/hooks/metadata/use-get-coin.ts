@@ -62,7 +62,7 @@ const fetchCoinData = async (coinId: string) => {
       imageUrl: coin.imageUrl ? coin.imageUrl : "",
       tokenURI: coin.tokenURI ? coin.tokenURI : "",
       decimals: coin.decimals,
-      totalSupply: BigInt(coin.totalSupply),
+      totalSupply: BigInt(coin?.totalSupply ?? 0n),
       poolId: coin.pools.items?.[0]?.id
         ? BigInt(coin.pools.items?.[0]?.id)
         : undefined,
