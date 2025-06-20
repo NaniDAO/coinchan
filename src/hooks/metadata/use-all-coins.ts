@@ -129,29 +129,55 @@ async function fetchOtherCoins(
         let bal: bigint = 0n;
         let actualSource = m.source;
 
-        // Always try Cookbook contract first since we want to catch cookbook coins without pools
+        // Try primary contract first based on original source identification
+        const primaryContract = m.source === "COOKBOOK" ? CookbookAddress : CoinsAddress;
+        const primaryAbi = m.source === "COOKBOOK" ? CookbookAbi : CoinsAbi;
+        const fallbackContract = m.source === "COOKBOOK" ? CoinsAddress : CookbookAddress;
+        const fallbackAbi = m.source === "COOKBOOK" ? CoinsAbi : CookbookAbi;
+        const fallbackSource = m.source === "COOKBOOK" ? "ZAMM" : "COOKBOOK";
+
         try {
+          // Try primary contract
           bal = (await publicClient.readContract({
-            address: CookbookAddress,
-            abi: CookbookAbi,
+            address: primaryContract,
+            abi: primaryAbi,
             functionName: "balanceOf",
             args: [address, m.id],
           })) as bigint;
-          actualSource = "COOKBOOK";
-        } catch (cookbookError) {
-          // If Cookbook fails, try Coins contract
+
+          // If primary contract returns 0, also try fallback to see if coin exists there
+          if (bal === 0n) {
+            try {
+              const fallbackBal = (await publicClient.readContract({
+                address: fallbackContract,
+                abi: fallbackAbi,
+                functionName: "balanceOf",
+                args: [address, m.id],
+              })) as bigint;
+
+              // If fallback has non-zero balance, use that instead
+              if (fallbackBal > 0n) {
+                bal = fallbackBal;
+                actualSource = fallbackSource;
+              }
+            } catch (fallbackError) {
+              // Fallback failed, stick with primary result (which is 0)
+            }
+          }
+        } catch (primaryError) {
+          // Primary contract failed, try fallback
           try {
             bal = (await publicClient.readContract({
-              address: CoinsAddress,
-              abi: CoinsAbi,
+              address: fallbackContract,
+              abi: fallbackAbi,
               functionName: "balanceOf",
               args: [address, m.id],
             })) as bigint;
-            actualSource = "ZAMM";
-          } catch (coinsError) {
+            actualSource = fallbackSource;
+          } catch (fallbackError) {
             console.error(`Failed to fetch balance for coin ${m.id} from both contracts:`, {
-              cookbookError,
-              coinsError,
+              primaryError,
+              fallbackError,
               coinData: { id: m.id, source: m.source, symbol: m.symbol }
             });
             return m;
