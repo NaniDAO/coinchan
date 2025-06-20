@@ -4,10 +4,10 @@ import { formatEther, formatUnits } from "viem";
 export type RawCoinData = {
   coinId: bigint;
   tokenURI: string;
-  reserve0: bigint; // ETH reserve
-  reserve1: bigint; // Coin reserve
-  poolId: bigint;
-  liquidity: bigint;
+  reserve0: bigint | undefined; // ETH reserve
+  reserve1: bigint | undefined; // Coin reserve
+  poolId: bigint | undefined;
+  liquidity: bigint | undefined;
 };
 
 // Extended type with derived fields that we'll populate
@@ -17,10 +17,9 @@ export type CoinData = RawCoinData & {
   symbol: string | null;
   description: string | null;
   imageUrl: string | null;
-  metadata: Record<string, any> | null;
   // Additional derived fields
   priceInEth: number | null;
-  votes?: bigint;
+  votes: bigint | undefined;
   // Sale status for ZAMM Launch coins
   saleStatus?: "ACTIVE" | "EXPIRED" | "FINALIZED" | null;
 };
@@ -32,11 +31,13 @@ export function hydrateRawCoin(raw: RawCoinData): CoinData {
     symbol: null,
     description: null,
     imageUrl: null,
-    metadata: null,
+    votes: undefined,
     priceInEth:
-      raw.reserve0 > 0n && raw.reserve1 > 0n
-        ? Number(formatEther(raw.reserve0)) /
-          Number(formatUnits(raw.reserve1, 18))
+      raw?.reserve0 && raw?.reserve1
+        ? raw.reserve0 > 0n && raw.reserve1 > 0n
+          ? Number(formatEther(raw.reserve0)) /
+            Number(formatUnits(raw.reserve1, 18))
+          : null
         : null,
   };
   // No change needed in function body as votes is now optional in CoinData type
@@ -241,7 +242,7 @@ export function formatImageURL(imageURL: string): string {
 
 // Async metadata fetch shared between hooks
 export async function enrichMetadata(coin: CoinData): Promise<CoinData> {
-  if (!coin.tokenURI || coin.metadata) return coin;
+  if (!coin.tokenURI) return coin;
   try {
     const uri = coin.tokenURI.startsWith("ipfs://")
       ? `https://content.wrappr.wtf/ipfs/${coin.tokenURI.slice(7)}`
@@ -258,7 +259,6 @@ export async function enrichMetadata(coin: CoinData): Promise<CoinData> {
     const normalized = normalizeMetadata(meta);
     const updated: CoinData = {
       ...coin,
-      metadata: normalized,
       name: normalized.name ?? null,
       symbol: normalized.symbol ?? null,
       description: normalized.description ?? null,
