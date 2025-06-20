@@ -8,7 +8,6 @@ import {
   TokenMeta,
   USDT_POOL_ID,
   USDT_ADDRESS,
-  CoinSource,
 } from "@/lib/coins";
 import { CoinchanAbi, CoinchanAddress } from "@/constants/Coinchan";
 import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
@@ -40,51 +39,31 @@ async function fetchEthBalance(
   return ETH_TOKEN;
 }
 
-// --- 1) GraphQL query to fetch all pools + coin1 metadata ---
-const GET_ALL_COIN_POOLS = `
-  query GetAllCoinPools {
-    pools(limit: 1000, orderBy: "reserve0", orderDirection: "desc") {
-      items {
-        id          # poolId
-        reserve0
-        reserve1
-        swapFee
-        source
-        coin1 {
-          id
-          symbol
-          name
-          tokenURI
-          imageUrl
-        }
-      }
-    }
-  }
-`;
+type CoinData = {
+  coinId: string;
+  tokenURI: string;
+  name: string;
+  symbol: string | null;
+  description: string;
+  imageUrl: string;
+  decimals: number;
+  poolId: string;
+  reserve0: string;
+  reserve1: string;
+  priceInEth: string;
+  saleStatus: string;
+  swapFee: string;
+  votes: string;
+};
 
-async function fetchCoinPoolsViaGraphQL() {
-  const res = await fetch(import.meta.env.VITE_INDEXER_URL + "/graphql", {
-    method: "POST",
+async function fetchCoinPoolsViaGraphQL(): Promise<CoinData[]> {
+  const res = await fetch(import.meta.env.VITE_INDEXER_URL + "/api/coins", {
+    method: "GET",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query: GET_ALL_COIN_POOLS }),
   });
   if (!res.ok) throw new Error("GraphQL fetch failed");
-  const { data, errors } = await res.json();
-  if (errors?.length) throw new Error(errors[0].message);
-  return data.pools.items as Array<{
-    id: string;
-    reserve0: string;
-    reserve1: string;
-    swapFee: number;
-    source: CoinSource;
-    coin1: {
-      id: string;
-      symbol: string;
-      name: string;
-      tokenURI: string;
-      imageUrl: string;
-    };
-  }>;
+  const data = await res.json();
+  return data as CoinData[];
 }
 
 /**
@@ -97,9 +76,9 @@ async function fetchOtherCoins(
 ): Promise<TokenMeta[]> {
   if (!publicClient) throw new Error("Public client not available");
 
-  let pools: Awaited<ReturnType<typeof fetchCoinPoolsViaGraphQL>>;
+  let coins;
   try {
-    pools = await fetchCoinPoolsViaGraphQL();
+    coins = await fetchCoinPoolsViaGraphQL();
   } catch {
     // fallback to your original batching logic
     // (just paste your old fetchOtherCoins here)
@@ -109,21 +88,26 @@ async function fetchOtherCoins(
   let metas: TokenMeta[] = []; // Initialize metas to an empty array
   try {
     // map GraphQL → TokenMeta skeleton
-    metas = pools
-      .filter((p) => p?.coin1?.id != null && p?.swapFee != null)
-      .map((p) => ({
-        id: BigInt(p.coin1.id),
-        symbol: p.coin1.symbol,
-        name: p.coin1.name,
-        tokenUri: p.coin1.tokenURI,
-        reserve0: BigInt(p.reserve0),
-        reserve1: BigInt(p.reserve1),
-        poolId: BigInt(p.id),
-        source: p.source,
+    metas = coins
+      .filter((c) => c?.coinId != null)
+      .map((c) => ({
+        id: BigInt(c.coinId),
+        symbol: c.symbol === null ? "N/A" : c.symbol,
+        name: c.name,
+        tokenUri: c.tokenURI,
+        reserve0: c.reserve0 !== null ? BigInt(c.reserve0) : undefined,
+        reserve1: c.reserve1 !== null ? BigInt(c.reserve1) : undefined,
+        poolId: c.poolId ? BigInt(c.poolId) : undefined,
+        source: c.saleStatus === null ? "ZAMM" : "COOKBOOK",
         liquidity: 0n, // your subgraph doesn’t track total liquidity?
-        swapFee: BigInt(p.swapFee), // basis points
+        swapFee: c.swapFee !== null ? BigInt(c.swapFee) : SWAP_FEE, // basis points
         balance: 0n, // to be filled in next step
       }));
+
+    console.log("useAllCoins [TokenMeta]", {
+      metas,
+      defiCoin: metas.find((m) => m.id === BigInt(40)),
+    });
   } catch (error) {
     console.error("useAllCoins: [failed to map pools to TokenMeta]", error);
     // metas remains [] if mapping fails
@@ -190,7 +174,20 @@ async function fetchOtherCoins(
     } catch {}
   }
 
-  return [...withBalances, usdtToken];
+  return [...withBalances, usdtToken].sort((a, b) => {
+    // Safely convert to numbers, handling potential null/undefined values
+    const aLiquidity = a?.reserve0 ? Number(a.reserve0) : 0;
+    const bLiquidity = b?.reserve0 ? Number(b.reserve0) : 0;
+
+    // If liquidity values are identical, use coinId as secondary sort
+    if (aLiquidity === bLiquidity) {
+      const aId = Number(a.id);
+      const bId = Number(b.id);
+      return bId - aId; // Secondary sort by coinId (newest first)
+    }
+
+    return bLiquidity - aLiquidity; // Descending (highest liquidity first)
+  });
 }
 
 /**

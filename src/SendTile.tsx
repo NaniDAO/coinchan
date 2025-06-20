@@ -1,8 +1,21 @@
 import { useState, useEffect, useCallback, useMemo, memo } from "react";
-import { useWriteContract, useWaitForTransactionReceipt, useAccount, usePublicClient, useSendTransaction } from "wagmi";
+import {
+  useWriteContract,
+  useWaitForTransactionReceipt,
+  useAccount,
+  usePublicClient,
+  useSendTransaction,
+} from "wagmi";
 import { mainnet } from "viem/chains";
 import { handleWalletError, isUserRejectionError } from "@/lib/errors";
-import { parseEther, parseUnits, formatEther, formatUnits, Address, erc20Abi } from "viem";
+import {
+  parseEther,
+  parseUnits,
+  formatEther,
+  formatUnits,
+  Address,
+  erc20Abi,
+} from "viem";
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
 import { LoadingLogo } from "./components/ui/loading-logo";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
@@ -70,7 +83,12 @@ const safeStr = (val: any): string => {
 
 const SendTileComponent = () => {
   const { t } = useTranslation();
-  const { tokens, error: loadError, isEthBalanceFetching, refetchEthBalance } = useAllCoins();
+  const {
+    tokens,
+    error: loadError,
+    isEthBalanceFetching,
+    refetchEthBalance,
+  } = useAllCoins();
   const [selectedToken, setSelectedToken] = useState<TokenMeta>(ETH_TOKEN);
   const [recipientAddress, setRecipientAddress] = useState("");
   const [amount, setAmount] = useState("");
@@ -100,7 +118,10 @@ const SendTileComponent = () => {
       try {
         if (selectedToken.id === null) {
           setParsedAmount(value ? parseEther(value) : 0n);
-        } else if (selectedToken.isCustomPool && selectedToken.symbol === "USDT") {
+        } else if (
+          selectedToken.isCustomPool &&
+          selectedToken.symbol === "USDT"
+        ) {
           setParsedAmount(value ? parseUnits(value, 6) : 0n);
         } else {
           setParsedAmount(value ? parseEther(value) : 0n);
@@ -118,7 +139,9 @@ const SendTileComponent = () => {
       return;
     }
 
-    console.log(`MAX clicked for ${selectedToken.symbol} with balance ${selectedToken.balance.toString()}`);
+    console.log(
+      `MAX clicked for ${selectedToken.symbol} with balance ${selectedToken.balance.toString()}`,
+    );
 
     let maxValue: string;
     let maxParsedAmount: bigint;
@@ -152,11 +175,20 @@ const SendTileComponent = () => {
   };
 
   const canSend = useMemo(() => {
-    if (!recipientAddress || !recipientAddress.startsWith("0x") || recipientAddress.length !== 42) {
+    if (
+      !recipientAddress ||
+      !recipientAddress.startsWith("0x") ||
+      recipientAddress.length !== 42
+    ) {
       return false;
     }
 
-    if (!parsedAmount || parsedAmount <= 0n || !selectedToken.balance || parsedAmount > selectedToken.balance) {
+    if (
+      !parsedAmount ||
+      parsedAmount <= 0n ||
+      !selectedToken.balance ||
+      parsedAmount > selectedToken.balance
+    ) {
       return false;
     }
 
@@ -171,7 +203,12 @@ const SendTileComponent = () => {
 
     try {
       if (selectedToken.id === null) {
-        console.log("Sending ETH:", formatEther(parsedAmount), "to", recipientAddress);
+        console.log(
+          "Sending ETH:",
+          formatEther(parsedAmount),
+          "to",
+          recipientAddress,
+        );
 
         const hash = await sendTransactionAsync({
           to: recipientAddress as Address,
@@ -179,8 +216,16 @@ const SendTileComponent = () => {
         });
 
         setTxHash(hash);
-      } else if (selectedToken.isCustomPool && selectedToken.symbol === "USDT") {
-        console.log("Sending USDT:", formatUnits(parsedAmount, 6), "to", recipientAddress);
+      } else if (
+        selectedToken.isCustomPool &&
+        selectedToken.symbol === "USDT"
+      ) {
+        console.log(
+          "Sending USDT:",
+          formatUnits(parsedAmount, 6),
+          "to",
+          recipientAddress,
+        );
         console.log("USDT contract address:", USDT_ADDRESS);
         console.log("USDT amount in raw units:", parsedAmount.toString());
 
@@ -210,10 +255,17 @@ const SendTileComponent = () => {
         const hash = await writeContractAsync({
           account: address,
           chainId: mainnet.id,
-          address: selectedToken?.source === "COOKBOOK" ? CookbookAddress : CoinsAddress,
+          address:
+            selectedToken?.source === "COOKBOOK"
+              ? CookbookAddress
+              : CoinsAddress,
           abi: selectedToken?.source === "COOKBOOK" ? CookbookAbi : CoinsAbi,
           functionName: "transfer",
-          args: [recipientAddress as `0x${string}`, selectedToken.id!, parsedAmount],
+          args: [
+            recipientAddress as `0x${string}`,
+            selectedToken.id!,
+            parsedAmount,
+          ],
         });
 
         setTxHash(hash);
@@ -224,7 +276,8 @@ const SendTileComponent = () => {
       if (isUserRejectionError(error)) {
         setTxError(t("create.transaction_rejected"));
       } else {
-        const errorMsg = handleWalletError(error) || t("create.transaction_failed");
+        const errorMsg =
+          handleWalletError(error) || t("create.transaction_failed");
         setTxError(errorMsg);
       }
     }
@@ -246,7 +299,8 @@ const SendTileComponent = () => {
   }, [isSuccess, txHash, refetchEthBalance]);
 
   const percentOfBalance = useMemo((): number => {
-    if (!selectedToken.balance || selectedToken.balance === 0n || !parsedAmount) return 0;
+    if (!selectedToken.balance || selectedToken.balance === 0n || !parsedAmount)
+      return 0;
 
     const percent = Number((parsedAmount * 100n) / selectedToken.balance);
     return Number.isFinite(percent) ? percent : 0;
@@ -266,13 +320,19 @@ const SendTileComponent = () => {
             placeholder="0x..."
             className="w-full px-3 py-2 bg-input border border-border rounded focus:outline-none focus:border-accent"
           />
-          {recipientAddress && (!recipientAddress.startsWith("0x") || recipientAddress.length !== 42) && (
-            <p className="mt-2 text-sm text-destructive font-bold">⚠ {t("create.invalid_address_warning")}</p>
-          )}
+          {recipientAddress &&
+            (!recipientAddress.startsWith("0x") ||
+              recipientAddress.length !== 42) && (
+              <p className="mt-2 text-sm text-destructive font-bold">
+                ⚠ {t("create.invalid_address_warning")}
+              </p>
+            )}
         </div>
 
         <div className="mb-5">
-          <label className="block text-sm font-bold mb-2 font-body">{t("create.asset_to_send").toUpperCase()}:</label>
+          <label className="block text-sm font-bold mb-2 font-body">
+            {t("create.asset_to_send").toUpperCase()}:
+          </label>
           <TokenSelector
             selectedToken={selectedToken}
             tokens={tokens.length > 0 ? tokens : [ETH_TOKEN]}
@@ -284,7 +344,9 @@ const SendTileComponent = () => {
 
         <div className="mb-5">
           <div className="flex justify-between items-center mb-2">
-            <label className="block text-sm font-bold font-body">{t("create.amount").toUpperCase()}:</label>
+            <label className="block text-sm font-bold font-body">
+              {t("create.amount").toUpperCase()}:
+            </label>
             <button
               onClick={handleMaxClick}
               className="px-2 py-1 text-xs uppercase bg-secondary hover:bg-secondary/80 rounded disabled:opacity-50"
@@ -306,7 +368,9 @@ const SendTileComponent = () => {
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2 font-bold text-sm font-body">
               {safeStr(selectedToken.symbol)}
               {selectedToken.isFetching && (
-                <span className="text-xs ml-1 inline-block text-accent animate-spin">⟳</span>
+                <span className="text-xs ml-1 inline-block text-accent animate-spin">
+                  ⟳
+                </span>
               )}
             </div>
           </div>
@@ -315,14 +379,19 @@ const SendTileComponent = () => {
             <div className="mt-2 text-xs font-bold font-body flex justify-between">
               <span>
                 {percentOfBalance > 100 ? (
-                  <span className="text-destructive">⚠ {t("create.insufficient_balance").toUpperCase()}</span>
+                  <span className="text-destructive">
+                    ⚠ {t("create.insufficient_balance").toUpperCase()}
+                  </span>
                 ) : (
                   `${percentOfBalance.toFixed(0)}${t("create.percent_of_balance")}`
                 )}
               </span>
               <span>
-                {t("create.balance").toUpperCase()}: {formatTokenBalance(selectedToken)}{" "}
-                {selectedToken.symbol !== undefined ? safeStr(selectedToken.symbol) : ""}
+                {t("create.balance").toUpperCase()}:{" "}
+                {formatTokenBalance(selectedToken)}{" "}
+                {selectedToken.symbol !== undefined
+                  ? safeStr(selectedToken.symbol)
+                  : ""}
               </span>
             </div>
           )}
@@ -382,7 +451,8 @@ const SendTileComponent = () => {
         {loadError && (
           <div className="mt-4 p-3 border-2 border-destructive bg-card font-body">
             <p className="text-sm font-bold text-destructive">
-              ⚠ {t("create.loading_error").toUpperCase()}: {loadError.toUpperCase()}
+              ⚠ {t("create.loading_error").toUpperCase()}:{" "}
+              {loadError.toUpperCase()}
             </p>
           </div>
         )}

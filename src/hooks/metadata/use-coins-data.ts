@@ -5,7 +5,7 @@ import {
   hydrateRawCoin,
   enrichMetadata,
 } from "./coin-utils";
-import { createPublicClient, http, formatUnits } from "viem";
+import { createPublicClient, http } from "viem";
 import {
   CoinsMetadataHelperAbi,
   CoinsMetadataHelperAddress,
@@ -16,50 +16,6 @@ const publicClient = createPublicClient({
   chain: mainnet,
   transport: http("https://eth-mainnet.g.alchemy.com/v2/demo"),
 });
-
-const ALL_POOLS_QUERY = `
-  query GetCoinPools($limit: Int = 1000) {
-  sales(where: {status_not: FINALIZED}) {
-      items {
-        id
-        status
-        coin {
-          id
-          name
-          symbol
-          description
-          imageUrl
-          tokenURI
-          decimals
-        }
-      }
-    }
-
-    pools(
-      where: { reserve0_not: null }
-      limit: $limit
-      orderBy: "reserve0"
-      orderDirection: "desc"
-    ) {
-      items {
-        id
-        reserve0
-        reserve1
-        price0
-        price1
-        coin1 {
-          id
-          name
-          symbol
-          description
-          imageUrl
-          tokenURI
-          decimals
-        }
-      }
-    }
-  }
-`;
 
 export const getVotesForAllCoins = async () => {
   const data = await fetch(
