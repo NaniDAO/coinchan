@@ -17,10 +17,13 @@ import {
   useWriteContract,
   useWaitForTransactionReceipt,
   useAccount,
+  useBalance,
+  useReadContract,
 } from "wagmi";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { mainnet } from "viem/chains";
 
 export const BuySellCookbookCoin = ({
   coinId,
@@ -46,6 +49,17 @@ export const BuySellCookbookCoin = ({
   const { data: reserves } = useReserves({
     poolId,
     source: "COOKBOOK",
+  });
+  const { data: ethBalance } = useBalance({
+    address: address,
+    chainId: mainnet.id,
+  });
+  const { data: coinBalance } = useReadContract({
+    address: CookbookAddress,
+    abi: CookbookAbi,
+    functionName: "balanceOf",
+    args: address ? [address, coinId] : undefined,
+    chainId: mainnet.id,
   });
 
   const estimated = useMemo(() => {
@@ -96,8 +110,13 @@ export const BuySellCookbookCoin = ({
       const amountIn =
         type === "buy" ? parseEther(amount) : parseUnits(amount, 18);
       const amountOutMin = withSlippage(
-        getAmountOut(amountIn, reserves.reserve0, reserves.reserve1, SWAP_FEE),
-        type === "sell" ? 500n : 200n,
+        getAmountOut(
+          amountIn,
+          type === "buy" ? reserves.reserve0 : reserves.reserve1,
+          type === "buy" ? reserves.reserve1 : reserves.reserve0,
+          SWAP_FEE,
+        ),
+        200n,
       );
 
       const zeroForOne = type === "buy";
@@ -118,6 +137,14 @@ export const BuySellCookbookCoin = ({
     }
   };
 
+  const handleMax = () => {
+    if (tab === "buy" && ethBalance) {
+      setAmount(formatEther(ethBalance.value));
+    } else if (tab === "sell" && coinBalance) {
+      setAmount(formatUnits(coinBalance, 18));
+    }
+  };
+
   return (
     <Tabs value={tab} onValueChange={(v) => setTab(v as "buy" | "sell")}>
       <TabsList>
@@ -131,15 +158,30 @@ export const BuySellCookbookCoin = ({
 
       <TabsContent value="buy">
         <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium">
-            {t("create.using_token", { token: "ETH" })}
-          </span>
-          <Input
-            type="number"
-            placeholder={t("create.amount_token", { token: "ETH" })}
-            value={amount}
-            onChange={(e) => setAmount(e.currentTarget.value)}
-          />
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium">
+              {t("create.using_token", { token: "ETH" })}
+            </span>
+            <span className="text-sm text-gray-500">
+              {t("create.balance")}:{" "}
+              {ethBalance ? formatEther(ethBalance.value) : "0"} ETH
+            </span>
+          </div>
+          <div className="flex gap-2">
+            <Input
+              type="number"
+              placeholder={t("create.amount_token", { token: "ETH" })}
+              value={amount}
+              onChange={(e) => setAmount(e.currentTarget.value)}
+            />
+            <Button
+              variant="outline"
+              onClick={handleMax}
+              className="whitespace-nowrap"
+            >
+              Max
+            </Button>
+          </div>
           <span className="text-sm font-medium">
             {t("create.you_will_receive", { amount: estimated, token: symbol })}
           </span>
@@ -156,15 +198,30 @@ export const BuySellCookbookCoin = ({
 
       <TabsContent value="sell">
         <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium">
-            {t("create.using_token", { token: symbol })}
-          </span>
-          <Input
-            type="number"
-            placeholder={t("create.amount_token", { token: symbol })}
-            value={amount}
-            onChange={(e) => setAmount(e.currentTarget.value)}
-          />
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium">
+              {t("create.using_token", { token: symbol })}
+            </span>
+            <span className="text-sm text-gray-500">
+              {t("create.balance")}:{" "}
+              {coinBalance ? formatUnits(coinBalance, 18) : "0"} {symbol}
+            </span>
+          </div>
+          <div className="flex gap-2">
+            <Input
+              type="number"
+              placeholder={t("create.amount_token", { token: symbol })}
+              value={amount}
+              onChange={(e) => setAmount(e.currentTarget.value)}
+            />
+            <Button
+              variant="outline"
+              onClick={handleMax}
+              className="whitespace-nowrap"
+            >
+              Max
+            </Button>
+          </div>
           <span className="text-sm font-medium">
             {t("create.you_will_receive", { amount: estimated, token: "ETH" })}
           </span>
