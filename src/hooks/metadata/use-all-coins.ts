@@ -113,7 +113,7 @@ async function fetchOtherCoins(
     // metas remains [] if mapping fails
   }
 
-  // now fetch balances in parallel
+  // For each coin, try to get balance from both contracts to ensure we don't miss cookbook coins
   const withBalances = await Promise.all(
     metas.map(async (m) => {
       if (!address) return m;
@@ -126,37 +126,39 @@ async function fetchOtherCoins(
           return m;
         }
 
-        // Try primary contract first
-        let bal: bigint;
+        let bal: bigint = 0n;
+        let actualSource = m.source;
+
+        // Always try Cookbook contract first since we want to catch cookbook coins without pools
         try {
           bal = (await publicClient.readContract({
-            address: m.source === "COOKBOOK" ? CookbookAddress : CoinsAddress,
-            abi: m.source === "COOKBOOK" ? CookbookAbi : CoinsAbi,
+            address: CookbookAddress,
+            abi: CookbookAbi,
             functionName: "balanceOf",
             args: [address, m.id],
           })) as bigint;
-        } catch (primaryError) {
-          // If primary contract fails, try the other contract as fallback
+          actualSource = "COOKBOOK";
+        } catch (cookbookError) {
+          // If Cookbook fails, try Coins contract
           try {
             bal = (await publicClient.readContract({
-              address: m.source === "COOKBOOK" ? CoinsAddress : CookbookAddress,
-              abi: m.source === "COOKBOOK" ? CoinsAbi : CookbookAbi,
+              address: CoinsAddress,
+              abi: CoinsAbi,
               functionName: "balanceOf",
               args: [address, m.id],
             })) as bigint;
-            // If fallback succeeds, update the source to reflect the correct contract
-            m.source = m.source === "COOKBOOK" ? "ZAMM" : "COOKBOOK";
-          } catch (fallbackError) {
+            actualSource = "ZAMM";
+          } catch (coinsError) {
             console.error(`Failed to fetch balance for coin ${m.id} from both contracts:`, {
-              primaryError,
-              fallbackError,
+              cookbookError,
+              coinsError,
               coinData: { id: m.id, source: m.source, symbol: m.symbol }
             });
             return m;
           }
         }
 
-        return { ...m, balance: bal };
+        return { ...m, balance: bal, source: actualSource };
       } catch (error) {
         console.error(`Unexpected error fetching balance for ${m.source} coin ${m.id}:`, error);
         return m;
