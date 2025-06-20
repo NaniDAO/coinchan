@@ -136,52 +136,65 @@ async function fetchOtherCoins(
         const fallbackAbi = m.source === "COOKBOOK" ? CoinsAbi : CookbookAbi;
         const fallbackSource = m.source === "COOKBOOK" ? "ZAMM" : "COOKBOOK";
 
+        // Try both contracts and use the one with non-zero balance
+        let primaryBal: bigint = 0n;
+        let fallbackBal: bigint = 0n;
+        let primaryError: any = null;
+        let fallbackError: any = null;
+
+        // Try primary contract
         try {
-          // Try primary contract
-          bal = (await publicClient.readContract({
+          primaryBal = (await publicClient.readContract({
             address: primaryContract,
             abi: primaryAbi,
             functionName: "balanceOf",
             args: [address, m.id],
           })) as bigint;
+        } catch (error) {
+          primaryError = error;
+        }
 
-          // If primary contract returns 0, also try fallback to see if coin exists there
-          if (bal === 0n) {
-            try {
-              const fallbackBal = (await publicClient.readContract({
-                address: fallbackContract,
-                abi: fallbackAbi,
-                functionName: "balanceOf",
-                args: [address, m.id],
-              })) as bigint;
+        // Always try fallback contract as well
+        try {
+          fallbackBal = (await publicClient.readContract({
+            address: fallbackContract,
+            abi: fallbackAbi,
+            functionName: "balanceOf",
+            args: [address, m.id],
+          })) as bigint;
+        } catch (error) {
+          fallbackError = error;
+        }
 
-              // If fallback has non-zero balance, use that instead
-              if (fallbackBal > 0n) {
-                bal = fallbackBal;
-                actualSource = fallbackSource;
-              }
-            } catch (fallbackError) {
-              // Fallback failed, stick with primary result (which is 0)
-            }
-          }
-        } catch (primaryError) {
-          // Primary contract failed, try fallback
-          try {
-            bal = (await publicClient.readContract({
-              address: fallbackContract,
-              abi: fallbackAbi,
-              functionName: "balanceOf",
-              args: [address, m.id],
-            })) as bigint;
-            actualSource = fallbackSource;
-          } catch (fallbackError) {
-            console.error(`Failed to fetch balance for coin ${m.id} from both contracts:`, {
-              primaryError,
-              fallbackError,
-              coinData: { id: m.id, source: m.source, symbol: m.symbol }
-            });
-            return m;
-          }
+        // Determine which balance to use
+        if (primaryBal > 0n && fallbackBal > 0n) {
+          // Both have balances - this shouldn't happen but use primary
+          bal = primaryBal;
+          actualSource = m.source;
+        } else if (primaryBal > 0n) {
+          // Primary has balance
+          bal = primaryBal;
+          actualSource = m.source;
+        } else if (fallbackBal > 0n) {
+          // Fallback has balance
+          bal = fallbackBal;
+          actualSource = fallbackSource;
+        } else if (!primaryError) {
+          // Primary succeeded with 0 balance
+          bal = primaryBal;
+          actualSource = m.source;
+        } else if (!fallbackError) {
+          // Fallback succeeded with 0 balance
+          bal = fallbackBal;
+          actualSource = fallbackSource;
+        } else {
+          // Both failed
+          console.error(`Failed to fetch balance for coin ${m.id} from both contracts:`, {
+            primaryError,
+            fallbackError,
+            coinData: { id: m.id, source: m.source, symbol: m.symbol }
+          });
+          return m;
         }
 
         return { ...m, balance: bal, source: actualSource };
