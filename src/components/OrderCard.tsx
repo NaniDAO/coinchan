@@ -25,13 +25,15 @@ import { useOperatorStatus } from "@/hooks/use-operator-status";
 interface OrderCardProps {
   order: Order;
   currentUser?: string;
-  onOrderFilled: () => void;
+  onOrderFilled?: () => void;
+  onOrderUpdate?: () => void;
 }
 
 export const OrderCard = ({
   order,
   currentUser,
   onOrderFilled,
+  onOrderUpdate,
 }: OrderCardProps) => {
   const { t } = useTranslation();
   const { address } = useAccount();
@@ -258,7 +260,8 @@ export const OrderCard = ({
     setTimeout(() => {
       setTxHash(undefined);
       setFillAmount("");
-      onOrderFilled();
+      onOrderFilled?.();
+      onOrderUpdate?.();
     }, 2000);
   }
 
@@ -266,7 +269,8 @@ export const OrderCard = ({
   if (isCancelSuccess && cancelTxHash) {
     setTimeout(() => {
       setCancelTxHash(undefined);
-      onOrderFilled(); // This will refresh the orders list
+      onOrderFilled?.(); // This will refresh the orders list
+      onOrderUpdate?.();
     }, 2000);
   }
 

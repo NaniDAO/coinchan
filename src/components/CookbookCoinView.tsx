@@ -12,6 +12,8 @@ import { CoinInfoCard } from "./CoinInfoCard";
 import { useReadContract } from "wagmi";
 import { mainnet } from "viem/chains";
 import { CheckTheChainAbi, CheckTheChainAddress } from "@/constants/CheckTheChain";
+import { P2PTradingToggle } from "./P2PTradingToggle";
+import { useCoinSale } from "@/hooks/use-coin-sale";
 
 export const CookbookCoinView = ({ coinId }: { coinId: bigint }) => {
   const { data, isLoading: isLoadingGetCoin } = useGetCoin({
@@ -27,6 +29,7 @@ export const CookbookCoinView = ({ coinId }: { coinId: bigint }) => {
       staleTime: 60_000,
     },
   });
+  const { data: sale } = useCoinSale({ coinId: coinId.toString() });
 
   const [name, symbol, imageUrl, description, tokenURI, poolId, swapFee] = useMemo(() => {
     if (!data) return ["", "", "", "", "", undefined, 100n];
@@ -44,6 +47,33 @@ export const CookbookCoinView = ({ coinId }: { coinId: bigint }) => {
 
     return data.marketCapEth * ethPriceUsd;
   }, [data, ethPriceData]);
+
+  // Determine if launchpad sale is still active
+  const isLaunchpadActive = useMemo(() => {
+    if (!sale) return false;
+    
+    // Check if sale is finalized
+    if (sale.status === "FINALIZED") return false;
+    
+    // Check if any tranche is still active
+    const hasActiveTranches = sale.tranches.items.some(
+      (tranche: any) =>
+        BigInt(tranche.remaining) > 0n && 
+        Number(tranche.deadline) * 1000 > Date.now()
+    );
+    
+    // Check overall deadline if available
+    const overallDeadlineActive = !sale.deadlineLast || 
+      Number(sale.deadlineLast) * 1000 > Date.now();
+    
+    return hasActiveTranches && overallDeadlineActive;
+  }, [sale]);
+
+  // Get the last deadline for display
+  const launchpadEndTime = useMemo(() => {
+    if (!sale?.deadlineLast) return undefined;
+    return Number(sale.deadlineLast);
+  }, [sale]);
 
   console.log("CoinInfoCard:", {
     data: {
@@ -86,6 +116,19 @@ export const CookbookCoinView = ({ coinId }: { coinId: bigint }) => {
       <ErrorBoundary fallback={<BuySellFallback tokenId={BigInt(coinId)} name={name} symbol={symbol} />}>
         <div className="max-w-2xl">
           <BuyCoinSale coinId={coinId} symbol={symbol.length === 0 ? name : symbol} />
+        </div>
+      </ErrorBoundary>
+      
+      {/* P2P Trading Toggle */}
+      <ErrorBoundary fallback={<ErrorFallback errorMessage="Error rendering P2P trading panel" />}>
+        <div className="max-w-2xl">
+          <P2PTradingToggle
+            cookbookCoinId={coinId}
+            cookbookSymbol={symbol.length === 0 ? name : symbol}
+            cookbookName={name}
+            isLaunchpadActive={isLaunchpadActive}
+            launchpadEndTime={launchpadEndTime}
+          />
         </div>
       </ErrorBoundary>
       <ErrorBoundary fallback={<ErrorFallback errorMessage="Error rendering voting panel" />}>
