@@ -126,15 +126,39 @@ async function fetchOtherCoins(
           return m;
         }
 
-        const bal = (await publicClient.readContract({
-          address: m.source === "COOKBOOK" ? CookbookAddress : CoinsAddress,
-          abi: m.source === "COOKBOOK" ? CookbookAbi : CoinsAbi,
-          functionName: "balanceOf",
-          args: [address, m.id],
-        })) as bigint;
+        // Try primary contract first
+        let bal: bigint;
+        try {
+          bal = (await publicClient.readContract({
+            address: m.source === "COOKBOOK" ? CookbookAddress : CoinsAddress,
+            abi: m.source === "COOKBOOK" ? CookbookAbi : CoinsAbi,
+            functionName: "balanceOf",
+            args: [address, m.id],
+          })) as bigint;
+        } catch (primaryError) {
+          // If primary contract fails, try the other contract as fallback
+          try {
+            bal = (await publicClient.readContract({
+              address: m.source === "COOKBOOK" ? CoinsAddress : CookbookAddress,
+              abi: m.source === "COOKBOOK" ? CoinsAbi : CookbookAbi,
+              functionName: "balanceOf",
+              args: [address, m.id],
+            })) as bigint;
+            // If fallback succeeds, update the source to reflect the correct contract
+            m.source = m.source === "COOKBOOK" ? "ZAMM" : "COOKBOOK";
+          } catch (fallbackError) {
+            console.error(`Failed to fetch balance for coin ${m.id} from both contracts:`, {
+              primaryError,
+              fallbackError,
+              coinData: { id: m.id, source: m.source, symbol: m.symbol }
+            });
+            return m;
+          }
+        }
 
         return { ...m, balance: bal };
-      } catch {
+      } catch (error) {
+        console.error(`Unexpected error fetching balance for ${m.source} coin ${m.id}:`, error);
         return m;
       }
     }),
