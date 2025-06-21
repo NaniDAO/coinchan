@@ -10,6 +10,7 @@ export const config = getDefaultConfig({
   transports: {
     [mainnet.id]: fallback([
       http(import.meta.env.VITE_DRPC_1),
+      http(import.meta.env.VITE_ALCHEMY_1),
       http("https://cloudflare-eth.com"),
     ]),
   },
