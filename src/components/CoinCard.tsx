@@ -54,9 +54,9 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
   const displayName = coin.name || `Token ${coin.coinId.toString()}`;
   const displaySymbol = coin.symbol || "TKN";
 
-  // Get the overall sale finalization deadline
+  // Get the overall sale finalization deadline (only show for active sales)
   const saleDeadline = saleData?.deadlineLast;
-  const deadlineInfo = saleDeadline
+  const deadlineInfo = saleDeadline && saleData?.status !== "FINALIZED"
     ? formatDeadline(Number(saleDeadline))
     : null;
   // FIX: Centralized image URL resolution logic for clarity and maintainability.
@@ -141,16 +141,18 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
         {deadlineInfo && (
           <div
             className={cn(
-              "flex items-center gap-1 px-2 py-1 text-xs font-mono font-bold rounded-full",
-              deadlineInfo.urgency === "expired" &&
-                "bg-destructive text-destructive-foreground",
-              deadlineInfo.urgency === "urgent" &&
-                "bg-orange-500 text-white animate-pulse",
-              deadlineInfo.urgency === "warning" && "bg-yellow-500 text-black",
-              deadlineInfo.urgency === "normal" && "bg-green-500 text-white",
+              "flex items-center gap-1 px-2 py-1 text-xs font-mono font-bold border-2 shadow-[2px_2px_0_var(--border)] bg-card",
+              deadlineInfo.urgency === "expired" && 
+                "border-destructive text-destructive bg-destructive/10",
+              deadlineInfo.urgency === "urgent" && 
+                "border-orange-500 text-orange-700 dark:text-orange-300 bg-orange-500/10 animate-pulse",
+              deadlineInfo.urgency === "warning" && 
+                "border-yellow-500 text-yellow-700 dark:text-yellow-300 bg-yellow-500/10",
+              deadlineInfo.urgency === "normal" && 
+                "border-green-500 text-green-700 dark:text-green-300 bg-green-500/10",
             )}
           >
-            <Clock size={10} />
+            <Clock size={12} />
             {deadlineInfo.text}
           </div>
         )}

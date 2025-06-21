@@ -276,11 +276,15 @@ export const BuyCoinSale = ({
       {/* Sale deadline banner */}
       {saleDeadlineInfo && (
         <div className={cn(
-          "mx-6 mb-4 p-3 rounded-lg border font-mono text-sm font-bold flex items-center gap-2",
-          saleDeadlineInfo.urgency === "expired" && "bg-destructive/20 border-destructive text-destructive",
-          saleDeadlineInfo.urgency === "urgent" && "bg-orange-500/20 border-orange-500 text-orange-700 dark:text-orange-300",
-          saleDeadlineInfo.urgency === "warning" && "bg-yellow-500/20 border-yellow-500 text-yellow-700 dark:text-yellow-300",
-          saleDeadlineInfo.urgency === "normal" && "bg-green-500/20 border-green-500 text-green-700 dark:text-green-300"
+          "mx-6 mb-4 p-3 border-2 font-mono text-sm font-bold flex items-center gap-2 shadow-[4px_4px_0_var(--border)] bg-card",
+          saleDeadlineInfo.urgency === "expired" && 
+            "border-destructive text-destructive bg-destructive/10",
+          saleDeadlineInfo.urgency === "urgent" && 
+            "border-orange-500 text-orange-700 dark:text-orange-300 bg-orange-500/10 animate-pulse",
+          saleDeadlineInfo.urgency === "warning" && 
+            "border-yellow-500 text-yellow-700 dark:text-yellow-300 bg-yellow-500/10",
+          saleDeadlineInfo.urgency === "normal" && 
+            "border-green-500 text-green-700 dark:text-green-300 bg-green-500/10"
         )}>
           <Clock size={16} />
           {saleDeadlineInfo.urgency === "expired" ? "Sale finalization deadline expired" : `Sale finalization deadline: ${saleDeadlineInfo.text}`}
