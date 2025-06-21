@@ -7,6 +7,7 @@ import {
 } from "../hooks/use-landing-data";
 import { useProtocolStats } from "../hooks/use-protocol-stats";
 import { Card } from "./ui/card";
+import { SwapModal } from "./SwapModal";
 
 interface LandingPageProps {
   onEnterApp?: () => void;
@@ -157,7 +158,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
 
       <div className="ascii-divider">════════════════════════════════════</div>
 
-      {/* <SwapModal /> */}
+      <SwapModal />
       <p className="text-center my-5 text-xs tracking-wider">
         {t("landing.features")}
       </p>
