@@ -479,11 +479,11 @@ export const SwapAction = () => {
       const tokenInAddress =
         sellToken.id === null
           ? "0x0000000000000000000000000000000000000000"
-          : CoinsAddress;
+          : sellToken.id < 1000000n ? CookbookAddress : CoinsAddress;
       const tokenOutAddress =
         buyToken.id === null
           ? "0x0000000000000000000000000000000000000000"
-          : CoinsAddress;
+          : buyToken.id < 1000000n ? CookbookAddress : CoinsAddress;
       const idIn = sellToken.id || 0n;
       const idOut = buyToken.id || 0n;
 
@@ -503,8 +503,8 @@ export const SwapAction = () => {
         value?: bigint;
       }> = [];
 
-      // For non-ETH tokens, ensure operator approval first
-      if (sellToken.id !== null && !isOperator) {
+      // For non-ETH, non-cookbook tokens, ensure operator approval first
+      if (sellToken.id !== null && sellToken.id >= 1000000n && !isOperator) {
         const approvalData = encodeFunctionData({
           abi: CoinsAbi,
           functionName: "setOperator",
