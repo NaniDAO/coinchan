@@ -47,11 +47,11 @@ type CoinData = {
   description: string;
   imageUrl: string;
   decimals: number;
-  poolId: string;
+  poolId: string | null;
   reserve0: string;
   reserve1: string;
   priceInEth: string;
-  saleStatus: string;
+  saleStatus: string | null;
   swapFee: string;
   votes: string;
 };
@@ -98,7 +98,7 @@ async function fetchOtherCoins(
         reserve0: c.reserve0 !== null ? BigInt(c.reserve0) : undefined,
         reserve1: c.reserve1 !== null ? BigInt(c.reserve1) : undefined,
         poolId: c.poolId ? BigInt(c.poolId) : undefined,
-        source: c.saleStatus === null ? "ZAMM" : "COOKBOOK",
+        source: BigInt(c.coinId) < 1000000n ? "COOKBOOK" : "ZAMM",
         liquidity: 0n, // your subgraph doesn’t track total liquidity?
         swapFee: c.swapFee !== null ? BigInt(c.swapFee) : SWAP_FEE, // basis points
         balance: 0n, // to be filled in next step
@@ -113,7 +113,7 @@ async function fetchOtherCoins(
     // metas remains [] if mapping fails
   }
 
-  // For each coin, try to get balance from both contracts to ensure we don't miss cookbook coins
+  // For each coin, get balance from the correct contract based on coin ID
   const withBalances = await Promise.all(
     metas.map(async (m) => {
       if (!address) return m;
@@ -127,64 +127,25 @@ async function fetchOtherCoins(
         }
 
         let bal: bigint = 0n;
-        let actualSource = m.source;
 
-        // Try primary contract first based on original source identification
-        const primaryContract = m.source === "COOKBOOK" ? CookbookAddress : CoinsAddress;
-        const primaryAbi = m.source === "COOKBOOK" ? CookbookAbi : CoinsAbi;
-        const fallbackContract = m.source === "COOKBOOK" ? CoinsAddress : CookbookAddress;
-        const fallbackAbi = m.source === "COOKBOOK" ? CoinsAbi : CookbookAbi;
-        const fallbackSource = m.source === "COOKBOOK" ? "ZAMM" : "COOKBOOK";
+        // Use ID-based source determination - much simpler and more reliable
+        const isBookCoin = m.id < 1000000n;
+        const contractAddress = isBookCoin ? CookbookAddress : CoinsAddress;
+        const contractAbi = isBookCoin ? CookbookAbi : CoinsAbi;
 
         try {
-          // Try primary contract
           bal = (await publicClient.readContract({
-            address: primaryContract,
-            abi: primaryAbi,
+            address: contractAddress,
+            abi: contractAbi,
             functionName: "balanceOf",
             args: [address, m.id],
           })) as bigint;
-
-          // If primary contract returns 0, also try fallback to see if coin exists there
-          if (bal === 0n) {
-            try {
-              const fallbackBal = (await publicClient.readContract({
-                address: fallbackContract,
-                abi: fallbackAbi,
-                functionName: "balanceOf",
-                args: [address, m.id],
-              })) as bigint;
-
-              // If fallback has non-zero balance, use that instead
-              if (fallbackBal > 0n) {
-                bal = fallbackBal;
-                actualSource = fallbackSource;
-              }
-            } catch (fallbackError) {
-              // Fallback failed, stick with primary result (which is 0)
-            }
-          }
-        } catch (primaryError) {
-          // Primary contract failed, try fallback
-          try {
-            bal = (await publicClient.readContract({
-              address: fallbackContract,
-              abi: fallbackAbi,
-              functionName: "balanceOf",
-              args: [address, m.id],
-            })) as bigint;
-            actualSource = fallbackSource;
-          } catch (fallbackError) {
-            console.error(`Failed to fetch balance for coin ${m.id} from both contracts:`, {
-              primaryError,
-              fallbackError,
-              coinData: { id: m.id, source: m.source, symbol: m.symbol }
-            });
-            return m;
-          }
+        } catch (error) {
+          console.error(`Failed to fetch balance for ${m.source} coin ${m.id}:`, error);
+          return m;
         }
 
-        return { ...m, balance: bal, source: actualSource };
+        return { ...m, balance: bal };
       } catch (error) {
         console.error(`Unexpected error fetching balance for ${m.source} coin ${m.id}:`, error);
         return m;
@@ -330,9 +291,14 @@ async function originalFetchOtherCoins(
 
     let balance = 0n;
     if (address) {
+      // Use same ID-based logic as GraphQL approach
+      const isBookCoin = coinId < 1000000n;
+      const contractAddress = isBookCoin ? CookbookAddress : CoinsAddress;
+      const contractAbi = isBookCoin ? CookbookAbi : CoinsAbi;
+      
       balance = (await publicClient.readContract({
-        address: CoinsAddress,
-        abi: CoinsAbi,
+        address: contractAddress,
+        abi: contractAbi,
         functionName: "balanceOf",
         args: [address, coinId],
       })) as bigint;
@@ -349,6 +315,7 @@ async function originalFetchOtherCoins(
       liquidity: BigInt(liq || 0),
       swapFee,
       balance,
+      source: coinId < 1000000n ? "COOKBOOK" : "ZAMM",
     } as TokenMeta;
   });
   const coins = (await Promise.all(coinPromises)).filter(Boolean);
