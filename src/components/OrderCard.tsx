@@ -125,7 +125,8 @@ export const OrderCard = ({
       const value = tokenOutId === null ? fillAmountBigInt : 0n;
 
       // If filling with tokens (not ETH), may need operator approval
-      if (tokenOutId !== null && isOperator === false) {
+      // Skip setOperator for cookbook coins since they don't require approval
+      if (tokenOutId !== null && isOperator === false && tokenOut?.source !== "COOKBOOK") {
         // Check if we need to set operator approval
         // This would require checking current approval status
         // For now, we'll include it as it's safer
