@@ -21,6 +21,8 @@ import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
 import { mainnet } from "viem/chains";
 import { handleWalletError } from "@/lib/errors";
 import { useOperatorStatus } from "@/hooks/use-operator-status";
+import { useErc20TokenInfo } from "@/hooks/use-erc20-token-info";
+import { createErc20TokenMeta } from "@/lib/coins";
 
 interface OrderCardProps {
   order: Order;
@@ -55,14 +57,74 @@ export const OrderCard = ({
   const publicClient = usePublicClient({
     chainId: mainnet.id,
   });
+  
   // Parse order data
   const tokenInId = order.idIn === "0" ? null : BigInt(order.idIn);
   const tokenOutId = order.idOut === "0" ? null : BigInt(order.idOut);
 
-  const tokenIn =
-    tokenInId === null ? ETH_TOKEN : tokens.find((t) => t.id === tokenInId);
-  const tokenOut =
-    tokenOutId === null ? ETH_TOKEN : tokens.find((t) => t.id === tokenOutId);
+  // Check if we need to fetch ERC20 token info for unknown tokens
+  const isTokenInUnknownErc20 = (tokenInId === null || tokenInId === 0n) && 
+    order.tokenIn !== "0x0000000000000000000000000000000000000000" &&
+    !tokens.find((t) => t.isErc20Token && t.erc20Address?.toLowerCase() === order.tokenIn.toLowerCase());
+    
+  const isTokenOutUnknownErc20 = (tokenOutId === null || tokenOutId === 0n) && 
+    order.tokenOut !== "0x0000000000000000000000000000000000000000" &&
+    !tokens.find((t) => t.isErc20Token && t.erc20Address?.toLowerCase() === order.tokenOut.toLowerCase());
+
+  // Fetch ERC20 token info for unknown tokens
+  const { data: tokenInErc20Info } = useErc20TokenInfo(isTokenInUnknownErc20 ? order.tokenIn : undefined);
+  const { data: tokenOutErc20Info } = useErc20TokenInfo(isTokenOutUnknownErc20 ? order.tokenOut : undefined);
+
+  // Helper function to resolve tokens - handles both regular tokens and ERC20 tokens
+  const resolveToken = (tokenAddress: string, tokenId: bigint | null, erc20Info?: any) => {
+    // ETH case (zero address)
+    if (tokenAddress === "0x0000000000000000000000000000000000000000") {
+      return ETH_TOKEN;
+    }
+    
+    // For id0 tokens, this could be an ERC20 token - check by address
+    if (tokenId === null || tokenId === 0n) {
+      // First try to find by ERC20 address in existing tokens
+      const erc20Token = tokens.find((t) => t.isErc20Token && t.erc20Address?.toLowerCase() === tokenAddress.toLowerCase());
+      if (erc20Token) {
+        return erc20Token;
+      }
+      
+      // If not found and we have ERC20 info, create a temporary TokenMeta
+      if (erc20Info) {
+        return createErc20TokenMeta(
+          erc20Info.address,
+          erc20Info.symbol,
+          erc20Info.decimals,
+          erc20Info.name
+        );
+      }
+      
+      // If not found as ERC20, return ETH_TOKEN for null ID
+      if (tokenId === null) {
+        return ETH_TOKEN;
+      }
+      
+      // For id0 non-ERC20 tokens, fall through to regular lookup
+    }
+    
+    // Regular token lookup by ID
+    return tokens.find((t) => t.id === tokenId);
+  };
+
+  const tokenIn = resolveToken(order.tokenIn, tokenInId, tokenInErc20Info);
+  const tokenOut = resolveToken(order.tokenOut, tokenOutId, tokenOutErc20Info);
+
+  // Early return if we can't resolve tokens
+  if (!tokenIn || !tokenOut) {
+    return (
+      <Card className="p-4">
+        <div className="text-center text-muted-foreground">
+          {t("orders.loading_token_info")}
+        </div>
+      </Card>
+    );
+  }
 
   const amtIn = BigInt(order.amtIn);
   const amtOut = BigInt(order.amtOut);
