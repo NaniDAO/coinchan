@@ -7,7 +7,9 @@ import { SearchIcon } from "lucide-react";
 import { CoinData } from "./hooks/metadata/coin-utils";
 import { debounce } from "./lib/utils";
 import { useTranslation } from "react-i18next";
-import { formatEther } from "viem";
+import { formatEther, isAddress } from "viem";
+import { useErc20TokenInfo } from "./hooks/use-erc20-token-info";
+import { createErc20TokenMeta } from "./lib/coins";
 
 // Page size for pagination
 const PAGE_SIZE = 20;
@@ -28,19 +30,73 @@ export const Coins = () => {
   const { coins, allCoins, page, goToNextPage, isLoading, setPage } = usePagedCoins(PAGE_SIZE);
 
   /* ------------------------------------------------------------------
-   *  Search handling
+   *  Search handling - trimmed query
    * ------------------------------------------------------------------ */
   // 1) memoize the trimmed query
   const trimmedQuery = useMemo(() => searchQuery.trim().toLowerCase(), [searchQuery]);
+
+  /* ------------------------------------------------------------------
+   *  ERC20 token detection and info fetching
+   * ------------------------------------------------------------------ */
+  // Check if the search query is a valid Ethereum address
+  const isSearchingForAddress = useMemo(() => {
+    return trimmedQuery.length > 0 && isAddress(trimmedQuery);
+  }, [trimmedQuery]);
+
+  // Fetch ERC20 token info when searching for an address
+  const { data: erc20TokenInfo, isLoading: isErc20Loading } = useErc20TokenInfo(
+    isSearchingForAddress ? trimmedQuery : undefined
+  );
+
+  // Convert ERC20 token info to CoinData format for display
+  const erc20CoinData = useMemo((): CoinData | null => {
+    if (!erc20TokenInfo) return null;
+    
+    const tokenMeta = createErc20TokenMeta(
+      erc20TokenInfo.address,
+      erc20TokenInfo.symbol,
+      erc20TokenInfo.decimals,
+      erc20TokenInfo.name
+    );
+    
+    // Convert TokenMeta to CoinData format expected by the display components
+    return {
+      coinId: 0n, // Use 0n as bigint for ERC20 tokens
+      tokenURI: tokenMeta.tokenUri || "",
+      name: tokenMeta.name,
+      symbol: tokenMeta.symbol,
+      description: `ERC20 Token: ${erc20TokenInfo.address}`,
+      imageUrl: tokenMeta.tokenUri || "",
+      decimals: erc20TokenInfo.decimals,
+      poolId: undefined,
+      reserve0: 0n,
+      reserve1: 0n,
+      liquidity: 0n, // Add missing liquidity property
+      priceInEth: 0,
+      saleStatus: null,
+      swapFee: "0",
+      votes: 0n,
+      // Add ERC20-specific metadata
+      isErc20Token: true,
+      erc20Address: erc20TokenInfo.address,
+    } as CoinData & { isErc20Token: boolean; erc20Address: string };
+  }, [erc20TokenInfo]);
+
+  /* ------------------------------------------------------------------
+   *  Search handling
+   * ------------------------------------------------------------------ */
 
   // 2) derive `searchResults` (and "active" flag) purely from inputs
   const searchResults = useMemo(() => {
     if (!trimmedQuery) return [];
 
+    // If searching for an ERC20 address and we have token info, include it
+    const erc20Results = erc20CoinData ? [erc20CoinData] : [];
+
     // Use the full dataset when it's loaded, fall back to paged data while waiting
     const dataToSearch = allCoins && allCoins.length > 0 ? allCoins : coins;
 
-    return dataToSearch.filter((coin) => {
+    const regularResults = dataToSearch.filter((coin) => {
       // Split the search query into words for multi-term searching
       const searchTerms = trimmedQuery.split(/\s+/).filter((term) => term.length > 0);
 
@@ -70,7 +126,10 @@ export const Coins = () => {
         );
       });
     });
-  }, [trimmedQuery, allCoins, coins]);
+
+    // Combine ERC20 results with regular results, ERC20 first
+    return [...erc20Results, ...regularResults];
+  }, [trimmedQuery, allCoins, coins, erc20CoinData]);
 
   const isSearchActive = Boolean(trimmedQuery);
 
@@ -253,7 +312,13 @@ export const Coins = () => {
    * ------------------------------------------------------------------ */
   const filterValidCoins = useCallback((coinsList: CoinData[]): CoinData[] => {
     return coinsList.filter(
-      (coin) => coin && coin.coinId !== undefined && coin.coinId !== null && Number(coin.coinId) > 0, // Exclude ID 0 and any negative IDs
+      (coin) => {
+        // Allow ERC20 tokens (they have coinId "0" as string and isErc20Token flag)
+        if ((coin as any).isErc20Token) return true;
+        
+        // For regular coins, exclude ID 0 and any negative IDs
+        return coin && coin.coinId !== undefined && coin.coinId !== null && Number(coin.coinId) > 0;
+      }
     );
   }, []);
 
@@ -337,7 +402,7 @@ export const Coins = () => {
         }
         onPrev={debouncedPrevPage}
         onNext={debouncedNextPage}
-        isLoading={isLoading || (sortType === "recency" && isChronologicalLoading)}
+        isLoading={isLoading || (sortType === "recency" && isChronologicalLoading) || (isSearchingForAddress && isErc20Loading)}
         currentPage={page + 1}
         totalPages={Math.max(
           1,

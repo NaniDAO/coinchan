@@ -1,10 +1,11 @@
 import { TokenMeta, USDT_ADDRESS } from "@/lib/coins";
-import { memo, useState } from "react";
+import { memo, useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { formatEther, formatUnits } from "viem";
+import { formatEther, formatUnits, isAddress } from "viem";
 import { TokenImage } from "./TokenImage";
 import { cn } from "@/lib/utils";
 import { ChevronDownIcon, SearchIcon } from "lucide-react";
+import { useErc20TokenMeta } from "@/hooks/use-erc20-token-meta";
 
 export const TokenSelector = memo(
   ({
@@ -22,12 +23,40 @@ export const TokenSelector = memo(
   }) => {
     const { t } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
     const selectedValue = selectedToken.id?.toString() ?? "eth";
+
+    // Check if the search query is a valid Ethereum address
+    const isSearchingForAddress = useMemo(() => {
+      return searchQuery.trim().length > 0 && isAddress(searchQuery.trim());
+    }, [searchQuery]);
+
+    // Fetch ERC20 token info when searching for an address
+    const { data: erc20TokenMeta, isLoading: isErc20Loading } = useErc20TokenMeta(
+      isSearchingForAddress ? searchQuery.trim() : undefined
+    );
+
+    // Combine regular tokens with ERC20 token if found
+    const allTokens = useMemo(() => {
+      const baseTokens = [...tokens];
+      if (erc20TokenMeta && !tokens.find(t => t.token1 === erc20TokenMeta.token1)) {
+        // Add ERC20 token to the list if it's not already present
+        baseTokens.unshift(erc20TokenMeta);
+      }
+      return baseTokens;
+    }, [tokens, erc20TokenMeta]);
 
     // Handle selection change
     const handleSelect = (token: TokenMeta) => {
       onSelect(token);
       setIsOpen(false);
+      setSearchQuery(""); // Reset search when closing
+    };
+
+    // Handle dropdown close
+    const handleClose = () => {
+      setIsOpen(false);
+      setSearchQuery(""); // Reset search when closing
     };
 
     // Helper functions for formatting and display
@@ -95,7 +124,7 @@ export const TokenSelector = memo(
       <div className="relative">
         {/* Selected token display with thumbnail */}
         <div
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={() => isOpen ? handleClose() : setIsOpen(true)}
           className={cn(
             "z-10 hover:bg-muted flex items-center gap-2 cursor-pointer px-2 py-1 touch-manipulation border border-border transition-colors",
             className,
@@ -136,8 +165,11 @@ export const TokenSelector = memo(
                 <input
                   type="text"
                   placeholder={t("tokenSelector.search_tokens")}
+                  value={searchQuery}
                   onChange={(e) => {
-                    const query = e.target.value.toLowerCase();
+                    const value = e.target.value;
+                    setSearchQuery(value);
+                    const query = value.toLowerCase();
                     const isStableSearch =
                       query === "usdt" || query === "tether" || query.includes("stable") || query.includes("usd");
 
@@ -207,7 +239,12 @@ export const TokenSelector = memo(
             </div>
 
             <div className="bg-background z-10 content-visibility-auto intrinsic-h-[5000px] contain-content">
-              {tokens.map((token) => {
+              {isErc20Loading && isSearchingForAddress && (
+                <div className="flex items-center justify-center p-4">
+                  <span className="text-sm text-muted-foreground">Loading ERC20 token info...</span>
+                </div>
+              )}
+              {allTokens.map((token) => {
                 const isSelected =
                   (token.id === null && selectedValue === "eth") ||
                   (token.id !== null && token.id.toString() === selectedValue);

@@ -38,6 +38,9 @@ export interface TokenMeta {
   token0?: `0x${string}`; // Address of token0 (ETH = address(0))
   token1?: `0x${string}`; // Address of token1 (e.g., USDT address)
   decimals?: number; // Number of decimals for the token
+  // ERC20 specific fields
+  isErc20Token?: boolean; // Flag to identify ERC20 tokens
+  erc20Address?: `0x${string}`; // The actual ERC20 contract address
 }
 
 const ETH_SVG = `<svg fill="#000000" width="800px" height="800px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
@@ -156,5 +159,43 @@ export function computeCoinId(
   return {
     id: BigInt(addressHex),
     address: getAddress(addressHex),
+  };
+}
+
+// Generic ERC20 token SVG icon - coin-shaped with TKN text, black and white for light/dark mode compatibility
+const ERC20_TOKEN_SVG = `<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+<circle cx="16" cy="16" r="15" fill="none" stroke="currentColor" stroke-width="2"/>
+<circle cx="16" cy="16" r="13" fill="currentColor" opacity="0.1"/>
+<text x="16" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="currentColor">TKN</text>
+</svg>`;
+
+/**
+ * Creates a TokenMeta object for a custom ERC20 token with id0
+ * @param address ERC20 token contract address
+ * @param symbol Token symbol from contract
+ * @param decimals Token decimals from contract
+ * @param name Optional token name from contract
+ * @returns TokenMeta object for the ERC20 token
+ */
+export function createErc20TokenMeta(
+  address: Address,
+  symbol: string,
+  decimals: number,
+  name?: string
+): TokenMeta {
+  return {
+    id: 0n, // Use id0 for ERC20 tokens as specified
+    name: name || `ERC20 Token (${symbol})`,
+    symbol,
+    source: "ZAMM", // Use ZAMM as the source for ERC20 tokens
+    tokenUri: `data:image/svg+xml;base64,${btoa(ERC20_TOKEN_SVG)}`,
+    decimals,
+    balance: 0n, // Will be updated with actual balance
+    token0: zeroAddress, // ETH address (for potential pools)
+    token1: address, // ERC20 token address
+    // Mark this as a custom ERC20 token
+    isCustomPool: true,
+    isErc20Token: true,
+    erc20Address: address,
   };
 }

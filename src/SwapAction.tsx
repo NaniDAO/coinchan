@@ -43,6 +43,8 @@ import { useBatchingSupported } from "./hooks/use-batching-supported";
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
 import { useReadContract } from "wagmi";
 import { cn } from "./lib/utils";
+import { useErc20Allowance } from "./hooks/use-erc20-allowance";
+import { erc20Abi } from "viem";
 
 export const SwapAction = () => {
   const { t } = useTranslation();
@@ -98,6 +100,27 @@ export const SwapAction = () => {
     isPending,
     error: writeError,
   } = useSendTransaction();
+
+  // ERC20 allowance check for sell token when creating limit orders
+  const { 
+    allowance: sellTokenAllowance, 
+    approveMax: approveSellToken, 
+    isApproving: isApprovingSellToken
+  } = useErc20Allowance({
+    token: sellToken?.isErc20Token ? sellToken.erc20Address! : "0x0000000000000000000000000000000000000000",
+    spender: CookbookAddress,
+  });
+
+  // Check if ERC20 approval is needed for limit orders
+  const needsErc20Approval = useMemo(() => {
+    if (swapMode !== "limit" || !sellToken.isErc20Token || !sellAmt) return false;
+    try {
+      const sellAmountParsed = parseUnits(sellAmt, sellToken.decimals || 18);
+      return !sellTokenAllowance || sellTokenAllowance < sellAmountParsed;
+    } catch {
+      return false;
+    }
+  }, [swapMode, sellToken.isErc20Token, sellAmt, sellToken.decimals, sellTokenAllowance]);
   const { sendCalls } = useSendCalls();
   const isBatchingSupported = useBatchingSupported();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
@@ -476,12 +499,14 @@ export const SwapAction = () => {
         Math.floor(Date.now() / 1000) + deadline * 24 * 60 * 60;
 
       // Prepare token addresses and IDs
-      const tokenInAddress =
-        sellToken.id === null
+      const tokenInAddress = sellToken.isErc20Token
+        ? sellToken.erc20Address! // Use actual ERC20 contract address
+        : sellToken.id === null
           ? "0x0000000000000000000000000000000000000000"
           : sellToken.id < 1000000n ? CookbookAddress : CoinsAddress;
-      const tokenOutAddress =
-        buyToken.id === null
+      const tokenOutAddress = buyToken.isErc20Token
+        ? buyToken.erc20Address! // Use actual ERC20 contract address
+        : buyToken.id === null
           ? "0x0000000000000000000000000000000000000000"
           : buyToken.id < 1000000n ? CookbookAddress : CoinsAddress;
       const idIn = sellToken.id || 0n;
@@ -503,17 +528,35 @@ export const SwapAction = () => {
         value?: bigint;
       }> = [];
 
-      // For non-ETH, non-cookbook tokens, ensure operator approval first
-      if (sellToken.id !== null && sellToken.id >= 1000000n && !isOperator) {
-        const approvalData = encodeFunctionData({
-          abi: CoinsAbi,
-          functionName: "setOperator",
-          args: [CookbookAddress, true],
-        });
-        calls.push({
-          to: CoinsAddress,
-          data: approvalData,
-        });
+      // For non-ETH tokens, ensure proper approval first
+      if (sellToken.id !== null) {
+        if (sellToken.isErc20Token) {
+          // For ERC20 tokens, check if we need ERC20 approval
+          const sellAmountParsed = parseUnits(sellAmt, sellToken.decimals || 18);
+          if (!sellTokenAllowance || sellTokenAllowance < sellAmountParsed) {
+            // Need ERC20 approval first - use max approval for better UX
+            const approvalData = encodeFunctionData({
+              abi: erc20Abi,
+              functionName: "approve",
+              args: [CookbookAddress, 2n ** 256n - 1n], // max uint256
+            });
+            calls.push({
+              to: sellToken.erc20Address!,
+              data: approvalData,
+            });
+          }
+        } else if (sellToken.id >= 1000000n && !isOperator) {
+          // For regular coins, ensure operator approval
+          const approvalData = encodeFunctionData({
+            abi: CoinsAbi,
+            functionName: "setOperator",
+            args: [CookbookAddress, true],
+          });
+          calls.push({
+            to: CoinsAddress,
+            data: approvalData,
+          });
+        }
       }
 
       // Encode the makeOrder function call
@@ -844,15 +887,37 @@ export const SwapAction = () => {
       )}
 
       {/* ACTION BUTTON */}
-      <button
-        onClick={swapMode === "instant" ? executeSwap : createOrder}
-        disabled={
-          !isConnected ||
-          !sellAmt ||
-          isPending ||
-          (swapMode === "instant" && !canSwap) ||
-          (swapMode === "limit" && (!buyAmt || !buyToken))
-        }
+      {needsErc20Approval ? (
+        <button
+          onClick={approveSellToken}
+          disabled={!isConnected || isApprovingSellToken}
+          className={`mt-2 button text-base px-8 py-4 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg transform transition-all duration-200
+            ${
+              !isConnected || isApprovingSellToken
+                ? "opacity-50 cursor-not-allowed"
+                : "opacity-100 hover:scale-105 hover:shadow-lg focus:ring-4 focus:ring-orange-500/50 focus:outline-none"
+            }
+          `}
+        >
+          {isApprovingSellToken ? (
+            <span className="flex items-center gap-2">
+              <LoadingLogo className="m-0 p-0 h-6 w-6" size="sm" />
+              {t("common.approving")}
+            </span>
+          ) : (
+            `${t("common.approve")} ${sellToken.symbol}`
+          )}
+        </button>
+      ) : (
+        <button
+          onClick={swapMode === "instant" ? executeSwap : createOrder}
+          disabled={
+            !isConnected ||
+            !sellAmt ||
+            isPending ||
+            (swapMode === "instant" && !canSwap) ||
+            (swapMode === "limit" && (!buyAmt || !buyToken))
+          }
         className={`mt-2 button text-base px-8 py-4 bg-primary text-primary-foreground font-bold rounded-lg transform transition-all duration-200
           ${
             !isConnected ||
@@ -875,7 +940,8 @@ export const SwapAction = () => {
         ) : (
           t("common.create_order")
         )}
-      </button>
+        </button>
+      )}
 
       {/* Status and error messages */}
       {/* Show transaction statuses */}
