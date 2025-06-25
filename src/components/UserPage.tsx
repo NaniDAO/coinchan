@@ -11,8 +11,10 @@ import { LoadingLogo } from "@/components/ui/loading-logo";
 import { TokenImage } from "@/components/TokenImage";
 import { ETH_TOKEN, type TokenMeta } from "@/lib/coins";
 import { handleWalletError, isUserRejectionError } from "@/lib/errors";
+import { useTranslation } from "react-i18next";
 
 export function UserPage() {
+  const { t } = useTranslation();
   const { address, isConnected } = useAccount();
   const { writeContractAsync, isPending } = useWriteContract();
   const [unlockingLockup, setUnlockingLockup] = useState<string | null>(null);
@@ -161,9 +163,9 @@ export function UserPage() {
     return (
       <div className="p-6 bg-background text-foreground">
         <div className="max-w-lg border-2 border-border p-4 outline outline-offset-2 outline-border mx-auto text-center">
-          <h2 className="text-xl font-bold mb-4">USER DASHBOARD</h2>
+          <h2 className="text-xl font-bold mb-4">{t('lockup.user_dashboard').toUpperCase()}</h2>
           <p className="text-muted-foreground">
-            Please connect your wallet to view your balances and lockups.
+            {t('lockup.connect_wallet_message')}
           </p>
         </div>
       </div>
@@ -176,25 +178,25 @@ export function UserPage() {
   return (
     <div className="p-6 bg-background text-foreground">
       <div className="max-w-4xl border-2 border-border p-4 outline outline-offset-2 outline-border mx-auto">
-        <h1 className="text-2xl font-bold mb-6 text-center">USER DASHBOARD</h1>
+        <h1 className="text-2xl font-bold mb-6 text-center">{t('lockup.user_dashboard').toUpperCase()}</h1>
         
         <div className="mb-4 text-sm text-muted-foreground text-center">
-          Connected: {address}
+          {t('lockup.connected')} {address}
         </div>
 
         <Tabs defaultValue="balances" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="balances" className="text-sm font-bold">
-              BALANCES
+              {t('lockup.balances').toUpperCase()}
             </TabsTrigger>
             <TabsTrigger value="lockups" className="text-sm font-bold">
-              LOCKUPS ({allLockups.length})
+              {t('lockup.lockups_count', { count: allLockups.length }).toUpperCase()}
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="balances" className="mt-6">
             <div className="space-y-4">
-              <h2 className="text-lg font-bold">TOKEN BALANCES</h2>
+              <h2 className="text-lg font-bold">{t('lockup.token_balances').toUpperCase()}</h2>
               
               {isLoadingAccount ? (
                 <div className="flex justify-center py-8">
@@ -202,11 +204,11 @@ export function UserPage() {
                 </div>
               ) : accountError ? (
                 <div className="text-destructive text-center py-4">
-                  Error loading balances: {accountError.message}
+                  {t('lockup.error_loading_balances')} {accountError.message}
                 </div>
               ) : !accountData?.coinsBalanceOf?.items?.length ? (
                 <div className="text-muted-foreground text-center py-8">
-                  No token balances found
+                  {t('lockup.no_token_balances')}
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -247,7 +249,7 @@ export function UserPage() {
 
           <TabsContent value="lockups" className="mt-6">
             <div className="space-y-4">
-              <h2 className="text-lg font-bold">LOCKUPS</h2>
+              <h2 className="text-lg font-bold">{t('lockup.lockups_count', { count: '' }).toUpperCase().replace(' ()', '')}</h2>
               
               {isLoadingLockups ? (
                 <div className="flex justify-center py-8">
@@ -255,11 +257,11 @@ export function UserPage() {
                 </div>
               ) : lockupsError ? (
                 <div className="text-destructive text-center py-4">
-                  Error loading lockups: {lockupsError.message}
+                  {t('lockup.error_loading_lockups')} {lockupsError.message}
                 </div>
               ) : !sortedLockups.length ? (
                 <div className="text-muted-foreground text-center py-8">
-                  No lockups found
+                  {t('lockup.no_lockups')}
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -311,6 +313,7 @@ function LockupItem({
   onUnlock: (lockup: LockupData) => void;
   isPending: boolean;
 }) {
+  const { t } = useTranslation();
   const { isActuallyUnlocked } = useLockupStatus(lockup, userAddress);
   
   const canUnlock = expired && (lockup.type === 'received' || lockup.type === 'sent') && !isActuallyUnlocked;
@@ -411,7 +414,7 @@ function LockupItem({
               {formatLockupAsset(lockup)}
             </div>
             <div className="text-xs text-muted-foreground">
-              {lockup.type === 'sent' ? 'Sent to' : 'Received from'}: {' '}
+              {lockup.type === 'sent' ? t('lockup.sent_to') : t('lockup.received_from')}: {' '}
               {lockup.type === 'sent' 
                 ? `${lockup.to?.slice(0, 6)}...${lockup.to?.slice(-4)}`
                 : `${lockup.sender.slice(0, 6)}...${lockup.sender.slice(-4)}`
@@ -427,13 +430,13 @@ function LockupItem({
             isActuallyUnlocked ? 'text-blue-500' : 
             expired ? 'text-green-500' : 'text-orange-500'
           }`}>
-            {isActuallyUnlocked ? 'CLAIMED' : expired ? 'UNLOCKABLE' : 'LOCKED'}
+            {isActuallyUnlocked ? t('lockup.claimed').toUpperCase() : expired ? t('lockup.unlockable').toUpperCase() : t('lockup.locked').toUpperCase()}
           </div>
         </div>
       </div>
       
       <div className="text-xs text-muted-foreground mb-3">
-        Unlock time: {formatUnlockTime(lockup.unlockTime)}
+        {t('lockup.unlock_time_label')} {formatUnlockTime(lockup.unlockTime)}
       </div>
       
       {canUnlock && (
@@ -445,11 +448,11 @@ function LockupItem({
           {isUnlocking ? (
             <>
               <LoadingLogo size="sm" />
-              <span>UNLOCKING</span>
+              <span>{t('lockup.unlocking').toUpperCase()}</span>
             </>
           ) : (
             <>
-              <span>{lockup.type === 'sent' ? 'UNLOCK FOR RECIPIENT' : 'UNLOCK'}</span>
+              <span>{lockup.type === 'sent' ? t('lockup.unlock_for_recipient').toUpperCase() : t('lockup.unlock').toUpperCase()}</span>
               <span>🔓</span>
             </>
           )}
@@ -458,13 +461,13 @@ function LockupItem({
       
       {!expired && (
         <div className="text-xs text-muted-foreground text-center py-2">
-          Unlock available after expiry
+          {t('lockup.unlock_available_after_expiry')}
         </div>
       )}
       
       {isActuallyUnlocked && (
         <div className="text-xs text-blue-500 text-center py-2">
-          ✓ Already claimed
+          ✓ {t('lockup.already_claimed')}
         </div>
       )}
     </div>
