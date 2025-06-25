@@ -18,7 +18,7 @@ export const useLaunchSalesDeadlines = () => {
         body: JSON.stringify({
           query: `
             query LaunchSalesDeadlines {
-              sales(where: {status: "ACTIVE"}) {
+              sales {
                 items {
                   coinId
                   deadlineLast
@@ -35,6 +35,7 @@ export const useLaunchSalesDeadlines = () => {
       
       // Create a map of coinId -> deadlineLast for quick lookup
       const deadlineMap = new Map<string, number>();
+      
       sales.forEach((sale: SaleDeadlineData) => {
         if (sale.deadlineLast) {
           deadlineMap.set(sale.coinId, Number(sale.deadlineLast));
