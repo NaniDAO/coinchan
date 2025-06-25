@@ -95,6 +95,8 @@ const SendTileComponent = () => {
   const [parsedAmount, setParsedAmount] = useState<bigint>(0n);
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [txError, setTxError] = useState<string | null>(null);
+  const [isLockupMode, setIsLockupMode] = useState(false);
+  const [unlockTime, setUnlockTime] = useState("");
 
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient({ chainId: mainnet.id });
@@ -192,8 +194,15 @@ const SendTileComponent = () => {
       return false;
     }
 
+    // For lockup mode, validate unlock time
+    if (isLockupMode) {
+      if (!unlockTime) return false;
+      const unlockTimestamp = new Date(unlockTime).getTime();
+      if (unlockTimestamp <= Date.now()) return false;
+    }
+
     return true;
-  }, [recipientAddress, parsedAmount, selectedToken.balance]);
+  }, [recipientAddress, parsedAmount, selectedToken.balance, isLockupMode, unlockTime]);
 
   const handleSend = async () => {
     if (!address || !isConnected || !publicClient || !canSend) return;
@@ -202,6 +211,85 @@ const SendTileComponent = () => {
     setTxError(null);
 
     try {
+      // Handle lockup mode
+      if (isLockupMode) {
+        const unlockTimestamp = Math.floor(new Date(unlockTime).getTime() / 1000);
+        
+        if (selectedToken.id === null) {
+          // ETH lockup: use address(0) as token, id as 0, and send ETH as msg.value
+          console.log(
+            `Locking up ETH:`,
+            formatEther(parsedAmount),
+            "to",
+            recipientAddress,
+            "until",
+            new Date(unlockTimestamp * 1000).toLocaleString()
+          );
+
+          const hash = await writeContractAsync({
+            account: address,
+            chainId: mainnet.id,
+            address: CookbookAddress,
+            abi: CookbookAbi,
+            functionName: "lockup",
+            args: [
+              "0x0000000000000000000000000000000000000000" as `0x${string}`, // address(0) for ETH
+              recipientAddress as `0x${string}`,
+              0n, // id = 0 for ETH
+              parsedAmount,
+              BigInt(unlockTimestamp),
+            ],
+            value: parsedAmount, // Send ETH as msg.value
+          });
+
+          setTxHash(hash);
+        } else {
+          // Token lockup: use token address, specific id, no msg.value
+          let tokenAddress: `0x${string}`;
+          let displayAmount: string;
+
+          if (selectedToken.isCustomPool && selectedToken.symbol === "USDT") {
+            // USDT special handling
+            tokenAddress = USDT_ADDRESS;
+            displayAmount = formatUnits(parsedAmount, 6);
+          } else if (selectedToken?.source === "COOKBOOK") {
+            tokenAddress = CookbookAddress;
+            displayAmount = formatEther(parsedAmount);
+          } else {
+            tokenAddress = CoinsAddress;
+            displayAmount = formatEther(parsedAmount);
+          }
+
+          console.log(
+            `Locking up ${selectedToken.symbol} (ID: ${selectedToken.id}):`,
+            displayAmount,
+            "to",
+            recipientAddress,
+            "until",
+            new Date(unlockTimestamp * 1000).toLocaleString()
+          );
+
+          const hash = await writeContractAsync({
+            account: address,
+            chainId: mainnet.id,
+            address: CookbookAddress,
+            abi: CookbookAbi,
+            functionName: "lockup",
+            args: [
+              tokenAddress,
+              recipientAddress as `0x${string}`,
+              selectedToken.id!,
+              parsedAmount,
+              BigInt(unlockTimestamp),
+            ],
+          });
+
+          setTxHash(hash);
+        }
+        return;
+      }
+
+      // Regular send logic
       if (selectedToken.id === null) {
         console.log(
           "Sending ETH:",
@@ -287,6 +375,8 @@ const SendTileComponent = () => {
     if (isSuccess && txHash) {
       setAmount("");
       setParsedAmount(0n);
+      setUnlockTime("");
+      setIsLockupMode(false);
 
       console.log("Transaction successful: " + txHash);
 
@@ -340,6 +430,41 @@ const SendTileComponent = () => {
             isEthBalanceFetching={isEthBalanceFetching}
             className="w-full"
           />
+        </div>
+
+        <div className="mb-5">
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isLockupMode}
+                onChange={(e) => setIsLockupMode(e.target.checked)}
+                className="w-4 h-4 rounded border-border focus:ring-accent"
+              />
+              <span className="text-sm font-bold font-body">
+                LOCKUP MODE
+              </span>
+            </label>
+          </div>
+          {isLockupMode && (
+            <div className="mt-3">
+              <label className="block text-sm font-bold mb-2 font-body">
+                UNLOCK TIME:
+              </label>
+              <input
+                type="datetime-local"
+                value={unlockTime}
+                onChange={(e) => setUnlockTime(e.target.value)}
+                min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
+                className="w-full px-3 py-2 bg-input border border-border rounded focus:outline-none focus:border-accent"
+              />
+              {unlockTime && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Tokens will be locked until {new Date(unlockTime).toLocaleString()}
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="mb-5">
@@ -405,12 +530,12 @@ const SendTileComponent = () => {
           {isPending ? (
             <>
               <LoadingLogo size="sm" />
-              <span>{t("create.sending").toUpperCase()}</span>
+              <span>{isLockupMode ? "LOCKING UP" : t("create.sending").toUpperCase()}</span>
             </>
           ) : (
             <>
-              <span>{t("create.send").toUpperCase()}</span>
-              <span className="text-primary-foreground/80">🪁</span>
+              <span>{isLockupMode ? "LOCKUP" : t("create.send").toUpperCase()}</span>
+              <span className="text-primary-foreground/80">{isLockupMode ? "🔒" : "🪁"}</span>
             </>
           )}
         </button>
@@ -420,8 +545,8 @@ const SendTileComponent = () => {
             <p className="text-sm font-bold">
               <span className="text-accent">
                 {isSuccess
-                  ? `✓ ${t("create.transaction_successful").toUpperCase()}`
-                  : `⏳ ${t("create.transaction_submitted").toUpperCase()}`}
+                  ? `✓ ${isLockupMode ? "LOCKUP SUCCESSFUL" : t("create.transaction_successful").toUpperCase()}`
+                  : `⏳ ${isLockupMode ? "LOCKUP SUBMITTED" : t("create.transaction_submitted").toUpperCase()}`}
               </span>{" "}
               <a
                 href={`https://etherscan.io/tx/${txHash}`}
