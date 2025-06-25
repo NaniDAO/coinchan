@@ -442,14 +442,14 @@ const SendTileComponent = () => {
                 className="w-4 h-4 rounded border-border focus:ring-accent"
               />
               <span className="text-sm font-bold font-body">
-                LOCKUP MODE
+                {t("lockup.mode").toUpperCase()}
               </span>
             </label>
           </div>
           {isLockupMode && (
             <div className="mt-3">
               <label className="block text-sm font-bold mb-2 font-body">
-                UNLOCK TIME:
+                {t("lockup.unlock_time").toUpperCase()}:
               </label>
               <input
                 type="datetime-local"
@@ -460,7 +460,7 @@ const SendTileComponent = () => {
               />
               {unlockTime && (
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Tokens will be locked until {new Date(unlockTime).toLocaleString()}
+                  {t("lockup.tokens_locked_until", { date: new Date(unlockTime).toLocaleString() })}
                 </p>
               )}
             </div>
@@ -530,11 +530,11 @@ const SendTileComponent = () => {
           {isPending ? (
             <>
               <LoadingLogo size="sm" />
-              <span>{isLockupMode ? "LOCKING UP" : t("create.sending").toUpperCase()}</span>
+              <span>{isLockupMode ? t("lockup.locking_up").toUpperCase() : t("create.sending").toUpperCase()}</span>
             </>
           ) : (
             <>
-              <span>{isLockupMode ? "LOCKUP" : t("create.send").toUpperCase()}</span>
+              <span>{isLockupMode ? t("lockup.lockup").toUpperCase() : t("create.send").toUpperCase()}</span>
               <span className="text-primary-foreground/80">{isLockupMode ? "🔒" : "🪁"}</span>
             </>
           )}
@@ -545,8 +545,8 @@ const SendTileComponent = () => {
             <p className="text-sm font-bold">
               <span className="text-accent">
                 {isSuccess
-                  ? `✓ ${isLockupMode ? "LOCKUP SUCCESSFUL" : t("create.transaction_successful").toUpperCase()}`
-                  : `⏳ ${isLockupMode ? "LOCKUP SUBMITTED" : t("create.transaction_submitted").toUpperCase()}`}
+                  ? `✓ ${isLockupMode ? t("lockup.lockup_successful").toUpperCase() : t("create.transaction_successful").toUpperCase()}`
+                  : `⏳ ${isLockupMode ? t("lockup.lockup_submitted").toUpperCase() : t("create.transaction_submitted").toUpperCase()}`}
               </span>{" "}
               <a
                 href={`https://etherscan.io/tx/${txHash}`}
