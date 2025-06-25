@@ -65,6 +65,8 @@ const GET_ACCOUNT_QUERY = `
           coin {
             name
             symbol
+            decimals
+            imageUrl
           }
         }
       }
@@ -143,6 +145,8 @@ export interface AccountCoinsBalanceOf {
   coin: {
     name: string;
     symbol: string;
+    decimals: number;
+    imageUrl: string;
   };
 }
 

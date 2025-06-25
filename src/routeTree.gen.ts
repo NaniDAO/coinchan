@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as UserRouteImport } from './routes/user'
 import { Route as SwapRouteImport } from './routes/swap'
 import { Route as SendRouteImport } from './routes/send'
 import { Route as OrdersRouteImport } from './routes/orders'
@@ -20,6 +21,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as UUserIdRouteImport } from './routes/u.$userId'
 import { Route as CCoinIdRouteImport } from './routes/c.$coinId'
 
+const UserRoute = UserRouteImport.update({
+  id: '/user',
+  path: '/user',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SwapRoute = SwapRouteImport.update({
   id: '/swap',
   path: '/swap',
@@ -80,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/orders': typeof OrdersRoute
   '/send': typeof SendRoute
   '/swap': typeof SwapRoute
+  '/user': typeof UserRoute
   '/c/$coinId': typeof CCoinIdRoute
   '/u/$userId': typeof UUserIdRoute
 }
@@ -92,6 +99,7 @@ export interface FileRoutesByTo {
   '/orders': typeof OrdersRoute
   '/send': typeof SendRoute
   '/swap': typeof SwapRoute
+  '/user': typeof UserRoute
   '/c/$coinId': typeof CCoinIdRoute
   '/u/$userId': typeof UUserIdRoute
 }
@@ -105,6 +113,7 @@ export interface FileRoutesById {
   '/orders': typeof OrdersRoute
   '/send': typeof SendRoute
   '/swap': typeof SwapRoute
+  '/user': typeof UserRoute
   '/c/$coinId': typeof CCoinIdRoute
   '/u/$userId': typeof UUserIdRoute
 }
@@ -119,6 +128,7 @@ export interface FileRouteTypes {
     | '/orders'
     | '/send'
     | '/swap'
+    | '/user'
     | '/c/$coinId'
     | '/u/$userId'
   fileRoutesByTo: FileRoutesByTo
@@ -131,6 +141,7 @@ export interface FileRouteTypes {
     | '/orders'
     | '/send'
     | '/swap'
+    | '/user'
     | '/c/$coinId'
     | '/u/$userId'
   id:
@@ -143,6 +154,7 @@ export interface FileRouteTypes {
     | '/orders'
     | '/send'
     | '/swap'
+    | '/user'
     | '/c/$coinId'
     | '/u/$userId'
   fileRoutesById: FileRoutesById
@@ -156,12 +168,20 @@ export interface RootRouteChildren {
   OrdersRoute: typeof OrdersRoute
   SendRoute: typeof SendRoute
   SwapRoute: typeof SwapRoute
+  UserRoute: typeof UserRoute
   CCoinIdRoute: typeof CCoinIdRoute
   UUserIdRoute: typeof UUserIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/user': {
+      id: '/user'
+      path: '/user'
+      fullPath: '/user'
+      preLoaderRoute: typeof UserRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/swap': {
       id: '/swap'
       path: '/swap'
@@ -244,6 +264,7 @@ const rootRouteChildren: RootRouteChildren = {
   OrdersRoute: OrdersRoute,
   SendRoute: SendRoute,
   SwapRoute: SwapRoute,
+  UserRoute: UserRoute,
   CCoinIdRoute: CCoinIdRoute,
   UUserIdRoute: UUserIdRoute,
 }

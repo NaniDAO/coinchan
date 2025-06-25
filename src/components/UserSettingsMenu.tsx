@@ -62,6 +62,13 @@ export function UserSettingsMenu() {
         >
           {t("common.theme")}
         </DropdownMenuItem>
+
+        <DropdownMenuItem
+          className="!px-2 !py-1 bg-background text-foreground !border !border-foreground"
+          onClick={() => window.location.href = "/user"}
+        >
+          User
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
