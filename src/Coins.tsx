@@ -39,6 +39,17 @@ const shouldFilterExpiredActiveSale = (coin: CoinData, saleDeadlines: Map<string
   return false;
 };
 
+// Helper function to get filtered launch sales data for pagination
+const getFilteredLaunchSales = (coins: CoinData[], saleDeadlines: Map<string, number>): CoinData[] => {
+  // First filter to include only coins that should appear in Launch Sales
+  const launchSalesCoins = coins.filter(coin => shouldShowInLaunchSales(coin));
+  
+  // Then filter out expired active sales based on deadlines
+  return launchSalesCoins.filter(coin => 
+    !shouldFilterExpiredActiveSale(coin, saleDeadlines || new Map())
+  );
+};
+
 export const Coins = () => {
   const { t } = useTranslation();
 
@@ -217,15 +228,8 @@ export const Coins = () => {
           return sortOrder === "asc" ? aVotes - bVotes : bVotes - aVotes;
         });
       } else if (sortType === "launch") {
-        // First filter to include only coins that should appear in Launch Sales
-        const launchSalesCoins = coinsCopy.filter(coin => 
-          shouldShowInLaunchSales(coin)
-        );
-        
-        // Then filter out expired active sales based on deadlines
-        const filteredLaunchSales = launchSalesCoins.filter(coin => 
-          !shouldFilterExpiredActiveSale(coin, saleDeadlines || new Map())
-        );
+        // Use the same filtering logic as pagination for consistency
+        const filteredLaunchSales = getFilteredLaunchSales(coinsCopy, saleDeadlines || new Map());
         
         // Sort the remaining sales
         return filteredLaunchSales.sort((a, b) => {
@@ -365,7 +369,7 @@ export const Coins = () => {
           isSearchActive
             ? filterValidCoins(searchResults || []).length
             : sortType === "launch"
-              ? filterValidCoins(allCoins || []).filter(coin => coin.saleStatus === "ACTIVE").length
+              ? getFilteredLaunchSales(filterValidCoins(allCoins || []), saleDeadlines || new Map()).length
               : filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || []).length
         }
         canPrev={!isSearchActive && page > 0}
@@ -373,7 +377,7 @@ export const Coins = () => {
           !isSearchActive &&
           (page + 1) * PAGE_SIZE <
             (sortType === "launch"
-              ? filterValidCoins(allCoins || []).filter(coin => coin.saleStatus === "ACTIVE").length
+              ? getFilteredLaunchSales(filterValidCoins(allCoins || []), saleDeadlines || new Map()).length
               : filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || []).length)
         }
         onPrev={debouncedPrevPage}
@@ -386,7 +390,7 @@ export const Coins = () => {
             (isSearchActive
               ? filterValidCoins(searchResults || []).length
               : sortType === "launch"
-                ? filterValidCoins(allCoins || []).filter(coin => coin.saleStatus === "ACTIVE").length
+                ? getFilteredLaunchSales(filterValidCoins(allCoins || []), saleDeadlines || new Map()).length
                 : filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || []).length) / PAGE_SIZE,
           ),
         )}
