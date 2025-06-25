@@ -3,7 +3,7 @@ import { ExplorerGrid, SortType } from "./ExplorerGrid";
 import { usePagedCoins } from "./hooks/metadata";
 import { useCoinsData } from "./hooks/metadata/use-coins-data";
 import { useChronologicalCoins } from "./hooks/use-chronological-coins";
-import { usePagedLaunchSales } from "./hooks/use-paged-launch-sales";
+import { useLaunchSalesDeadlines } from "./hooks/use-launch-sales-deadlines";
 import { SearchIcon } from "lucide-react";
 import { CoinData } from "./hooks/metadata/coin-utils";
 import { debounce } from "./lib/utils";
@@ -12,6 +12,32 @@ import { formatEther } from "viem";
 
 // Page size for pagination
 const PAGE_SIZE = 20;
+
+// Helper function to check if a coin should appear in Launch Sales tab
+const shouldShowInLaunchSales = (coin: CoinData): boolean => {
+  // Show coins that have any sale status (ACTIVE, EXPIRED, FINALIZED)
+  return coin.saleStatus !== null && coin.saleStatus !== undefined;
+};
+
+// Helper function to check if an ACTIVE sale should be filtered out due to expiration
+const shouldFilterExpiredActiveSale = (coin: CoinData, saleDeadlines: Map<string, number>): boolean => {
+  // Only check ACTIVE sales for deadline expiration
+  if (coin.saleStatus !== "ACTIVE") {
+    return false; // Don't filter non-active sales here
+  }
+  
+  // For active sales, check if deadline has expired (implicitly expired)
+  const coinId = coin.coinId.toString();
+  const deadlineLast = saleDeadlines.get(coinId);
+  
+  if (deadlineLast) {
+    const now = Math.floor(Date.now() / 1000); // Current time in seconds
+    return deadlineLast <= now; // Filter out if deadline has passed
+  }
+  
+  // If no deadline info available for active sale, keep it
+  return false;
+};
 
 export const Coins = () => {
   const { t } = useTranslation();
@@ -26,12 +52,12 @@ export const Coins = () => {
   /* ------------------------------------------------------------------
    *  Paged & global coin data
    * ------------------------------------------------------------------ */
-  const regularPagination = usePagedCoins(PAGE_SIZE);
-  const launchSalesPagination = usePagedLaunchSales(PAGE_SIZE);
+  const { coins, allCoins, page, goToNextPage, isLoading, setPage } = usePagedCoins(PAGE_SIZE);
   
-  // Use different pagination based on sort type
-  const { coins, allCoins, page, goToNextPage, isLoading, setPage } = 
-    sortType === "launch" ? launchSalesPagination : regularPagination;
+  /* ------------------------------------------------------------------
+   *  Launch sales deadline data (for filtering expired sales)
+   * ------------------------------------------------------------------ */
+  const { data: saleDeadlines } = useLaunchSalesDeadlines();
   
 
   /* ------------------------------------------------------------------
@@ -122,9 +148,7 @@ export const Coins = () => {
       setSortType(newSortType);
       // Reset to page 1 when changing sort type
       if (sortType !== newSortType) {
-        // Reset both pagination hooks to ensure consistent state
-        regularPagination.setPage(0);
-        launchSalesPagination.setPage(0);
+        setPage(0);
 
         // If switching to recency sort type, ensure we have the chronological data
         if (newSortType === "recency" && (!chronologicalCoinIds || chronologicalCoinIds.length === 0)) {
@@ -133,7 +157,7 @@ export const Coins = () => {
         }
       }
     },
-    [sortType, regularPagination.setPage, launchSalesPagination.setPage, chronologicalCoinIds, refetchChronologicalData],
+    [sortType, setPage, chronologicalCoinIds, refetchChronologicalData],
   );
 
   const handleSortOrderChange = useCallback((newSortOrder: "asc" | "desc") => {
@@ -193,8 +217,18 @@ export const Coins = () => {
           return sortOrder === "asc" ? aVotes - bVotes : bVotes - aVotes;
         });
       } else if (sortType === "launch") {
-        // Filtering is already handled by usePagedLaunchSales hook, just sort the remaining active sales
-        return coinsCopy.sort((a, b) => {
+        // First filter to include only coins that should appear in Launch Sales
+        const launchSalesCoins = coinsCopy.filter(coin => 
+          shouldShowInLaunchSales(coin)
+        );
+        
+        // Then filter out expired active sales based on deadlines
+        const filteredLaunchSales = launchSalesCoins.filter(coin => 
+          !shouldFilterExpiredActiveSale(coin, saleDeadlines || new Map())
+        );
+        
+        // Sort the remaining sales
+        return filteredLaunchSales.sort((a, b) => {
           const aId = Number(a.coinId);
           const bId = Number(b.coinId);
           
