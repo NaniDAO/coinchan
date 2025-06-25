@@ -13,16 +13,17 @@ import { formatEther } from "viem";
 // Page size for pagination
 const PAGE_SIZE = 20;
 
-// Helper function to check if a sale should be filtered out
-const shouldFilterSale = (coin: CoinData, saleDeadlines: Map<string, number>): boolean => {
-  // Filter out coins with no sale at all (null/undefined saleStatus)
-  if (!coin.saleStatus) {
-    return true;
-  }
-  
-  // Filter out explicitly finalized/expired sales
-  if (coin.saleStatus === "FINALIZED" || coin.saleStatus === "EXPIRED") {
-    return true;
+// Helper function to check if a coin should appear in Launch Sales tab
+const shouldShowInLaunchSales = (coin: CoinData): boolean => {
+  // Show coins that have any sale status (ACTIVE, EXPIRED, FINALIZED)
+  return coin.saleStatus !== null && coin.saleStatus !== undefined;
+};
+
+// Helper function to check if an ACTIVE sale should be filtered out due to expiration
+const shouldFilterExpiredActiveSale = (coin: CoinData, saleDeadlines: Map<string, number>): boolean => {
+  // Only check ACTIVE sales for deadline expiration
+  if (coin.saleStatus !== "ACTIVE") {
+    return false; // Don't filter non-active sales here
   }
   
   // For active sales, check if deadline has expired (implicitly expired)
@@ -34,9 +35,19 @@ const shouldFilterSale = (coin: CoinData, saleDeadlines: Map<string, number>): b
     return deadlineLast <= now; // Filter out if deadline has passed
   }
   
-  // If no deadline info available but coin has ACTIVE status, keep the sale
-  // This handles the case where the indexer hasn't loaded deadline data yet
+  // If no deadline info available for active sale, keep it
   return false;
+};
+
+// Helper function to get filtered launch sales data for pagination
+const getFilteredLaunchSales = (coins: CoinData[], saleDeadlines: Map<string, number>): CoinData[] => {
+  // First filter to include only coins that should appear in Launch Sales
+  const launchSalesCoins = coins.filter(coin => shouldShowInLaunchSales(coin));
+  
+  // Then filter out expired active sales based on deadlines
+  return launchSalesCoins.filter(coin => 
+    !shouldFilterExpiredActiveSale(coin, saleDeadlines || new Map())
+  );
 };
 
 export const Coins = () => {
@@ -58,6 +69,7 @@ export const Coins = () => {
    *  Launch sales deadline data (for filtering expired sales)
    * ------------------------------------------------------------------ */
   const { data: saleDeadlines } = useLaunchSalesDeadlines();
+  
 
   /* ------------------------------------------------------------------
    *  Search handling
@@ -216,12 +228,11 @@ export const Coins = () => {
           return sortOrder === "asc" ? aVotes - bVotes : bVotes - aVotes;
         });
       } else if (sortType === "launch") {
-        // Filter out both explicitly finalized/expired sales AND implicitly expired sales (deadline passed)
-        const activeSales = coinsCopy.filter(coin => 
-          !shouldFilterSale(coin, saleDeadlines || new Map())
-        );
+        // Use the same filtering logic as pagination for consistency
+        const filteredLaunchSales = getFilteredLaunchSales(coinsCopy, saleDeadlines || new Map());
         
-        return activeSales.sort((a, b) => {
+        // Sort the remaining sales
+        return filteredLaunchSales.sort((a, b) => {
           const aId = Number(a.coinId);
           const bId = Number(b.coinId);
           
@@ -358,7 +369,7 @@ export const Coins = () => {
           isSearchActive
             ? filterValidCoins(searchResults || []).length
             : sortType === "launch"
-              ? filterValidCoins(allCoins || []).filter(coin => coin.saleStatus === "ACTIVE").length
+              ? getFilteredLaunchSales(filterValidCoins(allCoins || []), saleDeadlines || new Map()).length
               : filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || []).length
         }
         canPrev={!isSearchActive && page > 0}
@@ -366,7 +377,7 @@ export const Coins = () => {
           !isSearchActive &&
           (page + 1) * PAGE_SIZE <
             (sortType === "launch"
-              ? filterValidCoins(allCoins || []).filter(coin => coin.saleStatus === "ACTIVE").length
+              ? getFilteredLaunchSales(filterValidCoins(allCoins || []), saleDeadlines || new Map()).length
               : filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || []).length)
         }
         onPrev={debouncedPrevPage}
@@ -379,7 +390,7 @@ export const Coins = () => {
             (isSearchActive
               ? filterValidCoins(searchResults || []).length
               : sortType === "launch"
-                ? filterValidCoins(allCoins || []).filter(coin => coin.saleStatus === "ACTIVE").length
+                ? getFilteredLaunchSales(filterValidCoins(allCoins || []), saleDeadlines || new Map()).length
                 : filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || []).length) / PAGE_SIZE,
           ),
         )}
