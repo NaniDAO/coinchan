@@ -249,7 +249,7 @@ export function UserPage() {
 
           <TabsContent value="lockups" className="mt-6">
             <div className="space-y-4">
-              <h2 className="text-lg font-bold">{t('lockup.lockups_count', { count: '' }).toUpperCase().replace(' ()', '')}</h2>
+              <h2 className="text-lg font-bold">{t('lockup.lockups').toUpperCase()}</h2>
               
               {isLoadingLockups ? (
                 <div className="flex justify-center py-8">

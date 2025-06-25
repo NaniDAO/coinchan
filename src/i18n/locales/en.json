@@ -539,6 +539,7 @@
     "connect_wallet_message": "Please connect your wallet to view your balances and lockups.",
     "balances": "Balances",
     "lockups_count": "Lockups ({{count}})",
+    "lockups": "Lockups",
     "token_balances": "Token Balances",
     "claimed": "Claimed",
     "unlockable": "Unlockable",

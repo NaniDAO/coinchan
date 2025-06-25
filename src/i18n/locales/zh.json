@@ -539,6 +539,7 @@
     "connect_wallet_message": "请连接您的钱包以查看余额和锁仓信息。",
     "balances": "余额",
     "lockups_count": "锁仓 ({{count}})",
+    "lockups": "锁仓",
     "token_balances": "代币余额",
     "claimed": "已领取",
     "unlockable": "可解锁",
