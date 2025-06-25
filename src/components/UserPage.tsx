@@ -313,7 +313,7 @@ function LockupItem({
 }) {
   const { isActuallyUnlocked } = useLockupStatus(lockup, userAddress);
   
-  const canUnlock = expired && lockup.type === 'received' && !isActuallyUnlocked;
+  const canUnlock = expired && (lockup.type === 'received' || lockup.type === 'sent') && !isActuallyUnlocked;
   
   const lockupToTokenMeta = (lockup: LockupData): TokenMeta => {
     // ETH lockup - check token address first
@@ -449,14 +449,14 @@ function LockupItem({
             </>
           ) : (
             <>
-              <span>UNLOCK</span>
+              <span>{lockup.type === 'sent' ? 'UNLOCK FOR RECIPIENT' : 'UNLOCK'}</span>
               <span>🔓</span>
             </>
           )}
         </button>
       )}
       
-      {!expired && lockup.type === 'received' && (
+      {!expired && (
         <div className="text-xs text-muted-foreground text-center py-2">
           Unlock available after expiry
         </div>
