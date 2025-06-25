@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAccount, useWriteContract } from "wagmi";
-import { formatEther, formatUnits, keccak256, encodeAbiParameters } from "viem";
+import { formatEther, formatUnits } from "viem";
 import { mainnet } from "viem/chains";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useGetAccount, type AccountCoinsBalanceOf } from "@/hooks/use-get-account";
