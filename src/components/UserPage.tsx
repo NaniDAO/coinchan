@@ -33,10 +33,40 @@ export function UserPage() {
   const formatBalance = (balance: string, decimals?: number) => {
     try {
       const bigintBalance = BigInt(balance);
+      
+      if (bigintBalance === 0n) return "0";
+      
+      // Use TokenSelector formatting logic
       if (decimals === 6) {
-        return formatUnits(bigintBalance, 6);
+        const tokenValue = Number(formatUnits(bigintBalance, 6));
+        if (tokenValue >= 1000) {
+          return `${Math.floor(tokenValue).toLocaleString()}`;
+        } else if (tokenValue >= 1) {
+          return tokenValue.toFixed(3);
+        } else if (tokenValue >= 0.001) {
+          return tokenValue.toFixed(4);
+        } else if (tokenValue >= 0.0001) {
+          return tokenValue.toFixed(6);
+        } else if (tokenValue > 0) {
+          return tokenValue.toExponential(2);
+        }
+        return "0";
       }
-      return formatEther(bigintBalance);
+      
+      // Standard 18 decimal formatting
+      const tokenValue = Number(formatEther(bigintBalance));
+      if (tokenValue >= 1000) {
+        return `${Math.floor(tokenValue).toLocaleString()}`;
+      } else if (tokenValue >= 1) {
+        return tokenValue.toFixed(4);
+      } else if (tokenValue >= 0.001) {
+        return tokenValue.toFixed(6);
+      } else if (tokenValue >= 0.0000001) {
+        return tokenValue.toFixed(8);
+      } else if (tokenValue > 0) {
+        return tokenValue.toExponential(4);
+      }
+      return "0";
     } catch {
       return "0";
     }
@@ -56,11 +86,12 @@ export function UserPage() {
     decimals: balance.coin?.decimals || 18,
     balance: BigInt(balance.balance),
     source: "COOKBOOK" as const,
+    tokenUri: balance.coin?.imageUrl || undefined,
   });
 
   const lockupToTokenMeta = (lockup: LockupData): TokenMeta => {
-    // ETH lockup
-    if (lockup.token === "0x0000000000000000000000000000000000000000" || lockup.coinId === "0") {
+    // ETH lockup - check token address first, then coinId as fallback
+    if (lockup.token === "0x0000000000000000000000000000000000000000") {
       return ETH_TOKEN;
     }
     // Token lockup
@@ -70,12 +101,13 @@ export function UserPage() {
       name: lockup.coin?.name || `Token ${lockup.coinId}`,
       decimals: lockup.coin?.decimals || 18,
       source: "COOKBOOK" as const,
+      tokenUri: lockup.coin?.imageUrl || undefined,
     };
   };
 
   const formatLockupAsset = (lockup: LockupData) => {
-    // ETH lockup
-    if (lockup.token === "0x0000000000000000000000000000000000000000" || lockup.coinId === "0") {
+    // ETH lockup - check token address first
+    if (lockup.token === "0x0000000000000000000000000000000000000000") {
       return "ETH";
     }
     // Token lockup
@@ -90,15 +122,42 @@ export function UserPage() {
     
     try {
       const bigintAmount = BigInt(lockup.amount);
-      // ETH
-      if (lockup.token === "0x0000000000000000000000000000000000000000" || lockup.coinId === "0") {
-        return formatEther(bigintAmount);
+      
+      if (bigintAmount === 0n) return "0";
+      
+      // ETH - check token address first
+      if (lockup.token === "0x0000000000000000000000000000000000000000") {
+        const ethValue = Number(formatEther(bigintAmount));
+        if (ethValue >= 1000) {
+          return `${Math.floor(ethValue).toLocaleString()}`;
+        } else if (ethValue >= 1) {
+          return ethValue.toFixed(4);
+        } else if (ethValue >= 0.001) {
+          return ethValue.toFixed(6);
+        } else if (ethValue >= 0.0000001) {
+          return ethValue.toFixed(8);
+        } else if (ethValue > 0) {
+          return ethValue.toExponential(4);
+        }
+        return "0";
       }
+      
       // Token with decimals
-      if (lockup.coin?.decimals === 6) {
-        return formatUnits(bigintAmount, 6);
+      const decimals = lockup.coin?.decimals || 18;
+      const tokenValue = Number(formatUnits(bigintAmount, decimals));
+      
+      if (tokenValue >= 1000) {
+        return `${Math.floor(tokenValue).toLocaleString()}`;
+      } else if (tokenValue >= 1) {
+        return tokenValue.toFixed(3);
+      } else if (tokenValue >= 0.001) {
+        return tokenValue.toFixed(4);
+      } else if (tokenValue >= 0.0001) {
+        return tokenValue.toFixed(6);
+      } else if (tokenValue > 0) {
+        return tokenValue.toExponential(2);
       }
-      return formatEther(bigintAmount);
+      return "0";
     } catch {
       return "0";
     }
@@ -125,7 +184,11 @@ export function UserPage() {
     try {
       const token = lockup.token || "0x0000000000000000000000000000000000000000";
       const to = lockup.to || address;
-      const id = lockup.coinId ? BigInt(lockup.coinId) : 0n;
+      // Fix coin ID logic - for ETH lockups, always use 0n
+      // For token lockups, use the actual coin ID
+      const id = lockup.token === "0x0000000000000000000000000000000000000000" 
+        ? 0n 
+        : (lockup.coinId ? BigInt(lockup.coinId) : 0n);
       const amount = lockup.amount ? BigInt(lockup.amount) : 0n;
       const unlockTime = BigInt(lockup.unlockTime);
 
@@ -237,7 +300,7 @@ export function UserPage() {
                               {formatTokenName(balance)}
                             </div>
                             <div className="text-xs text-muted-foreground">
-                              ID: {balance.coinId}
+                              ID: {balance.coinId} • {balance.coin?.decimals || 18} decimals
                             </div>
                           </div>
                         </div>
