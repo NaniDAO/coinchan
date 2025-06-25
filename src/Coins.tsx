@@ -3,7 +3,7 @@ import { ExplorerGrid, SortType } from "./ExplorerGrid";
 import { usePagedCoins } from "./hooks/metadata";
 import { useCoinsData } from "./hooks/metadata/use-coins-data";
 import { useChronologicalCoins } from "./hooks/use-chronological-coins";
-import { useLaunchSalesDeadlines } from "./hooks/use-launch-sales-deadlines";
+import { usePagedLaunchSales } from "./hooks/use-paged-launch-sales";
 import { SearchIcon } from "lucide-react";
 import { CoinData } from "./hooks/metadata/coin-utils";
 import { debounce } from "./lib/utils";
@@ -12,32 +12,6 @@ import { formatEther } from "viem";
 
 // Page size for pagination
 const PAGE_SIZE = 20;
-
-// Helper function to check if a sale should be filtered out
-const shouldFilterSale = (coin: CoinData, saleDeadlines: Map<string, number>): boolean => {
-  // Filter out coins with no sale at all (null/undefined saleStatus)
-  if (!coin.saleStatus) {
-    return true;
-  }
-  
-  // Filter out explicitly finalized/expired sales
-  if (coin.saleStatus === "FINALIZED" || coin.saleStatus === "EXPIRED") {
-    return true;
-  }
-  
-  // For active sales, check if deadline has expired (implicitly expired)
-  const coinId = coin.coinId.toString();
-  const deadlineLast = saleDeadlines.get(coinId);
-  
-  if (deadlineLast) {
-    const now = Math.floor(Date.now() / 1000); // Current time in seconds
-    return deadlineLast <= now; // Filter out if deadline has passed
-  }
-  
-  // If no deadline info available but coin has ACTIVE status, keep the sale
-  // This handles the case where the indexer hasn't loaded deadline data yet
-  return false;
-};
 
 export const Coins = () => {
   const { t } = useTranslation();
@@ -52,12 +26,13 @@ export const Coins = () => {
   /* ------------------------------------------------------------------
    *  Paged & global coin data
    * ------------------------------------------------------------------ */
-  const { coins, allCoins, page, goToNextPage, isLoading, setPage } = usePagedCoins(PAGE_SIZE);
+  const regularPagination = usePagedCoins(PAGE_SIZE);
+  const launchSalesPagination = usePagedLaunchSales(PAGE_SIZE);
   
-  /* ------------------------------------------------------------------
-   *  Launch sales deadline data (for filtering expired sales)
-   * ------------------------------------------------------------------ */
-  const { data: saleDeadlines } = useLaunchSalesDeadlines();
+  // Use different pagination based on sort type
+  const { coins, allCoins, page, goToNextPage, isLoading, setPage } = 
+    sortType === "launch" ? launchSalesPagination : regularPagination;
+  
 
   /* ------------------------------------------------------------------
    *  Search handling
@@ -147,7 +122,9 @@ export const Coins = () => {
       setSortType(newSortType);
       // Reset to page 1 when changing sort type
       if (sortType !== newSortType) {
-        setPage(0);
+        // Reset both pagination hooks to ensure consistent state
+        regularPagination.setPage(0);
+        launchSalesPagination.setPage(0);
 
         // If switching to recency sort type, ensure we have the chronological data
         if (newSortType === "recency" && (!chronologicalCoinIds || chronologicalCoinIds.length === 0)) {
@@ -156,7 +133,7 @@ export const Coins = () => {
         }
       }
     },
-    [sortType, setPage, chronologicalCoinIds, refetchChronologicalData],
+    [sortType, regularPagination.setPage, launchSalesPagination.setPage, chronologicalCoinIds, refetchChronologicalData],
   );
 
   const handleSortOrderChange = useCallback((newSortOrder: "asc" | "desc") => {
@@ -216,12 +193,8 @@ export const Coins = () => {
           return sortOrder === "asc" ? aVotes - bVotes : bVotes - aVotes;
         });
       } else if (sortType === "launch") {
-        // Filter out both explicitly finalized/expired sales AND implicitly expired sales (deadline passed)
-        const activeSales = coinsCopy.filter(coin => 
-          !shouldFilterSale(coin, saleDeadlines || new Map())
-        );
-        
-        return activeSales.sort((a, b) => {
+        // Filtering is already handled by usePagedLaunchSales hook, just sort the remaining active sales
+        return coinsCopy.sort((a, b) => {
           const aId = Number(a.coinId);
           const bId = Number(b.coinId);
           
