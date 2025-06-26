@@ -22,7 +22,7 @@ export function UserPage() {
   const [unlockError, setUnlockError] = useState<string | null>(null);
 
   const { isLoading: isLoadingAccount, error: accountError } = useGetAccount({ address });
-  const { tokens: allTokens, isLoading: isLoadingTokens, error: tokensError } = useAllCoins();
+  const { tokens: allTokens, loading: isLoadingTokens, error: tokensError } = useAllCoins();
 
   const {
     data: lockupsData,
@@ -199,7 +199,7 @@ export function UserPage() {
                 </div>
               ) : accountError || tokensError ? (
                 <div className="text-destructive text-center py-4">
-                  {t("lockup.error_loading_balances")} {typeof accountError === 'string' ? accountError : accountError?.message || typeof tokensError === 'string' ? tokensError : tokensError?.message}
+                  {t("lockup.error_loading_balances")} {typeof accountError === 'string' ? accountError : accountError?.message || tokensError}
                 </div>
               ) : tokensWithBalance.length === 0 ? (
                 <div className="text-muted-foreground text-center py-8">{t("lockup.no_token_balances")}</div>
