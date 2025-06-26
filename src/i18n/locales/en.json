@@ -17,6 +17,7 @@
     "coinpaper": "Coin Paper",
     "settings": "Settings",
     "language": "Language",
+    "user": "User",
     "add": "Add",
     "remove": "Remove",
     "claim": "Claim",
@@ -306,7 +307,18 @@
     "transaction_rejected": "Transaction rejected by user",
     "success_launch_id": "Launched coin!",
     "success_check_launch_id": "Check your launched coin ID {{coinId}} at:",
-    "success_view_coin": "zamm.finance/c/{{coinId}}"
+    "success_view_coin": "zamm.finance/c/{{coinId}}",
+    "supply_breakdown": "Supply Breakdown",
+    "total_supply": "Total Supply",
+    "creator_supply": "Creator Supply",
+    "pool_liquidity": "Pool Liquidity",
+    "pool_liquidity_auto": "Pool Liquidity (Auto-Added)",
+    "sale_supply": "Sale Supply",
+    "coins": "coins",
+    "percent_of_total": "% of total",
+    "supply_breakdown_note": "Note",
+    "supply_breakdown_explanation": "Pool liquidity is automatically created equal to the amount sold in tranches. Remaining supply ({remainingAmount}M coins, {remainingPercent}%) stays in the contract.",
+    "supply_breakdown_explanation_no_remaining": "Pool liquidity is automatically created equal to the amount sold in tranches. All supply is allocated - no remaining tokens."
   },
   "explore": {
     "title": "Explore",

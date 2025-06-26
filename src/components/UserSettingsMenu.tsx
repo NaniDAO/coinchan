@@ -65,9 +65,9 @@ export function UserSettingsMenu() {
 
         <DropdownMenuItem
           className="!px-2 !py-1 bg-background text-foreground !border !border-foreground"
-          onClick={() => window.location.href = "/user"}
+          onClick={() => (window.location.href = "/user")}
         >
-          User
+          {t("common.user")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -26,9 +26,7 @@ function RouteComponent() {
           <ZammLogo size="large" onClick={handleLogoClick} />
         </div>
 
-        <p className="my-5 font-display">
-          {t("about.description")}
-        </p>
+        <p className="my-5 font-display">{t("about.description")}</p>
 
         <div className="ascii-divider">════════════════════════════════════</div>
 

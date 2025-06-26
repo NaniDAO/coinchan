@@ -19,12 +19,11 @@ import { CookbookPoolKey } from "./lib/swap";
 
 // Fee tier options for pool creation
 const FEE_OPTIONS = [
-  { label: "0.05%", value: 5n },   // Ultra low fee
-  { label: "0.3%", value: 30n },   // Default (Uniswap V2 style)
-  { label: "1%", value: 100n },    // Current cookbook standard
-  { label: "3%", value: 300n },    // High fee for exotic pairs
+  { label: "0.05%", value: 5n }, // Ultra low fee
+  { label: "0.3%", value: 30n }, // Default (Uniswap V2 style)
+  { label: "1%", value: 100n }, // Current cookbook standard
+  { label: "3%", value: 300n }, // High fee for exotic pairs
 ];
-
 
 interface FeeSettingsProps {
   feeBps: bigint;
@@ -107,7 +106,7 @@ const createCookbookPoolKey = (tokenA: TokenMeta, tokenB: TokenMeta, feeBps: big
       feeOrHook: feeBps,
     };
   } else if (tokenB.id === null) {
-    // tokenB is ETH, tokenA is the other token  
+    // tokenB is ETH, tokenA is the other token
     const tokenAddress = tokenA.source === "ZAMM" ? CoinsAddress : CookbookAddress;
     return {
       id0: 0n,
@@ -122,7 +121,7 @@ const createCookbookPoolKey = (tokenA: TokenMeta, tokenB: TokenMeta, feeBps: big
     const [token0, token1] = tokenA.id! < tokenB.id! ? [tokenA, tokenB] : [tokenB, tokenA];
     const token0Address = token0.source === "ZAMM" ? CoinsAddress : CookbookAddress;
     const token1Address = token1.source === "ZAMM" ? CoinsAddress : CookbookAddress;
-    
+
     return {
       id0: BigInt(token0.id || 0),
       id1: BigInt(token1.id || 0),
@@ -217,23 +216,21 @@ export const CreatePool = () => {
     try {
       // Create pool key for Cookbook
       const poolKey = createCookbookPoolKey(token0, token1, feeBps);
-      
+
       // Determine amounts based on pool key ordering
-      const amount0Desired = token0.id === null 
-        ? parseEther(amount0) 
-        : parseUnits(amount0, token0.decimals || 18);
+      const amount0Desired = token0.id === null ? parseEther(amount0) : parseUnits(amount0, token0.decimals || 18);
       const amount1Desired = parseUnits(amount1, token1.decimals || 18);
 
       // Check for USDT approval if needed
       const isUsingUsdt = token0.token1 === USDT_ADDRESS || token1.token1 === USDT_ADDRESS;
       if (isUsingUsdt) {
         const usdtAmount = token0.token1 === USDT_ADDRESS ? amount0Desired : amount1Desired;
-        
+
         if (usdtAllowance === undefined || usdtAmount > usdtAllowance) {
           setTxError("Waiting for USDT approval. Please confirm the transaction...");
           const approved = await approveUsdtMax();
           if (!approved) return;
-          
+
           const receipt = await publicClient.waitForTransactionReceipt({ hash: approved });
           if (receipt.status === "success") {
             await refetchUsdtAllowance();
@@ -245,10 +242,10 @@ export const CreatePool = () => {
       // Check operator approval for non-cookbook coins
       const needsToken0Approval = token0.id !== null && needsOperatorApproval(token0);
       const needsToken1Approval = needsOperatorApproval(token1);
-      
+
       if ((needsToken0Approval || needsToken1Approval) && isOperator === false) {
         setTxError("Waiting for operator approval. Please confirm the transaction...");
-        
+
         const approvalHash = await writeContractAsync({
           address: CoinsAddress,
           abi: CoinsAbi,
@@ -258,7 +255,7 @@ export const CreatePool = () => {
 
         setTxError("Operator approval submitted. Waiting for confirmation...");
         const receipt = await publicClient.waitForTransactionReceipt({ hash: approvalHash });
-        
+
         if (receipt.status === "success") {
           await refetchOperator();
           setTxError(null);
@@ -270,7 +267,7 @@ export const CreatePool = () => {
 
       // Create the pool by calling addLiquidity
       const deadline = nowSec() + 1200n; // 20 minute deadline
-      
+
       const hash = await writeContractAsync({
         address: CookbookAddress,
         abi: CookbookAbi,
@@ -292,7 +289,7 @@ export const CreatePool = () => {
       const errorMsg = handleWalletError(err);
       if (errorMsg) {
         console.error("Pool creation error:", err);
-        
+
         if (err instanceof Error) {
           if (err.message.includes("insufficient funds")) {
             setTxError("Insufficient funds for this transaction");
@@ -308,19 +305,25 @@ export const CreatePool = () => {
     }
   };
 
-  const handleToken0Select = useCallback((token: TokenMeta) => {
-    if (txError) setTxError(null);
-    setAmount0("");
-    setAmount1("");
-    setToken0(token);
-  }, [txError]);
+  const handleToken0Select = useCallback(
+    (token: TokenMeta) => {
+      if (txError) setTxError(null);
+      setAmount0("");
+      setAmount1("");
+      setToken0(token);
+    },
+    [txError],
+  );
 
-  const handleToken1Select = useCallback((token: TokenMeta) => {
-    if (txError) setTxError(null);
-    setAmount0("");
-    setAmount1("");
-    setToken1(token);
-  }, [txError]);
+  const handleToken1Select = useCallback(
+    (token: TokenMeta) => {
+      if (txError) setTxError(null);
+      setAmount0("");
+      setAmount1("");
+      setToken1(token);
+    },
+    [txError],
+  );
 
   return (
     <div className="relative flex flex-col">

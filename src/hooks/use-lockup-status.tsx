@@ -12,9 +12,8 @@ export function useLockupStatus(lockup: LockupData, userAddress?: Address) {
   const generateLockupHash = (): `0x${string}` => {
     const token = lockup.token || "0x0000000000000000000000000000000000000000";
     const to = lockup.to || userAddress;
-    const id = lockup.token === "0x0000000000000000000000000000000000000000" 
-      ? 0n 
-      : (lockup.coinId ? BigInt(lockup.coinId) : 0n);
+    const id =
+      lockup.token === "0x0000000000000000000000000000000000000000" ? 0n : lockup.coinId ? BigInt(lockup.coinId) : 0n;
     const amount = lockup.amount ? BigInt(lockup.amount) : 0n;
     const unlockTime = BigInt(lockup.unlockTime || 0);
 
@@ -27,8 +26,8 @@ export function useLockupStatus(lockup: LockupData, userAddress?: Address) {
           { name: "amount", type: "uint256" },
           { name: "unlockTime", type: "uint256" },
         ],
-        [token as `0x${string}`, to as `0x${string}`, id, amount, unlockTime]
-      )
+        [token as `0x${string}`, to as `0x${string}`, id, amount, unlockTime],
+      ),
     );
   };
 

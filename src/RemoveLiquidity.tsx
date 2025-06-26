@@ -206,7 +206,7 @@ export const RemoveLiquidity = () => {
       }
 
       if (!publicClient) return;
-      
+
       const poolInfo = (await publicClient.readContract({
         address: ZAMMAddress,
         abi: ZAMMAbi,
@@ -377,7 +377,9 @@ export const RemoveLiquidity = () => {
         <div className="flex items-center justify-between">
           <span className="font-medium text-foreground">{t("common.lp_tokens_to_burn_label")}</span>
           <div className="flex items-center gap-1">
-            <span className="text-xs text-muted-foreground">{t("common.balance_colon")} {formatUnits(lpTokenBalance, 18)}</span>
+            <span className="text-xs text-muted-foreground">
+              {t("common.balance_colon")} {formatUnits(lpTokenBalance, 18)}
+            </span>
             <button
               className="text-xs bg-primary/10 hover:bg-primary/20 text-primary font-medium px-3 py-1.5 rounded touch-manipulation min-w-[50px]"
               onClick={() => syncFromSell(formatUnits(lpTokenBalance, 18))}
@@ -396,9 +398,7 @@ export const RemoveLiquidity = () => {
           onChange={(e) => syncFromSell(e.target.value)}
           className="text-lg sm:text-xl font-medium w-full bg-secondary/50 focus:outline-none h-10 text-right pr-1"
         />
-        <div className="text-xs text-muted-foreground mt-1">
-          {t("pool.lp_burn_help")}
-        </div>
+        <div className="text-xs text-muted-foreground mt-1">{t("pool.lp_burn_help")}</div>
       </div>
       <div className="relative flex flex-col">
         {/* SELL/PROVIDE panel */}

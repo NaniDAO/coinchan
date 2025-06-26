@@ -17,6 +17,7 @@
     "coinpaper": "币种简介",
     "settings": "设置",
     "language": "语言",
+    "user": "用户",
     "add": "添加",
     "remove": "移除",
     "claim": "领取",
@@ -306,7 +307,18 @@
     "transaction_rejected": "用户拒绝交易",
     "success_launch_id": "币种已发行！",
     "success_check_launch_id": "在以下位置查看您的发行币种ID {{coinId}}：",
-    "success_view_coin": "zamm.finance/c/{{coinId}}"
+    "success_view_coin": "zamm.finance/c/{{coinId}}",
+    "supply_breakdown": "供应量分配",
+    "total_supply": "总供应量",
+    "creator_supply": "创建者份额",
+    "pool_liquidity": "池子流动性",
+    "pool_liquidity_auto": "池子流动性（自动添加）",
+    "sale_supply": "销售份额",
+    "coins": "币",
+    "percent_of_total": "% 占总量",
+    "supply_breakdown_note": "说明",
+    "supply_breakdown_explanation": "池子流动性会自动创建，数量等于分期销售的代币数量。剩余供应量（{remainingAmount}M币，{remainingPercent}%）保留在合约中。",
+    "supply_breakdown_explanation_no_remaining": "池子流动性会自动创建，数量等于分期销售的代币数量。所有供应量已分配完毕 - 无剩余代币。"
   },
   "explore": {
     "title": "探索",

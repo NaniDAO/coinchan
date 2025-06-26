@@ -1,13 +1,15 @@
-export const ZAMMLaunchAddress = "0x0000000000bb8883cbed6d69cdbe1013613c7cda";
+export const ZAMMLaunchAddress = "0x000000000077A9C733B9ac3781fB5A1BC7701FBc";
 export const ZAMMLaunchAbi = [
   { inputs: [], stateMutability: "payable", type: "constructor" },
   { inputs: [], name: "BadIndex", type: "error" },
   { inputs: [], name: "Finalized", type: "error" },
   { inputs: [], name: "InvalidArray", type: "error" },
   { inputs: [], name: "InvalidMsgVal", type: "error" },
+  { inputs: [], name: "InvalidUnlock", type: "error" },
   { inputs: [], name: "NoRaise", type: "error" },
   { inputs: [], name: "Pending", type: "error" },
-  { inputs: [], name: "Unauthorized", type: "error" },
+  { inputs: [], name: "Reentrancy", type: "error" },
+  { inputs: [], name: "ZeroShares", type: "error" },
   {
     anonymous: false,
     inputs: [
@@ -43,11 +45,54 @@ export const ZAMMLaunchAbi = [
   {
     inputs: [
       { internalType: "uint256", name: "coinId", type: "uint256" },
+      { internalType: "address", name: "user", type: "address" },
+    ],
+    name: "balances",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "uint256", name: "coinId", type: "uint256" },
       { internalType: "uint256", name: "trancheIdx", type: "uint256" },
     ],
     name: "buy",
     outputs: [{ internalType: "uint128", name: "coinsOut", type: "uint128" }],
     stateMutability: "payable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "uint256", name: "coinId", type: "uint256" },
+      { internalType: "uint256", name: "trancheIdx", type: "uint256" },
+      { internalType: "uint96", name: "shares", type: "uint96" },
+    ],
+    name: "buyExactCoins",
+    outputs: [{ internalType: "uint128", name: "coinsOut", type: "uint128" }],
+    stateMutability: "payable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "uint256", name: "coinId", type: "uint256" },
+      { internalType: "uint256", name: "amount", type: "uint256" },
+    ],
+    name: "claim",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "uint256", name: "creatorSupply", type: "uint256" },
+      { internalType: "uint256", name: "creatorLockup", type: "uint256" },
+      { internalType: "uint256", name: "creatorUnlock", type: "uint256" },
+      { internalType: "string", name: "uri", type: "string" },
+    ],
+    name: "coinWithLockup",
+    outputs: [{ internalType: "uint256", name: "coinId", type: "uint256" }],
+    stateMutability: "nonpayable",
     type: "function",
   },
   {
@@ -58,6 +103,23 @@ export const ZAMMLaunchAbi = [
       { internalType: "string", name: "uri", type: "string" },
     ],
     name: "coinWithPool",
+    outputs: [
+      { internalType: "uint256", name: "coinId", type: "uint256" },
+      { internalType: "uint256", name: "lp", type: "uint256" },
+    ],
+    stateMutability: "payable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "bool", name: "lpLock", type: "bool" },
+      { internalType: "uint256", name: "swapFee", type: "uint256" },
+      { internalType: "uint256", name: "poolSupply", type: "uint256" },
+      { internalType: "uint256", name: "creatorSupply", type: "uint256" },
+      { internalType: "uint256", name: "creatorUnlock", type: "uint256" },
+      { internalType: "string", name: "uri", type: "string" },
+    ],
+    name: "coinWithPoolCustom",
     outputs: [
       { internalType: "uint256", name: "coinId", type: "uint256" },
       { internalType: "uint256", name: "lp", type: "uint256" },
@@ -103,10 +165,30 @@ export const ZAMMLaunchAbi = [
       { internalType: "uint256", name: "coinId", type: "uint256" },
       { internalType: "uint256", name: "trancheIdx", type: "uint256" },
     ],
+    name: "trancheRemainingCoins",
+    outputs: [{ internalType: "uint96", name: "coinsRemaining", type: "uint96" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "uint256", name: "coinId", type: "uint256" },
+      { internalType: "uint256", name: "trancheIdx", type: "uint256" },
+    ],
     name: "trancheRemainingWei",
     outputs: [{ internalType: "uint96", name: "weiRemaining", type: "uint96" }],
     stateMutability: "view",
     type: "function",
   },
-  { stateMutability: "payable", type: "receive" },
+  {
+    inputs: [
+      { internalType: "address", name: "from", type: "address" },
+      { internalType: "address", name: "to", type: "address" },
+      { internalType: "uint256", name: "", type: "uint256" },
+    ],
+    name: "transferFrom",
+    outputs: [{ internalType: "bool", name: "", type: "bool" }],
+    stateMutability: "payable",
+    type: "function",
+  },
 ] as const;

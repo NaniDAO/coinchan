@@ -15,30 +15,16 @@ import { ImageInput } from "@/components/ui/image-input";
 import { TrancheInfoDialog } from "@/components/TrancheInfoDialog";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 
-import {
-  ResponsiveContainer,
-  ComposedChart,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Bar,
-  Line,
-  Area,
-} from "recharts";
+import { ResponsiveContainer, ComposedChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, Line, Area } from "recharts";
 import { parseEther } from "viem";
 import { toast } from "sonner";
-import {
-  generateRandomSlug,
-  formatNumberInput,
-  handleNumberInputChange,
-} from "@/lib/utils";
+import { generateRandomSlug, formatNumberInput, handleNumberInputChange } from "@/lib/utils";
 import { XIcon } from "lucide-react";
 import { ChartIcon, CoinIcon, PoolIcon } from "./ui/icons";
 import { Link } from "@tanstack/react-router";
 
 const defaultTranche = {
-  coins: 300000000,
+  coins: 150000000,
   price: 1,
 };
 
@@ -69,11 +55,11 @@ const getLaunchModes = (t: any) => ({
 // Validation schema with zod
 const launchFormSchema = z
   .object({
-    mode: z.enum(["simple", "tranche", "pool"]).default("pool"),
+    mode: z.enum(["simple", "tranche", "pool"]).default("tranche"),
     creatorSupply: z.coerce.number().min(1, "Creator supply is required"),
     creatorUnlockDate: z.string().optional(),
     metadataName: z.string().min(1, "Name is required"),
-    metadataSymbol: z.string().min(1, "Symbol is required").max(5),
+    metadataSymbol: z.string().min(1, "Symbol is required").max(10),
     metadataDescription: z.string().optional(),
     poolSupply: z.coerce.number().min(0, "Pool supply is required").optional(),
     ethAmount: z.coerce.number().min(0, "ETH amount is required").optional(),
@@ -89,12 +75,7 @@ const launchFormSchema = z
   .refine(
     (data) => {
       if (data.mode === "pool") {
-        return (
-          data.poolSupply &&
-          data.poolSupply > 0 &&
-          data.ethAmount &&
-          data.ethAmount > 0
-        );
+        return data.poolSupply && data.poolSupply > 0 && data.ethAmount && data.ethAmount > 0;
       }
       if (data.mode === "tranche") {
         return data.tranches.length > 0;
@@ -132,7 +113,7 @@ export const LaunchForm = () => {
 
   // State for form data instead of react-hook-form
   const [formData, setFormData] = useState<LaunchFormValues>({
-    mode: "pool",
+    mode: "tranche",
     creatorSupply: 100000000,
     creatorUnlockDate: "",
     metadataName: "",
@@ -160,9 +141,7 @@ export const LaunchForm = () => {
   // Keep track of the image buffer outside of the form state
   const [imageBuffer, setImageBuffer] = useState<ArrayBuffer | null>(null);
 
-  const handleInputChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => {
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
 
     // Handle number inputs that need comma formatting
@@ -183,11 +162,7 @@ export const LaunchForm = () => {
     }));
   };
 
-  const handleTrancheChange = (
-    index: number,
-    field: "coins" | "price",
-    value: string,
-  ) => {
+  const handleTrancheChange = (index: number, field: "coins" | "price", value: string) => {
     // Handle coins field with comma formatting
     if (field === "coins") {
       handleNumberInputChange(value, (cleanValue) => {
@@ -222,10 +197,7 @@ export const LaunchForm = () => {
         {
           coins: defaultTranche.coins,
           price: parseFloat(
-            (
-              Number(defaultTranche.price) +
-              prev.tranches.length * Number(defaultTranche.price)
-            ).toFixed(2),
+            (Number(defaultTranche.price) + prev.tranches.length * Number(defaultTranche.price)).toFixed(2),
           ),
         },
       ],
@@ -275,9 +247,7 @@ export const LaunchForm = () => {
       }
 
       const unlockTs = validatedData.creatorUnlockDate
-        ? Math.floor(
-            new Date(validatedData.creatorUnlockDate).getTime() / 1_000,
-          )
+        ? Math.floor(new Date(validatedData.creatorUnlockDate).getTime() / 1_000)
         : 0;
 
       const fileName = `${generateRandomSlug()}_logo.png`;
@@ -354,12 +324,8 @@ export const LaunchForm = () => {
         });
       } else {
         // Use traditional tranche launch function
-        const trancheCoins = validatedData.tranches.map((t) =>
-          parseEther(t.coins.toString()),
-        );
-        const tranchePrices = validatedData.tranches.map((t) =>
-          parseEther(t.price.toString()),
-        );
+        const trancheCoins = validatedData.tranches.map((t) => parseEther(t.coins.toString()));
+        const tranchePrices = validatedData.tranches.map((t) => parseEther(t.price.toString()));
         newCoinId = (
           await publicClient.simulateContract({
             abi: ZAMMLaunchAbi,
@@ -401,17 +367,14 @@ export const LaunchForm = () => {
         toast.error(t("create.error_fix_form"));
       } else {
         console.error(err);
-        toast.error(
-          `${t("create.error_failed_launch")}: ${err instanceof Error ? err.message : String(err)}`,
-        );
+        toast.error(`${t("create.error_failed_launch")}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
   };
 
   // Robust calculation helpers
   const calculatePrice = () => {
-    if (!formData.ethAmount || !formData.poolSupply || 
-        formData.ethAmount <= 0 || formData.poolSupply <= 0) {
+    if (!formData.ethAmount || !formData.poolSupply || formData.ethAmount <= 0 || formData.poolSupply <= 0) {
       return null;
     }
     const price = formData.ethAmount / formData.poolSupply;
@@ -453,10 +416,7 @@ export const LaunchForm = () => {
   }, [formData.tranches]);
 
   return (
-    <form
-      onSubmit={onSubmit}
-      className="grid grid-cols-1 space-x-2 p-4 min-h-screeen mb-20 mx-auto"
-    >
+    <form onSubmit={onSubmit} className="grid grid-cols-1 space-x-2 p-4 min-h-screeen mb-20 mx-auto">
       <div className="space-y-2">
         {/* creator supply & unlock */}
         <div className="grid w-full items-center gap-1.5">
@@ -469,17 +429,13 @@ export const LaunchForm = () => {
             value={formatNumberInput(formData.creatorSupply)}
             onChange={handleInputChange}
           />
-          {errors["creatorSupply"] && (
-            <p className="text-sm text-red-500">{errors["creatorSupply"]}</p>
-          )}
+          {errors["creatorSupply"] && <p className="text-sm text-red-500">{errors["creatorSupply"]}</p>}
         </div>
 
         {/* Creator Unlock Time - only show for tranche and pool modes */}
         {(formData.mode === "tranche" || formData.mode === "pool") && (
           <div className="grid w-full items-center gap-1.5">
-            <Label htmlFor="creatorUnlockDate">
-              {t("create.creator_unlock_time")}
-            </Label>
+            <Label htmlFor="creatorUnlockDate">{t("create.creator_unlock_time")}</Label>
             <Input
               id="creatorUnlockDate"
               name="creatorUnlockDate"
@@ -487,24 +443,17 @@ export const LaunchForm = () => {
               value={formData.creatorUnlockDate}
               onChange={handleInputChange}
             />
-            {errors["creatorUnlockDate"] && (
-              <p className="text-sm text-red-500">
-                {errors["creatorUnlockDate"]}
-              </p>
-            )}
+            {errors["creatorUnlockDate"] && <p className="text-sm text-red-500">{errors["creatorUnlockDate"]}</p>}
           </div>
         )}
 
         {/* Launch Mode Selector */}
         <div className="grid w-full items-center gap-3">
-          <Label className="text-base font-semibold">
-            {t("create.launch_type")}
-          </Label>
+          <Label className="text-base font-semibold">{t("create.launch_type")}</Label>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {Object.values(LAUNCH_MODES).map((mode) => {
-              const isTrancheMode = mode.id === "tranche";
-              const isDisabled = isTrancheMode; // Disable tranche mode
-              
+              const isDisabled = false; // Enable tranche mode
+
               return (
                 <label
                   key={mode.id}
@@ -536,9 +485,7 @@ export const LaunchForm = () => {
                     <div className="text-2xl">{mode.icon}</div>
                     <div className="flex-1">
                       <div className="font-semibold text-sm">{mode.title}</div>
-                      <div className="text-xs text-gray-600 mt-1">
-                        {mode.description}
-                      </div>
+                      <div className="text-xs text-gray-600 mt-1">{mode.description}</div>
                     </div>
                     {formData.mode === mode.id && !isDisabled && (
                       <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
@@ -546,49 +493,29 @@ export const LaunchForm = () => {
                       </div>
                     )}
                   </div>
-                  
-                  {/* Upgrading overlay for tranche mode */}
-                  {isTrancheMode && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-white/90 dark:bg-gray-900/90 rounded-lg">
-                      <div className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                        {t("create.upgrading")}
-                      </div>
-                    </div>
-                  )}
+
                 </label>
               );
             })}
           </div>
-          {errors["mode"] && (
-            <p className="text-sm text-red-500">{errors["mode"]}</p>
-          )}
+          {errors["mode"] && <p className="text-sm text-red-500">{errors["mode"]}</p>}
         </div>
 
         {/* Pool Mode Inputs */}
         {formData.mode === "pool" && (
           <>
             <div className="grid w-full items-center gap-1.5">
-              <Label htmlFor="poolSupply">
-                {t("create.pool_supply_label")}
-              </Label>
+              <Label htmlFor="poolSupply">{t("create.pool_supply_label")}</Label>
               <Input
                 id="poolSupply"
                 name="poolSupply"
                 type="text"
                 placeholder="e.g. 900,000,000"
-                value={
-                  formData.poolSupply
-                    ? formatNumberInput(formData.poolSupply)
-                    : ""
-                }
+                value={formData.poolSupply ? formatNumberInput(formData.poolSupply) : ""}
                 onChange={handleInputChange}
               />
-              <div className="text-xs text-gray-500">
-                {t("create.pool_help_text")}
-              </div>
-              {errors["poolSupply"] && (
-                <p className="text-sm text-red-500">{errors["poolSupply"]}</p>
-              )}
+              <div className="text-xs text-gray-500">{t("create.pool_help_text")}</div>
+              {errors["poolSupply"] && <p className="text-sm text-red-500">{errors["poolSupply"]}</p>}
             </div>
 
             <div className="grid w-full items-center gap-1.5">
@@ -605,16 +532,10 @@ export const LaunchForm = () => {
               <div className="text-xs text-gray-500">
                 {t("create.eth_help_text")}
                 {calculatePrice() && (
-                    <span className="ml-2 text-blue-600 font-medium">
-                      →{" "}
-                      {formatPrice(calculatePrice())}{" "}
-                      ETH per coin
-                    </span>
-                  )}
+                  <span className="ml-2 text-blue-600 font-medium">→ {formatPrice(calculatePrice())} ETH per coin</span>
+                )}
               </div>
-              {errors["ethAmount"] && (
-                <p className="text-sm text-red-500">{errors["ethAmount"]}</p>
-              )}
+              {errors["ethAmount"] && <p className="text-sm text-red-500">{errors["ethAmount"]}</p>}
             </div>
           </>
         )}
@@ -623,11 +544,7 @@ export const LaunchForm = () => {
         <div className="space-y-2">
           <Label htmlFor="imageFile">{t("create.coin_image")}</Label>
           <ImageInput onChange={handleImageFileChange} />
-          {!imageBuffer && isSubmitted && (
-            <p className="text-sm text-red-500">
-              {t("create.error_image_required")}
-            </p>
-          )}
+          {!imageBuffer && isSubmitted && <p className="text-sm text-red-500">{t("create.error_image_required")}</p>}
         </div>
 
         {/* metadata */}
@@ -640,9 +557,7 @@ export const LaunchForm = () => {
             value={formData.metadataName}
             onChange={handleInputChange}
           />
-          {errors["metadataName"] && (
-            <p className="text-sm text-red-500">{errors["metadataName"]}</p>
-          )}
+          {errors["metadataName"] && <p className="text-sm text-red-500">{errors["metadataName"]}</p>}
         </div>
 
         <div className="grid w-full items-center gap-1.5">
@@ -654,9 +569,7 @@ export const LaunchForm = () => {
             value={formData.metadataSymbol}
             onChange={handleInputChange}
           />
-          {errors["metadataSymbol"] && (
-            <p className="text-sm text-red-500">{errors["metadataSymbol"]}</p>
-          )}
+          {errors["metadataSymbol"] && <p className="text-sm text-red-500">{errors["metadataSymbol"]}</p>}
         </div>
 
         <div className="grid w-full items-center gap-1.5">
@@ -669,11 +582,7 @@ export const LaunchForm = () => {
             value={formData.metadataDescription || ""}
             onChange={handleInputChange}
           />
-          {errors["metadataDescription"] && (
-            <p className="text-sm text-red-500">
-              {errors["metadataDescription"]}
-            </p>
-          )}
+          {errors["metadataDescription"] && <p className="text-sm text-red-500">{errors["metadataDescription"]}</p>}
         </div>
       </div>
       <div className="space-y-2">
@@ -682,57 +591,25 @@ export const LaunchForm = () => {
           <>
             <div className="rounded-2xl shadow-sm p-4">
               <div className="flex items-center gap-2 mb-1">
-                <h3 className="text-lg font-semibold">
-                  {t("create.bonding_curve")}
-                </h3>
+                <h3 className="text-lg font-semibold">{t("create.bonding_curve")}</h3>
                 <TrancheInfoDialog />
               </div>
-              <label className="text-sm text-gray-500 mb-4 block">
-                {t("create.bonding_curve_help")}
-              </label>
+              <label className="text-sm text-gray-500 mb-4 block">{t("create.bonding_curve_help")}</label>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart
-                    data={chartData}
-                    margin={{ top: 10, right: 20, bottom: 10, left: 10 }}
-                  >
+                  <ComposedChart data={chartData} margin={{ top: 10, right: 20, bottom: 10, left: 10 }}>
                     <defs>
-                      <linearGradient
-                        id="priceGradient"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="0%"
-                          stopColor="#00e5ff"
-                          stopOpacity={0.8}
-                        />
-                        <stop
-                          offset="100%"
-                          stopColor="#00e5ff"
-                          stopOpacity={0.2}
-                        />
+                      <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#00e5ff" stopOpacity={0.8} />
+                        <stop offset="100%" stopColor="#00e5ff" stopOpacity={0.2} />
                       </linearGradient>
-                      <linearGradient
-                        id="lineGradient"
-                        x1="0"
-                        y1="0"
-                        x2="1"
-                        y2="0"
-                      >
+                      <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
                         <stop offset="0%" stopColor="#00e5ff" />
                         <stop offset="100%" stopColor="#4dd0e1" />
                       </linearGradient>
                     </defs>
 
-                    <CartesianGrid
-                      horizontal={true}
-                      vertical={false}
-                      stroke="#e2e8f0"
-                      strokeDasharray="1 4"
-                    />
+                    <CartesianGrid horizontal={true} vertical={false} stroke="#e2e8f0" strokeDasharray="1 4" />
 
                     <XAxis
                       dataKey="name"
@@ -741,11 +618,7 @@ export const LaunchForm = () => {
                       tick={{ fill: "#4a5568", fontSize: 12 }}
                     />
 
-                    <YAxis
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: "#4a5568", fontSize: 12 }}
-                    />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: "#4a5568", fontSize: 12 }} />
 
                     <Tooltip
                       content={({ active, payload, label }) => {
@@ -754,9 +627,7 @@ export const LaunchForm = () => {
                           <div className="bg-white p-2 rounded shadow-lg text-sm">
                             <div className="text-gray-600 mb-1">{label}</div>
                             <div className="font-medium text-blue-500">
-                              {typeof payload[0]?.value === "number"
-                                ? payload[0].value.toFixed(4)
-                                : payload[0]?.value}{" "}
+                              {typeof payload[0]?.value === "number" ? payload[0].value.toFixed(4) : payload[0]?.value}{" "}
                               ETH
                             </div>
                           </div>
@@ -777,9 +648,7 @@ export const LaunchForm = () => {
                       dataKey="priceNum"
                       fill="url(#priceGradient)"
                       radius={[6, 6, 0, 0]}
-                      onClick={(_d, idx) =>
-                        handleBarClick(chartData[idx].originalIndex)
-                      }
+                      onClick={(_d, idx) => handleBarClick(chartData[idx].originalIndex)}
                       isAnimationActive
                       animationDuration={800}
                     />
@@ -811,53 +680,33 @@ export const LaunchForm = () => {
             <div className="max-h-[35vh] pr-1 overflow-y-scroll">
               {/* tranche raw inputs – allow granular control + coins */}
               {formData.tranches.map((tranche, idx) => (
-                <div
-                  key={idx}
-                  className="flex flex-col sm:flex-row items-end gap-4 pb-4 last:pb-0"
-                >
+                <div key={idx} className="flex flex-col sm:flex-row items-end gap-4 pb-4 last:pb-0">
                   <div className="flex-grow grid w-full items-center gap-1.5">
-                    <Label htmlFor={`trancheCoins-${idx}`}>
-                      {t("create.coins")}
-                    </Label>
+                    <Label htmlFor={`trancheCoins-${idx}`}>{t("create.coins")}</Label>
                     <Input
                       id={`trancheCoins-${idx}`}
                       type="text"
                       value={formatNumberInput(tranche.coins)}
-                      onChange={(e) =>
-                        handleTrancheChange(idx, "coins", e.target.value)
-                      }
+                      onChange={(e) => handleTrancheChange(idx, "coins", e.target.value)}
                     />
                     {errors[`tranches.${idx}.coins`] && (
-                      <p className="text-sm text-red-500">
-                        {errors[`tranches.${idx}.coins`]}
-                      </p>
+                      <p className="text-sm text-red-500">{errors[`tranches.${idx}.coins`]}</p>
                     )}
                   </div>
                   <div className="flex-grow grid w-full items-center gap-1.5">
-                    <Label htmlFor={`tranchePrice-${idx}`}>
-                      {t("create.price_eth")}
-                    </Label>
+                    <Label htmlFor={`tranchePrice-${idx}`}>{t("create.price_eth")}</Label>
                     <Input
                       id={`tranchePrice-${idx}`}
                       type="number"
                       value={tranche.price}
-                      onChange={(e) =>
-                        handleTrancheChange(idx, "price", e.target.value)
-                      }
+                      onChange={(e) => handleTrancheChange(idx, "price", e.target.value)}
                     />
                     {errors[`tranches.${idx}.price`] && (
-                      <p className="text-sm text-red-500">
-                        {errors[`tranches.${idx}.price`]}
-                      </p>
+                      <p className="text-sm text-red-500">{errors[`tranches.${idx}.price`]}</p>
                     )}
                   </div>
                   {formData.tranches.length > 1 && (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => removeTranche(idx)}
-                      type="button"
-                    >
+                    <Button variant="destructive" size="sm" onClick={() => removeTranche(idx)} type="button">
                       <XIcon />
                     </Button>
                   )}
@@ -871,9 +720,7 @@ export const LaunchForm = () => {
         {formData.mode === "pool" && (
           <div className="bg-card text-card-foreground border-2 border-border shadow-[4px_4px_0_var(--border)] p-6 transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_var(--border)]">
             <div className="flex items-center gap-2 mb-4">
-              <h3 className="text-lg font-semibold font-mono">
-                {t("create.pool_configuration")}
-              </h3>
+              <h3 className="text-lg font-semibold font-mono">{t("create.pool_configuration")}</h3>
             </div>
 
             {/* Main Pool Stats */}
@@ -882,160 +729,134 @@ export const LaunchForm = () => {
                 <div className="text-xs font-mono text-muted-foreground uppercase tracking-wide mb-1">
                   {t("create.pool_supply_display")}
                 </div>
-                <div className="text-2xl font-bold font-mono">
-                  {(formData.poolSupply || 0).toLocaleString()}
-                </div>
-                <div className="text-xs font-mono text-muted-foreground uppercase">
-                  coins
-                </div>
+                <div className="text-2xl font-bold font-mono">{(formData.poolSupply || 0).toLocaleString()}</div>
+                <div className="text-xs font-mono text-muted-foreground uppercase">coins</div>
               </div>
-              
+
               <div className="bg-background border-2 border-border p-4 shadow-[2px_2px_0_var(--border)]">
                 <div className="text-xs font-mono text-muted-foreground uppercase tracking-wide mb-1">
                   {t("create.eth_liquidity")}
                 </div>
-                <div className="text-2xl font-bold font-mono">
-                  {formData.ethAmount || 0}
-                </div>
-                <div className="text-xs font-mono text-muted-foreground uppercase">
-                  ETH
-                </div>
+                <div className="text-2xl font-bold font-mono">{formData.ethAmount || 0}</div>
+                <div className="text-xs font-mono text-muted-foreground uppercase">ETH</div>
               </div>
             </div>
 
             {/* Price Calculations - Only show if we have valid data */}
-            {formData.poolSupply &&
-              formData.ethAmount &&
-              formData.ethAmount > 0 &&
-              formData.poolSupply > 0 && (
-                <>
-                  {/* Starting Price & Total Supply */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div className="bg-background border-2 border-border p-4 shadow-[2px_2px_0_var(--border)]">
-                      <div className="text-xs font-mono text-muted-foreground uppercase tracking-wide mb-1">
-                        {t("create.starting_price")}
-                      </div>
-                      <div className="text-xl font-bold font-mono">
-                        {formatPrice(calculatePrice())}
-                      </div>
-                      <div className="text-xs font-mono text-muted-foreground uppercase">
-                        ETH per coin
-                      </div>
+            {formData.poolSupply && formData.ethAmount && formData.ethAmount > 0 && formData.poolSupply > 0 && (
+              <>
+                {/* Starting Price & Total Supply */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div className="bg-background border-2 border-border p-4 shadow-[2px_2px_0_var(--border)]">
+                    <div className="text-xs font-mono text-muted-foreground uppercase tracking-wide mb-1">
+                      {t("create.starting_price")}
                     </div>
+                    <div className="text-xl font-bold font-mono">{formatPrice(calculatePrice())}</div>
+                    <div className="text-xs font-mono text-muted-foreground uppercase">ETH per coin</div>
+                  </div>
 
-                    <div className="bg-background border-2 border-border p-4 shadow-[2px_2px_0_var(--border)]">
-                      <div className="text-xs font-mono text-muted-foreground uppercase tracking-wide mb-1">
-                        {t("create.total_supply")}
-                      </div>
-                      <div className="text-xl font-bold font-mono">
+                  <div className="bg-background border-2 border-border p-4 shadow-[2px_2px_0_var(--border)]">
+                    <div className="text-xs font-mono text-muted-foreground uppercase tracking-wide mb-1">
+                      {t("create.total_supply")}
+                    </div>
+                    <div className="text-xl font-bold font-mono">
+                      {((formData.poolSupply || 0) + (formData.creatorSupply || 0)).toLocaleString()}
+                    </div>
+                    <div className="text-xs font-mono text-muted-foreground uppercase">coins</div>
+                  </div>
+                </div>
+
+                {/* Pool Breakdown */}
+                <div className="bg-background border-2 border-border p-4 shadow-[2px_2px_0_var(--border)] mb-4">
+                  <div className="text-sm font-mono font-semibold mb-3 uppercase tracking-wide">
+                    {t("create.pool_breakdown")}
+                  </div>
+                  <div className="space-y-2 font-mono text-sm">
+                    <div className="flex justify-between border-b border-border pb-1">
+                      <span className="uppercase tracking-wide">{t("create.pool_liquidity")}</span>
+                      <span className="font-bold">
                         {(
-                          (formData.poolSupply || 0) +
-                          (formData.creatorSupply || 0)
-                        ).toLocaleString()}
-                      </div>
-                      <div className="text-xs font-mono text-muted-foreground uppercase">
-                        coins
-                      </div>
+                          ((formData.poolSupply || 0) / ((formData.poolSupply || 0) + (formData.creatorSupply || 0))) *
+                          100
+                        ).toFixed(1)}
+                        %
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-b border-border pb-1">
+                      <span className="uppercase tracking-wide">{t("create.creator_allocation")}</span>
+                      <span className="font-bold">
+                        {(
+                          ((formData.creatorSupply || 0) /
+                            ((formData.poolSupply || 0) + (formData.creatorSupply || 0))) *
+                          100
+                        ).toFixed(1)}
+                        %
+                      </span>
+                    </div>
+                    <div className="flex justify-between pt-1">
+                      <span className="uppercase tracking-wide">{t("create.initial_market_cap")}</span>
+                      <span className="font-bold">{formatMarketCap(calculateMarketCap())} ETH</span>
                     </div>
                   </div>
+                </div>
 
-                  {/* Pool Breakdown */}
-                  <div className="bg-background border-2 border-border p-4 shadow-[2px_2px_0_var(--border)] mb-4">
-                    <div className="text-sm font-mono font-semibold mb-3 uppercase tracking-wide">
-                      {t("create.pool_breakdown")}
-                    </div>
-                    <div className="space-y-2 font-mono text-sm">
-                      <div className="flex justify-between border-b border-border pb-1">
-                        <span className="uppercase tracking-wide">{t("create.pool_liquidity")}</span>
-                        <span className="font-bold">
-                          {(
-                            ((formData.poolSupply || 0) /
-                              ((formData.poolSupply || 0) +
-                                (formData.creatorSupply || 0))) *
-                            100
-                          ).toFixed(1)}%
-                        </span>
-                      </div>
-                      <div className="flex justify-between border-b border-border pb-1">
-                        <span className="uppercase tracking-wide">{t("create.creator_allocation")}</span>
-                        <span className="font-bold">
-                          {(
-                            ((formData.creatorSupply || 0) /
-                              ((formData.poolSupply || 0) +
-                                (formData.creatorSupply || 0))) *
-                            100
-                          ).toFixed(1)}%
-                        </span>
-                      </div>
-                      <div className="flex justify-between pt-1">
-                        <span className="uppercase tracking-wide">{t("create.initial_market_cap")}</span>
-                        <span className="font-bold">
-                          {formatMarketCap(calculateMarketCap())} ETH
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+                {/* Price Validation Feedback */}
+                {(() => {
+                  const price = calculatePrice();
+                  const marketCap = calculateMarketCap();
 
-                  {/* Price Validation Feedback */}
-                  {(() => {
-                    const price = calculatePrice();
-                    const marketCap = calculateMarketCap();
-
-                    if (!price || !marketCap) {
-                      return (
-                        <div className="bg-background border-2 border-border p-3 shadow-[2px_2px_0_var(--border)] border-gray-400">
-                          <div className="text-xs font-mono font-semibold text-gray-600 uppercase tracking-wide">
-                            ℹ️ {t("create.enter_pool_help")}
-                          </div>
-                        </div>
-                      );
-                    }
-
-                    if (price < 0.000001) {
-                      return (
-                        <div className="bg-background border-2 border-border p-3 shadow-[2px_2px_0_var(--border)] border-blue-400">
-                          <div className="text-xs font-mono font-semibold text-blue-600 uppercase tracking-wide">
-                            {t("create.low_price_suggestion")}
-                          </div>
-                        </div>
-                      );
-                    }
-                    if (marketCap > 100) {
-                      return (
-                        <div className="bg-background border-2 border-border p-3 shadow-[2px_2px_0_var(--border)] border-purple-400">
-                          <div className="text-xs font-mono font-semibold text-purple-600 uppercase tracking-wide">
-                            {t("create.high_market_cap_ambitious", {
-                              marketCap: formatMarketCap(marketCap),
-                            })}
-                          </div>
-                        </div>
-                      );
-                    }
-                    if (price < 0.01 && marketCap < 10) {
-                      return (
-                        <div className="bg-background border-2 border-border p-3 shadow-[2px_2px_0_var(--border)] border-green-400">
-                          <div className="text-xs font-mono font-semibold text-green-600 uppercase tracking-wide">
-                            {t("create.organic_growth_setup")}
-                          </div>
-                        </div>
-                      );
-                    }
+                  if (!price || !marketCap) {
                     return (
-                      <div className="bg-background border-2 border-border p-3 shadow-[2px_2px_0_var(--border)] border-emerald-400">
-                        <div className="text-xs font-mono font-semibold text-emerald-600 uppercase tracking-wide">
-                          {t("create.pool_config_balanced")}
+                      <div className="bg-background border-2 border-border p-3 shadow-[2px_2px_0_var(--border)] border-gray-400">
+                        <div className="text-xs font-mono font-semibold text-gray-600 uppercase tracking-wide">
+                          ℹ️ {t("create.enter_pool_help")}
                         </div>
                       </div>
                     );
-                  })()}
-                </>
-              )}
+                  }
+
+                  if (price < 0.000001) {
+                    return (
+                      <div className="bg-background border-2 border-border p-3 shadow-[2px_2px_0_var(--border)] border-blue-400">
+                        <div className="text-xs font-mono font-semibold text-blue-600 uppercase tracking-wide">
+                          {t("create.low_price_suggestion")}
+                        </div>
+                      </div>
+                    );
+                  }
+                  if (marketCap > 100) {
+                    return (
+                      <div className="bg-background border-2 border-border p-3 shadow-[2px_2px_0_var(--border)] border-purple-400">
+                        <div className="text-xs font-mono font-semibold text-purple-600 uppercase tracking-wide">
+                          {t("create.high_market_cap_ambitious", {
+                            marketCap: formatMarketCap(marketCap),
+                          })}
+                        </div>
+                      </div>
+                    );
+                  }
+                  if (price < 0.01 && marketCap < 10) {
+                    return (
+                      <div className="bg-background border-2 border-border p-3 shadow-[2px_2px_0_var(--border)] border-green-400">
+                        <div className="text-xs font-mono font-semibold text-green-600 uppercase tracking-wide">
+                          {t("create.organic_growth_setup")}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="bg-background border-2 border-border p-3 shadow-[2px_2px_0_var(--border)] border-emerald-400">
+                      <div className="text-xs font-mono font-semibold text-emerald-600 uppercase tracking-wide">
+                        {t("create.pool_config_balanced")}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </>
+            )}
 
             {/* Empty State */}
-            {(!formData.poolSupply ||
-              !formData.ethAmount ||
-              formData.ethAmount <= 0 ||
-              formData.poolSupply <= 0) && (
+            {(!formData.poolSupply || !formData.ethAmount || formData.ethAmount <= 0 || formData.poolSupply <= 0) && (
               <div className="bg-background border-2 border-border p-6 shadow-[2px_2px_0_var(--border)] text-center">
                 <div className="text-sm font-mono text-muted-foreground uppercase tracking-wide">
                   {t("create.enter_pool_help")}
@@ -1044,6 +865,124 @@ export const LaunchForm = () => {
             )}
           </div>
         )}
+
+        {/* Supply Breakdown */}
+        {(() => {
+          const creatorSupply = formData.creatorSupply || 0;
+          const poolSupply = formData.poolSupply || 0;
+          const totalTrancheSupply = formData.tranches.reduce((sum, tranche) => sum + (tranche.coins || 0), 0);
+          
+          let totalSupply = 0;
+          let poolLiquidity = 0;
+          let saleSupply = 0;
+          
+          if (formData.mode === "simple") {
+            totalSupply = creatorSupply;
+          } else if (formData.mode === "pool") {
+            totalSupply = creatorSupply + poolSupply;
+            poolLiquidity = poolSupply;
+          } else if (formData.mode === "tranche") {
+            saleSupply = totalTrancheSupply;
+            poolLiquidity = totalTrancheSupply; // Duplicate of sold supply goes to pool
+            totalSupply = creatorSupply + saleSupply + poolLiquidity;
+          }
+          
+          const creatorPercent = totalSupply > 0 ? (creatorSupply / totalSupply) * 100 : 0;
+          const poolPercent = totalSupply > 0 ? (poolLiquidity / totalSupply) * 100 : 0;
+          const salePercent = totalSupply > 0 ? (saleSupply / totalSupply) * 100 : 0;
+          const remainingPercent = 100 - creatorPercent - poolPercent - salePercent;
+          
+          if (totalSupply === 0) return null;
+          
+          return (
+            <div className="bg-card text-card-foreground border-2 border-border shadow-[4px_4px_0_var(--border)] p-6 transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_var(--border)] mt-6">
+              <div className="flex items-center gap-2 mb-4">
+                <h3 className="text-lg font-semibold font-mono">{t("create.supply_breakdown")}</h3>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div className="bg-background border-2 border-border p-4 shadow-[2px_2px_0_var(--border)]">
+                  <div className="text-xs font-mono text-muted-foreground uppercase tracking-wide mb-1">
+                    {t("create.total_supply")}
+                  </div>
+                  <div className="text-2xl font-bold font-mono">{totalSupply.toLocaleString()}</div>
+                  <div className="text-xs font-mono text-muted-foreground uppercase">{t("create.coins")}</div>
+                </div>
+                
+                <div className="bg-background border-2 border-border p-4 shadow-[2px_2px_0_var(--border)]">
+                  <div className="text-xs font-mono text-muted-foreground uppercase tracking-wide mb-1">
+                    {t("create.creator_supply")}
+                  </div>
+                  <div className="text-xl font-bold font-mono">{creatorSupply.toLocaleString()}</div>
+                  <div className="text-sm font-mono text-muted-foreground">
+                    {creatorPercent.toFixed(1)}{t("create.percent_of_total")}
+                  </div>
+                </div>
+              </div>
+              
+              {formData.mode === "pool" && poolSupply > 0 && (
+                <div className="grid grid-cols-1 gap-4 mb-4">
+                  <div className="bg-background border-2 border-border p-4 shadow-[2px_2px_0_var(--border)]">
+                    <div className="text-xs font-mono text-muted-foreground uppercase tracking-wide mb-1">
+                      {t("create.pool_liquidity")}
+                    </div>
+                    <div className="text-xl font-bold font-mono">{poolSupply.toLocaleString()}</div>
+                    <div className="text-sm font-mono text-muted-foreground">
+                      {poolPercent.toFixed(1)}{t("create.percent_of_total")}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {formData.mode === "tranche" && totalTrancheSupply > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div className="bg-background border-2 border-border p-4 shadow-[2px_2px_0_var(--border)]">
+                    <div className="text-xs font-mono text-muted-foreground uppercase tracking-wide mb-1">
+                      {t("create.sale_supply")}
+                    </div>
+                    <div className="text-xl font-bold font-mono">{saleSupply.toLocaleString()}</div>
+                    <div className="text-sm font-mono text-muted-foreground">
+                      {salePercent.toFixed(1)}{t("create.percent_of_total")}
+                    </div>
+                  </div>
+                  
+                  <div className="bg-background border-2 border-border p-4 shadow-[2px_2px_0_var(--border)]">
+                    <div className="text-xs font-mono text-muted-foreground uppercase tracking-wide mb-1">
+                      {t("create.pool_liquidity_auto")}
+                    </div>
+                    <div className="text-xl font-bold font-mono">{poolLiquidity.toLocaleString()}</div>
+                    <div className="text-sm font-mono text-muted-foreground">
+                      {poolPercent.toFixed(1)}{t("create.percent_of_total")}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {formData.mode === "tranche" && (
+                <div className="bg-blue-50 border-2 border-blue-200 p-3 rounded-md">
+                  <div className="text-xs font-mono text-blue-600 uppercase tracking-wide mb-1">
+                    {t("create.supply_breakdown_note")}
+                  </div>
+                  <div className="text-sm text-blue-700">
+                    {(() => {
+                      const remainingAmount = ((totalSupply - creatorSupply - saleSupply - poolLiquidity) / 1000000).toFixed(0);
+                      const hasRemaining = parseFloat(remainingAmount) > 0;
+                      
+                      if (hasRemaining) {
+                        return t("create.supply_breakdown_explanation", {
+                          remainingAmount,
+                          remainingPercent: remainingPercent.toFixed(1)
+                        });
+                      } else {
+                        return t("create.supply_breakdown_explanation_no_remaining");
+                      }
+                    })()}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* submit */}
         <Button type="submit" disabled={isPending} className="mt-2 w-full">
@@ -1059,9 +998,7 @@ export const LaunchForm = () => {
         {hash && (
           <Alert className="mt-4">
             <AlertTitle>{t("create.success_transaction_sent")}</AlertTitle>
-            <AlertDescription>
-              {t("create.success_check_hash", { hash })}
-            </AlertDescription>
+            <AlertDescription>{t("create.success_check_hash", { hash })}</AlertDescription>
           </Alert>
         )}
 
