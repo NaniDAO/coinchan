@@ -39,15 +39,6 @@ import { formatDeadline } from "@/lib/utils";
 
 /* ───────── helpers ───────── */
 
-const gcd = (a: bigint, b: bigint): bigint => {
-  while (b !== 0n) {
-    const t = b;
-    b = a % b;
-    a = t;
-  }
-  return a;
-};
-
 const statusToPillVariant = (s: string) => (s === "ACTIVE" ? "success" : s === "FINALIZED" ? "info" : "error");
 
 /* ───────── types ───────── */
@@ -84,9 +75,7 @@ export const BuyCoinSale = ({
   const [ethInput, setEthInput] = useState<string>("");
   const [tokenInput, setTokenInput] = useState<string>("");
 
-  /* dust-helper */
-  const [Pstar, setPstar] = useState<bigint>(0n);
-  const [Cstar, setCstar] = useState<bigint>(0n);
+  /* contract data */
   const [remainderWei, setRemainderWei] = useState<bigint | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -124,19 +113,6 @@ export const BuyCoinSale = ({
     [cheapestAvailableTranche],
   );
 
-  /* compute atomic lot when tranche changes */
-  useEffect(() => {
-    if (!tranche) {
-      setPstar(0n);
-      setCstar(0n);
-      return;
-    }
-    const priceWei = BigInt(tranche.price);
-    const coinsWei = BigInt(tranche.coins);
-    const g = gcd(priceWei, coinsWei);
-    setPstar(priceWei / g);
-    setCstar(coinsWei / g);
-  }, [tranche]);
 
   /* refresh remainderWei and remainderCoins after each tx */
   const [remainderCoins, setRemainderCoins] = useState<bigint | null>(null);
@@ -169,8 +145,6 @@ export const BuyCoinSale = ({
     })();
   }, [tranche, refreshKey, publicClient, coinId]);
 
-  const lotsFromEth = (rawWei: bigint) => (Pstar === 0n ? 0n : rawWei / Pstar);
-  const lotsFromToken = (rawTok: bigint) => (Cstar === 0n ? 0n : rawTok / Cstar);
 
   /* Calculate exact purchase amounts based on ZAMMLaunch contract logic */
   const purchaseCalculations = useMemo(() => {
