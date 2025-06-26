@@ -3,7 +3,8 @@ import { useAccount, useWriteContract } from "wagmi";
 import { formatEther, formatUnits } from "viem";
 import { mainnet } from "viem/chains";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useGetAccount, type AccountCoinsBalanceOf } from "@/hooks/use-get-account";
+import { useGetAccount } from "@/hooks/use-get-account";
+import { useAllCoins } from "@/hooks/metadata/use-all-coins";
 import { useGetLockups, type LockupData } from "@/hooks/use-get-lockups";
 import { useLockupStatus } from "@/hooks/use-lockup-status";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
@@ -20,7 +21,8 @@ export function UserPage() {
   const [unlockingLockup, setUnlockingLockup] = useState<string | null>(null);
   const [unlockError, setUnlockError] = useState<string | null>(null);
 
-  const { data: accountData, isLoading: isLoadingAccount, error: accountError } = useGetAccount({ address });
+  const { isLoading: isLoadingAccount, error: accountError } = useGetAccount({ address });
+  const { tokens: allTokens, isLoading: isLoadingTokens, error: tokensError } = useAllCoins();
 
   const {
     data: lockupsData,
@@ -77,22 +79,23 @@ export function UserPage() {
     }
   };
 
-  const formatTokenName = (balance: AccountCoinsBalanceOf) => {
-    if (balance.coin?.symbol && balance.coin?.name) {
-      return `${balance.coin.symbol} (${balance.coin.name})`;
+
+  // Format unified token name for display
+  const formatUnifiedTokenName = (token: TokenMeta) => {
+    if (token.symbol && token.name && token.symbol !== token.name) {
+      return `${token.symbol} (${token.name})`;
     }
-    return balance.coin?.symbol || balance.coin?.name || `Token #${balance.coinId}`;
+    return token.symbol || token.name || (token.id ? `Token #${token.id}` : "ETH");
   };
 
-  const balanceToTokenMeta = (balance: AccountCoinsBalanceOf): TokenMeta => ({
-    id: BigInt(balance.coinId),
-    symbol: balance.coin?.symbol || `Token${balance.coinId}`,
-    name: balance.coin?.name || `Token ${balance.coinId}`,
-    decimals: balance.coin?.decimals || 18,
-    balance: BigInt(balance.balance),
-    source: "COOKBOOK" as const,
-    tokenUri: balance.coin?.imageUrl || undefined,
-  });
+  // Format unified token balance for display 
+  const formatUnifiedTokenBalance = (token: TokenMeta) => {
+    if (!token.balance || token.balance === 0n) return "0";
+    return formatBalance(token.balance.toString(), token.decimals);
+  };
+
+  // Get tokens with non-zero balances
+  const tokensWithBalance = allTokens?.filter((token) => token.balance && token.balance > 0n) || [];
 
   const isLockupExpired = (unlockTime: string | null) => {
     if (!unlockTime) return false;
@@ -190,40 +193,38 @@ export function UserPage() {
             <div className="space-y-4">
               <h2 className="text-lg font-bold">{t("lockup.token_balances").toUpperCase()}</h2>
 
-              {isLoadingAccount ? (
+              {isLoadingAccount || isLoadingTokens ? (
                 <div className="flex justify-center py-8">
                   <LoadingLogo />
                 </div>
-              ) : accountError ? (
+              ) : accountError || tokensError ? (
                 <div className="text-destructive text-center py-4">
-                  {t("lockup.error_loading_balances")} {accountError.message}
+                  {t("lockup.error_loading_balances")} {typeof accountError === 'string' ? accountError : accountError?.message || typeof tokensError === 'string' ? tokensError : tokensError?.message}
                 </div>
-              ) : !accountData?.coinsBalanceOf?.items?.length ? (
+              ) : tokensWithBalance.length === 0 ? (
                 <div className="text-muted-foreground text-center py-8">{t("lockup.no_token_balances")}</div>
               ) : (
                 <div className="space-y-2">
-                  {accountData.coinsBalanceOf.items
-                    .filter((balance) => BigInt(balance.balance) > 0n)
-                    .map((balance) => (
-                      <div
-                        key={`${balance.coinId}-${balance.address}`}
-                        className="flex items-center justify-between p-3 border border-border rounded bg-card"
-                      >
-                        <div className="flex items-center gap-3">
-                          <TokenImage token={balanceToTokenMeta(balance)} />
-                          <div>
-                            <div className="font-bold">{formatTokenName(balance)}</div>
-                            <div className="text-xs text-muted-foreground">
-                              ID: {balance.coinId} • {balance.coin?.decimals || 18} decimals
-                            </div>
+                  {tokensWithBalance.map((token) => (
+                    <div
+                      key={`${token.source}-${token.id}`}
+                      className="flex items-center justify-between p-3 border border-border rounded bg-card"
+                    >
+                      <div className="flex items-center gap-3">
+                        <TokenImage token={token} />
+                        <div>
+                          <div className="font-bold">{formatUnifiedTokenName(token)}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {token.id !== null ? `ID: ${token.id}` : "Native ETH"} • {token.decimals || 18} decimals • {token.source}
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="font-bold">{formatBalance(balance.balance, balance.coin?.decimals)}</div>
-                          <div className="text-xs text-muted-foreground">{balance.coin?.symbol || "tokens"}</div>
-                        </div>
                       </div>
-                    ))}
+                      <div className="text-right">
+                        <div className="font-bold">{formatUnifiedTokenBalance(token)}</div>
+                        <div className="text-xs text-muted-foreground">{token.symbol || "tokens"}</div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

@@ -55,7 +55,7 @@ const getLaunchModes = (t: any) => ({
 // Validation schema with zod
 const launchFormSchema = z
   .object({
-    mode: z.enum(["simple", "tranche", "pool"]).default("pool"),
+    mode: z.enum(["simple", "tranche", "pool"]).default("tranche"),
     creatorSupply: z.coerce.number().min(1, "Creator supply is required"),
     creatorUnlockDate: z.string().optional(),
     metadataName: z.string().min(1, "Name is required"),
@@ -113,7 +113,7 @@ export const LaunchForm = () => {
 
   // State for form data instead of react-hook-form
   const [formData, setFormData] = useState<LaunchFormValues>({
-    mode: "pool",
+    mode: "tranche",
     creatorSupply: 100000000,
     creatorUnlockDate: "",
     metadataName: "",
