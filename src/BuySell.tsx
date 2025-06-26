@@ -34,10 +34,7 @@ import {
   withSlippage,
   ZAMMPoolKey,
 } from "./lib/swap";
-import {
-  CheckTheChainAbi,
-  CheckTheChainAddress,
-} from "./constants/CheckTheChain";
+import { CheckTheChainAbi, CheckTheChainAddress } from "./constants/CheckTheChain";
 import { CoinInfoCard } from "./components/CoinInfoCard";
 import { LoadingLogo } from "./components/ui/loading-logo";
 import { useReserves } from "./hooks/use-reserves";
@@ -71,9 +68,7 @@ export const BuySell = ({
 
   const name = coinData ? coinData.name : "Token";
   const symbol = coinData ? coinData.symbol : "TKN";
-  const description = coinData
-    ? coinData.description
-    : "No description available";
+  const description = coinData ? coinData.description : "No description available";
 
   // Fetch the lockup info to determine the custom swap fee and owner
   useEffect(() => {
@@ -94,20 +89,15 @@ export const BuySell = ({
 
         const [lockupOwner, , , , lockupSwapFee] = lockup;
 
-        const customSwapFee =
-          lockupSwapFee && lockupSwapFee > 0n ? lockupSwapFee : SWAP_FEE;
+        const customSwapFee = lockupSwapFee && lockupSwapFee > 0n ? lockupSwapFee : SWAP_FEE;
         setSwapFee(customSwapFee);
 
         if (address) {
-          const isActualOwner =
-            lockupOwner?.toLowerCase() === address.toLowerCase();
+          const isActualOwner = lockupOwner?.toLowerCase() === address.toLowerCase();
           setIsOwner(isActualOwner);
         }
       } catch (err) {
-        console.error(
-          `BuySell: Failed to fetch lockup info for token ${tokenId.toString()}:`,
-          err,
-        );
+        console.error(`BuySell: Failed to fetch lockup info for token ${tokenId.toString()}:`, err);
         if (isMounted) {
           setSwapFee(SWAP_FEE);
           setIsOwner(false);
@@ -164,22 +154,12 @@ export const BuySell = ({
     try {
       if (tab === "buy") {
         const inWei = parseEther(amount || "0");
-        const rawOut = getAmountOut(
-          inWei,
-          reserves.reserve0,
-          reserves.reserve1,
-          swapFee,
-        );
+        const rawOut = getAmountOut(inWei, reserves.reserve0, reserves.reserve1, swapFee);
         const minOut = withSlippage(rawOut);
         return formatUnits(minOut, 18);
       } else {
         const inUnits = parseUnits(amount || "0", 18);
-        const rawOut = getAmountOut(
-          inUnits,
-          reserves.reserve1,
-          reserves.reserve0,
-          swapFee,
-        );
+        const rawOut = getAmountOut(inUnits, reserves.reserve1, reserves.reserve0, swapFee);
         const minOut = withSlippage(rawOut);
         return formatEther(minOut);
       }
@@ -195,9 +175,7 @@ export const BuySell = ({
       if (!ethBalance?.value) return;
 
       const adjustedBalance =
-        percentage === 100
-          ? (ethBalance.value * 99n) / 100n
-          : (ethBalance.value * BigInt(percentage)) / 100n;
+        percentage === 100 ? (ethBalance.value * 99n) / 100n : (ethBalance.value * BigInt(percentage)) / 100n;
 
       const newAmount = formatEther(adjustedBalance);
       setAmount(newAmount);
@@ -214,9 +192,7 @@ export const BuySell = ({
     try {
       const amountWei = parseEther(amount);
       if (ethBalance.value > 0n) {
-        const calculatedPercentage = Number(
-          (amountWei * 100n) / ethBalance.value,
-        );
+        const calculatedPercentage = Number((amountWei * 100n) / ethBalance.value);
         setBuyPercentage(Math.min(100, Math.max(0, calculatedPercentage)));
       }
     } catch {
@@ -235,20 +211,11 @@ export const BuySell = ({
       }
 
       const amountInWei = parseEther(amount || "0");
-      const rawOut = getAmountOut(
-        amountInWei,
-        reserves.reserve0,
-        reserves.reserve1,
-        swapFee,
-      );
+      const rawOut = getAmountOut(amountInWei, reserves.reserve0, reserves.reserve1, swapFee);
       const amountOutMin = withSlippage(rawOut);
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
-      const poolKey = computePoolKey(
-        tokenId,
-        swapFee,
-        CoinsAddress,
-      ) as ZAMMPoolKey;
+      const poolKey = computePoolKey(tokenId, swapFee, CoinsAddress) as ZAMMPoolKey;
       const hash = await writeContractAsync({
         address: ZAMMAddress,
         abi: ZAMMAbi,
@@ -296,20 +263,11 @@ export const BuySell = ({
         }
       }
 
-      const rawOut = getAmountOut(
-        amountInUnits,
-        reserves.reserve1,
-        reserves.reserve0,
-        swapFee,
-      );
+      const rawOut = getAmountOut(amountInUnits, reserves.reserve1, reserves.reserve0, swapFee);
       const amountOutMin = withSlippage(rawOut);
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
-      const poolKey = computePoolKey(
-        tokenId,
-        swapFee,
-        CoinsAddress,
-      ) as ZAMMPoolKey;
+      const poolKey = computePoolKey(tokenId, swapFee, CoinsAddress) as ZAMMPoolKey;
       const hash = await writeContractAsync({
         address: ZAMMAddress,
         abi: ZAMMAbi,
@@ -386,11 +344,7 @@ export const BuySell = ({
 
           {ethBalance?.value && ethBalance.value > 0n && isConnected ? (
             <div className="mt-2 pt-2 border-t border-primary/20">
-              <PercentageSlider
-                value={buyPercentage}
-                onChange={handleBuyPercentageChange}
-                disabled={isLoading}
-              />
+              <PercentageSlider value={buyPercentage} onChange={handleBuyPercentageChange} disabled={isLoading} />
             </div>
           ) : null}
 
@@ -438,9 +392,7 @@ export const BuySell = ({
             />
           </div>
           <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium">
-              You will receive ~ {estimated} ETH
-            </span>
+            <span className="text-sm font-medium">You will receive ~ {estimated} ETH</span>
             {!isLoading && balance !== undefined ? (
               <button
                 className="self-end text-sm font-medium text-chart-2 dark:text-chart-2 hover:text-primary transition-colors"
@@ -481,9 +433,7 @@ export const BuySell = ({
         </div>
       </TabsContent>
 
-      {errorMessage && (
-        <p className="text-destructive text-sm">{errorMessage}</p>
-      )}
+      {errorMessage && <p className="text-destructive text-sm">{errorMessage}</p>}
       {isSuccess && <p className="text-chart-2 text-sm">Tx confirmed!</p>}
     </Tabs>
   );

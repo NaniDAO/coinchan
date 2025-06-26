@@ -44,7 +44,7 @@ export const PoolActions = () => {
             )}
             onClick={() => setMode("swap")}
           >
-{t("common.swap").toUpperCase()}
+            {t("common.swap").toUpperCase()}
           </button>
           <button
             className={cn(
@@ -53,7 +53,7 @@ export const PoolActions = () => {
             )}
             onClick={() => setMode("liquidity")}
           >
-{t("common.add").toUpperCase()}
+            {t("common.add").toUpperCase()}
           </button>
         </div>
       </div>

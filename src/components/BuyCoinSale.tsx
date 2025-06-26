@@ -9,12 +9,7 @@
    ------------------------------------------------------------------ */
 
 import { ZAMMLaunchAbi, ZAMMLaunchAddress } from "@/constants/ZAMMLaunch";
-import {
-  useWriteContract,
-  usePublicClient,
-  useAccount,
-  useBalance,
-} from "wagmi";
+import { useWriteContract, usePublicClient, useAccount, useBalance } from "wagmi";
 import {
   ComposedChart,
   Bar,
@@ -53,8 +48,7 @@ const gcd = (a: bigint, b: bigint): bigint => {
   return a;
 };
 
-const statusToPillVariant = (s: string) =>
-  s === "ACTIVE" ? "success" : s === "FINALIZED" ? "info" : "error";
+const statusToPillVariant = (s: string) => (s === "ACTIVE" ? "success" : s === "FINALIZED" ? "info" : "error");
 
 /* ───────── types ───────── */
 
@@ -100,11 +94,10 @@ export const BuyCoinSale = ({
   const cheapestAvailableTranche = useMemo(() => {
     if (!sale) return null;
     const active = sale.tranches.items.filter(
-      (t: Tranche) =>
-        BigInt(t.remaining) > 0n && Number(t.deadline) * 1000 > Date.now(),
+      (t: Tranche) => BigInt(t.remaining) > 0n && Number(t.deadline) * 1000 > Date.now(),
     );
     if (!active.length) return null;
-    
+
     // Sort by price and return the cheapest unfilled tranche
     return active.reduce((cheapest: Tranche, current: Tranche) =>
       BigInt(cheapest.price) < BigInt(current.price) ? cheapest : current,
@@ -119,15 +112,17 @@ export const BuyCoinSale = ({
   }, [cheapestAvailableTranche]);
 
   const tranche: Tranche | undefined = useMemo(
-    () =>
-      sale?.tranches.items.find((t: Tranche) => t.trancheIndex === selected),
+    () => sale?.tranches.items.find((t: Tranche) => t.trancheIndex === selected),
     [sale, selected],
   );
 
   /* check if a tranche is selectable (only cheapest available can be selected) */
-  const isTrancheSelectable = useCallback((trancheToCheck: Tranche) => {
-    return cheapestAvailableTranche?.trancheIndex === trancheToCheck.trancheIndex;
-  }, [cheapestAvailableTranche]);
+  const isTrancheSelectable = useCallback(
+    (trancheToCheck: Tranche) => {
+      return cheapestAvailableTranche?.trancheIndex === trancheToCheck.trancheIndex;
+    },
+    [cheapestAvailableTranche],
+  );
 
   /* compute atomic lot when tranche changes */
   useEffect(() => {
@@ -161,8 +156,7 @@ export const BuyCoinSale = ({
   }, [tranche, refreshKey, publicClient, coinId]);
 
   const lotsFromEth = (rawWei: bigint) => (Pstar === 0n ? 0n : rawWei / Pstar);
-  const lotsFromToken = (rawTok: bigint) =>
-    Cstar === 0n ? 0n : rawTok / Cstar;
+  const lotsFromToken = (rawTok: bigint) => (Cstar === 0n ? 0n : rawTok / Cstar);
 
   /* sanitise ETH input */
   const sanitisedWei = useMemo(() => {
@@ -204,11 +198,7 @@ export const BuyCoinSale = ({
   }, [mode, tokenWeiRounded, ethWeiForTokens]);
 
   /* sweep eligibility */
-  const sweepable =
-    remainderWei !== null &&
-    Pstar !== 0n &&
-    remainderWei % Pstar === 0n &&
-    remainderWei > 0n;
+  const sweepable = remainderWei !== null && Pstar !== 0n && remainderWei % Pstar === 0n && remainderWei > 0n;
 
   const onTxSent = () => setRefreshKey((k) => k + 1);
 
@@ -227,19 +217,16 @@ export const BuyCoinSale = ({
   /* early exits */
   if (isLoading) return <div>{t("sale.loading")}</div>;
   if (!sale) return <div>{t("sale.not_found")}</div>;
-  if (sale.status === "FINALIZED")
-    return <BuySellCookbookCoin coinId={coinId} symbol={symbol} />;
+  if (sale.status === "FINALIZED") return <BuySellCookbookCoin coinId={coinId} symbol={symbol} />;
 
-  const activeTranches = sale.tranches.items.filter(
-    (t: Tranche) =>
-      BigInt(t.remaining) > 0n &&
-      Number(t.deadline) * 1000 > Date.now(),
-  ).sort((a: Tranche, b: Tranche) => {
-    // Sort by price ascending for consistent ordering
-    const priceA = BigInt(a.price);
-    const priceB = BigInt(b.price);
-    return priceA < priceB ? -1 : priceA > priceB ? 1 : 0;
-  });
+  const activeTranches = sale.tranches.items
+    .filter((t: Tranche) => BigInt(t.remaining) > 0n && Number(t.deadline) * 1000 > Date.now())
+    .sort((a: Tranche, b: Tranche) => {
+      // Sort by price ascending for consistent ordering
+      const priceA = BigInt(a.price);
+      const priceB = BigInt(b.price);
+      return priceA < priceB ? -1 : priceA > priceB ? 1 : 0;
+    });
 
   /* chart data */
   const chartData = sale.tranches.items.map((t: Tranche) => ({
@@ -264,7 +251,7 @@ export const BuyCoinSale = ({
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle className="font-mono text-xl">{t('sale.title')}</CardTitle>
+        <CardTitle className="font-mono text-xl">{t("sale.title")}</CardTitle>
         <CardAction>
           <Badge variant="outline" className="font-mono">
             <PillIndicator variant={statusToPillVariant(sale.status)} pulse />
@@ -275,42 +262,42 @@ export const BuyCoinSale = ({
 
       {/* Sale deadline banner */}
       {saleDeadlineInfo && (
-        <div className={cn(
-          "mx-6 mb-4 p-3 border-2 font-mono text-sm font-bold flex items-center gap-2 shadow-[4px_4px_0_var(--border)] bg-card",
-          saleDeadlineInfo.urgency === "expired" && 
-            "border-destructive text-destructive bg-destructive/10",
-          saleDeadlineInfo.urgency === "urgent" && 
-            "border-orange-500 text-orange-700 dark:text-orange-300 bg-orange-500/10 animate-pulse",
-          saleDeadlineInfo.urgency === "warning" && 
-            "border-yellow-500 text-yellow-700 dark:text-yellow-300 bg-yellow-500/10",
-          saleDeadlineInfo.urgency === "normal" && 
-            "border-green-500 text-green-700 dark:text-green-300 bg-green-500/10"
-        )}>
+        <div
+          className={cn(
+            "mx-6 mb-4 p-3 border-2 font-mono text-sm font-bold flex items-center gap-2 shadow-[4px_4px_0_var(--border)] bg-card",
+            saleDeadlineInfo.urgency === "expired" && "border-destructive text-destructive bg-destructive/10",
+            saleDeadlineInfo.urgency === "urgent" &&
+              "border-orange-500 text-orange-700 dark:text-orange-300 bg-orange-500/10 animate-pulse",
+            saleDeadlineInfo.urgency === "warning" &&
+              "border-yellow-500 text-yellow-700 dark:text-yellow-300 bg-yellow-500/10",
+            saleDeadlineInfo.urgency === "normal" &&
+              "border-green-500 text-green-700 dark:text-green-300 bg-green-500/10",
+          )}
+        >
           <Clock size={16} />
-          {saleDeadlineInfo.urgency === "expired" ? "Sale finalization deadline expired" : `Sale finalization deadline: ${saleDeadlineInfo.text}`}
+          {saleDeadlineInfo.urgency === "expired"
+            ? "Sale finalization deadline expired"
+            : `Sale finalization deadline: ${saleDeadlineInfo.text}`}
         </div>
       )}
 
       <CardContent>
         <div className="font-mono text-sm mb-6">
-          {t('sale.supply')} {formatEther(BigInt(sale.saleSupply))} {symbol}
+          {t("sale.supply")} {formatEther(BigInt(sale.saleSupply))} {symbol}
         </div>
-        
-        <h3 className="font-mono text-lg font-bold mb-4">{t('sale.tranches')}</h3>
+
+        <h3 className="font-mono text-lg font-bold mb-4">{t("sale.tranches")}</h3>
         <Card className="p-4 mb-6">
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart
-                data={chartData}
-                margin={{ top: 10, right: 20, bottom: 10, left: 10 }}
-              >
+              <ComposedChart data={chartData} margin={{ top: 10, right: 20, bottom: 10, left: 10 }}>
                 {/* … same svg gradients, axes, tooltip, bars & line as previous version … */}
                 <defs>
                   <linearGradient id="soldGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={chartTheme.downColor} stopOpacity={0.8} />
                     <stop offset="100%" stopColor={chartTheme.downColor} stopOpacity={0.2} />
                   </linearGradient>
-                  
+
                   <linearGradient id="remainingGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={chartTheme.upColor} stopOpacity={0.8} />
                     <stop offset="100%" stopColor={chartTheme.upColor} stopOpacity={0.2} />
@@ -325,18 +312,40 @@ export const BuyCoinSale = ({
                   </linearGradient>
                 </defs>
 
-                <CartesianGrid horizontal vertical={false} stroke={chartTheme.textColor} strokeOpacity={0.2} strokeDasharray="2 4" />
+                <CartesianGrid
+                  horizontal
+                  vertical={false}
+                  stroke={chartTheme.textColor}
+                  strokeOpacity={0.2}
+                  strokeDasharray="2 4"
+                />
 
-                <XAxis dataKey="name" axisLine={{ stroke: chartTheme.textColor, strokeOpacity: 0.3 }} tickLine={false} tick={{ fill: chartTheme.textColor, fontSize: 11, fontFamily: 'monospace' }} />
-                <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fill: chartTheme.textColor, fontSize: 11, fontFamily: 'monospace' }} />
-                <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fill: chartTheme.lineColor, fontSize: 11, fontFamily: 'monospace' }} />
+                <XAxis
+                  dataKey="name"
+                  axisLine={{ stroke: chartTheme.textColor, strokeOpacity: 0.3 }}
+                  tickLine={false}
+                  tick={{ fill: chartTheme.textColor, fontSize: 11, fontFamily: "monospace" }}
+                />
+                <YAxis
+                  yAxisId="left"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: chartTheme.textColor, fontSize: 11, fontFamily: "monospace" }}
+                />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: chartTheme.lineColor, fontSize: 11, fontFamily: "monospace" }}
+                />
 
                 <Legend
-                  wrapperStyle={{ fontFamily: 'monospace', fontSize: '12px' }}
+                  wrapperStyle={{ fontFamily: "monospace", fontSize: "12px" }}
                   payload={[
-                    { value: t('sale.sold'), type: "square", color: chartTheme.downColor },
-                    { value: t('sale.remaining'), type: "square", color: chartTheme.upColor },
-                    { value: t('sale.price_eth'), type: "line",  color: chartTheme.lineColor },
+                    { value: t("sale.sold"), type: "square", color: chartTheme.downColor },
+                    { value: t("sale.remaining"), type: "square", color: chartTheme.upColor },
+                    { value: t("sale.price_eth"), type: "line", color: chartTheme.lineColor },
                   ]}
                 />
 
@@ -348,62 +357,89 @@ export const BuyCoinSale = ({
                       <div className="bg-card border-2 border-border p-3 shadow-[4px_4px_0_var(--border)] font-mono text-xs">
                         <div className="text-muted-foreground mb-2 font-bold">{label}</div>
                         <div className="font-bold text-destructive mb-1">
-                          {t('sale.sold_colon')} {d.sold.toFixed(4)} {symbol}
+                          {t("sale.sold_colon")} {d.sold.toFixed(4)} {symbol}
                         </div>
                         <div className="font-bold text-warning mb-1">
-                          {t('sale.remaining_colon')} {d.remaining.toFixed(4)} {symbol}
+                          {t("sale.remaining_colon")} {d.remaining.toFixed(4)} {symbol}
                         </div>
                         <div className="font-bold text-primary mb-1">
-                          {t('sale.price_colon')} {d.price.toFixed(4)} ETH
+                          {t("sale.price_colon")} {d.price.toFixed(4)} ETH
                         </div>
                         <div className="font-bold text-sm text-muted-foreground mb-1">
-                          {((100 * d.sold) / (d.sold + d.remaining)).toFixed(1)}{t('sale.percent_sold')}
+                          {((100 * d.sold) / (d.sold + d.remaining)).toFixed(1)}
+                          {t("sale.percent_sold")}
                         </div>
-                        <div className="text-xs text-muted-foreground mt-2 border-t border-border pt-1">{t('sale.deadline')} {d.deadline}</div>
+                        <div className="text-xs text-muted-foreground mt-2 border-t border-border pt-1">
+                          {t("sale.deadline")} {d.deadline}
+                        </div>
                       </div>
                     );
                   }}
                 />
 
-                <Area yAxisId="right" type="monotone" dataKey="priceNum" fill="url(#priceGradient)" fillOpacity={0.15} stroke="none" />
-                <Bar yAxisId="left" dataKey="sold"      stackId="a" fill="url(#soldGradient)"      radius={[6,0,0,6]} barSize={50} />
-                <Bar yAxisId="left" dataKey="remaining" stackId="a" fill="url(#remainingGradient)" radius={[0,6,6,0]} barSize={50} />
-                <Line yAxisId="right" type="monotone" dataKey="priceNum" stroke="url(#lineGradient)" strokeWidth={3}
-                      dot={{ r:4, fill: chartTheme.lineColor, stroke: chartTheme.background, strokeWidth:2 }} activeDot={{ r:6, fill: chartTheme.lineColor }} />
+                <Area
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="priceNum"
+                  fill="url(#priceGradient)"
+                  fillOpacity={0.15}
+                  stroke="none"
+                />
+                <Bar
+                  yAxisId="left"
+                  dataKey="sold"
+                  stackId="a"
+                  fill="url(#soldGradient)"
+                  radius={[6, 0, 0, 6]}
+                  barSize={50}
+                />
+                <Bar
+                  yAxisId="left"
+                  dataKey="remaining"
+                  stackId="a"
+                  fill="url(#remainingGradient)"
+                  radius={[0, 6, 6, 0]}
+                  barSize={50}
+                />
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="priceNum"
+                  stroke="url(#lineGradient)"
+                  strokeWidth={3}
+                  dot={{ r: 4, fill: chartTheme.lineColor, stroke: chartTheme.background, strokeWidth: 2 }}
+                  activeDot={{ r: 6, fill: chartTheme.lineColor }}
+                />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
         </Card>
-        
+
         {/* spend/buy toggle */}
         <div className="flex gap-2 mb-6">
-          <Button 
-            variant={mode === "ETH" ? "default" : "outline"}
-            onClick={() => setMode("ETH")}
-            className="flex-1"
-          >
-            {t('sale.spend_eth')}
+          <Button variant={mode === "ETH" ? "default" : "outline"} onClick={() => setMode("ETH")} className="flex-1">
+            {t("sale.spend_eth")}
           </Button>
-          <Button 
+          <Button
             variant={mode === "TOKEN" ? "default" : "outline"}
             onClick={() => setMode("TOKEN")}
             className="flex-1"
           >
-            {t('sale.buy_tokens')}
+            {t("sale.buy_tokens")}
           </Button>
         </div>
 
         {/* tranche selector */}
-        <h3 className="font-mono text-lg font-bold mb-2">{t('sale.choose_tranche')}</h3>
+        <h3 className="font-mono text-lg font-bold mb-2">{t("sale.choose_tranche")}</h3>
         <p className="font-mono text-sm text-muted-foreground mb-4">
-          {t('sale.sequential_filling_note', 'Only the cheapest available tranche can be purchased')}
+          {t("sale.sequential_filling_note", "Only the cheapest available tranche can be purchased")}
         </p>
         <div className="grid sm:grid-cols-2 gap-4 mb-6">
           {activeTranches.map((tranche: Tranche) => {
             const isChosen = selected === tranche.trancheIndex;
             const isSelectable = isTrancheSelectable(tranche);
             const isDisabled = !isSelectable;
-            
+
             return (
               <button
                 key={tranche.trancheIndex}
@@ -411,22 +447,33 @@ export const BuyCoinSale = ({
                 disabled={isDisabled}
                 className={cn(
                   "p-4 border-2 font-mono text-left transition-all shadow-[4px_4px_0_var(--border)]",
-                  isDisabled 
+                  isDisabled
                     ? "bg-muted text-muted-foreground border-muted cursor-not-allowed opacity-60"
                     : cn(
                         "bg-card border-border hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_var(--border)]",
                         "active:translate-x-[2px] active:translate-y-[2px] active:shadow-none",
-                        isChosen && "bg-primary text-primary-foreground border-primary shadow-[4px_4px_0_var(--primary)]"
-                      )
+                        isChosen &&
+                          "bg-primary text-primary-foreground border-primary shadow-[4px_4px_0_var(--primary)]",
+                      ),
                 )}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <div className="font-bold">{t('sale.tranche')} {tranche.trancheIndex}</div>
-                  {isSelectable && <div className="text-xs bg-green-500 text-white px-2 py-1 rounded font-bold">AVAILABLE</div>}
-                  {isDisabled && <div className="text-xs bg-gray-400 text-white px-2 py-1 rounded font-bold">LOCKED</div>}
+                  <div className="font-bold">
+                    {t("sale.tranche")} {tranche.trancheIndex}
+                  </div>
+                  {isSelectable && (
+                    <div className="text-xs bg-green-500 text-white px-2 py-1 rounded font-bold">AVAILABLE</div>
+                  )}
+                  {isDisabled && (
+                    <div className="text-xs bg-gray-400 text-white px-2 py-1 rounded font-bold">LOCKED</div>
+                  )}
                 </div>
-                <div className="text-sm mb-1">{t('sale.price')} {formatEther(BigInt(tranche.price))} ETH</div>
-                <div className="text-sm">{t('sale.remaining_colon')} {formatEther(BigInt(tranche.remaining))} {symbol}</div>
+                <div className="text-sm mb-1">
+                  {t("sale.price")} {formatEther(BigInt(tranche.price))} ETH
+                </div>
+                <div className="text-sm">
+                  {t("sale.remaining_colon")} {formatEther(BigInt(tranche.remaining))} {symbol}
+                </div>
               </button>
             );
           })}
@@ -436,48 +483,54 @@ export const BuyCoinSale = ({
         {tranche && (
           <Card className="p-4">
             <label className="block text-sm font-mono font-bold mb-3">
-              {mode==="ETH"
-                ? t('sale.enter_eth_spend', { trancheIndex: tranche.trancheIndex })
-                : t('sale.enter_token_amount', { symbol })}
+              {mode === "ETH"
+                ? t("sale.enter_eth_spend", { trancheIndex: tranche.trancheIndex })
+                : t("sale.enter_token_amount", { symbol })}
             </label>
 
             <div className="flex gap-2 mb-4">
               <Input
                 type="number"
                 min="0"
-                step={mode==="ETH" ? "0.0001" : "1"}
+                step={mode === "ETH" ? "0.0001" : "1"}
                 placeholder="0.0"
-                value={mode==="ETH" ? ethInput : tokenInput}
-                onChange={(e) => mode==="ETH" ? setEthInput(e.target.value) : setTokenInput(e.target.value)}
+                value={mode === "ETH" ? ethInput : tokenInput}
+                onChange={(e) => (mode === "ETH" ? setEthInput(e.target.value) : setTokenInput(e.target.value))}
                 className="flex-1"
               />
               <Button onClick={handleMax} size="sm" variant="outline">
-                {t('sale.max')}
+                {t("sale.max")}
               </Button>
             </div>
 
             {/* live estimate */}
             <div className="text-sm font-mono mb-4 p-2 bg-muted border border-border">
-              {mode==="ETH"
-                ? estimateTokens
-                    ? <>≈ <span className="font-bold text-primary">{parseFloat(estimateTokens).toLocaleString()}</span> {symbol}</>
-                    : t('sale.estimate_placeholder')
-                : estimateEth
-                    ? <>≈ <span className="font-bold text-primary">{parseFloat(estimateEth).toLocaleString()}</span> ETH</>
-                    : t('sale.estimate_placeholder')}
+              {mode === "ETH" ? (
+                estimateTokens ? (
+                  <>
+                    ≈ <span className="font-bold text-primary">{parseFloat(estimateTokens).toLocaleString()}</span>{" "}
+                    {symbol}
+                  </>
+                ) : (
+                  t("sale.estimate_placeholder")
+                )
+              ) : estimateEth ? (
+                <>
+                  ≈ <span className="font-bold text-primary">{parseFloat(estimateEth).toLocaleString()}</span> ETH
+                </>
+              ) : (
+                t("sale.estimate_placeholder")
+              )}
             </div>
 
             {/* buy button */}
             <Button
               className="w-full mb-3"
               size="lg"
-              disabled={
-                mode==="ETH"   ? sanitisedWei===0n
-                               : tokenWeiRounded===0n || ethWeiForTokens===0n
-              }
+              disabled={mode === "ETH" ? sanitisedWei === 0n : tokenWeiRounded === 0n || ethWeiForTokens === 0n}
               onClick={() => {
                 if (!tranche) return;
-                const valueWei = mode==="ETH" ? sanitisedWei : ethWeiForTokens;
+                const valueWei = mode === "ETH" ? sanitisedWei : ethWeiForTokens;
                 writeContract({
                   address: ZAMMLaunchAddress,
                   abi: ZAMMLaunchAbi,
@@ -488,8 +541,8 @@ export const BuyCoinSale = ({
                 onTxSent();
               }}
             >
-              {t('sale.buy')}&nbsp;
-              {mode==="ETH"
+              {t("sale.buy")}&nbsp;
+              {mode === "ETH"
                 ? `${formatEther(sanitisedWei || 0n)} ETH`
                 : `${formatEther(tokenWeiRounded || 0n)} ${symbol}`}
             </Button>
@@ -501,7 +554,7 @@ export const BuyCoinSale = ({
                 className="w-full"
                 size="lg"
                 onClick={() => {
-                  if (!tranche || remainderWei===null) return;
+                  if (!tranche || remainderWei === null) return;
                   writeContract({
                     address: ZAMMLaunchAddress,
                     abi: ZAMMLaunchAbi,
@@ -512,7 +565,7 @@ export const BuyCoinSale = ({
                   onTxSent();
                 }}
               >
-                {t('sale.sweep_tranche')} ({formatEther(remainderWei!)} ETH)
+                {t("sale.sweep_tranche")} ({formatEther(remainderWei!)} ETH)
               </Button>
             )}
           </Card>

@@ -135,19 +135,19 @@ export function formatDeadline(deadline: number): {
   const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
 
   if (minutes < 60) {
-    return { 
-      text: `${minutes}m left`, 
-      urgency: minutes < 30 ? "urgent" : "warning" 
+    return {
+      text: `${minutes}m left`,
+      urgency: minutes < 30 ? "urgent" : "warning",
     };
   } else if (hours < 24) {
-    return { 
-      text: `${hours}h left`, 
-      urgency: hours < 6 ? "urgent" : hours < 12 ? "warning" : "normal" 
+    return {
+      text: `${hours}h left`,
+      urgency: hours < 6 ? "urgent" : hours < 12 ? "warning" : "normal",
     };
   } else {
-    return { 
-      text: `${days}d left`, 
-      urgency: days < 2 ? "warning" : "normal" 
+    return {
+      text: `${days}d left`,
+      urgency: days < 2 ? "warning" : "normal",
     };
   }
 }

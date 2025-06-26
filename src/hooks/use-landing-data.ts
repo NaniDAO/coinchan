@@ -2,10 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { usePublicClient } from "wagmi";
 import { formatUnits } from "viem";
 import { useTranslation } from "react-i18next";
-import {
-  CheckTheChainAbi,
-  CheckTheChainAddress,
-} from "@/constants/CheckTheChain";
+import { CheckTheChainAbi, CheckTheChainAddress } from "@/constants/CheckTheChain";
 import { mainnet } from "viem/chains";
 
 export interface LandingData {
@@ -57,11 +54,9 @@ export const useLandingData = () => {
 
       const ethPriceUsd = Number(ethPrice[1]);
 
-      const launchCostUsd =
-        Number(formatUnits(LAUNCH_COST_GAS * gasPrice, 18)) * ethPriceUsd;
+      const launchCostUsd = Number(formatUnits(LAUNCH_COST_GAS * gasPrice, 18)) * ethPriceUsd;
 
-      const coinCostUsd =
-        Number(formatUnits(COIN_COST_GAS * gasPrice, 18)) * ethPriceUsd;
+      const coinCostUsd = Number(formatUnits(COIN_COST_GAS * gasPrice, 18)) * ethPriceUsd;
 
       return {
         ethPrice: `$${ethPriceUsd.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,

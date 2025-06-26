@@ -25,16 +25,16 @@ const shouldFilterExpiredActiveSale = (coin: CoinData, saleDeadlines: Map<string
   if (coin.saleStatus !== "ACTIVE") {
     return false; // Don't filter non-active sales here
   }
-  
+
   // For active sales, check if deadline has expired (implicitly expired)
   const coinId = coin.coinId.toString();
   const deadlineLast = saleDeadlines.get(coinId);
-  
+
   if (deadlineLast) {
     const now = Math.floor(Date.now() / 1000); // Current time in seconds
     return deadlineLast <= now; // Filter out if deadline has passed
   }
-  
+
   // If no deadline info available for active sale, keep it
   return false;
 };
@@ -42,12 +42,10 @@ const shouldFilterExpiredActiveSale = (coin: CoinData, saleDeadlines: Map<string
 // Helper function to get filtered launch sales data for pagination
 const getFilteredLaunchSales = (coins: CoinData[], saleDeadlines: Map<string, number>): CoinData[] => {
   // First filter to include only coins that should appear in Launch Sales
-  const launchSalesCoins = coins.filter(coin => shouldShowInLaunchSales(coin));
-  
+  const launchSalesCoins = coins.filter((coin) => shouldShowInLaunchSales(coin));
+
   // Then filter out expired active sales based on deadlines
-  return launchSalesCoins.filter(coin => 
-    !shouldFilterExpiredActiveSale(coin, saleDeadlines || new Map())
-  );
+  return launchSalesCoins.filter((coin) => !shouldFilterExpiredActiveSale(coin, saleDeadlines || new Map()));
 };
 
 export const Coins = () => {
@@ -64,12 +62,11 @@ export const Coins = () => {
    *  Paged & global coin data
    * ------------------------------------------------------------------ */
   const { coins, allCoins, page, goToNextPage, isLoading, setPage } = usePagedCoins(PAGE_SIZE);
-  
+
   /* ------------------------------------------------------------------
    *  Launch sales deadline data (for filtering expired sales)
    * ------------------------------------------------------------------ */
   const { data: saleDeadlines } = useLaunchSalesDeadlines();
-  
 
   /* ------------------------------------------------------------------
    *  Search handling
@@ -230,12 +227,12 @@ export const Coins = () => {
       } else if (sortType === "launch") {
         // Use the same filtering logic as pagination for consistency
         const filteredLaunchSales = getFilteredLaunchSales(coinsCopy, saleDeadlines || new Map());
-        
+
         // Sort the remaining sales
         return filteredLaunchSales.sort((a, b) => {
           const aId = Number(a.coinId);
           const bId = Number(b.coinId);
-          
+
           return sortOrder === "asc"
             ? aId - bId // Ascending (oldest first - assuming lower IDs are older)
             : bId - aId; // Descending (newest first - assuming higher IDs are newer)
@@ -301,7 +298,6 @@ export const Coins = () => {
       (coin) => coin && coin.coinId !== undefined && coin.coinId !== null && Number(coin.coinId) > 0, // Exclude ID 0 and any negative IDs
     );
   }, []);
-
 
   /* ------------------------------------------------------------------
    *  Data for ExplorerGrid

@@ -20,11 +20,7 @@ export function UserPage() {
   const [unlockingLockup, setUnlockingLockup] = useState<string | null>(null);
   const [unlockError, setUnlockError] = useState<string | null>(null);
 
-  const {
-    data: accountData,
-    isLoading: isLoadingAccount,
-    error: accountError,
-  } = useGetAccount({ address });
+  const { data: accountData, isLoading: isLoadingAccount, error: accountError } = useGetAccount({ address });
 
   const {
     data: lockupsData,
@@ -35,16 +31,16 @@ export function UserPage() {
 
   // Get all lockups to check their status
   const allLockups = [
-    ...(lockupsData?.lockupSent?.items || []).map(lockup => ({ ...lockup, type: 'sent' as const })),
-    ...(lockupsData?.lockupReceived?.items || []).map(lockup => ({ ...lockup, type: 'received' as const })),
+    ...(lockupsData?.lockupSent?.items || []).map((lockup) => ({ ...lockup, type: "sent" as const })),
+    ...(lockupsData?.lockupReceived?.items || []).map((lockup) => ({ ...lockup, type: "received" as const })),
   ];
 
   const formatBalance = (balance: string, decimals?: number) => {
     try {
       const bigintBalance = BigInt(balance);
-      
+
       if (bigintBalance === 0n) return "0";
-      
+
       // Use TokenSelector formatting logic
       if (decimals === 6) {
         const tokenValue = Number(formatUnits(bigintBalance, 6));
@@ -61,7 +57,7 @@ export function UserPage() {
         }
         return "0";
       }
-      
+
       // Standard 18 decimal formatting
       const tokenValue = Number(formatEther(bigintBalance));
       if (tokenValue >= 1000) {
@@ -104,7 +100,6 @@ export function UserPage() {
     return Date.now() > unlockTimestamp;
   };
 
-
   const handleUnlock = async (lockup: LockupData) => {
     if (!address || !isConnected || !lockup.unlockTime) return;
 
@@ -116,9 +111,8 @@ export function UserPage() {
       const to = lockup.to || address;
       // Fix coin ID logic - for ETH lockups, always use 0n
       // For token lockups, use the actual coin ID
-      const id = lockup.token === "0x0000000000000000000000000000000000000000" 
-        ? 0n 
-        : (lockup.coinId ? BigInt(lockup.coinId) : 0n);
+      const id =
+        lockup.token === "0x0000000000000000000000000000000000000000" ? 0n : lockup.coinId ? BigInt(lockup.coinId) : 0n;
       const amount = lockup.amount ? BigInt(lockup.amount) : 0n;
       const unlockTime = BigInt(lockup.unlockTime);
 
@@ -140,14 +134,14 @@ export function UserPage() {
       });
 
       console.log("Unlock transaction:", hash);
-      
+
       // Refetch lockups after successful unlock
       setTimeout(() => {
         refetchLockups();
       }, 2000);
     } catch (error) {
       console.error("Unlock error:", error);
-      
+
       if (isUserRejectionError(error)) {
         setUnlockError("Transaction rejected by user");
       } else {
@@ -163,10 +157,8 @@ export function UserPage() {
     return (
       <div className="p-6 bg-background text-foreground">
         <div className="max-w-lg border-2 border-border p-4 outline outline-offset-2 outline-border mx-auto text-center">
-          <h2 className="text-xl font-bold mb-4">{t('lockup.user_dashboard').toUpperCase()}</h2>
-          <p className="text-muted-foreground">
-            {t('lockup.connect_wallet_message')}
-          </p>
+          <h2 className="text-xl font-bold mb-4">{t("lockup.user_dashboard").toUpperCase()}</h2>
+          <p className="text-muted-foreground">{t("lockup.connect_wallet_message")}</p>
         </div>
       </div>
     );
@@ -178,67 +170,57 @@ export function UserPage() {
   return (
     <div className="p-6 bg-background text-foreground">
       <div className="max-w-4xl border-2 border-border p-4 outline outline-offset-2 outline-border mx-auto">
-        <h1 className="text-2xl font-bold mb-6 text-center">{t('lockup.user_dashboard').toUpperCase()}</h1>
-        
+        <h1 className="text-2xl font-bold mb-6 text-center">{t("lockup.user_dashboard").toUpperCase()}</h1>
+
         <div className="mb-4 text-sm text-muted-foreground text-center">
-          {t('lockup.connected')} {address}
+          {t("lockup.connected")} {address}
         </div>
 
         <Tabs defaultValue="balances" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="balances" className="text-sm font-bold">
-              {t('lockup.balances').toUpperCase()}
+              {t("lockup.balances").toUpperCase()}
             </TabsTrigger>
             <TabsTrigger value="lockups" className="text-sm font-bold">
-              {t('lockup.lockups_count', { count: allLockups.length }).toUpperCase()}
+              {t("lockup.lockups_count", { count: allLockups.length }).toUpperCase()}
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="balances" className="mt-6">
             <div className="space-y-4">
-              <h2 className="text-lg font-bold">{t('lockup.token_balances').toUpperCase()}</h2>
-              
+              <h2 className="text-lg font-bold">{t("lockup.token_balances").toUpperCase()}</h2>
+
               {isLoadingAccount ? (
                 <div className="flex justify-center py-8">
                   <LoadingLogo />
                 </div>
               ) : accountError ? (
                 <div className="text-destructive text-center py-4">
-                  {t('lockup.error_loading_balances')} {accountError.message}
+                  {t("lockup.error_loading_balances")} {accountError.message}
                 </div>
               ) : !accountData?.coinsBalanceOf?.items?.length ? (
-                <div className="text-muted-foreground text-center py-8">
-                  {t('lockup.no_token_balances')}
-                </div>
+                <div className="text-muted-foreground text-center py-8">{t("lockup.no_token_balances")}</div>
               ) : (
                 <div className="space-y-2">
                   {accountData.coinsBalanceOf.items
-                    .filter(balance => BigInt(balance.balance) > 0n)
+                    .filter((balance) => BigInt(balance.balance) > 0n)
                     .map((balance) => (
                       <div
                         key={`${balance.coinId}-${balance.address}`}
                         className="flex items-center justify-between p-3 border border-border rounded bg-card"
                       >
                         <div className="flex items-center gap-3">
-                          <TokenImage
-                            token={balanceToTokenMeta(balance)}
-                          />
+                          <TokenImage token={balanceToTokenMeta(balance)} />
                           <div>
-                            <div className="font-bold">
-                              {formatTokenName(balance)}
-                            </div>
+                            <div className="font-bold">{formatTokenName(balance)}</div>
                             <div className="text-xs text-muted-foreground">
                               ID: {balance.coinId} • {balance.coin?.decimals || 18} decimals
                             </div>
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="font-bold">
-                            {formatBalance(balance.balance, balance.coin?.decimals)}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {balance.coin?.symbol || "tokens"}
-                          </div>
+                          <div className="font-bold">{formatBalance(balance.balance, balance.coin?.decimals)}</div>
+                          <div className="text-xs text-muted-foreground">{balance.coin?.symbol || "tokens"}</div>
                         </div>
                       </div>
                     ))}
@@ -249,44 +231,42 @@ export function UserPage() {
 
           <TabsContent value="lockups" className="mt-6">
             <div className="space-y-4">
-              <h2 className="text-lg font-bold">{t('lockup.lockups').toUpperCase()}</h2>
-              
+              <h2 className="text-lg font-bold">{t("lockup.lockups").toUpperCase()}</h2>
+
               {isLoadingLockups ? (
                 <div className="flex justify-center py-8">
                   <LoadingLogo />
                 </div>
               ) : lockupsError ? (
                 <div className="text-destructive text-center py-4">
-                  {t('lockup.error_loading_lockups')} {lockupsError.message}
+                  {t("lockup.error_loading_lockups")} {lockupsError.message}
                 </div>
               ) : !sortedLockups.length ? (
-                <div className="text-muted-foreground text-center py-8">
-                  {t('lockup.no_lockups')}
-                </div>
+                <div className="text-muted-foreground text-center py-8">{t("lockup.no_lockups")}</div>
               ) : (
                 <div className="space-y-3">
                   {sortedLockups.map((lockup) => {
                     const expired = isLockupExpired(lockup.unlockTime);
                     const isUnlocking = unlockingLockup === lockup.id;
-                    
-                    return <LockupItem 
-                      key={lockup.id}
-                      lockup={lockup}
-                      expired={expired}
-                      isUnlocking={isUnlocking}
-                      userAddress={address}
-                      onUnlock={handleUnlock}
-                      isPending={isPending}
-                    />;
+
+                    return (
+                      <LockupItem
+                        key={lockup.id}
+                        lockup={lockup}
+                        expired={expired}
+                        isUnlocking={isUnlocking}
+                        userAddress={address}
+                        onUnlock={handleUnlock}
+                        isPending={isPending}
+                      />
+                    );
                   })}
                 </div>
               )}
-              
+
               {unlockError && (
                 <div className="mt-4 p-3 border-2 border-destructive bg-card">
-                  <p className="text-sm font-bold text-destructive">
-                    ⚠ ERROR: {unlockError}
-                  </p>
+                  <p className="text-sm font-bold text-destructive">⚠ ERROR: {unlockError}</p>
                 </div>
               )}
             </div>
@@ -298,15 +278,15 @@ export function UserPage() {
 }
 
 // Separate component for each lockup item to use the hook
-function LockupItem({ 
-  lockup, 
-  expired, 
-  isUnlocking, 
-  userAddress, 
-  onUnlock, 
-  isPending 
+function LockupItem({
+  lockup,
+  expired,
+  isUnlocking,
+  userAddress,
+  onUnlock,
+  isPending,
 }: {
-  lockup: LockupData & { type: 'sent' | 'received' };
+  lockup: LockupData & { type: "sent" | "received" };
   expired: boolean;
   isUnlocking: boolean;
   userAddress?: `0x${string}`;
@@ -315,9 +295,9 @@ function LockupItem({
 }) {
   const { t } = useTranslation();
   const { isActuallyUnlocked } = useLockupStatus(lockup, userAddress);
-  
-  const canUnlock = expired && (lockup.type === 'received' || lockup.type === 'sent') && !isActuallyUnlocked;
-  
+
+  const canUnlock = expired && (lockup.type === "received" || lockup.type === "sent") && !isActuallyUnlocked;
+
   const lockupToTokenMeta = (lockup: LockupData): TokenMeta => {
     // ETH lockup - check token address first
     if (lockup.token === "0x0000000000000000000000000000000000000000") {
@@ -333,7 +313,7 @@ function LockupItem({
       tokenUri: lockup.coin?.imageUrl || undefined,
     };
   };
-  
+
   const formatLockupAsset = (lockup: LockupData) => {
     // ETH lockup - check token address first
     if (lockup.token === "0x0000000000000000000000000000000000000000") {
@@ -345,15 +325,15 @@ function LockupItem({
     }
     return lockup.coin?.symbol || lockup.coin?.name || `Token #${lockup.coinId}`;
   };
-  
+
   const formatLockupAmount = (lockup: LockupData) => {
     if (!lockup.amount) return "0";
-    
+
     try {
       const bigintAmount = BigInt(lockup.amount);
-      
+
       if (bigintAmount === 0n) return "0";
-      
+
       // ETH - check token address first
       if (lockup.token === "0x0000000000000000000000000000000000000000") {
         const ethValue = Number(formatEther(bigintAmount));
@@ -370,11 +350,11 @@ function LockupItem({
         }
         return "0";
       }
-      
+
       // Token with decimals
       const decimals = lockup.coin?.decimals || 18;
       const tokenValue = Number(formatUnits(bigintAmount, decimals));
-      
+
       if (tokenValue >= 1000) {
         return `${Math.floor(tokenValue).toLocaleString()}`;
       } else if (tokenValue >= 1) {
@@ -391,54 +371,50 @@ function LockupItem({
       return "0";
     }
   };
-  
+
   const formatUnlockTime = (unlockTime: string | null) => {
     if (!unlockTime) return "Unknown";
     const unlockTimestamp = parseInt(unlockTime) * 1000;
     return new Date(unlockTimestamp).toLocaleString();
   };
-  
+
   return (
-    <div
-      className="p-4 border border-border rounded bg-card"
-    >
+    <div className="p-4 border border-border rounded bg-card">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-3">
           <div className="flex-shrink-0">
-            <TokenImage
-              token={lockupToTokenMeta(lockup)}
-            />
+            <TokenImage token={lockupToTokenMeta(lockup)} />
           </div>
           <div>
-            <div className="font-bold text-sm">
-              {formatLockupAsset(lockup)}
-            </div>
+            <div className="font-bold text-sm">{formatLockupAsset(lockup)}</div>
             <div className="text-xs text-muted-foreground">
-              {lockup.type === 'sent' ? t('lockup.sent_to') : t('lockup.received_from')}: {' '}
-              {lockup.type === 'sent' 
+              {lockup.type === "sent" ? t("lockup.sent_to") : t("lockup.received_from")}:{" "}
+              {lockup.type === "sent"
                 ? `${lockup.to?.slice(0, 6)}...${lockup.to?.slice(-4)}`
-                : `${lockup.sender.slice(0, 6)}...${lockup.sender.slice(-4)}`
-              }
+                : `${lockup.sender.slice(0, 6)}...${lockup.sender.slice(-4)}`}
             </div>
           </div>
         </div>
         <div className="text-right">
-          <div className="font-bold text-sm">
-            {formatLockupAmount(lockup)}
-          </div>
-          <div className={`text-xs ${
-            isActuallyUnlocked ? 'text-blue-500' : 
-            expired ? 'text-green-500' : 'text-orange-500'
-          }`}>
-            {isActuallyUnlocked ? t('lockup.claimed').toUpperCase() : expired ? t('lockup.unlockable').toUpperCase() : t('lockup.locked').toUpperCase()}
+          <div className="font-bold text-sm">{formatLockupAmount(lockup)}</div>
+          <div
+            className={`text-xs ${
+              isActuallyUnlocked ? "text-blue-500" : expired ? "text-green-500" : "text-orange-500"
+            }`}
+          >
+            {isActuallyUnlocked
+              ? t("lockup.claimed").toUpperCase()
+              : expired
+                ? t("lockup.unlockable").toUpperCase()
+                : t("lockup.locked").toUpperCase()}
           </div>
         </div>
       </div>
-      
+
       <div className="text-xs text-muted-foreground mb-3">
-        {t('lockup.unlock_time_label')} {formatUnlockTime(lockup.unlockTime)}
+        {t("lockup.unlock_time_label")} {formatUnlockTime(lockup.unlockTime)}
       </div>
-      
+
       {canUnlock && (
         <button
           onClick={() => onUnlock(lockup)}
@@ -448,27 +424,29 @@ function LockupItem({
           {isUnlocking ? (
             <>
               <LoadingLogo size="sm" />
-              <span>{t('lockup.unlocking').toUpperCase()}</span>
+              <span>{t("lockup.unlocking").toUpperCase()}</span>
             </>
           ) : (
             <>
-              <span>{lockup.type === 'sent' ? t('lockup.unlock_for_recipient').toUpperCase() : t('lockup.unlock').toUpperCase()}</span>
+              <span>
+                {lockup.type === "sent"
+                  ? t("lockup.unlock_for_recipient").toUpperCase()
+                  : t("lockup.unlock").toUpperCase()}
+              </span>
               <span>🔓</span>
             </>
           )}
         </button>
       )}
-      
+
       {!expired && (
         <div className="text-xs text-muted-foreground text-center py-2">
-          {t('lockup.unlock_available_after_expiry')}
+          {t("lockup.unlock_available_after_expiry")}
         </div>
       )}
-      
+
       {isActuallyUnlocked && (
-        <div className="text-xs text-blue-500 text-center py-2">
-          ✓ {t('lockup.already_claimed')}
-        </div>
+        <div className="text-xs text-blue-500 text-center py-2">✓ {t("lockup.already_claimed")}</div>
       )}
     </div>
   );

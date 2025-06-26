@@ -32,16 +32,16 @@ export const useLaunchSalesDeadlines = () => {
 
       const json = await response.json();
       const sales = json.data?.sales?.items || [];
-      
+
       // Create a map of coinId -> deadlineLast for quick lookup
       const deadlineMap = new Map<string, number>();
-      
+
       sales.forEach((sale: SaleDeadlineData) => {
         if (sale.deadlineLast) {
           deadlineMap.set(sale.coinId, Number(sale.deadlineLast));
         }
       });
-      
+
       return deadlineMap;
     },
     staleTime: 30000, // Consider data fresh for 30 seconds

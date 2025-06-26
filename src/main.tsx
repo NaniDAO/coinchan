@@ -8,12 +8,7 @@ import { config } from "./wagmi.ts";
 import { routeTree } from "./routeTree.gen";
 import { ThemeProvider, useTheme } from "./lib/theme";
 import "@rainbow-me/rainbowkit/styles.css";
-import {
-  darkTheme,
-  lightTheme,
-  Locale,
-  RainbowKitProvider,
-} from "@rainbow-me/rainbowkit";
+import { darkTheme, lightTheme, Locale, RainbowKitProvider } from "@rainbow-me/rainbowkit";
 import { WagmiProvider } from "wagmi";
 
 import "./index.css";

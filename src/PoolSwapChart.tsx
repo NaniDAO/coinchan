@@ -38,7 +38,11 @@ export const PoolSwapChart = ({ sellToken, buyToken, prevPair }: PoolSwapChartPr
           {showPriceChart ? t("coin.hide_chart") : t("coin.show_chart")}
           <ChevronDownIcon className={`w-3 h-3 transition-transform ${showPriceChart ? "rotate-180" : ""}`} />
         </button>
-        {showPriceChart && <div className="text-xs text-muted-foreground">{chartToken.symbol}/ETH {t("coin.price_history")}</div>}
+        {showPriceChart && (
+          <div className="text-xs text-muted-foreground">
+            {chartToken.symbol}/ETH {t("coin.price_history")}
+          </div>
+        )}
       </div>
 
       {showPriceChart && (
