@@ -138,67 +138,112 @@ export const BuyCoinSale = ({
     setCstar(coinsWei / g);
   }, [tranche]);
 
-  /* refresh remainderWei after each tx */
+  /* refresh remainderWei and remainderCoins after each tx */
+  const [remainderCoins, setRemainderCoins] = useState<bigint | null>(null);
+
   useEffect(() => {
     (async () => {
-      if (!tranche) {
+      if (!tranche || !publicClient) {
         setRemainderWei(null);
+        setRemainderCoins(null);
         return;
       }
-      const rem = (await publicClient?.readContract({
-        address: ZAMMLaunchAddress,
-        abi: ZAMMLaunchAbi,
-        functionName: "trancheRemainingWei",
-        args: [coinId, BigInt(tranche.trancheIndex)],
-      })) as bigint;
-      setRemainderWei(rem);
+      
+      const [remWei, remCoins] = await Promise.all([
+        publicClient.readContract({
+          address: ZAMMLaunchAddress,
+          abi: ZAMMLaunchAbi,
+          functionName: "trancheRemainingWei",
+          args: [coinId, BigInt(tranche.trancheIndex)],
+        }) as Promise<bigint>,
+        publicClient.readContract({
+          address: ZAMMLaunchAddress,
+          abi: ZAMMLaunchAbi,
+          functionName: "trancheRemainingCoins", 
+          args: [coinId, BigInt(tranche.trancheIndex)],
+        }) as Promise<bigint>
+      ]);
+      
+      setRemainderWei(remWei);
+      setRemainderCoins(remCoins);
     })();
   }, [tranche, refreshKey, publicClient, coinId]);
 
   const lotsFromEth = (rawWei: bigint) => (Pstar === 0n ? 0n : rawWei / Pstar);
   const lotsFromToken = (rawTok: bigint) => (Cstar === 0n ? 0n : rawTok / Cstar);
 
-  /* sanitise ETH input */
-  const sanitisedWei = useMemo(() => {
-    if (mode !== "ETH" || Pstar === 0n) return 0n;
-    try {
-      const rawWei = ethInput.trim() ? parseEther(ethInput.trim()) : 0n;
-      return (rawWei / Pstar) * Pstar; // round down to multiple of P*
-    } catch {
-      return 0n;
-    }
-  }, [ethInput, mode, Pstar]);
+  /* Calculate exact purchase amounts based on ZAMMLaunch contract logic */
+  const purchaseCalculations = useMemo(() => {
+    if (!tranche) return { validEthAmount: 0n, validCoinAmount: 0n, ethCost: 0n, canPurchase: false };
 
-  /* sanitise TOKEN input & derive ETH required */
-  const { tokenWeiRounded, ethWeiForTokens } = useMemo(() => {
-    if (mode !== "TOKEN" || Cstar === 0n || Pstar === 0n) {
-      return { tokenWeiRounded: 0n, ethWeiForTokens: 0n };
-    }
-    try {
-      const rawTokWei = tokenInput.trim() ? parseEther(tokenInput.trim()) : 0n;
-      const lots = lotsFromToken(rawTokWei); // floor
-      const tokWei = lots * Cstar;
-      const ethWei = lots * Pstar;
-      return { tokenWeiRounded: tokWei, ethWeiForTokens: ethWei };
-    } catch {
-      return { tokenWeiRounded: 0n, ethWeiForTokens: 0n };
-    }
-  }, [tokenInput, mode, Cstar, Pstar]);
+    const coinsInTranche = BigInt(tranche.coins);
+    const ethPrice = BigInt(tranche.price);
 
-  /* estimates */
+    // Safety checks
+    if (coinsInTranche === 0n || ethPrice === 0n) {
+      return { validEthAmount: 0n, validCoinAmount: 0n, ethCost: 0n, canPurchase: false };
+    }
+
+    if (mode === "ETH") {
+      try {
+        const inputWei = ethInput.trim() ? parseEther(ethInput.trim()) : 0n;
+        if (inputWei === 0n) return { validEthAmount: 0n, validCoinAmount: 0n, ethCost: 0n, canPurchase: false };
+
+        // Check if input creates valid ratio (no remainder when doing mulmod)
+        const mulmodResult = (inputWei * coinsInTranche) % ethPrice;
+        if (mulmodResult !== 0n) {
+          // Round down to valid amount
+          const validAmount = inputWei - mulmodResult;
+          if (validAmount === 0n) {
+            return { validEthAmount: 0n, validCoinAmount: 0n, ethCost: 0n, canPurchase: false };
+          }
+          const coinAmount = (validAmount * coinsInTranche) / ethPrice;
+          return { validEthAmount: validAmount, validCoinAmount: coinAmount, ethCost: validAmount, canPurchase: true };
+        }
+
+        const coinAmount = (inputWei * coinsInTranche) / ethPrice;
+        return { validEthAmount: inputWei, validCoinAmount: coinAmount, ethCost: inputWei, canPurchase: true };
+      } catch {
+        return { validEthAmount: 0n, validCoinAmount: 0n, ethCost: 0n, canPurchase: false };
+      }
+    } else {
+      // TOKEN mode - exact coins
+      try {
+        const desiredCoins = tokenInput.trim() ? parseEther(tokenInput.trim()) : 0n;
+        if (desiredCoins === 0n) return { validEthAmount: 0n, validCoinAmount: 0n, ethCost: 0n, canPurchase: false };
+
+        // Calculate exact ETH cost using ZAMMLaunch logic
+        const numerator = desiredCoins * ethPrice;
+        if (numerator % coinsInTranche !== 0n) {
+          return { validEthAmount: 0n, validCoinAmount: 0n, ethCost: 0n, canPurchase: false };
+        }
+
+        const ethCost = numerator / coinsInTranche;
+        
+        // Sanity check - ensure cost is reasonable
+        if (ethCost === 0n) {
+          return { validEthAmount: 0n, validCoinAmount: 0n, ethCost: 0n, canPurchase: false };
+        }
+        return { validEthAmount: ethCost, validCoinAmount: desiredCoins, ethCost, canPurchase: true };
+      } catch {
+        return { validEthAmount: 0n, validCoinAmount: 0n, ethCost: 0n, canPurchase: false };
+      }
+    }
+  }, [ethInput, tokenInput, mode, tranche]);
+
+  /* estimates based on new calculations */
   const estimateTokens = useMemo(() => {
-    if (mode !== "ETH" || sanitisedWei === 0n || !tranche) return undefined;
-    const tokensWei = lotsFromEth(sanitisedWei) * Cstar;
-    return formatEther(tokensWei);
-  }, [mode, sanitisedWei, tranche, Cstar]);
+    if (mode !== "ETH" || !purchaseCalculations.canPurchase) return undefined;
+    return formatEther(purchaseCalculations.validCoinAmount);
+  }, [mode, purchaseCalculations]);
 
   const estimateEth = useMemo(() => {
-    if (mode !== "TOKEN" || tokenWeiRounded === 0n) return undefined;
-    return formatEther(ethWeiForTokens);
-  }, [mode, tokenWeiRounded, ethWeiForTokens]);
+    if (mode !== "TOKEN" || !purchaseCalculations.canPurchase) return undefined;
+    return formatEther(purchaseCalculations.ethCost);
+  }, [mode, purchaseCalculations]);
 
-  /* sweep eligibility */
-  const sweepable = remainderWei !== null && Pstar !== 0n && remainderWei % Pstar === 0n && remainderWei > 0n;
+  /* sweep eligibility - use contract view helper */
+  const sweepable = remainderWei !== null && remainderWei > 0n;
 
   const onTxSent = () => setRefreshKey((k) => k + 1);
 
@@ -208,9 +253,10 @@ export const BuyCoinSale = ({
     if (mode === "ETH") {
       if (balanceData?.value) setEthInput(formatEther(balanceData.value));
     } else {
-      const remainingTokWei = BigInt(tranche.remaining);
-      const lots = lotsFromToken(remainingTokWei);
-      setTokenInput(formatEther(lots * Cstar));
+      // Use actual remaining coins from contract
+      if (remainderCoins !== null && remainderCoins > 0n) {
+        setTokenInput(formatEther(remainderCoins));
+      }
     }
   };
 
@@ -471,8 +517,11 @@ export const BuyCoinSale = ({
                 <div className="text-sm mb-1">
                   {t("sale.price")} {formatEther(BigInt(tranche.price))} ETH
                 </div>
-                <div className="text-sm">
-                  {t("sale.remaining_colon")} {formatEther(BigInt(tranche.remaining))} {symbol}
+                <div className="text-sm mb-1">
+                  {t("sale.remaining_colon")} {remainderCoins !== null ? formatEther(remainderCoins) : formatEther(BigInt(tranche.remaining))} {symbol}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  ETH needed: {remainderWei !== null ? formatEther(remainderWei) : "..."} ETH
                 </div>
               </button>
             );
@@ -507,17 +556,28 @@ export const BuyCoinSale = ({
             <div className="text-sm font-mono mb-4 p-2 bg-muted border border-border">
               {mode === "ETH" ? (
                 estimateTokens ? (
-                  <>
+                  <div>
                     ≈ <span className="font-bold text-primary">{parseFloat(estimateTokens).toLocaleString()}</span>{" "}
                     {symbol}
-                  </>
+                    {/* Show if amount was rounded */}
+                    {ethInput && parseEther(ethInput.trim() || "0") !== purchaseCalculations.validEthAmount && (
+                      <div className="text-xs text-orange-600 mt-1">
+                        Amount rounded to {formatEther(purchaseCalculations.validEthAmount)} ETH for exact ratio
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   t("sale.estimate_placeholder")
                 )
               ) : estimateEth ? (
-                <>
+                <div>
                   ≈ <span className="font-bold text-primary">{parseFloat(estimateEth).toLocaleString()}</span> ETH
-                </>
+                  {!purchaseCalculations.canPurchase && (
+                    <div className="text-xs text-red-600 mt-1">
+                      Cannot purchase exact amount - try a different quantity
+                    </div>
+                  )}
+                </div>
               ) : (
                 t("sale.estimate_placeholder")
               )}
@@ -527,24 +587,43 @@ export const BuyCoinSale = ({
             <Button
               className="w-full mb-3"
               size="lg"
-              disabled={mode === "ETH" ? sanitisedWei === 0n : tokenWeiRounded === 0n || ethWeiForTokens === 0n}
+              disabled={!purchaseCalculations.canPurchase}
               onClick={() => {
-                if (!tranche) return;
-                const valueWei = mode === "ETH" ? sanitisedWei : ethWeiForTokens;
-                writeContract({
-                  address: ZAMMLaunchAddress,
-                  abi: ZAMMLaunchAbi,
-                  functionName: "buy",
-                  args: [coinId, BigInt(tranche.trancheIndex)],
-                  value: valueWei,
-                });
+                if (!tranche || !purchaseCalculations.canPurchase) return;
+                
+                if (mode === "ETH") {
+                  // Use regular buy function with exact ETH amount
+                  writeContract({
+                    address: ZAMMLaunchAddress,
+                    abi: ZAMMLaunchAbi,
+                    functionName: "buy",
+                    args: [coinId, BigInt(tranche.trancheIndex)],
+                    value: purchaseCalculations.validEthAmount,
+                  });
+                } else {
+                  // Use buyExactCoins function for exact coin purchase
+                  // Ensure shares fit in uint96 (contract requirement)
+                  const maxUint96 = BigInt("0xFFFFFFFFFFFFFFFFFFFFFFFF"); // 2^96 - 1
+                  if (purchaseCalculations.validCoinAmount > maxUint96) {
+                    console.error("Coin amount too large for uint96");
+                    return;
+                  }
+                  
+                  writeContract({
+                    address: ZAMMLaunchAddress,
+                    abi: ZAMMLaunchAbi,
+                    functionName: "buyExactCoins",
+                    args: [coinId, BigInt(tranche.trancheIndex), purchaseCalculations.validCoinAmount],
+                    value: purchaseCalculations.ethCost,
+                  });
+                }
                 onTxSent();
               }}
             >
               {t("sale.buy")}&nbsp;
               {mode === "ETH"
-                ? `${formatEther(sanitisedWei || 0n)} ETH`
-                : `${formatEther(tokenWeiRounded || 0n)} ${symbol}`}
+                ? `${formatEther(purchaseCalculations.validEthAmount)} ETH`
+                : `${formatEther(purchaseCalculations.validCoinAmount)} ${symbol}`}
             </Button>
 
             {/* dust sweep */}

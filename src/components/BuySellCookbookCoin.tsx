@@ -1,4 +1,5 @@
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
+import { ZAMMLaunchAbi, ZAMMLaunchAddress } from "@/constants/ZAMMLaunch";
 import { useReserves } from "@/hooks/use-reserves";
 import {
   computePoolId,
@@ -17,6 +18,8 @@ import { useWriteContract, useWaitForTransactionReceipt, useAccount, useBalance,
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { mainnet } from "viem/chains";
 
 export const BuySellCookbookCoin = ({
@@ -52,6 +55,36 @@ export const BuySellCookbookCoin = ({
     args: address ? [address, coinId] : undefined,
     chainId: mainnet.id,
   });
+
+
+  // Get user's launchpad balance for claiming
+  const { data: launchpadBalance } = useReadContract({
+    address: ZAMMLaunchAddress,
+    abi: ZAMMLaunchAbi,
+    functionName: "balances",
+    args: address ? [coinId, address] : undefined,
+    chainId: mainnet.id,
+  });
+
+  // Check if sale is actually finalized on-chain by reading the contract directly
+  const { data: saleData } = useReadContract({
+    address: ZAMMLaunchAddress,
+    abi: ZAMMLaunchAbi,
+    functionName: "sales",
+    args: [coinId],
+    chainId: mainnet.id,
+  });
+
+  // Check if claim is available (sale finalized on-chain and user has balance)
+  const canClaim = useMemo(() => {
+    // Sale is finalized when creator is address(0) in contract
+    const isFinalized = saleData && saleData[0] === "0x0000000000000000000000000000000000000000";
+    return isFinalized && 
+           launchpadBalance && 
+           BigInt(launchpadBalance.toString()) > 0n;
+  }, [saleData, launchpadBalance]);
+
+  const claimableAmount = launchpadBalance ? formatUnits(BigInt(launchpadBalance.toString()), 18) : "0";
 
   const estimated = useMemo(() => {
     if (!reserves || !reserves.reserve0 || !reserves.reserve1) return "0";
@@ -121,12 +154,71 @@ export const BuySellCookbookCoin = ({
     }
   };
 
+  const handleClaim = async () => {
+    try {
+      if (!address || !isConnected) {
+        throw new Error("Wallet not connected");
+      }
+
+      if (!launchpadBalance) {
+        throw new Error("No balance to claim");
+      }
+
+      const hash = await writeContractAsync({
+        address: ZAMMLaunchAddress,
+        abi: ZAMMLaunchAbi,
+        functionName: "claim",
+        args: [coinId, BigInt(launchpadBalance.toString())],
+      });
+      setTxHash(hash);
+    } catch (error) {
+      console.error(error);
+      setErrorMessage(t("create.transaction_failed"));
+    }
+  };
+
   return (
-    <Tabs value={tab} onValueChange={(v) => setTab(v as "buy" | "sell")}>
-      <TabsList>
-        <TabsTrigger value="buy">{t("create.buy_token", { token: symbol })}</TabsTrigger>
-        <TabsTrigger value="sell">{t("create.sell_token", { token: symbol })}</TabsTrigger>
-      </TabsList>
+    <div className="space-y-4">
+      {/* Claim Section - Only show if user can claim */}
+      {canClaim ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              {t("claim.title", "Claim Tokens")}
+              <Badge variant="default">{t("claim.available", "Available")}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium">
+                  {t("claim.claimable_balance", "Claimable Balance")}:
+                </span>
+                <span className="text-sm font-mono font-bold">
+                  {claimableAmount} {symbol}
+                </span>
+              </div>
+              <Button 
+                onClick={handleClaim} 
+                disabled={!isConnected || isPending}
+                className="w-full"
+                size="lg"
+              >
+                {isPending 
+                  ? t("claim.claiming", "Claiming...") 
+                  : t("claim.claim_all", "Claim All Tokens")
+                }
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <Tabs value={tab} onValueChange={(v) => setTab(v as "buy" | "sell")}>
+        <TabsList>
+          <TabsTrigger value="buy">{t("create.buy_token", { token: symbol })}</TabsTrigger>
+          <TabsTrigger value="sell">{t("create.sell_token", { token: symbol })}</TabsTrigger>
+        </TabsList>
 
       <TabsContent value="buy">
         <div className="flex flex-col gap-2">
@@ -187,5 +279,6 @@ export const BuySellCookbookCoin = ({
       {errorMessage && <p className="text-destructive text-sm">{errorMessage}</p>}
       {isSuccess && <p className="text-green-600 text-sm">{t("create.transaction_confirmed")}</p>}
     </Tabs>
+    </div>
   );
 };

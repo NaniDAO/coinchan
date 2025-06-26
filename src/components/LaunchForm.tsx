@@ -452,8 +452,7 @@ export const LaunchForm = () => {
           <Label className="text-base font-semibold">{t("create.launch_type")}</Label>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {Object.values(LAUNCH_MODES).map((mode) => {
-              const isTrancheMode = mode.id === "tranche";
-              const isDisabled = isTrancheMode; // Disable tranche mode
+              const isDisabled = false; // Enable tranche mode
 
               return (
                 <label
@@ -495,14 +494,6 @@ export const LaunchForm = () => {
                     )}
                   </div>
 
-                  {/* Upgrading overlay for tranche mode */}
-                  {isTrancheMode && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-white/90 dark:bg-gray-900/90 rounded-lg">
-                      <div className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                        {t("create.upgrading")}
-                      </div>
-                    </div>
-                  )}
                 </label>
               );
             })}
