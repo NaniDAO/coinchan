@@ -24,7 +24,7 @@ import { ChartIcon, CoinIcon, PoolIcon } from "./ui/icons";
 import { Link } from "@tanstack/react-router";
 
 const defaultTranche = {
-  coins: 300000000,
+  coins: 150000000,
   price: 1,
 };
 
@@ -59,7 +59,7 @@ const launchFormSchema = z
     creatorSupply: z.coerce.number().min(1, "Creator supply is required"),
     creatorUnlockDate: z.string().optional(),
     metadataName: z.string().min(1, "Name is required"),
-    metadataSymbol: z.string().min(1, "Symbol is required").max(5),
+    metadataSymbol: z.string().min(1, "Symbol is required").max(10),
     metadataDescription: z.string().optional(),
     poolSupply: z.coerce.number().min(0, "Pool supply is required").optional(),
     ethAmount: z.coerce.number().min(0, "ETH amount is required").optional(),
@@ -865,6 +865,124 @@ export const LaunchForm = () => {
             )}
           </div>
         )}
+
+        {/* Supply Breakdown */}
+        {(() => {
+          const creatorSupply = formData.creatorSupply || 0;
+          const poolSupply = formData.poolSupply || 0;
+          const totalTrancheSupply = formData.tranches.reduce((sum, tranche) => sum + (tranche.coins || 0), 0);
+          
+          let totalSupply = 0;
+          let poolLiquidity = 0;
+          let saleSupply = 0;
+          
+          if (formData.mode === "simple") {
+            totalSupply = creatorSupply;
+          } else if (formData.mode === "pool") {
+            totalSupply = creatorSupply + poolSupply;
+            poolLiquidity = poolSupply;
+          } else if (formData.mode === "tranche") {
+            saleSupply = totalTrancheSupply;
+            poolLiquidity = totalTrancheSupply; // Duplicate of sold supply goes to pool
+            totalSupply = creatorSupply + saleSupply + poolLiquidity;
+          }
+          
+          const creatorPercent = totalSupply > 0 ? (creatorSupply / totalSupply) * 100 : 0;
+          const poolPercent = totalSupply > 0 ? (poolLiquidity / totalSupply) * 100 : 0;
+          const salePercent = totalSupply > 0 ? (saleSupply / totalSupply) * 100 : 0;
+          const remainingPercent = 100 - creatorPercent - poolPercent - salePercent;
+          
+          if (totalSupply === 0) return null;
+          
+          return (
+            <div className="bg-card text-card-foreground border-2 border-border shadow-[4px_4px_0_var(--border)] p-6 transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_var(--border)] mt-6">
+              <div className="flex items-center gap-2 mb-4">
+                <h3 className="text-lg font-semibold font-mono">{t("create.supply_breakdown")}</h3>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div className="bg-background border-2 border-border p-4 shadow-[2px_2px_0_var(--border)]">
+                  <div className="text-xs font-mono text-muted-foreground uppercase tracking-wide mb-1">
+                    {t("create.total_supply")}
+                  </div>
+                  <div className="text-2xl font-bold font-mono">{totalSupply.toLocaleString()}</div>
+                  <div className="text-xs font-mono text-muted-foreground uppercase">{t("create.coins")}</div>
+                </div>
+                
+                <div className="bg-background border-2 border-border p-4 shadow-[2px_2px_0_var(--border)]">
+                  <div className="text-xs font-mono text-muted-foreground uppercase tracking-wide mb-1">
+                    {t("create.creator_supply")}
+                  </div>
+                  <div className="text-xl font-bold font-mono">{creatorSupply.toLocaleString()}</div>
+                  <div className="text-sm font-mono text-muted-foreground">
+                    {creatorPercent.toFixed(1)}{t("create.percent_of_total")}
+                  </div>
+                </div>
+              </div>
+              
+              {formData.mode === "pool" && poolSupply > 0 && (
+                <div className="grid grid-cols-1 gap-4 mb-4">
+                  <div className="bg-background border-2 border-border p-4 shadow-[2px_2px_0_var(--border)]">
+                    <div className="text-xs font-mono text-muted-foreground uppercase tracking-wide mb-1">
+                      {t("create.pool_liquidity")}
+                    </div>
+                    <div className="text-xl font-bold font-mono">{poolSupply.toLocaleString()}</div>
+                    <div className="text-sm font-mono text-muted-foreground">
+                      {poolPercent.toFixed(1)}{t("create.percent_of_total")}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {formData.mode === "tranche" && totalTrancheSupply > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div className="bg-background border-2 border-border p-4 shadow-[2px_2px_0_var(--border)]">
+                    <div className="text-xs font-mono text-muted-foreground uppercase tracking-wide mb-1">
+                      {t("create.sale_supply")}
+                    </div>
+                    <div className="text-xl font-bold font-mono">{saleSupply.toLocaleString()}</div>
+                    <div className="text-sm font-mono text-muted-foreground">
+                      {salePercent.toFixed(1)}{t("create.percent_of_total")}
+                    </div>
+                  </div>
+                  
+                  <div className="bg-background border-2 border-border p-4 shadow-[2px_2px_0_var(--border)]">
+                    <div className="text-xs font-mono text-muted-foreground uppercase tracking-wide mb-1">
+                      {t("create.pool_liquidity_auto")}
+                    </div>
+                    <div className="text-xl font-bold font-mono">{poolLiquidity.toLocaleString()}</div>
+                    <div className="text-sm font-mono text-muted-foreground">
+                      {poolPercent.toFixed(1)}{t("create.percent_of_total")}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {formData.mode === "tranche" && (
+                <div className="bg-blue-50 border-2 border-blue-200 p-3 rounded-md">
+                  <div className="text-xs font-mono text-blue-600 uppercase tracking-wide mb-1">
+                    {t("create.supply_breakdown_note")}
+                  </div>
+                  <div className="text-sm text-blue-700">
+                    {(() => {
+                      const remainingAmount = ((totalSupply - creatorSupply - saleSupply - poolLiquidity) / 1000000).toFixed(0);
+                      const hasRemaining = parseFloat(remainingAmount) > 0;
+                      
+                      if (hasRemaining) {
+                        return t("create.supply_breakdown_explanation", {
+                          remainingAmount,
+                          remainingPercent: remainingPercent.toFixed(1)
+                        });
+                      } else {
+                        return t("create.supply_breakdown_explanation_no_remaining");
+                      }
+                    })()}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* submit */}
         <Button type="submit" disabled={isPending} className="mt-2 w-full">
