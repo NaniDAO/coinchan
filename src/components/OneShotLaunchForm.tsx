@@ -29,7 +29,11 @@ const ONE_SHOT_PARAMS = {
 // Validation schema
 const oneShotFormSchema = z.object({
   metadataName: z.string().min(1, "Name is required").max(50, "Name must be 50 characters or less"),
-  metadataSymbol: z.string().min(1, "Symbol is required").max(10, "Symbol must be 10 characters or less").regex(/^[A-Z0-9]+$/, "Symbol must contain only uppercase letters and numbers"),
+  metadataSymbol: z
+    .string()
+    .min(1, "Symbol is required")
+    .max(10, "Symbol must be 10 characters or less")
+    .regex(/^[A-Z0-9]+$/, "Symbol must contain only uppercase letters and numbers"),
   metadataDescription: z.string().max(500, "Description must be 500 characters or less").optional(),
 });
 
@@ -124,7 +128,7 @@ export const OneShotLaunchForm = () => {
 
     try {
       setIsUploading(true);
-      
+
       // Upload image to Pinata if provided
       let imageUrl = "";
       if (imageBuffer) {
@@ -146,7 +150,7 @@ export const OneShotLaunchForm = () => {
       // Upload metadata to Pinata
       toast.info("Uploading metadata...");
       const metadataUri = await pinJsonToPinata(metadata);
-      
+
       setIsUploading(false);
       toast.info("Starting blockchain transaction...");
 
@@ -169,7 +173,7 @@ export const OneShotLaunchForm = () => {
             functionName: "launch",
             args: contractArgs,
           });
-          
+
           // Set the predicted launch ID
           setLaunchId(result);
         } catch (simError) {
@@ -189,7 +193,7 @@ export const OneShotLaunchForm = () => {
     } catch (error) {
       console.error("Launch error:", error);
       setIsUploading(false);
-      
+
       // Handle wallet errors gracefully
       if (isUserRejectionError(error)) {
         toast.error(t("create.launch_cancelled", "Launch cancelled by user"));
@@ -203,7 +207,6 @@ export const OneShotLaunchForm = () => {
   return (
     <div className="container mx-auto px-4 py-6 sm:py-8">
       <div className="max-w-2xl mx-auto">
-
         {/* Parameters Display */}
         <div className="bg-muted/30 border-2 border-border rounded-lg p-4 mb-6">
           <div className="flex items-center gap-2 mb-3">
@@ -242,7 +245,9 @@ export const OneShotLaunchForm = () => {
           {/* Basic Token Information */}
           <div className="space-y-4">
             <div>
-              <Label htmlFor="metadataName" className="mb-2">{t("create.name", "Name")} *</Label>
+              <Label htmlFor="metadataName" className="mb-2">
+                {t("create.name", "Name")} *
+              </Label>
               <Input
                 id="metadataName"
                 name="metadataName"
@@ -251,13 +256,13 @@ export const OneShotLaunchForm = () => {
                 placeholder={t("create.enter_name", "Enter coin name")}
                 className={errors.metadataName ? "border-red-500" : ""}
               />
-              {errors.metadataName && (
-                <p className="text-red-500 text-sm mt-2">{errors.metadataName}</p>
-              )}
+              {errors.metadataName && <p className="text-red-500 text-sm mt-2">{errors.metadataName}</p>}
             </div>
 
             <div>
-              <Label htmlFor="metadataSymbol" className="mb-2">{t("create.symbol", "Symbol")} *</Label>
+              <Label htmlFor="metadataSymbol" className="mb-2">
+                {t("create.symbol", "Symbol")} *
+              </Label>
               <Input
                 id="metadataSymbol"
                 name="metadataSymbol"
@@ -267,13 +272,13 @@ export const OneShotLaunchForm = () => {
                 className={errors.metadataSymbol ? "border-red-500" : ""}
                 maxLength={10}
               />
-              {errors.metadataSymbol && (
-                <p className="text-red-500 text-sm mt-2">{errors.metadataSymbol}</p>
-              )}
+              {errors.metadataSymbol && <p className="text-red-500 text-sm mt-2">{errors.metadataSymbol}</p>}
             </div>
 
             <div>
-              <Label htmlFor="metadataDescription" className="mb-2">{t("create.description", "Description")}</Label>
+              <Label htmlFor="metadataDescription" className="mb-2">
+                {t("create.description", "Description")}
+              </Label>
               <Textarea
                 id="metadataDescription"
                 name="metadataDescription"
@@ -298,10 +303,14 @@ export const OneShotLaunchForm = () => {
               className="flex-1 min-h-[44px]"
               size="lg"
             >
-              {isUploading ? t("common.uploading", "Uploading...") : isPending ? t("create.launching", "Launching...") : t("common.launch", "Launch")}
+              {isUploading
+                ? t("common.uploading", "Uploading...")
+                : isPending
+                  ? t("create.launching", "Launching...")
+                  : t("common.launch", "Launch")}
             </Button>
           </div>
-          
+
           {!account && (
             <div className="text-center">
               <p className="text-muted-foreground text-sm">
@@ -314,9 +323,7 @@ export const OneShotLaunchForm = () => {
           {error && (
             <Alert variant="destructive">
               <AlertTitle>Error</AlertTitle>
-              <AlertDescription>
-                {error.message}
-              </AlertDescription>
+              <AlertDescription>{error.message}</AlertDescription>
             </Alert>
           )}
 
@@ -324,13 +331,16 @@ export const OneShotLaunchForm = () => {
           {hash && (
             <Alert className="border-green-200 bg-green-50">
               <AlertTitle className="text-green-800">
-                {txLoading ? "⏳" : txSuccess ? "✅" : "📤"} {txSuccess ? t("create.transaction_confirmed", "Transaction Confirmed") : t("create.transaction_submitted", "Transaction Submitted")}!
+                {txLoading ? "⏳" : txSuccess ? "✅" : "📤"}{" "}
+                {txSuccess
+                  ? t("create.transaction_confirmed", "Transaction Confirmed")
+                  : t("create.transaction_submitted", "Transaction Submitted")}
+                !
               </AlertTitle>
               <AlertDescription className="text-green-700">
-                {txSuccess 
+                {txSuccess
                   ? t("create.launch_successful", "Your coin launch was successful!")
-                  : t("create.launch_submitted", "Your oneshot launch has been submitted!")
-                }
+                  : t("create.launch_submitted", "Your oneshot launch has been submitted!")}
                 <div className="mt-2 space-y-2">
                   <div className="text-xs font-mono bg-green-100 p-2 rounded break-all">
                     {t("common.transaction_hash", "Transaction")}: {hash}
@@ -345,9 +355,9 @@ export const OneShotLaunchForm = () => {
                       View on Etherscan →
                     </a>
                     {launchId !== null && (
-                      <Link 
-                        to="/c/$coinId" 
-                        params={{ coinId: launchId.toString() }} 
+                      <Link
+                        to="/c/$coinId"
+                        params={{ coinId: launchId.toString() }}
                         className="text-green-600 hover:text-green-800 text-sm underline"
                       >
                         View Coin Sale →
@@ -365,8 +375,8 @@ export const OneShotLaunchForm = () => {
 
         {/* Back to Launch */}
         <div className="text-center mt-8 pb-4">
-          <Link 
-            to="/launch" 
+          <Link
+            to="/launch"
             className="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1 text-sm"
           >
             <span>←</span>
