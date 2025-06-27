@@ -250,17 +250,21 @@
     "simple_coin_description": "Create a basic token with metadata",
     "tranche_sale_title": "Tranche Sale",
     "tranche_sale_description": "Launch with custom price curve & sale",
-    "oneshot_title": "One-Shot Launch",
-    "oneshot_description": "Launch your coin instantly with our simplified one-shot configuration",
+    "oneshot_title": "Oneshot Launch",
+    "oneshot_description": "Launch your coin instantly with our simplified oneshot configuration",
+    "oneshot_config": "Oneshot Configuration",
     "launching": "Launching...",
-    "launch_oneshot": "Launch One-Shot",
+    "launch_oneshot": "Launch Oneshot",
+    "launch_success": "Oneshot launch initiated!",
+    "launch_cancelled": "Launch cancelled by user",
+    "launch_failed": "Failed to launch coin. Please try again.",
+    "launch_submitted": "Your oneshot launch has been submitted!",
     "launch_configuration": "Launch Configuration",
     "total_sale": "Total Sale", 
     "creator_unlock": "Creator Unlock",
     "after_sale": "After sale ends",
     "total_cost": "Total Cost",
     "for_all_coins": "for all coins",
-    "one_shot_config": "One-Shot Configuration",
     "for_sale": "for sale",
     "total": "total",
     "otc_order": "OTC order - buyers can purchase any amount",
@@ -270,6 +274,8 @@
     "creator": "Creator",
     "unlocked_after_sale": "unlocked after sale",
     "fair_launch": "Only 1% to creator - fair launch",
+    "transaction_hash": "Transaction Hash",
+    "view_all_coins": "View All Coins",
     "per_coin": "per coin",
     "coin_with_pool_title": "Coin with Pool",
     "coin_with_pool_description": "Create token + add your own liquidity",
@@ -640,7 +646,7 @@
     ]
   },
   "navigation": {
-    "oneshot": "One-Shot",
+    "oneshot": "Oneshot",
     "back_to_advanced_launch": "Back to Advanced Launch"
   }
 }

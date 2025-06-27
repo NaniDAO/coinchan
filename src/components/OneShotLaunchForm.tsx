@@ -14,13 +14,14 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ImageInput } from "@/components/ui/image-input";
 
 import { parseEther } from "viem";
+import { handleWalletError, isUserRejectionError } from "@/lib/errors";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 
-// Hardcoded parameters for one-shot launch
+// Hardcoded parameters for one-shot launch (scaled to 18 decimals)
 const ONE_SHOT_PARAMS = {
-  totalCoins: 495000000, // 495mm coins in single tranche for sale
-  creatorSupply: 10000000, // 10mm creator supply (1% of 1B total)
+  totalCoins: parseEther("495000000"), // 495mm coins in single tranche for sale (18 decimals)
+  creatorSupply: parseEther("10000000"), // 10mm creator supply (1% of 1B total) (18 decimals)
   totalTranchePrice: 1, // 1 ETH total cost for entire 495M coin tranche
   unlockDate: 0, // No unlock period - coins unlock after sale finalizes
 };
@@ -146,19 +147,26 @@ export const OneShotLaunchForm = () => {
         abi: ZAMMLaunchAbi,
         functionName: "launch",
         args: [
-          BigInt(ONE_SHOT_PARAMS.creatorSupply), // creatorSupply: 10mm tokens (1%)
+          ONE_SHOT_PARAMS.creatorSupply, // creatorSupply: 10mm tokens (1%) - already in wei
           BigInt(ONE_SHOT_PARAMS.unlockDate), // unlockDate: 0 (unlocks after sale ends)
           metadataUri, // metadataURI
-          [BigInt(ONE_SHOT_PARAMS.totalCoins)], // trancheCoins: [495mm] - single tranche
+          [ONE_SHOT_PARAMS.totalCoins], // trancheCoins: [495mm] - single tranche - already in wei
           [BigInt(parseEther(ONE_SHOT_PARAMS.totalTranchePrice.toString()))], // tranchePrice: [1 ETH] - total cost for entire tranche
         ],
       });
 
-      toast.success("One-shot launch initiated!");
+      toast.success(t("create.launch_success", "Oneshot launch initiated!"));
     } catch (error) {
       console.error("Launch error:", error);
       setIsUploading(false);
-      toast.error("Failed to launch coin");
+      
+      // Handle wallet errors gracefully
+      if (isUserRejectionError(error)) {
+        toast.error(t("create.launch_cancelled", "Launch cancelled by user"));
+      } else {
+        const errorMessage = handleWalletError(error);
+        toast.error(errorMessage || t("create.launch_failed", "Failed to launch coin. Please try again."));
+      }
     }
   };
 
@@ -173,33 +181,33 @@ export const OneShotLaunchForm = () => {
         </div>
 
         {/* Parameters Display */}
-        <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg p-4 mb-6">
+        <div className="bg-muted/30 border-2 border-border rounded-lg p-4 mb-6">
           <div className="flex items-center gap-2 mb-3">
             <span className="text-lg">⚡</span>
-            <h3 className="font-semibold text-green-900">{t("create.one_shot_config", "One-Shot Configuration")}</h3>
+            <h3 className="font-semibold text-foreground">{t("create.oneshot_config", "Oneshot Configuration")}</h3>
           </div>
           <div className="grid grid-cols-1 gap-3 text-sm">
-            <div className="bg-white/60 rounded p-3">
-              <div className="font-medium text-green-800">
+            <div className="bg-background border border-border rounded p-3">
+              <div className="font-medium text-foreground">
                 495M {t("common.coins", "coins")} {t("create.for_sale", "for sale")} → 1 ETH {t("create.total", "total")}
               </div>
-              <div className="text-green-600 text-xs mt-1">
+              <div className="text-muted-foreground text-xs mt-1">
                 {t("create.otc_order", "OTC order - buyers can purchase any amount")}
               </div>
             </div>
-            <div className="bg-white/60 rounded p-3">
-              <div className="font-medium text-blue-800">
+            <div className="bg-background border border-border rounded p-3">
+              <div className="font-medium text-foreground">
                 {t("create.when_sold", "When sold")}: 495M + 1 ETH → {t("create.liquidity_pool", "Liquidity Pool")}
               </div>
-              <div className="text-blue-600 text-xs mt-1">
+              <div className="text-muted-foreground text-xs mt-1">
                 {t("create.instant_trading", "Instant trading available")}
               </div>
             </div>
-            <div className="bg-white/60 rounded p-3">
-              <div className="font-medium text-purple-800">
+            <div className="bg-background border border-border rounded p-3">
+              <div className="font-medium text-foreground">
                 10M {t("common.coins", "coins")} → {t("create.creator", "Creator")} ({t("create.unlocked_after_sale", "unlocked after sale")})
               </div>
-              <div className="text-purple-600 text-xs mt-1">
+              <div className="text-muted-foreground text-xs mt-1">
                 {t("create.fair_launch", "Only 1% to creator - fair launch")}
               </div>
             </div>
@@ -266,7 +274,7 @@ export const OneShotLaunchForm = () => {
               className="flex-1 min-h-[44px]"
               size="lg"
             >
-              {isUploading ? t("common.uploading", "Uploading...") : isPending ? t("create.launching", "Launching...") : t("create.launch_oneshot", "Launch One-Shot")}
+              {isUploading ? t("common.uploading", "Uploading...") : isPending ? t("create.launching", "Launching...") : t("create.launch_oneshot", "Launch Oneshot")}
             </Button>
           </div>
           
@@ -290,10 +298,22 @@ export const OneShotLaunchForm = () => {
 
           {/* Success Display */}
           {hash && (
-            <Alert>
-              <AlertTitle>Success!</AlertTitle>
-              <AlertDescription>
-                Your one-shot launch has been submitted. Transaction hash: {hash}
+            <Alert className="border-green-200 bg-green-50">
+              <AlertTitle className="text-green-800">
+                🎉 {t("common.success", "Success")}!
+              </AlertTitle>
+              <AlertDescription className="text-green-700">
+                {t("create.launch_submitted", "Your oneshot launch has been submitted!")}
+                <div className="mt-2 space-y-2">
+                  <div className="text-xs font-mono bg-green-100 p-2 rounded break-all">
+                    {t("common.transaction_hash", "Transaction")}: {hash}
+                  </div>
+                  <div className="flex gap-2">
+                    <Link to="/explore" className="text-green-600 hover:text-green-800 text-sm underline">
+                      {t("navigation.view_all_coins", "View All Coins")} →
+                    </Link>
+                  </div>
+                </div>
               </AlertDescription>
             </Alert>
           )}
