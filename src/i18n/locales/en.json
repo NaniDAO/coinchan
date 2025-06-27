@@ -5,6 +5,9 @@
     "error": "Error",
     "success": "Success",
     "connect": "Login",
+    "connect_wallet_to_continue": "Please connect your wallet to continue",
+    "uploading": "Uploading...",
+    "days": "days",
     "disconnect": "Logout",
     "asset_overview": "Asset View",
     "send": "Send",
@@ -247,6 +250,27 @@
     "simple_coin_description": "Create a basic token with metadata",
     "tranche_sale_title": "Tranche Sale",
     "tranche_sale_description": "Launch with custom price curve & sale",
+    "oneshot_title": "One-Shot Launch",
+    "oneshot_description": "Launch your coin instantly with our simplified one-shot configuration",
+    "launching": "Launching...",
+    "launch_oneshot": "Launch One-Shot",
+    "launch_configuration": "Launch Configuration",
+    "total_sale": "Total Sale", 
+    "creator_unlock": "Creator Unlock",
+    "after_sale": "After sale ends",
+    "total_cost": "Total Cost",
+    "for_all_coins": "for all coins",
+    "one_shot_config": "One-Shot Configuration",
+    "for_sale": "for sale",
+    "total": "total",
+    "otc_order": "OTC order - buyers can purchase any amount",
+    "when_sold": "When sold",
+    "liquidity_pool": "Liquidity Pool",
+    "instant_trading": "Instant trading available",
+    "creator": "Creator",
+    "unlocked_after_sale": "unlocked after sale",
+    "fair_launch": "Only 1% to creator - fair launch",
+    "per_coin": "per coin",
     "coin_with_pool_title": "Coin with Pool",
     "coin_with_pool_description": "Create token + add your own liquidity",
     "pool_supply_label": "Pool Supply (tokens for liquidity)",
@@ -614,5 +638,9 @@
       "ZAMM tip: Multi-token batching reduces transaction costs when trading multiple pairs simultaneously.",
       "Remember: Ethereum's censorship resistance makes it the backbone of decentralized finance worldwide!"
     ]
+  },
+  "navigation": {
+    "oneshot": "One-Shot",
+    "back_to_advanced_launch": "Back to Advanced Launch"
   }
 }

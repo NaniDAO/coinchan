@@ -5,6 +5,9 @@
     "error": "错误",
     "success": "成功",
     "connect": "连接钱包",
+    "connect_wallet_to_continue": "请连接您的钱包以继续",
+    "uploading": "上传中...",
+    "days": "天",
     "disconnect": "断开连接",
     "asset_overview": "资产总览",
     "send": "发送",
@@ -247,6 +250,27 @@
     "simple_coin_description": "创建带有元数据的基础代币",
     "tranche_sale_title": "分期销售",
     "tranche_sale_description": "使用自定义价格曲线发行销售",
+    "oneshot_title": "一键发行",
+    "oneshot_description": "使用我们简化的一键配置立即发行您的币种",
+    "launching": "发行中...",
+    "launch_oneshot": "一键发行",
+    "launch_configuration": "发行配置",
+    "total_sale": "总销售量",
+    "creator_unlock": "创建者解锁",
+    "after_sale": "销售结束后",
+    "total_cost": "总成本",
+    "for_all_coins": "购买全部币种",
+    "one_shot_config": "一键配置",
+    "for_sale": "待售",
+    "total": "总计",
+    "otc_order": "OTC订单 - 买家可购买任意数量",
+    "when_sold": "售出时",
+    "liquidity_pool": "流动性池",
+    "instant_trading": "可立即交易",
+    "creator": "创建者",
+    "unlocked_after_sale": "销售后解锁",
+    "fair_launch": "仅1%给创建者 - 公平发行",
+    "per_coin": "每枚币",
     "coin_with_pool_title": "币种带池",
     "coin_with_pool_description": "创建代币并添加您自己的流动性",
     "pool_supply_label": "池子供应量（流动性代币）",
@@ -614,5 +638,9 @@
       "ZAMM 提示：多代币批处理降低同时交易多个交易对的交易成本。",
       "记住：以太坊的抗审查性使其成为全球去中心化金融的支柱！"
     ]
+  },
+  "navigation": {
+    "oneshot": "一键",
+    "back_to_advanced_launch": "返回高级发行"
   }
 }

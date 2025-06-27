@@ -4,6 +4,7 @@ import { createRootRoute, Link, Outlet, useLocation, useNavigate } from "@tansta
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import UserSettingsMenu from "@/components/UserSettingsMenu";
+import { Button } from "@/components/ui/button";
 
 export const Route = createRootRoute({
   component: () => {
@@ -38,6 +39,11 @@ export const Route = createRootRoute({
                   </div>
                 )}
                 <div className="shrink-0 flex items-center gap-2.5 mr-10">
+                  <Link to="/oneshot">
+                    <Button variant="outline" size="sm">
+                      {t("navigation.oneshot", "One-Shot")}
+                    </Button>
+                  </Link>
                   <RainbowConnectButton />
                   <UserSettingsMenu />
                 </div>
