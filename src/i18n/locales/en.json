@@ -250,11 +250,8 @@
     "simple_coin_description": "Create a basic token with metadata",
     "tranche_sale_title": "Tranche Sale",
     "tranche_sale_description": "Launch with custom price curve & sale",
-    "oneshot_title": "Oneshot Launch",
-    "oneshot_description": "Launch your coin instantly with our simplified oneshot configuration",
-    "oneshot_config": "Oneshot Configuration",
+    "quick_config": "Quick Config",
     "launching": "Launching...",
-    "launch_oneshot": "Launch Oneshot",
     "launch_success": "Oneshot launch initiated!",
     "launch_cancelled": "Launch cancelled by user",
     "launch_failed": "Failed to launch coin. Please try again.",
@@ -652,7 +649,7 @@
     ]
   },
   "navigation": {
-    "oneshot": "Oneshot",
+    "create": "Create",
     "back_to_advanced_launch": "Back to Advanced Launch"
   }
 }

@@ -173,18 +173,12 @@ export const OneShotLaunchForm = () => {
   return (
     <div className="container mx-auto px-4 py-6 sm:py-8">
       <div className="max-w-2xl mx-auto">
-        <div className="text-center mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-2">{t("create.oneshot_title", "One-Shot Launch")}</h1>
-          <p className="text-muted-foreground text-sm sm:text-base">
-            {t("create.oneshot_description", "Launch your coin instantly with our simplified one-shot configuration")}
-          </p>
-        </div>
 
         {/* Parameters Display */}
         <div className="bg-muted/30 border-2 border-border rounded-lg p-4 mb-6">
           <div className="flex items-center gap-2 mb-3">
             <span className="text-lg">⚡</span>
-            <h3 className="font-semibold text-foreground">{t("create.oneshot_config", "Oneshot Configuration")}</h3>
+            <h3 className="font-semibold text-foreground">{t("create.quick_config", "Quick Config")}</h3>
           </div>
           <div className="grid grid-cols-1 gap-3 text-sm">
             <div className="bg-background border border-border rounded p-3">
@@ -274,7 +268,7 @@ export const OneShotLaunchForm = () => {
               className="flex-1 min-h-[44px]"
               size="lg"
             >
-              {isUploading ? t("common.uploading", "Uploading...") : isPending ? t("create.launching", "Launching...") : t("create.launch_oneshot", "Launch Oneshot")}
+              {isUploading ? t("common.uploading", "Uploading...") : isPending ? t("create.launching", "Launching...") : t("common.launch", "Launch")}
             </Button>
           </div>
           

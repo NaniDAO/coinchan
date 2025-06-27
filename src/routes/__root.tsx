@@ -41,7 +41,7 @@ export const Route = createRootRoute({
                 <div className="shrink-0 flex items-center gap-2.5 mr-10">
                   <Link to="/oneshot">
                     <Button variant="outline" size="sm">
-                      {t("navigation.oneshot", "Oneshot")}
+                      {t("navigation.create", "Create")}
                     </Button>
                   </Link>
                   <RainbowConnectButton />

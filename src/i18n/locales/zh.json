@@ -250,11 +250,8 @@
     "simple_coin_description": "创建带有元数据的基础代币",
     "tranche_sale_title": "分期销售",
     "tranche_sale_description": "使用自定义价格曲线发行销售",
-    "oneshot_title": "一键发行",
-    "oneshot_description": "使用我们简化的一键配置立即发行您的币种",
-    "oneshot_config": "一键配置",
+    "quick_config": "快速配置",
     "launching": "发行中...",
-    "launch_oneshot": "一键发行",
     "launch_success": "一键发行已启动！",
     "launch_cancelled": "用户取消发行",
     "launch_failed": "发行失败，请重试。",
@@ -653,7 +650,7 @@
     ]
   },
   "navigation": {
-    "oneshot": "一键",
+    "create": "创建",
     "back_to_advanced_launch": "返回高级发行"
   }
 }
