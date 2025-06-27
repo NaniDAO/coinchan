@@ -228,7 +228,7 @@ export const OneShotLaunchForm = () => {
                 className={errors.metadataName ? "border-red-500" : ""}
               />
               {errors.metadataName && (
-                <p className="text-red-500 text-sm mt-1">{errors.metadataName}</p>
+                <p className="text-red-500 text-sm mt-2">{errors.metadataName}</p>
               )}
             </div>
 
@@ -244,7 +244,7 @@ export const OneShotLaunchForm = () => {
                 maxLength={10}
               />
               {errors.metadataSymbol && (
-                <p className="text-red-500 text-sm mt-1">{errors.metadataSymbol}</p>
+                <p className="text-red-500 text-sm mt-2">{errors.metadataSymbol}</p>
               )}
             </div>
 
