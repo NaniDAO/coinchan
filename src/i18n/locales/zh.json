@@ -352,7 +352,10 @@
     "oneshot_sale_price": "销售：4.95亿币种总价1ETH",
     "oneshot_sale_note": "任何人可购买任意数量",
     "oneshot_auto_liquidity": "自动流动性：4.95亿 + 1ETH → 交易池",
-    "oneshot_instant_trading": "销售完成后可立即交易"
+    "oneshot_instant_trading": "销售完成后可立即交易",
+    "transaction_confirmed": "交易已确认",
+    "transaction_submitted": "交易已提交",
+    "launch_successful": "您的币种发行成功！"
   },
   "explore": {
     "title": "探索",

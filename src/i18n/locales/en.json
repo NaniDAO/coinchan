@@ -351,7 +351,10 @@
     "oneshot_sale_price": "Sale: 495M coins for 1 ETH total",
     "oneshot_sale_note": "Anyone can buy any amount",
     "oneshot_auto_liquidity": "Auto-liquidity: 495M + 1 ETH → Trading Pool",
-    "oneshot_instant_trading": "Enables instant trading when sale completes"
+    "oneshot_instant_trading": "Enables instant trading when sale completes",
+    "transaction_confirmed": "Transaction Confirmed",
+    "transaction_submitted": "Transaction Submitted",
+    "launch_successful": "Your coin launch was successful!"
   },
   "explore": {
     "title": "Explore",

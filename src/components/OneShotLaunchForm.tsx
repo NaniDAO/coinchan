@@ -1,5 +1,5 @@
-import { useState, ChangeEvent } from "react";
-import { useWriteContract, useAccount } from "wagmi";
+import { useState, type ChangeEvent } from "react";
+import { useWriteContract, useAccount, usePublicClient, useWaitForTransactionReceipt } from "wagmi";
 import { useTranslation } from "react-i18next";
 import { ZAMMLaunchAddress, ZAMMLaunchAbi } from "@/constants/ZAMMLaunch";
 import { pinImageToPinata, pinJsonToPinata } from "@/lib/pinata";
@@ -39,6 +39,12 @@ export const OneShotLaunchForm = () => {
   const { data: hash, error, isPending, writeContract } = useWriteContract();
   const { address: account } = useAccount();
   const { t } = useTranslation();
+  const publicClient = usePublicClient();
+
+  // Transaction success monitoring
+  const { isSuccess: txSuccess, isLoading: txLoading } = useWaitForTransactionReceipt({
+    hash,
+  });
 
   // State for form data
   const [formData, setFormData] = useState<OneShotFormValues>({
@@ -53,6 +59,9 @@ export const OneShotLaunchForm = () => {
   // Keep track of the image buffer and upload state
   const [imageBuffer, setImageBuffer] = useState<ArrayBuffer | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+
+  // Launch tracking state
+  const [launchId, setLaunchId] = useState<bigint | null>(null);
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -79,11 +88,11 @@ export const OneShotLaunchForm = () => {
     } catch (error) {
       if (error instanceof z.ZodError) {
         const newErrors: Record<string, string> = {};
-        error.errors.forEach((err) => {
+        for (const err of error.errors) {
           if (err.path.length > 0) {
             newErrors[err.path[0] as string] = err.message;
           }
-        });
+        }
         setErrors(newErrors);
       }
       return false;
@@ -141,18 +150,39 @@ export const OneShotLaunchForm = () => {
       setIsUploading(false);
       toast.info("Starting blockchain transaction...");
 
+      // Simulate contract to get the predicted coin ID
+      const contractArgs = [
+        ONE_SHOT_PARAMS.creatorSupply, // creatorSupply: 10mm tokens (1%) - already in wei
+        BigInt(ONE_SHOT_PARAMS.unlockDate), // unlockDate: 0 (unlocks after sale ends)
+        metadataUri, // metadataURI
+        [ONE_SHOT_PARAMS.totalCoins], // trancheCoins: [495mm] - single tranche - already in wei
+        [BigInt(parseEther(ONE_SHOT_PARAMS.totalTranchePrice.toString()))], // tranchePrice: [1 ETH] - total cost for entire tranche
+      ] as const;
+
+      if (publicClient) {
+        try {
+          // Simulate the transaction to get the predicted coin ID
+          const { result } = await publicClient.simulateContract({
+            account,
+            address: ZAMMLaunchAddress,
+            abi: ZAMMLaunchAbi,
+            functionName: "launch",
+            args: contractArgs,
+          });
+          
+          // Set the predicted launch ID
+          setLaunchId(result);
+        } catch (simError) {
+          console.warn("Contract simulation failed, proceeding without coin ID prediction:", simError);
+        }
+      }
+
       // Call launch() with hardcoded one-shot parameters
       writeContract({
         address: ZAMMLaunchAddress,
         abi: ZAMMLaunchAbi,
         functionName: "launch",
-        args: [
-          ONE_SHOT_PARAMS.creatorSupply, // creatorSupply: 10mm tokens (1%) - already in wei
-          BigInt(ONE_SHOT_PARAMS.unlockDate), // unlockDate: 0 (unlocks after sale ends)
-          metadataUri, // metadataURI
-          [ONE_SHOT_PARAMS.totalCoins], // trancheCoins: [495mm] - single tranche - already in wei
-          [BigInt(parseEther(ONE_SHOT_PARAMS.totalTranchePrice.toString()))], // tranchePrice: [1 ETH] - total cost for entire tranche
-        ],
+        args: contractArgs,
       });
 
       toast.success(t("create.launch_success", "Oneshot launch initiated!"));
@@ -290,21 +320,41 @@ export const OneShotLaunchForm = () => {
             </Alert>
           )}
 
-          {/* Success Display */}
+          {/* Transaction Success Display */}
           {hash && (
             <Alert className="border-green-200 bg-green-50">
               <AlertTitle className="text-green-800">
-                🎉 {t("common.success", "Success")}!
+                {txLoading ? "⏳" : txSuccess ? "✅" : "📤"} {txSuccess ? t("create.transaction_confirmed", "Transaction Confirmed") : t("create.transaction_submitted", "Transaction Submitted")}!
               </AlertTitle>
               <AlertDescription className="text-green-700">
-                {t("create.launch_submitted", "Your oneshot launch has been submitted!")}
+                {txSuccess 
+                  ? t("create.launch_successful", "Your coin launch was successful!")
+                  : t("create.launch_submitted", "Your oneshot launch has been submitted!")
+                }
                 <div className="mt-2 space-y-2">
                   <div className="text-xs font-mono bg-green-100 p-2 rounded break-all">
                     {t("common.transaction_hash", "Transaction")}: {hash}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
+                    <a
+                      href={`https://etherscan.io/tx/${hash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-green-600 hover:text-green-800 text-sm underline"
+                    >
+                      View on Etherscan →
+                    </a>
+                    {launchId !== null && (
+                      <Link 
+                        to="/c/$coinId" 
+                        params={{ coinId: launchId.toString() }} 
+                        className="text-green-600 hover:text-green-800 text-sm underline"
+                      >
+                        View Coin Sale →
+                      </Link>
+                    )}
                     <Link to="/explore" className="text-green-600 hover:text-green-800 text-sm underline">
-                      {t("navigation.view_all_coins", "View All Coins")} →
+                      {t("create.view_all_coins", "View All Coins")} →
                     </Link>
                   </div>
                 </div>
