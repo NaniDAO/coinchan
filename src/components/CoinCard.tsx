@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "@tanstack/react-router";
 import { CoinData, formatImageURL, getAlternativeImageUrls } from "@/hooks/metadata/coin-utils";
-import { ArrowRightIcon } from "lucide-react";
+import { ArrowRightIcon, Clock } from "lucide-react";
+import { useCoinSale } from "@/hooks/use-coin-sale";
+import { formatDeadline, cn } from "@/lib/utils";
 
 interface CoinCardProps {
   coin: any;
@@ -13,6 +15,11 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
   const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
   const alternativeUrlsRef = useRef<string[]>([]);
   const attemptedUrlsRef = useRef<Set<string>>(new Set());
+
+  // Fetch tranche sale data if coin has active sales
+  const { data: saleData } = useCoinSale({
+    coinId: coin.coinId.toString(),
+  });
 
   // Reset states when coin changes
   useEffect(() => {
@@ -42,6 +49,10 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
   // Display values with fallbacks
   const displayName = coin.name || `Token ${coin.coinId.toString()}`;
   const displaySymbol = coin.symbol || "TKN";
+
+  // Get the overall sale finalization deadline (only show for active sales)
+  const saleDeadline = saleData?.deadlineLast;
+  const deadlineInfo = saleDeadline && saleData?.status !== "FINALIZED" ? formatDeadline(Number(saleDeadline)) : null;
   // FIX: Centralized image URL resolution logic for clarity and maintainability.
   // Consolidates multiple potential sources (coin.imageUrl, metadata.image, etc.) into a single prioritized check.
   // Improves render consistency and simplifies fallback image handling.
@@ -49,7 +60,7 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
     primaryUrl: string | null;
     baseForFallbacks: string | null;
   } {
-    const candidates = [coin.imageUrl, coin.metadata?.image, coin.metadata?.image_url, coin.metadata?.imageUrl];
+    const candidates = [coin.imageUrl];
 
     for (const rawUrl of candidates) {
       if (rawUrl) {
@@ -115,12 +126,31 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
           {displayName} [{displaySymbol}]
         </h3>
 
+        {/* Deadline badge for active tranche sales */}
+        {deadlineInfo && (
+          <div
+            className={cn(
+              "flex items-center gap-1 px-2 py-1 text-xs font-mono font-bold border-2 shadow-[2px_2px_0_var(--border)] bg-card",
+              deadlineInfo.urgency === "expired" && "border-destructive text-destructive bg-destructive/10",
+              deadlineInfo.urgency === "urgent" &&
+                "border-orange-500 text-orange-700 dark:text-orange-300 bg-orange-500/10 animate-pulse",
+              deadlineInfo.urgency === "warning" &&
+                "border-yellow-500 text-yellow-700 dark:text-yellow-300 bg-yellow-500/10",
+              deadlineInfo.urgency === "normal" &&
+                "border-green-500 text-green-700 dark:text-green-300 bg-green-500/10",
+            )}
+          >
+            <Clock size={12} />
+            {deadlineInfo.text}
+          </div>
+        )}
+
         <div className="p-1 w-16 h-16 sm:w-20 sm:h-20 relative">
           {/* Base colored circle (always visible) */}
           <div
             className={`absolute inset-0 flex ${getColorForId(coin.coinId)} text-background justify-center items-center rounded-full`}
           >
-            {displaySymbol.slice(0, 3)}
+            {displaySymbol?.slice(0, 3)}
           </div>
 
           {/* Image (displayed on top if available and loaded successfully) */}
@@ -142,7 +172,7 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
           params={{
             coinId: coin.coinId.toString(),
           }}
-          className="flex flex-row items-center justify-between m-0 rounded-t-none rounded-b-sm w-full bg-primary/10 py-1 px-3 text-primary-foreground font-extrabold hover:bg-primary/50 transition-all duration-200 text-sm touch-manipulation shadow-sm"
+          className="flex flex-row items-center justify-between m-0 rounded-t-none rounded-b-sm w-full bg-primary/10 !py-1 !px-3 text-primary-foreground font-extrabold hover:bg-primary/50 transition-all duration-200 text-sm touch-manipulation shadow-sm"
         >
           <span>Trade</span>
           <ArrowRightIcon size={16} />

@@ -1,4 +1,5 @@
 import React, { useRef, useLayoutEffect, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   createChart,
   CrosshairMode,
@@ -11,7 +12,7 @@ import {
   ColorType,
   PriceFormatBuiltIn,
 } from "lightweight-charts";
-import { Spinner } from "@/components/ui/spinner";
+import { LoadingLogo } from "@/components/ui/loading-logo";
 import { useQuery } from "@tanstack/react-query";
 import { fetchPoolCandles, CandleData } from "./lib/indexer";
 import { useChartTheme } from "./hooks/use-chart-theme";
@@ -22,6 +23,7 @@ interface CandleChartProps {
 }
 
 const PoolCandleChart: React.FC<CandleChartProps> = ({ poolId, interval = "1h" }) => {
+  const { t } = useTranslation();
   const [selectedInterval, setSelectedInterval] = useState<"1m" | "1h" | "1d">(interval);
 
   const { data, isLoading, error } = useQuery({
@@ -66,12 +68,12 @@ const PoolCandleChart: React.FC<CandleChartProps> = ({ poolId, interval = "1h" }
 
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
-          <Spinner />
+          <LoadingLogo />
         </div>
       ) : data && data.length > 0 ? (
         <TVCandlestick rawData={data} />
       ) : (
-        <div className="text-center py-20 text-muted-foreground">No candle data available.</div>
+        <div className="text-center py-20 text-muted-foreground">{t("chart.no_candle_data")}</div>
       )}
     </div>
   );

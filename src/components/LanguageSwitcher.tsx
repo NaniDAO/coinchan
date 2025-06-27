@@ -11,7 +11,7 @@ export function LanguageSwitcher() {
   // Languages supported
   const languages = [
     { code: "en", label: "English" },
-    { code: "zh", label: "中文" }
+    { code: "zh", label: "中文" },
   ];
 
   // Change language handler
@@ -44,7 +44,7 @@ export function LanguageSwitcher() {
         aria-expanded={isOpen}
         aria-haspopup="true"
       >
-        <span className="text-sm">🌐</span>
+        <span className="text-sm bg-white rounded-full p-1">🗨️</span>
         <span className="sr-only">{t("common.language")}</span>
       </button>
 
@@ -57,9 +57,9 @@ export function LanguageSwitcher() {
                 onClick={() => changeLanguage(lang.code)}
                 className={cn(
                   "block w-full text-left px-4 py-2 text-sm",
-                  currentLanguage === lang.code 
-                    ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white" 
-                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  currentLanguage === lang.code
+                    ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white"
+                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700",
                 )}
                 role="menuitem"
               >

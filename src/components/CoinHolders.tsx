@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { ResponsiveContainer, Tooltip, Treemap } from "recharts";
-import { formatUnits, parseEther } from "viem";
+import { formatUnits } from "viem";
 import { Table, TableBody, TableCell, TableHead, TableRow } from "./ui/table";
 import { useReadContract } from "wagmi";
 import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
@@ -158,7 +158,7 @@ const interpolateColor = (t: number): string => {
 
 // Custom styled blocks
 const CustomTreemapContent = (props: any) => {
-  const { x, y, width, height, name, address, color } = props;
+  const { x, y, width, height, address, color } = props;
 
   return (
     <a

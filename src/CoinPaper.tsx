@@ -10,14 +10,17 @@ const stats = [
 export const CoinPaper = () => (
   <div className="w-screen flex items-center justify-center">
     <div className="w-full md:max-w-4xl">
-      <h1 className="paper-title">Coinpaper</h1>
-      <div className="stats-grid">
+      <h1 className="text-4xl font-bold text-foreground mb-8 font-display">Coinpaper</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map(({ label, value, emoji }) => (
-          <div key={label} className="stat-card">
-            <span className="stat-icon">{emoji}</span>
-            <div className="stat-text">
-              <div className="label">{label}</div>
-              <div className="value">{value}</div>
+          <div
+            key={label}
+            className="bg-card text-card-foreground border-2 border-border p-4 hover:bg-muted transition-colors"
+          >
+            <span className="text-2xl mb-2 block">{emoji}</span>
+            <div className="space-y-1">
+              <div className="text-sm text-muted-foreground">{label}</div>
+              <div className="text-lg font-bold">{value}</div>
             </div>
           </div>
         ))}
@@ -54,7 +57,7 @@ export const CoinPaper = () => (
 
       <div className="py-3 px-6">
         <Link
-          to="/create"
+          to="/launch"
           className="bg-primary/10 hover:bg-primary dark:bg-secondary/10 dark:hover:bg-secondary text-white font-bold rounded-lg transition-all shadow-md hover:shadow-lg"
         >
           I want to coin it!

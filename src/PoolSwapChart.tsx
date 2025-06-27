@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { computePoolId } from "./lib/swap";
 import PoolPriceChart from "./PoolPriceChart";
 import { ChevronDownIcon } from "lucide-react";
@@ -11,6 +12,7 @@ interface PoolSwapChartProps {
 }
 
 export const PoolSwapChart = ({ sellToken, buyToken, prevPair }: PoolSwapChartProps) => {
+  const { t } = useTranslation();
   const [showPriceChart, setShowPriceChart] = useState<boolean>(false);
 
   useEffect(() => {
@@ -33,10 +35,14 @@ export const PoolSwapChart = ({ sellToken, buyToken, prevPair }: PoolSwapChartPr
           onClick={() => setShowPriceChart((prev) => !prev)}
           className="text-xs text-muted-foreground flex items-center gap-1 hover:text-primary"
         >
-          {showPriceChart ? "Hide Price Chart" : "Show Price Chart"}
+          {showPriceChart ? t("coin.hide_chart") : t("coin.show_chart")}
           <ChevronDownIcon className={`w-3 h-3 transition-transform ${showPriceChart ? "rotate-180" : ""}`} />
         </button>
-        {showPriceChart && <div className="text-xs text-muted-foreground">{chartToken.symbol}/ETH price history</div>}
+        {showPriceChart && (
+          <div className="text-xs text-muted-foreground">
+            {chartToken.symbol}/ETH {t("coin.price_history")}
+          </div>
+        )}
       </div>
 
       {showPriceChart && (

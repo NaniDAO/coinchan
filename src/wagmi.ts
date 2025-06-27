@@ -1,18 +1,19 @@
-import farcasterFrame from "@farcaster/frame-wagmi-connector";
-import { injected, coinbaseWallet, metaMask } from "wagmi/connectors";
-import { http, fallback, createConfig } from "wagmi";
+import { http, fallback } from "wagmi";
 import { mainnet } from "wagmi/chains";
 
-export const config = createConfig({
-  chains: [mainnet],
-  connectors: [farcasterFrame(), injected(), coinbaseWallet(), metaMask()],
-  transports: {
-    [mainnet.id]: fallback([http(import.meta.env.VITE_DRPC_1), http("https://cloudflare-eth.com")]),
-  },
-});
+import { getDefaultConfig } from "@rainbow-me/rainbowkit";
 
-declare module "wagmi" {
-  interface Register {
-    config: typeof config;
-  }
-}
+export const config = getDefaultConfig({
+  appName: "ZAMM",
+  projectId: import.meta.env.VITE_WC_PROJECT_ID,
+  chains: [mainnet],
+  transports: {
+    [mainnet.id]: fallback([
+      http(import.meta.env.VITE_DRPC_1),
+      http(import.meta.env.VITE_ALCHEMY_1),
+      http("https://cloudflare-eth.com"),
+    ]),
+  },
+  // @TODO farcaster
+  ssr: false,
+});

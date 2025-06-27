@@ -1,6 +1,6 @@
 import { BuySell } from "./BuySell";
 import { ClaimVested } from "./ClaimVested";
-import { useEffect, useState, Component, ReactNode } from "react";
+import { useEffect, useState } from "react";
 import {
   useAccount,
   usePublicClient,
@@ -19,35 +19,13 @@ import "./buysell-styles.css";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { CoinHolders } from "./components/CoinHolders";
 
-// Simple error boundary to prevent crashes
-class ErrorBoundary extends Component<
-  { children: ReactNode; fallback: ReactNode },
-  { hasError: boolean }
-> {
-  constructor(props: { children: ReactNode; fallback: ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-
-  componentDidCatch(error: Error) {
-    console.error("Component Error:", error);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return this.props.fallback;
-    }
-
-    return this.props.children;
-  }
-}
+import { CoinPreview } from "./components/CoinPreview";
+import ErrorFallback, { ErrorBoundary } from "./components/ErrorBoundary";
+import { VotePanel } from "./components/VotePanel";
+import { LoadingLogo } from "./components/ui/loading-logo";
 
 // Fallback component for BuySell when it crashes
-const BuySellFallback = ({
+export const BuySellFallback = ({
   tokenId,
   name,
   symbol,
@@ -79,7 +57,7 @@ const BuySellFallback = ({
 
 export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
   // Using our new hook to get coin data
-  const { data, isLoading, isError, error } = useCoinData(tokenId);
+  const { data, isLoading } = useCoinData(tokenId);
   const name = data && data.name !== null ? data.name : "Token";
   const symbol = data && data.symbol !== null ? data.symbol : "TKN";
 
@@ -138,15 +116,26 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
     };
   }, [publicClient, tokenId, address, isSuccess]);
 
-  console.log("TradeView Data:", {
-    data,
-    isLoading,
-    isError,
-    error,
-  });
+  // Show loading logo during initial data fetch
+  if (isLoading) {
+    return (
+      <div className="w-full max-w-screen mx-auto flex flex-col gap-4 px-2 py-4 pb-16 sm:p-6 sm:pb-16">
+        <Link
+          to="/explore"
+          className="text-sm self-start underline py-2 px-1 touch-manipulation"
+        >
+          ⬅︎ Back to Explorer
+        </Link>
+        <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+          <LoadingLogo size="lg" />
+          <p className="text-sm text-muted-foreground">Loading token data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full max-w-screen mx-auto flex flex-col gap-4 px-2 py-4 pb-16 sm:p-6 sm:pb-16">
+    <div className="w-full mx-auto flex flex-col gap-4 px-2 py-4 pb-16 sm:p-6 sm:pb-16">
       <Link
         to="/explore"
         className="text-sm self-start underline py-2 px-1 touch-manipulation"
@@ -154,22 +143,12 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
         ⬅︎ Back to Explorer
       </Link>
 
-      <div className="flex flex-col items-start gap-2">
-        <h2 className="text-lg sm:text-xl font-semibold transition-opacity duration-300">
-          {isLoading ? (
-            <span className="inline-flex items-center space-x-2">
-              <span className="h-6 bg-muted/40 rounded w-40 skeleton"></span>
-              <span className="h-6 bg-muted/40 rounded w-16 skeleton"></span>
-            </span>
-          ) : (
-            <span className="content-transition loaded">
-              {name} [{symbol}]
-            </span>
-          )}
-        </h2>
-        {/* Metadata like tokenId */}
-        <p className="text-sm">ID: {tokenId.toString()}</p>
-      </div>
+      <CoinPreview
+        coinId={tokenId}
+        name={name}
+        symbol={symbol}
+        isLoading={isLoading}
+      />
 
       {/* Wrap BuySell component in an ErrorBoundary to prevent crashes */}
       <ErrorBoundary
@@ -177,9 +156,14 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
           <BuySellFallback tokenId={tokenId} name={name} symbol={symbol} />
         }
       >
-        <div className="max-w-2xl">
+        <div>
           <BuySell tokenId={tokenId} name={name} symbol={symbol} />
         </div>
+      </ErrorBoundary>
+      <ErrorBoundary
+        fallback={<ErrorFallback errorMessage="Error rendering voting panel" />}
+      >
+        <VotePanel coinId={tokenId} />
       </ErrorBoundary>
 
       {/* Only show ClaimVested if the user is the owner */}
@@ -196,7 +180,6 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
           </ErrorBoundary>
         </div>
       )}
-
       <Tabs>
         <TabsList>
           <TabsTrigger value="chart">Chart</TabsTrigger>
@@ -221,7 +204,7 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
               <p className="text-destructive">Pool holders unavailable</p>
             }
           >
-            <CoinHolders coinId={tokenId.toString()} ticker={symbol ?? "TKN"} />
+            <CoinHolders coinId={tokenId.toString()} symbol={symbol ?? "TKN"} />
           </ErrorBoundary>
         </TabsContent>
         <TabsContent value="activity" className="mt-4 sm:mt-6">

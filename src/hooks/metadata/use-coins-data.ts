@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { RawCoinData, CoinData, hydrateRawCoin, enrichMetadata } from "./coin-utils";
-import { createPublicClient, http, formatUnits } from "viem";
+import { createPublicClient, http } from "viem";
 import { CoinsMetadataHelperAbi, CoinsMetadataHelperAddress } from "@/constants/CoinsMetadataHelper";
 import { mainnet } from "viem/chains";
 
@@ -9,87 +9,54 @@ const publicClient = createPublicClient({
   transport: http("https://eth-mainnet.g.alchemy.com/v2/demo"),
 });
 
-const ALL_POOLS_QUERY = `
-  query GetCoinPools($limit: Int = 1000) {
-    pools(
-      where: { reserve0_not: null }
-      limit: $limit
-      orderBy: "reserve0"
-      orderDirection: "desc"
-    ) {
-      items {
-        id
-        reserve0
-        reserve1
-        price0
-        price1
-        coin1 {
-          id
-          name
-          symbol
-          description
-          imageUrl
-          tokenURI
-          decimals
-        }
-      }
-    }
-  }
-`;
+export const getVotesForAllCoins = async () => {
+  const data = await fetch(import.meta.env.VITE_ZAMMHUB_URL + "/api/votes").then((res) => res.json());
+
+  return data as Record<string, string>;
+};
 
 export function useCoinsData() {
   return useQuery<CoinData[], Error>({
     queryKey: ["coins-data"],
     queryFn: async () => {
       try {
-        // 1) Hit the indexer directly with fetch
-        const resp = await fetch(import.meta.env.VITE_INDEXER_URL! + "/graphql", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            query: ALL_POOLS_QUERY,
-            variables: { limit: 1000 },
-          }),
-        });
-
-        const { data, errors } = await resp.json();
-        if (errors && errors.length) {
-          console.warn("GraphQL fetch errors:", errors);
-          throw new Error(errors.map((e: any) => e.message).join(", "));
+        const resp = await fetch(`${import.meta.env.VITE_INDEXER_URL}/api/coins`);
+        if (!resp.ok) {
+          throw new Error(`Indexer error: ${resp.statusText}`);
         }
 
-        // 2) Map each pool → one CoinData for coin1
-        const pools: any[] = data.pools.items;
+        const raw = (await resp.json()) as Array<{
+          coinId: string;
+          tokenURI: string;
+          name: string;
+          symbol: string;
+          description: string;
+          imageUrl: string;
+          decimals: number;
+          poolId: string | null;
+          reserve0: string;
+          reserve1: string;
+          priceInEth: number | null;
+          saleStatus: "ACTIVE" | "EXPIRED" | "FINALIZED" | null;
+          votes: string;
+        }>;
 
-        const coinDataList = pools.map((pool) => {
-          const c = pool.coin1;
-          const raw: RawCoinData = {
-            coinId: BigInt(c?.id ?? "0"),
-            tokenURI: c?.tokenURI?.trim() ?? "",
-            reserve0: BigInt(pool?.reserve0 ?? "0"),
-            reserve1: BigInt(pool?.reserve1 ?? "0"),
-            poolId: BigInt(pool?.id),
-            liquidity: BigInt(0),
-          };
-
-          let cd = hydrateRawCoin(raw);
-
-          // coin1 is what we want, so use price1
-          cd = {
-            ...cd,
-            name: c?.name ?? "",
-            symbol: c?.symbol ?? "",
-            description: c?.description ?? "",
-            imageUrl: c?.imageUrl?.trim() ?? "",
-            metadata: null,
-            // @ts-ignore
-            price: Number(formatUnits(pool?.price1 ?? "0", c?.decimals ?? 18)),
-          };
-
-          return enrichMetadata(cd);
-        });
-
-        return Promise.all(coinDataList);
+        return raw.map((c) => ({
+          coinId: BigInt(c.coinId),
+          tokenURI: c.tokenURI,
+          reserve0: BigInt(c.reserve0),
+          reserve1: BigInt(c.reserve1),
+          poolId: c.poolId ? BigInt(c.poolId) : 0n,
+          liquidity: 0n, // or compute server-side if you like
+          name: c.name,
+          symbol: c.symbol,
+          description: c.description,
+          imageUrl: c.imageUrl,
+          metadata: null, // you said “don’t bother with metadata”
+          priceInEth: c.priceInEth,
+          votes: BigInt(c.votes),
+          saleStatus: c.saleStatus,
+        }));
       } catch (err) {
         console.warn("Fetch failed, falling back to RPC:", err);
 

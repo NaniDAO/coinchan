@@ -33,9 +33,7 @@ const INITIAL_DELAY_MS = 500; // Delay before showing bubble
 export const CoinNani = ({ className }: CoinNaniProps) => {
   const { t, i18n } = useTranslation();
   const [greetingKey, setGreetingKey] = useState("");
-  const [shouldRenderComponent, setShouldRenderComponent] = useState<
-    boolean | undefined
-  >(undefined);
+  const [shouldRenderComponent, setShouldRenderComponent] = useState<boolean | undefined>(undefined);
 
   // Refs for timer IDs, to ensure cleanup
   const showTimer = useRef<number>();
@@ -69,9 +67,7 @@ export const CoinNani = ({ className }: CoinNaniProps) => {
 
     // Determine if we should show this session
     const shouldShowThisSession =
-      !lastShownData ||
-      currentPeriod !== lastShownPeriod ||
-      now - lastShownTime > MIN_HIDE_DURATION_MS;
+      !lastShownData || currentPeriod !== lastShownPeriod || now - lastShownTime > MIN_HIDE_DURATION_MS;
 
     setShouldRenderComponent(shouldShowThisSession);
 
@@ -80,10 +76,7 @@ export const CoinNani = ({ className }: CoinNaniProps) => {
       showTimer.current = window.setTimeout(() => {
         setShouldRenderComponent(true);
         // Mark as shown immediately
-        localStorage.setItem(
-          LOCAL_STORAGE_KEY,
-          JSON.stringify({ timestamp: Date.now(), period: currentPeriod }),
-        );
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ timestamp: Date.now(), period: currentPeriod }));
         // Schedule bubble hide
         hideTimer.current = window.setTimeout(() => {
           setShouldRenderComponent(false);
@@ -109,12 +102,7 @@ export const CoinNani = ({ className }: CoinNaniProps) => {
   }
 
   return (
-    <div
-      className={cn(
-        "relative flex flex-col items-center justify-end",
-        className,
-      )}
-    >
+    <div className={cn("relative flex flex-col items-center justify-end", className)}>
       <motion.div
         initial={{ scale: 0.5, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}

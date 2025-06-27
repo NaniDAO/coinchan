@@ -1,14 +1,22 @@
+import { CoinsAddress } from "@/constants/Coins";
 import {
   encodeAbiParameters,
   keccak256,
   parseAbiParameters,
   zeroAddress,
+  encodePacked,
+  Address,
+  Hex,
+  getAddress,
 } from "viem";
+
+export type CoinSource = "ZAMM" | "COOKBOOK";
 
 export interface TokenMeta {
   id: bigint | null; // null = ETH pseudo-token
   name: string;
   symbol: string;
+  source: CoinSource;
   tokenUri?: string; // Added tokenUri field to display thumbnails
   reserve0?: bigint; // ETH reserves in the pool
   reserve1?: bigint; // Token reserves in the pool
@@ -47,6 +55,7 @@ export const ETH_TOKEN: TokenMeta = {
   id: null,
   name: "Ether",
   symbol: "ETH",
+  source: "ZAMM",
   tokenUri: `data:image/svg+xml;base64,${btoa(ETH_SVG)}`, // Embed ETH SVG as data URI
   reserve0: BigInt(Number.MAX_SAFE_INTEGER), // Ensure ETH is always at the top (special case)
   balance: 0n, // Will be updated with actual balance in useAllTokens hook
@@ -59,8 +68,7 @@ const USDT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2000 2000
 </svg>`;
 
 // USDT address on mainnet (official Tether USD address)
-export const USDT_ADDRESS =
-  "0xdAC17F958D2ee523a2206206994597C13D831ec7" as `0x${string}`;
+export const USDT_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7" as `0x${string}`;
 
 // Create USDT-ETH pool with 30 bps fee
 export const USDT_POOL_KEY: {
@@ -78,19 +86,11 @@ export const USDT_POOL_KEY: {
 };
 
 // Function to compute a custom pool ID with specific tokens and fee
-const computeCustomPoolId = (
-  id0: bigint,
-  id1: bigint,
-  token0: `0x${string}`,
-  token1: `0x${string}`,
-  swapFee: bigint,
-) =>
+const computeCustomPoolId = (id0: bigint, id1: bigint, token0: `0x${string}`, token1: `0x${string}`, swapFee: bigint) =>
   BigInt(
     keccak256(
       encodeAbiParameters(
-        parseAbiParameters(
-          "uint256 id0, uint256 id1, address token0, address token1, uint96 swapFee",
-        ),
+        parseAbiParameters("uint256 id0, uint256 id1, address token0, address token1, uint96 swapFee"),
         [id0, id1, token0, token1, swapFee],
       ),
     ),
@@ -110,6 +110,7 @@ export const USDT_TOKEN: TokenMeta = {
   id: 0n, // Special USDT token with ID 0
   name: "Tether USD",
   symbol: "USDT",
+  source: "ZAMM",
   tokenUri: `data:image/svg+xml;base64,${btoa(USDT_SVG)}`,
   reserve0: 1000000000000000000000n, // 1000 ETH (placeholder - will be updated by hook)
   reserve1: 2000000000000n, // 2M USDT (6 decimals, placeholder)
@@ -121,3 +122,39 @@ export const USDT_TOKEN: TokenMeta = {
   poolKey: USDT_POOL_KEY as any, // Cast to any to avoid type errors
   decimals: 6, // USDT has 6 decimals
 };
+
+const INIT_CODE_HASH: Hex = "0x6594461b4ce3b23f6cbdcdcf50388d5f444bf59a82f6e868dfd5ef2bfa13f6d4"; // the 0x6594…f6d4 init code hash
+
+/**
+ * Predicts the same uint256 ID as your Solidity _predictId function.
+ * @param name   The token/coin name
+ * @param symbol The token/coin symbol
+ * @returns      The uint256 “predicted” address cast to bigint
+ */
+export function computeCoinId(
+  name: string,
+  symbol: string,
+): {
+  id: bigint;
+  address: Address;
+} {
+  // salt = keccak256(abi.encodePacked(name, COINS, symbol))
+  const salt = keccak256(encodePacked(["string", "address", "string"], [name, CoinsAddress, symbol]));
+
+  // data = abi.encodePacked(0xff, COINS, salt, INIT_CODE_HASH)
+  const packed = encodePacked(
+    ["bytes1", "address", "bytes32", "bytes32"],
+    ["0xff", CoinsAddress, salt, INIT_CODE_HASH],
+  );
+
+  // hash = keccak256(data)
+  const hash = keccak256(packed);
+
+  // take the lower-160 bits (last 20 bytes) → same as uint160(uint256(hash))
+  const addressHex = "0x" + hash.slice(-40);
+
+  return {
+    id: BigInt(addressHex),
+    address: getAddress(addressHex),
+  };
+}

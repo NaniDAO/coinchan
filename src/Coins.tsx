@@ -1,30 +1,72 @@
 import { useState, useCallback, useMemo } from "react";
-import { ExplorerGrid } from "./ExplorerGrid";
+import { ExplorerGrid, SortType } from "./ExplorerGrid";
 import { usePagedCoins } from "./hooks/metadata";
 import { useCoinsData } from "./hooks/metadata/use-coins-data";
 import { useChronologicalCoins } from "./hooks/use-chronological-coins";
+import { useLaunchSalesDeadlines } from "./hooks/use-launch-sales-deadlines";
 import { SearchIcon } from "lucide-react";
 import { CoinData } from "./hooks/metadata/coin-utils";
 import { debounce } from "./lib/utils";
 import { useTranslation } from "react-i18next";
+import { formatEther } from "viem";
 
 // Page size for pagination
 const PAGE_SIZE = 20;
 
+// Helper function to check if a coin should appear in Launch Sales tab
+const shouldShowInLaunchSales = (coin: CoinData): boolean => {
+  // Show coins that have any sale status (ACTIVE, EXPIRED, FINALIZED)
+  return coin.saleStatus !== null && coin.saleStatus !== undefined;
+};
+
+// Helper function to check if an ACTIVE sale should be filtered out due to expiration
+const shouldFilterExpiredActiveSale = (coin: CoinData, saleDeadlines: Map<string, number>): boolean => {
+  // Only check ACTIVE sales for deadline expiration
+  if (coin.saleStatus !== "ACTIVE") {
+    return false; // Don't filter non-active sales here
+  }
+
+  // For active sales, check if deadline has expired (implicitly expired)
+  const coinId = coin.coinId.toString();
+  const deadlineLast = saleDeadlines.get(coinId);
+
+  if (deadlineLast) {
+    const now = Math.floor(Date.now() / 1000); // Current time in seconds
+    return deadlineLast <= now; // Filter out if deadline has passed
+  }
+
+  // If no deadline info available for active sale, keep it
+  return false;
+};
+
+// Helper function to get filtered launch sales data for pagination
+const getFilteredLaunchSales = (coins: CoinData[], saleDeadlines: Map<string, number>): CoinData[] => {
+  // First filter to include only coins that should appear in Launch Sales
+  const launchSalesCoins = coins.filter((coin) => shouldShowInLaunchSales(coin));
+
+  // Then filter out expired active sales based on deadlines
+  return launchSalesCoins.filter((coin) => !shouldFilterExpiredActiveSale(coin, saleDeadlines || new Map()));
+};
+
 export const Coins = () => {
   const { t } = useTranslation();
-  
+
   /* ------------------------------------------------------------------
    *  Local state
    * ------------------------------------------------------------------ */
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortType, setSortType] = useState<"liquidity" | "recency">("liquidity");
+  const [sortType, setSortType] = useState<SortType>("liquidity");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   /* ------------------------------------------------------------------
    *  Paged & global coin data
    * ------------------------------------------------------------------ */
   const { coins, allCoins, page, goToNextPage, isLoading, setPage } = usePagedCoins(PAGE_SIZE);
+
+  /* ------------------------------------------------------------------
+   *  Launch sales deadline data (for filtering expired sales)
+   * ------------------------------------------------------------------ */
+  const { data: saleDeadlines } = useLaunchSalesDeadlines();
 
   /* ------------------------------------------------------------------
    *  Search handling
@@ -110,7 +152,7 @@ export const Coins = () => {
   const { refetch: refetchChronologicalData } = useChronologicalCoins();
 
   const handleSortTypeChange = useCallback(
-    (newSortType: "liquidity" | "recency") => {
+    (newSortType: SortType) => {
       setSortType(newSortType);
       // Reset to page 1 when changing sort type
       if (sortType !== newSortType) {
@@ -168,6 +210,32 @@ export const Coins = () => {
           return sortOrder === "asc"
             ? aLiquidity - bLiquidity // Ascending (lowest liquidity first)
             : bLiquidity - aLiquidity; // Descending (highest liquidity first)
+        });
+      } else if (sortType === "votes") {
+        console.log("Sorting By Votes:", coinsCopy);
+        return coinsCopy.sort((a, b) => {
+          // Convert BigInt to number (or fallback to 0)
+          const aVotes = a.votes !== undefined ? Number(formatEther(a.votes)) : 0;
+          const bVotes = b.votes !== undefined ? Number(formatEther(b.votes)) : 0;
+
+          if (aVotes === bVotes) {
+            // Tiebreaker: use coinId descending when votes are equal
+            return sortOrder === "asc" ? Number(a.coinId) - Number(b.coinId) : Number(b.coinId) - Number(a.coinId);
+          }
+          return sortOrder === "asc" ? aVotes - bVotes : bVotes - aVotes;
+        });
+      } else if (sortType === "launch") {
+        // Use the same filtering logic as pagination for consistency
+        const filteredLaunchSales = getFilteredLaunchSales(coinsCopy, saleDeadlines || new Map());
+
+        // Sort the remaining sales
+        return filteredLaunchSales.sort((a, b) => {
+          const aId = Number(a.coinId);
+          const bId = Number(b.coinId);
+
+          return sortOrder === "asc"
+            ? aId - bId // Ascending (oldest first - assuming lower IDs are older)
+            : bId - aId; // Descending (newest first - assuming higher IDs are newer)
         });
       } else {
         // For recency sorting, there are two approaches:
@@ -296,13 +364,17 @@ export const Coins = () => {
         total={
           isSearchActive
             ? filterValidCoins(searchResults || []).length
-            : filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || []).length
+            : sortType === "launch"
+              ? getFilteredLaunchSales(filterValidCoins(allCoins || []), saleDeadlines || new Map()).length
+              : filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || []).length
         }
         canPrev={!isSearchActive && page > 0}
         canNext={
           !isSearchActive &&
           (page + 1) * PAGE_SIZE <
-            filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || []).length
+            (sortType === "launch"
+              ? getFilteredLaunchSales(filterValidCoins(allCoins || []), saleDeadlines || new Map()).length
+              : filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || []).length)
         }
         onPrev={debouncedPrevPage}
         onNext={debouncedNextPage}
@@ -313,7 +385,9 @@ export const Coins = () => {
           Math.ceil(
             (isSearchActive
               ? filterValidCoins(searchResults || []).length
-              : filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || []).length) / PAGE_SIZE,
+              : sortType === "launch"
+                ? getFilteredLaunchSales(filterValidCoins(allCoins || []), saleDeadlines || new Map()).length
+                : filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || []).length) / PAGE_SIZE,
           ),
         )}
         isSearchActive={isSearchActive}
@@ -328,28 +402,36 @@ export const Coins = () => {
          * - hasPrev (renamed to hasPreviousPage)
          */
         searchBar={
-          <div className="relative">
+          <div className="relative w-full">
             <input
               type="text"
               placeholder={t("tokenSelector.search_tokens")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full sm:w-56 p-1 pl-7 border border-primary rounded-md focus:outline-none focus:ring-1 focus:ring-accent text-sm"
+              className="border-2 border-border p-2 bg-muted text-muted focus:outline-none focus:text-foreground focus:shadow-none w-full pl-10 pr-8 text-sm font-body py-2.5 px-10"
             />
             {searchQuery && (
               <button
                 onClick={resetSearch}
-                className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 hover:text-gray-600"
+                className="button absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 text-center text-xs font-bold"
                 aria-label={t("common.cancel")}
+                style={{
+                  lineHeight: "1",
+                  fontSize: "12px",
+                  padding: "2px",
+                  minWidth: "24px",
+                }}
               >
                 ✕
               </button>
             )}
-            <SearchIcon className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+            <SearchIcon className="text-foreground absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" />
           </div>
         }
         searchResults={
-          isSearchActive ? `${t("common.showing")} ${searchResults.length} ${searchResults.length !== 1 ? t("common.results") : t("common.result")}` : ""
+          isSearchActive
+            ? `${t("common.showing")} ${searchResults.length} ${searchResults.length !== 1 ? t("common.results") : t("common.result")}`
+            : ""
         }
       />
     </>

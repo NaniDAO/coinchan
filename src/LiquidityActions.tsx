@@ -1,45 +1,68 @@
 import { useState } from "react";
-import { Tabs, TabsList, TabsTrigger } from "./components/ui/tabs";
-import { MinusIcon, PlusIcon } from "lucide-react";
+import { MinusIcon, PlusIcon, Settings } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { RemoveLiquidity } from "./RemoveLiquidity";
 import { SingleEthLiquidity } from "./SingleEthLiquidity";
 import { AddLiquidity } from "./AddLiquidity";
+import { CreatePool } from "./CreatePool";
+import { cn } from "@/lib/utils";
 
-type LiquidityMode = "add" | "remove" | "single-eth";
+type LiquidityMode = "add" | "remove" | "single-eth" | "create";
 
 export const LiquidityActions = () => {
+  const { t } = useTranslation();
   const [liquidityMode, setLiquidityMode] = useState<LiquidityMode>("add");
 
   return (
     <div>
-      <Tabs value={liquidityMode} onValueChange={(value) => setLiquidityMode(value as LiquidityMode)} className="mb-2">
-        <TabsList className="w-full bg-secondary dark:bg-background/80 p-1 rounded-lg border border-border">
-          <TabsTrigger
-            value="add"
-            className="flex-1  data-[state=active]:bg-background dark:data-[state=active]:bg-card dark:data-[state=active]:shadow-[0_0_10px_rgba(0,204,255,0.15)] dark:data-[state=active]:border-primary/50 data-[state=active]:border-border data-[state=active]:shadow-sm h-10 touch-manipulation text-primary-foreground"
+      <div className="flex flex-row items-center justify-center mb-2">
+        <div className="flex p-0.5 gap-0">
+          <button
+            className={cn(
+              `!px-2 flex flex-row items-center justify-center !py-1 text-xs border-2 transition-colors hover:!text-underline`,
+              liquidityMode === "add" ? "bg-background text-foreground" : "bg-accent text-accent-foreground",
+            )}
+            onClick={() => setLiquidityMode("add")}
           >
             <PlusIcon className="h-4 w-4 mr-1" />
-            <span className="text-xs sm:text-sm">Add</span>
-          </TabsTrigger>
-          <TabsTrigger
-            value="remove"
-            className="flex-1 data-[state=active]:bg-background dark:data-[state=active]:bg-card dark:data-[state=active]:shadow-[0_0_10px_rgba(0,204,255,0.15)] dark:data-[state=active]:border-primary/50 data-[state=active]:border-border data-[state=active]:shadow-sm h-10 touch-manipulation text-primary-foreground"
+            <span>{t("common.add")}</span>
+          </button>
+          <button
+            className={cn(
+              `!px-2 !py-1 flex flex-row items-center justify-center text-xs border-2 transition-colors hover:!text-underline`,
+              liquidityMode === "remove" ? "bg-background text-foreground" : "bg-accent text-accent-foreground",
+            )}
+            onClick={() => setLiquidityMode("remove")}
           >
             <MinusIcon className="h-4 w-4 mr-1" />
-            <span className="text-xs sm:text-sm">Remove</span>
-          </TabsTrigger>
-          <TabsTrigger
-            value="single-eth"
-            className="flex-1 data-[state=active]:bg-background dark:data-[state=active]:bg-card dark:data-[state=active]:shadow-[0_0_10px_rgba(0,204,255,0.15)] dark:data-[state=active]:border-primary/50 data-[state=active]:border-border data-[state=active]:shadow-sm h-10 touch-manipulation text-primary-foreground"
+            <span>{t("common.remove")}</span>
+          </button>
+          <button
+            className={cn(
+              `!px-2 !py-1 flex flex-row items-center justify-center text-xs border-2 transition-colors hover:!text-underline`,
+              liquidityMode === "single-eth" ? "bg-background text-foreground" : "bg-accent text-accent-foreground",
+            )}
+            onClick={() => setLiquidityMode("single-eth")}
           >
             <span className="text-xs font-medium mr-1">Ξ</span>
-            <span className="text-xs sm:text-sm">Single-ETH</span>
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+            <span>{t("common.single_eth")}</span>
+          </button>
+          <button
+            className={cn(
+              `!px-2 !py-1 flex flex-row items-center justify-center text-xs border-2 transition-colors hover:!text-underline`,
+              liquidityMode === "create" ? "bg-background text-foreground" : "bg-accent text-accent-foreground",
+            )}
+            onClick={() => setLiquidityMode("create")}
+          >
+            <Settings className="h-4 w-4 mr-1" />
+            <span>CREATE</span>
+          </button>
+        </div>
+      </div>
       {liquidityMode === "remove" && <RemoveLiquidity />}
       {liquidityMode === "add" && <AddLiquidity />}
       {liquidityMode === "single-eth" && <SingleEthLiquidity />}
+      {liquidityMode === "create" && <CreatePool />}
     </div>
   );
 };

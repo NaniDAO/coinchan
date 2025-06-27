@@ -1,72 +1,82 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
-import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowDownUp, Plus } from "lucide-react";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
-
-import SpinnerLoader from "./components/ui/spinner-loader";
 import { LiquidityActions } from "./LiquidityActions";
 import { SwapAction } from "./SwapAction";
+import { LoadingLogo } from "./components/ui/loading-logo";
+import { cn } from "./lib/utils";
 
 /* ────────────────────────────────────────────────────────────────────────────
-  Mode types and constants
+  Mode types and constants - Simplified to focus on core swap functionality
 ──────────────────────────────────────────────────────────────────────────── */
 type TileMode = "swap" | "liquidity";
 
 /* ────────────────────────────────────────────────────────────────────────────
-  Pool Actions
+  Pool Actions - Terminal Style
 ──────────────────────────────────────────────────────────────────────────── */
 export const PoolActions = () => {
+  const { t } = useTranslation();
   const [mode, setMode] = useState<TileMode>("swap");
   const { tokenCount, loading, error: loadError } = useAllCoins();
 
   // Loading state
   if (loading) {
-    return <SpinnerLoader />;
+    return (
+      <div className="p-2 flex items-center justify-center py-12">
+        <LoadingLogo size="lg" />
+      </div>
+    );
   }
 
   // Main UI
   return (
-    <Card className="w-full max-w-lg p-4 sm:p-6 border-2 border-border shadow-md rounded-xl dark:bg-card/95 dark:backdrop-blur-sm dark:shadow-[0_0_20px_rgba(0,204,255,0.07)]">
-      <CardContent className="p-0 sm:p-1 flex flex-col space-y-1">
-        {/* Info showing token count */}
-        <div className="text-xs text-muted-foreground mb-2">
-          Available tokens: {tokenCount} (ETH + {tokenCount - 1} coins, sorted by liquidity)
+    <div className="w-full !mb-10 mt-5 mx-auto !p-4 bg-background ">
+      {/* Header with mode switcher matching HTML design */}
+      <div className="flex justify-end items-center mb-5">
+        <h2 className="sr-only m-0 font-display uppercase tracking-widest text-lg">SWAP TERMINAL</h2>
+
+        <div className="flex p-0.5 gap-0">
+          <button
+            className={cn(
+              `!px-2 !py-1 text-xs border-2 transition-colors hover:!text-underline`,
+              mode === "swap" ? "bg-background text-foreground" : "bg-accent text-accent-foreground",
+            )}
+            onClick={() => setMode("swap")}
+          >
+            {t("common.swap").toUpperCase()}
+          </button>
+          <button
+            className={cn(
+              `!px-2 !py-1 text-xs border-2 transition-colors hover:!text-underline`,
+              mode === "liquidity" ? "bg-background text-foreground" : "bg-accent text-accent-foreground",
+            )}
+            onClick={() => setMode("liquidity")}
+          >
+            {t("common.add").toUpperCase()}
+          </button>
         </div>
+      </div>
 
-        {/* Mode tabs */}
-        <Tabs value={mode} onValueChange={(value) => setMode(value as TileMode)} className="mb-2">
-          <TabsList className="w-full bg-primary dark:bg-background p-1 rounded-lg border border-border">
-            <TabsTrigger
-              value="swap"
-              className="flex-1 data-[state=active]:bg-background dark:data-[state=active]:bg-card dark:data-[state=active]:shadow-[0_0_10px_rgba(0,204,255,0.15)] dark:data-[state=active]:border-primary data-[state=active]:border-border data-[state=active]:shadow-sm h-10 touch-manipulation text-primary-foreground"
-            >
-              <ArrowDownUp className="h-4 w-4 mr-1" />
-              <span className="text-sm text-primary-foreground">Swap</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="liquidity"
-              className="flex-1 data-[state=active]:bg-background dark:data-[state=active]:bg-card dark:data-[state=active]:shadow-[0_0_10px_rgba(0,204,255,0.15)] dark:data-[state=active]:border-primary data-[state=active]:border-border data-[state=active]:shadow-sm h-10 touch-manipulation text-primary-foreground"
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              <span className="text-sm text-primary-foreground data-[state=active]:text-foreground">Liquidity</span>
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+      {/* Load error notification */}
+      {loadError && (
+        <div className="p-2.5 mb-5 bg-terminal-gray border-2 border-terminal-black text-xs text-center">
+          {loadError}
+        </div>
+      )}
 
-        {/* Liquidity mode tabs - only show when in liquidity mode */}
-        {mode === "liquidity" && <LiquidityActions />}
-        {mode === "swap" && <SwapAction />}
-
-        {/* Load error notification */}
-        {loadError && (
-          <div className="p-2 mb-2 bg-destructive/10 border border-destructive/20 rounded text-sm text-destructive">
-            {loadError}
+      {/* Content based on mode */}
+      <div className="w-full flex items-center justify-center">
+        <div className="relative flex flex-col !w-xl outline-2 outline-offset-1 border-1 border-foreground outline-foreground p-5">
+          {mode === "swap" && <SwapAction />}
+          {mode === "liquidity" && <LiquidityActions />}
+          {/* Info showing token count */}
+          <div className="text-xs mt-5 text-center font-mono">
+            {t("common.available_tokens")} {tokenCount} {t("common.eth_plus_coins", { count: tokenCount - 1 })}
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      </div>
+    </div>
   );
 };
 
