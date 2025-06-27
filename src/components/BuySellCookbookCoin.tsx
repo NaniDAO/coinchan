@@ -56,7 +56,6 @@ export const BuySellCookbookCoin = ({
     chainId: mainnet.id,
   });
 
-
   // Get user's launchpad balance for claiming
   const { data: launchpadBalance } = useReadContract({
     address: ZAMMLaunchAddress,
@@ -79,9 +78,7 @@ export const BuySellCookbookCoin = ({
   const canClaim = useMemo(() => {
     // Sale is finalized when creator is address(0) in contract
     const isFinalized = saleData && saleData[0] === "0x0000000000000000000000000000000000000000";
-    return isFinalized && 
-           launchpadBalance && 
-           BigInt(launchpadBalance.toString()) > 0n;
+    return isFinalized && launchpadBalance && BigInt(launchpadBalance.toString()) > 0n;
   }, [saleData, launchpadBalance]);
 
   const claimableAmount = launchpadBalance ? formatUnits(BigInt(launchpadBalance.toString()), 18) : "0";
@@ -191,23 +188,13 @@ export const BuySellCookbookCoin = ({
           <CardContent>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">
-                  {t("claim.claimable_balance", "Claimable Balance")}:
-                </span>
+                <span className="text-sm font-medium">{t("claim.claimable_balance", "Claimable Balance")}:</span>
                 <span className="text-sm font-mono font-bold">
                   {claimableAmount} {symbol}
                 </span>
               </div>
-              <Button 
-                onClick={handleClaim} 
-                disabled={!isConnected || isPending}
-                className="w-full"
-                size="lg"
-              >
-                {isPending 
-                  ? t("claim.claiming", "Claiming...") 
-                  : t("claim.claim_all", "Claim All Tokens")
-                }
+              <Button onClick={handleClaim} disabled={!isConnected || isPending} className="w-full" size="lg">
+                {isPending ? t("claim.claiming", "Claiming...") : t("claim.claim_all", "Claim All Tokens")}
               </Button>
             </div>
           </CardContent>
@@ -220,65 +207,65 @@ export const BuySellCookbookCoin = ({
           <TabsTrigger value="sell">{t("create.sell_token", { token: symbol })}</TabsTrigger>
         </TabsList>
 
-      <TabsContent value="buy">
-        <div className="flex flex-col gap-2">
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-medium">{t("create.using_token", { token: "ETH" })}</span>
-            <span className="text-sm text-gray-500">
-              {t("create.balance")}: {ethBalance ? formatEther(ethBalance.value) : "0"} ETH
+        <TabsContent value="buy">
+          <div className="flex flex-col gap-2">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium">{t("create.using_token", { token: "ETH" })}</span>
+              <span className="text-sm text-gray-500">
+                {t("create.balance")}: {ethBalance ? formatEther(ethBalance.value) : "0"} ETH
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <Input
+                type="number"
+                placeholder={t("create.amount_token", { token: "ETH" })}
+                value={amount}
+                onChange={(e) => setAmount(e.currentTarget.value)}
+              />
+              <Button variant="outline" onClick={handleMax} className="whitespace-nowrap">
+                Max
+              </Button>
+            </div>
+            <span className="text-sm font-medium">
+              {t("create.you_will_receive", { amount: estimated, token: symbol })}
             </span>
-          </div>
-          <div className="flex gap-2">
-            <Input
-              type="number"
-              placeholder={t("create.amount_token", { token: "ETH" })}
-              value={amount}
-              onChange={(e) => setAmount(e.currentTarget.value)}
-            />
-            <Button variant="outline" onClick={handleMax} className="whitespace-nowrap">
-              Max
+            <Button onClick={() => handleSwap("buy")} disabled={!isConnected || isPending || !amount}>
+              {isPending ? t("swap.swapping") : t("create.buy_token", { token: symbol })}
             </Button>
           </div>
-          <span className="text-sm font-medium">
-            {t("create.you_will_receive", { amount: estimated, token: symbol })}
-          </span>
-          <Button onClick={() => handleSwap("buy")} disabled={!isConnected || isPending || !amount}>
-            {isPending ? t("swap.swapping") : t("create.buy_token", { token: symbol })}
-          </Button>
-        </div>
-      </TabsContent>
+        </TabsContent>
 
-      <TabsContent value="sell">
-        <div className="flex flex-col gap-2">
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-medium">{t("create.using_token", { token: symbol })}</span>
-            <span className="text-sm text-gray-500">
-              {t("create.balance")}: {coinBalance ? formatUnits(coinBalance, 18) : "0"} {symbol}
+        <TabsContent value="sell">
+          <div className="flex flex-col gap-2">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium">{t("create.using_token", { token: symbol })}</span>
+              <span className="text-sm text-gray-500">
+                {t("create.balance")}: {coinBalance ? formatUnits(coinBalance, 18) : "0"} {symbol}
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <Input
+                type="number"
+                placeholder={t("create.amount_token", { token: symbol })}
+                value={amount}
+                onChange={(e) => setAmount(e.currentTarget.value)}
+              />
+              <Button variant="outline" onClick={handleMax} className="whitespace-nowrap">
+                Max
+              </Button>
+            </div>
+            <span className="text-sm font-medium">
+              {t("create.you_will_receive", { amount: estimated, token: "ETH" })}
             </span>
-          </div>
-          <div className="flex gap-2">
-            <Input
-              type="number"
-              placeholder={t("create.amount_token", { token: symbol })}
-              value={amount}
-              onChange={(e) => setAmount(e.currentTarget.value)}
-            />
-            <Button variant="outline" onClick={handleMax} className="whitespace-nowrap">
-              Max
+            <Button onClick={() => handleSwap("sell")} disabled={!isConnected || isPending || !amount}>
+              {isPending ? t("swap.swapping") : t("create.sell_token", { token: symbol })}
             </Button>
           </div>
-          <span className="text-sm font-medium">
-            {t("create.you_will_receive", { amount: estimated, token: "ETH" })}
-          </span>
-          <Button onClick={() => handleSwap("sell")} disabled={!isConnected || isPending || !amount}>
-            {isPending ? t("swap.swapping") : t("create.sell_token", { token: symbol })}
-          </Button>
-        </div>
-      </TabsContent>
+        </TabsContent>
 
-      {errorMessage && <p className="text-destructive text-sm">{errorMessage}</p>}
-      {isSuccess && <p className="text-green-600 text-sm">{t("create.transaction_confirmed")}</p>}
-    </Tabs>
+        {errorMessage && <p className="text-destructive text-sm">{errorMessage}</p>}
+        {isSuccess && <p className="text-green-600 text-sm">{t("create.transaction_confirmed")}</p>}
+      </Tabs>
     </div>
   );
 };

@@ -79,7 +79,6 @@ export function UserPage() {
     }
   };
 
-
   // Format unified token name for display
   const formatUnifiedTokenName = (token: TokenMeta) => {
     if (token.symbol && token.name && token.symbol !== token.name) {
@@ -88,7 +87,7 @@ export function UserPage() {
     return token.symbol || token.name || (token.id ? `Token #${token.id}` : "ETH");
   };
 
-  // Format unified token balance for display 
+  // Format unified token balance for display
   const formatUnifiedTokenBalance = (token: TokenMeta) => {
     if (!token.balance || token.balance === 0n) return "0";
     return formatBalance(token.balance.toString(), token.decimals);
@@ -199,7 +198,8 @@ export function UserPage() {
                 </div>
               ) : accountError || tokensError ? (
                 <div className="text-destructive text-center py-4">
-                  {t("lockup.error_loading_balances")} {typeof accountError === 'string' ? accountError : accountError?.message || tokensError}
+                  {t("lockup.error_loading_balances")}{" "}
+                  {typeof accountError === "string" ? accountError : accountError?.message || tokensError}
                 </div>
               ) : tokensWithBalance.length === 0 ? (
                 <div className="text-muted-foreground text-center py-8">{t("lockup.no_token_balances")}</div>
@@ -215,7 +215,8 @@ export function UserPage() {
                         <div>
                           <div className="font-bold">{formatUnifiedTokenName(token)}</div>
                           <div className="text-xs text-muted-foreground">
-                            {token.id !== null ? `ID: ${token.id}` : "Native ETH"} • {token.decimals || 18} decimals • {token.source}
+                            {token.id !== null ? `ID: ${token.id}` : "Native ETH"} • {token.decimals || 18} decimals •{" "}
+                            {token.source}
                           </div>
                         </div>
                       </div>
