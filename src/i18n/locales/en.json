@@ -348,7 +348,13 @@
     "percent_of_total": "% of total",
     "supply_breakdown_note": "Note",
     "supply_breakdown_explanation": "Pool liquidity is automatically created equal to the amount sold in tranches. Remaining supply ({remainingAmount}M coins, {remainingPercent}%) stays in the contract.",
-    "supply_breakdown_explanation_no_remaining": "Pool liquidity is automatically created equal to the amount sold in tranches. All supply is allocated - no remaining tokens."
+    "supply_breakdown_explanation_no_remaining": "Pool liquidity is automatically created equal to the amount sold in tranches. All supply is allocated - no remaining tokens.",
+    "oneshot_supply_breakdown": "1B Total: 495M sale + 495M liquidity + 10M creator",
+    "oneshot_percentages": "49.5% public • 49.5% locked • 1% creator",
+    "oneshot_sale_price": "Sale: 495M coins for 1 ETH total",
+    "oneshot_sale_note": "Anyone can buy any amount",
+    "oneshot_auto_liquidity": "Auto-liquidity: 495M + 1 ETH → Trading Pool",
+    "oneshot_instant_trading": "Enables instant trading when sale completes"
   },
   "explore": {
     "title": "Explore",

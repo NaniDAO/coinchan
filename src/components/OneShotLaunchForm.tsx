@@ -189,26 +189,26 @@ export const OneShotLaunchForm = () => {
           <div className="grid grid-cols-1 gap-3 text-sm">
             <div className="bg-background border border-border rounded p-3">
               <div className="font-medium text-foreground">
-                495M {t("common.coins", "coins")} {t("create.for_sale", "for sale")} → 1 ETH {t("create.total", "total")}
+                {t("create.oneshot_supply_breakdown", "1B Total: 495M sale + 495M liquidity + 10M creator")}
               </div>
               <div className="text-muted-foreground text-xs mt-1">
-                {t("create.otc_order", "OTC order - buyers can purchase any amount")}
+                {t("create.oneshot_percentages", "49.5% public • 49.5% locked • 1% creator")}
               </div>
             </div>
             <div className="bg-background border border-border rounded p-3">
               <div className="font-medium text-foreground">
-                {t("create.when_sold", "When sold")}: 495M + 1 ETH → {t("create.liquidity_pool", "Liquidity Pool")}
+                {t("create.oneshot_sale_price", "Sale: 495M coins for 1 ETH total")}
               </div>
               <div className="text-muted-foreground text-xs mt-1">
-                {t("create.instant_trading", "Instant trading available")}
+                {t("create.oneshot_sale_note", "Anyone can buy any amount")}
               </div>
             </div>
             <div className="bg-background border border-border rounded p-3">
               <div className="font-medium text-foreground">
-                10M {t("common.coins", "coins")} → {t("create.creator", "Creator")} ({t("create.unlocked_after_sale", "unlocked after sale")})
+                {t("create.oneshot_auto_liquidity", "Auto-liquidity: 495M + 1 ETH → Trading Pool")}
               </div>
               <div className="text-muted-foreground text-xs mt-1">
-                {t("create.fair_launch", "Only 1% to creator - fair launch")}
+                {t("create.oneshot_instant_trading", "Enables instant trading when sale completes")}
               </div>
             </div>
           </div>
