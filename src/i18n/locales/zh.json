@@ -250,7 +250,7 @@
     "simple_coin_description": "创建带有元数据的基础代币",
     "tranche_sale_title": "分期销售",
     "tranche_sale_description": "使用自定义价格曲线发行销售",
-    "quick_config": "快速配置",
+    "instant_coin_sale": "即时币种销售",
     "launching": "发行中...",
     "launch_success": "一键发行已启动！",
     "launch_cancelled": "用户取消发行",

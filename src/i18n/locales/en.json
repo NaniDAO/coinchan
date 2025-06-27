@@ -250,7 +250,7 @@
     "simple_coin_description": "Create a basic token with metadata",
     "tranche_sale_title": "Tranche Sale",
     "tranche_sale_description": "Launch with custom price curve & sale",
-    "quick_config": "Quick Config",
+    "instant_coin_sale": "Instant Coin Sale",
     "launching": "Launching...",
     "launch_success": "Oneshot launch initiated!",
     "launch_cancelled": "Launch cancelled by user",
