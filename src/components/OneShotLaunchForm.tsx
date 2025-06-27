@@ -218,7 +218,7 @@ export const OneShotLaunchForm = () => {
           {/* Basic Token Information */}
           <div className="space-y-4">
             <div>
-              <Label htmlFor="metadataName">{t("create.name", "Name")} *</Label>
+              <Label htmlFor="metadataName" className="mb-2">{t("create.name", "Name")} *</Label>
               <Input
                 id="metadataName"
                 name="metadataName"
@@ -233,7 +233,7 @@ export const OneShotLaunchForm = () => {
             </div>
 
             <div>
-              <Label htmlFor="metadataSymbol">{t("create.symbol", "Symbol")} *</Label>
+              <Label htmlFor="metadataSymbol" className="mb-2">{t("create.symbol", "Symbol")} *</Label>
               <Input
                 id="metadataSymbol"
                 name="metadataSymbol"
@@ -249,7 +249,7 @@ export const OneShotLaunchForm = () => {
             </div>
 
             <div>
-              <Label htmlFor="metadataDescription">{t("create.description", "Description")}</Label>
+              <Label htmlFor="metadataDescription" className="mb-2">{t("create.description", "Description")}</Label>
               <Textarea
                 id="metadataDescription"
                 name="metadataDescription"
@@ -261,7 +261,7 @@ export const OneShotLaunchForm = () => {
             </div>
 
             <div>
-              <Label>{t("create.image", "Image")}</Label>
+              <Label className="mb-2">{t("create.image", "Image")}</Label>
               <ImageInput onChange={handleImageFileChange} />
             </div>
           </div>
