@@ -113,7 +113,6 @@ export const BuyCoinSale = ({
     [cheapestAvailableTranche],
   );
 
-
   /* refresh remainderWei and remainderCoins after each tx */
   const [remainderCoins, setRemainderCoins] = useState<bigint | null>(null);
 
@@ -124,7 +123,7 @@ export const BuyCoinSale = ({
         setRemainderCoins(null);
         return;
       }
-      
+
       const [remWei, remCoins] = await Promise.all([
         publicClient.readContract({
           address: ZAMMLaunchAddress,
@@ -135,16 +134,15 @@ export const BuyCoinSale = ({
         publicClient.readContract({
           address: ZAMMLaunchAddress,
           abi: ZAMMLaunchAbi,
-          functionName: "trancheRemainingCoins", 
+          functionName: "trancheRemainingCoins",
           args: [coinId, BigInt(tranche.trancheIndex)],
-        }) as Promise<bigint>
+        }) as Promise<bigint>,
       ]);
-      
+
       setRemainderWei(remWei);
       setRemainderCoins(remCoins);
     })();
   }, [tranche, refreshKey, publicClient, coinId]);
-
 
   /* Calculate exact purchase amounts based on ZAMMLaunch contract logic */
   const purchaseCalculations = useMemo(() => {
@@ -193,7 +191,7 @@ export const BuyCoinSale = ({
         }
 
         const ethCost = numerator / coinsInTranche;
-        
+
         // Sanity check - ensure cost is reasonable
         if (ethCost === 0n) {
           return { validEthAmount: 0n, validCoinAmount: 0n, ethCost: 0n, canPurchase: false };
@@ -492,7 +490,9 @@ export const BuyCoinSale = ({
                   {t("sale.price")} {formatEther(BigInt(tranche.price))} ETH
                 </div>
                 <div className="text-sm mb-1">
-                  {t("sale.remaining_colon")} {remainderCoins !== null ? formatEther(remainderCoins) : formatEther(BigInt(tranche.remaining))} {symbol}
+                  {t("sale.remaining_colon")}{" "}
+                  {remainderCoins !== null ? formatEther(remainderCoins) : formatEther(BigInt(tranche.remaining))}{" "}
+                  {symbol}
                 </div>
                 <div className="text-xs text-muted-foreground">
                   ETH needed: {remainderWei !== null ? formatEther(remainderWei) : "..."} ETH
@@ -564,7 +564,7 @@ export const BuyCoinSale = ({
               disabled={!purchaseCalculations.canPurchase}
               onClick={() => {
                 if (!tranche || !purchaseCalculations.canPurchase) return;
-                
+
                 if (mode === "ETH") {
                   // Use regular buy function with exact ETH amount
                   writeContract({
@@ -582,7 +582,7 @@ export const BuyCoinSale = ({
                     console.error("Coin amount too large for uint96");
                     return;
                   }
-                  
+
                   writeContract({
                     address: ZAMMLaunchAddress,
                     abi: ZAMMLaunchAbi,

@@ -21,6 +21,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as UUserIdRouteImport } from './routes/u.$userId'
 import { Route as CCoinIdRouteImport } from './routes/c.$coinId'
 
+
 const UserRoute = UserRouteImport.update({
   id: '/user',
   path: '/user',
@@ -261,6 +262,7 @@ const rootRouteChildren: RootRouteChildren = {
   CoinpaperRoute: CoinpaperRoute,
   ExploreRoute: ExploreRoute,
   LaunchRoute: LaunchRoute,
+  OneshotRoute: OneshotRoute,
   OrdersRoute: OrdersRoute,
   SendRoute: SendRoute,
   SwapRoute: SwapRoute,
