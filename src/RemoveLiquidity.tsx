@@ -19,6 +19,8 @@ import {
   ZAMMPoolKey,
 } from "./lib/swap";
 import { ZAMMAbi, ZAMMAddress } from "./constants/ZAAM";
+import { CookbookAddress } from "./constants/Cookbook";
+import { CoinsAddress } from "./constants/Coins";
 import { SuccessMessage } from "./components/SuccessMessage";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { SlippageSettings } from "./components/SlippageSettings";
@@ -90,8 +92,12 @@ export const RemoveLiquidity = () => {
           poolId = customToken?.poolId || USDT_POOL_ID;
           console.log("Fetching LP balance for custom pool:", customToken?.symbol, "pool ID:", poolId.toString());
         } else {
-          // Regular pool ID calculation
-          poolId = computePoolId(coinId);
+          // Determine contract address based on coin ID
+          const isCookbookCoin = coinId < 1000000n;
+          const contractAddress = isCookbookCoin ? CookbookAddress : CoinsAddress;
+
+          // Regular pool ID calculation with correct contract address
+          poolId = computePoolId(coinId, sellToken?.swapFee ?? SWAP_FEE, contractAddress);
         }
 
         // Read the user's LP token balance for this pool
@@ -201,8 +207,12 @@ export const RemoveLiquidity = () => {
         poolId = customToken?.poolId || USDT_POOL_ID;
         console.log("Getting pool info for custom pool:", customToken?.symbol, "pool ID:", poolId.toString());
       } else {
-        // Regular pool ID calculation
-        poolId = computePoolId(coinId, sellToken?.swapFee ?? SWAP_FEE);
+        // Determine contract address based on coin ID
+        const isCookbookCoin = coinId < 1000000n;
+        const contractAddress = isCookbookCoin ? CookbookAddress : CoinsAddress;
+
+        // Regular pool ID calculation with correct contract address
+        poolId = computePoolId(coinId, sellToken?.swapFee ?? SWAP_FEE, contractAddress);
       }
 
       if (!publicClient) return;
