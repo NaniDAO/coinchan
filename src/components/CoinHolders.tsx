@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { ResponsiveContainer, Tooltip, Treemap } from "recharts";
-import { formatUnits } from "viem";
+import { Address, formatUnits, getAddress } from "viem";
 import { Table, TableBody, TableCell, TableHead, TableRow } from "./ui/table";
-import { useReadContract } from "wagmi";
+import { useEnsName, useReadContract } from "wagmi";
 import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
 import { mainnet } from "viem/chains";
 
@@ -90,27 +90,46 @@ export const CoinHoldersTreemap = ({
               if (!payload || payload.length === 0) return null;
               const item = payload[0].payload;
               return (
-                <div className="bg-white shadow p-2 rounded text-sm text-black">
-                  <div>
-                    <b>Address:</b>{" "}
-                    <a
-                      href={`https://etherscan.io/address/${item.address}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline text-blue-500"
-                    >
-                      {item.address}
-                    </a>
-                  </div>
-                  <div>
-                    <b>Balance:</b> {item.size.toFixed(4)} {symbol}
-                  </div>
-                </div>
+                <CoinHolderTag
+                  address={item.address}
+                  balance={item.size}
+                  symbol={item.symbol}
+                />
               );
             }}
           />
         </Treemap>
       </ResponsiveContainer>
+    </div>
+  );
+};
+
+export const CoinHolderTag = ({
+  address,
+  balance,
+  symbol,
+}: {
+  address: Address;
+  balance: number;
+  symbol: string;
+}) => {
+  const { data: ensName } = useEnsName({ address });
+  return (
+    <div className="bg-white shadow p-2 rounded text-sm text-black">
+      <div>
+        <b>Address:</b>{" "}
+        <a
+          href={`https://etherscan.io/address/${address}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline text-blue-500"
+        >
+          {ensName ?? address}
+        </a>
+      </div>
+      <div>
+        <b>Balance:</b> {balance.toFixed(4)} {symbol}
+      </div>
     </div>
   );
 };
@@ -210,13 +229,10 @@ const CoinHoldersTable = ({
   coinId: bigint;
   symbol: string;
 }) => {
-  const { data: totalSupply } = useReadContract({
-    address: CoinsAddress,
-    abi: CoinsAbi,
-    functionName: "totalSupply",
-    args: [coinId],
-    chainId: mainnet.id,
-  });
+  const totalSupply = data.reduce(
+    (acc, holder) => acc + BigInt(holder.balance),
+    BigInt(0),
+  );
 
   return (
     <Table>
@@ -230,29 +246,55 @@ const CoinHoldersTable = ({
       <TableBody>
         {data.map((holder, index) => {
           return (
-            <TableRow key={index}>
-              <TableCell>{holder.address}</TableCell>
-              <TableCell>
-                {formatUnits(BigInt(holder.balance), 18)} {symbol}
-              </TableCell>
-              <TableCell>
-                {Number(
-                  (
-                    (parseFloat(formatUnits(BigInt(holder.balance), 18)) /
-                      parseFloat(
-                        totalSupply
-                          ? formatUnits(totalSupply, 18)
-                          : DEFAULT_TOTAL_SUPPLY.toString(),
-                      )) *
-                    100
-                  ).toString(),
-                ).toFixed(4)}
-                %
-              </TableCell>
-            </TableRow>
+            <CoinHolderTableRow
+              key={index}
+              address={getAddress(holder.address)}
+              balance={holder.balance}
+              symbol={symbol}
+              totalSupply={totalSupply ?? DEFAULT_TOTAL_SUPPLY}
+            />
           );
         })}
       </TableBody>
     </Table>
+  );
+};
+
+export const CoinHolderTableRow = ({
+  key,
+  address,
+  balance,
+  symbol,
+  totalSupply,
+}: {
+  key: number;
+  address: Address;
+  balance: string;
+  symbol: string;
+  totalSupply: bigint;
+}) => {
+  const { data: ensName } = useEnsName({ address });
+
+  return (
+    <TableRow key={key}>
+      <TableCell>{ensName ?? address}</TableCell>
+      <TableCell>
+        {formatUnits(BigInt(balance), 18)} {symbol}
+      </TableCell>
+      <TableCell>
+        {Number(
+          (
+            (parseFloat(formatUnits(BigInt(balance), 18)) /
+              parseFloat(
+                totalSupply
+                  ? formatUnits(totalSupply, 18)
+                  : DEFAULT_TOTAL_SUPPLY.toString(),
+              )) *
+            100
+          ).toString(),
+        ).toFixed(4)}
+        %
+      </TableCell>
+    </TableRow>
   );
 };
