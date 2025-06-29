@@ -6,13 +6,15 @@ import { ErrorBoundary } from "./ErrorBoundary";
 
 export const PoolOverview = ({
   poolId,
+  coinId,
   symbol = "TKN",
 }: {
   poolId: string;
+  coinId: string;
   symbol?: string;
 }) => {
   return (
-    <Tabs>
+    <Tabs defaultValue="chart">
       <TabsList>
         <TabsTrigger value="chart">Chart</TabsTrigger>
         <TabsTrigger value="holders">Holders</TabsTrigger>
@@ -31,7 +33,7 @@ export const PoolOverview = ({
             <p className="text-destructive">Pool holders unavailable</p>
           }
         >
-          <CoinHolders coinId={poolId} symbol={symbol} />
+          <CoinHolders coinId={coinId} symbol={symbol} />
         </ErrorBoundary>
       </TabsContent>
       <TabsContent value="activity" className="mt-4 sm:mt-6">

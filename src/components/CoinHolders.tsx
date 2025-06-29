@@ -38,7 +38,11 @@ export const CoinHolders = ({
   symbol: string;
 }) => {
   const { data, isLoading, error } = useCoinHolders(coinId);
-
+  console.log("useCoinHolders", {
+    data,
+    isLoading,
+    error,
+  });
   if (isLoading || !data) return <div>Loading...</div>;
   if (error) return <div>Error: {error.message}</div>;
 

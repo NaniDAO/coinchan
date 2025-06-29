@@ -130,6 +130,7 @@ export const CookbookCoinView = ({ coinId }: { coinId: bigint }) => {
         <VotePanel coinId={BigInt(coinId)} />
       </ErrorBoundary>
       <PoolOverview
+        coinId={coinId.toString()}
         poolId={computePoolId(coinId, SWAP_FEE, CookbookAddress).toString()}
         symbol={symbol}
       />

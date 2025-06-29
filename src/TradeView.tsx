@@ -178,6 +178,7 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
         </div>
       )}
       <PoolOverview
+        coinId={tokenId.toString()}
         poolId={computePoolId(tokenId).toString()}
         symbol={symbol}
       />

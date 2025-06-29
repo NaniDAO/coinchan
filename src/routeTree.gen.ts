@@ -13,6 +13,7 @@ import { Route as UserRouteImport } from './routes/user'
 import { Route as SwapRouteImport } from './routes/swap'
 import { Route as SendRouteImport } from './routes/send'
 import { Route as OrdersRouteImport } from './routes/orders'
+import { Route as OneshotRouteImport } from './routes/oneshot'
 import { Route as LaunchRouteImport } from './routes/launch'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as CoinpaperRouteImport } from './routes/coinpaper'
@@ -20,7 +21,6 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UUserIdRouteImport } from './routes/u.$userId'
 import { Route as CCoinIdRouteImport } from './routes/c.$coinId'
-
 
 const UserRoute = UserRouteImport.update({
   id: '/user',
@@ -40,6 +40,11 @@ const SendRoute = SendRouteImport.update({
 const OrdersRoute = OrdersRouteImport.update({
   id: '/orders',
   path: '/orders',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OneshotRoute = OneshotRouteImport.update({
+  id: '/oneshot',
+  path: '/oneshot',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LaunchRoute = LaunchRouteImport.update({
@@ -84,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/coinpaper': typeof CoinpaperRoute
   '/explore': typeof ExploreRoute
   '/launch': typeof LaunchRoute
+  '/oneshot': typeof OneshotRoute
   '/orders': typeof OrdersRoute
   '/send': typeof SendRoute
   '/swap': typeof SwapRoute
@@ -97,6 +103,7 @@ export interface FileRoutesByTo {
   '/coinpaper': typeof CoinpaperRoute
   '/explore': typeof ExploreRoute
   '/launch': typeof LaunchRoute
+  '/oneshot': typeof OneshotRoute
   '/orders': typeof OrdersRoute
   '/send': typeof SendRoute
   '/swap': typeof SwapRoute
@@ -111,6 +118,7 @@ export interface FileRoutesById {
   '/coinpaper': typeof CoinpaperRoute
   '/explore': typeof ExploreRoute
   '/launch': typeof LaunchRoute
+  '/oneshot': typeof OneshotRoute
   '/orders': typeof OrdersRoute
   '/send': typeof SendRoute
   '/swap': typeof SwapRoute
@@ -126,6 +134,7 @@ export interface FileRouteTypes {
     | '/coinpaper'
     | '/explore'
     | '/launch'
+    | '/oneshot'
     | '/orders'
     | '/send'
     | '/swap'
@@ -139,6 +148,7 @@ export interface FileRouteTypes {
     | '/coinpaper'
     | '/explore'
     | '/launch'
+    | '/oneshot'
     | '/orders'
     | '/send'
     | '/swap'
@@ -152,6 +162,7 @@ export interface FileRouteTypes {
     | '/coinpaper'
     | '/explore'
     | '/launch'
+    | '/oneshot'
     | '/orders'
     | '/send'
     | '/swap'
@@ -166,6 +177,7 @@ export interface RootRouteChildren {
   CoinpaperRoute: typeof CoinpaperRoute
   ExploreRoute: typeof ExploreRoute
   LaunchRoute: typeof LaunchRoute
+  OneshotRoute: typeof OneshotRoute
   OrdersRoute: typeof OrdersRoute
   SendRoute: typeof SendRoute
   SwapRoute: typeof SwapRoute
@@ -202,6 +214,13 @@ declare module '@tanstack/react-router' {
       path: '/orders'
       fullPath: '/orders'
       preLoaderRoute: typeof OrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/oneshot': {
+      id: '/oneshot'
+      path: '/oneshot'
+      fullPath: '/oneshot'
+      preLoaderRoute: typeof OneshotRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/launch': {
