@@ -3,9 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ResponsiveContainer, Tooltip, Treemap } from "recharts";
 import { Address, formatUnits, getAddress } from "viem";
 import { Table, TableBody, TableCell, TableHead, TableRow } from "./ui/table";
-import { useEnsName, useReadContract } from "wagmi";
-import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
-import { mainnet } from "viem/chains";
+import { useEnsName } from "wagmi";
 
 interface Holder {
   address: string;
@@ -38,29 +36,19 @@ export const CoinHolders = ({
   symbol: string;
 }) => {
   const { data, isLoading, error } = useCoinHolders(coinId);
-  console.log("useCoinHolders", {
-    data,
-    isLoading,
-    error,
-  });
+
   if (isLoading || !data) return <div>Loading...</div>;
   if (error) return <div>Error: {error.message}</div>;
 
   return (
     <div>
-      <CoinHoldersTreemap data={data} symbol={symbol} />
-      <CoinHoldersTable coinId={BigInt(coinId)} data={data} symbol={symbol} />
+      <CoinHoldersTreemap data={data} />
+      <CoinHoldersTable data={data} symbol={symbol} />
     </div>
   );
 };
 
-export const CoinHoldersTreemap = ({
-  data,
-  symbol,
-}: {
-  data: Holder[];
-  symbol: string;
-}) => {
+export const CoinHoldersTreemap = ({ data }: { data: Holder[] }) => {
   const sorted = [...data]
     .filter((item) => BigInt(item.balance) !== 0n)
     .sort((a, b) => Number(BigInt(b.balance) - BigInt(a.balance)));
@@ -222,11 +210,9 @@ const DEFAULT_TOTAL_SUPPLY = 21_000_000;
 
 const CoinHoldersTable = ({
   data,
-  coinId,
   symbol,
 }: {
   data: Holder[];
-  coinId: bigint;
   symbol: string;
 }) => {
   const totalSupply = data.reduce(
