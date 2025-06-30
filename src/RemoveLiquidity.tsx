@@ -5,7 +5,8 @@ import { Loader2 } from "lucide-react";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import { useAccount, useChainId, usePublicClient, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { mainnet } from "viem/chains";
-import { ETH_TOKEN, TokenMeta, USDT_POOL_ID, USDT_POOL_KEY } from "./lib/coins";
+import { CoinSource, TokenMeta, USDT_POOL_ID, USDT_POOL_KEY } from "./lib/coins";
+import { useTokenSelection } from "./contexts/TokenSelectionContext";
 import {
   analyzeTokens,
   computePoolId,
@@ -38,8 +39,8 @@ const isCookbookCoin = (coinId: bigint | null): boolean => {
 
 export const RemoveLiquidity = () => {
   const { t } = useTranslation();
-  const [sellToken, setSellToken] = useState<TokenMeta>(ETH_TOKEN);
-  const [buyToken, setBuyToken] = useState<TokenMeta | null>(null);
+  // Use shared token selection context
+  const { sellToken, buyToken, setSellToken, setBuyToken } = useTokenSelection();
 
   const [lpTokenBalance, setLpTokenBalance] = useState<bigint>(0n);
   const [lpBurnAmount, setLpBurnAmount] = useState<string>("");
@@ -55,8 +56,15 @@ export const RemoveLiquidity = () => {
     isCustomPool: isCustomPool,
     isCoinToCoin: isCoinToCoin,
   });
+
+  // Determine source for reserves based on coin type
+  // Custom pools (like USDT) use ZAMM, cookbook coins use COOKBOOK
+  const isCookbook = isCookbookCoin(coinId);
+  const reserveSource: CoinSource = isCookbook && !isCustomPool ? "COOKBOOK" : "ZAMM";
+
   const { data: reserves } = useReserves({
     poolId: mainPoolId,
+    source: reserveSource,
   });
 
   const { address, isConnected } = useAccount();

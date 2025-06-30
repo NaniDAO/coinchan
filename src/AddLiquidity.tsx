@@ -21,7 +21,8 @@ import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
 import { ZAMMAbi, ZAMMAddress } from "./constants/ZAAM";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import { useWaitForTransactionReceipt } from "wagmi";
-import { ETH_TOKEN, TokenMeta, USDT_ADDRESS, USDT_POOL_KEY } from "./lib/coins";
+import { CoinSource, TokenMeta, USDT_ADDRESS, USDT_POOL_KEY } from "./lib/coins";
+import { useTokenSelection } from "./contexts/TokenSelectionContext";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { SlippageSettings } from "./components/SlippageSettings";
 import { NetworkError } from "./components/NetworkError";
@@ -58,8 +59,8 @@ export const AddLiquidity = () => {
   const [sellAmt, setSellAmt] = useState("");
   const [buyAmt, setBuyAmt] = useState("");
 
-  const [sellToken, setSellToken] = useState<TokenMeta>(ETH_TOKEN);
-  const [buyToken, setBuyToken] = useState<TokenMeta | null>(null);
+  // Use shared token selection context
+  const { sellToken, buyToken, setSellToken, setBuyToken } = useTokenSelection();
 
   const { isSellETH, isCustom, isCoinToCoin, coinId, canSwap } = useMemo(
     () => analyzeTokens(sellToken, buyToken),
@@ -71,11 +72,19 @@ export const AddLiquidity = () => {
     isCustomPool: isCustom,
     isCoinToCoin: isCoinToCoin,
   });
+
+  // Determine source for reserves based on coin type
+  // Custom pools (like USDT) use ZAMM, cookbook coins use COOKBOOK
+  const isCookbook = isCookbookCoin(coinId);
+  const reserveSource: CoinSource = isCookbook && !isCustom ? "COOKBOOK" : "ZAMM";
+
   const { data: reserves } = useReserves({
     poolId: mainPoolId,
+    source: reserveSource,
   });
   const { data: targetReserves } = useReserves({
     poolId: targetPoolId,
+    source: reserveSource,
   });
 
   const [slippageBps, setSlippageBps] = useState<bigint>(SLIPPAGE_BPS);

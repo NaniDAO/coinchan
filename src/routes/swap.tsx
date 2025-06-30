@@ -3,6 +3,7 @@ import "../index.css";
 import { useEffect } from "react";
 
 import PoolActions from "../PoolActions";
+import { TokenSelectionProvider } from "../contexts/TokenSelectionContext";
 
 import { createFileRoute } from "@tanstack/react-router";
 
@@ -15,5 +16,9 @@ function RouteComponent() {
     sdk.actions.ready(); // @TODO farcaster integration
   }, []);
 
-  return <PoolActions />;
+  return (
+    <TokenSelectionProvider>
+      <PoolActions />
+    </TokenSelectionProvider>
+  );
 }

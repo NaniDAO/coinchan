@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NetworkError } from "./components/NetworkError";
 import { SuccessMessage } from "./components/SuccessMessage";
-import { ETH_TOKEN, TokenMeta, USDT_POOL_KEY } from "./lib/coins";
+import { CoinSource, ETH_TOKEN, TokenMeta, USDT_POOL_KEY } from "./lib/coins";
+import { useTokenSelection } from "./contexts/TokenSelectionContext";
 import { Loader2 } from "lucide-react";
 import { ZAMMSingleLiqETHAbi, ZAMMSingleLiqETHAddress } from "./constants/ZAMMSingleLiqETH";
 import { ZAMMSingleLiqETHV1Abi, ZAMMSingleLiqETHV1Address } from "./constants/ZAMMSingleLiqETHV1";
@@ -45,8 +46,8 @@ export const SingleEthLiquidity = () => {
   const [sellAmt, setSellAmt] = useState("");
   const [, setBuyAmt] = useState("");
 
-  const [sellToken, setSellToken] = useState<TokenMeta>(ETH_TOKEN);
-  const [buyToken, setBuyToken] = useState<TokenMeta | null>(null);
+  // Use shared token selection context
+  const { sellToken, buyToken, setSellToken, setBuyToken } = useTokenSelection();
 
   const {
     isCustom: isCustomPool,
@@ -59,8 +60,14 @@ export const SingleEthLiquidity = () => {
     isCoinToCoin,
   });
 
+  // Determine source for reserves based on coin type
+  // Custom pools (like USDT) use ZAMM, cookbook coins use COOKBOOK
+  const isCookbook = isCookbookCoin(coinId);
+  const reserveSource: CoinSource = isCookbook && !isCustomPool ? "COOKBOOK" : "ZAMM";
+
   const { data: reserves } = useReserves({
     poolId: mainPoolId,
+    source: reserveSource,
   });
 
   const [txHash, setTxHash] = useState<`0x${string}`>();
