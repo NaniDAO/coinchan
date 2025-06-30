@@ -1,12 +1,6 @@
 import { RainbowConnectButton } from "@/components/RainbowConnectButton";
 import { ZammLogo } from "@/components/ZammLogo";
-import {
-  createRootRoute,
-  Link,
-  Outlet,
-  useLocation,
-  useNavigate,
-} from "@tanstack/react-router";
+import { createRootRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import UserSettingsMenu from "@/components/UserSettingsMenu";
@@ -42,11 +36,7 @@ export const Route = createRootRoute({
                 {/* App Header */}
                 {showLogo && (
                   <div>
-                    <ZammLogo
-                      className="!m-0"
-                      size="small"
-                      onClick={handleLogoClick}
-                    />
+                    <ZammLogo className="!m-0" size="small" onClick={handleLogoClick} />
                   </div>
                 )}
                 <div className="shrink-0 flex items-center gap-2.5 mr-10">

@@ -3,8 +3,11 @@ import { useTranslation } from "react-i18next";
 import { NetworkError } from "./components/NetworkError";
 import { SuccessMessage } from "./components/SuccessMessage";
 import { ETH_TOKEN, TokenMeta, USDT_POOL_KEY } from "./lib/coins";
+import { useTokenSelection } from "./contexts/TokenSelectionContext";
+import { isCookbookCoin, determineReserveSource } from "./lib/coin-utils";
 import { Loader2 } from "lucide-react";
 import { ZAMMSingleLiqETHAbi, ZAMMSingleLiqETHAddress } from "./constants/ZAMMSingleLiqETH";
+import { ZAMMSingleLiqETHV1Abi, ZAMMSingleLiqETHV1Address } from "./constants/ZAMMSingleLiqETHV1";
 import {
   analyzeTokens,
   computePoolId,
@@ -24,9 +27,11 @@ import { nowSec } from "./lib/utils";
 import { formatEther, formatUnits, parseEther } from "viem";
 import { ZAMMAbi, ZAMMAddress } from "./constants/ZAAM";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
+import { CookbookAddress, CookbookAbi } from "./constants/Cookbook";
 import { SlippageSettings } from "./components/SlippageSettings";
 import { SwapPanel } from "./components/SwapPanel";
 import { useReserves } from "./hooks/use-reserves";
+
 
 export const SingleEthLiquidity = () => {
   const { t } = useTranslation();
@@ -35,8 +40,8 @@ export const SingleEthLiquidity = () => {
   const [sellAmt, setSellAmt] = useState("");
   const [, setBuyAmt] = useState("");
 
-  const [sellToken, setSellToken] = useState<TokenMeta>(ETH_TOKEN);
-  const [buyToken, setBuyToken] = useState<TokenMeta | null>(null);
+  // Use shared token selection context
+  const { sellToken, buyToken, setSellToken, setBuyToken } = useTokenSelection();
 
   const {
     isCustom: isCustomPool,
@@ -49,8 +54,12 @@ export const SingleEthLiquidity = () => {
     isCoinToCoin,
   });
 
+  // Determine source for reserves based on coin type using shared utility
+  const reserveSource = determineReserveSource(coinId, isCustomPool);
+
   const { data: reserves } = useReserves({
     poolId: mainPoolId,
+    source: reserveSource,
   });
 
   const [txHash, setTxHash] = useState<`0x${string}`>();
@@ -119,24 +128,34 @@ export const SingleEthLiquidity = () => {
     try {
       // Get the pool ID for the selected token pair
       let poolId;
+      const tokenId = buyToken.id || 0n;
+      const isCookbook = isCookbookCoin(tokenId);
 
       // Check if this is a custom pool like USDT
       if (buyToken.isCustomPool && buyToken.poolId) {
         poolId = buyToken.poolId;
         console.log("Using custom pool ID for Single-ETH estimation:", poolId.toString());
+      } else if (isCookbook) {
+        // Cookbook coin pool ID - use CookbookAddress as token1
+        poolId = computePoolId(tokenId, SWAP_FEE, CookbookAddress);
+        console.log("Using cookbook pool ID for Single-ETH estimation:", poolId.toString());
       } else {
-        poolId = computePoolId(buyToken.id || 0n);
+        poolId = computePoolId(tokenId);
       }
 
       // Fetch fresh reserves for the selected token
       let targetReserves = { ...reserves };
 
-      // If the token ID is different from the current reserves or we have a custom pool, fetch new reserves
-      if (buyToken.id !== coinId || buyToken.isCustomPool) {
+      // If the token ID is different from the current reserves or we have a custom pool or cookbook coin, fetch new reserves
+      if (buyToken.id !== coinId || buyToken.isCustomPool || isCookbook) {
         try {
+          // Use appropriate ZAMM address based on coin type
+          const targetAddress = isCookbook ? CookbookAddress : ZAMMAddress;
+          const targetAbi = isCookbook ? CookbookAbi : ZAMMAbi;
+
           const result = await publicClient?.readContract({
-            address: ZAMMAddress,
-            abi: ZAMMAbi,
+            address: targetAddress,
+            abi: targetAbi,
             functionName: "pools",
             args: [poolId],
           });
@@ -230,9 +249,10 @@ export const SingleEthLiquidity = () => {
       const swapFee = buyToken.swapFee ?? SWAP_FEE;
       console.log(`Using swap fee: ${Number(swapFee) / 100}% for ${buyToken.symbol} in single-ETH liquidity`);
 
-      // Check if we're dealing with a custom pool like USDT
+      // Check if we're dealing with a custom pool like USDT or cookbook coin
       let targetPoolKey;
       const isCustomPool = buyToken.isCustomPool;
+      const isCookbook = isCookbookCoin(targetTokenId);
 
       if (isCustomPool) {
         // Use the custom pool key for USDT-ETH
@@ -247,6 +267,14 @@ export const SingleEthLiquidity = () => {
             swapFee: targetPoolKey.swapFee.toString(),
           }),
         });
+      } else if (isCookbook) {
+        // Cookbook coin pool key - use CookbookAddress as token1
+        targetPoolKey = computePoolKey(targetTokenId, swapFee, CookbookAddress);
+        console.log("Using cookbook pool key for Single-ETH liquidity:", {
+          token: buyToken.symbol,
+          coinId: targetTokenId.toString(),
+          isCookbook: true,
+        });
       } else {
         // Regular pool key
         targetPoolKey = computePoolKey(targetTokenId, swapFee) as ZAMMPoolKey;
@@ -258,7 +286,7 @@ export const SingleEthLiquidity = () => {
       let targetReserves = reserves;
 
       // If the target token is different from coinId, fetch the correct reserves
-      if (targetTokenId !== coinId || isCustomPool) {
+      if (targetTokenId !== coinId || isCustomPool || isCookbook) {
         try {
           // Get the pool ID for the target token
           let targetPoolId;
@@ -267,14 +295,22 @@ export const SingleEthLiquidity = () => {
             // Use the custom pool ID for USDT-ETH
             targetPoolId = buyToken.poolId;
             console.log("Using custom pool ID for reserves:", targetPoolId.toString());
+          } else if (isCookbook) {
+            // Cookbook pool ID - use CookbookAddress as token1
+            targetPoolId = computePoolId(targetTokenId, swapFee, CookbookAddress);
+            console.log("Using cookbook pool ID for reserves:", targetPoolId.toString());
           } else {
             // Regular pool ID
             targetPoolId = computePoolId(targetTokenId, swapFee);
           }
 
+          // Use appropriate ZAMM address based on coin type
+          const targetAddress = isCookbook ? CookbookAddress : ZAMMAddress;
+          const targetAbi = isCookbook ? CookbookAbi : ZAMMAbi;
+
           const result = await publicClient.readContract({
-            address: ZAMMAddress,
-            abi: ZAMMAbi,
+            address: targetAddress,
+            abi: targetAbi,
             functionName: "pools",
             args: [targetPoolId],
           });
@@ -310,13 +346,22 @@ export const SingleEthLiquidity = () => {
 
       const amount1Min = withSlippage(estimatedTokens, singleEthSlippageBps);
 
-      // Call addSingleLiqETH on the ZAMMSingleLiqETH contract
+      // Call addSingleLiqETH on the appropriate contract based on coin type
+      const contractAddress = isCookbook ? ZAMMSingleLiqETHV1Address : ZAMMSingleLiqETHAddress;
+      const contractAbi = isCookbook ? ZAMMSingleLiqETHV1Abi : ZAMMSingleLiqETHAbi;
+
+      console.log(`Using ${isCookbook ? "ZAMMSingleLiqETHV1" : "ZAMMSingleLiqETH"} contract for ${buyToken.symbol}`, {
+        contractAddress,
+        isCookbook,
+        coinId: targetTokenId.toString(),
+      });
+
       const hash = await writeContractAsync({
-        address: ZAMMSingleLiqETHAddress,
-        abi: ZAMMSingleLiqETHAbi,
+        address: contractAddress,
+        abi: contractAbi,
         functionName: "addSingleLiqETH",
         args: [
-          targetPoolKey,
+          targetPoolKey as any, // Cast to any to handle union type of ZAMMPoolKey | CookbookPoolKey
           minTokenAmount, // Minimum tokens from swap
           amount0Min, // Minimum ETH for liquidity
           amount1Min, // Minimum tokens for liquidity

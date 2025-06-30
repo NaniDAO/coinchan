@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
 import { mainnet } from "viem/chains";
 import { ETH_TOKEN, USDT_TOKEN, TokenMeta, USDT_POOL_ID, USDT_ADDRESS } from "@/lib/coins";
+import { isCookbookCoin } from "@/lib/coin-utils";
 import { CoinchanAbi, CoinchanAddress } from "@/constants/Coinchan";
 import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
 import { CoinsMetadataHelperAbi, CoinsMetadataHelperAddress } from "@/constants/CoinsMetadataHelper";
@@ -89,7 +90,7 @@ async function fetchOtherCoins(
         reserve0: c.reserve0 !== null ? BigInt(c.reserve0) : undefined,
         reserve1: c.reserve1 !== null ? BigInt(c.reserve1) : undefined,
         poolId: c.poolId ? BigInt(c.poolId) : undefined,
-        source: BigInt(c.coinId) < 1000000n ? "COOKBOOK" : "ZAMM",
+        source: isCookbookCoin(BigInt(c.coinId)) ? "COOKBOOK" : "ZAMM",
         liquidity: 0n, // your subgraph doesn’t track total liquidity?
         swapFee: c.swapFee !== null ? BigInt(c.swapFee) : SWAP_FEE, // basis points
         balance: 0n, // to be filled in next step

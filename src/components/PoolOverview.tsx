@@ -21,27 +21,17 @@ export const PoolOverview = ({
         <TabsTrigger value="activity">Activity</TabsTrigger>
       </TabsList>
       <TabsContent value="chart" className="mt-4 sm:mt-6">
-        <ErrorBoundary
-          fallback={<p className="text-destructive">Pool chart unavailable</p>}
-        >
+        <ErrorBoundary fallback={<p className="text-destructive">Pool chart unavailable</p>}>
           <PoolPriceChart poolId={poolId} ticker={symbol} />
         </ErrorBoundary>
       </TabsContent>
       <TabsContent value="holders" className="mt-4 sm:mt-6">
-        <ErrorBoundary
-          fallback={
-            <p className="text-destructive">Pool holders unavailable</p>
-          }
-        >
+        <ErrorBoundary fallback={<p className="text-destructive">Pool holders unavailable</p>}>
           <CoinHolders coinId={coinId} symbol={symbol} />
         </ErrorBoundary>
       </TabsContent>
       <TabsContent value="activity" className="mt-4 sm:mt-6">
-        <ErrorBoundary
-          fallback={
-            <p className="text-destructive">Pool Activity unavailable</p>
-          }
-        >
+        <ErrorBoundary fallback={<p className="text-destructive">Pool Activity unavailable</p>}>
           <PoolEvents poolId={poolId} ticker={symbol} />
         </ErrorBoundary>
       </TabsContent>
