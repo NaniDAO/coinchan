@@ -50,7 +50,8 @@ const fetchSwaps = async () => {
 
 const convertToSnippets = (swaps: any[]) => {
   return swaps.map((swap) => {
-    const { amount0In, amount0Out, amount1Out, id, trader, pool } = swap;
+    const { amount0In, amount0Out, amount1Out, amount1In, id, trader, pool } =
+      swap;
     const isBuy = BigInt(amount0In) > 0n;
     const isSell = BigInt(amount0Out) > 0n;
 
@@ -81,8 +82,8 @@ const convertToSnippets = (swaps: any[]) => {
           <span style={{ color: getColor(id) }}>
             <a target="_blank" href={"https://etherscan.io/address/" + trader}>
               {truncAddress(trader)}
-            </a>
-            sold {Number(formatEther(amount1Out)).toFixed(2)}{" "}
+            </a>{" "}
+            sold {Number(formatEther(amount1In)).toFixed(2)}{" "}
             <Link
               to={`/c/$coinId`}
               params={{
