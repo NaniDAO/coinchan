@@ -21,8 +21,9 @@ import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
 import { ZAMMAbi, ZAMMAddress } from "./constants/ZAAM";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import { useWaitForTransactionReceipt } from "wagmi";
-import { CoinSource, TokenMeta, USDT_ADDRESS, USDT_POOL_KEY } from "./lib/coins";
+import { TokenMeta, USDT_ADDRESS, USDT_POOL_KEY } from "./lib/coins";
 import { useTokenSelection } from "./contexts/TokenSelectionContext";
+import { determineReserveSource, getHelperContractInfo, getTargetZAMMAddress } from "./lib/coin-utils";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { SlippageSettings } from "./components/SlippageSettings";
 import { NetworkError } from "./components/NetworkError";
@@ -36,13 +37,6 @@ import { SwapPanel } from "./components/SwapPanel";
 import { useReserves } from "./hooks/use-reserves";
 import { useErc20Allowance } from "./hooks/use-erc20-allowance";
 
-/**
- * Determines if a coin is a cookbook coin based on its ID
- * Cookbook coins have ID < 1000000n
- */
-const isCookbookCoin = (coinId: bigint | null): boolean => {
-  return coinId !== null && coinId < 1000000n;
-};
 
 export const AddLiquidity = () => {
   const { t } = useTranslation();
@@ -73,10 +67,8 @@ export const AddLiquidity = () => {
     isCoinToCoin: isCoinToCoin,
   });
 
-  // Determine source for reserves based on coin type
-  // Custom pools (like USDT) use ZAMM, cookbook coins use COOKBOOK
-  const isCookbook = isCookbookCoin(coinId);
-  const reserveSource: CoinSource = isCookbook && !isCustom ? "COOKBOOK" : "ZAMM";
+  // Determine source for reserves based on coin type using shared utility
+  const reserveSource = determineReserveSource(coinId, isCustom);
 
   const { data: reserves } = useReserves({
     poolId: mainPoolId,
@@ -345,8 +337,8 @@ export const AddLiquidity = () => {
         }
       }
 
-      // Determine if this is a cookbook coin
-      const isCookbook = isCookbookCoin(coinId);
+      // Determine coin type and helper contract info
+      const { isCookbook } = getHelperContractInfo(coinId);
 
       if (isUsdtPool) {
         // Use the custom pool key for USDT-ETH pool
@@ -474,10 +466,11 @@ export const AddLiquidity = () => {
       }
 
       // Use appropriate ZAMMHelper contract based on coin type
+      const { helperType } = getHelperContractInfo(coinId);
       const helperAddress = isCookbook ? ZAMMHelperV1Address : ZAMMHelperAddress;
       const helperAbi = isCookbook ? ZAMMHelperV1Abi : ZAMMHelperAbi;
 
-      console.log(`Using ${isCookbook ? "ZAMMHelperV1" : "ZAMMHelper"} for add liquidity`, {
+      console.log(`Using ${helperType} for add liquidity`, {
         helperAddress,
         isCookbook,
         coinId: coinId.toString(),
@@ -509,10 +502,11 @@ export const AddLiquidity = () => {
         // IMPORTANT: We should also use the exact calculated amounts for amount0Desired and amount1Desired
         // For cookbook coins, use CookbookAddress as the ZAMM instance (V2)
         // For regular coins, use ZAMMAddress (V1)
+        const { contractType } = getTargetZAMMAddress(coinId);
         const targetZAMMAddress = isCookbook ? CookbookAddress : ZAMMAddress;
         const targetZAMMAbi = isCookbook ? CookbookAbi : ZAMMAbi;
 
-        console.log(`Using ${isCookbook ? "Cookbook" : "ZAMM"} address for addLiquidity`, {
+        console.log(`Using ${contractType} address for addLiquidity`, {
           targetZAMMAddress,
           isCookbook,
           coinId: coinId.toString(),
@@ -539,7 +533,7 @@ export const AddLiquidity = () => {
         // Use our utility to handle wallet errors
         const errorMsg = handleWalletError(calcErr);
         if (errorMsg) {
-          console.error(`Error calling ${isCookbook ? "ZAMMHelperV1" : "ZAMMHelper"}.calculateRequiredETH:`, calcErr);
+          console.error(`Error calling ${helperType}.calculateRequiredETH:`, calcErr);
           setTxError("Failed to calculate exact ETH amount");
         }
         return;

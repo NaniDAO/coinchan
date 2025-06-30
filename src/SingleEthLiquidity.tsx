@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NetworkError } from "./components/NetworkError";
 import { SuccessMessage } from "./components/SuccessMessage";
-import { CoinSource, ETH_TOKEN, TokenMeta, USDT_POOL_KEY } from "./lib/coins";
+import { ETH_TOKEN, TokenMeta, USDT_POOL_KEY } from "./lib/coins";
 import { useTokenSelection } from "./contexts/TokenSelectionContext";
+import { isCookbookCoin, determineReserveSource } from "./lib/coin-utils";
 import { Loader2 } from "lucide-react";
 import { ZAMMSingleLiqETHAbi, ZAMMSingleLiqETHAddress } from "./constants/ZAMMSingleLiqETH";
 import { ZAMMSingleLiqETHV1Abi, ZAMMSingleLiqETHV1Address } from "./constants/ZAMMSingleLiqETHV1";
@@ -31,13 +32,6 @@ import { SlippageSettings } from "./components/SlippageSettings";
 import { SwapPanel } from "./components/SwapPanel";
 import { useReserves } from "./hooks/use-reserves";
 
-/**
- * Determines if a coin is a cookbook coin based on its ID
- * Cookbook coins have ID < 1000000n
- */
-const isCookbookCoin = (coinId: bigint | null): boolean => {
-  return coinId !== null && coinId < 1000000n;
-};
 
 export const SingleEthLiquidity = () => {
   const { t } = useTranslation();
@@ -60,10 +54,8 @@ export const SingleEthLiquidity = () => {
     isCoinToCoin,
   });
 
-  // Determine source for reserves based on coin type
-  // Custom pools (like USDT) use ZAMM, cookbook coins use COOKBOOK
-  const isCookbook = isCookbookCoin(coinId);
-  const reserveSource: CoinSource = isCookbook && !isCustomPool ? "COOKBOOK" : "ZAMM";
+  // Determine source for reserves based on coin type using shared utility
+  const reserveSource = determineReserveSource(coinId, isCustomPool);
 
   const { data: reserves } = useReserves({
     poolId: mainPoolId,

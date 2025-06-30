@@ -5,8 +5,9 @@ import { Loader2 } from "lucide-react";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import { useAccount, useChainId, usePublicClient, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { mainnet } from "viem/chains";
-import { CoinSource, TokenMeta, USDT_POOL_ID, USDT_POOL_KEY } from "./lib/coins";
+import { TokenMeta, USDT_POOL_ID, USDT_POOL_KEY } from "./lib/coins";
 import { useTokenSelection } from "./contexts/TokenSelectionContext";
+import { isCookbookCoin, determineReserveSource, getTargetZAMMAddress } from "./lib/coin-utils";
 import {
   analyzeTokens,
   computePoolId,
@@ -29,13 +30,6 @@ import { nowSec } from "./lib/utils";
 import { SwapPanel } from "./components/SwapPanel";
 import { useReserves } from "./hooks/use-reserves";
 
-/**
- * Determines if a coin is a cookbook coin based on its ID
- * Cookbook coins have ID < 1000000n
- */
-const isCookbookCoin = (coinId: bigint | null): boolean => {
-  return coinId !== null && coinId < 1000000n;
-};
 
 export const RemoveLiquidity = () => {
   const { t } = useTranslation();
@@ -57,10 +51,8 @@ export const RemoveLiquidity = () => {
     isCoinToCoin: isCoinToCoin,
   });
 
-  // Determine source for reserves based on coin type
-  // Custom pools (like USDT) use ZAMM, cookbook coins use COOKBOOK
-  const isCookbook = isCookbookCoin(coinId);
-  const reserveSource: CoinSource = isCookbook && !isCustomPool ? "COOKBOOK" : "ZAMM";
+  // Determine source for reserves based on coin type using shared utility
+  const reserveSource = determineReserveSource(coinId, isCustomPool);
 
   const { data: reserves } = useReserves({
     poolId: mainPoolId,
@@ -118,10 +110,11 @@ export const RemoveLiquidity = () => {
 
         // Determine which ZAMM address to use for LP balance lookup
         const isCookbook = isCustomPool ? false : isCookbookCoin(coinId);
+        const { contractType } = getTargetZAMMAddress(coinId);
         const targetZAMMAddress = isCookbook ? CookbookAddress : ZAMMAddress;
         const targetZAMMAbi = isCookbook ? CookbookAbi : ZAMMAbi;
 
-        console.log(`Fetching LP balance from ${isCookbook ? "Cookbook" : "ZAMM"} contract`, {
+        console.log(`Fetching LP balance from ${contractType} contract`, {
           targetZAMMAddress,
           isCookbook,
           coinId: coinId?.toString(),
@@ -379,10 +372,11 @@ export const RemoveLiquidity = () => {
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
       // Call removeLiquidity on the appropriate ZAMM contract
+      const { contractType } = getTargetZAMMAddress(coinId);
       const targetZAMMAddress = isCookbook ? CookbookAddress : ZAMMAddress;
       const targetZAMMAbi = isCookbook ? CookbookAbi : ZAMMAbi;
 
-      console.log(`Using ${isCookbook ? "Cookbook" : "ZAMM"} address for removeLiquidity`, {
+      console.log(`Using ${contractType} address for removeLiquidity`, {
         targetZAMMAddress,
         isCookbook,
         coinId: coinId.toString(),

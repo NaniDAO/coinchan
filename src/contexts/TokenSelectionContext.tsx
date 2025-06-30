@@ -36,7 +36,7 @@ export const TokenSelectionProvider: React.FC<TokenSelectionProviderProps> = ({ 
   };
 
   const flipTokens = () => {
-    if (buyToken) {
+    if (buyToken && sellToken) {
       const newSellToken = buyToken;
       const newBuyToken = sellToken;
       setSellTokenState(newSellToken);
