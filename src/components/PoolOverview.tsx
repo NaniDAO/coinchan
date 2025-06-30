@@ -3,6 +3,7 @@ import { CoinHolders } from "@/components/CoinHolders";
 import { PoolEvents } from "@/components/PoolEvents";
 import PoolPriceChart from "@/components/PoolPriceChart";
 import { ErrorBoundary } from "./ErrorBoundary";
+import PoolCandleChart from "@/PoolCandleChart";
 
 export const PoolOverview = ({
   poolId,
@@ -24,6 +25,7 @@ export const PoolOverview = ({
         <ErrorBoundary
           fallback={<p className="text-destructive">Pool chart unavailable</p>}
         >
+          <PoolCandleChart poolId={poolId} interval={"1d"} />
           <PoolPriceChart poolId={poolId} ticker={symbol} />
         </ErrorBoundary>
       </TabsContent>
