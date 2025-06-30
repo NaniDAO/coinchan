@@ -8,270 +8,270 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root'
-import { Route as UserRouteImport } from './routes/user'
-import { Route as SwapRouteImport } from './routes/swap'
-import { Route as SendRouteImport } from './routes/send'
-import { Route as OrdersRouteImport } from './routes/orders'
-import { Route as OneshotRouteImport } from './routes/oneshot'
-import { Route as LaunchRouteImport } from './routes/launch'
-import { Route as ExploreRouteImport } from './routes/explore'
-import { Route as CoinpaperRouteImport } from './routes/coinpaper'
-import { Route as AboutRouteImport } from './routes/about'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as UUserIdRouteImport } from './routes/u.$userId'
-import { Route as CCoinIdRouteImport } from './routes/c.$coinId'
+import { Route as rootRouteImport } from "./routes/__root";
+import { Route as UserRouteImport } from "./routes/user";
+import { Route as SwapRouteImport } from "./routes/swap";
+import { Route as SendRouteImport } from "./routes/send";
+import { Route as OrdersRouteImport } from "./routes/orders";
+import { Route as OneshotRouteImport } from "./routes/oneshot";
+import { Route as LaunchRouteImport } from "./routes/launch";
+import { Route as ExploreRouteImport } from "./routes/explore";
+import { Route as CoinpaperRouteImport } from "./routes/coinpaper";
+import { Route as AboutRouteImport } from "./routes/about";
+import { Route as IndexRouteImport } from "./routes/index";
+import { Route as UUserIdRouteImport } from "./routes/u.$userId";
+import { Route as CCoinIdRouteImport } from "./routes/c.$coinId";
 
 const UserRoute = UserRouteImport.update({
-  id: '/user',
-  path: '/user',
+  id: "/user",
+  path: "/user",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const SwapRoute = SwapRouteImport.update({
-  id: '/swap',
-  path: '/swap',
+  id: "/swap",
+  path: "/swap",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const SendRoute = SendRouteImport.update({
-  id: '/send',
-  path: '/send',
+  id: "/send",
+  path: "/send",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const OrdersRoute = OrdersRouteImport.update({
-  id: '/orders',
-  path: '/orders',
+  id: "/orders",
+  path: "/orders",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const OneshotRoute = OneshotRouteImport.update({
-  id: '/oneshot',
-  path: '/oneshot',
+  id: "/oneshot",
+  path: "/oneshot",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const LaunchRoute = LaunchRouteImport.update({
-  id: '/launch',
-  path: '/launch',
+  id: "/launch",
+  path: "/launch",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const ExploreRoute = ExploreRouteImport.update({
-  id: '/explore',
-  path: '/explore',
+  id: "/explore",
+  path: "/explore",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const CoinpaperRoute = CoinpaperRouteImport.update({
-  id: '/coinpaper',
-  path: '/coinpaper',
+  id: "/coinpaper",
+  path: "/coinpaper",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const AboutRoute = AboutRouteImport.update({
-  id: '/about',
-  path: '/about',
+  id: "/about",
+  path: "/about",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const UUserIdRoute = UUserIdRouteImport.update({
-  id: '/u/$userId',
-  path: '/u/$userId',
+  id: "/u/$userId",
+  path: "/u/$userId",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const CCoinIdRoute = CCoinIdRouteImport.update({
-  id: '/c/$coinId',
-  path: '/c/$coinId',
+  id: "/c/$coinId",
+  path: "/c/$coinId",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/about': typeof AboutRoute
-  '/coinpaper': typeof CoinpaperRoute
-  '/explore': typeof ExploreRoute
-  '/launch': typeof LaunchRoute
-  '/oneshot': typeof OneshotRoute
-  '/orders': typeof OrdersRoute
-  '/send': typeof SendRoute
-  '/swap': typeof SwapRoute
-  '/user': typeof UserRoute
-  '/c/$coinId': typeof CCoinIdRoute
-  '/u/$userId': typeof UUserIdRoute
+  "/": typeof IndexRoute;
+  "/about": typeof AboutRoute;
+  "/coinpaper": typeof CoinpaperRoute;
+  "/explore": typeof ExploreRoute;
+  "/launch": typeof LaunchRoute;
+  "/oneshot": typeof OneshotRoute;
+  "/orders": typeof OrdersRoute;
+  "/send": typeof SendRoute;
+  "/swap": typeof SwapRoute;
+  "/user": typeof UserRoute;
+  "/c/$coinId": typeof CCoinIdRoute;
+  "/u/$userId": typeof UUserIdRoute;
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/about': typeof AboutRoute
-  '/coinpaper': typeof CoinpaperRoute
-  '/explore': typeof ExploreRoute
-  '/launch': typeof LaunchRoute
-  '/oneshot': typeof OneshotRoute
-  '/orders': typeof OrdersRoute
-  '/send': typeof SendRoute
-  '/swap': typeof SwapRoute
-  '/user': typeof UserRoute
-  '/c/$coinId': typeof CCoinIdRoute
-  '/u/$userId': typeof UUserIdRoute
+  "/": typeof IndexRoute;
+  "/about": typeof AboutRoute;
+  "/coinpaper": typeof CoinpaperRoute;
+  "/explore": typeof ExploreRoute;
+  "/launch": typeof LaunchRoute;
+  "/oneshot": typeof OneshotRoute;
+  "/orders": typeof OrdersRoute;
+  "/send": typeof SendRoute;
+  "/swap": typeof SwapRoute;
+  "/user": typeof UserRoute;
+  "/c/$coinId": typeof CCoinIdRoute;
+  "/u/$userId": typeof UUserIdRoute;
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/about': typeof AboutRoute
-  '/coinpaper': typeof CoinpaperRoute
-  '/explore': typeof ExploreRoute
-  '/launch': typeof LaunchRoute
-  '/oneshot': typeof OneshotRoute
-  '/orders': typeof OrdersRoute
-  '/send': typeof SendRoute
-  '/swap': typeof SwapRoute
-  '/user': typeof UserRoute
-  '/c/$coinId': typeof CCoinIdRoute
-  '/u/$userId': typeof UUserIdRoute
+  __root__: typeof rootRouteImport;
+  "/": typeof IndexRoute;
+  "/about": typeof AboutRoute;
+  "/coinpaper": typeof CoinpaperRoute;
+  "/explore": typeof ExploreRoute;
+  "/launch": typeof LaunchRoute;
+  "/oneshot": typeof OneshotRoute;
+  "/orders": typeof OrdersRoute;
+  "/send": typeof SendRoute;
+  "/swap": typeof SwapRoute;
+  "/user": typeof UserRoute;
+  "/c/$coinId": typeof CCoinIdRoute;
+  "/u/$userId": typeof UUserIdRoute;
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
+  fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
-    | '/'
-    | '/about'
-    | '/coinpaper'
-    | '/explore'
-    | '/launch'
-    | '/oneshot'
-    | '/orders'
-    | '/send'
-    | '/swap'
-    | '/user'
-    | '/c/$coinId'
-    | '/u/$userId'
-  fileRoutesByTo: FileRoutesByTo
+    | "/"
+    | "/about"
+    | "/coinpaper"
+    | "/explore"
+    | "/launch"
+    | "/oneshot"
+    | "/orders"
+    | "/send"
+    | "/swap"
+    | "/user"
+    | "/c/$coinId"
+    | "/u/$userId";
+  fileRoutesByTo: FileRoutesByTo;
   to:
-    | '/'
-    | '/about'
-    | '/coinpaper'
-    | '/explore'
-    | '/launch'
-    | '/oneshot'
-    | '/orders'
-    | '/send'
-    | '/swap'
-    | '/user'
-    | '/c/$coinId'
-    | '/u/$userId'
+    | "/"
+    | "/about"
+    | "/coinpaper"
+    | "/explore"
+    | "/launch"
+    | "/oneshot"
+    | "/orders"
+    | "/send"
+    | "/swap"
+    | "/user"
+    | "/c/$coinId"
+    | "/u/$userId";
   id:
-    | '__root__'
-    | '/'
-    | '/about'
-    | '/coinpaper'
-    | '/explore'
-    | '/launch'
-    | '/oneshot'
-    | '/orders'
-    | '/send'
-    | '/swap'
-    | '/user'
-    | '/c/$coinId'
-    | '/u/$userId'
-  fileRoutesById: FileRoutesById
+    | "__root__"
+    | "/"
+    | "/about"
+    | "/coinpaper"
+    | "/explore"
+    | "/launch"
+    | "/oneshot"
+    | "/orders"
+    | "/send"
+    | "/swap"
+    | "/user"
+    | "/c/$coinId"
+    | "/u/$userId";
+  fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  AboutRoute: typeof AboutRoute
-  CoinpaperRoute: typeof CoinpaperRoute
-  ExploreRoute: typeof ExploreRoute
-  LaunchRoute: typeof LaunchRoute
-  OneshotRoute: typeof OneshotRoute
-  OrdersRoute: typeof OrdersRoute
-  SendRoute: typeof SendRoute
-  SwapRoute: typeof SwapRoute
-  UserRoute: typeof UserRoute
-  CCoinIdRoute: typeof CCoinIdRoute
-  UUserIdRoute: typeof UUserIdRoute
+  IndexRoute: typeof IndexRoute;
+  AboutRoute: typeof AboutRoute;
+  CoinpaperRoute: typeof CoinpaperRoute;
+  ExploreRoute: typeof ExploreRoute;
+  LaunchRoute: typeof LaunchRoute;
+  OneshotRoute: typeof OneshotRoute;
+  OrdersRoute: typeof OrdersRoute;
+  SendRoute: typeof SendRoute;
+  SwapRoute: typeof SwapRoute;
+  UserRoute: typeof UserRoute;
+  CCoinIdRoute: typeof CCoinIdRoute;
+  UUserIdRoute: typeof UUserIdRoute;
 }
 
-declare module '@tanstack/react-router' {
+declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    '/user': {
-      id: '/user'
-      path: '/user'
-      fullPath: '/user'
-      preLoaderRoute: typeof UserRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/swap': {
-      id: '/swap'
-      path: '/swap'
-      fullPath: '/swap'
-      preLoaderRoute: typeof SwapRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/send': {
-      id: '/send'
-      path: '/send'
-      fullPath: '/send'
-      preLoaderRoute: typeof SendRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/orders': {
-      id: '/orders'
-      path: '/orders'
-      fullPath: '/orders'
-      preLoaderRoute: typeof OrdersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/oneshot': {
-      id: '/oneshot'
-      path: '/oneshot'
-      fullPath: '/oneshot'
-      preLoaderRoute: typeof OneshotRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/launch': {
-      id: '/launch'
-      path: '/launch'
-      fullPath: '/launch'
-      preLoaderRoute: typeof LaunchRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/explore': {
-      id: '/explore'
-      path: '/explore'
-      fullPath: '/explore'
-      preLoaderRoute: typeof ExploreRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/coinpaper': {
-      id: '/coinpaper'
-      path: '/coinpaper'
-      fullPath: '/coinpaper'
-      preLoaderRoute: typeof CoinpaperRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/about': {
-      id: '/about'
-      path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof AboutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/u/$userId': {
-      id: '/u/$userId'
-      path: '/u/$userId'
-      fullPath: '/u/$userId'
-      preLoaderRoute: typeof UUserIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/c/$coinId': {
-      id: '/c/$coinId'
-      path: '/c/$coinId'
-      fullPath: '/c/$coinId'
-      preLoaderRoute: typeof CCoinIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
+    "/user": {
+      id: "/user";
+      path: "/user";
+      fullPath: "/user";
+      preLoaderRoute: typeof UserRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/swap": {
+      id: "/swap";
+      path: "/swap";
+      fullPath: "/swap";
+      preLoaderRoute: typeof SwapRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/send": {
+      id: "/send";
+      path: "/send";
+      fullPath: "/send";
+      preLoaderRoute: typeof SendRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/orders": {
+      id: "/orders";
+      path: "/orders";
+      fullPath: "/orders";
+      preLoaderRoute: typeof OrdersRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/oneshot": {
+      id: "/oneshot";
+      path: "/oneshot";
+      fullPath: "/oneshot";
+      preLoaderRoute: typeof OneshotRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/launch": {
+      id: "/launch";
+      path: "/launch";
+      fullPath: "/launch";
+      preLoaderRoute: typeof LaunchRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/explore": {
+      id: "/explore";
+      path: "/explore";
+      fullPath: "/explore";
+      preLoaderRoute: typeof ExploreRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/coinpaper": {
+      id: "/coinpaper";
+      path: "/coinpaper";
+      fullPath: "/coinpaper";
+      preLoaderRoute: typeof CoinpaperRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/about": {
+      id: "/about";
+      path: "/about";
+      fullPath: "/about";
+      preLoaderRoute: typeof AboutRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/": {
+      id: "/";
+      path: "/";
+      fullPath: "/";
+      preLoaderRoute: typeof IndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/u/$userId": {
+      id: "/u/$userId";
+      path: "/u/$userId";
+      fullPath: "/u/$userId";
+      preLoaderRoute: typeof UUserIdRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/c/$coinId": {
+      id: "/c/$coinId";
+      path: "/c/$coinId";
+      fullPath: "/c/$coinId";
+      preLoaderRoute: typeof CCoinIdRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
   }
 }
 
@@ -288,7 +288,5 @@ const rootRouteChildren: RootRouteChildren = {
   UserRoute: UserRoute,
   CCoinIdRoute: CCoinIdRoute,
   UUserIdRoute: UUserIdRoute,
-}
-export const routeTree = rootRouteImport
-  ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+};
+export const routeTree = rootRouteImport._addFileChildren(rootRouteChildren)._addFileTypes<FileRouteTypes>();

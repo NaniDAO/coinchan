@@ -26,12 +26,22 @@ import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { SlippageSettings } from "./components/SlippageSettings";
 import { NetworkError } from "./components/NetworkError";
 import { ZAMMHelperAbi, ZAMMHelperAddress } from "./constants/ZAMMHelper";
+import { ZAMMHelperV1Abi, ZAMMHelperV1Address } from "./constants/ZAMMHelperV1";
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
+import { CookbookAddress, CookbookAbi } from "./constants/Cookbook";
 import { nowSec } from "./lib/utils";
 import { mainnet } from "viem/chains";
 import { SwapPanel } from "./components/SwapPanel";
 import { useReserves } from "./hooks/use-reserves";
 import { useErc20Allowance } from "./hooks/use-erc20-allowance";
+
+/**
+ * Determines if a coin is a cookbook coin based on its ID
+ * Cookbook coins have ID < 1000000n
+ */
+const isCookbookCoin = (coinId: bigint | null): boolean => {
+  return coinId !== null && coinId < 1000000n;
+};
 
 export const AddLiquidity = () => {
   const { t } = useTranslation();
@@ -326,10 +336,20 @@ export const AddLiquidity = () => {
         }
       }
 
+      // Determine if this is a cookbook coin
+      const isCookbook = isCookbookCoin(coinId);
+
       if (isUsdtPool) {
         // Use the custom pool key for USDT-ETH pool
         const customToken = sellToken.isCustomPool ? sellToken : buyToken;
         poolKey = customToken?.poolKey || USDT_POOL_KEY;
+      } else if (isCookbook) {
+        // Cookbook coin pool key - use CookbookAddress as token1
+        poolKey = computePoolKey(coinId, SWAP_FEE, CookbookAddress);
+        console.log("Using cookbook pool key for add liquidity:", {
+          coinId: coinId.toString(),
+          isCookbook: true,
+        });
       } else {
         // Regular pool key
         poolKey = computePoolKey(coinId) as ZAMMPoolKey;
@@ -398,13 +418,18 @@ export const AddLiquidity = () => {
       // Check if the user needs to approve ZAMM as operator for their Coin token
       // This is needed when the user is providing Coin tokens (not just ETH)
       // Since we're always providing Coin tokens in liquidity, we need approval
-      // Only needed for regular Coin tokens, not for USDT
-      if (!isUsdtPool && isOperator === false) {
+      // Only needed for regular Coin tokens, not for USDT or cookbook coins
+      // Cookbook coins don't need operator approval since ZAMM IS the token contract
+      if (!isUsdtPool && !isCookbook && isOperator === false) {
         try {
           // First, show a notification about the approval step
           setTxError("Waiting for operator approval. Please confirm the transaction...");
 
-          // Send the approval transaction
+          // Send the approval transaction for regular coins only
+          console.log("Approving ZAMM as operator on Coins contract", {
+            coinId: coinId.toString(),
+          });
+
           const approvalHash = await writeContractAsync({
             address: CoinsAddress,
             abi: CoinsAbi,
@@ -439,15 +464,24 @@ export const AddLiquidity = () => {
         }
       }
 
-      // Use ZAMMHelper to calculate the exact ETH amount to provide
+      // Use appropriate ZAMMHelper contract based on coin type
+      const helperAddress = isCookbook ? ZAMMHelperV1Address : ZAMMHelperAddress;
+      const helperAbi = isCookbook ? ZAMMHelperV1Abi : ZAMMHelperAbi;
+
+      console.log(`Using ${isCookbook ? "ZAMMHelperV1" : "ZAMMHelper"} for add liquidity`, {
+        helperAddress,
+        isCookbook,
+        coinId: coinId.toString(),
+      });
+
       try {
         // The contract call returns an array of values rather than an object
         const result = await publicClient.readContract({
-          address: ZAMMHelperAddress,
-          abi: ZAMMHelperAbi,
+          address: helperAddress,
+          abi: helperAbi,
           functionName: "calculateRequiredETH",
           args: [
-            poolKey,
+            poolKey as any, // Cast to any to handle union type of ZAMMPoolKey | CookbookPoolKey
             amount0, // amount0Desired
             amount1, // amount1Desired
           ],
@@ -464,12 +498,23 @@ export const AddLiquidity = () => {
 
         // Use the ethAmount from ZAMMHelper as the exact value to send
         // IMPORTANT: We should also use the exact calculated amounts for amount0Desired and amount1Desired
+        // For cookbook coins, use CookbookAddress as the ZAMM instance (V2)
+        // For regular coins, use ZAMMAddress (V1)
+        const targetZAMMAddress = isCookbook ? CookbookAddress : ZAMMAddress;
+        const targetZAMMAbi = isCookbook ? CookbookAbi : ZAMMAbi;
+
+        console.log(`Using ${isCookbook ? "Cookbook" : "ZAMM"} address for addLiquidity`, {
+          targetZAMMAddress,
+          isCookbook,
+          coinId: coinId.toString(),
+        });
+
         const hash = await writeContractAsync({
-          address: ZAMMAddress,
-          abi: ZAMMAbi,
+          address: targetZAMMAddress,
+          abi: targetZAMMAbi,
           functionName: "addLiquidity",
           args: [
-            poolKey,
+            poolKey as any, // Cast to any to handle union type of ZAMMPoolKey | CookbookPoolKey
             calcAmount0, // use calculated amount0 as amount0Desired
             calcAmount1, // use calculated amount1 as amount1Desired
             actualAmount0Min, // use adjusted min based on calculated amount
@@ -485,7 +530,7 @@ export const AddLiquidity = () => {
         // Use our utility to handle wallet errors
         const errorMsg = handleWalletError(calcErr);
         if (errorMsg) {
-          console.error("Error calling ZAMMHelper.calculateRequiredETH:", calcErr);
+          console.error(`Error calling ${isCookbook ? "ZAMMHelperV1" : "ZAMMHelper"}.calculateRequiredETH:`, calcErr);
           setTxError("Failed to calculate exact ETH amount");
         }
         return;

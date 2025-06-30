@@ -11,11 +11,7 @@ interface PoolSwapChartProps {
   prevPair: any;
 }
 
-export const PoolSwapChart = ({
-  sellToken,
-  buyToken,
-  prevPair,
-}: PoolSwapChartProps) => {
+export const PoolSwapChart = ({ sellToken, buyToken, prevPair }: PoolSwapChartProps) => {
   const { t } = useTranslation();
   const [showPriceChart, setShowPriceChart] = useState<boolean>(false);
 
@@ -28,11 +24,7 @@ export const PoolSwapChart = ({
   }, [prevPair]);
 
   const chartToken =
-    buyToken && buyToken.id !== null
-      ? buyToken
-      : sellToken && sellToken.id !== null
-        ? sellToken
-        : null;
+    buyToken && buyToken.id !== null ? buyToken : sellToken && sellToken.id !== null ? sellToken : null;
 
   if (!chartToken || chartToken.id === null) return null;
 
@@ -44,9 +36,7 @@ export const PoolSwapChart = ({
           className="text-xs text-muted-foreground flex items-center gap-1 hover:text-primary"
         >
           {showPriceChart ? t("coin.hide_chart") : t("coin.show_chart")}
-          <ChevronDownIcon
-            className={`w-3 h-3 transition-transform ${showPriceChart ? "rotate-180" : ""}`}
-          />
+          <ChevronDownIcon className={`w-3 h-3 transition-transform ${showPriceChart ? "rotate-180" : ""}`} />
         </button>
         {showPriceChart && (
           <div className="text-xs text-muted-foreground">
@@ -59,10 +49,7 @@ export const PoolSwapChart = ({
         <div
           className={`transition-all duration-300 ${showPriceChart ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"}`}
         >
-          <PoolPriceChart
-            poolId={computePoolId(chartToken.id).toString()}
-            ticker={chartToken.symbol}
-          />
+          <PoolPriceChart poolId={computePoolId(chartToken.id).toString()} ticker={chartToken.symbol} />
         </div>
       )}
     </div>
