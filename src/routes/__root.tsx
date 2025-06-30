@@ -1,10 +1,17 @@
 import { RainbowConnectButton } from "@/components/RainbowConnectButton";
 import { ZammLogo } from "@/components/ZammLogo";
-import { createRootRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
+import {
+  createRootRoute,
+  Link,
+  Outlet,
+  useLocation,
+  useNavigate,
+} from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import UserSettingsMenu from "@/components/UserSettingsMenu";
 import { Button } from "@/components/ui/button";
+import { SwapRibbon } from "@/components/SwapRibbon";
 
 export const Route = createRootRoute({
   component: () => {
@@ -21,10 +28,10 @@ export const Route = createRootRoute({
       <>
         <div className="bg-background relative">
           <div className="bg-foreground text-primary-foreground p-1 w-full text-center font-bold flex justify-center items-center font-display text-sm">
-            <div className="text-primary-foreground text-center">═══════════ ZAMM DeFi v1.0 ═══════════</div>
+            <SwapRibbon />
           </div>
 
-          <main className="mt-0 max-w-screen flex flex-col items-center justify-center !space-y-0 bg-foreground">
+          <main className="mt-8 max-w-screen flex flex-col items-center justify-center !space-y-0 bg-foreground">
             <div className="w-screen lg:w-[70vw]">
               <div
                 className={cn(
@@ -35,7 +42,11 @@ export const Route = createRootRoute({
                 {/* App Header */}
                 {showLogo && (
                   <div>
-                    <ZammLogo className="!m-0" size="small" onClick={handleLogoClick} />
+                    <ZammLogo
+                      className="!m-0"
+                      size="small"
+                      onClick={handleLogoClick}
+                    />
                   </div>
                 )}
                 <div className="shrink-0 flex items-center gap-2.5 mr-10">
