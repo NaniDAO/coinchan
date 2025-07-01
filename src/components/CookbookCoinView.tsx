@@ -9,7 +9,10 @@ import { useMemo } from "react";
 import { CoinInfoCard } from "./CoinInfoCard";
 import { useReadContract } from "wagmi";
 import { mainnet } from "viem/chains";
-import { CheckTheChainAbi, CheckTheChainAddress } from "@/constants/CheckTheChain";
+import {
+  CheckTheChainAbi,
+  CheckTheChainAddress,
+} from "@/constants/CheckTheChain";
 import { PoolOverview } from "./PoolOverview";
 import { computePoolId, SWAP_FEE } from "@/lib/swap";
 import { CookbookAddress } from "@/constants/Cookbook";
@@ -29,10 +32,21 @@ export const CookbookCoinView = ({ coinId }: { coinId: bigint }) => {
     },
   });
 
-  const [name, symbol, imageUrl, description, tokenURI, poolId, swapFee] = useMemo(() => {
-    if (!data) return ["", "", "", "", "", undefined, 100n];
-    return [data.name!, data.symbol!, data.imageUrl!, data.description!, data.tokenURI!, data.poolId!, data.swapFee];
-  }, [data]);
+  const [name, symbol, imageUrl, description, tokenURI, poolIds, swapFees] =
+    useMemo(() => {
+      if (!data) return ["", "", "", "", "", undefined, [100n]];
+      const pools = data.pools.map((pool) => pool.poolId);
+      const swapFees = data.pools.map((pool) => BigInt(pool.swapFee));
+      return [
+        data.name!,
+        data.symbol!,
+        data.imageUrl!,
+        data.description!,
+        data.tokenURI!,
+        pools,
+        swapFees,
+      ];
+    }, [data]);
 
   const marketCapUsd = useMemo(() => {
     if (!data || !ethPriceData) return null;
@@ -53,8 +67,8 @@ export const CookbookCoinView = ({ coinId }: { coinId: bigint }) => {
       imageUrl,
       description,
       tokenURI,
-      poolId,
-      swapFee,
+      poolIds,
+      swapFees,
       marketCapUsd,
     },
     actualData: data,
@@ -62,18 +76,30 @@ export const CookbookCoinView = ({ coinId }: { coinId: bigint }) => {
 
   return (
     <div className="w-full max-w-screen mx-auto flex flex-col gap-4 px-2 py-4 pb-16 sm:p-6 sm:pb-16">
-      <Link to="/explore" className="text-sm self-start underline py-2 px-1 touch-manipulation">
+      <Link
+        to="/explore"
+        className="text-sm self-start underline py-2 px-1 touch-manipulation"
+      >
         ⬅︎ Back to Explorer
       </Link>
-      <CoinPreview coinId={BigInt(coinId)} name={name} symbol={symbol} isLoading={isLoadingGetCoin} />
-      <ErrorBoundary fallback={<ErrorFallback errorMessage="Error rendering Coin Info Card" />}>
+      <CoinPreview
+        coinId={BigInt(coinId)}
+        name={name}
+        symbol={symbol}
+        isLoading={isLoadingGetCoin}
+      />
+      <ErrorBoundary
+        fallback={
+          <ErrorFallback errorMessage="Error rendering Coin Info Card" />
+        }
+      >
         <CoinInfoCard
           coinId={coinId}
           name={name}
           symbol={symbol}
           description={description || "No description available"}
           imageUrl={imageUrl}
-          swapFee={Number(swapFee)}
+          swapFee={swapFees}
           isOwner={false}
           type={"COOKBOOK"}
           marketCapEth={data?.marketCapEth ?? 0}
@@ -84,12 +110,25 @@ export const CookbookCoinView = ({ coinId }: { coinId: bigint }) => {
         />
       </ErrorBoundary>
       {/* Wrap BuySell component in an ErrorBoundary to prevent crashes */}
-      <ErrorBoundary fallback={<BuySellFallback tokenId={BigInt(coinId)} name={name} symbol={symbol} />}>
+      <ErrorBoundary
+        fallback={
+          <BuySellFallback
+            tokenId={BigInt(coinId)}
+            name={name}
+            symbol={symbol}
+          />
+        }
+      >
         <div className="max-w-2xl">
-          <BuyCoinSale coinId={coinId} symbol={symbol.length === 0 ? name : symbol} />
+          <BuyCoinSale
+            coinId={coinId}
+            symbol={symbol.length === 0 ? name : symbol}
+          />
         </div>
       </ErrorBoundary>
-      <ErrorBoundary fallback={<ErrorFallback errorMessage="Error rendering voting panel" />}>
+      <ErrorBoundary
+        fallback={<ErrorFallback errorMessage="Error rendering voting panel" />}
+      >
         <VotePanel coinId={BigInt(coinId)} />
       </ErrorBoundary>
       <PoolOverview

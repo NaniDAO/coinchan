@@ -1,22 +1,25 @@
 import { BuySell } from "./BuySell";
 import { ClaimVested } from "./ClaimVested";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 
-import { useAccount, usePublicClient, useWaitForTransactionReceipt } from "wagmi";
-import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
+import { useReadContract, useWaitForTransactionReceipt } from "wagmi";
 import { mainnet } from "viem/chains";
-import { useCoinData } from "./hooks/metadata";
-import { computePoolId } from "./lib/swap";
+import { computePoolId, SWAP_FEE } from "./lib/swap";
 import { Link } from "@tanstack/react-router";
-
-// Add global styles
-import "./buysell-styles.css";
 
 import { CoinPreview } from "./components/CoinPreview";
 import ErrorFallback, { ErrorBoundary } from "./components/ErrorBoundary";
 import { VotePanel } from "./components/VotePanel";
 import { LoadingLogo } from "./components/ui/loading-logo";
 import { PoolOverview } from "./components/PoolOverview";
+import { useGetCoin } from "./hooks/metadata/use-get-coin";
+import { CoinsAddress } from "./constants/Coins";
+import { useIsOwner } from "./hooks/use-is-owner";
+import { CoinInfoCard } from "./components/CoinInfoCard";
+import {
+  CheckTheChainAbi,
+  CheckTheChainAddress,
+} from "./constants/CheckTheChain";
 
 // Fallback component for BuySell when it crashes
 export const BuySellFallback = ({
@@ -30,9 +33,12 @@ export const BuySellFallback = ({
 }) => {
   return (
     <div className="p-4 border border-destructive/30 bg-destructive/10 rounded-md">
-      <h3 className="font-medium text-destructive">Trading temporarily unavailable</h3>
+      <h3 className="font-medium text-destructive">
+        Trading temporarily unavailable
+      </h3>
       <p className="text-sm text-destructive/80 mt-2">
-        We're experiencing issues loading the trading interface for {name} [{symbol}]. Please try again later.
+        We're experiencing issues loading the trading interface for {name} [
+        {symbol}]. Please try again later.
       </p>
       <div className="mt-4 bg-background p-3 rounded-md text-sm border border-border">
         <p className="font-medium">Token Details:</p>
@@ -48,62 +54,64 @@ export const BuySellFallback = ({
 
 export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
   // Using our new hook to get coin data
-  const { data, isLoading } = useCoinData(tokenId);
-  const name = data && data.name !== null ? data.name : "Token";
-  const symbol = data && data.symbol !== null ? data.symbol : "TKN";
+  const { data, isLoading: isLoadingGetCoin } = useGetCoin({
+    coinId: tokenId.toString(),
+  });
 
-  const { address } = useAccount();
-  const publicClient = usePublicClient({ chainId: mainnet.id });
+  const [name, symbol, imageUrl, description, tokenURI, poolIds, swapFees] =
+    useMemo(() => {
+      if (!data) return ["", "", "", "", "", undefined, [100n]];
+      const pools = data.pools.map((pool) => pool.poolId);
+      const swapFees = data.pools.map((pool) => BigInt(pool.swapFee));
+      return [
+        data.name!,
+        data.symbol!,
+        data.imageUrl!,
+        data.description!,
+        data.tokenURI!,
+        pools,
+        swapFees,
+      ];
+    }, [data]);
 
-  const [isOwner, setIsOwner] = useState(false);
   const [txHash] = useState<`0x${string}`>();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
+  const { data: isOwner, isLoading: isCheckingOwner } = useIsOwner({
+    tokenId,
+    refetchKey: isSuccess, // triggers a fresh read once the tx is mined
+  });
 
-  // Safely check ownership with error handling
-  useEffect(() => {
-    if (!publicClient || !tokenId || !address) {
-      console.log("TradeView: Missing prerequisites for ownership check");
-      return;
-    }
+  const { data: ethPriceData } = useReadContract({
+    address: CheckTheChainAddress,
+    abi: CheckTheChainAbi,
+    functionName: "checkPrice",
+    args: ["WETH"],
+    chainId: mainnet.id,
+    query: {
+      staleTime: 60_000,
+    },
+  });
 
-    let isMounted = true; // Guard against setting state after unmount
+  const marketCapUsd = useMemo(() => {
+    if (!data || !ethPriceData) return null;
 
-    const checkOwnership = async () => {
-      try {
-        console.log(`TradeView: Checking ownership for token ${tokenId.toString()}`);
+    const priceStr = ethPriceData[1];
+    const ethPriceUsd = parseFloat(priceStr);
 
-        const lockup = (await publicClient.readContract({
-          address: CoinchanAddress,
-          abi: CoinchanAbi,
-          functionName: "lockups",
-          args: [tokenId],
-        })) as readonly [string, number, number, boolean, bigint, bigint];
+    if (isNaN(ethPriceUsd) || ethPriceUsd === 0) return null;
+    if (data.marketCapEth === undefined) return null;
 
-        if (!isMounted) return;
-
-        const [lockupOwner] = lockup;
-        const isActualOwner = lockupOwner?.toLowerCase() === address.toLowerCase();
-        console.log(`TradeView: Token ${tokenId.toString()} owner check: ${isActualOwner}`);
-        setIsOwner(isActualOwner);
-      } catch (err) {
-        console.error(`TradeView: Failed to fetch lockup owner for token ${tokenId.toString()}:`, err);
-        if (isMounted) setIsOwner(false);
-      }
-    };
-
-    checkOwnership();
-
-    // Cleanup function
-    return () => {
-      isMounted = false;
-    };
-  }, [publicClient, tokenId, address, isSuccess]);
+    return data.marketCapEth * ethPriceUsd;
+  }, [data, ethPriceData]);
 
   // Show loading logo during initial data fetch
-  if (isLoading) {
+  if (isLoadingGetCoin) {
     return (
       <div className="w-full max-w-screen mx-auto flex flex-col gap-4 px-2 py-4 pb-16 sm:p-6 sm:pb-16">
-        <Link to="/explore" className="text-sm self-start underline py-2 px-1 touch-manipulation">
+        <Link
+          to="/explore"
+          className="text-sm self-start underline py-2 px-1 touch-manipulation"
+        >
           ⬅︎ Back to Explorer
         </Link>
         <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
@@ -114,33 +122,98 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
     );
   }
 
+  console.log("CoinInfoCard:", {
+    data: {
+      name,
+      symbol,
+      imageUrl,
+      description,
+      tokenURI,
+      poolIds,
+      swapFees,
+      marketCapUsd,
+    },
+    actualData: data,
+  });
+
   return (
     <div className="w-full mx-auto flex flex-col gap-4 px-2 py-4 pb-16 sm:p-6 sm:pb-16">
-      <Link to="/explore" className="text-sm self-start underline py-2 px-1 touch-manipulation">
+      <Link
+        to="/explore"
+        className="text-sm self-start underline py-2 px-1 touch-manipulation"
+      >
         ⬅︎ Back to Explorer
       </Link>
 
-      <CoinPreview coinId={tokenId} name={name} symbol={symbol} isLoading={isLoading} />
+      <CoinPreview
+        coinId={tokenId}
+        name={name}
+        symbol={symbol}
+        isLoading={isLoadingGetCoin}
+      />
+
+      <ErrorBoundary
+        fallback={
+          <ErrorFallback errorMessage="Error rendering Coin Info Card" />
+        }
+      >
+        <CoinInfoCard
+          coinId={tokenId}
+          name={name}
+          symbol={symbol}
+          description={description || "No description available"}
+          imageUrl={imageUrl}
+          swapFee={swapFees}
+          isOwner={isOwner ?? false}
+          type={"ZAMM"}
+          marketCapEth={data?.marketCapEth ?? 0}
+          marketCapUsd={marketCapUsd ?? 0}
+          isEthPriceData={ethPriceData !== undefined}
+          tokenURI={tokenURI ?? ""}
+          isLoading={isLoadingGetCoin}
+        />
+      </ErrorBoundary>
 
       {/* Wrap BuySell component in an ErrorBoundary to prevent crashes */}
-      <ErrorBoundary fallback={<BuySellFallback tokenId={tokenId} name={name} symbol={symbol} />}>
+      <ErrorBoundary
+        fallback={
+          <BuySellFallback tokenId={tokenId} name={name} symbol={symbol} />
+        }
+      >
         <div>
           <BuySell tokenId={tokenId} name={name} symbol={symbol} />
         </div>
       </ErrorBoundary>
-      <ErrorBoundary fallback={<ErrorFallback errorMessage="Error rendering voting panel" />}>
+      <ErrorBoundary
+        fallback={<ErrorFallback errorMessage="Error rendering voting panel" />}
+      >
         <VotePanel coinId={tokenId} />
       </ErrorBoundary>
 
       {/* Only show ClaimVested if the user is the owner */}
+      {isCheckingOwner && <LoadingLogo size="sm" />}
       {isOwner && (
         <div className="mt-4 sm:mt-6 max-w-2xl">
-          <ErrorBoundary fallback={<p className="text-destructive">Vesting claim feature unavailable</p>}>
+          <ErrorBoundary
+            fallback={
+              <p className="text-destructive">
+                Vesting claim feature unavailable
+              </p>
+            }
+          >
             <ClaimVested coinId={tokenId} />
           </ErrorBoundary>
         </div>
       )}
-      <PoolOverview coinId={tokenId.toString()} poolId={computePoolId(tokenId).toString()} symbol={symbol} />
+      <PoolOverview
+        coinId={tokenId.toString()}
+        poolId={computePoolId(
+          tokenId,
+          swapFees?.[0] ?? SWAP_FEE,
+          CoinsAddress,
+        ).toString()}
+        symbol={symbol}
+      />
       <div className="mt-4 sm:mt-6"></div>
     </div>
   );
