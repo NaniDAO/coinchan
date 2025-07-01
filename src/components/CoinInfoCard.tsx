@@ -9,7 +9,7 @@ interface CoinInfoCardProps {
   symbol: string;
   description: string;
   imageUrl: string;
-  swapFee: number;
+  swapFee: bigint[];
   isOwner: boolean;
   type: CoinSource;
   marketCapEth: number;
@@ -165,7 +165,12 @@ export const CoinInfoCard = ({
                 <div className="h-3 bg-muted/40 rounded w-10 skeleton"></div>
               ) : (
                 <span className="font-medium text-primary transition-opacity duration-300">
-                  {(Number(swapFee) / 100).toFixed(2)}%
+                  {swapFee.map((s, i) => (
+                    <>
+                      {i > 0 && " | "}
+                      {`${(Number(s) / 100).toFixed(2)}%`}
+                    </>
+                  ))}
                 </span>
               )}
               {!isLoading && isOwner && (

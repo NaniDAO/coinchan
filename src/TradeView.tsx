@@ -58,17 +58,19 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
     coinId: tokenId.toString(),
   });
 
-  const [name, symbol, imageUrl, description, tokenURI, poolId, swapFee] =
+  const [name, symbol, imageUrl, description, tokenURI, poolIds, swapFees] =
     useMemo(() => {
-      if (!data) return ["", "", "", "", "", undefined, 100n];
+      if (!data) return ["", "", "", "", "", undefined, [100n]];
+      const pools = data.pools.map((pool) => pool.poolId);
+      const swapFees = data.pools.map((pool) => BigInt(pool.swapFee));
       return [
         data.name!,
         data.symbol!,
         data.imageUrl!,
         data.description!,
         data.tokenURI!,
-        data.poolId!,
-        data.swapFee,
+        pools,
+        swapFees,
       ];
     }, [data]);
 
@@ -127,8 +129,8 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
       imageUrl,
       description,
       tokenURI,
-      poolId,
-      swapFee,
+      poolIds,
+      swapFees,
       marketCapUsd,
     },
     actualData: data,
@@ -161,7 +163,7 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
           symbol={symbol}
           description={description || "No description available"}
           imageUrl={imageUrl}
-          swapFee={Number(swapFee)}
+          swapFee={swapFees}
           isOwner={isOwner ?? false}
           type={"ZAMM"}
           marketCapEth={data?.marketCapEth ?? 0}
@@ -207,7 +209,7 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
         coinId={tokenId.toString()}
         poolId={computePoolId(
           tokenId,
-          swapFee ?? SWAP_FEE,
+          swapFees?.[0] ?? SWAP_FEE,
           CoinsAddress,
         ).toString()}
         symbol={symbol}

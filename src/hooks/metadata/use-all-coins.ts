@@ -109,6 +109,11 @@ async function fetchOtherCoins(
     // metas remains [] if mapping fails
   }
 
+  console.log("use-all-coins", {
+    metas,
+    coins: metas.filter((coin) => coin.id === BigInt(46)),
+  });
+
   // For each coin, get balance from the correct contract based on coin ID
   const withBalances = await Promise.all(
     metas.map(async (m) => {
