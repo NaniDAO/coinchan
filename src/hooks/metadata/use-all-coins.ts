@@ -58,7 +58,7 @@ type CoinData = {
 };
 
 async function fetchCoinPoolsViaGraphQL(): Promise<CoinData[]> {
-  const res = await fetch(import.meta.env.VITE_INDEXER_URL + "/api/coins", {
+  const res = await fetch(import.meta.env.VITE_INDEXER_URL + "/api/pools", {
     method: "GET",
     headers: { "Content-Type": "application/json" },
   });
