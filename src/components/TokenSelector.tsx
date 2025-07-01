@@ -20,18 +20,9 @@ export const TokenSelector = memo(
     isEthBalanceFetching?: boolean;
     className?: string;
   }) => {
-    console.log("TokenSelector", {
-      tokens,
-      coins: tokens.filter((coin) => coin.id === BigInt(46)),
-      coinsZAMM: tokens.filter(
-        (coin) =>
-          coin.id ===
-          BigInt("1334160193485309697971829933264346612480800613613"),
-      ),
-    });
     const { t } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
-    const selectedValue = selectedToken.id?.toString() ?? "eth";
+    const selectedValue = `${selectedToken?.id?.toString() ?? "eth"}-${selectedToken?.poolId?.toString() ?? "default"}`;
 
     // Handle selection change
     const handleSelect = (token: TokenMeta) => {
@@ -254,8 +245,8 @@ export const TokenSelector = memo(
             <div className="bg-background z-10 content-visibility-auto intrinsic-h-[5000px] contain-content">
               {tokens.map((token) => {
                 const isSelected =
-                  (token.id === null && selectedValue === "eth") ||
-                  (token.id !== null && token.id.toString() === selectedValue);
+                  token.id === selectedToken?.id &&
+                  token.poolId === selectedToken?.poolId;
 
                 const formatReserves = (token: TokenMeta) => {
                   if (token.id === null) return "";
