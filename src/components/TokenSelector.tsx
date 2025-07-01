@@ -22,7 +22,6 @@ export const TokenSelector = memo(
   }) => {
     const { t } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
-    const selectedValue = `${selectedToken?.id?.toString() ?? "eth"}-${selectedToken?.poolId?.toString() ?? "default"}`;
 
     // Handle selection change
     const handleSelect = (token: TokenMeta) => {
