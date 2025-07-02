@@ -1,6 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { Badge } from "./ui/badge";
-import { cn } from "@/lib/utils";
 import SpinnerLoader from "./ui/spinner-loader";
 import { ArrowRightIcon, TrendingUpDownIcon } from "lucide-react";
 import {
