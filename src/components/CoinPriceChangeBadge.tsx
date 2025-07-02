@@ -5,7 +5,7 @@ import {
   EightBitHoverCard,
   EightBitHoverCardContent,
   EightBitHoverCardTrigger,
-} from "@/components/ui/8bit-hover-card";
+} from "@/components/ui/8bit/hover-card";
 import { formatEther } from "viem";
 
 const usePriceChange = (coinId: string, interval: "1h" | "1d") => {
