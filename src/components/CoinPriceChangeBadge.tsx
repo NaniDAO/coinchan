@@ -86,7 +86,7 @@ export const CoinPriceChangeBadge = ({ coinId }: { coinId: string }) => {
             >
               <h5 className="text-xs">{label}</h5>
               <span className="text-xs text-right font-medium">
-                {data?.percentChange.toFixed(2)}%
+                {data?.percentChange?.toFixed(2)}%
               </span>
               <div className="flex flex-row items-center text-xs">
                 <span>{" [ "}</span>
