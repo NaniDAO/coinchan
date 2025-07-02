@@ -58,6 +58,7 @@ const fetchCoinData = async (coinId: string) => {
                   items {
                     id
                     swapFee
+                    coin0Id
                     price1
                   }
                 }
@@ -84,13 +85,17 @@ const fetchCoinData = async (coinId: string) => {
         poolId: BigInt(pool.id),
         swapFee: BigInt(pool.swapFee ?? SWAP_FEE),
         marketCapEth,
+        coin0Id: BigInt(pool.coin0Id),
       };
     });
 
-    const combinedMarketCapEth = pools.reduce(
-      (sum: number, pool: any) => sum + pool.marketCapEth,
-      0,
-    );
+    const combinedMarketCapEth = pools.reduce((sum: number, pool: any) => {
+      // @TODO convert coin-to-coin pools to eth
+      if (BigInt(pool.coin0Id) === 0n) {
+        return sum + pool.marketCapEth;
+      }
+      return sum;
+    }, 0);
 
     return {
       id: BigInt(coin.id),
