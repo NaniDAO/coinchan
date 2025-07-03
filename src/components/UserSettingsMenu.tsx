@@ -10,11 +10,13 @@ import {
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { useTheme } from "@/lib/theme";
+import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
 export function UserSettingsMenu() {
   const { toggleTheme } = useTheme();
   const { i18n, t } = useTranslation();
+  const navigate = useNavigate();
   const currentLanguage = i18n.language;
 
   const languages = [
@@ -50,7 +52,11 @@ export function UserSettingsMenu() {
                 className="!px-2 !py-1 bg-background text-foreground !border !border-foreground"
                 onClick={() => changeLanguage(lang.code)}
               >
-                <span className={currentLanguage === lang.code ? "font-bold" : ""}>{lang.label}</span>
+                <span
+                  className={currentLanguage === lang.code ? "font-bold" : ""}
+                >
+                  {lang.label}
+                </span>
               </DropdownMenuItem>
             ))}
           </DropdownMenuSubContent>
@@ -68,6 +74,12 @@ export function UserSettingsMenu() {
           onClick={() => (window.location.href = "/user")}
         >
           {t("common.user")}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className="!px-2 !py-1 bg-background text-foreground !border !border-foreground"
+          onClick={() => navigate({ to: "/about" })}
+        >
+          {t("common.about")} ZAMM
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
