@@ -26,8 +26,8 @@ export const toEthPerZamm = (raw: string) => {
  * Fetches candle data for a given pool and interval from the GraphQL indexer.
  * @param poolId - the pool identifier (as a string representing BigInt)
  * @param interval - one of '1m', '1h', or '1d'
- * @param from - optional start timestamp in milliseconds
- * @param to - optional end timestamp in milliseconds
+ * @param from - optional start timestamp in seconds
+ * @param to - optional end timestamp in seconds
  * @returns array of CandleData sorted by bucketStart ascending
  */
 export async function fetchPoolCandles(
@@ -37,7 +37,7 @@ export async function fetchPoolCandles(
   to?: number,
 ): Promise<CandleData[]> {
   const query = `
-    query PoolCandles($poolId: BigInt!, $interval: String!, $from: Timestamp, $to: Timestamp) {
+    query PoolCandles($poolId: BigInt!, $interval: String!, $from: BigInt, $to: BigInt) {
       candles(
         where: {
           poolId: $poolId,
@@ -63,6 +63,10 @@ export async function fetchPoolCandles(
   }
   `;
 
+  console.log("GraphQL query:", {
+    query,
+    variables: { poolId, interval, from, to },
+  });
   const response = await fetch(INDEXER_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -80,15 +84,17 @@ export async function fetchPoolCandles(
     throw new Error(`GraphQL errors: ${JSON.stringify(errors)}`);
   }
 
+  console.log("GraphQL response:", { data, errors });
+
   return data.candles.items
     .map((c: any) => ({
-      date: Number(c.bucketStart / 1000),
+      date: Number(c.bucketStart),
       open: fp18ToFloat(c.open),
       high: fp18ToFloat(c.high),
       low: fp18ToFloat(c.low),
       close: fp18ToFloat(c.close),
     }))
-    .reverse(); // Reverse to keep ascending order
+    .sort((a: any, b: any) => a.date - b.date);
 }
 
 /**

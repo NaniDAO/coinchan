@@ -16,9 +16,10 @@ import { LoadingLogo } from "@/components/ui/loading-logo";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { fetchPoolCandles, CandleData } from "./lib/indexer";
 import { useChartTheme } from "./hooks/use-chart-theme";
+import { Button } from "./components/ui/button";
 
-const ONE_MONTH = 30 * 24 * 60 * 60 * 1000;
-const RANGE = 7 * 24 * 60 * 60 * 1000;
+const ONE_MONTH = 30 * 24 * 60 * 60;
+const RANGE = 7 * 24 * 60 * 60;
 
 interface CandleChartProps {
   poolId: string;
@@ -37,7 +38,10 @@ const PoolCandleChart: React.FC<CandleChartProps> = ({
   const { data, isLoading, error, isFetchingNextPage, fetchNextPage } =
     useInfiniteQuery({
       queryKey: ["poolCandles", poolId, selectedInterval],
-      initialPageParam: { to: Date.now(), from: Date.now() - ONE_MONTH },
+      initialPageParam: {
+        to: Math.floor(Date.now() / 1000),
+        from: Math.floor(Date.now() / 1000) - ONE_MONTH,
+      },
       queryFn: ({ pageParam }) =>
         fetchPoolCandles(
           poolId,
@@ -62,17 +66,8 @@ const PoolCandleChart: React.FC<CandleChartProps> = ({
   return (
     <div className="w-full">
       <div className="mb-4 flex space-x-2">
-        <button
-          onClick={() => handleIntervalChange("1m")}
-          className={`px-3 py-1 rounded ${
-            selectedInterval === "1m"
-              ? "bg-primary text-background"
-              : "bg-secondary text-foreground"
-          }`}
-        >
-          1m
-        </button>
-        <button
+        <Button
+          variant="outline"
           onClick={() => handleIntervalChange("1h")}
           className={`px-3 py-1 rounded ${
             selectedInterval === "1h"
@@ -81,8 +76,9 @@ const PoolCandleChart: React.FC<CandleChartProps> = ({
           }`}
         >
           1h
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="outline"
           onClick={() => handleIntervalChange("1d")}
           className={`px-3 py-1 rounded ${
             selectedInterval === "1d"
@@ -91,7 +87,7 @@ const PoolCandleChart: React.FC<CandleChartProps> = ({
           }`}
         >
           1d
-        </button>
+        </Button>
       </div>
 
       {isLoading ? (
@@ -193,13 +189,18 @@ const TVCandlestick: React.FC<TVChartProps> = ({
     const cutoff = highs[Math.floor(highs.length * 0.99)] ?? Infinity;
     filtered = filtered.filter((d) => d.high <= cutoff);
 
-    const tvData: TVCandlestickData[] = filtered.reverse().map((d) => ({
-      time: d.date as UTCTimestamp,
-      open: d.open,
-      high: d.high,
-      low: d.low,
-      close: d.close,
-    }));
+    const tvData: TVCandlestickData[] = filtered
+      .map((d) => ({
+        time: d.date as UTCTimestamp,
+        open: d.open,
+        high: d.high,
+        low: d.low,
+        close: d.close,
+      }))
+      .sort((a, b) => a.time - b.time)
+      .filter(
+        (item, index, arr) => index === 0 || item.time !== arr[index - 1].time,
+      );
 
     seriesRef.current.setData(tvData);
 
