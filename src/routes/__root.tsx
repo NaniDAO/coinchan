@@ -25,6 +25,8 @@ export const Route = createRootRoute({
 
     const showLogo = location?.pathname !== "/";
 
+    console.log("path", location.pathname);
+
     return (
       <>
         <div className="bg-background relative">
@@ -33,7 +35,7 @@ export const Route = createRootRoute({
           </div>
 
           <main className="mt-8 max-w-screen flex flex-col items-center justify-center !space-y-0 bg-foreground">
-            <div className="w-screen lg:w-[70vw]">
+            <div className="w-screen">
               <div
                 className={cn(
                   "!p-2 bg-background text-foreground flex flex-row items-center outline-2 outline-offset-2 outline-background",
@@ -67,12 +69,14 @@ export const Route = createRootRoute({
           </main>
 
           {/* Terminal Navigation Bar */}
-          <div className="z-50 border-t-2 border-b-2 border-border fixed bottom-0 left-0 right-0 flex justify-around gap-0 bg-background">
+          <div className="z-50 bg-background border-t-2 border-b-2 border-border fixed bottom-0 left-0 right-0 flex justify-around gap-0">
             <Link
               to="/swap"
               className={cn(
                 "h-12 cursor-pointer border-2 border-transparent transition-all duration-100 font-extrabold font-body no-underline text-foreground flex-1 text-center flex items-center justify-center min-w-fit uppercase tracking-wide text-lg hover:bg-accent hover:text-accent-foreground",
-                location.pathname === "/swap" ? "active" : "",
+                location.pathname.toString() == "/swap"
+                  ? "bg-accent text-accent-foreground"
+                  : "",
               )}
             >
               {t("common.swap")}
@@ -81,19 +85,12 @@ export const Route = createRootRoute({
               to="/explore"
               className={cn(
                 "h-12 cursor-pointer border-2 border-transparent transition-all duration-100 font-extrabold font-body no-underline text-foreground flex-1 text-center flex items-center justify-center min-w-fit uppercase tracking-wide text-lg hover:bg-accent hover:text-accent-foreground",
-                location.pathname === "/explore" ? "active" : "",
+                location.pathname.toString() == "/explore"
+                  ? "bg-accent text-accent-foreground"
+                  : "",
               )}
             >
               {t("common.coins")}
-            </Link>
-            <Link
-              to="/about"
-              className={cn(
-                "h-12 cursor-pointer border-2 border-transparent transition-all duration-100 font-extrabold font-body no-underline text-foreground flex-1 text-center flex items-center justify-center min-w-fit uppercase tracking-wide text-lg hover:bg-accent hover:text-accent-foreground",
-                location.pathname === "/about" ? "active" : "",
-              )}
-            >
-              {t("common.about")}
             </Link>
           </div>
         </div>
