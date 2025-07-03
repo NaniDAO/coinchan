@@ -19,7 +19,6 @@ import { useChartTheme } from "./hooks/use-chart-theme";
 
 const ONE_MONTH = 30 * 24 * 60 * 60 * 1000;
 const RANGE = 7 * 24 * 60 * 60 * 1000;
-const MARGIN = 24 * 60 * 60 * 1000;
 
 interface CandleChartProps {
   poolId: string;
