@@ -14,9 +14,7 @@ const useCoinHolders = (coinId: string) => {
   return useQuery({
     queryKey: ["coinHolders", coinId],
     queryFn: async () => {
-      const response = await fetch(
-        import.meta.env.VITE_INDEXER_URL + `/api/holders?coinId=${coinId}`,
-      );
+      const response = await fetch(import.meta.env.VITE_INDEXER_URL + `/api/holders?coinId=${coinId}`);
 
       if (!response.ok) {
         throw new Error(`Failed to fetch coin holders: ${response.status}`);
@@ -77,13 +75,7 @@ export const CoinHoldersTreemap = ({ data }: { data: Holder[] }) => {
             content={({ payload }) => {
               if (!payload || payload.length === 0) return null;
               const item = payload[0].payload;
-              return (
-                <CoinHolderTag
-                  address={item.address}
-                  balance={item.size}
-                  symbol={item.symbol}
-                />
-              );
+              return <CoinHolderTag address={item.address} balance={item.size} symbol={item.symbol} />;
             }}
           />
         </Treemap>
@@ -172,11 +164,7 @@ const CustomTreemapContent = (props: any) => {
   const { x, y, width, height, address, color } = props;
 
   return (
-    <a
-      href={`https://etherscan.io/address/${address}`}
-      target="_blank"
-      rel="noopener noreferrer"
-    >
+    <a href={`https://etherscan.io/address/${address}`} target="_blank" rel="noopener noreferrer">
       <g>
         <rect
           x={x}
@@ -191,13 +179,7 @@ const CustomTreemapContent = (props: any) => {
           }}
         />
         {width > 60 && height > 20 ? (
-          <text
-            x={x + width / 2}
-            y={y + height / 2}
-            textAnchor="middle"
-            fill="#fff"
-            fontSize={12}
-          >
+          <text x={x + width / 2} y={y + height / 2} textAnchor="middle" fill="#fff" fontSize={12}>
             {/* {name} */}
           </text>
         ) : null}
@@ -215,10 +197,7 @@ const CoinHoldersTable = ({
   data: Holder[];
   symbol: string;
 }) => {
-  const totalSupply = data.reduce(
-    (acc, holder) => acc + BigInt(holder.balance),
-    BigInt(0),
-  );
+  const totalSupply = data.reduce((acc, holder) => acc + BigInt(holder.balance), BigInt(0));
 
   return (
     <Table>
@@ -271,11 +250,7 @@ export const CoinHolderTableRow = ({
         {Number(
           (
             (parseFloat(formatUnits(BigInt(balance), 18)) /
-              parseFloat(
-                totalSupply
-                  ? formatUnits(totalSupply, 18)
-                  : DEFAULT_TOTAL_SUPPLY.toString(),
-              )) *
+              parseFloat(totalSupply ? formatUnits(totalSupply, 18) : DEFAULT_TOTAL_SUPPLY.toString())) *
             100
           ).toString(),
         ).toFixed(4)}

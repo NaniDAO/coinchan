@@ -32,17 +32,19 @@ export const CookbookCoinView = ({ coinId }: { coinId: bigint }) => {
     },
   });
 
-  const [name, symbol, imageUrl, description, tokenURI, poolId, swapFee] =
+  const [name, symbol, imageUrl, description, tokenURI, poolIds, swapFees] =
     useMemo(() => {
-      if (!data) return ["", "", "", "", "", undefined, 100n];
+      if (!data) return ["", "", "", "", "", undefined, [100n]];
+      const pools = data.pools.map((pool) => pool.poolId);
+      const swapFees = data.pools.map((pool) => BigInt(pool.swapFee));
       return [
         data.name!,
         data.symbol!,
         data.imageUrl!,
         data.description!,
         data.tokenURI!,
-        data.poolId!,
-        data.swapFee,
+        pools,
+        swapFees,
       ];
     }, [data]);
 
@@ -65,8 +67,8 @@ export const CookbookCoinView = ({ coinId }: { coinId: bigint }) => {
       imageUrl,
       description,
       tokenURI,
-      poolId,
-      swapFee,
+      poolIds,
+      swapFees,
       marketCapUsd,
     },
     actualData: data,
@@ -97,7 +99,7 @@ export const CookbookCoinView = ({ coinId }: { coinId: bigint }) => {
           symbol={symbol}
           description={description || "No description available"}
           imageUrl={imageUrl}
-          swapFee={Number(swapFee)}
+          swapFee={swapFees}
           isOwner={false}
           type={"COOKBOOK"}
           marketCapEth={data?.marketCapEth ?? 0}

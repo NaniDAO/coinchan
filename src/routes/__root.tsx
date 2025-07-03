@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import UserSettingsMenu from "@/components/UserSettingsMenu";
 import { Button } from "@/components/ui/button";
 import { SwapRibbon } from "@/components/SwapRibbon";
+import { WhatZAMM } from "@/components/WhatZAMM";
 
 export const Route = createRootRoute({
   component: () => {
@@ -96,6 +97,7 @@ export const Route = createRootRoute({
             </Link>
           </div>
         </div>
+        <WhatZAMM />
       </>
     );
   },

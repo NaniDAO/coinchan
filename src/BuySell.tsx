@@ -10,8 +10,6 @@ import {
   useBalance,
 } from "wagmi";
 
-// Add global styles
-import "./buysell-styles.css";
 import { parseEther, parseUnits, formatEther, formatUnits } from "viem";
 import { nowSec } from "./lib/utils";
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
@@ -23,8 +21,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PercentageSlider } from "@/components/ui/percentage-slider";
 import { mainnet } from "viem/chains";
 import { handleWalletError } from "@/lib/errors";
-import { useCoinData } from "./hooks/metadata";
-import { formatImageURL } from "./hooks/metadata/coin-utils";
 import {
   computePoolId,
   computePoolKey,
@@ -34,15 +30,13 @@ import {
   withSlippage,
   ZAMMPoolKey,
 } from "./lib/swap";
-import { CheckTheChainAbi, CheckTheChainAddress } from "./constants/CheckTheChain";
-import { CoinInfoCard } from "./components/CoinInfoCard";
 import { LoadingLogo } from "./components/ui/loading-logo";
 import { useReserves } from "./hooks/use-reserves";
 
 export const BuySell = ({
   tokenId,
-  name: propName,
-  symbol: propSymbol,
+  name,
+  symbol,
 }: {
   tokenId: bigint;
   name: string;
@@ -53,7 +47,6 @@ export const BuySell = ({
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [swapFee, setSwapFee] = useState<bigint>(SWAP_FEE);
-  const [isOwner, setIsOwner] = useState(false);
   const [buyPercentage, setBuyPercentage] = useState(0);
 
   const { address, isConnected } = useAccount();
@@ -62,13 +55,6 @@ export const BuySell = ({
   const { switchChain } = useSwitchChain();
   const chainId = useChainId();
   const publicClient = usePublicClient({ chainId: mainnet.id });
-
-  // Fetch coin data using our new hook
-  const { data: coinData, isLoading } = useCoinData(tokenId);
-
-  const name = coinData ? coinData.name : "Token";
-  const symbol = coinData ? coinData.symbol : "TKN";
-  const description = coinData ? coinData.description : "No description available";
 
   // Fetch the lockup info to determine the custom swap fee and owner
   useEffect(() => {
@@ -87,20 +73,18 @@ export const BuySell = ({
 
         if (!isMounted) return;
 
-        const [lockupOwner, , , , lockupSwapFee] = lockup;
+        const [, , , , , lockupSwapFee] = lockup;
 
-        const customSwapFee = lockupSwapFee && lockupSwapFee > 0n ? lockupSwapFee : SWAP_FEE;
+        const customSwapFee =
+          lockupSwapFee && lockupSwapFee > 0n ? lockupSwapFee : SWAP_FEE;
         setSwapFee(customSwapFee);
-
-        if (address) {
-          const isActualOwner = lockupOwner?.toLowerCase() === address.toLowerCase();
-          setIsOwner(isActualOwner);
-        }
       } catch (err) {
-        console.error(`BuySell: Failed to fetch lockup info for token ${tokenId.toString()}:`, err);
+        console.error(
+          `BuySell: Failed to fetch lockup info for token ${tokenId.toString()}:`,
+          err,
+        );
         if (isMounted) {
           setSwapFee(SWAP_FEE);
-          setIsOwner(false);
         }
       }
     };
@@ -111,17 +95,6 @@ export const BuySell = ({
       isMounted = false;
     };
   }, [publicClient, tokenId, address]);
-
-  const { data: ethPriceData } = useReadContract({
-    address: CheckTheChainAddress,
-    abi: CheckTheChainAbi,
-    functionName: "checkPrice",
-    args: ["WETH"],
-    chainId: mainnet.id,
-    query: {
-      staleTime: 60_000,
-    },
-  });
 
   const { data: balance } = useReadContract({
     address: CoinsAddress,
@@ -154,12 +127,22 @@ export const BuySell = ({
     try {
       if (tab === "buy") {
         const inWei = parseEther(amount || "0");
-        const rawOut = getAmountOut(inWei, reserves.reserve0, reserves.reserve1, swapFee);
+        const rawOut = getAmountOut(
+          inWei,
+          reserves.reserve0,
+          reserves.reserve1,
+          swapFee,
+        );
         const minOut = withSlippage(rawOut);
         return formatUnits(minOut, 18);
       } else {
         const inUnits = parseUnits(amount || "0", 18);
-        const rawOut = getAmountOut(inUnits, reserves.reserve1, reserves.reserve0, swapFee);
+        const rawOut = getAmountOut(
+          inUnits,
+          reserves.reserve1,
+          reserves.reserve0,
+          swapFee,
+        );
         const minOut = withSlippage(rawOut);
         return formatEther(minOut);
       }
@@ -175,7 +158,9 @@ export const BuySell = ({
       if (!ethBalance?.value) return;
 
       const adjustedBalance =
-        percentage === 100 ? (ethBalance.value * 99n) / 100n : (ethBalance.value * BigInt(percentage)) / 100n;
+        percentage === 100
+          ? (ethBalance.value * 99n) / 100n
+          : (ethBalance.value * BigInt(percentage)) / 100n;
 
       const newAmount = formatEther(adjustedBalance);
       setAmount(newAmount);
@@ -192,7 +177,9 @@ export const BuySell = ({
     try {
       const amountWei = parseEther(amount);
       if (ethBalance.value > 0n) {
-        const calculatedPercentage = Number((amountWei * 100n) / ethBalance.value);
+        const calculatedPercentage = Number(
+          (amountWei * 100n) / ethBalance.value,
+        );
         setBuyPercentage(Math.min(100, Math.max(0, calculatedPercentage)));
       }
     } catch {
@@ -211,11 +198,20 @@ export const BuySell = ({
       }
 
       const amountInWei = parseEther(amount || "0");
-      const rawOut = getAmountOut(amountInWei, reserves.reserve0, reserves.reserve1, swapFee);
+      const rawOut = getAmountOut(
+        amountInWei,
+        reserves.reserve0,
+        reserves.reserve1,
+        swapFee,
+      );
       const amountOutMin = withSlippage(rawOut);
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
-      const poolKey = computePoolKey(tokenId, swapFee, CoinsAddress) as ZAMMPoolKey;
+      const poolKey = computePoolKey(
+        tokenId,
+        swapFee,
+        CoinsAddress,
+      ) as ZAMMPoolKey;
       const hash = await writeContractAsync({
         address: ZAMMAddress,
         abi: ZAMMAbi,
@@ -263,11 +259,20 @@ export const BuySell = ({
         }
       }
 
-      const rawOut = getAmountOut(amountInUnits, reserves.reserve1, reserves.reserve0, swapFee);
+      const rawOut = getAmountOut(
+        amountInUnits,
+        reserves.reserve1,
+        reserves.reserve0,
+        swapFee,
+      );
       const amountOutMin = withSlippage(rawOut);
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
-      const poolKey = computePoolKey(tokenId, swapFee, CoinsAddress) as ZAMMPoolKey;
+      const poolKey = computePoolKey(
+        tokenId,
+        swapFee,
+        CoinsAddress,
+      ) as ZAMMPoolKey;
       const hash = await writeContractAsync({
         address: ZAMMAddress,
         abi: ZAMMAbi,
@@ -284,47 +289,14 @@ export const BuySell = ({
     }
   };
 
-  const marketCapUsd = useMemo(() => {
-    if (!coinData || !ethPriceData) return null;
-
-    const priceStr = ethPriceData[1];
-    const ethPriceUsd = parseFloat(priceStr);
-
-    if (isNaN(ethPriceUsd) || ethPriceUsd === 0) return null;
-    if (coinData.marketCapEth === undefined) return null;
-
-    return coinData.marketCapEth * ethPriceUsd;
-  }, [coinData, ethPriceData]);
-
-  const displayName = name || propName;
-  const displaySymbol = symbol || propSymbol;
-
-  const imageUrl = coinData?.imageUrl ? formatImageURL(coinData.imageUrl) : "";
-
   return (
     <Tabs value={tab} onValueChange={(v) => setTab(v as "buy" | "sell")}>
-      <CoinInfoCard
-        coinId={tokenId}
-        name={displayName}
-        symbol={displaySymbol}
-        description={description || "No description available"}
-        imageUrl={imageUrl}
-        swapFee={Number(swapFee)}
-        isOwner={isOwner}
-        type={"ZAMM"}
-        marketCapEth={coinData?.marketCapEth ?? 0}
-        marketCapUsd={marketCapUsd ?? 0}
-        isEthPriceData={ethPriceData !== undefined}
-        tokenURI={coinData?.tokenURI ?? ""}
-        isLoading={isLoading}
-      />
-
       <TabsList>
         <TabsTrigger value="buy" className="transition-all duration-300">
-          Buy {isLoading ? "..." : `${displayName} [${displaySymbol}]`}
+          Buy {name} [{symbol}]
         </TabsTrigger>
         <TabsTrigger value="sell" className="transition-all duration-300">
-          Sell {isLoading ? "..." : `${displayName} [${displaySymbol}]`}
+          Sell {name} [{symbol}]
         </TabsTrigger>
       </TabsList>
 
@@ -338,37 +310,34 @@ export const BuySell = ({
             min="0"
             step="any"
             onChange={(e) => setAmount(e.currentTarget.value)}
-            disabled={isLoading}
-            className={isLoading ? "opacity-70" : ""}
+            disabled={false}
           />
 
           {ethBalance?.value && ethBalance.value > 0n && isConnected ? (
             <div className="mt-2 pt-2 border-t border-primary/20">
-              <PercentageSlider value={buyPercentage} onChange={handleBuyPercentageChange} disabled={isLoading} />
+              <PercentageSlider
+                value={buyPercentage}
+                onChange={handleBuyPercentageChange}
+              />
             </div>
           ) : null}
 
           <span className="text-sm font-medium text-green-800">
-            You will receive ~ {estimated} {isLoading ? "..." : displaySymbol}
+            You will receive ~ {estimated} {symbol}
           </span>
           <Button
             onClick={onBuy}
-            disabled={!isConnected || isPending || !amount || isLoading}
+            disabled={!isConnected || isPending || !amount}
             variant="default"
-            className={`bg-green-600 hover:bg-green-700 text-white font-bold transition-opacity duration-300 ${isLoading ? "opacity-70" : ""}`}
+            className={`bg-green-600 hover:bg-green-700 text-white font-bold transition-opacity duration-300`}
           >
             {isPending ? (
               <span className="flex items-center gap-2">
                 <LoadingLogo size="sm" className="scale-75" />
                 Buying…
               </span>
-            ) : isLoading ? (
-              <span className="flex items-center gap-2">
-                <LoadingLogo size="sm" className="scale-75" />
-                Loading...
-              </span>
             ) : (
-              `Buy ${displaySymbol}`
+              `Buy ${symbol}`
             )}
           </Button>
         </div>
@@ -377,34 +346,35 @@ export const BuySell = ({
       <TabsContent value="sell" className="max-w-2xl">
         <div className="flex flex-col gap-2">
           <span className="text-sm font-medium text-accent dark:text-accent">
-            Using {isLoading ? "..." : displaySymbol}
+            Using {symbol}
           </span>
           <div className="relative">
             <Input
               type="number"
-              placeholder={`Amount ${isLoading ? "..." : displaySymbol}`}
+              placeholder={`Amount ${symbol}`}
               value={amount}
               min="0"
               step="any"
               onChange={(e) => setAmount(e.currentTarget.value)}
-              disabled={isLoading}
-              className={isLoading ? "opacity-70" : ""}
+              disabled={false}
             />
           </div>
           <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium">You will receive ~ {estimated} ETH</span>
-            {!isLoading && balance !== undefined ? (
+            <span className="text-sm font-medium">
+              You will receive ~ {estimated} ETH
+            </span>
+            {balance !== undefined ? (
               <button
                 className="self-end text-sm font-medium text-chart-2 dark:text-chart-2 hover:text-primary transition-colors"
                 onClick={() => setAmount(formatUnits(balance, 18))}
-                disabled={isLoading}
+                disabled={false}
               >
                 MAX ({formatUnits(balance, 18)})
               </button>
             ) : (
               <button
                 className="self-end text-sm font-medium text-chart-2 dark:text-chart-2"
-                disabled={!balance || isLoading}
+                disabled={!balance}
               >
                 MAX
               </button>
@@ -412,28 +382,25 @@ export const BuySell = ({
           </div>
           <Button
             onClick={onSell}
-            disabled={!isConnected || isPending || !amount || isLoading}
+            disabled={!isConnected || isPending || !amount}
             variant="outline"
-            className={`dark:border-accent dark:text-accent dark:hover:bg-accent/10 transition-opacity duration-300 ${isLoading ? "opacity-70" : ""}`}
+            className={`dark:border-accent dark:text-accent dark:hover:bg-accent/10 transition-opacity duration-300 `}
           >
             {isPending ? (
               <span className="flex items-center gap-2">
                 <LoadingLogo size="sm" className="scale-75" />
                 Selling…
               </span>
-            ) : isLoading ? (
-              <span className="flex items-center gap-2">
-                <LoadingLogo size="sm" className="scale-75" />
-                Loading...
-              </span>
             ) : (
-              `Sell ${displaySymbol}`
+              `Sell ${symbol}`
             )}
           </Button>
         </div>
       </TabsContent>
 
-      {errorMessage && <p className="text-destructive text-sm">{errorMessage}</p>}
+      {errorMessage && (
+        <p className="text-destructive text-sm">{errorMessage}</p>
+      )}
       {isSuccess && <p className="text-chart-2 text-sm">Tx confirmed!</p>}
     </Tabs>
   );

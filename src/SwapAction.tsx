@@ -17,7 +17,8 @@ import {
   useWaitForTransactionReceipt,
 } from "wagmi";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
-import { ETH_TOKEN, TokenMeta } from "./lib/coins";
+import { TokenMeta } from "./lib/coins";
+import { useTokenSelection } from "./contexts/TokenSelectionContext";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { mainnet } from "viem/chains";
 import { SlippageSettings } from "./components/SlippageSettings";
@@ -44,8 +45,8 @@ export const SwapAction = () => {
   const [sellAmt, setSellAmt] = useState("");
   const [buyAmt, setBuyAmt] = useState("");
 
-  const [sellToken, setSellToken] = useState<TokenMeta>(ETH_TOKEN);
-  const [buyToken, setBuyToken] = useState<TokenMeta | null>(null);
+  // Use shared token selection context
+  const { sellToken, buyToken, setSellToken, setBuyToken, flipTokens } = useTokenSelection();
 
   /* Limit order specific state */
   const [swapMode, setSwapMode] = useState<"instant" | "limit">("instant");
@@ -73,6 +74,7 @@ export const SwapAction = () => {
   });
   const { data: targetReserves } = useReserves({
     poolId: targetPoolId,
+    source: buyToken?.source,
   });
 
   const [slippageBps, setSlippageBps] = useState<bigint>(SLIPPAGE_BPS);
@@ -534,7 +536,8 @@ export const SwapAction = () => {
     }
   };
 
-  const flipTokens = () => {
+  // Enhanced flip handler that preserves local state
+  const handleFlipTokens = () => {
     if (!buyToken) return;
 
     // Clear any errors when flipping tokens
@@ -544,10 +547,8 @@ export const SwapAction = () => {
     setSellAmt("");
     setBuyAmt("");
 
-    // Enhanced flip with better state handling
-    const tempToken = sellToken;
-    setSellToken(buyToken);
-    setBuyToken(tempToken);
+    // Use context flip function
+    flipTokens();
 
     // Ensure wallet connection is properly tracked during token swaps
     // This helps avoid "lost connection" errors when rapidly changing tokens
@@ -639,7 +640,7 @@ export const SwapAction = () => {
             !!(sellToken.balance && sellToken.balance > 0n) ? "top-[63%]" : "top-[50%]",
           )}
         >
-          <FlipActionButton onClick={flipTokens} className="" />
+          <FlipActionButton onClick={handleFlipTokens} className="" />
         </div>
 
         {/* BUY panel */}

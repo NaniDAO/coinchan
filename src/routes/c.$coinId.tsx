@@ -1,5 +1,6 @@
 import { CookbookCoinView } from "@/components/CookbookCoinView";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { isCookbookCoin } from "@/lib/coin-utils";
 import { TradeView } from "@/TradeView";
 import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
@@ -21,8 +22,7 @@ function RouteComponent() {
     );
   }
 
-  const isCookbook = coinId.toString().length < 49;
-
+  const isCookbook = isCookbookCoin(BigInt(coinId ?? "0"));
   if (isCookbook) {
     return (
       <div>

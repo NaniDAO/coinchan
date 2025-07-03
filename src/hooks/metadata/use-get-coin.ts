@@ -1,6 +1,13 @@
 import { SWAP_FEE } from "@/lib/swap";
 import { useQuery } from "@tanstack/react-query";
 import { formatEther } from "viem";
+import { formatImageURL } from "./coin-utils";
+
+interface PoolData {
+  poolId: bigint;
+  swapFee: bigint;
+  marketCapEth: number;
+}
 
 interface GetCoinData {
   id: bigint;
@@ -11,60 +18,96 @@ interface GetCoinData {
   tokenURI: string;
   decimals: number;
   totalSupply: bigint;
-  poolId: bigint | undefined;
-  swapFee: bigint | undefined;
+  pools: PoolData[];
   marketCapEth: number | undefined;
 }
 
+const fetchMetadata = async (tokenURI: string) => {
+  try {
+    const response = await fetch(formatImageURL(tokenURI));
+    const json = await response.json();
+    return json;
+  } catch (error) {
+    console.error("Error fetching metadata:", error);
+    return null;
+  }
+};
+
 const fetchCoinData = async (coinId: string) => {
   try {
-    const response = await fetch(import.meta.env.VITE_INDEXER_URL + "/graphql", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        query: `
-        query GetCoinData {
-          coin(id: "${coinId.toString()}") {
-            id
-            name
-            symbol
-            description
-            imageUrl
-            tokenURI
-            decimals
-            totalSupply
-            pools {
-              items {
+    const response = await fetch(
+      import.meta.env.VITE_INDEXER_URL + "/graphql",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query: `
+            query GetCoinData {
+              coin(id: "${coinId.toString()}") {
                 id
-                swapFee
-                price1
+                name
+                symbol
+                description
+                imageUrl
+                tokenURI
+                decimals
+                totalSupply
+                pools {
+                  items {
+                    id
+                    swapFee
+                    coin0Id
+                    price1
+                  }
+                }
               }
             }
-          }
-        }
-      `,
-      }),
-    });
+          `,
+        }),
+      },
+    );
 
     const json = await response.json();
     const coin = json.data.coin;
 
+    const metadata = await fetchMetadata(coin.tokenURI);
+
+    const totalSupply = BigInt(coin?.totalSupply ?? 0n);
+
+    const pools = (coin.pools.items || []).map((pool: any) => {
+      const price1 = BigInt(pool?.price1 ?? 0n);
+      const marketCapEth =
+        Number(formatEther(totalSupply)) * Number(formatEther(price1));
+
+      return {
+        poolId: BigInt(pool.id),
+        swapFee: BigInt(pool.swapFee ?? SWAP_FEE),
+        marketCapEth,
+        coin0Id: BigInt(pool.coin0Id),
+      };
+    });
+
+    const combinedMarketCapEth = pools.reduce((sum: number, pool: any) => {
+      // @TODO convert coin-to-coin pools to eth
+      if (BigInt(pool.coin0Id) === 0n) {
+        return sum + pool.marketCapEth;
+      }
+      return sum;
+    }, 0);
+
     return {
       id: BigInt(coin.id),
-      name: coin.name ? coin.name : "",
-      symbol: coin.symbol ? coin.symbol : "",
-      description: coin.description ? coin.description : "",
-      imageUrl: coin.imageUrl ? coin.imageUrl : "",
-      tokenURI: coin.tokenURI ? coin.tokenURI : "",
+      name: coin.name || metadata.name,
+      symbol: coin.symbol || metadata.symbol,
+      description: coin.description || metadata.description,
+      imageUrl: coin.imageUrl || metadata.image,
+      tokenURI: coin.tokenURI ?? "",
       decimals: coin.decimals,
-      totalSupply: BigInt(coin?.totalSupply ?? 0n),
-      poolId: coin.pools.items?.[0]?.id ? BigInt(coin.pools.items?.[0]?.id) : undefined,
-      swapFee: coin.pools.items?.[0]?.swapFee ? BigInt(coin.pools.items?.[0]?.swapFee) : SWAP_FEE,
-      marketCapEth:
-        Number(formatEther(BigInt(coin?.totalSupply ?? 0n))) *
-        Number(formatEther(BigInt(coin?.pools.items?.[0]?.price1 ?? 0n))),
+      totalSupply,
+      pools,
+      marketCapEth: combinedMarketCapEth,
     };
   } catch (error) {
     console.error(error);
