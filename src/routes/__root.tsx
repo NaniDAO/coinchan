@@ -86,15 +86,6 @@ export const Route = createRootRoute({
             >
               {t("common.coins")}
             </Link>
-            <Link
-              to="/about"
-              className={cn(
-                "h-12 cursor-pointer border-2 border-transparent transition-all duration-100 font-extrabold font-body no-underline text-foreground flex-1 text-center flex items-center justify-center min-w-fit uppercase tracking-wide text-lg hover:bg-accent hover:text-accent-foreground",
-                location.pathname === "/about" ? "active" : "",
-              )}
-            >
-              {t("common.about")}
-            </Link>
           </div>
         </div>
         <WhatZAMM />
