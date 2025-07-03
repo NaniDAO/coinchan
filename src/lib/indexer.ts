@@ -26,16 +26,28 @@ export const toEthPerZamm = (raw: string) => {
  * Fetches candle data for a given pool and interval from the GraphQL indexer.
  * @param poolId - the pool identifier (as a string representing BigInt)
  * @param interval - one of '1m', '1h', or '1d'
+ * @param from - optional start timestamp in seconds
+ * @param to - optional end timestamp in seconds
  * @returns array of CandleData sorted by bucketStart ascending
  */
-export async function fetchPoolCandles(poolId: string, interval: "1m" | "1h" | "1d"): Promise<CandleData[]> {
+export async function fetchPoolCandles(
+  poolId: string,
+  interval: "1m" | "1h" | "1d",
+  from?: number,
+  to?: number,
+): Promise<CandleData[]> {
   const query = `
-    query PoolCandles($poolId: BigInt!, $interval: String!) {
+    query PoolCandles($poolId: BigInt!, $interval: String!, $from: BigInt, $to: BigInt) {
       candles(
-        where: { poolId: $poolId, interval: $interval },
+        where: {
+          poolId: $poolId,
+          interval: $interval,
+          bucketStart_gte: $from,
+          bucketStart_lte: $to
+        },
         orderBy: "bucketStart",
-        orderDirection: "asc",
-        first: 1000
+        orderDirection: "desc",
+        limit: 1000
       ) {
       items {
         id
@@ -51,10 +63,14 @@ export async function fetchPoolCandles(poolId: string, interval: "1m" | "1h" | "
   }
   `;
 
+  console.log("GraphQL query:", {
+    query,
+    variables: { poolId, interval, from, to },
+  });
   const response = await fetch(INDEXER_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query, variables: { poolId, interval } }),
+    body: JSON.stringify({ query, variables: { poolId, interval, from, to } }),
   });
 
   if (!response.ok) {
@@ -68,13 +84,17 @@ export async function fetchPoolCandles(poolId: string, interval: "1m" | "1h" | "
     throw new Error(`GraphQL errors: ${JSON.stringify(errors)}`);
   }
 
-  return data.candles.items.map((c: any) => ({
-    date: Number(c.bucketStart / 1000),
-    open: fp18ToFloat(c.open),
-    high: fp18ToFloat(c.high),
-    low: fp18ToFloat(c.low),
-    close: fp18ToFloat(c.close),
-  }));
+  console.log("GraphQL response:", { data, errors });
+
+  return data.candles.items
+    .map((c: any) => ({
+      date: Number(c.bucketStart),
+      open: fp18ToFloat(c.open),
+      high: fp18ToFloat(c.high),
+      low: fp18ToFloat(c.low),
+      close: fp18ToFloat(c.close),
+    }))
+    .sort((a: any, b: any) => a.date - b.date);
 }
 
 /**
