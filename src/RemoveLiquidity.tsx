@@ -116,7 +116,7 @@ export const RemoveLiquidity = () => {
           // Regular pool ID calculation with correct contract address
           poolId = computePoolId(
             coinId,
-            sellToken?.swapFee ?? SWAP_FEE,
+            buyToken?.swapFee ?? SWAP_FEE,
             contractAddress,
           );
         }
@@ -250,7 +250,7 @@ export const RemoveLiquidity = () => {
         // Regular pool ID calculation with correct contract address
         poolId = computePoolId(
           coinId,
-          sellToken?.swapFee ?? SWAP_FEE,
+          buyToken?.swapFee ?? SWAP_FEE,
           contractAddress,
         );
       }
