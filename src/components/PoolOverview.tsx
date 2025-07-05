@@ -8,6 +8,11 @@ import { Button } from "./ui/button";
 import { CandlestickChartIcon, LineChartIcon } from "lucide-react";
 import { useState } from "react";
 
+enum ChartType {
+  LINE = "line",
+  CANDLE = "candle",
+}
+
 export const PoolOverview = ({
   poolId,
   coinId,
@@ -17,7 +22,7 @@ export const PoolOverview = ({
   coinId: string;
   symbol?: string;
 }) => {
-  const [showChart, setShowChart] = useState(true);
+  const [chartType, setChartType] = useState<ChartType>(ChartType.LINE);
 
   return (
     <Tabs defaultValue="chart">
@@ -30,14 +35,26 @@ export const PoolOverview = ({
         <ErrorBoundary
           fallback={<p className="text-destructive">Pool chart unavailable</p>}
         >
-          {showChart === true && (
+          {chartType === ChartType.CANDLE && (
             <PoolCandleChart poolId={poolId} interval={"1d"} />
           )}
-          {showChart === false && (
+          {chartType === ChartType.LINE && (
             <PoolPriceChart poolId={poolId} ticker={symbol} />
           )}
-          <Button onClick={() => setShowChart(!showChart)}>
-            {showChart ? <LineChartIcon /> : <CandlestickChartIcon />}
+          <Button
+            onClick={() =>
+              setChartType(
+                chartType === ChartType.LINE
+                  ? ChartType.CANDLE
+                  : ChartType.LINE,
+              )
+            }
+          >
+            {chartType === ChartType.CANDLE ? (
+              <LineChartIcon />
+            ) : (
+              <CandlestickChartIcon />
+            )}
           </Button>
         </ErrorBoundary>
       </TabsContent>
