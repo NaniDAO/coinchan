@@ -173,7 +173,7 @@ export function IncentiveStreamCard({
         </div>
 
         {/* Pool Reserves & Liquidity */}
-        {stream.lpPool && stream.lpPool.liquidity && (
+        {stream.lpPool && stream.lpPool.liquidity !== undefined && (
           <div className="border-t border-primary/30 pt-4 mt-4">
             <h4 className="font-mono font-bold text-sm uppercase tracking-wider mb-3 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
               [{t("common.pool_info")}]
@@ -185,14 +185,14 @@ export function IncentiveStreamCard({
                   {parseFloat(formatEther(stream.lpPool.liquidity)).toFixed(4)} ETH
                 </p>
               </div>
-              {stream.lpPool.volume24h && stream.lpPool.volume24h > 0n ? (
+              {stream.lpPool.volume24h !== undefined && stream.lpPool.volume24h > 0n && (
                 <div className="bg-background/20 border border-primary/20 rounded p-3">
                   <p className="text-muted-foreground font-mono font-medium text-xs">[{t("common.24h_volume")}]</p>
                   <p className="font-mono font-bold text-primary text-base mt-1">
                     {parseFloat(formatEther(stream.lpPool.volume24h)).toFixed(4)} ETH
                   </p>
                 </div>
-              ) : null}
+              )}
             </div>
           </div>
         )}

@@ -32,10 +32,11 @@ export function ApprovalWorkflow({
   const tokenApprovals = tokens.map((token) => ({
     token,
     isApproved:
-      useOperatorStatus(
-        token.source === "COOKBOOK" ? "cookbook" : "coins",
-        address || "0x0000000000000000000000000000000000000000",
-      ).data || false,
+      useOperatorStatus({
+        address,
+        operator: targetContract,
+        tokenId: token.id || undefined,
+      }).data || false,
   }));
 
   const needsApproval = tokenApprovals.filter(({ isApproved }) => !isApproved);
@@ -134,7 +135,7 @@ export function ApprovalWorkflow({
           {tokenApprovals.map(({ token, isApproved }) => (
             <div key={token.id?.toString() || token.symbol} className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                {token.imageUrl && <img src={token.imageUrl} alt={token.symbol} className="w-5 h-5 rounded-full" />}
+                {token.tokenUri && <img src={token.tokenUri} alt={token.symbol} className="w-5 h-5 rounded-full" />}
                 <span className="font-medium">{token.symbol}</span>
                 <span className="text-xs text-muted-foreground">
                   ({token.source === "COOKBOOK" ? "Cookbook" : "ZAMM"})
