@@ -27,11 +27,7 @@ export const useIsOwner = ({ tokenId, refetchKey }: UseIsOwnerArgs) => {
       })) as readonly [string, number, number, boolean, bigint, bigint];
 
       const [lockupOwner] = lockup;
-      return (
-        !!lockupOwner &&
-        !!address &&
-        lockupOwner.toLowerCase() === address.toLowerCase()
-      );
+      return !!lockupOwner && !!address && lockupOwner.toLowerCase() === address.toLowerCase();
     },
   });
 };

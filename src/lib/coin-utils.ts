@@ -12,10 +12,7 @@ export const isCookbookCoin = (coinId: bigint | null): boolean => {
  * Determines the correct reserve source based on coin type
  * Custom pools (like USDT) use ZAMM, cookbook coins use COOKBOOK
  */
-export const determineReserveSource = (
-  coinId: bigint | null,
-  isCustomPool: boolean
-): CoinSource => {
+export const determineReserveSource = (coinId: bigint | null, isCustomPool: boolean): CoinSource => {
   const isCookbook = isCookbookCoin(coinId);
   return isCookbook && !isCustomPool ? "COOKBOOK" : "ZAMM";
 };
@@ -26,10 +23,10 @@ export const determineReserveSource = (
  */
 export const getHelperContractInfo = (coinId: bigint | null) => {
   const isCookbook = isCookbookCoin(coinId);
-  
+
   return {
     isCookbook,
-    helperType: isCookbook ? 'ZAMMHelperV1' : 'ZAMMHelper',
+    helperType: isCookbook ? "ZAMMHelperV1" : "ZAMMHelper",
   };
 };
 
@@ -39,9 +36,9 @@ export const getHelperContractInfo = (coinId: bigint | null) => {
  */
 export const getTargetZAMMAddress = (coinId: bigint | null) => {
   const isCookbook = isCookbookCoin(coinId);
-  
+
   return {
     isCookbook,
-    contractType: isCookbook ? 'Cookbook' : 'ZAMM',
+    contractType: isCookbook ? "Cookbook" : "ZAMM",
   };
 };

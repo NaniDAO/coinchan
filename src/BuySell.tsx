@@ -75,14 +75,10 @@ export const BuySell = ({
 
         const [, , , , , lockupSwapFee] = lockup;
 
-        const customSwapFee =
-          lockupSwapFee && lockupSwapFee > 0n ? lockupSwapFee : SWAP_FEE;
+        const customSwapFee = lockupSwapFee && lockupSwapFee > 0n ? lockupSwapFee : SWAP_FEE;
         setSwapFee(customSwapFee);
       } catch (err) {
-        console.error(
-          `BuySell: Failed to fetch lockup info for token ${tokenId.toString()}:`,
-          err,
-        );
+        console.error(`BuySell: Failed to fetch lockup info for token ${tokenId.toString()}:`, err);
         if (isMounted) {
           setSwapFee(SWAP_FEE);
         }
@@ -127,22 +123,12 @@ export const BuySell = ({
     try {
       if (tab === "buy") {
         const inWei = parseEther(amount || "0");
-        const rawOut = getAmountOut(
-          inWei,
-          reserves.reserve0,
-          reserves.reserve1,
-          swapFee,
-        );
+        const rawOut = getAmountOut(inWei, reserves.reserve0, reserves.reserve1, swapFee);
         const minOut = withSlippage(rawOut);
         return formatUnits(minOut, 18);
       } else {
         const inUnits = parseUnits(amount || "0", 18);
-        const rawOut = getAmountOut(
-          inUnits,
-          reserves.reserve1,
-          reserves.reserve0,
-          swapFee,
-        );
+        const rawOut = getAmountOut(inUnits, reserves.reserve1, reserves.reserve0, swapFee);
         const minOut = withSlippage(rawOut);
         return formatEther(minOut);
       }
@@ -158,9 +144,7 @@ export const BuySell = ({
       if (!ethBalance?.value) return;
 
       const adjustedBalance =
-        percentage === 100
-          ? (ethBalance.value * 99n) / 100n
-          : (ethBalance.value * BigInt(percentage)) / 100n;
+        percentage === 100 ? (ethBalance.value * 99n) / 100n : (ethBalance.value * BigInt(percentage)) / 100n;
 
       const newAmount = formatEther(adjustedBalance);
       setAmount(newAmount);
@@ -177,9 +161,7 @@ export const BuySell = ({
     try {
       const amountWei = parseEther(amount);
       if (ethBalance.value > 0n) {
-        const calculatedPercentage = Number(
-          (amountWei * 100n) / ethBalance.value,
-        );
+        const calculatedPercentage = Number((amountWei * 100n) / ethBalance.value);
         setBuyPercentage(Math.min(100, Math.max(0, calculatedPercentage)));
       }
     } catch {
@@ -198,20 +180,11 @@ export const BuySell = ({
       }
 
       const amountInWei = parseEther(amount || "0");
-      const rawOut = getAmountOut(
-        amountInWei,
-        reserves.reserve0,
-        reserves.reserve1,
-        swapFee,
-      );
+      const rawOut = getAmountOut(amountInWei, reserves.reserve0, reserves.reserve1, swapFee);
       const amountOutMin = withSlippage(rawOut);
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
-      const poolKey = computePoolKey(
-        tokenId,
-        swapFee,
-        CoinsAddress,
-      ) as ZAMMPoolKey;
+      const poolKey = computePoolKey(tokenId, swapFee, CoinsAddress) as ZAMMPoolKey;
       const hash = await writeContractAsync({
         address: ZAMMAddress,
         abi: ZAMMAbi,
@@ -259,20 +232,11 @@ export const BuySell = ({
         }
       }
 
-      const rawOut = getAmountOut(
-        amountInUnits,
-        reserves.reserve1,
-        reserves.reserve0,
-        swapFee,
-      );
+      const rawOut = getAmountOut(amountInUnits, reserves.reserve1, reserves.reserve0, swapFee);
       const amountOutMin = withSlippage(rawOut);
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
-      const poolKey = computePoolKey(
-        tokenId,
-        swapFee,
-        CoinsAddress,
-      ) as ZAMMPoolKey;
+      const poolKey = computePoolKey(tokenId, swapFee, CoinsAddress) as ZAMMPoolKey;
       const hash = await writeContractAsync({
         address: ZAMMAddress,
         abi: ZAMMAbi,
@@ -315,10 +279,7 @@ export const BuySell = ({
 
           {ethBalance?.value && ethBalance.value > 0n && isConnected ? (
             <div className="mt-2 pt-2 border-t border-primary/20">
-              <PercentageSlider
-                value={buyPercentage}
-                onChange={handleBuyPercentageChange}
-              />
+              <PercentageSlider value={buyPercentage} onChange={handleBuyPercentageChange} />
             </div>
           ) : null}
 
@@ -345,9 +306,7 @@ export const BuySell = ({
 
       <TabsContent value="sell" className="max-w-2xl">
         <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium text-accent dark:text-accent">
-            Using {symbol}
-          </span>
+          <span className="text-sm font-medium text-accent dark:text-accent">Using {symbol}</span>
           <div className="relative">
             <Input
               type="number"
@@ -360,9 +319,7 @@ export const BuySell = ({
             />
           </div>
           <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium">
-              You will receive ~ {estimated} ETH
-            </span>
+            <span className="text-sm font-medium">You will receive ~ {estimated} ETH</span>
             {balance !== undefined ? (
               <button
                 className="self-end text-sm font-medium text-chart-2 dark:text-chart-2 hover:text-primary transition-colors"
@@ -372,10 +329,7 @@ export const BuySell = ({
                 MAX ({formatUnits(balance, 18)})
               </button>
             ) : (
-              <button
-                className="self-end text-sm font-medium text-chart-2 dark:text-chart-2"
-                disabled={!balance}
-              >
+              <button className="self-end text-sm font-medium text-chart-2 dark:text-chart-2" disabled={!balance}>
                 MAX
               </button>
             )}
@@ -398,9 +352,7 @@ export const BuySell = ({
         </div>
       </TabsContent>
 
-      {errorMessage && (
-        <p className="text-destructive text-sm">{errorMessage}</p>
-      )}
+      {errorMessage && <p className="text-destructive text-sm">{errorMessage}</p>}
       {isSuccess && <p className="text-chart-2 text-sm">Tx confirmed!</p>}
     </Tabs>
   );

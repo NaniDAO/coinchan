@@ -32,7 +32,6 @@ import { SlippageSettings } from "./components/SlippageSettings";
 import { SwapPanel } from "./components/SwapPanel";
 import { useReserves } from "./hooks/use-reserves";
 
-
 export const SingleEthLiquidity = () => {
   const { t } = useTranslation();
   /* State */

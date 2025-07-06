@@ -21,8 +21,7 @@ const useShowWhatZAMM = () => {
 };
 
 export const WhatZAMM = () => {
-  const { data: showWhatZAMM, refetch: refetchShowWhatZAMM } =
-    useShowWhatZAMM();
+  const { data: showWhatZAMM, refetch: refetchShowWhatZAMM } = useShowWhatZAMM();
 
   const shouldShow = showWhatZAMM === undefined || showWhatZAMM === true;
 

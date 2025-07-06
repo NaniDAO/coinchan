@@ -35,15 +35,13 @@ const fetchMetadata = async (tokenURI: string) => {
 
 const fetchCoinData = async (coinId: string) => {
   try {
-    const response = await fetch(
-      import.meta.env.VITE_INDEXER_URL + "/graphql",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          query: `
+    const response = await fetch(import.meta.env.VITE_INDEXER_URL + "/graphql", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: `
             query GetCoinData {
               coin(id: "${coinId.toString()}") {
                 id
@@ -65,9 +63,8 @@ const fetchCoinData = async (coinId: string) => {
               }
             }
           `,
-        }),
-      },
-    );
+      }),
+    });
 
     const json = await response.json();
     const coin = json.data.coin;
@@ -78,8 +75,7 @@ const fetchCoinData = async (coinId: string) => {
 
     const pools = (coin.pools.items || []).map((pool: any) => {
       const price1 = BigInt(pool?.price1 ?? 0n);
-      const marketCapEth =
-        Number(formatEther(totalSupply)) * Number(formatEther(price1));
+      const marketCapEth = Number(formatEther(totalSupply)) * Number(formatEther(price1));
 
       return {
         poolId: BigInt(pool.id),

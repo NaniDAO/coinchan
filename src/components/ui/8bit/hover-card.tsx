@@ -27,9 +27,7 @@ export interface BitHoverCardProps
   extends React.ComponentProps<typeof HoverCardPrimitive.Content>,
     VariantProps<typeof hoverCardVariants> {}
 
-function HoverCard({
-  ...props
-}: React.ComponentProps<typeof HoverCardPrimitive.Root>) {
+function HoverCard({ ...props }: React.ComponentProps<typeof HoverCardPrimitive.Root>) {
   return <ShadcnHoverCard {...props} />;
 }
 
@@ -38,21 +36,10 @@ function HoverCardTrigger({
   asChild = true,
   ...props
 }: React.ComponentProps<typeof HoverCardPrimitive.Trigger>) {
-  return (
-    <ShadcnHoverCardTrigger
-      className={cn(className)}
-      asChild={asChild}
-      {...props}
-    />
-  );
+  return <ShadcnHoverCardTrigger className={cn(className)} asChild={asChild} {...props} />;
 }
 
-function HoverCardContent({
-  children,
-  className,
-  font,
-  ...props
-}: BitHoverCardProps) {
+function HoverCardContent({ children, className, font, ...props }: BitHoverCardProps) {
   return (
     <ShadcnHoverCardContent
       className={cn(

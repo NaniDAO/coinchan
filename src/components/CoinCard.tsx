@@ -1,10 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "@tanstack/react-router";
-import {
-  CoinData,
-  formatImageURL,
-  getAlternativeImageUrls,
-} from "@/hooks/metadata/coin-utils";
+import { CoinData, formatImageURL, getAlternativeImageUrls } from "@/hooks/metadata/coin-utils";
 import { ArrowRightIcon, Clock } from "lucide-react";
 import { useCoinSale } from "@/hooks/use-coin-sale";
 import { formatDeadline, cn } from "@/lib/utils";
@@ -57,10 +53,7 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
 
   // Get the overall sale finalization deadline (only show for active sales)
   const saleDeadline = saleData?.deadlineLast;
-  const deadlineInfo =
-    saleDeadline && saleData?.status !== "FINALIZED"
-      ? formatDeadline(Number(saleDeadline))
-      : null;
+  const deadlineInfo = saleDeadline && saleData?.status !== "FINALIZED" ? formatDeadline(Number(saleDeadline)) : null;
   // FIX: Centralized image URL resolution logic for clarity and maintainability.
   // Consolidates multiple potential sources (coin.imageUrl, metadata.image, etc.) into a single prioritized check.
   // Improves render consistency and simplifies fallback image handling.
@@ -107,17 +100,12 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
   // Handle image load error with fallback attempt
   const handleImageError = useCallback(
     (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-      console.error(
-        `Image failed to load for coin ${coin.coinId.toString()}:`,
-        e,
-      );
+      console.error(`Image failed to load for coin ${coin.coinId.toString()}:`, e);
 
       // Try next alternative URL if available
       if (alternativeUrlsRef.current.length > 0) {
         // Find the first URL we haven't tried yet
-        const nextUrl = alternativeUrlsRef.current.find(
-          (url) => !attemptedUrlsRef.current.has(url),
-        );
+        const nextUrl = alternativeUrlsRef.current.find((url) => !attemptedUrlsRef.current.has(url));
 
         if (nextUrl) {
           attemptedUrlsRef.current.add(nextUrl);
@@ -147,8 +135,7 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
           <div
             className={cn(
               "flex items-center gap-1 px-2 py-1 text-xs font-mono font-bold border-2 shadow-[2px_2px_0_var(--border)] bg-card",
-              deadlineInfo.urgency === "expired" &&
-                "border-destructive text-destructive bg-destructive/10",
+              deadlineInfo.urgency === "expired" && "border-destructive text-destructive bg-destructive/10",
               deadlineInfo.urgency === "urgent" &&
                 "border-orange-500 text-orange-700 dark:text-orange-300 bg-orange-500/10 animate-pulse",
               deadlineInfo.urgency === "warning" &&

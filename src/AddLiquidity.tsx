@@ -37,7 +37,6 @@ import { SwapPanel } from "./components/SwapPanel";
 import { useReserves } from "./hooks/use-reserves";
 import { useErc20Allowance } from "./hooks/use-erc20-allowance";
 
-
 export const AddLiquidity = () => {
   const { t } = useTranslation();
   const { isConnected, address } = useAccount();
