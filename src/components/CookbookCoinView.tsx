@@ -16,20 +16,14 @@ import {
 import { PoolOverview } from "./PoolOverview";
 import { computePoolId, SWAP_FEE } from "@/lib/swap";
 import { CookbookAddress } from "@/constants/Cookbook";
+import { usePrice } from "@/hooks/use-price";
 
 export const CookbookCoinView = ({ coinId }: { coinId: bigint }) => {
   const { data, isLoading: isLoadingGetCoin } = useGetCoin({
     coinId: coinId.toString(),
   });
-  const { data: ethPriceData } = useReadContract({
-    address: CheckTheChainAddress,
-    abi: CheckTheChainAbi,
-    functionName: "checkPrice",
-    args: ["WETH"],
-    chainId: mainnet.id,
-    query: {
-      staleTime: 60_000,
-    },
+  const { data: ethPriceData } = usePrice({
+    ticker: "WETH",
   });
 
   const [name, symbol, imageUrl, description, tokenURI, poolIds, swapFees] =

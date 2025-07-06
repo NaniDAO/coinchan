@@ -1,22 +1,27 @@
-import React, { useRef, useLayoutEffect, useEffect, useState } from "react";
+import React, {
+  useRef,
+  useLayoutEffect,
+  useEffect,
+  useState,
+  useMemo,
+} from "react";
 import { useTranslation } from "react-i18next";
 import {
   createChart,
   CrosshairMode,
   UTCTimestamp,
-  CandlestickSeriesOptions,
-  CandlestickData as TVCandlestickData,
-  CandlestickSeries,
   IChartApi,
   ISeriesApi,
   ColorType,
-  PriceFormatBuiltIn,
 } from "lightweight-charts";
 import { LoadingLogo } from "@/components/ui/loading-logo";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { fetchPoolCandles, CandleData } from "./lib/indexer";
 import { useChartTheme } from "./hooks/use-chart-theme";
 import { Button } from "./components/ui/button";
+import { usePrice } from "./hooks/use-price";
+import { cn } from "./lib/utils";
+import { SlashIcon } from "lucide-react";
 
 const ONE_MONTH = 30 * 24 * 60 * 60;
 const RANGE = 7 * 24 * 60 * 60;
@@ -34,6 +39,7 @@ const PoolCandleChart: React.FC<CandleChartProps> = ({
   const [selectedInterval, setSelectedInterval] = useState<"1m" | "1h" | "1d">(
     interval,
   );
+  const [showUSD, setShowUSD] = useState(false);
 
   const { data, isLoading, error, isFetchingNextPage, fetchNextPage } =
     useInfiniteQuery({
@@ -55,6 +61,13 @@ const PoolCandleChart: React.FC<CandleChartProps> = ({
       },
     });
 
+  // ── live ETH‑USD price ────────────────────────────────────────────────────
+  const { data: ethPriceData } = usePrice({ ticker: "WETH" });
+  const ethPrice = useMemo(
+    () => Number(ethPriceData?.[1] ?? 0),
+    [ethPriceData],
+  );
+
   if (error) console.error(error);
 
   const handleIntervalChange = (newInterval: "1m" | "1h" | "1d") => {
@@ -65,29 +78,52 @@ const PoolCandleChart: React.FC<CandleChartProps> = ({
 
   return (
     <div className="w-full">
-      <div className="mb-4 flex space-x-2">
-        <Button
-          variant="outline"
-          onClick={() => handleIntervalChange("1h")}
-          className={`px-3 py-1 rounded ${
-            selectedInterval === "1h"
-              ? "bg-primary text-background"
-              : "bg-secondary text-foreground"
-          }`}
-        >
-          1h
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => handleIntervalChange("1d")}
-          className={`px-3 py-1 rounded ${
-            selectedInterval === "1d"
-              ? "bg-primary text-background"
-              : "bg-secondary text-foreground"
-          }`}
-        >
-          1d
-        </Button>
+      <div className="mb-4 flex justify-between space-x-2">
+        <div>
+          <Button
+            variant="outline"
+            onClick={() => handleIntervalChange("1h")}
+            className={`px-3 py-1 rounded ${
+              selectedInterval === "1h"
+                ? "bg-primary text-background"
+                : "bg-secondary text-foreground"
+            }`}
+          >
+            1h
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => handleIntervalChange("1d")}
+            className={`px-3 py-1 rounded ${
+              selectedInterval === "1d"
+                ? "bg-primary text-background"
+                : "bg-secondary text-foreground"
+            }`}
+          >
+            1d
+          </Button>
+        </div>
+        <div className="flex items-center justify-center">
+          <button
+            onClick={() => setShowUSD(true)}
+            className={cn(
+              "px-1 py-1 rounded",
+              showUSD ? "text-blue-500" : "text-foreground",
+            )}
+          >
+            USD
+          </button>
+          <span className="mx-2">/</span>
+          <button
+            onClick={() => setShowUSD(false)}
+            className={cn(
+              "px-1 py-1 rounded",
+              !showUSD ? "text-blue-500" : "text-foreground",
+            )}
+          >
+            WETH
+          </button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -97,6 +133,8 @@ const PoolCandleChart: React.FC<CandleChartProps> = ({
       ) : allCandles.length > 0 ? (
         <TVCandlestick
           rawData={allCandles}
+          showUSD={showUSD}
+          ethPrice={ethPrice}
           onVisibleTimeRangeChange={() => {
             if (!isFetchingNextPage) {
               fetchNextPage();
@@ -112,14 +150,41 @@ const PoolCandleChart: React.FC<CandleChartProps> = ({
   );
 };
 
+// ── utility: dynamic formatter (DexScreener‑style) ─────────────────────────
+const makePriceFormat = (isUSD: boolean) => {
+  const formatter = (v: number): string => {
+    // super‑tiny values → scientific notation
+    if (v < 0.000001) return v.toExponential(2);
+
+    // tiny (sub‑unit) values retain precision
+    if (v < 1) return v.toFixed(isUSD ? 6 : 8);
+
+    // mid‑range values
+    if (v < 100) return v.toFixed(isUSD ? 4 : 6);
+
+    // large values
+    return v.toFixed(isUSD ? 2 : 5);
+  };
+
+  return {
+    type: "custom" as const,
+    minMove: 0.00000001, // keeps the scale smooth
+    formatter,
+  };
+};
+
 interface TVChartProps {
   rawData: CandleData[];
   onVisibleTimeRangeChange: () => void;
+  showUSD: boolean;
+  ethPrice: number;
 }
 
 const TVCandlestick: React.FC<TVChartProps> = ({
   rawData,
   onVisibleTimeRangeChange,
+  showUSD,
+  ethPrice,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi>();
@@ -144,19 +209,15 @@ const TVCandlestick: React.FC<TVChartProps> = ({
     });
     chartRef.current = chart;
 
-    seriesRef.current = chart.addSeries(CandlestickSeries, {
+    seriesRef.current = chart.addCandlestickSeries({
       upColor: chartTheme.upColor,
       downColor: chartTheme.downColor,
       wickUpColor: chartTheme.wickUpColor,
       wickDownColor: chartTheme.wickDownColor,
       borderVisible: false,
       wickVisible: true,
-      priceFormat: {
-        type: "price",
-        precision: 8,
-        minMove: 0.000001,
-      } as PriceFormatBuiltIn,
-    } as CandlestickSeriesOptions);
+      priceFormat: makePriceFormat(showUSD), // initial format
+    });
 
     const handleResize = () => {
       requestAnimationFrame(() => {
@@ -182,6 +243,7 @@ const TVCandlestick: React.FC<TVChartProps> = ({
   useEffect(() => {
     if (!seriesRef.current) return;
 
+    // ── filter + convert + sort ────────────────────────────────────────────
     let filtered = rawData.filter(
       (d) => !(d.open === d.high && d.high === d.low && d.low === d.close),
     );
@@ -189,26 +251,31 @@ const TVCandlestick: React.FC<TVChartProps> = ({
     const cutoff = highs[Math.floor(highs.length * 0.99)] ?? Infinity;
     filtered = filtered.filter((d) => d.high <= cutoff);
 
-    const tvData: TVCandlestickData[] = filtered
-      .map((d) => ({
-        time: d.date as UTCTimestamp,
-        open: d.open,
-        high: d.high,
-        low: d.low,
-        close: d.close,
-      }))
+    const tvData = filtered
+      .map((d) => {
+        const m = showUSD && ethPrice ? ethPrice : 1;
+        return {
+          time: d.date as UTCTimestamp,
+          open: d.open * m,
+          high: d.high * m,
+          low: d.low * m,
+          close: d.close * m,
+        };
+      })
       .sort((a, b) => a.time - b.time)
       .filter(
         (item, index, arr) => index === 0 || item.time !== arr[index - 1].time,
       );
 
+    // ── update formatter & data ───────────────────────────────────────────
+    seriesRef.current.applyOptions({ priceFormat: makePriceFormat(showUSD) });
     seriesRef.current.setData(tvData);
 
     if (initialLoadRef.current) {
       chartRef.current?.timeScale().fitContent();
       initialLoadRef.current = false;
     }
-  }, [rawData]);
+  }, [rawData, showUSD, ethPrice]);
 
   return (
     <div

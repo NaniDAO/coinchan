@@ -20,6 +20,7 @@ import {
   CheckTheChainAbi,
   CheckTheChainAddress,
 } from "./constants/CheckTheChain";
+import { usePrice } from "./hooks/use-price";
 
 // Fallback component for BuySell when it crashes
 export const BuySellFallback = ({
@@ -81,15 +82,8 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
     refetchKey: isSuccess, // triggers a fresh read once the tx is mined
   });
 
-  const { data: ethPriceData } = useReadContract({
-    address: CheckTheChainAddress,
-    abi: CheckTheChainAbi,
-    functionName: "checkPrice",
-    args: ["WETH"],
-    chainId: mainnet.id,
-    query: {
-      staleTime: 60_000,
-    },
+  const { data: ethPriceData } = usePrice({
+    ticker: "WETH",
   });
 
   const marketCapUsd = useMemo(() => {
