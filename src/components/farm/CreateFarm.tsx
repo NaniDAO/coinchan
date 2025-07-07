@@ -72,9 +72,28 @@ export const CreateFarm = () => {
   }
 
   const poolTokens = useMemo(
-    () => tokens?.filter((token) => token.liquidity && token.liquidity > 0n),
+    () => tokens?.filter((token) => 
+      token.poolId && 
+      token.poolId > 0n && 
+      token.reserve0 && 
+      token.reserve0 > 0n
+    ),
     [tokens],
   );
+
+  // Debug information (can be removed in production)
+  console.log("CreateFarm debug:", {
+    totalTokens: tokens.length,
+    poolTokensCount: poolTokens.length,
+    tokensWithPoolId: tokens.filter(t => t.poolId && t.poolId > 0n).length,
+    tokensWithReserves: tokens.filter(t => t.reserve0 && t.reserve0 > 0n).length,
+    sampleTokens: tokens.slice(0, 3).map(t => ({
+      symbol: t.symbol,
+      poolId: t.poolId?.toString(),
+      reserve0: t.reserve0?.toString(),
+      hasValidPool: !!(t.poolId && t.poolId > 0n && t.reserve0 && t.reserve0 > 0n)
+    }))
+  });
 
   // Filter reward tokens to exclude ETH (not supported by zChef)
   const rewardTokens = useMemo(
@@ -131,12 +150,12 @@ export const CreateFarm = () => {
       newErrors.selectedToken = t("common.please_select_token_with_lp_pool");
     } else {
       const poolId = formData.selectedToken.poolId;
-      const liquidity = formData.selectedToken.liquidity;
+      const reserve0 = formData.selectedToken.reserve0;
 
       if (!poolId || poolId === 0n) {
         newErrors.selectedToken = t("common.selected_token_no_valid_pool");
       }
-      if (!liquidity || liquidity === 0n) {
+      if (!reserve0 || reserve0 === 0n) {
         newErrors.selectedToken = t("common.selected_token_no_liquidity");
       }
     }
@@ -269,7 +288,7 @@ export const CreateFarm = () => {
       if (!formData.selectedToken?.poolId || formData.selectedToken.poolId === 0n) {
         throw new Error("Selected token no longer has a valid liquidity pool");
       }
-      if (!formData.selectedToken?.liquidity || formData.selectedToken.liquidity === 0n) {
+      if (!formData.selectedToken?.reserve0 || formData.selectedToken.reserve0 === 0n) {
         throw new Error("Selected token pool no longer has liquidity");
       }
 
@@ -412,17 +431,26 @@ export const CreateFarm = () => {
             {t("common.select_lp_pool")}
           </label>
           <div className="bg-background/50 border border-primary/20 rounded-lg p-3">
-            <TokenSelector
-              selectedToken={formData.selectedToken || poolTokens[0] || tokens[0]}
-              tokens={poolTokens}
-              onSelect={(token) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  selectedToken: token,
-                }))
-              }
-              isEthBalanceFetching={isEthBalanceFetching}
-            />
+            {poolTokens.length > 0 ? (
+              <TokenSelector
+                selectedToken={formData.selectedToken || poolTokens[0] || tokens[0]}
+                tokens={poolTokens}
+                onSelect={(token) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    selectedToken: token,
+                  }))
+                }
+                isEthBalanceFetching={isEthBalanceFetching}
+              />
+            ) : (
+              <div className="text-center py-4 text-muted-foreground text-sm font-mono">
+                <div className="mb-2">🏊‍♂️ {t("common.no_lp_pools_available")}</div>
+                <div className="text-xs">
+                  {t("common.create_lp_pool_first")}
+                </div>
+              </div>
+            )}
           </div>
           {errors.selectedToken && (
             <div className="bg-red-500/10 border border-red-500/30 rounded p-2">
@@ -442,11 +470,17 @@ export const CreateFarm = () => {
                     )?.toString() || "N/A"}
                   </span>
                 </div>
-                {formData.selectedToken.liquidity ? (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{t("common.pair")}:</span>
+                  <span className="text-primary font-bold">
+                    ETH / {formData.selectedToken.symbol}
+                  </span>
+                </div>
+                {formData.selectedToken.reserve0 && formData.selectedToken.reserve0 > 0n ? (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">{t("common.liquidity_label")}:</span>
                     <span className="text-primary font-bold">
-                      {formatEther(formData.selectedToken.liquidity)} ETH
+                      {formatEther(formData.selectedToken.reserve0)} ETH
                     </span>
                   </div>
                 ) : null}
