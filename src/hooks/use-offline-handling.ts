@@ -12,10 +12,10 @@ interface OfflineState {
   usingContractFallback: boolean;
 }
 
-const INDEXER_URL = process.env.NEXT_PUBLIC_INDEXER_URL;
+const INDEXER_URL = import.meta.env.VITE_INDEXER_URL;
 
 if (!INDEXER_URL) {
-  throw new Error("NEXT_PUBLIC_INDEXER_URL environment variable is required");
+  throw new Error("VITE_INDEXER_URL environment variable is required");
 }
 
 export function useOfflineHandling() {
@@ -65,22 +65,32 @@ export function useOfflineHandling() {
 
         // Transform contract data to match indexer format
         // Note: Contract returns [lpToken, lpId, rewardToken, rewardId, rewardRate, endTime, lastUpdate, totalShares, accRewardPerShare]
-        const [lpToken, lpId, rewardToken, rewardId, rewardRate, endTime, lastUpdate, totalShares, accRewardPerShare] =
-          poolData as readonly [
-            `0x${string}`, // lpToken address
-            bigint, // lpId
-            `0x${string}`, // rewardToken address
-            bigint, // rewardId
-            bigint, // rewardRate
-            bigint, // endTime
-            bigint, // lastUpdate
-            bigint, // totalShares
-            bigint, // accRewardPerShare
-          ];
+        const [
+          lpToken,
+          lpId,
+          rewardToken,
+          rewardId,
+          rewardRate,
+          endTime,
+          lastUpdate,
+          totalShares,
+          accRewardPerShare,
+        ] = poolData as readonly [
+          `0x${string}`, // lpToken address
+          bigint, // lpId
+          `0x${string}`, // rewardToken address
+          bigint, // rewardId
+          bigint, // rewardRate
+          bigint, // endTime
+          bigint, // lastUpdate
+          bigint, // totalShares
+          bigint, // accRewardPerShare
+        ];
 
         return {
           chefId,
-          creator: "0x0000000000000000000000000000000000000000" as `0x${string}`, // Unknown from contract
+          creator:
+            "0x0000000000000000000000000000000000000000" as `0x${string}`, // Unknown from contract
           lpToken,
           lpId,
           rewardToken,
@@ -93,10 +103,14 @@ export function useOfflineHandling() {
           lastUpdate,
           totalShares,
           accRewardPerShare,
-          status: endTime > BigInt(Math.floor(Date.now() / 1000)) ? "ACTIVE" : "ENDED",
+          status:
+            endTime > BigInt(Math.floor(Date.now() / 1000))
+              ? "ACTIVE"
+              : "ENDED",
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          txHash: "0x0000000000000000000000000000000000000000000000000000000000000000" as `0x${string}`,
+          txHash:
+            "0x0000000000000000000000000000000000000000000000000000000000000000" as `0x${string}`,
           blockNumber: 0n,
         };
       } catch (error) {
@@ -111,7 +125,11 @@ export function useOfflineHandling() {
     async (chefId: bigint, userAddress: `0x${string}`) => {
       if (!publicClient) return null;
       if (!chefId || chefId < 0n) return null;
-      if (!userAddress || userAddress === "0x0000000000000000000000000000000000000000") return null;
+      if (
+        !userAddress ||
+        userAddress === "0x0000000000000000000000000000000000000000"
+      )
+        return null;
 
       try {
         // Get user balance (shares) from zChef contract
@@ -242,7 +260,8 @@ export function useOfflineHandling() {
   );
 
   // Check if we should show offline warning
-  const shouldShowOfflineWarning = offlineState.retryCount >= 3 || !offlineState.isOnline;
+  const shouldShowOfflineWarning =
+    offlineState.retryCount >= 3 || !offlineState.isOnline;
 
   return {
     ...offlineState,

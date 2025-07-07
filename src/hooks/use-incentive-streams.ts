@@ -57,18 +57,7 @@ export interface IncentiveUserPosition {
 }
 
 // Validate indexer URL at module load time
-const INDEXER_URL = (() => {
-  const url = process.env.NEXT_PUBLIC_INDEXER_URL;
-  if (!url) {
-    throw new Error("NEXT_PUBLIC_INDEXER_URL environment variable is required");
-  }
-  try {
-    new URL(url); // Validate URL format
-    return url;
-  } catch {
-    throw new Error("NEXT_PUBLIC_INDEXER_URL must be a valid URL");
-  }
-})();
+const INDEXER_URL = import.meta.env.VITE_INDEXER_URL;
 
 export function useIncentiveStreams() {
   return useQuery({
@@ -93,12 +82,17 @@ export function useActiveIncentiveStreams() {
       // Try indexer first
       if (isIndexerAvailable) {
         try {
-          const response = await fetch(`${INDEXER_URL}/incentive-streams?status=ACTIVE`);
+          const response = await fetch(
+            `${INDEXER_URL}/incentive-streams?status=ACTIVE`,
+          );
           if (response.ok) {
             return response.json();
           }
         } catch (error) {
-          console.warn("Indexer request failed, falling back to contract:", error);
+          console.warn(
+            "Indexer request failed, falling back to contract:",
+            error,
+          );
         }
       }
 
@@ -121,7 +115,9 @@ export function useIncentiveStream(chefId: bigint | undefined) {
     queryKey: ["incentiveStream", chefId?.toString()],
     queryFn: async (): Promise<IncentiveStream | null> => {
       if (!chefId) return null;
-      const response = await fetch(`${INDEXER_URL}/incentive-streams/${chefId}`);
+      const response = await fetch(
+        `${INDEXER_URL}/incentive-streams/${chefId}`,
+      );
       if (!response.ok) {
         if (response.status === 404) return null;
         throw new Error("Failed to fetch incentive stream");
@@ -146,12 +142,17 @@ export function useUserIncentivePositions(userAddress?: `0x${string}`) {
       // Try indexer first
       if (isIndexerAvailable) {
         try {
-          const response = await fetch(`${INDEXER_URL}/incentive-positions?user=${targetAddress}`);
+          const response = await fetch(
+            `${INDEXER_URL}/incentive-positions?user=${targetAddress}`,
+          );
           if (response.ok) {
             return response.json();
           }
         } catch (error) {
-          console.warn("Indexer request failed, falling back to contract:", error);
+          console.warn(
+            "Indexer request failed, falling back to contract:",
+            error,
+          );
         }
       }
 
@@ -169,10 +170,14 @@ export function useUserIncentivePositions(userAddress?: `0x${string}`) {
   });
 }
 
-export function useUserIncentivePosition(chefId: bigint | undefined, userAddress?: `0x${string}`) {
+export function useUserIncentivePosition(
+  chefId: bigint | undefined,
+  userAddress?: `0x${string}`,
+) {
   const { address } = useAccount();
   const targetAddress = userAddress || address;
-  const { isIndexerAvailable, getUserPositionFromContract } = useOfflineHandling();
+  const { isIndexerAvailable, getUserPositionFromContract } =
+    useOfflineHandling();
 
   return useQuery({
     queryKey: ["userIncentivePosition", chefId?.toString(), targetAddress],
@@ -182,13 +187,18 @@ export function useUserIncentivePosition(chefId: bigint | undefined, userAddress
       // Try indexer first
       if (isIndexerAvailable) {
         try {
-          const response = await fetch(`${INDEXER_URL}/incentive-positions/${chefId}/${targetAddress}`);
+          const response = await fetch(
+            `${INDEXER_URL}/incentive-positions/${chefId}/${targetAddress}`,
+          );
           if (response.ok) {
             return response.json();
           }
           if (response.status === 404) return null;
         } catch (error) {
-          console.warn("Indexer request failed, falling back to contract:", error);
+          console.warn(
+            "Indexer request failed, falling back to contract:",
+            error,
+          );
         }
       }
 
@@ -208,7 +218,9 @@ export function useIncentiveStreamsByLpPool(lpId: bigint | undefined) {
     queryKey: ["incentiveStreamsByLpPool", lpId?.toString()],
     queryFn: async (): Promise<IncentiveStream[]> => {
       if (!lpId) return [];
-      const response = await fetch(`${INDEXER_URL}/incentive-streams?lpId=${lpId}`);
+      const response = await fetch(
+        `${INDEXER_URL}/incentive-streams?lpId=${lpId}`,
+      );
       if (!response.ok) {
         throw new Error("Failed to fetch incentive streams by LP pool");
       }
@@ -222,9 +234,15 @@ export function useIncentiveStreamsByLpPool(lpId: bigint | undefined) {
 export function useIncentiveStreamAPY(chefId: bigint | undefined) {
   return useQuery({
     queryKey: ["incentiveStreamAPY", chefId?.toString()],
-    queryFn: async (): Promise<{ apy: number; dailyRewards: bigint; totalValueLocked: bigint } | null> => {
+    queryFn: async (): Promise<{
+      apy: number;
+      dailyRewards: bigint;
+      totalValueLocked: bigint;
+    } | null> => {
       if (!chefId) return null;
-      const response = await fetch(`${INDEXER_URL}/incentive-streams/${chefId}/apy`);
+      const response = await fetch(
+        `${INDEXER_URL}/incentive-streams/${chefId}/apy`,
+      );
       if (!response.ok) {
         if (response.status === 404) return null;
         throw new Error("Failed to fetch incentive stream APY");
@@ -236,7 +254,10 @@ export function useIncentiveStreamAPY(chefId: bigint | undefined) {
   });
 }
 
-export function useIncentiveStreamHistory(chefId: bigint | undefined, userAddress?: `0x${string}`) {
+export function useIncentiveStreamHistory(
+  chefId: bigint | undefined,
+  userAddress?: `0x${string}`,
+) {
   const { address } = useAccount();
   const targetAddress = userAddress || address;
 
@@ -265,8 +286,11 @@ export function useIncentiveStreamHistory(chefId: bigint | undefined, userAddres
         txHash: `0x${string}`;
       }>;
     }> => {
-      if (!chefId || !targetAddress) return { deposits: [], withdraws: [], harvests: [] };
-      const response = await fetch(`${INDEXER_URL}/incentive-streams/${chefId}/history?user=${targetAddress}`);
+      if (!chefId || !targetAddress)
+        return { deposits: [], withdraws: [], harvests: [] };
+      const response = await fetch(
+        `${INDEXER_URL}/incentive-streams/${chefId}/history?user=${targetAddress}`,
+      );
       if (!response.ok) {
         throw new Error("Failed to fetch incentive stream history");
       }
