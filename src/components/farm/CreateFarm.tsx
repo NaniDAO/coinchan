@@ -22,6 +22,7 @@ interface FarmFormData {
   rewardAmount: string;
   duration: string;
   customDuration: string;
+  customDurationUnit: "minutes" | "hours" | "days";
   useCustomDuration: boolean;
 }
 
@@ -52,6 +53,7 @@ export const CreateFarm = () => {
     rewardAmount: "",
     duration: "7",
     customDuration: "",
+    customDurationUnit: "days",
     useCustomDuration: false,
   });
 
@@ -81,26 +83,29 @@ export const CreateFarm = () => {
     [tokens],
   );
 
-  // Debug information (can be removed in production)
-  console.log("CreateFarm debug:", {
-    totalTokens: tokens.length,
-    poolTokensCount: poolTokens.length,
-    tokensWithPoolId: tokens.filter(t => t.poolId && t.poolId > 0n).length,
-    tokensWithReserves: tokens.filter(t => t.reserve0 && t.reserve0 > 0n).length,
-    sampleTokens: tokens.slice(0, 3).map(t => ({
-      symbol: t.symbol,
-      poolId: t.poolId?.toString(),
-      reserve0: t.reserve0?.toString(),
-      hasValidPool: !!(t.poolId && t.poolId > 0n && t.reserve0 && t.reserve0 > 0n)
-    }))
-  });
-
   // Filter reward tokens to exclude ETH (not supported by zChef)
   const rewardTokens = useMemo(
     () =>
       tokens?.filter((token) => token.symbol !== "ETH"),
     [tokens],
   );
+
+  // Helper function to convert custom duration to days
+  const convertCustomDurationToDays = (duration: string, unit: "minutes" | "hours" | "days"): number => {
+    const value = parseFloat(duration);
+    if (isNaN(value) || value <= 0) return 0;
+    
+    switch (unit) {
+      case "minutes":
+        return value / (24 * 60); // Convert minutes to days
+      case "hours":
+        return value / 24; // Convert hours to days
+      case "days":
+        return value; // Already in days
+      default:
+        return value;
+    }
+  };
 
   const maxRewardAmount = formData.rewardToken.balance && formData.rewardToken.balance > 0n
     ? formData.rewardToken.decimals !== undefined &&
@@ -197,13 +202,22 @@ export const CreateFarm = () => {
     if (!durationValue) {
       newErrors.duration = formData.useCustomDuration ? t("common.please_enter_custom_duration") : t("common.please_select_duration");
     } else {
-      const durationDays = parseInt(durationValue);
+      let durationDays: number;
+      if (formData.useCustomDuration) {
+        durationDays = convertCustomDurationToDays(durationValue, formData.customDurationUnit);
+      } else {
+        durationDays = parseInt(durationValue);
+      }
+      
       if (isNaN(durationDays)) {
         newErrors.duration = t("common.duration_must_be_valid_number");
       } else if (durationDays > 730) {
         newErrors.duration = t("common.duration_cannot_exceed_730");
       } else if (durationDays <= 0) {
         newErrors.duration = t("common.duration_must_be_positive");
+      } else if (formData.useCustomDuration && durationDays < (1 / (24 * 60))) {
+        // Minimum 1 minute
+        newErrors.duration = t("common.duration_minimum_one_minute");
       } else {
         // Check rate overflow (zChef requirement)
         if (formData.rewardAmount && durationDays > 0) {
@@ -213,7 +227,7 @@ export const CreateFarm = () => {
               formData.rewardAmount,
               decimals,
             );
-            const durationSeconds = BigInt(durationDays * 24 * 60 * 60);
+            const durationSeconds = BigInt(Math.floor(durationDays * 24 * 60 * 60));
             const ACC_PRECISION = BigInt(1e12);
             const rate = (rewardAmountBigInt * ACC_PRECISION) / durationSeconds;
             if (rate > 2n ** 128n - 1n) {
@@ -294,8 +308,13 @@ export const CreateFarm = () => {
 
       // Validate duration and convert to seconds (uint64 safe)
       const durationValue = formData.useCustomDuration ? formData.customDuration : formData.duration;
-      const durationDays = parseInt(durationValue);
-      const durationInSeconds = durationDays * 24 * 60 * 60;
+      let durationDays: number;
+      if (formData.useCustomDuration) {
+        durationDays = convertCustomDurationToDays(durationValue, formData.customDurationUnit);
+      } else {
+        durationDays = parseInt(durationValue);
+      }
+      const durationInSeconds = Math.floor(durationDays * 24 * 60 * 60);
       if (durationInSeconds > 2 ** 63 - 1) { // uint64 max (signed safe)
         throw new Error("Duration exceeds maximum allowed value");
       }
@@ -374,6 +393,7 @@ export const CreateFarm = () => {
             rewardAmount: "",
             duration: "7",
             customDuration: "",
+            customDurationUnit: "days",
             useCustomDuration: false,
           });
           setTxStatus("idle");
@@ -462,13 +482,13 @@ export const CreateFarm = () => {
           {formData.selectedToken && (
             <div className="bg-primary/10 border border-primary/20 rounded p-3">
               <div className="text-xs font-mono space-y-1">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">{t("common.pool_id")}:</span>
-                  <span className="text-primary font-bold">
+                <div className="space-y-1">
+                  <span className="text-muted-foreground text-xs">{t("common.pool_id")}:</span>
+                  <div className="text-xs text-muted-foreground/70 font-mono break-all">
                     {(
                       formData.selectedToken.poolId || formData.selectedToken.id
                     )?.toString() || "N/A"}
-                  </span>
+                  </div>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">{t("common.pair")}:</span>
@@ -555,7 +575,12 @@ export const CreateFarm = () => {
             </div>
             {(() => {
               const durationValue = formData.useCustomDuration ? formData.customDuration : formData.duration;
-              const durationDays = parseInt(durationValue);
+              let durationDays: number;
+              if (formData.useCustomDuration) {
+                durationDays = convertCustomDurationToDays(durationValue, formData.customDurationUnit);
+              } else {
+                durationDays = parseInt(durationValue);
+              }
               return formData.rewardAmount &&
                 durationValue &&
                 parseFloat(formData.rewardAmount) > 0 &&
@@ -588,7 +613,14 @@ export const CreateFarm = () => {
                       </div>
                       <div className="flex justify-between items-center py-2 bg-primary/5 px-3 rounded">
                         <span className="font-mono text-sm font-bold text-primary">
-                          {t("common.total_days", { days: durationDays })}:
+                          {formData.useCustomDuration ? (
+                            `${t("common.total_custom", { 
+                              amount: formData.customDuration, 
+                              unit: t(`common.${formData.customDurationUnit}`) 
+                            })}:`
+                          ) : (
+                            `${t("common.total_days", { days: durationDays })}:`
+                          )}
                         </span>
                         <span className="font-mono text-sm font-bold text-primary">
                           {parseFloat(formData.rewardAmount).toFixed(6)}{" "}
@@ -648,12 +680,23 @@ export const CreateFarm = () => {
                   name="customDuration"
                   value={formData.customDuration}
                   onChange={handleInputChange}
-                  placeholder={t("common.enter_days")}
+                  placeholder={t("common.enter_amount")}
                   className="flex-1 font-mono bg-background/50 border-primary/20 focus:border-primary/50"
                   min="1"
-                  max="730"
+                  step="0.1"
                 />
-                <span className="text-sm font-mono text-muted-foreground">{t("common.days_label")}</span>
+                <select
+                  value={formData.customDurationUnit}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    customDurationUnit: e.target.value as "minutes" | "hours" | "days" 
+                  }))}
+                  className="px-3 py-2 border-2 border-primary/20 bg-background/50 text-foreground font-mono text-sm focus:outline-none focus:border-primary/50 rounded-lg backdrop-blur-sm min-w-[80px]"
+                >
+                  <option value="minutes">{t("common.minutes")}</option>
+                  <option value="hours">{t("common.hours")}</option>
+                  <option value="days">{t("common.days")}</option>
+                </select>
               </div>
             )}
           </div>
