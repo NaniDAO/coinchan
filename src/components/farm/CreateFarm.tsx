@@ -438,7 +438,7 @@ export const CreateFarm = () => {
 
   return (
     <div className="max-w-lg mx-auto space-y-6 sm:space-y-8 px-3 sm:px-0">
-      <div className="bg-gradient-to-br from-background/80 to-background/60 border border-primary/30 rounded-xl p-6 backdrop-blur-sm shadow-xl">
+      <div className="bg-gradient-to-br from-background/80 to-background/60 border border-primary/30 rounded-xl p-6 sm:p-8 backdrop-blur-sm shadow-xl">
         <div className="text-center mb-6">
           <h3 className="font-mono font-bold text-lg uppercase tracking-wider bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
             [{t("common.create_new_farm")}]
@@ -446,7 +446,7 @@ export const CreateFarm = () => {
           <div className="h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent mt-4"></div>
         </div>
         {/* LP Token Selection */}
-        <div className="space-y-3 mb-8">
+        <div className="space-y-4 mb-10">
           <label className="block text-sm font-mono font-bold uppercase tracking-wider text-primary">
             {t("common.select_lp_pool")}
           </label>
@@ -510,7 +510,7 @@ export const CreateFarm = () => {
         </div>
 
         {/* Reward Token Selection */}
-        <div className="space-y-3 mb-8">
+        <div className="space-y-4 mb-10">
           <label className="block text-sm font-mono font-bold uppercase tracking-wider text-primary">
             {t("common.reward_token")}
           </label>
@@ -532,7 +532,7 @@ export const CreateFarm = () => {
         </div>
 
         {/* Reward Amount */}
-        <div className="space-y-3 mb-8">
+        <div className="space-y-4 mb-10">
           <label className="block text-sm font-mono font-bold uppercase tracking-wider text-primary">
             {t("common.reward_amount")}
           </label>
@@ -642,12 +642,12 @@ export const CreateFarm = () => {
         </div>
 
         {/* Duration Selection */}
-        <div className="space-y-3 mb-8">
+        <div className="space-y-4 mb-10">
           <label className="block text-sm font-mono font-bold uppercase tracking-wider text-primary">
             {t("common.duration")}
           </label>
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 p-3 border border-primary/30 rounded-lg bg-background/30 hover:bg-background/50 transition-colors cursor-pointer" onClick={() => setFormData(prev => ({ ...prev, useCustomDuration: false }))}>
+          <div className="space-y-5">
+            <div className="flex items-center gap-3 p-4 border border-primary/30 rounded-lg bg-background/30 hover:bg-background/50 transition-colors cursor-pointer" onClick={() => setFormData(prev => ({ ...prev, useCustomDuration: false }))}>
               <div className={`w-4 h-4 rounded-full border-2 border-primary flex items-center justify-center ${!formData.useCustomDuration ? 'bg-primary' : 'bg-transparent'}`}>
                 {!formData.useCustomDuration && <div className="w-2 h-2 rounded-full bg-primary-foreground"></div>}
               </div>
@@ -658,7 +658,7 @@ export const CreateFarm = () => {
                 name="duration"
                 value={formData.duration}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 border-2 border-primary/20 bg-background/50 text-foreground font-mono text-sm focus:outline-none focus:border-primary/50 rounded-lg backdrop-blur-sm"
+                className="w-full px-4 py-3 border-2 border-primary/20 bg-background/50 text-foreground font-mono text-sm focus:outline-none focus:border-primary/50 rounded-lg backdrop-blur-sm min-h-[44px] mt-3"
               >
                 {DURATION_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -667,21 +667,21 @@ export const CreateFarm = () => {
                 ))}
               </select>
             )}
-            <div className="flex items-center gap-3 p-3 border border-primary/30 rounded-lg bg-background/30 hover:bg-background/50 transition-colors cursor-pointer" onClick={() => setFormData(prev => ({ ...prev, useCustomDuration: true }))}>
+            <div className="flex items-center gap-3 p-4 border border-primary/30 rounded-lg bg-background/30 hover:bg-background/50 transition-colors cursor-pointer" onClick={() => setFormData(prev => ({ ...prev, useCustomDuration: true }))}>
               <div className={`w-4 h-4 rounded-full border-2 border-primary flex items-center justify-center ${formData.useCustomDuration ? 'bg-primary' : 'bg-transparent'}`}>
                 {formData.useCustomDuration && <div className="w-2 h-2 rounded-full bg-primary-foreground"></div>}
               </div>
               <label htmlFor="custom-duration" className="text-sm font-mono font-bold cursor-pointer text-primary">{t("common.custom_duration")}</label>
             </div>
             {formData.useCustomDuration && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3 mt-3">
                 <Input
                   type="number"
                   name="customDuration"
                   value={formData.customDuration}
                   onChange={handleInputChange}
                   placeholder={t("common.enter_amount")}
-                  className="flex-1 font-mono bg-background/50 border-primary/20 focus:border-primary/50"
+                  className="flex-1 font-mono bg-background/50 border-primary/20 focus:border-primary/50 min-h-[44px]"
                   min="1"
                   step="0.1"
                 />
@@ -691,7 +691,7 @@ export const CreateFarm = () => {
                     ...prev, 
                     customDurationUnit: e.target.value as "minutes" | "hours" | "days" 
                   }))}
-                  className="px-3 py-2 border-2 border-primary/20 bg-background/50 text-foreground font-mono text-sm focus:outline-none focus:border-primary/50 rounded-lg backdrop-blur-sm min-w-[80px]"
+                  className="px-4 py-3 border-2 border-primary/20 bg-background/50 text-foreground font-mono text-sm focus:outline-none focus:border-primary/50 rounded-lg backdrop-blur-sm min-w-[90px] min-h-[44px]"
                 >
                   <option value="minutes">{t("common.minutes")}</option>
                   <option value="hours">{t("common.hours")}</option>

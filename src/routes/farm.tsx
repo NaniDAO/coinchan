@@ -25,7 +25,7 @@ function RouteComponent() {
           </h2>
           <div className="absolute -inset-1 bg-gradient-to-r from-primary/50 via-transparent to-primary/50 opacity-50 blur-sm -z-10"></div>
         </div>
-        <p className="text-sm text-muted-foreground mt-3">
+        <p className="text-sm font-mono text-muted-foreground mt-3 tracking-wide">
           {t("common.farm_description")}
         </p>
         <div className="flex justify-center mt-4">
@@ -53,12 +53,12 @@ function RouteComponent() {
       {activeTab === "create" ? (
         <CreateFarm />
       ) : (
-        <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
+        <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8 mt-8">
           <Tabs
             value={activeTab}
             onValueChange={(value) => setActiveTab(value as TabViews)}
           >
-            <TabsList className="grid w-full grid-cols-2 bg-gradient-to-r from-background/80 via-background to-background/80 border-2 border-primary/60 p-1 backdrop-blur-sm shadow-xl">
+            <TabsList className="grid w-full grid-cols-2 bg-gradient-to-r from-background/80 via-background to-background/80 border-2 border-primary/60 p-1 backdrop-blur-sm shadow-xl mb-6">
               <TabsTrigger
                 value="browse"
                 className="font-mono text-sm sm:text-base font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg hover:bg-primary/20 transition-all duration-200 tracking-wide px-4 py-2"
