@@ -4,7 +4,7 @@ import { Button } from "../ui/button";
 import { encodePacked, formatEther, keccak256, parseUnits } from "viem";
 import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
-import { ChangeEvent, useMemo, useState } from "react";
+import { ChangeEvent, useMemo, useState, useEffect } from "react";
 import { ETH_TOKEN, TokenMeta } from "@/lib/coins";
 import { useAccount, usePublicClient, useWriteContract } from "wagmi";
 import { useAllCoins } from "@/hooks/metadata/use-all-coins";
@@ -48,6 +48,8 @@ export const CreateFarm = () => {
 
   const { tokens, isEthBalanceFetching } = useAllCoins();
 
+  // Set initial form data after poolTokens and rewardTokens are calculated
+  const [formDataInitialized, setFormDataInitialized] = useState(false);
   const [formData, setFormData] = useState<FarmFormData>({
     selectedToken: null,
     rewardToken:
@@ -98,6 +100,18 @@ export const CreateFarm = () => {
       tokens?.filter((token) => token.symbol !== "ETH"),
     [tokens],
   );
+
+  // Auto-select first pool and reward token when available
+  useEffect(() => {
+    if (!formDataInitialized && poolTokens && poolTokens.length > 0 && rewardTokens && rewardTokens.length > 0) {
+      setFormData(prev => ({
+        ...prev,
+        selectedToken: poolTokens[0],
+        rewardToken: rewardTokens[0]
+      }));
+      setFormDataInitialized(true);
+    }
+  }, [poolTokens, rewardTokens, formDataInitialized]);
 
   // Helper function to convert custom duration to days
   const convertCustomDurationToDays = (duration: string, unit: "minutes" | "hours" | "days"): number => {
@@ -412,9 +426,9 @@ export const CreateFarm = () => {
         // Reset form on success after delay
         setTimeout(() => {
           setFormData({
-            selectedToken: null,
+            selectedToken: poolTokens?.[0] || null,
             rewardToken:
-              tokens.find((t) => t.symbol !== "ETH") ||
+              rewardTokens?.[0] || tokens.find((t) => t.symbol !== "ETH") ||
               ETH_TOKEN,
             rewardAmount: "",
             duration: "7",
@@ -479,7 +493,7 @@ export const CreateFarm = () => {
           <div className="bg-background/50 border border-primary/20 rounded-lg p-3">
             {poolTokens.length > 0 ? (
               <TokenSelector
-                selectedToken={formData.selectedToken || poolTokens[0] || tokens[0]}
+                selectedToken={formData.selectedToken || poolTokens[0]}
                 tokens={poolTokens}
                 onSelect={(token) =>
                   setFormData((prev) => ({

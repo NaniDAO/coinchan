@@ -1,7 +1,9 @@
 import {
-  useActiveIncentiveStreams,
+  useIncentiveStreams,
   useUserIncentivePositions,
 } from "@/hooks/use-incentive-streams";
+import { formatBalance } from "@/lib/utils";
+import { formatEther } from "viem";
 import { useTranslation } from "react-i18next";
 import { FarmGridSkeleton } from "../FarmLoadingStates";
 import { ErrorBoundary } from "../ErrorBoundary";
@@ -20,7 +22,7 @@ export const ManageFarms = () => {
   const { address } = useAccount();
 
   const { tokens } = useAllCoins();
-  const { data: activeStreams } = useActiveIncentiveStreams();
+  const { data: allStreams } = useIncentiveStreams();
   const { data: userPositions, isLoading: isLoadingPositions } =
     useUserIncentivePositions();
   const { harvest } = useZChefActions();
@@ -40,23 +42,46 @@ export const ManageFarms = () => {
 
   return (
     <div className="space-y-5 sm:space-y-6">
-      <div className="bg-gradient-to-r from-background/50 to-background/80 border border-primary/30 rounded-lg p-4 backdrop-blur-sm">
+      <div className="bg-gradient-to-r from-background/50 to-background/80 border border-primary/30 rounded-lg p-4 backdrop-blur-sm mb-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
-            <h3 className="font-mono font-bold text-base sm:text-lg uppercase tracking-wider bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+            <h3 className="font-mono font-bold text-sm sm:text-base uppercase tracking-wider bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
               {t("common.your_positions")}
             </h3>
-            <div className="bg-primary/20 border border-primary/40 px-3 py-1 rounded">
+            <div className="bg-primary/20 border border-primary/40 px-3 py-1 rounded animate-pulse">
               <span className="text-primary font-mono text-sm font-bold">
                 ({userPositions?.length || 0})
               </span>
             </div>
           </div>
-          {address && (
-            <div className="hidden sm:block text-xs text-muted-foreground font-mono">
-              {address.slice(0, 6)}...{address.slice(-4)}
-            </div>
-          )}
+          <div className="flex items-center gap-4">
+            {userPositions && userPositions.length > 0 && (
+              <div className="hidden sm:flex items-center gap-4">
+                <div className="text-xs font-mono">
+                  <span className="text-muted-foreground">{t("common.total_rewards")}:</span>
+                  <span className="text-primary font-bold ml-1">
+                    {formatBalance(
+                      formatEther(
+                        userPositions.reduce((acc, p) => acc + (p.pendingRewards || 0n), 0n)
+                      ),
+                      ""
+                    )}
+                  </span>
+                </div>
+                <div className="text-xs font-mono">
+                  <span className="text-muted-foreground">{t("common.active_farms")}:</span>
+                  <span className="text-primary font-bold ml-1">
+                    {userPositions.filter(p => p.shares > 0n).length}
+                  </span>
+                </div>
+              </div>
+            )}
+            {address && (
+              <div className="text-xs text-muted-foreground font-mono border-l border-primary/20 pl-4">
+                {address.slice(0, 6)}...{address.slice(-4)}
+              </div>
+            )}
+          </div>
         </div>
         <div className="h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent"></div>
       </div>
@@ -80,9 +105,9 @@ export const ManageFarms = () => {
       ) : isLoadingPositions ? (
         <FarmGridSkeleton count={3} />
       ) : userPositions && userPositions.length > 0 ? (
-        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+        <div className="grid gap-4 sm:gap-5 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {userPositions.map((position) => {
-            const stream = activeStreams?.find(
+            const stream = allStreams?.find(
               (s) => s.chefId === position.chefId,
             );
             const lpToken = tokens.find((t) => t.poolId === stream?.lpId);
@@ -92,11 +117,31 @@ export const ManageFarms = () => {
             return (
               <div key={position.chefId.toString()} className="group">
                 <ErrorBoundary fallback={<div>Error</div>}>
-                  <div className="bg-gradient-to-br from-background/80 to-background/60 border border-primary/30 rounded-lg p-1 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300">
+                  <div className="bg-gradient-to-br from-background/80 to-background/60 border-2 border-primary/40 rounded-lg p-1 backdrop-blur-sm shadow-lg hover:shadow-2xl hover:border-primary transition-all duration-300 relative overflow-hidden group">
+                    {/* Position indicator */}
+                    <div className="absolute top-2 right-2 z-20 px-2 py-1 bg-primary/20 border border-primary/40 rounded text-xs font-mono font-bold text-primary">
+                      <span className="animate-pulse">🌾</span> STAKED
+                    </div>
                     <IncentiveStreamCard
                       stream={stream}
                     />
                     <div className="p-4 border-t border-primary/20 bg-background/50">
+                      {/* Pending Rewards Display */}
+                      {position.pendingRewards > 0n && (
+                        <div className="mb-3 p-3 bg-gradient-to-r from-green-500/10 to-green-500/5 border border-green-500/30 rounded-lg">
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs font-mono text-green-600 dark:text-green-400">
+                              {t("common.pending_rewards")}:
+                            </span>
+                            <span className="font-mono font-bold text-green-600 dark:text-green-400">
+                              {formatBalance(
+                                formatEther(position.pendingRewards),
+                                stream.rewardCoin?.symbol
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      )}
                       <div className="flex flex-col gap-3">
                         {lpToken && (
                           <FarmStakeDialog

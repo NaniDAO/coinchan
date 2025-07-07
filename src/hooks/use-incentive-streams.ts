@@ -153,7 +153,7 @@ export function useUserIncentivePositions(userAddress?: `0x${string}`) {
       const response = await fetch(
         `${INDEXER_URL}/incentive-positions?user=${targetAddress}`,
       );
-      if (response.ok) {
+      if (!response.ok) {
         throw new Error("Failed to fetch incentive positions");
       }
       return response.json();

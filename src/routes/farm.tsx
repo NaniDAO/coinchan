@@ -41,7 +41,7 @@ function RouteComponent() {
                 setActiveTab("create");
               }
             }}
-            className="mt-4"
+            className="mt-4 !text-foreground dark:!text-foreground"
           >
             {activeTab === "create"
               ? t("common.view_farms")
@@ -61,13 +61,13 @@ function RouteComponent() {
             <TabsList className="grid w-full grid-cols-2 bg-gradient-to-r from-background/80 via-background to-background/80 border-2 border-primary/60 p-1 backdrop-blur-sm shadow-xl mb-6">
               <TabsTrigger
                 value="browse"
-                className="font-mono text-sm sm:text-base font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg hover:bg-primary/20 transition-all duration-200 tracking-wide px-4 py-2 text-foreground dark:text-foreground hover:text-foreground dark:hover:text-foreground"
+                className="font-mono text-sm sm:text-base font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:!text-primary-foreground data-[state=active]:shadow-lg hover:bg-primary/20 transition-all duration-200 tracking-wide px-4 py-2 !text-foreground dark:!text-foreground hover:!text-foreground dark:hover:!text-foreground"
               >
                 [{t("common.browse_farms")}]
               </TabsTrigger>
               <TabsTrigger
                 value="manage"
-                className="font-mono text-sm sm:text-base font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg hover:bg-primary/20 transition-all duration-200 tracking-wide px-4 py-2 text-foreground dark:text-foreground hover:text-foreground dark:hover:text-foreground"
+                className="font-mono text-sm sm:text-base font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:!text-primary-foreground data-[state=active]:shadow-lg hover:bg-primary/20 transition-all duration-200 tracking-wide px-4 py-2 !text-foreground dark:!text-foreground hover:!text-foreground dark:hover:!text-foreground"
               >
                 [{t("common.my_farms")}]
               </TabsTrigger>
