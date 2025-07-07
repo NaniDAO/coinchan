@@ -2,11 +2,20 @@ import { usePublicClient, useAccount } from "wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
 import { mainnet } from "viem/chains";
-import { ETH_TOKEN, USDT_TOKEN, TokenMeta, USDT_POOL_ID, USDT_ADDRESS } from "@/lib/coins";
+import {
+  ETH_TOKEN,
+  USDT_TOKEN,
+  TokenMeta,
+  USDT_POOL_ID,
+  USDT_ADDRESS,
+} from "@/lib/coins";
 import { isCookbookCoin } from "@/lib/coin-utils";
 import { CoinchanAbi, CoinchanAddress } from "@/constants/Coinchan";
 import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
-import { CoinsMetadataHelperAbi, CoinsMetadataHelperAddress } from "@/constants/CoinsMetadataHelper";
+import {
+  CoinsMetadataHelperAbi,
+  CoinsMetadataHelperAddress,
+} from "@/constants/CoinsMetadataHelper";
 import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
 import { SWAP_FEE } from "@/lib/swap";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
@@ -87,6 +96,7 @@ async function fetchOtherCoins(
         symbol: c.symbol === null ? "N/A" : c.symbol,
         name: c.name,
         tokenUri: c.tokenURI,
+        imageUrl: c.imageUrl,
         reserve0: c.reserve0 !== null ? BigInt(c.reserve0) : undefined,
         reserve1: c.reserve1 !== null ? BigInt(c.reserve1) : undefined,
         poolId: c.poolId ? BigInt(c.poolId) : undefined,
@@ -99,11 +109,6 @@ async function fetchOtherCoins(
     console.error("useAllCoins: [failed to map pools to TokenMeta]", error);
     // metas remains [] if mapping fails
   }
-
-  console.log("use-all-coins", {
-    metas,
-    coins: metas.filter((coin) => coin.id === BigInt(46)),
-  });
 
   // For each coin, get balance from the correct contract based on coin ID
   const withBalances = await Promise.all(
@@ -133,13 +138,19 @@ async function fetchOtherCoins(
             args: [address, m.id],
           })) as bigint;
         } catch (error) {
-          console.error(`Failed to fetch balance for ${m.source} coin ${m.id}:`, error);
+          console.error(
+            `Failed to fetch balance for ${m.source} coin ${m.id}:`,
+            error,
+          );
           return m;
         }
 
         return { ...m, balance: bal };
       } catch (error) {
-        console.error(`Unexpected error fetching balance for ${m.source} coin ${m.id}:`, error);
+        console.error(
+          `Unexpected error fetching balance for ${m.source} coin ${m.id}:`,
+          error,
+        );
         return m;
       }
     }),
@@ -163,7 +174,9 @@ async function fetchOtherCoins(
         address: USDT_ADDRESS,
         abi: [
           {
-            inputs: [{ internalType: "address", name: "account", type: "address" }],
+            inputs: [
+              { internalType: "address", name: "account", type: "address" },
+            ],
             name: "balanceOf",
             outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
             stateMutability: "view",
@@ -240,7 +253,14 @@ async function originalFetchOtherCoins(
   const coinPromises = allCoinsData.map(async (coin: any) => {
     const [id, uri, r0, r1, pid, liq] = Array.isArray(coin)
       ? coin
-      : [coin.coinId, coin.tokenURI, coin.reserve0, coin.reserve1, coin.poolId, coin.liquidity];
+      : [
+          coin.coinId,
+          coin.tokenURI,
+          coin.reserve0,
+          coin.reserve1,
+          coin.poolId,
+          coin.liquidity,
+        ];
     const coinId = BigInt(id);
     const [symbol, name, lockup] = await Promise.all([
       publicClient
@@ -320,7 +340,9 @@ async function originalFetchOtherCoins(
       address: USDT_ADDRESS,
       abi: [
         {
-          inputs: [{ internalType: "address", name: "account", type: "address" }],
+          inputs: [
+            { internalType: "address", name: "account", type: "address" },
+          ],
           name: "balanceOf",
           outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
           stateMutability: "view",
@@ -334,7 +356,9 @@ async function originalFetchOtherCoins(
   }
 
   // Sort coins by ETH reserves descending
-  const sortedCoins = coins.sort((a, b) => Number((b.reserve0 || 0n) - (a.reserve0 || 0n)));
+  const sortedCoins = coins.sort((a, b) =>
+    Number((b.reserve0 || 0n) - (a.reserve0 || 0n)),
+  );
   return [...sortedCoins, usdtToken];
 }
 

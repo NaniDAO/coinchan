@@ -125,6 +125,11 @@ export function useActiveIncentiveStreams() {
                   totalShares
                   txHash
                   updatedAt
+                  rewardCoin {
+                    name
+                    symbol
+                    decimals
+                  }
                 }
               }
             }

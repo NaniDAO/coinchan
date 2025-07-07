@@ -272,7 +272,8 @@
     "zap_and_stake": "闪兑并质押",
     "zap_calculation_failed": "闪兑计算失败",
     "idle": "空闲",
-    "stream_extended_due_to_no_stakers": "因无质押者而延长流"
+    "stream_extended_due_to_no_stakers": "因无质押者而延长流",
+    "unique_pools": "独特池"
   },
   "header": {
     "connect": "连接钱包",

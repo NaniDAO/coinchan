@@ -2,7 +2,7 @@ import {
   useIncentiveStreams,
   useUserIncentivePositions,
 } from "@/hooks/use-incentive-streams";
-import { formatBalance } from "@/lib/utils";
+import { cn, formatBalance } from "@/lib/utils";
 import { formatEther } from "viem";
 import { useTranslation } from "react-i18next";
 import { FarmGridSkeleton } from "../FarmLoadingStates";
@@ -42,13 +42,18 @@ export const ManageFarms = () => {
 
   return (
     <div className="space-y-5 sm:space-y-6">
-      <div className="bg-gradient-to-r from-background/50 to-background/80 border border-primary/30 rounded-lg p-4 backdrop-blur-sm mb-4">
+      <div className="rounded-lg p-4 backdrop-blur-sm mb-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <h3 className="font-mono font-bold text-sm sm:text-base uppercase tracking-wider bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
               {t("common.your_positions")}
             </h3>
-            <div className="bg-primary/20 border border-primary/40 px-3 py-1 rounded animate-pulse">
+            <div
+              className={cn(
+                "border border-muted px-2 py-1",
+                userPositions && userPositions.length > 0 && "animate-pulse",
+              )}
+            >
               <span className="text-primary font-mono text-sm font-bold">
                 ({userPositions?.length || 0})
               </span>

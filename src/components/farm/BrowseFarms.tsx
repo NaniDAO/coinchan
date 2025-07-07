@@ -1,11 +1,10 @@
 import { useActiveIncentiveStreams } from "@/hooks/use-incentive-streams";
 import { FarmGridSkeleton } from "../FarmLoadingStates";
 import { ErrorBoundary } from "../ErrorBoundary";
-import { FarmStakeDialog } from "../FarmStakeDialog";
 import { IncentiveStreamCard } from "../IncentiveStreamCard";
 import { useTranslation } from "react-i18next";
 import { useAllCoins } from "@/hooks/metadata/use-all-coins";
-import { formatBalance } from "@/lib/utils";
+import { cn, formatBalance } from "@/lib/utils";
 import { formatEther } from "viem";
 
 export const BrowseFarms = () => {
@@ -13,19 +12,19 @@ export const BrowseFarms = () => {
   const { tokens } = useAllCoins();
   const { data: activeStreams, isLoading: isLoadingStreams } =
     useActiveIncentiveStreams();
-  
+
   // Filter out finished farms (only show active ones)
   const currentTime = BigInt(Math.floor(Date.now() / 1000));
   const activeOnlyStreams = activeStreams?.filter(
-    stream => stream.endTime > currentTime
+    (stream) => stream.endTime > currentTime,
   );
-  
+
   // Sort farms by various criteria
   const sortedStreams = activeOnlyStreams?.sort((a, b) => {
     // First priority: Sort by total staked (descending)
     const stakeDiff = Number(b.totalShares - a.totalShares);
     if (stakeDiff !== 0) return stakeDiff;
-    
+
     // Second priority: Sort by reward amount (descending)
     return Number(b.rewardAmount - a.rewardAmount);
   });
@@ -39,15 +38,20 @@ export const BrowseFarms = () => {
 
   return (
     <div className="space-y-5 sm:space-y-6">
-      <div className="bg-gradient-to-r from-background/50 to-background/80 border border-primary/30 rounded-lg p-4 backdrop-blur-sm mb-4">
+      <div className="rounded-lg p-4 backdrop-blur-sm mb-4">
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
+          <div className="flex justify-center items-center gap-3">
             <h3 className="font-mono font-bold text-sm sm:text-base uppercase tracking-wider bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
               {t("common.active_farms")}
             </h3>
-            <div className="bg-primary/20 border border-primary/40 px-3 py-1 rounded animate-pulse">
+            <div
+              className={cn(
+                "border border-muted px-2 py-1",
+                sortedStreams && sortedStreams.length > 0 && "animate-pulse",
+              )}
+            >
               <span className="text-primary font-mono text-sm font-bold">
-                ({sortedStreams?.length || 0})
+                {sortedStreams?.length || 0}
               </span>
             </div>
           </div>
@@ -55,33 +59,43 @@ export const BrowseFarms = () => {
             {sortedStreams && sortedStreams.length > 0 && (
               <>
                 <div className="text-xs font-mono">
-                  <span className="text-muted-foreground">{t("common.total_staked")}:</span>
+                  <span className="text-muted-foreground">
+                    {t("common.total_staked")}:
+                  </span>
                   <span className="text-primary font-bold ml-1">
                     {formatBalance(
                       formatEther(
-                        sortedStreams.reduce((acc, s) => acc + s.totalShares, 0n)
+                        sortedStreams.reduce(
+                          (acc, s) => acc + s.totalShares,
+                          0n,
+                        ),
                       ),
-                      "LP"
+                      "LP",
                     )}
                   </span>
                 </div>
                 <div className="text-xs font-mono">
-                  <span className="text-muted-foreground">{t("common.unique_pools")}:</span>
+                  <span className="text-muted-foreground">
+                    {t("common.unique_pools")}:
+                  </span>
                   <span className="text-primary font-bold ml-1">
-                    {new Set(sortedStreams?.map(s => s.lpId.toString()) || []).size}
+                    {
+                      new Set(
+                        sortedStreams?.map((s) => s.lpId.toString()) || [],
+                      ).size
+                    }
                   </span>
                 </div>
               </>
             )}
           </div>
         </div>
-        <div className="h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent"></div>
       </div>
 
       {isLoadingStreams ? (
         <FarmGridSkeleton count={6} />
       ) : sortedStreams && sortedStreams.length > 0 ? (
-        <div className="grid gap-4 sm:gap-5 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+        <div className="grid gap-4 sm:gap-5 grid-cols-1 lg:grid-cols-2">
           {sortedStreams?.map((stream) => {
             const lpToken = tokens.find(
               (t) => t.poolId === BigInt(stream.lpId),
@@ -106,28 +120,14 @@ export const BrowseFarms = () => {
                 <ErrorBoundary
                   fallback={<div>{t("common.error_loading_farm")}</div>}
                 >
-                  {lpToken ? (
-                    <FarmStakeDialog
-                      stream={stream}
-                      lpToken={lpToken}
-                      trigger={
-                        <div className="w-full cursor-pointer transform transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:-translate-y-1">
-                          <IncentiveStreamCard stream={stream} />
-                        </div>
-                      }
-                    />
-                  ) : (
-                    <div className="transform transition-all duration-200 hover:scale-[1.02] hover:shadow-xl">
-                      <IncentiveStreamCard stream={stream} />
-                    </div>
-                  )}
+                  <IncentiveStreamCard stream={stream} lpToken={lpToken} />
                 </ErrorBoundary>
               </div>
             );
           })}
         </div>
       ) : (
-        <div className="text-center py-12 sm:py-16">
+        <div className="text-center h-full">
           <div className="bg-gradient-to-br from-muted/20 to-muted/5 border-2 border-dashed border-primary/30 rounded-xl p-8 backdrop-blur-sm">
             <div className="font-mono text-muted-foreground space-y-4">
               <div className="text-4xl sm:text-5xl opacity-20">◇</div>

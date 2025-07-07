@@ -4,17 +4,25 @@ import { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { useZChefUtilities } from "@/hooks/use-zchef-contract";
 import { APYDisplay } from "@/components/APYDisplay";
 import { cn, formatBalance } from "@/lib/utils";
+import { TokenMeta } from "@/lib/coins";
+import { FarmStakeDialog } from "./FarmStakeDialog";
+import { Button } from "./ui/button";
+import { formatImageURL } from "@/hooks/metadata";
 
 interface IncentiveStreamCardProps {
   stream: IncentiveStream;
+  lpToken: TokenMeta;
 }
 
-export function IncentiveStreamCard({ stream }: IncentiveStreamCardProps) {
+export function IncentiveStreamCard({
+  stream,
+  lpToken,
+}: IncentiveStreamCardProps) {
   const { t } = useTranslation();
   const { calculateTimeRemaining, formatRewardRate } = useZChefUtilities();
 
   const timeRemaining = calculateTimeRemaining(stream.endTime);
-  const isActive = stream.status === "ACTIVE" && timeRemaining.days > 0;
+  const isActive = stream.status === "ACTIVE" && timeRemaining.seconds > 0;
 
   const rewardTokenDecimals = stream.rewardCoin?.decimals || 18;
   const rewardRates = formatRewardRate(stream.rewardRate, rewardTokenDecimals);
@@ -44,27 +52,24 @@ export function IncentiveStreamCard({ stream }: IncentiveStreamCardProps) {
 
   // totalValueLocked and dailyRewards are now handled by APYDisplay component
 
+  console.log("lpToken", lpToken, stream);
   return (
-    <div className="w-full border-2 border-primary/60 bg-gradient-to-br from-card/90 to-card/60 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 hover:border-primary group">
+    <div className="w-full border-2 border-border border-double hover:shadow-xl transition-all duration-300 hover:border-primary group">
       <div className="p-4 border-b border-primary/30 bg-gradient-to-r from-primary/5 to-transparent">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {stream.lpPool?.coin.imageUrl && (
+            {lpToken?.imageUrl && (
               <div className="relative">
                 <img
-                  src={stream.lpPool.coin.imageUrl}
-                  alt={stream.lpPool.coin.symbol}
+                  src={formatImageURL(lpToken?.imageUrl)}
+                  alt={lpToken?.symbol}
                   className="w-8 h-8 rounded-full border-2 border-primary/40 shadow-md"
                 />
                 <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-primary/30 to-transparent opacity-50 blur-sm group-hover:opacity-70 transition-opacity"></div>
               </div>
             )}
             <h3 className="font-mono font-bold text-base sm:text-lg uppercase tracking-wider bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent break-all">
-              [{stream.lpPool?.coin.symbol || (() => {
-                const lpId = stream.lpId?.toString();
-                // LP IDs are always full uint, truncate for UI  
-                return lpId && lpId.length > 12 ? `Pool ${lpId.slice(0, 6)}...${lpId.slice(-6)}` : `Pool ${lpId}`;
-              })()}]
+              [{lpToken?.symbol}]
             </h3>
           </div>
           <div className="flex items-center gap-2">
@@ -76,7 +81,7 @@ export function IncentiveStreamCard({ stream }: IncentiveStreamCardProps) {
                   : "border-red-500/60 text-red-600 dark:text-red-400 bg-gradient-to-r from-red-500/20 to-red-500/10 shadow-red-500/20 shadow-lg",
               )}
             >
-              {isActive ? t("common.active") : t("common.ended")}
+              {isActive ? t("orders.active") : t("common.ended")}
             </div>
             {stream.totalShares > 0n && (
               <div className="px-2 py-1 bg-primary/20 border border-primary/40 rounded text-xs font-mono font-bold text-primary animate-pulse">
@@ -100,12 +105,15 @@ export function IncentiveStreamCard({ stream }: IncentiveStreamCardProps) {
               />
             )}
             <span className="font-mono font-bold text-primary break-all">
-              {stream.rewardCoin?.symbol || (() => {
-                const rewardId = stream.rewardId?.toString();
-                // Reward IDs may be variable, handle gracefully
-                if (!rewardId) return "Unknown Token";
-                return rewardId.length > 16 ? `Token ${rewardId.slice(0, 8)}...${rewardId.slice(-8)}` : `Token ${rewardId}`;
-              })()}
+              {stream.rewardCoin?.symbol ||
+                (() => {
+                  const rewardId = stream.rewardId?.toString();
+                  // Reward IDs may be variable, handle gracefully
+                  if (!rewardId) return "Unknown Token";
+                  return rewardId.length > 16
+                    ? `Token ${rewardId.slice(0, 8)}...${rewardId.slice(-8)}`
+                    : `Token ${rewardId}`;
+                })()}
             </span>
           </div>
         </div>
@@ -145,7 +153,11 @@ export function IncentiveStreamCard({ stream }: IncentiveStreamCardProps) {
                 [{t("common.daily_rewards")}]
               </p>
               <p className="font-mono font-bold text-lg text-primary break-all">
-                {formatBalance(rewardRates.perDay || "0", stream.rewardCoin?.symbol, 15)}
+                {formatBalance(
+                  rewardRates.perDay || "0",
+                  stream.rewardCoin?.symbol,
+                  15,
+                )}
               </p>
             </div>
             <div className="space-y-1">
@@ -159,7 +171,7 @@ export function IncentiveStreamCard({ stream }: IncentiveStreamCardProps) {
                     rewardTokenDecimals,
                   ),
                   stream.rewardCoin?.symbol,
-                  15
+                  15,
                 )}
               </p>
             </div>
@@ -184,8 +196,8 @@ export function IncentiveStreamCard({ stream }: IncentiveStreamCardProps) {
             <div className="relative z-10">
               <APYDisplay
                 stream={stream}
-                lpTokenPrice={stream.lpPool?.price}
-                rewardTokenPrice={stream.lpPool?.price}
+                lpTokenPrice={lpToken?.price}
+                rewardTokenPrice={stream.rewardlpPool?.price}
                 className="text-sm"
               />
             </div>
@@ -204,7 +216,11 @@ export function IncentiveStreamCard({ stream }: IncentiveStreamCardProps) {
                   [{t("common.total_liquidity")}]
                 </p>
                 <p className="font-mono font-bold text-primary text-base mt-1 break-all">
-                  {formatBalance(formatEther(stream.lpPool.liquidity), "ETH", 12)}
+                  {formatBalance(
+                    formatEther(stream.lpPool.liquidity),
+                    "ETH",
+                    12,
+                  )}
                 </p>
               </div>
               {stream.lpPool.volume24h !== undefined &&
@@ -214,7 +230,11 @@ export function IncentiveStreamCard({ stream }: IncentiveStreamCardProps) {
                       [{t("common.24h_volume")}]
                     </p>
                     <p className="font-mono font-bold text-primary text-base mt-1 break-all">
-                      {formatBalance(formatEther(stream.lpPool.volume24h), "ETH", 12)}
+                      {formatBalance(
+                        formatEther(stream.lpPool.volume24h),
+                        "ETH",
+                        12,
+                      )}
                     </p>
                   </div>
                 )}
@@ -237,8 +257,8 @@ export function IncentiveStreamCard({ stream }: IncentiveStreamCardProps) {
                   {(() => {
                     const chefId = stream.chefId.toString();
                     // Chef IDs are always full uint, truncate for UI
-                    return chefId.length > 16 
-                      ? `${chefId.slice(0, 8)}...${chefId.slice(-8)}` 
+                    return chefId.length > 16
+                      ? `${chefId.slice(0, 8)}...${chefId.slice(-8)}`
                       : chefId;
                   })()}
                 </span>
@@ -270,6 +290,13 @@ export function IncentiveStreamCard({ stream }: IncentiveStreamCardProps) {
             </div>
           </div>
         </div>
+        {lpToken !== undefined && (
+          <FarmStakeDialog
+            lpToken={lpToken}
+            stream={stream}
+            trigger={<Button className="w-full">Stake LP</Button>}
+          />
+        )}
       </div>
     </div>
   );

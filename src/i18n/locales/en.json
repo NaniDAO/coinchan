@@ -7,8 +7,6 @@
     "something_went_wrong": "Something went wrong",
     "retry": "Retry",
     "reload_page": "Reload Page",
-    "processing": "Processing",
-    "pending": "Pending",
     "calculating_zap": "Calculating zap amounts",
     "connect": "Login",
     "connect_wallet_to_continue": "Please connect your wallet to continue",
@@ -30,7 +28,6 @@
     "add": "Add",
     "remove": "Remove",
     "claim": "Claim",
-    "max": "Max",
     "amount": "Amount",
     "balance": "Balance",
     "price": "Price",
@@ -272,7 +269,8 @@
     "zap_and_stake": "Zap & Stake",
     "zap_calculation_failed": "Zap calculation failed",
     "idle": "Idle",
-    "stream_extended_due_to_no_stakers": "Stream extended due to no stakers"
+    "stream_extended_due_to_no_stakers": "Stream extended due to no stakers",
+    "unique_pools": "Unique Pools"
   },
   "header": {
     "connect": "Login",
