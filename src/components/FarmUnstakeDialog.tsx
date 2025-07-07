@@ -166,7 +166,7 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
                 size="sm"
                 onClick={handleMaxClick}
                 disabled={parseFloat(maxAmount) === 0}
-                className="font-mono font-bold tracking-wide border-primary/40 hover:border-primary hover:bg-primary/20 px-4"
+                className="font-mono font-bold tracking-wide border-primary/40 hover:border-primary hover:bg-primary/20 px-4 !text-foreground dark:!text-foreground hover:!text-foreground dark:hover:!text-foreground"
               >
                 {t("common.max")}
               </Button>
@@ -232,7 +232,7 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
                 txStatus !== "idle" ||
                 withdraw.isPending
               }
-              className="w-full font-mono font-bold tracking-wide text-lg py-4 hover:scale-105 transition-all duration-200 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 shadow-lg disabled:opacity-50"
+              className="w-full font-mono font-bold tracking-wide text-lg py-4 hover:scale-105 transition-all duration-200 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 shadow-lg disabled:opacity-50 !text-white dark:!text-white hover:!text-white dark:hover:!text-white"
               variant="destructive"
             >
               {txStatus === "pending" || txStatus === "confirming"

@@ -76,22 +76,9 @@ export function useZapCalculations() {
       // Get swap fee for the token, preferring stream data if available
       const swapFee = lpToken.swapFee ?? SWAP_FEE;
 
-      // Use lpToken's pool information if available for additional validation
-      // Only fail if liquidity is explicitly 0n, not if it's undefined
-      if (lpToken && lpToken.liquidity !== undefined && lpToken.liquidity === 0n) {
-        return {
-          estimatedTokens: 0n,
-          estimatedLiquidity: 0n,
-          amount0Min: 0n,
-          amount1Min: 0n,
-          amountOutMin: 0n,
-          halfEthAmount,
-          poolKey: null,
-          lpSrc,
-          isValid: false,
-          error: "Pool has no liquidity",
-        };
-      }
+      // Note: We don't do pre-validation on cached liquidity data here since
+      // GraphQL data may not reflect actual on-chain liquidity. We rely on
+      // the on-chain validation below after fetching fresh reserve data.
 
       // Compute pool key
       const basePoolKey = isCookbook

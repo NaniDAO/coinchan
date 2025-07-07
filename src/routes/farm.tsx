@@ -35,7 +35,7 @@ function RouteComponent() {
                 setActiveTab("create");
               }
             }}
-            className="mt-4 !text-foreground dark:!text-foreground"
+            className="mt-4 !text-foreground dark:!text-foreground hover:!text-background dark:hover:!text-background"
           >
             {activeTab === "create" ? t("common.view_farms") : t("common.create_farm")}
           </Button>

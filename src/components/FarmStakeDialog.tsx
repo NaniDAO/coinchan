@@ -353,13 +353,13 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
               <TabsList className="grid w-full grid-cols-2 bg-background/50 border-2 border-primary/30 p-1">
                 <TabsTrigger
                   value="lp"
-                  className="font-mono font-bold tracking-wide data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground"
+                  className="font-mono font-bold tracking-wide text-foreground dark:text-foreground data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:!text-background dark:data-[state=active]:!text-background"
                 >
                   [{t("common.lp_tokens")}]
                 </TabsTrigger>
                 <TabsTrigger
                   value="eth"
-                  className="font-mono font-bold tracking-wide data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground"
+                  className="font-mono font-bold tracking-wide text-foreground dark:text-foreground data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:!text-background dark:data-[state=active]:!text-background"
                 >
                   [{t("common.eth_zap")}]
                 </TabsTrigger>
@@ -391,7 +391,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                 size="sm"
                 onClick={handleMaxClick}
                 disabled={parseFloat(maxAmount) === 0}
-                className="font-mono font-bold tracking-wide border-primary/40 hover:border-primary hover:bg-primary/20 px-4"
+                className="font-mono font-bold tracking-wide border-primary/40 hover:border-primary hover:bg-primary/20 px-4 !text-foreground dark:!text-foreground hover:!text-foreground dark:hover:!text-foreground"
               >
                 {t("common.max")}
               </Button>
@@ -504,7 +504,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
               <Button
                 onClick={handleApprove}
                 disabled={isApproving || setOperatorApproval.isPending || txStatus !== "idle"}
-                className="w-full font-mono font-bold tracking-wide py-3 hover:scale-105 transition-all duration-200 bg-gradient-to-r from-primary/80 to-primary/60 hover:from-primary hover:to-primary/80 disabled:opacity-50"
+                className="w-full font-mono font-bold tracking-wide py-3 hover:scale-105 transition-all duration-200 bg-gradient-to-r from-primary/80 to-primary/60 hover:from-primary hover:to-primary/80 disabled:opacity-50 !text-background dark:!text-background hover:!text-background dark:hover:!text-background"
                 variant="outline"
               >
                 {isApproving || setOperatorApproval.isPending || txStatus === "pending"
@@ -524,7 +524,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                 (stakeMode === "lp" && deposit.isPending) ||
                 (stakeMode === "eth" && (zapDeposit.isPending || !zapCalculation?.isValid))
               }
-              className="w-full font-mono font-bold tracking-wide text-lg py-4 hover:scale-105 transition-all duration-200 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary shadow-lg disabled:opacity-50"
+              className="w-full font-mono font-bold tracking-wide text-lg py-4 hover:scale-105 transition-all duration-200 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary shadow-lg disabled:opacity-50 !text-background dark:!text-background hover:!text-background dark:hover:!text-background"
             >
               {txStatus === "pending" || txStatus === "confirming"
                 ? txStatus === "pending"
