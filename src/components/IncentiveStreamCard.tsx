@@ -58,7 +58,7 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
                   alt={lpToken?.symbol}
                   className="w-8 h-8 rounded-full border-2 border-primary/40 shadow-md"
                 />
-                <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-primary/30 to-transparent opacity-50 blur-sm group-hover:opacity-70 transition-opacity"></div>
+                <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-primary/20 to-transparent opacity-30 group-hover:opacity-50 transition-opacity"></div>
               </div>
             )}
             <h3 className="font-mono font-bold text-base sm:text-lg uppercase tracking-wider bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent break-all">
@@ -68,10 +68,10 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
           <div className="flex items-center gap-2">
             <div
               className={cn(
-                "px-3 py-1.5 border-2 font-mono text-xs uppercase tracking-wider font-bold rounded backdrop-blur-sm transition-all duration-200",
+                "px-3 py-1.5 border-2 font-mono text-xs uppercase tracking-wider font-bold rounded transition-all duration-200",
                 isActive
-                  ? "border-green-500/60 text-green-600 dark:text-green-400 bg-gradient-to-r from-green-500/20 to-green-500/10 shadow-green-500/20 shadow-lg"
-                  : "border-red-500/60 text-red-600 dark:text-red-400 bg-gradient-to-r from-red-500/20 to-red-500/10 shadow-red-500/20 shadow-lg",
+                  ? "border-green-500/60 text-green-600 dark:text-green-400 bg-gradient-to-r from-green-500/20 to-green-500/10"
+                  : "border-red-500/60 text-red-600 dark:text-red-400 bg-gradient-to-r from-red-500/20 to-red-500/10",
               )}
             >
               {isActive ? t("orders.active") : t("common.ended")}

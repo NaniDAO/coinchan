@@ -4,12 +4,13 @@ import { ErrorBoundary } from "../ErrorBoundary";
 import { IncentiveStreamCard } from "../IncentiveStreamCard";
 import { useTranslation } from "react-i18next";
 import { useAllCoins } from "@/hooks/metadata/use-all-coins";
+import { ETH_TOKEN } from "@/lib/coins";
 import { cn, formatBalance } from "@/lib/utils";
 import { formatEther } from "viem";
 
 export const BrowseFarms = () => {
   const { t } = useTranslation();
-  const { tokens } = useAllCoins();
+  const { tokens, loading: isLoadingTokens } = useAllCoins();
   const { data: activeStreams, isLoading: isLoadingStreams } = useActiveIncentiveStreams();
 
   // Filter out finished farms (only show active ones)
@@ -71,14 +72,16 @@ export const BrowseFarms = () => {
         </div>
       </div>
 
-      {isLoadingStreams ? (
+      {isLoadingStreams || isLoadingTokens ? (
         <FarmGridSkeleton count={6} />
       ) : sortedStreams && sortedStreams.length > 0 ? (
         <div className="grid gap-4 sm:gap-5 grid-cols-1 lg:grid-cols-2">
           {sortedStreams?.map((stream) => {
             const lpToken = tokens.find((t) => t.poolId === BigInt(stream.lpId));
 
-            if (!lpToken) {
+            // If lpToken is not found and tokens are not loading, show error
+            // Otherwise, use ETH_TOKEN as fallback during loading
+            if (!lpToken && !isLoadingTokens) {
               return (
                 <div key={stream.chefId.toString()} className="group">
                   <div className="bg-red-500/10 border border-red-500/30 rounded p-3">
@@ -95,7 +98,7 @@ export const BrowseFarms = () => {
             return (
               <div key={stream.chefId.toString()} className="group">
                 <ErrorBoundary fallback={<div>{t("common.error_loading_farm")}</div>}>
-                  <IncentiveStreamCard stream={stream} lpToken={lpToken} />
+                  <IncentiveStreamCard stream={stream} lpToken={lpToken || ETH_TOKEN} />
                 </ErrorBoundary>
               </div>
             );
