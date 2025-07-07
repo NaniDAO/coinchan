@@ -60,8 +60,12 @@ export function useZapCalculations() {
       const tokenId = lpToken.id || 0n;
       const isCookbook = isCookbookCoin(tokenId);
 
+      if (!lpToken?.poolId) {
+        throw new Error("LP token pool ID not defined");
+      }
+
       // Validate that the stream's LP pool matches our token
-      if (stream.lpId !== lpToken.poolId) {
+      if (BigInt(stream.lpId) !== BigInt(lpToken.poolId)) {
         throw new Error("Stream LP ID does not match token pool ID");
       }
 
@@ -105,7 +109,9 @@ export function useZapCalculations() {
           };
 
       // Get pool ID for reserves
-      const poolId = isCookbook ? computePoolId(tokenId, swapFee, CookbookAddress) : computePoolId(tokenId, swapFee);
+      const poolId = isCookbook
+        ? computePoolId(tokenId, swapFee, CookbookAddress)
+        : computePoolId(tokenId, swapFee);
 
       // Fetch current reserves
       if (!publicClient) {
@@ -147,7 +153,12 @@ export function useZapCalculations() {
       }
 
       // Calculate how many tokens we'll get for half the ETH
-      const estimatedTokens = getAmountOut(halfEthAmount, reserves.reserve0, reserves.reserve1, swapFee);
+      const estimatedTokens = getAmountOut(
+        halfEthAmount,
+        reserves.reserve0,
+        reserves.reserve1,
+        swapFee,
+      );
 
       if (estimatedTokens === 0n) {
         return {
@@ -172,7 +183,10 @@ export function useZapCalculations() {
       // Estimate LP tokens (simplified - actual amount depends on pool state after swap)
       // For estimation, assume we get proportional LP tokens
       const totalSupply = reserves.reserve0 + reserves.reserve1; // Simplified
-      const estimatedLiquidity = totalSupply > 0n ? (halfEthAmount * totalSupply) / reserves.reserve0 : halfEthAmount;
+      const estimatedLiquidity =
+        totalSupply > 0n
+          ? (halfEthAmount * totalSupply) / reserves.reserve0
+          : halfEthAmount;
 
       return {
         estimatedTokens,
@@ -202,7 +216,10 @@ export function useZapCalculations() {
     }
   };
 
-  const formatZapPreview = (calculation: ZapCalculation, lpToken: TokenMeta) => {
+  const formatZapPreview = (
+    calculation: ZapCalculation,
+    lpToken: TokenMeta,
+  ) => {
     if (!calculation.isValid) {
       return {
         ethToSwap: "0",
@@ -234,7 +251,12 @@ export function useZapCalculations() {
     ) => {
       const timeoutId = setTimeout(async () => {
         try {
-          const result = await calculateZapAmounts(ethAmount, stream, lpToken, slippageBps);
+          const result = await calculateZapAmounts(
+            ethAmount,
+            stream,
+            lpToken,
+            slippageBps,
+          );
           callback(result);
         } catch (error) {
           console.error("Debounced zap calculation error:", error);
@@ -248,7 +270,8 @@ export function useZapCalculations() {
             poolKey: null,
             lpSrc: ZAMMAddress,
             isValid: false,
-            error: error instanceof Error ? error.message : "Calculation failed",
+            error:
+              error instanceof Error ? error.message : "Calculation failed",
           });
         }
       }, delay);

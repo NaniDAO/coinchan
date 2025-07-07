@@ -58,20 +58,27 @@ export const ManageFarms = () => {
             {userPositions && userPositions.length > 0 && (
               <div className="hidden sm:flex items-center gap-4">
                 <div className="text-xs font-mono">
-                  <span className="text-muted-foreground">{t("common.total_rewards")}:</span>
+                  <span className="text-muted-foreground">
+                    {t("common.total_rewards")}:
+                  </span>
                   <span className="text-primary font-bold ml-1">
                     {formatBalance(
                       formatEther(
-                        userPositions.reduce((acc, p) => acc + (p.pendingRewards || 0n), 0n)
+                        userPositions.reduce(
+                          (acc, p) => acc + (p.pendingRewards || 0n),
+                          0n,
+                        ),
                       ),
-                      ""
+                      "",
                     )}
                   </span>
                 </div>
                 <div className="text-xs font-mono">
-                  <span className="text-muted-foreground">{t("common.active_farms")}:</span>
+                  <span className="text-muted-foreground">
+                    {t("common.active_farms")}:
+                  </span>
                   <span className="text-primary font-bold ml-1">
-                    {userPositions.filter(p => p.shares > 0n).length}
+                    {userPositions.filter((p) => p.shares > 0n).length}
                   </span>
                 </div>
               </div>
@@ -108,10 +115,15 @@ export const ManageFarms = () => {
         <div className="grid gap-4 sm:gap-5 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {userPositions.map((position) => {
             const stream = allStreams?.find(
-              (s) => s.chefId === position.chefId,
+              (s) => BigInt(s.chefId) === BigInt(position.chefId),
             );
             const lpToken = tokens.find((t) => t.poolId === stream?.lpId);
-
+            console.log("User Position Map:", {
+              position,
+              allStreams,
+              stream,
+              lpToken,
+            });
             if (!stream) return null;
 
             return (
@@ -122,9 +134,7 @@ export const ManageFarms = () => {
                     <div className="absolute top-2 right-2 z-20 px-2 py-1 bg-primary/20 border border-primary/40 rounded text-xs font-mono font-bold text-primary">
                       <span className="animate-pulse">🌾</span> STAKED
                     </div>
-                    <IncentiveStreamCard
-                      stream={stream}
-                    />
+                    <IncentiveStreamCard stream={stream} />
                     <div className="p-4 border-t border-primary/20 bg-background/50">
                       {/* Pending Rewards Display */}
                       {position.pendingRewards > 0n && (
@@ -136,7 +146,7 @@ export const ManageFarms = () => {
                             <span className="font-mono font-bold text-green-600 dark:text-green-400">
                               {formatBalance(
                                 formatEther(position.pendingRewards),
-                                stream.rewardCoin?.symbol
+                                stream.rewardCoin?.symbol,
                               )}
                             </span>
                           </div>
@@ -162,13 +172,15 @@ export const ManageFarms = () => {
                             size="default"
                             variant="outline"
                             onClick={() => handleHarvest(position.chefId)}
-                            disabled={position.pendingRewards === 0n || harvestingId === position.chefId}
+                            disabled={
+                              position.pendingRewards === 0n ||
+                              harvestingId === position.chefId
+                            }
                             className="font-mono font-bold tracking-wide hover:scale-105 transition-transform min-h-[44px]"
                           >
-                            {harvestingId === position.chefId 
+                            {harvestingId === position.chefId
                               ? `[${t("common.harvesting")}...]`
-                              : `[${t("common.harvest")}]`
-                            }
+                              : `[${t("common.harvest")}]`}
                           </Button>
                           {userPositions && (
                             <FarmUnstakeDialog
@@ -202,7 +214,9 @@ export const ManageFarms = () => {
               <p className="text-xl font-bold text-muted-foreground">
                 [ {t("common.no_positions_found")} ]
               </p>
-              <p className="text-sm mt-3">{t("common.no_positions_description")}</p>
+              <p className="text-sm mt-3">
+                {t("common.no_positions_description")}
+              </p>
             </div>
           </div>
         </div>

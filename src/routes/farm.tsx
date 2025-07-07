@@ -17,7 +17,7 @@ function RouteComponent() {
   const [activeTab, setActiveTab] = useState<TabViews>("browse");
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 !p-3 sm:!p-6 !mb-[50px]">
+    <div className="min-h-screen !p-3 sm:!p-6 !mb-[50px]">
       <div className="text-center mb-6 sm:mb-8">
         <div className="relative inline-block">
           <h2 className="font-mono font-bold text-xl sm:text-2xl uppercase tracking-[0.2em] border-2 border-primary inline-block px-6 py-3 bg-gradient-to-r from-primary/20 via-primary/10 to-primary/20 backdrop-blur-sm shadow-lg">

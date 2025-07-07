@@ -21,18 +21,6 @@ export interface IncentiveStream {
   updatedAt: string;
   txHash: `0x${string}`;
   blockNumber: bigint;
-  lpPool?: {
-    id: bigint;
-    coin: {
-      id: bigint;
-      name: string;
-      symbol: string;
-      imageUrl: string;
-    };
-    liquidity: bigint;
-    price: bigint;
-    volume24h: bigint;
-  };
   rewardCoin?: {
     id: bigint;
     name: string;
@@ -62,11 +50,43 @@ export function useIncentiveStreams() {
   return useQuery({
     queryKey: ["incentiveStreams"],
     queryFn: async (): Promise<IncentiveStream[]> => {
-      const response = await fetch(`${INDEXER_URL}/incentive-streams`);
+      const response = await fetch(`${INDEXER_URL}/api/incentive-streams`);
       if (!response.ok) {
         throw new Error("Failed to fetch incentive streams");
       }
-      return response.json();
+
+      const data = await response.json();
+
+      return data.map(
+        (stream: any): IncentiveStream => ({
+          chefId: BigInt(stream.chef_id),
+          creator: stream.creator,
+          lpToken: stream.lp_token,
+          lpId: BigInt(stream.lp_id),
+          rewardToken: stream.reward_token,
+          rewardId: BigInt(stream.reward_id),
+          rewardAmount: BigInt(stream.reward_amount),
+          rewardRate: BigInt(stream.reward_rate),
+          duration: BigInt(stream.duration),
+          startTime: BigInt(stream.start_time),
+          endTime: BigInt(stream.end_time),
+          lastUpdate: BigInt(stream.last_update),
+          totalShares: BigInt(stream.total_shares),
+          accRewardPerShare: BigInt(stream.acc_reward_per_share),
+          status: stream.status,
+          createdAt: stream.created_at,
+          updatedAt: stream.updated_at,
+          txHash: stream.tx_hash,
+          blockNumber: BigInt(stream.block_number),
+          rewardCoin: {
+            id: BigInt(stream.reward_id),
+            name: stream.reward_token_name,
+            symbol: stream.reward_token_symbol,
+            imageUrl: stream.reward_token_image_url,
+            decimals: stream.reward_token_decimals,
+          },
+        }),
+      );
     },
     staleTime: 30000, // 30 seconds
   });
@@ -128,7 +148,7 @@ export function useIncentiveStream(chefId: bigint | undefined) {
     queryFn: async (): Promise<IncentiveStream | null> => {
       if (!chefId) return null;
       const response = await fetch(
-        `${INDEXER_URL}/incentive-streams/${chefId}`,
+        `${INDEXER_URL}/api/incentive-streams/${chefId}`,
       );
       if (!response.ok) {
         if (response.status === 404) return null;
@@ -150,13 +170,132 @@ export function useUserIncentivePositions(userAddress?: `0x${string}`) {
     queryFn: async (): Promise<IncentiveUserPosition[]> => {
       if (!targetAddress) return [];
 
-      const response = await fetch(
-        `${INDEXER_URL}/incentive-positions?user=${targetAddress}`,
-      );
+      const response = await fetch(`${INDEXER_URL}/graphql`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query: `
+            query GetIncentiveStreams($userId: String!) {
+              incentiveUserPositions(where: { user: $userId }) {
+                items {
+                  chefId
+                  createdAt
+                  pendingRewards
+                  rewardDebt
+                  shares
+                  totalDeposited
+                  totalWithdrawn
+                  totalHarvested
+                  updatedAt
+                  user
+                  incentiveStream {
+                    creator
+                    lpToken
+                    lpId
+                    rewardAmount
+                    rewardId
+                    rewardRate
+                    rewardToken
+                    startTime
+                    endTime
+                    totalShares
+                    accRewardPerShare
+                    status
+                    rewardCoin {
+                      name
+                      decimals
+                      symbol
+                    }
+                  }
+                }
+              }
+            }
+            `,
+          variables: {
+            userId: targetAddress,
+          },
+        }),
+      });
+
+      console.log("User Response :", response);
+
       if (!response.ok) {
         throw new Error("Failed to fetch incentive positions");
       }
-      return response.json();
+
+      const data = await response.json();
+
+      console.log("User Data:", data);
+
+      const positions = data.data.incentiveUserPositions.items;
+
+      console.log("User Positions:", positions);
+
+      const formattedPositions = positions.map((pos: any) => {
+        const stream = pos.incentiveStream;
+
+        const share = Number(pos.shares);
+        const totalShares = Number(stream.totalShares);
+        const rewardRate = Number(stream.rewardRate);
+        const isActive = stream.status === "ACTIVE";
+
+        const sharePercentage =
+          totalShares > 0 ? ((share / totalShares) * 100).toFixed(4) : "0.0000";
+
+        const estimatedApy =
+          totalShares > 0 && isActive
+            ? ((rewardRate * 31536000 * share) / (totalShares * 1e12)).toFixed(
+                2,
+              )
+            : "0.00";
+
+        return {
+          // Position details
+          chefId: pos.chefId.toString(),
+          user: pos.user,
+          shares: pos.shares.toString(),
+          rewardDebt: pos.rewardDebt.toString(),
+          pendingRewards: pos.pendingRewards.toString(),
+          totalDeposited: pos.totalDeposited.toString(),
+          totalWithdrawn: pos.totalWithdrawn.toString(),
+          totalHarvested: pos.totalHarvested.toString(),
+          sharePercentage,
+          estimatedApy,
+
+          // Stream info
+          streamInfo: {
+            creator: stream.creator,
+            lpToken: stream.lpToken,
+            lpId: stream.lpId.toString(),
+            rewardToken: stream.rewardToken,
+            rewardId: stream.rewardId.toString(),
+            rewardAmount: stream.rewardAmount.toString(),
+            rewardRate: stream.rewardRate.toString(),
+            startTime: stream.startTime.toString(),
+            endTime: stream.endTime.toString(),
+            totalShares: stream.totalShares.toString(),
+            accRewardPerShare: stream.accRewardPerShare.toString(),
+            status: stream.status,
+          },
+
+          // Token metadata
+          tokenInfo: {
+            rewardSymbol: stream.rewardCoin.symbol,
+            rewardDecimals: stream.rewardCoin.decimals,
+          },
+
+          timestamps: {
+            createdAt: pos.createdAt.toString(),
+            updatedAt: pos.updatedAt.toString(),
+          },
+        };
+      });
+
+      console.log("User FormattedPositions:", formattedPositions);
+
+      return formattedPositions;
     },
     enabled: !!targetAddress,
   });
@@ -175,7 +314,7 @@ export function useUserIncentivePosition(
       if (!chefId || !targetAddress) return null;
 
       const response = await fetch(
-        `${INDEXER_URL}/incentive-positions/${chefId}/${targetAddress}`,
+        `${INDEXER_URL}/api/incentive-positions/${chefId}/${targetAddress}`,
       );
       if (!response.ok) {
         throw new Error("Failed to fetch user incentive position");
@@ -196,7 +335,7 @@ export function useIncentiveStreamsByLpPool(lpId: bigint | undefined) {
     queryFn: async (): Promise<IncentiveStream[]> => {
       if (!lpId) return [];
       const response = await fetch(
-        `${INDEXER_URL}/incentive-streams?lpId=${lpId}`,
+        `${INDEXER_URL}/api/incentive-streams?lpId=${lpId}`,
       );
       if (!response.ok) {
         throw new Error("Failed to fetch incentive streams by LP pool");
@@ -218,7 +357,7 @@ export function useIncentiveStreamAPY(chefId: bigint | undefined) {
     } | null> => {
       if (!chefId) return null;
       const response = await fetch(
-        `${INDEXER_URL}/incentive-streams/${chefId}/apy`,
+        `${INDEXER_URL}/api/incentive-streams/${chefId}/apy`,
       );
       if (!response.ok) {
         if (response.status === 404) return null;
@@ -266,7 +405,7 @@ export function useIncentiveStreamHistory(
       if (!chefId || !targetAddress)
         return { deposits: [], withdraws: [], harvests: [] };
       const response = await fetch(
-        `${INDEXER_URL}/incentive-streams/${chefId}/history?user=${targetAddress}`,
+        `${INDEXER_URL}/api/incentive-streams/${chefId}/history?user=${targetAddress}`,
       );
       if (!response.ok) {
         throw new Error("Failed to fetch incentive stream history");
