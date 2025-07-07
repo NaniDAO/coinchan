@@ -1,9 +1,4 @@
-import {
-  useWriteContract,
-  useReadContract,
-  useAccount,
-  usePublicClient,
-} from "wagmi";
+import { useWriteContract, useReadContract, useAccount, usePublicClient } from "wagmi";
 import { formatUnits } from "viem";
 import { mainnet } from "viem/chains";
 import { ZChefAddress, ZChefAbi } from "@/constants/zChef";
@@ -14,15 +9,11 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 // Retry configuration for contract operations
 const RETRY_CONFIG = {
   retries: 3,
-  retryDelay: (attemptIndex: number) =>
-    Math.min(1000 * 2 ** attemptIndex, 10000),
+  retryDelay: (attemptIndex: number) => Math.min(1000 * 2 ** attemptIndex, 10000),
 };
 
 // Helper function to execute contract transaction with retry logic and gas estimation
-async function executeWithRetry<T>(
-  fn: () => Promise<T>,
-  retries = RETRY_CONFIG.retries,
-): Promise<T> {
+async function executeWithRetry<T>(fn: () => Promise<T>, retries = RETRY_CONFIG.retries): Promise<T> {
   try {
     return await fn();
   } catch (error: any) {
@@ -44,16 +35,12 @@ async function executeWithRetry<T>(
       error?.message?.includes("gas required exceeds allowance") ||
       error?.code === -32000
     ) {
-      throw new Error(
-        "Transaction failed due to insufficient gas. Please try again with higher gas limit.",
-      );
+      throw new Error("Transaction failed due to insufficient gas. Please try again with higher gas limit.");
     }
 
     if (retries > 0) {
       const delay = RETRY_CONFIG.retryDelay(RETRY_CONFIG.retries - retries);
-      console.log(
-        `Retrying transaction in ${delay}ms... (${retries} retries left)`,
-      );
+      console.log(`Retrying transaction in ${delay}ms... (${retries} retries left)`);
       await new Promise((resolve) => setTimeout(resolve, delay));
       return executeWithRetry(fn, retries - 1);
     }
@@ -63,10 +50,7 @@ async function executeWithRetry<T>(
 }
 
 // Helper function to estimate gas with buffer
-async function estimateGasWithBuffer(
-  publicClient: any,
-  contractCall: any,
-): Promise<bigint> {
+async function estimateGasWithBuffer(publicClient: any, contractCall: any): Promise<bigint> {
   try {
     const gasEstimate = await publicClient.estimateContractGas(contractCall);
     // Add 20% buffer to gas estimate
@@ -103,10 +87,7 @@ export function useZChefPool(chefId: bigint | undefined) {
   });
 }
 
-export function useZChefPendingReward(
-  chefId: bigint | undefined,
-  userAddress?: `0x${string}`,
-) {
+export function useZChefPendingReward(chefId: bigint | undefined, userAddress?: `0x${string}`) {
   const { address } = useAccount();
   const targetAddress = userAddress || address;
 
@@ -122,10 +103,7 @@ export function useZChefPendingReward(
   });
 }
 
-export function useZChefUserBalance(
-  chefId: bigint | undefined,
-  userAddress?: `0x${string}`,
-) {
+export function useZChefUserBalance(chefId: bigint | undefined, userAddress?: `0x${string}`) {
   const { address } = useAccount();
   const targetAddress = userAddress || address;
 
@@ -141,10 +119,7 @@ export function useZChefUserBalance(
   });
 }
 
-export function useZChefRewardPerYear(
-  chefId: bigint | undefined,
-  userAddress?: `0x${string}`,
-) {
+export function useZChefRewardPerYear(chefId: bigint | undefined, userAddress?: `0x${string}`) {
   const { address } = useAccount();
   const targetAddress = userAddress || address;
 
@@ -418,8 +393,7 @@ export function useZChefUtilities() {
 
     const rewardPerSecond = rewardRate;
     const rewardPerYear = rewardPerSecond * BigInt(365 * 24 * 60 * 60);
-    const rewardValuePerYear =
-      (rewardPerYear * rewardTokenPrice) / BigInt(10 ** rewardTokenDecimals);
+    const rewardValuePerYear = (rewardPerYear * rewardTokenPrice) / BigInt(10 ** rewardTokenDecimals);
     const totalValueLocked = totalShares * lpTokenPrice;
 
     if (totalValueLocked === 0n) return 0;

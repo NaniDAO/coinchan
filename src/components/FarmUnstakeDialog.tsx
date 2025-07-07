@@ -117,11 +117,12 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
               )}
               <div>
                 <h3 className="font-mono font-bold text-lg bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent break-all">
-                  {lpToken?.symbol || (() => {
-                    const lpId = stream.lpId?.toString();
-                    // LP IDs are always full uint, truncate for UI
-                    return lpId && lpId.length > 12 ? `Pool ${lpId.slice(0, 6)}...${lpId.slice(-6)}` : `Pool ${lpId}`;
-                  })()}
+                  {lpToken?.symbol ||
+                    (() => {
+                      const lpId = stream.lpId?.toString();
+                      // LP IDs are always full uint, truncate for UI
+                      return lpId && lpId.length > 12 ? `Pool ${lpId.slice(0, 6)}...${lpId.slice(-6)}` : `Pool ${lpId}`;
+                    })()}
                 </h3>
                 <p className="text-xs text-muted-foreground font-mono">{t("common.lp_token_pool")}</p>
               </div>
@@ -210,7 +211,9 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
             <div className="flex items-start gap-3">
               <div className="text-yellow-500 text-xl">⚠️</div>
               <div>
-                <p className="font-mono font-bold text-yellow-600 dark:text-yellow-400 text-sm">[{t("common.warning_label")}]</p>
+                <p className="font-mono font-bold text-yellow-600 dark:text-yellow-400 text-sm">
+                  [{t("common.warning_label")}]
+                </p>
                 <p className="text-sm text-yellow-700 dark:text-yellow-300 font-mono mt-1">
                   {t("common.unstaking_will_claim_rewards")}
                 </p>
@@ -309,9 +312,7 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
 
                 {txStatus === "success" && (
                   <div className="text-center">
-                    <p className="text-sm text-green-400 font-mono">
-                      {t("common.lp_unstaked_rewards_claimed")}
-                    </p>
+                    <p className="text-sm text-green-400 font-mono">{t("common.lp_unstaked_rewards_claimed")}</p>
                   </div>
                 )}
               </div>

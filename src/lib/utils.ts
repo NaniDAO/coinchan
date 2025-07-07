@@ -164,50 +164,50 @@ export function formatDisplayNumber(
   value: string | number | bigint,
   maxDecimals: number = 6,
   maxLength: number = 12,
-  useAbbreviation: boolean = false
+  useAbbreviation: boolean = false,
 ): string {
-  const num = typeof value === 'string' ? parseFloat(value) : typeof value === 'bigint' ? Number(value) : value;
-  if (isNaN(num) || !isFinite(num)) return '0';
-  
+  const num = typeof value === "string" ? parseFloat(value) : typeof value === "bigint" ? Number(value) : value;
+  if (isNaN(num) || !isFinite(num)) return "0";
+
   // For very large numbers, use abbreviations if enabled
   if (useAbbreviation) {
-    if (num >= 1e12) return (num / 1e12).toFixed(2) + 'T';
-    if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
-    if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
-    if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
+    if (num >= 1e12) return (num / 1e12).toFixed(2) + "T";
+    if (num >= 1e9) return (num / 1e9).toFixed(2) + "B";
+    if (num >= 1e6) return (num / 1e6).toFixed(2) + "M";
+    if (num >= 1e3) return (num / 1e3).toFixed(2) + "K";
   }
-  
+
   // For very large numbers without abbreviation, use scientific notation
   if (num >= 1e12) return num.toExponential(2);
-  
+
   // For very small numbers, use scientific notation
   if (num > 0 && num < 1e-6) return num.toExponential(2);
-  
+
   // Handle zero
-  if (num === 0) return '0';
-  
+  if (num === 0) return "0";
+
   // Smart decimal places based on magnitude
   let decimals = maxDecimals;
   if (num >= 1000) decimals = Math.min(maxDecimals, 2);
   else if (num >= 100) decimals = Math.min(maxDecimals, 3);
   else if (num >= 10) decimals = Math.min(maxDecimals, 4);
-  
+
   let formatted = num.toFixed(decimals);
-  
+
   // Remove trailing zeros
-  formatted = formatted.replace(/\.?0+$/, '');
-  
+  formatted = formatted.replace(/\.?0+$/, "");
+
   // If still too long, reduce decimals progressively
   while (formatted.length > maxLength && decimals > 0) {
     decimals--;
-    formatted = num.toFixed(decimals).replace(/\.?0+$/, '');
+    formatted = num.toFixed(decimals).replace(/\.?0+$/, "");
   }
-  
+
   // Last resort: use scientific notation if still too long
   if (formatted.length > maxLength) {
     return num.toExponential(2);
   }
-  
+
   return formatted;
 }
 
@@ -217,16 +217,16 @@ export function formatDisplayNumber(
  * @param symbol Token symbol
  * @returns Formatted display string
  */
-export function formatRewardRate(perSecond: string, symbol: string = ''): string {
+export function formatRewardRate(perSecond: string, symbol: string = ""): string {
   const num = parseFloat(perSecond);
   if (isNaN(num) || num === 0) return `0 ${symbol}/sec`;
-  
+
   // For very small per-second rates, show per day instead
   if (num < 0.001) {
     const perDay = num * 86400;
     return `${formatDisplayNumber(perDay, 4, 10)} ${symbol}/day`;
   }
-  
+
   return `${formatDisplayNumber(num, 6, 10)} ${symbol}/sec`;
 }
 
@@ -237,11 +237,7 @@ export function formatRewardRate(perSecond: string, symbol: string = ''): string
  * @param maxLength Maximum display length
  * @returns Formatted balance string
  */
-export function formatBalance(
-  amount: string | number | bigint,
-  symbol: string = '',
-  maxLength: number = 15
-): string {
+export function formatBalance(amount: string | number | bigint, symbol: string = "", maxLength: number = 15): string {
   const formatted = formatDisplayNumber(amount, 6, maxLength - symbol.length - 1, true);
   return symbol ? `${formatted} ${symbol}` : formatted;
 }

@@ -77,7 +77,8 @@ export function useZapCalculations() {
       const swapFee = lpToken.swapFee ?? SWAP_FEE;
 
       // Use lpToken's pool information if available for additional validation
-      if (lpToken && lpToken.liquidity === 0n) {
+      // Only fail if liquidity is explicitly 0n, not if it's undefined
+      if (lpToken && lpToken.liquidity !== undefined && lpToken.liquidity === 0n) {
         return {
           estimatedTokens: 0n,
           estimatedLiquidity: 0n,
@@ -88,7 +89,7 @@ export function useZapCalculations() {
           poolKey: null,
           lpSrc,
           isValid: false,
-          error: "Pool has no liquidity according to stream data",
+          error: "Pool has no liquidity",
         };
       }
 
@@ -109,32 +110,30 @@ export function useZapCalculations() {
           };
 
       // Get pool ID for reserves
-      const poolId = isCookbook
-        ? computePoolId(tokenId, swapFee, CookbookAddress)
-        : computePoolId(tokenId, swapFee);
+      const poolId = isCookbook ? computePoolId(tokenId, swapFee, CookbookAddress) : computePoolId(tokenId, swapFee);
 
       // Fetch current reserves
       if (!publicClient) {
         throw new Error("Public client not available");
       }
 
-      const result = await publicClient.readContract({
+      const poolData = await publicClient.readContract({
         address: lpSrc,
         abi: lpAbi,
         functionName: "pools",
         args: [poolId],
       });
 
-      const poolData = result as unknown as readonly bigint[];
+      const poolResult = poolData as unknown as readonly bigint[];
 
       // Ensure we have at least 2 elements in the array
-      if (!Array.isArray(poolData) || poolData.length < 2) {
+      if (!Array.isArray(poolResult) || poolResult.length < 2) {
         throw new Error("Invalid pool data structure");
       }
 
       const reserves = {
-        reserve0: poolData[0], // ETH
-        reserve1: poolData[1], // Token
+        reserve0: poolResult[0], // ETH
+        reserve1: poolResult[1], // Token
       };
 
       if (reserves.reserve0 === 0n || reserves.reserve1 === 0n) {
@@ -153,12 +152,7 @@ export function useZapCalculations() {
       }
 
       // Calculate how many tokens we'll get for half the ETH
-      const estimatedTokens = getAmountOut(
-        halfEthAmount,
-        reserves.reserve0,
-        reserves.reserve1,
-        swapFee,
-      );
+      const estimatedTokens = getAmountOut(halfEthAmount, reserves.reserve0, reserves.reserve1, swapFee);
 
       if (estimatedTokens === 0n) {
         return {
@@ -183,10 +177,7 @@ export function useZapCalculations() {
       // Estimate LP tokens (simplified - actual amount depends on pool state after swap)
       // For estimation, assume we get proportional LP tokens
       const totalSupply = reserves.reserve0 + reserves.reserve1; // Simplified
-      const estimatedLiquidity =
-        totalSupply > 0n
-          ? (halfEthAmount * totalSupply) / reserves.reserve0
-          : halfEthAmount;
+      const estimatedLiquidity = totalSupply > 0n ? (halfEthAmount * totalSupply) / reserves.reserve0 : halfEthAmount;
 
       return {
         estimatedTokens,
@@ -216,10 +207,7 @@ export function useZapCalculations() {
     }
   };
 
-  const formatZapPreview = (
-    calculation: ZapCalculation,
-    lpToken: TokenMeta,
-  ) => {
+  const formatZapPreview = (calculation: ZapCalculation, lpToken: TokenMeta) => {
     if (!calculation.isValid) {
       return {
         ethToSwap: "0",
@@ -251,12 +239,7 @@ export function useZapCalculations() {
     ) => {
       const timeoutId = setTimeout(async () => {
         try {
-          const result = await calculateZapAmounts(
-            ethAmount,
-            stream,
-            lpToken,
-            slippageBps,
-          );
+          const result = await calculateZapAmounts(ethAmount, stream, lpToken, slippageBps);
           callback(result);
         } catch (error) {
           console.error("Debounced zap calculation error:", error);
@@ -270,8 +253,7 @@ export function useZapCalculations() {
             poolKey: null,
             lpSrc: ZAMMAddress,
             isValid: false,
-            error:
-              error instanceof Error ? error.message : "Calculation failed",
+            error: error instanceof Error ? error.message : "Calculation failed",
           });
         }
       }, delay);

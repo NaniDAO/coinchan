@@ -52,8 +52,7 @@ export const CreateFarm = () => {
   const [formDataInitialized, setFormDataInitialized] = useState(false);
   const [formData, setFormData] = useState<FarmFormData>({
     selectedToken: null,
-    rewardToken:
-      tokens?.find((t) => t.symbol !== "ETH") || ETH_TOKEN,
+    rewardToken: tokens?.find((t) => t.symbol !== "ETH") || ETH_TOKEN,
     rewardAmount: "",
     duration: "7",
     customDuration: "",
@@ -64,9 +63,7 @@ export const CreateFarm = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
-  const [txStatus, setTxStatus] = useState<
-    "idle" | "pending" | "confirming" | "success" | "error"
-  >("idle");
+  const [txStatus, setTxStatus] = useState<"idle" | "pending" | "confirming" | "success" | "error">("idle");
   const [txError, setTxError] = useState<string | null>(null);
 
   // Check operator approval status for the reward token
@@ -77,37 +74,24 @@ export const CreateFarm = () => {
   });
 
   if (!tokens || tokens.length === 0) {
-    return (
-      <div className="text-muted-foreground text-sm">
-        {t("common.loading_tokens")}
-      </div>
-    );
+    return <div className="text-muted-foreground text-sm">{t("common.loading_tokens")}</div>;
   }
 
   const poolTokens = useMemo(
-    () => tokens?.filter((token) => 
-      token.poolId && 
-      token.poolId > 0n && 
-      token.reserve0 && 
-      token.reserve0 > 0n
-    ),
+    () => tokens?.filter((token) => token.poolId && token.poolId > 0n && token.reserve0 && token.reserve0 > 0n),
     [tokens],
   );
 
   // Filter reward tokens to exclude ETH (not supported by zChef)
-  const rewardTokens = useMemo(
-    () =>
-      tokens?.filter((token) => token.symbol !== "ETH"),
-    [tokens],
-  );
+  const rewardTokens = useMemo(() => tokens?.filter((token) => token.symbol !== "ETH"), [tokens]);
 
   // Auto-select first pool and reward token when available
   useEffect(() => {
     if (!formDataInitialized && poolTokens && poolTokens.length > 0 && rewardTokens && rewardTokens.length > 0) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         selectedToken: poolTokens[0],
-        rewardToken: rewardTokens[0]
+        rewardToken: rewardTokens[0],
       }));
       setFormDataInitialized(true);
     }
@@ -117,7 +101,7 @@ export const CreateFarm = () => {
   const convertCustomDurationToDays = (duration: string, unit: "minutes" | "hours" | "days"): number => {
     const value = parseFloat(duration);
     if (isNaN(value) || value <= 0) return 0;
-    
+
     switch (unit) {
       case "minutes":
         return value / (24 * 60); // Convert minutes to days
@@ -130,21 +114,16 @@ export const CreateFarm = () => {
     }
   };
 
-  const maxRewardAmount = formData.rewardToken.balance && formData.rewardToken.balance > 0n
-    ? formData.rewardToken.decimals !== undefined &&
-      formData.rewardToken.decimals !== 18
-      ? formData.rewardToken.decimals > 0
-        ? (
-            Number(formData.rewardToken.balance) /
-            10 ** formData.rewardToken.decimals
-          ).toString()
-        : "0"
-      : formatEther(BigInt(formData.rewardToken.balance))
-    : "0";
+  const maxRewardAmount =
+    formData.rewardToken.balance && formData.rewardToken.balance > 0n
+      ? formData.rewardToken.decimals !== undefined && formData.rewardToken.decimals !== 18
+        ? formData.rewardToken.decimals > 0
+          ? (Number(formData.rewardToken.balance) / 10 ** formData.rewardToken.decimals).toString()
+          : "0"
+        : formatEther(BigInt(formData.rewardToken.balance))
+      : "0";
 
-  const handleInputChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
 
@@ -223,7 +202,9 @@ export const CreateFarm = () => {
     // Validate duration
     const durationValue = formData.useCustomDuration ? formData.customDuration : formData.duration;
     if (!durationValue) {
-      newErrors.duration = formData.useCustomDuration ? t("common.please_enter_custom_duration") : t("common.please_select_duration");
+      newErrors.duration = formData.useCustomDuration
+        ? t("common.please_enter_custom_duration")
+        : t("common.please_select_duration");
     } else {
       let durationDays: number;
       if (formData.useCustomDuration) {
@@ -231,14 +212,14 @@ export const CreateFarm = () => {
       } else {
         durationDays = parseInt(durationValue);
       }
-      
+
       if (isNaN(durationDays)) {
         newErrors.duration = t("common.duration_must_be_valid_number");
       } else if (durationDays > 730) {
         newErrors.duration = t("common.duration_cannot_exceed_730");
       } else if (durationDays <= 0) {
         newErrors.duration = t("common.duration_must_be_positive");
-      } else if (formData.useCustomDuration && durationDays < (1 / (24 * 60))) {
+      } else if (formData.useCustomDuration && durationDays < 1 / (24 * 60)) {
         // Minimum 1 minute
         newErrors.duration = t("common.duration_minimum_one_minute");
       } else {
@@ -246,10 +227,7 @@ export const CreateFarm = () => {
         if (formData.rewardAmount && durationDays > 0) {
           try {
             const decimals = formData.rewardToken.decimals || 18;
-            const rewardAmountBigInt = parseUnits(
-              formData.rewardAmount,
-              decimals,
-            );
+            const rewardAmountBigInt = parseUnits(formData.rewardAmount, decimals);
             const durationSeconds = BigInt(Math.floor(durationDays * 24 * 60 * 60));
             const ACC_PRECISION = BigInt(1e12);
             const rate = (rewardAmountBigInt * ACC_PRECISION) / durationSeconds;
@@ -284,7 +262,7 @@ export const CreateFarm = () => {
       if (rewardTokenId && !isRewardTokenOperatorApproved) {
         setTxStatus("pending");
         console.log("Setting operator approval for reward token...");
-        
+
         // For ERC6909 tokens (both ZAMM and Cookbook coins), use setOperator
         if (rewardTokenId >= 1000000n) {
           // ZAMM coins: use setOperator on Coins contract
@@ -344,7 +322,8 @@ export const CreateFarm = () => {
         durationDays = parseInt(durationValue);
       }
       const durationInSeconds = Math.floor(durationDays * 24 * 60 * 60);
-      if (durationInSeconds > 2 ** 63 - 1) { // uint64 max (signed safe)
+      if (durationInSeconds > 2 ** 63 - 1) {
+        // uint64 max (signed safe)
         throw new Error("Duration exceeds maximum allowed value");
       }
       const durationSeconds = BigInt(durationInSeconds);
@@ -376,8 +355,7 @@ export const CreateFarm = () => {
         encodePacked(
           ["address", "uint256", "uint256", "uint256"],
           [
-            formData.selectedToken.token1 ||
-              "0x0000000000000000000000000000000000000000",
+            formData.selectedToken.token1 || "0x0000000000000000000000000000000000000000",
             BigInt(Date.now()),
             BigInt(Math.floor(Math.random() * 1000000)),
             rewardAmount,
@@ -389,15 +367,7 @@ export const CreateFarm = () => {
         address: ZChefAddress,
         abi: ZChefAbi,
         functionName: "createStream",
-        args: [
-          lpToken,
-          lpId,
-          rewardTokenAddress,
-          rewardId,
-          rewardAmount,
-          durationSeconds,
-          uniqueBytes,
-        ],
+        args: [lpToken, lpId, rewardTokenAddress, rewardId, rewardAmount, durationSeconds, uniqueBytes],
         // No value needed since ETH is not supported as reward token
         chainId: mainnet.id,
       });
@@ -413,10 +383,10 @@ export const CreateFarm = () => {
         setTxStatus("success");
 
         // Show success notification
-        const farmDuration = formData.useCustomDuration 
+        const farmDuration = formData.useCustomDuration
           ? `${formData.customDuration} ${formData.customDurationUnit}`
           : `${formData.duration} days`;
-        
+
         console.log(`🎉 Farm created successfully! 
         Pool: ${formData.selectedToken?.symbol} 
         Reward: ${formData.rewardAmount} ${formData.rewardToken.symbol}
@@ -427,9 +397,7 @@ export const CreateFarm = () => {
         setTimeout(() => {
           setFormData({
             selectedToken: poolTokens?.[0] || null,
-            rewardToken:
-              rewardTokens?.[0] || tokens.find((t) => t.symbol !== "ETH") ||
-              ETH_TOKEN,
+            rewardToken: rewardTokens?.[0] || tokens.find((t) => t.symbol !== "ETH") || ETH_TOKEN,
             rewardAmount: "",
             duration: "7",
             customDuration: "",
@@ -506,17 +474,13 @@ export const CreateFarm = () => {
             ) : (
               <div className="text-center py-4 text-muted-foreground text-sm font-mono">
                 <div className="mb-2">🏊‍♂️ {t("common.no_lp_pools_available")}</div>
-                <div className="text-xs">
-                  {t("common.create_lp_pool_first")}
-                </div>
+                <div className="text-xs">{t("common.create_lp_pool_first")}</div>
               </div>
             )}
           </div>
           {errors.selectedToken && (
             <div className="bg-red-500/10 border border-red-500/30 rounded p-2">
-              <p className="text-sm text-red-400 font-mono">
-                {errors.selectedToken}
-              </p>
+              <p className="text-sm text-red-400 font-mono">{errors.selectedToken}</p>
             </div>
           )}
           {formData.selectedToken && (
@@ -529,24 +493,18 @@ export const CreateFarm = () => {
                       const poolId = (formData.selectedToken.poolId || formData.selectedToken.id)?.toString();
                       if (!poolId || poolId === "N/A") return "N/A";
                       // Pool IDs are always full uint, truncate for UI
-                      return poolId.length > 16 
-                        ? `${poolId.slice(0, 8)}...${poolId.slice(-8)}` 
-                        : poolId;
+                      return poolId.length > 16 ? `${poolId.slice(0, 8)}...${poolId.slice(-8)}` : poolId;
                     })()}
                   </div>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">{t("common.pair")}:</span>
-                  <span className="text-primary font-bold">
-                    ETH / {formData.selectedToken.symbol}
-                  </span>
+                  <span className="text-primary font-bold">ETH / {formData.selectedToken.symbol}</span>
                 </div>
                 {formData.selectedToken.reserve0 && formData.selectedToken.reserve0 > 0n ? (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">{t("common.liquidity_label")}:</span>
-                    <span className="text-primary font-bold">
-                      {formatEther(formData.selectedToken.reserve0)} ETH
-                    </span>
+                    <span className="text-primary font-bold">{formatEther(formData.selectedToken.reserve0)} ETH</span>
                   </div>
                 ) : null}
               </div>
@@ -569,9 +527,7 @@ export const CreateFarm = () => {
           </div>
           {errors.rewardToken && (
             <div className="bg-red-500/10 border border-red-500/30 rounded p-2">
-              <p className="text-sm text-red-400 font-mono">
-                {errors.rewardToken}
-              </p>
+              <p className="text-sm text-red-400 font-mono">{errors.rewardToken}</p>
             </div>
           )}
         </div>
@@ -613,8 +569,7 @@ export const CreateFarm = () => {
               <div className="flex justify-between text-xs font-mono">
                 <span className="text-muted-foreground">{t("common.balance_label")}:</span>
                 <span className="text-primary font-bold">
-                  {parseFloat(maxRewardAmount).toFixed(6)}{" "}
-                  {formData.rewardToken.symbol}
+                  {parseFloat(maxRewardAmount).toFixed(6)} {formData.rewardToken.symbol}
                 </span>
               </div>
             </div>
@@ -626,10 +581,11 @@ export const CreateFarm = () => {
               } else {
                 durationDays = parseInt(durationValue);
               }
-              return formData.rewardAmount &&
+              return (
+                formData.rewardAmount &&
                 durationValue &&
                 parseFloat(formData.rewardAmount) > 0 &&
-                !isNaN(durationDays) && 
+                !isNaN(durationDays) &&
                 durationDays > 0 && (
                   <div className="border border-primary/20 rounded-lg p-4 bg-background/30">
                     <h4 className="font-mono font-bold text-primary mb-4 text-base tracking-wider">
@@ -639,49 +595,39 @@ export const CreateFarm = () => {
                       <div className="flex justify-between items-center py-2 border-b border-primary/10">
                         <span className="font-mono text-sm text-muted-foreground">{t("common.per_second")}:</span>
                         <span className="font-mono text-sm font-bold text-foreground break-all max-w-[60%] text-right">
-                          {(
-                            parseFloat(formData.rewardAmount) /
-                            (durationDays * 24 * 60 * 60)
-                          ).toFixed(8)}{" "}
+                          {(parseFloat(formData.rewardAmount) / (durationDays * 24 * 60 * 60)).toFixed(8)}{" "}
                           <span className="text-primary">{formData.rewardToken.symbol}</span>
                         </span>
                       </div>
                       <div className="flex justify-between items-center py-2 border-b border-primary/10">
                         <span className="font-mono text-sm text-muted-foreground">{t("common.per_day")}:</span>
                         <span className="font-mono text-sm font-bold text-foreground break-all max-w-[60%] text-right">
-                          {(
-                            parseFloat(formData.rewardAmount) /
-                            durationDays
-                          ).toFixed(6)}{" "}
+                          {(parseFloat(formData.rewardAmount) / durationDays).toFixed(6)}{" "}
                           <span className="text-primary">{formData.rewardToken.symbol}</span>
                         </span>
                       </div>
                       <div className="flex justify-between items-center py-2 bg-primary/5 px-3 rounded">
                         <span className="font-mono text-sm font-bold text-primary">
-                          {formData.useCustomDuration ? (
-                            `${t("common.total_custom", { 
-                              amount: formData.customDuration, 
-                              unit: t(`common.${formData.customDurationUnit}`) 
-                            })}:`
-                          ) : (
-                            `${t("common.total_days", { days: durationDays })}:`
-                          )}
+                          {formData.useCustomDuration
+                            ? `${t("common.total_custom", {
+                                amount: formData.customDuration,
+                                unit: t(`common.${formData.customDurationUnit}`),
+                              })}:`
+                            : `${t("common.total_days", { days: durationDays })}:`}
                         </span>
                         <span className="font-mono text-sm font-bold text-primary break-all max-w-[60%] text-right">
-                          {parseFloat(formData.rewardAmount).toFixed(6)}{" "}
-                          {formData.rewardToken.symbol}
+                          {parseFloat(formData.rewardAmount).toFixed(6)} {formData.rewardToken.symbol}
                         </span>
                       </div>
                     </div>
                   </div>
-                );
+                )
+              );
             })()}
           </div>
           {errors.rewardAmount && (
             <div className="bg-red-500/10 border border-red-500/30 rounded p-2">
-              <p className="text-sm text-red-400 font-mono">
-                {errors.rewardAmount}
-              </p>
+              <p className="text-sm text-red-400 font-mono">{errors.rewardAmount}</p>
             </div>
           )}
         </div>
@@ -692,11 +638,18 @@ export const CreateFarm = () => {
             {t("common.duration")}
           </label>
           <div className="space-y-5">
-            <div className="flex items-center gap-3 p-4 border border-primary/30 rounded-lg bg-background/30 hover:bg-background/50 transition-colors cursor-pointer" onClick={() => setFormData(prev => ({ ...prev, useCustomDuration: false }))}>
-              <div className={`w-4 h-4 rounded-full border-2 border-primary flex items-center justify-center ${!formData.useCustomDuration ? 'bg-primary' : 'bg-transparent'}`}>
+            <div
+              className="flex items-center gap-3 p-4 border border-primary/30 rounded-lg bg-background/30 hover:bg-background/50 transition-colors cursor-pointer"
+              onClick={() => setFormData((prev) => ({ ...prev, useCustomDuration: false }))}
+            >
+              <div
+                className={`w-4 h-4 rounded-full border-2 border-primary flex items-center justify-center ${!formData.useCustomDuration ? "bg-primary" : "bg-transparent"}`}
+              >
                 {!formData.useCustomDuration && <div className="w-2 h-2 rounded-full bg-primary-foreground"></div>}
               </div>
-              <label htmlFor="preset-duration" className="text-sm font-mono font-bold cursor-pointer text-primary">{t("common.preset_durations")}</label>
+              <label htmlFor="preset-duration" className="text-sm font-mono font-bold cursor-pointer text-primary">
+                {t("common.preset_durations")}
+              </label>
             </div>
             {!formData.useCustomDuration && (
               <select
@@ -712,11 +665,18 @@ export const CreateFarm = () => {
                 ))}
               </select>
             )}
-            <div className="flex items-center gap-3 p-4 border border-primary/30 rounded-lg bg-background/30 hover:bg-background/50 transition-colors cursor-pointer" onClick={() => setFormData(prev => ({ ...prev, useCustomDuration: true }))}>
-              <div className={`w-4 h-4 rounded-full border-2 border-primary flex items-center justify-center ${formData.useCustomDuration ? 'bg-primary' : 'bg-transparent'}`}>
+            <div
+              className="flex items-center gap-3 p-4 border border-primary/30 rounded-lg bg-background/30 hover:bg-background/50 transition-colors cursor-pointer"
+              onClick={() => setFormData((prev) => ({ ...prev, useCustomDuration: true }))}
+            >
+              <div
+                className={`w-4 h-4 rounded-full border-2 border-primary flex items-center justify-center ${formData.useCustomDuration ? "bg-primary" : "bg-transparent"}`}
+              >
                 {formData.useCustomDuration && <div className="w-2 h-2 rounded-full bg-primary-foreground"></div>}
               </div>
-              <label htmlFor="custom-duration" className="text-sm font-mono font-bold cursor-pointer text-primary">{t("common.custom_duration")}</label>
+              <label htmlFor="custom-duration" className="text-sm font-mono font-bold cursor-pointer text-primary">
+                {t("common.custom_duration")}
+              </label>
             </div>
             {formData.useCustomDuration && (
               <div className="flex items-center gap-3 mt-3">
@@ -732,10 +692,12 @@ export const CreateFarm = () => {
                 />
                 <select
                   value={formData.customDurationUnit}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    customDurationUnit: e.target.value as "minutes" | "hours" | "days" 
-                  }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      customDurationUnit: e.target.value as "minutes" | "hours" | "days",
+                    }))
+                  }
                   className="px-4 py-3 border-2 border-primary/20 bg-background/50 text-foreground font-mono text-sm focus:outline-none focus:border-primary/50 rounded-lg backdrop-blur-sm min-w-[90px] min-h-[44px]"
                 >
                   <option value="minutes">{t("common.minutes")}</option>
@@ -747,9 +709,7 @@ export const CreateFarm = () => {
           </div>
           {errors.duration && (
             <div className="bg-red-500/10 border border-red-500/30 rounded p-2">
-              <p className="text-sm text-red-400 font-mono">
-                {errors.duration}
-              </p>
+              <p className="text-sm text-red-400 font-mono">{errors.duration}</p>
             </div>
           )}
         </div>
@@ -764,9 +724,7 @@ export const CreateFarm = () => {
             disabled={isSubmitting}
             className="w-full font-mono font-bold tracking-wide text-lg py-6 hover:scale-105 transition-all duration-200 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary shadow-lg min-h-[56px] border border-primary/30"
           >
-            {isSubmitting
-              ? `[${t("common.creating_farm")}...]`
-              : `[${t("common.create_farm")}]`}
+            {isSubmitting ? `[${t("common.creating_farm")}...]` : `[${t("common.create_farm")}]`}
           </Button>
         </div>
 
@@ -787,33 +745,25 @@ export const CreateFarm = () => {
                 {txStatus === "pending" && (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent"></div>
-                    <span className="font-mono font-bold text-primary">
-                      [PENDING]
-                    </span>
+                    <span className="font-mono font-bold text-primary">[PENDING]</span>
                   </>
                 )}
                 {txStatus === "confirming" && (
                   <>
                     <div className="animate-pulse h-4 w-4 bg-yellow-500 rounded-full"></div>
-                    <span className="font-mono font-bold text-yellow-500">
-                      [CONFIRMING]
-                    </span>
+                    <span className="font-mono font-bold text-yellow-500">[CONFIRMING]</span>
                   </>
                 )}
                 {txStatus === "success" && (
                   <>
                     <div className="h-4 w-4 bg-green-500 rounded-full"></div>
-                    <span className="font-mono font-bold text-green-500">
-                      [SUCCESS]
-                    </span>
+                    <span className="font-mono font-bold text-green-500">[SUCCESS]</span>
                   </>
                 )}
                 {txStatus === "error" && (
                   <>
                     <div className="h-4 w-4 bg-red-500 rounded-full"></div>
-                    <span className="font-mono font-bold text-red-500">
-                      [ERROR]
-                    </span>
+                    <span className="font-mono font-bold text-red-500">[ERROR]</span>
                   </>
                 )}
               </div>
@@ -837,23 +787,23 @@ export const CreateFarm = () => {
 
               {txError && (
                 <div className="text-center">
-                  <p className="text-sm text-red-400 font-mono break-words">
-                    {txError}
-                  </p>
+                  <p className="text-sm text-red-400 font-mono break-words">{txError}</p>
                 </div>
               )}
 
               {txStatus === "success" && (
                 <div className="text-center space-y-2">
-                  <p className="text-sm text-green-400 font-mono">
-                    {t("common.farm_created_successfully")}
-                  </p>
+                  <p className="text-sm text-green-400 font-mono">{t("common.farm_created_successfully")}</p>
                   <div className="text-xs text-green-300 font-mono space-y-1">
                     <div>🌾 Pool: {formData.selectedToken?.symbol}</div>
-                    <div>💰 Reward: {formData.rewardAmount} {formData.rewardToken.symbol}</div>
-                    <div>⏰ Duration: {formData.useCustomDuration 
-                      ? `${formData.customDuration} ${t(`common.${formData.customDurationUnit}`)}` 
-                      : `${formData.duration} ${t("common.days")}`}
+                    <div>
+                      💰 Reward: {formData.rewardAmount} {formData.rewardToken.symbol}
+                    </div>
+                    <div>
+                      ⏰ Duration:{" "}
+                      {formData.useCustomDuration
+                        ? `${formData.customDuration} ${t(`common.${formData.customDurationUnit}`)}`
+                        : `${formData.duration} ${t("common.days")}`}
                     </div>
                     <div className="mt-2 text-green-400">✨ {t("common.farm_will_auto_reset")}</div>
                   </div>

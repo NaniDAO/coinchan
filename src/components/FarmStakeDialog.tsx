@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseUnits, parseEther } from "viem";
 import { useAccount, usePublicClient } from "wagmi";
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 // import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { IncentiveStream } from "@/hooks/use-incentive-streams";
-import { useZChefActions, useSetOperatorApproval } from "@/hooks/use-zchef-contract";
+import { useZChefActions, useSetOperatorApproval, useZChefRewardPerSharePerYear } from "@/hooks/use-zchef-contract";
 import { useOperatorStatus } from "@/hooks/use-operator-status";
 import { useZapCalculations } from "@/hooks/use-zap-calculations";
 import { useZapDeposit } from "@/hooks/use-zap-deposit";
@@ -18,7 +18,7 @@ import { TokenMeta, ETH_TOKEN } from "@/lib/coins";
 import { SINGLE_ETH_SLIPPAGE_BPS } from "@/lib/swap";
 import { useAllCoins } from "@/hooks/metadata/use-all-coins";
 import { ZChefAddress } from "@/constants/zChef";
-import { cn } from "@/lib/utils";
+import { cn, formatBalance } from "@/lib/utils";
 
 interface FarmStakeDialogProps {
   stream: IncentiveStream;
@@ -49,6 +49,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
   const { calculateZapAmounts, formatZapPreview } = useZapCalculations();
   const zapDeposit = useZapDeposit();
   const { validateStreamBeforeAction } = useStreamValidation();
+  const { data: rewardPerSharePerYear } = useZChefRewardPerSharePerYear(BigInt(stream.chefId));
 
   // Get ETH token data
   const ethToken = tokens.find((t) => t.id === null) || ETH_TOKEN;
@@ -69,6 +70,24 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
         : "0";
 
   const needsApproval = stakeMode === "lp" && !isOperatorApproved && parseFloat(amount) > 0;
+
+  // Calculate expected APY from farm rewards
+  const expectedFarmAPY = useMemo(() => {
+    if (!rewardPerSharePerYear || !amount || parseFloat(amount) <= 0) return null;
+
+    // rewardPerSharePerYear is scaled by 1e12 (ACC_PRECISION)
+    const yearlyRewardPerShare = formatUnits(rewardPerSharePerYear, 12); // Remove ACC_PRECISION scaling
+
+    // For display purposes, convert to percentage
+    // This represents reward tokens earned per LP token per year
+    const apyPercent = parseFloat(yearlyRewardPerShare) * 100;
+
+    return {
+      apy: apyPercent,
+      yearlyReward: yearlyRewardPerShare,
+      rewardSymbol: stream.rewardCoin?.symbol || "???",
+    };
+  }, [rewardPerSharePerYear, amount, stream.rewardCoin]);
 
   // Debounced zap calculation with proper cleanup
   const debounceTimerRef = useRef<NodeJS.Timeout>();
@@ -231,7 +250,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
     }
   };
 
-  const zapPreview = zapCalculation ? formatZapPreview(zapCalculation, lpToken) : null;
+  const zapPreview = zapCalculation && zapCalculation.isValid ? formatZapPreview(zapCalculation, lpToken) : null;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -261,11 +280,14 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                 )}
                 <div>
                   <h3 className="font-mono font-bold text-lg bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent break-all">
-                    {lpToken?.symbol || (() => {
-                      const lpId = stream.lpId?.toString();
-                      // LP IDs are always full uint, truncate for UI
-                      return lpId && lpId.length > 12 ? `Pool ${lpId.slice(0, 6)}...${lpId.slice(-6)}` : `Pool ${lpId}`;
-                    })()}
+                    {lpToken?.symbol ||
+                      (() => {
+                        const lpId = stream.lpId?.toString();
+                        // LP IDs are always full uint, truncate for UI
+                        return lpId && lpId.length > 12
+                          ? `Pool ${lpId.slice(0, 6)}...${lpId.slice(-6)}`
+                          : `Pool ${lpId}`;
+                      })()}
                   </h3>
                   <p className="text-xs text-muted-foreground font-mono">{t("common.lp_token_pool")}</p>
                 </div>
@@ -284,6 +306,35 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
               )}
             </div>
           </div>
+
+          {/* APY Information */}
+          {expectedFarmAPY && (
+            <div className="bg-gradient-to-r from-green-500/10 to-green-500/5 border border-green-500/30 rounded-lg p-4">
+              <h4 className="font-mono font-bold text-sm uppercase tracking-wider mb-3 text-green-600 dark:text-green-400">
+                [{t("common.expected_returns")}]
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="bg-background/40 border border-green-500/20 rounded p-3">
+                  <p className="text-muted-foreground font-mono text-xs">{t("common.farm_apy")}:</p>
+                  <p className="font-mono font-bold text-green-600 dark:text-green-400 text-lg">
+                    {expectedFarmAPY.apy.toFixed(2)}%
+                  </p>
+                </div>
+                <div className="bg-background/40 border border-green-500/20 rounded p-3">
+                  <p className="text-muted-foreground font-mono text-xs">{t("common.yearly_rewards")}:</p>
+                  <p className="font-mono font-bold text-green-600 dark:text-green-400">
+                    {parseFloat(expectedFarmAPY.yearlyReward).toFixed(6)} {expectedFarmAPY.rewardSymbol}
+                  </p>
+                  <p className="text-xs text-muted-foreground font-mono mt-1">{t("common.per_lp_token")}</p>
+                </div>
+              </div>
+              <div className="mt-3 p-2 bg-background/30 border border-green-500/20 rounded">
+                <p className="text-xs font-mono text-muted-foreground">
+                  <span className="text-green-600 dark:text-green-400">ℹ</span> {t("common.apy_note")}
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className="h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent"></div>
 
@@ -349,21 +400,10 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
               <div className="space-y-2 text-sm font-mono">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">{t("common.available")}:</span>
-                  <span className="text-primary font-bold">
-                    {parseFloat(maxAmount).toFixed(6)} {stakeMode === "lp" ? lpToken.symbol : "ETH"}
+                  <span className="text-primary font-bold break-all">
+                    {formatBalance(maxAmount, stakeMode === "lp" ? lpToken.symbol : "ETH", 12)}
                   </span>
                 </div>
-                {stakeMode === "lp" &&
-                lpToken.balance !== null &&
-                lpToken.balance !== undefined &&
-                lpToken.balance > 0n ? (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{t("common.lp_balance")}:</span>
-                    <span className="text-primary font-bold">
-                      {parseFloat(formatUnits(lpToken.balance, lpToken.decimals || 18)).toFixed(6)} {lpToken.symbol}
-                    </span>
-                  </div>
-                ) : null}
               </div>
             </div>
 
@@ -411,18 +451,20 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                         <span className="font-mono font-bold text-primary text-lg">{amount} ETH</span>
                       </div>
                     </div>
-                    {zapPreview && (
+                    {stakeMode === "eth" && amount && parseFloat(amount) > 0 && (
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <div className="bg-background/40 border border-primary/20 rounded p-2">
                           <div className="text-xs text-muted-foreground font-mono">{t("common.eth_for_swap")}</div>
                           <div className="font-mono font-bold text-primary text-xs break-all">
-                            {parseFloat(zapPreview.ethToSwap).toFixed(4)} ETH
+                            {zapPreview ? `${parseFloat(zapPreview.ethToSwap).toFixed(4)} ETH` : "Calculating..."}
                           </div>
                         </div>
                         <div className="bg-background/40 border border-primary/20 rounded p-2">
                           <div className="text-xs text-muted-foreground font-mono">{t("common.estimated_tokens")}</div>
                           <div className="font-mono font-bold text-primary text-xs break-all">
-                            {parseFloat(zapPreview.estimatedTokens).toFixed(6)}
+                            {zapPreview
+                              ? `${parseFloat(zapPreview.estimatedTokens).toFixed(6)} ${lpToken.symbol || ""}`
+                              : "Calculating..."}
                           </div>
                         </div>
                         <div className="bg-background/40 border border-primary/20 rounded p-2">
@@ -430,7 +472,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                             {t("common.estimated_lp_tokens")}
                           </div>
                           <div className="font-mono font-bold text-primary text-xs break-all">
-                            {parseFloat(zapPreview.estimatedLpTokens).toFixed(6)}
+                            {zapPreview ? parseFloat(zapPreview.estimatedLpTokens).toFixed(6) : "Calculating..."}
                           </div>
                         </div>
                       </div>
@@ -562,7 +604,9 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                 {txStatus === "success" && (
                   <div className="text-center">
                     <p className="text-sm text-green-400 font-mono">
-                      {stakeMode === "eth" ? t("common.eth_zapped_staked_success") : t("common.lp_tokens_staked_success")}
+                      {stakeMode === "eth"
+                        ? t("common.eth_zapped_staked_success")
+                        : t("common.lp_tokens_staked_success")}
                     </p>
                   </div>
                 )}
