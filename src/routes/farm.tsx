@@ -20,14 +20,13 @@ function RouteComponent() {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 !p-3 sm:!p-6 !mb-[50px]">
       <div className="text-center mb-6 sm:mb-8">
         <div className="relative inline-block">
-          <h2 className="font-mono font-bold text-xl sm:text-2xl uppercase tracking-[0.2em] border-2 border-primary inline-block px-6 py-3 bg-gradient-to-r from-primary/20 via-primary/10 to-primary/20 backdrop-blur-sm shadow-lg">
-            [{t("common.farm_alpha")}]
+          <h2 className="font-bold text-xl sm:text-2xl uppercase tracking-[0.2em] border-2 border-primary inline-block px-6 py-3 bg-gradient-to-r from-primary/20 via-primary/10 to-primary/20 backdrop-blur-sm shadow-lg">
+            {t("common.farm_alpha")}
           </h2>
           <div className="absolute -inset-1 bg-gradient-to-r from-primary/50 via-transparent to-primary/50 opacity-50 blur-sm -z-10"></div>
         </div>
-        <p className="text-sm text-muted-foreground mt-3 font-mono tracking-wide">
-          <span className="text-primary">&gt;</span> yield_farming.exe
-          --mode=interactive --version=2.0
+        <p className="text-sm text-muted-foreground mt-3">
+          {t("common.farm_description")}
         </p>
         <div className="flex justify-center mt-4">
           <div className="h-px w-32 bg-gradient-to-r from-transparent via-primary to-transparent opacity-60"></div>
@@ -62,19 +61,15 @@ function RouteComponent() {
             <TabsList className="grid w-full grid-cols-2 bg-gradient-to-r from-background/80 via-background to-background/80 border-2 border-primary/60 p-1 backdrop-blur-sm shadow-xl">
               <TabsTrigger
                 value="browse"
-                className="font-mono text-sm sm:text-base font-medium border-r border-primary/40 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg hover:bg-primary/20 transition-all duration-200 tracking-wide"
+                className="text-sm sm:text-base font-medium border-r border-primary/40 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg hover:bg-primary/20 transition-all duration-200"
               >
-                <span className="hidden sm:inline">[</span>
                 {t("common.browse_farms")}
-                <span className="hidden sm:inline">]</span>
               </TabsTrigger>
               <TabsTrigger
                 value="manage"
-                className="font-mono text-sm sm:text-base font-medium border-r border-primary/40 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg hover:bg-primary/20 transition-all duration-200 tracking-wide"
+                className="text-sm sm:text-base font-medium border-r border-primary/40 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg hover:bg-primary/20 transition-all duration-200"
               >
-                <span className="hidden sm:inline">[</span>
                 {t("common.my_farms")}
-                <span className="hidden sm:inline">]</span>
               </TabsTrigger>
             </TabsList>
             <TabsContent value="browse" className="space-y-6 sm:space-y-8">

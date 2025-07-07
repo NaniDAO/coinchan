@@ -59,8 +59,8 @@ export const CreateFarm = () => {
 
   if (!tokens || tokens.length === 0) {
     return (
-      <div className="text-muted-foreground text-sm font-mono">
-        Loading tokens...
+      <div className="text-muted-foreground text-sm">
+        {t("common.loading_tokens")}
       </div>
     );
   }
@@ -398,19 +398,14 @@ export const CreateFarm = () => {
     <div className="max-w-lg mx-auto space-y-6 sm:space-y-8 px-3 sm:px-0">
       <div className="bg-gradient-to-br from-background/80 to-background/60 border border-primary/30 rounded-xl p-6 backdrop-blur-sm shadow-xl">
         <div className="text-center mb-6">
-          <h3 className="font-mono font-bold text-lg uppercase tracking-wider bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-            [{t("common.create_new_farm")}]
+          <h3 className="font-bold text-lg uppercase tracking-wider bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+            {t("common.create_new_farm")}
           </h3>
-          <p className="text-xs text-muted-foreground mt-2 font-mono">
-            <span className="text-primary">&gt;</span> initialize_stream
-            --params=interactive
-          </p>
           <div className="h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent mt-4"></div>
         </div>
         {/* LP Token Selection */}
         <div className="space-y-3">
-          <label className="block text-sm font-mono font-bold uppercase tracking-wider text-primary">
-            <span className="text-muted-foreground">&gt;</span>{" "}
+          <label className="block text-sm font-bold uppercase tracking-wider text-primary">
             {t("common.select_token_with_lp_pool")}
           </label>
           <div className="bg-background/50 border border-primary/20 rounded-lg p-3">
@@ -459,8 +454,7 @@ export const CreateFarm = () => {
 
         {/* Reward Token Selection */}
         <div className="space-y-3">
-          <label className="block text-sm font-mono font-bold uppercase tracking-wider text-primary">
-            <span className="text-muted-foreground">&gt;</span>{" "}
+          <label className="block text-sm font-bold uppercase tracking-wider text-primary">
             {t("common.reward_token")}
           </label>
           <div className="bg-background/50 border border-primary/20 rounded-lg p-3">
@@ -482,8 +476,7 @@ export const CreateFarm = () => {
 
         {/* Reward Amount */}
         <div className="space-y-3">
-          <label className="block text-sm font-mono font-bold uppercase tracking-wider text-primary">
-            <span className="text-muted-foreground">&gt;</span>{" "}
+          <label className="block text-sm font-bold uppercase tracking-wider text-primary">
             {t("common.reward_amount")}
           </label>
           <div className="flex gap-2">
@@ -493,7 +486,7 @@ export const CreateFarm = () => {
               value={formData.rewardAmount}
               onChange={handleInputChange}
               placeholder="60000"
-              className="flex-1 font-mono bg-background/50 border-primary/20 focus:border-primary/50"
+              className="flex-1 bg-background/50 border-primary/20 focus:border-primary/50"
               step="0.000001"
               min="0"
             />
@@ -508,7 +501,7 @@ export const CreateFarm = () => {
                 }))
               }
               disabled={parseFloat(maxRewardAmount) === 0}
-              className="font-mono font-bold tracking-wide border-primary/30 hover:border-primary hover:bg-primary/20"
+              className="font-bold tracking-wide border-primary/30 hover:border-primary hover:bg-primary/20"
             >
               MAX
             </Button>
@@ -527,8 +520,8 @@ export const CreateFarm = () => {
               formData.duration &&
               parseFloat(formData.rewardAmount) > 0 && (
                 <div className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/30 rounded-lg p-4">
-                  <p className="font-mono font-bold text-primary mb-3 text-sm">
-                    [EMISSION_PREVIEW]
+                  <p className="font-bold text-primary mb-3 text-sm">
+                    {t("common.emission_preview")}
                   </p>
                   <div className="space-y-2 font-mono text-xs">
                     <div className="flex justify-between">
@@ -575,15 +568,14 @@ export const CreateFarm = () => {
 
         {/* Duration Selection */}
         <div className="space-y-3">
-          <label className="block text-sm font-mono font-bold uppercase tracking-wider text-primary">
-            <span className="text-muted-foreground">&gt;</span>{" "}
+          <label className="block text-sm font-bold uppercase tracking-wider text-primary">
             {t("common.duration")}
           </label>
           <select
             name="duration"
             value={formData.duration}
             onChange={handleInputChange}
-            className="w-full px-4 py-3 border-2 border-primary/20 bg-background/50 text-foreground font-mono text-sm focus:outline-none focus:border-primary/50 rounded-lg backdrop-blur-sm"
+            className="w-full px-4 py-3 border-2 border-primary/20 bg-background/50 text-foreground text-sm focus:outline-none focus:border-primary/50 rounded-lg backdrop-blur-sm"
           >
             {DURATION_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -609,20 +601,20 @@ export const CreateFarm = () => {
             <Button
               onClick={handleApproveRewardToken}
               disabled={isSubmitting}
-              className="w-full font-mono font-bold tracking-wide hover:scale-105 transition-all duration-200 bg-gradient-to-r from-primary/80 to-primary/60 hover:from-primary hover:to-primary/80"
+              className="w-full font-bold tracking-wide hover:scale-105 transition-all duration-200 bg-gradient-to-r from-primary/80 to-primary/60 hover:from-primary hover:to-primary/80"
               variant="outline"
             >
               {isSubmitting
-                ? `[${t("common.approving")}...]`
-                : `[${t("common.approve")} ${formData.rewardToken.symbol}]`}
+                ? t("common.approving")
+                : `${t("common.approve")} ${formData.rewardToken.symbol}`}
             </Button>
           ) : formData.rewardToken.symbol !== "ETH" ? (
             <Button
               disabled={true}
-              className="w-full font-mono font-bold tracking-wide opacity-50"
+              className="w-full font-bold tracking-wide opacity-50"
               variant="outline"
             >
-              [External ERC20 Approval - Not Supported]
+              {t("common.external_erc20_not_supported")}
             </Button>
           ) : null}
 
@@ -630,11 +622,11 @@ export const CreateFarm = () => {
           <Button
             onClick={handleCreateFarm}
             disabled={isSubmitting}
-            className="w-full font-mono font-bold tracking-wide text-lg py-4 hover:scale-105 transition-all duration-200 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary shadow-lg"
+            className="w-full font-bold tracking-wide text-lg py-4 hover:scale-105 transition-all duration-200 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary shadow-lg"
           >
             {isSubmitting
-              ? `[${t("common.creating_farm")}...]`
-              : `[${t("common.create_farm")}]`}
+              ? t("common.creating_farm")
+              : t("common.create_farm")}
           </Button>
         </div>
 
@@ -655,32 +647,32 @@ export const CreateFarm = () => {
                 {txStatus === "pending" && (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent"></div>
-                    <span className="font-mono font-bold text-primary">
-                      [PENDING]
+                    <span className="font-bold text-primary">
+                      {t("common.pending")}
                     </span>
                   </>
                 )}
                 {txStatus === "confirming" && (
                   <>
                     <div className="animate-pulse h-4 w-4 bg-yellow-500 rounded-full"></div>
-                    <span className="font-mono font-bold text-yellow-500">
-                      [CONFIRMING]
+                    <span className="font-bold text-yellow-500">
+                      {t("common.confirming")}
                     </span>
                   </>
                 )}
                 {txStatus === "success" && (
                   <>
                     <div className="h-4 w-4 bg-green-500 rounded-full"></div>
-                    <span className="font-mono font-bold text-green-500">
-                      [SUCCESS]
+                    <span className="font-bold text-green-500">
+                      {t("common.success")}
                     </span>
                   </>
                 )}
                 {txStatus === "error" && (
                   <>
                     <div className="h-4 w-4 bg-red-500 rounded-full"></div>
-                    <span className="font-mono font-bold text-red-500">
-                      [ERROR]
+                    <span className="font-bold text-red-500">
+                      {t("common.error")}
                     </span>
                   </>
                 )}
