@@ -256,7 +256,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                   <h3 className="font-mono font-bold text-lg bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
                     {stream.lpPool?.coin.symbol || `Pool ${stream.lpId}`}
                   </h3>
-                  <p className="text-xs text-muted-foreground font-mono">LP Token Pool</p>
+                  <p className="text-xs text-muted-foreground font-mono">{t("common.lp_token_pool")}</p>
                 </div>
               </div>
             </div>
@@ -331,7 +331,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                 disabled={parseFloat(maxAmount) === 0}
                 className="font-mono font-bold tracking-wide border-primary/40 hover:border-primary hover:bg-primary/20 px-4"
               >
-                MAX
+                {t("common.max")}
               </Button>
             </div>
             <div className="bg-background/30 border border-primary/20 rounded p-3">
@@ -475,8 +475,8 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
             >
               {txStatus === "pending" || txStatus === "confirming"
                 ? txStatus === "pending"
-                  ? `[SUBMITTING...]`
-                  : `[CONFIRMING...]`
+                  ? `[${t("common.submitting")}]`
+                  : `[${t("common.confirming")}]`
                 : (stakeMode === "lp" && deposit.isPending) || (stakeMode === "eth" && zapDeposit.isPending)
                   ? `[${t("common.staking")}...]`
                   : stakeMode === "eth"
@@ -502,25 +502,25 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                   {txStatus === "pending" && (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent"></div>
-                      <span className="font-mono font-bold text-primary">[PENDING]</span>
+                      <span className="font-mono font-bold text-primary">[{t("common.status_pending")}]</span>
                     </>
                   )}
                   {txStatus === "confirming" && (
                     <>
                       <div className="animate-pulse h-4 w-4 bg-yellow-500 rounded-full"></div>
-                      <span className="font-mono font-bold text-yellow-500">[CONFIRMING]</span>
+                      <span className="font-mono font-bold text-yellow-500">[{t("common.status_confirming")}]</span>
                     </>
                   )}
                   {txStatus === "success" && (
                     <>
                       <div className="h-4 w-4 bg-green-500 rounded-full"></div>
-                      <span className="font-mono font-bold text-green-500">[SUCCESS]</span>
+                      <span className="font-mono font-bold text-green-500">[{t("common.status_success")}]</span>
                     </>
                   )}
                   {txStatus === "error" && (
                     <>
                       <div className="h-4 w-4 bg-red-500 rounded-full"></div>
-                      <span className="font-mono font-bold text-red-500">[ERROR]</span>
+                      <span className="font-mono font-bold text-red-500">[{t("common.status_error")}]</span>
                     </>
                   )}
                 </div>
@@ -533,11 +533,11 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 px-3 py-1.5 bg-background/50 border border-primary/20 rounded font-mono text-xs hover:bg-primary/10 transition-colors duration-200"
                     >
-                      <span className="text-muted-foreground">TX:</span>
+                      <span className="text-muted-foreground">{t("common.tx_label")}:</span>
                       <span className="text-primary font-bold">
                         {txHash.slice(0, 6)}...{txHash.slice(-4)}
                       </span>
-                      <span className="text-muted-foreground">↗</span>
+                      <span className="text-muted-foreground">{t("common.external_link")}</span>
                     </a>
                   </div>
                 )}
@@ -551,7 +551,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                 {txStatus === "success" && (
                   <div className="text-center">
                     <p className="text-sm text-green-400 font-mono">
-                      {stakeMode === "eth" ? "ETH zapped and staked successfully!" : "LP tokens staked successfully!"}
+                      {stakeMode === "eth" ? t("common.eth_zapped_staked_success") : t("common.lp_tokens_staked_success")}
                     </p>
                   </div>
                 )}

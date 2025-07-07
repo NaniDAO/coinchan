@@ -110,7 +110,7 @@ export function FarmUnstakeDialog({ stream, userPosition, trigger, onSuccess }: 
                 <h3 className="font-mono font-bold text-lg bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
                   {stream.lpPool?.coin.symbol || `Pool ${stream.lpId}`}
                 </h3>
-                <p className="text-xs text-muted-foreground font-mono">LP Token Pool</p>
+                <p className="text-xs text-muted-foreground font-mono">{t("common.lp_token_pool")}</p>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -154,7 +154,7 @@ export function FarmUnstakeDialog({ stream, userPosition, trigger, onSuccess }: 
                 disabled={parseFloat(maxAmount) === 0}
                 className="font-mono font-bold tracking-wide border-primary/40 hover:border-primary hover:bg-primary/20 px-4"
               >
-                MAX
+                {t("common.max")}
               </Button>
             </div>
             <div className="bg-background/30 border border-primary/20 rounded p-3">
@@ -197,7 +197,7 @@ export function FarmUnstakeDialog({ stream, userPosition, trigger, onSuccess }: 
             <div className="flex items-start gap-3">
               <div className="text-yellow-500 text-xl">⚠️</div>
               <div>
-                <p className="font-mono font-bold text-yellow-600 dark:text-yellow-400 text-sm">[WARNING]</p>
+                <p className="font-mono font-bold text-yellow-600 dark:text-yellow-400 text-sm">[{t("common.warning_label")}]</p>
                 <p className="text-sm text-yellow-700 dark:text-yellow-300 font-mono mt-1">
                   {t("common.unstaking_will_claim_rewards")}
                 </p>
@@ -223,8 +223,8 @@ export function FarmUnstakeDialog({ stream, userPosition, trigger, onSuccess }: 
             >
               {txStatus === "pending" || txStatus === "confirming"
                 ? txStatus === "pending"
-                  ? `[SUBMITTING...]`
-                  : `[CONFIRMING...]`
+                  ? `[${t("common.submitting")}]`
+                  : `[${t("common.confirming")}]`
                 : withdraw.isPending
                   ? `[${t("common.unstaking")}...]`
                   : `[${t("common.unstake")}]`}
@@ -248,25 +248,25 @@ export function FarmUnstakeDialog({ stream, userPosition, trigger, onSuccess }: 
                   {txStatus === "pending" && (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent"></div>
-                      <span className="font-mono font-bold text-primary">[PENDING]</span>
+                      <span className="font-mono font-bold text-primary">[{t("common.status_pending")}]</span>
                     </>
                   )}
                   {txStatus === "confirming" && (
                     <>
                       <div className="animate-pulse h-4 w-4 bg-yellow-500 rounded-full"></div>
-                      <span className="font-mono font-bold text-yellow-500">[CONFIRMING]</span>
+                      <span className="font-mono font-bold text-yellow-500">[{t("common.status_confirming")}]</span>
                     </>
                   )}
                   {txStatus === "success" && (
                     <>
                       <div className="h-4 w-4 bg-green-500 rounded-full"></div>
-                      <span className="font-mono font-bold text-green-500">[SUCCESS]</span>
+                      <span className="font-mono font-bold text-green-500">[{t("common.status_success")}]</span>
                     </>
                   )}
                   {txStatus === "error" && (
                     <>
                       <div className="h-4 w-4 bg-red-500 rounded-full"></div>
-                      <span className="font-mono font-bold text-red-500">[ERROR]</span>
+                      <span className="font-mono font-bold text-red-500">[{t("common.status_error")}]</span>
                     </>
                   )}
                 </div>
@@ -279,11 +279,11 @@ export function FarmUnstakeDialog({ stream, userPosition, trigger, onSuccess }: 
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 px-3 py-1.5 bg-background/50 border border-primary/20 rounded font-mono text-xs hover:bg-primary/10 transition-colors duration-200"
                     >
-                      <span className="text-muted-foreground">TX:</span>
+                      <span className="text-muted-foreground">{t("common.tx_label")}:</span>
                       <span className="text-primary font-bold">
                         {txHash.slice(0, 6)}...{txHash.slice(-4)}
                       </span>
-                      <span className="text-muted-foreground">↗</span>
+                      <span className="text-muted-foreground">{t("common.external_link")}</span>
                     </a>
                   </div>
                 )}
@@ -297,7 +297,7 @@ export function FarmUnstakeDialog({ stream, userPosition, trigger, onSuccess }: 
                 {txStatus === "success" && (
                   <div className="text-center">
                     <p className="text-sm text-green-400 font-mono">
-                      LP tokens unstaked and rewards claimed successfully!
+                      {t("common.lp_unstaked_rewards_claimed")}
                     </p>
                   </div>
                 )}
