@@ -301,7 +301,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
               {lpToken && (
                 <div className="bg-background/30 border border-primary/20 rounded p-3">
                   <p className="text-muted-foreground font-mono text-xs">{t("common.pool_liquidity")}</p>
-                  <p className="font-mono font-bold text-primary">{formatEther(lpToken.liquidity || 0n)} ETH</p>
+                  <p className="font-mono font-bold text-primary">{formatEther(lpToken.reserve0 || lpToken.liquidity || 0n)} ETH</p>
                 </div>
               )}
             </div>

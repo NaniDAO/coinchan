@@ -179,13 +179,13 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
         {lpToken && lpToken.liquidity !== undefined && (
           <div className="border-t border-primary/30 pt-4 mt-4">
             <h4 className="font-mono font-bold text-sm uppercase tracking-wider mb-3 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              {t("common.pool_info")}
+              {t("pool.pool_info")}
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div className="bg-background/20 border border-primary/20 rounded p-3">
-                <p className="text-muted-foreground font-mono font-medium text-xs">{t("common.total_liquidity")}</p>
+                <p className="text-muted-foreground font-mono font-medium text-xs">{t("pool.total_liquidity")}</p>
                 <p className="font-mono font-bold text-primary text-base mt-1 break-all">
-                  {formatBalance(formatEther(lpToken.liquidity), "ETH", 12)}
+                  {formatBalance(formatEther(lpToken.reserve0 || lpToken.liquidity || 0n), "ETH", 12)}
                 </p>
               </div>
             </div>
