@@ -46,7 +46,7 @@ export function useCombinedApy({ stream, lpToken, enabled = true }: UseCombinedA
 
   // Fetch farm incentive APY
   const { data: rewardPerSharePerYear, isLoading: isFarmApyLoading } = useZChefRewardPerSharePerYear(
-    enabled ? BigInt(stream.chefId) : undefined
+    enabled ? stream.chefId : undefined
   );
 
   // Calculate combined APY

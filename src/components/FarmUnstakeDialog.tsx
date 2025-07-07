@@ -60,11 +60,7 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
         setTxStatus("success");
 
         // Show success notification
-        console.log(`🎉 Unstake successful!
-        Amount: ${amount} shares
-        Pool: ${lpToken.symbol}
-        Pending Rewards: ${formatEther(userPosition.pendingRewards)} ${stream.rewardCoin?.symbol}
-        TX: ${hash}`);
+        console.log(`🎉 Unstake successful! Amount: ${amount} shares, Pool: ${lpToken.symbol}, Rewards: ${formatEther(userPosition.pendingRewards)} ${stream.rewardCoin?.symbol}, TX: ${hash}`);
 
         // Reset form and close after success
         setTimeout(() => {

@@ -25,7 +25,7 @@ export function useLpBalance({ lpToken, enabled = true }: UseLpBalanceParams) {
     error,
     refetch,
   } = useQuery({
-    queryKey: ["lpBalance", address, lpToken.id, lpToken.poolId],
+    queryKey: ["lpBalance", address, lpToken.id?.toString(), lpToken.poolId?.toString()],
     queryFn: async () => {
       if (!address || !publicClient || !lpToken.id) return 0n;
 

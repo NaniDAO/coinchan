@@ -231,11 +231,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
         setTxStatus("success");
 
         // Show success notification
-        console.log(`🎉 Stake successful!
-        Mode: ${stakeMode === "lp" ? "LP Tokens" : "ETH Zap"}
-        Amount: ${amount} ${stakeMode === "lp" ? lpToken.symbol : "ETH"}
-        Pool: ${lpToken.symbol}
-        TX: ${hash}`);
+        console.log(`🎉 Stake successful! Mode: ${stakeMode === "lp" ? "LP Tokens" : "ETH Zap"}, Amount: ${amount} ${stakeMode === "lp" ? lpToken.symbol || "LP" : "ETH"}, Pool: ${lpToken.symbol || "Unknown"}, TX: ${hash}`);
 
         // Reset form and close after success
         setTimeout(() => {

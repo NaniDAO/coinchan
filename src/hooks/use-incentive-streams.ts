@@ -222,7 +222,7 @@ export function useUserIncentivePositions(userAddress?: `0x${string}`) {
         }),
       });
 
-      console.log("User Response :", response);
+      console.log("User Response status:", response.status);
 
       if (!response.ok) {
         throw new Error("Failed to fetch incentive positions");
@@ -230,11 +230,11 @@ export function useUserIncentivePositions(userAddress?: `0x${string}`) {
 
       const data = await response.json();
 
-      console.log("User Data:", data);
+      console.log("User Data count:", data?.data?.incentiveUserPositions?.items?.length || 0);
 
       const positions = data.data.incentiveUserPositions.items;
 
-      console.log("User Positions:", positions);
+      console.log("User Positions count:", positions?.length || 0);
 
       const formattedPositions = positions.map((pos: any) => {
         const stream = pos.incentiveStream;
@@ -291,7 +291,7 @@ export function useUserIncentivePositions(userAddress?: `0x${string}`) {
         };
       });
 
-      console.log("User FormattedPositions:", formattedPositions);
+      console.log("User FormattedPositions count:", formattedPositions?.length || 0);
 
       return formattedPositions;
     },

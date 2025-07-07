@@ -101,11 +101,12 @@ export const ManageFarms = () => {
           {userPositions.map((position) => {
             const stream = allStreams?.find((s) => BigInt(s.chefId) === BigInt(position.chefId));
             const lpToken = tokens.find((t) => t.poolId === stream?.lpId);
+            // Debug logging with BigInt-safe serialization
             console.log("User Position Map:", {
-              position,
-              allStreams,
-              stream,
-              lpToken,
+              chefId: position.chefId.toString(),
+              shares: position.shares.toString(),
+              streamFound: !!stream,
+              lpTokenSymbol: lpToken?.symbol,
             });
             if (!stream) return null;
 
