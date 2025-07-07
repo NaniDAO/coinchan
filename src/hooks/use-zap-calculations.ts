@@ -76,8 +76,8 @@ export function useZapCalculations() {
       // Get swap fee for the token, preferring stream data if available
       const swapFee = lpToken.swapFee ?? SWAP_FEE;
 
-      // Use stream's pool information if available for additional validation
-      if (stream.lpPool && stream.lpPool.liquidity === 0n) {
+      // Use lpToken's pool information if available for additional validation
+      if (lpToken && lpToken.liquidity === 0n) {
         return {
           estimatedTokens: 0n,
           estimatedLiquidity: 0n,

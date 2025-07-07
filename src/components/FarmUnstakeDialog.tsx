@@ -9,9 +9,11 @@ import { Label } from "@/components/ui/label";
 import { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { useZChefActions } from "@/hooks/use-zchef-contract";
 import { cn } from "@/lib/utils";
+import { TokenMeta } from "@/lib/coins";
 
 interface FarmUnstakeDialogProps {
   stream: IncentiveStream;
+  lpToken: TokenMeta;
   userPosition: {
     shares: bigint;
     pendingRewards: bigint;
@@ -22,7 +24,7 @@ interface FarmUnstakeDialogProps {
   onSuccess?: () => void;
 }
 
-export function FarmUnstakeDialog({ stream, userPosition, trigger, onSuccess }: FarmUnstakeDialogProps) {
+export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSuccess }: FarmUnstakeDialogProps) {
   const { t } = useTranslation();
   const publicClient = usePublicClient();
   const [open, setOpen] = useState(false);
@@ -60,7 +62,7 @@ export function FarmUnstakeDialog({ stream, userPosition, trigger, onSuccess }: 
         // Show success notification
         console.log(`🎉 Unstake successful!
         Amount: ${amount} shares
-        Pool: ${stream.lpPool?.coin.symbol}
+        Pool: ${lpToken.symbol}
         Pending Rewards: ${formatEther(userPosition.pendingRewards)} ${stream.rewardCoin?.symbol}
         TX: ${hash}`);
 
@@ -103,11 +105,11 @@ export function FarmUnstakeDialog({ stream, userPosition, trigger, onSuccess }: 
           {/* Pool Information */}
           <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/30 rounded-lg p-4">
             <div className="flex items-center gap-3 mb-4">
-              {stream.lpPool?.coin.imageUrl && (
+              {lpToken?.imageUrl && (
                 <div className="relative">
                   <img
-                    src={stream.lpPool.coin.imageUrl}
-                    alt={stream.lpPool.coin.symbol}
+                    src={lpToken.imageUrl}
+                    alt={lpToken.symbol}
                     className="w-8 h-8 rounded-full border-2 border-primary/40"
                   />
                   <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-primary/30 to-transparent opacity-50 blur-sm"></div>
@@ -115,7 +117,7 @@ export function FarmUnstakeDialog({ stream, userPosition, trigger, onSuccess }: 
               )}
               <div>
                 <h3 className="font-mono font-bold text-lg bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent break-all">
-                  {stream.lpPool?.coin.symbol || (() => {
+                  {lpToken?.symbol || (() => {
                     const lpId = stream.lpId?.toString();
                     // LP IDs are always full uint, truncate for UI
                     return lpId && lpId.length > 12 ? `Pool ${lpId.slice(0, 6)}...${lpId.slice(-6)}` : `Pool ${lpId}`;
@@ -172,7 +174,7 @@ export function FarmUnstakeDialog({ stream, userPosition, trigger, onSuccess }: 
               <div className="flex justify-between text-sm font-mono">
                 <span className="text-muted-foreground">{t("common.staked")}:</span>
                 <span className="text-primary font-bold">
-                  {parseFloat(maxAmount).toFixed(6)} {stream.lpPool?.coin.symbol}
+                  {parseFloat(maxAmount).toFixed(6)} {lpToken?.symbol}
                 </span>
               </div>
             </div>
@@ -187,7 +189,7 @@ export function FarmUnstakeDialog({ stream, userPosition, trigger, onSuccess }: 
                   <div className="flex justify-between items-center">
                     <span className="font-mono text-muted-foreground">{t("common.unstaking_amount")}:</span>
                     <span className="font-mono font-bold text-primary text-lg">
-                      {amount} {stream.lpPool?.coin.symbol}
+                      {amount} {lpToken?.symbol}
                     </span>
                   </div>
                 </div>

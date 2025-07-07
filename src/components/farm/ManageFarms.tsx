@@ -15,6 +15,7 @@ import { useAccount } from "wagmi";
 import { useAllCoins } from "@/hooks/metadata/use-all-coins";
 import { useZChefActions } from "@/hooks/use-zchef-contract";
 import { useState } from "react";
+import { ETH_TOKEN } from "@/lib/coins";
 
 export const ManageFarms = () => {
   const { t } = useTranslation();
@@ -139,7 +140,7 @@ export const ManageFarms = () => {
                     <div className="absolute top-2 right-2 z-20 px-2 py-1 bg-primary/20 border border-primary/40 rounded text-xs font-mono font-bold text-primary">
                       <span className="animate-pulse">🌾</span> STAKED
                     </div>
-                    <IncentiveStreamCard stream={stream} />
+                    <IncentiveStreamCard stream={stream} lpToken={lpToken || ETH_TOKEN} />
                     <div className="p-4 border-t border-primary/20 bg-background/50">
                       {/* Pending Rewards Display */}
                       {position.pendingRewards > 0n && (
@@ -190,6 +191,7 @@ export const ManageFarms = () => {
                           {userPositions && (
                             <FarmUnstakeDialog
                               stream={stream}
+                              lpToken={lpToken || ETH_TOKEN}
                               userPosition={position}
                               trigger={
                                 <Button

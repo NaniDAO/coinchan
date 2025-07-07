@@ -196,8 +196,8 @@ export function IncentiveStreamCard({
             <div className="relative z-10">
               <APYDisplay
                 stream={stream}
-                lpTokenPrice={lpToken?.price}
-                rewardTokenPrice={stream.rewardlpPool?.price}
+                lpTokenPrice={undefined}
+                rewardTokenPrice={undefined}
                 className="text-sm"
               />
             </div>
@@ -205,7 +205,7 @@ export function IncentiveStreamCard({
         </div>
 
         {/* Pool Reserves & Liquidity */}
-        {stream.lpPool && stream.lpPool.liquidity !== undefined && (
+        {lpToken && lpToken.liquidity !== undefined && (
           <div className="border-t border-primary/30 pt-4 mt-4">
             <h4 className="font-mono font-bold text-sm uppercase tracking-wider mb-3 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
               [{t("common.pool_info")}]
@@ -217,27 +217,12 @@ export function IncentiveStreamCard({
                 </p>
                 <p className="font-mono font-bold text-primary text-base mt-1 break-all">
                   {formatBalance(
-                    formatEther(stream.lpPool.liquidity),
+                    formatEther(lpToken.liquidity),
                     "ETH",
                     12,
                   )}
                 </p>
               </div>
-              {stream.lpPool.volume24h !== undefined &&
-                stream.lpPool.volume24h > 0n && (
-                  <div className="bg-background/20 border border-primary/20 rounded p-3">
-                    <p className="text-muted-foreground font-mono font-medium text-xs">
-                      [{t("common.24h_volume")}]
-                    </p>
-                    <p className="font-mono font-bold text-primary text-base mt-1 break-all">
-                      {formatBalance(
-                        formatEther(stream.lpPool.volume24h),
-                        "ETH",
-                        12,
-                      )}
-                    </p>
-                  </div>
-                )}
             </div>
           </div>
         )}

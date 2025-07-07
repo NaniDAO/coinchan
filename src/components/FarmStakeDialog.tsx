@@ -198,7 +198,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
         console.log(`🎉 Stake successful!
         Mode: ${stakeMode === "lp" ? "LP Tokens" : "ETH Zap"}
         Amount: ${amount} ${stakeMode === "lp" ? lpToken.symbol : "ETH"}
-        Pool: ${stream.lpPool?.coin.symbol}
+        Pool: ${lpToken.symbol}
         TX: ${hash}`);
 
         // Reset form and close after success
@@ -249,11 +249,11 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
           <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/30 rounded-lg p-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
-                {stream.lpPool?.coin.imageUrl && (
+                {lpToken?.imageUrl && (
                   <div className="relative">
                     <img
-                      src={stream.lpPool.coin.imageUrl}
-                      alt={stream.lpPool.coin.symbol}
+                      src={lpToken.imageUrl}
+                      alt={lpToken.symbol}
                       className="w-8 h-8 rounded-full border-2 border-primary/40"
                     />
                     <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-primary/30 to-transparent opacity-50 blur-sm"></div>
@@ -261,7 +261,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                 )}
                 <div>
                   <h3 className="font-mono font-bold text-lg bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent break-all">
-                    {stream.lpPool?.coin.symbol || (() => {
+                    {lpToken?.symbol || (() => {
                       const lpId = stream.lpId?.toString();
                       // LP IDs are always full uint, truncate for UI
                       return lpId && lpId.length > 12 ? `Pool ${lpId.slice(0, 6)}...${lpId.slice(-6)}` : `Pool ${lpId}`;
@@ -276,10 +276,10 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                 <p className="text-muted-foreground font-mono text-xs">{t("common.reward_token")}</p>
                 <p className="font-mono font-bold text-primary">{stream.rewardCoin?.symbol}</p>
               </div>
-              {stream.lpPool && (
+              {lpToken && (
                 <div className="bg-background/30 border border-primary/20 rounded p-3">
                   <p className="text-muted-foreground font-mono text-xs">{t("common.pool_liquidity")}</p>
-                  <p className="font-mono font-bold text-primary">{formatEther(stream.lpPool.liquidity)} ETH</p>
+                  <p className="font-mono font-bold text-primary">{formatEther(lpToken.liquidity || 0n)} ETH</p>
                 </div>
               )}
             </div>
