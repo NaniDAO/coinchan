@@ -179,7 +179,7 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
         {lpToken && lpToken.liquidity !== undefined && (
           <div className="border-t border-primary/30 pt-4 mt-4">
             <h4 className="font-mono font-bold text-sm uppercase tracking-wider mb-3 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              [{t("common.pool_info")}]
+              {t("common.pool_info")}
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div className="bg-background/20 border border-primary/20 rounded p-3">

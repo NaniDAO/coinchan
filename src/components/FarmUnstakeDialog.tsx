@@ -206,15 +206,13 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
             </div>
           )}
 
-          {/* Warning */}
-          <div className="bg-gradient-to-r from-yellow-500/15 via-yellow-500/10 to-yellow-500/5 border border-yellow-500/30 rounded-lg p-4">
+          {/* Information */}
+          <div className="bg-gradient-to-r from-blue-500/15 via-blue-500/10 to-blue-500/5 border border-blue-500/30 rounded-lg p-4">
             <div className="flex items-start gap-3">
-              <div className="text-yellow-500 text-xl">⚠️</div>
+              <div className="text-blue-500 text-xl">ℹ️</div>
               <div>
-                <p className="font-mono font-bold text-yellow-600 dark:text-yellow-400 text-sm">
-                  [{t("common.warning_label")}]
-                </p>
-                <p className="text-sm text-yellow-700 dark:text-yellow-300 font-mono mt-1">
+                <p className="font-mono font-bold text-blue-600 dark:text-blue-400 text-sm">[{t("common.info")}]</p>
+                <p className="text-sm text-blue-700 dark:text-blue-300 font-mono mt-1">
                   {t("common.unstaking_will_claim_rewards")}
                 </p>
               </div>
