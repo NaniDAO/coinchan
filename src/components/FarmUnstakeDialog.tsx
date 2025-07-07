@@ -57,6 +57,13 @@ export function FarmUnstakeDialog({ stream, userPosition, trigger, onSuccess }: 
         await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
         setTxStatus("success");
 
+        // Show success notification
+        console.log(`🎉 Unstake successful!
+        Amount: ${amount} shares
+        Pool: ${stream.lpPool?.coin.symbol}
+        Pending Rewards: ${formatEther(userPosition.pendingRewards)} ${stream.rewardCoin?.symbol}
+        TX: ${hash}`);
+
         // Reset form and close after success
         setTimeout(() => {
           setAmount("");
@@ -64,7 +71,7 @@ export function FarmUnstakeDialog({ stream, userPosition, trigger, onSuccess }: 
           setTxStatus("idle");
           setTxHash(null);
           onSuccess?.();
-        }, 2000);
+        }, 3000); // Increased from 2000 to 3000ms
       }
     } catch (error: any) {
       console.error("Unstake failed:", error);
@@ -107,8 +114,12 @@ export function FarmUnstakeDialog({ stream, userPosition, trigger, onSuccess }: 
                 </div>
               )}
               <div>
-                <h3 className="font-mono font-bold text-lg bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                  {stream.lpPool?.coin.symbol || `Pool ${stream.lpId}`}
+                <h3 className="font-mono font-bold text-lg bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent break-all">
+                  {stream.lpPool?.coin.symbol || (() => {
+                    const lpId = stream.lpId?.toString();
+                    // LP IDs are always full uint, truncate for UI
+                    return lpId && lpId.length > 12 ? `Pool ${lpId.slice(0, 6)}...${lpId.slice(-6)}` : `Pool ${lpId}`;
+                  })()}
                 </h3>
                 <p className="text-xs text-muted-foreground font-mono">{t("common.lp_token_pool")}</p>
               </div>

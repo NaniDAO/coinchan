@@ -194,6 +194,13 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
         await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
         setTxStatus("success");
 
+        // Show success notification
+        console.log(`🎉 Stake successful!
+        Mode: ${stakeMode === "lp" ? "LP Tokens" : "ETH Zap"}
+        Amount: ${amount} ${stakeMode === "lp" ? lpToken.symbol : "ETH"}
+        Pool: ${stream.lpPool?.coin.symbol}
+        TX: ${hash}`);
+
         // Reset form and close after success
         setTimeout(() => {
           setAmount("");
@@ -201,7 +208,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
           setTxStatus("idle");
           setTxHash(null);
           onSuccess?.();
-        }, 2000);
+        }, 3000); // Increased from 2000 to 3000ms
       }
     } catch (error: any) {
       console.error("Stake failed:", error);
@@ -253,8 +260,12 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                   </div>
                 )}
                 <div>
-                  <h3 className="font-mono font-bold text-lg bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                    {stream.lpPool?.coin.symbol || `Pool ${stream.lpId}`}
+                  <h3 className="font-mono font-bold text-lg bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent break-all">
+                    {stream.lpPool?.coin.symbol || (() => {
+                      const lpId = stream.lpId?.toString();
+                      // LP IDs are always full uint, truncate for UI
+                      return lpId && lpId.length > 12 ? `Pool ${lpId.slice(0, 6)}...${lpId.slice(-6)}` : `Pool ${lpId}`;
+                    })()}
                   </h3>
                   <p className="text-xs text-muted-foreground font-mono">{t("common.lp_token_pool")}</p>
                 </div>
@@ -404,13 +415,13 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <div className="bg-background/40 border border-primary/20 rounded p-2">
                           <div className="text-xs text-muted-foreground font-mono">{t("common.eth_for_swap")}</div>
-                          <div className="font-mono font-bold text-primary">
+                          <div className="font-mono font-bold text-primary text-xs break-all">
                             {parseFloat(zapPreview.ethToSwap).toFixed(4)} ETH
                           </div>
                         </div>
                         <div className="bg-background/40 border border-primary/20 rounded p-2">
                           <div className="text-xs text-muted-foreground font-mono">{t("common.estimated_tokens")}</div>
-                          <div className="font-mono font-bold text-primary">
+                          <div className="font-mono font-bold text-primary text-xs break-all">
                             {parseFloat(zapPreview.estimatedTokens).toFixed(6)}
                           </div>
                         </div>
@@ -418,7 +429,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                           <div className="text-xs text-muted-foreground font-mono">
                             {t("common.estimated_lp_tokens")}
                           </div>
-                          <div className="font-mono font-bold text-primary">
+                          <div className="font-mono font-bold text-primary text-xs break-all">
                             {parseFloat(zapPreview.estimatedLpTokens).toFixed(6)}
                           </div>
                         </div>

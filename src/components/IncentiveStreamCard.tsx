@@ -59,8 +59,12 @@ export function IncentiveStreamCard({ stream }: IncentiveStreamCardProps) {
                 <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-primary/30 to-transparent opacity-50 blur-sm group-hover:opacity-70 transition-opacity"></div>
               </div>
             )}
-            <h3 className="font-mono font-bold text-base sm:text-lg uppercase tracking-wider bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              [{stream.lpPool?.coin.symbol || `Pool ${stream.lpId}`}]
+            <h3 className="font-mono font-bold text-base sm:text-lg uppercase tracking-wider bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent break-all">
+              [{stream.lpPool?.coin.symbol || (() => {
+                const lpId = stream.lpId?.toString();
+                // LP IDs are always full uint, truncate for UI  
+                return lpId && lpId.length > 12 ? `Pool ${lpId.slice(0, 6)}...${lpId.slice(-6)}` : `Pool ${lpId}`;
+              })()}]
             </h3>
           </div>
           <div
@@ -88,8 +92,13 @@ export function IncentiveStreamCard({ stream }: IncentiveStreamCardProps) {
                 className="w-5 h-5 rounded-full border border-primary/40"
               />
             )}
-            <span className="font-mono font-bold text-primary">
-              {stream.rewardCoin?.symbol || `Token ${stream.rewardId}`}
+            <span className="font-mono font-bold text-primary break-all">
+              {stream.rewardCoin?.symbol || (() => {
+                const rewardId = stream.rewardId?.toString();
+                // Reward IDs may be variable, handle gracefully
+                if (!rewardId) return "Unknown Token";
+                return rewardId.length > 16 ? `Token ${rewardId.slice(0, 8)}...${rewardId.slice(-8)}` : `Token ${rewardId}`;
+              })()}
             </span>
           </div>
         </div>
@@ -160,7 +169,7 @@ export function IncentiveStreamCard({ stream }: IncentiveStreamCardProps) {
             <p className="text-muted-foreground font-mono font-medium text-sm">
               [{t("common.total_staked")}]
             </p>
-            <p className="font-mono font-bold text-lg text-primary mt-1">
+            <p className="font-mono font-bold text-lg text-primary mt-1 break-all">
               {parseFloat(formatEther(stream.totalShares)).toFixed(6)}
             </p>
             <p className="text-xs text-muted-foreground font-mono">LP Tokens</p>
@@ -186,7 +195,7 @@ export function IncentiveStreamCard({ stream }: IncentiveStreamCardProps) {
                 <p className="text-muted-foreground font-mono font-medium text-xs">
                   [{t("common.total_liquidity")}]
                 </p>
-                <p className="font-mono font-bold text-primary text-base mt-1">
+                <p className="font-mono font-bold text-primary text-base mt-1 break-all">
                   {parseFloat(formatEther(stream.lpPool.liquidity)).toFixed(4)}{" "}
                   ETH
                 </p>
@@ -197,7 +206,7 @@ export function IncentiveStreamCard({ stream }: IncentiveStreamCardProps) {
                     <p className="text-muted-foreground font-mono font-medium text-xs">
                       [{t("common.24h_volume")}]
                     </p>
-                    <p className="font-mono font-bold text-primary text-base mt-1">
+                    <p className="font-mono font-bold text-primary text-base mt-1 break-all">
                       {parseFloat(formatEther(stream.lpPool.volume24h)).toFixed(
                         4,
                       )}{" "}
@@ -220,15 +229,21 @@ export function IncentiveStreamCard({ stream }: IncentiveStreamCardProps) {
                 <span className="text-muted-foreground">
                   [{t("common.chef_id")}]:
                 </span>
-                <span className="bg-primary/20 border border-primary/30 px-2 py-1 rounded font-bold text-primary">
-                  {stream.chefId.toString()}
+                <span className="bg-primary/20 border border-primary/30 px-2 py-1 rounded font-bold text-primary break-all max-w-[60%] text-right">
+                  {(() => {
+                    const chefId = stream.chefId.toString();
+                    // Chef IDs are always full uint, truncate for UI
+                    return chefId.length > 16 
+                      ? `${chefId.slice(0, 8)}...${chefId.slice(-8)}` 
+                      : chefId;
+                  })()}
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">
                   [{t("common.created_by")}]:
                 </span>
-                <span className="bg-primary/20 border border-primary/30 px-2 py-1 rounded font-bold text-primary">
+                <span className="bg-primary/20 border border-primary/30 px-2 py-1 rounded font-bold text-primary max-w-[60%] text-right">
                   {stream.creator.slice(0, 6)}...{stream.creator.slice(-4)}
                 </span>
               </div>

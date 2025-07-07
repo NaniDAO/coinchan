@@ -6,13 +6,14 @@ import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { ChangeEvent, useMemo, useState } from "react";
 import { ETH_TOKEN, TokenMeta } from "@/lib/coins";
-import { usePublicClient, useWriteContract } from "wagmi";
+import { useAccount, usePublicClient, useWriteContract } from "wagmi";
 import { useAllCoins } from "@/hooks/metadata/use-all-coins";
 import { ZChefAbi, ZChefAddress } from "@/constants/zChef";
 import { mainnet } from "viem/chains";
 import { Input } from "../ui/input";
 import { cn } from "@/lib/utils";
 import { ZAMMAddress } from "@/constants/ZAAM";
+import { useOperatorStatus } from "@/hooks/use-operator-status";
 
 // Duration options will be generated using translations
 
@@ -28,6 +29,7 @@ interface FarmFormData {
 
 export const CreateFarm = () => {
   const { t } = useTranslation();
+  const { address } = useAccount();
 
   const DURATION_OPTIONS = [
     { value: "7", label: t("common.duration_7_days") },
@@ -64,6 +66,13 @@ export const CreateFarm = () => {
     "idle" | "pending" | "confirming" | "success" | "error"
   >("idle");
   const [txError, setTxError] = useState<string | null>(null);
+
+  // Check operator approval status for the reward token
+  const { data: isRewardTokenOperatorApproved } = useOperatorStatus({
+    address: address as `0x${string}`,
+    operator: ZChefAddress,
+    tokenId: formData.rewardToken.id || undefined,
+  });
 
   if (!tokens || tokens.length === 0) {
     return (
@@ -258,8 +267,10 @@ export const CreateFarm = () => {
 
       // Check if approval is needed for reward token
       const rewardTokenId = formData.rewardToken.id;
-      if (rewardTokenId) {
+      if (rewardTokenId && !isRewardTokenOperatorApproved) {
         setTxStatus("pending");
+        console.log("Setting operator approval for reward token...");
+        
         // For ERC6909 tokens (both ZAMM and Cookbook coins), use setOperator
         if (rewardTokenId >= 1000000n) {
           // ZAMM coins: use setOperator on Coins contract
@@ -276,6 +287,7 @@ export const CreateFarm = () => {
               hash: approvalHash,
             });
           }
+          console.log("ZAMM coin operator approval confirmed");
         } else {
           // Cookbook coins: use setOperator on Cookbook contract
           const approvalHash = await writeContractAsync({
@@ -291,7 +303,10 @@ export const CreateFarm = () => {
               hash: approvalHash,
             });
           }
+          console.log("Cookbook coin operator approval confirmed");
         }
+      } else if (rewardTokenId && isRewardTokenOperatorApproved) {
+        console.log("Reward token already has operator approval, skipping...");
       }
 
       // Parse reward amount with proper decimals
@@ -383,6 +398,17 @@ export const CreateFarm = () => {
         console.log("Farm created successfully:", receipt);
         setTxStatus("success");
 
+        // Show success notification
+        const farmDuration = formData.useCustomDuration 
+          ? `${formData.customDuration} ${formData.customDurationUnit}`
+          : `${formData.duration} days`;
+        
+        console.log(`🎉 Farm created successfully! 
+        Pool: ${formData.selectedToken?.symbol} 
+        Reward: ${formData.rewardAmount} ${formData.rewardToken.symbol}
+        Duration: ${farmDuration}
+        TX: ${createStreamHash}`);
+
         // Reset form on success after delay
         setTimeout(() => {
           setFormData({
@@ -398,7 +424,7 @@ export const CreateFarm = () => {
           });
           setTxStatus("idle");
           setTxHash(null);
-        }, 3000);
+        }, 5000); // Increased from 3000 to 5000ms to give users more time to see success
       }
     } catch (error: any) {
       console.error("Farm creation failed:", error);
@@ -484,10 +510,15 @@ export const CreateFarm = () => {
               <div className="text-xs font-mono space-y-1">
                 <div className="space-y-1">
                   <span className="text-muted-foreground text-xs">{t("common.pool_id")}:</span>
-                  <div className="text-xs text-muted-foreground/70 font-mono break-all">
-                    {(
-                      formData.selectedToken.poolId || formData.selectedToken.id
-                    )?.toString() || "N/A"}
+                  <div className="text-xs text-muted-foreground/70 font-mono break-all max-w-full overflow-hidden">
+                    {(() => {
+                      const poolId = (formData.selectedToken.poolId || formData.selectedToken.id)?.toString();
+                      if (!poolId || poolId === "N/A") return "N/A";
+                      // Pool IDs are always full uint, truncate for UI
+                      return poolId.length > 16 
+                        ? `${poolId.slice(0, 8)}...${poolId.slice(-8)}` 
+                        : poolId;
+                    })()}
                   </div>
                 </div>
                 <div className="flex justify-between">
@@ -593,7 +624,7 @@ export const CreateFarm = () => {
                     <div className="space-y-3">
                       <div className="flex justify-between items-center py-2 border-b border-primary/10">
                         <span className="font-mono text-sm text-muted-foreground">{t("common.per_second")}:</span>
-                        <span className="font-mono text-sm font-bold text-foreground">
+                        <span className="font-mono text-sm font-bold text-foreground break-all max-w-[60%] text-right">
                           {(
                             parseFloat(formData.rewardAmount) /
                             (durationDays * 24 * 60 * 60)
@@ -603,7 +634,7 @@ export const CreateFarm = () => {
                       </div>
                       <div className="flex justify-between items-center py-2 border-b border-primary/10">
                         <span className="font-mono text-sm text-muted-foreground">{t("common.per_day")}:</span>
-                        <span className="font-mono text-sm font-bold text-foreground">
+                        <span className="font-mono text-sm font-bold text-foreground break-all max-w-[60%] text-right">
                           {(
                             parseFloat(formData.rewardAmount) /
                             durationDays
@@ -622,7 +653,7 @@ export const CreateFarm = () => {
                             `${t("common.total_days", { days: durationDays })}:`
                           )}
                         </span>
-                        <span className="font-mono text-sm font-bold text-primary">
+                        <span className="font-mono text-sm font-bold text-primary break-all max-w-[60%] text-right">
                           {parseFloat(formData.rewardAmount).toFixed(6)}{" "}
                           {formData.rewardToken.symbol}
                         </span>
@@ -799,10 +830,19 @@ export const CreateFarm = () => {
               )}
 
               {txStatus === "success" && (
-                <div className="text-center">
+                <div className="text-center space-y-2">
                   <p className="text-sm text-green-400 font-mono">
                     {t("common.farm_created_successfully")}
                   </p>
+                  <div className="text-xs text-green-300 font-mono space-y-1">
+                    <div>🌾 Pool: {formData.selectedToken?.symbol}</div>
+                    <div>💰 Reward: {formData.rewardAmount} {formData.rewardToken.symbol}</div>
+                    <div>⏰ Duration: {formData.useCustomDuration 
+                      ? `${formData.customDuration} ${t(`common.${formData.customDurationUnit}`)}` 
+                      : `${formData.duration} ${t("common.days")}`}
+                    </div>
+                    <div className="mt-2 text-green-400">✨ {t("common.farm_will_auto_reset")}</div>
+                  </div>
                 </div>
               )}
             </div>
