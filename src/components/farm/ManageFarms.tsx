@@ -95,8 +95,6 @@ export const ManageFarms = () => {
                   <div className="bg-gradient-to-br from-background/80 to-background/60 border border-primary/30 rounded-lg p-1 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300">
                     <IncentiveStreamCard
                       stream={stream}
-                      userPosition={position}
-                      showUserActions={false}
                     />
                     <div className="p-4 border-t border-primary/20 bg-background/50">
                       <div className="flex flex-col gap-3">
