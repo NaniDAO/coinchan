@@ -1,6 +1,5 @@
 import { useTranslation } from "react-i18next";
 import { formatUnits, formatEther } from "viem";
-import { Button } from "@/components/ui/button";
 import { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { useZChefUtilities } from "@/hooks/use-zchef-contract";
 import { APYDisplay } from "@/components/APYDisplay";
@@ -8,33 +7,14 @@ import { cn } from "@/lib/utils";
 
 interface IncentiveStreamCardProps {
   stream: IncentiveStream;
-  onStake?: (chefId: bigint) => void;
-  onHarvest?: (chefId: bigint) => void;
-  onUnstake?: (chefId: bigint) => void;
-  userPosition?: {
-    shares: bigint;
-    pendingRewards: bigint;
-    totalDeposited: bigint;
-    totalHarvested: bigint;
-  };
-  showUserActions?: boolean;
 }
 
-export function IncentiveStreamCard({
-  stream,
-  onStake,
-  onHarvest,
-  onUnstake,
-  userPosition,
-  showUserActions = false,
-}: IncentiveStreamCardProps) {
+export function IncentiveStreamCard({ stream }: IncentiveStreamCardProps) {
   const { t } = useTranslation();
   const { calculateTimeRemaining, formatRewardRate } = useZChefUtilities();
 
   const timeRemaining = calculateTimeRemaining(stream.endTime);
   const isActive = stream.status === "ACTIVE" && timeRemaining.days > 0;
-  const hasUserPosition = userPosition && userPosition.shares > 0n;
-  const hasPendingRewards = userPosition && userPosition.pendingRewards > 0n;
 
   const rewardTokenDecimals = stream.rewardCoin?.decimals || 18;
   const rewardRates = formatRewardRate(stream.rewardRate, rewardTokenDecimals);
@@ -43,14 +23,18 @@ export function IncentiveStreamCard({
     const now = BigInt(Math.floor(Date.now() / 1000));
 
     // Handle missing or invalid startTime (offline mode fallback)
-    if (!stream.startTime || stream.startTime === 0n || stream.startTime >= stream.endTime) {
+    if (
+      !stream.startTime ||
+      stream.startTime === 0n ||
+      stream.startTime >= stream.endTime
+    ) {
       // Fallback: estimate based on current position
-      if (now >= stream.endTime) return 100;
+      if (now >= BigInt(stream.endTime)) return 100;
       return 50; // Assume halfway through if we can't calculate
     }
 
-    const totalDuration = stream.endTime - stream.startTime;
-    const elapsed = now - stream.startTime;
+    const totalDuration = BigInt(stream.endTime) - BigInt(stream.startTime);
+    const elapsed = now - BigInt(stream.startTime);
 
     if (elapsed <= 0n) return 0;
     if (elapsed >= totalDuration) return 100;
@@ -93,7 +77,9 @@ export function IncentiveStreamCard({
 
         <div className="flex items-center gap-3 text-sm text-muted-foreground mt-3">
           <span className="font-mono text-primary">&gt;</span>
-          <span className="font-mono font-medium">{t("common.reward_token")}:</span>
+          <span className="font-mono font-medium">
+            {t("common.reward_token")}:
+          </span>
           <div className="flex items-center gap-2 bg-background/40 border border-primary/20 rounded-full px-3 py-1">
             {stream.rewardCoin?.imageUrl && (
               <img
@@ -113,7 +99,9 @@ export function IncentiveStreamCard({
         {/* Time Remaining */}
         <div className="space-y-3">
           <div className="flex justify-between items-center text-sm sm:text-base">
-            <span className="font-mono font-bold text-primary">[{t("common.time_remaining")}]</span>
+            <span className="font-mono font-bold text-primary">
+              [{t("common.time_remaining")}]
+            </span>
             <div className="bg-background/50 border border-primary/30 rounded px-3 py-1">
               <span className="font-mono font-bold text-primary">
                 {isActive
@@ -137,18 +125,31 @@ export function IncentiveStreamCard({
         <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 rounded-lg p-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm sm:text-base">
             <div className="space-y-1">
-              <p className="text-muted-foreground font-mono font-medium">[{t("common.daily_rewards")}]</p>
+              <p className="text-muted-foreground font-mono font-medium">
+                [{t("common.daily_rewards")}]
+              </p>
               <p className="font-mono font-bold text-lg text-primary">
                 {parseFloat(rewardRates.perDay || "0").toFixed(6)}
               </p>
-              <p className="text-xs text-muted-foreground font-mono">{stream.rewardCoin?.symbol}</p>
+              <p className="text-xs text-muted-foreground font-mono">
+                {stream.rewardCoin?.symbol}
+              </p>
             </div>
             <div className="space-y-1">
-              <p className="text-muted-foreground font-mono font-medium">[{t("common.total_rewards")}]</p>
-              <p className="font-mono font-bold text-lg text-primary">
-                {parseFloat(formatUnits(stream.rewardAmount || BigInt(0), rewardTokenDecimals)).toFixed(6)}
+              <p className="text-muted-foreground font-mono font-medium">
+                [{t("common.total_rewards")}]
               </p>
-              <p className="text-xs text-muted-foreground font-mono">{stream.rewardCoin?.symbol}</p>
+              <p className="font-mono font-bold text-lg text-primary">
+                {parseFloat(
+                  formatUnits(
+                    stream.rewardAmount || BigInt(0),
+                    rewardTokenDecimals,
+                  ),
+                ).toFixed(6)}
+              </p>
+              <p className="text-xs text-muted-foreground font-mono">
+                {stream.rewardCoin?.symbol}
+              </p>
             </div>
           </div>
         </div>
@@ -156,7 +157,9 @@ export function IncentiveStreamCard({
         {/* Pool Information */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="bg-background/30 border border-primary/20 rounded-lg p-3">
-            <p className="text-muted-foreground font-mono font-medium text-sm">[{t("common.total_staked")}]</p>
+            <p className="text-muted-foreground font-mono font-medium text-sm">
+              [{t("common.total_staked")}]
+            </p>
             <p className="font-mono font-bold text-lg text-primary mt-1">
               {parseFloat(formatEther(stream.totalShares)).toFixed(6)}
             </p>
@@ -180,120 +183,29 @@ export function IncentiveStreamCard({
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div className="bg-background/20 border border-primary/20 rounded p-3">
-                <p className="text-muted-foreground font-mono font-medium text-xs">[{t("common.total_liquidity")}]</p>
+                <p className="text-muted-foreground font-mono font-medium text-xs">
+                  [{t("common.total_liquidity")}]
+                </p>
                 <p className="font-mono font-bold text-primary text-base mt-1">
-                  {parseFloat(formatEther(stream.lpPool.liquidity)).toFixed(4)} ETH
+                  {parseFloat(formatEther(stream.lpPool.liquidity)).toFixed(4)}{" "}
+                  ETH
                 </p>
               </div>
-              {stream.lpPool.volume24h !== undefined && stream.lpPool.volume24h > 0n && (
-                <div className="bg-background/20 border border-primary/20 rounded p-3">
-                  <p className="text-muted-foreground font-mono font-medium text-xs">[{t("common.24h_volume")}]</p>
-                  <p className="font-mono font-bold text-primary text-base mt-1">
-                    {parseFloat(formatEther(stream.lpPool.volume24h)).toFixed(4)} ETH
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* User Position */}
-        {showUserActions && hasUserPosition && (
-          <>
-            <div className="border-t border-primary/40 pt-4 mt-4">
-              <div className="bg-gradient-to-r from-primary/15 via-primary/10 to-primary/5 border border-primary/30 rounded-lg p-4">
-                <h4 className="font-mono font-bold text-base uppercase tracking-wider mb-4 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                  [{t("common.your_position")}]
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="bg-background/40 border border-primary/20 rounded p-3">
-                    <p className="text-muted-foreground font-mono font-medium text-xs">[{t("common.staked_amount")}]</p>
-                    <p className="font-mono font-bold text-primary text-lg mt-1">{formatEther(userPosition.shares)}</p>
-                    <p className="text-xs text-muted-foreground font-mono">LP Tokens</p>
-                  </div>
-                  <div className="bg-background/40 border border-primary/20 rounded p-3">
+              {stream.lpPool.volume24h !== undefined &&
+                stream.lpPool.volume24h > 0n && (
+                  <div className="bg-background/20 border border-primary/20 rounded p-3">
                     <p className="text-muted-foreground font-mono font-medium text-xs">
-                      [{t("common.pending_rewards")}]
-                    </p>
-                    <p className="font-mono font-bold text-primary text-lg mt-1">
-                      {formatUnits(userPosition.pendingRewards, rewardTokenDecimals)}
-                    </p>
-                    <p className="text-xs text-muted-foreground font-mono">{stream.rewardCoin?.symbol}</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
-                  <div className="bg-background/40 border border-primary/20 rounded p-3">
-                    <p className="text-muted-foreground font-mono font-medium text-xs">
-                      [{t("common.total_deposited")}]
+                      [{t("common.24h_volume")}]
                     </p>
                     <p className="font-mono font-bold text-primary text-base mt-1">
-                      {formatEther(userPosition.totalDeposited)}
+                      {parseFloat(formatEther(stream.lpPool.volume24h)).toFixed(
+                        4,
+                      )}{" "}
+                      ETH
                     </p>
-                    <p className="text-xs text-muted-foreground font-mono">LP Tokens</p>
                   </div>
-                  <div className="bg-background/40 border border-primary/20 rounded p-3">
-                    <p className="text-muted-foreground font-mono font-medium text-xs">
-                      [{t("common.total_harvested")}]
-                    </p>
-                    <p className="font-mono font-bold text-primary text-base mt-1">
-                      {formatUnits(userPosition.totalHarvested, rewardTokenDecimals)}
-                    </p>
-                    <p className="text-xs text-muted-foreground font-mono">{stream.rewardCoin?.symbol}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Action Buttons */}
-        {showUserActions && isActive && (
-          <div className="border-t border-primary/30 pt-4 mt-4">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button
-                onClick={() => onStake?.(stream.chefId)}
-                className="flex-1 font-mono font-bold uppercase tracking-wider py-3 text-sm bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary hover:scale-105 transition-all duration-200 shadow-lg"
-                size="sm"
-              >
-                [{hasUserPosition ? t("common.stake_more") : t("common.stake")}]
-              </Button>
-
-              <div className="flex gap-2">
-                {hasPendingRewards && (
-                  <Button
-                    onClick={() => onHarvest?.(stream.chefId)}
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 sm:flex-none font-mono font-bold uppercase tracking-wider py-3 text-sm border-primary/40 hover:border-primary hover:bg-primary/20 hover:scale-105 transition-all duration-200"
-                  >
-                    [{t("common.harvest")}]
-                  </Button>
                 )}
-
-                {hasUserPosition && (
-                  <Button
-                    onClick={() => onUnstake?.(stream.chefId)}
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 sm:flex-none font-mono font-bold uppercase tracking-wider py-3 text-sm border-primary/40 hover:border-primary hover:bg-primary/20 hover:scale-105 transition-all duration-200"
-                  >
-                    [{t("common.unstake")}]
-                  </Button>
-                )}
-              </div>
             </div>
-          </div>
-        )}
-
-        {!showUserActions && onStake && isActive && (
-          <div className="border-t border-primary/30 pt-4 mt-4">
-            <Button
-              onClick={() => onStake(stream.chefId)}
-              className="w-full font-mono font-bold uppercase tracking-wider py-3 text-sm bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary hover:scale-105 transition-all duration-200 shadow-lg"
-              size="sm"
-            >
-              [{t("common.stake_lp_tokens")}]
-            </Button>
           </div>
         )}
 
@@ -305,23 +217,31 @@ export function IncentiveStreamCard({
             </h5>
             <div className="space-y-2 text-xs font-mono">
               <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">[{t("common.chef_id")}]:</span>
+                <span className="text-muted-foreground">
+                  [{t("common.chef_id")}]:
+                </span>
                 <span className="bg-primary/20 border border-primary/30 px-2 py-1 rounded font-bold text-primary">
                   {stream.chefId.toString()}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">[{t("common.created_by")}]:</span>
+                <span className="text-muted-foreground">
+                  [{t("common.created_by")}]:
+                </span>
                 <span className="bg-primary/20 border border-primary/30 px-2 py-1 rounded font-bold text-primary">
                   {stream.creator.slice(0, 6)}...{stream.creator.slice(-4)}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">[{t("common.started")}]:</span>
+                <span className="text-muted-foreground">
+                  [{t("common.started")}]:
+                </span>
                 <span className="bg-primary/20 border border-primary/30 px-2 py-1 rounded font-bold text-primary">
                   {(() => {
                     try {
-                      return new Date(Number(stream.startTime) * 1000).toLocaleDateString();
+                      return new Date(
+                        Number(stream.startTime) * 1000,
+                      ).toLocaleDateString();
                     } catch {
                       return "N/A";
                     }

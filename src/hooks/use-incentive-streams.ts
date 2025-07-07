@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
-import { useOfflineHandling } from "./use-offline-handling";
 
 export interface IncentiveStream {
   chefId: bigint;
@@ -74,38 +73,51 @@ export function useIncentiveStreams() {
 }
 
 export function useActiveIncentiveStreams() {
-  const { isIndexerAvailable } = useOfflineHandling();
-
   return useQuery({
     queryKey: ["activeIncentiveStreams"],
     queryFn: async (): Promise<IncentiveStream[]> => {
-      // Try indexer first
-      if (isIndexerAvailable) {
-        try {
-          const response = await fetch(
-            `${INDEXER_URL}/incentive-streams?status=ACTIVE`,
-          );
-          if (response.ok) {
-            return response.json();
-          }
-        } catch (error) {
-          console.warn(
-            "Indexer request failed, falling back to contract:",
-            error,
-          );
-        }
-      }
+      const response = await fetch(`${INDEXER_URL}/graphql`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query: `
+            query GetIncentiveStreams {
+              incentiveStreams(where: {status: ACTIVE}) {
+                items {
+                  accRewardPerShare
+                  blockNumber
+                  chefId
+                  createdAt
+                  creator
+                  duration
+                  endTime
+                  lastUpdate
+                  lpId
+                  lpToken
+                  rewardAmount
+                  rewardId
+                  rewardRate
+                  rewardToken
+                  startTime
+                  status
+                  totalShares
+                  txHash
+                  updatedAt
+                }
+              }
+            }
+            `,
+        }),
+      });
 
-      // Fallback to contract view methods
-      // Note: We can't easily enumerate all streams from contract, so return empty array
-      // In a real implementation, you might maintain a list of known stream IDs
-      console.warn("Using contract fallback - limited stream data available");
-      return [];
-    },
-    staleTime: isIndexerAvailable ? 30000 : 10000, // Shorter cache for fallback mode
-    retry: (failureCount) => {
-      // Don't retry if we're already using fallback
-      return isIndexerAvailable && failureCount < 3;
+      if (!response.ok) {
+        throw new Error("Failed to fetch active incentive streams");
+      }
+      const data = await response.json();
+
+      return data.data.incentiveStreams.items;
     },
   });
 }
@@ -132,41 +144,21 @@ export function useIncentiveStream(chefId: bigint | undefined) {
 export function useUserIncentivePositions(userAddress?: `0x${string}`) {
   const { address } = useAccount();
   const targetAddress = userAddress || address;
-  const { isIndexerAvailable } = useOfflineHandling();
 
   return useQuery({
     queryKey: ["userIncentivePositions", targetAddress],
     queryFn: async (): Promise<IncentiveUserPosition[]> => {
       if (!targetAddress) return [];
 
-      // Try indexer first
-      if (isIndexerAvailable) {
-        try {
-          const response = await fetch(
-            `${INDEXER_URL}/incentive-positions?user=${targetAddress}`,
-          );
-          if (response.ok) {
-            return response.json();
-          }
-        } catch (error) {
-          console.warn(
-            "Indexer request failed, falling back to contract:",
-            error,
-          );
-        }
+      const response = await fetch(
+        `${INDEXER_URL}/incentive-positions?user=${targetAddress}`,
+      );
+      if (response.ok) {
+        throw new Error("Failed to fetch incentive positions");
       }
-
-      // Fallback to contract view methods
-      // Note: We can't enumerate user positions from contract without knowing chefIds
-      // In a real implementation, you might track user's chefIds in local storage
-      console.warn("Using contract fallback - limited position data available");
-      return [];
+      return response.json();
     },
     enabled: !!targetAddress,
-    staleTime: isIndexerAvailable ? 15000 : 5000, // Shorter cache for fallback mode
-    retry: (failureCount) => {
-      return isIndexerAvailable && failureCount < 3;
-    },
   });
 }
 
@@ -176,40 +168,25 @@ export function useUserIncentivePosition(
 ) {
   const { address } = useAccount();
   const targetAddress = userAddress || address;
-  const { isIndexerAvailable, getUserPositionFromContract } =
-    useOfflineHandling();
 
   return useQuery({
     queryKey: ["userIncentivePosition", chefId?.toString(), targetAddress],
     queryFn: async (): Promise<IncentiveUserPosition | null> => {
       if (!chefId || !targetAddress) return null;
 
-      // Try indexer first
-      if (isIndexerAvailable) {
-        try {
-          const response = await fetch(
-            `${INDEXER_URL}/incentive-positions/${chefId}/${targetAddress}`,
-          );
-          if (response.ok) {
-            return response.json();
-          }
-          if (response.status === 404) return null;
-        } catch (error) {
-          console.warn(
-            "Indexer request failed, falling back to contract:",
-            error,
-          );
-        }
+      const response = await fetch(
+        `${INDEXER_URL}/incentive-positions/${chefId}/${targetAddress}`,
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch user incentive position");
+      }
+      if (response.status === 404) {
+        throw new Error("User incentive position not found");
       }
 
-      // Fallback to contract view methods
-      return await getUserPositionFromContract(chefId, targetAddress);
+      return response.json();
     },
     enabled: !!chefId && !!targetAddress,
-    staleTime: isIndexerAvailable ? 15000 : 5000,
-    retry: (failureCount) => {
-      return isIndexerAvailable && failureCount < 3;
-    },
   });
 }
 

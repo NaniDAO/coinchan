@@ -12,6 +12,8 @@ export const BrowseFarms = () => {
   const { data: activeStreams, isLoading: isLoadingStreams } =
     useActiveIncentiveStreams();
 
+  console.log("useActiveIncentiveStreams", activeStreams, isLoadingStreams);
+
   return (
     <div className="space-y-5 sm:space-y-6">
       <div className="bg-gradient-to-r from-background/50 to-background/80 border border-primary/30 rounded-lg p-4 backdrop-blur-sm">
@@ -38,21 +40,29 @@ export const BrowseFarms = () => {
       ) : activeStreams && activeStreams.length > 0 ? (
         <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
           {activeStreams.map((stream) => {
-            const lpToken = tokens.find((t) => t.poolId === stream.lpId);
+            const lpToken = tokens.find(
+              (t) => t.poolId === BigInt(stream.lpId),
+            );
+
             if (!lpToken) {
               return (
                 <div key={stream.chefId.toString()} className="group">
                   <div className="bg-red-500/10 border border-red-500/30 rounded p-3">
                     <p className="text-sm text-red-400 font-mono">
-                      {t("common.lp_token_not_found", { poolId: stream.lpId.toString() })}
+                      {t("common.lp_token_not_found", {
+                        poolId: stream.lpId.toString(),
+                      })}
                     </p>
                   </div>
                 </div>
               );
             }
+
             return (
               <div key={stream.chefId.toString()} className="group">
-                <ErrorBoundary fallback={<div>{t("common.error_loading_farm")}</div>}>
+                <ErrorBoundary
+                  fallback={<div>{t("common.error_loading_farm")}</div>}
+                >
                   {lpToken ? (
                     <FarmStakeDialog
                       stream={stream}
