@@ -6,7 +6,7 @@ import { IncentiveStreamCard } from "../IncentiveStreamCard";
 import { useTranslation } from "react-i18next";
 import { useAllCoins } from "@/hooks/metadata/use-all-coins";
 import { formatBalance } from "@/lib/utils";
-import { formatEther, parseEther } from "viem";
+import { formatEther } from "viem";
 
 export const BrowseFarms = () => {
   const { t } = useTranslation();
@@ -30,12 +30,12 @@ export const BrowseFarms = () => {
     return Number(b.rewardAmount - a.rewardAmount);
   });
 
-  // Identify featured farms (high liquidity or high rewards)
-  const featuredFarms = sortedStreams?.filter(stream => {
-    const hasHighLiquidity = stream.lpPool && stream.lpPool.liquidity > parseEther('10');
-    const hasHighStake = stream.totalShares > parseEther('5');
-    return hasHighLiquidity || hasHighStake;
-  }).slice(0, 3); // Top 3 featured farms
+  // Could add featured farms section in the future
+  // const featuredFarms = sortedStreams?.filter(stream => {
+  //   const hasHighLiquidity = stream.lpPool && stream.lpPool.liquidity > parseEther('10');
+  //   const hasHighStake = stream.totalShares > parseEther('5');
+  //   return hasHighLiquidity || hasHighStake;
+  // }).slice(0, 3); // Top 3 featured farms
 
   return (
     <div className="space-y-5 sm:space-y-6">

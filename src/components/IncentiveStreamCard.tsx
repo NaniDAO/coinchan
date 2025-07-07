@@ -3,7 +3,7 @@ import { formatUnits, formatEther } from "viem";
 import { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { useZChefUtilities } from "@/hooks/use-zchef-contract";
 import { APYDisplay } from "@/components/APYDisplay";
-import { cn, formatDisplayNumber, formatBalance } from "@/lib/utils";
+import { cn, formatBalance } from "@/lib/utils";
 
 interface IncentiveStreamCardProps {
   stream: IncentiveStream;
