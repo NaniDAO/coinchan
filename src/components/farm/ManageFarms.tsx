@@ -12,6 +12,7 @@ import { FarmUnstakeDialog } from "../FarmUnstakeDialog";
 import { useAccount } from "wagmi";
 import { useAllCoins } from "@/hooks/metadata/use-all-coins";
 import { useZChefActions } from "@/hooks/use-zchef-contract";
+import { useState } from "react";
 
 export const ManageFarms = () => {
   const { t } = useTranslation();
@@ -24,11 +25,16 @@ export const ManageFarms = () => {
     useUserIncentivePositions();
   const { harvest } = useZChefActions();
 
+  const [harvestingId, setHarvestingId] = useState<bigint | null>(null);
+
   const handleHarvest = async (chefId: bigint) => {
     try {
+      setHarvestingId(chefId);
       await harvest.mutateAsync({ chefId });
     } catch (error) {
       console.error("Harvest failed:", error);
+    } finally {
+      setHarvestingId(null);
     }
   };
 
@@ -37,17 +43,17 @@ export const ManageFarms = () => {
       <div className="bg-gradient-to-r from-background/50 to-background/80 border border-primary/30 rounded-lg p-4 backdrop-blur-sm">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
-            <h3 className="font-bold text-base sm:text-lg uppercase tracking-wider bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+            <h3 className="font-mono font-bold text-base sm:text-lg uppercase tracking-wider bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
               {t("common.your_positions")}
             </h3>
             <div className="bg-primary/20 border border-primary/40 px-3 py-1 rounded">
-              <span className="text-primary text-sm font-bold">
-                {userPositions?.length || 0}
+              <span className="text-primary font-mono text-sm font-bold">
+                ({userPositions?.length || 0})
               </span>
             </div>
           </div>
           {address && (
-            <div className="hidden sm:block text-xs text-muted-foreground">
+            <div className="hidden sm:block text-xs text-muted-foreground font-mono">
               {address.slice(0, 6)}...{address.slice(-4)}
             </div>
           )}
@@ -63,7 +69,7 @@ export const ManageFarms = () => {
                 ☉
               </div>
               <p className="text-xl font-bold text-primary">
-                {t("common.auth_required")}
+                [ {t("common.auth_required")} ]
               </p>
               <p className="text-sm mt-3">
                 {t("common.connect_wallet_to_view_positions")}
@@ -74,7 +80,7 @@ export const ManageFarms = () => {
       ) : isLoadingPositions ? (
         <FarmGridSkeleton count={3} />
       ) : userPositions && userPositions.length > 0 ? (
-        <div className="grid gap-4 sm:gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
           {userPositions.map((position) => {
             const stream = activeStreams?.find(
               (s) => s.chefId === position.chefId,
@@ -92,31 +98,34 @@ export const ManageFarms = () => {
                       userPosition={position}
                       showUserActions={false}
                     />
-                    <div className="p-3 border-t border-primary/20 bg-background/50">
-                      <div className="flex flex-col sm:flex-row gap-2">
+                    <div className="p-4 border-t border-primary/20 bg-background/50">
+                      <div className="flex flex-col gap-3">
                         {lpToken && (
                           <FarmStakeDialog
                             stream={stream}
                             lpToken={lpToken}
                             trigger={
                               <Button
-                                size="sm"
-                                className="flex-1 font-bold tracking-wide hover:scale-105 transition-transform"
+                                size="default"
+                                className="w-full font-mono font-bold tracking-wide hover:scale-105 transition-transform min-h-[44px]"
                               >
-                                {t("common.stake_more")}
+                                [{t("common.stake_more")}]
                               </Button>
                             }
                           />
                         )}
-                        <div className="flex gap-2">
+                        <div className="grid grid-cols-2 gap-3">
                           <Button
-                            size="sm"
+                            size="default"
                             variant="outline"
                             onClick={() => handleHarvest(position.chefId)}
-                            disabled={position.pendingRewards === 0n}
-                            className="flex-1 sm:flex-none font-bold tracking-wide hover:scale-105 transition-transform"
+                            disabled={position.pendingRewards === 0n || harvestingId === position.chefId}
+                            className="font-mono font-bold tracking-wide hover:scale-105 transition-transform min-h-[44px]"
                           >
-                            {t("common.harvest")}
+                            {harvestingId === position.chefId 
+                              ? `[${t("common.harvesting")}...]`
+                              : `[${t("common.harvest")}]`
+                            }
                           </Button>
                           {userPositions && (
                             <FarmUnstakeDialog
@@ -124,11 +133,11 @@ export const ManageFarms = () => {
                               userPosition={position}
                               trigger={
                                 <Button
-                                  size="sm"
+                                  size="default"
                                   variant="outline"
-                                  className="flex-1 sm:flex-none font-bold tracking-wide hover:scale-105 transition-transform"
+                                  className="font-mono font-bold tracking-wide hover:scale-105 transition-transform min-h-[44px]"
                                 >
-                                  {t("common.unstake")}
+                                  [{t("common.unstake")}]
                                 </Button>
                               }
                             />
@@ -148,7 +157,7 @@ export const ManageFarms = () => {
             <div className="text-muted-foreground space-y-4">
               <div className="text-4xl sm:text-5xl opacity-20">○</div>
               <p className="text-xl font-bold text-muted-foreground">
-                {t("common.no_positions_found")}
+                [ {t("common.no_positions_found")} ]
               </p>
               <p className="text-sm mt-3">{t("common.no_positions_description")}</p>
             </div>
