@@ -295,11 +295,8 @@ export function FarmStakeDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="sm:max-w-2xl w-[95vw] min-h-0 max-h-[90vh] overflow-y-auto bg-card text-card-foreground border-2 border-border shadow-[4px_4px_0_var(--border)]">
-        <DialogHeader className="text-center">
-          <DialogTitle className="font-mono font-bold uppercase text-xl sm:text-2xl tracking-wider text-primary">
-            [{t("common.stake_lp_tokens")}]
-          </DialogTitle>
-          <div className="h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent mt-2"></div>
+        <DialogHeader className="sr-only">
+          <DialogTitle>Stake</DialogTitle>
         </DialogHeader>
 
         <div key={stakeMode} className="space-y-6">
@@ -470,26 +467,6 @@ export function FarmStakeDialog({
             )}
           </div>
 
-          {/* Stake Preview - Only for LP mode */}
-          {amount && Number.parseFloat(amount) > 0 && stakeMode === "lp" && (
-            <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/30 rounded-lg p-4">
-              <h4 className="font-mono font-bold text-base text-primary mb-4">
-                [{t("common.transaction_preview")}]
-              </h4>
-              <div className="space-y-3">
-                <div className="bg-background/40 border border-primary/20 rounded p-3">
-                  <div className="flex justify-between items-center">
-                    <span className="font-mono text-muted-foreground">
-                      {t("common.staking_amount")}:
-                    </span>
-                    <span className="font-mono font-bold text-primary text-lg">
-                      {amount} {lpToken.symbol}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* ETH Zap Error Display */}
           {stakeMode === "eth" && zapCalculation && !zapCalculation.isValid && (

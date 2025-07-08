@@ -94,11 +94,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
             color="var(--diamond-yellow)"
           />
           <StatsCard
-            label={t("landing.stats.coin_cost")}
-            value={landingData?.coinCost || t("landing.stats.loading")}
-            color="var(--diamond-green)"
-          />
-          <StatsCard
             label={t("landing.stats.launch_cost")}
             value={landingData?.launchCost || t("landing.stats.loading")}
             color="var(--diamond-pink)"
