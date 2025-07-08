@@ -1,6 +1,6 @@
 import type { TokenMeta } from "@/lib/coins";
 import { useMemo } from "react";
-import { formatUnits } from "viem";
+import { formatUnits, zeroAddress } from "viem";
 import type { IncentiveStream } from "./use-incentive-streams";
 import { useZChefRewardPerSharePerYear } from "./use-zchef-contract";
 import { usePoolApy } from "./use-pool-apy";
@@ -124,16 +124,26 @@ export function useCombinedApy({ stream, lpToken, enabled = true }: UseCombinedA
       
       // Calculate token prices based on pool reserves
       // First, identify which token is ETH and which is the reward token
-      // Note: token0 and token1 are addresses, need to check if they're ETH/WETH addresses
-      const WETH_ADDRESS = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2".toLowerCase();
-      const ETH_ADDRESS = "0x0000000000000000000000000000000000000000";
+      const WETH_ADDRESS = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
       
-      const isEthToken0 = lpToken.token0?.toLowerCase() === ETH_ADDRESS || lpToken.token0?.toLowerCase() === WETH_ADDRESS;
-      const isEthToken1 = lpToken.token1?.toLowerCase() === ETH_ADDRESS || lpToken.token1?.toLowerCase() === WETH_ADDRESS;
+      // Debug: Log what we're checking
+      console.log("Farm APY Debug - Token addresses:", {
+        token0: lpToken.token0,
+        token1: lpToken.token1,
+        zeroAddress,
+        WETH_ADDRESS,
+        isToken0Zero: lpToken.token0 === zeroAddress,
+        isToken1Zero: lpToken.token1 === zeroAddress,
+        isToken0Weth: lpToken.token0?.toLowerCase() === WETH_ADDRESS.toLowerCase(),
+        isToken1Weth: lpToken.token1?.toLowerCase() === WETH_ADDRESS.toLowerCase(),
+      });
+      
+      const isEthToken0 = lpToken.token0 === zeroAddress || lpToken.token0?.toLowerCase() === WETH_ADDRESS.toLowerCase();
+      const isEthToken1 = lpToken.token1 === zeroAddress || lpToken.token1?.toLowerCase() === WETH_ADDRESS.toLowerCase();
       
       // Verify the pool contains ETH
       if (!isEthToken0 && !isEthToken1) {
-        console.error("Pool does not contain ETH/WETH");
+        console.error("Pool does not contain ETH/WETH", { token0: lpToken.token0, token1: lpToken.token1 });
         return defaultResult;
       }
       
