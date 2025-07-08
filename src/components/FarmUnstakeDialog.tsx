@@ -7,7 +7,7 @@ import type { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { useZChefActions, useZChefPendingReward } from "@/hooks/use-zchef-contract";
 import type { TokenMeta } from "@/lib/coins";
 import { isUserRejectionError } from "@/lib/errors";
-import { cn } from "@/lib/utils";
+import { cn, formatBalance } from "@/lib/utils";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, parseUnits } from "viem";
@@ -102,7 +102,7 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-xl w-[95vw] max-h-[90vh] overflow-y-auto bg-gradient-to-br from-background/95 to-background/85 backdrop-blur-xl border-2 border-primary/40">
+      <DialogContent className="sm:max-w-xl w-[95vw] max-h-[90vh] overflow-y-auto bg-card text-card-foreground border-2 border-border shadow-[4px_4px_0_var(--border)]">
         <DialogHeader className="text-center">
           <DialogTitle className="font-mono font-bold uppercase text-xl tracking-wider bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
             [{t("common.unstake_lp_tokens")}]
@@ -192,9 +192,7 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
             <div className="bg-background/30 border border-primary/20 rounded p-3">
               <div className="flex justify-between text-sm font-mono">
                 <span className="text-muted-foreground">{t("common.staked")}:</span>
-                <span className="text-primary font-bold">
-                  {Number.parseFloat(maxAmount).toFixed(6)} {lpToken?.symbol}
-                </span>
+                <span className="text-primary font-bold">{formatBalance(maxAmount, lpToken?.symbol, 15)}</span>
               </div>
             </div>
           </div>
@@ -216,7 +214,7 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
                   <div className="flex justify-between items-center">
                     <span className="font-mono text-muted-foreground">{t("common.rewards_to_claim")}:</span>
                     <span className="font-mono font-bold text-primary text-lg">
-                      {Number.parseFloat(formatEther(actualPendingRewards)).toFixed(6)} {stream.rewardCoin?.symbol}
+                      {formatBalance(formatEther(actualPendingRewards), stream.rewardCoin?.symbol, 15)}
                     </span>
                   </div>
                 </div>

@@ -282,7 +282,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto bg-gradient-to-br from-background/95 to-background/85 backdrop-blur-xl border-2 border-primary/40">
+      <DialogContent className="sm:max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto bg-card text-card-foreground border-2 border-border shadow-[4px_4px_0_var(--border)]">
         <DialogHeader className="text-center">
           <DialogTitle className="font-mono font-bold uppercase text-xl sm:text-2xl tracking-wider bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
             [{t("common.stake_lp_tokens")}]
@@ -490,7 +490,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                     {stakeMode === "lp" && isLpBalanceLoading ? (
                       <span className="animate-pulse">Loading...</span>
                     ) : (
-                      formatBalance(maxAmount, stakeMode === "lp" ? "LP" : "ETH", 12)
+                      formatBalance(maxAmount, stakeMode === "lp" ? "LP" : "ETH", 15)
                     )}
                   </span>
                 </div>

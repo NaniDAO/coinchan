@@ -1,13 +1,11 @@
 import { APYDisplay } from "@/components/APYDisplay";
 import { formatImageURL } from "@/hooks/metadata";
 import type { IncentiveStream } from "@/hooks/use-incentive-streams";
-import { useZChefUtilities } from "@/hooks/use-zchef-contract";
+import { useZChefUtilities, useZChefPool } from "@/hooks/use-zchef-contract";
 import type { TokenMeta } from "@/lib/coins";
 import { cn, formatBalance } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits } from "viem";
-import { FarmStakeDialog } from "./FarmStakeDialog";
-import { Button } from "./ui/button";
 
 interface IncentiveStreamCardProps {
   stream: IncentiveStream;
@@ -17,6 +15,10 @@ interface IncentiveStreamCardProps {
 export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProps) {
   const { t } = useTranslation();
   const { calculateTimeRemaining } = useZChefUtilities();
+
+  // Get real-time total shares from zChef contract
+  const { data: poolData } = useZChefPool(stream.chefId);
+  const totalShares = poolData?.[7] ?? stream.totalShares ?? 0n;
 
   const timeRemaining = calculateTimeRemaining(stream.endTime);
   const isActive = stream.status === "ACTIVE" && timeRemaining.seconds > 0;
@@ -45,8 +47,8 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
   // totalValueLocked and dailyRewards are now handled by APYDisplay component
 
   return (
-    <div className="w-full border-2 border-border border-double hover:shadow-xl transition-all duration-300 hover:border-primary group">
-      <div className="p-4 border-b border-primary/30 bg-gradient-to-r from-primary/5 to-transparent">
+    <div className="bg-card text-card-foreground w-full border-2 border-border shadow-[4px_4px_0_var(--border)] transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_var(--border)] group">
+      <div className="p-6 border-b-2 border-border bg-gradient-to-r from-primary/5 to-transparent">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {lpToken?.imageUrl && (
@@ -74,7 +76,7 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
             >
               {isActive ? t("orders.active") : t("common.ended")}
             </div>
-            {stream.totalShares > 0n && (
+            {totalShares > 0n && (
               <div className="px-2 py-1 bg-primary/20 border border-primary/40 rounded text-xs font-mono font-bold text-primary animate-pulse">
                 🔥 HOT
               </div>
@@ -108,7 +110,7 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
         </div>
       </div>
 
-      <div className="p-4 space-y-5">
+      <div className="p-6 space-y-6">
         {/* Time Remaining */}
         <div className="space-y-3">
           <div className="flex justify-between items-center text-sm sm:text-base">
@@ -151,9 +153,9 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
           <div className="bg-background/30 border border-primary/20 rounded-lg p-3 relative overflow-hidden group/stat">
             <div className="absolute inset-0 bg-gradient-to-br from-primary/0 to-primary/10 opacity-0 group-hover/stat:opacity-100 transition-opacity duration-300"></div>
             <div className="relative z-10">
-              <p className="text-muted-foreground font-mono font-medium text-sm">[{t("common.total_staked")}]</p>
+              <p className="text-muted-foreground font-mono font-medium text-xs">[{t("common.total_staked")}]</p>
               <p className="font-mono font-bold text-lg text-primary mt-1">
-                {formatBalance(formatEther(stream.totalShares || 0n), "LP", 6)}
+                {formatBalance(formatEther(totalShares), "LP", 15)}
               </p>
             </div>
           </div>
@@ -161,9 +163,9 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
             <div className="bg-background/30 border border-primary/20 rounded-lg p-3 relative overflow-hidden group/liquidity">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/0 to-primary/10 opacity-0 group-hover/liquidity:opacity-100 transition-opacity duration-300"></div>
               <div className="relative z-10">
-                <p className="text-muted-foreground font-mono font-medium text-sm">[{t("pool.liquidity")}]</p>
+                <p className="text-muted-foreground font-mono font-medium text-xs">[{t("pool.liquidity")}]</p>
                 <p className="font-mono font-bold text-lg text-primary mt-1">
-                  {formatBalance(formatEther(lpToken.reserve0 || lpToken.liquidity || 0n), "ETH", 6)}
+                  {formatBalance(formatEther(lpToken.reserve0 || lpToken.liquidity || 0n), "ETH", 15)}
                 </p>
               </div>
             </div>
@@ -171,7 +173,12 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
           <div className="bg-background/30 border border-primary/20 rounded-lg p-3 relative overflow-hidden group/apy sm:col-span-2 lg:col-span-1">
             <div className="absolute inset-0 bg-gradient-to-br from-primary/0 to-primary/10 opacity-0 group-hover/apy:opacity-100 transition-opacity duration-300"></div>
             <div className="relative z-10">
-              <APYDisplay stream={stream} lpTokenPrice={undefined} rewardTokenPrice={undefined} className="text-sm" />
+              <APYDisplay
+                stream={{ ...stream, totalShares }}
+                lpTokenPrice={undefined}
+                rewardTokenPrice={undefined}
+                className="text-sm"
+              />
             </div>
           </div>
         </div>
@@ -214,13 +221,6 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
             </div>
           </div>
         </div>
-        {lpToken !== undefined && (
-          <FarmStakeDialog
-            lpToken={lpToken}
-            stream={stream}
-            trigger={<Button className="w-full">{t("common.stake")}</Button>}
-          />
-        )}
       </div>
     </div>
   );

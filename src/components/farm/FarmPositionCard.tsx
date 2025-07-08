@@ -25,12 +25,12 @@ export function FarmPositionCard({ position, stream, lpToken, onHarvest, isHarve
   const actualPendingRewards = onchainPendingRewards ?? position.pendingRewards;
 
   return (
-    <div className="bg-gradient-to-br from-background/80 to-background/60 border-2 border-primary/40 rounded-lg p-1 backdrop-blur-sm shadow-lg hover:shadow-2xl hover:border-primary transition-all duration-300 relative overflow-hidden group">
+    <div className="bg-card text-card-foreground border-2 border-border shadow-[4px_4px_0_var(--border)] transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_var(--border)] group relative overflow-hidden">
       <IncentiveStreamCard stream={stream} lpToken={lpToken || ETH_TOKEN} />
-      <div className="p-4 border-t border-primary/20 bg-background/50">
+      <div className="p-6 border-t-2 border-border bg-gradient-to-r from-primary/5 to-transparent">
         {/* Pending Rewards Display */}
         {actualPendingRewards > 0n && (
-          <div className="mb-3 p-3 bg-gradient-to-r from-green-500/10 to-green-500/5 border border-green-500/30 rounded-lg">
+          <div className="mb-3 p-3 bg-gradient-to-r from-green-500/10 to-green-500/5 border-2 border-green-500/30">
             <div className="flex justify-between items-center">
               <span className="text-xs font-mono text-green-600 dark:text-green-400">
                 {t("common.pending_rewards")}:

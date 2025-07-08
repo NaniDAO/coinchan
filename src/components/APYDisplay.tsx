@@ -41,17 +41,19 @@ export function APYDisplay({ stream, lpTokenPrice = 0n, rewardTokenPrice = 0n, c
     return (
       <div className={className}>
         <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-mono font-medium text-muted-foreground">{t("common.apy")}:</span>
-            <Badge variant="secondary" className="font-mono font-bold bg-muted/40 border border-muted/60">
+          <div className="flex items-center gap-1 min-w-0">
+            <span className="text-xs font-mono font-medium text-muted-foreground truncate shrink-0">
+              {t("common.apy")}:
+            </span>
+            <Badge variant="secondary" className="font-mono font-bold bg-muted/40 border-2 border-muted/60">
               --
             </Badge>
           </div>
-          <div className="bg-background/30 border border-primary/20 rounded p-2">
+          <div className="bg-background/30 border-2 border-primary/20 p-1.5 min-w-0">
             <div className="text-xs font-mono text-muted-foreground">
-              <span className="text-primary font-medium">{t("common.daily_rewards")}:</span>
-              <div className="font-bold text-primary mt-1">
-                {formatBalance(dailyRewards, stream.rewardCoin?.symbol, 15)}
+              <span className="text-primary font-medium truncate block">{t("common.daily_rewards")}:</span>
+              <div className="font-bold text-primary text-xs mt-1 break-all overflow-hidden">
+                {formatBalance(dailyRewards, stream.rewardCoin?.symbol, 8)}
               </div>
             </div>
           </div>
@@ -71,12 +73,14 @@ export function APYDisplay({ stream, lpTokenPrice = 0n, rewardTokenPrice = 0n, c
   return (
     <div className={className}>
       <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-mono font-medium text-muted-foreground">{t("common.apy")}:</span>
+        <div className="flex items-center gap-1 min-w-0">
+          <span className="text-xs font-mono font-medium text-muted-foreground truncate shrink-0">
+            {t("common.apy")}:
+          </span>
           <Badge
             variant={apyVariant}
             className={cn(
-              "font-mono font-bold px-3 py-1 text-sm shadow-md",
+              "font-mono font-bold px-2 py-1 text-xs shadow-md shrink-0",
               apyColor,
               apy >= 100
                 ? "bg-gradient-to-r from-green-500/20 to-green-500/10 border-green-500/50"
@@ -89,17 +93,17 @@ export function APYDisplay({ stream, lpTokenPrice = 0n, rewardTokenPrice = 0n, c
           </Badge>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-background/30 border border-primary/20 rounded p-2">
-            <span className="text-xs font-mono text-muted-foreground">{t("common.daily_rewards")}:</span>
-            <div className="font-mono font-bold text-primary text-sm mt-1 break-all">
-              {formatBalance(dailyRewards, stream.rewardCoin?.symbol, 12)}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="bg-background/30 border-2 border-primary/20 p-1.5 min-w-0">
+            <span className="text-xs font-mono text-muted-foreground truncate block">{t("common.daily_rewards")}:</span>
+            <div className="font-mono font-bold text-primary text-xs mt-1 break-all overflow-hidden">
+              {formatBalance(dailyRewards, stream.rewardCoin?.symbol, 8)}
             </div>
           </div>
           {tvlInEth && (
-            <div className="bg-background/30 border border-primary/20 rounded p-2">
-              <span className="text-xs font-mono text-muted-foreground">{t("common.tvl")}:</span>
-              <div className="font-mono font-bold text-primary text-sm mt-1">
+            <div className="bg-background/30 border-2 border-primary/20 p-1.5 min-w-0">
+              <span className="text-xs font-mono text-muted-foreground truncate block">{t("common.tvl")}:</span>
+              <div className="font-mono font-bold text-primary text-xs mt-1 truncate">
                 {Number.parseFloat(tvlInEth).toFixed(4)}
               </div>
               <div className="text-xs text-muted-foreground font-mono">ETH</div>
@@ -108,15 +112,22 @@ export function APYDisplay({ stream, lpTokenPrice = 0n, rewardTokenPrice = 0n, c
         </div>
 
         {/* Additional metrics */}
-        <div className="bg-background/20 border border-primary/20 rounded p-2">
+        <div className="bg-background/20 border-2 border-primary/20 p-1.5">
           <div className="space-y-1 text-xs font-mono">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">{t("common.reward_rate")}:</span>
-              <span className="text-primary font-bold">{formatUnits(stream.rewardRate, rewardTokenDecimals)}/sec</span>
+            <div className="flex justify-between items-center gap-1 min-w-0">
+              <span className="text-muted-foreground truncate shrink-0">{t("common.reward_rate")}:</span>
+              <span className="text-primary font-bold text-xs truncate">
+                {formatUnits(stream.rewardRate, rewardTokenDecimals)}/sec
+              </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">{t("common.total_participants")}:</span>
-              <span className={cn("font-bold", stream.totalShares > 0n ? "text-green-500" : "text-muted-foreground")}>
+            <div className="flex justify-between items-center gap-1 min-w-0">
+              <span className="text-muted-foreground truncate shrink-0">{t("common.total_participants")}:</span>
+              <span
+                className={cn(
+                  "font-bold text-xs",
+                  stream.totalShares > 0n ? "text-green-500" : "text-muted-foreground",
+                )}
+              >
                 {stream.totalShares > 0n ? "Active" : "None"}
               </span>
             </div>
