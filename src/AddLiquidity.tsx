@@ -35,8 +35,39 @@ import {
   getPoolIds,
   withSlippage,
 } from "./lib/swap";
-import { nowSec } from "./lib/utils";
 import { PoolApyDisplay } from "./components/ApyDisplay";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useOperatorStatus } from "./hooks/use-operator-status";
+import {
+  useAccount,
+  useChainId,
+  usePublicClient,
+  useWriteContract,
+} from "wagmi";
+import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
+import { ZAMMAbi, ZAMMAddress } from "./constants/ZAAM";
+import { handleWalletError, isUserRejectionError } from "./lib/errors";
+import { useWaitForTransactionReceipt } from "wagmi";
+import { TokenMeta, USDT_ADDRESS, USDT_POOL_KEY } from "./lib/coins";
+import { useTokenSelection } from "./contexts/TokenSelectionContext";
+import {
+  determineReserveSource,
+  getHelperContractInfo,
+  getTargetZAMMAddress,
+} from "./lib/coin-utils";
+import { useAllCoins } from "./hooks/metadata/use-all-coins";
+import { SlippageSettings } from "./components/SlippageSettings";
+import { NetworkError } from "./components/NetworkError";
+import { ZAMMHelperAbi, ZAMMHelperAddress } from "./constants/ZAMMHelper";
+import { ZAMMHelperV1Abi, ZAMMHelperV1Address } from "./constants/ZAMMHelperV1";
+import { CoinsAbi, CoinsAddress } from "./constants/Coins";
+import { CookbookAddress, CookbookAbi } from "./constants/Cookbook";
+import { nowSec } from "./lib/utils";
+import { mainnet } from "viem/chains";
+import { SwapPanel } from "./components/SwapPanel";
+import { useReserves } from "./hooks/use-reserves";
+import { useErc20Allowance } from "./hooks/use-erc20-allowance";
 
 export const AddLiquidity = () => {
   const { t } = useTranslation();
@@ -54,7 +85,8 @@ export const AddLiquidity = () => {
   const [buyAmt, setBuyAmt] = useState("");
 
   // Use shared token selection context
-  const { sellToken, buyToken, setSellToken, setBuyToken } = useTokenSelection();
+  const { sellToken, buyToken, setSellToken, setBuyToken } =
+    useTokenSelection();
 
   const { isSellETH, isCustom, isCoinToCoin, coinId, canSwap } = useMemo(
     () => analyzeTokens(sellToken, buyToken),
@@ -97,7 +129,11 @@ export const AddLiquidity = () => {
 
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [txError, setTxError] = useState<string | null>(null);
-  const { writeContractAsync, isPending, error: writeError } = useWriteContract();
+  const {
+    writeContractAsync,
+    isPending,
+    error: writeError,
+  } = useWriteContract();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
   const memoizedTokens = useMemo(() => tokens, [tokens]);
@@ -160,7 +196,9 @@ export const AddLiquidity = () => {
 
           // Use correct decimals for the buy token (6 for USDT, 18 for regular coins)
           const buyTokenDecimals = buyToken?.decimals || 18;
-          setBuyAmt(amountOut === 0n ? "" : formatUnits(amountOut, buyTokenDecimals));
+          setBuyAmt(
+            amountOut === 0n ? "" : formatUnits(amountOut, buyTokenDecimals),
+          );
         } catch (err) {
           console.error("Error estimating coin-to-coin output:", err);
           setBuyAmt("");
@@ -168,16 +206,28 @@ export const AddLiquidity = () => {
       } else if (isSellETH) {
         // ETH → Coin path
         const inWei = parseEther(val || "0");
-        const outUnits = getAmountOut(inWei, reserves.reserve0, reserves.reserve1, sellToken?.swapFee ?? SWAP_FEE);
+        const outUnits = getAmountOut(
+          inWei,
+          reserves.reserve0,
+          reserves.reserve1,
+          sellToken?.swapFee ?? SWAP_FEE,
+        );
         // Use correct decimals for the buy token (6 for USDT, 18 for regular coins)
         const buyTokenDecimals = buyToken?.decimals || 18;
-        setBuyAmt(outUnits === 0n ? "" : formatUnits(outUnits, buyTokenDecimals));
+        setBuyAmt(
+          outUnits === 0n ? "" : formatUnits(outUnits, buyTokenDecimals),
+        );
       } else {
         // Coin → ETH path
         // Use correct decimals for the sell token (6 for USDT, 18 for regular coins)
         const sellTokenDecimals = sellToken?.decimals || 18;
         const inUnits = parseUnits(val || "0", sellTokenDecimals);
-        const outWei = getAmountOut(inUnits, reserves.reserve1, reserves.reserve0, sellToken?.swapFee ?? SWAP_FEE);
+        const outWei = getAmountOut(
+          inUnits,
+          reserves.reserve1,
+          reserves.reserve0,
+          sellToken?.swapFee ?? SWAP_FEE,
+        );
         setBuyAmt(outWei === 0n ? "" : formatEther(outWei));
       }
     } catch {
@@ -203,15 +253,27 @@ export const AddLiquidity = () => {
         // Use correct decimals for the buy token (6 for USDT, 18 for regular coins)
         const buyTokenDecimals = buyToken?.decimals || 18;
         const outUnits = parseUnits(val || "0", buyTokenDecimals);
-        const inWei = getAmountIn(outUnits, reserves.reserve0, reserves.reserve1, buyToken?.swapFee ?? SWAP_FEE);
+        const inWei = getAmountIn(
+          outUnits,
+          reserves.reserve0,
+          reserves.reserve1,
+          buyToken?.swapFee ?? SWAP_FEE,
+        );
         setSellAmt(inWei === 0n ? "" : formatEther(inWei));
       } else {
         // Coin → ETH path (calculate Coin input)
         const outWei = parseEther(val || "0");
-        const inUnits = getAmountIn(outWei, reserves.reserve1, reserves.reserve0, buyToken?.swapFee ?? SWAP_FEE);
+        const inUnits = getAmountIn(
+          outWei,
+          reserves.reserve1,
+          reserves.reserve0,
+          buyToken?.swapFee ?? SWAP_FEE,
+        );
         // Use correct decimals for the sell token (6 for USDT, 18 for regular coins)
         const sellTokenDecimals = sellToken?.decimals || 18;
-        setSellAmt(inUnits === 0n ? "" : formatUnits(inUnits, sellTokenDecimals));
+        setSellAmt(
+          inUnits === 0n ? "" : formatUnits(inUnits, sellTokenDecimals),
+        );
       }
     } catch {
       setSellAmt("");
@@ -291,12 +353,24 @@ export const AddLiquidity = () => {
         console.log("USDT token detected for liquidity addition");
 
         // Determine which token is USDT and get its amount
-        if ((sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS) || sellToken.symbol === "USDT") {
+        if (
+          (sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS) ||
+          sellToken.symbol === "USDT"
+        ) {
           usdtAmount = parseUnits(sellAmt, 6); // USDT has 6 decimals
-          console.log("Using USDT as sell token with amount:", usdtAmount.toString());
-        } else if ((buyToken?.isCustomPool && buyToken?.token1 === USDT_ADDRESS) || buyToken?.symbol === "USDT") {
+          console.log(
+            "Using USDT as sell token with amount:",
+            usdtAmount.toString(),
+          );
+        } else if (
+          (buyToken?.isCustomPool && buyToken?.token1 === USDT_ADDRESS) ||
+          buyToken?.symbol === "USDT"
+        ) {
           usdtAmount = parseUnits(buyAmt, 6); // USDT has 6 decimals
-          console.log("Using USDT as buy token with amount:", usdtAmount.toString());
+          console.log(
+            "Using USDT as buy token with amount:",
+            usdtAmount.toString(),
+          );
         }
 
         // Check if we need to verify USDT allowance first
@@ -306,14 +380,20 @@ export const AddLiquidity = () => {
         }
 
         // If USDT amount is greater than allowance, request approval
-        if (usdtAllowance === undefined || usdtAllowance === 0n || usdtAmount > usdtAllowance) {
+        if (
+          usdtAllowance === undefined ||
+          usdtAllowance === 0n ||
+          usdtAmount > usdtAllowance
+        ) {
           console.log("USDT approval needed for liquidity:", {
             usdtAmount: usdtAmount.toString(),
             allowance: usdtAllowance?.toString() || "0",
           });
 
           // Maintain consistent UX with operator approval flow
-          setTxError("Waiting for USDT approval. Please confirm the transaction...");
+          setTxError(
+            "Waiting for USDT approval. Please confirm the transaction...",
+          );
           const approved = await approveUsdtMax();
           if (approved === undefined) {
             return; // Stop if approval failed or was rejected
@@ -370,7 +450,9 @@ export const AddLiquidity = () => {
       const tokenDecimals = isUsdtPool ? 6 : 18;
 
       const amount0 = isSellETH ? parseEther(sellAmt) : parseEther(buyAmt); // ETH amount
-      const amount1 = isSellETH ? parseUnits(buyAmt, tokenDecimals) : parseUnits(sellAmt, tokenDecimals); // Token amount
+      const amount1 = isSellETH
+        ? parseUnits(buyAmt, tokenDecimals)
+        : parseUnits(sellAmt, tokenDecimals); // Token amount
 
       // Verify we have valid amounts
       if (amount0 === 0n || amount1 === 0n) {
@@ -381,10 +463,17 @@ export const AddLiquidity = () => {
       // Slippage protection will be calculated after getting exact amounts from ZAMMHelper
 
       // Check for USDT approvals first if using USDT pool
-      if (isUsdtPool && !isSellETH && usdtAllowance !== undefined && amount1 > usdtAllowance) {
+      if (
+        isUsdtPool &&
+        !isSellETH &&
+        usdtAllowance !== undefined &&
+        amount1 > usdtAllowance
+      ) {
         try {
           // First, show a notification about the approval step
-          setTxError("Waiting for USDT approval. Please confirm the transaction...");
+          setTxError(
+            "Waiting for USDT approval. Please confirm the transaction...",
+          );
 
           // Send the approval transaction
           const approvalHash = await approveUsdtMax();
@@ -424,7 +513,9 @@ export const AddLiquidity = () => {
       if (!isUsdtPool && !isCookbook && isOperator === false) {
         try {
           // First, show a notification about the approval step
-          setTxError("Waiting for operator approval. Please confirm the transaction...");
+          setTxError(
+            "Waiting for operator approval. Please confirm the transaction...",
+          );
 
           // Send the approval transaction for regular coins only
           console.log("Approving ZAMM as operator on Coins contract", {
@@ -439,7 +530,9 @@ export const AddLiquidity = () => {
           });
 
           // Show a waiting message
-          setTxError("Operator approval submitted. Waiting for confirmation...");
+          setTxError(
+            "Operator approval submitted. Waiting for confirmation...",
+          );
 
           // Wait for the transaction to be mined
           const receipt = await publicClient.waitForTransactionReceipt({
@@ -467,7 +560,9 @@ export const AddLiquidity = () => {
 
       // Use appropriate ZAMMHelper contract based on coin type
       const { helperType } = getHelperContractInfo(coinId);
-      const helperAddress = isCookbook ? ZAMMHelperV1Address : ZAMMHelperAddress;
+      const helperAddress = isCookbook
+        ? ZAMMHelperV1Address
+        : ZAMMHelperAddress;
       const helperAbi = isCookbook ? ZAMMHelperV1Abi : ZAMMHelperAbi;
 
       console.log(`Using ${helperType} for add liquidity`, {
@@ -490,7 +585,11 @@ export const AddLiquidity = () => {
         });
 
         // Extract the values from the result array
-        const [ethAmount, calcAmount0, calcAmount1] = result as [bigint, bigint, bigint];
+        const [ethAmount, calcAmount0, calcAmount1] = result as [
+          bigint,
+          bigint,
+          bigint,
+        ];
 
         // Detailed logging to help with debugging
 
@@ -533,7 +632,10 @@ export const AddLiquidity = () => {
         // Use our utility to handle wallet errors
         const errorMsg = handleWalletError(calcErr);
         if (errorMsg) {
-          console.error(`Error calling ${helperType}.calculateRequiredETH:`, calcErr);
+          console.error(
+            `Error calling ${helperType}.calculateRequiredETH:`,
+            calcErr,
+          );
           setTxError("Failed to calculate exact ETH amount");
         }
         return;
@@ -551,8 +653,12 @@ export const AddLiquidity = () => {
             setTxError("Insufficient funds for this transaction");
           } else if (err.message.includes("InvalidMsgVal")) {
             // This is our critical error where the msg.value doesn't match what the contract expects
-            setTxError("Contract rejected ETH value. Please try again with different amounts.");
-            console.error("ZAMM contract rejected the ETH value due to strict msg.value validation.");
+            setTxError(
+              "Contract rejected ETH value. Please try again with different amounts.",
+            );
+            console.error(
+              "ZAMM contract rejected the ETH value due to strict msg.value validation.",
+            );
           } else {
             setTxError("Transaction failed. Please try again.");
           }
@@ -589,7 +695,9 @@ export const AddLiquidity = () => {
         isEthBalanceFetching={isEthBalanceFetching}
         amount={sellAmt}
         onAmountChange={syncFromSell}
-        showMaxButton={!!(sellToken.balance !== undefined && sellToken.balance > 0n)}
+        showMaxButton={
+          !!(sellToken.balance !== undefined && sellToken.balance > 0n)
+        }
         onMax={() => {
           if (sellToken.id === null) {
             const ethAmount = ((sellToken.balance as bigint) * 99n) / 100n;
@@ -619,13 +727,20 @@ export const AddLiquidity = () => {
       <NetworkError message="manage liquidity" />
 
       {/* Slippage information */}
-      <SlippageSettings slippageBps={slippageBps} setSlippageBps={setSlippageBps} />
+      <SlippageSettings
+        slippageBps={slippageBps}
+        setSlippageBps={setSlippageBps}
+      />
 
       <div className="text-xs bg-muted/50 border border-primary/30 rounded p-2 mt-2 text-muted-foreground dark:text-gray-300">
-        <p className="font-medium mb-1">{t("pool.adding_liquidity_provides")}</p>
+        <p className="font-medium mb-1">
+          {t("pool.adding_liquidity_provides")}
+        </p>
         <ul className="list-disc pl-4 space-y-0.5">
           <li>{t("pool.lp_tokens_proof")}</li>
-          <li>{t("pool.earn_fees_from_trades", { fee: Number(SWAP_FEE) / 100 })}</li>
+          <li>
+            {t("pool.earn_fees_from_trades", { fee: Number(SWAP_FEE) / 100 })}
+          </li>
           <li>{t("pool.withdraw_anytime")}</li>
         </ul>
       </div>
@@ -659,9 +774,12 @@ export const AddLiquidity = () => {
         </div>
       )}
 
-      {((writeError && !isUserRejectionError(writeError)) || (txError && !txError.includes("Waiting for"))) && (
+      {((writeError && !isUserRejectionError(writeError)) ||
+        (txError && !txError.includes("Waiting for"))) && (
         <div className="text-sm text-destructive mt-2 bg-background/50 p-2 rounded border border-destructive/20">
-          {writeError && !isUserRejectionError(writeError) ? writeError.message : txError}
+          {writeError && !isUserRejectionError(writeError)
+            ? writeError.message
+            : txError}
         </div>
       )}
 
