@@ -1,5 +1,8 @@
 import { useAllCoins } from "@/hooks/metadata/use-all-coins";
-import { useIncentiveStreams, useUserIncentivePositions } from "@/hooks/use-incentive-streams";
+import {
+  useIncentiveStreams,
+  useUserIncentivePositions,
+} from "@/hooks/use-incentive-streams";
 import { useZChefActions } from "@/hooks/use-zchef-contract";
 import { isUserRejectionError } from "@/lib/errors";
 import { cn, formatBalance } from "@/lib/utils";
@@ -18,7 +21,8 @@ export const ManageFarms = () => {
 
   const { tokens } = useAllCoins();
   const { data: allStreams } = useIncentiveStreams();
-  const { data: userPositions, isLoading: isLoadingPositions } = useUserIncentivePositions();
+  const { data: userPositions, isLoading: isLoadingPositions } =
+    useUserIncentivePositions();
   const { harvest } = useZChefActions();
 
   const [harvestingId, setHarvestingId] = useState<bigint | null>(null);
@@ -50,23 +54,35 @@ export const ManageFarms = () => {
                 userPositions && userPositions.length > 0 && "animate-pulse",
               )}
             >
-              <span className="text-primary font-mono text-sm font-bold">({userPositions?.length || 0})</span>
+              <span className="text-primary font-mono text-sm font-bold">
+                ({userPositions?.length || 0})
+              </span>
             </div>
           </div>
           <div className="flex items-center gap-4">
             {userPositions && userPositions.length > 0 && (
               <div className="hidden sm:flex items-center gap-4">
-                <div className="text-xs font-mono">
-                  <span className="text-muted-foreground">{t("common.total_rewards")}:</span>
+                {/* @TODO */}
+                {/* <div className="text-xs font-mono">
+                  <span className="text-muted-foreground">
+                    {t("common.total_rewards")}:
+                  </span>
                   <span className="text-primary font-bold ml-1">
                     {formatBalance(
-                      formatEther(userPositions.reduce((acc, p) => acc + (p.pendingRewards || 0n), 0n)),
+                      formatEther(
+                        userPositions.reduce(
+                          (acc, p) => acc + (p.pendingRewards || 0n),
+                          0n,
+                        ),
+                      ),
                       "",
                     )}
                   </span>
-                </div>
+                </div> */}
                 <div className="text-xs font-mono">
-                  <span className="text-muted-foreground">{t("common.active_farms")}:</span>
+                  <span className="text-muted-foreground">
+                    {t("common.active_farms")}:
+                  </span>
                   <span className="text-primary font-bold ml-1">
                     {userPositions.filter((p) => p.shares > 0n).length}
                   </span>
@@ -87,26 +103,28 @@ export const ManageFarms = () => {
         <div className="text-center py-12 sm:py-16">
           <div className="bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-dashed border-primary/50 rounded-xl p-8 backdrop-blur-sm">
             <div className="text-foreground space-y-4">
-              <div className="text-4xl sm:text-5xl text-primary opacity-40">☉</div>
-              <p className="text-xl font-bold text-primary">[ {t("common.auth_required")} ]</p>
-              <p className="text-sm mt-3">{t("common.connect_wallet_to_view_positions")}</p>
+              <div className="text-4xl sm:text-5xl text-primary opacity-40">
+                ☉
+              </div>
+              <p className="text-xl font-bold text-primary">
+                [ {t("common.auth_required")} ]
+              </p>
+              <p className="text-sm mt-3">
+                {t("common.connect_wallet_to_view_positions")}
+              </p>
             </div>
           </div>
         </div>
       ) : isLoadingPositions ? (
         <FarmGridSkeleton count={3} />
       ) : userPositions && userPositions.length > 0 ? (
-        <div className="grid gap-4 sm:gap-5 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+        <div className="grid gap-4 sm:gap-5 grid-cols-1 md:grid-cols-2 ">
           {userPositions.map((position) => {
-            const stream = allStreams?.find((s) => BigInt(s.chefId) === BigInt(position.chefId));
+            const stream = allStreams?.find(
+              (s) => BigInt(s.chefId) === BigInt(position.chefId),
+            );
             const lpToken = tokens.find((t) => t.poolId === stream?.lpId);
-            // Debug logging with BigInt-safe serialization
-            console.log("User Position Map:", {
-              chefId: position.chefId.toString(),
-              shares: position.shares.toString(),
-              streamFound: !!stream,
-              lpTokenSymbol: lpToken?.symbol,
-            });
+
             if (!stream) return null;
 
             return (
@@ -129,8 +147,12 @@ export const ManageFarms = () => {
           <div className="bg-gradient-to-br from-muted/20 to-muted/5 border-2 border-dashed border-muted/40 rounded-xl p-8 backdrop-blur-sm">
             <div className="text-muted-foreground space-y-4">
               <div className="text-4xl sm:text-5xl opacity-20">○</div>
-              <p className="text-xl font-bold text-muted-foreground">[ {t("common.no_positions_found")} ]</p>
-              <p className="text-sm mt-3">{t("common.no_positions_description")}</p>
+              <p className="text-xl font-bold text-muted-foreground">
+                [ {t("common.no_positions_found")} ]
+              </p>
+              <p className="text-sm mt-3">
+                {t("common.no_positions_description")}
+              </p>
             </div>
           </div>
         </div>

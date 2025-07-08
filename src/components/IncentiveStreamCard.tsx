@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits } from "viem";
 import { FarmStakeDialog } from "./FarmStakeDialog";
 import { Button } from "./ui/button";
+import { useMemo } from "react";
 
 interface IncentiveStreamCardProps {
   stream: IncentiveStream;
@@ -30,7 +31,7 @@ export function IncentiveStreamCard({
 
   const rewardTokenDecimals = stream.rewardCoin?.decimals || 18;
 
-  const progress = (() => {
+  const progress = useMemo(() => {
     const now = BigInt(Math.floor(Date.now() / 1000));
 
     // Handle missing or invalid startTime (offline mode fallback)
@@ -50,8 +51,10 @@ export function IncentiveStreamCard({
     if (elapsed <= 0n) return 0;
     if (elapsed >= totalDuration) return 100;
 
-    return Number((elapsed * 100n) / totalDuration);
-  })();
+    const progress = Number((elapsed * 100n) / totalDuration);
+
+    return progress;
+  }, [stream.startTime, stream.endTime]);
 
   // totalValueLocked and dailyRewards are now handled by APYDisplay component
 
@@ -85,11 +88,6 @@ export function IncentiveStreamCard({
             >
               {isActive ? t("orders.active") : t("common.ended")}
             </div>
-            {totalShares > 0n && (
-              <div className="px-2 py-1 bg-primary/20 border border-primary/40 rounded text-xs font-mono font-bold text-primary animate-pulse">
-                🔥 HOT
-              </div>
-            )}
           </div>
         </div>
 

@@ -66,29 +66,18 @@ export function APYDisplay({
     calculateAPY,
   ]);
 
+  console.log("Daily Rewards:", dailyRewards);
+
   if (apy === null) {
     return (
       <div className={className}>
         <div className="space-y-2">
-          <div className="flex items-center gap-1 min-w-0">
-            <span className="text-xs font-mono font-medium text-muted-foreground truncate shrink-0">
-              {t("common.apy")}:
+          <div className="grid grid-row-2 justify-between">
+            <span className="text-muted-foreground font-mono font-medium text-xs">
+              [{t("common.daily_rewards")}]
             </span>
-            <Badge
-              variant="secondary"
-              className="font-mono font-bold bg-muted/40 border-2 border-muted/60"
-            >
-              --
-            </Badge>
-          </div>
-          <div className="bg-background/30 border-2 border-primary/20 p-1.5 min-w-0">
-            <div className="text-xs font-mono text-muted-foreground">
-              <span className="text-primary font-medium truncate block">
-                {t("common.daily_rewards")}:
-              </span>
-              <div className="font-bold text-primary text-xs mt-1 break-all overflow-hidden">
-                {formatBalance(dailyRewards, stream.rewardCoin?.symbol)}
-              </div>
+            <div className="font-mono font-bold text-lg text-primary mt-1">
+              {formatBalance(dailyRewards, stream.rewardCoin?.symbol)}
             </div>
           </div>
         </div>

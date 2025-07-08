@@ -1,4 +1,7 @@
-import type { IncentiveStream, IncentiveUserPosition } from "@/hooks/use-incentive-streams";
+import type {
+  IncentiveStream,
+  IncentiveUserPosition,
+} from "@/hooks/use-incentive-streams";
 import { useZChefPendingReward } from "@/hooks/use-zchef-contract";
 import { ETH_TOKEN, type TokenMeta } from "@/lib/coins";
 import { formatBalance } from "@/lib/utils";
@@ -17,13 +20,25 @@ interface FarmPositionCardProps {
   isHarvesting: boolean;
 }
 
-export function FarmPositionCard({ position, stream, lpToken, onHarvest, isHarvesting }: FarmPositionCardProps) {
+export function FarmPositionCard({
+  position,
+  stream,
+  lpToken,
+  onHarvest,
+  isHarvesting,
+}: FarmPositionCardProps) {
   const { t } = useTranslation();
 
   // Get real-time pending rewards from contract
   const { data: onchainPendingRewards } = useZChefPendingReward(stream.chefId);
   const actualPendingRewards = onchainPendingRewards ?? position.pendingRewards;
-
+  if (
+    actualPendingRewards === undefined ||
+    actualPendingRewards === null ||
+    actualPendingRewards === 0n
+  ) {
+    return null;
+  }
   return (
     <div className="bg-card text-card-foreground border-2 border-border shadow-[4px_4px_0_var(--border)] transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_var(--border)] group relative overflow-hidden">
       <IncentiveStreamCard stream={stream} lpToken={lpToken || ETH_TOKEN} />
@@ -36,7 +51,10 @@ export function FarmPositionCard({ position, stream, lpToken, onHarvest, isHarve
                 {t("common.pending_rewards")}:
               </span>
               <span className="font-mono font-bold text-green-600 dark:text-green-400">
-                {formatBalance(formatEther(actualPendingRewards), stream.rewardCoin?.symbol)}
+                {formatBalance(
+                  formatEther(actualPendingRewards),
+                  stream.rewardCoin?.symbol,
+                )}
               </span>
             </div>
           </div>
@@ -64,7 +82,9 @@ export function FarmPositionCard({ position, stream, lpToken, onHarvest, isHarve
               disabled={actualPendingRewards === 0n || isHarvesting}
               className="font-mono font-bold tracking-wide hover:scale-105 transition-transform min-h-[44px]"
             >
-              {isHarvesting ? `[${t("common.harvesting")}...]` : `[${t("common.harvest")}]`}
+              {isHarvesting
+                ? `[${t("common.harvesting")}...]`
+                : `[${t("common.harvest")}]`}
             </Button>
             <FarmUnstakeDialog
               stream={stream}
