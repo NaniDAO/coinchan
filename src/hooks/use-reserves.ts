@@ -21,6 +21,11 @@ export function useReserves({
         return {
           reserve0: data[0],
           reserve1: data[1],
+          blockTimestampLast: data[2],
+          price0CumulativeLast: data[3],
+          price1CumulativeLast: data[4],
+          kLast: data[5],
+          supply: data[6], // Total LP token supply
         };
       },
     },
