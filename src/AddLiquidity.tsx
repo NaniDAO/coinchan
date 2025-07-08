@@ -1,27 +1,4 @@
 import { Loader2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useTranslation } from "react-i18next";
-import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
-import { mainnet } from "viem/chains";
-import { useAccount, useChainId, usePublicClient, useWriteContract } from "wagmi";
-import { useWaitForTransactionReceipt } from "wagmi";
-import { NetworkError } from "./components/NetworkError";
-import { SlippageSettings } from "./components/SlippageSettings";
-import { SuccessMessage } from "./components/SuccessMessage";
-import { SwapPanel } from "./components/SwapPanel";
-import { CoinsAbi, CoinsAddress } from "./constants/Coins";
-import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
-import { ZAMMAbi, ZAMMAddress } from "./constants/ZAAM";
-import { ZAMMHelperAbi, ZAMMHelperAddress } from "./constants/ZAMMHelper";
-import { ZAMMHelperV1Abi, ZAMMHelperV1Address } from "./constants/ZAMMHelperV1";
-import { useTokenSelection } from "./contexts/TokenSelectionContext";
-import { useAllCoins } from "./hooks/metadata/use-all-coins";
-import { useErc20Allowance } from "./hooks/use-erc20-allowance";
-import { useOperatorStatus } from "./hooks/use-operator-status";
-import { useReserves } from "./hooks/use-reserves";
-import { determineReserveSource, getHelperContractInfo, getTargetZAMMAddress } from "./lib/coin-utils";
-import { type TokenMeta, USDT_ADDRESS, USDT_POOL_KEY } from "./lib/coins";
-import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import {
   DEADLINE_SEC,
   SLIPPAGE_BPS,
@@ -68,6 +45,7 @@ import { mainnet } from "viem/chains";
 import { SwapPanel } from "./components/SwapPanel";
 import { useReserves } from "./hooks/use-reserves";
 import { useErc20Allowance } from "./hooks/use-erc20-allowance";
+import { SuccessMessage } from "./components/SuccessMessage";
 
 export const AddLiquidity = () => {
   const { t } = useTranslation();
@@ -685,7 +663,10 @@ export const AddLiquidity = () => {
 
   return (
     <div className="relative flex flex-col">
-      <PoolApyDisplay poolId={mainPoolId ? mainPoolId.toString() : undefined} className="mb-2" />
+      <PoolApyDisplay
+        poolId={mainPoolId ? mainPoolId.toString() : undefined}
+        className="mb-2"
+      />
       {/* Provide panel */}
       <SwapPanel
         title={t("common.provide")}
