@@ -1,7 +1,6 @@
 import { RainbowConnectButton } from "@/components/RainbowConnectButton";
 import { SwapRibbon } from "@/components/SwapRibbon";
 import UserSettingsMenu from "@/components/UserSettingsMenu";
-import { WhatZAMM } from "@/components/WhatZAMM";
 import { ZammLogo } from "@/components/ZammLogo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -78,7 +77,6 @@ export const Route = createRootRoute({
             </Link>
           </div>
         </div>
-        <WhatZAMM />
       </>
     );
   },
