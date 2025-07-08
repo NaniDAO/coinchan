@@ -72,7 +72,7 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
               className={cn(
                 "px-2 py-1 border font-mono text-xs uppercase tracking-wider font-bold",
                 isActive
-                  ? "border-muted text-foreground"
+                  ? "border-green-700 text-green-600"
                   : "border-muted text-muted-foreground",
               )}
             >

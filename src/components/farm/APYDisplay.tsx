@@ -55,7 +55,7 @@ export function APYDisplay({ stream, lpToken, shortView = true }: APYDisplayProp
     return (
       <>
         <p className="text-muted-foreground font-mono text-xs">[{t("common.total_apy")}]</p>
-        <p className="font-mono font-bold text-sm text-foreground mt-1">
+        <p className="font-mono font-bold text-sm text-green-600 mt-1">
           {combinedApyData.totalApy.toFixed(2)}%
         </p>
       </>
@@ -73,7 +73,7 @@ export function APYDisplay({ stream, lpToken, shortView = true }: APYDisplayProp
       <div className="mb-3 p-2 border border-muted">
         <div className="text-center">
           <p className="text-muted-foreground font-mono text-xs">{t("common.total_apy")}:</p>
-          <p className="font-mono font-bold text-foreground text-lg">
+          <p className="font-mono font-bold text-green-600 text-lg">
             {combinedApyData.totalApy.toFixed(2)}%
           </p>
         </div>

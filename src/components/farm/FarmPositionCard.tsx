@@ -31,12 +31,12 @@ export function FarmPositionCard({ position, stream, lpToken, onHarvest, isHarve
       <div className="p-6">
         {/* Pending Rewards Display */}
         {actualPendingRewards > 0n && (
-          <div className="mb-3 p-3 bg-gradient-to-r from-green-500/10 to-green-500/5 border-2 border-green-500/30">
+          <div className="mb-3 p-3 border border-green-700 bg-background">
             <div className="flex justify-between items-center">
-              <span className="text-xs font-mono text-green-600 dark:text-green-400">
-                {t("common.pending_rewards")}:
+              <span className="text-xs font-mono text-green-700 uppercase tracking-wider">
+                [{t("common.pending_rewards")}]:
               </span>
-              <span className="font-mono font-bold text-green-600 dark:text-green-400">
+              <span className="font-mono font-bold text-green-600">
                 {formatBalance(formatEther(actualPendingRewards), stream.rewardCoin?.symbol)}
               </span>
             </div>

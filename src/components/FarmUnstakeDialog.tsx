@@ -105,11 +105,8 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="sm:max-w-xl w-[95vw] max-h-[90vh] overflow-y-auto bg-card text-card-foreground border-2 border-border shadow-[4px_4px_0_var(--border)]">
-        <DialogHeader className="text-center">
-          <DialogTitle className="font-mono font-bold uppercase text-xl tracking-wider text-primary">
-            [{t("common.unstake_lp_tokens")}]
-          </DialogTitle>
-          <div className="h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent mt-2"></div>
+        <DialogHeader className="sr-only">
+          <DialogTitle>Unstake</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -152,9 +149,9 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
                   <p className="font-mono font-bold text-primary">{stream.rewardCoin?.symbol}</p>
                 </div>
               </div>
-              <div className="bg-background/30 border border-primary/20 rounded p-3">
-                <p className="text-muted-foreground font-mono text-xs">{t("common.pending_rewards")}</p>
-                <p className="font-mono font-bold text-primary">
+              <div className="bg-background/30 border border-green-700 rounded p-3">
+                <p className="text-green-700 font-mono text-xs uppercase tracking-wider">[{t("common.pending_rewards")}]</p>
+                <p className="font-mono font-bold text-green-600">
                   {Number.parseFloat(formatEther(actualPendingRewards)).toFixed(6)} {stream.rewardCoin?.symbol}
                 </p>
               </div>
