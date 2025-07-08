@@ -59,7 +59,7 @@ export function IncentiveStreamCard({
   // totalValueLocked and dailyRewards are now handled by APYDisplay component
 
   return (
-    <div className="bg-card text-card-foreground w-full border-2 border-border shadow-[4px_4px_0_var(--border)] transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_var(--border)] group">
+    <div className="bg-card text-card-foreground w-full border-2 border-border transition-all group">
       <div className="p-6 border-b-2 border-border bg-gradient-to-r from-primary/5 to-transparent">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

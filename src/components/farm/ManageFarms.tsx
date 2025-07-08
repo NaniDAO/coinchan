@@ -5,10 +5,9 @@ import {
 } from "@/hooks/use-incentive-streams";
 import { useZChefActions } from "@/hooks/use-zchef-contract";
 import { isUserRejectionError } from "@/lib/errors";
-import { cn, formatBalance } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { formatEther } from "viem";
 import { useAccount } from "wagmi";
 import { ErrorBoundary } from "../ErrorBoundary";
 import { FarmGridSkeleton } from "../FarmLoadingStates";

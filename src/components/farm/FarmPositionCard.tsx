@@ -40,9 +40,9 @@ export function FarmPositionCard({
     return null;
   }
   return (
-    <div className="bg-card text-card-foreground border-2 border-border shadow-[4px_4px_0_var(--border)] transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_var(--border)] group relative overflow-hidden">
+    <div className="bg-card text-card-foreground border-2 border-border transition-all h group relative overflow-hidden">
       <IncentiveStreamCard stream={stream} lpToken={lpToken || ETH_TOKEN} />
-      <div className="p-6 border-t-2 border-border bg-gradient-to-r from-primary/5 to-transparent">
+      <div className="p-6">
         {/* Pending Rewards Display */}
         {actualPendingRewards > 0n && (
           <div className="mb-3 p-3 bg-gradient-to-r from-green-500/10 to-green-500/5 border-2 border-green-500/30">
@@ -60,20 +60,6 @@ export function FarmPositionCard({
           </div>
         )}
         <div className="flex flex-col gap-3">
-          {lpToken && (
-            <FarmStakeDialog
-              stream={stream}
-              lpToken={lpToken}
-              trigger={
-                <Button
-                  size="default"
-                  className="w-full font-mono font-bold tracking-wide hover:scale-105 transition-transform min-h-[44px]"
-                >
-                  [{t("common.stake")}]
-                </Button>
-              }
-            />
-          )}
           <div className="grid grid-cols-2 gap-3">
             <Button
               size="default"
