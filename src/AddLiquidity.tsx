@@ -45,7 +45,7 @@ import {
   withSlippage,
 } from "./lib/swap";
 import { nowSec } from "./lib/utils";
-import { ApyDisplay } from "./components/ApyDisplay";
+import { PoolApyDisplay } from "./components/ApyDisplay";
 
 export const AddLiquidity = () => {
   const { t } = useTranslation();
@@ -663,7 +663,7 @@ export const AddLiquidity = () => {
 
   return (
     <div className="relative flex flex-col">
-      <ApyDisplay
+      <PoolApyDisplay
         poolId={mainPoolId ? mainPoolId.toString() : undefined}
         className="mb-2"
       />

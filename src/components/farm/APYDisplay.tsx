@@ -60,18 +60,14 @@ export function APYDisplay({
 
   if (shortView) {
     return (
-      <div className="bg-gradient-to-r from-green-500/10 to-green-500/5 border border-green-500/30 rounded-lg p-4">
-        <div className="mb-4 p-3 bg-gradient-to-r from-green-600/20 to-green-500/10 border border-green-500/40 rounded">
-          <div className="text-center">
-            <p className="text-muted-foreground font-mono text-xs">
-              {t("common.total_apy")}:
-            </p>
-            <p className="font-mono font-bold text-green-600 dark:text-green-400 text-2xl">
-              {combinedApyData.totalApy.toFixed(2)}%
-            </p>
-          </div>
-        </div>
-      </div>
+      <>
+        <p className="text-muted-foreground font-mono font-medium text-xs">
+          [{t("common.total_apy")}]
+        </p>
+        <p className="font-mono font-bold text-lg text-primary mt-1">
+          {combinedApyData.totalApy.toFixed(2)}%
+        </p>
+      </>
     );
   }
 

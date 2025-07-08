@@ -4,6 +4,7 @@ import { formatUnits } from "viem";
 import { useBaseApy } from "./use-base-apy";
 import type { IncentiveStream } from "./use-incentive-streams";
 import { useZChefRewardPerSharePerYear } from "./use-zchef-contract";
+import { usePoolApy } from "./use-pool-apy";
 
 interface UseCombinedApyParams {
   stream: IncentiveStream;
@@ -44,11 +45,9 @@ export function useCombinedApy({
   enabled = true,
 }: UseCombinedApyParams): CombinedApyData {
   // Fetch base APY from trading fees
-  const { baseApyData, isLoading: isBaseApyLoading } = useBaseApy({
-    lpToken,
-    timeframe: "24h",
-    enabled,
-  });
+  const { data: baseApyData, isLoading: isBaseApyLoading } = usePoolApy(
+    lpToken?.poolId?.toString(),
+  );
 
   // Fetch farm incentive APY
   const { data: rewardPerSharePerYearOnchain, isLoading: isFarmApyLoading } =
@@ -114,7 +113,7 @@ export function useCombinedApy({
     }
 
     // Calculate base APY from trading fees
-    const baseApy = baseApyData?.baseApy || 0;
+    const baseApy = Number(baseApyData.slice(0, -1)) || 0;
 
     // Calculate farm APY from incentive rewards
     let farmApy = 0;
@@ -126,7 +125,13 @@ export function useCombinedApy({
       // Convert to percentage APY
       farmApy = Number.parseFloat(rewardPerShare) * 100;
     }
-
+    console.log("useCombinedApy:", {
+      baseApyData,
+      stream,
+      lpToken,
+      baseApy,
+      farmApy,
+    });
     const totalApy = baseApy + farmApy;
 
     return {
