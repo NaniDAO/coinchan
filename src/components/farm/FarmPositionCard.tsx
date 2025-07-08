@@ -7,7 +7,6 @@ import { ETH_TOKEN, type TokenMeta } from "@/lib/coins";
 import { formatBalance } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 import { formatEther } from "viem";
-import { FarmStakeDialog } from "../FarmStakeDialog";
 import { FarmUnstakeDialog } from "../FarmUnstakeDialog";
 import { IncentiveStreamCard } from "../IncentiveStreamCard";
 import { Button } from "../ui/button";
