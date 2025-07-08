@@ -13,7 +13,6 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ZChefAddress } from "@/constants/zChef";
 import { formatImageURL } from "@/hooks/metadata";
 import { useAllCoins } from "@/hooks/metadata/use-all-coins";
-import { useCombinedApy } from "@/hooks/use-combined-apy";
 import type { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { useLpBalance } from "@/hooks/use-lp-balance";
 import { useOperatorStatus } from "@/hooks/use-operator-status";
@@ -28,10 +27,11 @@ import { ETH_TOKEN, type TokenMeta } from "@/lib/coins";
 import { isUserRejectionError } from "@/lib/errors";
 import { SINGLE_ETH_SLIPPAGE_BPS } from "@/lib/swap";
 import { cn, formatBalance } from "@/lib/utils";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
 import { useAccount, usePublicClient } from "wagmi";
+import { APYDisplay } from "./farm/APYDisplay";
 
 interface FarmStakeDialogProps {
   stream: IncentiveStream;
@@ -98,34 +98,6 @@ export function FarmStakeDialog({
 
   const needsApproval =
     stakeMode === "lp" && !isOperatorApproved && Number.parseFloat(amount) > 0;
-
-  // Calculate combined APY (base + farm incentives)
-  const combinedApyData = useCombinedApy({
-    stream,
-    lpToken,
-    enabled: open, // Only fetch when dialog is open
-  });
-
-  // Calculate user-specific expected returns based on input amount
-  const expectedReturns = useMemo(() => {
-    if (!amount || Number.parseFloat(amount) <= 0 || combinedApyData.isLoading)
-      return null;
-
-    const lpAmount = Number.parseFloat(amount);
-    const annualReturnsBase = (lpAmount * combinedApyData.baseApy) / 100;
-    const annualReturnsFarm = (lpAmount * combinedApyData.farmApy) / 100;
-    const annualReturnsTotal = annualReturnsBase + annualReturnsFarm;
-
-    return {
-      totalApy: combinedApyData.totalApy,
-      baseApy: combinedApyData.baseApy,
-      farmApy: combinedApyData.farmApy,
-      annualReturnsTotal,
-      annualReturnsBase,
-      annualReturnsFarm,
-      breakdown: combinedApyData.breakdown,
-    };
-  }, [amount, combinedApyData]);
 
   // Debounced zap calculation with proper cleanup
   const debounceTimerRef = useRef<NodeJS.Timeout>();
@@ -323,7 +295,7 @@ export function FarmStakeDialog({
 
         <div className="space-y-6">
           {/* Pool Information */}
-          <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/30 rounded-lg p-4">
+          <div className="border border-primary/30 rounded-lg p-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
                 {lpToken?.imageUrl && (
@@ -378,103 +350,7 @@ export function FarmStakeDialog({
             </div>
           </div>
 
-          {/* Combined APY Information */}
-          {!combinedApyData.isLoading && combinedApyData.totalApy > 0 && (
-            <div className="bg-gradient-to-r from-green-500/10 to-green-500/5 border border-green-500/30 rounded-lg p-4">
-              <h4 className="font-mono font-bold text-sm uppercase tracking-wider mb-3 text-green-600 dark:text-green-400">
-                [{t("common.expected_returns")}]
-              </h4>
-
-              {/* Total APY Display */}
-              <div className="mb-4 p-3 bg-gradient-to-r from-green-600/20 to-green-500/10 border border-green-500/40 rounded">
-                <div className="text-center">
-                  <p className="text-muted-foreground font-mono text-xs">
-                    {t("common.total_apy")}:
-                  </p>
-                  <p className="font-mono font-bold text-green-600 dark:text-green-400 text-2xl">
-                    {combinedApyData.totalApy.toFixed(2)}%
-                  </p>
-                </div>
-              </div>
-
-              {/* APY Breakdown */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                <div className="bg-background/40 border border-green-500/20 rounded p-3">
-                  <p className="text-muted-foreground font-mono text-xs">
-                    {t("common.base_apy")} ({t("common.trading_fees")}):
-                  </p>
-                  <p className="font-mono font-bold text-blue-600 dark:text-blue-400 text-lg">
-                    {combinedApyData.baseApy.toFixed(2)}%
-                  </p>
-                  <p className="text-xs text-muted-foreground font-mono mt-1">
-                    {combinedApyData.breakdown.tradingFees.swapFee / 100}% fee
-                  </p>
-                </div>
-                <div className="bg-background/40 border border-green-500/20 rounded p-3">
-                  <p className="text-muted-foreground font-mono text-xs">
-                    {t("common.farm_apy")} ({t("common.incentives")}):
-                  </p>
-                  <p className="font-mono font-bold text-green-600 dark:text-green-400 text-lg">
-                    {combinedApyData.farmApy.toFixed(2)}%
-                  </p>
-                  <p className="text-xs text-muted-foreground font-mono mt-1">
-                    {combinedApyData.breakdown.farmIncentives.rewardSymbol}{" "}
-                    rewards
-                  </p>
-                </div>
-              </div>
-
-              {/* User-specific returns */}
-              {expectedReturns && (
-                <div className="bg-background/40 border border-green-500/20 rounded p-3">
-                  <p className="text-muted-foreground font-mono text-xs mb-2">
-                    {t("common.your_projected_returns")}:
-                  </p>
-                  <div className="grid grid-cols-2 gap-4 text-xs font-mono">
-                    <div>
-                      <span className="text-muted-foreground">
-                        {t("common.from_trading")}:
-                      </span>
-                      <span className="text-blue-600 dark:text-blue-400 font-bold ml-1">
-                        {expectedReturns.annualReturnsBase.toFixed(4)} LP/year
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">
-                        {t("common.from_farming")}:
-                      </span>
-                      <span className="text-green-600 dark:text-green-400 font-bold ml-1">
-                        {expectedReturns.annualReturnsFarm.toFixed(4)} LP/year
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="mt-3 p-2 bg-background/30 border border-green-500/20 rounded">
-                <p className="text-xs font-mono text-muted-foreground">
-                  <span className="text-green-600 dark:text-green-400">ℹ</span>{" "}
-                  {t("common.combined_apy_note")}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Loading state for APY */}
-          {combinedApyData.isLoading && (
-            <div className="bg-gradient-to-r from-green-500/10 to-green-500/5 border border-green-500/30 rounded-lg p-4">
-              <div className="animate-pulse">
-                <div className="h-4 bg-green-500/20 rounded mb-2"></div>
-                <div className="h-8 bg-green-500/20 rounded mb-2"></div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="h-16 bg-green-500/20 rounded"></div>
-                  <div className="h-16 bg-green-500/20 rounded"></div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent"></div>
+          <APYDisplay stream={stream} lpToken={lpToken} shortView={false} />
 
           {/* Stake Mode Selection */}
           <div className="space-y-3">
@@ -489,16 +365,16 @@ export function FarmStakeDialog({
                 setAmount(""); // Clear amount when switching modes
               }}
             >
-              <TabsList className="grid w-full grid-cols-2 bg-background/50 border-2 border-primary/30 p-1">
+              <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger
                   value="lp"
-                  className="font-mono font-bold tracking-wide text-foreground dark:text-foreground data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:!text-background dark:data-[state=active]:!text-background"
+                  className="font-mono font-bold tracking-wide"
                 >
                   [{t("common.lp_tokens")}]
                 </TabsTrigger>
                 <TabsTrigger
                   value="eth"
-                  className="font-mono font-bold tracking-wide text-foreground dark:text-foreground data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:!text-background dark:data-[state=active]:!text-background"
+                  className="font-mono font-bold tracking-wide"
                 >
                   [{t("common.eth_zap")}]
                 </TabsTrigger>

@@ -1,4 +1,4 @@
-import { APYDisplay } from "@/components/APYDisplay";
+import { APYDisplay } from "@/components/farm/APYDisplay";
 import { formatImageURL } from "@/hooks/metadata";
 import type { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { useZChefUtilities, useZChefPool } from "@/hooks/use-zchef-contract";
@@ -195,12 +195,7 @@ export function IncentiveStreamCard({
           <div className="bg-background/30 border border-primary/20 rounded-lg p-3 relative overflow-hidden group/apy sm:col-span-2 lg:col-span-1">
             <div className="absolute inset-0 bg-gradient-to-br from-primary/0 to-primary/10 opacity-0 group-hover/apy:opacity-100 transition-opacity duration-300"></div>
             <div className="relative z-10">
-              <APYDisplay
-                stream={{ ...stream, totalShares }}
-                lpTokenPrice={undefined}
-                rewardTokenPrice={undefined}
-                className="text-sm"
-              />
+              <APYDisplay stream={stream} lpToken={lpToken} shortView={true} />
             </div>
           </div>
         </div>

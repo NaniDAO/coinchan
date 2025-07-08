@@ -32,11 +32,17 @@ export interface CombinedApyData {
   error?: Error | null;
 }
 
+const SECONDS_IN_YEAR = 365n * 24n * 60n * 60n;
+
 /**
  * Hook to calculate combined APY (base trading fees + farm incentives)
  * for incentivized liquidity pools
  */
-export function useCombinedApy({ stream, lpToken, enabled = true }: UseCombinedApyParams): CombinedApyData {
+export function useCombinedApy({
+  stream,
+  lpToken,
+  enabled = true,
+}: UseCombinedApyParams): CombinedApyData {
   // Fetch base APY from trading fees
   const { baseApyData, isLoading: isBaseApyLoading } = useBaseApy({
     lpToken,
@@ -45,9 +51,38 @@ export function useCombinedApy({ stream, lpToken, enabled = true }: UseCombinedA
   });
 
   // Fetch farm incentive APY
-  const { data: rewardPerSharePerYear, isLoading: isFarmApyLoading } = useZChefRewardPerSharePerYear(
-    enabled ? stream.chefId : undefined,
-  );
+  const { data: rewardPerSharePerYearOnchain, isLoading: isFarmApyLoading } =
+    useZChefRewardPerSharePerYear(enabled ? stream.chefId : undefined);
+  /**
+   * Reward-per-share-per-year scaled by 1e12.
+   * • If the on-chain call already gave a non-zero value, use it.
+   * • If the pool is still empty (totalShares == 0) **and** the stream is active,
+   *   emulate `rewardPerSharePerYear = rewardRate * 365 days / 1`.
+   * • Otherwise return 0.
+   */
+  const rewardPerSharePerYear = useMemo<bigint>(() => {
+    // 1. real value returned → just use it
+    if (rewardPerSharePerYearOnchain && rewardPerSharePerYearOnchain > 0n) {
+      return rewardPerSharePerYearOnchain;
+    }
+
+    // 2. stream still running but no one staked yet → fake “1 share”
+    const now = BigInt(Math.floor(Date.now() / 1_000)); // current unix ts
+    const streamActive = stream.status === "ACTIVE" && now < stream.endTime;
+
+    if (BigInt(stream.totalShares) === 0n && streamActive) {
+      return BigInt(stream.rewardRate) * SECONDS_IN_YEAR; // still ×1e12
+    }
+
+    // 3. ended or not enabled → 0
+    return 0n;
+  }, [
+    rewardPerSharePerYearOnchain,
+    stream.totalShares,
+    stream.rewardRate,
+    stream.status,
+    stream.endTime,
+  ]);
 
   // Calculate combined APY
   const combinedApy = useMemo(() => {
@@ -121,6 +156,13 @@ export function useCombinedApy({ stream, lpToken, enabled = true }: UseCombinedA
     lpToken.swapFee,
     stream.rewardCoin?.symbol,
   ]);
+
+  console.log("useCombinedApy:", {
+    stream,
+    lpToken,
+    baseApyData,
+    rewardPerSharePerYear,
+  });
 
   return combinedApy;
 }
