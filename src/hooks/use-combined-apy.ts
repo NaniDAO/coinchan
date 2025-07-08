@@ -123,32 +123,46 @@ export function useCombinedApy({ stream, lpToken, enabled = true }: UseCombinedA
       rewardPerShare = formatUnits(rewardPerSharePerYear, 12);
       
       // Calculate token prices based on pool reserves
-      // First, identify which token is ETH and which is the reward token
+      // Use the stream data which contains the actual LP token and reward token addresses
       const WETH_ADDRESS = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
       
       // Debug: Log what we're checking
-      console.log("Farm APY Debug - Token addresses:", {
-        token0: lpToken.token0,
-        token1: lpToken.token1,
+      console.log("Farm APY Debug - Stream addresses:", {
+        lpTokenAddress: stream.lpToken,
+        rewardTokenAddress: stream.rewardToken,
         zeroAddress,
         WETH_ADDRESS,
-        isToken0Zero: lpToken.token0 === zeroAddress,
-        isToken1Zero: lpToken.token1 === zeroAddress,
-        isToken0Weth: lpToken.token0?.toLowerCase() === WETH_ADDRESS.toLowerCase(),
-        isToken1Weth: lpToken.token1?.toLowerCase() === WETH_ADDRESS.toLowerCase(),
+        poolReserves,
+        lpTokenMeta: lpToken,
       });
       
-      const isEthToken0 = lpToken.token0 === zeroAddress || lpToken.token0?.toLowerCase() === WETH_ADDRESS.toLowerCase();
-      const isEthToken1 = lpToken.token1 === zeroAddress || lpToken.token1?.toLowerCase() === WETH_ADDRESS.toLowerCase();
+      // For ETH/ZAMM pools on ZAMM AMM, we need to determine which reserve is ETH
+      // Since this is a pool incentive, the pool should contain ETH and the reward token
+      // We'll assume reserve0 is ETH and reserve1 is the reward token (standard ZAMM pattern)
+      // But let's verify by checking if either token is ETH/WETH
       
-      // Verify the pool contains ETH
-      if (!isEthToken0 && !isEthToken1) {
-        console.error("Pool does not contain ETH/WETH", { token0: lpToken.token0, token1: lpToken.token1 });
+      const isRewardTokenEth = stream.rewardToken === zeroAddress || 
+                               stream.rewardToken?.toLowerCase() === WETH_ADDRESS.toLowerCase();
+      
+      // If the reward token is ETH (unlikely but possible), then the pool is ETH/ETH or ETH/WETH
+      // More likely: the pool is ETH/ZAMM where ZAMM is the reward token
+      // Since ZAMM pools follow Uniswap V2 pattern, we assume reserve0 is ETH and reserve1 is the other token
+      // For ETH/ZAMM: reserve0 = ETH, reserve1 = ZAMM
+      
+      if (isRewardTokenEth) {
+        console.error("Reward token is ETH, this configuration is not supported for APY calculation");
         return defaultResult;
       }
       
-      const ethReserve = isEthToken0 ? poolReserves.reserve0 : poolReserves.reserve1;
-      const rewardTokenReserve = isEthToken0 ? poolReserves.reserve1 : poolReserves.reserve0;
+      // Standard ETH/Token pool: reserve0 = ETH, reserve1 = reward token (ZAMM)
+      const ethReserve = poolReserves.reserve0;
+      const rewardTokenReserve = poolReserves.reserve1;
+      
+      // Validate we have reserves
+      if (!ethReserve || ethReserve === 0n || !rewardTokenReserve || rewardTokenReserve === 0n) {
+        console.error("Invalid pool reserves", { ethReserve, rewardTokenReserve });
+        return defaultResult;
+      }
       
       // Calculate reward token price in ETH
       // Price = ethReserve / rewardTokenReserve (adjusted for decimals)
