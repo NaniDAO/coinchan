@@ -393,7 +393,11 @@ export function useZChefUtilities() {
 
     const rewardPerSecond = rewardRate;
     const rewardPerYear = rewardPerSecond * BigInt(365 * 24 * 60 * 60);
-    const rewardValuePerYear = (rewardPerYear * rewardTokenPrice) / BigInt(10 ** rewardTokenDecimals);
+    // Note: rewardRate = (rewardAmount * ACC_PRECISION) / duration where rewardAmount has rewardTokenDecimals
+    // So rewardRate has scaling of (rewardTokenDecimals + 12) decimals
+    // rewardTokenPrice is in ETH wei (18 decimals), so total scaling is (rewardTokenDecimals + 12 + 18)
+    // We want result in ETH wei (18 decimals), so divide by 10^(rewardTokenDecimals + 12)
+    const rewardValuePerYear = (rewardPerYear * rewardTokenPrice) / BigInt(10 ** (rewardTokenDecimals + 12));
     const totalValueLocked = totalShares * lpTokenPrice;
 
     if (totalValueLocked === 0n) return 0;
@@ -416,11 +420,12 @@ export function useZChefUtilities() {
     return { days, hours, minutes, seconds };
   };
 
-  const formatRewardRate = (rewardRate: bigint, decimals: number) => {
+  const formatRewardRate = (rewardRate: bigint) => {
     rewardRate = BigInt(rewardRate);
-    const perSecond = formatUnits(rewardRate, decimals);
-    const perDay = formatUnits(rewardRate * 86400n, decimals);
-    const perYear = formatUnits(rewardRate * 86400n * 365n, decimals);
+    // Note: rewardRate has scaling of (18 + 12 = 30 decimals)
+    const perSecond = formatUnits(rewardRate, 30);
+    const perDay = formatUnits(rewardRate * 86400n, 30);
+    const perYear = formatUnits(rewardRate * 86400n * 365n, 30);
 
     return { perSecond, perDay, perYear };
   };

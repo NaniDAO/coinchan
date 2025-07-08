@@ -156,6 +156,7 @@
     "reward_token": "Reward Token",
     "reward_amount": "Reward Amount",
     "duration": "Duration",
+    "farm_will_auto_reset": "Farm will auto-reset when rewards are depleted",
     "create_farm": "Create Farm",
     "view_farms": "View Farms",
     "creating_farm": "Creating Farm...",

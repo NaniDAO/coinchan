@@ -32,7 +32,9 @@ export function APYDisplay({ stream, lpTokenPrice = 0n, rewardTokenPrice = 0n, c
     const tvlInEth = lpTokenPrice && lpTokenPrice > 0n ? formatUnits(stream.totalShares * lpTokenPrice, 18) : null;
 
     // Calculate daily rewards
-    const dailyRewards = formatUnits(BigInt(stream.rewardRate) * 86400n, rewardTokenDecimals);
+    // Note: rewardRate = (rewardAmount * ACC_PRECISION) / duration, where rewardAmount has rewardTokenDecimals
+    // So rewardRate has scaling of (rewardTokenDecimals + 12) decimals
+    const dailyRewards = formatUnits(BigInt(stream.rewardRate) * 86400n, rewardTokenDecimals + 12);
 
     return { apy, tvlInEth, dailyRewards };
   }, [lpTokenPrice, rewardTokenPrice, stream.rewardRate, stream.totalShares, rewardTokenDecimals, calculateAPY]);
@@ -117,7 +119,7 @@ export function APYDisplay({ stream, lpTokenPrice = 0n, rewardTokenPrice = 0n, c
             <div className="flex justify-between items-center gap-1 min-w-0">
               <span className="text-muted-foreground truncate shrink-0">{t("common.reward_rate")}:</span>
               <span className="text-primary font-bold text-xs truncate">
-                {formatUnits(stream.rewardRate, rewardTokenDecimals)}/sec
+                {formatUnits(stream.rewardRate, rewardTokenDecimals + 12)}/sec
               </span>
             </div>
             <div className="flex justify-between items-center gap-1 min-w-0">
