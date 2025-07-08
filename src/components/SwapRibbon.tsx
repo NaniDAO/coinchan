@@ -136,7 +136,23 @@ export function SwapRibbon() {
 
   if (isLoading || error || !data) return null;
 
-  const repeated = [...data, ...data]; // Duplicate for seamless scroll
+  // Add Farm (Alpha) as the first item
+  const farmItem = {
+    id: "farm-alpha",
+    snippet: (
+      <a 
+        href="https://www.zamm.finance/farm" 
+        target="_blank" 
+        rel="noreferrer"
+        className="hover:underline"
+      >
+        🌾 [Farm (Alpha)]
+      </a>
+    ),
+  };
+
+  const allItems = [farmItem, ...data];
+  const repeated = [...allItems, ...allItems]; // Duplicate for seamless scroll
 
   return (
     <div
