@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { Link } from "@tanstack/react-router";
-import { CoinData, formatImageURL, getAlternativeImageUrls } from "@/hooks/metadata/coin-utils";
-import { ArrowRightIcon, Clock } from "lucide-react";
+import { type CoinData, formatImageURL, getAlternativeImageUrls } from "@/hooks/metadata/coin-utils";
 import { useCoinSale } from "@/hooks/use-coin-sale";
-import { formatDeadline, cn } from "@/lib/utils";
+import { cn, formatDeadline } from "@/lib/utils";
+import { Link } from "@tanstack/react-router";
+import { ArrowRightIcon, Clock } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CoinPriceChangeBadge } from "./CoinPriceChangeBadge";
 
 interface CoinCardProps {

@@ -1,7 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
-import { createPublicClient, http } from "viem";
-import { mainnet } from "viem/chains";
 import { CoinchanAbi, CoinchanAddress } from "@/constants/Coinchan";
+import { useQuery } from "@tanstack/react-query";
+import { http, createPublicClient } from "viem";
+import { mainnet } from "viem/chains";
 
 // Create a public client for direct RPC calls
 const publicClient = createPublicClient({

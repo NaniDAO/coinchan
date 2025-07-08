@@ -1,7 +1,7 @@
 import { getAlternativeImageUrls } from "@/hooks/metadata";
-import { CoinSource } from "@/lib/coins";
+import type { CoinSource } from "@/lib/coins";
 import { formatNumber } from "@/lib/utils";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface CoinInfoCardProps {
   coinId: bigint;

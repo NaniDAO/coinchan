@@ -1,18 +1,18 @@
-import { useState } from "react";
-import { useAccount, useWriteContract } from "wagmi";
-import { formatEther, formatUnits } from "viem";
-import { mainnet } from "viem/chains";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useGetAccount } from "@/hooks/use-get-account";
-import { useAllCoins } from "@/hooks/metadata/use-all-coins";
-import { useGetLockups, type LockupData } from "@/hooks/use-get-lockups";
-import { useLockupStatus } from "@/hooks/use-lockup-status";
-import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
-import { LoadingLogo } from "@/components/ui/loading-logo";
 import { TokenImage } from "@/components/TokenImage";
+import { LoadingLogo } from "@/components/ui/loading-logo";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
+import { useAllCoins } from "@/hooks/metadata/use-all-coins";
+import { useGetAccount } from "@/hooks/use-get-account";
+import { type LockupData, useGetLockups } from "@/hooks/use-get-lockups";
+import { useLockupStatus } from "@/hooks/use-lockup-status";
 import { ETH_TOKEN, type TokenMeta } from "@/lib/coins";
 import { handleWalletError, isUserRejectionError } from "@/lib/errors";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { formatEther, formatUnits } from "viem";
+import { mainnet } from "viem/chains";
+import { useAccount, useWriteContract } from "wagmi";
 
 export function UserPage() {
   const { t } = useTranslation();
@@ -98,7 +98,7 @@ export function UserPage() {
 
   const isLockupExpired = (unlockTime: string | null) => {
     if (!unlockTime) return false;
-    const unlockTimestamp = parseInt(unlockTime) * 1000; // Convert to milliseconds
+    const unlockTimestamp = Number.parseInt(unlockTime) * 1000; // Convert to milliseconds
     return Date.now() > unlockTimestamp;
   };
 
@@ -167,7 +167,7 @@ export function UserPage() {
   }
 
   // Remove the old allLockups definition since we moved it above
-  const sortedLockups = allLockups.sort((a, b) => parseInt(b.createdAt) - parseInt(a.createdAt));
+  const sortedLockups = allLockups.sort((a, b) => Number.parseInt(b.createdAt) - Number.parseInt(a.createdAt));
 
   return (
     <div className="p-6 bg-background text-foreground">
@@ -376,7 +376,7 @@ function LockupItem({
 
   const formatUnlockTime = (unlockTime: string | null) => {
     if (!unlockTime) return "Unknown";
-    const unlockTimestamp = parseInt(unlockTime) * 1000;
+    const unlockTimestamp = Number.parseInt(unlockTime) * 1000;
     return new Date(unlockTimestamp).toLocaleString();
   };
 

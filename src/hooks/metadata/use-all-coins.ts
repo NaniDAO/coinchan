@@ -1,15 +1,15 @@
-import { usePublicClient, useAccount } from "wagmi";
-import { useQuery } from "@tanstack/react-query";
-import { Address } from "viem";
-import { mainnet } from "viem/chains";
-import { ETH_TOKEN, USDT_TOKEN, TokenMeta, USDT_POOL_ID, USDT_ADDRESS } from "@/lib/coins";
-import { isCookbookCoin } from "@/lib/coin-utils";
 import { CoinchanAbi, CoinchanAddress } from "@/constants/Coinchan";
 import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
 import { CoinsMetadataHelperAbi, CoinsMetadataHelperAddress } from "@/constants/CoinsMetadataHelper";
-import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
-import { SWAP_FEE } from "@/lib/swap";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
+import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
+import { isCookbookCoin } from "@/lib/coin-utils";
+import { ETH_TOKEN, type TokenMeta, USDT_ADDRESS, USDT_POOL_ID, USDT_TOKEN } from "@/lib/coins";
+import { SWAP_FEE } from "@/lib/swap";
+import { useQuery } from "@tanstack/react-query";
+import type { Address } from "viem";
+import { mainnet } from "viem/chains";
+import { useAccount, usePublicClient } from "wagmi";
 
 /**
  * Fetch ETH balance as TokenMeta
@@ -87,6 +87,7 @@ async function fetchOtherCoins(
         symbol: c.symbol === null ? "N/A" : c.symbol,
         name: c.name,
         tokenUri: c.tokenURI,
+        imageUrl: c.imageUrl,
         reserve0: c.reserve0 !== null ? BigInt(c.reserve0) : undefined,
         reserve1: c.reserve1 !== null ? BigInt(c.reserve1) : undefined,
         poolId: c.poolId ? BigInt(c.poolId) : undefined,
@@ -99,11 +100,6 @@ async function fetchOtherCoins(
     console.error("useAllCoins: [failed to map pools to TokenMeta]", error);
     // metas remains [] if mapping fails
   }
-
-  console.log("use-all-coins", {
-    metas,
-    coins: metas.filter((coin) => coin.id === BigInt(46)),
-  });
 
   // For each coin, get balance from the correct contract based on coin ID
   const withBalances = await Promise.all(
@@ -118,7 +114,7 @@ async function fetchOtherCoins(
           return m;
         }
 
-        let bal: bigint = 0n;
+        let bal = 0n;
 
         // Use ID-based source determination - much simpler and more reliable
         const isBookCoin = m.id < 1000000n;

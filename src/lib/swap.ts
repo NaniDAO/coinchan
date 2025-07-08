@@ -1,16 +1,16 @@
+import { CookbookAddress } from "@/constants/Cookbook";
 import {
+  type Address,
   encodeAbiParameters,
+  encodeFunctionData,
+  isAddressEqual,
+  keccak256,
   parseAbiParameters,
   zeroAddress,
-  encodeFunctionData,
-  Address,
-  keccak256,
-  isAddressEqual,
 } from "viem";
-import { ZAMMAddress, ZAMMAbi } from "../constants/ZAAM";
 import { CoinsAddress } from "../constants/Coins";
-import { TokenMeta, USDT_ADDRESS } from "./coins";
-import { CookbookAddress } from "@/constants/Cookbook";
+import { ZAMMAbi, ZAMMAddress } from "../constants/ZAAM";
+import { type TokenMeta, USDT_ADDRESS } from "./coins";
 
 /**
  * Constants for AMM operations
@@ -245,7 +245,7 @@ export function estimateCoinToCoinOutput(
   amountIn: bigint,
   sourceReserves: { reserve0: bigint; reserve1: bigint },
   targetReserves: { reserve0: bigint; reserve1: bigint },
-  slippageBps: bigint = 200n,
+  slippageBps = 200n,
   sourceSwapFee: bigint = SWAP_FEE, // Custom fee for source pool (USDT: 30n)
   targetSwapFee: bigint = SWAP_FEE, // Custom fee for target pool (USDT: 30n)
 ): { amountOut: bigint; withSlippage: bigint; ethAmountOut: bigint } {
@@ -313,7 +313,7 @@ export const getAmountOut = (amountIn: bigint, reserveIn: bigint, reserveOut: bi
   if (amountOutCache.size >= PRICE_CACHE_SIZE) {
     // Find oldest entry
     let oldestKey = null;
-    let oldestTime = Infinity;
+    let oldestTime = Number.POSITIVE_INFINITY;
 
     for (const [key, entry] of amountOutCache.entries()) {
       if (entry.timestamp < oldestTime) {
@@ -360,7 +360,7 @@ export const getAmountIn = (amountOut: bigint, reserveIn: bigint, reserveOut: bi
   if (amountInCache.size >= PRICE_CACHE_SIZE) {
     // Find oldest entry
     let oldestKey = null;
-    let oldestTime = Infinity;
+    let oldestTime = Number.POSITIVE_INFINITY;
 
     for (const [key, entry] of amountInCache.entries()) {
       if (entry.timestamp < oldestTime) {

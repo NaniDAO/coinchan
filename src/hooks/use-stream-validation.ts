@@ -1,5 +1,5 @@
+import type { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { useCallback } from "react";
-import { IncentiveStream } from "@/hooks/use-incentive-streams";
 
 export interface StreamValidation {
   isActive: boolean;

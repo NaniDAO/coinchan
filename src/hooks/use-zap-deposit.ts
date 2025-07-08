@@ -1,10 +1,10 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useWriteContract, usePublicClient } from "wagmi";
-import { mainnet } from "viem/chains";
-import { ZChefAddress, ZChefAbi } from "@/constants/zChef";
+import { ZChefAbi, ZChefAddress } from "@/constants/zChef";
+import type { ZapCalculation } from "@/hooks/use-zap-calculations";
 import { DEADLINE_SEC } from "@/lib/swap";
 import { nowSec } from "@/lib/utils";
-import { ZapCalculation } from "@/hooks/use-zap-calculations";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { mainnet } from "viem/chains";
+import { usePublicClient, useWriteContract } from "wagmi";
 
 export interface ZapDepositParams {
   chefId: bigint;

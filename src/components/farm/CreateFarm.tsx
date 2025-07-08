@@ -1,38 +1,46 @@
 import { TokenSelector } from "@/components/TokenSelector";
-import { useTranslation } from "react-i18next";
-import { Button } from "../ui/button";
-import { encodePacked, formatEther, keccak256, parseUnits } from "viem";
 import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
-import { ChangeEvent, useMemo, useState } from "react";
-import { ETH_TOKEN, TokenMeta } from "@/lib/coins";
-import { usePublicClient, useWriteContract } from "wagmi";
-import { useAllCoins } from "@/hooks/metadata/use-all-coins";
-import { ZChefAbi, ZChefAddress } from "@/constants/zChef";
-import { mainnet } from "viem/chains";
-import { Input } from "../ui/input";
-import { cn } from "@/lib/utils";
 import { ZAMMAddress } from "@/constants/ZAAM";
+import { ZChefAbi, ZChefAddress } from "@/constants/zChef";
+import { useAllCoins } from "@/hooks/metadata/use-all-coins";
+import { useOperatorStatus } from "@/hooks/use-operator-status";
+import { ETH_TOKEN, type TokenMeta } from "@/lib/coins";
+import { isUserRejectionError } from "@/lib/errors";
+import { cn } from "@/lib/utils";
+import { type ChangeEvent, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { encodePacked, formatEther, keccak256, parseUnits } from "viem";
+import { mainnet } from "viem/chains";
+import { useAccount, usePublicClient, useWriteContract } from "wagmi";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
 
-const DURATION_OPTIONS = [
-  { value: "7", label: "7 days" },
-  { value: "14", label: "14 days" },
-  { value: "30", label: "30 days" },
-  { value: "90", label: "90 days" },
-  { value: "180", label: "180 days" },
-  { value: "365", label: "365 days" },
-  { value: "730", label: "730 days (2 years max)" },
-];
+// Duration options will be generated using translations
 
 interface FarmFormData {
   selectedToken: TokenMeta | null;
   rewardToken: TokenMeta;
   rewardAmount: string;
   duration: string;
+  customDuration: string;
+  customDurationUnit: "minutes" | "hours" | "days";
+  useCustomDuration: boolean;
 }
 
 export const CreateFarm = () => {
   const { t } = useTranslation();
+  const { address } = useAccount();
+
+  const DURATION_OPTIONS = [
+    { value: "7", label: t("common.duration_7_days") },
+    { value: "14", label: t("common.duration_14_days") },
+    { value: "30", label: t("common.duration_30_days") },
+    { value: "90", label: t("common.duration_90_days") },
+    { value: "180", label: t("common.duration_180_days") },
+    { value: "365", label: t("common.duration_365_days") },
+    { value: "730", label: t("common.duration_730_days") },
+  ];
 
   const publicClient = usePublicClient({
     chainId: mainnet.id,
@@ -41,63 +49,91 @@ export const CreateFarm = () => {
 
   const { tokens, isEthBalanceFetching } = useAllCoins();
 
+  // Set initial form data after poolTokens and rewardTokens are calculated
+  const [formDataInitialized, setFormDataInitialized] = useState(false);
   const [formData, setFormData] = useState<FarmFormData>({
     selectedToken: null,
-    rewardToken:
-      tokens?.find((t) => t.symbol !== "ETH" && t.id !== null) || ETH_TOKEN,
+    rewardToken: tokens?.find((t) => t.symbol !== "ETH") || ETH_TOKEN,
     rewardAmount: "",
     duration: "7",
+    customDuration: "",
+    customDurationUnit: "days",
+    useCustomDuration: false,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
-  const [txStatus, setTxStatus] = useState<
-    "idle" | "pending" | "confirming" | "success" | "error"
-  >("idle");
+  const [txStatus, setTxStatus] = useState<"idle" | "pending" | "confirming" | "success" | "error">("idle");
   const [txError, setTxError] = useState<string | null>(null);
 
+  // Check operator approval status for the reward token
+  const { data: isRewardTokenOperatorApproved } = useOperatorStatus({
+    address: address as `0x${string}`,
+    operator: ZChefAddress,
+    tokenId: formData.rewardToken.id || undefined,
+  });
+
   if (!tokens || tokens.length === 0) {
-    return (
-      <div className="text-muted-foreground text-sm font-mono">
-        Loading tokens...
-      </div>
-    );
+    return <div className="text-muted-foreground text-sm">{t("common.loading_tokens")}</div>;
   }
 
   const poolTokens = useMemo(
-    () => tokens?.filter((token) => token.liquidity && token.liquidity > 0n),
+    () => tokens?.filter((token) => token.poolId && token.poolId > 0n && token.reserve0 && token.reserve0 > 0n),
     [tokens],
   );
 
   // Filter reward tokens to exclude ETH (not supported by zChef)
-  const rewardTokens = useMemo(
-    () =>
-      tokens?.filter((token) => token.symbol !== "ETH" && token.id !== null),
-    [tokens],
-  );
+  const rewardTokens = useMemo(() => tokens?.filter((token) => token.symbol !== "ETH"), [tokens]);
 
-  const maxRewardAmount = formData.rewardToken.balance
-    ? formData.rewardToken.decimals !== undefined &&
-      formData.rewardToken.decimals !== 18
-      ? (
-          Number(formData.rewardToken.balance) /
-          10 ** formData.rewardToken.decimals
-        ).toString()
-      : formatEther(BigInt(formData.rewardToken.balance))
-    : "0";
+  // Auto-select first pool and reward token when available
+  useEffect(() => {
+    if (!formDataInitialized && poolTokens && poolTokens.length > 0 && rewardTokens && rewardTokens.length > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        selectedToken: poolTokens[0],
+        rewardToken: rewardTokens[0],
+      }));
+      setFormDataInitialized(true);
+    }
+  }, [poolTokens, rewardTokens, formDataInitialized]);
 
-  const handleInputChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
+  // Helper function to convert custom duration to days
+  const convertCustomDurationToDays = (duration: string, unit: "minutes" | "hours" | "days"): number => {
+    const value = Number.parseFloat(duration);
+    if (isNaN(value) || value <= 0) return 0;
+
+    switch (unit) {
+      case "minutes":
+        return value / (24 * 60); // Convert minutes to days
+      case "hours":
+        return value / 24; // Convert hours to days
+      case "days":
+        return value; // Already in days
+      default:
+        return value;
+    }
+  };
+
+  const maxRewardAmount =
+    formData.rewardToken.balance && formData.rewardToken.balance > 0n
+      ? formData.rewardToken.decimals !== undefined && formData.rewardToken.decimals !== 18
+        ? formData.rewardToken.decimals > 0
+          ? (Number(formData.rewardToken.balance) / 10 ** formData.rewardToken.decimals).toString()
+          : "0"
+        : formatEther(BigInt(formData.rewardToken.balance))
+      : "0";
+
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
 
     // Clear error when user starts typing
-    if (errors[name]) {
+    if (errors[name] || errors.duration) {
       setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[name];
+        delete newErrors.duration;
         return newErrors;
       });
     }
@@ -119,31 +155,31 @@ export const CreateFarm = () => {
 
     // Validate selected token and pool
     if (!formData.selectedToken) {
-      newErrors.selectedToken = "Please select a token with an LP pool";
+      newErrors.selectedToken = t("common.please_select_token_with_lp_pool");
     } else {
       const poolId = formData.selectedToken.poolId;
-      const liquidity = formData.selectedToken.liquidity;
+      const reserve0 = formData.selectedToken.reserve0;
 
       if (!poolId || poolId === 0n) {
-        newErrors.selectedToken = "Selected token has no valid liquidity pool";
+        newErrors.selectedToken = t("common.selected_token_no_valid_pool");
       }
-      if (!liquidity || liquidity === 0n) {
-        newErrors.selectedToken = "Selected token pool has no liquidity";
+      if (!reserve0 || reserve0 === 0n) {
+        newErrors.selectedToken = t("common.selected_token_no_liquidity");
       }
     }
 
     // Validate reward token (ETH not supported by zChef)
     if (!formData.rewardToken.id) {
       if (formData.rewardToken.symbol === "ETH") {
-        newErrors.rewardToken = "ETH is not supported as a reward token";
+        newErrors.rewardToken = t("common.eth_not_supported_reward");
       } else {
-        newErrors.rewardToken = "Please select a reward token";
+        newErrors.rewardToken = t("common.please_select_reward_token");
       }
     }
 
     // Validate reward amount
-    if (!formData.rewardAmount || parseFloat(formData.rewardAmount) <= 0) {
-      newErrors.rewardAmount = "Please enter a valid reward amount";
+    if (!formData.rewardAmount || Number.parseFloat(formData.rewardAmount) <= 0) {
+      newErrors.rewardAmount = t("common.please_enter_valid_reward_amount");
     } else {
       // Check user balance
       try {
@@ -151,49 +187,57 @@ export const CreateFarm = () => {
         const rewardAmountBigInt = parseUnits(formData.rewardAmount, decimals);
         const userBalance = formData.rewardToken.balance || 0n;
         if (rewardAmountBigInt > userBalance) {
-          newErrors.rewardAmount = "Insufficient balance";
+          newErrors.rewardAmount = t("common.insufficient_balance");
         }
 
         // Check for precision overflow (zChef requirement)
         const ACC_PRECISION = BigInt(1e12);
         if (rewardAmountBigInt > (2n ** 256n - 1n) / ACC_PRECISION) {
-          newErrors.rewardAmount =
-            "Reward amount too large - precision overflow";
+          newErrors.rewardAmount = t("common.reward_amount_too_large");
         }
       } catch (error) {
-        newErrors.rewardAmount = "Invalid reward amount format";
+        newErrors.rewardAmount = t("common.invalid_reward_amount_format");
       }
     }
 
     // Validate duration
-    if (!formData.duration) {
-      newErrors.duration = "Please select a duration";
+    const durationValue = formData.useCustomDuration ? formData.customDuration : formData.duration;
+    if (!durationValue) {
+      newErrors.duration = formData.useCustomDuration
+        ? t("common.please_enter_custom_duration")
+        : t("common.please_select_duration");
     } else {
-      const durationDays = parseInt(formData.duration);
-      if (durationDays > 730) {
-        newErrors.duration = "Duration cannot exceed 730 days (2 years)";
-      }
-      if (durationDays <= 0) {
-        newErrors.duration = "Duration must be positive";
+      let durationDays: number;
+      if (formData.useCustomDuration) {
+        durationDays = convertCustomDurationToDays(durationValue, formData.customDurationUnit);
+      } else {
+        durationDays = Number.parseInt(durationValue);
       }
 
-      // Check rate overflow (zChef requirement)
-      if (formData.rewardAmount && durationDays > 0) {
-        try {
-          const decimals = formData.rewardToken.decimals || 18;
-          const rewardAmountBigInt = parseUnits(
-            formData.rewardAmount,
-            decimals,
-          );
-          const durationSeconds = BigInt(durationDays * 24 * 60 * 60);
-          const ACC_PRECISION = BigInt(1e12);
-          const rate = (rewardAmountBigInt * ACC_PRECISION) / durationSeconds;
-          if (rate > 2n ** 128n - 1n) {
-            newErrors.rewardAmount =
-              "Calculated reward rate too large - reduce amount or increase duration";
+      if (isNaN(durationDays)) {
+        newErrors.duration = t("common.duration_must_be_valid_number");
+      } else if (durationDays > 730) {
+        newErrors.duration = t("common.duration_cannot_exceed_730");
+      } else if (durationDays <= 0) {
+        newErrors.duration = t("common.duration_must_be_positive");
+      } else if (formData.useCustomDuration && durationDays < 1 / (24 * 60)) {
+        // Minimum 1 minute
+        newErrors.duration = t("common.duration_minimum_one_minute");
+      } else {
+        // Check rate overflow (zChef requirement)
+        if (formData.rewardAmount && durationDays > 0) {
+          try {
+            const decimals = formData.rewardToken.decimals || 18;
+            const rewardAmountBigInt = parseUnits(formData.rewardAmount, decimals);
+            const durationSeconds = BigInt(Math.floor(durationDays * 24 * 60 * 60));
+            const ACC_PRECISION = BigInt(1e12);
+            const rate = (rewardAmountBigInt * ACC_PRECISION) / durationSeconds;
+            if (rate > 2n ** 128n - 1n) {
+              newErrors.rewardAmount = t("common.calculated_rate_too_large");
+            }
+          } catch (error) {
+            // Skip overflow check if calculation fails
           }
-        } catch (error) {
-          // Skip overflow check if calculation fails
         }
       }
     }
@@ -202,15 +246,26 @@ export const CreateFarm = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleApproveRewardToken = async () => {
+  const handleCreateFarm = async () => {
+    if (!validateForm()) return;
+
     try {
       setIsSubmitting(true);
+      setTxStatus("pending");
+      setTxError(null);
 
-      const rewardId = formData.rewardToken.id;
+      if (!formData.selectedToken) {
+        throw new Error("No LP token selected");
+      }
 
-      if (rewardId) {
+      // Check if approval is needed for reward token
+      const rewardTokenId = formData.rewardToken.id;
+      if (rewardTokenId && !isRewardTokenOperatorApproved) {
+        setTxStatus("pending");
+        console.log("Setting operator approval for reward token...");
+
         // For ERC6909 tokens (both ZAMM and Cookbook coins), use setOperator
-        if (rewardId >= 1000000n) {
+        if (rewardTokenId >= 1000000n) {
           // ZAMM coins: use setOperator on Coins contract
           const approvalHash = await writeContractAsync({
             address: CoinsAddress,
@@ -225,6 +280,7 @@ export const CreateFarm = () => {
               hash: approvalHash,
             });
           }
+          console.log("ZAMM coin operator approval confirmed");
         } else {
           // Cookbook coins: use setOperator on Cookbook contract
           const approvalHash = await writeContractAsync({
@@ -240,43 +296,35 @@ export const CreateFarm = () => {
               hash: approvalHash,
             });
           }
+          console.log("Cookbook coin operator approval confirmed");
         }
-      } else {
-        // For external ERC20 tokens, would need standard ERC20 approval
-        // ETH is not supported as reward token by zChef
-        console.log(
-          "ERC20 approval would be implemented here for external tokens",
-        );
-        throw new Error("External ERC20 token approval not yet implemented");
-      }
-    } catch (error) {
-      console.error("Approval failed:", error);
-      setErrors({ approval: "Approval failed. Please try again." });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleCreateFarm = async () => {
-    if (!validateForm()) return;
-
-    try {
-      setIsSubmitting(true);
-      setTxStatus("pending");
-      setTxError(null);
-
-      if (!formData.selectedToken) {
-        throw new Error("No LP token selected");
+      } else if (rewardTokenId && isRewardTokenOperatorApproved) {
+        console.log("Reward token already has operator approval, skipping...");
       }
 
       // Parse reward amount with proper decimals
       const decimals = formData.rewardToken.decimals || 18;
       const rewardAmount = parseUnits(formData.rewardAmount, decimals);
 
+      // Re-validate that selected token still has a valid pool (race condition check)
+      if (!formData.selectedToken?.poolId || formData.selectedToken.poolId === 0n) {
+        throw new Error("Selected token no longer has a valid liquidity pool");
+      }
+      if (!formData.selectedToken?.reserve0 || formData.selectedToken.reserve0 === 0n) {
+        throw new Error("Selected token pool no longer has liquidity");
+      }
+
       // Validate duration and convert to seconds (uint64 safe)
-      const durationDays = parseInt(formData.duration);
-      const durationInSeconds = durationDays * 24 * 60 * 60;
-      if (durationInSeconds > 2 ** 64 - 1) {
+      const durationValue = formData.useCustomDuration ? formData.customDuration : formData.duration;
+      let durationDays: number;
+      if (formData.useCustomDuration) {
+        durationDays = convertCustomDurationToDays(durationValue, formData.customDurationUnit);
+      } else {
+        durationDays = Number.parseInt(durationValue);
+      }
+      const durationInSeconds = Math.floor(durationDays * 24 * 60 * 60);
+      if (durationInSeconds > 2 ** 63 - 1) {
+        // uint64 max (signed safe)
         throw new Error("Duration exceeds maximum allowed value");
       }
       const durationSeconds = BigInt(durationInSeconds);
@@ -289,9 +337,9 @@ export const CreateFarm = () => {
 
       // Reward token contract and ID (ETH not supported by zChef)
       let rewardTokenAddress: `0x${string}`;
-      const rewardId = formData.rewardToken.id || 0n;
+      const rewardId = formData.rewardToken.id;
 
-      if (!formData.rewardToken.id) {
+      if (!rewardId) {
         // External ERC20 token (rewardId = 0 for ERC20)
         // Note: ETH is not supported by zChef contract
         throw new Error("External ERC20 tokens not yet supported");
@@ -308,8 +356,7 @@ export const CreateFarm = () => {
         encodePacked(
           ["address", "uint256", "uint256", "uint256"],
           [
-            formData.selectedToken.token1 ||
-              "0x0000000000000000000000000000000000000000",
+            formData.selectedToken.token1 || "0x0000000000000000000000000000000000000000",
             BigInt(Date.now()),
             BigInt(Math.floor(Math.random() * 1000000)),
             rewardAmount,
@@ -321,15 +368,7 @@ export const CreateFarm = () => {
         address: ZChefAddress,
         abi: ZChefAbi,
         functionName: "createStream",
-        args: [
-          lpToken,
-          lpId,
-          rewardTokenAddress,
-          rewardId,
-          rewardAmount,
-          durationSeconds,
-          uniqueBytes,
-        ],
+        args: [lpToken, lpId, rewardTokenAddress, rewardId, rewardAmount, durationSeconds, uniqueBytes],
         // No value needed since ETH is not supported as reward token
         chainId: mainnet.id,
       });
@@ -344,112 +383,131 @@ export const CreateFarm = () => {
         console.log("Farm created successfully:", receipt);
         setTxStatus("success");
 
+        // Show success notification
+        const farmDuration = formData.useCustomDuration
+          ? `${formData.customDuration} ${formData.customDurationUnit}`
+          : `${formData.duration} days`;
+
+        console.log(`🎉 Farm created successfully!
+        Pool: ${formData.selectedToken?.symbol}
+        Reward: ${formData.rewardAmount} ${formData.rewardToken.symbol}
+        Duration: ${farmDuration}
+        TX: ${createStreamHash}`);
+
         // Reset form on success after delay
         setTimeout(() => {
           setFormData({
-            selectedToken: null,
-            rewardToken:
-              tokens.find((t) => t.symbol !== "ETH" && t.id !== null) ||
-              ETH_TOKEN,
+            selectedToken: poolTokens?.[0] || null,
+            rewardToken: rewardTokens?.[0] || tokens.find((t) => t.symbol !== "ETH") || ETH_TOKEN,
             rewardAmount: "",
             duration: "7",
+            customDuration: "",
+            customDurationUnit: "days",
+            useCustomDuration: false,
           });
           setTxStatus("idle");
           setTxHash(null);
-        }, 3000);
+        }, 5000); // Increased from 3000 to 5000ms to give users more time to see success
       }
     } catch (error: any) {
-      console.error("Farm creation failed:", error);
-      let errorMessage = "Farm creation failed. Please try again.";
-
-      // Handle specific zChef contract errors
-      if (error.message?.includes("ZeroAmount")) {
-        errorMessage = "Amount cannot be zero";
-      } else if (error.message?.includes("InvalidDuration")) {
-        errorMessage = "Invalid duration specified";
-      } else if (error.message?.includes("Exists")) {
-        errorMessage = "Farm with these parameters already exists";
-      } else if (error.message?.includes("PrecisionOverflow")) {
-        errorMessage = "Reward amount too large - precision overflow";
-      } else if (error.message?.includes("Overflow")) {
-        errorMessage = "Calculated reward rate too large";
-      } else if (error.message?.includes("TransferFromFailed")) {
-        errorMessage = "Failed to transfer reward tokens - check approvals";
-      } else if (error.message?.includes("User rejected")) {
-        errorMessage = "Transaction rejected by user";
-      } else if (error.message?.includes("insufficient funds")) {
-        errorMessage = "Insufficient funds for transaction";
-      }
-
-      setTxStatus("error");
-      setTxError(errorMessage);
-      setErrors({ submit: errorMessage });
-
-      setTimeout(() => {
+      if (isUserRejectionError(error)) {
+        // User rejected - silently reset state
         setTxStatus("idle");
-        setTxError(null);
-      }, 5000);
+      } else {
+        console.error("Farm creation failed:", error);
+        let errorMessage = t("common.farm_creation_failed");
+
+        // Handle specific zChef contract errors
+        if (error.message?.includes("ZeroAmount")) {
+          errorMessage = t("common.amount_cannot_be_zero");
+        } else if (error.message?.includes("InvalidDuration")) {
+          errorMessage = t("common.invalid_duration_specified");
+        } else if (error.message?.includes("Exists")) {
+          errorMessage = t("common.farm_already_exists");
+        } else if (error.message?.includes("PrecisionOverflow")) {
+          errorMessage = t("common.precision_overflow");
+        } else if (error.message?.includes("Overflow")) {
+          errorMessage = t("common.calculated_rate_overflow");
+        } else if (error.message?.includes("TransferFromFailed")) {
+          errorMessage = t("common.transfer_failed");
+        } else if (error.message?.includes("insufficient funds")) {
+          errorMessage = t("common.insufficient_funds_tx");
+        }
+
+        setTxStatus("error");
+        setTxError(errorMessage);
+        setErrors({ submit: errorMessage });
+
+        setTimeout(() => {
+          setTxStatus("idle");
+          setTxError(null);
+        }, 5000);
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="max-w-lg mx-auto space-y-6 sm:space-y-8 px-3 sm:px-0">
-      <div className="bg-gradient-to-br from-background/80 to-background/60 border border-primary/30 rounded-xl p-6 backdrop-blur-sm shadow-xl">
+    <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 px-3 sm:px-0">
+      <div className="bg-gradient-to-br from-background/80 to-background/60 border border-primary/30 rounded-xl p-6 sm:p-8 backdrop-blur-sm shadow-xl">
         <div className="text-center mb-6">
-          <h3 className="font-mono font-bold text-lg uppercase tracking-wider bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+          <h3 className="font-mono font-bold text-lg uppercase tracking-wider text-primary">
             [{t("common.create_new_farm")}]
           </h3>
-          <p className="text-xs text-muted-foreground mt-2 font-mono">
-            <span className="text-primary">&gt;</span> initialize_stream
-            --params=interactive
-          </p>
-          <div className="h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent mt-4"></div>
         </div>
         {/* LP Token Selection */}
-        <div className="space-y-3">
+        <div className="space-y-4 mb-10">
           <label className="block text-sm font-mono font-bold uppercase tracking-wider text-primary">
-            <span className="text-muted-foreground">&gt;</span>{" "}
-            {t("common.select_token_with_lp_pool")}
+            {t("common.select_lp_pool")}
           </label>
           <div className="bg-background/50 border border-primary/20 rounded-lg p-3">
-            <TokenSelector
-              selectedToken={formData.selectedToken || ETH_TOKEN}
-              tokens={poolTokens}
-              onSelect={(token) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  selectedToken: token,
-                }))
-              }
-              isEthBalanceFetching={isEthBalanceFetching}
-            />
+            {poolTokens.length > 0 ? (
+              <TokenSelector
+                selectedToken={formData.selectedToken || poolTokens[0]}
+                tokens={poolTokens}
+                onSelect={(token) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    selectedToken: token,
+                  }))
+                }
+                isEthBalanceFetching={isEthBalanceFetching}
+              />
+            ) : (
+              <div className="text-center py-4 text-muted-foreground text-sm font-mono">
+                <div className="mb-2">🏊‍♂️ {t("common.no_lp_pools_available")}</div>
+                <div className="text-xs">{t("common.create_lp_pool_first")}</div>
+              </div>
+            )}
           </div>
           {errors.selectedToken && (
             <div className="bg-red-500/10 border border-red-500/30 rounded p-2">
-              <p className="text-sm text-red-400 font-mono">
-                {errors.selectedToken}
-              </p>
+              <p className="text-sm text-red-400 font-mono">{errors.selectedToken}</p>
             </div>
           )}
           {formData.selectedToken && (
             <div className="bg-primary/10 border border-primary/20 rounded p-3">
               <div className="text-xs font-mono space-y-1">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Pool ID:</span>
-                  <span className="text-primary font-bold">
-                    {(
-                      formData.selectedToken.poolId || formData.selectedToken.id
-                    )?.toString() || "N/A"}
-                  </span>
+                <div className="space-y-1">
+                  <span className="text-muted-foreground text-xs">{t("common.pool_id")}:</span>
+                  <div className="text-xs text-muted-foreground/70 font-mono break-all max-w-full overflow-hidden">
+                    {(() => {
+                      const poolId = (formData.selectedToken.poolId || formData.selectedToken.id)?.toString();
+                      if (!poolId || poolId === "N/A") return "N/A";
+                      // Pool IDs are always full uint, truncate for UI
+                      return poolId.length > 16 ? `${poolId.slice(0, 8)}...${poolId.slice(-8)}` : poolId;
+                    })()}
+                  </div>
                 </div>
-                {formData.selectedToken.liquidity ? (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{t("common.pair")}:</span>
+                  <span className="text-primary font-bold">ETH / {formData.selectedToken.symbol}</span>
+                </div>
+                {formData.selectedToken.reserve0 && formData.selectedToken.reserve0 > 0n ? (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Liquidity:</span>
-                    <span className="text-primary font-bold">
-                      {formatEther(formData.selectedToken.liquidity)} ETH
-                    </span>
+                    <span className="text-muted-foreground">{t("common.liquidity_label")}:</span>
+                    <span className="text-primary font-bold">{formatEther(formData.selectedToken.reserve0)} ETH</span>
                   </div>
                 ) : null}
               </div>
@@ -458,9 +516,8 @@ export const CreateFarm = () => {
         </div>
 
         {/* Reward Token Selection */}
-        <div className="space-y-3">
+        <div className="space-y-4 mb-10">
           <label className="block text-sm font-mono font-bold uppercase tracking-wider text-primary">
-            <span className="text-muted-foreground">&gt;</span>{" "}
             {t("common.reward_token")}
           </label>
           <div className="bg-background/50 border border-primary/20 rounded-lg p-3">
@@ -473,17 +530,14 @@ export const CreateFarm = () => {
           </div>
           {errors.rewardToken && (
             <div className="bg-red-500/10 border border-red-500/30 rounded p-2">
-              <p className="text-sm text-red-400 font-mono">
-                {errors.rewardToken}
-              </p>
+              <p className="text-sm text-red-400 font-mono">{errors.rewardToken}</p>
             </div>
           )}
         </div>
 
         {/* Reward Amount */}
-        <div className="space-y-3">
+        <div className="space-y-4 mb-10">
           <label className="block text-sm font-mono font-bold uppercase tracking-wider text-primary">
-            <span className="text-muted-foreground">&gt;</span>{" "}
             {t("common.reward_amount")}
           </label>
           <div className="flex gap-2">
@@ -500,141 +554,178 @@ export const CreateFarm = () => {
             <Button
               type="button"
               variant="outline"
-              size="sm"
+              size="default"
               onClick={() =>
                 setFormData((prev) => ({
                   ...prev,
                   rewardAmount: maxRewardAmount,
                 }))
               }
-              disabled={parseFloat(maxRewardAmount) === 0}
-              className="font-mono font-bold tracking-wide border-primary/30 hover:border-primary hover:bg-primary/20"
+              disabled={Number.parseFloat(maxRewardAmount) === 0}
+              className="font-mono font-bold tracking-wide border-primary/30 hover:border-primary hover:bg-primary/20 min-h-[44px] px-4"
             >
-              MAX
+              {t("common.max")}
             </Button>
           </div>
           <div className="space-y-2">
             <div className="bg-muted/20 border border-muted/30 rounded p-3">
               <div className="flex justify-between text-xs font-mono">
-                <span className="text-muted-foreground">Balance:</span>
+                <span className="text-muted-foreground">{t("common.balance_label")}:</span>
                 <span className="text-primary font-bold">
-                  {parseFloat(maxRewardAmount).toFixed(6)}{" "}
-                  {formData.rewardToken.symbol}
+                  {Number.parseFloat(maxRewardAmount).toFixed(6)} {formData.rewardToken.symbol}
                 </span>
               </div>
             </div>
-            {formData.rewardAmount &&
-              formData.duration &&
-              parseFloat(formData.rewardAmount) > 0 && (
-                <div className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/30 rounded-lg p-4">
-                  <p className="font-mono font-bold text-primary mb-3 text-sm">
-                    [EMISSION_PREVIEW]
-                  </p>
-                  <div className="space-y-2 font-mono text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Per second:</span>
-                      <span className="text-primary font-bold">
-                        {(
-                          parseFloat(formData.rewardAmount) /
-                          (parseInt(formData.duration) * 24 * 60 * 60)
-                        ).toFixed(8)}{" "}
-                        {formData.rewardToken.symbol}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Per day:</span>
-                      <span className="text-primary font-bold">
-                        {(
-                          parseFloat(formData.rewardAmount) /
-                          parseInt(formData.duration)
-                        ).toFixed(6)}{" "}
-                        {formData.rewardToken.symbol}
-                      </span>
-                    </div>
-                    <div className="flex justify-between font-bold">
-                      <span className="text-muted-foreground">
-                        Total ({formData.duration}d):
-                      </span>
-                      <span className="text-primary">
-                        {parseFloat(formData.rewardAmount).toFixed(6)}{" "}
-                        {formData.rewardToken.symbol}
-                      </span>
+            {(() => {
+              const durationValue = formData.useCustomDuration ? formData.customDuration : formData.duration;
+              let durationDays: number;
+              if (formData.useCustomDuration) {
+                durationDays = convertCustomDurationToDays(durationValue, formData.customDurationUnit);
+              } else {
+                durationDays = Number.parseInt(durationValue);
+              }
+              return (
+                formData.rewardAmount &&
+                durationValue &&
+                Number.parseFloat(formData.rewardAmount) > 0 &&
+                !isNaN(durationDays) &&
+                durationDays > 0 && (
+                  <div className="border border-primary/20 rounded-lg p-4 bg-background/30">
+                    <h4 className="font-mono font-bold text-primary mb-4 text-base tracking-wider">
+                      [{t("common.emission_preview").toUpperCase()}]
+                    </h4>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center py-2 border-b border-primary/10">
+                        <span className="font-mono text-sm text-muted-foreground">{t("common.per_second")}:</span>
+                        <span className="font-mono text-sm font-bold text-foreground break-all max-w-[60%] text-right">
+                          {(Number.parseFloat(formData.rewardAmount) / (durationDays * 24 * 60 * 60)).toFixed(8)}{" "}
+                          <span className="text-primary">{formData.rewardToken.symbol}</span>
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center py-2 border-b border-primary/10">
+                        <span className="font-mono text-sm text-muted-foreground">{t("common.per_day")}:</span>
+                        <span className="font-mono text-sm font-bold text-foreground break-all max-w-[60%] text-right">
+                          {(Number.parseFloat(formData.rewardAmount) / durationDays).toFixed(6)}{" "}
+                          <span className="text-primary">{formData.rewardToken.symbol}</span>
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center py-2 bg-primary/5 px-3 rounded">
+                        <span className="font-mono text-sm font-bold text-primary">
+                          {formData.useCustomDuration
+                            ? `${t("common.total_custom", {
+                                amount: formData.customDuration,
+                                unit: t(`common.${formData.customDurationUnit}`),
+                              })}:`
+                            : `${t("common.total_days", { days: durationDays })}:`}
+                        </span>
+                        <span className="font-mono text-sm font-bold text-primary break-all max-w-[60%] text-right">
+                          {Number.parseFloat(formData.rewardAmount).toFixed(6)} {formData.rewardToken.symbol}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )
+              );
+            })()}
           </div>
           {errors.rewardAmount && (
             <div className="bg-red-500/10 border border-red-500/30 rounded p-2">
-              <p className="text-sm text-red-400 font-mono">
-                {errors.rewardAmount}
-              </p>
+              <p className="text-sm text-red-400 font-mono">{errors.rewardAmount}</p>
             </div>
           )}
         </div>
 
         {/* Duration Selection */}
-        <div className="space-y-3">
+        <div className="space-y-4 mb-10">
           <label className="block text-sm font-mono font-bold uppercase tracking-wider text-primary">
-            <span className="text-muted-foreground">&gt;</span>{" "}
             {t("common.duration")}
           </label>
-          <select
-            name="duration"
-            value={formData.duration}
-            onChange={handleInputChange}
-            className="w-full px-4 py-3 border-2 border-primary/20 bg-background/50 text-foreground font-mono text-sm focus:outline-none focus:border-primary/50 rounded-lg backdrop-blur-sm"
-          >
-            {DURATION_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          <div className="space-y-5">
+            <div
+              className="flex items-center gap-3 p-4 border border-primary/30 rounded-lg bg-background/30 hover:bg-background/50 transition-colors cursor-pointer"
+              onClick={() => setFormData((prev) => ({ ...prev, useCustomDuration: false }))}
+            >
+              <div
+                className={`w-4 h-4 rounded-full border-2 border-primary flex items-center justify-center ${!formData.useCustomDuration ? "bg-primary" : "bg-transparent"}`}
+              >
+                {!formData.useCustomDuration && <div className="w-2 h-2 rounded-full bg-primary-foreground"></div>}
+              </div>
+              <label htmlFor="preset-duration" className="text-sm font-mono font-bold cursor-pointer text-primary">
+                {t("common.preset_durations")}
+              </label>
+            </div>
+            {!formData.useCustomDuration && (
+              <select
+                name="duration"
+                value={formData.duration}
+                onChange={handleInputChange}
+                className="w-full px-4 py-3 border-2 border-primary/20 bg-background/50 text-foreground font-mono text-sm focus:outline-none focus:border-primary/50 rounded-lg backdrop-blur-sm min-h-[44px] mt-3"
+              >
+                {DURATION_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            )}
+            <div
+              className="flex items-center gap-3 p-4 border border-primary/30 rounded-lg bg-background/30 hover:bg-background/50 transition-colors cursor-pointer"
+              onClick={() => setFormData((prev) => ({ ...prev, useCustomDuration: true }))}
+            >
+              <div
+                className={`w-4 h-4 rounded-full border-2 border-primary flex items-center justify-center ${formData.useCustomDuration ? "bg-primary" : "bg-transparent"}`}
+              >
+                {formData.useCustomDuration && <div className="w-2 h-2 rounded-full bg-primary-foreground"></div>}
+              </div>
+              <label htmlFor="custom-duration" className="text-sm font-mono font-bold cursor-pointer text-primary">
+                {t("common.custom_duration")}
+              </label>
+            </div>
+            {formData.useCustomDuration && (
+              <div className="flex items-center gap-3 mt-3">
+                <Input
+                  type="number"
+                  name="customDuration"
+                  value={formData.customDuration}
+                  onChange={handleInputChange}
+                  placeholder={t("common.enter_amount")}
+                  className="flex-1 font-mono bg-background/50 border-primary/20 focus:border-primary/50 min-h-[44px]"
+                  min="1"
+                  step="0.1"
+                />
+                <select
+                  value={formData.customDurationUnit}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      customDurationUnit: e.target.value as "minutes" | "hours" | "days",
+                    }))
+                  }
+                  className="px-4 py-3 border-2 border-primary/20 bg-background/50 text-foreground font-mono text-sm focus:outline-none focus:border-primary/50 rounded-lg backdrop-blur-sm min-w-[90px] min-h-[44px]"
+                >
+                  <option value="minutes">{t("common.minutes")}</option>
+                  <option value="hours">{t("common.hours")}</option>
+                  <option value="days">{t("common.days")}</option>
+                </select>
+              </div>
+            )}
+          </div>
           {errors.duration && (
             <div className="bg-red-500/10 border border-red-500/30 rounded p-2">
-              <p className="text-sm text-red-400 font-mono">
-                {errors.duration}
-              </p>
+              <p className="text-sm text-red-400 font-mono">{errors.duration}</p>
             </div>
           )}
         </div>
 
         {/* Action Buttons */}
         <div className="space-y-4 pt-4">
-          <div className="h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent"></div>
-
-          {/* Approve Button - Show for ERC6909 tokens (ZAMM and Cookbook coins) */}
-          {formData.rewardToken.id ? (
-            <Button
-              onClick={handleApproveRewardToken}
-              disabled={isSubmitting}
-              className="w-full font-mono font-bold tracking-wide hover:scale-105 transition-all duration-200 bg-gradient-to-r from-primary/80 to-primary/60 hover:from-primary hover:to-primary/80"
-              variant="outline"
-            >
-              {isSubmitting
-                ? `[${t("common.approving")}...]`
-                : `[${t("common.approve")} ${formData.rewardToken.symbol}]`}
-            </Button>
-          ) : formData.rewardToken.symbol !== "ETH" ? (
-            <Button
-              disabled={true}
-              className="w-full font-mono font-bold tracking-wide opacity-50"
-              variant="outline"
-            >
-              [External ERC20 Approval - Not Supported]
-            </Button>
-          ) : null}
-
           {/* Create Farm Button */}
           <Button
             onClick={handleCreateFarm}
             disabled={isSubmitting}
-            className="w-full font-mono font-bold tracking-wide text-lg py-4 hover:scale-105 transition-all duration-200 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary shadow-lg"
+            className="text-foreground w-full font-mono font-bold tracking-wide text-lg py-6 hover:scale-105 transition-all duration-200 hover:from-primary/90 hover:to-primary min-h-[56px] border border-primary/30"
           >
-            {isSubmitting
-              ? `[${t("common.creating_farm")}...]`
-              : `[${t("common.create_farm")}]`}
+            {isSubmitting ? `[${t("common.creating_farm")}...]` : `[${t("common.create_farm")}]`}
           </Button>
         </div>
 
@@ -655,33 +746,25 @@ export const CreateFarm = () => {
                 {txStatus === "pending" && (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent"></div>
-                    <span className="font-mono font-bold text-primary">
-                      [PENDING]
-                    </span>
+                    <span className="font-mono font-bold text-primary">[PENDING]</span>
                   </>
                 )}
                 {txStatus === "confirming" && (
                   <>
                     <div className="animate-pulse h-4 w-4 bg-yellow-500 rounded-full"></div>
-                    <span className="font-mono font-bold text-yellow-500">
-                      [CONFIRMING]
-                    </span>
+                    <span className="font-mono font-bold text-yellow-500">[CONFIRMING]</span>
                   </>
                 )}
                 {txStatus === "success" && (
                   <>
                     <div className="h-4 w-4 bg-green-500 rounded-full"></div>
-                    <span className="font-mono font-bold text-green-500">
-                      [SUCCESS]
-                    </span>
+                    <span className="font-mono font-bold text-green-500">[SUCCESS]</span>
                   </>
                 )}
                 {txStatus === "error" && (
                   <>
                     <div className="h-4 w-4 bg-red-500 rounded-full"></div>
-                    <span className="font-mono font-bold text-red-500">
-                      [ERROR]
-                    </span>
+                    <span className="font-mono font-bold text-red-500">[ERROR]</span>
                   </>
                 )}
               </div>
@@ -705,18 +788,26 @@ export const CreateFarm = () => {
 
               {txError && (
                 <div className="text-center">
-                  <p className="text-sm text-red-400 font-mono break-words">
-                    {txError}
-                  </p>
+                  <p className="text-sm text-red-400 font-mono break-words">{txError}</p>
                 </div>
               )}
 
               {txStatus === "success" && (
-                <div className="text-center">
-                  <p className="text-sm text-green-400 font-mono">
-                    Farm created successfully! Check the Browse tab to see your
-                    new farm.
-                  </p>
+                <div className="text-center space-y-2">
+                  <p className="text-sm text-green-400 font-mono">{t("common.farm_created_successfully")}</p>
+                  <div className="text-xs text-green-300 font-mono space-y-1">
+                    <div>🌾 Pool: {formData.selectedToken?.symbol}</div>
+                    <div>
+                      💰 Reward: {formData.rewardAmount} {formData.rewardToken.symbol}
+                    </div>
+                    <div>
+                      ⏰ Duration:{" "}
+                      {formData.useCustomDuration
+                        ? `${formData.customDuration} ${t(`common.${formData.customDurationUnit}`)}`
+                        : `${formData.duration} ${t("common.days")}`}
+                    </div>
+                    <div className="mt-2 text-green-400">✨ {t("common.farm_will_auto_reset")}</div>
+                  </div>
                 </div>
               )}
             </div>

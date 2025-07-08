@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { ZammLogo } from "./ZammLogo";
-import { useRandomLoadingText, useLandingData } from "../hooks/use-landing-data";
+import { useLandingData, useRandomLoadingText } from "../hooks/use-landing-data";
 import { useProtocolStats } from "../hooks/use-protocol-stats";
-import { Card } from "./ui/card";
 import { SwapModal } from "./SwapModal";
+import { ZammLogo } from "./ZammLogo";
+import { Card } from "./ui/card";
 
 interface LandingPageProps {
   onEnterApp?: () => void;

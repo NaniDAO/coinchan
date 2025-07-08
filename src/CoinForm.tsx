@@ -1,23 +1,23 @@
-import confetti from "canvas-confetti";
-import { useState, useEffect, useMemo } from "react";
-import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
-import { useAccount, useWriteContract, useReadContract } from "wagmi";
-import { parseEther } from "viem";
-import { pinImageToPinata, pinJsonToPinata } from "@/lib/pinata";
-import { handleWalletError, isUserRejectionError } from "@/lib/errors";
-import { formatNumber } from "./lib/utils";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { mainnet } from "viem/chains";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Textarea } from "@/components/ui/textarea";
+import { handleWalletError, isUserRejectionError } from "@/lib/errors";
+import { pinImageToPinata, pinJsonToPinata } from "@/lib/pinata";
 import { Link } from "@tanstack/react-router";
+import confetti from "canvas-confetti";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { CheckTheChainAbi, CheckTheChainAddress } from "./constants/CheckTheChain";
-import { ImageInput } from "./components/ui/image-input";
+import { parseEther } from "viem";
+import { mainnet } from "viem/chains";
+import { useAccount, useReadContract, useWriteContract } from "wagmi";
 import { CoinPreview } from "./components/CoinPreview";
+import { ImageInput } from "./components/ui/image-input";
+import { CheckTheChainAbi, CheckTheChainAddress } from "./constants/CheckTheChain";
+import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
 import { computeCoinId } from "./lib/coins";
+import { formatNumber } from "./lib/utils";
 
 export function CoinForm() {
   const { t } = useTranslation();
@@ -69,10 +69,10 @@ export function CoinForm() {
   // Format percentage input to have max 2 decimal places and be within valid range
   const formatPercentageInput = (value: string): string => {
     // Handle empty or invalid input
-    if (!value || isNaN(parseFloat(value))) return "";
+    if (!value || isNaN(Number.parseFloat(value))) return "";
 
     // Parse the value
-    let numValue = parseFloat(value);
+    let numValue = Number.parseFloat(value);
 
     // Cap the value at 99.99
     numValue = Math.min(numValue, 99.99);
@@ -83,7 +83,7 @@ export function CoinForm() {
     }
 
     // If we've capped the value, use the fixed format
-    if (numValue !== parseFloat(value)) {
+    if (numValue !== Number.parseFloat(value)) {
       return numValue.toFixed(2);
     }
 
@@ -95,13 +95,13 @@ export function CoinForm() {
 
     // Parse ETH price from the data
     const priceStr = ethPriceData[1];
-    const ethPriceUsd = parseFloat(priceStr);
+    const ethPriceUsd = Number.parseFloat(priceStr);
 
     // Check if parsing was successful
     if (isNaN(ethPriceUsd) || ethPriceUsd === 0) return null;
 
     // Get ETH amount (reserve0) and token amount (reserve1)
-    const ethAmount = parseFloat(formState.ethAmount) || 0.01;
+    const ethAmount = Number.parseFloat(formState.ethAmount) || 0.01;
 
     // In a XYK pool (x*y=k), the spot price is determined by the ratio of reserves
     // For ETH to token swap, price = reserve_token / reserve_eth
@@ -376,7 +376,7 @@ export function CoinForm() {
                             // Validate format (numbers with up to 2 decimal places and max 2 digits before decimal)
                             if (value === "" || /^[0-9]{1,2}(\.?[0-9]{0,2})?$/.test(value)) {
                               // Check if the value exceeds the maximum allowed (99.99)
-                              const numValue = parseFloat(value);
+                              const numValue = Number.parseFloat(value);
                               if (value === "" || isNaN(numValue) || numValue <= 99.99) {
                                 setCustomFeeInput(value);
                               }
@@ -393,7 +393,7 @@ export function CoinForm() {
                           variant="outline"
                           className="h-8"
                           onClick={() => {
-                            const customFeePercent = parseFloat(customFeeInput);
+                            const customFeePercent = Number.parseFloat(customFeeInput);
                             if (!isNaN(customFeePercent) && customFeePercent >= 0.01 && customFeePercent <= 99.99) {
                               // Convert percentage to basis points for internal use
                               const basisPoints = percentageToBasisPoints(customFeePercent);
@@ -403,9 +403,9 @@ export function CoinForm() {
                           }}
                           disabled={
                             !customFeeInput ||
-                            isNaN(parseFloat(customFeeInput)) ||
-                            parseFloat(customFeeInput) < 0.01 ||
-                            parseFloat(customFeeInput) > 99.99 ||
+                            isNaN(Number.parseFloat(customFeeInput)) ||
+                            Number.parseFloat(customFeeInput) < 0.01 ||
+                            Number.parseFloat(customFeeInput) > 99.99 ||
                             !/^[0-9]{1,2}(\.?[0-9]{0,2})?$/.test(customFeeInput)
                           }
                         >
@@ -414,9 +414,9 @@ export function CoinForm() {
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
                         {customFeeInput &&
-                        !isNaN(parseFloat(customFeeInput)) &&
+                        !isNaN(Number.parseFloat(customFeeInput)) &&
                         /^[0-9]{1,2}(\.?[0-9]{0,2})?$/.test(customFeeInput)
-                          ? `${customFeeInput}% = ${percentageToBasisPoints(parseFloat(customFeeInput))} basis points`
+                          ? `${customFeeInput}% = ${percentageToBasisPoints(Number.parseFloat(customFeeInput))} basis points`
                           : t("errors.invalid_amount")}
                       </p>
                     </div>

@@ -63,7 +63,7 @@ export const SlippageSettings = ({
                   placeholder=""
                   className="w-12 bg-transparent outline-none text-center"
                   onChange={(e) => {
-                    const value = parseFloat(e.target.value);
+                    const value = Number.parseFloat(e.target.value);
                     if (isNaN(value) || value < 0.1 || value > 50) return;
 
                     // Convert percentage to basis points

@@ -1,18 +1,18 @@
+import { BuySellFallback } from "@/TradeView";
+import { CheckTheChainAbi, CheckTheChainAddress } from "@/constants/CheckTheChain";
+import { CookbookAddress } from "@/constants/Cookbook";
+import { useGetCoin } from "@/hooks/metadata/use-get-coin";
+import { SWAP_FEE, computePoolId } from "@/lib/swap";
 import { Link } from "@tanstack/react-router";
+import { useMemo } from "react";
+import { mainnet } from "viem/chains";
+import { useReadContract } from "wagmi";
+import { BuyCoinSale } from "./BuyCoinSale";
+import { CoinInfoCard } from "./CoinInfoCard";
 import { CoinPreview } from "./CoinPreview";
 import ErrorFallback, { ErrorBoundary } from "./ErrorBoundary";
-import { BuySellFallback } from "@/TradeView";
-import { BuyCoinSale } from "./BuyCoinSale";
-import { VotePanel } from "./VotePanel";
-import { useGetCoin } from "@/hooks/metadata/use-get-coin";
-import { useMemo } from "react";
-import { CoinInfoCard } from "./CoinInfoCard";
-import { useReadContract } from "wagmi";
-import { mainnet } from "viem/chains";
-import { CheckTheChainAbi, CheckTheChainAddress } from "@/constants/CheckTheChain";
 import { PoolOverview } from "./PoolOverview";
-import { computePoolId, SWAP_FEE } from "@/lib/swap";
-import { CookbookAddress } from "@/constants/Cookbook";
+import { VotePanel } from "./VotePanel";
 
 export const CookbookCoinView = ({ coinId }: { coinId: bigint }) => {
   const { data, isLoading: isLoadingGetCoin } = useGetCoin({
@@ -40,7 +40,7 @@ export const CookbookCoinView = ({ coinId }: { coinId: bigint }) => {
     if (!data || !ethPriceData) return null;
 
     const priceStr = ethPriceData[1];
-    const ethPriceUsd = parseFloat(priceStr);
+    const ethPriceUsd = Number.parseFloat(priceStr);
 
     if (isNaN(ethPriceUsd) || ethPriceUsd === 0) return null;
     if (data.marketCapEth === undefined) return null;

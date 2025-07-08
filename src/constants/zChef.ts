@@ -1,4 +1,4 @@
-export const ZChefAddress = "0x000000000077A1C8f192b94145C2D94E68d752bf";
+export const ZChefAddress = "0x00000000009991E374a1628e3B2f60991Bc26DA4";
 export const ZChefAbi = [
   { inputs: [], stateMutability: "payable", type: "constructor" },
   { inputs: [], name: "AddLiquidityFail", type: "error" },

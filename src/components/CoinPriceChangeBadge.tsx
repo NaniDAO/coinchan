@@ -1,8 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
-import SpinnerLoader from "./ui/spinner-loader";
-import { ArrowRightIcon, TrendingUpDownIcon } from "lucide-react";
 import { EightBitHoverCard, EightBitHoverCardContent, EightBitHoverCardTrigger } from "@/components/ui/8bit/hover-card";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowRightIcon, TrendingUpDownIcon } from "lucide-react";
 import { formatEther } from "viem";
+import SpinnerLoader from "./ui/spinner-loader";
 
 const usePriceChange = (coinId: string, interval: "1h" | "1d") => {
   return useQuery({

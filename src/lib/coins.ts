@@ -1,13 +1,13 @@
 import { CoinsAddress } from "@/constants/Coins";
 import {
+  type Address,
+  type Hex,
   encodeAbiParameters,
+  encodePacked,
+  getAddress,
   keccak256,
   parseAbiParameters,
   zeroAddress,
-  encodePacked,
-  Address,
-  Hex,
-  getAddress,
 } from "viem";
 
 export type CoinSource = "ZAMM" | "COOKBOOK";
@@ -18,6 +18,7 @@ export interface TokenMeta {
   symbol: string;
   source: CoinSource;
   tokenUri?: string; // Added tokenUri field to display thumbnails
+  imageUrl?: string; // Added imageUrl field to display thumbnails
   reserve0?: bigint; // ETH reserves in the pool
   reserve1?: bigint; // Token reserves in the pool
   liquidity?: bigint; // Total liquidity in the pool

@@ -1,8 +1,8 @@
+import { CoinsMetadataHelperAbi, CoinsMetadataHelperAddress } from "@/constants/CoinsMetadataHelper";
 import { useQuery } from "@tanstack/react-query";
 import { mainnet } from "viem/chains";
-import { CoinsMetadataHelperAbi, CoinsMetadataHelperAddress } from "@/constants/CoinsMetadataHelper";
-import { CoinData } from "./coin-utils";
 import { useReadContract } from "wagmi";
+import type { CoinData } from "./coin-utils";
 
 /**
  * Hook to access data for a single coin
@@ -22,7 +22,7 @@ export function useCoinData(coinId: bigint) {
     queryFn: async () => {
       const data = await processRawCoinData(rawData as any);
 
-      let coinData: CoinData & {
+      const coinData: CoinData & {
         marketCapEth: number | undefined;
       } = {
         ...data,
@@ -62,8 +62,8 @@ async function processRawCoinData(rawData: any): Promise<CoinData> {
 
   // Calculate price in ETH if reserves are available
   if (coinData.reserve0 > 0n && coinData.reserve1 > 0n) {
-    const r0 = parseFloat(coinData.reserve0.toString()) / 1e18;
-    const r1 = parseFloat(coinData.reserve1.toString()) / 1e18;
+    const r0 = Number.parseFloat(coinData.reserve0.toString()) / 1e18;
+    const r1 = Number.parseFloat(coinData.reserve1.toString()) / 1e18;
     // @ts-ignore
     coinData.priceInEth = r0 / r1;
   }

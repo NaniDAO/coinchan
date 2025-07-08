@@ -1,9 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
-import { usePublicClient } from "wagmi";
-import { formatUnits } from "viem";
-import { useTranslation } from "react-i18next";
 import { CheckTheChainAbi, CheckTheChainAddress } from "@/constants/CheckTheChain";
+import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
+import { formatUnits } from "viem";
 import { mainnet } from "viem/chains";
+import { usePublicClient } from "wagmi";
 
 export interface LandingData {
   ethPrice: string;

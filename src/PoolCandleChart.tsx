@@ -1,22 +1,23 @@
-import React, { useRef, useLayoutEffect, useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
-import {
-  createChart,
-  CrosshairMode,
-  UTCTimestamp,
-  CandlestickSeriesOptions,
-  CandlestickData as TVCandlestickData,
-  CandlestickSeries,
-  IChartApi,
-  ISeriesApi,
-  ColorType,
-  PriceFormatBuiltIn,
-} from "lightweight-charts";
 import { LoadingLogo } from "@/components/ui/loading-logo";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { fetchPoolCandles, CandleData } from "./lib/indexer";
-import { useChartTheme } from "./hooks/use-chart-theme";
+import {
+  CandlestickSeries,
+  type CandlestickSeriesOptions,
+  ColorType,
+  CrosshairMode,
+  type IChartApi,
+  type ISeriesApi,
+  type PriceFormatBuiltIn,
+  type CandlestickData as TVCandlestickData,
+  type UTCTimestamp,
+  createChart,
+} from "lightweight-charts";
+import type React from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "./components/ui/button";
+import { useChartTheme } from "./hooks/use-chart-theme";
+import { type CandleData, fetchPoolCandles } from "./lib/indexer";
 
 const ONE_MONTH = 30 * 24 * 60 * 60;
 const RANGE = 7 * 24 * 60 * 60;
@@ -49,7 +50,7 @@ const PoolCandleChart: React.FC<CandleChartProps> = ({ poolId, interval = "1h" }
     setSelectedInterval(newInterval);
   };
 
-  const allCandles = data?.pages.flatMap((page) => page) ?? [];
+  const allCandles = data?.pages.flat() ?? [];
 
   return (
     <div className="w-full">
@@ -163,7 +164,7 @@ const TVCandlestick: React.FC<TVChartProps> = ({ rawData, onVisibleTimeRangeChan
 
     let filtered = rawData.filter((d) => !(d.open === d.high && d.high === d.low && d.low === d.close));
     const highs = filtered.map((d) => d.high).sort((a, b) => a - b);
-    const cutoff = highs[Math.floor(highs.length * 0.99)] ?? Infinity;
+    const cutoff = highs[Math.floor(highs.length * 0.99)] ?? Number.POSITIVE_INFINITY;
     filtered = filtered.filter((d) => d.high <= cutoff);
 
     const tvData: TVCandlestickData[] = filtered

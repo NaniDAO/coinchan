@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { LiquidityActions } from "./LiquidityActions";
 import { SwapAction } from "./SwapAction";
 import { LoadingLogo } from "./components/ui/loading-logo";
+import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { cn } from "./lib/utils";
 
 /* ────────────────────────────────────────────────────────────────────────────

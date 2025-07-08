@@ -9,33 +9,33 @@
    ------------------------------------------------------------------ */
 
 import { ZAMMLaunchAbi, ZAMMLaunchAddress } from "@/constants/ZAMMLaunch";
-import { useWriteContract, usePublicClient, useAccount, useBalance } from "wagmi";
+import { useChartTheme } from "@/hooks/use-chart-theme";
+import { useCoinSale } from "@/hooks/use-coin-sale";
+import { cn } from "@/lib/utils";
+import { formatDeadline } from "@/lib/utils";
+import { Clock } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
-  ComposedChart,
-  Bar,
-  Line,
   Area,
+  Bar,
+  CartesianGrid,
+  ComposedChart,
+  Legend,
+  Line,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
 } from "recharts";
 import { formatEther, parseEther } from "viem";
-import { Badge } from "./ui/badge";
-import { PillIndicator } from "./ui/pill";
-import { Button } from "./ui/button";
-import { Card, CardHeader, CardTitle, CardContent, CardAction } from "./ui/card";
-import { Clock } from "lucide-react";
-import { useState, useMemo, useEffect, useCallback } from "react";
-import { useTranslation } from "react-i18next";
-import { Input } from "./ui/input";
-import { cn } from "@/lib/utils";
-import { useCoinSale } from "@/hooks/use-coin-sale";
+import { useAccount, useBalance, usePublicClient, useWriteContract } from "wagmi";
 import { BuySellCookbookCoin } from "./BuySellCookbookCoin";
-import { useChartTheme } from "@/hooks/use-chart-theme";
-import { formatDeadline } from "@/lib/utils";
+import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Input } from "./ui/input";
+import { PillIndicator } from "./ui/pill";
 
 /* ───────── helpers ───────── */
 
@@ -531,7 +531,8 @@ export const BuyCoinSale = ({
               {mode === "ETH" ? (
                 estimateTokens ? (
                   <div>
-                    ≈ <span className="font-bold text-primary">{parseFloat(estimateTokens).toLocaleString()}</span>{" "}
+                    ≈{" "}
+                    <span className="font-bold text-primary">{Number.parseFloat(estimateTokens).toLocaleString()}</span>{" "}
                     {symbol}
                     {/* Show if amount was rounded */}
                     {ethInput && parseEther(ethInput.trim() || "0") !== purchaseCalculations.validEthAmount && (
@@ -545,7 +546,8 @@ export const BuyCoinSale = ({
                 )
               ) : estimateEth ? (
                 <div>
-                  ≈ <span className="font-bold text-primary">{parseFloat(estimateEth).toLocaleString()}</span> ETH
+                  ≈ <span className="font-bold text-primary">{Number.parseFloat(estimateEth).toLocaleString()}</span>{" "}
+                  ETH
                   {!purchaseCalculations.canPurchase && (
                     <div className="text-xs text-red-600 mt-1">
                       Cannot purchase exact amount - try a different quantity

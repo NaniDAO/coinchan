@@ -1,21 +1,21 @@
 import { Loader2 } from "lucide-react";
-import { SuccessMessage } from "./components/SuccessMessage";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useOperatorStatus } from "./hooks/use-operator-status";
-import { useAccount, useChainId, usePublicClient, useWriteContract } from "wagmi";
 import { formatEther, formatUnits, parseEther, parseUnits, zeroAddress } from "viem";
-import { handleWalletError, isUserRejectionError } from "./lib/errors";
-import { useWaitForTransactionReceipt } from "wagmi";
-import { ETH_TOKEN, TokenMeta, USDT_ADDRESS } from "./lib/coins";
-import { useAllCoins } from "./hooks/metadata/use-all-coins";
-import { NetworkError } from "./components/NetworkError";
-import { CoinsAddress, CoinsAbi } from "./constants/Coins";
-import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
-import { nowSec } from "./lib/utils";
 import { mainnet } from "viem/chains";
+import { useAccount, useChainId, usePublicClient, useWriteContract } from "wagmi";
+import { useWaitForTransactionReceipt } from "wagmi";
+import { NetworkError } from "./components/NetworkError";
+import { SuccessMessage } from "./components/SuccessMessage";
 import { SwapPanel } from "./components/SwapPanel";
+import { CoinsAbi, CoinsAddress } from "./constants/Coins";
+import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
+import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { useErc20Allowance } from "./hooks/use-erc20-allowance";
-import { CookbookPoolKey } from "./lib/swap";
+import { useOperatorStatus } from "./hooks/use-operator-status";
+import { ETH_TOKEN, type TokenMeta, USDT_ADDRESS } from "./lib/coins";
+import { handleWalletError, isUserRejectionError } from "./lib/errors";
+import type { CookbookPoolKey } from "./lib/swap";
+import { nowSec } from "./lib/utils";
 
 // Fee tier options for pool creation
 const FEE_OPTIONS = [
@@ -76,7 +76,7 @@ const FeeSettings = ({ feeBps, setFeeBps, className = "" }: FeeSettingsProps) =>
                   placeholder=""
                   className="w-12 bg-transparent outline-none text-center"
                   onChange={(e) => {
-                    const value = parseFloat(e.target.value);
+                    const value = Number.parseFloat(e.target.value);
                     if (isNaN(value) || value < 0.01 || value > 99) return;
                     const bps = BigInt(Math.floor(value * 100));
                     setFeeBps(bps);
@@ -196,12 +196,12 @@ export const CreatePool = () => {
       return;
     }
 
-    if (!amount0 || parseFloat(amount0) <= 0) {
+    if (!amount0 || Number.parseFloat(amount0) <= 0) {
       setTxError("Please enter a valid amount for first token");
       return;
     }
 
-    if (!amount1 || parseFloat(amount1) <= 0) {
+    if (!amount1 || Number.parseFloat(amount1) <= 0) {
       setTxError("Please enter a valid amount for second token");
       return;
     }

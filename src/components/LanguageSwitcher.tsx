@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from "react";
-import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 export function LanguageSwitcher() {
   const { i18n, t } = useTranslation();

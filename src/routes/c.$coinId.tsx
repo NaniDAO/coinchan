@@ -1,7 +1,7 @@
+import { TradeView } from "@/TradeView";
 import { CookbookCoinView } from "@/components/CookbookCoinView";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { isCookbookCoin } from "@/lib/coin-utils";
-import { TradeView } from "@/TradeView";
 import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 

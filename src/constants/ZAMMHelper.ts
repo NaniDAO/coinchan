@@ -1,4 +1,4 @@
-import { Address } from "viem";
+import type { Address } from "viem";
 
 // Interface for the ZAMMHelper contract at 0xc4bfFdA77EB0E165220B0f18C8395db9Ce4b078F
 export const ZAMMHelperAddress = "0xc4bfFdA77EB0E165220B0f18C8395db9Ce4b078F" as Address;

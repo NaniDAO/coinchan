@@ -1,6 +1,6 @@
-import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
-import { cva, type VariantProps } from "class-variance-authority";
+import { type VariantProps, cva } from "class-variance-authority";
+import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -9,13 +9,17 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-background text-foreground hover:bg-foreground hover:text-background",
-        destructive: "bg-background text-foreground hover:bg-foreground hover:text-background",
-        outline: "border-2 border-border bg-background text-foreground hover:bg-foreground hover:text-background",
-        secondary: "bg-muted text-foreground hover:bg-foreground hover:text-background",
+        default:
+          "bg-background !text-foreground hover:bg-foreground hover:!text-background dark:!text-foreground dark:hover:!text-background",
+        destructive:
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90 dark:bg-destructive dark:text-destructive-foreground dark:hover:bg-destructive/90",
+        outline:
+          "border-2 border-border bg-background !text-foreground hover:bg-foreground hover:!text-background dark:!text-foreground dark:hover:!text-background",
+        secondary:
+          "bg-muted text-muted-foreground hover:bg-foreground hover:text-background dark:text-muted-foreground dark:hover:text-background",
         ghost:
-          "border-transparent bg-transparent text-foreground hover:bg-foreground hover:text-background hover:border-border",
-        link: "border-transparent bg-transparent text-foreground underline-offset-4 hover:underline",
+          "border-transparent bg-transparent text-foreground hover:bg-foreground hover:text-background hover:border-border dark:text-foreground dark:hover:text-background",
+        link: "border-transparent bg-transparent text-foreground underline-offset-4 hover:underline dark:text-foreground",
       },
       size: {
         default: "h-9 px-4 py-2",

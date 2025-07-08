@@ -1,4 +1,4 @@
-import { useTheme, type ThemeMode } from "@/lib/theme";
+import { type ThemeMode, useTheme } from "@/lib/theme";
 
 // Light mode Ethereum SVG (original)
 const ETH_LIGHT_SVG = `<svg fill="#000000" width="800px" height="800px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">

@@ -1,37 +1,37 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  useWriteContract,
-  useWaitForTransactionReceipt,
   useAccount,
-  useReadContract,
-  useSwitchChain,
+  useBalance,
   useChainId,
   usePublicClient,
-  useBalance,
+  useReadContract,
+  useSwitchChain,
+  useWaitForTransactionReceipt,
+  useWriteContract,
 } from "wagmi";
 
-import { parseEther, parseUnits, formatEther, formatUnits } from "viem";
-import { nowSec } from "./lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { PercentageSlider } from "@/components/ui/percentage-slider";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { handleWalletError } from "@/lib/errors";
+import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
+import { mainnet } from "viem/chains";
+import { LoadingLogo } from "./components/ui/loading-logo";
+import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
 import { ZAMMAbi, ZAMMAddress } from "./constants/ZAAM";
-import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { PercentageSlider } from "@/components/ui/percentage-slider";
-import { mainnet } from "viem/chains";
-import { handleWalletError } from "@/lib/errors";
+import { useReserves } from "./hooks/use-reserves";
 import {
+  DEADLINE_SEC,
+  SWAP_FEE,
+  type ZAMMPoolKey,
   computePoolId,
   computePoolKey,
-  DEADLINE_SEC,
   getAmountOut,
-  SWAP_FEE,
   withSlippage,
-  ZAMMPoolKey,
 } from "./lib/swap";
-import { LoadingLogo } from "./components/ui/loading-logo";
-import { useReserves } from "./hooks/use-reserves";
+import { nowSec } from "./lib/utils";
 
 export const BuySell = ({
   tokenId,

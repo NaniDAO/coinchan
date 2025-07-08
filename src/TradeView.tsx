@@ -1,22 +1,22 @@
+import { useMemo, useState } from "react";
 import { BuySell } from "./BuySell";
 import { ClaimVested } from "./ClaimVested";
-import { useMemo, useState } from "react";
 
-import { useReadContract, useWaitForTransactionReceipt } from "wagmi";
-import { mainnet } from "viem/chains";
-import { computePoolId, SWAP_FEE } from "./lib/swap";
 import { Link } from "@tanstack/react-router";
+import { mainnet } from "viem/chains";
+import { useReadContract, useWaitForTransactionReceipt } from "wagmi";
+import { SWAP_FEE, computePoolId } from "./lib/swap";
 
+import { CoinInfoCard } from "./components/CoinInfoCard";
 import { CoinPreview } from "./components/CoinPreview";
 import ErrorFallback, { ErrorBoundary } from "./components/ErrorBoundary";
+import { PoolOverview } from "./components/PoolOverview";
 import { VotePanel } from "./components/VotePanel";
 import { LoadingLogo } from "./components/ui/loading-logo";
-import { PoolOverview } from "./components/PoolOverview";
-import { useGetCoin } from "./hooks/metadata/use-get-coin";
-import { CoinsAddress } from "./constants/Coins";
-import { useIsOwner } from "./hooks/use-is-owner";
-import { CoinInfoCard } from "./components/CoinInfoCard";
 import { CheckTheChainAbi, CheckTheChainAddress } from "./constants/CheckTheChain";
+import { CoinsAddress } from "./constants/Coins";
+import { useGetCoin } from "./hooks/metadata/use-get-coin";
+import { useIsOwner } from "./hooks/use-is-owner";
 
 // Fallback component for BuySell when it crashes
 export const BuySellFallback = ({
@@ -81,7 +81,7 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
     if (!data || !ethPriceData) return null;
 
     const priceStr = ethPriceData[1];
-    const ethPriceUsd = parseFloat(priceStr);
+    const ethPriceUsd = Number.parseFloat(priceStr);
 
     if (isNaN(ethPriceUsd) || ethPriceUsd === 0) return null;
     if (data.marketCapEth === undefined) return null;

@@ -1,10 +1,10 @@
-import { useWriteContract, useReadContract, useAccount, usePublicClient } from "wagmi";
+import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
+import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
+import { ZChefAbi, ZChefAddress } from "@/constants/zChef";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatUnits } from "viem";
 import { mainnet } from "viem/chains";
-import { ZChefAddress, ZChefAbi } from "@/constants/zChef";
-import { CoinsAddress, CoinsAbi } from "@/constants/Coins";
-import { CookbookAddress, CookbookAbi } from "@/constants/Cookbook";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAccount, usePublicClient, useReadContract, useWriteContract } from "wagmi";
 
 // Retry configuration for contract operations
 const RETRY_CONFIG = {
@@ -154,7 +154,13 @@ export function useZChefActions() {
   const queryClient = useQueryClient();
 
   const deposit = useMutation({
-    mutationFn: async ({ chefId, amount }: { chefId: bigint; amount: bigint }) => {
+    mutationFn: async ({
+      chefId,
+      amount,
+    }: {
+      chefId: bigint;
+      amount: bigint;
+    }) => {
       return executeWithRetry(async () => {
         const contractCall = {
           address: ZChefAddress,
@@ -188,14 +194,24 @@ export function useZChefActions() {
     onSuccess: (_, { chefId }) => {
       // More targeted cache invalidation for deposits
       queryClient.invalidateQueries({ queryKey: ["userIncentivePositions"] });
-      queryClient.invalidateQueries({ queryKey: ["userIncentivePosition", chefId.toString()] });
-      queryClient.invalidateQueries({ queryKey: ["incentiveStream", chefId.toString()] });
+      queryClient.invalidateQueries({
+        queryKey: ["userIncentivePosition", chefId.toString()],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["incentiveStream", chefId.toString()],
+      });
       queryClient.invalidateQueries({ queryKey: ["activeIncentiveStreams"] });
     },
   });
 
   const withdraw = useMutation({
-    mutationFn: async ({ chefId, shares }: { chefId: bigint; shares: bigint }) => {
+    mutationFn: async ({
+      chefId,
+      shares,
+    }: {
+      chefId: bigint;
+      shares: bigint;
+    }) => {
       return executeWithRetry(async () => {
         const contractCall = {
           address: ZChefAddress,
@@ -377,7 +393,11 @@ export function useZChefUtilities() {
 
     const rewardPerSecond = rewardRate;
     const rewardPerYear = rewardPerSecond * BigInt(365 * 24 * 60 * 60);
-    const rewardValuePerYear = (rewardPerYear * rewardTokenPrice) / BigInt(10 ** rewardTokenDecimals);
+    // Note: rewardRate = (rewardAmount * ACC_PRECISION) / duration where rewardAmount has rewardTokenDecimals
+    // So rewardRate has scaling of (rewardTokenDecimals + 12) decimals
+    // rewardTokenPrice is in ETH wei (18 decimals), so total scaling is (rewardTokenDecimals + 12 + 18)
+    // We want result in ETH wei (18 decimals), so divide by 10^(rewardTokenDecimals + 12)
+    const rewardValuePerYear = (rewardPerYear * rewardTokenPrice) / BigInt(10 ** (rewardTokenDecimals + 12));
     const totalValueLocked = totalShares * lpTokenPrice;
 
     if (totalValueLocked === 0n) return 0;
@@ -388,7 +408,7 @@ export function useZChefUtilities() {
 
   const calculateTimeRemaining = (endTime: bigint) => {
     const now = BigInt(Math.floor(Date.now() / 1000));
-    const remaining = endTime - now;
+    const remaining = BigInt(endTime) - now;
 
     if (remaining <= 0n) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
 
@@ -400,10 +420,12 @@ export function useZChefUtilities() {
     return { days, hours, minutes, seconds };
   };
 
-  const formatRewardRate = (rewardRate: bigint, decimals: number) => {
-    const perSecond = formatUnits(rewardRate, decimals);
-    const perDay = formatUnits(rewardRate * 86400n, decimals);
-    const perYear = formatUnits(rewardRate * 86400n * 365n, decimals);
+  const formatRewardRate = (rewardRate: bigint) => {
+    rewardRate = BigInt(rewardRate);
+    // Note: rewardRate has scaling of (18 + 12 = 30 decimals)
+    const perSecond = formatUnits(rewardRate, 30);
+    const perDay = formatUnits(rewardRate * 86400n, 30);
+    const perYear = formatUnits(rewardRate * 86400n * 365n, 30);
 
     return { perSecond, perDay, perYear };
   };

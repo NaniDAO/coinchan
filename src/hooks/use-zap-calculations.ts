@@ -1,19 +1,19 @@
-import { usePublicClient } from "wagmi";
-import { formatEther, formatUnits, parseEther } from "viem";
-import { useCallback } from "react";
-import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
+import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
+import type { IncentiveStream } from "@/hooks/use-incentive-streams";
+import { isCookbookCoin } from "@/lib/coin-utils";
+import type { TokenMeta } from "@/lib/coins";
 import {
+  SINGLE_ETH_SLIPPAGE_BPS,
+  SWAP_FEE,
   computePoolId,
   computePoolKey,
   getAmountOut,
-  SWAP_FEE,
   withSlippage,
-  SINGLE_ETH_SLIPPAGE_BPS,
 } from "@/lib/swap";
-import { isCookbookCoin } from "@/lib/coin-utils";
-import { TokenMeta } from "@/lib/coins";
-import { IncentiveStream } from "@/hooks/use-incentive-streams";
+import { useCallback } from "react";
+import { formatEther, formatUnits, parseEther } from "viem";
+import { usePublicClient } from "wagmi";
 
 export interface ZapCalculation {
   estimatedTokens: bigint;
@@ -38,7 +38,7 @@ export function useZapCalculations() {
     slippageBps: bigint = SINGLE_ETH_SLIPPAGE_BPS,
   ): Promise<ZapCalculation> => {
     try {
-      if (!ethAmount || parseFloat(ethAmount) <= 0) {
+      if (!ethAmount || Number.parseFloat(ethAmount) <= 0) {
         return {
           estimatedTokens: 0n,
           estimatedLiquidity: 0n,
@@ -60,8 +60,12 @@ export function useZapCalculations() {
       const tokenId = lpToken.id || 0n;
       const isCookbook = isCookbookCoin(tokenId);
 
+      if (!lpToken?.poolId) {
+        throw new Error("LP token pool ID not defined");
+      }
+
       // Validate that the stream's LP pool matches our token
-      if (stream.lpId !== lpToken.poolId) {
+      if (BigInt(stream.lpId) !== BigInt(lpToken.poolId)) {
         throw new Error("Stream LP ID does not match token pool ID");
       }
 
@@ -72,21 +76,9 @@ export function useZapCalculations() {
       // Get swap fee for the token, preferring stream data if available
       const swapFee = lpToken.swapFee ?? SWAP_FEE;
 
-      // Use stream's pool information if available for additional validation
-      if (stream.lpPool && stream.lpPool.liquidity === 0n) {
-        return {
-          estimatedTokens: 0n,
-          estimatedLiquidity: 0n,
-          amount0Min: 0n,
-          amount1Min: 0n,
-          amountOutMin: 0n,
-          halfEthAmount,
-          poolKey: null,
-          lpSrc,
-          isValid: false,
-          error: "Pool has no liquidity according to stream data",
-        };
-      }
+      // Note: We don't do pre-validation on cached liquidity data here since
+      // GraphQL data may not reflect actual on-chain liquidity. We rely on
+      // the on-chain validation below after fetching fresh reserve data.
 
       // Compute pool key
       const basePoolKey = isCookbook
@@ -112,23 +104,23 @@ export function useZapCalculations() {
         throw new Error("Public client not available");
       }
 
-      const result = await publicClient.readContract({
+      const poolData = await publicClient.readContract({
         address: lpSrc,
         abi: lpAbi,
         functionName: "pools",
         args: [poolId],
       });
 
-      const poolData = result as unknown as readonly bigint[];
+      const poolResult = poolData as unknown as readonly bigint[];
 
       // Ensure we have at least 2 elements in the array
-      if (!Array.isArray(poolData) || poolData.length < 2) {
+      if (!Array.isArray(poolResult) || poolResult.length < 2) {
         throw new Error("Invalid pool data structure");
       }
 
       const reserves = {
-        reserve0: poolData[0], // ETH
-        reserve1: poolData[1], // Token
+        reserve0: poolResult[0], // ETH
+        reserve1: poolResult[1], // Token
       };
 
       if (reserves.reserve0 === 0n || reserves.reserve1 === 0n) {
@@ -230,7 +222,7 @@ export function useZapCalculations() {
       lpToken: TokenMeta,
       slippageBps: bigint = SINGLE_ETH_SLIPPAGE_BPS,
       callback: (result: ZapCalculation) => void,
-      delay: number = 500,
+      delay = 500,
     ) => {
       const timeoutId = setTimeout(async () => {
         try {

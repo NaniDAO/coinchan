@@ -1,5 +1,5 @@
+import type { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { useMemo } from "react";
-import { IncentiveStream } from "@/hooks/use-incentive-streams";
 
 export interface StreamStatus {
   isActive: boolean;

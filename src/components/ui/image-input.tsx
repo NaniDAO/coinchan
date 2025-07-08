@@ -1,4 +1,4 @@
-import { ChangeEvent, DragEvent, useEffect, useRef, useState } from "react";
+import { type ChangeEvent, type DragEvent, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./button";
 

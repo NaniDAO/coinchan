@@ -1,4 +1,4 @@
-import { Address } from "viem";
+import type { Address } from "viem";
 
 export const CoinsMetadataHelperAddress = "0x10471CA11076f446F9f77DbA164fe810902d0Fd4" as Address;
 

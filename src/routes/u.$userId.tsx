@@ -3,7 +3,7 @@ import { CoinBalanceTable } from "@/components/CoinBalanceTable";
 import ErrorFallback, { ErrorBoundary } from "@/components/ErrorBoundary";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AccountTransfer, useGetAccount } from "@/hooks/use-get-account";
+import { type AccountTransfer, useGetAccount } from "@/hooks/use-get-account";
 
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
@@ -30,7 +30,7 @@ function RouteComponent() {
     }
 
     // sort transfers by timestamp
-    transfers.sort((a, b) => parseInt(b.blockNumber) - parseInt(a.blockNumber));
+    transfers.sort((a, b) => Number.parseInt(b.blockNumber) - Number.parseInt(a.blockNumber));
 
     return transfers;
   }, [data]);

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
+import { mainnet } from "viem/chains";
 import { useAccount, usePublicClient } from "wagmi";
 import { CoinchanAbi, CoinchanAddress } from "../constants/Coinchan";
-import { mainnet } from "viem/chains";
 
 type UseIsOwnerArgs = {
   tokenId?: bigint; // the coin id (can be undefined while loading)

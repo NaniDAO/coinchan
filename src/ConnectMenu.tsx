@@ -1,11 +1,11 @@
-import { useAccount, useConnect, useDisconnect } from "wagmi";
-import React, { useEffect, useState } from "react";
-import { truncAddress } from "./lib/address";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import ConnectionErrorHandler from "@/lib/ConnectionErrorHandler";
-import usePersistentConnection from "./hooks/use-persistent-connection";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { AddressIcon } from "./components/AddressIcon";
+import usePersistentConnection from "./hooks/use-persistent-connection";
+import { truncAddress } from "./lib/address";
 
 const ConnectMenuComponent = () => {
   const { isConnected, address, status } = useAccount();
