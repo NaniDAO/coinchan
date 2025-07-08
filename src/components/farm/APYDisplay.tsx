@@ -64,7 +64,7 @@ export function APYDisplay({
         <p className="text-muted-foreground font-mono font-medium text-xs">
           [{t("common.total_apy")}]
         </p>
-        <p className="font-mono font-bold text-lg text-primary mt-1">
+        <p className="font-mono font-bold text-lg text-green-600 dark:text-green-400 mt-1">
           {combinedApyData.totalApy.toFixed(2)}%
         </p>
       </>

@@ -540,16 +540,6 @@ export function FarmStakeDialog({
                     )}
                   </div>
                 )}
-                <div className="bg-background/40 border border-primary/20 rounded p-3">
-                  <div className="flex justify-between items-center">
-                    <span className="font-mono text-muted-foreground">
-                      {t("common.estimated_daily_rewards")}:
-                    </span>
-                    <span className="font-mono font-bold text-primary">
-                      -- {stream.rewardCoin?.symbol}
-                    </span>
-                  </div>
-                </div>
               </div>
             </div>
           )}
