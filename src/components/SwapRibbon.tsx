@@ -176,9 +176,9 @@ export function SwapRibbon() {
         }
       >
         {repeated.map((item: any, index: number) => (
-          <div key={`${item.id}-${index}`} style={{ color: getColor(item.id) }}>
+          <div key={`${item.id}-${index}`} style={item.id === "farm-alpha" ? { color: "inherit" } : { color: getColor(item.id) }}>
             <span className="text-sm shrink-0">{item.snippet}</span>
-            <span className="text-2xl mx-2">/</span>
+            <span className={`text-2xl mx-2 ${item.id === "farm-alpha" ? "text-foreground" : ""}`}>/</span>
           </div>
         ))}
       </motion.div>
