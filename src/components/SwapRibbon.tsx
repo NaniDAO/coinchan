@@ -144,7 +144,7 @@ export function SwapRibbon() {
         href="https://www.zamm.finance/farm" 
         target="_blank" 
         rel="noreferrer"
-        className="hover:underline"
+        className="text-foreground hover:underline font-medium"
       >
         🌾 [Farm (Alpha)]
       </a>
