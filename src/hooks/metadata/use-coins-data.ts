@@ -1,8 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
-import { RawCoinData, CoinData, hydrateRawCoin, enrichMetadata } from "./coin-utils";
-import { createPublicClient, http } from "viem";
 import { CoinsMetadataHelperAbi, CoinsMetadataHelperAddress } from "@/constants/CoinsMetadataHelper";
+import { useQuery } from "@tanstack/react-query";
+import { http, createPublicClient } from "viem";
 import { mainnet } from "viem/chains";
+import { type CoinData, type RawCoinData, enrichMetadata, hydrateRawCoin } from "./coin-utils";
 
 const publicClient = createPublicClient({
   chain: mainnet,

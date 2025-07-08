@@ -1,9 +1,9 @@
 import { truncAddress } from "@/lib/address";
 import { useQuery } from "@tanstack/react-query";
-import { formatEther } from "viem";
+import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { formatEther } from "viem";
 
 const fetchSwaps = async () => {
   const res = await fetch(import.meta.env.VITE_INDEXER_URL + "/graphql", {
@@ -59,7 +59,7 @@ const convertToSnippets = (swaps: any[]) => {
         id,
         snippet: (
           <>
-            <a target="_blank" href={"https://etherscan.io/address/" + trader}>
+            <a target="_blank" href={"https://etherscan.io/address/" + trader} rel="noreferrer">
               {truncAddress(trader)}
             </a>{" "}
             bought {Number(formatEther(amount1Out)).toFixed(2)}{" "}
@@ -79,7 +79,7 @@ const convertToSnippets = (swaps: any[]) => {
         id,
         snippet: (
           <span style={{ color: getColor(id) }}>
-            <a target="_blank" href={"https://etherscan.io/address/" + trader}>
+            <a target="_blank" href={"https://etherscan.io/address/" + trader} rel="noreferrer">
               {truncAddress(trader)}
             </a>{" "}
             sold {Number(formatEther(amount1In)).toFixed(2)}{" "}
@@ -118,7 +118,7 @@ export const getColor = (id: string) => {
     "#66FFCC", // Mint Green
     "#FFB366", // Peach
   ];
-  const index = parseInt(id.substring(2, 10), 16) % colors.length;
+  const index = Number.parseInt(id.substring(2, 10), 16) % colors.length;
   return colors[index];
 };
 
@@ -152,7 +152,7 @@ export function SwapRibbon() {
           paused
             ? { duration: 0 }
             : {
-                repeat: Infinity,
+                repeat: Number.POSITIVE_INFINITY,
                 repeatType: "loop",
                 ease: "linear",
                 duration: 20,

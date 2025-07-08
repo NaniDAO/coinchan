@@ -1,26 +1,28 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { useTranslation } from "react-i18next";
-import { formatEther, formatUnits, parseUnits, parseEther } from "viem";
-import { useAccount, usePublicClient } from "wagmi";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 // import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { IncentiveStream } from "@/hooks/use-incentive-streams";
-import { useZChefActions, useSetOperatorApproval } from "@/hooks/use-zchef-contract";
+import { ZChefAddress } from "@/constants/zChef";
+import { formatImageURL } from "@/hooks/metadata";
+import { useAllCoins } from "@/hooks/metadata/use-all-coins";
+import { useCombinedApy } from "@/hooks/use-combined-apy";
+import type { IncentiveStream } from "@/hooks/use-incentive-streams";
+import { useLpBalance } from "@/hooks/use-lp-balance";
 import { useOperatorStatus } from "@/hooks/use-operator-status";
+import { useStreamValidation } from "@/hooks/use-stream-validation";
 import { useZapCalculations } from "@/hooks/use-zap-calculations";
 import { useZapDeposit } from "@/hooks/use-zap-deposit";
-import { useStreamValidation } from "@/hooks/use-stream-validation";
-import { TokenMeta, ETH_TOKEN } from "@/lib/coins";
+import { useSetOperatorApproval, useZChefActions } from "@/hooks/use-zchef-contract";
+import { ETH_TOKEN, type TokenMeta } from "@/lib/coins";
+import { isUserRejectionError } from "@/lib/errors";
 import { SINGLE_ETH_SLIPPAGE_BPS } from "@/lib/swap";
-import { useAllCoins } from "@/hooks/metadata/use-all-coins";
-import { ZChefAddress } from "@/constants/zChef";
 import { cn, formatBalance } from "@/lib/utils";
-import { useLpBalance } from "@/hooks/use-lp-balance";
-import { useCombinedApy } from "@/hooks/use-combined-apy";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
+import { useAccount, usePublicClient } from "wagmi";
 
 interface FarmStakeDialogProps {
   stream: IncentiveStream;
@@ -52,7 +54,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
   const zapDeposit = useZapDeposit();
   const { validateStreamBeforeAction } = useStreamValidation();
   // Note: rewardPerSharePerYear is now handled in useCombinedApy hook
-  
+
   // Get actual LP token balance for this pool
   const { balance: lpTokenBalance, isLoading: isLpBalanceLoading } = useLpBalance({
     lpToken,
@@ -77,7 +79,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
         ? formatEther(ethToken.balance)
         : "0";
 
-  const needsApproval = stakeMode === "lp" && !isOperatorApproved && parseFloat(amount) > 0;
+  const needsApproval = stakeMode === "lp" && !isOperatorApproved && Number.parseFloat(amount) > 0;
 
   // Calculate combined APY (base + farm incentives)
   const combinedApyData = useCombinedApy({
@@ -88,9 +90,9 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
 
   // Calculate user-specific expected returns based on input amount
   const expectedReturns = useMemo(() => {
-    if (!amount || parseFloat(amount) <= 0 || combinedApyData.isLoading) return null;
+    if (!amount || Number.parseFloat(amount) <= 0 || combinedApyData.isLoading) return null;
 
-    const lpAmount = parseFloat(amount);
+    const lpAmount = Number.parseFloat(amount);
     const annualReturnsBase = (lpAmount * combinedApyData.baseApy) / 100;
     const annualReturnsFarm = (lpAmount * combinedApyData.farmApy) / 100;
     const annualReturnsTotal = annualReturnsBase + annualReturnsFarm;
@@ -130,7 +132,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
 
   // Calculate zap amounts when in ETH mode with debouncing
   useEffect(() => {
-    if (stakeMode === "eth" && amount && parseFloat(amount) > 0) {
+    if (stakeMode === "eth" && amount && Number.parseFloat(amount) > 0) {
       debouncedZapCalculation(amount);
     } else {
       setZapCalculation(null);
@@ -174,20 +176,25 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
         }, 3000);
       }
     } catch (error: any) {
-      console.error("Approval failed:", error);
-      setTxStatus("error");
-      setTxError(error?.message || "Approval failed");
-      setTimeout(() => {
+      if (isUserRejectionError(error)) {
+        // User rejected - silently reset state
         setTxStatus("idle");
-        setTxError(null);
-      }, 5000);
+      } else {
+        console.error("Approval failed:", error);
+        setTxStatus("error");
+        setTxError(error?.message || "Approval failed");
+        setTimeout(() => {
+          setTxStatus("idle");
+          setTxError(null);
+        }, 5000);
+      }
     } finally {
       setIsApproving(false);
     }
   };
 
   const handleStake = async () => {
-    if (!amount || parseFloat(amount) <= 0) return;
+    if (!amount || Number.parseFloat(amount) <= 0) return;
 
     // Validate stream before proceeding
     const validation = validateStreamBeforeAction(stream, "stake");
@@ -231,7 +238,9 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
         setTxStatus("success");
 
         // Show success notification
-        console.log(`🎉 Stake successful! Mode: ${stakeMode === "lp" ? "LP Tokens" : "ETH Zap"}, Amount: ${amount} ${stakeMode === "lp" ? lpToken.symbol || "LP" : "ETH"}, Pool: ${lpToken.symbol || "Unknown"}, TX: ${hash}`);
+        console.log(
+          `🎉 Stake successful! Mode: ${stakeMode === "lp" ? "LP Tokens" : "ETH Zap"}, Amount: ${amount} ${stakeMode === "lp" ? lpToken.symbol || "LP" : "ETH"}, Pool: ${lpToken.symbol || "Unknown"}, TX: ${hash}`,
+        );
 
         // Reset form and close after success
         setTimeout(() => {
@@ -243,13 +252,18 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
         }, 3000); // Increased from 2000 to 3000ms
       }
     } catch (error: any) {
-      console.error("Stake failed:", error);
-      setTxStatus("error");
-      setTxError(error?.message || "Staking failed");
-      setTimeout(() => {
+      if (isUserRejectionError(error)) {
+        // User rejected - silently reset state
         setTxStatus("idle");
-        setTxError(null);
-      }, 5000);
+      } else {
+        console.error("Stake failed:", error);
+        setTxStatus("error");
+        setTxError(error?.message || "Staking failed");
+        setTimeout(() => {
+          setTxStatus("idle");
+          setTxError(null);
+        }, 5000);
+      }
     }
   };
 
@@ -284,7 +298,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                 {lpToken?.imageUrl && (
                   <div className="relative">
                     <img
-                      src={lpToken.imageUrl}
+                      src={formatImageURL(lpToken.imageUrl)}
                       alt={lpToken.symbol}
                       className="w-8 h-8 rounded-full border-2 border-primary/40"
                     />
@@ -314,7 +328,9 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
               {lpToken && (
                 <div className="bg-background/30 border border-primary/20 rounded p-3">
                   <p className="text-muted-foreground font-mono text-xs">{t("common.pool_liquidity")}</p>
-                  <p className="font-mono font-bold text-primary">{formatEther(lpToken.reserve0 || lpToken.liquidity || 0n)} ETH</p>
+                  <p className="font-mono font-bold text-primary">
+                    {formatEther(lpToken.reserve0 || lpToken.liquidity || 0n)} ETH
+                  </p>
                 </div>
               )}
             </div>
@@ -326,7 +342,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
               <h4 className="font-mono font-bold text-sm uppercase tracking-wider mb-3 text-green-600 dark:text-green-400">
                 [{t("common.expected_returns")}]
               </h4>
-              
+
               {/* Total APY Display */}
               <div className="mb-4 p-3 bg-gradient-to-r from-green-600/20 to-green-500/10 border border-green-500/40 rounded">
                 <div className="text-center">
@@ -336,11 +352,13 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                   </p>
                 </div>
               </div>
-              
+
               {/* APY Breakdown */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                 <div className="bg-background/40 border border-green-500/20 rounded p-3">
-                  <p className="text-muted-foreground font-mono text-xs">{t("common.base_apy")} ({t("common.trading_fees")}):</p>
+                  <p className="text-muted-foreground font-mono text-xs">
+                    {t("common.base_apy")} ({t("common.trading_fees")}):
+                  </p>
                   <p className="font-mono font-bold text-blue-600 dark:text-blue-400 text-lg">
                     {combinedApyData.baseApy.toFixed(2)}%
                   </p>
@@ -349,7 +367,9 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                   </p>
                 </div>
                 <div className="bg-background/40 border border-green-500/20 rounded p-3">
-                  <p className="text-muted-foreground font-mono text-xs">{t("common.farm_apy")} ({t("common.incentives")}):</p>
+                  <p className="text-muted-foreground font-mono text-xs">
+                    {t("common.farm_apy")} ({t("common.incentives")}):
+                  </p>
                   <p className="font-mono font-bold text-green-600 dark:text-green-400 text-lg">
                     {combinedApyData.farmApy.toFixed(2)}%
                   </p>
@@ -358,7 +378,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                   </p>
                 </div>
               </div>
-              
+
               {/* User-specific returns */}
               {expectedReturns && (
                 <div className="bg-background/40 border border-green-500/20 rounded p-3">
@@ -379,7 +399,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                   </div>
                 </div>
               )}
-              
+
               <div className="mt-3 p-2 bg-background/30 border border-green-500/20 rounded">
                 <p className="text-xs font-mono text-muted-foreground">
                   <span className="text-green-600 dark:text-green-400">ℹ</span> {t("common.combined_apy_note")}
@@ -387,7 +407,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
               </div>
             </div>
           )}
-          
+
           {/* Loading state for APY */}
           {combinedApyData.isLoading && (
             <div className="bg-gradient-to-r from-green-500/10 to-green-500/5 border border-green-500/30 rounded-lg p-4">
@@ -456,7 +476,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                 variant="outline"
                 size="sm"
                 onClick={handleMaxClick}
-                disabled={parseFloat(maxAmount) === 0}
+                disabled={Number.parseFloat(maxAmount) === 0}
                 className="font-mono font-bold tracking-wide border-primary/40 hover:border-primary hover:bg-primary/20 px-4 !text-foreground dark:!text-foreground hover:!text-foreground dark:hover:!text-foreground"
               >
                 {t("common.max")}
@@ -500,7 +520,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
           </div>
 
           {/* Stake Preview */}
-          {amount && parseFloat(amount) > 0 && (
+          {amount && Number.parseFloat(amount) > 0 && (
             <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/30 rounded-lg p-4">
               <h4 className="font-mono font-bold text-base text-primary mb-4">[{t("common.transaction_preview")}]</h4>
               <div className="space-y-3">
@@ -521,19 +541,21 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                         <span className="font-mono font-bold text-primary text-lg">{amount} ETH</span>
                       </div>
                     </div>
-                    {stakeMode === "eth" && amount && parseFloat(amount) > 0 && (
+                    {stakeMode === "eth" && amount && Number.parseFloat(amount) > 0 && (
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <div className="bg-background/40 border border-primary/20 rounded p-2">
                           <div className="text-xs text-muted-foreground font-mono">{t("common.eth_for_swap")}</div>
                           <div className="font-mono font-bold text-primary text-xs break-all">
-                            {zapPreview ? `${parseFloat(zapPreview.ethToSwap).toFixed(4)} ETH` : "Calculating..."}
+                            {zapPreview
+                              ? `${Number.parseFloat(zapPreview.ethToSwap).toFixed(4)} ETH`
+                              : "Calculating..."}
                           </div>
                         </div>
                         <div className="bg-background/40 border border-primary/20 rounded p-2">
                           <div className="text-xs text-muted-foreground font-mono">{t("common.estimated_tokens")}</div>
                           <div className="font-mono font-bold text-primary text-xs break-all">
                             {zapPreview
-                              ? `${parseFloat(zapPreview.estimatedTokens).toFixed(6)} ${lpToken.symbol || ""}`
+                              ? `${Number.parseFloat(zapPreview.estimatedTokens).toFixed(6)} ${lpToken.symbol || ""}`
                               : "Calculating..."}
                           </div>
                         </div>
@@ -542,7 +564,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                             {t("common.estimated_lp_tokens")}
                           </div>
                           <div className="font-mono font-bold text-primary text-xs break-all">
-                            {zapPreview ? parseFloat(zapPreview.estimatedLpTokens).toFixed(6) : "Calculating..."}
+                            {zapPreview ? Number.parseFloat(zapPreview.estimatedLpTokens).toFixed(6) : "Calculating..."}
                           </div>
                         </div>
                       </div>
@@ -587,8 +609,8 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
               onClick={handleStake}
               disabled={
                 !amount ||
-                parseFloat(amount) <= 0 ||
-                parseFloat(amount) > parseFloat(maxAmount) ||
+                Number.parseFloat(amount) <= 0 ||
+                Number.parseFloat(amount) > Number.parseFloat(maxAmount) ||
                 needsApproval ||
                 txStatus !== "idle" ||
                 (stakeMode === "lp" && deposit.isPending) ||

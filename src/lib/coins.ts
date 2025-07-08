@@ -1,13 +1,13 @@
 import { CoinsAddress } from "@/constants/Coins";
 import {
+  type Address,
+  type Hex,
   encodeAbiParameters,
+  encodePacked,
+  getAddress,
   keccak256,
   parseAbiParameters,
   zeroAddress,
-  encodePacked,
-  Address,
-  Hex,
-  getAddress,
 } from "viem";
 
 export type CoinSource = "ZAMM" | "COOKBOOK";

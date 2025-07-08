@@ -1,8 +1,8 @@
+import PoolPriceChart from "@/components/PoolPriceChart";
+import { ChevronDownIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { computePoolId } from "./lib/swap";
-import PoolPriceChart from "@/components/PoolPriceChart";
-import { ChevronDownIcon } from "lucide-react";
 
 interface PoolSwapChartProps {
   // @TODO

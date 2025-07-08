@@ -1,18 +1,15 @@
-import { useIncentiveStreams, useUserIncentivePositions } from "@/hooks/use-incentive-streams";
-import { cn, formatBalance } from "@/lib/utils";
-import { formatEther } from "viem";
-import { useTranslation } from "react-i18next";
-import { FarmGridSkeleton } from "../FarmLoadingStates";
-import { ErrorBoundary } from "../ErrorBoundary";
-import { IncentiveStreamCard } from "../IncentiveStreamCard";
-import { FarmStakeDialog } from "../FarmStakeDialog";
-import { Button } from "../ui/button";
-import { FarmUnstakeDialog } from "../FarmUnstakeDialog";
-import { useAccount } from "wagmi";
 import { useAllCoins } from "@/hooks/metadata/use-all-coins";
+import { useIncentiveStreams, useUserIncentivePositions } from "@/hooks/use-incentive-streams";
 import { useZChefActions } from "@/hooks/use-zchef-contract";
+import { isUserRejectionError } from "@/lib/errors";
+import { cn, formatBalance } from "@/lib/utils";
 import { useState } from "react";
-import { ETH_TOKEN } from "@/lib/coins";
+import { useTranslation } from "react-i18next";
+import { formatEther } from "viem";
+import { useAccount } from "wagmi";
+import { ErrorBoundary } from "../ErrorBoundary";
+import { FarmGridSkeleton } from "../FarmLoadingStates";
+import { FarmPositionCard } from "./FarmPositionCard";
 
 export const ManageFarms = () => {
   const { t } = useTranslation();
@@ -31,7 +28,9 @@ export const ManageFarms = () => {
       setHarvestingId(chefId);
       await harvest.mutateAsync({ chefId });
     } catch (error) {
-      console.error("Harvest failed:", error);
+      if (!isUserRejectionError(error)) {
+        console.error("Harvest failed:", error);
+      }
     } finally {
       setHarvestingId(null);
     }
@@ -113,69 +112,13 @@ export const ManageFarms = () => {
             return (
               <div key={position.chefId.toString()} className="group">
                 <ErrorBoundary fallback={<div>Error</div>}>
-                  <div className="bg-gradient-to-br from-background/80 to-background/60 border-2 border-primary/40 rounded-lg p-1 backdrop-blur-sm shadow-lg hover:shadow-2xl hover:border-primary transition-all duration-300 relative overflow-hidden group">
-                    <IncentiveStreamCard stream={stream} lpToken={lpToken || ETH_TOKEN} />
-                    <div className="p-4 border-t border-primary/20 bg-background/50">
-                      {/* Pending Rewards Display */}
-                      {position.pendingRewards > 0n && (
-                        <div className="mb-3 p-3 bg-gradient-to-r from-green-500/10 to-green-500/5 border border-green-500/30 rounded-lg">
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs font-mono text-green-600 dark:text-green-400">
-                              {t("common.pending_rewards")}:
-                            </span>
-                            <span className="font-mono font-bold text-green-600 dark:text-green-400">
-                              {formatBalance(formatEther(position.pendingRewards), stream.rewardCoin?.symbol)}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                      <div className="flex flex-col gap-3">
-                        {lpToken && (
-                          <FarmStakeDialog
-                            stream={stream}
-                            lpToken={lpToken}
-                            trigger={
-                              <Button
-                                size="default"
-                                className="w-full font-mono font-bold tracking-wide hover:scale-105 transition-transform min-h-[44px]"
-                              >
-                                [{t("common.stake_more")}]
-                              </Button>
-                            }
-                          />
-                        )}
-                        <div className="grid grid-cols-2 gap-3">
-                          <Button
-                            size="default"
-                            variant="outline"
-                            onClick={() => handleHarvest(position.chefId)}
-                            disabled={position.pendingRewards === 0n || harvestingId === position.chefId}
-                            className="font-mono font-bold tracking-wide hover:scale-105 transition-transform min-h-[44px]"
-                          >
-                            {harvestingId === position.chefId
-                              ? `[${t("common.harvesting")}...]`
-                              : `[${t("common.harvest")}]`}
-                          </Button>
-                          {userPositions && (
-                            <FarmUnstakeDialog
-                              stream={stream}
-                              lpToken={lpToken || ETH_TOKEN}
-                              userPosition={position}
-                              trigger={
-                                <Button
-                                  size="default"
-                                  variant="outline"
-                                  className="font-mono font-bold tracking-wide hover:scale-105 transition-transform min-h-[44px]"
-                                >
-                                  [{t("common.unstake")}]
-                                </Button>
-                              }
-                            />
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <FarmPositionCard
+                    position={position}
+                    stream={stream}
+                    lpToken={lpToken}
+                    onHarvest={handleHarvest}
+                    isHarvesting={harvestingId === position.chefId}
+                  />
                 </ErrorBoundary>
               </div>
             );

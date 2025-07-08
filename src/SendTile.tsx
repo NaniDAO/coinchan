@@ -1,15 +1,15 @@
-import { useState, useEffect, useCallback, useMemo, memo } from "react";
-import { useWriteContract, useWaitForTransactionReceipt, useAccount, usePublicClient, useSendTransaction } from "wagmi";
-import { mainnet } from "viem/chains";
 import { handleWalletError, isUserRejectionError } from "@/lib/errors";
-import { parseEther, parseUnits, formatEther, formatUnits, Address, erc20Abi } from "viem";
-import { CoinsAbi, CoinsAddress } from "./constants/Coins";
-import { LoadingLogo } from "./components/ui/loading-logo";
-import { useAllCoins } from "./hooks/metadata/use-all-coins";
-import { ETH_TOKEN, TokenMeta, USDT_ADDRESS } from "./lib/coins";
-import { TokenSelector } from "./components/TokenSelector";
-import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { type Address, erc20Abi, formatEther, formatUnits, parseEther, parseUnits } from "viem";
+import { mainnet } from "viem/chains";
+import { useAccount, usePublicClient, useSendTransaction, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import { TokenSelector } from "./components/TokenSelector";
+import { LoadingLogo } from "./components/ui/loading-logo";
+import { CoinsAbi, CoinsAddress } from "./constants/Coins";
+import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
+import { useAllCoins } from "./hooks/metadata/use-all-coins";
+import { ETH_TOKEN, type TokenMeta, USDT_ADDRESS } from "./lib/coins";
 
 // Helper function to format token balance with appropriate precision
 export const formatTokenBalance = (token: TokenMeta): string => {
@@ -128,21 +128,21 @@ const SendTileComponent = () => {
     if (selectedToken.id === null) {
       const ethAmount = (selectedToken.balance * 99n) / 100n;
       const formattedValue = formatEther(ethAmount);
-      const parsedValue = parseFloat(formattedValue).toFixed(6);
+      const parsedValue = Number.parseFloat(formattedValue).toFixed(6);
       maxValue = parsedValue.replace(/\.?0+$/, "");
       maxParsedAmount = ethAmount;
 
       console.log(`ETH MAX: ${maxValue} (${maxParsedAmount.toString()})`);
     } else if (selectedToken.isCustomPool && selectedToken.symbol === "USDT") {
       const formattedValue = formatUnits(selectedToken.balance, 6);
-      const parsedValue = parseFloat(formattedValue).toFixed(2);
+      const parsedValue = Number.parseFloat(formattedValue).toFixed(2);
       maxValue = parsedValue.replace(/\.?0+$/, "");
       maxParsedAmount = selectedToken.balance;
 
       console.log(`USDT MAX: ${maxValue} (${maxParsedAmount.toString()})`);
     } else {
       const formattedValue = formatEther(selectedToken.balance);
-      const parsedValue = parseFloat(formattedValue).toFixed(4);
+      const parsedValue = Number.parseFloat(formattedValue).toFixed(4);
       maxValue = parsedValue.replace(/\.?0+$/, "");
       maxParsedAmount = selectedToken.balance;
 

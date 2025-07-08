@@ -1,12 +1,12 @@
-import { useActiveIncentiveStreams } from "@/hooks/use-incentive-streams";
-import { FarmGridSkeleton } from "../FarmLoadingStates";
-import { ErrorBoundary } from "../ErrorBoundary";
-import { IncentiveStreamCard } from "../IncentiveStreamCard";
-import { useTranslation } from "react-i18next";
 import { useAllCoins } from "@/hooks/metadata/use-all-coins";
+import { useActiveIncentiveStreams } from "@/hooks/use-incentive-streams";
 import { ETH_TOKEN } from "@/lib/coins";
 import { cn, formatBalance } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 import { formatEther } from "viem";
+import { ErrorBoundary } from "../ErrorBoundary";
+import { FarmGridSkeleton } from "../FarmLoadingStates";
+import { IncentiveStreamCard } from "../IncentiveStreamCard";
 
 export const BrowseFarms = () => {
   const { t } = useTranslation();

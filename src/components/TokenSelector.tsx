@@ -1,10 +1,10 @@
-import { TokenMeta, USDT_ADDRESS } from "@/lib/coins";
+import { type TokenMeta, USDT_ADDRESS } from "@/lib/coins";
+import { cn } from "@/lib/utils";
+import { ChevronDownIcon, SearchIcon } from "lucide-react";
 import { memo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits } from "viem";
 import { TokenImage } from "./TokenImage";
-import { cn } from "@/lib/utils";
-import { ChevronDownIcon, SearchIcon } from "lucide-react";
 
 export const TokenSelector = memo(
   ({

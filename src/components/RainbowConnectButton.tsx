@@ -1,5 +1,5 @@
-import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Button } from "@/components/ui/button";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 
 export const RainbowConnectButton = () => {
   // @TODO internationalization

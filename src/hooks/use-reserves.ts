@@ -1,7 +1,7 @@
+import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
+import type { CoinSource } from "@/lib/coins";
 import { useReadContract } from "wagmi";
 import { ZAMMAbi, ZAMMAddress } from "../constants/ZAAM";
-import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
-import { CoinSource } from "@/lib/coins";
 
 export function useReserves({
   poolId,

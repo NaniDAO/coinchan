@@ -71,7 +71,7 @@ export function useIncentiveStreams() {
           startTime: BigInt(stream.start_time),
           endTime: BigInt(stream.end_time),
           lastUpdate: BigInt(stream.last_update),
-          totalShares: BigInt(stream.total_shares),
+          totalShares: BigInt(stream.total_shares || "0"),
           accRewardPerShare: BigInt(stream.acc_reward_per_share),
           status: stream.status,
           createdAt: stream.created_at,

@@ -1,14 +1,14 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { RouterProvider, createRouter } from "@tanstack/react-router";
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { Toaster } from "sonner";
 
-import { config } from "./wagmi.ts";
-import { routeTree } from "./routeTree.gen";
 import { ThemeProvider, useTheme } from "./lib/theme";
+import { routeTree } from "./routeTree.gen";
+import { config } from "./wagmi.ts";
 import "@rainbow-me/rainbowkit/styles.css";
-import { darkTheme, lightTheme, Locale, RainbowKitProvider } from "@rainbow-me/rainbowkit";
+import { type Locale, RainbowKitProvider, darkTheme, lightTheme } from "@rainbow-me/rainbowkit";
 import { WagmiProvider } from "wagmi";
 
 import "./index.css";

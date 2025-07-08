@@ -1,9 +1,9 @@
-import { useReadContract } from "wagmi";
-import { Address } from "viem";
 import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { ZAMMAddress } from "@/constants/ZAAM";
+import type { Address } from "viem";
 import { mainnet } from "viem/chains";
+import { useReadContract } from "wagmi";
 
 export function useOperatorStatus({
   address,

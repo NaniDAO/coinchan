@@ -1,19 +1,20 @@
 import { TokenSelector } from "@/components/TokenSelector";
-import { useTranslation } from "react-i18next";
-import { Button } from "../ui/button";
-import { encodePacked, formatEther, keccak256, parseUnits } from "viem";
 import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
-import { ChangeEvent, useMemo, useState, useEffect } from "react";
-import { ETH_TOKEN, TokenMeta } from "@/lib/coins";
-import { useAccount, usePublicClient, useWriteContract } from "wagmi";
-import { useAllCoins } from "@/hooks/metadata/use-all-coins";
-import { ZChefAbi, ZChefAddress } from "@/constants/zChef";
-import { mainnet } from "viem/chains";
-import { Input } from "../ui/input";
-import { cn } from "@/lib/utils";
 import { ZAMMAddress } from "@/constants/ZAAM";
+import { ZChefAbi, ZChefAddress } from "@/constants/zChef";
+import { useAllCoins } from "@/hooks/metadata/use-all-coins";
 import { useOperatorStatus } from "@/hooks/use-operator-status";
+import { ETH_TOKEN, type TokenMeta } from "@/lib/coins";
+import { isUserRejectionError } from "@/lib/errors";
+import { cn } from "@/lib/utils";
+import { type ChangeEvent, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { encodePacked, formatEther, keccak256, parseUnits } from "viem";
+import { mainnet } from "viem/chains";
+import { useAccount, usePublicClient, useWriteContract } from "wagmi";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
 
 // Duration options will be generated using translations
 
@@ -99,7 +100,7 @@ export const CreateFarm = () => {
 
   // Helper function to convert custom duration to days
   const convertCustomDurationToDays = (duration: string, unit: "minutes" | "hours" | "days"): number => {
-    const value = parseFloat(duration);
+    const value = Number.parseFloat(duration);
     if (isNaN(value) || value <= 0) return 0;
 
     switch (unit) {
@@ -177,7 +178,7 @@ export const CreateFarm = () => {
     }
 
     // Validate reward amount
-    if (!formData.rewardAmount || parseFloat(formData.rewardAmount) <= 0) {
+    if (!formData.rewardAmount || Number.parseFloat(formData.rewardAmount) <= 0) {
       newErrors.rewardAmount = t("common.please_enter_valid_reward_amount");
     } else {
       // Check user balance
@@ -210,7 +211,7 @@ export const CreateFarm = () => {
       if (formData.useCustomDuration) {
         durationDays = convertCustomDurationToDays(durationValue, formData.customDurationUnit);
       } else {
-        durationDays = parseInt(durationValue);
+        durationDays = Number.parseInt(durationValue);
       }
 
       if (isNaN(durationDays)) {
@@ -319,7 +320,7 @@ export const CreateFarm = () => {
       if (formData.useCustomDuration) {
         durationDays = convertCustomDurationToDays(durationValue, formData.customDurationUnit);
       } else {
-        durationDays = parseInt(durationValue);
+        durationDays = Number.parseInt(durationValue);
       }
       const durationInSeconds = Math.floor(durationDays * 24 * 60 * 60);
       if (durationInSeconds > 2 ** 63 - 1) {
@@ -409,36 +410,39 @@ export const CreateFarm = () => {
         }, 5000); // Increased from 3000 to 5000ms to give users more time to see success
       }
     } catch (error: any) {
-      console.error("Farm creation failed:", error);
-      let errorMessage = t("common.farm_creation_failed");
-
-      // Handle specific zChef contract errors
-      if (error.message?.includes("ZeroAmount")) {
-        errorMessage = t("common.amount_cannot_be_zero");
-      } else if (error.message?.includes("InvalidDuration")) {
-        errorMessage = t("common.invalid_duration_specified");
-      } else if (error.message?.includes("Exists")) {
-        errorMessage = t("common.farm_already_exists");
-      } else if (error.message?.includes("PrecisionOverflow")) {
-        errorMessage = t("common.precision_overflow");
-      } else if (error.message?.includes("Overflow")) {
-        errorMessage = t("common.calculated_rate_overflow");
-      } else if (error.message?.includes("TransferFromFailed")) {
-        errorMessage = t("common.transfer_failed");
-      } else if (error.message?.includes("User rejected")) {
-        errorMessage = t("common.transaction_rejected");
-      } else if (error.message?.includes("insufficient funds")) {
-        errorMessage = t("common.insufficient_funds_tx");
-      }
-
-      setTxStatus("error");
-      setTxError(errorMessage);
-      setErrors({ submit: errorMessage });
-
-      setTimeout(() => {
+      if (isUserRejectionError(error)) {
+        // User rejected - silently reset state
         setTxStatus("idle");
-        setTxError(null);
-      }, 5000);
+      } else {
+        console.error("Farm creation failed:", error);
+        let errorMessage = t("common.farm_creation_failed");
+
+        // Handle specific zChef contract errors
+        if (error.message?.includes("ZeroAmount")) {
+          errorMessage = t("common.amount_cannot_be_zero");
+        } else if (error.message?.includes("InvalidDuration")) {
+          errorMessage = t("common.invalid_duration_specified");
+        } else if (error.message?.includes("Exists")) {
+          errorMessage = t("common.farm_already_exists");
+        } else if (error.message?.includes("PrecisionOverflow")) {
+          errorMessage = t("common.precision_overflow");
+        } else if (error.message?.includes("Overflow")) {
+          errorMessage = t("common.calculated_rate_overflow");
+        } else if (error.message?.includes("TransferFromFailed")) {
+          errorMessage = t("common.transfer_failed");
+        } else if (error.message?.includes("insufficient funds")) {
+          errorMessage = t("common.insufficient_funds_tx");
+        }
+
+        setTxStatus("error");
+        setTxError(errorMessage);
+        setErrors({ submit: errorMessage });
+
+        setTimeout(() => {
+          setTxStatus("idle");
+          setTxError(null);
+        }, 5000);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -558,7 +562,7 @@ export const CreateFarm = () => {
                   rewardAmount: maxRewardAmount,
                 }))
               }
-              disabled={parseFloat(maxRewardAmount) === 0}
+              disabled={Number.parseFloat(maxRewardAmount) === 0}
               className="font-mono font-bold tracking-wide border-primary/30 hover:border-primary hover:bg-primary/20 min-h-[44px] px-4"
             >
               {t("common.max")}
@@ -569,7 +573,7 @@ export const CreateFarm = () => {
               <div className="flex justify-between text-xs font-mono">
                 <span className="text-muted-foreground">{t("common.balance_label")}:</span>
                 <span className="text-primary font-bold">
-                  {parseFloat(maxRewardAmount).toFixed(6)} {formData.rewardToken.symbol}
+                  {Number.parseFloat(maxRewardAmount).toFixed(6)} {formData.rewardToken.symbol}
                 </span>
               </div>
             </div>
@@ -579,12 +583,12 @@ export const CreateFarm = () => {
               if (formData.useCustomDuration) {
                 durationDays = convertCustomDurationToDays(durationValue, formData.customDurationUnit);
               } else {
-                durationDays = parseInt(durationValue);
+                durationDays = Number.parseInt(durationValue);
               }
               return (
                 formData.rewardAmount &&
                 durationValue &&
-                parseFloat(formData.rewardAmount) > 0 &&
+                Number.parseFloat(formData.rewardAmount) > 0 &&
                 !isNaN(durationDays) &&
                 durationDays > 0 && (
                   <div className="border border-primary/20 rounded-lg p-4 bg-background/30">
@@ -595,14 +599,14 @@ export const CreateFarm = () => {
                       <div className="flex justify-between items-center py-2 border-b border-primary/10">
                         <span className="font-mono text-sm text-muted-foreground">{t("common.per_second")}:</span>
                         <span className="font-mono text-sm font-bold text-foreground break-all max-w-[60%] text-right">
-                          {(parseFloat(formData.rewardAmount) / (durationDays * 24 * 60 * 60)).toFixed(8)}{" "}
+                          {(Number.parseFloat(formData.rewardAmount) / (durationDays * 24 * 60 * 60)).toFixed(8)}{" "}
                           <span className="text-primary">{formData.rewardToken.symbol}</span>
                         </span>
                       </div>
                       <div className="flex justify-between items-center py-2 border-b border-primary/10">
                         <span className="font-mono text-sm text-muted-foreground">{t("common.per_day")}:</span>
                         <span className="font-mono text-sm font-bold text-foreground break-all max-w-[60%] text-right">
-                          {(parseFloat(formData.rewardAmount) / durationDays).toFixed(6)}{" "}
+                          {(Number.parseFloat(formData.rewardAmount) / durationDays).toFixed(6)}{" "}
                           <span className="text-primary">{formData.rewardToken.symbol}</span>
                         </span>
                       </div>
@@ -616,7 +620,7 @@ export const CreateFarm = () => {
                             : `${t("common.total_days", { days: durationDays })}:`}
                         </span>
                         <span className="font-mono text-sm font-bold text-primary break-all max-w-[60%] text-right">
-                          {parseFloat(formData.rewardAmount).toFixed(6)} {formData.rewardToken.symbol}
+                          {Number.parseFloat(formData.rewardAmount).toFixed(6)} {formData.rewardToken.symbol}
                         </span>
                       </div>
                     </div>

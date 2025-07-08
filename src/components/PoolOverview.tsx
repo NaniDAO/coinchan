@@ -1,12 +1,12 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import PoolCandleChart from "@/PoolCandleChart";
 import { CoinHolders } from "@/components/CoinHolders";
 import { PoolEvents } from "@/components/PoolEvents";
 import PoolPriceChart from "@/components/PoolPriceChart";
-import { ErrorBoundary } from "./ErrorBoundary";
-import PoolCandleChart from "@/PoolCandleChart";
-import { Button } from "./ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CandlestickChartIcon, LineChartIcon } from "lucide-react";
 import { useState } from "react";
+import { ErrorBoundary } from "./ErrorBoundary";
+import { Button } from "./ui/button";
 
 enum ChartType {
   LINE = "line",

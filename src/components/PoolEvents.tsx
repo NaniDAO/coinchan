@@ -1,11 +1,11 @@
-import { useInfiniteQuery } from "@tanstack/react-query";
-import { formatEther } from "viem";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useRef, useEffect } from "react";
 import { formatTimeAgo } from "@/lib/date";
 import { getEtherscanAddressUrl, getEtherscanTxUrl } from "@/lib/explorer";
-import { AddressIcon } from "./AddressIcon";
 import { cn } from "@/lib/utils";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
+import { formatEther } from "viem";
+import { AddressIcon } from "./AddressIcon";
 
 /**
  * Helper function to get the appropriate color class for event type

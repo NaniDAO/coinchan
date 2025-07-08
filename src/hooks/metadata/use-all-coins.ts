@@ -1,15 +1,15 @@
-import { usePublicClient, useAccount } from "wagmi";
-import { useQuery } from "@tanstack/react-query";
-import { Address } from "viem";
-import { mainnet } from "viem/chains";
-import { ETH_TOKEN, USDT_TOKEN, TokenMeta, USDT_POOL_ID, USDT_ADDRESS } from "@/lib/coins";
-import { isCookbookCoin } from "@/lib/coin-utils";
 import { CoinchanAbi, CoinchanAddress } from "@/constants/Coinchan";
 import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
 import { CoinsMetadataHelperAbi, CoinsMetadataHelperAddress } from "@/constants/CoinsMetadataHelper";
-import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
-import { SWAP_FEE } from "@/lib/swap";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
+import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
+import { isCookbookCoin } from "@/lib/coin-utils";
+import { ETH_TOKEN, type TokenMeta, USDT_ADDRESS, USDT_POOL_ID, USDT_TOKEN } from "@/lib/coins";
+import { SWAP_FEE } from "@/lib/swap";
+import { useQuery } from "@tanstack/react-query";
+import type { Address } from "viem";
+import { mainnet } from "viem/chains";
+import { useAccount, usePublicClient } from "wagmi";
 
 /**
  * Fetch ETH balance as TokenMeta
@@ -114,7 +114,7 @@ async function fetchOtherCoins(
           return m;
         }
 
-        let bal: bigint = 0n;
+        let bal = 0n;
 
         // Use ID-based source determination - much simpler and more reliable
         const isBookCoin = m.id < 1000000n;

@@ -1,41 +1,41 @@
 import { Loader2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
+import { mainnet } from "viem/chains";
+import { useAccount, useChainId, usePublicClient, useWriteContract } from "wagmi";
+import { useWaitForTransactionReceipt } from "wagmi";
+import { NetworkError } from "./components/NetworkError";
+import { SlippageSettings } from "./components/SlippageSettings";
 import { SuccessMessage } from "./components/SuccessMessage";
+import { SwapPanel } from "./components/SwapPanel";
+import { CoinsAbi, CoinsAddress } from "./constants/Coins";
+import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
+import { ZAMMAbi, ZAMMAddress } from "./constants/ZAAM";
+import { ZAMMHelperAbi, ZAMMHelperAddress } from "./constants/ZAMMHelper";
+import { ZAMMHelperV1Abi, ZAMMHelperV1Address } from "./constants/ZAMMHelperV1";
+import { useTokenSelection } from "./contexts/TokenSelectionContext";
+import { useAllCoins } from "./hooks/metadata/use-all-coins";
+import { useErc20Allowance } from "./hooks/use-erc20-allowance";
+import { useOperatorStatus } from "./hooks/use-operator-status";
+import { useReserves } from "./hooks/use-reserves";
+import { determineReserveSource, getHelperContractInfo, getTargetZAMMAddress } from "./lib/coin-utils";
+import { type TokenMeta, USDT_ADDRESS, USDT_POOL_KEY } from "./lib/coins";
+import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import {
+  DEADLINE_SEC,
+  SLIPPAGE_BPS,
+  SWAP_FEE,
+  type ZAMMPoolKey,
   analyzeTokens,
   computePoolKey,
-  DEADLINE_SEC,
   estimateCoinToCoinOutput,
   getAmountIn,
   getAmountOut,
   getPoolIds,
-  SLIPPAGE_BPS,
-  SWAP_FEE,
   withSlippage,
-  ZAMMPoolKey,
 } from "./lib/swap";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useTranslation } from "react-i18next";
-import { useOperatorStatus } from "./hooks/use-operator-status";
-import { useAccount, useChainId, usePublicClient, useWriteContract } from "wagmi";
-import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
-import { ZAMMAbi, ZAMMAddress } from "./constants/ZAAM";
-import { handleWalletError, isUserRejectionError } from "./lib/errors";
-import { useWaitForTransactionReceipt } from "wagmi";
-import { TokenMeta, USDT_ADDRESS, USDT_POOL_KEY } from "./lib/coins";
-import { useTokenSelection } from "./contexts/TokenSelectionContext";
-import { determineReserveSource, getHelperContractInfo, getTargetZAMMAddress } from "./lib/coin-utils";
-import { useAllCoins } from "./hooks/metadata/use-all-coins";
-import { SlippageSettings } from "./components/SlippageSettings";
-import { NetworkError } from "./components/NetworkError";
-import { ZAMMHelperAbi, ZAMMHelperAddress } from "./constants/ZAMMHelper";
-import { ZAMMHelperV1Abi, ZAMMHelperV1Address } from "./constants/ZAMMHelperV1";
-import { CoinsAbi, CoinsAddress } from "./constants/Coins";
-import { CookbookAddress, CookbookAbi } from "./constants/Cookbook";
 import { nowSec } from "./lib/utils";
-import { mainnet } from "viem/chains";
-import { SwapPanel } from "./components/SwapPanel";
-import { useReserves } from "./hooks/use-reserves";
-import { useErc20Allowance } from "./hooks/use-erc20-allowance";
 
 export const AddLiquidity = () => {
   const { t } = useTranslation();
@@ -237,12 +237,12 @@ export const AddLiquidity = () => {
       return;
     }
 
-    if (!sellAmt || parseFloat(sellAmt) <= 0) {
+    if (!sellAmt || Number.parseFloat(sellAmt) <= 0) {
       setTxError("Please enter a valid sell amount");
       return;
     }
 
-    if (!buyAmt || parseFloat(buyAmt) <= 0) {
+    if (!buyAmt || Number.parseFloat(buyAmt) <= 0) {
       setTxError("Please enter a valid buy amount");
       return;
     }

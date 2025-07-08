@@ -1,13 +1,13 @@
-import { useState, useEffect } from "react";
-import { useTranslation } from "react-i18next";
-import { useAccount } from "wagmi";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { ZChefAddress } from "@/constants/zChef";
 import { useOperatorStatus } from "@/hooks/use-operator-status";
 import { useSetOperatorApproval } from "@/hooks/use-zchef-contract";
-import { ZChefAddress } from "@/constants/zChef";
-import { TokenMeta } from "@/lib/coins";
+import type { TokenMeta } from "@/lib/coins";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useAccount } from "wagmi";
 
 interface ApprovalWorkflowProps {
   tokens: TokenMeta[];

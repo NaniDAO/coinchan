@@ -1,34 +1,34 @@
+import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
-import { Loader2 } from "lucide-react";
-import { handleWalletError, isUserRejectionError } from "./lib/errors";
-import { useAccount, useChainId, usePublicClient, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { mainnet } from "viem/chains";
-import { TokenMeta, USDT_POOL_ID, USDT_POOL_KEY } from "./lib/coins";
+import { useAccount, useChainId, usePublicClient, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import { SlippageSettings } from "./components/SlippageSettings";
+import { SuccessMessage } from "./components/SuccessMessage";
+import { SwapPanel } from "./components/SwapPanel";
+import { CoinsAddress } from "./constants/Coins";
+import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
+import { ZAMMAbi, ZAMMAddress } from "./constants/ZAAM";
 import { useTokenSelection } from "./contexts/TokenSelectionContext";
-import { isCookbookCoin, determineReserveSource } from "./lib/coin-utils";
+import { useAllCoins } from "./hooks/metadata/use-all-coins";
+import { useReserves } from "./hooks/use-reserves";
+import { determineReserveSource, isCookbookCoin } from "./lib/coin-utils";
+import { type TokenMeta, USDT_POOL_ID, USDT_POOL_KEY } from "./lib/coins";
+import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import {
+  DEADLINE_SEC,
+  SLIPPAGE_BPS,
+  SWAP_FEE,
+  type ZAMMPoolKey,
   analyzeTokens,
   computePoolId,
   computePoolKey,
-  DEADLINE_SEC,
   getAmountIn,
   getPoolIds,
-  SLIPPAGE_BPS,
-  SWAP_FEE,
   withSlippage,
-  ZAMMPoolKey,
 } from "./lib/swap";
-import { ZAMMAbi, ZAMMAddress } from "./constants/ZAAM";
-import { CookbookAddress, CookbookAbi } from "./constants/Cookbook";
-import { CoinsAddress } from "./constants/Coins";
-import { SuccessMessage } from "./components/SuccessMessage";
-import { useAllCoins } from "./hooks/metadata/use-all-coins";
-import { SlippageSettings } from "./components/SlippageSettings";
 import { nowSec } from "./lib/utils";
-import { SwapPanel } from "./components/SwapPanel";
-import { useReserves } from "./hooks/use-reserves";
 
 export const RemoveLiquidity = () => {
   const { t } = useTranslation();
@@ -288,7 +288,7 @@ export const RemoveLiquidity = () => {
       return;
     }
 
-    if (!lpBurnAmount || parseFloat(lpBurnAmount) <= 0) {
+    if (!lpBurnAmount || Number.parseFloat(lpBurnAmount) <= 0) {
       setTxError("Please enter a valid amount of LP tokens to burn");
       return;
     }
@@ -482,10 +482,10 @@ export const RemoveLiquidity = () => {
         {/* ACTION BUTTON */}
         <button
           onClick={executeRemoveLiquidity}
-          disabled={!isConnected || !lpBurnAmount || parseFloat(lpBurnAmount) <= 0 || isPending}
+          disabled={!isConnected || !lpBurnAmount || Number.parseFloat(lpBurnAmount) <= 0 || isPending}
           className={`mt-2 button text-base px-8 py-4 bg-primary text-primary-foreground font-bold rounded-lg transform transition-all duration-200
             ${
-              !isConnected || !lpBurnAmount || parseFloat(lpBurnAmount) <= 0 || isPending
+              !isConnected || !lpBurnAmount || Number.parseFloat(lpBurnAmount) <= 0 || isPending
                 ? "opacity-50 cursor-not-allowed"
                 : "opacity-100 hover:scale-105 hover:shadow-lg focus:ring-4 focus:ring-primary/50 focus:outline-none"
             }

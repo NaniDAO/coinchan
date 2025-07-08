@@ -1,19 +1,19 @@
-import { usePublicClient } from "wagmi";
-import { formatEther, formatUnits, parseEther } from "viem";
-import { useCallback } from "react";
-import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
+import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
+import type { IncentiveStream } from "@/hooks/use-incentive-streams";
+import { isCookbookCoin } from "@/lib/coin-utils";
+import type { TokenMeta } from "@/lib/coins";
 import {
+  SINGLE_ETH_SLIPPAGE_BPS,
+  SWAP_FEE,
   computePoolId,
   computePoolKey,
   getAmountOut,
-  SWAP_FEE,
   withSlippage,
-  SINGLE_ETH_SLIPPAGE_BPS,
 } from "@/lib/swap";
-import { isCookbookCoin } from "@/lib/coin-utils";
-import { TokenMeta } from "@/lib/coins";
-import { IncentiveStream } from "@/hooks/use-incentive-streams";
+import { useCallback } from "react";
+import { formatEther, formatUnits, parseEther } from "viem";
+import { usePublicClient } from "wagmi";
 
 export interface ZapCalculation {
   estimatedTokens: bigint;
@@ -38,7 +38,7 @@ export function useZapCalculations() {
     slippageBps: bigint = SINGLE_ETH_SLIPPAGE_BPS,
   ): Promise<ZapCalculation> => {
     try {
-      if (!ethAmount || parseFloat(ethAmount) <= 0) {
+      if (!ethAmount || Number.parseFloat(ethAmount) <= 0) {
         return {
           estimatedTokens: 0n,
           estimatedLiquidity: 0n,
@@ -222,7 +222,7 @@ export function useZapCalculations() {
       lpToken: TokenMeta,
       slippageBps: bigint = SINGLE_ETH_SLIPPAGE_BPS,
       callback: (result: ZapCalculation) => void,
-      delay: number = 500,
+      delay = 500,
     ) => {
       const timeoutId = setTimeout(async () => {
         try {

@@ -1,7 +1,7 @@
+import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
 import { useMemo } from "react";
-import { useReadContracts } from "wagmi";
-import { CoinsAddress, CoinsAbi } from "@/constants/Coins";
 import { mainnet } from "viem/chains";
+import { useReadContracts } from "wagmi";
 
 type MetaState = {
   name: string;

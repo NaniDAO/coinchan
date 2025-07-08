@@ -1,15 +1,17 @@
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { formatImageURL } from "@/hooks/metadata";
+import type { IncentiveStream } from "@/hooks/use-incentive-streams";
+import { useZChefActions, useZChefPendingReward } from "@/hooks/use-zchef-contract";
+import type { TokenMeta } from "@/lib/coins";
+import { isUserRejectionError } from "@/lib/errors";
+import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, parseUnits } from "viem";
 import { usePublicClient } from "wagmi";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { IncentiveStream } from "@/hooks/use-incentive-streams";
-import { useZChefActions } from "@/hooks/use-zchef-contract";
-import { cn } from "@/lib/utils";
-import { TokenMeta } from "@/lib/coins";
 
 interface FarmUnstakeDialogProps {
   stream: IncentiveStream;
@@ -35,11 +37,15 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
 
   const { withdraw } = useZChefActions();
 
+  // Get real-time pending rewards from contract
+  const { data: onchainPendingRewards } = useZChefPendingReward(stream.chefId);
+  const actualPendingRewards = onchainPendingRewards ?? userPosition.pendingRewards;
+
   const maxAmount = formatEther(userPosition.shares);
   // const rewardTokenDecimals = stream.rewardCoin?.decimals || 18;
 
   const handleUnstake = async () => {
-    if (!amount || parseFloat(amount) <= 0) return;
+    if (!amount || Number.parseFloat(amount) <= 0) return;
 
     try {
       setTxStatus("pending");
@@ -60,7 +66,9 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
         setTxStatus("success");
 
         // Show success notification
-        console.log(`🎉 Unstake successful! Amount: ${amount} shares, Pool: ${lpToken.symbol}, Rewards: ${formatEther(userPosition.pendingRewards)} ${stream.rewardCoin?.symbol}, TX: ${hash}`);
+        console.log(
+          `🎉 Unstake successful! Amount: ${amount} shares, Pool: ${lpToken.symbol}, Rewards: ${formatEther(actualPendingRewards)} ${stream.rewardCoin?.symbol}, TX: ${hash}`,
+        );
 
         // Reset form and close after success
         setTimeout(() => {
@@ -72,13 +80,18 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
         }, 3000); // Increased from 2000 to 3000ms
       }
     } catch (error: any) {
-      console.error("Unstake failed:", error);
-      setTxStatus("error");
-      setTxError(error?.message || "Unstaking failed");
-      setTimeout(() => {
+      if (isUserRejectionError(error)) {
+        // User rejected - silently reset state
         setTxStatus("idle");
-        setTxError(null);
-      }, 5000);
+      } else {
+        console.error("Unstake failed:", error);
+        setTxStatus("error");
+        setTxError(error?.message || "Unstaking failed");
+        setTimeout(() => {
+          setTxStatus("idle");
+          setTxError(null);
+        }, 5000);
+      }
     }
   };
 
@@ -104,7 +117,7 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
               {lpToken?.imageUrl && (
                 <div className="relative">
                   <img
-                    src={lpToken.imageUrl}
+                    src={formatImageURL(lpToken.imageUrl)}
                     alt={lpToken.symbol}
                     className="w-8 h-8 rounded-full border-2 border-primary/40"
                   />
@@ -126,12 +139,21 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="bg-background/30 border border-primary/20 rounded p-3">
                 <p className="text-muted-foreground font-mono text-xs">{t("common.reward_token")}</p>
-                <p className="font-mono font-bold text-primary">{stream.rewardCoin?.symbol}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  {stream.rewardCoin?.imageUrl && (
+                    <img
+                      src={formatImageURL(stream.rewardCoin.imageUrl)}
+                      alt={stream.rewardCoin.symbol}
+                      className="w-5 h-5 rounded-full border border-primary/40"
+                    />
+                  )}
+                  <p className="font-mono font-bold text-primary">{stream.rewardCoin?.symbol}</p>
+                </div>
               </div>
               <div className="bg-background/30 border border-primary/20 rounded p-3">
                 <p className="text-muted-foreground font-mono text-xs">{t("common.pending_rewards")}</p>
                 <p className="font-mono font-bold text-primary">
-                  {parseFloat(formatEther(userPosition.pendingRewards)).toFixed(6)}
+                  {Number.parseFloat(formatEther(actualPendingRewards)).toFixed(6)} {stream.rewardCoin?.symbol}
                 </p>
               </div>
             </div>
@@ -161,7 +183,7 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
                 variant="outline"
                 size="sm"
                 onClick={handleMaxClick}
-                disabled={parseFloat(maxAmount) === 0}
+                disabled={Number.parseFloat(maxAmount) === 0}
                 className="font-mono font-bold tracking-wide border-primary/40 hover:border-primary hover:bg-primary/20 px-4 !text-foreground dark:!text-foreground hover:!text-foreground dark:hover:!text-foreground"
               >
                 {t("common.max")}
@@ -171,14 +193,14 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
               <div className="flex justify-between text-sm font-mono">
                 <span className="text-muted-foreground">{t("common.staked")}:</span>
                 <span className="text-primary font-bold">
-                  {parseFloat(maxAmount).toFixed(6)} {lpToken?.symbol}
+                  {Number.parseFloat(maxAmount).toFixed(6)} {lpToken?.symbol}
                 </span>
               </div>
             </div>
           </div>
 
           {/* Unstake Preview */}
-          {amount && parseFloat(amount) > 0 && (
+          {amount && Number.parseFloat(amount) > 0 && (
             <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/30 rounded-lg p-4">
               <h4 className="font-mono font-bold text-base text-primary mb-4">[{t("common.transaction_preview")}]</h4>
               <div className="space-y-3">
@@ -194,7 +216,7 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
                   <div className="flex justify-between items-center">
                     <span className="font-mono text-muted-foreground">{t("common.rewards_to_claim")}:</span>
                     <span className="font-mono font-bold text-primary text-lg">
-                      {parseFloat(formatEther(userPosition.pendingRewards)).toFixed(6)} {stream.rewardCoin?.symbol}
+                      {Number.parseFloat(formatEther(actualPendingRewards)).toFixed(6)} {stream.rewardCoin?.symbol}
                     </span>
                   </div>
                 </div>
@@ -223,8 +245,8 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
               onClick={handleUnstake}
               disabled={
                 !amount ||
-                parseFloat(amount) <= 0 ||
-                parseFloat(amount) > parseFloat(maxAmount) ||
+                Number.parseFloat(amount) <= 0 ||
+                Number.parseFloat(amount) > Number.parseFloat(maxAmount) ||
                 txStatus !== "idle" ||
                 withdraw.isPending
               }

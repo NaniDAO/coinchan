@@ -1,10 +1,10 @@
-import { useAccount, usePublicClient } from "wagmi";
-import { useQuery } from "@tanstack/react-query";
-import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
+import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
 import { isCookbookCoin } from "@/lib/coin-utils";
+import { type TokenMeta, USDT_POOL_ID } from "@/lib/coins";
 import { computePoolId } from "@/lib/swap";
-import { TokenMeta, USDT_POOL_ID } from "@/lib/coins";
+import { useQuery } from "@tanstack/react-query";
+import { useAccount, usePublicClient } from "wagmi";
 
 interface UseLpBalanceParams {
   lpToken: TokenMeta;

@@ -1,4 +1,4 @@
-import { TokenMeta } from "@/lib/coins";
+import type { TokenMeta } from "@/lib/coins";
 import { memo, useCallback, useEffect, useState } from "react";
 import { EthereumIcon } from "./EthereumIcon";
 

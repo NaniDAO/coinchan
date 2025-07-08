@@ -1,9 +1,9 @@
+import type { TokenMeta } from "@/lib/coins";
 import { useMemo } from "react";
 import { formatUnits } from "viem";
-import { IncentiveStream } from "./use-incentive-streams";
-import { TokenMeta } from "@/lib/coins";
-import { useZChefRewardPerSharePerYear } from "./use-zchef-contract";
 import { useBaseApy } from "./use-base-apy";
+import type { IncentiveStream } from "./use-incentive-streams";
+import { useZChefRewardPerSharePerYear } from "./use-zchef-contract";
 
 interface UseCombinedApyParams {
   stream: IncentiveStream;
@@ -46,7 +46,7 @@ export function useCombinedApy({ stream, lpToken, enabled = true }: UseCombinedA
 
   // Fetch farm incentive APY
   const { data: rewardPerSharePerYear, isLoading: isFarmApyLoading } = useZChefRewardPerSharePerYear(
-    enabled ? stream.chefId : undefined
+    enabled ? stream.chefId : undefined,
   );
 
   // Calculate combined APY
@@ -84,12 +84,12 @@ export function useCombinedApy({ stream, lpToken, enabled = true }: UseCombinedA
     // Calculate farm APY from incentive rewards
     let farmApy = 0;
     let rewardPerShare = "0";
-    
+
     if (rewardPerSharePerYear && rewardPerSharePerYear > 0n) {
       // rewardPerSharePerYear is scaled by 1e12 (ACC_PRECISION)
       rewardPerShare = formatUnits(rewardPerSharePerYear, 12);
       // Convert to percentage APY
-      farmApy = parseFloat(rewardPerShare) * 100;
+      farmApy = Number.parseFloat(rewardPerShare) * 100;
     }
 
     const totalApy = baseApy + farmApy;

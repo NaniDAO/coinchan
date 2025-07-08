@@ -1,5 +1,5 @@
-import { useSignMessage } from "wagmi";
 import { useTranslation } from "react-i18next";
+import { useSignMessage } from "wagmi";
 
 export function SignButton() {
   const { signMessage, isPending, data, error } = useSignMessage();

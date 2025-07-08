@@ -8,13 +8,13 @@
  */
 export function logSafely(label: string, data: any): void {
   try {
-    const safeData = JSON.stringify(data, (_key, value) =>
-      typeof value === 'bigint' ? value.toString() : value
-    );
+    const safeData = JSON.stringify(data, (_key, value) => (typeof value === "bigint" ? value.toString() : value));
     console.log(label, JSON.parse(safeData));
   } catch (error) {
     // Fallback to basic logging if JSON serialization fails
-    console.log(label, '[Complex object with BigInt values]', { error: error instanceof Error ? error.message : String(error) });
+    console.log(label, "[Complex object with BigInt values]", {
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 }
 
@@ -26,23 +26,23 @@ export function bigIntToString(obj: any): any {
   if (obj === null || obj === undefined) {
     return obj;
   }
-  
-  if (typeof obj === 'bigint') {
+
+  if (typeof obj === "bigint") {
     return obj.toString();
   }
-  
+
   if (Array.isArray(obj)) {
     return obj.map(bigIntToString);
   }
-  
-  if (typeof obj === 'object') {
+
+  if (typeof obj === "object") {
     const result: any = {};
     for (const [key, value] of Object.entries(obj)) {
       result[key] = bigIntToString(value);
     }
     return result;
   }
-  
+
   return obj;
 }
 
@@ -51,7 +51,7 @@ export function bigIntToString(obj: any): any {
  */
 export function createBigIntReplacer() {
   return (_key: string, value: any) => {
-    if (typeof value === 'bigint') {
+    if (typeof value === "bigint") {
       return value.toString();
     }
     return value;

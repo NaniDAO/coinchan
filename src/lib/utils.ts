@@ -1,11 +1,11 @@
-import { clsx, type ClassValue } from "clsx";
+import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function trunc(value: number | string, length: number = 3): string {
+export function trunc(value: number | string, length = 3): string {
   return value.toString().slice(0, length) + "..." + value.toString().slice(-length);
 }
 
@@ -21,7 +21,7 @@ export const nowSec = () => BigInt(Math.floor(Date.now() / 1000));
  * @param decimals Number of decimal places to include (default: 2)
  * @returns Formatted string with thousands separators
  */
-export function formatNumber(value: number, decimals: number = 2): string {
+export function formatNumber(value: number, decimals = 2): string {
   return new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 0,
     maximumFractionDigits: decimals,
@@ -35,7 +35,7 @@ export function formatNumber(value: number, decimals: number = 2): string {
  * @returns Formatted string with commas, no decimals for integers
  */
 export function formatNumberInput(value: number | string): string {
-  const num = typeof value === "string" ? parseFloat(value) : value;
+  const num = typeof value === "string" ? Number.parseFloat(value) : value;
   if (isNaN(num)) return "";
 
   // For whole numbers, don't show decimals
@@ -61,7 +61,7 @@ export function formatNumberInput(value: number | string): string {
 export function parseNumberInput(value: string): number {
   // Remove commas and parse
   const cleaned = value.replace(/,/g, "");
-  return parseFloat(cleaned);
+  return Number.parseFloat(cleaned);
 }
 
 /**
@@ -85,14 +85,12 @@ export function debounce<T extends (...args: any[]) => any>(func: T, wait = 300)
   let timeout: ReturnType<typeof setTimeout> | null = null;
 
   return function (this: any, ...args: Parameters<T>): void {
-    const context = this;
-
     if (timeout !== null) {
       clearTimeout(timeout);
     }
 
     timeout = setTimeout(() => {
-      func.apply(context, args);
+      func.apply(this, args);
       timeout = null;
     }, wait);
   };
@@ -162,11 +160,11 @@ export function formatDeadline(deadline: number): {
  */
 export function formatDisplayNumber(
   value: string | number | bigint,
-  maxDecimals: number = 6,
-  maxLength: number = 12,
-  useAbbreviation: boolean = false,
+  maxDecimals = 6,
+  maxLength = 12,
+  useAbbreviation = false,
 ): string {
-  const num = typeof value === "string" ? parseFloat(value) : typeof value === "bigint" ? Number(value) : value;
+  const num = typeof value === "string" ? Number.parseFloat(value) : typeof value === "bigint" ? Number(value) : value;
   if (isNaN(num) || !isFinite(num)) return "0";
 
   // For very large numbers, use abbreviations if enabled
@@ -217,8 +215,8 @@ export function formatDisplayNumber(
  * @param symbol Token symbol
  * @returns Formatted display string
  */
-export function formatRewardRate(perSecond: string, symbol: string = ""): string {
-  const num = parseFloat(perSecond);
+export function formatRewardRate(perSecond: string, symbol = ""): string {
+  const num = Number.parseFloat(perSecond);
   if (isNaN(num) || num === 0) return `0 ${symbol}/sec`;
 
   // For very small per-second rates, show per day instead
@@ -237,7 +235,7 @@ export function formatRewardRate(perSecond: string, symbol: string = ""): string
  * @param maxLength Maximum display length
  * @returns Formatted balance string
  */
-export function formatBalance(amount: string | number | bigint, symbol: string = "", maxLength: number = 15): string {
+export function formatBalance(amount: string | number | bigint, symbol = "", maxLength = 15): string {
   const formatted = formatDisplayNumber(amount, 6, maxLength - symbol.length - 1, true);
   return symbol ? `${formatted} ${symbol}` : formatted;
 }

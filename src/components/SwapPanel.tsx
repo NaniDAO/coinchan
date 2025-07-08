@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
-import { useTranslation } from "react-i18next";
-import { TokenSelector } from "./TokenSelector";
-import { TokenMeta } from "@/lib/coins";
+import type { TokenMeta } from "@/lib/coins";
 import { cn } from "@/lib/utils";
-import { PercentageSlider } from "./ui/percentage-slider";
+import type React from "react";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
+import { TokenSelector } from "./TokenSelector";
+import { PercentageSlider } from "./ui/percentage-slider";
 
 interface SwapPanelProps {
   title: string;

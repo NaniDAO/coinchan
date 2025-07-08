@@ -1,16 +1,16 @@
-import { useState, useCallback, useMemo } from "react";
-import { useTranslation } from "react-i18next";
-import { useAccount } from "wagmi";
-import { Button } from "./ui/button"; // Keep existing import path
-// New imports for pills
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"; // Import from prompt path
 import { Checkbox } from "@/components/ui/checkbox"; // Import from prompt path
-import { X, RefreshCcw } from "lucide-react"; // Keep existing and add X explicitely
-import { LoadingLogo } from "./ui/loading-logo";
-import { OrderCard } from "./OrderCard";
+// New imports for pills
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"; // Import from prompt path
+import { ZAMMLaunchAddress } from "@/constants/ZAMMLaunch";
 import { INDEXER_URL } from "@/lib/indexer";
 import { useQuery } from "@tanstack/react-query";
-import { ZAMMLaunchAddress } from "@/constants/ZAMMLaunch";
+import { RefreshCcw, X } from "lucide-react"; // Keep existing and add X explicitely
+import { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useAccount } from "wagmi";
+import { OrderCard } from "./OrderCard";
+import { Button } from "./ui/button"; // Keep existing import path
+import { LoadingLogo } from "./ui/loading-logo";
 
 export interface Order {
   id: string; // orderHash

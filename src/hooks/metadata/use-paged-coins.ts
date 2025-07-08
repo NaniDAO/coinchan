@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { CoinData } from "./coin-utils";
 import { useCoinsData } from "./use-coins-data";
-import { CoinData } from "./coin-utils";
 
 export function usePagedCoins(pageSize = 20) {
   const { data = [], isLoading, error } = useCoinsData();

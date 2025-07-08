@@ -1,6 +1,6 @@
+import type { TokenMeta } from "@/lib/coins";
 import { useQuery } from "@tanstack/react-query";
 import { formatEther } from "viem";
-import { TokenMeta } from "@/lib/coins";
 
 const INDEXER_URL = import.meta.env.VITE_INDEXER_URL;
 
@@ -42,14 +42,14 @@ export function useBaseApy({ lpToken, timeframe = "24h", enabled = true }: UseBa
           "7d": 7 * 24 * 60 * 60 * 1000,
           "30d": 30 * 24 * 60 * 60 * 1000,
         }[timeframe];
-        
+
         const afterTimestamp = Math.floor((now - timeframeMs) / 1000);
 
         // Fetch trading events from indexer
         const response = await fetch(
-          `${INDEXER_URL}/api/events?poolId=${lpToken.poolId}&after=${afterTimestamp}&limit=1000`
+          `${INDEXER_URL}/api/events?poolId=${lpToken.poolId}&after=${afterTimestamp}&limit=1000`,
         );
-        
+
         if (!response.ok) {
           throw new Error(`Failed to fetch pool events: ${response.statusText}`);
         }
@@ -57,7 +57,7 @@ export function useBaseApy({ lpToken, timeframe = "24h", enabled = true }: UseBa
         const events: PoolEvent[] = await response.json();
 
         // Filter BUY and SELL events for volume calculation
-        const tradingEvents = events.filter(event => event.type === "BUY" || event.type === "SELL");
+        const tradingEvents = events.filter((event) => event.type === "BUY" || event.type === "SELL");
 
         // Calculate total volume in ETH (amount0)
         let totalVolumeEth = 0n;
@@ -77,7 +77,7 @@ export function useBaseApy({ lpToken, timeframe = "24h", enabled = true }: UseBa
           "7d": 7,
           "30d": 30,
         }[timeframe];
-        
+
         const dailyVolumeEth = totalVolumeEth / BigInt(daysInTimeframe);
 
         // Calculate pool TVL (Total Value Locked)

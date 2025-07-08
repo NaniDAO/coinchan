@@ -1,12 +1,12 @@
 import { RainbowConnectButton } from "@/components/RainbowConnectButton";
-import { ZammLogo } from "@/components/ZammLogo";
-import { createRootRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
-import { useTranslation } from "react-i18next";
-import { cn } from "@/lib/utils";
-import UserSettingsMenu from "@/components/UserSettingsMenu";
-import { Button } from "@/components/ui/button";
 import { SwapRibbon } from "@/components/SwapRibbon";
+import UserSettingsMenu from "@/components/UserSettingsMenu";
 import { WhatZAMM } from "@/components/WhatZAMM";
+import { ZammLogo } from "@/components/ZammLogo";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { Link, Outlet, createRootRoute, useLocation, useNavigate } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 
 export const Route = createRootRoute({
   component: () => {

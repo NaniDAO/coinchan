@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -7,6 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/8bit/dialog";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "./ui/button";
 
 const useShowWhatZAMM = () => {

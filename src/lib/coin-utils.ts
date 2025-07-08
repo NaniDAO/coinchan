@@ -1,4 +1,4 @@
-import { CoinSource } from "./coins";
+import type { CoinSource } from "./coins";
 
 /**
  * Determines if a coin is a cookbook coin based on its ID

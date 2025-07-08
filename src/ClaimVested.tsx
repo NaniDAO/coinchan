@@ -1,19 +1,19 @@
-import { useState, useEffect } from "react";
-import {
-  useWriteContract,
-  useWaitForTransactionReceipt,
-  useAccount,
-  usePublicClient,
-  useSwitchChain,
-  useChainId,
-} from "wagmi";
-import { formatUnits } from "viem";
-import { mainnet } from "viem/chains";
-import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { LoadingLogo } from "./components/ui/loading-logo";
 import { isUserRejectionError } from "@/lib/errors";
+import { useEffect, useState } from "react";
+import { formatUnits } from "viem";
+import { mainnet } from "viem/chains";
+import {
+  useAccount,
+  useChainId,
+  usePublicClient,
+  useSwitchChain,
+  useWaitForTransactionReceipt,
+  useWriteContract,
+} from "wagmi";
+import { LoadingLogo } from "./components/ui/loading-logo";
+import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
 
 interface ClaimVestedProps {
   coinId: bigint;

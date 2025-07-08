@@ -1,10 +1,10 @@
+import { Badge } from "@/components/ui/badge";
+import type { IncentiveStream } from "@/hooks/use-incentive-streams";
+import { useZChefUtilities } from "@/hooks/use-zchef-contract";
+import { cn, formatBalance } from "@/lib/utils";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { formatUnits } from "viem";
-import { useMemo } from "react";
-import { IncentiveStream } from "@/hooks/use-incentive-streams";
-import { useZChefUtilities } from "@/hooks/use-zchef-contract";
-import { Badge } from "@/components/ui/badge";
-import { cn, formatBalance } from "@/lib/utils";
 
 interface APYDisplayProps {
   stream: IncentiveStream;
@@ -99,7 +99,9 @@ export function APYDisplay({ stream, lpTokenPrice = 0n, rewardTokenPrice = 0n, c
           {tvlInEth && (
             <div className="bg-background/30 border border-primary/20 rounded p-2">
               <span className="text-xs font-mono text-muted-foreground">{t("common.tvl")}:</span>
-              <div className="font-mono font-bold text-primary text-sm mt-1">{parseFloat(tvlInEth).toFixed(4)}</div>
+              <div className="font-mono font-bold text-primary text-sm mt-1">
+                {Number.parseFloat(tvlInEth).toFixed(4)}
+              </div>
               <div className="text-xs text-muted-foreground font-mono">ETH</div>
             </div>
           )}

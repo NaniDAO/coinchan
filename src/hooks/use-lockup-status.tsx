@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
-import { useReadContract } from "wagmi";
-import { keccak256, encodeAbiParameters, Address } from "viem";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
-import { LockupData } from "./use-get-lockups";
+import { useEffect, useState } from "react";
+import { type Address, encodeAbiParameters, keccak256 } from "viem";
 import { mainnet } from "viem/chains";
+import { useReadContract } from "wagmi";
+import type { LockupData } from "./use-get-lockups";
 
 export function useLockupStatus(lockup: LockupData, userAddress?: Address) {
   const [isActuallyUnlocked, setIsActuallyUnlocked] = useState<boolean>(false);
