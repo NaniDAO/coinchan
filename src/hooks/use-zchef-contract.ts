@@ -1,19 +1,29 @@
-import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
+import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
 import { ZChefAbi, ZChefAddress } from "@/constants/zChef";
+import { CoinSource } from "@/lib/coins";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { formatUnits } from "viem";
+import { Address, formatUnits } from "viem";
 import { mainnet } from "viem/chains";
-import { useAccount, usePublicClient, useReadContract, useWriteContract } from "wagmi";
+import {
+  useAccount,
+  usePublicClient,
+  useReadContract,
+  useWriteContract,
+} from "wagmi";
 
 // Retry configuration for contract operations
 const RETRY_CONFIG = {
   retries: 3,
-  retryDelay: (attemptIndex: number) => Math.min(1000 * 2 ** attemptIndex, 10000),
+  retryDelay: (attemptIndex: number) =>
+    Math.min(1000 * 2 ** attemptIndex, 10000),
 };
 
 // Helper function to execute contract transaction with retry logic and gas estimation
-async function executeWithRetry<T>(fn: () => Promise<T>, retries = RETRY_CONFIG.retries): Promise<T> {
+async function executeWithRetry<T>(
+  fn: () => Promise<T>,
+  retries = RETRY_CONFIG.retries,
+): Promise<T> {
   try {
     return await fn();
   } catch (error: any) {
@@ -35,12 +45,16 @@ async function executeWithRetry<T>(fn: () => Promise<T>, retries = RETRY_CONFIG.
       error?.message?.includes("gas required exceeds allowance") ||
       error?.code === -32000
     ) {
-      throw new Error("Transaction failed due to insufficient gas. Please try again with higher gas limit.");
+      throw new Error(
+        "Transaction failed due to insufficient gas. Please try again with higher gas limit.",
+      );
     }
 
     if (retries > 0) {
       const delay = RETRY_CONFIG.retryDelay(RETRY_CONFIG.retries - retries);
-      console.log(`Retrying transaction in ${delay}ms... (${retries} retries left)`);
+      console.log(
+        `Retrying transaction in ${delay}ms... (${retries} retries left)`,
+      );
       await new Promise((resolve) => setTimeout(resolve, delay));
       return executeWithRetry(fn, retries - 1);
     }
@@ -50,7 +64,10 @@ async function executeWithRetry<T>(fn: () => Promise<T>, retries = RETRY_CONFIG.
 }
 
 // Helper function to estimate gas with buffer
-async function estimateGasWithBuffer(publicClient: any, contractCall: any): Promise<bigint> {
+async function estimateGasWithBuffer(
+  publicClient: any,
+  contractCall: any,
+): Promise<bigint> {
   try {
     const gasEstimate = await publicClient.estimateContractGas(contractCall);
     // Add 20% buffer to gas estimate
@@ -87,7 +104,10 @@ export function useZChefPool(chefId: bigint | undefined) {
   });
 }
 
-export function useZChefPendingReward(chefId: bigint | undefined, userAddress?: `0x${string}`) {
+export function useZChefPendingReward(
+  chefId: bigint | undefined,
+  userAddress?: `0x${string}`,
+) {
   const { address } = useAccount();
   const targetAddress = userAddress || address;
 
@@ -103,7 +123,10 @@ export function useZChefPendingReward(chefId: bigint | undefined, userAddress?: 
   });
 }
 
-export function useZChefUserBalance(chefId: bigint | undefined, userAddress?: `0x${string}`) {
+export function useZChefUserBalance(
+  chefId: bigint | undefined,
+  userAddress?: `0x${string}`,
+) {
   const { address } = useAccount();
   const targetAddress = userAddress || address;
 
@@ -119,7 +142,10 @@ export function useZChefUserBalance(chefId: bigint | undefined, userAddress?: `0
   });
 }
 
-export function useZChefRewardPerYear(chefId: bigint | undefined, userAddress?: `0x${string}`) {
+export function useZChefRewardPerYear(
+  chefId: bigint | undefined,
+  userAddress?: `0x${string}`,
+) {
   const { address } = useAccount();
   const targetAddress = userAddress || address;
 
@@ -340,22 +366,22 @@ export function useSetOperatorApproval() {
 
   const setOperatorApproval = useMutation({
     mutationFn: async ({
-      tokenId,
+      source,
       operator,
       approved,
     }: {
-      tokenId: bigint;
-      operator: `0x${string}`;
+      source: CoinSource;
+      operator: Address;
       approved: boolean;
     }) => {
       return executeWithRetry(async () => {
         let contractAddress: `0x${string}`;
         let contractAbi: any;
 
-        if (tokenId >= 1000000n) {
+        if (source === "ZAMM") {
           // ZAMM coins
-          contractAddress = CoinsAddress;
-          contractAbi = CoinsAbi;
+          contractAddress = ZAMMAddress;
+          contractAbi = ZAMMAbi;
         } else {
           // Cookbook coins
           contractAddress = CookbookAddress;
@@ -397,7 +423,9 @@ export function useZChefUtilities() {
     // So rewardRate has scaling of (rewardTokenDecimals + 12) decimals
     // rewardTokenPrice is in ETH wei (18 decimals), so total scaling is (rewardTokenDecimals + 12 + 18)
     // We want result in ETH wei (18 decimals), so divide by 10^(rewardTokenDecimals + 12)
-    const rewardValuePerYear = (rewardPerYear * rewardTokenPrice) / BigInt(10 ** (rewardTokenDecimals + 12));
+    const rewardValuePerYear =
+      (rewardPerYear * rewardTokenPrice) /
+      BigInt(10 ** (rewardTokenDecimals + 12));
     const totalValueLocked = totalShares * lpTokenPrice;
 
     if (totalValueLocked === 0n) return 0;
