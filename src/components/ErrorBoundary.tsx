@@ -1,4 +1,5 @@
-import React, { Component, ReactNode } from "react";
+import type React from "react";
+import { Component, type ReactNode } from "react";
 
 // Simple error boundary to prevent crashes
 export class ErrorBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { hasError: boolean }> {

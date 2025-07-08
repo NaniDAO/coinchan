@@ -1,6 +1,6 @@
+import { ZammLogo } from "@/components/ZammLogo";
 import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { ZammLogo } from "@/components/ZammLogo";
 
 export const Route = createFileRoute("/about")({
   component: RouteComponent,

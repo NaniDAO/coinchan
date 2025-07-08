@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { ResponsiveContainer, Tooltip, Treemap } from "recharts";
-import { Address, formatUnits, getAddress } from "viem";
-import { Table, TableBody, TableCell, TableHead, TableRow } from "./ui/table";
+import { type Address, formatUnits, getAddress } from "viem";
 import { useEnsName } from "wagmi";
+import { Table, TableBody, TableCell, TableHead, TableRow } from "./ui/table";
 
 interface Holder {
   address: string;
@@ -249,8 +249,8 @@ export const CoinHolderTableRow = ({
       <TableCell>
         {Number(
           (
-            (parseFloat(formatUnits(BigInt(balance), 18)) /
-              parseFloat(totalSupply ? formatUnits(totalSupply, 18) : DEFAULT_TOTAL_SUPPLY.toString())) *
+            (Number.parseFloat(formatUnits(BigInt(balance), 18)) /
+              Number.parseFloat(totalSupply ? formatUnits(totalSupply, 18) : DEFAULT_TOTAL_SUPPLY.toString())) *
             100
           ).toString(),
         ).toFixed(4)}

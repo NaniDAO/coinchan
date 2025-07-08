@@ -4,10 +4,10 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
   DropdownMenuSub,
-  DropdownMenuSubTrigger,
   DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useTheme } from "@/lib/theme";
 import { useNavigate } from "@tanstack/react-router";
@@ -52,11 +52,7 @@ export function UserSettingsMenu() {
                 className="!px-2 !py-1 bg-background text-foreground !border !border-foreground"
                 onClick={() => changeLanguage(lang.code)}
               >
-                <span
-                  className={currentLanguage === lang.code ? "font-bold" : ""}
-                >
-                  {lang.label}
-                </span>
+                <span className={currentLanguage === lang.code ? "font-bold" : ""}>{lang.label}</span>
               </DropdownMenuItem>
             ))}
           </DropdownMenuSubContent>

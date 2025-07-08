@@ -1,21 +1,21 @@
-import { useState, useMemo } from "react";
-import { useTranslation } from "react-i18next";
-import { formatUnits, parseUnits, encodeFunctionData } from "viem";
-import { useAccount, usePublicClient, useSendTransaction, useWaitForTransactionReceipt } from "wagmi";
-import { Card, CardContent, CardHeader } from "./ui/card";
-import { Button } from "./ui/button";
-import { Badge } from "./ui/badge";
-import { Progress } from "./ui/progress";
-import { Loader2, ExternalLink, Clock, User, ArrowRight } from "lucide-react";
-import { Order } from "./OrdersPage";
-import { ETH_TOKEN } from "@/lib/coins";
-import { useAllCoins } from "@/hooks/metadata/use-all-coins";
-import { TokenImage } from "./TokenImage";
-import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
-import { mainnet } from "viem/chains";
-import { handleWalletError } from "@/lib/errors";
+import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
+import { useAllCoins } from "@/hooks/metadata/use-all-coins";
 import { useOperatorStatus } from "@/hooks/use-operator-status";
+import { ETH_TOKEN } from "@/lib/coins";
+import { handleWalletError } from "@/lib/errors";
+import { ArrowRight, Clock, ExternalLink, Loader2, User } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { encodeFunctionData, formatUnits, parseUnits } from "viem";
+import { mainnet } from "viem/chains";
+import { useAccount, usePublicClient, useSendTransaction, useWaitForTransactionReceipt } from "wagmi";
+import type { Order } from "./OrdersPage";
+import { TokenImage } from "./TokenImage";
+import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
+import { Card, CardContent, CardHeader } from "./ui/card";
+import { Progress } from "./ui/progress";
 
 interface OrderCardProps {
   order: Order;
@@ -426,7 +426,7 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
 
             <Button
               onClick={handleFillOrder}
-              disabled={!fillAmount || isPending || parseFloat(fillAmount) <= 0}
+              disabled={!fillAmount || isPending || Number.parseFloat(fillAmount) <= 0}
               className="w-full"
             >
               {isPending ? (

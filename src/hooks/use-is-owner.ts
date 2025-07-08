@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
+import { mainnet } from "viem/chains";
 import { useAccount, usePublicClient } from "wagmi";
 import { CoinchanAbi, CoinchanAddress } from "../constants/Coinchan";
-import { mainnet } from "viem/chains";
 
 type UseIsOwnerArgs = {
   tokenId?: bigint; // the coin id (can be undefined while loading)
@@ -27,11 +27,7 @@ export const useIsOwner = ({ tokenId, refetchKey }: UseIsOwnerArgs) => {
       })) as readonly [string, number, number, boolean, bigint, bigint];
 
       const [lockupOwner] = lockup;
-      return (
-        !!lockupOwner &&
-        !!address &&
-        lockupOwner.toLowerCase() === address.toLowerCase()
-      );
+      return !!lockupOwner && !!address && lockupOwner.toLowerCase() === address.toLowerCase();
     },
   });
 };

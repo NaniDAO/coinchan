@@ -1,6 +1,6 @@
-import { Address } from "viem";
 import { blo } from "blo";
 import { useMemo } from "react";
+import type { Address } from "viem";
 
 export function AddressIcon({
   address,

@@ -1,25 +1,14 @@
-import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Button } from "@/components/ui/button";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 
 export const RainbowConnectButton = () => {
   // @TODO internationalization
   return (
     <ConnectButton.Custom>
-      {({
-        account,
-        chain,
-        openAccountModal,
-        openChainModal,
-        openConnectModal,
-        authenticationStatus,
-        mounted,
-      }) => {
+      {({ account, chain, openAccountModal, openChainModal, openConnectModal, authenticationStatus, mounted }) => {
         const ready = mounted && authenticationStatus !== "loading";
         const connected =
-          ready &&
-          account &&
-          chain &&
-          (!authenticationStatus || authenticationStatus === "authenticated");
+          ready && account && chain && (!authenticationStatus || authenticationStatus === "authenticated");
 
         return (
           <div
@@ -35,12 +24,7 @@ export const RainbowConnectButton = () => {
             {(() => {
               if (!connected) {
                 return (
-                  <Button
-                    onClick={openConnectModal}
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                  >
+                  <Button onClick={openConnectModal} type="button" variant="outline" size="sm">
                     Login
                   </Button>
                 );
@@ -48,12 +32,7 @@ export const RainbowConnectButton = () => {
 
               if (chain.unsupported) {
                 return (
-                  <Button
-                    onClick={openChainModal}
-                    size="sm"
-                    variant="destructive"
-                    className="text-destructive"
-                  >
+                  <Button onClick={openChainModal} size="sm" variant="destructive" className="text-destructive">
                     Wrong Network
                   </Button>
                 );
@@ -61,16 +40,9 @@ export const RainbowConnectButton = () => {
 
               return (
                 <div className="flex gap-2 justify-center items-center">
-                  <Button
-                    onClick={openAccountModal}
-                    variant="outline"
-                    size="sm"
-                    type="button"
-                  >
+                  <Button onClick={openAccountModal} variant="outline" size="sm" type="button">
                     {account.displayName}
-                    {account.displayBalance
-                      ? ` (${account.displayBalance})`
-                      : ""}
+                    {account.displayBalance ? ` (${account.displayBalance})` : ""}
                   </Button>
                 </div>
               );

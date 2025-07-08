@@ -27,20 +27,13 @@ const DialogClose = ShadcnDialogClose;
 
 const DialogFooter = ShadcnDialogFooter;
 
-export interface BitDialogProps
-  extends React.ComponentProps<"div">,
-    VariantProps<typeof dialogContentVariants> {
+export interface BitDialogProps extends React.ComponentProps<"div">, VariantProps<typeof dialogContentVariants> {
   showClose?: boolean;
 }
 
 function DialogTitle({ ...props }: BitDialogProps) {
   const { className, font } = props;
-  return (
-    <ShadcnDialogTitle
-      className={cn(font !== "normal" && "retro", className)}
-      {...props}
-    />
-  );
+  return <ShadcnDialogTitle className={cn(font !== "normal" && "retro", className)} {...props} />;
 }
 
 export const dialogContentVariants = cva("", {
@@ -55,19 +48,10 @@ export const dialogContentVariants = cva("", {
   },
 });
 
-function DialogContent({
-  className,
-  children,
-  font,
-  ...props
-}: BitDialogProps) {
+function DialogContent({ className, children, font, ...props }: BitDialogProps) {
   return (
     <ShadcnDialogContent
-      className={cn(
-        "bg-card rounded-none border-none",
-        font !== "normal" && "retro",
-        className,
-      )}
+      className={cn("bg-card rounded-none border-none", font !== "normal" && "retro", className)}
       {...props}
     >
       {children}

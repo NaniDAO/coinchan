@@ -1,8 +1,8 @@
-import { AccountTransfer } from "@/hooks/use-get-account";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import type { AccountTransfer } from "@/hooks/use-get-account";
 import { formatTimeAgo } from "@/lib/date";
 import { trunc } from "@/lib/utils";
 import { formatEther } from "viem";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 // Helper function to format addresses with better truncation for table display
 const formatAddress = (address: string | null | undefined): string => {
@@ -115,7 +115,7 @@ export const ActivityTable = ({ data }: { data: AccountTransfer[] }) => {
                   color: "var(--terminal-black)",
                 }}
               >
-                {parseFloat(formatEther(BigInt(transfer?.amount ?? "0"))).toFixed(5)} {transfer?.coin?.symbol}
+                {Number.parseFloat(formatEther(BigInt(transfer?.amount ?? "0"))).toFixed(5)} {transfer?.coin?.symbol}
               </TableCell>
               <TableCell
                 style={{

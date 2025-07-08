@@ -1,6 +1,6 @@
-import { Address, encodeFunctionData } from "viem";
-import { simulateContract, estimateGas } from "@wagmi/core";
 import { config } from "@/wagmi";
+import { estimateGas, simulateContract } from "@wagmi/core";
+import { type Address, encodeFunctionData } from "viem";
 
 /**
  * Helper function to simulate a contract interaction

@@ -1,25 +1,22 @@
+import { useMemo, useState } from "react";
 import { BuySell } from "./BuySell";
 import { ClaimVested } from "./ClaimVested";
-import { useMemo, useState } from "react";
 
-import { useReadContract, useWaitForTransactionReceipt } from "wagmi";
-import { mainnet } from "viem/chains";
-import { computePoolId, SWAP_FEE } from "./lib/swap";
 import { Link } from "@tanstack/react-router";
+import { mainnet } from "viem/chains";
+import { useReadContract, useWaitForTransactionReceipt } from "wagmi";
+import { SWAP_FEE, computePoolId } from "./lib/swap";
 
+import { CoinInfoCard } from "./components/CoinInfoCard";
 import { CoinPreview } from "./components/CoinPreview";
 import ErrorFallback, { ErrorBoundary } from "./components/ErrorBoundary";
+import { PoolOverview } from "./components/PoolOverview";
 import { VotePanel } from "./components/VotePanel";
 import { LoadingLogo } from "./components/ui/loading-logo";
-import { PoolOverview } from "./components/PoolOverview";
-import { useGetCoin } from "./hooks/metadata/use-get-coin";
+import { CheckTheChainAbi, CheckTheChainAddress } from "./constants/CheckTheChain";
 import { CoinsAddress } from "./constants/Coins";
+import { useGetCoin } from "./hooks/metadata/use-get-coin";
 import { useIsOwner } from "./hooks/use-is-owner";
-import { CoinInfoCard } from "./components/CoinInfoCard";
-import {
-  CheckTheChainAbi,
-  CheckTheChainAddress,
-} from "./constants/CheckTheChain";
 
 // Fallback component for BuySell when it crashes
 export const BuySellFallback = ({
@@ -33,12 +30,9 @@ export const BuySellFallback = ({
 }) => {
   return (
     <div className="p-4 border border-destructive/30 bg-destructive/10 rounded-md">
-      <h3 className="font-medium text-destructive">
-        Trading temporarily unavailable
-      </h3>
+      <h3 className="font-medium text-destructive">Trading temporarily unavailable</h3>
       <p className="text-sm text-destructive/80 mt-2">
-        We're experiencing issues loading the trading interface for {name} [
-        {symbol}]. Please try again later.
+        We're experiencing issues loading the trading interface for {name} [{symbol}]. Please try again later.
       </p>
       <div className="mt-4 bg-background p-3 rounded-md text-sm border border-border">
         <p className="font-medium">Token Details:</p>
@@ -58,21 +52,12 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
     coinId: tokenId.toString(),
   });
 
-  const [name, symbol, imageUrl, description, tokenURI, poolIds, swapFees] =
-    useMemo(() => {
-      if (!data) return ["", "", "", "", "", undefined, [100n]];
-      const pools = data.pools.map((pool) => pool.poolId);
-      const swapFees = data.pools.map((pool) => BigInt(pool.swapFee));
-      return [
-        data.name!,
-        data.symbol!,
-        data.imageUrl!,
-        data.description!,
-        data.tokenURI!,
-        pools,
-        swapFees,
-      ];
-    }, [data]);
+  const [name, symbol, imageUrl, description, tokenURI, poolIds, swapFees] = useMemo(() => {
+    if (!data) return ["", "", "", "", "", undefined, [100n]];
+    const pools = data.pools.map((pool) => pool.poolId);
+    const swapFees = data.pools.map((pool) => BigInt(pool.swapFee));
+    return [data.name!, data.symbol!, data.imageUrl!, data.description!, data.tokenURI!, pools, swapFees];
+  }, [data]);
 
   const [txHash] = useState<`0x${string}`>();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
@@ -96,7 +81,7 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
     if (!data || !ethPriceData) return null;
 
     const priceStr = ethPriceData[1];
-    const ethPriceUsd = parseFloat(priceStr);
+    const ethPriceUsd = Number.parseFloat(priceStr);
 
     if (isNaN(ethPriceUsd) || ethPriceUsd === 0) return null;
     if (data.marketCapEth === undefined) return null;
@@ -108,10 +93,7 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
   if (isLoadingGetCoin) {
     return (
       <div className="w-full max-w-screen mx-auto flex flex-col gap-4 px-2 py-4 pb-16 sm:p-6 sm:pb-16">
-        <Link
-          to="/explore"
-          className="text-sm self-start underline py-2 px-1 touch-manipulation"
-        >
+        <Link to="/explore" className="text-sm self-start underline py-2 px-1 touch-manipulation">
           ⬅︎ Back to Explorer
         </Link>
         <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
@@ -138,25 +120,13 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
 
   return (
     <div className="w-full mx-auto flex flex-col gap-4 px-2 py-4 pb-16 sm:p-6 sm:pb-16">
-      <Link
-        to="/explore"
-        className="text-sm self-start underline py-2 px-1 touch-manipulation"
-      >
+      <Link to="/explore" className="text-sm self-start underline py-2 px-1 touch-manipulation">
         ⬅︎ Back to Explorer
       </Link>
 
-      <CoinPreview
-        coinId={tokenId}
-        name={name}
-        symbol={symbol}
-        isLoading={isLoadingGetCoin}
-      />
+      <CoinPreview coinId={tokenId} name={name} symbol={symbol} isLoading={isLoadingGetCoin} />
 
-      <ErrorBoundary
-        fallback={
-          <ErrorFallback errorMessage="Error rendering Coin Info Card" />
-        }
-      >
+      <ErrorBoundary fallback={<ErrorFallback errorMessage="Error rendering Coin Info Card" />}>
         <CoinInfoCard
           coinId={tokenId}
           name={name}
@@ -175,18 +145,12 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
       </ErrorBoundary>
 
       {/* Wrap BuySell component in an ErrorBoundary to prevent crashes */}
-      <ErrorBoundary
-        fallback={
-          <BuySellFallback tokenId={tokenId} name={name} symbol={symbol} />
-        }
-      >
+      <ErrorBoundary fallback={<BuySellFallback tokenId={tokenId} name={name} symbol={symbol} />}>
         <div>
           <BuySell tokenId={tokenId} name={name} symbol={symbol} />
         </div>
       </ErrorBoundary>
-      <ErrorBoundary
-        fallback={<ErrorFallback errorMessage="Error rendering voting panel" />}
-      >
+      <ErrorBoundary fallback={<ErrorFallback errorMessage="Error rendering voting panel" />}>
         <VotePanel coinId={tokenId} />
       </ErrorBoundary>
 
@@ -194,24 +158,14 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
       {isCheckingOwner && <LoadingLogo size="sm" />}
       {isOwner && (
         <div className="mt-4 sm:mt-6 max-w-2xl">
-          <ErrorBoundary
-            fallback={
-              <p className="text-destructive">
-                Vesting claim feature unavailable
-              </p>
-            }
-          >
+          <ErrorBoundary fallback={<p className="text-destructive">Vesting claim feature unavailable</p>}>
             <ClaimVested coinId={tokenId} />
           </ErrorBoundary>
         </div>
       )}
       <PoolOverview
         coinId={tokenId.toString()}
-        poolId={computePoolId(
-          tokenId,
-          swapFees?.[0] ?? SWAP_FEE,
-          CoinsAddress,
-        ).toString()}
+        poolId={computePoolId(tokenId, swapFees?.[0] ?? SWAP_FEE, CoinsAddress).toString()}
         symbol={symbol}
       />
       <div className="mt-4 sm:mt-6"></div>

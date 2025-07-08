@@ -1,29 +1,14 @@
+import { usePoolApy } from "@/hooks/use-pool-apy";
 import { cn } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
 
-const useApy = (poolId?: string) => {
-  const { data } = useQuery({
-    queryKey: ["pool-apy", poolId],
-    queryFn: async () => {
-      const response = await fetch(
-        `${import.meta.env.VITE_INDEXER_URL}/api/pool-apr?poolId=${poolId}`,
-      );
-      const data = await response.json();
-      return data.apy;
-    },
-    enabled: !!poolId,
-  });
-  return { data };
-};
-
-export const ApyDisplay = ({
+export const PoolApyDisplay = ({
   poolId,
   className,
 }: {
   poolId?: string;
   className?: string;
 }) => {
-  const { data } = useApy(poolId);
+  const { data } = usePoolApy(poolId);
 
   if (!poolId) return null;
   if (!data) return null;

@@ -1,12 +1,12 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import PoolCandleChart from "@/PoolCandleChart";
 import { CoinHolders } from "@/components/CoinHolders";
 import { PoolEvents } from "@/components/PoolEvents";
 import PoolPriceChart from "@/components/PoolPriceChart";
-import { ErrorBoundary } from "./ErrorBoundary";
-import PoolCandleChart from "@/PoolCandleChart";
-import { Button } from "./ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CandlestickChartIcon, LineChartIcon } from "lucide-react";
 import { useState } from "react";
+import { ErrorBoundary } from "./ErrorBoundary";
+import { Button } from "./ui/button";
 
 enum ChartType {
   LINE = "line",
@@ -32,47 +32,21 @@ export const PoolOverview = ({
         <TabsTrigger value="activity">Activity</TabsTrigger>
       </TabsList>
       <TabsContent value="chart" className="mt-4 sm:mt-6">
-        <ErrorBoundary
-          fallback={<p className="text-destructive">Pool chart unavailable</p>}
-        >
-          {chartType === ChartType.CANDLE && (
-            <PoolCandleChart poolId={poolId} interval={"1d"} />
-          )}
-          {chartType === ChartType.LINE && (
-            <PoolPriceChart poolId={poolId} ticker={symbol} />
-          )}
-          <Button
-            onClick={() =>
-              setChartType(
-                chartType === ChartType.LINE
-                  ? ChartType.CANDLE
-                  : ChartType.LINE,
-              )
-            }
-          >
-            {chartType === ChartType.CANDLE ? (
-              <LineChartIcon />
-            ) : (
-              <CandlestickChartIcon />
-            )}
+        <ErrorBoundary fallback={<p className="text-destructive">Pool chart unavailable</p>}>
+          {chartType === ChartType.CANDLE && <PoolCandleChart poolId={poolId} interval={"1d"} />}
+          {chartType === ChartType.LINE && <PoolPriceChart poolId={poolId} ticker={symbol} />}
+          <Button onClick={() => setChartType(chartType === ChartType.LINE ? ChartType.CANDLE : ChartType.LINE)}>
+            {chartType === ChartType.CANDLE ? <LineChartIcon /> : <CandlestickChartIcon />}
           </Button>
         </ErrorBoundary>
       </TabsContent>
       <TabsContent value="holders" className="mt-4 sm:mt-6">
-        <ErrorBoundary
-          fallback={
-            <p className="text-destructive">Pool holders unavailable</p>
-          }
-        >
+        <ErrorBoundary fallback={<p className="text-destructive">Pool holders unavailable</p>}>
           <CoinHolders coinId={coinId} symbol={symbol} />
         </ErrorBoundary>
       </TabsContent>
       <TabsContent value="activity" className="mt-4 sm:mt-6">
-        <ErrorBoundary
-          fallback={
-            <p className="text-destructive">Pool Activity unavailable</p>
-          }
-        >
+        <ErrorBoundary fallback={<p className="text-destructive">Pool Activity unavailable</p>}>
           <PoolEvents poolId={poolId} ticker={symbol} />
         </ErrorBoundary>
       </TabsContent>

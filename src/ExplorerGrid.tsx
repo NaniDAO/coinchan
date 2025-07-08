@@ -1,9 +1,9 @@
-import { CoinCard } from "./components/CoinCard";
-import { type CoinData } from "./hooks/metadata";
+import { ArrowDownAZ, ArrowUpAZ, Coins as CoinsIcon, Rocket, ThumbsUp } from "lucide-react";
 import { useEffect, useState } from "react";
-import { ArrowDownAZ, ArrowUpAZ, Coins as CoinsIcon, ThumbsUp, Rocket } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { CoinCard } from "./components/CoinCard";
 import { LoadingLogo } from "./components/ui/loading-logo";
+import type { CoinData } from "./hooks/metadata";
 
 // Default page size
 const PAGE_SIZE = 20;

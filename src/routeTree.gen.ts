@@ -15,6 +15,7 @@ import { Route as SendRouteImport } from './routes/send'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as OneshotRouteImport } from './routes/oneshot'
 import { Route as LaunchRouteImport } from './routes/launch'
+import { Route as FarmRouteImport } from './routes/farm'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as CoinpaperRouteImport } from './routes/coinpaper'
 import { Route as AboutRouteImport } from './routes/about'
@@ -50,6 +51,11 @@ const OneshotRoute = OneshotRouteImport.update({
 const LaunchRoute = LaunchRouteImport.update({
   id: '/launch',
   path: '/launch',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FarmRoute = FarmRouteImport.update({
+  id: '/farm',
+  path: '/farm',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExploreRoute = ExploreRouteImport.update({
@@ -88,6 +94,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/coinpaper': typeof CoinpaperRoute
   '/explore': typeof ExploreRoute
+  '/farm': typeof FarmRoute
   '/launch': typeof LaunchRoute
   '/oneshot': typeof OneshotRoute
   '/orders': typeof OrdersRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/coinpaper': typeof CoinpaperRoute
   '/explore': typeof ExploreRoute
+  '/farm': typeof FarmRoute
   '/launch': typeof LaunchRoute
   '/oneshot': typeof OneshotRoute
   '/orders': typeof OrdersRoute
@@ -117,6 +125,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/coinpaper': typeof CoinpaperRoute
   '/explore': typeof ExploreRoute
+  '/farm': typeof FarmRoute
   '/launch': typeof LaunchRoute
   '/oneshot': typeof OneshotRoute
   '/orders': typeof OrdersRoute
@@ -133,6 +142,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/coinpaper'
     | '/explore'
+    | '/farm'
     | '/launch'
     | '/oneshot'
     | '/orders'
@@ -147,6 +157,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/coinpaper'
     | '/explore'
+    | '/farm'
     | '/launch'
     | '/oneshot'
     | '/orders'
@@ -161,6 +172,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/coinpaper'
     | '/explore'
+    | '/farm'
     | '/launch'
     | '/oneshot'
     | '/orders'
@@ -176,6 +188,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   CoinpaperRoute: typeof CoinpaperRoute
   ExploreRoute: typeof ExploreRoute
+  FarmRoute: typeof FarmRoute
   LaunchRoute: typeof LaunchRoute
   OneshotRoute: typeof OneshotRoute
   OrdersRoute: typeof OrdersRoute
@@ -230,6 +243,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LaunchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/farm': {
+      id: '/farm'
+      path: '/farm'
+      fullPath: '/farm'
+      preLoaderRoute: typeof FarmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/explore': {
       id: '/explore'
       path: '/explore'
@@ -280,6 +300,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   CoinpaperRoute: CoinpaperRoute,
   ExploreRoute: ExploreRoute,
+  FarmRoute: FarmRoute,
   LaunchRoute: LaunchRoute,
   OneshotRoute: OneshotRoute,
   OrdersRoute: OrdersRoute,

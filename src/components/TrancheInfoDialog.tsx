@@ -1,6 +1,6 @@
-import { InfoIcon, XIcon } from "lucide-react";
-import { Dialog, DialogContent, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogClose, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { InfoIcon, XIcon } from "lucide-react";
 
 export function TrancheInfoDialog() {
   return (

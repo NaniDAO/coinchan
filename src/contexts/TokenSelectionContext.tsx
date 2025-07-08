@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
-import { TokenMeta, ETH_TOKEN } from "../lib/coins";
+import type React from "react";
+import { type ReactNode, createContext, useContext, useState } from "react";
+import { ETH_TOKEN, type TokenMeta } from "../lib/coins";
 
 interface TokenSelectionContextType {
   sellToken: TokenMeta;

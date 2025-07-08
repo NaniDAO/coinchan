@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { ThumbsDownIcon, ThumbsUpIcon } from "lucide-react";
 import { toast } from "sonner";
-import { Address, formatEther } from "viem";
+import { type Address, formatEther } from "viem";
 import { useAccount, useSignTypedData } from "wagmi";
 
 interface VotePanelProps {

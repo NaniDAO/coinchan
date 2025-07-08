@@ -1,18 +1,18 @@
 import { Loader2 } from "lucide-react";
-import { SuccessMessage } from "./components/SuccessMessage";
 import {
+  DEADLINE_SEC,
+  SLIPPAGE_BPS,
+  SWAP_FEE,
+  type ZAMMPoolKey,
   analyzeTokens,
   computePoolKey,
-  DEADLINE_SEC,
   estimateCoinToCoinOutput,
   getAmountIn,
   getAmountOut,
   getPoolIds,
-  SLIPPAGE_BPS,
-  SWAP_FEE,
   withSlippage,
-  ZAMMPoolKey,
 } from "./lib/swap";
+import { PoolApyDisplay } from "./components/ApyDisplay";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useOperatorStatus } from "./hooks/use-operator-status";
@@ -45,7 +45,7 @@ import { mainnet } from "viem/chains";
 import { SwapPanel } from "./components/SwapPanel";
 import { useReserves } from "./hooks/use-reserves";
 import { useErc20Allowance } from "./hooks/use-erc20-allowance";
-import { ApyDisplay } from "./components/ApyDisplay";
+import { SuccessMessage } from "./components/SuccessMessage";
 
 export const AddLiquidity = () => {
   const { t } = useTranslation();
@@ -278,12 +278,12 @@ export const AddLiquidity = () => {
       return;
     }
 
-    if (!sellAmt || parseFloat(sellAmt) <= 0) {
+    if (!sellAmt || Number.parseFloat(sellAmt) <= 0) {
       setTxError("Please enter a valid sell amount");
       return;
     }
 
-    if (!buyAmt || parseFloat(buyAmt) <= 0) {
+    if (!buyAmt || Number.parseFloat(buyAmt) <= 0) {
       setTxError("Please enter a valid buy amount");
       return;
     }
@@ -663,7 +663,7 @@ export const AddLiquidity = () => {
 
   return (
     <div className="relative flex flex-col">
-      <ApyDisplay
+      <PoolApyDisplay
         poolId={mainPoolId ? mainPoolId.toString() : undefined}
         className="mb-2"
       />

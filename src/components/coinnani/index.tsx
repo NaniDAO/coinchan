@@ -1,7 +1,7 @@
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { motion } from "framer-motion";
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 interface CoinNaniProps {
@@ -115,7 +115,7 @@ export const CoinNani = ({ className }: CoinNaniProps) => {
 
       <motion.div
         whileHover={{ scale: 1.2, rotate: [0, -66, 66, 0] }}
-        transition={{ repeat: Infinity, repeatType: "mirror", delay: 0.1 }}
+        transition={{ repeat: Number.POSITIVE_INFINITY, repeatType: "mirror", delay: 0.1 }}
       >
         <Avatar className="h-10 w-10 z-0">
           <AvatarImage src="/coinchan.png" alt="Coin Nani Avatar" />

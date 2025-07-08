@@ -1,16 +1,16 @@
+import { CookbookAddress } from "@/constants/Cookbook";
 import {
+  type Address,
   encodeAbiParameters,
+  encodeFunctionData,
+  isAddressEqual,
+  keccak256,
   parseAbiParameters,
   zeroAddress,
-  encodeFunctionData,
-  Address,
-  keccak256,
-  isAddressEqual,
 } from "viem";
-import { ZAMMAddress, ZAMMAbi } from "../constants/ZAAM";
 import { CoinsAddress } from "../constants/Coins";
-import { TokenMeta, USDT_ADDRESS } from "./coins";
-import { CookbookAddress } from "@/constants/Cookbook";
+import { ZAMMAbi, ZAMMAddress } from "../constants/ZAAM";
+import { type TokenMeta, USDT_ADDRESS } from "./coins";
 
 /**
  * Constants for AMM operations
@@ -32,8 +32,7 @@ export const SLIPPAGE_OPTIONS = [
  * Generate a deadline timestamp in seconds
  * @returns BigInt of current time + deadline window
  */
-const deadlineTimestamp = () =>
-  BigInt(Math.floor(Date.now() / 1000) + DEADLINE_SEC);
+const deadlineTimestamp = () => BigInt(Math.floor(Date.now() / 1000) + DEADLINE_SEC);
 
 export type PoolKey = ZAMMPoolKey | CookbookPoolKey;
 
@@ -88,18 +87,12 @@ export const computePoolKey = (
  * @param coinId The coin ID
  * @returns Pool ID
  */
-export const computePoolId = (
-  coinId: bigint,
-  swapFee: bigint = SWAP_FEE,
-  token1: Address = CoinsAddress,
-) => {
+export const computePoolId = (coinId: bigint, swapFee: bigint = SWAP_FEE, token1: Address = CoinsAddress) => {
   if (isAddressEqual(token1, CookbookAddress)) {
     return BigInt(
       keccak256(
         encodeAbiParameters(
-          parseAbiParameters(
-            "uint256 id0, uint256 id1, address token0, address token1, uint256 feeOrHook",
-          ),
+          parseAbiParameters("uint256 id0, uint256 id1, address token0, address token1, uint256 feeOrHook"),
           [0n, coinId, zeroAddress, token1, swapFee],
         ),
       ),
@@ -109,9 +102,7 @@ export const computePoolId = (
   return BigInt(
     keccak256(
       encodeAbiParameters(
-        parseAbiParameters(
-          "uint256 id0, uint256 id1, address token0, address token1, uint96 swapFee",
-        ),
+        parseAbiParameters("uint256 id0, uint256 id1, address token0, address token1, uint96 swapFee"),
         [0n, coinId, zeroAddress, token1, swapFee],
       ),
     ),
@@ -153,11 +144,9 @@ export function createCoinSwapMulticall(
 
   // Check if we're dealing with USDT
   const isSourceUSDT =
-    customSourcePoolKey &&
-    customSourcePoolKey.token1 === "0xdAC17F958D2ee523a2206206994597C13D831ec7";
+    customSourcePoolKey && customSourcePoolKey.token1 === "0xdAC17F958D2ee523a2206206994597C13D831ec7";
   const isTargetUSDT =
-    customTargetPoolKey &&
-    customTargetPoolKey.token1 === "0xdAC17F958D2ee523a2206206994597C13D831ec7";
+    customTargetPoolKey && customTargetPoolKey.token1 === "0xdAC17F958D2ee523a2206206994597C13D831ec7";
 
   console.log("Creating multihop swap with:", {
     isSourceUSDT,
@@ -256,7 +245,7 @@ export function estimateCoinToCoinOutput(
   amountIn: bigint,
   sourceReserves: { reserve0: bigint; reserve1: bigint },
   targetReserves: { reserve0: bigint; reserve1: bigint },
-  slippageBps: bigint = 200n,
+  slippageBps = 200n,
   sourceSwapFee: bigint = SWAP_FEE, // Custom fee for source pool (USDT: 30n)
   targetSwapFee: bigint = SWAP_FEE, // Custom fee for target pool (USDT: 30n)
 ): { amountOut: bigint; withSlippage: bigint; ethAmountOut: bigint } {
@@ -300,12 +289,7 @@ const PRICE_CACHE_TTL = 2000; // 2 seconds TTL for price calculations
 const amountOutCache = new Map<string, { value: bigint; timestamp: number }>();
 
 // x*y=k AMM with fee — forward (amountIn → amountOut)
-export const getAmountOut = (
-  amountIn: bigint,
-  reserveIn: bigint,
-  reserveOut: bigint,
-  swapFee: bigint,
-) => {
+export const getAmountOut = (amountIn: bigint, reserveIn: bigint, reserveOut: bigint, swapFee: bigint) => {
   // Fast path for zero values
   if (amountIn === 0n || reserveIn === 0n || reserveOut === 0n) return 0n;
 
@@ -329,7 +313,7 @@ export const getAmountOut = (
   if (amountOutCache.size >= PRICE_CACHE_SIZE) {
     // Find oldest entry
     let oldestKey = null;
-    let oldestTime = Infinity;
+    let oldestTime = Number.POSITIVE_INFINITY;
 
     for (const [key, entry] of amountOutCache.entries()) {
       if (entry.timestamp < oldestTime) {
@@ -353,20 +337,9 @@ export const getAmountOut = (
 const amountInCache = new Map<string, { value: bigint; timestamp: number }>();
 
 // inverse — desired amountOut → required amountIn
-export const getAmountIn = (
-  amountOut: bigint,
-  reserveIn: bigint,
-  reserveOut: bigint,
-  swapFee: bigint,
-) => {
+export const getAmountIn = (amountOut: bigint, reserveIn: bigint, reserveOut: bigint, swapFee: bigint) => {
   // Fast path for impossible scenarios
-  if (
-    amountOut === 0n ||
-    reserveIn === 0n ||
-    reserveOut === 0n ||
-    amountOut >= reserveOut
-  )
-    return 0n;
+  if (amountOut === 0n || reserveIn === 0n || reserveOut === 0n || amountOut >= reserveOut) return 0n;
 
   // Create cache key from all inputs
   const cacheKey = `${amountOut.toString()}-${reserveIn.toString()}-${reserveOut.toString()}-${swapFee.toString()}`;
@@ -387,7 +360,7 @@ export const getAmountIn = (
   if (amountInCache.size >= PRICE_CACHE_SIZE) {
     // Find oldest entry
     let oldestKey = null;
-    let oldestTime = Infinity;
+    let oldestTime = Number.POSITIVE_INFINITY;
 
     for (const [key, entry] of amountInCache.entries()) {
       if (entry.timestamp < oldestTime) {
@@ -413,10 +386,8 @@ export const getAmountIn = (
  * @param amount Raw amount
  * @returns Amount with slippage applied
  */
-export const withSlippage = (
-  amount: bigint,
-  slippageBps: bigint = SLIPPAGE_BPS,
-) => (amount * (10000n - slippageBps)) / 10000n;
+export const withSlippage = (amount: bigint, slippageBps: bigint = SLIPPAGE_BPS) =>
+  (amount * (10000n - slippageBps)) / 10000n;
 
 export function analyzeTokens(
   sell: TokenMeta,
@@ -442,11 +413,7 @@ export function analyzeTokens(
 
   const isCustom = sell.isCustomPool || Boolean(buy?.isCustomPool);
 
-  const isCoinToCoin =
-    !isDirectUsdtEth &&
-    sell.id !== null &&
-    buy?.id !== null &&
-    sell.id !== buy?.id;
+  const isCoinToCoin = !isDirectUsdtEth && sell.id !== null && buy?.id !== null && sell.id !== buy?.id;
 
   // coinId logic as before…
   let coinId: bigint;
@@ -457,8 +424,7 @@ export function analyzeTokens(
   }
 
   // canSwap covers all the cases where we actually want the “Go” button enabled:
-  const canSwap =
-    Boolean(buy) && (isCustom || isSellETH || isBuyETH || isCoinToCoin);
+  const canSwap = Boolean(buy) && (isCustom || isSellETH || isBuyETH || isCoinToCoin);
 
   return {
     isSellETH,
@@ -495,19 +461,11 @@ export function getPoolIds(
   } else {
     // non-custom: if sell is a token (not ETH), use sell.id
     if (sell.id != null) {
-      mainPoolId = computePoolId(
-        sell.id,
-        sell.swapFee,
-        sell.source === "ZAMM" ? CoinsAddress : CookbookAddress,
-      );
+      mainPoolId = computePoolId(sell.id, sell.swapFee, sell.source === "ZAMM" ? CoinsAddress : CookbookAddress);
     }
     // otherwise (sell is ETH), wait until buy!=null and has an id
     else if (buy?.id != null) {
-      mainPoolId = computePoolId(
-        buy.id,
-        buy.swapFee,
-        buy.source === "ZAMM" ? CoinsAddress : CookbookAddress,
-      );
+      mainPoolId = computePoolId(buy.id, buy.swapFee, buy.source === "ZAMM" ? CoinsAddress : CookbookAddress);
     }
   }
 
@@ -517,32 +475,19 @@ export function getPoolIds(
     if (buy.isCustomPool && buy.poolId != null) {
       targetPoolId = buy.poolId;
     } else if (buy.id != null) {
-      targetPoolId = computePoolId(
-        buy.id,
-        buy.swapFee,
-        buy.source === "ZAMM" ? CoinsAddress : CookbookAddress,
-      );
+      targetPoolId = computePoolId(buy.id, buy.swapFee, buy.source === "ZAMM" ? CoinsAddress : CookbookAddress);
     }
   }
 
   return { mainPoolId, targetPoolId };
 }
 
-export function getSwapFee({
-  isCustomPool,
-  sellToken,
-  buyToken,
-  isCoinToCoin,
-}: any): string {
+export function getSwapFee({ isCustomPool, sellToken, buyToken, isCoinToCoin }: any): string {
   // USDT‐direct swaps on a custom pool always show 0.3%
   const isUsdtDirectSwap =
     isCustomPool &&
-    ((sellToken.id === null &&
-      buyToken?.isCustomPool &&
-      buyToken.token1 === USDT_ADDRESS) ||
-      (buyToken?.id === null &&
-        sellToken.isCustomPool &&
-        sellToken.token1 === USDT_ADDRESS) ||
+    ((sellToken.id === null && buyToken?.isCustomPool && buyToken.token1 === USDT_ADDRESS) ||
+      (buyToken?.id === null && sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS) ||
       // other direct USDT swaps (non‐coin‐to‐coin)
       !isCoinToCoin);
 

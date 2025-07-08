@@ -1,37 +1,36 @@
+import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { formatEther, formatUnits, parseEther } from "viem";
+import { mainnet } from "viem/chains";
+import { useAccount, useChainId, usePublicClient, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { NetworkError } from "./components/NetworkError";
+import { SlippageSettings } from "./components/SlippageSettings";
 import { SuccessMessage } from "./components/SuccessMessage";
-import { ETH_TOKEN, TokenMeta, USDT_POOL_KEY } from "./lib/coins";
-import { useTokenSelection } from "./contexts/TokenSelectionContext";
-import { isCookbookCoin, determineReserveSource } from "./lib/coin-utils";
-import { Loader2 } from "lucide-react";
+import { SwapPanel } from "./components/SwapPanel";
+import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
+import { ZAMMAbi, ZAMMAddress } from "./constants/ZAAM";
 import { ZAMMSingleLiqETHAbi, ZAMMSingleLiqETHAddress } from "./constants/ZAMMSingleLiqETH";
 import { ZAMMSingleLiqETHV1Abi, ZAMMSingleLiqETHV1Address } from "./constants/ZAMMSingleLiqETHV1";
+import { useTokenSelection } from "./contexts/TokenSelectionContext";
+import { useAllCoins } from "./hooks/metadata/use-all-coins";
+import { useReserves } from "./hooks/use-reserves";
+import { determineReserveSource, isCookbookCoin } from "./lib/coin-utils";
+import { ETH_TOKEN, type TokenMeta, USDT_POOL_KEY } from "./lib/coins";
+import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import {
+  DEADLINE_SEC,
+  SINGLE_ETH_SLIPPAGE_BPS,
+  SWAP_FEE,
+  type ZAMMPoolKey,
   analyzeTokens,
   computePoolId,
   computePoolKey,
-  DEADLINE_SEC,
   getAmountOut,
   getPoolIds,
-  SINGLE_ETH_SLIPPAGE_BPS,
-  SWAP_FEE,
   withSlippage,
-  ZAMMPoolKey,
 } from "./lib/swap";
-import { useAccount, useChainId, usePublicClient, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
-import { useAllCoins } from "./hooks/metadata/use-all-coins";
-import { mainnet } from "viem/chains";
 import { nowSec } from "./lib/utils";
-import { formatEther, formatUnits, parseEther } from "viem";
-import { ZAMMAbi, ZAMMAddress } from "./constants/ZAAM";
-import { handleWalletError, isUserRejectionError } from "./lib/errors";
-import { CookbookAddress, CookbookAbi } from "./constants/Cookbook";
-import { SlippageSettings } from "./components/SlippageSettings";
-import { SwapPanel } from "./components/SwapPanel";
-import { useReserves } from "./hooks/use-reserves";
-
 
 export const SingleEthLiquidity = () => {
   const { t } = useTranslation();
@@ -222,7 +221,7 @@ export const SingleEthLiquidity = () => {
       return;
     }
 
-    if (!sellAmt || parseFloat(sellAmt) <= 0) {
+    if (!sellAmt || Number.parseFloat(sellAmt) <= 0) {
       setTxError("Please enter a valid ETH amount");
       return;
     }

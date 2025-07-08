@@ -22,12 +22,17 @@ function RouteComponent() {
     navigate({ to: "/orders" });
   };
 
+  const handleFarm = () => {
+    navigate({ to: "/farm" });
+  };
+
   return (
     <div className="!p-5 !mb-[50px]">
       <h2 className="text-center mb-5 font-display uppercase tracking-[2px]">{t("explore.coin_explorer")}</h2>
 
       <div className="mb-6 flex gap-3 justify-center font-display text-sm tracking-widest">
         {[
+          { label: t("common.farm"), icon: "🌾", onClick: handleFarm },
           { label: t("common.launch"), icon: "+", onClick: handleLaunch },
           { label: t("common.send"), icon: "→", onClick: handleSend },
           { label: t("common.orders"), icon: "○", onClick: handleOrders },

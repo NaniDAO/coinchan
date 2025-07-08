@@ -1,14 +1,14 @@
-import { useState, useCallback, useMemo } from "react";
-import { ExplorerGrid, SortType } from "./ExplorerGrid";
+import { SearchIcon } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { formatEther } from "viem";
+import { ExplorerGrid, type SortType } from "./ExplorerGrid";
 import { usePagedCoins } from "./hooks/metadata";
+import type { CoinData } from "./hooks/metadata/coin-utils";
 import { useCoinsData } from "./hooks/metadata/use-coins-data";
 import { useChronologicalCoins } from "./hooks/use-chronological-coins";
 import { useLaunchSalesDeadlines } from "./hooks/use-launch-sales-deadlines";
-import { SearchIcon } from "lucide-react";
-import { CoinData } from "./hooks/metadata/coin-utils";
 import { debounce } from "./lib/utils";
-import { useTranslation } from "react-i18next";
-import { formatEther } from "viem";
 
 // Page size for pagination
 const PAGE_SIZE = 20;

@@ -1,11 +1,11 @@
 import { useCallback, useState } from "react";
-import { Address, erc20Abi, maxUint256 } from "viem";
+import { type Address, erc20Abi, maxUint256 } from "viem";
 import {
   useAccount,
   useReadContract,
-  useWriteContract,
-  useWatchBlockNumber,
   useWaitForTransactionReceipt,
+  useWatchBlockNumber,
+  useWriteContract,
 } from "wagmi";
 
 interface UseErc20AllowanceArgs {

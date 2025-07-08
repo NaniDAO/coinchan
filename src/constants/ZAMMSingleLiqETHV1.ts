@@ -1,4 +1,4 @@
-import { Address } from "viem";
+import type { Address } from "viem";
 
 // ZAMMSingleLiqETH V1 contract constants
 export const ZAMMSingleLiqETHV1Address: Address = "0x0000000000Ee8cD7fd26236a2e4C1505dAc0Dce9";

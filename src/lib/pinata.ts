@@ -1,6 +1,4 @@
-export async function pinJsonToPinata(
-  jsonObject: Record<string, unknown>,
-): Promise<string> {
+export async function pinJsonToPinata(jsonObject: Record<string, unknown>): Promise<string> {
   const pinataJWT = import.meta.env.VITE_PINATA_JWT;
   if (!pinataJWT) {
     throw new Error("PINATA_JWT is not defined in environment variables.");
@@ -17,9 +15,7 @@ export async function pinJsonToPinata(
 
   const pinJson = await pinRes.json();
   if (!pinJson?.IpfsHash) {
-    throw new Error(
-      `Failed to pin JSON to IPFS: ${pinJson?.error ? JSON.stringify(pinJson?.error, null, 2) : ""}`,
-    );
+    throw new Error(`Failed to pin JSON to IPFS: ${pinJson?.error ? JSON.stringify(pinJson?.error, null, 2) : ""}`);
   }
 
   return `ipfs://${pinJson.IpfsHash}`;
@@ -47,9 +43,7 @@ export async function pinImageToPinata(
 
   const pinJson = await pinRes.json();
   if (!pinJson?.IpfsHash) {
-    throw new Error(
-      `Failed to pin image to IPFS: ${pinJson?.error ? JSON.stringify(pinJson?.error, null, 2) : ""}`,
-    );
+    throw new Error(`Failed to pin image to IPFS: ${pinJson?.error ? JSON.stringify(pinJson?.error, null, 2) : ""}`);
   }
 
   return `ipfs://${pinJson.IpfsHash}`;

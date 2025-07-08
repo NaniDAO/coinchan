@@ -1,4 +1,4 @@
-import { Address } from "viem";
+import type { Address } from "viem";
 
 export const ZAMMAddress = "0x00000000000008882D72EfA6cCE4B6a40b24C860" as Address;
 export const ZAMMAbi = [

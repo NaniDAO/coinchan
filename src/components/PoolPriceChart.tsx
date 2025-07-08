@@ -1,21 +1,22 @@
-import React, { useRef, useLayoutEffect, useEffect, useState } from "react";
-import {
-  createChart,
-  LineSeries,
-  LineSeriesOptions,
-  UTCTimestamp,
-  ColorType,
-  PriceFormatBuiltIn,
-  ISeriesApi,
-  PriceScaleMode,
-} from "lightweight-charts";
-import { LoadingLogo } from "@/components/ui/loading-logo";
-import { useQuery } from "@tanstack/react-query";
-import { fetchPoolPricePoints, PricePointData } from "@/lib/indexer";
-import { formatEther } from "viem";
 import { Button } from "@/components/ui/button";
+import { LoadingLogo } from "@/components/ui/loading-logo";
 import { useChartTheme } from "@/hooks/use-chart-theme";
+import { type PricePointData, fetchPoolPricePoints } from "@/lib/indexer";
+import { useQuery } from "@tanstack/react-query";
+import {
+  ColorType,
+  type ISeriesApi,
+  LineSeries,
+  type LineSeriesOptions,
+  type PriceFormatBuiltIn,
+  PriceScaleMode,
+  type UTCTimestamp,
+  createChart,
+} from "lightweight-charts";
+import type React from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { formatEther } from "viem";
 
 interface PriceChartProps {
   poolId: string;
@@ -197,7 +198,9 @@ const TVPriceChart: React.FC<{
       });
 
       // Convert back to array and sort
-      const sorted = Array.from(uniqueData.values()).sort((a, b) => parseInt(a.timestamp) - parseInt(b.timestamp));
+      const sorted = Array.from(uniqueData.values()).sort(
+        (a, b) => Number.parseInt(a.timestamp) - Number.parseInt(b.timestamp),
+      );
 
       // Map to chart-compatible format and ensure uniqueness of timestamps
       const timestampMap = new Map<number, number>(); // Map to store unique timestamps with their values
@@ -205,7 +208,7 @@ const TVPriceChart: React.FC<{
       sorted.forEach((d) => {
         try {
           // Parse timestamp as Unix timestamp (seconds since epoch)
-          const timestamp = parseInt(d.timestamp);
+          const timestamp = Number.parseInt(d.timestamp);
 
           // Check if timestamp is valid
           if (isNaN(timestamp)) {
@@ -213,7 +216,7 @@ const TVPriceChart: React.FC<{
             return;
           }
 
-          const price = parseFloat(d.price1);
+          const price = Number.parseFloat(d.price1);
           // Check if price is valid
           if (isNaN(price)) {
             console.warn("Invalid price:", d.price1);

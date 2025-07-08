@@ -1,5 +1,5 @@
 import { mainnet } from "viem/chains";
-import { useChainId, useAccount } from "wagmi";
+import { useAccount, useChainId } from "wagmi";
 
 export const NetworkError = ({ message }: { message: string }) => {
   const { isConnected } = useAccount();

@@ -1,13 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { PoolSwapChart } from "./PoolSwapChart";
-import { CheckIcon, ExternalLink } from "lucide-react";
-import { LoadingLogo } from "./components/ui/loading-logo";
 import { Link } from "@tanstack/react-router";
-import { formatEther, formatUnits, parseEther, parseUnits, encodeFunctionData } from "viem";
+import { CheckIcon, ExternalLink } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { analyzeTokens, getAmountIn, getAmountOut, getPoolIds, SLIPPAGE_BPS, SWAP_FEE, getSwapFee } from "./lib/swap";
-import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
-import { NetworkError } from "./components/NetworkError";
+import { encodeFunctionData, formatEther, formatUnits, parseEther, parseUnits } from "viem";
+import { mainnet } from "viem/chains";
 import {
   useAccount,
   useChainId,
@@ -16,19 +12,23 @@ import {
   useSendTransaction,
   useWaitForTransactionReceipt,
 } from "wagmi";
-import { handleWalletError, isUserRejectionError } from "./lib/errors";
-import { TokenMeta } from "./lib/coins";
+import { useReadContract } from "wagmi";
+import { PoolSwapChart } from "./PoolSwapChart";
+import { FlipActionButton } from "./components/FlipActionButton";
+import { NetworkError } from "./components/NetworkError";
+import { SlippageSettings } from "./components/SlippageSettings";
+import { SwapPanel } from "./components/SwapPanel";
+import { LoadingLogo } from "./components/ui/loading-logo";
+import { CoinsAbi, CoinsAddress } from "./constants/Coins";
+import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
 import { useTokenSelection } from "./contexts/TokenSelectionContext";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
-import { mainnet } from "viem/chains";
-import { SlippageSettings } from "./components/SlippageSettings";
-import { FlipActionButton } from "./components/FlipActionButton";
-import { SwapPanel } from "./components/SwapPanel";
+import { useBatchingSupported } from "./hooks/use-batching-supported";
 import { useReserves } from "./hooks/use-reserves";
 import { buildSwapCalls } from "./lib/build-swap-calls";
-import { useBatchingSupported } from "./hooks/use-batching-supported";
-import { CoinsAbi, CoinsAddress } from "./constants/Coins";
-import { useReadContract } from "wagmi";
+import type { TokenMeta } from "./lib/coins";
+import { handleWalletError, isUserRejectionError } from "./lib/errors";
+import { SLIPPAGE_BPS, SWAP_FEE, analyzeTokens, getAmountIn, getAmountOut, getPoolIds, getSwapFee } from "./lib/swap";
 import { cn } from "./lib/utils";
 
 export const SwapAction = () => {
@@ -704,7 +704,8 @@ export const SwapAction = () => {
             {sellAmt && buyAmt && buyToken && (
               <div className="pt-2 border-t border-primary/10">
                 <div className="text-xs text-muted-foreground dark:text-gray-300">
-                  Rate: 1 {sellToken.symbol} = {(parseFloat(buyAmt) / parseFloat(sellAmt)).toFixed(6)} {buyToken.symbol}
+                  Rate: 1 {sellToken.symbol} = {(Number.parseFloat(buyAmt) / Number.parseFloat(sellAmt)).toFixed(6)}{" "}
+                  {buyToken.symbol}
                 </div>
               </div>
             )}

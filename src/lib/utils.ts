@@ -1,11 +1,11 @@
-import { clsx, type ClassValue } from "clsx";
+import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function trunc(value: number | string, length: number = 3): string {
+export function trunc(value: number | string, length = 3): string {
   return value.toString().slice(0, length) + "..." + value.toString().slice(-length);
 }
 
@@ -21,7 +21,7 @@ export const nowSec = () => BigInt(Math.floor(Date.now() / 1000));
  * @param decimals Number of decimal places to include (default: 2)
  * @returns Formatted string with thousands separators
  */
-export function formatNumber(value: number, decimals: number = 2): string {
+export function formatNumber(value: number, decimals = 2): string {
   return new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 0,
     maximumFractionDigits: decimals,
@@ -35,7 +35,7 @@ export function formatNumber(value: number, decimals: number = 2): string {
  * @returns Formatted string with commas, no decimals for integers
  */
 export function formatNumberInput(value: number | string): string {
-  const num = typeof value === "string" ? parseFloat(value) : value;
+  const num = typeof value === "string" ? Number.parseFloat(value) : value;
   if (isNaN(num)) return "";
 
   // For whole numbers, don't show decimals
@@ -61,7 +61,7 @@ export function formatNumberInput(value: number | string): string {
 export function parseNumberInput(value: string): number {
   // Remove commas and parse
   const cleaned = value.replace(/,/g, "");
-  return parseFloat(cleaned);
+  return Number.parseFloat(cleaned);
 }
 
 /**
@@ -85,14 +85,12 @@ export function debounce<T extends (...args: any[]) => any>(func: T, wait = 300)
   let timeout: ReturnType<typeof setTimeout> | null = null;
 
   return function (this: any, ...args: Parameters<T>): void {
-    const context = this;
-
     if (timeout !== null) {
       clearTimeout(timeout);
     }
 
     timeout = setTimeout(() => {
-      func.apply(context, args);
+      func.apply(this, args);
       timeout = null;
     }, wait);
   };
@@ -150,6 +148,95 @@ export function formatDeadline(deadline: number): {
       urgency: days < 2 ? "warning" : "normal",
     };
   }
+}
+
+/**
+ * Safely format numbers for display with overflow protection
+ * @param value The number or string to format
+ * @param maxDecimals Maximum decimal places to show
+ * @param maxLength Maximum total character length
+ * @param useAbbreviation Whether to use K/M/B abbreviations for large numbers
+ * @returns Formatted string safe for UI display
+ */
+export function formatDisplayNumber(
+  value: string | number | bigint,
+  maxDecimals = 6,
+  maxLength = 12,
+  useAbbreviation = false,
+): string {
+  const num = typeof value === "string" ? Number.parseFloat(value) : typeof value === "bigint" ? Number(value) : value;
+  if (isNaN(num) || !isFinite(num)) return "0";
+
+  // For very large numbers, use abbreviations if enabled
+  if (useAbbreviation) {
+    if (num >= 1e12) return (num / 1e12).toFixed(2) + "T";
+    if (num >= 1e9) return (num / 1e9).toFixed(2) + "B";
+    if (num >= 1e6) return (num / 1e6).toFixed(2) + "M";
+    if (num >= 1e3) return (num / 1e3).toFixed(2) + "K";
+  }
+
+  // For very large numbers without abbreviation, use scientific notation
+  if (num >= 1e12) return num.toExponential(2);
+
+  // For very small numbers, use scientific notation
+  if (num > 0 && num < 1e-6) return num.toExponential(2);
+
+  // Handle zero
+  if (num === 0) return "0";
+
+  // Smart decimal places based on magnitude
+  let decimals = maxDecimals;
+  if (num >= 1000) decimals = Math.min(maxDecimals, 2);
+  else if (num >= 100) decimals = Math.min(maxDecimals, 3);
+  else if (num >= 10) decimals = Math.min(maxDecimals, 4);
+
+  let formatted = num.toFixed(decimals);
+
+  // Remove trailing zeros
+  formatted = formatted.replace(/\.?0+$/, "");
+
+  // If still too long, reduce decimals progressively
+  while (formatted.length > maxLength && decimals > 0) {
+    decimals--;
+    formatted = num.toFixed(decimals).replace(/\.?0+$/, "");
+  }
+
+  // Last resort: use scientific notation if still too long
+  if (formatted.length > maxLength) {
+    return num.toExponential(2);
+  }
+
+  return formatted;
+}
+
+/**
+ * Format reward rates with intelligent precision
+ * @param perSecond Rate per second as string
+ * @param symbol Token symbol
+ * @returns Formatted display string
+ */
+export function formatRewardRate(perSecond: string, symbol = ""): string {
+  const num = Number.parseFloat(perSecond);
+  if (isNaN(num) || num === 0) return `0 ${symbol}/sec`;
+
+  // For very small per-second rates, show per day instead
+  if (num < 0.001) {
+    const perDay = num * 86400;
+    return `${formatDisplayNumber(perDay, 4, 10)} ${symbol}/day`;
+  }
+
+  return `${formatDisplayNumber(num, 6, 10)} ${symbol}/sec`;
+}
+
+/**
+ * Format balance amounts with appropriate precision
+ * @param amount Amount as string or number
+ * @param symbol Token symbol
+ * @param maxLength Maximum display length
+ * @returns Formatted balance string
+ */
+export function formatBalance(amount: string | number | bigint, symbol = ""): string {
+  return symbol ? `${Number(amount).toFixed(2)} ${symbol}` : amount.toString();
 }
 
 export const generateRandomSlug = () => {

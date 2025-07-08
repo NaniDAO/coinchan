@@ -1,27 +1,27 @@
-import { useMemo, useState, ChangeEvent } from "react";
-import { useWriteContract, useAccount, usePublicClient } from "wagmi";
-import { useTranslation } from "react-i18next";
-import { ZAMMLaunchAddress, ZAMMLaunchAbi } from "@/constants/ZAMMLaunch";
+import { ZAMMLaunchAbi, ZAMMLaunchAddress } from "@/constants/ZAMMLaunch";
 import { pinImageToPinata, pinJsonToPinata } from "@/lib/pinata";
+import { type ChangeEvent, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useAccount, usePublicClient, useWriteContract } from "wagmi";
 import { z } from "zod";
 
+import { TrancheInfoDialog } from "@/components/TrancheInfoDialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { ImageInput } from "@/components/ui/image-input";
+import { Input } from "@/components/ui/input";
 // shadcn components
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ImageInput } from "@/components/ui/image-input";
-import { TrancheInfoDialog } from "@/components/TrancheInfoDialog";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 
-import { ResponsiveContainer, ComposedChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, Line, Area } from "recharts";
-import { parseEther } from "viem";
-import { toast } from "sonner";
-import { generateRandomSlug, formatNumberInput, handleNumberInputChange } from "@/lib/utils";
-import { XIcon } from "lucide-react";
-import { ChartIcon, CoinIcon, PoolIcon } from "./ui/icons";
+import { formatNumberInput, generateRandomSlug, handleNumberInputChange } from "@/lib/utils";
 import { Link } from "@tanstack/react-router";
+import { XIcon } from "lucide-react";
+import { Area, Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { toast } from "sonner";
+import { parseEther } from "viem";
+import { ChartIcon, CoinIcon, PoolIcon } from "./ui/icons";
 
 const defaultTranche = {
   coins: 150000000,
@@ -168,7 +168,7 @@ export const LaunchForm = () => {
       handleNumberInputChange(value, (cleanValue) => {
         setFormData((prev) => {
           const newTranches = [...prev.tranches];
-          newTranches[index][field] = parseFloat(cleanValue) || 0;
+          newTranches[index][field] = Number.parseFloat(cleanValue) || 0;
           return {
             ...prev,
             tranches: newTranches,
@@ -181,7 +181,7 @@ export const LaunchForm = () => {
     // Handle price field normally (small decimal values)
     setFormData((prev) => {
       const newTranches = [...prev.tranches];
-      newTranches[index][field] = parseFloat(value) || 0;
+      newTranches[index][field] = Number.parseFloat(value) || 0;
       return {
         ...prev,
         tranches: newTranches,
@@ -196,7 +196,7 @@ export const LaunchForm = () => {
         ...prev.tranches,
         {
           coins: defaultTranche.coins,
-          price: parseFloat(
+          price: Number.parseFloat(
             (Number(defaultTranche.price) + prev.tranches.length * Number(defaultTranche.price)).toFixed(2),
           ),
         },
@@ -972,7 +972,7 @@ export const LaunchForm = () => {
                         (totalSupply - creatorSupply - saleSupply - poolLiquidity) /
                         1000000
                       ).toFixed(0);
-                      const hasRemaining = parseFloat(remainingAmount) > 0;
+                      const hasRemaining = Number.parseFloat(remainingAmount) > 0;
 
                       if (hasRemaining) {
                         return t("create.supply_breakdown_explanation", {
