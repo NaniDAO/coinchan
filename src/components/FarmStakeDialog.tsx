@@ -71,10 +71,11 @@ export function FarmStakeDialog({
   const { validateStreamBeforeAction } = useStreamValidation();
   // Note: rewardPerSharePerYear is now handled in useCombinedApy hook
 
-  // Get actual LP token balance for this pool
+  // Get actual LP token balance for this pool using the stream's LP ID
   const { balance: lpTokenBalance, isLoading: isLpBalanceLoading } =
     useLpBalance({
       lpToken,
+      poolId: stream.lpId,
       enabled: stakeMode === "lp",
     });
 

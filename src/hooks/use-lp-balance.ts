@@ -8,6 +8,7 @@ import { useAccount, usePublicClient } from "wagmi";
 
 interface UseLpBalanceParams {
   lpToken: TokenMeta;
+  poolId?: bigint; // Optional pool ID to override the calculated one
   enabled?: boolean;
 }
 
@@ -15,7 +16,7 @@ interface UseLpBalanceParams {
  * Hook to fetch the user's LP token balance for a specific pool
  * Uses the same logic as RemoveLiquidity component
  */
-export function useLpBalance({ lpToken, enabled = true }: UseLpBalanceParams) {
+export function useLpBalance({ lpToken, poolId: providedPoolId, enabled = true }: UseLpBalanceParams) {
   const { address } = useAccount();
   const publicClient = usePublicClient();
 
@@ -25,26 +26,33 @@ export function useLpBalance({ lpToken, enabled = true }: UseLpBalanceParams) {
     error,
     refetch,
   } = useQuery({
-    queryKey: ["lpBalance", address, lpToken.id?.toString(), lpToken.poolId?.toString()],
+    queryKey: ["lpBalance", address, lpToken.id?.toString(), lpToken.poolId?.toString(), providedPoolId?.toString()],
     queryFn: async () => {
-      if (!address || !publicClient || !lpToken.id) return 0n;
+      if (!address || !publicClient) return 0n;
 
       try {
         let poolId: bigint;
-        const isCustomPool = lpToken.isCustomPool;
-
-        // Calculate pool ID using the same logic as RemoveLiquidity
-        if (isCustomPool) {
-          poolId = lpToken.poolId || USDT_POOL_ID;
+        
+        // Use provided pool ID if available (e.g., from IncentiveStream.lpId)
+        if (providedPoolId !== undefined) {
+          poolId = providedPoolId;
+        } else if (!lpToken.id) {
+          return 0n;
         } else {
-          const coinId = lpToken.id;
-          const isCookbook = isCookbookCoin(coinId);
-          const contractAddress = isCookbook ? CookbookAddress : ZAMMAddress;
-          poolId = computePoolId(coinId, lpToken.swapFee || 100n, contractAddress);
+          // Calculate pool ID using the same logic as RemoveLiquidity
+          const isCustomPool = lpToken.isCustomPool;
+          if (isCustomPool) {
+            poolId = lpToken.poolId || USDT_POOL_ID;
+          } else {
+            const coinId = lpToken.id;
+            const isCookbook = isCookbookCoin(coinId);
+            const contractAddress = isCookbook ? CookbookAddress : ZAMMAddress;
+            poolId = computePoolId(coinId, lpToken.swapFee || 100n, contractAddress);
+          }
         }
 
         // Determine which ZAMM address to use for LP balance lookup
-        const isCookbook = isCustomPool ? false : isCookbookCoin(lpToken.id);
+        const isCookbook = lpToken.isCustomPool ? false : (lpToken.id ? isCookbookCoin(lpToken.id) : false);
         const targetZAMMAddress = isCookbook ? CookbookAddress : ZAMMAddress;
         const targetZAMMAbi = isCookbook ? CookbookAbi : ZAMMAbi;
 
@@ -62,7 +70,7 @@ export function useLpBalance({ lpToken, enabled = true }: UseLpBalanceParams) {
         return 0n;
       }
     },
-    enabled: enabled && !!address && !!publicClient && !!lpToken.id,
+    enabled: enabled && !!address && !!publicClient && (!!lpToken.id || providedPoolId !== undefined),
     staleTime: 30_000, // Cache for 30 seconds
     refetchInterval: 60_000, // Refetch every minute
   });
