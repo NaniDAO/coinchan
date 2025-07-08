@@ -32,7 +32,7 @@ export function useLpBalance({ lpToken, poolId: providedPoolId, enabled = true }
 
       try {
         let poolId: bigint;
-        
+
         // Use provided pool ID if available (e.g., from IncentiveStream.lpId)
         if (providedPoolId !== undefined) {
           poolId = providedPoolId;
@@ -52,7 +52,7 @@ export function useLpBalance({ lpToken, poolId: providedPoolId, enabled = true }
         }
 
         // Determine which ZAMM address to use for LP balance lookup
-        const isCookbook = lpToken.isCustomPool ? false : (lpToken.id ? isCookbookCoin(lpToken.id) : false);
+        const isCookbook = lpToken.isCustomPool ? false : lpToken.id ? isCookbookCoin(lpToken.id) : false;
         const targetZAMMAddress = isCookbook ? CookbookAddress : ZAMMAddress;
         const targetZAMMAbi = isCookbook ? CookbookAbi : ZAMMAbi;
 

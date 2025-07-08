@@ -1,19 +1,10 @@
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatImageURL } from "@/hooks/metadata";
 import type { IncentiveStream } from "@/hooks/use-incentive-streams";
-import {
-  useZChefActions,
-  useZChefPendingReward,
-} from "@/hooks/use-zchef-contract";
+import { useZChefActions, useZChefPendingReward } from "@/hooks/use-zchef-contract";
 import type { TokenMeta } from "@/lib/coins";
 import { isUserRejectionError } from "@/lib/errors";
 import { cn, formatBalance } from "@/lib/utils";
@@ -35,29 +26,20 @@ interface FarmUnstakeDialogProps {
   onSuccess?: () => void;
 }
 
-export function FarmUnstakeDialog({
-  stream,
-  lpToken,
-  userPosition,
-  trigger,
-  onSuccess,
-}: FarmUnstakeDialogProps) {
+export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSuccess }: FarmUnstakeDialogProps) {
   const { t } = useTranslation();
   const publicClient = usePublicClient();
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [txHash, setTxHash] = useState<string | null>(null);
-  const [txStatus, setTxStatus] = useState<
-    "idle" | "pending" | "confirming" | "success" | "error"
-  >("idle");
+  const [txStatus, setTxStatus] = useState<"idle" | "pending" | "confirming" | "success" | "error">("idle");
   const [txError, setTxError] = useState<string | null>(null);
 
   const { withdraw } = useZChefActions();
 
   // Get real-time pending rewards from contract
   const { data: onchainPendingRewards } = useZChefPendingReward(stream.chefId);
-  const actualPendingRewards =
-    onchainPendingRewards ?? userPosition.pendingRewards;
+  const actualPendingRewards = onchainPendingRewards ?? userPosition.pendingRewards;
 
   const maxAmount = formatEther(userPosition.shares);
   // const rewardTokenDecimals = stream.rewardCoin?.decimals || 18;
@@ -124,7 +106,7 @@ export function FarmUnstakeDialog({
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="sm:max-w-xl w-[95vw] max-h-[90vh] overflow-y-auto bg-card text-card-foreground border-2 border-border shadow-[4px_4px_0_var(--border)]">
         <DialogHeader className="text-center">
-          <DialogTitle className="font-mono font-bold uppercase text-xl tracking-wider bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+          <DialogTitle className="font-mono font-bold uppercase text-xl tracking-wider text-primary">
             [{t("common.unstake_lp_tokens")}]
           </DialogTitle>
           <div className="h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent mt-2"></div>
@@ -150,21 +132,15 @@ export function FarmUnstakeDialog({
                     (() => {
                       const lpId = stream.lpId?.toString();
                       // LP IDs are always full uint, truncate for UI
-                      return lpId && lpId.length > 12
-                        ? `Pool ${lpId.slice(0, 6)}...${lpId.slice(-6)}`
-                        : `Pool ${lpId}`;
+                      return lpId && lpId.length > 12 ? `Pool ${lpId.slice(0, 6)}...${lpId.slice(-6)}` : `Pool ${lpId}`;
                     })()}
                 </h3>
-                <p className="text-xs text-muted-foreground font-mono">
-                  {t("common.lp_token_pool")}
-                </p>
+                <p className="text-xs text-muted-foreground font-mono">{t("common.lp_token_pool")}</p>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="bg-background/30 border border-primary/20 rounded p-3">
-                <p className="text-muted-foreground font-mono text-xs">
-                  {t("common.reward_token")}
-                </p>
+                <p className="text-muted-foreground font-mono text-xs">{t("common.reward_token")}</p>
                 <div className="flex items-center gap-2 mt-1">
                   {stream.rewardCoin?.imageUrl && (
                     <img
@@ -173,20 +149,13 @@ export function FarmUnstakeDialog({
                       className="w-5 h-5 rounded-full border border-primary/40"
                     />
                   )}
-                  <p className="font-mono font-bold text-primary">
-                    {stream.rewardCoin?.symbol}
-                  </p>
+                  <p className="font-mono font-bold text-primary">{stream.rewardCoin?.symbol}</p>
                 </div>
               </div>
               <div className="bg-background/30 border border-primary/20 rounded p-3">
-                <p className="text-muted-foreground font-mono text-xs">
-                  {t("common.pending_rewards")}
-                </p>
+                <p className="text-muted-foreground font-mono text-xs">{t("common.pending_rewards")}</p>
                 <p className="font-mono font-bold text-primary">
-                  {Number.parseFloat(formatEther(actualPendingRewards)).toFixed(
-                    6,
-                  )}{" "}
-                  {stream.rewardCoin?.symbol}
+                  {Number.parseFloat(formatEther(actualPendingRewards)).toFixed(6)} {stream.rewardCoin?.symbol}
                 </p>
               </div>
             </div>
@@ -196,12 +165,8 @@ export function FarmUnstakeDialog({
 
           {/* Amount Input */}
           <div className="space-y-3">
-            <Label
-              htmlFor="amount"
-              className="font-mono font-bold text-primary uppercase tracking-wide"
-            >
-              <span className="text-muted-foreground">&gt;</span>{" "}
-              {t("common.amount_to_unstake")}
+            <Label htmlFor="amount" className="font-mono font-bold text-primary uppercase tracking-wide">
+              <span className="text-muted-foreground">&gt;</span> {t("common.amount_to_unstake")}
             </Label>
             <div className="flex gap-3">
               <Input
@@ -228,12 +193,8 @@ export function FarmUnstakeDialog({
             </div>
             <div className="bg-background/30 border border-primary/20 rounded p-3">
               <div className="flex justify-between text-sm font-mono">
-                <span className="text-muted-foreground">
-                  {t("common.staked")}:
-                </span>
-                <span className="text-primary font-bold">
-                  {formatBalance(maxAmount, lpToken?.symbol)}
-                </span>
+                <span className="text-muted-foreground">{t("common.staked")}:</span>
+                <span className="text-primary font-bold">{formatBalance(maxAmount, `${lpToken?.symbol} LP`)}</span>
               </div>
             </div>
           </div>
@@ -241,30 +202,21 @@ export function FarmUnstakeDialog({
           {/* Unstake Preview */}
           {amount && Number.parseFloat(amount) > 0 && (
             <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/30 rounded-lg p-4">
-              <h4 className="font-mono font-bold text-base text-primary mb-4">
-                [{t("common.transaction_preview")}]
-              </h4>
+              <h4 className="font-mono font-bold text-base text-primary mb-4">[{t("common.transaction_preview")}]</h4>
               <div className="space-y-3">
                 <div className="bg-background/40 border border-primary/20 rounded p-3">
                   <div className="flex justify-between items-center">
-                    <span className="font-mono text-muted-foreground">
-                      {t("common.unstaking_amount")}:
-                    </span>
+                    <span className="font-mono text-muted-foreground">{t("common.unstaking_amount")}:</span>
                     <span className="font-mono font-bold text-primary text-lg">
-                      {amount} {lpToken?.symbol}
+                      {amount} {lpToken?.symbol} LP
                     </span>
                   </div>
                 </div>
                 <div className="bg-background/40 border border-primary/20 rounded p-3">
                   <div className="flex justify-between items-center">
-                    <span className="font-mono text-muted-foreground">
-                      {t("common.rewards_to_claim")}:
-                    </span>
+                    <span className="font-mono text-muted-foreground">{t("common.rewards_to_claim")}:</span>
                     <span className="font-mono font-bold text-primary text-lg">
-                      {formatBalance(
-                        formatEther(actualPendingRewards),
-                        stream.rewardCoin?.symbol,
-                      )}
+                      {formatBalance(formatEther(actualPendingRewards), stream.rewardCoin?.symbol)}
                     </span>
                   </div>
                 </div>
@@ -277,9 +229,7 @@ export function FarmUnstakeDialog({
             <div className="flex items-start gap-3">
               <div className="text-blue-500 text-xl">ℹ️</div>
               <div>
-                <p className="font-mono font-bold text-blue-600 dark:text-blue-400 text-sm">
-                  [{t("common.info")}]
-                </p>
+                <p className="font-mono font-bold text-blue-600 dark:text-blue-400 text-sm">[{t("common.info")}]</p>
                 <p className="text-sm text-blue-700 dark:text-blue-300 font-mono mt-1">
                   {t("common.unstaking_will_claim_rewards")}
                 </p>
@@ -330,33 +280,25 @@ export function FarmUnstakeDialog({
                   {txStatus === "pending" && (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent"></div>
-                      <span className="font-mono font-bold text-primary">
-                        [{t("common.status_pending")}]
-                      </span>
+                      <span className="font-mono font-bold text-primary">[{t("common.status_pending")}]</span>
                     </>
                   )}
                   {txStatus === "confirming" && (
                     <>
                       <div className="animate-pulse h-4 w-4 bg-yellow-500 rounded-full"></div>
-                      <span className="font-mono font-bold text-yellow-500">
-                        [{t("common.status_confirming")}]
-                      </span>
+                      <span className="font-mono font-bold text-yellow-500">[{t("common.status_confirming")}]</span>
                     </>
                   )}
                   {txStatus === "success" && (
                     <>
                       <div className="h-4 w-4 bg-green-500 rounded-full"></div>
-                      <span className="font-mono font-bold text-green-500">
-                        [{t("common.status_success")}]
-                      </span>
+                      <span className="font-mono font-bold text-green-500">[{t("common.status_success")}]</span>
                     </>
                   )}
                   {txStatus === "error" && (
                     <>
                       <div className="h-4 w-4 bg-red-500 rounded-full"></div>
-                      <span className="font-mono font-bold text-red-500">
-                        [{t("common.status_error")}]
-                      </span>
+                      <span className="font-mono font-bold text-red-500">[{t("common.status_error")}]</span>
                     </>
                   )}
                 </div>
@@ -369,32 +311,24 @@ export function FarmUnstakeDialog({
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 px-3 py-1.5 bg-background/50 border border-primary/20 rounded font-mono text-xs hover:bg-primary/10 transition-colors duration-200"
                     >
-                      <span className="text-muted-foreground">
-                        {t("common.tx_label")}:
-                      </span>
+                      <span className="text-muted-foreground">{t("common.tx_label")}:</span>
                       <span className="text-primary font-bold">
                         {txHash.slice(0, 6)}...{txHash.slice(-4)}
                       </span>
-                      <span className="text-muted-foreground">
-                        {t("common.external_link")}
-                      </span>
+                      <span className="text-muted-foreground">{t("common.external_link")}</span>
                     </a>
                   </div>
                 )}
 
                 {txError && (
                   <div className="text-center">
-                    <p className="text-sm text-red-400 font-mono break-words">
-                      {txError}
-                    </p>
+                    <p className="text-sm text-red-400 font-mono break-words">{txError}</p>
                   </div>
                 )}
 
                 {txStatus === "success" && (
                   <div className="text-center">
-                    <p className="text-sm text-green-400 font-mono">
-                      {t("common.lp_unstaked_rewards_claimed")}
-                    </p>
+                    <p className="text-sm text-green-400 font-mono">{t("common.lp_unstaked_rewards_claimed")}</p>
                   </div>
                 )}
               </div>

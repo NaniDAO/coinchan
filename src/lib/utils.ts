@@ -6,9 +6,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function trunc(value: number | string, length = 3): string {
-  return (
-    value.toString().slice(0, length) + "..." + value.toString().slice(-length)
-  );
+  return value.toString().slice(0, length) + "..." + value.toString().slice(-length);
 }
 
 /**
@@ -83,10 +81,7 @@ export function cleanNumberInput(value: string): string {
  * @param wait The number of milliseconds to delay
  * @returns A debounced function
  */
-export function debounce<T extends (...args: any[]) => any>(
-  func: T,
-  wait = 300,
-): (...args: Parameters<T>) => void {
+export function debounce<T extends (...args: any[]) => any>(func: T, wait = 300): (...args: Parameters<T>) => void {
   let timeout: ReturnType<typeof setTimeout> | null = null;
 
   return function (this: any, ...args: Parameters<T>): void {
@@ -106,10 +101,7 @@ export function debounce<T extends (...args: any[]) => any>(
  * @param value The input value
  * @param callback Function to call with the cleaned numeric value
  */
-export function handleNumberInputChange(
-  value: string,
-  callback: (cleanValue: string) => void,
-): void {
+export function handleNumberInputChange(value: string, callback: (cleanValue: string) => void): void {
   // Remove commas for processing
   const cleaned = cleanNumberInput(value);
 
@@ -172,12 +164,7 @@ export function formatDisplayNumber(
   maxLength = 12,
   useAbbreviation = false,
 ): string {
-  const num =
-    typeof value === "string"
-      ? Number.parseFloat(value)
-      : typeof value === "bigint"
-        ? Number(value)
-        : value;
+  const num = typeof value === "string" ? Number.parseFloat(value) : typeof value === "bigint" ? Number(value) : value;
   if (isNaN(num) || !isFinite(num)) return "0";
 
   // For very large numbers, use abbreviations if enabled
@@ -248,10 +235,7 @@ export function formatRewardRate(perSecond: string, symbol = ""): string {
  * @param maxLength Maximum display length
  * @returns Formatted balance string
  */
-export function formatBalance(
-  amount: string | number | bigint,
-  symbol = "",
-): string {
+export function formatBalance(amount: string | number | bigint, symbol = ""): string {
   return symbol ? `${Number(amount).toFixed(2)} ${symbol}` : amount.toString();
 }
 

@@ -12,11 +12,7 @@ interface APYDisplayProps {
   shortView?: boolean;
 }
 
-export function APYDisplay({
-  stream,
-  lpToken,
-  shortView = true,
-}: APYDisplayProps) {
+export function APYDisplay({ stream, lpToken, shortView = true }: APYDisplayProps) {
   const { t } = useTranslation();
   const { calculateAPY } = useZChefUtilities();
   // Calculate combined APY (base + farm incentives)
@@ -33,10 +29,7 @@ export function APYDisplay({
     // Calculate daily rewards
     // Note: rewardRate = (rewardAmount * ACC_PRECISION) / duration, where rewardAmount has rewardTokenDecimals
     // So rewardRate has scaling of (rewardTokenDecimals + 12) decimals
-    const dailyRewards = formatUnits(
-      BigInt(stream.rewardRate) * 86400n,
-      rewardTokenDecimals + 12,
-    );
+    const dailyRewards = formatUnits(BigInt(stream.rewardRate) * 86400n, rewardTokenDecimals + 12);
 
     return { dailyRewards, rewardTokenDecimals };
   }, [stream.rewardRate, stream.totalShares, calculateAPY]);
@@ -61,9 +54,7 @@ export function APYDisplay({
   if (shortView) {
     return (
       <>
-        <p className="text-muted-foreground font-mono font-medium text-xs">
-          [{t("common.total_apy")}]
-        </p>
+        <p className="text-muted-foreground font-mono font-medium text-xs">[{t("common.total_apy")}]</p>
         <p className="font-mono font-bold text-lg text-green-600 dark:text-green-400 mt-1">
           {combinedApyData.totalApy.toFixed(2)}%
         </p>
@@ -81,9 +72,7 @@ export function APYDisplay({
       {/* Total APY Display */}
       <div className="mb-4 p-3 bg-gradient-to-r from-green-600/20 to-green-500/10 border border-green-500/40 rounded">
         <div className="text-center">
-          <p className="text-muted-foreground font-mono text-xs">
-            {t("common.total_apy")}:
-          </p>
+          <p className="text-muted-foreground font-mono text-xs">{t("common.total_apy")}:</p>
           <p className="font-mono font-bold text-green-600 dark:text-green-400 text-2xl">
             {combinedApyData.totalApy.toFixed(2)}%
           </p>
@@ -118,8 +107,7 @@ export function APYDisplay({
 
       <div className="mt-3 p-2 bg-background/30 border border-green-500/20 rounded">
         <p className="text-xs font-mono text-muted-foreground">
-          <span className="text-green-600 dark:text-green-400">ℹ</span>{" "}
-          {t("common.combined_apy_note")}
+          <span className="text-green-600 dark:text-green-400">ℹ</span> {t("common.combined_apy_note")}
         </p>
       </div>
     </div>

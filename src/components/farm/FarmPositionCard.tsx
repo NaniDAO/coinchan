@@ -1,7 +1,4 @@
-import type {
-  IncentiveStream,
-  IncentiveUserPosition,
-} from "@/hooks/use-incentive-streams";
+import type { IncentiveStream, IncentiveUserPosition } from "@/hooks/use-incentive-streams";
 import { useZChefPendingReward } from "@/hooks/use-zchef-contract";
 import { ETH_TOKEN, type TokenMeta } from "@/lib/coins";
 import { formatBalance } from "@/lib/utils";
@@ -19,23 +16,13 @@ interface FarmPositionCardProps {
   isHarvesting: boolean;
 }
 
-export function FarmPositionCard({
-  position,
-  stream,
-  lpToken,
-  onHarvest,
-  isHarvesting,
-}: FarmPositionCardProps) {
+export function FarmPositionCard({ position, stream, lpToken, onHarvest, isHarvesting }: FarmPositionCardProps) {
   const { t } = useTranslation();
 
   // Get real-time pending rewards from contract
   const { data: onchainPendingRewards } = useZChefPendingReward(stream.chefId);
   const actualPendingRewards = onchainPendingRewards ?? position.pendingRewards;
-  if (
-    actualPendingRewards === undefined ||
-    actualPendingRewards === null ||
-    actualPendingRewards === 0n
-  ) {
+  if (actualPendingRewards === undefined || actualPendingRewards === null || actualPendingRewards === 0n) {
     return null;
   }
   return (
@@ -50,10 +37,7 @@ export function FarmPositionCard({
                 {t("common.pending_rewards")}:
               </span>
               <span className="font-mono font-bold text-green-600 dark:text-green-400">
-                {formatBalance(
-                  formatEther(actualPendingRewards),
-                  stream.rewardCoin?.symbol,
-                )}
+                {formatBalance(formatEther(actualPendingRewards), stream.rewardCoin?.symbol)}
               </span>
             </div>
           </div>
@@ -67,9 +51,7 @@ export function FarmPositionCard({
               disabled={actualPendingRewards === 0n || isHarvesting}
               className="font-mono font-bold tracking-wide hover:scale-105 transition-transform min-h-[44px]"
             >
-              {isHarvesting
-                ? `[${t("common.harvesting")}...]`
-                : `[${t("common.harvest")}]`}
+              {isHarvesting ? `[${t("common.harvesting")}...]` : `[${t("common.harvest")}]`}
             </Button>
             <FarmUnstakeDialog
               stream={stream}
