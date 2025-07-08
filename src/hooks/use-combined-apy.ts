@@ -124,8 +124,12 @@ export function useCombinedApy({ stream, lpToken, enabled = true }: UseCombinedA
       
       // Calculate token prices based on pool reserves
       // First, identify which token is ETH and which is the reward token
-      const isEthToken0 = lpToken.token0?.symbol === "WETH" || lpToken.token0?.symbol === "ETH";
-      const isEthToken1 = lpToken.token1?.symbol === "WETH" || lpToken.token1?.symbol === "ETH";
+      // Note: token0 and token1 are addresses, need to check if they're ETH/WETH addresses
+      const WETH_ADDRESS = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2".toLowerCase();
+      const ETH_ADDRESS = "0x0000000000000000000000000000000000000000";
+      
+      const isEthToken0 = lpToken.token0?.toLowerCase() === ETH_ADDRESS || lpToken.token0?.toLowerCase() === WETH_ADDRESS;
+      const isEthToken1 = lpToken.token1?.toLowerCase() === ETH_ADDRESS || lpToken.token1?.toLowerCase() === WETH_ADDRESS;
       
       // Verify the pool contains ETH
       if (!isEthToken0 && !isEthToken1) {
