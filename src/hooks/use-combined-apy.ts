@@ -1,7 +1,6 @@
 import type { TokenMeta } from "@/lib/coins";
 import { useMemo } from "react";
 import { formatUnits } from "viem";
-import { useBaseApy } from "./use-base-apy";
 import type { IncentiveStream } from "./use-incentive-streams";
 import { useZChefRewardPerSharePerYear } from "./use-zchef-contract";
 import { usePoolApy } from "./use-pool-apy";
