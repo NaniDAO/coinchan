@@ -1,9 +1,11 @@
 import type { TokenMeta } from "@/lib/coins";
 import { useMemo } from "react";
-import { formatUnits } from "viem";
+import { formatUnits, zeroAddress } from "viem";
 import type { IncentiveStream } from "./use-incentive-streams";
 import { useZChefRewardPerSharePerYear } from "./use-zchef-contract";
 import { usePoolApy } from "./use-pool-apy";
+import { useETHPrice } from "./use-eth-price";
+import { useReserves } from "./use-reserves";
 
 interface UseCombinedApyParams {
   stream: IncentiveStream;
@@ -46,6 +48,15 @@ export function useCombinedApy({ stream, lpToken, enabled = true }: UseCombinedA
   const { data: rewardPerSharePerYearOnchain, isLoading: isFarmApyLoading } = useZChefRewardPerSharePerYear(
     enabled ? stream.chefId : undefined,
   );
+
+  // Fetch ETH price for calculations
+  const { data: ethPriceData, isLoading: isEthPriceLoading } = useETHPrice();
+
+  // Fetch pool reserves to calculate token prices
+  const { data: poolReserves, isLoading: isReservesLoading } = useReserves({
+    poolId: lpToken?.poolId,
+    source: lpToken?.source,
+  });
   /**
    * Reward-per-share-per-year scaled by 1e12.
    * • If the on-chain call already gave a non-zero value, use it.
@@ -73,7 +84,7 @@ export function useCombinedApy({ stream, lpToken, enabled = true }: UseCombinedA
 
   // Calculate combined APY
   const combinedApy = useMemo(() => {
-    const isLoading = isBaseApyLoading || isFarmApyLoading;
+    const isLoading = isBaseApyLoading || isFarmApyLoading || isEthPriceLoading || isReservesLoading;
 
     // Default fallback values
     const defaultResult: CombinedApyData = {
@@ -96,12 +107,12 @@ export function useCombinedApy({ stream, lpToken, enabled = true }: UseCombinedA
       isLoading,
     };
 
-    if (isLoading) {
+    if (isLoading || !ethPriceData || !poolReserves) {
       return defaultResult;
     }
 
     // Calculate base APY from trading fees
-    const baseApy = Number(baseApyData.slice(0, -1)) || 0;
+    const baseApy = Number(baseApyData?.slice(0, -1)) || 0;
 
     // Calculate farm APY from incentive rewards
     let farmApy = 0;
@@ -110,16 +121,94 @@ export function useCombinedApy({ stream, lpToken, enabled = true }: UseCombinedA
     if (rewardPerSharePerYear && rewardPerSharePerYear > 0n) {
       // rewardPerSharePerYear is scaled by 1e12 (ACC_PRECISION)
       rewardPerShare = formatUnits(rewardPerSharePerYear, 12);
-      // Convert to percentage APY
-      farmApy = Number.parseFloat(rewardPerShare) * 100;
+      
+      // Calculate token prices based on pool reserves
+      // Use the stream data which contains the actual LP token and reward token addresses
+      const WETH_ADDRESS = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+      
+      // Debug: Log what we're checking
+      console.log("Farm APY Debug - Stream addresses:", {
+        lpTokenAddress: stream.lpToken,
+        rewardTokenAddress: stream.rewardToken,
+        zeroAddress,
+        WETH_ADDRESS,
+        poolReserves,
+        lpTokenMeta: lpToken,
+      });
+      
+      // For ETH/ZAMM pools on ZAMM AMM, we need to determine which reserve is ETH
+      // Since this is a pool incentive, the pool should contain ETH and the reward token
+      // We'll assume reserve0 is ETH and reserve1 is the reward token (standard ZAMM pattern)
+      // But let's verify by checking if either token is ETH/WETH
+      
+      const isRewardTokenEth = stream.rewardToken === zeroAddress || 
+                               stream.rewardToken?.toLowerCase() === WETH_ADDRESS.toLowerCase();
+      
+      // If the reward token is ETH (unlikely but possible), then the pool is ETH/ETH or ETH/WETH
+      // More likely: the pool is ETH/ZAMM where ZAMM is the reward token
+      // Since ZAMM pools follow Uniswap V2 pattern, we assume reserve0 is ETH and reserve1 is the other token
+      // For ETH/ZAMM: reserve0 = ETH, reserve1 = ZAMM
+      
+      if (isRewardTokenEth) {
+        console.error("Reward token is ETH, this configuration is not supported for APY calculation");
+        return defaultResult;
+      }
+      
+      // Standard ETH/Token pool: reserve0 = ETH, reserve1 = reward token (ZAMM)
+      const ethReserve = poolReserves.reserve0;
+      const rewardTokenReserve = poolReserves.reserve1;
+      
+      // Validate we have reserves
+      if (!ethReserve || ethReserve === 0n || !rewardTokenReserve || rewardTokenReserve === 0n) {
+        console.error("Invalid pool reserves", { ethReserve, rewardTokenReserve });
+        return defaultResult;
+      }
+      
+      // Calculate reward token price in ETH
+      // Price = ethReserve / rewardTokenReserve (adjusted for decimals)
+      const rewardTokenDecimals = stream.rewardCoin?.decimals || 18;
+      const ethDecimals = 18;
+      
+      // Reward token price in ETH = (ETH reserve / reward token reserve)
+      const rewardTokenPriceInETH = Number(formatUnits(ethReserve, ethDecimals)) / 
+                                    Number(formatUnits(rewardTokenReserve, rewardTokenDecimals));
+      
+      // Reward token price in USD = reward token price in ETH * ETH price in USD
+      const rewardTokenPriceUSD = rewardTokenPriceInETH * ethPriceData.priceUSD;
+      
+      // Calculate LP token value using actual pool data
+      // Total pool value = value of token0 + value of token1
+      const ethValueInPool = Number(formatUnits(ethReserve, ethDecimals)) * ethPriceData.priceUSD;
+      const rewardTokenValueInPool = Number(formatUnits(rewardTokenReserve, rewardTokenDecimals)) * rewardTokenPriceUSD;
+      const totalPoolValueUSD = ethValueInPool + rewardTokenValueInPool;
+      
+      // Get total LP supply from the pool data
+      const lpTotalSupply = poolReserves.supply || 1n; // Fallback to 1 to avoid division by zero
+      const lpTokenPriceUSD = totalPoolValueUSD / Number(formatUnits(lpTotalSupply, 18));
+      
+      // Calculate APY: (reward per share per year * reward price) / LP price * 100
+      const rewardValuePerYear = Number(rewardPerShare) * rewardTokenPriceUSD;
+      farmApy = (rewardValuePerYear / lpTokenPriceUSD) * 100;
+      
+      // Sanity check: Cap APY at reasonable maximum to prevent display issues
+      const MAX_FARM_APY = 10000; // 10,000% max
+      if (farmApy > MAX_FARM_APY) {
+        console.warn(`Farm APY ${farmApy.toFixed(2)}% exceeds maximum, capping at ${MAX_FARM_APY}%`);
+        farmApy = MAX_FARM_APY;
+      }
+      
+      console.log("Farm APY Calculation:", {
+        rewardPerShare,
+        rewardTokenPriceInETH,
+        rewardTokenPriceUSD,
+        lpTokenPriceUSD,
+        farmApy,
+        ethPrice: ethPriceData.priceUSD,
+        reserves: poolReserves,
+        lpTotalSupply: formatUnits(lpTotalSupply, 18),
+      });
     }
-    console.log("useCombinedApy:", {
-      baseApyData,
-      stream,
-      lpToken,
-      baseApy,
-      farmApy,
-    });
+    
     const totalApy = baseApy + farmApy;
 
     return {
@@ -146,8 +235,12 @@ export function useCombinedApy({ stream, lpToken, enabled = true }: UseCombinedA
     rewardPerSharePerYear,
     isBaseApyLoading,
     isFarmApyLoading,
-    lpToken.swapFee,
-    stream.rewardCoin?.symbol,
+    isEthPriceLoading,
+    isReservesLoading,
+    ethPriceData,
+    poolReserves,
+    lpToken,
+    stream.rewardCoin,
   ]);
 
   console.log("useCombinedApy:", {

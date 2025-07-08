@@ -165,6 +165,11 @@ export const SingleEthLiquidity = () => {
             targetReserves = {
               reserve0: poolData[0],
               reserve1: poolData[1],
+              blockTimestampLast: targetReserves?.blockTimestampLast || 0,
+              price0CumulativeLast: targetReserves?.price0CumulativeLast || 0n,
+              price1CumulativeLast: targetReserves?.price1CumulativeLast || 0n,
+              kLast: targetReserves?.kLast || 0n,
+              supply: targetReserves?.supply || 0n,
             };
           }
         } catch (err) {
@@ -318,6 +323,11 @@ export const SingleEthLiquidity = () => {
           targetReserves = {
             reserve0: poolData[0],
             reserve1: poolData[1],
+            blockTimestampLast: reserves?.blockTimestampLast || 0,
+            price0CumulativeLast: reserves?.price0CumulativeLast || 0n,
+            price1CumulativeLast: reserves?.price1CumulativeLast || 0n,
+            kLast: reserves?.kLast || 0n,
+            supply: reserves?.supply || 0n,
           };
         } catch (err) {
           console.error(`Failed to fetch reserves for ${buyToken.symbol}:`, err);

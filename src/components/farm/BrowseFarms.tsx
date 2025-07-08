@@ -1,5 +1,6 @@
 import { useAllCoins } from "@/hooks/metadata/use-all-coins";
 import { useActiveIncentiveStreams } from "@/hooks/use-incentive-streams";
+import { useFarmsSummary } from "@/hooks/use-farms-summary";
 import { ETH_TOKEN } from "@/lib/coins";
 import { cn, formatBalance } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
@@ -14,14 +15,21 @@ export const BrowseFarms = () => {
   const { tokens, loading: isLoadingTokens } = useAllCoins();
   const { data: activeStreams, isLoading: isLoadingStreams } = useActiveIncentiveStreams();
 
-  // Sort farms by various criteria
-  const [sortedStreams, totalStaked, uniquePools] = useMemo(() => {
-    if (!activeStreams) return [undefined, 0n, 0n];
-    // filter out streams that have ended
+  // Filter out ended streams
+  const activeOnlyStreams = useMemo(() => {
+    if (!activeStreams) return undefined;
     const currentTime = BigInt(Math.floor(Date.now() / 1000));
-    const activeOnlyStreams = activeStreams?.filter((stream) => stream.endTime > currentTime);
+    return activeStreams.filter((stream) => stream.endTime > currentTime);
+  }, [activeStreams]);
 
-    const sortedStreams = activeOnlyStreams.sort((a, b) => {
+  // Get real-time farm summary data
+  const { totalStaked, uniquePools, streamsWithRealTimeData } = useFarmsSummary(activeOnlyStreams);
+
+  // Sort farms by various criteria using real-time data
+  const sortedStreams = useMemo(() => {
+    if (!streamsWithRealTimeData) return undefined;
+
+    return streamsWithRealTimeData.sort((a, b) => {
       // First priority: Sort by total staked (descending)
       const stakeDiff = Number(b.totalShares - a.totalShares);
       if (stakeDiff !== 0) return stakeDiff;
@@ -29,13 +37,7 @@ export const BrowseFarms = () => {
       // Second priority: Sort by reward amount (descending)
       return Number(b.rewardAmount - a.rewardAmount);
     });
-
-    const totalStaked = sortedStreams.reduce((acc, s) => acc + s.totalShares, 0n);
-
-    const uniquePools = new Set(sortedStreams?.map((s) => s.lpId.toString()) || []).size;
-
-    return [sortedStreams, totalStaked, uniquePools];
-  }, [activeStreams]);
+  }, [streamsWithRealTimeData]);
 
   console.log("Sorted Streams:", sortedStreams);
 
