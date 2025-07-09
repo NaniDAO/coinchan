@@ -134,7 +134,9 @@ export function useCombinedApy({
     const yearlyReward = tokensPerSharePerYear * Number(share);
     const yearlyRewardEthValue = yearlyReward * rewardPriceEth;
     const stakeEth = (Number(share) / Number(totalShares)) * poolTvlInEth;
-    const aprPct = (yearlyRewardEthValue / stakeEth) * 100;
+    
+    // Prevent division by zero
+    const aprPct = stakeEth > 0 ? (yearlyRewardEthValue / stakeEth) * 100 : 0;
 
     const totalApy = baseApy + aprPct;
 
