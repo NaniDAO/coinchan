@@ -8,10 +8,14 @@ import { formatEther } from "viem";
 import { ErrorBoundary } from "../ErrorBoundary";
 import { FarmGridSkeleton } from "../FarmLoadingStates";
 import { IncentiveStreamCard } from "../IncentiveStreamCard";
+import { StakingNotifications } from "./StakingNotifications";
+import { FarmingGuide } from "./FarmingGuide";
 import { useMemo } from "react";
+import { useAccount } from "wagmi";
 
 export const BrowseFarms = () => {
   const { t } = useTranslation();
+  const { address } = useAccount();
   const { tokens, loading: isLoadingTokens } = useAllCoins();
   const { data: activeStreams, isLoading: isLoadingStreams } =
     useActiveIncentiveStreams();
@@ -49,6 +53,14 @@ export const BrowseFarms = () => {
   // }).slice(0, 3); // Top 3 featured farms
   return (
     <div className="space-y-5 sm:space-y-6">
+      {/* Farming guide for new users */}
+      <FarmingGuide />
+      
+      {/* Staking notifications - only show if user is connected */}
+      {address && (
+        <StakingNotifications />
+      )}
+      
       <div className="rounded-lg p-4 backdrop-blur-sm mb-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex justify-center items-center gap-3">
@@ -94,7 +106,7 @@ export const BrowseFarms = () => {
       {isLoadingStreams || isLoadingTokens ? (
         <FarmGridSkeleton count={6} />
       ) : sortedStreams && sortedStreams.length > 0 ? (
-        <div className="grid gap-4 sm:gap-5 grid-cols-1 lg:grid-cols-2">
+        <div className="farm-cards-container grid gap-4 sm:gap-5 grid-cols-1 lg:grid-cols-2">
           {sortedStreams?.map((stream) => {
             const lpToken = tokens.find(
               (t) => t.poolId === BigInt(stream.lpId),
