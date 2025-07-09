@@ -1,5 +1,5 @@
 import type { IncentiveStream, IncentiveUserPosition } from "@/hooks/use-incentive-streams";
-import { useZChefPendingReward } from "@/hooks/use-zchef-contract";
+import { useZChefPendingReward, useZChefUserBalance } from "@/hooks/use-zchef-contract";
 import { ETH_TOKEN, type TokenMeta } from "@/lib/coins";
 import { formatBalance } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
@@ -22,13 +22,31 @@ export function FarmPositionCard({ position, stream, lpToken, onHarvest, isHarve
   // Get real-time pending rewards from contract
   const { data: onchainPendingRewards } = useZChefPendingReward(stream.chefId);
   const actualPendingRewards = onchainPendingRewards ?? position.pendingRewards;
-  if (actualPendingRewards === undefined || actualPendingRewards === null || actualPendingRewards === 0n) {
+
+  // Get real-time user balance from contract
+  const { data: onchainUserBalance } = useZChefUserBalance(stream.chefId);
+  const actualUserShares = onchainUserBalance ?? position.shares;
+
+  // Don't show card if user has no shares
+  if (!actualUserShares || actualUserShares === 0n) {
     return null;
   }
   return (
     <div className="bg-card text-card-foreground border-2 border-border transition-all h group relative overflow-hidden">
       <IncentiveStreamCard stream={stream} lpToken={lpToken || ETH_TOKEN} />
       <div className="p-6">
+        {/* Staked Amount Display */}
+        <div className="mb-3 p-3 border border-muted bg-background">
+          <div className="flex justify-between items-center">
+            <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
+              [{t("common.staked")}]:
+            </span>
+            <span className="font-mono font-bold text-foreground">
+              {formatBalance(formatEther(actualUserShares), `${lpToken?.symbol} LP`)}
+            </span>
+          </div>
+        </div>
+
         {/* Pending Rewards Display */}
         {actualPendingRewards > 0n && (
           <div className="mb-3 p-3 border border-green-700 bg-background">
@@ -56,7 +74,11 @@ export function FarmPositionCard({ position, stream, lpToken, onHarvest, isHarve
             <FarmUnstakeDialog
               stream={stream}
               lpToken={lpToken || ETH_TOKEN}
-              userPosition={position}
+              userPosition={{
+                ...position,
+                shares: actualUserShares, // Use onchain balance
+                pendingRewards: actualPendingRewards, // Use onchain rewards
+              }}
               trigger={
                 <Button
                   size="default"

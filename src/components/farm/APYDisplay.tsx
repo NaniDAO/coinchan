@@ -1,9 +1,7 @@
 import { useCombinedApy } from "@/hooks/use-combined-apy";
 import type { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { TokenMeta } from "@/lib/coins";
-import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { formatUnits } from "viem";
 
 interface APYDisplayProps {
   stream: IncentiveStream;
@@ -23,21 +21,6 @@ export function APYDisplay({
     lpToken,
     enabled: true, // Only fetch when dialog is open
   });
-
-  // Memoize expensive calculations
-  const { dailyRewards } = useMemo(() => {
-    const rewardTokenDecimals = stream.rewardCoin?.decimals || 18;
-
-    // Calculate daily rewards
-    // Note: rewardRate = (rewardAmount * ACC_PRECISION) / duration, where rewardAmount has rewardTokenDecimals
-    // So rewardRate has scaling of (rewardTokenDecimals + 12) decimals
-    const dailyRewards = formatUnits(
-      BigInt(stream.rewardRate) * 86400n,
-      rewardTokenDecimals + 12,
-    );
-
-    return { dailyRewards, rewardTokenDecimals };
-  }, [stream.rewardRate, stream.totalShares]);
 
   if (combinedApyData.isLoading === true) {
     return (

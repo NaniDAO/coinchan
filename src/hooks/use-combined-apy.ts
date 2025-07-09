@@ -87,12 +87,15 @@ export function useCombinedApy({
     const streamActive = stream.status === "ACTIVE" && now < stream.endTime;
     const rewardRate = stream.rewardRate ?? farmInfo?.[4];
     const totalShares =
-      farmInfo?.[7] === 0n
+      farmInfo?.[7] === 0n || !farmInfo?.[7]
         ? parseEther("1")
         : (stream?.totalShares ?? farmInfo?.[7]);
 
-    if (streamActive && totalShares !== 0n) {
-      return (BigInt(rewardRate) * SECONDS_IN_YEAR) / BigInt(totalShares); // still ×1e12
+    // Ensure totalShares is never 0 before division
+    const safeTotalShares = totalShares && totalShares > 0n ? totalShares : parseEther("1");
+
+    if (streamActive && safeTotalShares !== 0n) {
+      return (BigInt(rewardRate) * SECONDS_IN_YEAR) / BigInt(safeTotalShares); // still ×1e12
     }
 
     // 3. ended or not enabled → 0
@@ -115,26 +118,58 @@ export function useCombinedApy({
       isLoading,
     };
 
-    if (isLoading || !poolTvlInEth || !rewardPriceEth) {
-      return defaultResult;
-    }
+    try {
+      if (isLoading || !poolTvlInEth || !rewardPriceEth || poolTvlInEth === 0 || rewardPriceEth === 0) {
+        return defaultResult;
+      }
 
     // Calculate base APY from trading fees
     const baseApy = Number(baseApyData?.slice(0, -1)) || 0;
     const totalShares =
-      farmInfo?.[7] === 0n
+      farmInfo?.[7] === 0n || !farmInfo?.[7]
         ? parseEther("1")
         : (stream?.totalShares ?? farmInfo?.[7]);
 
     // Calculate farm APY from incentives
     const share = 1000000000000000000n; // 1 LP share
+    
+    // Ensure totalShares has a valid value
+    const safeTotalShares = totalShares && totalShares > 0n ? totalShares : parseEther("1");
+    
+    // Ensure all numbers are valid before calculations
+    const shareNum = Number(share);
+    const totalSharesNum = Number(safeTotalShares);
+    const eighteenDecimalsNum = Number(EIGHTEEN_DECIMALS);
+    
+    // Prevent any potential division by zero
+    if (!shareNum || !totalSharesNum || !eighteenDecimalsNum || totalSharesNum === 0) {
+      return {
+        baseApy,
+        farmApy: 0,
+        totalApy: baseApy,
+        breakdown: {
+          tradingFees: Number(lpToken.swapFee || SWAP_FEE),
+          rewardSymbol: stream.rewardCoin?.symbol || "???",
+        },
+        isLoading: false,
+      };
+    }
+
     const rewardPerSharePerYearWei = rewardPerSharePerYear / ACC_PRECISION;
     const tokensPerSharePerYear =
-      Number(rewardPerSharePerYearWei) / Number(EIGHTEEN_DECIMALS);
-    const yearlyReward = tokensPerSharePerYear * Number(share);
+      Number(rewardPerSharePerYearWei) / eighteenDecimalsNum;
+    const yearlyReward = tokensPerSharePerYear * shareNum;
     const yearlyRewardEthValue = yearlyReward * rewardPriceEth;
-    const stakeEth = (Number(share) / Number(totalShares)) * poolTvlInEth;
-    const aprPct = (yearlyRewardEthValue / stakeEth) * 100;
+    const stakeEth = (shareNum / totalSharesNum) * poolTvlInEth;
+    
+    // Prevent division by zero and ensure all values are valid numbers
+    let aprPct = 0;
+    if (stakeEth > 0 && !isNaN(yearlyRewardEthValue) && !isNaN(stakeEth) && isFinite(stakeEth)) {
+      aprPct = (yearlyRewardEthValue / stakeEth) * 100;
+      if (isNaN(aprPct) || !isFinite(aprPct)) {
+        aprPct = 0;
+      }
+    }
 
     const totalApy = baseApy + aprPct;
 
@@ -148,6 +183,10 @@ export function useCombinedApy({
       },
       isLoading: false,
     };
+    } catch (error) {
+      console.error("Error calculating combined APY:", error);
+      return defaultResult;
+    }
   }, [
     baseApyData,
     rewardPerSharePerYear,
@@ -157,6 +196,7 @@ export function useCombinedApy({
     stream.rewardCoin,
     poolTvlInEth,
     rewardPriceEth,
+    farmInfo,
   ]);
 
   return combinedApy;
