@@ -91,10 +91,18 @@ export const AddLiquidity = () => {
 
   const [slippageBps, setSlippageBps] = useState<bigint>(SLIPPAGE_BPS);
 
-  /* Check if user has approved ZAAM as operator */
+  // Determine which AMM contract will handle the pool
+  const targetAMMContract = useMemo(() => {
+    if (!coinId) return ZAMMAddress; // Default fallback
+    const { isCookbook } = getHelperContractInfo(coinId);
+    return isCookbook ? CookbookAddress : ZAMMAddress;
+  }, [coinId]);
+
+  /* Check if user has approved the target AMM contract as operator */
   const { data: isOperator, refetch: refetchOperator } = useOperatorStatus({
     address,
-    operator: ZAMMAddress,
+    operator: targetAMMContract,
+    tokenId: coinId,
   });
   const {
     allowance: usdtAllowance,
@@ -483,28 +491,29 @@ export const AddLiquidity = () => {
         }
       }
 
-      // Check if the user needs to approve ZAMM as operator for their Coin token
-      // This is needed when the user is providing Coin tokens (not just ETH)
-      // Since we're always providing Coin tokens in liquidity, we need approval
-      // Only needed for regular Coin tokens, not for USDT or cookbook coins
-      // Cookbook coins don't need operator approval since ZAMM IS the token contract
-      if (!isUsdtPool && !isCookbook && isOperator === false) {
+      // Check if the user needs to approve the target AMM contract as operator
+      // This is reflexive to the pool source:
+      // - Cookbook pool: Approve CookbookAddress as operator on CoinsAddress
+      // - ZAMM pool: Approve ZAMMAddress as operator on CoinsAddress
+      // Only needed for coins that have a tokenId, not for USDT pools
+      if (!isUsdtPool && coinId && isOperator === false) {
         try {
           // First, show a notification about the approval step
           setTxError(
             "Waiting for operator approval. Please confirm the transaction...",
           );
 
-          // Send the approval transaction for regular coins only
-          console.log("Approving ZAMM as operator on Coins contract", {
+          console.log("Approving target AMM contract as operator on Coins contract:", {
             coinId: coinId.toString(),
+            targetAMMContract,
+            isCookbook,
           });
 
           const approvalHash = await writeContractAsync({
             address: CoinsAddress,
             abi: CoinsAbi,
             functionName: "setOperator",
-            args: [ZAMMAddress, true],
+            args: [targetAMMContract, true],
           });
 
           // Show a waiting message

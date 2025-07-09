@@ -6,6 +6,7 @@ import type { TokenMeta } from "@/lib/coins";
 import { cn, formatBalance } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits } from "viem";
+import { useEnsName } from "wagmi";
 import { FarmStakeDialog } from "./FarmStakeDialog";
 import { Button } from "./ui/button";
 import { useMemo } from "react";
@@ -18,6 +19,7 @@ interface IncentiveStreamCardProps {
 export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProps) {
   const { t } = useTranslation();
   const { calculateTimeRemaining } = useZChefUtilities();
+  const { data: creatorEnsName } = useEnsName({ address: stream.creator });
 
   // Get real-time total shares from zChef contract
   const { data: poolData } = useZChefPool(stream.chefId);
@@ -182,7 +184,7 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">[{t("common.created_by")}]:</span>
                 <span className="border border-muted px-1 py-0.5 font-bold text-foreground max-w-[60%] text-right">
-                  {stream.creator.slice(0, 6)}...{stream.creator.slice(-4)}
+                  {creatorEnsName ?? `${stream.creator.slice(0, 6)}...${stream.creator.slice(-4)}`}
                 </span>
               </div>
               <div className="flex justify-between items-center">

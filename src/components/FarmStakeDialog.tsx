@@ -19,7 +19,6 @@ import { useStreamValidation } from "@/hooks/use-stream-validation";
 import { useZapCalculations } from "@/hooks/use-zap-calculations";
 import { useZapDeposit } from "@/hooks/use-zap-deposit";
 import {
-  useSetOperatorApproval,
   useZChefActions,
 } from "@/hooks/use-zchef-contract";
 import { ETH_TOKEN, type TokenMeta } from "@/lib/coins";
@@ -29,7 +28,10 @@ import { cn, formatBalance } from "@/lib/utils";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
-import { useAccount, usePublicClient } from "wagmi";
+import { useAccount, usePublicClient, useWriteContract } from "wagmi";
+import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
+import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
+import { mainnet } from "viem/chains";
 import { APYDisplay } from "./farm/APYDisplay";
 import { useLpOperatorStatus } from "@/hooks/use-lp-operator-status";
 
@@ -51,10 +53,10 @@ export function FarmStakeDialog({
   const { t } = useTranslation();
   const { address } = useAccount();
   const publicClient = usePublicClient();
+  const { writeContractAsync } = useWriteContract();
   const { tokens } = useAllCoins();
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
-  const [isApproving, setIsApproving] = useState(false);
   const [stakeMode, setStakeMode] = useState<StakeMode>("lp");
   const [zapCalculation, setZapCalculation] = useState<any>(null);
   const [slippageBps] = useState(SINGLE_ETH_SLIPPAGE_BPS);
@@ -62,10 +64,12 @@ export function FarmStakeDialog({
   const [txStatus, setTxStatus] = useState<
     "idle" | "pending" | "confirming" | "success" | "error"
   >("idle");
+  const [currentOperation, setCurrentOperation] = useState<
+    "approval" | "staking" | null
+  >(null);
   const [txError, setTxError] = useState<string | null>(null);
 
   const { deposit } = useZChefActions();
-  const setOperatorApproval = useSetOperatorApproval();
   const { calculateZapAmounts } = useZapCalculations();
   const zapDeposit = useZapDeposit();
   const { validateStreamBeforeAction } = useStreamValidation();
@@ -97,8 +101,6 @@ export function FarmStakeDialog({
         ? formatEther(ethToken.balance)
         : "0";
 
-  const needsApproval =
-    stakeMode === "lp" && !isOperatorApproved && Number.parseFloat(amount) > 0;
 
   // Debounced zap calculation with proper cleanup
   const debounceTimerRef = useRef<NodeJS.Timeout>();
@@ -155,55 +157,10 @@ export function FarmStakeDialog({
       setTxHash(null);
       setTxError(null);
       setTxStatus("idle");
-      setIsApproving(false);
+      setCurrentOperation(null);
     }
   }, [open]);
 
-  const handleApprove = async () => {
-    if (!lpToken.id || !address) return;
-
-    try {
-      setIsApproving(true);
-      setTxStatus("pending");
-      setTxError(null);
-
-      const hash = await setOperatorApproval.mutateAsync({
-        source: lpToken.source,
-        operator: ZChefAddress,
-        approved: true,
-      });
-
-      setTxHash(hash);
-      setTxStatus("confirming");
-
-      // Wait for confirmation
-      if (publicClient) {
-        await publicClient.waitForTransactionReceipt({
-          hash: hash as `0x${string}`,
-        });
-        setTxStatus("success");
-        setTimeout(() => {
-          setTxStatus("idle");
-          setTxHash(null);
-        }, 3000);
-      }
-    } catch (error: any) {
-      if (isUserRejectionError(error)) {
-        // User rejected - silently reset state
-        setTxStatus("idle");
-      } else {
-        console.error("Approval failed:", error);
-        setTxStatus("error");
-        setTxError(error?.message || "Approval failed");
-        setTimeout(() => {
-          setTxStatus("idle");
-          setTxError(null);
-        }, 5000);
-      }
-    } finally {
-      setIsApproving(false);
-    }
-  };
 
   const handleStake = async () => {
     if (!amount || Number.parseFloat(amount) <= 0) return;
@@ -219,6 +176,42 @@ export function FarmStakeDialog({
     try {
       setTxStatus("pending");
       setTxError(null);
+      
+      // Check if approval is needed for LP tokens (only for LP mode)
+      if (stakeMode === "lp" && !isOperatorApproved) {
+        setCurrentOperation("approval");
+        console.log("Setting operator approval for LP tokens...");
+
+        // Determine which contract to call based on LP token source
+        const isZAMM = lpToken.source === "ZAMM";
+        const contractAddress = isZAMM ? ZAMMAddress : CookbookAddress;
+        const contractAbi = isZAMM ? ZAMMAbi : CookbookAbi;
+
+        const approvalHash = await writeContractAsync({
+          address: contractAddress,
+          abi: contractAbi,
+          functionName: "setOperator",
+          args: [ZChefAddress, true],
+          chainId: mainnet.id,
+        });
+
+        setTxHash(approvalHash);
+        setTxStatus("confirming");
+
+        if (publicClient) {
+          await publicClient.waitForTransactionReceipt({
+            hash: approvalHash,
+          });
+        }
+        console.log("LP token operator approval confirmed");
+        
+        // Reset for next step
+        setTxStatus("pending");
+        setTxHash(null);
+      }
+
+      // Now proceed with staking
+      setCurrentOperation("staking");
       let hash: string;
 
       if (stakeMode === "lp") {
@@ -262,6 +255,7 @@ export function FarmStakeDialog({
           setOpen(false);
           setTxStatus("idle");
           setTxHash(null);
+          setCurrentOperation(null);
           onSuccess?.();
         }, 3000); // Increased from 2000 to 3000ms
       }
@@ -269,6 +263,7 @@ export function FarmStakeDialog({
       if (isUserRejectionError(error)) {
         // User rejected - silently reset state
         setTxStatus("idle");
+        setCurrentOperation(null);
       } else {
         console.error("Stake failed:", error);
         setTxStatus("error");
@@ -276,6 +271,7 @@ export function FarmStakeDialog({
         setTimeout(() => {
           setTxStatus("idle");
           setTxError(null);
+          setCurrentOperation(null);
         }, 5000);
       }
     }
@@ -482,32 +478,12 @@ export function FarmStakeDialog({
           <div className="space-y-4">
             <div className="h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent"></div>
 
-            {needsApproval && (
-              <Button
-                onClick={handleApprove}
-                disabled={
-                  isApproving ||
-                  setOperatorApproval.isPending ||
-                  txStatus !== "idle"
-                }
-                className="w-full font-mono font-bold tracking-wide py-3 hover:scale-105 transition-all duration-200 bg-gradient-to-r from-primary/80 to-primary/60 hover:from-primary hover:to-primary/80 disabled:opacity-50 !text-background dark:!text-background hover:!text-background dark:hover:!text-background"
-                variant="outline"
-              >
-                {isApproving ||
-                setOperatorApproval.isPending ||
-                txStatus === "pending"
-                  ? `[${t("common.approving")}...]`
-                  : `[${t("common.approve_lp_tokens")}]`}
-              </Button>
-            )}
-
             <Button
               onClick={handleStake}
               disabled={
                 !amount ||
                 Number.parseFloat(amount) <= 0 ||
                 Number.parseFloat(amount) > Number.parseFloat(maxAmount) ||
-                needsApproval ||
                 txStatus !== "idle" ||
                 (stakeMode === "lp" && deposit.isPending) ||
                 (stakeMode === "eth" &&
@@ -516,15 +492,21 @@ export function FarmStakeDialog({
               className="w-full font-mono font-bold tracking-wide text-lg py-4 hover:scale-105 transition-all duration-200 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary shadow-lg disabled:opacity-50 !text-background dark:!text-background hover:!text-background dark:hover:!text-background"
             >
               {txStatus === "pending" || txStatus === "confirming"
-                ? txStatus === "pending"
-                  ? `[${t("common.submitting")}]`
-                  : `[${t("common.confirming")}]`
+                ? currentOperation === "approval"
+                  ? txStatus === "pending"
+                    ? `[${t("common.approving")}...]`
+                    : `[${t("common.confirming_approval")}]`
+                  : txStatus === "pending"
+                    ? `[${t("common.submitting")}]`
+                    : `[${t("common.confirming")}]`
                 : (stakeMode === "lp" && deposit.isPending) ||
                     (stakeMode === "eth" && zapDeposit.isPending)
                   ? `[${t("common.staking")}...]`
                   : stakeMode === "eth"
                     ? `[${t("common.zap_and_stake")}]`
-                    : `[${t("common.stake")}]`}
+                    : stakeMode === "lp" && !isOperatorApproved
+                      ? `[${t("common.approve_and_stake")}]`
+                      : `[${t("common.stake")}]`}
             </Button>
           </div>
 
@@ -608,9 +590,11 @@ export function FarmStakeDialog({
                 {txStatus === "success" && (
                   <div className="text-center">
                     <p className="text-sm text-green-400 font-mono">
-                      {stakeMode === "eth"
-                        ? t("common.eth_zapped_staked_success")
-                        : t("common.lp_tokens_staked_success")}
+                      {currentOperation === "approval"
+                        ? t("common.approval_successful")
+                        : stakeMode === "eth"
+                          ? t("common.eth_zapped_staked_success")
+                          : t("common.lp_tokens_staked_success")}
                     </p>
                   </div>
                 )}
@@ -619,14 +603,13 @@ export function FarmStakeDialog({
           )}
 
           {/* Error Display */}
-          {(deposit.error || zapDeposit.error || setOperatorApproval.error) &&
+          {(deposit.error || zapDeposit.error) &&
             txStatus === "idle" && (
               <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
                 <div className="text-sm text-red-400 text-center font-mono break-words">
                   [ERROR]:{" "}
                   {deposit.error?.message ||
-                    zapDeposit.error?.message ||
-                    setOperatorApproval.error?.message}
+                    zapDeposit.error?.message}
                 </div>
               </div>
             )}
