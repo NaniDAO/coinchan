@@ -332,7 +332,7 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
           )}
 
           {/* Error Display */}
-          {withdraw.error && txStatus === "idle" && (
+          {withdraw.error && txStatus === "idle" && !isUserRejectionError(withdraw.error) && (
             <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
               <div className="text-sm text-red-400 text-center font-mono break-words">
                 [ERROR]: {withdraw.error.message}
