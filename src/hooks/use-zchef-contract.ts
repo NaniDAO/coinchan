@@ -408,32 +408,6 @@ export function useSetOperatorApproval() {
 }
 
 export function useZChefUtilities() {
-  const calculateAPY = (
-    rewardRate: bigint,
-    rewardTokenDecimals: number,
-    rewardTokenPrice: bigint,
-    totalShares: bigint,
-    lpTokenPrice: bigint,
-  ) => {
-    if (totalShares === 0n || lpTokenPrice === 0n) return 0;
-
-    const rewardPerSecond = rewardRate;
-    const rewardPerYear = rewardPerSecond * BigInt(365 * 24 * 60 * 60);
-    // Note: rewardRate = (rewardAmount * ACC_PRECISION) / duration where rewardAmount has rewardTokenDecimals
-    // So rewardRate has scaling of (rewardTokenDecimals + 12) decimals
-    // rewardTokenPrice is in ETH wei (18 decimals), so total scaling is (rewardTokenDecimals + 12 + 18)
-    // We want result in ETH wei (18 decimals), so divide by 10^(rewardTokenDecimals + 12)
-    const rewardValuePerYear =
-      (rewardPerYear * rewardTokenPrice) /
-      BigInt(10 ** (rewardTokenDecimals + 12));
-    const totalValueLocked = totalShares * lpTokenPrice;
-
-    if (totalValueLocked === 0n) return 0;
-
-    const apy = Number(rewardValuePerYear * 100n) / Number(totalValueLocked);
-    return apy;
-  };
-
   const calculateTimeRemaining = (endTime: bigint) => {
     const now = BigInt(Math.floor(Date.now() / 1000));
     const remaining = BigInt(endTime) - now;
@@ -459,7 +433,6 @@ export function useZChefUtilities() {
   };
 
   return {
-    calculateAPY,
     calculateTimeRemaining,
     formatRewardRate,
   };

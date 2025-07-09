@@ -1,6 +1,5 @@
 import { useCombinedApy } from "@/hooks/use-combined-apy";
 import type { IncentiveStream } from "@/hooks/use-incentive-streams";
-import { useZChefUtilities } from "@/hooks/use-zchef-contract";
 import { TokenMeta } from "@/lib/coins";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -12,9 +11,12 @@ interface APYDisplayProps {
   shortView?: boolean;
 }
 
-export function APYDisplay({ stream, lpToken, shortView = true }: APYDisplayProps) {
+export function APYDisplay({
+  stream,
+  lpToken,
+  shortView = true,
+}: APYDisplayProps) {
   const { t } = useTranslation();
-  const { calculateAPY } = useZChefUtilities();
   // Calculate combined APY (base + farm incentives)
   const combinedApyData = useCombinedApy({
     stream,
@@ -29,10 +31,13 @@ export function APYDisplay({ stream, lpToken, shortView = true }: APYDisplayProp
     // Calculate daily rewards
     // Note: rewardRate = (rewardAmount * ACC_PRECISION) / duration, where rewardAmount has rewardTokenDecimals
     // So rewardRate has scaling of (rewardTokenDecimals + 12) decimals
-    const dailyRewards = formatUnits(BigInt(stream.rewardRate) * 86400n, rewardTokenDecimals + 12);
+    const dailyRewards = formatUnits(
+      BigInt(stream.rewardRate) * 86400n,
+      rewardTokenDecimals + 12,
+    );
 
     return { dailyRewards, rewardTokenDecimals };
-  }, [stream.rewardRate, stream.totalShares, calculateAPY]);
+  }, [stream.rewardRate, stream.totalShares]);
 
   console.log("Daily Rewards:", dailyRewards);
 
@@ -54,7 +59,9 @@ export function APYDisplay({ stream, lpToken, shortView = true }: APYDisplayProp
   if (shortView) {
     return (
       <>
-        <p className="text-muted-foreground font-mono text-xs">[{t("common.total_apy")}]</p>
+        <p className="text-muted-foreground font-mono text-xs">
+          [{t("common.total_apy")}]
+        </p>
         <p className="font-mono font-bold text-sm text-green-600 mt-1">
           {combinedApyData.totalApy.toFixed(2)}%
         </p>
@@ -72,7 +79,9 @@ export function APYDisplay({ stream, lpToken, shortView = true }: APYDisplayProp
       {/* Total APY Display */}
       <div className="mb-3 p-2 border border-muted">
         <div className="text-center">
-          <p className="text-muted-foreground font-mono text-xs">{t("common.total_apy")}:</p>
+          <p className="text-muted-foreground font-mono text-xs">
+            {t("common.total_apy")}:
+          </p>
           <p className="font-mono font-bold text-green-600 text-lg">
             {combinedApyData.totalApy.toFixed(2)}%
           </p>
@@ -89,7 +98,7 @@ export function APYDisplay({ stream, lpToken, shortView = true }: APYDisplayProp
             {combinedApyData.baseApy.toFixed(2)}%
           </p>
           <p className="text-xs text-muted-foreground font-mono mt-1">
-            {combinedApyData.breakdown.tradingFees.swapFee / 100}% fee
+            {combinedApyData.breakdown.tradingFees / 100}% fee
           </p>
         </div>
         <div className="border border-muted p-2">
@@ -100,14 +109,15 @@ export function APYDisplay({ stream, lpToken, shortView = true }: APYDisplayProp
             {combinedApyData.farmApy.toFixed(2)}%
           </p>
           <p className="text-xs text-muted-foreground font-mono mt-1">
-            {combinedApyData.breakdown.farmIncentives.rewardSymbol} rewards
+            {combinedApyData.breakdown.rewardSymbol} rewards
           </p>
         </div>
       </div>
 
       <div className="p-2 border border-muted">
         <p className="text-xs font-mono text-muted-foreground">
-          <span className="text-foreground">i</span> {t("common.combined_apy_note")}
+          <span className="text-foreground">i</span>{" "}
+          {t("common.combined_apy_note")}
         </p>
       </div>
     </div>
