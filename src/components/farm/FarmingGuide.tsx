@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAccount } from "wagmi";
+import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -59,7 +60,14 @@ export function FarmingGuide({ className }: FarmingGuideProps) {
                       {t("common.step_1_title")}
                     </h4>
                     <p className="text-xs text-muted-foreground font-mono">
-                      {t("common.step_1_description")}
+                      Add liquidity to pools on the{" "}
+                      <Link 
+                        to="/swap" 
+                        className="text-primary hover:text-primary/80 underline font-bold"
+                      >
+                        Swap page
+                      </Link>
+                      {" "}to receive LP tokens (or use ETH zap for easy one-click liquidity)
                     </p>
                   </div>
                 </div>

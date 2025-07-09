@@ -299,7 +299,7 @@
     "hide_guide": "Hide Guide",
     "start_farming": "Start Farming",
     "step_1_title": "Get LP Tokens",
-    "step_1_description": "Add liquidity to pools on the Swap page to receive LP tokens",
+    "step_1_description": "Add liquidity to pools on the Swap page to receive LP tokens (or use ETH zap for easy one-click liquidity)",
     "step_2_title": "Choose a Farm",
     "step_2_description": "Browse active farms below and select one with good APY",
     "step_3_title": "Stake & Earn",

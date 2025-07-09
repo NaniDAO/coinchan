@@ -302,7 +302,7 @@
     "hide_guide": "隐藏指南",
     "start_farming": "开始农场",
     "step_1_title": "获取LP代币",
-    "step_1_description": "在兑换页面向池中添加流动性以获得LP代币",
+    "step_1_description": "在兑换页面向池中添加流动性以获得LP代币（或使用ETH zap一键添加流动性）",
     "step_2_title": "选择农场",
     "step_2_description": "浏览下方活跃农场并选择APY较好的农场",
     "step_3_title": "质押并赚取",

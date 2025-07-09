@@ -106,7 +106,7 @@ export const ManageFarms = () => {
         <div className="grid gap-4 sm:gap-5 grid-cols-1 md:grid-cols-2 ">
           {userPositions.map((position) => {
             const stream = allStreams?.find((s) => BigInt(s.chefId) === BigInt(position.chefId));
-            const lpToken = tokens.find((t) => t.poolId === stream?.lpId);
+            const lpToken = tokens.find((t) => stream && t.poolId === BigInt(stream.lpId));
 
             if (!stream) return null;
 
