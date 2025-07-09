@@ -5,7 +5,6 @@ import { formatBalance } from "@/lib/utils";
 import { formatUnits } from "viem";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
 import { FarmStakeDialog } from "../FarmStakeDialog";
 import { APYDisplay } from "./APYDisplay";
 
