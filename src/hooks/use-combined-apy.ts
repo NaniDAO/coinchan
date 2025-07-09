@@ -87,12 +87,15 @@ export function useCombinedApy({
     const streamActive = stream.status === "ACTIVE" && now < stream.endTime;
     const rewardRate = stream.rewardRate ?? farmInfo?.[4];
     const totalShares =
-      farmInfo?.[7] === 0n
+      farmInfo?.[7] === 0n || !farmInfo?.[7]
         ? parseEther("1")
         : (stream?.totalShares ?? farmInfo?.[7]);
 
-    if (streamActive && totalShares !== 0n) {
-      return (BigInt(rewardRate) * SECONDS_IN_YEAR) / BigInt(totalShares); // still ×1e12
+    // Ensure totalShares is never 0 before division
+    const safeTotalShares = totalShares && totalShares > 0n ? totalShares : parseEther("1");
+
+    if (streamActive && safeTotalShares !== 0n) {
+      return (BigInt(rewardRate) * SECONDS_IN_YEAR) / BigInt(safeTotalShares); // still ×1e12
     }
 
     // 3. ended or not enabled → 0
@@ -116,14 +119,14 @@ export function useCombinedApy({
     };
 
     try {
-      if (isLoading || !poolTvlInEth || !rewardPriceEth) {
+      if (isLoading || !poolTvlInEth || !rewardPriceEth || poolTvlInEth === 0 || rewardPriceEth === 0) {
         return defaultResult;
       }
 
     // Calculate base APY from trading fees
     const baseApy = Number(baseApyData?.slice(0, -1)) || 0;
     const totalShares =
-      farmInfo?.[7] === 0n
+      farmInfo?.[7] === 0n || !farmInfo?.[7]
         ? parseEther("1")
         : (stream?.totalShares ?? farmInfo?.[7]);
 
@@ -159,8 +162,14 @@ export function useCombinedApy({
     const yearlyRewardEthValue = yearlyReward * rewardPriceEth;
     const stakeEth = (shareNum / totalSharesNum) * poolTvlInEth;
     
-    // Prevent division by zero
-    const aprPct = stakeEth > 0 ? (yearlyRewardEthValue / stakeEth) * 100 : 0;
+    // Prevent division by zero and ensure all values are valid numbers
+    let aprPct = 0;
+    if (stakeEth > 0 && !isNaN(yearlyRewardEthValue) && !isNaN(stakeEth) && isFinite(stakeEth)) {
+      aprPct = (yearlyRewardEthValue / stakeEth) * 100;
+      if (isNaN(aprPct) || !isFinite(aprPct)) {
+        aprPct = 0;
+      }
+    }
 
     const totalApy = baseApy + aprPct;
 

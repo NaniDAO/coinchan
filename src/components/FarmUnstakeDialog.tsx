@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatImageURL } from "@/hooks/metadata";
 import type { IncentiveStream } from "@/hooks/use-incentive-streams";
-import { useZChefActions, useZChefPendingReward } from "@/hooks/use-zchef-contract";
+import { useZChefActions, useZChefPendingReward, useZChefUserBalance } from "@/hooks/use-zchef-contract";
 import type { TokenMeta } from "@/lib/coins";
 import { isUserRejectionError } from "@/lib/errors";
 import { cn, formatBalance } from "@/lib/utils";
@@ -41,7 +41,11 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
   const { data: onchainPendingRewards } = useZChefPendingReward(stream.chefId);
   const actualPendingRewards = onchainPendingRewards ?? userPosition.pendingRewards;
 
-  const maxAmount = formatEther(userPosition.shares);
+  // Get real-time user balance from contract
+  const { data: onchainUserBalance } = useZChefUserBalance(stream.chefId);
+  const actualUserShares = onchainUserBalance ?? userPosition.shares;
+
+  const maxAmount = formatEther(actualUserShares);
   // const rewardTokenDecimals = stream.rewardCoin?.decimals || 18;
 
   const handleUnstake = async () => {
