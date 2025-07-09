@@ -115,9 +115,10 @@ export function useCombinedApy({
       isLoading,
     };
 
-    if (isLoading || !poolTvlInEth || !rewardPriceEth) {
-      return defaultResult;
-    }
+    try {
+      if (isLoading || !poolTvlInEth || !rewardPriceEth) {
+        return defaultResult;
+      }
 
     // Calculate base APY from trading fees
     const baseApy = Number(baseApyData?.slice(0, -1)) || 0;
@@ -128,12 +129,35 @@ export function useCombinedApy({
 
     // Calculate farm APY from incentives
     const share = 1000000000000000000n; // 1 LP share
+    
+    // Ensure totalShares has a valid value
+    const safeTotalShares = totalShares && totalShares > 0n ? totalShares : parseEther("1");
+    
+    // Ensure all numbers are valid before calculations
+    const shareNum = Number(share);
+    const totalSharesNum = Number(safeTotalShares);
+    const eighteenDecimalsNum = Number(EIGHTEEN_DECIMALS);
+    
+    // Prevent any potential division by zero
+    if (!shareNum || !totalSharesNum || !eighteenDecimalsNum || totalSharesNum === 0) {
+      return {
+        baseApy,
+        farmApy: 0,
+        totalApy: baseApy,
+        breakdown: {
+          tradingFees: Number(lpToken.swapFee || SWAP_FEE),
+          rewardSymbol: stream.rewardCoin?.symbol || "???",
+        },
+        isLoading: false,
+      };
+    }
+
     const rewardPerSharePerYearWei = rewardPerSharePerYear / ACC_PRECISION;
     const tokensPerSharePerYear =
-      Number(rewardPerSharePerYearWei) / Number(EIGHTEEN_DECIMALS);
-    const yearlyReward = tokensPerSharePerYear * Number(share);
+      Number(rewardPerSharePerYearWei) / eighteenDecimalsNum;
+    const yearlyReward = tokensPerSharePerYear * shareNum;
     const yearlyRewardEthValue = yearlyReward * rewardPriceEth;
-    const stakeEth = (Number(share) / Number(totalShares)) * poolTvlInEth;
+    const stakeEth = (shareNum / totalSharesNum) * poolTvlInEth;
     
     // Prevent division by zero
     const aprPct = stakeEth > 0 ? (yearlyRewardEthValue / stakeEth) * 100 : 0;
@@ -150,6 +174,10 @@ export function useCombinedApy({
       },
       isLoading: false,
     };
+    } catch (error) {
+      console.error("Error calculating combined APY:", error);
+      return defaultResult;
+    }
   }, [
     baseApyData,
     rewardPerSharePerYear,
@@ -159,6 +187,7 @@ export function useCombinedApy({
     stream.rewardCoin,
     poolTvlInEth,
     rewardPriceEth,
+    farmInfo,
   ]);
 
   return combinedApy;
