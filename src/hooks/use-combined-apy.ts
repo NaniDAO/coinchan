@@ -92,16 +92,6 @@ export function useCombinedApy({
         : (stream?.totalShares ?? farmInfo?.[7]);
 
     if (streamActive && totalShares !== 0n) {
-      console.log("stream active", {
-        chefId: stream?.chefId,
-        token: stream?.rewardCoin?.symbol,
-        rewardPerSharePerYearOnchain,
-        streamActive,
-        rewardRate,
-        totalShares,
-        rewardPerSharePerYear:
-          (BigInt(rewardRate) * SECONDS_IN_YEAR) / BigInt(totalShares),
-      });
       return (BigInt(rewardRate) * SECONDS_IN_YEAR) / BigInt(totalShares); // still ×1e12
     }
 

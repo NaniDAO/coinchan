@@ -39,8 +39,6 @@ export function APYDisplay({
     return { dailyRewards, rewardTokenDecimals };
   }, [stream.rewardRate, stream.totalShares]);
 
-  console.log("Daily Rewards:", dailyRewards);
-
   if (combinedApyData.isLoading === true) {
     return (
       <div className="border border-muted p-3">

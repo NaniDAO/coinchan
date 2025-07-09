@@ -13,7 +13,8 @@ import { useMemo } from "react";
 export const BrowseFarms = () => {
   const { t } = useTranslation();
   const { tokens, loading: isLoadingTokens } = useAllCoins();
-  const { data: activeStreams, isLoading: isLoadingStreams } = useActiveIncentiveStreams();
+  const { data: activeStreams, isLoading: isLoadingStreams } =
+    useActiveIncentiveStreams();
 
   // Filter out ended streams
   const activeOnlyStreams = useMemo(() => {
@@ -23,7 +24,8 @@ export const BrowseFarms = () => {
   }, [activeStreams]);
 
   // Get real-time farm summary data
-  const { totalStaked, uniquePools, streamsWithRealTimeData } = useFarmsSummary(activeOnlyStreams);
+  const { totalStaked, uniquePools, streamsWithRealTimeData } =
+    useFarmsSummary(activeOnlyStreams);
 
   // Sort farms by various criteria using real-time data
   const sortedStreams = useMemo(() => {
@@ -38,8 +40,6 @@ export const BrowseFarms = () => {
       return Number(b.rewardAmount - a.rewardAmount);
     });
   }, [streamsWithRealTimeData]);
-
-  console.log("Sorted Streams:", sortedStreams);
 
   // Could add featured farms section in the future
   // const featuredFarms = sortedStreams?.filter(stream => {
@@ -61,19 +61,29 @@ export const BrowseFarms = () => {
                 sortedStreams && sortedStreams.length > 0 && "animate-pulse",
               )}
             >
-              <span className="text-primary font-mono text-sm font-bold">{sortedStreams?.length || 0}</span>
+              <span className="text-primary font-mono text-sm font-bold">
+                {sortedStreams?.length || 0}
+              </span>
             </div>
           </div>
           <div className="hidden sm:flex items-center gap-4">
             {sortedStreams && sortedStreams.length > 0 && (
               <>
                 <div className="text-xs font-mono">
-                  <span className="text-muted-foreground">{t("common.total_staked")}:</span>
-                  <span className="text-primary font-bold ml-1">{formatBalance(formatEther(totalStaked), "LP")}</span>
+                  <span className="text-muted-foreground">
+                    {t("common.total_staked")}:
+                  </span>
+                  <span className="text-primary font-bold ml-1">
+                    {formatBalance(formatEther(totalStaked), "LP")}
+                  </span>
                 </div>
                 <div className="text-xs font-mono">
-                  <span className="text-muted-foreground">{t("common.unique_pools")}:</span>
-                  <span className="text-primary font-bold ml-1">{uniquePools}</span>
+                  <span className="text-muted-foreground">
+                    {t("common.unique_pools")}:
+                  </span>
+                  <span className="text-primary font-bold ml-1">
+                    {uniquePools}
+                  </span>
                 </div>
               </>
             )}
@@ -86,7 +96,9 @@ export const BrowseFarms = () => {
       ) : sortedStreams && sortedStreams.length > 0 ? (
         <div className="grid gap-4 sm:gap-5 grid-cols-1 lg:grid-cols-2">
           {sortedStreams?.map((stream) => {
-            const lpToken = tokens.find((t) => t.poolId === BigInt(stream.lpId));
+            const lpToken = tokens.find(
+              (t) => t.poolId === BigInt(stream.lpId),
+            );
 
             // If lpToken is not found and tokens are not loading, show error
             // Otherwise, use ETH_TOKEN as fallback during loading
@@ -106,8 +118,13 @@ export const BrowseFarms = () => {
 
             return (
               <div key={stream.chefId.toString()} className="group">
-                <ErrorBoundary fallback={<div>{t("common.error_loading_farm")}</div>}>
-                  <IncentiveStreamCard stream={stream} lpToken={lpToken || ETH_TOKEN} />
+                <ErrorBoundary
+                  fallback={<div>{t("common.error_loading_farm")}</div>}
+                >
+                  <IncentiveStreamCard
+                    stream={stream}
+                    lpToken={lpToken || ETH_TOKEN}
+                  />
                 </ErrorBoundary>
               </div>
             );
@@ -118,7 +135,9 @@ export const BrowseFarms = () => {
           <div className="bg-gradient-to-br from-muted/20 to-muted/5 border-2 border-dashed border-primary/30 rounded-xl p-8 backdrop-blur-sm">
             <div className="font-mono text-muted-foreground space-y-4">
               <div className="text-4xl sm:text-5xl opacity-20">◇</div>
-              <p className="text-xl font-bold text-primary">[ {t("common.no_active_farms")} ]</p>
+              <p className="text-xl font-bold text-primary">
+                [ {t("common.no_active_farms")} ]
+              </p>
               <p className="text-sm mt-3">{t("common.no_farms_description")}</p>
             </div>
           </div>
