@@ -2,6 +2,7 @@ import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
 import { ZChefAbi, ZChefAddress } from "@/constants/zChef";
 import { CoinSource } from "@/lib/coins";
+import { handleWalletError } from "@/lib/errors";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Address, formatUnits } from "viem";
 import { mainnet } from "viem/chains";
@@ -228,6 +229,14 @@ export function useZChefActions() {
       });
       queryClient.invalidateQueries({ queryKey: ["activeIncentiveStreams"] });
     },
+    onError: (error) => {
+      // Use handleWalletError for graceful error handling
+      const errorMessage = handleWalletError(error);
+      // Only log if it's not a user rejection
+      if (errorMessage) {
+        console.error("Deposit failed:", error);
+      }
+    },
   });
 
   const withdraw = useMutation({
@@ -273,6 +282,14 @@ export function useZChefActions() {
       queryClient.invalidateQueries({ queryKey: ["userIncentivePosition"] });
       queryClient.invalidateQueries({ queryKey: ["incentiveStream"] });
     },
+    onError: (error) => {
+      // Use handleWalletError for graceful error handling
+      const errorMessage = handleWalletError(error);
+      // Only log if it's not a user rejection
+      if (errorMessage) {
+        console.error("Withdraw failed:", error);
+      }
+    },
   });
 
   const harvest = useMutation({
@@ -310,6 +327,14 @@ export function useZChefActions() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["userIncentivePositions"] });
       queryClient.invalidateQueries({ queryKey: ["userIncentivePosition"] });
+    },
+    onError: (error) => {
+      // Use handleWalletError for graceful error handling
+      const errorMessage = handleWalletError(error);
+      // Only log if it's not a user rejection
+      if (errorMessage) {
+        console.error("Harvest failed:", error);
+      }
     },
   });
 
@@ -349,6 +374,14 @@ export function useZChefActions() {
       queryClient.invalidateQueries({ queryKey: ["userIncentivePositions"] });
       queryClient.invalidateQueries({ queryKey: ["userIncentivePosition"] });
       queryClient.invalidateQueries({ queryKey: ["incentiveStream"] });
+    },
+    onError: (error) => {
+      // Use handleWalletError for graceful error handling
+      const errorMessage = handleWalletError(error);
+      // Only log if it's not a user rejection
+      if (errorMessage) {
+        console.error("Emergency withdraw failed:", error);
+      }
     },
   });
 
@@ -401,6 +434,14 @@ export function useSetOperatorApproval() {
         }
         return hash;
       });
+    },
+    onError: (error) => {
+      // Use handleWalletError for graceful error handling
+      const errorMessage = handleWalletError(error);
+      // Only log if it's not a user rejection
+      if (errorMessage) {
+        console.error("Set operator approval failed:", error);
+      }
     },
   });
 

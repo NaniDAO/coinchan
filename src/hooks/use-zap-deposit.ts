@@ -1,5 +1,6 @@
 import { ZChefAbi, ZChefAddress } from "@/constants/zChef";
 import type { ZapCalculation } from "@/hooks/use-zap-calculations";
+import { handleWalletError } from "@/lib/errors";
 import { DEADLINE_SEC } from "@/lib/swap";
 import { nowSec } from "@/lib/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -56,7 +57,12 @@ export function useZapDeposit() {
       queryClient.invalidateQueries({ queryKey: ["activeIncentiveStreams"] });
     },
     onError: (error) => {
-      console.error("Zap deposit failed:", error);
+      // Use handleWalletError for graceful error handling
+      const errorMessage = handleWalletError(error);
+      // Only log if it's not a user rejection
+      if (errorMessage) {
+        console.error("Zap deposit failed:", error);
+      }
     },
   });
 

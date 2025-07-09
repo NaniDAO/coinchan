@@ -604,7 +604,9 @@ export function FarmStakeDialog({
 
           {/* Error Display */}
           {(deposit.error || zapDeposit.error) &&
-            txStatus === "idle" && (
+            txStatus === "idle" && 
+            !isUserRejectionError(deposit.error) && 
+            !isUserRejectionError(zapDeposit.error) && (
               <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
                 <div className="text-sm text-red-400 text-center font-mono break-words">
                   [ERROR]:{" "}
