@@ -86,10 +86,11 @@ export function useCombinedApy({
     const now = BigInt(Math.floor(Date.now() / 1_000)); // current unix ts
     const streamActive = stream.status === "ACTIVE" && now < stream.endTime;
     const rewardRate = stream.rewardRate ?? farmInfo?.[4];
-    const totalShares =
-      farmInfo?.[7] === 0n || !farmInfo?.[7]
+    const totalShares = stream?.totalShares && stream?.totalShares > 0n
+      ? stream?.totalShares
+      : farmInfo?.[7] === 0n || !farmInfo?.[7]
         ? parseEther("1")
-        : (stream?.totalShares ?? farmInfo?.[7]);
+        : farmInfo?.[7];
 
     // Ensure totalShares is never 0 before division
     const safeTotalShares = totalShares && totalShares > 0n ? totalShares : parseEther("1");
@@ -100,7 +101,7 @@ export function useCombinedApy({
 
     // 3. ended or not enabled → 0
     return 0n;
-  }, [rewardPerSharePerYearOnchain, farmInfo, stream.status, stream.endTime]);
+  }, [rewardPerSharePerYearOnchain, farmInfo, stream.status, stream.endTime, stream.totalShares]);
 
   // Calculate combined APY
   const combinedApy = useMemo(() => {
@@ -125,10 +126,11 @@ export function useCombinedApy({
 
     // Calculate base APY from trading fees
     const baseApy = Number(baseApyData?.slice(0, -1)) || 0;
-    const totalShares =
-      farmInfo?.[7] === 0n || !farmInfo?.[7]
+    const totalShares = stream?.totalShares && stream?.totalShares > 0n
+      ? stream?.totalShares
+      : farmInfo?.[7] === 0n || !farmInfo?.[7]
         ? parseEther("1")
-        : (stream?.totalShares ?? farmInfo?.[7]);
+        : farmInfo?.[7];
 
     // Calculate farm APY from incentives
     const share = 1000000000000000000n; // 1 LP share
@@ -194,6 +196,7 @@ export function useCombinedApy({
     isFarmApyLoading,
     lpToken,
     stream.rewardCoin,
+    stream.totalShares,
     poolTvlInEth,
     rewardPriceEth,
     farmInfo,

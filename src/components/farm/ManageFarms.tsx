@@ -1,9 +1,10 @@
 import { useAllCoins } from "@/hooks/metadata/use-all-coins";
 import { useIncentiveStreams, useUserIncentivePositions } from "@/hooks/use-incentive-streams";
+import { useFarmsSummary } from "@/hooks/use-farms-summary";
 import { useZChefActions } from "@/hooks/use-zchef-contract";
 import { isUserRejectionError } from "@/lib/errors";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useAccount } from "wagmi";
 import { ErrorBoundary } from "../ErrorBoundary";
@@ -19,6 +20,17 @@ export const ManageFarms = () => {
   const { data: allStreams } = useIncentiveStreams();
   const { data: userPositions, isLoading: isLoadingPositions } = useUserIncentivePositions();
   const { harvest } = useZChefActions();
+
+  // Get streams that are relevant for user positions to fetch real-time data
+  const relevantStreams = useMemo(() => {
+    if (!allStreams || !userPositions) return undefined;
+    return allStreams.filter(stream => 
+      userPositions.some(position => BigInt(position.chefId) === BigInt(stream.chefId))
+    );
+  }, [allStreams, userPositions]);
+
+  // Get real-time farm data using the same pattern as Browse Farms
+  const { streamsWithRealTimeData } = useFarmsSummary(relevantStreams);
 
   const [harvestingId, setHarvestingId] = useState<bigint | null>(null);
 
@@ -105,8 +117,10 @@ export const ManageFarms = () => {
       ) : userPositions && userPositions.length > 0 ? (
         <div className="grid gap-4 sm:gap-5 grid-cols-1 md:grid-cols-2 ">
           {userPositions.map((position) => {
-            const stream = allStreams?.find((s) => BigInt(s.chefId) === BigInt(position.chefId));
-            const lpToken = tokens.find((t) => t.poolId === stream?.lpId);
+            // First try to get real-time data, fallback to stale data
+            const stream = streamsWithRealTimeData?.find((s) => BigInt(s.chefId) === BigInt(position.chefId)) ||
+                          allStreams?.find((s) => BigInt(s.chefId) === BigInt(position.chefId));
+            const lpToken = tokens.find((t) => stream && t.poolId === BigInt(stream.lpId));
 
             if (!stream) return null;
 

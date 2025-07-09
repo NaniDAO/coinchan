@@ -213,7 +213,7 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
                   <div className="flex justify-between items-center">
                     <span className="font-mono text-muted-foreground">{t("common.rewards_to_claim")}:</span>
                     <span className="font-mono font-bold text-green-600 text-lg">
-                      {formatBalance(formatEther(actualPendingRewards), stream.rewardCoin?.symbol)}
+                      {Number.parseFloat(formatEther(actualPendingRewards)).toFixed(6)} {stream.rewardCoin?.symbol}
                     </span>
                   </div>
                 </div>
