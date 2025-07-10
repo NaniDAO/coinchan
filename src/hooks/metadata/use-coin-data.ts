@@ -1,4 +1,7 @@
-import { CoinsMetadataHelperAbi, CoinsMetadataHelperAddress } from "@/constants/CoinsMetadataHelper";
+import {
+  CoinsMetadataHelperAbi,
+  CoinsMetadataHelperAddress,
+} from "@/constants/CoinsMetadataHelper";
 import { useQuery } from "@tanstack/react-query";
 import { mainnet } from "viem/chains";
 import { useReadContract } from "wagmi";
@@ -58,6 +61,7 @@ async function processRawCoinData(rawData: any): Promise<CoinData> {
     metadata: null,
     priceInEth: null,
     votes: undefined,
+    createdAt: rawData?.createdAt,
   };
 
   // Calculate price in ETH if reserves are available
@@ -101,7 +105,10 @@ async function processRawCoinData(rawData: any): Promise<CoinData> {
         }
       }
     } catch (error) {
-      console.error(`Error processing metadata for coin ${coinData.coinId.toString()}:`, error);
+      console.error(
+        `Error processing metadata for coin ${coinData.coinId.toString()}:`,
+        error,
+      );
       // We'll just continue with the partial data
     }
   }
