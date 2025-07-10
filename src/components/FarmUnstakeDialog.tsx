@@ -92,7 +92,7 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
       } else {
         console.error("Unstake failed:", error);
         setTxStatus("error");
-        setTxError(error?.message || "Unstaking failed");
+        setTxError(error?.message || t("common.unstaking_failed"));
         setTimeout(() => {
           setTxStatus("idle");
           setTxError(null);

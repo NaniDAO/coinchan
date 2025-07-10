@@ -169,7 +169,7 @@ export function FarmStakeDialog({
     const validation = validateStreamBeforeAction(stream, "stake");
     if (!validation.canProceed) {
       setTxStatus("error");
-      setTxError(validation.error || "Cannot stake at this time");
+      setTxError(validation.error || t("common.cannot_stake_at_this_time"));
       return;
     }
 
@@ -223,7 +223,7 @@ export function FarmStakeDialog({
       } else {
         // ETH zap mode
         if (!zapCalculation || !zapCalculation.isValid) {
-          throw new Error("Invalid zap calculation");
+          throw new Error(t("common.invalid_zap_calculation"));
         }
 
         const ethAmountBigInt = parseEther(amount);
@@ -267,7 +267,7 @@ export function FarmStakeDialog({
       } else {
         console.error("Stake failed:", error);
         setTxStatus("error");
-        setTxError(error?.message || "Staking failed");
+        setTxError(error?.message || t("common.staking_failed"));
         setTimeout(() => {
           setTxStatus("idle");
           setTxError(null);
@@ -427,7 +427,7 @@ export function FarmStakeDialog({
                   </span>
                   <span className="text-primary font-bold break-all text-left sm:text-right">
                     {stakeMode === "lp" && isLpBalanceLoading ? (
-                      <span className="animate-pulse">Loading...</span>
+                      <span className="animate-pulse">{t("common.loading_balance")}</span>
                     ) : (
                       formatBalance(
                         maxAmount,
