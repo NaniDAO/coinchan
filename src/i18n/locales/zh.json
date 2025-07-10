@@ -308,7 +308,14 @@
     "step_3_title": "质押并赚取",
     "step_3_description": "点击质押，无缝完成批准和存入LP代币",
     "approve_and_stake": "批准并质押",
-    "confirming_approval": "确认批准中"
+    "confirming_approval": "确认批准中",
+    "loading_tokens": "正在加载代币...",
+    "loading_balance": "正在加载余额...",
+    "unknown_token": "未知代币",
+    "cannot_stake_at_this_time": "此时无法质押",
+    "staking_failed": "质押失败",
+    "unstaking_failed": "解除质押失败",
+    "invalid_zap_calculation": "无效的闪兑计算"
   },
   "header": {
     "connect": "连接钱包",

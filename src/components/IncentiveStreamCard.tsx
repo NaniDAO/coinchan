@@ -113,7 +113,7 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
                   ) : hasStakeableTokens ? (
                     // Show only available LP tokens
                     <>
-                      {formatLpAmount(lpBalance)} {t("common.stake")}
+                      {formatLpAmount(lpBalance)}
                     </>
                   ) : (
                     // Show only staked amount
@@ -143,7 +143,7 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
                 (() => {
                   const rewardId = stream.rewardId?.toString();
                   // Reward IDs may be variable, handle gracefully
-                  if (!rewardId) return "Unknown Token";
+                  if (!rewardId) return t("common.unknown_token");
                   return rewardId.length > 16
                     ? `Token ${rewardId.slice(0, 8)}...${rewardId.slice(-8)}`
                     : `Token ${rewardId}`;
@@ -248,7 +248,7 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
           lpToken={lpToken}
           trigger={
             <Button variant="outline" className="w-full border-muted font-mono text-sm sm:text-base uppercase tracking-wider py-2 sm:py-3">
-              [STAKE]
+              [{t("common.stake")}]
             </Button>
           }
         />
