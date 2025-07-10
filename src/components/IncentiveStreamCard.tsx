@@ -38,6 +38,14 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
   const hasStakeableTokens = lpBalance > 0n;
   const hasStakedTokens = stakedAmount && stakedAmount > 0n;
 
+  // Helper function to format LP amounts with consistent precision
+  const formatLpAmount = (amount: bigint, includeUnit = true) => {
+    const formatted = Number(formatUnits(amount, 18))
+      .toFixed(4)
+      .replace(/\.?0+$/, "");
+    return includeUnit ? `${formatted} LP` : formatted;
+  };
+
   const timeRemaining = calculateTimeRemaining(stream.endTime);
   const isActive = stream.status === "ACTIVE" && timeRemaining.seconds > 0;
 
@@ -100,18 +108,17 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
                   {hasStakeableTokens && hasStakedTokens ? (
                     // Show both available LP and staked amounts
                     <>
-                      {formatBalance(formatUnits(lpBalance, 18), "LP")} /{" "}
-                      {formatBalance(formatUnits(stakedAmount || 0n, 18), "")} {t("common.staked")}
+                      {formatLpAmount(lpBalance)} / {formatLpAmount(stakedAmount || 0n, false)} {t("common.staked")}
                     </>
                   ) : hasStakeableTokens ? (
                     // Show only available LP tokens
                     <>
-                      {formatBalance(formatUnits(lpBalance, 18), "LP")} {t("common.stake")}
+                      {formatLpAmount(lpBalance)} {t("common.stake")}
                     </>
                   ) : (
                     // Show only staked amount
                     <>
-                      {formatBalance(formatUnits(stakedAmount || 0n, 18), "LP")} {t("common.staked")}
+                      {formatLpAmount(stakedAmount || 0n)} {t("common.staked")}
                     </>
                   )}
                 </div>
