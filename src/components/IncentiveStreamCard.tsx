@@ -1,15 +1,16 @@
 import { APYDisplay } from "@/components/farm/APYDisplay";
 import { formatImageURL } from "@/hooks/metadata";
 import type { IncentiveStream } from "@/hooks/use-incentive-streams";
-import { useZChefUtilities, useZChefPool } from "@/hooks/use-zchef-contract";
+import { useLpBalance } from "@/hooks/use-lp-balance";
+import { useZChefPool, useZChefUtilities } from "@/hooks/use-zchef-contract";
 import type { TokenMeta } from "@/lib/coins";
 import { cn, formatBalance } from "@/lib/utils";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits } from "viem";
 import { useEnsName } from "wagmi";
 import { FarmStakeDialog } from "./FarmStakeDialog";
 import { Button } from "./ui/button";
-import { useMemo } from "react";
 
 interface IncentiveStreamCardProps {
   stream: IncentiveStream;
@@ -24,6 +25,13 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
   // Get real-time total shares from zChef contract
   const { data: poolData } = useZChefPool(stream.chefId);
   const totalShares = poolData?.[7] ?? stream.totalShares ?? 0n;
+
+  // Check if user has LP tokens for this farm
+  const { balance: lpBalance } = useLpBalance({
+    lpToken,
+    poolId: stream.lpId,
+  });
+  const hasStakeableTokens = lpBalance > 0n;
 
   const timeRemaining = calculateTimeRemaining(stream.endTime);
   const isActive = stream.status === "ACTIVE" && timeRemaining.seconds > 0;
@@ -54,7 +62,12 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
   // totalValueLocked and dailyRewards are now handled by APYDisplay component
 
   return (
-    <div className="bg-card text-card-foreground w-full border border-border">
+    <div
+      className={cn(
+        "bg-card text-card-foreground w-full border",
+        hasStakeableTokens ? "border-green-600" : "border-border",
+      )}
+    >
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -73,12 +86,15 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
             <div
               className={cn(
                 "px-2 py-1 border font-mono text-xs uppercase tracking-wider font-bold",
-                isActive
-                  ? "border-green-700 text-green-600"
-                  : "border-muted text-muted-foreground",
+                isActive ? "border-green-700 text-green-600" : "border-muted text-muted-foreground",
               )}
             >
               [{isActive ? t("orders.active") : t("common.ended")}]
+              {hasStakeableTokens && (
+                <div className="text-xs text-green-600 font-mono mt-1">
+                  {formatBalance(formatUnits(lpBalance, 18), "LP")} {t("common.stake")}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -123,10 +139,7 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
             </div>
           </div>
           <div className="w-full h-2 border border-muted bg-background">
-            <div
-              className="h-full bg-foreground"
-              style={{ width: `${progress}%` }}
-            />
+            <div className="h-full bg-foreground" style={{ width: `${progress}%` }} />
           </div>
         </div>
 
