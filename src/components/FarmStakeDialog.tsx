@@ -396,14 +396,14 @@ export function FarmStakeDialog({
                 ? t("common.amount_to_stake")
                 : t("common.eth_amount")}
             </Label>
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <Input
                 id="amount"
                 type="number"
                 placeholder="0.0"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="font-mono text-lg bg-background/50 border-primary/30 focus:border-primary/60 backdrop-blur-sm"
+                className="font-mono text-lg bg-background/50 border-primary/30 focus:border-primary/60 backdrop-blur-sm flex-1"
                 step="0.000001"
                 min="0"
                 max={maxAmount}
@@ -414,18 +414,18 @@ export function FarmStakeDialog({
                 size="sm"
                 onClick={handleMaxClick}
                 disabled={Number.parseFloat(maxAmount) === 0}
-                className="font-mono font-bold tracking-wide border-primary/40 hover:border-primary hover:bg-primary/20 px-4 !text-foreground dark:!text-foreground hover:!text-foreground dark:hover:!text-foreground"
+                className="font-mono font-bold tracking-wide border-primary/40 hover:border-primary hover:bg-primary/20 px-4 sm:px-6 py-2 sm:py-1 !text-foreground dark:!text-foreground hover:!text-foreground dark:hover:!text-foreground"
               >
                 {t("common.max")}
               </Button>
             </div>
             <div className="bg-background/30 border border-primary/20 rounded p-3">
               <div className="space-y-2 text-sm font-mono">
-                <div className="flex justify-between">
+                <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                   <span className="text-muted-foreground">
                     {t("common.available")}:
                   </span>
-                  <span className="text-primary font-bold break-all">
+                  <span className="text-primary font-bold break-all text-left sm:text-right">
                     {stakeMode === "lp" && isLpBalanceLoading ? (
                       <span className="animate-pulse">Loading...</span>
                     ) : (

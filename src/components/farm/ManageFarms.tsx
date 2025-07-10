@@ -115,7 +115,7 @@ export const ManageFarms = () => {
       ) : isLoadingPositions ? (
         <FarmGridSkeleton count={3} />
       ) : userPositions && userPositions.length > 0 ? (
-        <div className="grid gap-4 sm:gap-5 grid-cols-1 md:grid-cols-2 ">
+        <div className="grid gap-4 sm:gap-5 grid-cols-1 lg:grid-cols-2">
           {userPositions.map((position) => {
             // First try to get real-time data, fallback to stale data
             const stream = streamsWithRealTimeData?.find((s) => BigInt(s.chefId) === BigInt(position.chefId)) ||
