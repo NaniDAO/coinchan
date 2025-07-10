@@ -186,35 +186,35 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
 
         {/* Pool Information */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-          <div className="border border-muted p-2">
+          <div className="border border-muted p-2 sm:p-3">
             <p className="text-muted-foreground font-mono text-xs">[{t("common.total_staked")}]</p>
             <p className="font-mono font-bold text-sm text-foreground mt-1">
               {formatBalance(formatEther(totalShares), "LP")}
             </p>
           </div>
           {lpToken && lpToken.liquidity !== undefined && (
-            <div className="border border-muted p-2">
+            <div className="border border-muted p-2 sm:p-3">
               <p className="text-muted-foreground font-mono text-xs">[{t("pool.liquidity")}]</p>
               <p className="font-mono font-bold text-sm text-foreground mt-1">
                 {formatBalance(formatEther(lpToken.reserve0 || lpToken.liquidity || 0n), "ETH")}
               </p>
             </div>
           )}
-          <div className="border border-muted p-2 sm:col-span-2 lg:col-span-1">
+          <div className="border border-muted p-2 sm:p-3 sm:col-span-2 lg:col-span-1">
             <APYDisplay stream={stream} lpToken={lpToken} shortView={true} />
           </div>
         </div>
 
         {/* Stream Details */}
         <div className="border-t border-muted pt-3 mt-3">
-          <div className="border border-muted p-2">
+          <div className="border border-muted p-2 sm:p-3">
             <h5 className="font-mono text-xs uppercase tracking-wider text-muted-foreground mb-2">
               [{t("common.details")}]
             </h5>
-            <div className="space-y-1 text-xs font-mono">
-              <div className="flex justify-between items-center">
+            <div className="space-y-2 text-xs font-mono">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0">
                 <span className="text-muted-foreground">[{t("common.chef_id")}]:</span>
-                <span className="border border-muted px-1 py-0.5 font-bold text-foreground break-all max-w-[60%] text-right">
+                <span className="border border-muted px-1 py-0.5 font-bold text-foreground break-all sm:max-w-[60%] text-left sm:text-right">
                   {(() => {
                     const chefId = stream.chefId.toString();
                     // Chef IDs are always full uint, truncate for UI
@@ -222,15 +222,15 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
                   })()}
                 </span>
               </div>
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0">
                 <span className="text-muted-foreground">[{t("common.created_by")}]:</span>
-                <span className="border border-muted px-1 py-0.5 font-bold text-foreground max-w-[60%] text-right">
+                <span className="border border-muted px-1 py-0.5 font-bold text-foreground sm:max-w-[60%] text-left sm:text-right">
                   {creatorEnsName ?? `${stream.creator.slice(0, 6)}...${stream.creator.slice(-4)}`}
                 </span>
               </div>
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0">
                 <span className="text-muted-foreground">[{t("common.started")}]:</span>
-                <span className="border border-muted px-1 py-0.5 font-bold text-foreground">
+                <span className="border border-muted px-1 py-0.5 font-bold text-foreground text-left sm:text-right">
                   {(() => {
                     try {
                       return new Date(Number(stream.startTime) * 1000).toLocaleDateString();
@@ -247,7 +247,7 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
           stream={stream}
           lpToken={lpToken}
           trigger={
-            <Button variant="outline" className="w-full border-muted font-mono text-sm uppercase tracking-wider">
+            <Button variant="outline" className="w-full border-muted font-mono text-sm sm:text-base uppercase tracking-wider py-2 sm:py-3">
               [STAKE]
             </Button>
           }
