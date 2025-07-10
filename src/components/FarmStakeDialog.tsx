@@ -18,9 +18,7 @@ import { useLpBalance } from "@/hooks/use-lp-balance";
 import { useStreamValidation } from "@/hooks/use-stream-validation";
 import { useZapCalculations } from "@/hooks/use-zap-calculations";
 import { useZapDeposit } from "@/hooks/use-zap-deposit";
-import {
-  useZChefActions,
-} from "@/hooks/use-zchef-contract";
+import { useZChefActions } from "@/hooks/use-zchef-contract";
 import { ETH_TOKEN, type TokenMeta } from "@/lib/coins";
 import { isUserRejectionError } from "@/lib/errors";
 import { SINGLE_ETH_SLIPPAGE_BPS } from "@/lib/swap";
@@ -101,7 +99,6 @@ export function FarmStakeDialog({
         ? formatEther(ethToken.balance)
         : "0";
 
-
   // Debounced zap calculation with proper cleanup
   const debounceTimerRef = useRef<NodeJS.Timeout>();
 
@@ -161,7 +158,6 @@ export function FarmStakeDialog({
     }
   }, [open]);
 
-
   const handleStake = async () => {
     if (!amount || Number.parseFloat(amount) <= 0) return;
 
@@ -176,11 +172,10 @@ export function FarmStakeDialog({
     try {
       setTxStatus("pending");
       setTxError(null);
-      
+
       // Check if approval is needed for LP tokens (only for LP mode)
       if (stakeMode === "lp" && !isOperatorApproved) {
         setCurrentOperation("approval");
-        console.log("Setting operator approval for LP tokens...");
 
         // Determine which contract to call based on LP token source
         const isZAMM = lpToken.source === "ZAMM";
@@ -203,8 +198,7 @@ export function FarmStakeDialog({
             hash: approvalHash,
           });
         }
-        console.log("LP token operator approval confirmed");
-        
+
         // Reset for next step
         setTxStatus("pending");
         setTxHash(null);
@@ -245,10 +239,6 @@ export function FarmStakeDialog({
         setTxStatus("success");
 
         // Show success notification
-        console.log(
-          `🎉 Stake successful! Mode: ${stakeMode === "lp" ? "LP Tokens" : "ETH Zap"}, Amount: ${amount} ${stakeMode === "lp" ? lpToken.symbol || "LP" : "ETH"}, Pool: ${lpToken.symbol || "Unknown"}, TX: ${hash}`,
-        );
-
         // Reset form and close after success
         setTimeout(() => {
           setAmount("");
@@ -427,7 +417,9 @@ export function FarmStakeDialog({
                   </span>
                   <span className="text-primary font-bold break-all text-left sm:text-right">
                     {stakeMode === "lp" && isLpBalanceLoading ? (
-                      <span className="animate-pulse">{t("common.loading_balance")}</span>
+                      <span className="animate-pulse">
+                        {t("common.loading_balance")}
+                      </span>
                     ) : (
                       formatBalance(
                         maxAmount,
@@ -462,7 +454,6 @@ export function FarmStakeDialog({
               </div>
             )}
           </div>
-
 
           {/* ETH Zap Error Display */}
           {stakeMode === "eth" && zapCalculation && !zapCalculation.isValid && (
@@ -604,14 +595,12 @@ export function FarmStakeDialog({
 
           {/* Error Display */}
           {(deposit.error || zapDeposit.error) &&
-            txStatus === "idle" && 
-            !isUserRejectionError(deposit.error) && 
+            txStatus === "idle" &&
+            !isUserRejectionError(deposit.error) &&
             !isUserRejectionError(zapDeposit.error) && (
               <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
                 <div className="text-sm text-red-400 text-center font-mono break-words">
-                  [ERROR]:{" "}
-                  {deposit.error?.message ||
-                    zapDeposit.error?.message}
+                  [ERROR]: {deposit.error?.message || zapDeposit.error?.message}
                 </div>
               </div>
             )}

@@ -53,9 +53,7 @@ async function executeWithRetry<T>(
 
     if (retries > 0) {
       const delay = RETRY_CONFIG.retryDelay(RETRY_CONFIG.retries - retries);
-      console.log(
-        `Retrying transaction in ${delay}ms... (${retries} retries left)`,
-      );
+
       await new Promise((resolve) => setTimeout(resolve, delay));
       return executeWithRetry(fn, retries - 1);
     }

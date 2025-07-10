@@ -31,7 +31,6 @@ import { useTokenSelection } from "./contexts/TokenSelectionContext";
 import {
   determineReserveSource,
   getHelperContractInfo,
-  getTargetZAMMAddress,
 } from "./lib/coin-utils";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { SlippageSettings } from "./components/SlippageSettings";
@@ -322,46 +321,24 @@ export const AddLiquidity = () => {
         (sellToken.isCustomPool && sellToken.id === 0n) ||
         (buyToken?.isCustomPool && buyToken?.id === 0n);
 
-      console.log("Add liquidity with possible USDT:", {
-        isUsdtPool,
-        isUsingUsdt,
-        sellTokenSymbol: sellToken.symbol,
-        buyTokenSymbol: buyToken?.symbol,
-        sellTokenIsCustom: sellToken.isCustomPool,
-        sellTokenAddress: sellToken.token1,
-        buyTokenIsCustom: buyToken?.isCustomPool,
-        buyTokenAddress: buyToken?.token1,
-      });
-
       // Get the amount of USDT being used
       let usdtAmount = 0n;
       if (isUsingUsdt) {
-        console.log("USDT token detected for liquidity addition");
-
         // Determine which token is USDT and get its amount
         if (
           (sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS) ||
           sellToken.symbol === "USDT"
         ) {
           usdtAmount = parseUnits(sellAmt, 6); // USDT has 6 decimals
-          console.log(
-            "Using USDT as sell token with amount:",
-            usdtAmount.toString(),
-          );
         } else if (
           (buyToken?.isCustomPool && buyToken?.token1 === USDT_ADDRESS) ||
           buyToken?.symbol === "USDT"
         ) {
           usdtAmount = parseUnits(buyAmt, 6); // USDT has 6 decimals
-          console.log(
-            "Using USDT as buy token with amount:",
-            usdtAmount.toString(),
-          );
         }
 
         // Check if we need to verify USDT allowance first
         if (usdtAllowance === undefined) {
-          console.log("USDT allowance is null, checking now...");
           await refetchUsdtAllowance();
         }
 
@@ -371,11 +348,6 @@ export const AddLiquidity = () => {
           usdtAllowance === 0n ||
           usdtAmount > usdtAllowance
         ) {
-          console.log("USDT approval needed for liquidity:", {
-            usdtAmount: usdtAmount.toString(),
-            allowance: usdtAllowance?.toString() || "0",
-          });
-
           // Maintain consistent UX with operator approval flow
           setTxError(
             "Waiting for USDT approval. Please confirm the transaction...",
@@ -395,11 +367,6 @@ export const AddLiquidity = () => {
 
             return;
           }
-        } else {
-          console.log("USDT already approved for liquidity:", {
-            allowance: usdtAllowance?.toString(),
-            requiredAmount: usdtAmount.toString(),
-          });
         }
       }
 
@@ -413,10 +380,6 @@ export const AddLiquidity = () => {
       } else if (isCookbook) {
         // Cookbook coin pool key - use CookbookAddress as token1
         poolKey = computePoolKey(coinId, SWAP_FEE, CookbookAddress);
-        console.log("Using cookbook pool key for add liquidity:", {
-          coinId: coinId.toString(),
-          isCookbook: true,
-        });
       } else {
         // Regular pool key
         poolKey = computePoolKey(coinId) as ZAMMPoolKey;
@@ -503,12 +466,6 @@ export const AddLiquidity = () => {
             "Waiting for operator approval. Please confirm the transaction...",
           );
 
-          console.log("Approving target AMM contract as operator on Coins contract:", {
-            coinId: coinId.toString(),
-            targetAMMContract,
-            isCookbook,
-          });
-
           const approvalHash = await writeContractAsync({
             address: CoinsAddress,
             abi: CoinsAbi,
@@ -552,12 +509,6 @@ export const AddLiquidity = () => {
         : ZAMMHelperAddress;
       const helperAbi = isCookbook ? ZAMMHelperV1Abi : ZAMMHelperAbi;
 
-      console.log(`Using ${helperType} for add liquidity`, {
-        helperAddress,
-        isCookbook,
-        coinId: coinId.toString(),
-      });
-
       try {
         // The contract call returns an array of values rather than an object
         const result = await publicClient.readContract({
@@ -588,15 +539,8 @@ export const AddLiquidity = () => {
         // IMPORTANT: We should also use the exact calculated amounts for amount0Desired and amount1Desired
         // For cookbook coins, use CookbookAddress as the ZAMM instance (V2)
         // For regular coins, use ZAMMAddress (V1)
-        const { contractType } = getTargetZAMMAddress(coinId);
         const targetZAMMAddress = isCookbook ? CookbookAddress : ZAMMAddress;
         const targetZAMMAbi = isCookbook ? CookbookAbi : ZAMMAbi;
-
-        console.log(`Using ${contractType} address for addLiquidity`, {
-          targetZAMMAddress,
-          isCookbook,
-          coinId: coinId.toString(),
-        });
 
         const hash = await writeContractAsync({
           address: targetZAMMAddress,

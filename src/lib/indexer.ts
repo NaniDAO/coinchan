@@ -63,10 +63,6 @@ export async function fetchPoolCandles(
   }
   `;
 
-  console.log("GraphQL query:", {
-    query,
-    variables: { poolId, interval, from, to },
-  });
   const response = await fetch(INDEXER_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -83,8 +79,6 @@ export async function fetchPoolCandles(
     console.error(`Error in response: ${JSON.stringify(errors)}`);
     throw new Error(`GraphQL errors: ${JSON.stringify(errors)}`);
   }
-
-  console.log("GraphQL response:", { data, errors });
 
   return data.candles.items
     .map((c: any) => ({

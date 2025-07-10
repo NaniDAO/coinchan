@@ -218,7 +218,6 @@ export const Coins = () => {
             : bLiquidity - aLiquidity; // Descending (highest liquidity first)
         });
       } else if (sortType === "votes") {
-        console.log("Sorting By Votes:", coinsCopy);
         return coinsCopy.sort((a, b) => {
           // Convert BigInt to number (or fallback to 0)
           const aVotes =
@@ -344,8 +343,6 @@ export const Coins = () => {
     PAGE_SIZE,
     filterValidCoins,
   ]);
-
-  console.log("coins:", allCoins);
 
   /* ------------------------------------------------------------------
    *  Render – trade view OR explorer grid

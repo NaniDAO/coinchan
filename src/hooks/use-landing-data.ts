@@ -1,4 +1,7 @@
-import { CheckTheChainAbi, CheckTheChainAddress } from "@/constants/CheckTheChain";
+import {
+  CheckTheChainAbi,
+  CheckTheChainAddress,
+} from "@/constants/CheckTheChain";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { formatUnits } from "viem";
@@ -37,7 +40,6 @@ export const useLandingData = () => {
   return useQuery<LandingData>({
     queryKey: ["landing"],
     queryFn: async () => {
-      console.log("Landing Init");
       if (!publicClient) {
         console.error("[useLandingData] Public client not available");
         throw new Error("Public client not available");
@@ -54,9 +56,11 @@ export const useLandingData = () => {
 
       const ethPriceUsd = Number(ethPrice[1]);
 
-      const launchCostUsd = Number(formatUnits(LAUNCH_COST_GAS * gasPrice, 18)) * ethPriceUsd;
+      const launchCostUsd =
+        Number(formatUnits(LAUNCH_COST_GAS * gasPrice, 18)) * ethPriceUsd;
 
-      const coinCostUsd = Number(formatUnits(COIN_COST_GAS * gasPrice, 18)) * ethPriceUsd;
+      const coinCostUsd =
+        Number(formatUnits(COIN_COST_GAS * gasPrice, 18)) * ethPriceUsd;
 
       return {
         ethPrice: `$${ethPriceUsd.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
