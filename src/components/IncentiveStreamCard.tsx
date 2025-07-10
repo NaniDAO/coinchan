@@ -2,7 +2,7 @@ import { APYDisplay } from "@/components/farm/APYDisplay";
 import { formatImageURL } from "@/hooks/metadata";
 import type { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { useLpBalance } from "@/hooks/use-lp-balance";
-import { useZChefPool, useZChefUtilities } from "@/hooks/use-zchef-contract";
+import { useZChefPool, useZChefUserBalance, useZChefUtilities } from "@/hooks/use-zchef-contract";
 import type { TokenMeta } from "@/lib/coins";
 import { cn, formatBalance } from "@/lib/utils";
 import { useMemo } from "react";
@@ -31,7 +31,12 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
     lpToken,
     poolId: stream.lpId,
   });
+
+  // Get user's staked amount from zChef
+  const { data: stakedAmount } = useZChefUserBalance(stream.chefId);
+
   const hasStakeableTokens = lpBalance > 0n;
+  const hasStakedTokens = stakedAmount && stakedAmount > 0n;
 
   const timeRemaining = calculateTimeRemaining(stream.endTime);
   const isActive = stream.status === "ACTIVE" && timeRemaining.seconds > 0;
@@ -65,7 +70,7 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
     <div
       className={cn(
         "bg-card text-card-foreground w-full border",
-        hasStakeableTokens ? "border-green-600" : "border-border",
+        hasStakeableTokens || hasStakedTokens ? "border-green-600" : "border-border",
       )}
     >
       <div className="p-4 border-b border-border">
@@ -90,9 +95,25 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
               )}
             >
               [{isActive ? t("orders.active") : t("common.ended")}]
-              {hasStakeableTokens && (
+              {!!(hasStakeableTokens || hasStakedTokens) && (
                 <div className="text-xs text-green-600 font-mono mt-1">
-                  {formatBalance(formatUnits(lpBalance, 18), "LP")} {t("common.stake")}
+                  {hasStakeableTokens && hasStakedTokens ? (
+                    // Show both available LP and staked amounts
+                    <>
+                      {formatBalance(formatUnits(lpBalance, 18), "LP")} /{" "}
+                      {formatBalance(formatUnits(stakedAmount || 0n, 18), "")} {t("common.staked")}
+                    </>
+                  ) : hasStakeableTokens ? (
+                    // Show only available LP tokens
+                    <>
+                      {formatBalance(formatUnits(lpBalance, 18), "LP")} {t("common.stake")}
+                    </>
+                  ) : (
+                    // Show only staked amount
+                    <>
+                      {formatBalance(formatUnits(stakedAmount || 0n, 18), "LP")} {t("common.staked")}
+                    </>
+                  )}
                 </div>
               )}
             </div>
