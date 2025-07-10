@@ -113,7 +113,7 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
                   ) : hasStakeableTokens ? (
                     // Show only available LP tokens
                     <>
-                      {formatLpAmount(lpBalance)} {t("common.stake")}
+                      {formatLpAmount(lpBalance)}
                     </>
                   ) : (
                     // Show only staked amount
