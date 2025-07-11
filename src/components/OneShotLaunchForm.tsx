@@ -28,12 +28,8 @@ const ONE_SHOT_PARAMS = {
 
 // Validation schema
 const oneShotFormSchema = z.object({
-  metadataName: z.string().min(1, "Name is required").max(50, "Name must be 50 characters or less"),
-  metadataSymbol: z
-    .string()
-    .min(1, "Symbol is required")
-    .max(10, "Symbol must be 10 characters or less")
-    .regex(/^[A-Z0-9]+$/, "Symbol must contain only uppercase letters and numbers"),
+  metadataName: z.string().min(1, "Name is required").max(100, "Name must be 100 characters or less"),
+  metadataSymbol: z.string().min(1, "Symbol is required").max(50, "Symbol must be 50 characters or less"),
   metadataDescription: z.string().max(500, "Description must be 500 characters or less").optional(),
 });
 
@@ -270,7 +266,7 @@ export const OneShotLaunchForm = () => {
                 onChange={handleInputChange}
                 placeholder={t("create.enter_symbol", "Enter coin symbol")}
                 className={errors.metadataSymbol ? "border-red-500" : ""}
-                maxLength={10}
+                maxLength={50}
               />
               {errors.metadataSymbol && <p className="text-red-500 text-sm mt-2">{errors.metadataSymbol}</p>}
             </div>
