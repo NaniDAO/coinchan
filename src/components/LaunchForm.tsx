@@ -58,8 +58,8 @@ const launchFormSchema = z
     mode: z.enum(["simple", "tranche", "pool"]).default("tranche"),
     creatorSupply: z.coerce.number().min(1, "Creator supply is required"),
     creatorUnlockDate: z.string().optional(),
-    metadataName: z.string().min(1, "Name is required"),
-    metadataSymbol: z.string().min(1, "Symbol is required").max(10),
+    metadataName: z.string().min(1, "Name is required").max(100),
+    metadataSymbol: z.string().min(1, "Symbol is required").max(50),
     metadataDescription: z.string().optional(),
     poolSupply: z.coerce.number().min(0, "Pool supply is required").optional(),
     ethAmount: z.coerce.number().min(0, "ETH amount is required").optional(),
@@ -383,11 +383,10 @@ export const LaunchForm = () => {
 
   const calculateMarketCap = () => {
     const price = calculatePrice();
-    if (!price || !formData.creatorSupply || formData.creatorSupply < 0) {
+    if (!price || !supplyBreakdown.totalSupply || supplyBreakdown.totalSupply <= 0) {
       return null;
     }
-    const totalSupply = (formData.poolSupply || 0) + formData.creatorSupply;
-    const marketCap = price * totalSupply;
+    const marketCap = price * supplyBreakdown.totalSupply;
     return isFinite(marketCap) && marketCap > 0 ? marketCap : null;
   };
 
@@ -414,6 +413,46 @@ export const LaunchForm = () => {
       }))
       .sort((a, b) => a.priceNum - b.priceNum);
   }, [formData.tranches]);
+
+  // Calculate supply breakdown values
+  const supplyBreakdown = useMemo(() => {
+    const creatorSupply = Number(formData.creatorSupply) || 0;
+    const poolSupply = Number(formData.poolSupply) || 0;
+    const totalTrancheSupply = formData.tranches.reduce((sum, tranche) => sum + (Number(tranche.coins) || 0), 0);
+
+    let totalSupply = 0;
+    let poolLiquidity = 0;
+    let saleSupply = 0;
+
+    if (formData.mode === "simple") {
+      totalSupply = creatorSupply;
+    } else if (formData.mode === "pool") {
+      totalSupply = creatorSupply + poolSupply;
+      poolLiquidity = poolSupply;
+    } else if (formData.mode === "tranche") {
+      saleSupply = totalTrancheSupply;
+      poolLiquidity = totalTrancheSupply; // Duplicate of sold supply goes to pool
+      totalSupply = creatorSupply + saleSupply + poolLiquidity;
+    }
+
+    const creatorPercent = totalSupply > 0 ? (creatorSupply / totalSupply) * 100 : 0;
+    const poolPercent = totalSupply > 0 ? (poolLiquidity / totalSupply) * 100 : 0;
+    const salePercent = totalSupply > 0 ? (saleSupply / totalSupply) * 100 : 0;
+    const remainingPercent = 100 - creatorPercent - poolPercent - salePercent;
+
+    return {
+      creatorSupply,
+      poolSupply,
+      totalTrancheSupply,
+      totalSupply,
+      poolLiquidity,
+      saleSupply,
+      creatorPercent,
+      poolPercent,
+      salePercent,
+      remainingPercent,
+    };
+  }, [formData.creatorSupply, formData.poolSupply, formData.tranches, formData.mode]);
 
   return (
     <form onSubmit={onSubmit} className="grid grid-cols-1 space-x-2 p-4 min-h-screeen mb-20 mx-auto">
@@ -567,6 +606,7 @@ export const LaunchForm = () => {
             placeholder={t("create.placeholder_symbol")}
             value={formData.metadataSymbol}
             onChange={handleInputChange}
+            maxLength={50}
           />
           {errors["metadataSymbol"] && <p className="text-sm text-red-500">{errors["metadataSymbol"]}</p>}
         </div>
@@ -759,7 +799,7 @@ export const LaunchForm = () => {
                       {t("create.total_supply")}
                     </div>
                     <div className="text-xl font-bold font-mono">
-                      {((formData.poolSupply || 0) + (formData.creatorSupply || 0)).toLocaleString()}
+                      {supplyBreakdown.totalSupply.toLocaleString()}
                     </div>
                     <div className="text-xs font-mono text-muted-foreground uppercase">coins</div>
                   </div>
@@ -774,22 +814,13 @@ export const LaunchForm = () => {
                     <div className="flex justify-between border-b border-border pb-1">
                       <span className="uppercase tracking-wide">{t("create.pool_liquidity")}</span>
                       <span className="font-bold">
-                        {(
-                          ((formData.poolSupply || 0) / ((formData.poolSupply || 0) + (formData.creatorSupply || 0))) *
-                          100
-                        ).toFixed(1)}
-                        %
+                        {supplyBreakdown.poolPercent.toFixed(1)}%
                       </span>
                     </div>
                     <div className="flex justify-between border-b border-border pb-1">
                       <span className="uppercase tracking-wide">{t("create.creator_allocation")}</span>
                       <span className="font-bold">
-                        {(
-                          ((formData.creatorSupply || 0) /
-                            ((formData.poolSupply || 0) + (formData.creatorSupply || 0))) *
-                          100
-                        ).toFixed(1)}
-                        %
+                        {supplyBreakdown.creatorPercent.toFixed(1)}%
                       </span>
                     </div>
                     <div className="flex justify-between pt-1">
@@ -867,29 +898,18 @@ export const LaunchForm = () => {
 
         {/* Supply Breakdown */}
         {(() => {
-          const creatorSupply = formData.creatorSupply || 0;
-          const poolSupply = formData.poolSupply || 0;
-          const totalTrancheSupply = formData.tranches.reduce((sum, tranche) => sum + (tranche.coins || 0), 0);
-
-          let totalSupply = 0;
-          let poolLiquidity = 0;
-          let saleSupply = 0;
-
-          if (formData.mode === "simple") {
-            totalSupply = creatorSupply;
-          } else if (formData.mode === "pool") {
-            totalSupply = creatorSupply + poolSupply;
-            poolLiquidity = poolSupply;
-          } else if (formData.mode === "tranche") {
-            saleSupply = totalTrancheSupply;
-            poolLiquidity = totalTrancheSupply; // Duplicate of sold supply goes to pool
-            totalSupply = creatorSupply + saleSupply + poolLiquidity;
-          }
-
-          const creatorPercent = totalSupply > 0 ? (creatorSupply / totalSupply) * 100 : 0;
-          const poolPercent = totalSupply > 0 ? (poolLiquidity / totalSupply) * 100 : 0;
-          const salePercent = totalSupply > 0 ? (saleSupply / totalSupply) * 100 : 0;
-          const remainingPercent = 100 - creatorPercent - poolPercent - salePercent;
+          const {
+            creatorSupply,
+            poolSupply,
+            totalTrancheSupply,
+            totalSupply,
+            poolLiquidity,
+            saleSupply,
+            creatorPercent,
+            poolPercent,
+            salePercent,
+            remainingPercent,
+          } = supplyBreakdown;
 
           if (totalSupply === 0) return null;
 
