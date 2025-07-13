@@ -18,6 +18,10 @@ const shouldShowInLaunchSales = (coin: CoinData): boolean => {
   return coin.saleStatus !== null && coin.saleStatus !== undefined;
 };
 
+function escapeRegExp(input: string): string {
+  return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 // Helper function to check if an ACTIVE sale should be filtered out due to expiration
 const shouldFilterExpiredActiveSale = (
   coin: CoinData,
@@ -111,16 +115,15 @@ export const Coins = () => {
 
       // Check if ALL search terms match at least one property (AND logic between terms)
       return searchTerms.every((term) => {
+        const escapedTerm = escapeRegExp(term);
         return (
           coinId.includes(term) ||
           symbol.includes(term) ||
           name.includes(term) ||
           description.includes(term) ||
-          // Add fuzzy matching for common symbols
           symbol.replace(/[^a-z0-9]/g, "").includes(term) ||
-          // Match word boundaries in name and description
-          name.match(new RegExp(`\\b${term}`, "i")) ||
-          description.match(new RegExp(`\\b${term}`, "i"))
+          name.match(new RegExp(`\\b${escapedTerm}`, "i")) ||
+          description.match(new RegExp(`\\b${escapedTerm}`, "i"))
         );
       });
     });
