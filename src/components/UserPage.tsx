@@ -2,12 +2,12 @@ import { TokenImage } from "@/components/TokenImage";
 import { LoadingLogo } from "@/components/ui/loading-logo";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
-import { useAllCoins } from "@/hooks/metadata/use-all-coins";
-import { useGetAccount } from "@/hooks/use-get-account";
 import { type LockupData, useGetLockups } from "@/hooks/use-get-lockups";
 import { useLockupStatus } from "@/hooks/use-lockup-status";
+import { useUserPortfolio } from "@/hooks/use-user-portfolio";
 import { ETH_TOKEN, type TokenMeta } from "@/lib/coins";
 import { handleWalletError, isUserRejectionError } from "@/lib/errors";
+import { trunc } from "@/lib/utils";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits } from "viem";
@@ -21,14 +21,11 @@ export function UserPage() {
   const [unlockingLockup, setUnlockingLockup] = useState<string | null>(null);
   const [unlockError, setUnlockError] = useState<string | null>(null);
 
-  const { isLoading: isLoadingAccount, error: accountError } = useGetAccount({
-    address,
-  });
   const {
-    tokens: allTokens,
-    loading: isLoadingTokens,
-    error: tokensError,
-  } = useAllCoins();
+    data: portfolioData,
+    isLoading: isLoadingPortfolio,
+    error: portfolioError,
+  } = useUserPortfolio({ address: address! });
 
   const {
     data: lockupsData,
@@ -91,25 +88,17 @@ export function UserPage() {
     }
   };
 
-  // Format unified token name for display
-  const formatUnifiedTokenName = (token: TokenMeta) => {
-    if (token.symbol && token.name && token.symbol !== token.name) {
-      return `${token.symbol} (${token.name})`;
-    }
-    return (
-      token.symbol || token.name || (token.id ? `Token #${token.id}` : "ETH")
-    );
+  const formatBalanceFromAPI = (balance: string, decimals: number) => {
+    return formatBalance(balance, decimals);
   };
 
-  // Format unified token balance for display
-  const formatUnifiedTokenBalance = (token: TokenMeta) => {
-    if (!token.balance || token.balance === 0n) return "0";
-    return formatBalance(token.balance.toString(), token.decimals);
+  const formatPositionShares = (shares: string, decimals: number = 18) => {
+    return formatBalance(shares, decimals);
   };
 
-  // Get tokens with non-zero balances
-  const tokensWithBalance =
-    allTokens?.filter((token) => token.balance && token.balance > 0n) || [];
+  const formatPendingRewards = (rewards: string, decimals: number = 18) => {
+    return formatBalance(rewards, decimals);
+  };
 
   const isLockupExpired = (unlockTime: string | null) => {
     if (!unlockTime) return false;
@@ -186,14 +175,13 @@ export function UserPage() {
     );
   }
 
-  // Remove the old allLockups definition since we moved it above
   const sortedLockups = allLockups.sort(
     (a, b) => Number.parseInt(b.createdAt) - Number.parseInt(a.createdAt),
   );
 
   return (
     <div className="p-6 bg-background text-foreground">
-      <div className="max-w-4xl border-2 border-border p-4 outline outline-offset-2 outline-border mx-auto">
+      <div className="border-2 border-double border-border p-4 outline outline-offset-2 outline-border mx-auto">
         <h1 className="text-2xl font-bold mb-6 text-center">
           {t("lockup.user_dashboard").toUpperCase()}
         </h1>
@@ -203,9 +191,12 @@ export function UserPage() {
         </div>
 
         <Tabs defaultValue="balances" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="balances" className="text-sm font-bold">
               {t("lockup.balances").toUpperCase()}
+            </TabsTrigger>
+            <TabsTrigger value="positions" className="text-sm font-bold">
+              POSITIONS ({portfolioData?.positions?.length || 0})
             </TabsTrigger>
             <TabsTrigger value="lockups" className="text-sm font-bold">
               {t("lockup.lockups_count", {
@@ -220,48 +211,113 @@ export function UserPage() {
                 {t("lockup.token_balances").toUpperCase()}
               </h2>
 
-              {isLoadingAccount || isLoadingTokens ? (
+              {isLoadingPortfolio ? (
                 <div className="flex justify-center py-8">
                   <LoadingLogo />
                 </div>
-              ) : accountError || tokensError ? (
+              ) : portfolioError ? (
                 <div className="text-destructive text-center py-4">
-                  {t("lockup.error_loading_balances")}{" "}
-                  {typeof accountError === "string"
-                    ? accountError
-                    : accountError?.message || tokensError}
+                  {t("lockup.error_loading_balances")} {portfolioError.message}
                 </div>
-              ) : tokensWithBalance.length === 0 ? (
+              ) : !portfolioData?.balances?.length ? (
                 <div className="text-muted-foreground text-center py-8">
                   {t("lockup.no_token_balances")}
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {tokensWithBalance.map((token) => (
+                  {portfolioData.balances.map((balance) => (
                     <div
-                      key={`${token.source}-${token.id}`}
+                      key={balance.coin_id}
                       className="flex items-center justify-between p-3 border border-border rounded bg-card"
                     >
                       <div className="flex items-center gap-3">
-                        <TokenImage token={token} />
+                        <TokenImage
+                          token={{
+                            id: BigInt(balance.coin_id),
+                            symbol: balance.coin_symbol,
+                            name: balance.coin_name,
+                            decimals: balance.coin_decimals,
+                            source: "COOKBOOK" as const,
+                          }}
+                        />
                         <div>
                           <div className="font-bold">
-                            {formatUnifiedTokenName(token)}
+                            {balance.coin_symbol &&
+                            balance.coin_name &&
+                            balance.coin_symbol !== balance.coin_name
+                              ? `${balance.coin_symbol} (${balance.coin_name})`
+                              : balance.coin_symbol ||
+                                balance.coin_name ||
+                                `Token #${balance.coin_id}`}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            {token.id !== null
-                              ? `ID: ${token.id}`
-                              : "Native ETH"}{" "}
-                            • {token.decimals || 18} decimals • {token.source}
+                            ID: {balance.coin_id} • {balance.coin_decimals}{" "}
+                            decimals
                           </div>
                         </div>
                       </div>
                       <div className="text-right">
                         <div className="font-bold">
-                          {formatUnifiedTokenBalance(token)}
+                          {formatBalanceFromAPI(
+                            balance.balance,
+                            balance.coin_decimals,
+                          )}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {token.symbol || "tokens"}
+                          {balance.coin_symbol || "tokens"}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="positions" className="mt-6">
+            <div className="space-y-4">
+              <h2 className="text-lg font-bold">POSITIONS</h2>
+
+              {isLoadingPortfolio ? (
+                <div className="flex justify-center py-8">
+                  <LoadingLogo />
+                </div>
+              ) : portfolioError ? (
+                <div className="text-destructive text-center py-4">
+                  Error loading positions: {portfolioError.message}
+                </div>
+              ) : !portfolioData?.positions?.length ? (
+                <div className="text-muted-foreground text-center py-8">
+                  No positions found
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {portfolioData.positions.map((position) => (
+                    <div
+                      key={`${position.chef_id}-${position.lp_id}`}
+                      className="p-3 border border-border rounded bg-card"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <div className="text-xs text-muted-foreground">
+                            Chef #{trunc(position.chef_id, 6)}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-bold text-sm">
+                            {formatPositionShares(position.shares)} shares
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs text-muted-foreground">
+                          Reward: {position.reward_symbol} (ID:{" "}
+                          {position.reward_id})
+                        </div>
+                        <div className="text-xs text-green-500">
+                          {formatPendingRewards(position.pending_rewards)}{" "}
+                          pending
                         </div>
                       </div>
                     </div>
