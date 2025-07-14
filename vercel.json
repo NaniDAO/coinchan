@@ -14,7 +14,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' blob:; connect-src 'self' https://content.wrappr.wtf https://coinchan-indexer-production.up.railway.app https://zammhub-production.up.railway.app https://eth-mainnet.g.alchemy.com https://cloudflare-eth.com https://lb.drpc.org https://api.pinata.cloud wss://relay.walletconnect.org https://api.web3modal.org https://pulse.walletconnect.org; img-src 'self' data: blob: https://content.wrappr.wtf https://cdn.heurist-flux.org; style-src 'self' 'unsafe-inline'; object-src 'none'; worker-src 'self' blob:; frame-src 'self' https://verify.walletconnect.org;"
+          "value": "default-src 'self'; script-src 'self' blob:; connect-src 'self' https://content.wrappr.wtf https://coinchan-indexer-production.up.railway.app https://zammhub-production.up.railway.app https://eth-mainnet.g.alchemy.com https://cloudflare-eth.com https://lb.drpc.org https://api.pinata.cloud wss://relay.walletconnect.org https://api.web3modal.org https://pulse.walletconnect.org; img-src 'self' data: blob: https://content.wrappr.wtf https://zamm.heurist.xyz https://cdn.heurist-flux.org; style-src 'self' 'unsafe-inline'; object-src 'none'; worker-src 'self' blob:; frame-src 'self' https://verify.walletconnect.org;"
         },
         {
           "key": "Strict-Transport-Security",
