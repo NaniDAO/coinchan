@@ -30,6 +30,7 @@
     "claim": "Claim",
     "amount": "Amount",
     "balance": "Balance",
+    "optional": "optional",
     "price": "Price",
     "from": "From",
     "to": "To",
@@ -374,7 +375,10 @@
     "instant": "Instant",
     "limit_order": "Limit Order",
     "order_created": "Order created successfully!",
-    "view_orders": "View Orders"
+    "view_orders": "View Orders",
+    "custom_recipient": "Custom recipient",
+    "recipient_address": "Recipient address",
+    "recipient_note": "Output will be sent to"
   },
   "send": {
     "title": "Send",

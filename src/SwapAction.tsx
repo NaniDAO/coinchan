@@ -6,6 +6,7 @@ import {
   encodeFunctionData,
   formatEther,
   formatUnits,
+  isAddress,
   parseEther,
   parseUnits,
 } from "viem";
@@ -58,6 +59,8 @@ export const SwapAction = () => {
   /* user inputs */
   const [sellAmt, setSellAmt] = useState("");
   const [buyAmt, setBuyAmt] = useState("");
+  const [customRecipient, setCustomRecipient] = useState<string>("");
+  const [showRecipientInput, setShowRecipientInput] = useState(false);
 
   // Use shared token selection context
   const { sellToken, buyToken, setSellToken, setBuyToken, flipTokens } =
@@ -131,6 +134,10 @@ export const SwapAction = () => {
     // Reset amounts
     setSellAmt("");
     setBuyAmt("");
+    
+    // Reset recipient input
+    setCustomRecipient("");
+    setShowRecipientInput(false);
   }, [sellToken.id, buyToken?.id]);
 
   useEffect(() => {
@@ -153,6 +160,9 @@ export const SwapAction = () => {
     setBuyAmt("");
     setTxHash(undefined);
     setTxError(null);
+    // Reset recipient when switching modes
+    setCustomRecipient("");
+    setShowRecipientInput(false);
   }, [swapMode]);
 
   const syncFromBuy = async (val: string) => {
@@ -311,6 +321,14 @@ export const SwapAction = () => {
 
       // Clear any previous errors
       setTxError(null);
+      
+      // Validate custom recipient address if provided
+      if (customRecipient && customRecipient.trim() !== "") {
+        if (!isAddress(customRecipient)) {
+          setTxError(t("errors.invalid_address") || "Invalid recipient address format");
+          return;
+        }
+      }
 
       // Wait a moment to ensure wallet connection is stable
       if (publicClient && !publicClient.getChainId) {
@@ -341,6 +359,7 @@ export const SwapAction = () => {
         slippageBps,
         targetReserves,
         publicClient,
+        recipient: customRecipient && customRecipient.trim() !== "" ? customRecipient as `0x${string}` : undefined,
       });
 
       if (calls.length === 0) {
@@ -723,6 +742,42 @@ export const SwapAction = () => {
           />
         )}
       </div>
+      
+      {/* Custom Recipient Input - Subtle dropdown */}
+      <div className="mt-3">
+        <button
+          onClick={() => setShowRecipientInput(!showRecipientInput)}
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+        >
+          <span>{showRecipientInput ? "▼" : "▶"}</span>
+          {t("swap.custom_recipient") || "Custom recipient"}
+        </button>
+        
+        {showRecipientInput && (
+          <div className="mt-2 space-y-2">
+            <input
+              type="text"
+              placeholder={`${t("swap.recipient_address") || "Recipient address"} (${t("common.optional") || "optional"})`}
+              value={customRecipient}
+              onChange={(e) => setCustomRecipient(e.target.value)}
+              className="w-full px-3 py-2 text-sm bg-background border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+            {customRecipient && (
+              <p className={`text-xs ${
+                isAddress(customRecipient) 
+                  ? "text-muted-foreground" 
+                  : "text-destructive"
+              }`}>
+                {isAddress(customRecipient)
+                  ? `${t("swap.recipient_note") || "Output will be sent to"}: ${customRecipient.slice(0, 6)}...${customRecipient.slice(-4)}`
+                  : t("errors.invalid_address") || "Invalid address format"
+                }
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+      
       {/* Network indicator */}
       <NetworkError message={t("swap.title")} />
 
