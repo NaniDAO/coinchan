@@ -45,57 +45,86 @@ const fetchSwaps = async () => {
   const { data } = await res.json();
 
   // convert swaps to human readable snippets
-  return convertToSnippets(data.swaps.items);
+  const snippets = convertToSnippets(data.swaps.items);
+
+  return snippets;
 };
 
 const convertToSnippets = (swaps: any[]) => {
-  return swaps.map((swap) => {
-    const { amount0In, amount0Out, amount1Out, amount1In, id, trader, pool } = swap;
-    const isBuy = BigInt(amount0In) > 0n;
-    const isSell = BigInt(amount0Out) > 0n;
+  const snippets = swaps
+    .map((swap) => {
+      try {
+        const {
+          amount0In,
+          amount0Out,
+          amount1Out,
+          amount1In,
+          id,
+          trader,
+          pool,
+        } = swap;
+        const isBuy = BigInt(amount0In) > 0n;
+        const isSell = BigInt(amount0Out) > 0n;
 
-    if (isBuy) {
-      return {
-        id,
-        snippet: (
-          <>
-            <a target="_blank" href={"https://etherscan.io/address/" + trader} rel="noreferrer">
-              {truncAddress(trader)}
-            </a>{" "}
-            bought {Number(formatEther(amount1Out)).toFixed(2)}{" "}
-            <Link
-              to={`/c/$coinId`}
-              params={{
-                coinId: pool.coin1.id,
-              }}
-            >
-              {pool.coin1.symbol}
-            </Link>
-          </>
-        ),
-      };
-    } else if (isSell) {
-      return {
-        id,
-        snippet: (
-          <span style={{ color: getColor(id) }}>
-            <a target="_blank" href={"https://etherscan.io/address/" + trader} rel="noreferrer">
-              {truncAddress(trader)}
-            </a>{" "}
-            sold {Number(formatEther(amount1In)).toFixed(2)}{" "}
-            <Link
-              to={`/c/$coinId`}
-              params={{
-                coinId: pool.coin1.id,
-              }}
-            >
-              {pool.coin1.symbol}
-            </Link>
-          </span>
-        ),
-      };
-    }
-  });
+        if (isBuy) {
+          return {
+            id,
+            snippet: (
+              <>
+                <a
+                  target="_blank"
+                  href={"https://etherscan.io/address/" + trader}
+                  rel="noreferrer"
+                >
+                  {truncAddress(trader)}
+                </a>{" "}
+                bought {Number(formatEther(amount1Out)).toFixed(2)}{" "}
+                <Link
+                  to={`/c/$coinId`}
+                  params={{
+                    coinId: pool.coin1.id,
+                  }}
+                >
+                  {pool.coin1.symbol}
+                </Link>
+              </>
+            ),
+          };
+        } else if (isSell) {
+          return {
+            id,
+            snippet: (
+              <span style={{ color: getColor(id) }}>
+                <a
+                  target="_blank"
+                  href={"https://etherscan.io/address/" + trader}
+                  rel="noreferrer"
+                >
+                  {truncAddress(trader)}
+                </a>{" "}
+                sold {Number(formatEther(amount1In)).toFixed(2)}{" "}
+                <Link
+                  to={`/c/$coinId`}
+                  params={{
+                    coinId: pool.coin1.id,
+                  }}
+                >
+                  {pool.coin1.symbol}
+                </Link>
+              </span>
+            ),
+          };
+        }
+
+        return null;
+      } catch (e) {
+        console.warn("Skipped invalid swap", swap, e);
+        return null;
+      }
+    })
+    .filter((snippet) => snippet !== null);
+
+  return snippets;
 };
 
 export const useSwaps = () => {
@@ -106,7 +135,7 @@ export const useSwaps = () => {
   });
 };
 
-export const getColor = (id: string) => {
+const getColor = (id: string) => {
   const colors = [
     "#F2659A", // Pink
     "#34E4FF", // Cyan Blue
@@ -140,9 +169,9 @@ export function SwapRibbon() {
   const farmItem = {
     id: "farm-alpha",
     snippet: (
-      <a 
-        href="https://www.zamm.finance/farm" 
-        target="_blank" 
+      <a
+        href="https://www.zamm.finance/farm"
+        target="_blank"
         rel="noreferrer"
         className="text-foreground hover:underline font-medium"
       >
@@ -176,9 +205,20 @@ export function SwapRibbon() {
         }
       >
         {repeated.map((item: any, index: number) => (
-          <div key={`${item.id}-${index}`} style={item.id === "farm-alpha" ? { color: "inherit" } : { color: getColor(item.id) }}>
+          <div
+            key={`${item.id}-${index}`}
+            style={
+              item.id === "farm-alpha"
+                ? { color: "inherit" }
+                : { color: getColor(item.id) }
+            }
+          >
             <span className="text-sm shrink-0">{item.snippet}</span>
-            <span className={`text-2xl mx-2 ${item.id === "farm-alpha" ? "text-foreground" : ""}`}>/</span>
+            <span
+              className={`text-2xl mx-2 ${item.id === "farm-alpha" ? "text-foreground" : ""}`}
+            >
+              /
+            </span>
           </div>
         ))}
       </motion.div>
