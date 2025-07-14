@@ -13,6 +13,10 @@ import { FarmingGuide } from "./FarmingGuide";
 import { useMemo } from "react";
 import { useAccount } from "wagmi";
 
+const blacklistedFarms = [
+  "30576670561321421054962543206778733172760596119058029640058396257464510774095",
+]; // cause they made a mistake
+
 export const BrowseFarms = () => {
   const { t } = useTranslation();
   const { address } = useAccount();
@@ -24,12 +28,18 @@ export const BrowseFarms = () => {
   const activeOnlyStreams = useMemo(() => {
     if (!activeStreams) return undefined;
     const currentTime = BigInt(Math.floor(Date.now() / 1000));
-    return activeStreams.filter((stream) => stream.endTime > currentTime);
+    return activeStreams.filter(
+      (stream) =>
+        stream.endTime > currentTime &&
+        !blacklistedFarms.includes(stream.chefId.toString()),
+    );
   }, [activeStreams]);
 
   // Get real-time farm summary data
   const { totalStaked, uniquePools, streamsWithRealTimeData } =
     useFarmsSummary(activeOnlyStreams);
+
+  console.log("activeOnlyStreams", activeOnlyStreams);
 
   // Sort farms by various criteria using real-time data
   const sortedStreams = useMemo(() => {
@@ -55,12 +65,10 @@ export const BrowseFarms = () => {
     <div className="space-y-5 sm:space-y-6">
       {/* Farming guide for new users */}
       <FarmingGuide />
-      
+
       {/* Staking notifications - only show if user is connected */}
-      {address && (
-        <StakingNotifications />
-      )}
-      
+      {address && <StakingNotifications />}
+
       <div className="rounded-lg p-4 backdrop-blur-sm mb-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex justify-center items-center gap-3">
