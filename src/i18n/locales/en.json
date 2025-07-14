@@ -159,6 +159,7 @@
     "reward_amount": "Reward Amount",
     "duration": "Duration",
     "farm_will_auto_reset": "Farm will auto-reset when rewards are depleted",
+    "coin_locking_warning": "⚠️ Warning: Your reward tokens will be locked for the entire stream duration and cannot be withdrawn until the stream ends and all LP stakers have withdrawn their positions.",
     "create_farm": "Create Farm",
     "view_farms": "View Farms",
     "creating_farm": "Creating Farm...",

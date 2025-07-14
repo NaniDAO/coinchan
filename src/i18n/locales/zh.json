@@ -162,6 +162,7 @@
     "reward_amount": "奖励数量",
     "duration": "持续时间",
     "farm_will_auto_reset": "当奖励耗尽时农场将自动重置",
+    "coin_locking_warning": "⚠️ 警告：您的奖励代币将在整个流期间被锁定，直到流结束且所有LP质押者提取其仓位后才能提取。",
     "create_farm": "创建农场",
     "view_farms": "查看农场",
     "creating_farm": "创建农场中...",

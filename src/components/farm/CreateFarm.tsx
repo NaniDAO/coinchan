@@ -514,6 +514,15 @@ export const CreateFarm = () => {
             [{t("common.create_new_farm")}]
           </h3>
         </div>
+        
+        {/* Warning Banner */}
+        <div className="mb-6 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+          <div className="flex items-start gap-3">
+            <div className="text-yellow-500 font-mono text-sm leading-relaxed">
+              {t("common.coin_locking_warning")}
+            </div>
+          </div>
+        </div>
         {/* LP Token Selection */}
         <div className="space-y-4 mb-10">
           <label className="block text-sm font-mono font-bold uppercase tracking-wider text-primary">
