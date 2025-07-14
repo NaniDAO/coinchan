@@ -30,6 +30,7 @@ export interface SwapParams {
   reserves: { reserve0: bigint; reserve1: bigint };
   slippageBps: bigint;
   targetReserves?: { reserve0: bigint; reserve1: bigint };
+  recipient?: `0x${string}`; // Optional custom recipient address
 }
 
 /**
@@ -37,8 +38,12 @@ export interface SwapParams {
  * internally checking allowances and operator status.
  */
 export async function buildSwapCalls(params: SwapParams & { publicClient: PublicClient }): Promise<Call[]> {
-  const { address, sellToken, buyToken, sellAmt, buyAmt, reserves, slippageBps, targetReserves, publicClient } = params;
+  const { address, sellToken, buyToken, sellAmt, buyAmt, reserves, slippageBps, targetReserves, publicClient, recipient } = params;
   const calls: Call[] = [];
+  
+  // Use custom recipient if provided, otherwise default to connected wallet
+  // Validate the recipient is a valid address
+  const swapRecipient = recipient && recipient.match(/^0x[a-fA-F0-9]{40}$/i) ? recipient : address;
 
   const isSellETH = sellToken.id === null;
   const isBuyETH = buyToken.id === null;
@@ -132,7 +137,7 @@ export async function buildSwapCalls(params: SwapParams & { publicClient: Public
       sellAmtInUnits,
       ethAmountOut, // Pass the estimated ETH output for the second swap
       minAmountOut,
-      address,
+      swapRecipient, // Use the recipient address
       sourcePoolKey, // Custom source pool key
       targetPoolKey, // Custom target pool key
     );
@@ -166,7 +171,7 @@ export async function buildSwapCalls(params: SwapParams & { publicClient: Public
           ) as ZAMMPoolKey);
     const fromETH = isSellETH;
     const source = fromETH ? buyToken.source : sellToken.source;
-    const args = [poolKey, sellAmtInUnits, minBuyAmount, fromETH, address, deadline] as const;
+    const args = [poolKey, sellAmtInUnits, minBuyAmount, fromETH, swapRecipient, deadline] as const;
     const call: Call = {
       to: source === "ZAMM" ? ZAMMAddress : CookbookAddress,
       data: encodeFunctionData({
