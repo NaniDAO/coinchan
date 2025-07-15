@@ -79,7 +79,9 @@ const fetchCoinData = async (coinId: string) => {
     const json = await response.json();
     const coin = json.data.coin;
 
-    const metadata = await fetchMetadata(coin.tokenURI);
+    const metadata = await fetchMetadata(coin.tokenURI).catch((e) =>
+      console.error("Error fetching latest metadata"),
+    );
     const totalSupply = BigInt(coin?.totalSupply ?? 0n);
 
     const pools = (coin.pools.items || []).map((pool: any) => {
@@ -105,10 +107,10 @@ const fetchCoinData = async (coinId: string) => {
 
     return {
       id: BigInt(coin.id),
-      name: coin.name || metadata.name,
-      symbol: coin.symbol || metadata.symbol,
-      description: coin.description || metadata.description,
-      imageUrl: coin.imageUrl || metadata.image,
+      name: coin?.name || metadata?.name,
+      symbol: coin?.symbol || metadata?.symbol,
+      description: coin?.description || metadata?.description,
+      imageUrl: coin?.imageUrl || metadata?.image,
       tokenURI: coin.tokenURI ?? "",
       decimals: coin.decimals,
       totalSupply,
