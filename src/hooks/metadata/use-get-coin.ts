@@ -80,7 +80,7 @@ const fetchCoinData = async (coinId: string) => {
     const coin = json.data.coin;
 
     const metadata = await fetchMetadata(coin.tokenURI).catch((e) =>
-      console.error("Error fetching latest metadata"),
+      console.error("Error fetching latest metadata", e),
     );
     const totalSupply = BigInt(coin?.totalSupply ?? 0n);
 
