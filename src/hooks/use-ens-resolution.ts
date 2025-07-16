@@ -67,11 +67,27 @@ export function useENSResolution(input: string): ENSResolutionResult {
                       trimmedInput.endsWith('.com') ||
                       trimmedInput.match(/\.[a-zA-Z\u00a1-\uffff]{2,}$/));
 
-    if (!isENSName) {
+    // Check if input could potentially be a valid ENS name being typed
+    const couldBeENS = trimmedInput.match(/^[a-zA-Z0-9\u00a1-\uffff-]+(\.[a-zA-Z\u00a1-\uffff]*)?$/);
+    
+    // Only show error for inputs that clearly can't be valid addresses or ENS names
+    // and are longer than 2 characters (to avoid showing errors too early)
+    if (!isENSName && !couldBeENS && trimmedInput.length > 2) {
       setResult({
         address: null,
         isLoading: false,
         error: "Invalid address format",
+        isENS: false,
+      });
+      return;
+    }
+
+    // If it's not a complete ENS name yet, don't show error or try to resolve
+    if (!isENSName) {
+      setResult({
+        address: null,
+        isLoading: false,
+        error: null,
         isENS: false,
       });
       return;
