@@ -81,15 +81,17 @@ function toChecksumAddress(address) {
  * Validate token against schema
  */
 function validateToken(token) {
-  // Check required fields
-  for (const field of TOKEN_LIST_SCHEMA.tokenRequired) {
+  // Check required fields - but skip chainId since it's optional in Trust Wallet data
+  const requiredFields = TOKEN_LIST_SCHEMA.tokenRequired.filter(field => field !== 'chainId');
+  for (const field of requiredFields) {
     if (!(field in token)) {
       return false;
     }
   }
   
-  // Validate chainId (must be 1 for Ethereum mainnet)
-  if (token.chainId !== 1) return false;
+  // Validate chainId (must be 1 for Ethereum mainnet, default to 1 if missing)
+  const chainId = token.chainId ?? 1; // Default to mainnet if missing
+  if (chainId !== 1) return false;
   
   // Validate decimals (must be number between 0-255)
   if (typeof token.decimals !== 'number' || token.decimals < 0 || token.decimals > 255) {
@@ -132,6 +134,9 @@ function processTokenList(rawData) {
   }
   
   console.log(`Processing ${tokenList.tokens.length} tokens...`);
+  
+  // Note: Trust Wallet's token list has inconsistent data - many tokens missing chainId field
+  // We'll assume chainId = 1 (Ethereum mainnet) for missing chainId fields
   
   // Filter and process tokens
   const processed = new Map(); // Use Map to deduplicate by address
