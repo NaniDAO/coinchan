@@ -60,14 +60,14 @@ export function FarmingGuide({ className }: FarmingGuideProps) {
                       {t("common.step_1_title")}
                     </h4>
                     <p className="text-xs text-muted-foreground font-mono">
-                      Add liquidity to pools on the{" "}
+                      {t("common.step_1_description_part1")}{" "}
                       <Link 
                         to="/swap" 
                         className="text-primary hover:text-primary/80 underline font-bold"
                       >
-                        Swap page
+                        {t("common.swap_page")}
                       </Link>
-                      {" "}to receive LP tokens (or use ETH zap for easy one-click liquidity)
+                      {" "}{t("common.step_1_description_part2")}
                     </p>
                   </div>
                 </div>

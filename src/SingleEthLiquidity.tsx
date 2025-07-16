@@ -497,7 +497,7 @@ export const SingleEthLiquidity = () => {
         {/* ALL BUY/RECEIVE panels */}
         {buyToken && (
           <SwapPanel
-            title={t("common.target_token")}
+            title={t("create.target_token")}
             selectedToken={buyToken}
             tokens={memoizedNonEthTokens}
             onSelect={handleBuyTokenSelect}
