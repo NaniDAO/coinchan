@@ -714,6 +714,7 @@ export const SwapAction = () => {
             trustedToken.symbol,
             trustedToken.name,
             trustedToken.decimals,
+            trustedToken.logoURI,
           );
 
           setBuyToken(erc20Token);
@@ -761,6 +762,7 @@ export const SwapAction = () => {
           symbol as string,
           name as string,
           tokenDecimals,
+          null, // No logoURI for non-trusted tokens
         );
 
         setBuyToken(erc20Token);

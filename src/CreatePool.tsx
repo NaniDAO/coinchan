@@ -423,6 +423,7 @@ export const CreatePool = () => {
             trustedToken.symbol,
             trustedToken.name,
             trustedToken.decimals,
+            trustedToken.logoURI,
           );
 
           setToken1(erc20Token);
@@ -470,6 +471,7 @@ export const CreatePool = () => {
           symbol as string,
           name as string,
           tokenDecimals,
+          null, // No logoURI for non-trusted tokens
         );
 
         setToken1(erc20Token);

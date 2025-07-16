@@ -421,9 +421,10 @@ export const Coins = () => {
             <input
               type="text"
               placeholder={t("tokenSelector.search_tokens")}
+              title="Search tokens by name, symbol, or ID"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="border-2 border-border p-2 bg-muted text-muted focus:outline-none focus:text-foreground focus:shadow-none w-full pl-10 pr-8 text-sm font-body py-2.5 px-10"
+              className="border border-border bg-muted text-muted focus:outline-none focus:text-foreground focus:shadow-none w-full pl-10 pr-8 text-sm font-body py-2.5 px-10 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
             />
             {searchQuery && (
               <button
