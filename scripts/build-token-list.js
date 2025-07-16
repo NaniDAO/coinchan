@@ -27,7 +27,9 @@ const TOKEN_LIST_SCHEMA = {
 
 // Output paths
 const BUILD_DIR = path.join(__dirname, '..', 'build');
+const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 const OUTPUT_FILE = path.join(BUILD_DIR, 'trust-eth-erc20.tokens.json');
+const PUBLIC_FILE = path.join(PUBLIC_DIR, 'trust-eth-erc20.tokens.json');
 const COMPRESSED_FILE = path.join(BUILD_DIR, 'trust-eth-erc20.tokens.json.gz');
 
 /**
@@ -203,14 +205,18 @@ async function main() {
     console.log('📋 Processing token list...');
     const processedData = processTokenList(rawData);
     
-    // Ensure build directory exists
+    // Ensure directories exist
     if (!fs.existsSync(BUILD_DIR)) {
       fs.mkdirSync(BUILD_DIR, { recursive: true });
     }
+    if (!fs.existsSync(PUBLIC_DIR)) {
+      fs.mkdirSync(PUBLIC_DIR, { recursive: true });
+    }
     
-    // Write uncompressed file
+    // Write uncompressed files
     console.log('💾 Writing token list...');
     fs.writeFileSync(OUTPUT_FILE, JSON.stringify(processedData, null, 2));
+    fs.writeFileSync(PUBLIC_FILE, JSON.stringify(processedData, null, 2));
     
     // Write compressed file
     console.log('🗜️  Compressing token list...');
@@ -219,6 +225,7 @@ async function main() {
     
     console.log('✅ Token list build complete!');
     console.log(`📄 Output: ${OUTPUT_FILE}`);
+    console.log(`📄 Public: ${PUBLIC_FILE}`);
     console.log(`📦 Compressed: ${COMPRESSED_FILE}`);
     console.log(`🎯 Processed ${processedData.count} tokens`);
     

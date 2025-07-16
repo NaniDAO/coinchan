@@ -32,8 +32,8 @@ async function loadTrustedTokenList(): Promise<TokenListData> {
   }
 
   try {
-    // Try to load from build directory first
-    const response = await fetch('/build/trust-eth-erc20.tokens.json');
+    // Try to load from public directory first
+    const response = await fetch('/trust-eth-erc20.tokens.json');
     if (response.ok) {
       const data = await response.json();
       tokenListCache = data;

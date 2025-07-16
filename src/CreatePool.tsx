@@ -13,7 +13,7 @@ import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { useOperatorStatus } from "./hooks/use-operator-status";
 import { ETH_TOKEN, type TokenMeta, createErc20Token } from "./lib/coins";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
-import { getTrustedTokenInfo } from "./lib/trusted-tokens";
+import { getTrustedTokenInfo, searchTrustedTokens } from "./lib/trusted-tokens";
 import type { CookbookPoolKey } from "./lib/swap";
 import { nowSec } from "./lib/utils";
 
@@ -404,17 +404,29 @@ export const CreatePool = () => {
 
   // Handle ERC20 token creation
   const handleErc20TokenCreate = useCallback(
-    async (address: string) => {
-      if (!isAddress(address) || !publicClient) {
-        setTxError("Invalid token address");
+    async (input: string) => {
+      if (!input.trim() || !publicClient) {
+        setTxError("Please enter a token address or search term");
         return;
       }
 
       try {
-        setTxError("Fetching token metadata...");
+        setTxError("Searching for token...");
         
-        // Check if token is in trusted list first
-        const trustedToken = await getTrustedTokenInfo(address as `0x${string}`);
+        let trustedToken = null;
+        
+        // Check if input is a valid address
+        if (isAddress(input)) {
+          // Direct address lookup
+          trustedToken = await getTrustedTokenInfo(input as `0x${string}`);
+        } else {
+          // Search by name/symbol
+          const searchResults = await searchTrustedTokens(input);
+          if (searchResults.length > 0) {
+            // Use the first match (most relevant)
+            trustedToken = searchResults[0];
+          }
+        }
         
         if (trustedToken) {
           // Use trusted token metadata
@@ -433,20 +445,25 @@ export const CreatePool = () => {
           return;
         }
 
-        // If not in trusted list, fetch from contract
+        // If not in trusted list and input is a valid address, fetch from contract
+        if (!isAddress(input)) {
+          setTxError(`No token found for "${input}". Try a different search term or enter a contract address.`);
+          return;
+        }
+        
         const [symbol, name, decimals] = await Promise.all([
           publicClient.readContract({
-            address: address as `0x${string}`,
+            address: input as `0x${string}`,
             abi: erc20Abi,
             functionName: "symbol",
           }),
           publicClient.readContract({
-            address: address as `0x${string}`,
+            address: input as `0x${string}`,
             abi: erc20Abi,
             functionName: "name",
           }),
           publicClient.readContract({
-            address: address as `0x${string}`,
+            address: input as `0x${string}`,
             abi: erc20Abi,
             functionName: "decimals",
           }),
@@ -467,7 +484,7 @@ export const CreatePool = () => {
 
         // Create the ERC20 token
         const erc20Token = createErc20Token(
-          address as `0x${string}`,
+          input as `0x${string}`,
           symbol as string,
           name as string,
           tokenDecimals,

@@ -180,15 +180,15 @@ export const TokenSelector = memo(
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <label className="block text-sm font-medium text-foreground mb-1">
-                          Contract Address
+                          Token Search
                         </label>
                         <div className="relative">
                           <input
                             type="text"
-                            placeholder="0x..."
+                            placeholder="Enter address (0x...) or search by name/symbol"
                             value={erc20Address}
                             onChange={(e) => setErc20Address(e.target.value)}
-                            className="w-full px-4 py-3 pr-12 border border-border rounded-xl bg-background text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 font-mono hover:border-primary/50"
+                            className="w-full px-4 py-3 pr-12 border border-border rounded-xl bg-background text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 hover:border-primary/50"
                           />
                           {erc20Address && (
                             <div className="absolute right-4 top-1/2 -translate-y-1/2">
