@@ -2,7 +2,6 @@ import { handleWalletError, isUserRejectionError } from "@/lib/errors";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  type Address,
   erc20Abi,
   formatEther,
   formatUnits,
@@ -22,6 +21,7 @@ import { LoadingLogo } from "./components/ui/loading-logo";
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
 import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
+import { useENSResolution } from "./hooks/use-ens-resolution";
 import { ETH_TOKEN, type TokenMeta, USDT_ADDRESS } from "./lib/coins";
 
 // Helper function to format token balance with appropriate precision
@@ -95,6 +95,9 @@ const SendTileComponent = () => {
   const [parsedAmount, setParsedAmount] = useState<bigint>(0n);
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [txError, setTxError] = useState<string | null>(null);
+  
+  // ENS resolution for recipient
+  const ensResolution = useENSResolution(recipientAddress);
   const [isLockupMode, setIsLockupMode] = useState(false);
   const [unlockTime, setUnlockTime] = useState("");
 
@@ -166,11 +169,7 @@ const SendTileComponent = () => {
   };
 
   const canSend = useMemo(() => {
-    if (
-      !recipientAddress ||
-      !recipientAddress.startsWith("0x") ||
-      recipientAddress.length !== 42
-    ) {
+    if (!recipientAddress || ensResolution.isLoading || ensResolution.error || !ensResolution.address) {
       return false;
     }
 
@@ -193,6 +192,9 @@ const SendTileComponent = () => {
     return true;
   }, [
     recipientAddress,
+    ensResolution.isLoading,
+    ensResolution.error,
+    ensResolution.address,
     parsedAmount,
     selectedToken.balance,
     isLockupMode,
@@ -223,7 +225,7 @@ const SendTileComponent = () => {
             functionName: "lockup",
             args: [
               "0x0000000000000000000000000000000000000000" as `0x${string}`, // address(0) for ETH
-              recipientAddress as `0x${string}`,
+              ensResolution.address!,
               0n, // id = 0 for ETH
               parsedAmount,
               BigInt(unlockTimestamp),
@@ -253,7 +255,7 @@ const SendTileComponent = () => {
             functionName: "lockup",
             args: [
               tokenAddress,
-              recipientAddress as `0x${string}`,
+              ensResolution.address!,
               selectedToken.id!,
               parsedAmount,
               BigInt(unlockTimestamp),
@@ -268,7 +270,7 @@ const SendTileComponent = () => {
       // Regular send logic
       if (selectedToken.id === null) {
         const hash = await sendTransactionAsync({
-          to: recipientAddress as Address,
+          to: ensResolution.address!,
           value: parsedAmount,
         });
 
@@ -283,7 +285,7 @@ const SendTileComponent = () => {
           address: USDT_ADDRESS,
           abi: erc20Abi,
           functionName: "transfer",
-          args: [recipientAddress as `0x${string}`, parsedAmount],
+          args: [ensResolution.address!, parsedAmount],
         });
 
         setTxHash(hash);
@@ -298,7 +300,7 @@ const SendTileComponent = () => {
           abi: selectedToken?.source === "COOKBOOK" ? CookbookAbi : CoinsAbi,
           functionName: "transfer",
           args: [
-            recipientAddress as `0x${string}`,
+            ensResolution.address!,
             selectedToken.id!,
             parsedAmount,
           ],
@@ -353,16 +355,39 @@ const SendTileComponent = () => {
             type="text"
             value={recipientAddress}
             onChange={(e) => setRecipientAddress(e.target.value)}
-            placeholder="0x..."
+            placeholder="0x... or ENS name"
             className="w-full px-3 py-2 bg-input border border-border rounded focus:outline-none focus:border-accent"
           />
-          {recipientAddress &&
-            (!recipientAddress.startsWith("0x") ||
-              recipientAddress.length !== 42) && (
-              <p className="mt-2 text-sm text-destructive font-bold">
-                ⚠ {t("create.invalid_address_warning")}
-              </p>
-            )}
+          {recipientAddress && (
+            <div className="mt-2 space-y-1">
+              {ensResolution.isLoading && (
+                <p className="text-sm text-muted-foreground flex items-center gap-1">
+                  <LoadingLogo size="sm" className="scale-50" />
+                  {t("swap.resolving_ens") || "Resolving ENS name..."}
+                </p>
+              )}
+              {ensResolution.error && (
+                <p className="text-sm text-destructive font-bold">
+                  ⚠ {ensResolution.error}
+                </p>
+              )}
+              {ensResolution.address && (
+                <p className="text-sm text-muted-foreground">
+                  {ensResolution.isENS ? (
+                    <>
+                      <span className="text-chart-2 font-bold">ENS:</span> {recipientAddress}{" "}
+                      <span className="text-muted-foreground">→</span>{" "}
+                      {ensResolution.address?.slice(0, 6)}...{ensResolution.address?.slice(-4)}
+                    </>
+                  ) : (
+                    <>
+                      ✓ Valid address: {ensResolution.address?.slice(0, 6)}...{ensResolution.address?.slice(-4)}
+                    </>
+                  )}
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="mb-5">

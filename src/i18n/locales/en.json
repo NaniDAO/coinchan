@@ -381,7 +381,8 @@
     "view_orders": "View Orders",
     "custom_recipient": "Custom recipient",
     "recipient_address": "Recipient address",
-    "recipient_note": "Output will be sent to"
+    "recipient_note": "Output will be sent to",
+    "resolving_ens": "Resolving ENS name..."
   },
   "send": {
     "title": "Send",
@@ -450,6 +451,7 @@
     "you_will_pay": "You will pay ~ {{amount}} {{token}}",
     "target_token": "Target {{token}}",
     "amount_token": "Amount {{token}}",
+    "resolving_ens": "Resolving ENS name...",
     "transaction_confirmed": "Transaction confirmed!",
     "transaction_failed": "Transaction failed",
     "creator_unlock_time": "Creator Unlock Time",

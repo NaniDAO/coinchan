@@ -391,7 +391,8 @@
     "view_orders": "查看订单",
     "custom_recipient": "自定义接收方",
     "recipient_address": "接收地址",
-    "recipient_note": "输出将发送到"
+    "recipient_note": "输出将发送到",
+    "resolving_ens": "正在解析ENS名称..."
   },
   "send": {
     "title": "发送",
@@ -460,6 +461,7 @@
     "you_will_pay": "您将支付约 {{amount}} {{token}}",
     "target_token": "目标 {{token}}",
     "amount_token": "{{token}} 数量",
+    "resolving_ens": "正在解析ENS名称...",
     "transaction_confirmed": "交易已确认！",
     "transaction_failed": "交易失败",
     "creator_unlock_time": "创建者解锁时间",
