@@ -6,7 +6,6 @@ import {
   encodeFunctionData,
   formatEther,
   formatUnits,
-  isAddress,
   parseEther,
   parseUnits,
 } from "viem";
@@ -32,6 +31,7 @@ import { useTokenSelection } from "./contexts/TokenSelectionContext";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { useBatchingSupported } from "./hooks/use-batching-supported";
 import { useReserves } from "./hooks/use-reserves";
+import { useENSResolution } from "./hooks/use-ens-resolution";
 import { buildSwapCalls } from "./lib/build-swap-calls";
 import type { TokenMeta } from "./lib/coins";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
@@ -73,6 +73,9 @@ export const SwapAction = () => {
   
   /* Track which field was last edited to determine swap intent */
   const [lastEditedField, setLastEditedField] = useState<"sell" | "buy">("sell");
+  
+  // ENS resolution for custom recipient
+  const ensResolution = useENSResolution(customRecipient);
 
   const {
     isSellETH,
@@ -331,7 +334,15 @@ export const SwapAction = () => {
       
       // Validate custom recipient address if provided
       if (customRecipient && customRecipient.trim() !== "") {
-        if (!isAddress(customRecipient)) {
+        if (ensResolution.isLoading) {
+          setTxError(t("swap.resolving_ens") || "Resolving ENS name...");
+          return;
+        }
+        if (ensResolution.error) {
+          setTxError(ensResolution.error);
+          return;
+        }
+        if (!ensResolution.address) {
           setTxError(t("errors.invalid_address") || "Invalid recipient address format");
           return;
         }
@@ -366,7 +377,7 @@ export const SwapAction = () => {
         slippageBps,
         targetReserves,
         publicClient,
-        recipient: customRecipient && customRecipient.trim() !== "" ? customRecipient as `0x${string}` : undefined,
+        recipient: customRecipient && customRecipient.trim() !== "" ? ensResolution.address || undefined : undefined,
         exactOut: lastEditedField === "buy",
       });
 
@@ -772,22 +783,40 @@ export const SwapAction = () => {
           <div className="mt-2 space-y-2">
             <input
               type="text"
-              placeholder={`${t("swap.recipient_address") || "Recipient address"} (${t("common.optional") || "optional"})`}
+              placeholder={`${t("swap.recipient_address") || "Recipient address or ENS name"} (${t("common.optional") || "optional"})`}
               value={customRecipient}
               onChange={(e) => setCustomRecipient(e.target.value)}
               className="w-full px-3 py-2 text-sm bg-background border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
             {customRecipient && (
-              <p className={`text-xs ${
-                isAddress(customRecipient) 
-                  ? "text-muted-foreground" 
-                  : "text-destructive"
-              }`}>
-                {isAddress(customRecipient)
-                  ? `${t("swap.recipient_note") || "Output will be sent to"}: ${customRecipient.slice(0, 6)}...${customRecipient.slice(-4)}`
-                  : t("errors.invalid_address") || "Invalid address format"
-                }
-              </p>
+              <div className="space-y-1">
+                {ensResolution.isLoading && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <LoadingLogo size="sm" className="scale-50" />
+                    {t("swap.resolving_ens") || "Resolving ENS name..."}
+                  </p>
+                )}
+                {ensResolution.error && (
+                  <p className="text-xs text-destructive">
+                    {ensResolution.error}
+                  </p>
+                )}
+                {ensResolution.address && (
+                  <p className="text-xs text-muted-foreground">
+                    {ensResolution.isENS ? (
+                      <>
+                        <span className="text-chart-2">ENS:</span> {customRecipient}{" "}
+                        <span className="text-muted-foreground">→</span>{" "}
+                        {ensResolution.address?.slice(0, 6)}...{ensResolution.address?.slice(-4)}
+                      </>
+                    ) : (
+                      <>
+                        {t("swap.recipient_note") || "Output will be sent to"}: {ensResolution.address?.slice(0, 6)}...{ensResolution.address?.slice(-4)}
+                      </>
+                    )}
+                  </p>
+                )}
+              </div>
             )}
           </div>
         )}
