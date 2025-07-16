@@ -29,7 +29,6 @@ import {
   computePoolId,
   computePoolKey,
   getAmountOut,
-  getAmountIn,
   withSlippage,
 } from "./lib/swap";
 import { nowSec } from "./lib/utils";
