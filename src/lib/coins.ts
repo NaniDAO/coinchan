@@ -9,6 +9,7 @@ import {
   parseAbiParameters,
   zeroAddress,
 } from "viem";
+import type { CookbookPoolKey, ZAMMPoolKey } from "./swap";
 
 export type CoinSource = "ZAMM" | "COOKBOOK";
 
@@ -29,13 +30,7 @@ export interface TokenMeta {
   // Below fields are for custom pools (like USDT-ETH)
   isCustomPool?: boolean; // Flag to identify custom pools
   poolId?: bigint; // Computed pool ID
-  poolKey?: {
-    id0: bigint;
-    id1: bigint;
-    token0: `0x${string}`;
-    token1: `0x${string}`;
-    swapFee: bigint;
-  }; // Pool key object with typed properties
+  poolKey?: CookbookPoolKey | ZAMMPoolKey; // Pool key object with typed properties
   token0?: `0x${string}`; // Address of token0 (ETH = address(0))
   token1?: `0x${string}`; // Address of token1 (e.g., USDT address)
   decimals?: number; // Number of decimals for the token
@@ -70,6 +65,9 @@ const USDT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2000 2000
 
 // USDT address on mainnet (official Tether USD address)
 export const USDT_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7" as `0x${string}`;
+
+// Note: Common ERC20 tokens are now loaded dynamically from Trust Wallet token list
+// See /src/lib/trusted-tokens.ts for the token list utilities
 
 // Create USDT-ETH pool with 30 bps fee
 export const USDT_POOL_KEY: {
@@ -157,5 +155,45 @@ export function computeCoinId(
   return {
     id: BigInt(addressHex),
     address: getAddress(addressHex),
+  };
+}
+
+/**
+ * Create a TokenMeta object for an ERC20 token
+ * ERC20 tokens use id = 0n to indicate they are ERC20 rather than ERC6909
+ */
+export function createErc20Token(
+  address: Address,
+  symbol: string,
+  name: string,
+  decimals: number,
+): TokenMeta {
+  // Validate inputs
+  if (!address || !symbol || !name) {
+    throw new Error("ERC20 token must have address, symbol, and name");
+  }
+  
+  if (decimals < 0 || decimals > 255) {
+    throw new Error("ERC20 token decimals must be between 0 and 255");
+  }
+
+  return {
+    id: 0n, // ERC20 tokens always use id = 0n
+    name,
+    symbol,
+    source: "COOKBOOK", // ERC20 tokens work with Cookbook contracts
+    tokenUri: `data:image/svg+xml;base64,${btoa(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#6366f1"/><text x="50" y="50" font-family="Arial" font-size="14" fill="white" text-anchor="middle" dy="0.35em">${symbol}</text></svg>`)}`,
+    balance: 0n,
+    isCustomPool: true,
+    decimals, // Store the actual decimals from the contract
+    token0: zeroAddress, // ETH
+    token1: address, // ERC20 token address
+    poolKey: {
+      id0: 0n, // ETH
+      id1: 0n, // ERC20 (id = 0n indicates ERC20)
+      token0: zeroAddress, // ETH address
+      token1: address, // ERC20 token address
+      feeOrHook: 30n, // Default 0.3% fee - use feeOrHook for Cookbook
+    } as CookbookPoolKey,
   };
 }

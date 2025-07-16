@@ -8,6 +8,8 @@ import {
   formatUnits,
   parseEther,
   parseUnits,
+  isAddress,
+  erc20Abi,
 } from "viem";
 import { mainnet } from "viem/chains";
 import {
@@ -34,7 +36,9 @@ import { useReserves } from "./hooks/use-reserves";
 import { useENSResolution } from "./hooks/use-ens-resolution";
 import { buildSwapCalls } from "./lib/build-swap-calls";
 import type { TokenMeta } from "./lib/coins";
+import { createErc20Token } from "./lib/coins";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
+import { getTrustedTokenInfo } from "./lib/trusted-tokens";
 import {
   SLIPPAGE_BPS,
   SWAP_FEE,
@@ -658,6 +662,22 @@ export const SwapAction = () => {
     }
   };
 
+  // Enhanced token selection handlers with error clearing, memoized to prevent re-renders
+  const handleSellTokenSelect = useCallback(
+    (token: TokenMeta) => {
+      // Clear any errors when changing tokens
+      if (txError) setTxError(null);
+      // Reset input values to prevent stale calculations
+      setSellAmt("");
+      setBuyAmt("");
+      // Reset last edited field to default
+      setLastEditedField("sell");
+      // Set the new token
+      setSellToken(token);
+    },
+    [txError],
+  );
+
   const handleBuyTokenSelect = useCallback(
     (token: TokenMeta) => {
       // Clear any errors when changing tokens
@@ -673,20 +693,87 @@ export const SwapAction = () => {
     [txError],
   );
 
-  // Enhanced token selection handlers with error clearing, memoized to prevent re-renders
-  const handleSellTokenSelect = useCallback(
-    (token: TokenMeta) => {
-      // Clear any errors when changing tokens
-      if (txError) setTxError(null);
-      // Reset input values to prevent stale calculations
-      setSellAmt("");
-      setBuyAmt("");
-      // Reset last edited field to default
-      setLastEditedField("sell");
-      // Set the new token
-      setSellToken(token);
+  // Handle ERC20 token creation
+  const handleErc20TokenCreate = useCallback(
+    async (address: string) => {
+      if (!isAddress(address) || !publicClient) {
+        setTxError("Invalid token address");
+        return;
+      }
+
+      try {
+        setTxError("Fetching token metadata...");
+        
+        // Check if token is in trusted list first
+        const trustedToken = await getTrustedTokenInfo(address as `0x${string}`);
+        
+        if (trustedToken) {
+          // Use trusted token metadata
+          const erc20Token = createErc20Token(
+            trustedToken.address,
+            trustedToken.symbol,
+            trustedToken.name,
+            trustedToken.decimals,
+          );
+
+          setBuyToken(erc20Token);
+          setSellAmt("");
+          setBuyAmt("");
+          setTxError(null);
+          return;
+        }
+
+        // If not in trusted list, fetch from contract
+        const [symbol, name, decimals] = await Promise.all([
+          publicClient.readContract({
+            address: address as `0x${string}`,
+            abi: erc20Abi,
+            functionName: "symbol",
+          }),
+          publicClient.readContract({
+            address: address as `0x${string}`,
+            abi: erc20Abi,
+            functionName: "name",
+          }),
+          publicClient.readContract({
+            address: address as `0x${string}`,
+            abi: erc20Abi,
+            functionName: "decimals",
+          }),
+        ]);
+
+        // Validate decimals
+        const tokenDecimals = Number(decimals);
+        if (tokenDecimals < 0 || tokenDecimals > 255) {
+          setTxError("Invalid token decimals. Must be between 0 and 255.");
+          return;
+        }
+
+        // Validate symbol and name
+        if (!symbol || !name) {
+          setTxError("Token missing required metadata (symbol or name).");
+          return;
+        }
+
+        // Create the ERC20 token
+        const erc20Token = createErc20Token(
+          address as `0x${string}`,
+          symbol as string,
+          name as string,
+          tokenDecimals,
+        );
+
+        setBuyToken(erc20Token);
+        setSellAmt("");
+        setBuyAmt("");
+        setTxError(null);
+        
+      } catch (error) {
+        console.error("Error fetching ERC20 token metadata:", error);
+        setTxError("Failed to fetch token metadata. Please ensure it's a valid ERC20 contract.");
+      }
     },
-    [txError],
+    [publicClient],
   );
 
   return (
@@ -764,6 +851,8 @@ export const SwapAction = () => {
             isEthBalanceFetching={isEthBalanceFetching}
             amount={buyAmt}
             onAmountChange={syncFromBuy}
+            showErc20Input={true}
+            onErc20TokenCreate={handleErc20TokenCreate}
             className="pt-4"
           />
         )}

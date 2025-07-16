@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { ChevronDownIcon, SearchIcon } from "lucide-react";
 import { memo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { formatEther, formatUnits } from "viem";
+import { formatEther, formatUnits, isAddress } from "viem";
 import { TokenImage } from "./TokenImage";
 
 export const TokenSelector = memo(
@@ -13,20 +13,36 @@ export const TokenSelector = memo(
     onSelect,
     isEthBalanceFetching = false,
     className,
+    showErc20Input = false,
+    onErc20TokenCreate,
   }: {
     selectedToken: TokenMeta;
     tokens: TokenMeta[];
     onSelect: (token: TokenMeta) => void;
     isEthBalanceFetching?: boolean;
     className?: string;
+    showErc20Input?: boolean;
+    onErc20TokenCreate?: (address: string) => void;
   }) => {
     const { t } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
+    const [showErc20Mode, setShowErc20Mode] = useState(false);
+    const [erc20Address, setErc20Address] = useState("");
 
     // Handle selection change
     const handleSelect = (token: TokenMeta) => {
       onSelect(token);
       setIsOpen(false);
+    };
+
+    // Handle ERC20 token creation
+    const handleErc20Submit = () => {
+      if (erc20Address && isAddress(erc20Address) && onErc20TokenCreate) {
+        onErc20TokenCreate(erc20Address);
+        setShowErc20Mode(false);
+        setErc20Address("");
+        setIsOpen(false);
+      }
     };
 
     // Helper functions for formatting and display
@@ -131,6 +147,39 @@ export const TokenSelector = memo(
           <div className="absolute z-50 mt-1 w-[calc(100vw-40px)] sm:w-64 max-h-[60vh] sm:max-h-96 overflow-y-auto border-2 bg-background border-border">
             {/* Search input */}
             <div className="sticky top-0 p-2 bg-muted border-b-2 border-border">
+              {showErc20Input && (
+                <div className="mb-2 flex items-center gap-2 text-xs">
+                  <button
+                    onClick={() => setShowErc20Mode(!showErc20Mode)}
+                    className={cn(
+                      "px-2 py-1 rounded border transition-colors",
+                      showErc20Mode 
+                        ? "bg-primary text-primary-foreground border-primary" 
+                        : "bg-secondary text-secondary-foreground border-border hover:bg-primary/10"
+                    )}
+                  >
+                    {showErc20Mode ? "Show Coins" : "ERC20 Token"}
+                  </button>
+                  {showErc20Mode && (
+                    <div className="flex items-center gap-1 flex-1">
+                      <input
+                        type="text"
+                        placeholder="0x... ERC20 address"
+                        value={erc20Address}
+                        onChange={(e) => setErc20Address(e.target.value)}
+                        className="flex-1 px-2 py-1 border border-border rounded text-xs"
+                      />
+                      <button
+                        onClick={handleErc20Submit}
+                        disabled={!erc20Address || !isAddress(erc20Address)}
+                        className="px-2 py-1 bg-primary text-primary-foreground rounded text-xs disabled:opacity-50"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="relative">
                 <input
                   type="text"
@@ -206,7 +255,12 @@ export const TokenSelector = memo(
             </div>
 
             <div className="bg-background z-10 content-visibility-auto intrinsic-h-[5000px] contain-content">
-              {tokens.map((token) => {
+              {showErc20Mode ? (
+                <div className="p-4 text-center text-sm text-muted-foreground">
+                  Enter an ERC20 token address above to create a pool with that token.
+                </div>
+              ) : (
+                tokens.map((token) => {
                 const isSelected = token.id === selectedToken?.id && token.poolId === selectedToken?.poolId;
 
                 const formatReserves = (token: TokenMeta) => {
@@ -367,7 +421,8 @@ export const TokenSelector = memo(
                     </div>
                   </div>
                 );
-              })}
+              })
+              )}
             </div>
           </div>
         )}

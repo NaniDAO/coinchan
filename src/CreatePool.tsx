@@ -1,6 +1,6 @@
 import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { formatEther, formatUnits, parseEther, parseUnits, zeroAddress } from "viem";
+import { formatEther, formatUnits, parseEther, parseUnits, zeroAddress, isAddress, erc20Abi, maxUint256 } from "viem";
 import { mainnet } from "viem/chains";
 import { useAccount, useChainId, usePublicClient, useWriteContract } from "wagmi";
 import { useWaitForTransactionReceipt } from "wagmi";
@@ -10,10 +10,10 @@ import { SwapPanel } from "./components/SwapPanel";
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
 import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
-import { useErc20Allowance } from "./hooks/use-erc20-allowance";
 import { useOperatorStatus } from "./hooks/use-operator-status";
-import { ETH_TOKEN, type TokenMeta, USDT_ADDRESS } from "./lib/coins";
+import { ETH_TOKEN, type TokenMeta, createErc20Token } from "./lib/coins";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
+import { getTrustedTokenInfo } from "./lib/trusted-tokens";
 import type { CookbookPoolKey } from "./lib/swap";
 import { nowSec } from "./lib/utils";
 
@@ -97,7 +97,16 @@ const createCookbookPoolKey = (tokenA: TokenMeta, tokenB: TokenMeta, feeBps: big
   // Handle ETH-Token pairs (the common case for pool creation)
   if (tokenA.id === null) {
     // tokenA is ETH, tokenB is the other token
-    const tokenAddress = tokenB.source === "ZAMM" ? CoinsAddress : CookbookAddress;
+    let tokenAddress: `0x${string}`;
+    
+    if (tokenB.isCustomPool && tokenB.token1) {
+      // ERC20 token - use the actual token address
+      tokenAddress = tokenB.token1;
+    } else {
+      // ERC6909 token - use the contract address
+      tokenAddress = tokenB.source === "ZAMM" ? CoinsAddress : CookbookAddress;
+    }
+    
     return {
       id0: 0n,
       id1: BigInt(tokenB.id || 0),
@@ -107,7 +116,16 @@ const createCookbookPoolKey = (tokenA: TokenMeta, tokenB: TokenMeta, feeBps: big
     };
   } else if (tokenB.id === null) {
     // tokenB is ETH, tokenA is the other token
-    const tokenAddress = tokenA.source === "ZAMM" ? CoinsAddress : CookbookAddress;
+    let tokenAddress: `0x${string}`;
+    
+    if (tokenA.isCustomPool && tokenA.token1) {
+      // ERC20 token - use the actual token address
+      tokenAddress = tokenA.token1;
+    } else {
+      // ERC6909 token - use the contract address
+      tokenAddress = tokenA.source === "ZAMM" ? CoinsAddress : CookbookAddress;
+    }
+    
     return {
       id0: 0n,
       id1: BigInt(tokenA.id || 0),
@@ -119,8 +137,21 @@ const createCookbookPoolKey = (tokenA: TokenMeta, tokenB: TokenMeta, feeBps: big
     // For token-token pairs, determine the appropriate addresses based on source
     // Sort by coin ID to ensure deterministic ordering
     const [token0, token1] = tokenA.id! < tokenB.id! ? [tokenA, tokenB] : [tokenB, tokenA];
-    const token0Address = token0.source === "ZAMM" ? CoinsAddress : CookbookAddress;
-    const token1Address = token1.source === "ZAMM" ? CoinsAddress : CookbookAddress;
+    
+    let token0Address: `0x${string}`;
+    let token1Address: `0x${string}`;
+    
+    if (token0.isCustomPool && token0.token1) {
+      token0Address = token0.token1;
+    } else {
+      token0Address = token0.source === "ZAMM" ? CoinsAddress : CookbookAddress;
+    }
+    
+    if (token1.isCustomPool && token1.token1) {
+      token1Address = token1.token1;
+    } else {
+      token1Address = token1.source === "ZAMM" ? CoinsAddress : CookbookAddress;
+    }
 
     return {
       id0: BigInt(token0.id || 0),
@@ -163,15 +194,7 @@ export const CreatePool = () => {
     operator: CookbookAddress,
   });
 
-  // USDT allowance for USDT pools
-  const {
-    allowance: usdtAllowance,
-    refetchAllowance: refetchUsdtAllowance,
-    approveMax: approveUsdtMax,
-  } = useErc20Allowance({
-    token: USDT_ADDRESS,
-    spender: CookbookAddress,
-  });
+  // Note: ERC20 allowance is now handled dynamically in executeCreatePool
 
   const memoizedTokens = useMemo(() => tokens, [tokens]);
 
@@ -218,24 +241,78 @@ export const CreatePool = () => {
       const poolKey = createCookbookPoolKey(token0, token1, feeBps);
 
       // Determine amounts based on pool key ordering
-      const amount0Desired = token0.id === null ? parseEther(amount0) : parseUnits(amount0, token0.decimals || 18);
-      const amount1Desired = parseUnits(amount1, token1.decimals || 18);
+      const amount0Desired = token0.id === null ? parseEther(amount0) : parseUnits(amount0, token0.decimals ?? 18);
+      const amount1Desired = parseUnits(amount1, token1.decimals ?? 18);
 
-      // Check for USDT approval if needed
-      const isUsingUsdt = token0.token1 === USDT_ADDRESS || token1.token1 === USDT_ADDRESS;
-      if (isUsingUsdt) {
-        const usdtAmount = token0.token1 === USDT_ADDRESS ? amount0Desired : amount1Desired;
+      // Check for ERC20 approval if needed
+      const getErc20Token = (token: TokenMeta) => {
+        if (token.isCustomPool && token.token1 && token.id === 0n) {
+          return token.token1;
+        }
+        return null;
+      };
 
-        if (usdtAllowance === undefined || usdtAmount > usdtAllowance) {
-          setTxError("Waiting for USDT approval. Please confirm the transaction...");
-          const approved = await approveUsdtMax();
-          if (!approved) return;
+      const erc20Token0 = getErc20Token(token0);
+      const erc20Token1 = getErc20Token(token1);
 
-          const receipt = await publicClient.waitForTransactionReceipt({ hash: approved });
-          if (receipt.status === "success") {
-            await refetchUsdtAllowance();
+      // Handle ERC20 approvals
+      if (erc20Token0 || erc20Token1) {
+        const erc20Address = erc20Token0 || erc20Token1;
+        const erc20Amount = erc20Token0 ? amount0Desired : amount1Desired;
+        const erc20Token = erc20Token0 ? token0 : token1;
+
+        if (erc20Address) {
+          try {
+            // Check current allowance
+            const currentAllowance = await publicClient.readContract({
+              address: erc20Address,
+              abi: erc20Abi,
+              functionName: "allowance",
+              args: [address, CookbookAddress],
+            }) as bigint;
+
+            if (currentAllowance < erc20Amount) {
+              setTxError(`Waiting for ${erc20Token.symbol} approval. Please confirm the transaction...`);
+              
+              // Approve max allowance
+              const approvalHash = await writeContractAsync({
+                address: erc20Address,
+                abi: erc20Abi,
+                functionName: "approve",
+                args: [CookbookAddress, maxUint256],
+              });
+
+              setTxError(`${erc20Token.symbol} approval submitted. Waiting for confirmation...`);
+              const receipt = await publicClient.waitForTransactionReceipt({ hash: approvalHash });
+
+              if (receipt.status === "success") {
+                setTxError(null);
+              } else {
+                setTxError(`${erc20Token.symbol} approval failed. Please try again.`);
+                return;
+              }
+            }
+          } catch (error) {
+            console.error("Error checking ERC20 allowance:", error);
+            
+            // Handle wallet errors (including user rejection)
+            const errorMsg = handleWalletError(error);
+            if (errorMsg) {
+              if (error instanceof Error) {
+                if (error.message.includes("insufficient funds")) {
+                  setTxError(`Insufficient ETH for ${erc20Token.symbol} approval transaction`);
+                } else if (error.message.includes("User rejected")) {
+                  // User rejection is handled by the UI layer, don't set error
+                  return;
+                } else {
+                  setTxError(`${erc20Token.symbol} approval failed. Please try again.`);
+                }
+              } else {
+                setTxError(`Error checking ${erc20Token.symbol} allowance. Please try again.`);
+              }
+            }
+            return;
           }
-          return;
         }
       }
 
@@ -325,6 +402,89 @@ export const CreatePool = () => {
     [txError],
   );
 
+  // Handle ERC20 token creation
+  const handleErc20TokenCreate = useCallback(
+    async (address: string) => {
+      if (!isAddress(address) || !publicClient) {
+        setTxError("Invalid token address");
+        return;
+      }
+
+      try {
+        setTxError("Fetching token metadata...");
+        
+        // Check if token is in trusted list first
+        const trustedToken = await getTrustedTokenInfo(address as `0x${string}`);
+        
+        if (trustedToken) {
+          // Use trusted token metadata
+          const erc20Token = createErc20Token(
+            trustedToken.address,
+            trustedToken.symbol,
+            trustedToken.name,
+            trustedToken.decimals,
+          );
+
+          setToken1(erc20Token);
+          setAmount0("");
+          setAmount1("");
+          setTxError(null);
+          return;
+        }
+
+        // If not in trusted list, fetch from contract
+        const [symbol, name, decimals] = await Promise.all([
+          publicClient.readContract({
+            address: address as `0x${string}`,
+            abi: erc20Abi,
+            functionName: "symbol",
+          }),
+          publicClient.readContract({
+            address: address as `0x${string}`,
+            abi: erc20Abi,
+            functionName: "name",
+          }),
+          publicClient.readContract({
+            address: address as `0x${string}`,
+            abi: erc20Abi,
+            functionName: "decimals",
+          }),
+        ]);
+
+        // Validate decimals
+        const tokenDecimals = Number(decimals);
+        if (tokenDecimals < 0 || tokenDecimals > 255) {
+          setTxError("Invalid token decimals. Must be between 0 and 255.");
+          return;
+        }
+
+        // Validate symbol and name
+        if (!symbol || !name) {
+          setTxError("Token missing required metadata (symbol or name).");
+          return;
+        }
+
+        // Create the ERC20 token
+        const erc20Token = createErc20Token(
+          address as `0x${string}`,
+          symbol as string,
+          name as string,
+          tokenDecimals,
+        );
+
+        setToken1(erc20Token);
+        setAmount0("");
+        setAmount1("");
+        setTxError(null);
+        
+      } catch (error) {
+        console.error("Error fetching ERC20 token metadata:", error);
+        setTxError("Failed to fetch token metadata. Please ensure it's a valid ERC20 contract.");
+      }
+    },
+    [publicClient],
+  );
+
   return (
     <div className="relative flex flex-col">
       {/* First token panel */}
@@ -342,8 +502,8 @@ export const CreatePool = () => {
             const ethAmount = ((token0.balance as bigint) * 99n) / 100n;
             setAmount0(formatEther(ethAmount));
           } else {
-            const decimals = token0.decimals || 18;
-            setAmount0(formatUnits(token0.balance as bigint, decimals));
+            const tokenDecimals = token0.decimals ?? 18;
+            setAmount0(formatUnits(token0.balance as bigint, tokenDecimals));
           }
         }}
         className="rounded-t-2xl pb-4"
@@ -365,10 +525,12 @@ export const CreatePool = () => {
               const ethAmount = ((token1.balance as bigint) * 99n) / 100n;
               setAmount1(formatEther(ethAmount));
             } else {
-              const decimals = token1.decimals || 18;
-              setAmount1(formatUnits(token1.balance as bigint, decimals));
+              const tokenDecimals = token1.decimals ?? 18;
+              setAmount1(formatUnits(token1.balance as bigint, tokenDecimals));
             }
           }}
+          showErc20Input={true}
+          onErc20TokenCreate={handleErc20TokenCreate}
           className="mt-2 rounded-b-2xl pt-3 shadow-[0_0_15px_rgba(0,204,255,0.07)]"
         />
       )}

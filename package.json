@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "node scripts/build-token-list.js && tsc && vite build",
+    "build:tokens": "node scripts/build-token-list.js",
     "lint": "biome check src",
     "format": "biome format --write src",
     "preview": "vite preview"
