@@ -71,8 +71,8 @@ export const SwapAction = () => {
   const [partialFill, setPartialFill] = useState(false);
   const [deadline, setDeadline] = useState(2); // days
   
-  /* Exact input/output mode */
-  const [exactMode, setExactMode] = useState<"input" | "output">("input");
+  /* Track which field was last edited to determine swap intent */
+  const [lastEditedField, setLastEditedField] = useState<"sell" | "buy">("sell");
 
   const {
     isSellETH,
@@ -166,21 +166,16 @@ export const SwapAction = () => {
     // Reset recipient when switching modes
     setCustomRecipient("");
     setShowRecipientInput(false);
+    // Reset last edited field to default
+    setLastEditedField("sell");
   }, [swapMode]);
 
   const syncFromBuy = async (val: string) => {
     setBuyAmt(val);
+    setLastEditedField("buy"); // Track that user edited the buy field
 
     // Only sync amounts in instant mode
     if (swapMode === "limit") return;
-
-    // In exact output mode, when user changes buy amount, we calculate required sell amount
-    // This is the natural UX - user specifies desired output, we show required input
-    if (exactMode === "output") {
-      if (!canSwap || !reserves) return setSellAmt("");
-      // Calculate required input for desired output - this is what getAmountIn does
-      // The logic below will handle this case
-    }
 
     if (!canSwap || !reserves) return setSellAmt("");
 
@@ -229,17 +224,10 @@ export const SwapAction = () => {
   const syncFromSell = async (val: string) => {
     // Regular Add Liquidity or Swap mode
     setSellAmt(val);
+    setLastEditedField("sell"); // Track that user edited the sell field
 
     // Only sync amounts in instant mode
     if (swapMode === "limit") return;
-
-    // In exact output mode, when user changes sell amount, we calculate possible output
-    // This gives user feedback on what they can get for their input
-    if (exactMode === "output") {
-      if (!canSwap || !reserves) return setBuyAmt("");
-      // Calculate possible output for given input - this is what getAmountOut does
-      // The logic below will handle this case
-    }
 
     if (!canSwap || !reserves) return setBuyAmt("");
     try {
@@ -379,7 +367,7 @@ export const SwapAction = () => {
         targetReserves,
         publicClient,
         recipient: customRecipient && customRecipient.trim() !== "" ? customRecipient as `0x${string}` : undefined,
-        exactOut: exactMode === "output",
+        exactOut: lastEditedField === "buy",
       });
 
       if (calls.length === 0) {
@@ -646,6 +634,9 @@ export const SwapAction = () => {
     setSellAmt("");
     setBuyAmt("");
 
+    // Reset last edited field to default
+    setLastEditedField("sell");
+
     // Use context flip function
     flipTokens();
 
@@ -663,6 +654,8 @@ export const SwapAction = () => {
       // Reset input values to prevent stale calculations
       setSellAmt("");
       setBuyAmt("");
+      // Reset last edited field to default
+      setLastEditedField("sell");
       // Set the new token
       setBuyToken(token);
     },
@@ -677,6 +670,8 @@ export const SwapAction = () => {
       // Reset input values to prevent stale calculations
       setSellAmt("");
       setBuyAmt("");
+      // Reset last edited field to default
+      setLastEditedField("sell");
       // Set the new token
       setSellToken(token);
     },
@@ -722,7 +717,7 @@ export const SwapAction = () => {
           isEthBalanceFetching={isEthBalanceFetching}
           amount={sellAmt}
           onAmountChange={syncFromSell}
-          showMaxButton={!!(sellToken.balance && sellToken.balance > 0n)}
+          showMaxButton={!!(sellToken.balance && sellToken.balance > 0n && lastEditedField === "sell")}
           onMax={() => {
             if (sellToken.id === null) {
               const ethAmount = ((sellToken.balance as bigint) * 99n) / 100n;
@@ -732,7 +727,7 @@ export const SwapAction = () => {
               syncFromSell(formatUnits(sellToken.balance as bigint, decimals));
             }
           }}
-          showPercentageSlider={true}
+          showPercentageSlider={lastEditedField === "sell"}
           className="pb-4"
         />
 
@@ -863,43 +858,6 @@ export const SwapAction = () => {
         </div>
       )}
 
-      {/* Exact mode toggle - only show in instant mode and non-coin-to-coin swaps */}
-      {swapMode === "instant" && !isCoinToCoin && (
-        <div className="mt-3 p-3 bg-background/50 rounded-lg border border-primary/20">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-foreground">
-              {t("swap.exact_mode") || "Swap Mode"}
-            </span>
-            <div className="inline-flex gap-1 border border-border bg-muted p-0.5">
-              <button
-                onClick={() => setExactMode("input")}
-                className={`px-2 py-1 text-xs font-bold uppercase cursor-pointer transition-all duration-100 font-body hover:opacity-80 ${
-                  exactMode === "input"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground"
-                }`}
-              >
-                {t("swap.exact_input") || "Exact In"}
-              </button>
-              <button
-                onClick={() => setExactMode("output")}
-                className={`px-2 py-1 text-xs font-bold uppercase cursor-pointer transition-all duration-100 font-body hover:opacity-80 ${
-                  exactMode === "output"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground"
-                }`}
-              >
-                {t("swap.exact_output") || "Exact Out"}
-              </button>
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            {exactMode === "input"
-              ? t("swap.exact_input_desc") || "Specify exact amount to sell"
-              : t("swap.exact_output_desc") || "Specify exact amount to receive"}
-          </p>
-        </div>
-      )}
 
       {/* Slippage information - only show in instant mode */}
       {swapMode === "instant" && (

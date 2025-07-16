@@ -49,7 +49,6 @@ export const BuySell = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [swapFee, setSwapFee] = useState<bigint>(SWAP_FEE);
   const [buyPercentage, setBuyPercentage] = useState(0);
-  const [exactMode, setExactMode] = useState<"input" | "output">("input");
 
   const { address, isConnected } = useAccount();
   const { writeContractAsync, isPending } = useWriteContract();
@@ -124,38 +123,22 @@ export const BuySell = ({
     if (!reserves || !reserves.reserve0 || !reserves.reserve1) return "0";
     try {
       if (tab === "buy") {
-        if (exactMode === "input") {
-          // Input: ETH amount -> Output: token amount
-          const inWei = parseEther(amount || "0");
-          const rawOut = getAmountOut(inWei, reserves.reserve0, reserves.reserve1, swapFee);
-          const minOut = withSlippage(rawOut);
-          return formatUnits(minOut, 18);
-        } else {
-          // Input: token amount -> Output: ETH amount needed
-          const outUnits = parseUnits(amount || "0", 18);
-          const rawIn = getAmountIn(outUnits, reserves.reserve0, reserves.reserve1, swapFee);
-          const maxIn = rawIn + (rawIn * 200n) / 10000n; // 2% buffer
-          return formatEther(maxIn);
-        }
+        // Input: ETH amount -> Output: token amount
+        const inWei = parseEther(amount || "0");
+        const rawOut = getAmountOut(inWei, reserves.reserve0, reserves.reserve1, swapFee);
+        const minOut = withSlippage(rawOut);
+        return formatUnits(minOut, 18);
       } else {
-        if (exactMode === "input") {
-          // Input: token amount -> Output: ETH amount
-          const inUnits = parseUnits(amount || "0", 18);
-          const rawOut = getAmountOut(inUnits, reserves.reserve1, reserves.reserve0, swapFee);
-          const minOut = withSlippage(rawOut);
-          return formatEther(minOut);
-        } else {
-          // Input: ETH amount -> Output: token amount needed
-          const outWei = parseEther(amount || "0");
-          const rawIn = getAmountIn(outWei, reserves.reserve1, reserves.reserve0, swapFee);
-          const maxIn = rawIn + (rawIn * 200n) / 10000n; // 2% buffer
-          return formatUnits(maxIn, 18);
-        }
+        // Input: token amount -> Output: ETH amount
+        const inUnits = parseUnits(amount || "0", 18);
+        const rawOut = getAmountOut(inUnits, reserves.reserve1, reserves.reserve0, swapFee);
+        const minOut = withSlippage(rawOut);
+        return formatEther(minOut);
       }
     } catch {
       return "0";
     }
-  }, [amount, reserves, tab, swapFee, exactMode]);
+  }, [amount, reserves, tab, swapFee]);
 
   const handleBuyPercentageChange = useCallback(
     (percentage: number) => {
@@ -199,40 +182,21 @@ export const BuySell = ({
         switchChain({ chainId: mainnet.id });
       }
 
-      const poolKey = computePoolKey(tokenId, swapFee, CoinsAddress) as ZAMMPoolKey;
+      const amountInWei = parseEther(amount || "0");
+      const rawOut = getAmountOut(amountInWei, reserves.reserve0, reserves.reserve1, swapFee);
+      const amountOutMin = withSlippage(rawOut);
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
-      if (exactMode === "input") {
-        // swapExactIn: user specifies exact ETH input
-        const amountInWei = parseEther(amount || "0");
-        const rawOut = getAmountOut(amountInWei, reserves.reserve0, reserves.reserve1, swapFee);
-        const amountOutMin = withSlippage(rawOut);
-
-        const hash = await writeContractAsync({
-          address: ZAMMAddress,
-          abi: ZAMMAbi,
-          functionName: "swapExactIn",
-          args: [poolKey, amountInWei, amountOutMin, true, address, deadline],
-          value: amountInWei,
-          chainId: mainnet.id,
-        });
-        setTxHash(hash);
-      } else {
-        // swapExactOut: user specifies exact token output
-        const amountOutTokens = parseUnits(amount || "0", 18);
-        const rawIn = getAmountIn(amountOutTokens, reserves.reserve0, reserves.reserve1, swapFee);
-        const amountInMax = rawIn + (rawIn * 200n) / 10000n; // 2% slippage buffer
-
-        const hash = await writeContractAsync({
-          address: ZAMMAddress,
-          abi: ZAMMAbi,
-          functionName: "swapExactOut",
-          args: [poolKey, amountOutTokens, amountInMax, true, address, deadline],
-          value: amountInMax,
-          chainId: mainnet.id,
-        });
-        setTxHash(hash);
-      }
+      const poolKey = computePoolKey(tokenId, swapFee, CoinsAddress) as ZAMMPoolKey;
+      const hash = await writeContractAsync({
+        address: ZAMMAddress,
+        abi: ZAMMAbi,
+        functionName: "swapExactIn",
+        args: [poolKey, amountInWei, amountOutMin, true, address, deadline],
+        value: amountInWei,
+        chainId: mainnet.id,
+      });
+      setTxHash(hash);
     } catch (err) {
       const errorMsg = handleWalletError(err);
       if (errorMsg) {
@@ -250,6 +214,8 @@ export const BuySell = ({
       if (chainId !== mainnet.id) {
         await switchChain({ chainId: mainnet.id });
       }
+
+      const amountInUnits = parseUnits(amount || "0", 18);
 
       if (!isOperator) {
         try {
@@ -269,38 +235,19 @@ export const BuySell = ({
         }
       }
 
-      const poolKey = computePoolKey(tokenId, swapFee, CoinsAddress) as ZAMMPoolKey;
+      const rawOut = getAmountOut(amountInUnits, reserves.reserve1, reserves.reserve0, swapFee);
+      const amountOutMin = withSlippage(rawOut);
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
-      if (exactMode === "input") {
-        // swapExactIn: user specifies exact token input
-        const amountInUnits = parseUnits(amount || "0", 18);
-        const rawOut = getAmountOut(amountInUnits, reserves.reserve1, reserves.reserve0, swapFee);
-        const amountOutMin = withSlippage(rawOut);
-
-        const hash = await writeContractAsync({
-          address: ZAMMAddress,
-          abi: ZAMMAbi,
-          functionName: "swapExactIn",
-          args: [poolKey, amountInUnits, amountOutMin, false, address, deadline],
-          chainId: mainnet.id,
-        });
-        setTxHash(hash);
-      } else {
-        // swapExactOut: user specifies exact ETH output
-        const amountOutWei = parseEther(amount || "0");
-        const rawIn = getAmountIn(amountOutWei, reserves.reserve1, reserves.reserve0, swapFee);
-        const amountInMax = rawIn + (rawIn * 200n) / 10000n; // 2% slippage buffer
-
-        const hash = await writeContractAsync({
-          address: ZAMMAddress,
-          abi: ZAMMAbi,
-          functionName: "swapExactOut",
-          args: [poolKey, amountOutWei, amountInMax, false, address, deadline],
-          chainId: mainnet.id,
-        });
-        setTxHash(hash);
-      }
+      const poolKey = computePoolKey(tokenId, swapFee, CoinsAddress) as ZAMMPoolKey;
+      const hash = await writeContractAsync({
+        address: ZAMMAddress,
+        abi: ZAMMAbi,
+        functionName: "swapExactIn",
+        args: [poolKey, amountInUnits, amountOutMin, false, address, deadline],
+        chainId: mainnet.id,
+      });
+      setTxHash(hash);
     } catch (err) {
       const errorMsg = handleWalletError(err);
       if (errorMsg) {
@@ -320,52 +267,13 @@ export const BuySell = ({
         </TabsTrigger>
       </TabsList>
 
-      {/* Exact mode toggle */}
-      <div className="mt-3 p-3 bg-background/50 rounded-lg border border-primary/20">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-foreground">Swap Mode</span>
-          <div className="inline-flex gap-1 border border-border bg-muted p-0.5">
-            <button
-              onClick={() => setExactMode("input")}
-              className={`px-2 py-1 text-xs font-bold uppercase cursor-pointer transition-all duration-100 font-body hover:opacity-80 ${
-                exactMode === "input"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground"
-              }`}
-            >
-              Exact In
-            </button>
-            <button
-              onClick={() => setExactMode("output")}
-              className={`px-2 py-1 text-xs font-bold uppercase cursor-pointer transition-all duration-100 font-body hover:opacity-80 ${
-                exactMode === "output"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground"
-              }`}
-            >
-              Exact Out
-            </button>
-          </div>
-        </div>
-        <p className="text-xs text-muted-foreground mt-2">
-          {exactMode === "input"
-            ? tab === "buy"
-              ? "Specify exact ETH amount to spend"
-              : "Specify exact token amount to sell"
-            : tab === "buy"
-              ? "Specify exact token amount to receive"
-              : "Specify exact ETH amount to receive"}
-        </p>
-      </div>
 
       <TabsContent value="buy" className="max-w-2xl">
         <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium text-green-700">
-            {exactMode === "input" ? "Using ETH" : `Target ${symbol}`}
-          </span>
+          <span className="text-sm font-medium text-green-700">Using ETH</span>
           <Input
             type="number"
-            placeholder={exactMode === "input" ? "Amount ETH" : `Amount ${symbol}`}
+            placeholder="Amount ETH"
             value={amount}
             min="0"
             step="any"
@@ -373,16 +281,14 @@ export const BuySell = ({
             disabled={false}
           />
 
-          {ethBalance?.value && ethBalance.value > 0n && isConnected && exactMode === "input" ? (
+          {ethBalance?.value && ethBalance.value > 0n && isConnected ? (
             <div className="mt-2 pt-2 border-t border-primary/20">
               <PercentageSlider value={buyPercentage} onChange={handleBuyPercentageChange} />
             </div>
           ) : null}
 
           <span className="text-sm font-medium text-green-800">
-            {exactMode === "input" 
-              ? `You will receive ~ ${estimated} ${symbol}` 
-              : `You will pay ~ ${estimated} ETH`}
+            You will receive ~ {estimated} {symbol}
           </span>
           <Button
             onClick={onBuy}
@@ -404,13 +310,11 @@ export const BuySell = ({
 
       <TabsContent value="sell" className="max-w-2xl">
         <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium text-accent dark:text-accent">
-            {exactMode === "input" ? `Using ${symbol}` : "Target ETH"}
-          </span>
+          <span className="text-sm font-medium text-accent dark:text-accent">Using {symbol}</span>
           <div className="relative">
             <Input
               type="number"
-              placeholder={exactMode === "input" ? `Amount ${symbol}` : "Amount ETH"}
+              placeholder={`Amount ${symbol}`}
               value={amount}
               min="0"
               step="any"
@@ -419,29 +323,11 @@ export const BuySell = ({
             />
           </div>
           <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium">
-              {exactMode === "input" 
-                ? `You will receive ~ ${estimated} ETH` 
-                : `You will pay ~ ${estimated} ${symbol}`}
-            </span>
+            <span className="text-sm font-medium">You will receive ~ {estimated} ETH</span>
             {balance !== undefined ? (
               <button
                 className="self-end text-sm font-medium text-chart-2 dark:text-chart-2 hover:text-primary transition-colors"
-                onClick={() => {
-                  if (exactMode === "input") {
-                    // Input mode: set max tokens to sell
-                    setAmount(formatUnits(balance, 18));
-                  } else if (exactMode === "output" && reserves) {
-                    // Output mode: set max ETH we can get for all tokens
-                    try {
-                      const maxEth = getAmountOut(balance, reserves.reserve1, reserves.reserve0, swapFee);
-                      setAmount(formatEther(maxEth));
-                    } catch {
-                      // Fallback to setting token amount
-                      setAmount(formatUnits(balance, 18));
-                    }
-                  }
-                }}
+                onClick={() => setAmount(formatUnits(balance, 18))}
                 disabled={false}
               >
                 MAX ({formatUnits(balance, 18)})
