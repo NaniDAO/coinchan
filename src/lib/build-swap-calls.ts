@@ -10,6 +10,7 @@ import {
   createCoinSwapMulticall,
   estimateCoinToCoinOutput,
   withSlippage,
+  getAmountIn,
 } from "@/lib/swap";
 import { encodeFunctionData, erc20Abi, maxUint256, parseUnits } from "viem";
 import type { Address, Hex, PublicClient } from "viem";
@@ -31,6 +32,7 @@ export interface SwapParams {
   slippageBps: bigint;
   targetReserves?: { reserve0: bigint; reserve1: bigint };
   recipient?: `0x${string}`; // Optional custom recipient address
+  exactOut?: boolean; // If true, use swapExactOut instead of swapExactIn
 }
 
 /**
@@ -38,7 +40,7 @@ export interface SwapParams {
  * internally checking allowances and operator status.
  */
 export async function buildSwapCalls(params: SwapParams & { publicClient: PublicClient }): Promise<Call[]> {
-  const { address, sellToken, buyToken, sellAmt, buyAmt, reserves, slippageBps, targetReserves, publicClient, recipient } = params;
+  const { address, sellToken, buyToken, sellAmt, buyAmt, reserves, slippageBps, targetReserves, publicClient, recipient, exactOut } = params;
   const calls: Call[] = [];
   
   // Use custom recipient if provided, otherwise default to connected wallet
@@ -53,8 +55,31 @@ export async function buildSwapCalls(params: SwapParams & { publicClient: Public
   const decimals = sellToken.decimals || 18;
   // Parse with correct decimals (6 for USDT, 18 for regular tokens)
   const sellAmtInUnits = parseUnits(sellAmt || "0", decimals);
-  const minBuyAmount = withSlippage(parseUnits(buyAmt || "0", buyToken.decimals || 18), slippageBps);
+  const buyAmtInUnits = parseUnits(buyAmt || "0", buyToken.decimals || 18);
+  const minBuyAmount = withSlippage(buyAmtInUnits, slippageBps);
   const deadline = nowSec() + BigInt(DEADLINE_SEC);
+  
+  // For exactOut, we need to calculate max input amount based on desired output
+  let maxSellAmount = sellAmtInUnits;
+  if (exactOut && !isCoinToCoin) {
+    // In exactOut mode, we need to calculate the maximum input we'd need
+    // to get the exact output (buyAmtInUnits) with slippage protection
+    if (!reserves) throw new Error("Reserves required for exactOut calculations");
+    
+    const isETHToToken = isSellETH;
+    const outputAmount = buyAmtInUnits;
+    
+    // Calculate required input using getAmountIn
+    const requiredInput = getAmountIn(
+      outputAmount,
+      isETHToToken ? reserves.reserve0 : reserves.reserve1,
+      isETHToToken ? reserves.reserve1 : reserves.reserve0,
+      sellToken.swapFee || buyToken?.swapFee || SWAP_FEE
+    );
+    
+    // Add slippage buffer to the calculated input
+    maxSellAmount = requiredInput + (requiredInput * slippageBps) / 10000n;
+  }
 
   // 1. If selling USDT, check allowance and add approve if needed
   if (!isSellETH && isUSDT(sellToken)) {
@@ -65,7 +90,9 @@ export async function buildSwapCalls(params: SwapParams & { publicClient: Public
       args: [address, ZAMMAddress],
     });
 
-    if (allowance < sellAmtInUnits) {
+    // For exactOut, we need to approve the max amount we might spend
+    const approvalAmount = exactOut ? maxSellAmount : sellAmtInUnits;
+    if (allowance < approvalAmount) {
       calls.push({
         to: USDT_ADDRESS,
         data: encodeFunctionData({
@@ -152,7 +179,7 @@ export async function buildSwapCalls(params: SwapParams & { publicClient: Public
       }) as Hex,
     });
   } else {
-    // Single-hop swapExactIn
+    // Single-hop swap
     const poolKey =
       sellToken.isCustomPool || buyToken.isCustomPool
         ? sellToken.isCustomPool
@@ -171,17 +198,34 @@ export async function buildSwapCalls(params: SwapParams & { publicClient: Public
           ) as ZAMMPoolKey);
     const fromETH = isSellETH;
     const source = fromETH ? buyToken.source : sellToken.source;
-    const args = [poolKey, sellAmtInUnits, minBuyAmount, fromETH, swapRecipient, deadline] as const;
-    const call: Call = {
-      to: source === "ZAMM" ? ZAMMAddress : CookbookAddress,
-      data: encodeFunctionData({
-        abi: source === "ZAMM" ? ZAMMAbi : CookbookAbi,
-        functionName: "swapExactIn",
-        args,
-      }) as Hex,
-    };
-    if (fromETH) call.value = sellAmtInUnits;
-    calls.push(call);
+    
+    if (exactOut) {
+      // swapExactOut: we want exactly buyAmtInUnits output, with maxSellAmount as input limit
+      const args = [poolKey, buyAmtInUnits, maxSellAmount, fromETH, swapRecipient, deadline] as const;
+      const call: Call = {
+        to: source === "ZAMM" ? ZAMMAddress : CookbookAddress,
+        data: encodeFunctionData({
+          abi: source === "ZAMM" ? ZAMMAbi : CookbookAbi,
+          functionName: "swapExactOut",
+          args,
+        }) as Hex,
+      };
+      if (fromETH) call.value = maxSellAmount;
+      calls.push(call);
+    } else {
+      // swapExactIn: we have exactly sellAmtInUnits input, with minBuyAmount as output minimum
+      const args = [poolKey, sellAmtInUnits, minBuyAmount, fromETH, swapRecipient, deadline] as const;
+      const call: Call = {
+        to: source === "ZAMM" ? ZAMMAddress : CookbookAddress,
+        data: encodeFunctionData({
+          abi: source === "ZAMM" ? ZAMMAbi : CookbookAbi,
+          functionName: "swapExactIn",
+          args,
+        }) as Hex,
+      };
+      if (fromETH) call.value = sellAmtInUnits;
+      calls.push(call);
+    }
   }
 
   return calls;

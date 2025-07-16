@@ -70,6 +70,9 @@ export const SwapAction = () => {
   const [swapMode, setSwapMode] = useState<"instant" | "limit">("instant");
   const [partialFill, setPartialFill] = useState(false);
   const [deadline, setDeadline] = useState(2); // days
+  
+  /* Track which field was last edited to determine swap intent */
+  const [lastEditedField, setLastEditedField] = useState<"sell" | "buy">("sell");
 
   const {
     isSellETH,
@@ -163,10 +166,13 @@ export const SwapAction = () => {
     // Reset recipient when switching modes
     setCustomRecipient("");
     setShowRecipientInput(false);
+    // Reset last edited field to default
+    setLastEditedField("sell");
   }, [swapMode]);
 
   const syncFromBuy = async (val: string) => {
     setBuyAmt(val);
+    setLastEditedField("buy"); // Track that user edited the buy field
 
     // Only sync amounts in instant mode
     if (swapMode === "limit") return;
@@ -218,6 +224,7 @@ export const SwapAction = () => {
   const syncFromSell = async (val: string) => {
     // Regular Add Liquidity or Swap mode
     setSellAmt(val);
+    setLastEditedField("sell"); // Track that user edited the sell field
 
     // Only sync amounts in instant mode
     if (swapMode === "limit") return;
@@ -360,6 +367,7 @@ export const SwapAction = () => {
         targetReserves,
         publicClient,
         recipient: customRecipient && customRecipient.trim() !== "" ? customRecipient as `0x${string}` : undefined,
+        exactOut: lastEditedField === "buy",
       });
 
       if (calls.length === 0) {
@@ -626,6 +634,9 @@ export const SwapAction = () => {
     setSellAmt("");
     setBuyAmt("");
 
+    // Reset last edited field to default
+    setLastEditedField("sell");
+
     // Use context flip function
     flipTokens();
 
@@ -643,6 +654,8 @@ export const SwapAction = () => {
       // Reset input values to prevent stale calculations
       setSellAmt("");
       setBuyAmt("");
+      // Reset last edited field to default
+      setLastEditedField("sell");
       // Set the new token
       setBuyToken(token);
     },
@@ -657,6 +670,8 @@ export const SwapAction = () => {
       // Reset input values to prevent stale calculations
       setSellAmt("");
       setBuyAmt("");
+      // Reset last edited field to default
+      setLastEditedField("sell");
       // Set the new token
       setSellToken(token);
     },
@@ -702,7 +717,7 @@ export const SwapAction = () => {
           isEthBalanceFetching={isEthBalanceFetching}
           amount={sellAmt}
           onAmountChange={syncFromSell}
-          showMaxButton={!!(sellToken.balance && sellToken.balance > 0n)}
+          showMaxButton={!!(sellToken.balance && sellToken.balance > 0n && lastEditedField === "sell")}
           onMax={() => {
             if (sellToken.id === null) {
               const ethAmount = ((sellToken.balance as bigint) * 99n) / 100n;
@@ -712,7 +727,7 @@ export const SwapAction = () => {
               syncFromSell(formatUnits(sellToken.balance as bigint, decimals));
             }
           }}
-          showPercentageSlider={true}
+          showPercentageSlider={lastEditedField === "sell"}
           className="pb-4"
         />
 
@@ -842,6 +857,7 @@ export const SwapAction = () => {
           </div>
         </div>
       )}
+
 
       {/* Slippage information - only show in instant mode */}
       {swapMode === "instant" && (

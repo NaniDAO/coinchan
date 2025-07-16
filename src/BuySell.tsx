@@ -122,11 +122,13 @@ export const BuySell = ({
     if (!reserves || !reserves.reserve0 || !reserves.reserve1) return "0";
     try {
       if (tab === "buy") {
+        // Input: ETH amount -> Output: token amount
         const inWei = parseEther(amount || "0");
         const rawOut = getAmountOut(inWei, reserves.reserve0, reserves.reserve1, swapFee);
         const minOut = withSlippage(rawOut);
         return formatUnits(minOut, 18);
       } else {
+        // Input: token amount -> Output: ETH amount
         const inUnits = parseUnits(amount || "0", 18);
         const rawOut = getAmountOut(inUnits, reserves.reserve1, reserves.reserve0, swapFee);
         const minOut = withSlippage(rawOut);
@@ -263,6 +265,7 @@ export const BuySell = ({
           Sell {name} [{symbol}]
         </TabsTrigger>
       </TabsList>
+
 
       <TabsContent value="buy" className="max-w-2xl">
         <div className="flex flex-col gap-2">

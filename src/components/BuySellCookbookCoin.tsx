@@ -87,11 +87,13 @@ export const BuySellCookbookCoin = ({
     if (!reserves || !reserves.reserve0 || !reserves.reserve1) return "0";
     try {
       if (tab === "buy") {
+        // Input: ETH amount -> Output: token amount
         const inWei = parseEther(amount || "0");
         const rawOut = getAmountOut(inWei, reserves.reserve0, reserves.reserve1, SWAP_FEE);
         const minOut = withSlippage(rawOut);
         return formatUnits(minOut, 18);
       } else {
+        // Input: token amount -> Output: ETH amount
         const inUnits = parseUnits(amount || "0", 18);
         const rawOut = getAmountOut(inUnits, reserves.reserve1, reserves.reserve0, SWAP_FEE);
         const minOut = withSlippage(rawOut);
@@ -206,6 +208,7 @@ export const BuySellCookbookCoin = ({
           <TabsTrigger value="buy">{t("create.buy_token", { token: symbol })}</TabsTrigger>
           <TabsTrigger value="sell">{t("create.sell_token", { token: symbol })}</TabsTrigger>
         </TabsList>
+
 
         <TabsContent value="buy">
           <div className="flex flex-col gap-2">
