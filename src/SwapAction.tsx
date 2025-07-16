@@ -773,7 +773,7 @@ export const SwapAction = () => {
         setTxError("Failed to fetch token metadata. Please ensure it's a valid ERC20 contract.");
       }
     },
-    [publicClient],
+    [publicClient, setBuyToken, setSellAmt, setBuyAmt, setTxError],
   );
 
   return (

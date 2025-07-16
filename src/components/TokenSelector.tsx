@@ -1,6 +1,6 @@
 import { type TokenMeta, USDT_ADDRESS } from "@/lib/coins";
 import { cn } from "@/lib/utils";
-import { ChevronDownIcon, SearchIcon } from "lucide-react";
+import { ChevronDownIcon, SearchIcon, CheckIcon } from "lucide-react";
 import { memo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, isAddress } from "viem";
@@ -146,35 +146,66 @@ export const TokenSelector = memo(
         {isOpen && (
           <div className="absolute z-50 mt-1 w-[calc(100vw-40px)] sm:w-64 max-h-[60vh] sm:max-h-96 overflow-y-auto border-2 bg-background border-border">
             {/* Search input */}
-            <div className="sticky top-0 p-2 bg-muted border-b-2 border-border">
+            <div className="sticky top-0 p-3 bg-muted border-b border-border">
               {showErc20Input && (
-                <div className="mb-2 flex items-center gap-2 text-xs">
-                  <button
-                    onClick={() => setShowErc20Mode(!showErc20Mode)}
-                    className={cn(
-                      "px-2 py-1 rounded border transition-colors",
-                      showErc20Mode 
-                        ? "bg-primary text-primary-foreground border-primary" 
-                        : "bg-secondary text-secondary-foreground border-border hover:bg-primary/10"
-                    )}
-                  >
-                    {showErc20Mode ? "Show Coins" : "ERC20 Token"}
-                  </button>
+                <div className="mb-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-foreground">Token Type</span>
+                    <div className="flex items-center gap-1 p-1 bg-muted rounded-lg border border-border">
+                      <button
+                        onClick={() => setShowErc20Mode(false)}
+                        className={cn(
+                          "px-2.5 py-1 rounded-md text-xs font-medium transition-all duration-200",
+                          !showErc20Mode 
+                            ? "bg-background text-foreground shadow-sm" 
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        🪙 Coins
+                      </button>
+                      <button
+                        onClick={() => setShowErc20Mode(true)}
+                        className={cn(
+                          "px-2.5 py-1 rounded-md text-xs font-medium transition-all duration-200",
+                          showErc20Mode 
+                            ? "bg-background text-foreground shadow-sm" 
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        📄 ERC20
+                      </button>
+                    </div>
+                  </div>
                   {showErc20Mode && (
-                    <div className="flex items-center gap-1 flex-1">
-                      <input
-                        type="text"
-                        placeholder="0x... ERC20 address"
-                        value={erc20Address}
-                        onChange={(e) => setErc20Address(e.target.value)}
-                        className="flex-1 px-2 py-1 border border-border rounded text-xs"
-                      />
+                    <div className="space-y-3">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Enter ERC20 contract address (0x...)"
+                          value={erc20Address}
+                          onChange={(e) => setErc20Address(e.target.value)}
+                          className="w-full px-3 py-3 pr-10 border border-border rounded-lg bg-background text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors font-mono"
+                        />
+                        {erc20Address && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                            {isAddress(erc20Address) ? (
+                              <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
+                                <CheckIcon className="w-3 h-3 text-white" />
+                              </div>
+                            ) : (
+                              <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center">
+                                <span className="text-white text-xs font-bold">!</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                       <button
                         onClick={handleErc20Submit}
                         disabled={!erc20Address || !isAddress(erc20Address)}
-                        className="px-2 py-1 bg-primary text-primary-foreground rounded text-xs disabled:opacity-50"
+                        className="w-full px-4 py-3 bg-primary text-primary-foreground rounded-lg text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-all duration-200 active:scale-[0.98] shadow-sm"
                       >
-                        Add
+                        {isAddress(erc20Address) ? "✓ Add ERC20 Token" : "Add ERC20 Token"}
                       </button>
                     </div>
                   )}
@@ -183,7 +214,8 @@ export const TokenSelector = memo(
               <div className="relative">
                 <input
                   type="text"
-                  placeholder={t("tokenSelector.search_tokens")}
+                  placeholder={showErc20Mode ? "Search is disabled in ERC20 mode" : t("tokenSelector.search_tokens")}
+                  disabled={showErc20Mode}
                   onChange={(e) => {
                     const query = e.target.value.toLowerCase();
                     const isStableSearch =
@@ -248,7 +280,10 @@ export const TokenSelector = memo(
                       }
                     });
                   }}
-                  className="w-full pl-8 border-2 border-border p-2 bg-background"
+                  className={cn(
+                    "w-full pl-8 pr-3 py-2 border border-border rounded-md bg-background text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors",
+                    showErc20Mode && "opacity-50 cursor-not-allowed"
+                  )}
                 />
                 <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               </div>
@@ -256,8 +291,22 @@ export const TokenSelector = memo(
 
             <div className="bg-background z-10 content-visibility-auto intrinsic-h-[5000px] contain-content">
               {showErc20Mode ? (
-                <div className="p-4 text-center text-sm text-muted-foreground">
-                  Enter an ERC20 token address above to create a pool with that token.
+                <div className="p-6 text-center space-y-4">
+                  <div className="flex items-center justify-center w-12 h-12 mx-auto bg-primary/10 rounded-full">
+                    <span className="text-xl">🔗</span>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="text-sm font-semibold text-foreground">Add Custom ERC20 Token</div>
+                    <div className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
+                      Enter the contract address of any ERC20 token to create a trading pool. Token metadata will be automatically fetched from the blockchain.
+                    </div>
+                  </div>
+                  <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                    <div className="flex items-center justify-center gap-2 text-yellow-700 dark:text-yellow-400">
+                      <span className="text-sm">⚠️</span>
+                      <span className="text-xs font-medium">Only use addresses from trusted sources</span>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 tokens.map((token) => {
