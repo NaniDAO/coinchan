@@ -3,6 +3,17 @@ import { usePublicClient } from "wagmi";
 import { isAddress } from "viem";
 import { mainnet } from "viem/chains";
 
+// Import normalization function for international domain names
+const normalizeEnsName = (name: string): string => {
+  try {
+    // Basic normalization for international characters
+    return name.normalize('NFC').toLowerCase();
+  } catch (error) {
+    console.warn('ENS name normalization failed:', error);
+    return name.toLowerCase();
+  }
+};
+
 export interface ENSResolutionResult {
   address: `0x${string}` | null;
   isLoading: boolean;
@@ -49,12 +60,12 @@ export function useENSResolution(input: string): ENSResolutionResult {
       return;
     }
 
-    // Check if it looks like an ENS name
+    // Check if it looks like an ENS name (including international characters)
     const isENSName = trimmedInput.includes('.') && 
                      (trimmedInput.endsWith('.eth') || 
                       trimmedInput.endsWith('.xyz') || 
                       trimmedInput.endsWith('.com') ||
-                      trimmedInput.match(/\.[a-zA-Z]{2,}$/));
+                      trimmedInput.match(/\.[a-zA-Z\u00a1-\uffff]{2,}$/));
 
     if (!isENSName) {
       setResult({
@@ -82,9 +93,12 @@ export function useENSResolution(input: string): ENSResolutionResult {
           throw new Error("Unable to connect to Ethereum network");
         }
 
+        // Normalize the ENS name to handle international characters
+        const normalizedName = normalizeEnsName(trimmedInput);
+        
         // Resolve the ENS name to an address  
         const resolvedAddress = await publicClient.getEnsAddress({
-          name: trimmedInput,
+          name: normalizedName,
         });
 
         // Check if this request was cancelled

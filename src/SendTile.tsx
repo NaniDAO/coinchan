@@ -355,7 +355,7 @@ const SendTileComponent = () => {
             type="text"
             value={recipientAddress}
             onChange={(e) => setRecipientAddress(e.target.value)}
-            placeholder="0x... or ENS name"
+            placeholder="0x... or ENS name (张三.eth)"
             className="w-full px-3 py-2 bg-input border border-border rounded focus:outline-none focus:border-accent"
           />
           {recipientAddress && (

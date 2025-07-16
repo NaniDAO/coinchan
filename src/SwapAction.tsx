@@ -783,7 +783,7 @@ export const SwapAction = () => {
           <div className="mt-2 space-y-2">
             <input
               type="text"
-              placeholder={`${t("swap.recipient_address") || "Recipient address or ENS"} (${t("common.optional") || "optional"})`}
+              placeholder={`${t("swap.recipient_address") || "Recipient address or ENS name"} (${t("common.optional") || "optional"})`}
               value={customRecipient}
               onChange={(e) => setCustomRecipient(e.target.value)}
               className="w-full px-3 py-2 text-sm bg-background border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/50"
