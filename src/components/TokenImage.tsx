@@ -49,6 +49,17 @@ export const TokenImage = memo(
         // Ignore sessionStorage errors
       }
 
+      // Check if token has imageUrl (for Trust Wallet tokens)
+      if (token.imageUrl) {
+        setActualImageUrl(token.imageUrl);
+        try {
+          sessionStorage.setItem(cacheKey, token.imageUrl);
+        } catch (e) {
+          // Ignore sessionStorage errors
+        }
+        return;
+      }
+
       const fetchMetadata = async () => {
         if (!token.tokenUri) return;
 
@@ -144,7 +155,7 @@ export const TokenImage = memo(
       };
 
       fetchMetadata();
-    }, [token.tokenUri, token.symbol, token.id, cacheKey]);
+    }, [token.tokenUri, token.imageUrl, token.symbol, token.id, cacheKey]);
 
     // If image fails to load, try alternatives
     const tryNextAlternative = useCallback(() => {
@@ -175,8 +186,8 @@ export const TokenImage = memo(
       return <EthereumIcon className="w-8 h-8 rounded-full" />;
     }
 
-    // If token has no URI, show colored initial
-    if (!token.tokenUri) {
+    // If token has no URI and no imageUrl, show colored initial
+    if (!token.tokenUri && !token.imageUrl) {
       // Use token ID as a cache key to maintain stable identities
       const cacheKey = `token-initial-${token.id ?? "eth"}`;
 

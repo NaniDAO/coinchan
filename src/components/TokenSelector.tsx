@@ -35,9 +35,9 @@ export const TokenSelector = memo(
       setIsOpen(false);
     };
 
-    // Handle ERC20 token creation
+    // Handle ERC20 token creation or search
     const handleErc20Submit = () => {
-      if (erc20Address && isAddress(erc20Address) && onErc20TokenCreate) {
+      if (erc20Address && onErc20TokenCreate) {
         onErc20TokenCreate(erc20Address);
         setShowErc20Mode(false);
         setErc20Address("");
@@ -197,27 +197,25 @@ export const TokenSelector = memo(
                                   <CheckIcon className="w-4 h-4 text-white" />
                                 </div>
                               ) : (
-                                <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center shadow-sm">
-                                  <span className="text-white text-xs font-bold">!</span>
-                                </div>
+                                <SearchIcon className="w-4 h-4 text-muted-foreground" />
                               )}
                             </div>
                           )}
                         </div>
                         {erc20Address && !isAddress(erc20Address) && (
-                          <p className="text-xs text-red-500 mt-1">Please enter a valid Ethereum address</p>
+                          <p className="text-xs text-muted-foreground mt-1">Searching by name/symbol...</p>
                         )}
                       </div>
                       <button
                         onClick={handleErc20Submit}
-                        disabled={!erc20Address || !isAddress(erc20Address)}
+                        disabled={!erc20Address}
                         className="w-full px-4 py-3 bg-primary text-primary-foreground rounded-xl text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-all duration-200 active:scale-[0.98] shadow-sm hover:shadow-md"
                       >
                         <span className="flex items-center justify-center gap-2">
                           {isAddress(erc20Address) && (
                             <CheckIcon className="w-4 h-4" />
                           )}
-                          Add Token
+                          {isAddress(erc20Address) ? 'Add Token' : 'Search Token'}
                         </span>
                       </button>
                     </div>

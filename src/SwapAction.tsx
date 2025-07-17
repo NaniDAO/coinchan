@@ -702,7 +702,7 @@ export const SwapAction = () => {
       }
 
       try {
-        setTxError("Searching for token...");
+        setTxError(null);
         
         let trustedToken = null;
         
