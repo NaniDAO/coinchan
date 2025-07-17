@@ -710,9 +710,14 @@ export const SwapAction = () => {
         if (isAddress(input)) {
           // Direct address lookup
           trustedToken = await getTrustedTokenInfo(input as `0x${string}`);
+          if (!trustedToken) {
+            console.log('Token not found in Trust Wallet list:', input);
+          }
         } else {
           // Search by name/symbol
+          console.log('Searching for token by name/symbol:', input);
           const searchResults = await searchTrustedTokens(input);
+          console.log('Search results:', searchResults);
           if (searchResults.length > 0) {
             // Use the first match (most relevant)
             trustedToken = searchResults[0];

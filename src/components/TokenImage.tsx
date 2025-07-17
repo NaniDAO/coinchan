@@ -89,6 +89,16 @@ export const TokenImage = memo(
               `https://gateway.pinata.cloud/ipfs/${hash}`,
               `https://ipfs.fleek.co/ipfs/${hash}`,
             ]);
+          } else if (token.tokenUri.includes("trustwallet.com")) {
+            // For Trust Wallet URLs, try alternative CDN endpoints
+            const pathMatch = token.tokenUri.match(/\/assets\/(0x[a-fA-F0-9]+)\/logo\.png$/);
+            if (pathMatch) {
+              const address = pathMatch[1];
+              setAlternativeUrls([
+                `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/${address}/logo.png`,
+                `https://assets-cdn.trustwallet.com/blockchains/ethereum/assets/${address}/logo.png`,
+              ]);
+            }
           }
 
           // Try to fetch as JSON (might be metadata)

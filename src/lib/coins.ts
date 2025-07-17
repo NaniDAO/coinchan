@@ -9,6 +9,7 @@ import {
   parseAbiParameters,
   zeroAddress,
 } from "viem";
+import { getTrustWalletLogoUrl } from "./checksum-address";
 import type { CookbookPoolKey, ZAMMPoolKey } from "./swap";
 
 export type CoinSource = "ZAMM" | "COOKBOOK";
@@ -178,13 +179,17 @@ export function createErc20Token(
     throw new Error("ERC20 token decimals must be between 0 and 255");
   }
 
+  // If logoURI is provided from Trust Wallet, use it directly
+  // Otherwise, generate the Trust Wallet URL with checksummed address
+  const finalLogoURI = logoURI || getTrustWalletLogoUrl(address);
+
   return {
     id: 0n, // ERC20 tokens always use id = 0n
     name,
     symbol,
     source: "COOKBOOK", // ERC20 tokens work with Cookbook contracts
-    tokenUri: logoURI || undefined,
-    imageUrl: logoURI || undefined,
+    tokenUri: finalLogoURI,
+    imageUrl: finalLogoURI,
     balance: 0n,
     isCustomPool: true,
     decimals, // Store the actual decimals from the contract
