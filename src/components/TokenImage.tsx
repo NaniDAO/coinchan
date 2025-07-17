@@ -89,15 +89,31 @@ export const TokenImage = memo(
               `https://gateway.pinata.cloud/ipfs/${hash}`,
               `https://ipfs.fleek.co/ipfs/${hash}`,
             ]);
-          } else if (token.tokenUri.includes("trustwallet.com")) {
-            // For Trust Wallet URLs, try alternative CDN endpoints
-            const pathMatch = token.tokenUri.match(/\/assets\/(0x[a-fA-F0-9]+)\/logo\.png$/);
+          } else if (token.tokenUri.includes("trustwallet") || token.tokenUri.includes("githubusercontent.com/trustwallet")) {
+            // For Trust Wallet URLs, ensure we have both CDN and GitHub alternatives
+            // Extract the address and ensure it's checksummed
+            const pathMatch = token.tokenUri.match(/\/assets\/(0x[a-fA-F0-9]{40})\/logo\.png/i);
             if (pathMatch) {
               const address = pathMatch[1];
-              setAlternativeUrls([
-                `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/${address}/logo.png`,
-                `https://assets-cdn.trustwallet.com/blockchains/ethereum/assets/${address}/logo.png`,
-              ]);
+              // Import getAddress to ensure checksum
+              import("viem").then(({ getAddress }) => {
+                try {
+                  const checksumAddress = getAddress(address);
+                  setAlternativeUrls([
+                    `https://assets-cdn.trustwallet.com/blockchains/ethereum/assets/${checksumAddress}/logo.png`,
+                    `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/${checksumAddress}/logo.png`,
+                    // Also try with original casing as fallback
+                    `https://assets-cdn.trustwallet.com/blockchains/ethereum/assets/${address}/logo.png`,
+                    `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/${address}/logo.png`,
+                  ]);
+                } catch {
+                  // If checksum fails, use original address
+                  setAlternativeUrls([
+                    `https://assets-cdn.trustwallet.com/blockchains/ethereum/assets/${address}/logo.png`,
+                    `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/${address}/logo.png`,
+                  ]);
+                }
+              });
             }
           }
 

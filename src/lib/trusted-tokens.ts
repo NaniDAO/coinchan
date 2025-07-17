@@ -33,19 +33,17 @@ async function loadTrustedTokenList(): Promise<TokenListData> {
 
   try {
     // Try to load from public directory
-    // In development, this needs the full path including the base URL
-    const url = import.meta.env.DEV 
-      ? `${window.location.origin}/trust-eth-erc20.tokens.json`
-      : '/trust-eth-erc20.tokens.json';
-    
-    const response = await fetch(url);
-    if (response.ok) {
-      const data = await response.json();
-      tokenListCache = data;
-      return data;
+    const response = await fetch('/trust-eth-erc20.tokens.json');
+    if (!response.ok) {
+      throw new Error(`Failed to load token list: ${response.status} ${response.statusText}`);
     }
+    
+    const data = await response.json();
+    console.log('Loaded Trust Wallet token list:', { count: data.count, tokens: data.tokens?.length });
+    tokenListCache = data;
+    return data;
   } catch (error) {
-    console.warn('Failed to load trusted token list:', error);
+    console.error('Failed to load trusted token list:', error);
   }
 
   // Fallback to empty list
@@ -68,7 +66,19 @@ export async function getTrustedTokenInfo(address: Address): Promise<TrustedToke
   
   try {
     const checksumAddress = getAddress(address);
-    return tokenList.tokens.find(token => token.address === checksumAddress) || null;
+    const lowerAddress = address.toLowerCase();
+    
+    // Try both checksummed and lowercase addresses since Trust Wallet list might have either
+    const token = tokenList.tokens.find(token => 
+      token.address.toLowerCase() === lowerAddress || 
+      token.address === checksumAddress
+    );
+    
+    if (token) {
+      console.log('Found token:', token.symbol, 'at address:', token.address);
+    }
+    
+    return token || null;
   } catch {
     return null;
   }
@@ -97,10 +107,16 @@ export async function searchTrustedTokens(query: string): Promise<TrustedToken[]
   const tokenList = await loadTrustedTokenList();
   const lowerQuery = query.toLowerCase();
   
-  return tokenList.tokens.filter(token => 
+  console.log('Searching tokens with query:', query, 'in list of', tokenList.tokens.length, 'tokens');
+  
+  const results = tokenList.tokens.filter(token => 
     token.symbol.toLowerCase().includes(lowerQuery) ||
     token.name.toLowerCase().includes(lowerQuery)
   );
+  
+  console.log('Found', results.length, 'matching tokens:', results.map(t => t.symbol));
+  
+  return results;
 }
 
 /**

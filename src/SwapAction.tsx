@@ -9,6 +9,7 @@ import {
   parseEther,
   parseUnits,
   isAddress,
+  getAddress,
   erc20Abi,
 } from "viem";
 import { mainnet } from "viem/chains";
@@ -725,14 +726,21 @@ export const SwapAction = () => {
         }
         
         if (trustedToken) {
-          // Use trusted token metadata
+          console.log('Creating token from Trust Wallet data:', trustedToken);
+          
+          // Ensure we use checksummed address for the token
+          const checksummedAddress = getAddress(trustedToken.address) as `0x${string}`;
+          
+          // Use trusted token metadata with checksummed address
           const erc20Token = createErc20Token(
-            trustedToken.address,
+            checksummedAddress,
             trustedToken.symbol,
             trustedToken.name,
             trustedToken.decimals,
             trustedToken.logoURI,
           );
+          
+          console.log('Created ERC20 token:', erc20Token);
 
           setBuyToken(erc20Token);
           setSellAmt("");

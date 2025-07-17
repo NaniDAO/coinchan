@@ -18,13 +18,29 @@ export function toChecksumAddress(address: string): string {
  */
 export function getTrustWalletLogoUrl(address: string): string {
   const checksummed = toChecksumAddress(address);
+  // Use the CDN URL as primary since it's more reliable
+  return `https://assets-cdn.trustwallet.com/blockchains/ethereum/assets/${checksummed}/logo.png`;
+}
+
+/**
+ * Alternative Trust Wallet GitHub raw URL for fallback
+ */
+export function getTrustWalletGithubUrl(address: string): string {
+  const checksummed = toChecksumAddress(address);
   return `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/${checksummed}/logo.png`;
 }
 
 /**
- * Alternative Trust Wallet CDN URLs for fallback
+ * Fix Trust Wallet logo URL to ensure it has the correct checksummed address
  */
-export function getTrustWalletCdnUrl(address: string): string {
-  const checksummed = toChecksumAddress(address);
-  return `https://assets-cdn.trustwallet.com/blockchains/ethereum/assets/${checksummed}/logo.png`;
+export function fixTrustWalletLogoUrl(url: string): string {
+  // Extract address from URL
+  const match = url.match(/\/assets\/(0x[a-fA-F0-9]{40})\/logo\.png/);
+  if (match) {
+    const address = match[1];
+    const checksummed = toChecksumAddress(address);
+    // Replace the address in the URL with the checksummed version
+    return url.replace(address, checksummed);
+  }
+  return url;
 }
