@@ -23,7 +23,12 @@ import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, parseUnits } from "viem";
 import { usePublicClient } from "wagmi";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
 
 interface FarmMigrateDialogProps {
   stream: IncentiveStream;
@@ -67,7 +72,7 @@ export function FarmMigrateDialog({
       (s) => 
         s.lpId === stream.lpId && 
         s.chefId !== stream.chefId &&
-        s.active && // Only show active streams
+        s.status === "ACTIVE" && // Only show active streams
         Number(s.endTime) > Math.floor(Date.now() / 1000) // Not ended
     );
   }, [allStreams, stream.lpId, stream.chefId]);
@@ -207,13 +212,27 @@ export function FarmMigrateDialog({
                 </p>
               </div>
             ) : (
-              <Select value={selectedTargetChefId} onValueChange={setSelectedTargetChefId}>
-                <SelectTrigger className="w-full font-mono bg-background/50 border-primary/30 focus:border-primary/60">
-                  <SelectValue placeholder={t("common.select_pool")} />
-                </SelectTrigger>
-                <SelectContent>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-between font-mono bg-background/50 border-primary/30 focus:border-primary/60"
+                  >
+                    {selectedTargetChefId ? (
+                      compatibleStreams.find(s => s.chefId.toString() === selectedTargetChefId)?.rewardCoin?.symbol || "Unknown"
+                    ) : (
+                      t("common.select_pool")
+                    )}
+                    <span className="text-muted-foreground">▼</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-full">
                   {compatibleStreams.map((targetStream) => (
-                    <SelectItem key={targetStream.chefId.toString()} value={targetStream.chefId.toString()}>
+                    <DropdownMenuItem
+                      key={targetStream.chefId.toString()}
+                      onClick={() => setSelectedTargetChefId(targetStream.chefId.toString())}
+                      className="cursor-pointer"
+                    >
                       <div className="flex items-center gap-2">
                         {targetStream.rewardCoin?.imageUrl && (
                           <img
@@ -224,13 +243,13 @@ export function FarmMigrateDialog({
                         )}
                         <span className="font-mono">
                           {targetStream.rewardCoin?.symbol || "Unknown"} - {" "}
-                          {targetStream.tvl ? `$${Number(formatEther(targetStream.tvl)).toLocaleString()}` : "N/A"} TVL
+                          {targetStream.totalShares ? `${formatBalance(formatEther(targetStream.totalShares), "LP")}` : "No stakes"} staked
                         </span>
                       </div>
-                    </SelectItem>
+                    </DropdownMenuItem>
                   ))}
-                </SelectContent>
-              </Select>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
 
             {/* Show selected target pool details */}
@@ -242,9 +261,9 @@ export function FarmMigrateDialog({
                     <span className="text-primary font-bold">{targetStream.rewardCoin?.symbol}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">{t("common.tvl")}:</span>
+                    <span className="text-muted-foreground">{t("common.total_staked")}:</span>
                     <span className="text-primary font-bold">
-                      ${targetStream.tvl ? Number(formatEther(targetStream.tvl)).toLocaleString() : "0"}
+                      {targetStream.totalShares ? formatBalance(formatEther(targetStream.totalShares), "LP") : "0 LP"}
                     </span>
                   </div>
                   <div className="flex justify-between">
