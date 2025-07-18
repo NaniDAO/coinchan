@@ -1,5 +1,6 @@
 {
   "common": {
+    "enter_amount": "Enter amount",
     "loading": "Syncing with ZAMM...",
     "votes": "Votes",
     "error": "Error",
