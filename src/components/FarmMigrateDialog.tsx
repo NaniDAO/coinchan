@@ -20,7 +20,7 @@ import { useCombinedApy } from "@/hooks/use-combined-apy";
 import type { TokenMeta } from "@/lib/coins";
 import { isUserRejectionError } from "@/lib/errors";
 import { cn, formatBalance } from "@/lib/utils";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, parseUnits } from "viem";
 import { usePublicClient } from "wagmi";
@@ -56,6 +56,115 @@ function PoolOption({ targetStream, lpToken, onSelect }: PoolOptionProps) {
     lpToken,
     enabled: true,
   });
+
+  const formatApy = (apy: number) => {
+    if (apy === 0) return "0%";
+    if (apy < 0.01) return "<0.01%";
+    return `${apy.toFixed(2)}%`;
+  };
+
+  return (
+    <DropdownMenuItem onClick={onSelect} className="cursor-pointer">
+      <div className="flex items-center justify-between w-full">
+        <div className="flex items-center gap-2">
+          {targetStream.rewardCoin?.imageUrl && (
+            <img
+              src={formatImageURL(targetStream.rewardCoin.imageUrl)}
+              alt={targetStream.rewardCoin.symbol}
+              className="w-4 h-4 rounded-full"
+            />
+          )}
+          <div className="flex flex-col">
+            <span className="font-mono text-sm font-bold">
+              {targetStream.rewardCoin?.symbol || "Unknown"}
+            </span>
+            <span className="font-mono text-xs text-muted-foreground">
+              {targetStream.totalShares ? formatBalance(formatEther(targetStream.totalShares), "LP") : "No stakes"} staked
+            </span>
+          </div>
+        </div>
+        <div className="text-right">
+          <div className="font-mono text-sm font-bold text-green-600">
+            {combinedApyData.isLoading ? "..." : formatApy(combinedApyData.totalApy)}
+          </div>
+          <div className="font-mono text-xs text-muted-foreground">
+            APY
+          </div>
+        </div>
+      </div>
+    </DropdownMenuItem>
+  );
+}
+
+interface SortedPoolListProps {
+  streams: IncentiveStream[];
+  lpToken: TokenMeta;
+  onSelect: (chefId: string) => void;
+}
+
+function SortedPoolList({ streams, lpToken, onSelect }: SortedPoolListProps) {
+  const [streamApys, setStreamApys] = useState<Record<string, number>>({});
+  const [sortedStreams, setSortedStreams] = useState<IncentiveStream[]>(streams);
+
+  // Update sorted streams when APY data changes
+  useEffect(() => {
+    const streamsWithApys = streams.map(stream => ({
+      stream,
+      apy: streamApys[stream.chefId.toString()] || 0
+    }));
+
+    // Sort by APY descending, then by total shares descending as tiebreaker
+    const sorted = streamsWithApys.sort((a, b) => {
+      if (a.apy !== b.apy) {
+        return b.apy - a.apy; // Higher APY first
+      }
+      // If APY is the same, sort by total shares (more established pools first)
+      return Number(b.stream.totalShares) - Number(a.stream.totalShares);
+    });
+
+    setSortedStreams(sorted.map(item => item.stream));
+  }, [streams, streamApys]);
+
+  return (
+    <>
+      {sortedStreams.map((targetStream: IncentiveStream) => (
+        <PoolOptionWithApyTracking
+          key={targetStream.chefId.toString()}
+          targetStream={targetStream}
+          lpToken={lpToken}
+          onSelect={() => onSelect(targetStream.chefId.toString())}
+          onApyCalculated={(apy) => {
+            setStreamApys(prev => ({
+              ...prev,
+              [targetStream.chefId.toString()]: apy
+            }));
+          }}
+        />
+      ))}
+    </>
+  );
+}
+
+interface PoolOptionWithApyTrackingProps {
+  targetStream: IncentiveStream;
+  lpToken: TokenMeta;
+  onSelect: () => void;
+  onApyCalculated: (apy: number) => void;
+}
+
+function PoolOptionWithApyTracking({ targetStream, lpToken, onSelect, onApyCalculated }: PoolOptionWithApyTrackingProps) {
+  const combinedApyData = useCombinedApy({
+    stream: targetStream,
+    lpToken,
+    enabled: true,
+  });
+
+  // Report APY when it's calculated
+  useEffect(() => {
+    if (!combinedApyData.isLoading && combinedApyData.totalApy !== undefined) {
+      onApyCalculated(combinedApyData.totalApy);
+    }
+  }, [combinedApyData.isLoading, combinedApyData.totalApy, onApyCalculated]);
 
   const formatApy = (apy: number) => {
     if (apy === 0) return "0%";
@@ -201,7 +310,7 @@ export function FarmMigrateDialog({
   
   // Filter to get compatible target streams (same lpId, excluding current stream)
   const compatibleStreams = useMemo(() => {
-    return allStreams.filter(
+    const filtered = allStreams.filter(
       (s: IncentiveStream) => {
         const sameLpId = s.lpId.toString() === stream.lpId.toString(); // Compare as strings to handle BigInt
         const differentChef = s.chefId.toString() !== stream.chefId.toString();
@@ -211,6 +320,9 @@ export function FarmMigrateDialog({
         return sameLpId && differentChef && isActive && notEnded;
       }
     );
+    
+    // Note: We'll sort by APY in a separate component since we need to calculate APY for each stream
+    return filtered;
   }, [allStreams, stream.lpId, stream.chefId]);
 
   // Get the selected target stream
@@ -370,14 +482,11 @@ export function FarmMigrateDialog({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-full min-w-[400px]">
-                  {compatibleStreams.map((targetStream: IncentiveStream) => (
-                    <PoolOption
-                      key={targetStream.chefId.toString()}
-                      targetStream={targetStream}
-                      lpToken={lpToken}
-                      onSelect={() => setSelectedTargetChefId(targetStream.chefId.toString())}
-                    />
-                  ))}
+                  <SortedPoolList
+                    streams={compatibleStreams}
+                    lpToken={lpToken}
+                    onSelect={setSelectedTargetChefId}
+                  />
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
