@@ -383,11 +383,79 @@ export function useZChefActions() {
     },
   });
 
+  const migrate = useMutation({
+    mutationFn: async ({
+      fromChefId,
+      toChefId,
+      shares,
+    }: {
+      fromChefId: bigint;
+      toChefId: bigint;
+      shares: bigint;
+    }) => {
+      return executeWithRetry(async () => {
+        const contractCall = {
+          address: ZChefAddress,
+          abi: ZChefAbi,
+          functionName: "migrate" as const,
+          args: [fromChefId, toChefId, shares] as const,
+          chainId: mainnet.id,
+        };
+
+        // Estimate gas with buffer
+        let gas: bigint | undefined;
+        if (publicClient) {
+          gas = await estimateGasWithBuffer(publicClient, contractCall);
+        }
+
+        const hash = await writeContractAsync({
+          address: ZChefAddress,
+          abi: ZChefAbi,
+          functionName: "migrate",
+          args: [fromChefId, toChefId, shares],
+          chainId: mainnet.id,
+          gas,
+        });
+
+        if (publicClient) {
+          await publicClient.waitForTransactionReceipt({ hash });
+        }
+        return hash;
+      });
+    },
+    onSuccess: (_, { fromChefId, toChefId }) => {
+      // Invalidate caches for both pools
+      queryClient.invalidateQueries({ queryKey: ["userIncentivePositions"] });
+      queryClient.invalidateQueries({
+        queryKey: ["userIncentivePosition", fromChefId.toString()],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["userIncentivePosition", toChefId.toString()],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["incentiveStream", fromChefId.toString()],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["incentiveStream", toChefId.toString()],
+      });
+      queryClient.invalidateQueries({ queryKey: ["activeIncentiveStreams"] });
+    },
+    onError: (error) => {
+      // Use handleWalletError for graceful error handling
+      const errorMessage = handleWalletError(error);
+      // Only log if it's not a user rejection
+      if (errorMessage) {
+        console.error("Migrate failed:", error);
+      }
+    },
+  });
+
   return {
     deposit,
     withdraw,
     harvest,
     emergencyWithdraw,
+    migrate,
   };
 }
 

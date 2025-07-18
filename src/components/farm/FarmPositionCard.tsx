@@ -5,6 +5,7 @@ import { formatBalance } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 import { formatEther } from "viem";
 import { FarmUnstakeDialog } from "../FarmUnstakeDialog";
+import { FarmMigrateDialog } from "../FarmMigrateDialog";
 import { IncentiveStreamCard } from "../IncentiveStreamCard";
 import { Button } from "../ui/button";
 
@@ -61,7 +62,7 @@ export function FarmPositionCard({ position, stream, lpToken, onHarvest, isHarve
           </div>
         )}
         <div className="flex flex-col gap-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Button
               size="default"
               variant="outline"
@@ -71,6 +72,24 @@ export function FarmPositionCard({ position, stream, lpToken, onHarvest, isHarve
             >
               {isHarvesting ? `[${t("common.harvesting")}...]` : `[${t("common.harvest")}]`}
             </Button>
+            <FarmMigrateDialog
+              stream={stream}
+              lpToken={lpToken || ETH_TOKEN}
+              userPosition={{
+                ...position,
+                shares: actualUserShares, // Use onchain balance
+                pendingRewards: actualPendingRewards, // Use onchain rewards
+              }}
+              trigger={
+                <Button
+                  size="default"
+                  variant="outline"
+                  className="font-mono font-bold tracking-wide hover:scale-105 transition-transform min-h-[44px] py-3"
+                >
+                  [{t("common.migrate")}]
+                </Button>
+              }
+            />
             <FarmUnstakeDialog
               stream={stream}
               lpToken={lpToken || ETH_TOKEN}
