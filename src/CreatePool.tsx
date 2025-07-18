@@ -1,8 +1,22 @@
 import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { formatEther, formatUnits, parseEther, parseUnits, zeroAddress, isAddress, erc20Abi, maxUint256 } from "viem";
+import {
+  formatEther,
+  formatUnits,
+  parseEther,
+  parseUnits,
+  zeroAddress,
+  isAddress,
+  erc20Abi,
+  maxUint256,
+} from "viem";
 import { mainnet } from "viem/chains";
-import { useAccount, useChainId, usePublicClient, useWriteContract } from "wagmi";
+import {
+  useAccount,
+  useChainId,
+  usePublicClient,
+  useWriteContract,
+} from "wagmi";
 import { useWaitForTransactionReceipt } from "wagmi";
 import { NetworkError } from "./components/NetworkError";
 import { SuccessMessage } from "./components/SuccessMessage";
@@ -16,89 +30,19 @@ import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import { getTrustedTokenInfo, searchTrustedTokens } from "./lib/trusted-tokens";
 import type { CookbookPoolKey } from "./lib/swap";
 import { nowSec } from "./lib/utils";
-
-// Fee tier options for pool creation
-const FEE_OPTIONS = [
-  { label: "0.05%", value: 5n }, // Ultra low fee
-  { label: "0.3%", value: 30n }, // Default (Uniswap V2 style)
-  { label: "1%", value: 100n }, // Current cookbook standard
-  { label: "3%", value: 300n }, // High fee for exotic pairs
-];
-
-interface FeeSettingsProps {
-  feeBps: bigint;
-  setFeeBps: (value: bigint) => void;
-  className?: string;
-}
-
-const FeeSettings = ({ feeBps, setFeeBps, className = "" }: FeeSettingsProps) => {
-  const [showFeeSettings, setShowFeeSettings] = useState(false);
-
-  return (
-    <div
-      onClick={() => setShowFeeSettings(!showFeeSettings)}
-      className={`text-xs mt-1 px-2 py-1 bg-primary/5 border border-primary/20 rounded text-primary cursor-pointer hover:bg-primary/10 transition-colors ${className}`}
-    >
-      <div className="flex justify-between items-center">
-        <span>
-          <strong>Pool Fee:</strong> {Number(feeBps) / 100}%
-        </span>
-        <span className="text-xs text-foreground-secondary">{showFeeSettings ? "▲" : "▼"}</span>
-      </div>
-
-      {showFeeSettings && (
-        <div
-          className="mt-2 p-2 bg-primary-background border border-accent rounded-md shadow-sm"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="mb-2">
-            <div className="flex gap-1 flex-wrap">
-              {FEE_OPTIONS.map((option) => (
-                <button
-                  key={option.value.toString()}
-                  onClick={() => setFeeBps(option.value)}
-                  className={`px-2 py-1 text-xs rounded ${
-                    feeBps === option.value
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-secondary-foreground hover:bg-primary/50"
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
-              <div className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-secondary/70 text-foreground">
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min="0.01"
-                  max="99"
-                  step="0.01"
-                  placeholder=""
-                  className="w-12 bg-transparent outline-none text-center"
-                  onChange={(e) => {
-                    const value = Number.parseFloat(e.target.value);
-                    if (isNaN(value) || value < 0.01 || value > 99) return;
-                    const bps = BigInt(Math.floor(value * 100));
-                    setFeeBps(bps);
-                  }}
-                />
-                <span>%</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
+import { FeeSettings } from "./components/CreatePoolFeeSettings";
 
 // Helper function to create pool key for Cookbook pools
-const createCookbookPoolKey = (tokenA: TokenMeta, tokenB: TokenMeta, feeBps: bigint): CookbookPoolKey => {
+const createCookbookPoolKey = (
+  tokenA: TokenMeta,
+  tokenB: TokenMeta,
+  feeBps: bigint,
+): CookbookPoolKey => {
   // Handle ETH-Token pairs (the common case for pool creation)
   if (tokenA.id === null) {
     // tokenA is ETH, tokenB is the other token
     let tokenAddress: `0x${string}`;
-    
+
     if (tokenB.isCustomPool && tokenB.token1) {
       // ERC20 token - use the actual token address
       tokenAddress = tokenB.token1;
@@ -106,7 +50,7 @@ const createCookbookPoolKey = (tokenA: TokenMeta, tokenB: TokenMeta, feeBps: big
       // ERC6909 token - use the contract address
       tokenAddress = tokenB.source === "ZAMM" ? CoinsAddress : CookbookAddress;
     }
-    
+
     return {
       id0: 0n,
       id1: BigInt(tokenB.id || 0),
@@ -117,7 +61,7 @@ const createCookbookPoolKey = (tokenA: TokenMeta, tokenB: TokenMeta, feeBps: big
   } else if (tokenB.id === null) {
     // tokenB is ETH, tokenA is the other token
     let tokenAddress: `0x${string}`;
-    
+
     if (tokenA.isCustomPool && tokenA.token1) {
       // ERC20 token - use the actual token address
       tokenAddress = tokenA.token1;
@@ -125,7 +69,7 @@ const createCookbookPoolKey = (tokenA: TokenMeta, tokenB: TokenMeta, feeBps: big
       // ERC6909 token - use the contract address
       tokenAddress = tokenA.source === "ZAMM" ? CoinsAddress : CookbookAddress;
     }
-    
+
     return {
       id0: 0n,
       id1: BigInt(tokenA.id || 0),
@@ -136,17 +80,18 @@ const createCookbookPoolKey = (tokenA: TokenMeta, tokenB: TokenMeta, feeBps: big
   } else {
     // For token-token pairs, determine the appropriate addresses based on source
     // Sort by coin ID to ensure deterministic ordering
-    const [token0, token1] = tokenA.id! < tokenB.id! ? [tokenA, tokenB] : [tokenB, tokenA];
-    
+    const [token0, token1] =
+      tokenA.id! < tokenB.id! ? [tokenA, tokenB] : [tokenB, tokenA];
+
     let token0Address: `0x${string}`;
     let token1Address: `0x${string}`;
-    
+
     if (token0.isCustomPool && token0.token1) {
       token0Address = token0.token1;
     } else {
       token0Address = token0.source === "ZAMM" ? CoinsAddress : CookbookAddress;
     }
-    
+
     if (token1.isCustomPool && token1.token1) {
       token1Address = token1.token1;
     } else {
@@ -185,7 +130,11 @@ export const CreatePool = () => {
 
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [txError, setTxError] = useState<string | null>(null);
-  const { writeContractAsync, isPending, error: writeError } = useWriteContract();
+  const {
+    writeContractAsync,
+    isPending,
+    error: writeError,
+  } = useWriteContract();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
   // Check operator status for coins contract
@@ -241,7 +190,10 @@ export const CreatePool = () => {
       const poolKey = createCookbookPoolKey(token0, token1, feeBps);
 
       // Determine amounts based on pool key ordering
-      const amount0Desired = token0.id === null ? parseEther(amount0) : parseUnits(amount0, token0.decimals ?? 18);
+      const amount0Desired =
+        token0.id === null
+          ? parseEther(amount0)
+          : parseUnits(amount0, token0.decimals ?? 18);
       const amount1Desired = parseUnits(amount1, token1.decimals ?? 18);
 
       // Check for ERC20 approval if needed
@@ -264,16 +216,18 @@ export const CreatePool = () => {
         if (erc20Address) {
           try {
             // Check current allowance
-            const currentAllowance = await publicClient.readContract({
+            const currentAllowance = (await publicClient.readContract({
               address: erc20Address,
               abi: erc20Abi,
               functionName: "allowance",
               args: [address, CookbookAddress],
-            }) as bigint;
+            })) as bigint;
 
             if (currentAllowance < erc20Amount) {
-              setTxError(`Waiting for ${erc20Token.symbol} approval. Please confirm the transaction...`);
-              
+              setTxError(
+                `Waiting for ${erc20Token.symbol} approval. Please confirm the transaction...`,
+              );
+
               // Approve max allowance
               const approvalHash = await writeContractAsync({
                 address: erc20Address,
@@ -282,33 +236,45 @@ export const CreatePool = () => {
                 args: [CookbookAddress, maxUint256],
               });
 
-              setTxError(`${erc20Token.symbol} approval submitted. Waiting for confirmation...`);
-              const receipt = await publicClient.waitForTransactionReceipt({ hash: approvalHash });
+              setTxError(
+                `${erc20Token.symbol} approval submitted. Waiting for confirmation...`,
+              );
+              const receipt = await publicClient.waitForTransactionReceipt({
+                hash: approvalHash,
+              });
 
               if (receipt.status === "success") {
                 setTxError(null);
               } else {
-                setTxError(`${erc20Token.symbol} approval failed. Please try again.`);
+                setTxError(
+                  `${erc20Token.symbol} approval failed. Please try again.`,
+                );
                 return;
               }
             }
           } catch (error) {
             console.error("Error checking ERC20 allowance:", error);
-            
+
             // Handle wallet errors (including user rejection)
             const errorMsg = handleWalletError(error);
             if (errorMsg) {
               if (error instanceof Error) {
                 if (error.message.includes("insufficient funds")) {
-                  setTxError(`Insufficient ETH for ${erc20Token.symbol} approval transaction`);
+                  setTxError(
+                    `Insufficient ETH for ${erc20Token.symbol} approval transaction`,
+                  );
                 } else if (error.message.includes("User rejected")) {
                   // User rejection is handled by the UI layer, don't set error
                   return;
                 } else {
-                  setTxError(`${erc20Token.symbol} approval failed. Please try again.`);
+                  setTxError(
+                    `${erc20Token.symbol} approval failed. Please try again.`,
+                  );
                 }
               } else {
-                setTxError(`Error checking ${erc20Token.symbol} allowance. Please try again.`);
+                setTxError(
+                  `Error checking ${erc20Token.symbol} allowance. Please try again.`,
+                );
               }
             }
             return;
@@ -317,11 +283,17 @@ export const CreatePool = () => {
       }
 
       // Check operator approval for non-cookbook coins
-      const needsToken0Approval = token0.id !== null && needsOperatorApproval(token0);
+      const needsToken0Approval =
+        token0.id !== null && needsOperatorApproval(token0);
       const needsToken1Approval = needsOperatorApproval(token1);
 
-      if ((needsToken0Approval || needsToken1Approval) && isOperator === false) {
-        setTxError("Waiting for operator approval. Please confirm the transaction...");
+      if (
+        (needsToken0Approval || needsToken1Approval) &&
+        isOperator === false
+      ) {
+        setTxError(
+          "Waiting for operator approval. Please confirm the transaction...",
+        );
 
         const approvalHash = await writeContractAsync({
           address: CoinsAddress,
@@ -331,7 +303,9 @@ export const CreatePool = () => {
         });
 
         setTxError("Operator approval submitted. Waiting for confirmation...");
-        const receipt = await publicClient.waitForTransactionReceipt({ hash: approvalHash });
+        const receipt = await publicClient.waitForTransactionReceipt({
+          hash: approvalHash,
+        });
 
         if (receipt.status === "success") {
           await refetchOperator();
@@ -412,9 +386,9 @@ export const CreatePool = () => {
 
       try {
         setTxError("Searching for token...");
-        
+
         let trustedToken = null;
-        
+
         // Check if input is a valid address
         if (isAddress(input)) {
           // Direct address lookup
@@ -427,7 +401,7 @@ export const CreatePool = () => {
             trustedToken = searchResults[0];
           }
         }
-        
+
         if (trustedToken) {
           // Use trusted token metadata
           const erc20Token = createErc20Token(
@@ -447,10 +421,12 @@ export const CreatePool = () => {
 
         // If not in trusted list and input is a valid address, fetch from contract
         if (!isAddress(input)) {
-          setTxError(`No token found for "${input}". Try a different search term or enter a contract address.`);
+          setTxError(
+            `No token found for "${input}". Try a different search term or enter a contract address.`,
+          );
           return;
         }
-        
+
         const [symbol, name, decimals] = await Promise.all([
           publicClient.readContract({
             address: input as `0x${string}`,
@@ -495,10 +471,11 @@ export const CreatePool = () => {
         setAmount0("");
         setAmount1("");
         setTxError(null);
-        
       } catch (error) {
         console.error("Error fetching ERC20 token metadata:", error);
-        setTxError("Failed to fetch token metadata. Please ensure it's a valid ERC20 contract.");
+        setTxError(
+          "Failed to fetch token metadata. Please ensure it's a valid ERC20 contract.",
+        );
       }
     },
     [publicClient],
@@ -538,7 +515,9 @@ export const CreatePool = () => {
           isEthBalanceFetching={isEthBalanceFetching}
           amount={amount1}
           onAmountChange={setAmount1}
-          showMaxButton={!!(token1.balance !== undefined && token1.balance > 0n)}
+          showMaxButton={
+            !!(token1.balance !== undefined && token1.balance > 0n)
+          }
           onMax={() => {
             if (token1.id === null) {
               const ethAmount = ((token1.balance as bigint) * 99n) / 100n;
@@ -598,9 +577,12 @@ export const CreatePool = () => {
         </div>
       )}
 
-      {((writeError && !isUserRejectionError(writeError)) || (txError && !txError.includes("Waiting for"))) && (
+      {((writeError && !isUserRejectionError(writeError)) ||
+        (txError && !txError.includes("Waiting for"))) && (
         <div className="text-sm text-destructive mt-2 bg-background/50 p-2 rounded border border-destructive/20">
-          {writeError && !isUserRejectionError(writeError) ? writeError.message : txError}
+          {writeError && !isUserRejectionError(writeError)
+            ? writeError.message
+            : txError}
         </div>
       )}
 
