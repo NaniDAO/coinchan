@@ -13,6 +13,7 @@
     "connect_wallet_to_continue": "Please connect your wallet to continue",
     "uploading": "Uploading...",
     "days": "days",
+    "less_than_day": "Less than a day",
     "disconnect": "Logout",
     "asset_overview": "Asset View",
     "send": "Send",

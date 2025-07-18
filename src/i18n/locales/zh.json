@@ -14,6 +14,7 @@
     "connect_wallet_to_continue": "请连接您的钱包以继续",
     "uploading": "上传中...",
     "days": "天",
+    "less_than_day": "不足一天",
     "disconnect": "断开连接",
     "asset_overview": "资产总览",
     "send": "发送",
