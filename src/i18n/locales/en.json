@@ -199,6 +199,7 @@
     "unstaking_will_claim_rewards": "Unstaking will automatically claim any pending rewards",
     "time_remaining": "Time Remaining",
     "ended": "Ended",
+    "ends_in": "Ends in",
     "daily_rewards": "Daily Drop",
     "total_rewards": "Total Rewards",
     "total_staked": "Total Staked",
