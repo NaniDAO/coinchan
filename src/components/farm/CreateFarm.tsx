@@ -5,6 +5,7 @@ import { ZAMMAddress } from "@/constants/ZAAM";
 import { ZChefAbi, ZChefAddress } from "@/constants/zChef";
 import { useAllCoins } from "@/hooks/metadata/use-all-coins";
 import { useOperatorStatus } from "@/hooks/use-operator-status";
+import { useConnectionRecovery } from "@/hooks/use-connection-recovery";
 import { useCoinPrice } from "@/hooks/use-coin-price";
 import { useGetTVL } from "@/hooks/use-get-tvl";
 import { ETH_TOKEN, type TokenMeta } from "@/lib/coins";
@@ -160,6 +161,7 @@ const calculateStreamApr = ({
 export const CreateFarm = () => {
   const { t } = useTranslation();
   const { address } = useAccount();
+  const { attemptRecovery } = useConnectionRecovery();
 
   const DURATION_OPTIONS = [
     { value: "7", label: t("common.duration_7_days") },
@@ -500,6 +502,11 @@ export const CreateFarm = () => {
       setTxStatus("pending");
       setTxError(null);
 
+      // Check wallet connection state before proceeding
+      if (!address) {
+        throw new Error(t("common.wallet_not_connected"));
+      }
+
       if (!formData.selectedToken) {
         throw new Error("No LP token selected");
       }
@@ -512,33 +519,51 @@ export const CreateFarm = () => {
         // For ERC6909 tokens (both ZAMM and Cookbook coins), use setOperator
         if (rewardTokenId >= 1000000n) {
           // ZAMM coins: use setOperator on Coins contract
-          const approvalHash = await writeContractAsync({
-            address: CoinsAddress,
-            abi: CoinsAbi,
-            functionName: "setOperator",
-            args: [ZChefAddress, true],
-            chainId: mainnet.id,
-          });
-
-          if (publicClient) {
-            await publicClient.waitForTransactionReceipt({
-              hash: approvalHash,
+          try {
+            const approvalHash = await writeContractAsync({
+              address: CoinsAddress,
+              abi: CoinsAbi,
+              functionName: "setOperator",
+              args: [ZChefAddress, true],
+              chainId: mainnet.id,
             });
+
+            if (publicClient) {
+              await publicClient.waitForTransactionReceipt({
+                hash: approvalHash,
+              });
+            }
+          } catch (approvalError: any) {
+            // Handle connector errors during approval
+            if (approvalError?.message?.includes('getChainId is not a function') || 
+                approvalError?.message?.includes('connector.getChainId')) {
+              throw new Error(t("common.wallet_connection_lost"));
+            }
+            throw approvalError;
           }
         } else {
           // Cookbook coins: use setOperator on Cookbook contract
-          const approvalHash = await writeContractAsync({
-            address: CookbookAddress,
-            abi: CookbookAbi,
-            functionName: "setOperator",
-            args: [ZChefAddress, true],
-            chainId: mainnet.id,
-          });
-
-          if (publicClient) {
-            await publicClient.waitForTransactionReceipt({
-              hash: approvalHash,
+          try {
+            const approvalHash = await writeContractAsync({
+              address: CookbookAddress,
+              abi: CookbookAbi,
+              functionName: "setOperator",
+              args: [ZChefAddress, true],
+              chainId: mainnet.id,
             });
+
+            if (publicClient) {
+              await publicClient.waitForTransactionReceipt({
+                hash: approvalHash,
+              });
+            }
+          } catch (approvalError: any) {
+            // Handle connector errors during approval
+            if (approvalError?.message?.includes('getChainId is not a function') || 
+                approvalError?.message?.includes('connector.getChainId')) {
+              throw new Error(t("common.wallet_connection_lost"));
+            }
+            throw approvalError;
           }
         }
       }
@@ -617,22 +642,32 @@ export const CreateFarm = () => {
         ),
       ) as `0x${string}`;
 
-      const createStreamHash = await writeContractAsync({
-        address: ZChefAddress,
-        abi: ZChefAbi,
-        functionName: "createStream",
-        args: [
-          lpToken,
-          lpId,
-          rewardTokenAddress,
-          rewardId,
-          rewardAmount,
-          durationSeconds,
-          uniqueBytes,
-        ],
-        // No value needed since ETH is not supported as reward token
-        chainId: mainnet.id,
-      });
+      let createStreamHash: `0x${string}`;
+      try {
+        createStreamHash = await writeContractAsync({
+          address: ZChefAddress,
+          abi: ZChefAbi,
+          functionName: "createStream",
+          args: [
+            lpToken,
+            lpId,
+            rewardTokenAddress,
+            rewardId,
+            rewardAmount,
+            durationSeconds,
+            uniqueBytes,
+          ],
+          // No value needed since ETH is not supported as reward token
+          chainId: mainnet.id,
+        });
+      } catch (writeError: any) {
+        // Handle connector errors during contract write
+        if (writeError?.message?.includes('getChainId is not a function') || 
+            writeError?.message?.includes('connector.getChainId')) {
+          throw new Error(t("common.wallet_connection_lost"));
+        }
+        throw writeError;
+      }
 
       setTxHash(createStreamHash);
       setTxStatus("confirming");
@@ -691,6 +726,14 @@ export const CreateFarm = () => {
           errorMessage = t("common.transfer_failed");
         } else if (error.message?.includes("insufficient funds")) {
           errorMessage = t("common.insufficient_funds_tx");
+        } else if (error.message === t("common.wallet_connection_lost") ||
+                   error.message === t("common.wallet_not_connected")) {
+          errorMessage = error.message;
+        } else if (error.message?.includes("getChainId is not a function") || 
+                   error.message?.includes("connector.getChainId")) {
+          errorMessage = t("common.wallet_connection_issue");
+          // Attempt automatic recovery
+          setTimeout(() => attemptRecovery(), 1000);
         }
 
         setTxStatus("error");
