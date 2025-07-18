@@ -44,57 +44,6 @@ interface FarmMigrateDialogProps {
   onSuccess?: () => void;
 }
 
-interface PoolOptionProps {
-  targetStream: IncentiveStream;
-  lpToken: TokenMeta;
-  onSelect: () => void;
-}
-
-function PoolOption({ targetStream, lpToken, onSelect }: PoolOptionProps) {
-  const combinedApyData = useCombinedApy({
-    stream: targetStream,
-    lpToken,
-    enabled: true,
-  });
-
-  const formatApy = (apy: number) => {
-    if (apy === 0) return "0%";
-    if (apy < 0.01) return "<0.01%";
-    return `${apy.toFixed(2)}%`;
-  };
-
-  return (
-    <DropdownMenuItem onClick={onSelect} className="cursor-pointer">
-      <div className="flex items-center justify-between w-full">
-        <div className="flex items-center gap-2">
-          {targetStream.rewardCoin?.imageUrl && (
-            <img
-              src={formatImageURL(targetStream.rewardCoin.imageUrl)}
-              alt={targetStream.rewardCoin.symbol}
-              className="w-4 h-4 rounded-full"
-            />
-          )}
-          <div className="flex flex-col">
-            <span className="font-mono text-sm font-bold">
-              {targetStream.rewardCoin?.symbol || "Unknown"}
-            </span>
-            <span className="font-mono text-xs text-muted-foreground">
-              {targetStream.totalShares ? formatBalance(formatEther(targetStream.totalShares), "LP") : "No stakes"} staked
-            </span>
-          </div>
-        </div>
-        <div className="text-right">
-          <div className="font-mono text-sm font-bold text-green-600">
-            {combinedApyData.isLoading ? "..." : formatApy(combinedApyData.totalApy)}
-          </div>
-          <div className="font-mono text-xs text-muted-foreground">
-            APY
-          </div>
-        </div>
-      </div>
-    </DropdownMenuItem>
-  );
-}
 
 interface SortedPoolListProps {
   streams: IncentiveStream[];
