@@ -68,18 +68,33 @@ export function FarmMigrateDialog({
   
   // Filter to get compatible target streams (same lpId, excluding current stream)
   const compatibleStreams = useMemo(() => {
-    return allStreams.filter(
-      (s) => 
-        s.lpId === stream.lpId && 
-        s.chefId !== stream.chefId &&
-        s.status === "ACTIVE" && // Only show active streams
-        Number(s.endTime) > Math.floor(Date.now() / 1000) // Not ended
+    console.log("=== Migration Debug ===");
+    console.log("Current stream:", stream);
+    console.log("All streams count:", allStreams.length);
+    console.log("Looking for lpId:", stream.lpId, "type:", typeof stream.lpId);
+    console.log("Current chefId:", stream.chefId, "type:", typeof stream.chefId);
+    
+    const filtered = allStreams.filter(
+      (s: IncentiveStream) => {
+        const sameLpId = s.lpId.toString() === stream.lpId.toString(); // Compare as strings to handle BigInt
+        const differentChef = s.chefId.toString() !== stream.chefId.toString();
+        const isActive = s.status === "ACTIVE";
+        const notEnded = Number(s.endTime) > Math.floor(Date.now() / 1000);
+        
+        console.log(`Stream ${s.chefId}: lpId=${s.lpId} (same: ${sameLpId}), status=${s.status} (active: ${isActive}), endTime=${s.endTime} (notEnded: ${notEnded}), different chef: ${differentChef}`);
+        
+        return sameLpId && differentChef && isActive && notEnded;
+      }
     );
+    
+    console.log("Compatible streams found:", filtered.length);
+    console.log("Compatible streams:", filtered);
+    return filtered;
   }, [allStreams, stream.lpId, stream.chefId]);
 
   // Get the selected target stream
   const targetStream = useMemo(() => {
-    return compatibleStreams.find(s => s.chefId.toString() === selectedTargetChefId);
+    return compatibleStreams.find((s: IncentiveStream) => s.chefId.toString() === selectedTargetChefId);
   }, [compatibleStreams, selectedTargetChefId]);
 
   // Get real-time pending rewards from contract
@@ -219,7 +234,7 @@ export function FarmMigrateDialog({
                     className="w-full justify-between font-mono bg-background/50 border-primary/30 focus:border-primary/60"
                   >
                     {selectedTargetChefId ? (
-                      compatibleStreams.find(s => s.chefId.toString() === selectedTargetChefId)?.rewardCoin?.symbol || "Unknown"
+                      compatibleStreams.find((s: IncentiveStream) => s.chefId.toString() === selectedTargetChefId)?.rewardCoin?.symbol || "Unknown"
                     ) : (
                       t("common.select_pool")
                     )}
@@ -227,7 +242,7 @@ export function FarmMigrateDialog({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-full">
-                  {compatibleStreams.map((targetStream) => (
+                  {compatibleStreams.map((targetStream: IncentiveStream) => (
                     <DropdownMenuItem
                       key={targetStream.chefId.toString()}
                       onClick={() => setSelectedTargetChefId(targetStream.chefId.toString())}
