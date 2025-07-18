@@ -16,6 +16,7 @@ import {
   useZChefPendingReward,
   useZChefUserBalance,
 } from "@/hooks/use-zchef-contract";
+import { useCombinedApy } from "@/hooks/use-combined-apy";
 import type { TokenMeta } from "@/lib/coins";
 import { isUserRejectionError } from "@/lib/errors";
 import { cn, formatBalance } from "@/lib/utils";
@@ -43,6 +44,138 @@ interface FarmMigrateDialogProps {
   onSuccess?: () => void;
 }
 
+interface PoolOptionProps {
+  targetStream: IncentiveStream;
+  lpToken: TokenMeta;
+  onSelect: () => void;
+}
+
+function PoolOption({ targetStream, lpToken, onSelect }: PoolOptionProps) {
+  const combinedApyData = useCombinedApy({
+    stream: targetStream,
+    lpToken,
+    enabled: true,
+  });
+
+  const formatApy = (apy: number) => {
+    if (apy === 0) return "0%";
+    if (apy < 0.01) return "<0.01%";
+    return `${apy.toFixed(2)}%`;
+  };
+
+  return (
+    <DropdownMenuItem onClick={onSelect} className="cursor-pointer">
+      <div className="flex items-center justify-between w-full">
+        <div className="flex items-center gap-2">
+          {targetStream.rewardCoin?.imageUrl && (
+            <img
+              src={formatImageURL(targetStream.rewardCoin.imageUrl)}
+              alt={targetStream.rewardCoin.symbol}
+              className="w-4 h-4 rounded-full"
+            />
+          )}
+          <div className="flex flex-col">
+            <span className="font-mono text-sm font-bold">
+              {targetStream.rewardCoin?.symbol || "Unknown"}
+            </span>
+            <span className="font-mono text-xs text-muted-foreground">
+              {targetStream.totalShares ? formatBalance(formatEther(targetStream.totalShares), "LP") : "No stakes"} staked
+            </span>
+          </div>
+        </div>
+        <div className="text-right">
+          <div className="font-mono text-sm font-bold text-green-600">
+            {combinedApyData.isLoading ? "..." : formatApy(combinedApyData.totalApy)}
+          </div>
+          <div className="font-mono text-xs text-muted-foreground">
+            APY
+          </div>
+        </div>
+      </div>
+    </DropdownMenuItem>
+  );
+}
+
+interface SelectedPoolApyProps {
+  targetStream: IncentiveStream;
+  lpToken: TokenMeta;
+}
+
+function SelectedPoolApy({ targetStream, lpToken }: SelectedPoolApyProps) {
+  const combinedApyData = useCombinedApy({
+    stream: targetStream,
+    lpToken,
+    enabled: true,
+  });
+
+  const formatApy = (apy: number) => {
+    if (apy === 0) return "0%";
+    if (apy < 0.01) return "<0.01%";
+    return `${apy.toFixed(2)}%`;
+  };
+
+  return (
+    <span className="text-green-600 font-bold">
+      {combinedApyData.isLoading ? "..." : formatApy(combinedApyData.totalApy)}
+    </span>
+  );
+}
+
+interface SelectedPoolDetailsProps {
+  targetStream: IncentiveStream;
+  lpToken: TokenMeta;
+}
+
+function SelectedPoolDetails({ targetStream, lpToken }: SelectedPoolDetailsProps) {
+  const { t } = useTranslation();
+  const combinedApyData = useCombinedApy({
+    stream: targetStream,
+    lpToken,
+    enabled: true,
+  });
+
+  const formatApy = (apy: number) => {
+    if (apy === 0) return "0%";
+    if (apy < 0.01) return "<0.01%";
+    return `${apy.toFixed(2)}%`;
+  };
+
+  return (
+    <div className="bg-background/30 border border-primary/20 rounded p-3">
+      <div className="space-y-2 text-sm font-mono">
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">{t("common.reward_token")}:</span>
+          <span className="text-primary font-bold">{targetStream.rewardCoin?.symbol}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">{t("common.total_staked")}:</span>
+          <span className="text-primary font-bold">
+            {targetStream.totalShares ? formatBalance(formatEther(targetStream.totalShares), "LP") : "0 LP"}
+          </span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">{t("common.total_apy")}:</span>
+          <span className="text-primary font-bold text-green-600">
+            {combinedApyData.isLoading ? "..." : formatApy(combinedApyData.totalApy)}
+          </span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">{t("common.ends_in")}:</span>
+          <span className="text-primary font-bold">
+            {(() => {
+              const now = Math.floor(Date.now() / 1000);
+              const timeLeft = Number(targetStream.endTime) - now;
+              if (timeLeft <= 0) return t("common.ended");
+              const days = Math.floor(timeLeft / 86400);
+              return days > 0 ? `${days} ${t("common.days")}` : t("common.less_than_day");
+            })()}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function FarmMigrateDialog({
   stream,
   lpToken,
@@ -68,28 +201,16 @@ export function FarmMigrateDialog({
   
   // Filter to get compatible target streams (same lpId, excluding current stream)
   const compatibleStreams = useMemo(() => {
-    console.log("=== Migration Debug ===");
-    console.log("Current stream:", stream);
-    console.log("All streams count:", allStreams.length);
-    console.log("Looking for lpId:", stream.lpId, "type:", typeof stream.lpId);
-    console.log("Current chefId:", stream.chefId, "type:", typeof stream.chefId);
-    
-    const filtered = allStreams.filter(
+    return allStreams.filter(
       (s: IncentiveStream) => {
         const sameLpId = s.lpId.toString() === stream.lpId.toString(); // Compare as strings to handle BigInt
         const differentChef = s.chefId.toString() !== stream.chefId.toString();
         const isActive = s.status === "ACTIVE";
         const notEnded = Number(s.endTime) > Math.floor(Date.now() / 1000);
         
-        console.log(`Stream ${s.chefId}: lpId=${s.lpId} (same: ${sameLpId}), status=${s.status} (active: ${isActive}), endTime=${s.endTime} (notEnded: ${notEnded}), different chef: ${differentChef}`);
-        
         return sameLpId && differentChef && isActive && notEnded;
       }
     );
-    
-    console.log("Compatible streams found:", filtered.length);
-    console.log("Compatible streams:", filtered);
-    return filtered;
   }, [allStreams, stream.lpId, stream.chefId]);
 
   // Get the selected target stream
@@ -234,34 +355,28 @@ export function FarmMigrateDialog({
                     className="w-full justify-between font-mono bg-background/50 border-primary/30 focus:border-primary/60"
                   >
                     {selectedTargetChefId ? (
-                      compatibleStreams.find((s: IncentiveStream) => s.chefId.toString() === selectedTargetChefId)?.rewardCoin?.symbol || "Unknown"
+                      <div className="flex items-center justify-between w-full">
+                        <span>
+                          {compatibleStreams.find((s: IncentiveStream) => s.chefId.toString() === selectedTargetChefId)?.rewardCoin?.symbol || "Unknown"}
+                        </span>
+                        {targetStream && (
+                          <SelectedPoolApy targetStream={targetStream} lpToken={lpToken} />
+                        )}
+                      </div>
                     ) : (
                       t("common.select_pool")
                     )}
-                    <span className="text-muted-foreground">▼</span>
+                    <span className="text-muted-foreground ml-2">▼</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-full">
+                <DropdownMenuContent className="w-full min-w-[400px]">
                   {compatibleStreams.map((targetStream: IncentiveStream) => (
-                    <DropdownMenuItem
+                    <PoolOption
                       key={targetStream.chefId.toString()}
-                      onClick={() => setSelectedTargetChefId(targetStream.chefId.toString())}
-                      className="cursor-pointer"
-                    >
-                      <div className="flex items-center gap-2">
-                        {targetStream.rewardCoin?.imageUrl && (
-                          <img
-                            src={formatImageURL(targetStream.rewardCoin.imageUrl)}
-                            alt={targetStream.rewardCoin.symbol}
-                            className="w-4 h-4 rounded-full"
-                          />
-                        )}
-                        <span className="font-mono">
-                          {targetStream.rewardCoin?.symbol || "Unknown"} - {" "}
-                          {targetStream.totalShares ? `${formatBalance(formatEther(targetStream.totalShares), "LP")}` : "No stakes"} staked
-                        </span>
-                      </div>
-                    </DropdownMenuItem>
+                      targetStream={targetStream}
+                      lpToken={lpToken}
+                      onSelect={() => setSelectedTargetChefId(targetStream.chefId.toString())}
+                    />
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -269,32 +384,10 @@ export function FarmMigrateDialog({
 
             {/* Show selected target pool details */}
             {targetStream && (
-              <div className="bg-background/30 border border-primary/20 rounded p-3">
-                <div className="space-y-2 text-sm font-mono">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{t("common.reward_token")}:</span>
-                    <span className="text-primary font-bold">{targetStream.rewardCoin?.symbol}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{t("common.total_staked")}:</span>
-                    <span className="text-primary font-bold">
-                      {targetStream.totalShares ? formatBalance(formatEther(targetStream.totalShares), "LP") : "0 LP"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{t("common.ends_in")}:</span>
-                    <span className="text-primary font-bold">
-                      {(() => {
-                        const now = Math.floor(Date.now() / 1000);
-                        const timeLeft = Number(targetStream.endTime) - now;
-                        if (timeLeft <= 0) return t("common.ended");
-                        const days = Math.floor(timeLeft / 86400);
-                        return days > 0 ? `${days} ${t("common.days")}` : t("common.less_than_day");
-                      })()}
-                    </span>
-                  </div>
-                </div>
-              </div>
+              <SelectedPoolDetails 
+                targetStream={targetStream} 
+                lpToken={lpToken}
+              />
             )}
           </div>
 
