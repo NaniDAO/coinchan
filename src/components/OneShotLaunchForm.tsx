@@ -113,12 +113,12 @@ export const OneShotLaunchForm = () => {
     e.preventDefault();
 
     if (!validateForm()) {
-      toast.error("Please fix the form errors");
+      toast.error(t("common.please_fix_form_errors"));
       return;
     }
 
     if (!account) {
-      toast.error("Please connect your wallet");
+      toast.error(t("common.please_connect_wallet"));
       return;
     }
 
@@ -128,7 +128,7 @@ export const OneShotLaunchForm = () => {
       // Upload image to Pinata if provided
       let imageUrl = "";
       if (imageBuffer) {
-        toast.info("Uploading image...");
+        toast.info(t("common.uploading_image"));
         const imageUri = await pinImageToPinata(imageBuffer, `${formData.metadataName}-logo`, {
           name: `${formData.metadataName}-logo`,
         });
@@ -144,11 +144,11 @@ export const OneShotLaunchForm = () => {
       };
 
       // Upload metadata to Pinata
-      toast.info("Uploading metadata...");
+      toast.info(t("common.uploading_metadata"));
       const metadataUri = await pinJsonToPinata(metadata);
 
       setIsUploading(false);
-      toast.info("Starting blockchain transaction...");
+      toast.info(t("common.starting_blockchain_transaction"));
 
       // Simulate contract to get the predicted coin ID
       const contractArgs = [

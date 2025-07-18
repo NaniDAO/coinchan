@@ -286,12 +286,12 @@ export const AddLiquidity = () => {
     }
 
     if (!sellAmt || Number.parseFloat(sellAmt) <= 0) {
-      setTxError("Please enter a valid sell amount");
+      setTxError(t("common.invalid_sell_amount"));
       return;
     }
 
     if (!buyAmt || Number.parseFloat(buyAmt) <= 0) {
-      setTxError("Please enter a valid buy amount");
+      setTxError(t("common.invalid_buy_amount"));
       return;
     }
 
@@ -405,7 +405,7 @@ export const AddLiquidity = () => {
 
       // Verify we have valid amounts
       if (amount0 === 0n || amount1 === 0n) {
-        setTxError("Invalid liquidity amounts");
+        setTxError(t("common.invalid_liquidity_amounts"));
         return;
       }
 

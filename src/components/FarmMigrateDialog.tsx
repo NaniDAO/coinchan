@@ -18,10 +18,10 @@ import {
 } from "@/hooks/use-zchef-contract";
 import { useCombinedApy } from "@/hooks/use-combined-apy";
 import type { TokenMeta } from "@/lib/coins";
+import { useTranslation } from "react-i18next";
 import { isUserRejectionError } from "@/lib/errors";
 import { cn, formatBalance } from "@/lib/utils";
 import { useState, useMemo, useEffect } from "react";
-import { useTranslation } from "react-i18next";
 import { formatEther, parseUnits } from "viem";
 import { usePublicClient } from "wagmi";
 import { 
@@ -102,6 +102,7 @@ interface PoolOptionWithApyTrackingProps {
 }
 
 function PoolOptionWithApyTracking({ targetStream, lpToken, onSelect, onApyCalculated }: PoolOptionWithApyTrackingProps) {
+  const { t } = useTranslation();
   const combinedApyData = useCombinedApy({
     stream: targetStream,
     lpToken,
@@ -134,10 +135,17 @@ function PoolOptionWithApyTracking({ targetStream, lpToken, onSelect, onApyCalcu
           )}
           <div className="flex flex-col">
             <span className="font-mono text-sm font-bold">
-              {targetStream.rewardCoin?.symbol || "Unknown"}
+              {targetStream.rewardCoin?.symbol || t("common.unknown")}
             </span>
             <span className="font-mono text-xs text-muted-foreground">
-              {targetStream.totalShares ? formatBalance(formatEther(targetStream.totalShares), "LP") : "No stakes"} staked
+              {targetStream.totalShares > 0n ? 
+                <span className="text-green-600">
+                  🟢 {formatBalance(formatEther(targetStream.totalShares), "LP")} total staked
+                </span> : 
+                <span className="text-orange-500">
+                  🟡 {t("common.no_stakes")} - new farm
+                </span>
+              }
             </span>
           </div>
         </div>
@@ -205,11 +213,18 @@ function SelectedPoolDetails({ targetStream, lpToken }: SelectedPoolDetailsProps
           <span className="text-muted-foreground">{t("common.reward_token")}:</span>
           <span className="text-primary font-bold">{targetStream.rewardCoin?.symbol}</span>
         </div>
-        <div className="flex justify-between">
+        <div className="flex justify-between items-center">
           <span className="text-muted-foreground">{t("common.total_staked")}:</span>
-          <span className="text-primary font-bold">
-            {targetStream.totalShares ? formatBalance(formatEther(targetStream.totalShares), "LP") : "0 LP"}
-          </span>
+          <div className="text-right">
+            <span className="text-primary font-bold">
+              {targetStream.totalShares ? formatBalance(formatEther(targetStream.totalShares), "LP") : "0 LP"}
+            </span>
+            {targetStream.totalShares > 0n && (
+              <div className="text-xs text-green-600 font-mono">
+                ✓ Active Farm
+              </div>
+            )}
+          </div>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">{t("common.total_apy")}:</span>
@@ -352,10 +367,20 @@ export function FarmMigrateDialog({
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Info Banner */}
+          <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+            <div className="flex items-start gap-2">
+              <div className="text-blue-500 text-sm">📊</div>
+              <div className="text-blue-600 font-mono text-sm leading-relaxed">
+                {t("common.farm_activity_info")}
+              </div>
+            </div>
+          </div>
+          
           {/* Current Pool Information */}
           <div className="border border-primary/30 rounded-lg p-4">
             <h3 className="font-mono font-bold text-base text-primary mb-3 uppercase tracking-wider">
-              [{t("common.current_position")}]
+              [{t("common.your_current_position")}]
             </h3>
             <div className="flex items-center gap-3 mb-4">
               {lpToken?.imageUrl && (
@@ -377,7 +402,7 @@ export function FarmMigrateDialog({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="bg-background/30 border border-primary/20 rounded p-3">
                 <p className="text-muted-foreground font-mono text-xs">
-                  {t("common.staked_amount")}
+                  👤 {t("common.your_staked_amount")}
                 </p>
                 <p className="font-mono font-bold text-primary">
                   {formatBalance(maxAmount, "LP")}
