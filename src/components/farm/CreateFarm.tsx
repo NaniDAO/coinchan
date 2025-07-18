@@ -683,7 +683,7 @@ export const CreateFarm = () => {
           ? `${formData.customDuration} ${formData.customDurationUnit}`
           : `${formData.duration} days`;
 
-        toast.success(`Farm created successfully for ${farmDuration}`);
+        toast.success(t("common.farm_created_successfully_duration", { duration: farmDuration }));
 
         // Reset form on success after delay
         setTimeout(() => {
@@ -769,12 +769,12 @@ export const CreateFarm = () => {
     return (
       <div className="border border-green-500/30 rounded-lg p-4 bg-green-500/5 mt-4">
         <h4 className="font-mono font-bold text-green-400 mb-3 text-base tracking-wider">
-          [ESTIMATED APR]
+          [{t("common.estimated_apr").toUpperCase()}]
         </h4>
         <div className="space-y-2">
           <div className="flex justify-between items-center py-2 bg-green-500/10 px-3 rounded">
             <span className="font-mono text-sm font-bold text-green-400">
-              Farm APR:
+              {t("common.farm_apr")}:
             </span>
             <span className="font-mono text-lg font-bold text-green-400">
               {estimatedApr.farmApr.toFixed(2)}%
@@ -783,11 +783,11 @@ export const CreateFarm = () => {
           <div className="text-xs font-mono text-center mt-2">
             {hasRealData ? (
               <span className="text-green-300">
-                ✅ Calculated with real market data
+                ✅ {t("common.calculated_with_real_data")}
               </span>
             ) : (
               <span className="text-yellow-400">
-                ⚠️ Estimate using fallback data - actual APR may vary
+                ⚠️ {t("common.estimate_using_fallback_data")}
               </span>
             )}
           </div>
@@ -1179,7 +1179,7 @@ export const CreateFarm = () => {
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent"></div>
                     <span className="font-mono font-bold text-primary">
-                      [PENDING]
+                      [{t("common.status_pending")}]
                     </span>
                   </>
                 )}
@@ -1187,7 +1187,7 @@ export const CreateFarm = () => {
                   <>
                     <div className="animate-pulse h-4 w-4 bg-yellow-500 rounded-full"></div>
                     <span className="font-mono font-bold text-yellow-500">
-                      [CONFIRMING]
+                      [{t("common.status_confirming")}]
                     </span>
                   </>
                 )}
@@ -1195,7 +1195,7 @@ export const CreateFarm = () => {
                   <>
                     <div className="h-4 w-4 bg-green-500 rounded-full"></div>
                     <span className="font-mono font-bold text-green-500">
-                      [SUCCESS]
+                      [{t("common.status_success")}]
                     </span>
                   </>
                 )}
@@ -1203,7 +1203,7 @@ export const CreateFarm = () => {
                   <>
                     <div className="h-4 w-4 bg-red-500 rounded-full"></div>
                     <span className="font-mono font-bold text-red-500">
-                      [ERROR]
+                      [{t("common.status_error")}]
                     </span>
                   </>
                 )}
@@ -1217,11 +1217,11 @@ export const CreateFarm = () => {
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-3 py-1.5 bg-background/50 border border-primary/20 rounded font-mono text-xs hover:bg-primary/10 transition-colors duration-200"
                   >
-                    <span className="text-muted-foreground">TX:</span>
+                    <span className="text-muted-foreground">{t("common.tx_label")}:</span>
                     <span className="text-primary font-bold">
                       {txHash.slice(0, 6)}...{txHash.slice(-4)}
                     </span>
-                    <span className="text-muted-foreground">↗</span>
+                    <span className="text-muted-foreground">{t("common.external_link")}</span>
                   </a>
                 </div>
               )}
@@ -1265,7 +1265,7 @@ export const CreateFarm = () => {
         {(errors.approval || errors.submit) && txStatus === "idle" && (
           <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
             <div className="text-sm text-red-400 text-center font-mono break-words">
-              [ERROR]: {errors.approval || errors.submit}
+              [{t("common.status_error")}]: {errors.approval || errors.submit}
             </div>
           </div>
         )}
