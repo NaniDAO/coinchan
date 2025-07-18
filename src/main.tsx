@@ -14,6 +14,7 @@ import { WagmiProvider } from "wagmi";
 import "./index.css";
 import "./i18n";
 import { useTranslation } from "react-i18next";
+import ConnectionErrorHandler from "./lib/ConnectionErrorHandler";
 
 // Configure query client with performance optimizations
 const queryClient = new QueryClient({
@@ -84,6 +85,7 @@ export const WalletProviders = ({
                 })
           }
         >
+          <ConnectionErrorHandler />
           {children}
         </RainbowKitProvider>
       </QueryClientProvider>
