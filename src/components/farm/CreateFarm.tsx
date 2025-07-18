@@ -6,12 +6,20 @@ import { ZChefAbi, ZChefAddress } from "@/constants/zChef";
 import { useAllCoins } from "@/hooks/metadata/use-all-coins";
 import { useOperatorStatus } from "@/hooks/use-operator-status";
 import { useConnectionRecovery } from "@/hooks/use-connection-recovery";
+import { useCoinPrice } from "@/hooks/use-coin-price";
+import { useGetTVL } from "@/hooks/use-get-tvl";
 import { ETH_TOKEN, type TokenMeta } from "@/lib/coins";
 import { isUserRejectionError } from "@/lib/errors";
 import { cn } from "@/lib/utils";
 import { type ChangeEvent, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { encodePacked, formatEther, keccak256, parseUnits } from "viem";
+import {
+  encodePacked,
+  formatEther,
+  keccak256,
+  parseUnits,
+  parseEther,
+} from "viem";
 import { mainnet } from "viem/chains";
 import { useAccount, usePublicClient, useWriteContract } from "wagmi";
 import { Button } from "../ui/button";
@@ -29,6 +37,126 @@ interface FarmFormData {
   customDurationUnit: "minutes" | "hours" | "days";
   useCustomDuration: boolean;
 }
+
+interface StreamAprResult {
+  farmApr: number;
+  dailyRewardRate: number;
+  yearlyRewardValue: number;
+  isValid: boolean;
+  error?: string;
+}
+
+const SECONDS_IN_YEAR = 365n * 24n * 60n * 60n;
+const ACC_PRECISION = 1_000_000_000_000n; // 1e12
+const EIGHTEEN_DECIMALS = 1_000_000_000_000_000_000n; // 1e18
+
+// APR calculation function
+const calculateStreamApr = ({
+  rewardAmount,
+  rewardTokenDecimals,
+  rewardPriceInEth,
+  durationInDays,
+  poolTvlInEth,
+  totalShares,
+}: {
+  rewardAmount: string;
+  rewardTokenDecimals: number;
+  rewardPriceInEth: number;
+  durationInDays: number;
+  poolTvlInEth: number;
+  totalShares?: bigint;
+}): StreamAprResult => {
+  try {
+    // Input validation
+    if (!rewardAmount || Number.parseFloat(rewardAmount) <= 0) {
+      return {
+        farmApr: 0,
+        dailyRewardRate: 0,
+        yearlyRewardValue: 0,
+        isValid: false,
+        error: "Invalid reward amount",
+      };
+    }
+
+    if (durationInDays <= 0 || poolTvlInEth <= 0 || rewardPriceInEth <= 0) {
+      return {
+        farmApr: 0,
+        dailyRewardRate: 0,
+        yearlyRewardValue: 0,
+        isValid: false,
+        error: "Invalid parameters",
+      };
+    }
+
+    // Parse reward amount with proper decimals
+    const rewardAmountBigInt = parseUnits(
+      rewardAmount,
+      rewardTokenDecimals ?? 18,
+    );
+
+    // Use provided totalShares or default to 1 ETH worth of shares
+    const safeTotalShares =
+      totalShares && totalShares > 0n ? totalShares : parseEther("1");
+
+    // Convert duration to seconds
+    const durationInSeconds = BigInt(Math.floor(durationInDays * 24 * 60 * 60));
+
+    // Calculate reward rate per second (similar to zChef contract)
+    const rewardRate = rewardAmountBigInt / durationInSeconds;
+
+    // Calculate reward per share per year (scaled by ACC_PRECISION like in the contract)
+    const rewardPerSharePerYear =
+      (rewardRate * SECONDS_IN_YEAR * ACC_PRECISION) / safeTotalShares;
+
+    // Convert to human readable numbers for APR calculation
+    const share = parseEther("1"); // 1 LP share
+    const rewardPerSharePerYearWei = rewardPerSharePerYear / ACC_PRECISION;
+    const tokensPerSharePerYear =
+      Number(rewardPerSharePerYearWei) / Number(EIGHTEEN_DECIMALS);
+
+    // Calculate yearly reward for 1 share
+    const yearlyReward = tokensPerSharePerYear * Number(share);
+    const yearlyRewardEthValue = yearlyReward * rewardPriceInEth;
+
+    // Calculate the ETH value of 1 share (stake)
+    const stakeEth = (Number(share) / Number(safeTotalShares)) * poolTvlInEth;
+
+    // Calculate APR percentage
+    let farmApr = 0;
+    if (
+      stakeEth > 0 &&
+      !isNaN(yearlyRewardEthValue) &&
+      !isNaN(stakeEth) &&
+      isFinite(stakeEth)
+    ) {
+      farmApr = (yearlyRewardEthValue / stakeEth) * 100;
+
+      // Validate the result
+      if (isNaN(farmApr) || !isFinite(farmApr)) {
+        farmApr = 0;
+      }
+    }
+
+    // Calculate daily reward rate for display
+    const dailyRewardRate = Number.parseFloat(rewardAmount) / durationInDays;
+
+    return {
+      farmApr: Math.max(0, farmApr), // Ensure non-negative
+      dailyRewardRate,
+      yearlyRewardValue: yearlyRewardEthValue,
+      isValid: true,
+    };
+  } catch (error) {
+    console.error("Error calculating stream APR:", error);
+    return {
+      farmApr: 0,
+      dailyRewardRate: 0,
+      yearlyRewardValue: 0,
+      isValid: false,
+      error: error instanceof Error ? error.message : "Calculation failed",
+    };
+  }
+};
 
 export const CreateFarm = () => {
   const { t } = useTranslation();
@@ -77,6 +205,21 @@ export const CreateFarm = () => {
     address: address as `0x${string}`,
     operator: ZChefAddress,
     tokenId: formData.rewardToken.id || undefined,
+  });
+
+  // Get reward token price
+  const { data: rewardPriceEth } = useCoinPrice({
+    coinId: formData?.rewardToken?.id ? formData.rewardToken.id : undefined,
+    coinContract: formData?.rewardToken.token1,
+    contractSource: formData?.rewardToken.source,
+  });
+
+  // Get pool TVL if a token is selected
+  const { data: poolTvlInEth } = useGetTVL({
+    poolId: formData.selectedToken?.poolId
+      ? BigInt(formData.selectedToken.poolId)
+      : undefined,
+    source: formData.selectedToken?.source ?? "ZAMM", // @TODO
   });
 
   if (!tokens || tokens.length === 0) {
@@ -142,6 +285,64 @@ export const CreateFarm = () => {
         return value;
     }
   };
+
+  // Calculate estimated APR
+  const estimatedApr = useMemo(() => {
+    if (!formData.rewardAmount || !formData.selectedToken) {
+      return {
+        farmApr: 0,
+        isValid: false,
+        dailyRewardRate: 0,
+        yearlyRewardValue: 0,
+      };
+    }
+
+    const durationValue = formData.useCustomDuration
+      ? formData.customDuration
+      : formData.duration;
+
+    let durationDays: number;
+    if (formData.useCustomDuration) {
+      durationDays = convertCustomDurationToDays(
+        durationValue,
+        formData.customDurationUnit,
+      );
+    } else {
+      durationDays = Number.parseInt(durationValue);
+    }
+
+    if (isNaN(durationDays) || durationDays <= 0) {
+      return {
+        farmApr: 0,
+        isValid: false,
+        dailyRewardRate: 0,
+        yearlyRewardValue: 0,
+      };
+    }
+
+    // Use fallback values if real data isn't available
+    const fallbackTvl = poolTvlInEth || 10; // 10 ETH as reasonable default
+    const fallbackPrice = rewardPriceEth || 0.001; // Small default price
+
+    return calculateStreamApr({
+      rewardAmount: formData.rewardAmount,
+      rewardTokenDecimals: formData.rewardToken.decimals || 18,
+      rewardPriceInEth: rewardPriceEth || fallbackPrice,
+      durationInDays: durationDays,
+      poolTvlInEth: poolTvlInEth || fallbackTvl,
+      totalShares: 1n, // @TODO if available
+    });
+  }, [
+    formData.rewardAmount,
+    formData.selectedToken,
+    formData.duration,
+    formData.customDuration,
+    formData.customDurationUnit,
+    formData.useCustomDuration,
+    formData.rewardToken.decimals,
+    poolTvlInEth,
+    rewardPriceEth,
+  ]);
 
   const maxRewardAmount =
     formData.rewardToken.balance && formData.rewardToken.balance > 0n
@@ -549,6 +750,52 @@ export const CreateFarm = () => {
     }
   };
 
+  // APR Preview Component
+  const renderAprPreview = () => {
+    if (!estimatedApr.isValid || estimatedApr.farmApr === 0) {
+      return null;
+    }
+
+    console.log("[CreateFarm] real data", {
+      poolTvlInEth,
+      rewardPriceEth,
+      coinId: formData?.rewardToken?.id ? formData.rewardToken.id : undefined,
+      coinContract: formData?.rewardToken.token1,
+      rewardToken: formData?.rewardToken,
+    });
+
+    const hasRealData = poolTvlInEth && rewardPriceEth;
+
+    return (
+      <div className="border border-green-500/30 rounded-lg p-4 bg-green-500/5 mt-4">
+        <h4 className="font-mono font-bold text-green-400 mb-3 text-base tracking-wider">
+          [ESTIMATED APR]
+        </h4>
+        <div className="space-y-2">
+          <div className="flex justify-between items-center py-2 bg-green-500/10 px-3 rounded">
+            <span className="font-mono text-sm font-bold text-green-400">
+              Farm APR:
+            </span>
+            <span className="font-mono text-lg font-bold text-green-400">
+              {estimatedApr.farmApr.toFixed(2)}%
+            </span>
+          </div>
+          <div className="text-xs font-mono text-center mt-2">
+            {hasRealData ? (
+              <span className="text-green-300">
+                ✅ Calculated with real market data
+              </span>
+            ) : (
+              <span className="text-yellow-400">
+                ⚠️ Estimate using fallback data - actual APR may vary
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 px-3 sm:px-0">
       <div className="bg-gradient-to-br from-background/80 to-background/60 border border-primary/30 rounded-xl p-6 sm:p-8 backdrop-blur-sm shadow-xl">
@@ -557,7 +804,7 @@ export const CreateFarm = () => {
             [{t("common.create_new_farm")}]
           </h3>
         </div>
-        
+
         {/* Warning Banner */}
         <div className="mb-6 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
           <div className="flex items-start gap-3">
@@ -782,6 +1029,9 @@ export const CreateFarm = () => {
                         </span>
                       </div>
                     </div>
+
+                    {/* Add APR preview here */}
+                    {renderAprPreview()}
                   </div>
                 )
               );

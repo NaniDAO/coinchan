@@ -1,5 +1,6 @@
 {
   "common": {
+    "enter_amount": "输入数量",
     "loading": "正在同步ZAMM...",
     "votes": "支持数",
     "error": "错误",

@@ -25,13 +25,17 @@ const getCoinSource = (
 export const useCoinPrice = ({
   coinId,
   coinContract,
+  contractSource,
 }: {
   coinId: bigint | undefined;
   coinContract: Address | undefined;
+  contractSource: CoinSource | undefined;
 }) => {
   const [source, poolId] = useMemo(() => {
-    if (!coinId || !coinContract) return [undefined, undefined];
-    const source = getCoinSource(coinId, coinContract);
+    if (!coinId) return [undefined, undefined];
+    const source =
+      contractSource ??
+      (coinContract ? getCoinSource(coinId, coinContract) : undefined);
     if (!source) return [undefined, undefined];
     const poolId = computePoolId(
       coinId,
