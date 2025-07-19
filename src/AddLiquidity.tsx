@@ -168,6 +168,22 @@ export const AddLiquidity = () => {
     }
   }, [tokens]);
 
+  // Ensure ETH is always the sell token in add liquidity mode
+  useEffect(() => {
+    if (tokens.length && sellToken.id !== null) {
+      // If a non-ETH token is selected as sell token, swap them
+      const ethToken = tokens.find((t) => t.id === null);
+      if (ethToken && buyToken && sellToken.id !== null) {
+        // Swap: make current sellToken the buyToken, and ETH the sellToken
+        setBuyToken(sellToken);
+        setSellToken(ethToken);
+        // Clear amounts to avoid confusion
+        setSellAmt("");
+        setBuyAmt("");
+      }
+    }
+  }, [tokens, sellToken, buyToken]);
+
   /* helpers to sync amounts */
   const syncFromSell = async (val: string) => {
     // Add Liquidity mode - calculate optimal token1 amount based on pool reserves
@@ -192,7 +208,7 @@ export const AddLiquidity = () => {
         // Calculate optimal token amount: (ethAmount * tokenReserve) / ethReserve
         const optimalTokenAmount = (ethAmount * reserves.reserve1) / reserves.reserve0;
         
-        // Use correct decimals for the buy token
+        // Use correct decimals for the buy token (6 for USDT, 18 for others)
         const buyTokenDecimals = buyToken?.decimals || 18;
         const formattedAmount = formatUnits(optimalTokenAmount, buyTokenDecimals);
         
