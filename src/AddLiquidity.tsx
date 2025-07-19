@@ -149,9 +149,21 @@ export const AddLiquidity = () => {
   const syncFromSell = async (val: string) => {
     // Add Liquidity mode - calculate optimal token1 amount based on pool reserves
     setSellAmt(val);
-    if (!canSwap || !reserves) return setBuyAmt("");
+    if (!canSwap || !reserves) {
+      console.log("AddLiquidity syncFromSell: canSwap =", canSwap, "reserves =", reserves);
+      return setBuyAmt("");
+    }
 
     try {
+      // Debug logging
+      console.log("AddLiquidity syncFromSell:", {
+        val,
+        isSellETH,
+        buyToken: buyToken?.symbol,
+        sellToken: sellToken?.symbol,
+        reserves: { reserve0: reserves.reserve0, reserve1: reserves.reserve1 },
+      });
+      
       // For add liquidity, we need to calculate the optimal ratio based on current reserves
       // Using the ZAMM formula: amount1Optimal = (amount0Desired * reserve1) / reserve0
       
@@ -161,6 +173,7 @@ export const AddLiquidity = () => {
         
         // Check for empty pool (no liquidity yet)
         if (reserves.reserve0 === 0n || reserves.reserve1 === 0n) {
+          console.log("Empty pool detected, reserve0:", reserves.reserve0, "reserve1:", reserves.reserve1);
           // For new pools, we can't calculate optimal ratio, user sets both amounts
           setBuyAmt("");
           return;
@@ -171,8 +184,17 @@ export const AddLiquidity = () => {
         
         // Use correct decimals for the buy token
         const buyTokenDecimals = buyToken?.decimals || 18;
+        const formattedAmount = formatUnits(optimalTokenAmount, buyTokenDecimals);
+        
+        console.log("Calculated optimal token amount:", {
+          ethAmount: ethAmount.toString(),
+          optimalTokenAmount: optimalTokenAmount.toString(),
+          buyTokenDecimals,
+          formattedAmount,
+        });
+        
         setBuyAmt(
-          optimalTokenAmount === 0n ? "" : formatUnits(optimalTokenAmount, buyTokenDecimals),
+          optimalTokenAmount === 0n ? "" : formattedAmount,
         );
       } else if (!isSellETH && buyToken?.id === null) {
         // Token → ETH: Calculate optimal ETH amount for the given token amount
@@ -198,6 +220,7 @@ export const AddLiquidity = () => {
         setBuyAmt("");
       } else {
         // Fallback: clear the buy amount for edge cases
+        console.log("AddLiquidity syncFromSell fallback case");
         setBuyAmt("");
       }
     } catch (err) {
