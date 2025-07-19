@@ -1,7 +1,12 @@
 import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
-import { type TokenMeta, USDT_ADDRESS } from "@/lib/coins";
+import { CultHookAbi, CultHookAddress } from "@/constants/CultHook";
+import { type TokenMeta, USDT_ADDRESS, CULT_ADDRESS, CULT_TOKEN } from "@/lib/coins";
+import { 
+  getCultHookTaxRate,
+  toGross
+} from "@/lib/cult-hook-utils";
 import {
   DEADLINE_SEC,
   SWAP_FEE,
@@ -51,6 +56,10 @@ export async function buildSwapCalls(params: SwapParams & { publicClient: Public
   const isBuyETH = buyToken.id === null;
   const isCoinToCoin = !isSellETH && !isBuyETH;
   const isUSDT = (tok: TokenMeta) => tok.isCustomPool && tok.symbol === "USDT";
+  const isCULT = (tok: TokenMeta) => tok.isCustomPool && tok.symbol === "CULT";
+  
+  // Check if this swap involves the CULT hook
+  const isCultHookSwap = (isSellETH && isCULT(buyToken)) || (isCULT(sellToken) && isBuyETH);
 
   const decimals = sellToken.decimals || 18;
   // Parse with correct decimals (6 for USDT, 18 for regular tokens)
@@ -104,8 +113,31 @@ export async function buildSwapCalls(params: SwapParams & { publicClient: Public
     }
   }
 
-  // 2. For non-ETH, non-USDT tokens, check operator and add setOperator if needed
-  if (!isSellETH && !isUSDT(sellToken)) {
+  // 1b. If selling CULT, check allowance for CultHook and add approve if needed
+  if (!isSellETH && isCULT(sellToken)) {
+    const allowance: bigint = await publicClient.readContract({
+      address: CULT_ADDRESS,
+      abi: erc20Abi,
+      functionName: "allowance",
+      args: [address, CultHookAddress],
+    });
+
+    // For exactOut, we need to approve the max amount we might spend
+    const approvalAmount = exactOut ? maxSellAmount : sellAmtInUnits;
+    if (allowance < approvalAmount) {
+      calls.push({
+        to: CULT_ADDRESS,
+        data: encodeFunctionData({
+          abi: erc20Abi,
+          functionName: "approve",
+          args: [CultHookAddress, maxUint256],
+        }) as Hex,
+      });
+    }
+  }
+
+  // 2. For non-ETH, non-USDT, non-CULT tokens, check operator and add setOperator if needed
+  if (!isSellETH && !isUSDT(sellToken) && !isCULT(sellToken)) {
     const isOperator: boolean = await publicClient.readContract({
       address: CoinsAddress,
       abi: CoinsAbi,
@@ -199,32 +231,92 @@ export async function buildSwapCalls(params: SwapParams & { publicClient: Public
     const fromETH = isSellETH;
     const source = fromETH ? buyToken.source : sellToken.source;
     
-    if (exactOut) {
-      // swapExactOut: we want exactly buyAmtInUnits output, with maxSellAmount as input limit
-      const args = [poolKey, buyAmtInUnits, maxSellAmount, fromETH, swapRecipient, deadline] as const;
-      const call: Call = {
-        to: source === "ZAMM" ? ZAMMAddress : CookbookAddress,
-        data: encodeFunctionData({
-          abi: source === "ZAMM" ? ZAMMAbi : CookbookAbi,
-          functionName: "swapExactOut",
-          args,
-        }) as Hex,
-      };
-      if (fromETH) call.value = maxSellAmount;
-      calls.push(call);
+    // Handle CultHook routing for CULT swaps
+    if (isCultHookSwap) {
+      // Get tax rate for accurate calculations
+      const taxRate = await getCultHookTaxRate();
+      
+      if (exactOut) {
+        // For exactOut CULT swaps, we need to adjust parameters
+        let adjustedMaxAmount = maxSellAmount;
+        let msgValue = 0n;
+        
+        if (fromETH) {
+          // ETH → CULT: User wants exact CULT out, we need to provide gross ETH
+          msgValue = toGross(maxSellAmount, taxRate);
+          adjustedMaxAmount = maxSellAmount; // CultHook expects net amount as parameter
+        } else {
+          // CULT → ETH: User wants exact net ETH out
+          // CultHook will handle the tax internally
+        }
+        
+        const cultPoolKey = isCULT(buyToken) ? buyToken.poolKey : sellToken.poolKey;
+        const args = [cultPoolKey, buyAmtInUnits, adjustedMaxAmount, fromETH, swapRecipient, deadline] as const;
+        const call: Call = {
+          to: CultHookAddress,
+          data: encodeFunctionData({
+            abi: CultHookAbi,
+            functionName: "swapExactOut",
+            args,
+          }) as Hex,
+        };
+        if (fromETH) call.value = msgValue;
+        calls.push(call);
+      } else {
+        // swapExactIn for CULT swaps
+        let adjustedAmount = sellAmtInUnits;
+        let msgValue = 0n;
+        
+        if (fromETH) {
+          // ETH → CULT: User provides net ETH, we send gross
+          msgValue = toGross(sellAmtInUnits, taxRate);
+          adjustedAmount = sellAmtInUnits; // CultHook expects net amount
+        } else {
+          // CULT → ETH: Standard amount, tax handled by hook
+        }
+        
+        const cultPoolKey = isCULT(buyToken) ? buyToken.poolKey : sellToken.poolKey;
+        const args = [cultPoolKey, adjustedAmount, minBuyAmount, fromETH, swapRecipient, deadline] as const;
+        const call: Call = {
+          to: CultHookAddress,
+          data: encodeFunctionData({
+            abi: CultHookAbi,
+            functionName: "swapExactIn",
+            args,
+          }) as Hex,
+        };
+        if (fromETH) call.value = msgValue;
+        calls.push(call);
+      }
     } else {
-      // swapExactIn: we have exactly sellAmtInUnits input, with minBuyAmount as output minimum
-      const args = [poolKey, sellAmtInUnits, minBuyAmount, fromETH, swapRecipient, deadline] as const;
-      const call: Call = {
-        to: source === "ZAMM" ? ZAMMAddress : CookbookAddress,
-        data: encodeFunctionData({
-          abi: source === "ZAMM" ? ZAMMAbi : CookbookAbi,
-          functionName: "swapExactIn",
-          args,
-        }) as Hex,
-      };
-      if (fromETH) call.value = sellAmtInUnits;
-      calls.push(call);
+      // Regular non-CULT swap logic
+      if (exactOut) {
+        // swapExactOut: we want exactly buyAmtInUnits output, with maxSellAmount as input limit
+        const args = [poolKey, buyAmtInUnits, maxSellAmount, fromETH, swapRecipient, deadline] as const;
+        const call: Call = {
+          to: source === "ZAMM" ? ZAMMAddress : CookbookAddress,
+          data: encodeFunctionData({
+            abi: source === "ZAMM" ? ZAMMAbi : CookbookAbi,
+            functionName: "swapExactOut",
+            args,
+          }) as Hex,
+        };
+        if (fromETH) call.value = maxSellAmount;
+        calls.push(call);
+      } else {
+        // swapExactIn: we have exactly sellAmtInUnits input, with minBuyAmount as output minimum
+        const args = [poolKey, sellAmtInUnits, minBuyAmount, fromETH, swapRecipient, deadline] as const;
+        const call: Call = {
+          to: source === "ZAMM" ? ZAMMAddress : CookbookAddress,
+          data: encodeFunctionData({
+            abi: source === "ZAMM" ? ZAMMAbi : CookbookAbi,
+            functionName: "swapExactIn",
+            args,
+          }) as Hex,
+        };
+        if (fromETH) call.value = sellAmtInUnits;
+        calls.push(call);
+      }
     }
   }
 

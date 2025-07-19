@@ -50,6 +50,17 @@ export const TokenImage = memo(
       }
 
       const fetchMetadata = async () => {
+        // Check for direct imageUrl first (for simple image files like CULT)
+        if (token.imageUrl && !token.tokenUri) {
+          setActualImageUrl(token.imageUrl);
+          try {
+            sessionStorage.setItem(cacheKey, token.imageUrl);
+          } catch (e) {
+            // Ignore sessionStorage errors
+          }
+          return;
+        }
+        
         if (!token.tokenUri) return;
 
         // Skip for data URIs like the ETH SVG
@@ -175,8 +186,8 @@ export const TokenImage = memo(
       return <EthereumIcon className="w-8 h-8 rounded-full" />;
     }
 
-    // If token has no URI, show colored initial
-    if (!token.tokenUri) {
+    // If token has no URI or imageUrl, show colored initial
+    if (!token.tokenUri && !token.imageUrl) {
       // Use token ID as a cache key to maintain stable identities
       const cacheKey = `token-initial-${token.id ?? "eth"}`;
 
