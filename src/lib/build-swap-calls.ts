@@ -2,7 +2,7 @@ import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
 import { CultHookAbi, CultHookAddress } from "@/constants/CultHook";
-import { type TokenMeta, USDT_ADDRESS, CULT_ADDRESS, CULT_TOKEN } from "@/lib/coins";
+import { type TokenMeta, USDT_ADDRESS, CULT_ADDRESS, CULT_POOL_KEY } from "@/lib/coins";
 import { 
   getCultHookTaxRate,
   toGross
@@ -250,8 +250,7 @@ export async function buildSwapCalls(params: SwapParams & { publicClient: Public
           // CultHook will handle the tax internally
         }
         
-        const cultPoolKey = isCULT(buyToken) ? buyToken.poolKey : sellToken.poolKey;
-        const args = [cultPoolKey, buyAmtInUnits, adjustedMaxAmount, fromETH, swapRecipient, deadline] as const;
+        const args = [CULT_POOL_KEY, buyAmtInUnits, adjustedMaxAmount, fromETH, swapRecipient, deadline] as const;
         const call: Call = {
           to: CultHookAddress,
           data: encodeFunctionData({
@@ -275,8 +274,7 @@ export async function buildSwapCalls(params: SwapParams & { publicClient: Public
           // CULT → ETH: Standard amount, tax handled by hook
         }
         
-        const cultPoolKey = isCULT(buyToken) ? buyToken.poolKey : sellToken.poolKey;
-        const args = [cultPoolKey, adjustedAmount, minBuyAmount, fromETH, swapRecipient, deadline] as const;
+        const args = [CULT_POOL_KEY, adjustedAmount, minBuyAmount, fromETH, swapRecipient, deadline] as const;
         const call: Call = {
           to: CultHookAddress,
           data: encodeFunctionData({
