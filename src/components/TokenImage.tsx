@@ -49,6 +49,17 @@ export const TokenImage = memo(
         // Ignore sessionStorage errors
       }
 
+      // Special handling for CULT token - use static image directly
+      if (token.symbol === "CULT" && token.tokenUri === "/cult.jpg") {
+        setActualImageUrl("/cult.jpg");
+        try {
+          sessionStorage.setItem(cacheKey, "/cult.jpg");
+        } catch (e) {
+          // Ignore sessionStorage errors
+        }
+        return;
+      }
+
       const fetchMetadata = async () => {
         // Check for direct imageUrl first (for simple image files like CULT)
         if (token.imageUrl && !token.tokenUri) {
@@ -74,8 +85,8 @@ export const TokenImage = memo(
           return;
         }
 
-        // Handle direct image paths like /cult.jpg
-        if (token.tokenUri.startsWith("/") && (token.tokenUri.endsWith(".jpg") || token.tokenUri.endsWith(".png") || token.tokenUri.endsWith(".gif") || token.tokenUri.endsWith(".svg"))) {
+        // Handle direct image paths like /cult.jpg - treat as static images, not metadata
+        if (token.tokenUri.startsWith("/") && (token.tokenUri.endsWith(".jpg") || token.tokenUri.endsWith(".png") || token.tokenUri.endsWith(".gif") || token.tokenUri.endsWith(".svg") || token.tokenUri.endsWith(".webp"))) {
           setActualImageUrl(token.tokenUri);
           try {
             sessionStorage.setItem(cacheKey, token.tokenUri);
