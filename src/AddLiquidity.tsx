@@ -6,7 +6,6 @@ import {
   type ZAMMPoolKey,
   analyzeTokens,
   computePoolKey,
-  estimateCoinToCoinOutput,
   getPoolIds,
   withSlippage,
 } from "./lib/swap";
