@@ -74,6 +74,17 @@ export const TokenImage = memo(
           return;
         }
 
+        // Handle direct image paths like /cult.jpg
+        if (token.tokenUri.startsWith("/") && (token.tokenUri.endsWith(".jpg") || token.tokenUri.endsWith(".png") || token.tokenUri.endsWith(".gif") || token.tokenUri.endsWith(".svg"))) {
+          setActualImageUrl(token.tokenUri);
+          try {
+            sessionStorage.setItem(cacheKey, token.tokenUri);
+          } catch (e) {
+            // Ignore sessionStorage errors
+          }
+          return;
+        }
+
         try {
           // Handle IPFS URIs
           const uri = token.tokenUri.startsWith("ipfs://")

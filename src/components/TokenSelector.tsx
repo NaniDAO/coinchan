@@ -219,7 +219,7 @@ export const TokenSelector = memo(
                     if (cached) return cached;
                   } catch (e) {}
 
-                  const feePercentage = token.swapFee ? Number(token.swapFee) / 10000 : 1;
+                  const feePercentage = token.swapFee ? Number(token.swapFee) / 100 : 1;
 
                   let feeStr;
                   if (feePercentage % 1 === 0) {
