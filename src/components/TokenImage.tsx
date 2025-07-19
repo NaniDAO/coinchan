@@ -49,11 +49,12 @@ export const TokenImage = memo(
         // Ignore sessionStorage errors
       }
 
-      // Check for direct imageUrl first (for simple image files like CULT)
-      if (token.imageUrl) {
-        setActualImageUrl(token.imageUrl);
+      // Special case for CULT token - use CoinGecko image
+      if (token.symbol === "CULT") {
+        const cultUrl = "https://assets.coingecko.com/coins/images/52583/standard/cult.jpg?1733712273";
+        setActualImageUrl(cultUrl);
         try {
-          sessionStorage.setItem(cacheKey, token.imageUrl);
+          sessionStorage.setItem(cacheKey, cultUrl);
         } catch (e) {
           // Ignore sessionStorage errors
         }
@@ -61,6 +62,17 @@ export const TokenImage = memo(
       }
 
       const fetchMetadata = async () => {
+        // Check for direct imageUrl first (for simple image files)
+        if (token.imageUrl) {
+          setActualImageUrl(token.imageUrl);
+          try {
+            sessionStorage.setItem(cacheKey, token.imageUrl);
+          } catch (e) {
+            // Ignore sessionStorage errors
+          }
+          return;
+        }
+        
         if (!token.tokenUri) return;
 
         // Skip for data URIs like the ETH SVG
