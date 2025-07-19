@@ -65,8 +65,8 @@ export const TokenImage = memo(
           return;
         }
 
-        // Handle direct image URLs (like CoinGecko URLs)
-        if (token.tokenUri.startsWith("http") && (token.tokenUri.includes(".jpg") || token.tokenUri.includes(".png") || token.tokenUri.includes(".gif") || token.tokenUri.includes(".webp"))) {
+        // Handle direct image URLs (local or external)
+        if ((token.tokenUri.startsWith("http") || token.tokenUri.startsWith("/")) && (token.tokenUri.includes(".jpg") || token.tokenUri.includes(".png") || token.tokenUri.includes(".gif") || token.tokenUri.includes(".webp"))) {
           setActualImageUrl(token.tokenUri);
           try {
             sessionStorage.setItem(cacheKey, token.tokenUri);
