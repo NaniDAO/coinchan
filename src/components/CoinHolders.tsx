@@ -43,12 +43,8 @@ export const CoinHolders = ({
 
   // Separate pool addresses from regular holders
   const poolAddresses = [ZAMMAddress.toLowerCase(), CookbookAddress.toLowerCase()];
-  const poolHolders = data.filter(holder => 
-    poolAddresses.includes(holder.address.toLowerCase())
-  );
-  const nonPoolHolders = data.filter(holder => 
-    !poolAddresses.includes(holder.address.toLowerCase())
-  );
+  const poolHolders = data.filter((holder) => poolAddresses.includes(holder.address.toLowerCase()));
+  const nonPoolHolders = data.filter((holder) => !poolAddresses.includes(holder.address.toLowerCase()));
 
   // Calculate total supply and pool percentage
   const totalSupply = data.reduce((acc, holder) => acc + BigInt(holder.balance), BigInt(0));
@@ -62,9 +58,7 @@ export const CoinHolders = ({
         <Card>
           <CardHeader>
             <CardTitle>Pool Holdings</CardTitle>
-            <CardDescription>
-              Liquidity held by ZAMM and Cookbook pools
-            </CardDescription>
+            <CardDescription>Liquidity held by ZAMM and Cookbook pools</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -72,9 +66,8 @@ export const CoinHolders = ({
                 const isZAMM = holder.address.toLowerCase() === ZAMMAddress.toLowerCase();
                 const poolName = isZAMM ? "ZAMM Pool" : "Cookbook Pool";
                 const balance = formatUnits(BigInt(holder.balance), 18);
-                const percentage = totalSupply > 0n ? 
-                  (Number(BigInt(holder.balance)) / Number(totalSupply)) * 100 : 0;
-                
+                const percentage = totalSupply > 0n ? (Number(BigInt(holder.balance)) / Number(totalSupply)) * 100 : 0;
+
                 return (
                   <div key={index} className="flex justify-between items-center p-2 rounded bg-muted/50">
                     <div>
@@ -84,7 +77,9 @@ export const CoinHolders = ({
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-medium">{Number(balance).toFixed(4)} {symbol}</div>
+                      <div className="font-medium">
+                        {Number(balance).toFixed(4)} {symbol}
+                      </div>
                       <div className="text-sm text-muted-foreground">{percentage.toFixed(2)}%</div>
                     </div>
                   </div>

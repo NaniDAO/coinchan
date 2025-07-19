@@ -49,6 +49,17 @@ export const TokenImage = memo(
         // Ignore sessionStorage errors
       }
 
+      // Check if token has imageUrl (for Trust Wallet tokens)
+      if (token.imageUrl) {
+        setActualImageUrl(token.imageUrl);
+        try {
+          sessionStorage.setItem(cacheKey, token.imageUrl);
+        } catch (e) {
+          // Ignore sessionStorage errors
+        }
+        return;
+      }
+
       const fetchMetadata = async () => {
         if (!token.tokenUri) return;
 
@@ -78,6 +89,35 @@ export const TokenImage = memo(
               `https://gateway.pinata.cloud/ipfs/${hash}`,
               `https://ipfs.fleek.co/ipfs/${hash}`,
             ]);
+          } else if (
+            token.tokenUri.includes("trustwallet") ||
+            token.tokenUri.includes("githubusercontent.com/trustwallet")
+          ) {
+            // For Trust Wallet URLs, ensure we have both CDN and GitHub alternatives
+            // Extract the address and ensure it's checksummed
+            const pathMatch = token.tokenUri.match(/\/assets\/(0x[a-fA-F0-9]{40})\/logo\.png/i);
+            if (pathMatch) {
+              const address = pathMatch[1];
+              // Import getAddress to ensure checksum
+              import("viem").then(({ getAddress }) => {
+                try {
+                  const checksumAddress = getAddress(address);
+                  setAlternativeUrls([
+                    `https://assets-cdn.trustwallet.com/blockchains/ethereum/assets/${checksumAddress}/logo.png`,
+                    `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/${checksumAddress}/logo.png`,
+                    // Also try with original casing as fallback
+                    `https://assets-cdn.trustwallet.com/blockchains/ethereum/assets/${address}/logo.png`,
+                    `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/${address}/logo.png`,
+                  ]);
+                } catch {
+                  // If checksum fails, use original address
+                  setAlternativeUrls([
+                    `https://assets-cdn.trustwallet.com/blockchains/ethereum/assets/${address}/logo.png`,
+                    `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/${address}/logo.png`,
+                  ]);
+                }
+              });
+            }
           }
 
           // Try to fetch as JSON (might be metadata)
@@ -144,7 +184,7 @@ export const TokenImage = memo(
       };
 
       fetchMetadata();
-    }, [token.tokenUri, token.symbol, token.id, cacheKey]);
+    }, [token.tokenUri, token.imageUrl, token.symbol, token.id, cacheKey]);
 
     // If image fails to load, try alternatives
     const tryNextAlternative = useCallback(() => {
@@ -175,8 +215,8 @@ export const TokenImage = memo(
       return <EthereumIcon className="w-8 h-8 rounded-full" />;
     }
 
-    // If token has no URI, show colored initial
-    if (!token.tokenUri) {
+    // If token has no URI and no imageUrl, show colored initial
+    if (!token.tokenUri && !token.imageUrl) {
       // Use token ID as a cache key to maintain stable identities
       const cacheKey = `token-initial-${token.id ?? "eth"}`;
 

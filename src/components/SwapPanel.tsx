@@ -25,6 +25,10 @@ interface SwapPanelProps {
   showPercentageSlider?: boolean;
   /** Callback when percentage changes */
   onPercentageChange?: (percentage: number) => void;
+  /** Show ERC20 input option in token selector */
+  showErc20Input?: boolean;
+  /** Callback when ERC20 token is created */
+  onErc20TokenCreate?: (address: string) => void;
   className?: string;
 }
 
@@ -42,6 +46,8 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
   previewLabel,
   showPercentageSlider = false,
   onPercentageChange,
+  showErc20Input = false,
+  onErc20TokenCreate,
   className = "",
 }) => {
   const { t } = useTranslation();
@@ -56,8 +62,8 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
 
     try {
       const balance = selectedToken.balance as bigint;
-      const amountBigInt =
-        selectedToken.id === null ? parseEther(amount) : parseUnits(amount, selectedToken.decimals || 18);
+      const tokenDecimals = selectedToken.decimals ?? 18;
+      const amountBigInt = selectedToken.id === null ? parseEther(amount) : parseUnits(amount, tokenDecimals);
 
       if (balance > 0n) {
         const calculatedPercentage = Number((amountBigInt * 100n) / balance);
@@ -83,7 +89,8 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
     } else {
       // Other tokens - use full balance
       const adjustedBalance = (balance * BigInt(newPercentage)) / 100n;
-      calculatedAmount = formatUnits(adjustedBalance, selectedToken.decimals || 18);
+      const tokenDecimals = selectedToken.decimals ?? 18;
+      calculatedAmount = formatUnits(adjustedBalance, tokenDecimals);
     }
 
     onAmountChange(calculatedAmount);
@@ -103,6 +110,8 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
           tokens={tokens}
           onSelect={onSelect}
           isEthBalanceFetching={isEthBalanceFetching}
+          showErc20Input={showErc20Input}
+          onErc20TokenCreate={onErc20TokenCreate}
         />
       </div>
       <div className="flex justify-between items-center">

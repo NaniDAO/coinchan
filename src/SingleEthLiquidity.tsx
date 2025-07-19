@@ -3,27 +3,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseEther } from "viem";
 import { mainnet } from "viem/chains";
-import {
-  useAccount,
-  useChainId,
-  usePublicClient,
-  useWaitForTransactionReceipt,
-  useWriteContract,
-} from "wagmi";
+import { useAccount, useChainId, usePublicClient, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { NetworkError } from "./components/NetworkError";
 import { SlippageSettings } from "./components/SlippageSettings";
 import { SuccessMessage } from "./components/SuccessMessage";
 import { SwapPanel } from "./components/SwapPanel";
 import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
 import { ZAMMAbi, ZAMMAddress } from "./constants/ZAAM";
-import {
-  ZAMMSingleLiqETHAbi,
-  ZAMMSingleLiqETHAddress,
-} from "./constants/ZAMMSingleLiqETH";
-import {
-  ZAMMSingleLiqETHV1Abi,
-  ZAMMSingleLiqETHV1Address,
-} from "./constants/ZAMMSingleLiqETHV1";
+import { ZAMMSingleLiqETHAbi, ZAMMSingleLiqETHAddress } from "./constants/ZAMMSingleLiqETH";
+import { ZAMMSingleLiqETHV1Abi, ZAMMSingleLiqETHV1Address } from "./constants/ZAMMSingleLiqETHV1";
 import { useTokenSelection } from "./contexts/TokenSelectionContext";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { useReserves } from "./hooks/use-reserves";
@@ -52,8 +40,7 @@ export const SingleEthLiquidity = () => {
   const [, setBuyAmt] = useState("");
 
   // Use shared token selection context
-  const { sellToken, buyToken, setSellToken, setBuyToken } =
-    useTokenSelection();
+  const { sellToken, buyToken, setSellToken, setBuyToken } = useTokenSelection();
 
   const {
     isCustom: isCustomPool,
@@ -77,21 +64,14 @@ export const SingleEthLiquidity = () => {
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [txError, setTxError] = useState<string | null>(null);
 
-  const [singleEthSlippageBps, setSingleEthSlippageBps] = useState<bigint>(
-    SINGLE_ETH_SLIPPAGE_BPS,
-  );
-  const [singleETHEstimatedCoin, setSingleETHEstimatedCoin] =
-    useState<string>("");
+  const [singleEthSlippageBps, setSingleEthSlippageBps] = useState<bigint>(SINGLE_ETH_SLIPPAGE_BPS);
+  const [singleETHEstimatedCoin, setSingleETHEstimatedCoin] = useState<string>("");
 
   const { tokens, isEthBalanceFetching } = useAllCoins();
 
   const { isConnected, address } = useAccount();
   const chainId = useChainId();
-  const {
-    writeContractAsync,
-    isPending,
-    error: writeError,
-  } = useWriteContract();
+  const { writeContractAsync, isPending, error: writeError } = useWriteContract();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
   const publicClient = usePublicClient({
     chainId,
@@ -100,10 +80,7 @@ export const SingleEthLiquidity = () => {
   // Create a memoized version of tokens that doesn't change with every render
   const memoizedTokens = useMemo(() => tokens, [tokens]);
   // Also create a memoized version of non-ETH tokens to avoid conditional hook calls
-  const memoizedNonEthTokens = useMemo(
-    () => memoizedTokens.filter((token) => token.id !== null),
-    [memoizedTokens],
-  );
+  const memoizedNonEthTokens = useMemo(() => memoizedTokens.filter((token) => token.id !== null), [memoizedTokens]);
 
   // When switching to single-eth mode, ensure ETH is selected as the sell token
   // and set a default target token if none is selected
@@ -119,9 +96,7 @@ export const SingleEthLiquidity = () => {
     if (!buyToken || (buyToken.id === null && !buyToken.isCustomPool)) {
       // Find the first non-ETH token with the highest liquidity
       // Also include custom pools like USDT even if their ID is 0
-      const defaultTarget = tokens.find(
-        (token) => token.id !== null || token.isCustomPool,
-      );
+      const defaultTarget = tokens.find((token) => token.id !== null || token.isCustomPool);
       if (defaultTarget) {
         setBuyToken(defaultTarget);
       }
@@ -144,12 +119,7 @@ export const SingleEthLiquidity = () => {
     // Single-ETH liquidity mode - estimate the token amount the user will get
     setSellAmt(val);
     // Allow custom pools like USDT with id=0
-    if (
-      !reserves ||
-      !val ||
-      !buyToken ||
-      (buyToken.id === null && !buyToken.isCustomPool)
-    ) {
+    if (!reserves || !val || !buyToken || (buyToken.id === null && !buyToken.isCustomPool)) {
       setSingleETHEstimatedCoin("");
       return;
     }
@@ -201,10 +171,7 @@ export const SingleEthLiquidity = () => {
             };
           }
         } catch (err) {
-          console.error(
-            `Failed to fetch reserves for target token ${buyToken.id}:`,
-            err,
-          );
+          console.error(`Failed to fetch reserves for target token ${buyToken.id}:`, err);
           // Continue with existing reserves as fallback
         }
       }
@@ -216,21 +183,14 @@ export const SingleEthLiquidity = () => {
       const swapFee = buyToken.swapFee ?? SWAP_FEE;
 
       // Estimate how many tokens we'll get for half the ETH
-      const estimatedTokens = getAmountOut(
-        halfEthAmount,
-        targetReserves.reserve0,
-        targetReserves.reserve1,
-        swapFee,
-      );
+      const estimatedTokens = getAmountOut(halfEthAmount, targetReserves.reserve0, targetReserves.reserve1, swapFee);
 
       // Update the estimated coin display
       if (estimatedTokens === 0n) {
         setSingleETHEstimatedCoin("");
       } else {
         // Use correct decimals for the token (6 for USDT, 18 for regular tokens)
-        const tokenDecimals = buyToken?.isCustomPool
-          ? buyToken.decimals || 18
-          : 18;
+        const tokenDecimals = buyToken?.isCustomPool ? buyToken.decimals || 18 : 18;
 
         const formattedTokens = formatUnits(estimatedTokens, tokenDecimals);
         setSingleETHEstimatedCoin(formattedTokens);
@@ -314,11 +274,7 @@ export const SingleEthLiquidity = () => {
             targetPoolId = buyToken.poolId;
           } else if (isCookbook) {
             // Cookbook pool ID - use CookbookAddress as token1
-            targetPoolId = computePoolId(
-              targetTokenId,
-              swapFee,
-              CookbookAddress,
-            );
+            targetPoolId = computePoolId(targetTokenId, swapFee, CookbookAddress);
           } else {
             // Regular pool ID
             targetPoolId = computePoolId(targetTokenId, swapFee);
@@ -346,25 +302,14 @@ export const SingleEthLiquidity = () => {
             supply: reserves?.supply || 0n,
           };
         } catch (err) {
-          console.error(
-            `Failed to fetch reserves for ${buyToken.symbol}:`,
-            err,
-          );
-          setTxError(
-            `Failed to get pool data for ${buyToken.symbol}. Please try again.`,
-          );
+          console.error(`Failed to fetch reserves for ${buyToken.symbol}:`, err);
+          setTxError(`Failed to get pool data for ${buyToken.symbol}. Please try again.`);
           return;
         }
       }
 
-      if (
-        !targetReserves ||
-        targetReserves.reserve0 === 0n ||
-        targetReserves.reserve1 === 0n
-      ) {
-        setTxError(
-          `No liquidity available for ${buyToken.symbol}. Please select another token.`,
-        );
+      if (!targetReserves || targetReserves.reserve0 === 0n || targetReserves.reserve1 === 0n) {
+        setTxError(`No liquidity available for ${buyToken.symbol}. Please select another token.`);
         return;
       }
 
@@ -372,18 +317,10 @@ export const SingleEthLiquidity = () => {
       const halfEthAmount = ethAmount / 2n;
 
       // Estimate how many tokens we'll get for half the ETH
-      const estimatedTokens = getAmountOut(
-        halfEthAmount,
-        targetReserves.reserve0,
-        targetReserves.reserve1,
-        swapFee,
-      );
+      const estimatedTokens = getAmountOut(halfEthAmount, targetReserves.reserve0, targetReserves.reserve1, swapFee);
 
       // Apply higher slippage tolerance for Single-ETH operations
-      const minTokenAmount = withSlippage(
-        estimatedTokens,
-        singleEthSlippageBps,
-      );
+      const minTokenAmount = withSlippage(estimatedTokens, singleEthSlippageBps);
 
       // Min amounts for the addLiquidity portion with higher slippage for less liquid pools
       const amount0Min = withSlippage(halfEthAmount, singleEthSlippageBps);
@@ -391,12 +328,8 @@ export const SingleEthLiquidity = () => {
       const amount1Min = withSlippage(estimatedTokens, singleEthSlippageBps);
 
       // Call addSingleLiqETH on the appropriate contract based on coin type
-      const contractAddress = isCookbook
-        ? ZAMMSingleLiqETHV1Address
-        : ZAMMSingleLiqETHAddress;
-      const contractAbi = isCookbook
-        ? ZAMMSingleLiqETHV1Abi
-        : ZAMMSingleLiqETHAbi;
+      const contractAddress = isCookbook ? ZAMMSingleLiqETHV1Address : ZAMMSingleLiqETHAddress;
+      const contractAbi = isCookbook ? ZAMMSingleLiqETHV1Abi : ZAMMSingleLiqETHAbi;
 
       const hash = await writeContractAsync({
         address: contractAddress,
@@ -416,12 +349,7 @@ export const SingleEthLiquidity = () => {
       setTxHash(hash);
     } catch (err: unknown) {
       // Enhanced error handling with specific messages for common failure cases
-      if (
-        typeof err === "object" &&
-        err !== null &&
-        "message" in err &&
-        typeof err.message === "string"
-      ) {
+      if (typeof err === "object" && err !== null && "message" in err && typeof err.message === "string") {
         if (err.message.includes("InsufficientOutputAmount")) {
           console.error("Slippage too high in low liquidity pool:", err);
           setTxError(
@@ -514,23 +442,16 @@ export const SingleEthLiquidity = () => {
       <NetworkError message="manage liquidity" />
 
       {/* Slippage */}
-      <SlippageSettings
-        setSlippageBps={setSingleEthSlippageBps}
-        slippageBps={singleEthSlippageBps}
-      />
+      <SlippageSettings setSlippageBps={setSingleEthSlippageBps} slippageBps={singleEthSlippageBps} />
 
       {/* Info box */}
       <div className="text-xs bg-muted/50 border border-primary/30 rounded p-2 mt-2 text-muted-foreground">
-        <p className="font-medium mb-1">
-          {t("pool.single_sided_eth_liquidity")}
-        </p>
+        <p className="font-medium mb-1">{t("pool.single_sided_eth_liquidity")}</p>
         <ul className="list-disc pl-4 space-y-0.5">
           <li>{t("pool.provide_only_eth")}</li>
           <li>{t("pool.half_eth_swapped")}</li>
           <li>{t("pool.remaining_eth_added")}</li>
-          <li>
-            {t("pool.earn_fees_from_trades", { fee: Number(SWAP_FEE) / 100 })}
-          </li>
+          <li>{t("pool.earn_fees_from_trades", { fee: Number(SWAP_FEE) / 100 })}</li>
         </ul>
       </div>
 
@@ -563,12 +484,9 @@ export const SingleEthLiquidity = () => {
           {txError}
         </div>
       )}
-      {((writeError && !isUserRejectionError(writeError)) ||
-        (txError && !txError.includes("Waiting for"))) && (
+      {((writeError && !isUserRejectionError(writeError)) || (txError && !txError.includes("Waiting for"))) && (
         <div className="text-sm text-destructive mt-2 bg-background/50 p-2 rounded border border-destructive/20">
-          {writeError && !isUserRejectionError(writeError)
-            ? writeError.message
-            : txError}
+          {writeError && !isUserRejectionError(writeError) ? writeError.message : txError}
         </div>
       )}
       {isSuccess && <SuccessMessage />}

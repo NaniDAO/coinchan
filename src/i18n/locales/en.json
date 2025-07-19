@@ -677,7 +677,7 @@
     "confirmed": "Confirmed"
   },
   "tokenSelector": {
-    "search_tokens": "Search coins by name or ID",
+    "search_tokens": "Search tokens...",
     "token_list": "Token List",
     "popular_tokens": "Popular Tokens",
     "your_tokens": "Your Tokens",

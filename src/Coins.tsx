@@ -23,10 +23,7 @@ function escapeRegExp(input: string): string {
 }
 
 // Helper function to check if an ACTIVE sale should be filtered out due to expiration
-const shouldFilterExpiredActiveSale = (
-  coin: CoinData,
-  saleDeadlines: Map<string, number>,
-): boolean => {
+const shouldFilterExpiredActiveSale = (coin: CoinData, saleDeadlines: Map<string, number>): boolean => {
   // Only check ACTIVE sales for deadline expiration
   if (coin.saleStatus !== "ACTIVE") {
     return false; // Don't filter non-active sales here
@@ -46,19 +43,12 @@ const shouldFilterExpiredActiveSale = (
 };
 
 // Helper function to get filtered launch sales data for pagination
-const getFilteredLaunchSales = (
-  coins: CoinData[],
-  saleDeadlines: Map<string, number>,
-): CoinData[] => {
+const getFilteredLaunchSales = (coins: CoinData[], saleDeadlines: Map<string, number>): CoinData[] => {
   // First filter to include only coins that should appear in Launch Sales
-  const launchSalesCoins = coins.filter((coin) =>
-    shouldShowInLaunchSales(coin),
-  );
+  const launchSalesCoins = coins.filter((coin) => shouldShowInLaunchSales(coin));
 
   // Then filter out expired active sales based on deadlines
-  return launchSalesCoins.filter(
-    (coin) => !shouldFilterExpiredActiveSale(coin, saleDeadlines || new Map()),
-  );
+  return launchSalesCoins.filter((coin) => !shouldFilterExpiredActiveSale(coin, saleDeadlines || new Map()));
 };
 
 export const Coins = () => {
@@ -74,8 +64,7 @@ export const Coins = () => {
   /* ------------------------------------------------------------------
    *  Paged & global coin data
    * ------------------------------------------------------------------ */
-  const { coins, allCoins, page, goToNextPage, isLoading, setPage } =
-    usePagedCoins(PAGE_SIZE);
+  const { coins, allCoins, page, goToNextPage, isLoading, setPage } = usePagedCoins(PAGE_SIZE);
 
   /* ------------------------------------------------------------------
    *  Launch sales deadline data (for filtering expired sales)
@@ -86,10 +75,7 @@ export const Coins = () => {
    *  Search handling
    * ------------------------------------------------------------------ */
   // 1) memoize the trimmed query
-  const trimmedQuery = useMemo(
-    () => searchQuery.trim().toLowerCase(),
-    [searchQuery],
-  );
+  const trimmedQuery = useMemo(() => searchQuery.trim().toLowerCase(), [searchQuery]);
 
   // 2) derive `searchResults` (and "active" flag) purely from inputs
   const searchResults = useMemo(() => {
@@ -100,9 +86,7 @@ export const Coins = () => {
 
     return dataToSearch.filter((coin) => {
       // Split the search query into words for multi-term searching
-      const searchTerms = trimmedQuery
-        .split(/\s+/)
-        .filter((term) => term.length > 0);
+      const searchTerms = trimmedQuery.split(/\s+/).filter((term) => term.length > 0);
 
       // If no valid search terms, return empty results
       if (searchTerms.length === 0) return false;
@@ -138,10 +122,7 @@ export const Coins = () => {
   /* ------------------------------------------------------------------
    *  Debounced pagination handlers to prevent rapid clicks
    * ------------------------------------------------------------------ */
-  const debouncedNextPage = useMemo(
-    () => debounce(goToNextPage, 350),
-    [goToNextPage],
-  );
+  const debouncedNextPage = useMemo(() => debounce(goToNextPage, 350), [goToNextPage]);
 
   // Fix for previous page bug - force setting the page directly to ensure correct navigation
   const debouncedPrevPage = useMemo(
@@ -187,11 +168,7 @@ export const Coins = () => {
       // Filter out invalid coins (with ID 0 or undefined/null IDs)
       // This prevents the "Token 0" issue by removing problematic entries
       const validCoins = coinsToSort.filter(
-        (coin) =>
-          coin &&
-          coin.coinId !== undefined &&
-          coin.coinId !== null &&
-          Number(coin.coinId) > 0, // Explicitly exclude ID 0
+        (coin) => coin && coin.coinId !== undefined && coin.coinId !== null && Number(coin.coinId) > 0, // Explicitly exclude ID 0
       );
 
       // If all coins were filtered out, return empty array
@@ -223,25 +200,18 @@ export const Coins = () => {
       } else if (sortType === "votes") {
         return coinsCopy.sort((a, b) => {
           // Convert BigInt to number (or fallback to 0)
-          const aVotes =
-            a.votes !== undefined ? Number(formatEther(a.votes)) : 0;
-          const bVotes =
-            b.votes !== undefined ? Number(formatEther(b.votes)) : 0;
+          const aVotes = a.votes !== undefined ? Number(formatEther(a.votes)) : 0;
+          const bVotes = b.votes !== undefined ? Number(formatEther(b.votes)) : 0;
 
           if (aVotes === bVotes) {
             // Tiebreaker: use coinId descending when votes are equal
-            return sortOrder === "asc"
-              ? Number(a.coinId) - Number(b.coinId)
-              : Number(b.coinId) - Number(a.coinId);
+            return sortOrder === "asc" ? Number(a.coinId) - Number(b.coinId) : Number(b.coinId) - Number(a.coinId);
           }
           return sortOrder === "asc" ? aVotes - bVotes : bVotes - aVotes;
         });
       } else if (sortType === "launch") {
         // Use the same filtering logic as pagination for consistency
-        const filteredLaunchSales = getFilteredLaunchSales(
-          coinsCopy,
-          saleDeadlines || new Map(),
-        );
+        const filteredLaunchSales = getFilteredLaunchSales(coinsCopy, saleDeadlines || new Map());
 
         // Sort the remaining sales
         return filteredLaunchSales.sort((a, b) => {
@@ -257,12 +227,7 @@ export const Coins = () => {
         return coinsCopy.sort((a, b) => {
           // This check should be redundant due to filtering above,
           // but keeping it for extra safety
-          if (
-            !a?.coinId ||
-            !b?.coinId ||
-            Number(a.coinId) === 0 ||
-            Number(b.coinId) === 0
-          ) {
+          if (!a?.coinId || !b?.coinId || Number(a.coinId) === 0 || Number(b.coinId) === 0) {
             return 0;
           }
 
@@ -285,11 +250,7 @@ export const Coins = () => {
    * ------------------------------------------------------------------ */
   const filterValidCoins = useCallback((coinsList: CoinData[]): CoinData[] => {
     return coinsList.filter(
-      (coin) =>
-        coin &&
-        coin.coinId !== undefined &&
-        coin.coinId !== null &&
-        Number(coin.coinId) > 0, // Exclude ID 0 and any negative IDs
+      (coin) => coin && coin.coinId !== undefined && coin.coinId !== null && Number(coin.coinId) > 0, // Exclude ID 0 and any negative IDs
     );
   }, []);
 
@@ -359,30 +320,16 @@ export const Coins = () => {
           isSearchActive
             ? filterValidCoins(searchResults || []).length
             : sortType === "launch"
-              ? getFilteredLaunchSales(
-                  filterValidCoins(allCoins || []),
-                  saleDeadlines || new Map(),
-                ).length
-              : filterValidCoins(
-                  sortType === "recency"
-                    ? allCoinsUnpaged || []
-                    : allCoins || [],
-                ).length
+              ? getFilteredLaunchSales(filterValidCoins(allCoins || []), saleDeadlines || new Map()).length
+              : filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || []).length
         }
         canPrev={!isSearchActive && page > 0}
         canNext={
           !isSearchActive &&
           (page + 1) * PAGE_SIZE <
             (sortType === "launch"
-              ? getFilteredLaunchSales(
-                  filterValidCoins(allCoins || []),
-                  saleDeadlines || new Map(),
-                ).length
-              : filterValidCoins(
-                  sortType === "recency"
-                    ? allCoinsUnpaged || []
-                    : allCoins || [],
-                ).length)
+              ? getFilteredLaunchSales(filterValidCoins(allCoins || []), saleDeadlines || new Map()).length
+              : filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || []).length)
         }
         onPrev={debouncedPrevPage}
         onNext={debouncedNextPage}
@@ -394,15 +341,8 @@ export const Coins = () => {
             (isSearchActive
               ? filterValidCoins(searchResults || []).length
               : sortType === "launch"
-                ? getFilteredLaunchSales(
-                    filterValidCoins(allCoins || []),
-                    saleDeadlines || new Map(),
-                  ).length
-                : filterValidCoins(
-                    sortType === "recency"
-                      ? allCoinsUnpaged || []
-                      : allCoins || [],
-                  ).length) / PAGE_SIZE,
+                ? getFilteredLaunchSales(filterValidCoins(allCoins || []), saleDeadlines || new Map()).length
+                : filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || []).length) / PAGE_SIZE,
           ),
         )}
         isSearchActive={isSearchActive}
@@ -421,9 +361,10 @@ export const Coins = () => {
             <input
               type="text"
               placeholder={t("tokenSelector.search_tokens")}
+              title="Search tokens by name, symbol, or ID"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="border-2 border-border p-2 bg-muted text-muted focus:outline-none focus:text-foreground focus:shadow-none w-full pl-10 pr-8 text-sm font-body py-2.5 px-10"
+              className="border border-border bg-muted text-muted focus:outline-none focus:text-foreground focus:shadow-none w-full pl-10 pr-8 text-sm font-body py-2.5 px-10 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
             />
             {searchQuery && (
               <button
