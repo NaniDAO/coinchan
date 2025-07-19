@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   useAccount,
   useBalance,
@@ -240,6 +241,7 @@ const priceUpdateAnimation = `
 `;
 
 export const CultBuySell = () => {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<"buy" | "sell" | "add-liquidity" | "remove-liquidity">("buy");
   const [amount, setAmount] = useState("");
   const [liquidityEthAmount, setLiquidityEthAmount] = useState("");
@@ -254,7 +256,6 @@ export const CultBuySell = () => {
   const [cultTaxRate, setCultTaxRate] = useState<bigint>(0n);
   const [priceAnimating, setPriceAnimating] = useState(false);
   const [totalSupply, setTotalSupply] = useState<bigint>(0n);
-  const [marketCap, setMarketCap] = useState<string>("--");
   const [accumulatedTax, setAccumulatedTax] = useState<string>("0");
   const [floorProgress, setFloorProgress] = useState<number>(0);
 
@@ -415,24 +416,6 @@ export const CultBuySell = () => {
       
       setCultPrice(parseFloat(price).toFixed(2));
 
-      // Calculate market cap if we have total supply
-      if (totalSupply > 0n) {
-        // Price in ETH per CULT
-        const pricePerCultInEth = 1 / parseFloat(price);
-        // Assume ETH price (you could fetch this from an oracle)
-        const ethPriceUsd = 2500; // Placeholder - in production, fetch from price feed
-        const marketCapUsd = pricePerCultInEth * ethPriceUsd * Number(formatUnits(totalSupply, 18));
-        
-        if (marketCapUsd >= 1e9) {
-          setMarketCap(`$${(marketCapUsd / 1e9).toFixed(2)}B`);
-        } else if (marketCapUsd >= 1e6) {
-          setMarketCap(`$${(marketCapUsd / 1e6).toFixed(2)}M`);
-        } else if (marketCapUsd >= 1e3) {
-          setMarketCap(`$${(marketCapUsd / 1e3).toFixed(2)}K`);
-        } else {
-          setMarketCap(`$${marketCapUsd.toFixed(2)}`);
-        }
-      }
     } catch (error) {
       console.error("Failed to calculate CULT price:", error);
     }
@@ -760,51 +743,47 @@ export const CultBuySell = () => {
             alt="CULT Logo"
             className="w-20 h-20 rounded-full mx-auto mb-4 border-2 border-red-500 shadow-lg shadow-red-500/30 hover:scale-105 transition-transform"
           />
-          <h1 className="text-2xl font-bold text-transparent bg-gradient-to-r from-red-500 to-red-600 bg-clip-text">Milady Cult Coin</h1>
+          <h1 className="text-2xl font-bold text-transparent bg-gradient-to-r from-red-500 to-red-600 bg-clip-text">{t("cult.milady_cult_coin")}</h1>
           <div className={cn("text-lg font-mono mt-2", priceAnimating && "price-update")}>
-            <span className="text-red-400">1 ETH = {cultPrice} CULT</span>
+            <span className="text-red-400">{t("cult.price_format", { price: cultPrice })}</span>
           </div>
           
           {/* Pool Info Display */}
           <div className="mt-4 p-3 bg-gray-900/50 border border-red-900/30 rounded-lg text-sm space-y-2">
             <div className="flex justify-between">
-              <span className="text-gray-400">池储备:</span>
+              <span className="text-gray-400">{t("cult.pool_reserves")}:</span>
               <span className="text-white font-mono text-xs">
                 {reserves ? (
                   <>
                     {parseFloat(formatEther(reserves.reserve0)).toFixed(4)} ETH / {parseFloat(formatUnits(reserves.reserve1, 18)).toLocaleString()} CULT
                   </>
-                ) : "加载中..."}
+                ) : t("cult.loading")}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">总供应量:</span>
+              <span className="text-gray-400">{t("cult.total_supply")}:</span>
               <span className="text-white font-mono">
                 {totalSupply > 0n ? parseFloat(formatUnits(totalSupply, 18)).toLocaleString() : "--"} CULT
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">市值:</span>
-              <span className="text-white font-mono">{marketCap}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">交换费:</span>
+              <span className="text-gray-400">{t("cult.swap_fee")}:</span>
               <span className="text-white font-mono">0.3%</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">Milady/ACC 税:</span>
+              <span className="text-gray-400">{t("cult.milady_acc_tax")}:</span>
               <span className="text-red-400 font-mono">0.1%</span>
             </div>
             {cultTaxRate > 0n && (
               <div className="flex justify-between">
-                <span className="text-gray-400">额外税费:</span>
+                <span className="text-gray-400">{t("cult.additional_tax")}:</span>
                 <span className="text-red-400 font-mono">{(Number(cultTaxRate) / 100).toFixed(2)}%</span>
               </div>
             )}
             {lpBalance !== undefined && lpBalance > 0n && (
               <div className="flex justify-between">
-                <span className="text-gray-400">您的 LP 代币:</span>
-                <span className="text-white font-mono">{formatUnits(lpBalance, 18)} LP</span>
+                <span className="text-gray-400">{t("cult.your_lp_tokens")}:</span>
+                <span className="text-white font-mono">{formatUnits(lpBalance, 18)} {t("cult.lp")}</span>
               </div>
             )}
           </div>
@@ -812,7 +791,7 @@ export const CultBuySell = () => {
           {/* Milady Floor Charging Bar */}
           <div className="mt-4 p-4 bg-gradient-to-b from-gray-900/70 to-black/50 border border-red-900/30 rounded-lg">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-red-400">Milady 地板价充值</span>
+              <span className="text-sm font-medium text-red-400">{t("cult.milady_floor_charge")}</span>
               <span className="text-xs text-gray-400">
                 {floorProgress > 0 && floorProgress < 100 ? "✨ " : ""}{floorProgress.toFixed(4)}%
               </span>
@@ -842,7 +821,7 @@ export const CultBuySell = () => {
                     {parseFloat(accumulatedTax).toFixed(6)} ETH
                   </div>
                   <div className="text-xs text-gray-300 drop-shadow">
-                    目标 2.488 ETH 地板价
+                    {t("cult.eth_floor_target")}
                   </div>
                 </div>
               </div>
@@ -855,17 +834,26 @@ export const CultBuySell = () => {
                 rel="noopener noreferrer"
                 className="hover:text-red-400 transition-colors"
               >
-                金库: 0xf164...5E02
+                {t("cult.treasury")}: 0xf164...5E02
               </a>
-              <span className="text-red-400">0.1% 税费累积中</span>
+              <span className="text-red-400">{t("cult.tax_accumulating")}</span>
+            </div>
+            
+            <div className="mt-2 text-center">
+              <a
+                href="https://opensea.io/collection/milady"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-red-400 hover:text-red-300 transition-colors inline-flex items-center gap-1"
+              >
+                {t("cult.view_milady_collection")}
+              </a>
             </div>
             
             {/* Subtle note about hooks */}
             <div className="mt-3 text-xs text-gray-600 leading-relaxed">
               <span className="opacity-70">
-                CultHook 是 ZAMM hooks 的一个演示，它是池的扩展，可实现自定义工具，
-                例如模块化回购。在这种情况下，Cult（Milady 币）每笔交易都会以 ETH 形式征税
-                进入一个资金池来购买地板价 miladys。该资金池将随着时间的推移变得更加自动化。
+                {t("cult.culthook_description")}
               </span>
             </div>
           </div>
@@ -874,25 +862,25 @@ export const CultBuySell = () => {
         <Tabs value={tab} onValueChange={(v) => setTab(v as "buy" | "sell" | "add-liquidity" | "remove-liquidity")} className="relative z-10">
           <TabsList className="bg-black/50 border border-red-900/30">
             <TabsTrigger value="buy" className="transition-all duration-300 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400">
-              购买 CULT
+              {t("cult.buy_cult")}
             </TabsTrigger>
             <TabsTrigger value="sell" className="transition-all duration-300 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400">
-              出售 CULT
+              {t("cult.sell_cult")}
             </TabsTrigger>
             <TabsTrigger value="add-liquidity" className="transition-all duration-300 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400">
-              添加流动性
+              {t("cult.add_liquidity")}
             </TabsTrigger>
             <TabsTrigger value="remove-liquidity" className="transition-all duration-300 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400">
-              移除流动性
+              {t("cult.remove_liquidity")}
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="buy" className="max-w-2xl">
             <div className="flex flex-col gap-2">
-              <span className="text-sm font-medium text-gray-400">使用 ETH</span>
+              <span className="text-sm font-medium text-gray-400">{t("cult.using_eth")}</span>
               <Input
                 type="number"
-                placeholder="ETH 数量"
+                placeholder={t("cult.amount_eth")}
                 value={amount}
                 min="0"
                 step="any"
@@ -907,7 +895,7 @@ export const CultBuySell = () => {
               ) : null}
 
               <span className="text-sm font-medium text-red-600">
-                您将收到 ~ {estimated} CULT
+                {t("cult.you_will_receive", { amount: estimated, token: "CULT" })}
               </span>
               <Button
                 onClick={executeSwap}
@@ -918,10 +906,10 @@ export const CultBuySell = () => {
                 {isPending ? (
                   <span className="flex items-center gap-2">
                     <LoadingLogo size="sm" className="scale-75" />
-                    购买中…
+                    {t("cult.buying")}
                   </span>
                 ) : (
-                  "购买 CULT"
+                  t("cult.buy_cult")
                 )}
               </Button>
             </div>
@@ -929,11 +917,11 @@ export const CultBuySell = () => {
 
           <TabsContent value="sell" className="max-w-2xl">
             <div className="flex flex-col gap-2">
-              <span className="text-sm font-medium text-red-600">使用 CULT</span>
+              <span className="text-sm font-medium text-red-600">{t("cult.using_cult")}</span>
               <div className="relative">
                 <Input
                   type="number"
-                  placeholder="CULT 数量"
+                  placeholder={t("cult.amount_cult")}
                   value={amount}
                   min="0"
                   step="any"
@@ -942,18 +930,18 @@ export const CultBuySell = () => {
                 />
               </div>
               <div className="flex flex-col gap-2">
-                <span className="text-sm font-medium">您将收到 ~ {estimated} ETH</span>
+                <span className="text-sm font-medium">{t("cult.you_will_receive", { amount: estimated, token: "ETH" })}</span>
                 {cultBalance !== undefined ? (
                   <button
                     className="self-end text-sm font-medium text-red-600 hover:text-red-700 transition-colors"
                     onClick={() => setAmount(formatUnits(cultBalance, 18))}
                     disabled={false}
                   >
-                    MAX ({formatUnits(cultBalance, 18)} CULT)
+                    {t("common.max")} ({formatUnits(cultBalance, 18)} CULT)
                   </button>
                 ) : (
                   <button className="self-end text-sm font-medium text-gray-500" disabled={true}>
-                    MAX
+                    {t("common.max")}
                   </button>
                 )}
               </div>
@@ -966,10 +954,10 @@ export const CultBuySell = () => {
                 {isPending ? (
                   <span className="flex items-center gap-2">
                     <LoadingLogo size="sm" className="scale-75" />
-                    出售中…
+                    {t("cult.selling")}
                   </span>
                 ) : (
-                  "出售 CULT"
+                  t("cult.sell_cult")
                 )}
               </Button>
             </div>
@@ -978,10 +966,10 @@ export const CultBuySell = () => {
           <TabsContent value="add-liquidity" className="max-w-2xl">
             <div className="flex flex-col gap-4">
               <div className="space-y-2">
-                <span className="text-sm font-medium text-gray-400">ETH 数量</span>
+                <span className="text-sm font-medium text-gray-400">{t("cult.eth_amount")}</span>
                 <Input
                   type="number"
-                  placeholder="ETH 数量"
+                  placeholder={t("cult.amount_eth")}
                   value={liquidityEthAmount}
                   min="0"
                   step="any"
@@ -991,10 +979,10 @@ export const CultBuySell = () => {
               </div>
 
               <div className="space-y-2">
-                <span className="text-sm font-medium text-red-600">CULT 数量</span>
+                <span className="text-sm font-medium text-red-600">{t("cult.cult_amount")}</span>
                 <Input
                   type="number"
-                  placeholder="CULT 数量"
+                  placeholder={t("cult.amount_cult")}
                   value={liquidityCultAmount}
                   min="0"
                   step="any"
@@ -1007,7 +995,7 @@ export const CultBuySell = () => {
                     onClick={() => syncLiquidityAmounts(false, formatUnits(cultBalance, 18))}
                     disabled={false}
                   >
-                    MAX: {formatUnits(cultBalance, 18)} CULT
+                    {t("cult.max_balance", { balance: formatUnits(cultBalance, 18), token: "CULT" })}
                   </button>
                 )}
               </div>
@@ -1016,7 +1004,7 @@ export const CultBuySell = () => {
               {liquidityEthAmount && liquidityCultAmount && reserves && (
                 <div className="mt-2 p-3 bg-gray-900/50 border border-red-900/30 rounded-lg text-sm space-y-1">
                   <div className="flex justify-between">
-                    <span className="text-gray-400">池份额:</span>
+                    <span className="text-gray-400">{t("cult.pool_share")}:</span>
                     <span className="text-white font-mono">
                       {(() => {
                         const ethLiq = parseEther(liquidityEthAmount || "0");
@@ -1038,17 +1026,17 @@ export const CultBuySell = () => {
                 {isPending ? (
                   <span className="flex items-center gap-2">
                     <LoadingLogo size="sm" className="scale-75" />
-                    添加流动性中…
+                    {t("cult.adding_liquidity")}
                   </span>
                 ) : cultAllowance !== undefined && parseUnits(liquidityCultAmount || "0", 18) > cultAllowance ? (
-                  "批准 CULT 并添加流动性"
+                  t("cult.approve_cult_add_liquidity")
                 ) : (
-                  "添加流动性"
+                  t("cult.add_liquidity")
                 )}
               </Button>
 
               <div className="text-xs text-gray-500 text-center mt-2">
-                注意：CULT 流动性通过 Cookbook 合约添加
+                {t("cult.note_cult_liquidity")}
               </div>
             </div>
           </TabsContent>
@@ -1058,18 +1046,18 @@ export const CultBuySell = () => {
               {/* LP Balance Display */}
               <div className="p-3 bg-gray-900/50 border border-red-900/30 rounded-lg text-sm">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-400">您的 LP 余额:</span>
+                  <span className="text-gray-400">{t("cult.your_lp_balance")}:</span>
                   <span className="text-white font-mono">
-                    {lpBalance ? formatUnits(lpBalance, 18) : "0"} LP
+                    {lpBalance ? formatUnits(lpBalance, 18) : "0"} {t("cult.lp")}
                   </span>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <span className="text-sm font-medium text-gray-400">要移除的 LP 代币</span>
+                <span className="text-sm font-medium text-gray-400">{t("cult.lp_tokens_to_remove")}</span>
                 <Input
                   type="number"
-                  placeholder="LP 代币数量"
+                  placeholder={t("cult.amount_of_lp_tokens")}
                   value={lpBurnAmount}
                   min="0"
                   step="any"
@@ -1082,7 +1070,7 @@ export const CultBuySell = () => {
                     onClick={() => setLpBurnAmount(formatUnits(lpBalance, 18))}
                     disabled={false}
                   >
-                    MAX: {formatUnits(lpBalance, 18)} LP
+                    {t("cult.max_balance", { balance: formatUnits(lpBalance, 18), token: t("cult.lp") })}
                   </button>
                 )}
               </div>
@@ -1090,7 +1078,7 @@ export const CultBuySell = () => {
               {/* Expected output preview */}
               {lpBurnAmount && parseFloat(lpBurnAmount) > 0 && (
                 <div className="mt-2 p-3 bg-gray-900/50 border border-red-900/30 rounded-lg text-sm space-y-2">
-                  <div className="text-gray-400 mb-1">您将收到:</div>
+                  <div className="text-gray-400 mb-1">{t("cult.you_will_receive_preview")}</div>
                   <div className="flex justify-between">
                     <span className="text-gray-400">ETH:</span>
                     <span className="text-white font-mono">
@@ -1115,21 +1103,21 @@ export const CultBuySell = () => {
                 {isPending ? (
                   <span className="flex items-center gap-2">
                     <LoadingLogo size="sm" className="scale-75" />
-                    移除流动性中…
+                    {t("cult.removing_liquidity")}
                   </span>
                 ) : (
-                  "移除流动性"
+                  t("cult.remove_liquidity")
                 )}
               </Button>
 
               <div className="text-xs text-gray-500 text-center mt-2">
-                注意：移除流动性会销毁 LP 代币并返还 ETH + CULT
+                {t("cult.note_liquidity_removal")}
               </div>
             </div>
           </TabsContent>
 
           {errorMessage && <p className="text-destructive text-sm mt-2">{errorMessage}</p>}
-          {isSuccess && <p className="text-green-600 text-sm mt-2">交易已确认!</p>}
+          {isSuccess && <p className="text-green-600 text-sm mt-2">{t("cult.transaction_confirmed")}</p>}
         </Tabs>
 
         {/* Contract Links */}
@@ -1148,10 +1136,10 @@ export const CultBuySell = () => {
             rel="noopener noreferrer"
             className="block text-sm text-gray-500 hover:text-red-500 transition-colors font-mono"
           >
-            Hook: {CultHookAddress}
+            {t("cult.hook")}: {CultHookAddress}
           </a>
           <div className="text-sm text-gray-600 font-mono">
-            池 ID: {CULT_POOL_ID.toString().slice(0, 8)}...{CULT_POOL_ID.toString().slice(-8)}
+            {t("cult.pool_id")}: {CULT_POOL_ID.toString().slice(0, 8)}...{CULT_POOL_ID.toString().slice(-8)}
           </div>
           <a
             href="https://cult.inc/"
