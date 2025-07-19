@@ -49,18 +49,18 @@ export const TokenImage = memo(
         // Ignore sessionStorage errors
       }
 
-      const fetchMetadata = async () => {
-        // Check for direct imageUrl first (for simple image files like CULT)
-        if (token.imageUrl) {
-          setActualImageUrl(token.imageUrl);
-          try {
-            sessionStorage.setItem(cacheKey, token.imageUrl);
-          } catch (e) {
-            // Ignore sessionStorage errors
-          }
-          return;
+      // Check for direct imageUrl first (for simple image files like CULT)
+      if (token.imageUrl) {
+        setActualImageUrl(token.imageUrl);
+        try {
+          sessionStorage.setItem(cacheKey, token.imageUrl);
+        } catch (e) {
+          // Ignore sessionStorage errors
         }
-        
+        return;
+      }
+
+      const fetchMetadata = async () => {
         if (!token.tokenUri) return;
 
         // Skip for data URIs like the ETH SVG
@@ -254,7 +254,11 @@ export const TokenImage = memo(
     );
   },
   (prevProps, nextProps) => {
-    // Only re-render if token ID or URI changes
-    return prevProps.token.id === nextProps.token.id && prevProps.token.tokenUri === nextProps.token.tokenUri;
+    // Only re-render if token ID, URI, or imageUrl changes
+    return (
+      prevProps.token.id === nextProps.token.id && 
+      prevProps.token.tokenUri === nextProps.token.tokenUri &&
+      prevProps.token.imageUrl === nextProps.token.imageUrl
+    );
   },
 );
