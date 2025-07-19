@@ -5,7 +5,7 @@ import { memo, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, isAddress, getAddress } from "viem";
 import { TokenImage } from "./TokenImage";
-import { searchTrustedTokens, getTrustedTokenInfo } from "@/lib/trusted-tokens";
+import { searchTrustedTokens } from "@/lib/trusted-tokens";
 
 export const TokenSelector = memo(
   ({
@@ -75,18 +75,30 @@ export const TokenSelector = memo(
           const trustWalletResults = await searchTrustedTokens(searchQuery);
 
           // Convert TrustWallet results to TokenMeta format
-          const trustWalletTokens: TokenMeta[] = trustWalletResults.map((result) =>
-            createErc20Token(getAddress(result.address), result.symbol, result.name, result.decimals, result.logoURI),
+          const trustWalletTokens: TokenMeta[] = trustWalletResults.map(
+            (result) =>
+              createErc20Token(
+                getAddress(result.address),
+                result.symbol,
+                result.name,
+                result.decimals,
+                result.logoURI,
+              ),
           );
 
           // Combine results, avoiding duplicates (prioritize existing tokens)
           const combinedResults = [...existingMatches];
           const existingAddresses = new Set(
-            existingMatches.filter((t) => t.address).map((t) => t.address?.toLowerCase()),
+            existingMatches
+              .filter((t) => t.token1)
+              .map((t) => t.token1?.toLowerCase()),
           );
 
           for (const trustToken of trustWalletTokens) {
-            if (trustToken.address && !existingAddresses.has(trustToken.address.toLowerCase())) {
+            if (
+              trustToken.token1 &&
+              !existingAddresses.has(trustToken.token1.toLowerCase())
+            ) {
               combinedResults.push(trustToken);
             }
           }
@@ -184,17 +196,22 @@ export const TokenSelector = memo(
             <div className="flex items-center gap-1">
               <div
                 className={`text-xs font-medium text-muted-foreground min-w-[50px] h-[14px] ${
-                  (selectedToken.id === null && isEthBalanceFetching) || selectedToken.isFetching
+                  (selectedToken.id === null && isEthBalanceFetching) ||
+                  selectedToken.isFetching
                     ? "animate-pulse px-1 rounded bg-transparent"
                     : ""
                 }`}
               >
                 {formatBalance(selectedToken)}
                 {selectedToken.id === null && isEthBalanceFetching && (
-                  <span className="text-xs text-primary ml-1 inline-block animate-spin">⟳</span>
+                  <span className="text-xs text-primary ml-1 inline-block animate-spin">
+                    ⟳
+                  </span>
                 )}
                 {selectedToken.id !== null && selectedToken.isFetching && (
-                  <span className="text-xs text-primary ml-1 inline-block animate-spin">⟳</span>
+                  <span className="text-xs text-primary ml-1 inline-block animate-spin">
+                    ⟳
+                  </span>
                 )}
               </div>
             </div>
@@ -210,7 +227,9 @@ export const TokenSelector = memo(
               {showErc20Input && (
                 <div className={cn("space-y-2", !showErc20Mode && "mb-3")}>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-foreground">Token Type</span>
+                    <span className="text-sm font-medium text-foreground">
+                      Token Type
+                    </span>
                     <div className="flex items-center gap-1 p-1 bg-muted rounded-lg border border-border">
                       <button
                         onClick={() => setShowErc20Mode(false)}
@@ -239,7 +258,9 @@ export const TokenSelector = memo(
                   {showErc20Mode && (
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <label className="block text-sm font-medium text-foreground mb-1">Token Search</label>
+                        <label className="block text-sm font-medium text-foreground mb-1">
+                          Token Search
+                        </label>
                         <div className="relative">
                           <input
                             type="text"
@@ -261,7 +282,9 @@ export const TokenSelector = memo(
                           )}
                         </div>
                         {erc20Address && !isAddress(erc20Address) && (
-                          <p className="text-xs text-muted-foreground mt-1">Searching by name/symbol...</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Searching by name/symbol...
+                          </p>
                         )}
                       </div>
                       <button
@@ -270,8 +293,12 @@ export const TokenSelector = memo(
                         className="w-full px-4 py-3 bg-primary text-primary-foreground rounded-xl text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-all duration-200 active:scale-[0.98] shadow-sm hover:shadow-md"
                       >
                         <span className="flex items-center justify-center gap-2">
-                          {isAddress(erc20Address) && <CheckIcon className="w-4 h-4" />}
-                          {isAddress(erc20Address) ? "Add Token" : "Search Token"}
+                          {isAddress(erc20Address) && (
+                            <CheckIcon className="w-4 h-4" />
+                          )}
+                          {isAddress(erc20Address)
+                            ? "Add Token"
+                            : "Search Token"}
                         </span>
                       </button>
                     </div>
@@ -306,9 +333,12 @@ export const TokenSelector = memo(
                       <span className="text-2xl">🪙</span>
                     </div>
                     <div className="space-y-2">
-                      <h3 className="text-base font-semibold text-foreground">Add Custom Token</h3>
+                      <h3 className="text-base font-semibold text-foreground">
+                        Add Custom Token
+                      </h3>
                       <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
-                        Enter any ERC20 token contract address to create a trading pool. Token details will be fetched
+                        Enter any ERC20 token contract address to create a
+                        trading pool. Token details will be fetched
                         automatically.
                       </p>
                     </div>
@@ -316,12 +346,17 @@ export const TokenSelector = memo(
                   <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
                     <div className="flex items-start gap-3">
                       <div className="flex-shrink-0 w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mt-0.5">
-                        <span className="text-amber-600 dark:text-amber-400 text-sm">⚠️</span>
+                        <span className="text-amber-600 dark:text-amber-400 text-sm">
+                          ⚠️
+                        </span>
                       </div>
                       <div className="space-y-1">
-                        <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Safety First</p>
+                        <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                          Safety First
+                        </p>
                         <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
-                          Only use contract addresses from trusted sources. Verify the token details before trading.
+                          Only use contract addresses from trusted sources.
+                          Verify the token details before trading.
                         </p>
                       </div>
                     </div>
@@ -329,14 +364,18 @@ export const TokenSelector = memo(
                 </div>
               ) : searchQuery && searchResults.length === 0 && !isSearching ? (
                 <div className="p-6 text-center">
-                  <p className="text-sm text-muted-foreground">No tokens found for "{searchQuery}"</p>
+                  <p className="text-sm text-muted-foreground">
+                    No tokens found for "{searchQuery}"
+                  </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     Try a different search term or enter a contract address
                   </p>
                 </div>
               ) : (
                 (searchQuery ? searchResults : tokens).map((token) => {
-                  const isSelected = token.id === selectedToken?.id && token.poolId === selectedToken?.poolId;
+                  const isSelected =
+                    token.id === selectedToken?.id &&
+                    token.poolId === selectedToken?.poolId;
 
                   const formatReserves = (token: TokenMeta) => {
                     if (token.id === null) return "";
@@ -348,7 +387,9 @@ export const TokenSelector = memo(
                       if (cached) return cached;
                     } catch (e) {}
 
-                    const feePercentage = token.swapFee ? Number(token.swapFee) / 100 : 1;
+                    const feePercentage = token.swapFee
+                      ? Number(token.swapFee) / 100
+                      : 1;
 
                     let feeStr;
                     if (feePercentage % 1 === 0) {
@@ -395,8 +436,12 @@ export const TokenSelector = memo(
                     let reserveStr = "";
 
                     if (token.isCustomPool) {
-                      const ethReserveValue = Number(formatEther(token.reserve0 || 0n));
-                      const tokenReserveValue = Number(formatUnits(token.reserve1 || 0n, tokenDecimals));
+                      const ethReserveValue = Number(
+                        formatEther(token.reserve0 || 0n),
+                      );
+                      const tokenReserveValue = Number(
+                        formatUnits(token.reserve1 || 0n, tokenDecimals),
+                      );
 
                       let ethStr = "";
                       if (ethReserveValue >= 10000) {
@@ -424,7 +469,9 @@ export const TokenSelector = memo(
                         reserveStr = `${ethStr} / ${tokenStr}`;
                       }
                     } else {
-                      const ethReserveValue = Number(formatEther(token.reserve0 || 0n));
+                      const ethReserveValue = Number(
+                        formatEther(token.reserve0 || 0n),
+                      );
 
                       if (ethReserveValue >= 10000) {
                         reserveStr = `${Math.floor(ethReserveValue / 1000)}K ETH`;
@@ -470,24 +517,33 @@ export const TokenSelector = memo(
                         <TokenImage token={token} />
                         <div className="flex flex-col">
                           <span className="font-medium">{token.symbol}</span>
-                          {reserves && <span className="text-xs text-muted-foreground">{reserves}</span>}
+                          {reserves && (
+                            <span className="text-xs text-muted-foreground">
+                              {reserves}
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div className="text-right min-w-[60px]">
                         <div
                           className={cn(
                             "text-sm font-medium h-[18px] text-foreground",
-                            (token.id === null && isEthBalanceFetching) || token.isFetching
+                            (token.id === null && isEthBalanceFetching) ||
+                              token.isFetching
                               ? "animate-pulse px-1 bg-transparent"
                               : "",
                           )}
                         >
                           {balance}
                           {token.id === null && isEthBalanceFetching && (
-                            <span className="text-xs text-primary ml-1 inline-block animate-spin">⟳</span>
+                            <span className="text-xs text-primary ml-1 inline-block animate-spin">
+                              ⟳
+                            </span>
                           )}
                           {token.id !== null && token.isFetching && (
-                            <span className="text-xs text-primary ml-1 inline-block animate-spin">⟳</span>
+                            <span className="text-xs text-primary ml-1 inline-block animate-spin">
+                              ⟳
+                            </span>
                           )}
                         </div>
                       </div>

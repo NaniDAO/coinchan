@@ -17,6 +17,14 @@ import type { CookbookPoolKey, ZAMMPoolKey } from "./swap";
 
 export type CoinSource = "ZAMM" | "COOKBOOK" | "ERC20";
 
+export interface ERC20TokenMeta {
+  address: Address;
+  symbol: string;
+  name: string;
+  decimals: number;
+  logoURI: string;
+}
+
 export interface TokenMeta {
   id: bigint | null; // null = ETH pseudo-token
   name: string;
