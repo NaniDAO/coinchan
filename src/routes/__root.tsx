@@ -75,7 +75,6 @@ export const Route = createRootRoute({
             >
               {t("common.coins")}
             </Link>
-            {/* Temporarily commented until route is registered
             <Link
               to="/cult"
               className={cn(
@@ -85,7 +84,6 @@ export const Route = createRootRoute({
             >
               CULT
             </Link>
-            */}
           </div>
         </div>
       </>
