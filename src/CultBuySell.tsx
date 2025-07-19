@@ -29,6 +29,7 @@ import {
   CULT_POOL_ID,
 } from "@/lib/coins";
 import { getCultHookTaxRate, toGross } from "@/lib/cult-hook-utils";
+import { CheckTheChainAbi, CheckTheChainAddress } from "@/constants/CheckTheChain";
 import {
   DEADLINE_SEC,
   withSlippage,
@@ -253,7 +254,8 @@ export const CultBuySell = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [buyPercentage, setBuyPercentage] = useState(0);
   const [cultPrice, setCultPrice] = useState<string>("--.--.--");
-  const [cultTaxRate, setCultTaxRate] = useState<bigint>(0n);
+  const [cultUsdPrice, setCultUsdPrice] = useState<string>("--");
+  const [ethUsdPrice, setEthUsdPrice] = useState<number>(0);
   const [priceAnimating, setPriceAnimating] = useState(false);
   const [totalSupply, setTotalSupply] = useState<bigint>(0n);
   const [accumulatedTax, setAccumulatedTax] = useState<string>("0");
@@ -339,21 +341,6 @@ export const CultBuySell = () => {
     swapFee: 30n, // 0.3% fee
   };
 
-  // Fetch tax rate on mount and periodically
-  useEffect(() => {
-    const fetchTaxRate = async () => {
-      try {
-        const rate = await getCultHookTaxRate();
-        setCultTaxRate(rate);
-      } catch (error) {
-        console.error("Failed to fetch CULT tax rate:", error);
-      }
-    };
-
-    fetchTaxRate();
-    const interval = setInterval(fetchTaxRate, 30000); // Update every 30 seconds
-    return () => clearInterval(interval);
-  }, []);
 
   // Fetch CULT total supply
   useEffect(() => {
@@ -398,28 +385,79 @@ export const CultBuySell = () => {
     return () => clearInterval(interval);
   }, [publicClient]);
 
+  // Fetch ETH price
+  useEffect(() => {
+    const fetchEthPrice = async () => {
+      if (!publicClient) return;
+      
+      try {
+        const ethPrice = await publicClient.readContract({
+          address: CheckTheChainAddress,
+          abi: CheckTheChainAbi,
+          functionName: "checkPrice",
+          args: ["WETH"],
+        });
+        
+        const ethPriceUsd = Number(ethPrice[1]);
+        setEthUsdPrice(ethPriceUsd);
+      } catch (error) {
+        console.error("Failed to fetch ETH price:", error);
+      }
+    };
+
+    fetchEthPrice();
+    const interval = setInterval(fetchEthPrice, 30000); // Update every 30 seconds
+    return () => clearInterval(interval);
+  }, [publicClient]);
+
   // Update CULT price from reserves
   useEffect(() => {
     if (!reserves || !reserves.reserve0 || !reserves.reserve1) return;
 
-    try {
-      // Calculate price: 1 ETH = ? CULT
-      const oneEth = parseEther("1");
-      const cultOut = getAmountOut(oneEth, reserves.reserve0, reserves.reserve1, 30n);
-      const price = formatUnits(cultOut, 18);
-      
-      // Animate price update
-      if (cultPrice !== "--.--.--" && cultPrice !== price) {
+    const updatePrice = () => {
+      try {
+        // Calculate price: 1 ETH = ? CULT
+        const oneEth = parseEther("1");
+        const cultOut = getAmountOut(oneEth, reserves.reserve0, reserves.reserve1, 30n);
+        const price = formatUnits(cultOut, 18);
+        
+        // Animate price update
         setPriceAnimating(true);
         setTimeout(() => setPriceAnimating(false), 1000);
-      }
-      
-      setCultPrice(parseFloat(price).toFixed(2));
+        
+        setCultPrice(parseFloat(price).toFixed(2));
 
-    } catch (error) {
-      console.error("Failed to calculate CULT price:", error);
-    }
-  }, [reserves, cultPrice, totalSupply]);
+        // Calculate USD price if we have ETH price
+        if (ethUsdPrice > 0) {
+          // Price of 1 CULT in ETH
+          const cultPriceInEth = 1 / parseFloat(price);
+          const cultPriceInUsd = cultPriceInEth * ethUsdPrice;
+          
+          // Format USD price based on magnitude
+          if (cultPriceInUsd < 0.000001) {
+            setCultUsdPrice(cultPriceInUsd.toExponential(2));
+          } else if (cultPriceInUsd < 0.01) {
+            setCultUsdPrice(cultPriceInUsd.toFixed(6));
+          } else {
+            setCultUsdPrice(cultPriceInUsd.toFixed(4));
+          }
+        }
+
+      } catch (error) {
+        console.error("Failed to calculate CULT price:", error);
+      }
+    };
+
+    // Update immediately
+    updatePrice();
+
+    // Update every 9 seconds with shake animation
+    const interval = setInterval(() => {
+      updatePrice();
+    }, 9000);
+
+    return () => clearInterval(interval);
+  }, [reserves, ethUsdPrice]);
 
   const estimated = useMemo(() => {
     if (!reserves || !reserves.reserve0 || !reserves.reserve1) return "0";
@@ -747,6 +785,11 @@ export const CultBuySell = () => {
           <div className={cn("text-lg font-mono mt-2", priceAnimating && "price-update")}>
             <span className="text-red-400">{t("cult.price_format", { price: cultPrice })}</span>
           </div>
+          {cultUsdPrice !== "--" && (
+            <div className="text-sm text-gray-400 mt-1">
+              {t("cult.usd_per_cult", { price: cultUsdPrice })}
+            </div>
+          )}
           
           {/* Pool Info Display */}
           <div className="mt-4 p-3 bg-gray-900/50 border border-red-900/30 rounded-lg text-sm space-y-2">
@@ -774,12 +817,6 @@ export const CultBuySell = () => {
               <span className="text-gray-400">{t("cult.milady_acc_tax")}:</span>
               <span className="text-red-400 font-mono">0.1%</span>
             </div>
-            {cultTaxRate > 0n && (
-              <div className="flex justify-between">
-                <span className="text-gray-400">{t("cult.additional_tax")}:</span>
-                <span className="text-red-400 font-mono">{(Number(cultTaxRate) / 100).toFixed(2)}%</span>
-              </div>
-            )}
             {lpBalance !== undefined && lpBalance > 0n && (
               <div className="flex justify-between">
                 <span className="text-gray-400">{t("cult.your_lp_tokens")}:</span>
