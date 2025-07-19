@@ -65,6 +65,17 @@ export const TokenImage = memo(
           return;
         }
 
+        // Handle direct image URLs (like CoinGecko URLs)
+        if (token.tokenUri.startsWith("http") && (token.tokenUri.includes(".jpg") || token.tokenUri.includes(".png") || token.tokenUri.includes(".gif") || token.tokenUri.includes(".webp"))) {
+          setActualImageUrl(token.tokenUri);
+          try {
+            sessionStorage.setItem(cacheKey, token.tokenUri);
+          } catch (e) {
+            // Ignore sessionStorage errors
+          }
+          return;
+        }
+
         try {
           // Handle IPFS URIs
           const uri = token.tokenUri.startsWith("ipfs://")
@@ -177,33 +188,6 @@ export const TokenImage = memo(
       return <EthereumIcon className="w-8 h-8 rounded-full" />;
     }
 
-    // Special case for CULT token - handle before checking tokenUri
-    if (token.symbol === "CULT") {
-      const cultUrl = "https://assets.coingecko.com/coins/images/52583/standard/cult.jpg?1733712273";
-      
-      return (
-        <div className="relative w-8 h-8 rounded-full overflow-hidden">
-          {/* Show colored initials while loading or on error */}
-          {(!imageLoaded || imageError) && (
-            <div
-              className={`absolute inset-0 w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full text-xs font-medium`}
-            >
-              {getInitials(token.symbol)}
-            </div>
-          )}
-
-          {/* CULT token image */}
-          <img
-            src={cultUrl}
-            alt={`${token.symbol} logo`}
-            className={`w-8 h-8 object-cover rounded-full ${imageLoaded ? "opacity-100" : "opacity-0"} transition-opacity duration-200`}
-            onLoad={() => setImageLoaded(true)}
-            onError={() => setImageError(true)}
-            loading="lazy"
-          />
-        </div>
-      );
-    }
 
     // If token has no URI, show colored initial
     if (!token.tokenUri) {
