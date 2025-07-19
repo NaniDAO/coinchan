@@ -23,7 +23,7 @@ import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
 import { ZAMMAbi, ZAMMAddress } from "./constants/ZAAM";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import { useWaitForTransactionReceipt } from "wagmi";
-import { TokenMeta, USDT_ADDRESS, USDT_POOL_KEY } from "./lib/coins";
+import { TokenMeta, USDT_ADDRESS, USDT_POOL_KEY, CULT_ADDRESS } from "./lib/coins";
 import { useTokenSelection } from "./contexts/TokenSelectionContext";
 import {
   determineReserveSource,
@@ -130,6 +130,14 @@ export const AddLiquidity = () => {
   } = useErc20Allowance({
     token: USDT_ADDRESS,
     spender: ZAMMAddress,
+  });
+  const {
+    allowance: cultAllowance,
+    refetchAllowance: refetchCultAllowance,
+    approveMax: approveCultMax,
+  } = useErc20Allowance({
+    token: CULT_ADDRESS,
+    spender: CookbookAddress, // CULT uses Cookbook for liquidity
   });
 
   const [txHash, setTxHash] = useState<`0x${string}`>();
@@ -491,12 +499,46 @@ export const AddLiquidity = () => {
         }
       }
 
+      // Check for CULT ERC20 approval if needed
+      const isUsingCult = sellToken.symbol === "CULT" || buyToken?.symbol === "CULT";
+      if (isUsingCult) {
+        const cultAmount = sellToken.symbol === "CULT" 
+          ? parseUnits(sellAmt, 18) // CULT has 18 decimals
+          : parseUnits(buyAmt, 18);
+
+        if (cultAllowance === undefined || cultAmount > cultAllowance) {
+          try {
+            setTxError("Waiting for CULT approval. Please confirm the transaction...");
+            const approved = await approveCultMax();
+            if (!approved) return;
+
+            setTxError("CULT approval submitted. Waiting for confirmation...");
+            const receipt = await publicClient.waitForTransactionReceipt({ hash: approved });
+            
+            if (receipt.status === "success") {
+              await refetchCultAllowance();
+              setTxError(null);
+            } else {
+              setTxError("CULT approval failed. Please try again.");
+              return;
+            }
+          } catch (err) {
+            const errorMsg = handleWalletError(err);
+            if (errorMsg) {
+              console.error("Failed to approve CULT:", err);
+              setTxError("Failed to approve CULT");
+            }
+            return;
+          }
+        }
+      }
+
       // Check if the user needs to approve the target AMM contract as operator
       // This is reflexive to the pool source:
       // - Cookbook pool: Approve CookbookAddress as operator on CoinsAddress
       // - ZAMM pool: Approve ZAMMAddress as operator on CoinsAddress
-      // Only needed for coins that have a tokenId, not for USDT pools
-      if (!isUsdtPool && coinId && isOperator === false) {
+      // Only needed for ERC6909 coins, not for ERC20s like USDT/CULT
+      if (!isUsdtPool && !isUsingCult && coinId && isOperator === false) {
         try {
           // First, show a notification about the approval step
           setTxError(
