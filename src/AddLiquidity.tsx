@@ -345,7 +345,7 @@ export const AddLiquidity = () => {
 
       // Check if we're dealing with the special USDT token
       let poolKey;
-      const isUsdtPool = sellToken.isCustomPool || buyToken?.isCustomPool;
+      const isUsdtPool = sellToken.symbol === "USDT" || buyToken?.symbol === "USDT";
 
       // Enhanced detection of USDT usage for add liquidity
       // We need to make sure we detect all cases where USDT is being used
@@ -434,13 +434,11 @@ export const AddLiquidity = () => {
       // - amount0 is the ETH amount (regardless of which input field the user used)
       // - amount1 is the Coin amount
 
-      // Use correct decimals for token1 (6 for USDT, 18 for regular coins)
-      const tokenDecimals = isUsdtPool ? 6 : 18;
-
+      // Use correct decimals for each token directly
       const amount0 = isSellETH ? parseEther(sellAmt) : parseEther(buyAmt); // ETH amount
       const amount1 = isSellETH
-        ? parseUnits(buyAmt, tokenDecimals)
-        : parseUnits(sellAmt, tokenDecimals); // Token amount
+        ? parseUnits(buyAmt, buyToken?.decimals || 18)  // Use buyToken's actual decimals
+        : parseUnits(sellAmt, sellToken?.decimals || 18); // Use sellToken's actual decimals
 
       // Verify we have valid amounts
       if (amount0 === 0n || amount1 === 0n) {
