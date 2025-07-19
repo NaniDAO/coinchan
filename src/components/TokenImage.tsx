@@ -49,20 +49,9 @@ export const TokenImage = memo(
         // Ignore sessionStorage errors
       }
 
-      // Special handling for CULT token - use static image directly
-      if (token.symbol === "CULT" && token.tokenUri === "/cult.jpg") {
-        setActualImageUrl("/cult.jpg");
-        try {
-          sessionStorage.setItem(cacheKey, "/cult.jpg");
-        } catch (e) {
-          // Ignore sessionStorage errors
-        }
-        return;
-      }
-
       const fetchMetadata = async () => {
         // Check for direct imageUrl first (for simple image files like CULT)
-        if (token.imageUrl && !token.tokenUri) {
+        if (token.imageUrl) {
           setActualImageUrl(token.imageUrl);
           try {
             sessionStorage.setItem(cacheKey, token.imageUrl);
@@ -85,16 +74,6 @@ export const TokenImage = memo(
           return;
         }
 
-        // Handle direct image paths like /cult.jpg - treat as static images, not metadata
-        if (token.tokenUri.startsWith("/") && (token.tokenUri.endsWith(".jpg") || token.tokenUri.endsWith(".png") || token.tokenUri.endsWith(".gif") || token.tokenUri.endsWith(".svg") || token.tokenUri.endsWith(".webp"))) {
-          setActualImageUrl(token.tokenUri);
-          try {
-            sessionStorage.setItem(cacheKey, token.tokenUri);
-          } catch (e) {
-            // Ignore sessionStorage errors
-          }
-          return;
-        }
 
         try {
           // Handle IPFS URIs
@@ -177,7 +156,7 @@ export const TokenImage = memo(
       };
 
       fetchMetadata();
-    }, [token.tokenUri, token.symbol, token.id, cacheKey]);
+    }, [token.tokenUri, token.imageUrl, token.symbol, token.id, cacheKey]);
 
     // If image fails to load, try alternatives
     const tryNextAlternative = useCallback(() => {
@@ -208,7 +187,7 @@ export const TokenImage = memo(
       return <EthereumIcon className="w-8 h-8 rounded-full" />;
     }
 
-    // If token has no URI or imageUrl, show colored initial
+    // If token has no URI and no imageUrl, show colored initial
     if (!token.tokenUri && !token.imageUrl) {
       // Use token ID as a cache key to maintain stable identities
       const cacheKey = `token-initial-${token.id ?? "eth"}`;
