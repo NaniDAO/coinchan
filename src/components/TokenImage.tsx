@@ -30,6 +30,7 @@ export const TokenImage = memo(
     const [alternativeUrls, setAlternativeUrls] = useState<string[]>([]);
     const { bg, text } = getColorForSymbol(token.symbol);
 
+
     // Check if this is the ETH token
     const isEthToken = token.id === null && token.symbol === "ETH";
 
@@ -50,18 +51,6 @@ export const TokenImage = memo(
       }
 
       const fetchMetadata = async () => {
-        // Special case for CULT token - use CoinGecko image
-        if (token.symbol === "CULT") {
-          const cultUrl = "https://assets.coingecko.com/coins/images/52583/standard/cult.jpg?1733712273";
-          setActualImageUrl(cultUrl);
-          setImageError(false); // Ensure we're not in error state
-          try {
-            sessionStorage.setItem(cacheKey, cultUrl);
-          } catch (e) {
-            // Ignore sessionStorage errors
-          }
-          return;
-        }
 
         if (!token.tokenUri) return;
 
@@ -186,6 +175,34 @@ export const TokenImage = memo(
     // If this is ETH, use the theme-aware Ethereum icon
     if (isEthToken) {
       return <EthereumIcon className="w-8 h-8 rounded-full" />;
+    }
+
+    // Special case for CULT token - handle before checking tokenUri
+    if (token.symbol === "CULT") {
+      const cultUrl = "https://assets.coingecko.com/coins/images/52583/standard/cult.jpg?1733712273";
+      
+      return (
+        <div className="relative w-8 h-8 rounded-full overflow-hidden">
+          {/* Show colored initials while loading or on error */}
+          {(!imageLoaded || imageError) && (
+            <div
+              className={`absolute inset-0 w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full text-xs font-medium`}
+            >
+              {getInitials(token.symbol)}
+            </div>
+          )}
+
+          {/* CULT token image */}
+          <img
+            src={cultUrl}
+            alt={`${token.symbol} logo`}
+            className={`w-8 h-8 object-cover rounded-full ${imageLoaded ? "opacity-100" : "opacity-0"} transition-opacity duration-200`}
+            onLoad={() => setImageLoaded(true)}
+            onError={() => setImageError(true)}
+            loading="lazy"
+          />
+        </div>
+      );
     }
 
     // If token has no URI, show colored initial
