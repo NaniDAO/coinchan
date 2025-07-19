@@ -73,24 +73,31 @@ export const AddLiquidity = () => {
     isCoinToCoin: isCoinToCoin,
   });
 
-  // For custom pools like CULT, use the token's poolId directly
-  const actualPoolId = useMemo(() => {
-    let poolId;
-    if (sellToken.isCustomPool && sellToken.poolId) {
-      poolId = sellToken.poolId;
-      console.log("Using sellToken custom poolId:", sellToken.symbol, poolId.toString());
-    } else if (buyToken?.isCustomPool && buyToken?.poolId) {
-      poolId = buyToken.poolId;
-      console.log("Using buyToken custom poolId:", buyToken.symbol, poolId.toString());
-    } else {
-      poolId = mainPoolId;
-      console.log("Using computed mainPoolId:", poolId?.toString());
+  // Simple direct handling for CULT and other custom pools
+  const { actualPoolId, reserveSource } = useMemo(() => {
+    // Direct CULT handling
+    if (sellToken.symbol === "CULT" || buyToken?.symbol === "CULT") {
+      return {
+        actualPoolId: sellToken.symbol === "CULT" ? sellToken.poolId : buyToken?.poolId,
+        reserveSource: "COOKBOOK" as const,
+      };
     }
-    return poolId;
-  }, [sellToken.isCustomPool, sellToken.poolId, buyToken?.isCustomPool, buyToken?.poolId, mainPoolId]);
-
-  // Determine source for reserves based on coin type using shared utility
-  const reserveSource = determineReserveSource(coinId, isCustom);
+    
+    // USDT handling
+    if (sellToken.symbol === "USDT" || buyToken?.symbol === "USDT") {
+      return {
+        actualPoolId: sellToken.symbol === "USDT" ? sellToken.poolId : buyToken?.poolId,
+        reserveSource: "ZAMM" as const,
+      };
+    }
+    
+    // Regular tokens
+    const source = determineReserveSource(coinId, isCustom);
+    return {
+      actualPoolId: mainPoolId,
+      reserveSource: source,
+    };
+  }, [sellToken.symbol, buyToken?.symbol, sellToken.poolId, buyToken?.poolId, coinId, isCustom, mainPoolId]);
 
   const { data: reserves } = useReserves({
     poolId: actualPoolId,
@@ -165,21 +172,9 @@ export const AddLiquidity = () => {
   const syncFromSell = async (val: string) => {
     // Add Liquidity mode - calculate optimal token1 amount based on pool reserves
     setSellAmt(val);
-    if (!canSwap || !reserves) {
-      console.log("AddLiquidity syncFromSell: canSwap =", canSwap, "reserves =", reserves);
-      return setBuyAmt("");
-    }
+    if (!canSwap || !reserves) return setBuyAmt("");
 
     try {
-      // Debug logging
-      console.log("AddLiquidity syncFromSell:", {
-        val,
-        isSellETH,
-        buyToken: buyToken?.symbol,
-        sellToken: sellToken?.symbol,
-        reserves: { reserve0: reserves.reserve0, reserve1: reserves.reserve1 },
-      });
-      
       // For add liquidity, we need to calculate the optimal ratio based on current reserves
       // Using the ZAMM formula: amount1Optimal = (amount0Desired * reserve1) / reserve0
       
@@ -189,7 +184,6 @@ export const AddLiquidity = () => {
         
         // Check for empty pool (no liquidity yet)
         if (reserves.reserve0 === 0n || reserves.reserve1 === 0n) {
-          console.log("Empty pool detected, reserve0:", reserves.reserve0, "reserve1:", reserves.reserve1);
           // For new pools, we can't calculate optimal ratio, user sets both amounts
           setBuyAmt("");
           return;
@@ -201,13 +195,6 @@ export const AddLiquidity = () => {
         // Use correct decimals for the buy token
         const buyTokenDecimals = buyToken?.decimals || 18;
         const formattedAmount = formatUnits(optimalTokenAmount, buyTokenDecimals);
-        
-        console.log("Calculated optimal token amount:", {
-          ethAmount: ethAmount.toString(),
-          optimalTokenAmount: optimalTokenAmount.toString(),
-          buyTokenDecimals,
-          formattedAmount,
-        });
         
         setBuyAmt(
           optimalTokenAmount === 0n ? "" : formattedAmount,
@@ -236,11 +223,9 @@ export const AddLiquidity = () => {
         setBuyAmt("");
       } else {
         // Fallback: clear the buy amount for edge cases
-        console.log("AddLiquidity syncFromSell fallback case");
         setBuyAmt("");
       }
     } catch (err) {
-      console.error("Error calculating optimal liquidity amounts:", err);
       setBuyAmt("");
     }
   };
@@ -299,7 +284,6 @@ export const AddLiquidity = () => {
         setSellAmt("");
       }
     } catch (err) {
-      console.error("Error calculating optimal liquidity amounts (reverse):", err);
       setSellAmt("");
     }
   };
