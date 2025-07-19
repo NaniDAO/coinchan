@@ -37,9 +37,15 @@ const EIGHTEEN_DECIMALS = 1_000_000_000_000_000_000n; // 1e18 (ZAMM & ETH)
  * Hook to calculate combined APY (base trading fees + farm incentives)
  * for incentivized liquidity pools
  */
-export function useCombinedApy({ stream, lpToken, enabled = true }: UseCombinedApyParams): CombinedApyData {
+export function useCombinedApy({
+  stream,
+  lpToken,
+  enabled = true,
+}: UseCombinedApyParams): CombinedApyData {
   // Fetch base APY from trading fees
-  const { data: baseApyData, isLoading: isBaseApyLoading } = usePoolApy(lpToken?.poolId?.toString());
+  const { data: baseApyData, isLoading: isBaseApyLoading } = usePoolApy(
+    lpToken?.poolId?.toString(),
+  );
 
   const { data: farmInfo, isLoading: isFarmInfoLoading } = useReadContract({
     address: ZChefAddress,
@@ -57,12 +63,12 @@ export function useCombinedApy({ stream, lpToken, enabled = true }: UseCombinedA
   const { data: rewardPriceEth } = useCoinPrice({
     coinId: farmInfo?.[3],
     coinContract: farmInfo?.[2],
+    contractSource: undefined,
   });
 
   // Fetch farm incentive APY
-  const { data: rewardPerSharePerYearOnchain, isLoading: isFarmApyLoading } = useZChefRewardPerSharePerYear(
-    enabled ? stream.chefId : undefined,
-  );
+  const { data: rewardPerSharePerYearOnchain, isLoading: isFarmApyLoading } =
+    useZChefRewardPerSharePerYear(enabled ? stream.chefId : undefined);
 
   /**
    * Reward-per-share-per-year scaled by 1e12.
@@ -89,7 +95,8 @@ export function useCombinedApy({ stream, lpToken, enabled = true }: UseCombinedA
           : farmInfo?.[7];
 
     // Ensure totalShares is never 0 before division
-    const safeTotalShares = totalShares && totalShares > 0n ? totalShares : parseEther("1");
+    const safeTotalShares =
+      totalShares && totalShares > 0n ? totalShares : parseEther("1");
 
     if (streamActive && safeTotalShares !== 0n) {
       return (BigInt(rewardRate) * SECONDS_IN_YEAR) / BigInt(safeTotalShares); // still ×1e12
@@ -97,7 +104,13 @@ export function useCombinedApy({ stream, lpToken, enabled = true }: UseCombinedA
 
     // 3. ended or not enabled → 0
     return 0n;
-  }, [rewardPerSharePerYearOnchain, farmInfo, stream.status, stream.endTime, stream.totalShares]);
+  }, [
+    rewardPerSharePerYearOnchain,
+    farmInfo,
+    stream.status,
+    stream.endTime,
+    stream.totalShares,
+  ]);
 
   // Calculate combined APY
   const combinedApy = useMemo(() => {
@@ -116,7 +129,13 @@ export function useCombinedApy({ stream, lpToken, enabled = true }: UseCombinedA
     };
 
     try {
-      if (isLoading || !poolTvlInEth || !rewardPriceEth || poolTvlInEth === 0 || rewardPriceEth === 0) {
+      if (
+        isLoading ||
+        !poolTvlInEth ||
+        !rewardPriceEth ||
+        poolTvlInEth === 0 ||
+        rewardPriceEth === 0
+      ) {
         return defaultResult;
       }
 
@@ -133,7 +152,8 @@ export function useCombinedApy({ stream, lpToken, enabled = true }: UseCombinedA
       const share = 1000000000000000000n; // 1 LP share
 
       // Ensure totalShares has a valid value
-      const safeTotalShares = totalShares && totalShares > 0n ? totalShares : parseEther("1");
+      const safeTotalShares =
+        totalShares && totalShares > 0n ? totalShares : parseEther("1");
 
       // Ensure all numbers are valid before calculations
       const shareNum = Number(share);
@@ -141,7 +161,12 @@ export function useCombinedApy({ stream, lpToken, enabled = true }: UseCombinedA
       const eighteenDecimalsNum = Number(EIGHTEEN_DECIMALS);
 
       // Prevent any potential division by zero
-      if (!shareNum || !totalSharesNum || !eighteenDecimalsNum || totalSharesNum === 0) {
+      if (
+        !shareNum ||
+        !totalSharesNum ||
+        !eighteenDecimalsNum ||
+        totalSharesNum === 0
+      ) {
         return {
           baseApy,
           farmApy: 0,
@@ -155,14 +180,20 @@ export function useCombinedApy({ stream, lpToken, enabled = true }: UseCombinedA
       }
 
       const rewardPerSharePerYearWei = rewardPerSharePerYear / ACC_PRECISION;
-      const tokensPerSharePerYear = Number(rewardPerSharePerYearWei) / eighteenDecimalsNum;
+      const tokensPerSharePerYear =
+        Number(rewardPerSharePerYearWei) / eighteenDecimalsNum;
       const yearlyReward = tokensPerSharePerYear * shareNum;
       const yearlyRewardEthValue = yearlyReward * rewardPriceEth;
       const stakeEth = (shareNum / totalSharesNum) * poolTvlInEth;
 
       // Prevent division by zero and ensure all values are valid numbers
       let aprPct = 0;
-      if (stakeEth > 0 && !isNaN(yearlyRewardEthValue) && !isNaN(stakeEth) && isFinite(stakeEth)) {
+      if (
+        stakeEth > 0 &&
+        !isNaN(yearlyRewardEthValue) &&
+        !isNaN(stakeEth) &&
+        isFinite(stakeEth)
+      ) {
         aprPct = (yearlyRewardEthValue / stakeEth) * 100;
         if (isNaN(aprPct) || !isFinite(aprPct)) {
           aprPct = 0;
