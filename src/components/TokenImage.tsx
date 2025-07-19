@@ -62,17 +62,6 @@ export const TokenImage = memo(
           return;
         }
 
-        // Check for direct imageUrl first (for simple image files)
-        if (token.imageUrl) {
-          setActualImageUrl(token.imageUrl);
-          try {
-            sessionStorage.setItem(cacheKey, token.imageUrl);
-          } catch (e) {
-            // Ignore sessionStorage errors
-          }
-          return;
-        }
-        
         if (!token.tokenUri) return;
 
         // Skip for data URIs like the ETH SVG
@@ -85,7 +74,6 @@ export const TokenImage = memo(
           }
           return;
         }
-
 
         try {
           // Handle IPFS URIs
@@ -168,7 +156,7 @@ export const TokenImage = memo(
       };
 
       fetchMetadata();
-    }, [token.tokenUri, token.imageUrl, token.symbol, token.id, cacheKey]);
+    }, [token.tokenUri, token.symbol, token.id, cacheKey]);
 
     // If image fails to load, try alternatives
     const tryNextAlternative = useCallback(() => {
@@ -197,6 +185,35 @@ export const TokenImage = memo(
     // If this is ETH, use the theme-aware Ethereum icon
     if (isEthToken) {
       return <EthereumIcon className="w-8 h-8 rounded-full" />;
+    }
+
+    // If token has no URI, show colored initial
+    if (!token.tokenUri) {
+      // Use token ID as a cache key to maintain stable identities
+      const cacheKey = `token-initial-${token.id ?? "eth"}`;
+
+      // Check if we have this component cached in sessionStorage
+      try {
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached === "true") {
+          // We know this token has no URI, use the optimized render path
+          return (
+            <div className={`w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full text-xs font-medium`}>
+              {getInitials(token.symbol)}
+            </div>
+          );
+        }
+        // Cache this result for future renders
+        sessionStorage.setItem(cacheKey, "true");
+      } catch (e) {
+        // Ignore sessionStorage errors
+      }
+
+      return (
+        <div className={`w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full text-xs font-medium`}>
+          {getInitials(token.symbol)}
+        </div>
+      );
     }
 
     // Show loading placeholder if we don't have the actual image URL yet
@@ -237,11 +254,7 @@ export const TokenImage = memo(
     );
   },
   (prevProps, nextProps) => {
-    // Only re-render if token ID, URI, or imageUrl changes
-    return (
-      prevProps.token.id === nextProps.token.id && 
-      prevProps.token.tokenUri === nextProps.token.tokenUri &&
-      prevProps.token.imageUrl === nextProps.token.imageUrl
-    );
+    // Only re-render if token ID or URI changes
+    return prevProps.token.id === nextProps.token.id && prevProps.token.tokenUri === nextProps.token.tokenUri;
   },
 );
