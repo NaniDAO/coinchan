@@ -20,7 +20,7 @@ import { useTokenSelection } from "./contexts/TokenSelectionContext";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { useReserves } from "./hooks/use-reserves";
 import { determineReserveSource, isCookbookCoin } from "./lib/coin-utils";
-import { type TokenMeta, USDT_POOL_ID, USDT_POOL_KEY } from "./lib/coins";
+import { type TokenMeta, USDT_POOL_ID, USDT_POOL_KEY, CULT_POOL_ID, CULT_POOL_KEY } from "./lib/coins";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import {
   DEADLINE_SEC,
@@ -103,8 +103,14 @@ export const RemoveLiquidity = () => {
       try {
         // Calculate the pool ID - different method for custom pools
         let poolId;
-
-        if (isCustomPool) {
+        
+        // Check for CULT specifically first
+        const isUsingCult = sellToken?.symbol === "CULT" || buyToken?.symbol === "CULT";
+        
+        if (isUsingCult) {
+          // Use the specific CULT pool ID
+          poolId = CULT_POOL_ID;
+        } else if (isCustomPool) {
           // Use the custom token's poolId if available
           const customToken = sellToken?.isCustomPool ? sellToken : buyToken;
           poolId = customToken?.poolId || USDT_POOL_ID;
@@ -122,7 +128,7 @@ export const RemoveLiquidity = () => {
         }
 
         // Determine which ZAMM address to use for LP balance lookup
-        const isCookbook = isCustomPool ? false : isCookbookCoin(coinId);
+        const isCookbook = isUsingCult ? true : (isCustomPool ? false : isCookbookCoin(coinId));
         const targetZAMMAddress = isCookbook ? CookbookAddress : ZAMMAddress;
         const targetZAMMAbi = isCookbook ? CookbookAbi : ZAMMAbi;
 
@@ -228,6 +234,7 @@ export const RemoveLiquidity = () => {
 
     // Calculate the expected token amounts based on the LP amount to burn
     if (!reserves || !val) {
+      console.log("RemoveLiquidity: Early return - reserves:", !!reserves, "val:", val);
       setSellAmt("");
       setBuyAmt("");
       return;
@@ -235,10 +242,14 @@ export const RemoveLiquidity = () => {
 
     try {
       // Calculate the pool ID - different method for custom pools
+      const isUsingCult = sellToken?.symbol === "CULT" || buyToken?.symbol === "CULT";
       const customPoolUsed = sellToken?.isCustomPool || buyToken?.isCustomPool;
       let poolId;
 
-      if (customPoolUsed) {
+      if (isUsingCult) {
+        // Use the specific CULT pool ID
+        poolId = CULT_POOL_ID;
+      } else if (customPoolUsed) {
         // Use the custom token's poolId if available
         const customToken = sellToken?.isCustomPool ? sellToken : buyToken;
         poolId = customToken?.poolId || USDT_POOL_ID;
@@ -255,10 +266,13 @@ export const RemoveLiquidity = () => {
         );
       }
 
-      if (!publicClient) return;
+      if (!publicClient) {
+        console.log("RemoveLiquidity: No publicClient available");
+        return;
+      }
 
       // Determine which ZAMM address to use for pool info lookup
-      const isCookbook = customPoolUsed ? false : isCookbookCoin(coinId);
+      const isCookbook = isUsingCult ? true : (customPoolUsed ? false : isCookbookCoin(coinId));
       const targetZAMMAddress = isCookbook ? CookbookAddress : ZAMMAddress;
       const targetZAMMAbi = isCookbook ? CookbookAbi : ZAMMAbi;
 
@@ -270,12 +284,18 @@ export const RemoveLiquidity = () => {
       })) as any;
 
       // Ensure we have pool data
-      if (!poolInfo) return;
+      if (!poolInfo) {
+        console.log("RemoveLiquidity: No poolInfo returned for poolId:", poolId.toString());
+        return;
+      }
 
       // Extract supply from pool data (the 7th item in the array for this contract, index 6)
       const totalSupply = poolInfo[6] as bigint; // Pool struct has supply at index 6
 
-      if (totalSupply === 0n) return;
+      if (totalSupply === 0n) {
+        console.log("RemoveLiquidity: totalSupply is 0, cannot calculate preview");
+        return;
+      }
 
       // Calculate proportional amount of tokens based on removeLiquidity calculation in ZAMM.sol
       const burnAmount = parseUnits(val || "0", 18);
@@ -286,6 +306,16 @@ export const RemoveLiquidity = () => {
       const tokenAmount = (burnAmount * reserves.reserve1) / totalSupply;
 
       // Log calculation details for debugging
+      console.log("RemoveLiquidity calculation:", {
+        isUsingCult,
+        burnAmount: burnAmount.toString(),
+        reserve0: reserves.reserve0.toString(),
+        reserve1: reserves.reserve1.toString(), 
+        totalSupply: totalSupply.toString(),
+        ethAmount: ethAmount.toString(),
+        tokenAmount: tokenAmount.toString(),
+        tokenSymbol: isUsingCult ? "CULT" : (sellToken?.symbol || buyToken?.symbol)
+      });
 
       // Sanity checks
       if (ethAmount > reserves.reserve0 || tokenAmount > reserves.reserve1) {
@@ -297,12 +327,19 @@ export const RemoveLiquidity = () => {
 
       // Update the input fields with the calculated values
       setSellAmt(ethAmount === 0n ? "" : formatEther(ethAmount));
-      // Use the correct decimals for the token (6 for USDT, 18 for regular tokens)
-      const tokenDecimals = customPoolUsed
-        ? sellToken?.isCustomPool
-          ? sellToken?.decimals || 6
-          : buyToken?.decimals || 6
-        : 18;
+      
+      // Use the correct decimals for the token - handle CULT specifically
+      let tokenDecimals = 18; // Default to 18 decimals
+      
+      if (isUsingCult) {
+        tokenDecimals = 18; // CULT has 18 decimals
+      } else if (customPoolUsed) {
+        // For other custom pools (like USDT), use their actual decimals
+        const customToken = sellToken?.isCustomPool ? sellToken : buyToken;
+        tokenDecimals = customToken?.decimals || 6; // USDT defaults to 6
+      } else {
+        tokenDecimals = 18; // Regular tokens have 18 decimals
+      }
 
       setBuyAmt(
         tokenAmount === 0n ? "" : formatUnits(tokenAmount, tokenDecimals),
@@ -347,12 +384,16 @@ export const RemoveLiquidity = () => {
 
       // Check if we're dealing with the special USDT token
       let poolKey;
-      const isUsdtPool = sellToken.isCustomPool || buyToken?.isCustomPool;
+      const isUsdtPool = sellToken.symbol === "USDT" || buyToken?.symbol === "USDT";
+      const isUsingCult = sellToken.symbol === "CULT" || buyToken?.symbol === "CULT";
 
       // Determine if this is a cookbook coin
       const isCookbook = isCookbookCoin(coinId);
 
-      if (isUsdtPool) {
+      if (isUsingCult) {
+        // Use the specific CULT pool key with correct id1=0n and feeOrHook
+        poolKey = CULT_POOL_KEY;
+      } else if (isUsdtPool) {
         // Use the custom pool key for USDT-ETH pool
         const customToken = sellToken.isCustomPool ? sellToken : buyToken;
         poolKey = customToken?.poolKey || USDT_POOL_KEY;
