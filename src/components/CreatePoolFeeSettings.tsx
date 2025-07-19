@@ -14,11 +14,7 @@ interface FeeSettingsProps {
   className?: string;
 }
 
-export const FeeSettings = ({
-  feeBps,
-  setFeeBps,
-  className = "",
-}: FeeSettingsProps) => {
+export const FeeSettings = ({ feeBps, setFeeBps, className = "" }: FeeSettingsProps) => {
   const [showFeeSettings, setShowFeeSettings] = useState(false);
 
   return (
@@ -30,9 +26,7 @@ export const FeeSettings = ({
         <span>
           <strong>Pool Fee:</strong> {Number(feeBps) / 100}%
         </span>
-        <span className="text-xs text-foreground-secondary">
-          {showFeeSettings ? "▲" : "▼"}
-        </span>
+        <span className="text-xs text-foreground-secondary">{showFeeSettings ? "▲" : "▼"}</span>
       </div>
 
       {showFeeSettings && (

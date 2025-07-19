@@ -21,8 +21,8 @@ export function StakingNotifications({ className }: StakingNotificationsProps) {
     return null;
   }
 
-  const unstakedTokens = stakeableTokens.filter(t => !t.isStaked && t.balance > 0n);
-  const partiallyStakedTokens = stakeableTokens.filter(t => t.isStaked && t.unstakeableAmount > 0n);
+  const unstakedTokens = stakeableTokens.filter((t) => !t.isStaked && t.balance > 0n);
+  const partiallyStakedTokens = stakeableTokens.filter((t) => t.isStaked && t.unstakeableAmount > 0n);
 
   return (
     <div className={className}>
@@ -32,7 +32,7 @@ export function StakingNotifications({ className }: StakingNotificationsProps) {
           <div className="flex items-start gap-3">
             <div className="text-yellow-500 mt-0.5">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2L13.09 8.26L22 9L13.09 9.74L12 16L10.91 9.74L2 9L10.91 8.26L12 2Z" fill="currentColor"/>
+                <path d="M12 2L13.09 8.26L22 9L13.09 9.74L12 16L10.91 9.74L2 9L10.91 8.26L12 2Z" fill="currentColor" />
               </svg>
             </div>
             <div className="flex-1">
@@ -49,10 +49,7 @@ export function StakingNotifications({ className }: StakingNotificationsProps) {
               </p>
               <div className="space-y-2">
                 {unstakedTokens.map((token) => (
-                  <UnstakedTokenCard
-                    key={token.stream.chefId.toString()}
-                    token={token}
-                  />
+                  <UnstakedTokenCard key={token.stream.chefId.toString()} token={token} />
                 ))}
               </div>
             </div>
@@ -66,7 +63,7 @@ export function StakingNotifications({ className }: StakingNotificationsProps) {
           <div className="flex items-start gap-3">
             <div className="text-blue-500 mt-0.5">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2L13.09 8.26L22 9L13.09 9.74L12 16L10.91 9.74L2 9L10.91 8.26L12 2Z" fill="currentColor"/>
+                <path d="M12 2L13.09 8.26L22 9L13.09 9.74L12 16L10.91 9.74L2 9L10.91 8.26L12 2Z" fill="currentColor" />
               </svg>
             </div>
             <div className="flex-1">
@@ -83,22 +80,20 @@ export function StakingNotifications({ className }: StakingNotificationsProps) {
               </p>
               <div className="space-y-2">
                 {partiallyStakedTokens.map((token) => (
-                  <PartiallyStakedTokenCard
-                    key={token.stream.chefId.toString()}
-                    token={token}
-                  />
+                  <PartiallyStakedTokenCard key={token.stream.chefId.toString()} token={token} />
                 ))}
               </div>
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }
 
-function UnstakedTokenCard({ token }: {
+function UnstakedTokenCard({
+  token,
+}: {
   token: any;
 }) {
   const { t } = useTranslation();
@@ -122,7 +117,7 @@ function UnstakedTokenCard({ token }: {
             {token.lpToken?.symbol || `Pool ${token.stream.lpId.toString().slice(0, 8)}...`}
           </div>
           <div className="font-mono text-xs text-muted-foreground">
-            {formatBalance(formatUnits(balance, 18), "LP")} • {" "}
+            {formatBalance(formatUnits(balance, 18), "LP")} •{" "}
             <APYDisplay stream={token.stream} lpToken={token.lpToken} shortView={true} />
           </div>
         </div>
@@ -143,7 +138,9 @@ function UnstakedTokenCard({ token }: {
   );
 }
 
-function PartiallyStakedTokenCard({ token }: {
+function PartiallyStakedTokenCard({
+  token,
+}: {
   token: any;
 }) {
   const { t } = useTranslation();
@@ -163,7 +160,7 @@ function PartiallyStakedTokenCard({ token }: {
             {token.lpToken?.symbol || `Pool ${token.stream.lpId.toString().slice(0, 8)}...`}
           </div>
           <div className="font-mono text-xs text-muted-foreground">
-            {formatBalance(formatUnits(token.unstakeableAmount, 18), "LP")} more • {" "}
+            {formatBalance(formatUnits(token.unstakeableAmount, 18), "LP")} more •{" "}
             <APYDisplay stream={token.stream} lpToken={token.lpToken} shortView={true} />
           </div>
         </div>

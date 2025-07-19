@@ -11,14 +11,10 @@ interface APYDisplayProps {
   shortView?: boolean;
 }
 
-export function APYDisplay({
-  stream,
-  lpToken,
-  shortView = true,
-}: APYDisplayProps) {
+export function APYDisplay({ stream, lpToken, shortView = true }: APYDisplayProps) {
   const { t } = useTranslation();
   const [showFarmApy, setShowFarmApy] = useState(false);
-  
+
   // Calculate combined APY (base + farm incentives)
   const combinedApyData = useCombinedApy({
     stream,
@@ -28,7 +24,7 @@ export function APYDisplay({
 
   // Determine if farm is uninitialized (less than 0.1 ETH worth of LP tokens staked)
   const isUninitializedFarm = stream.totalShares < parseEther("0.1");
-  
+
   // For uninitialized farms, show only base APY unless user clicks to reveal
   const shouldHideFarmApy = isUninitializedFarm && !showFarmApy;
   const displayTotalApy = shouldHideFarmApy ? combinedApyData.baseApy : combinedApyData.totalApy;
@@ -55,9 +51,7 @@ export function APYDisplay({
           [{shouldHideFarmApy ? t("common.base_apy") : t("common.total_apy")}]
         </p>
         <div className="flex items-center gap-2">
-          <p className="font-mono font-bold text-sm text-green-600 mt-1">
-            {displayTotalApy.toFixed(2)}%
-          </p>
+          <p className="font-mono font-bold text-sm text-green-600 mt-1">{displayTotalApy.toFixed(2)}%</p>
           {shouldHideFarmApy && (
             <button
               onClick={() => setShowFarmApy(true)}
@@ -86,9 +80,7 @@ export function APYDisplay({
             {shouldHideFarmApy ? t("common.base_apy") : t("common.total_apy")}:
           </p>
           <div className="flex items-center justify-center gap-2">
-            <p className="font-mono font-bold text-green-600 text-lg">
-              {displayTotalApy.toFixed(2)}%
-            </p>
+            <p className="font-mono font-bold text-green-600 text-lg">{displayTotalApy.toFixed(2)}%</p>
             {shouldHideFarmApy && (
               <button
                 onClick={() => setShowFarmApy(true)}
@@ -103,19 +95,17 @@ export function APYDisplay({
       </div>
 
       {/* APY Breakdown */}
-      <div className={`grid gap-2 mb-3 ${shouldHideFarmApy ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'}`}>
+      <div className={`grid gap-2 mb-3 ${shouldHideFarmApy ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2"}`}>
         <div className="border border-muted p-2">
           <p className="text-muted-foreground font-mono text-xs">
             {t("common.base_apy")} ({t("common.trading_fees")}):
           </p>
-          <p className="font-mono font-bold text-foreground text-sm">
-            {combinedApyData.baseApy.toFixed(2)}%
-          </p>
+          <p className="font-mono font-bold text-foreground text-sm">{combinedApyData.baseApy.toFixed(2)}%</p>
           <p className="text-xs text-muted-foreground font-mono mt-1">
             {combinedApyData.breakdown.tradingFees / 100}% fee
           </p>
         </div>
-        
+
         {shouldHideFarmApy ? (
           <div className="border border-muted p-2 bg-muted/20">
             <p className="text-muted-foreground font-mono text-xs">
@@ -127,18 +117,14 @@ export function APYDisplay({
             >
               Click to show
             </button>
-            <p className="text-xs text-muted-foreground font-mono mt-1">
-              Hidden for uninitialized farms
-            </p>
+            <p className="text-xs text-muted-foreground font-mono mt-1">Hidden for uninitialized farms</p>
           </div>
         ) : (
           <div className="border border-muted p-2">
             <p className="text-muted-foreground font-mono text-xs">
               {t("common.farm_apy")} ({t("common.incentives")}):
             </p>
-            <p className="font-mono font-bold text-foreground text-sm">
-              {combinedApyData.farmApy.toFixed(2)}%
-            </p>
+            <p className="font-mono font-bold text-foreground text-sm">{combinedApyData.farmApy.toFixed(2)}%</p>
             <p className="text-xs text-muted-foreground font-mono mt-1">
               {combinedApyData.breakdown.rewardSymbol} rewards
             </p>
@@ -149,7 +135,7 @@ export function APYDisplay({
       <div className="p-2 border border-muted">
         <p className="text-xs font-mono text-muted-foreground">
           <span className="text-foreground">i</span>{" "}
-          {shouldHideFarmApy 
+          {shouldHideFarmApy
             ? "Farm APY is hidden for uninitialized farms to avoid misleading figures. Click to reveal actual calculations."
             : t("common.combined_apy_note")}
         </p>

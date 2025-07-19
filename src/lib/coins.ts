@@ -174,7 +174,7 @@ export function createErc20Token(
   if (!address || !symbol || !name) {
     throw new Error("ERC20 token must have address, symbol, and name");
   }
-  
+
   if (decimals < 0 || decimals > 255) {
     throw new Error("ERC20 token decimals must be between 0 and 255");
   }

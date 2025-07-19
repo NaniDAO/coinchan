@@ -7,9 +7,9 @@ import { mainnet } from "viem/chains";
 const normalizeEnsName = (name: string): string => {
   try {
     // Basic normalization for international characters
-    return name.normalize('NFC').toLowerCase();
+    return name.normalize("NFC").toLowerCase();
   } catch (error) {
-    console.warn('ENS name normalization failed:', error);
+    console.warn("ENS name normalization failed:", error);
     return name.toLowerCase();
   }
 };
@@ -61,15 +61,16 @@ export function useENSResolution(input: string): ENSResolutionResult {
     }
 
     // Check if it looks like an ENS name (including international characters)
-    const isENSName = trimmedInput.includes('.') && 
-                     (trimmedInput.endsWith('.eth') || 
-                      trimmedInput.endsWith('.xyz') || 
-                      trimmedInput.endsWith('.com') ||
-                      trimmedInput.match(/\.[a-zA-Z\u00a1-\uffff]{2,}$/));
+    const isENSName =
+      trimmedInput.includes(".") &&
+      (trimmedInput.endsWith(".eth") ||
+        trimmedInput.endsWith(".xyz") ||
+        trimmedInput.endsWith(".com") ||
+        trimmedInput.match(/\.[a-zA-Z\u00a1-\uffff]{2,}$/));
 
     // Check if input could potentially be a valid ENS name being typed
     const couldBeENS = trimmedInput.match(/^[a-zA-Z0-9\u00a1-\uffff-]+(\.[a-zA-Z\u00a1-\uffff]*)?$/);
-    
+
     // Only show error for inputs that clearly can't be valid addresses or ENS names
     // and are longer than 2 characters (to avoid showing errors too early)
     if (!isENSName && !couldBeENS && trimmedInput.length > 2) {
@@ -94,7 +95,7 @@ export function useENSResolution(input: string): ENSResolutionResult {
     }
 
     // Start ENS resolution
-    setResult(prev => ({
+    setResult((prev) => ({
       ...prev,
       isLoading: true,
       error: null,
@@ -102,7 +103,7 @@ export function useENSResolution(input: string): ENSResolutionResult {
     }));
 
     let cancelled = false;
-    
+
     const resolveENS = async () => {
       try {
         if (!publicClient) {
@@ -111,8 +112,8 @@ export function useENSResolution(input: string): ENSResolutionResult {
 
         // Normalize the ENS name to handle international characters
         const normalizedName = normalizeEnsName(trimmedInput);
-        
-        // Resolve the ENS name to an address  
+
+        // Resolve the ENS name to an address
         const resolvedAddress = await publicClient.getEnsAddress({
           name: normalizedName,
         });
@@ -139,7 +140,7 @@ export function useENSResolution(input: string): ENSResolutionResult {
       } catch (error) {
         // Check if this request was cancelled
         if (cancelled) return;
-        
+
         console.error("ENS resolution error:", error);
         setResult({
           address: null,

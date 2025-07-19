@@ -33,26 +33,26 @@ async function loadTrustedTokenList(): Promise<TokenListData> {
 
   try {
     // Try to load from public directory
-    const response = await fetch('/trust-eth-erc20.tokens.json');
+    const response = await fetch("/trust-eth-erc20.tokens.json");
     if (!response.ok) {
       throw new Error(`Failed to load token list: ${response.status} ${response.statusText}`);
     }
-    
+
     const data = await response.json();
-    console.log('Loaded Trust Wallet token list:', { count: data.count, tokens: data.tokens?.length });
+    console.log("Loaded Trust Wallet token list:", { count: data.count, tokens: data.tokens?.length });
     tokenListCache = data;
     return data;
   } catch (error) {
-    console.error('Failed to load trusted token list:', error);
+    console.error("Failed to load trusted token list:", error);
   }
 
   // Fallback to empty list
   tokenListCache = {
     generated: new Date().toISOString(),
-    source: 'Fallback',
+    source: "Fallback",
     chainId: 1,
     count: 0,
-    tokens: []
+    tokens: [],
   };
 
   return tokenListCache;
@@ -63,21 +63,20 @@ async function loadTrustedTokenList(): Promise<TokenListData> {
  */
 export async function getTrustedTokenInfo(address: Address): Promise<TrustedToken | null> {
   const tokenList = await loadTrustedTokenList();
-  
+
   try {
     const checksumAddress = getAddress(address);
     const lowerAddress = address.toLowerCase();
-    
+
     // Try both checksummed and lowercase addresses since Trust Wallet list might have either
-    const token = tokenList.tokens.find(token => 
-      token.address.toLowerCase() === lowerAddress || 
-      token.address === checksumAddress
+    const token = tokenList.tokens.find(
+      (token) => token.address.toLowerCase() === lowerAddress || token.address === checksumAddress,
     );
-    
+
     if (token) {
-      console.log('Found token:', token.symbol, 'at address:', token.address);
+      console.log("Found token:", token.symbol, "at address:", token.address);
     }
-    
+
     return token || null;
   } catch {
     return null;
@@ -106,16 +105,20 @@ export async function getAllTrustedTokens(): Promise<TrustedToken[]> {
 export async function searchTrustedTokens(query: string): Promise<TrustedToken[]> {
   const tokenList = await loadTrustedTokenList();
   const lowerQuery = query.toLowerCase();
-  
-  console.log('Searching tokens with query:', query, 'in list of', tokenList.tokens.length, 'tokens');
-  
-  const results = tokenList.tokens.filter(token => 
-    token.symbol.toLowerCase().includes(lowerQuery) ||
-    token.name.toLowerCase().includes(lowerQuery)
+
+  console.log("Searching tokens with query:", query, "in list of", tokenList.tokens.length, "tokens");
+
+  const results = tokenList.tokens.filter(
+    (token) => token.symbol.toLowerCase().includes(lowerQuery) || token.name.toLowerCase().includes(lowerQuery),
   );
-  
-  console.log('Found', results.length, 'matching tokens:', results.map(t => t.symbol));
-  
+
+  console.log(
+    "Found",
+    results.length,
+    "matching tokens:",
+    results.map((t) => t.symbol),
+  );
+
   return results;
 }
 
@@ -127,7 +130,7 @@ export async function getTokenListMetadata(): Promise<{ generated: string; sourc
   return {
     generated: tokenList.generated,
     source: tokenList.source,
-    count: tokenList.count
+    count: tokenList.count,
   };
 }
 
@@ -139,7 +142,7 @@ export function validateTokenMetadata(token: TrustedToken): boolean {
     token.address &&
     token.symbol &&
     token.name &&
-    typeof token.decimals === 'number' &&
+    typeof token.decimals === "number" &&
     token.decimals >= 0 &&
     token.decimals <= 255
   );

@@ -89,7 +89,10 @@ export const TokenImage = memo(
               `https://gateway.pinata.cloud/ipfs/${hash}`,
               `https://ipfs.fleek.co/ipfs/${hash}`,
             ]);
-          } else if (token.tokenUri.includes("trustwallet") || token.tokenUri.includes("githubusercontent.com/trustwallet")) {
+          } else if (
+            token.tokenUri.includes("trustwallet") ||
+            token.tokenUri.includes("githubusercontent.com/trustwallet")
+          ) {
             // For Trust Wallet URLs, ensure we have both CDN and GitHub alternatives
             // Extract the address and ensure it's checksummed
             const pathMatch = token.tokenUri.match(/\/assets\/(0x[a-fA-F0-9]{40})\/logo\.png/i);

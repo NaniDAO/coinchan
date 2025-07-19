@@ -1,16 +1,8 @@
-import {
-  CoinsMetadataHelperAbi,
-  CoinsMetadataHelperAddress,
-} from "@/constants/CoinsMetadataHelper";
+import { CoinsMetadataHelperAbi, CoinsMetadataHelperAddress } from "@/constants/CoinsMetadataHelper";
 import { useQuery } from "@tanstack/react-query";
 import { http, createPublicClient } from "viem";
 import { mainnet } from "viem/chains";
-import {
-  type CoinData,
-  type RawCoinData,
-  enrichMetadata,
-  hydrateRawCoin,
-} from "./coin-utils";
+import { type CoinData, type RawCoinData, enrichMetadata, hydrateRawCoin } from "./coin-utils";
 
 const publicClient = createPublicClient({
   chain: mainnet,
@@ -18,9 +10,7 @@ const publicClient = createPublicClient({
 });
 
 export const getVotesForAllCoins = async () => {
-  const data = await fetch(
-    import.meta.env.VITE_ZAMMHUB_URL + "/api/votes",
-  ).then((res) => res.json());
+  const data = await fetch(import.meta.env.VITE_ZAMMHUB_URL + "/api/votes").then((res) => res.json());
 
   return data as Record<string, string>;
 };
@@ -30,9 +20,7 @@ export function useCoinsData() {
     queryKey: ["coins-data"],
     queryFn: async () => {
       try {
-        const resp = await fetch(
-          `${import.meta.env.VITE_INDEXER_URL}/api/coins`,
-        );
+        const resp = await fetch(`${import.meta.env.VITE_INDEXER_URL}/api/coins`);
         if (!resp.ok) {
           throw new Error(`Indexer error: ${resp.statusText}`);
         }
@@ -84,14 +72,7 @@ export function useCoinsData() {
         const raws: RawCoinData[] = rawRpc.map((rc: any) => {
           const arr = Array.isArray(rc)
             ? rc
-            : [
-                rc.coinId,
-                rc.tokenURI,
-                rc.reserve0,
-                rc.reserve1,
-                rc.poolId,
-                rc.liquidity,
-              ];
+            : [rc.coinId, rc.tokenURI, rc.reserve0, rc.reserve1, rc.poolId, rc.liquidity];
           const [coinId, tokenURI, reserve0, reserve1, poolId, liquidity] = arr;
           return {
             coinId: BigInt(coinId ?? 0),

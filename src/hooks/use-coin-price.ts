@@ -7,10 +7,7 @@ import { useMemo } from "react";
 import { Address, formatEther, isAddressEqual } from "viem";
 import { useReadContract } from "wagmi";
 
-const getCoinSource = (
-  coinId: bigint | undefined,
-  coinContract: Address | undefined,
-): CoinSource | undefined => {
+const getCoinSource = (coinId: bigint | undefined, coinContract: Address | undefined): CoinSource | undefined => {
   if (!coinId || !coinContract) return undefined;
   if (isAddressEqual(coinContract, CoinsAddress)) {
     return "ZAMM";
@@ -33,11 +30,7 @@ export const useCoinPrice = ({
     if (!coinId || !coinContract) return [undefined, undefined];
     const source = getCoinSource(coinId, coinContract);
     if (!source) return [undefined, undefined];
-    const poolId = computePoolId(
-      coinId,
-      SWAP_FEE,
-      source === "ZAMM" ? CoinsAddress : CookbookAddress,
-    );
+    const poolId = computePoolId(coinId, SWAP_FEE, source === "ZAMM" ? CoinsAddress : CookbookAddress);
     return [source, poolId];
   }, [coinContract]);
 
@@ -52,8 +45,7 @@ export const useCoinPrice = ({
         const reserve1 = data?.[1];
         const SCALING1 = 10n ** BigInt(18);
 
-        const price1Fixed =
-          reserve1 === 0n ? 0n : (reserve0 * SCALING1) / reserve1;
+        const price1Fixed = reserve1 === 0n ? 0n : (reserve0 * SCALING1) / reserve1;
 
         return Number(formatEther(price1Fixed));
       },

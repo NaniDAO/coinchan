@@ -40,9 +40,21 @@ export interface SwapParams {
  * internally checking allowances and operator status.
  */
 export async function buildSwapCalls(params: SwapParams & { publicClient: PublicClient }): Promise<Call[]> {
-  const { address, sellToken, buyToken, sellAmt, buyAmt, reserves, slippageBps, targetReserves, publicClient, recipient, exactOut } = params;
+  const {
+    address,
+    sellToken,
+    buyToken,
+    sellAmt,
+    buyAmt,
+    reserves,
+    slippageBps,
+    targetReserves,
+    publicClient,
+    recipient,
+    exactOut,
+  } = params;
   const calls: Call[] = [];
-  
+
   // Use custom recipient if provided, otherwise default to connected wallet
   // Validate the recipient is a valid address
   const swapRecipient = recipient && recipient.match(/^0x[a-fA-F0-9]{40}$/i) ? recipient : address;
@@ -58,25 +70,25 @@ export async function buildSwapCalls(params: SwapParams & { publicClient: Public
   const buyAmtInUnits = parseUnits(buyAmt || "0", buyToken.decimals || 18);
   const minBuyAmount = withSlippage(buyAmtInUnits, slippageBps);
   const deadline = nowSec() + BigInt(DEADLINE_SEC);
-  
+
   // For exactOut, we need to calculate max input amount based on desired output
   let maxSellAmount = sellAmtInUnits;
   if (exactOut && !isCoinToCoin) {
     // In exactOut mode, we need to calculate the maximum input we'd need
     // to get the exact output (buyAmtInUnits) with slippage protection
     if (!reserves) throw new Error("Reserves required for exactOut calculations");
-    
+
     const isETHToToken = isSellETH;
     const outputAmount = buyAmtInUnits;
-    
+
     // Calculate required input using getAmountIn
     const requiredInput = getAmountIn(
       outputAmount,
       isETHToToken ? reserves.reserve0 : reserves.reserve1,
       isETHToToken ? reserves.reserve1 : reserves.reserve0,
-      sellToken.swapFee || buyToken?.swapFee || SWAP_FEE
+      sellToken.swapFee || buyToken?.swapFee || SWAP_FEE,
     );
-    
+
     // Add slippage buffer to the calculated input
     maxSellAmount = requiredInput + (requiredInput * slippageBps) / 10000n;
   }
@@ -222,7 +234,7 @@ export async function buildSwapCalls(params: SwapParams & { publicClient: Public
           ) as ZAMMPoolKey);
     const fromETH = isSellETH;
     const source = fromETH ? buyToken.source : sellToken.source;
-    
+
     if (exactOut) {
       // swapExactOut: we want exactly buyAmtInUnits output, with maxSellAmount as input limit
       const call: Call = {

@@ -266,7 +266,6 @@ export const BuySell = ({
         </TabsTrigger>
       </TabsList>
 
-
       <TabsContent value="buy" className="max-w-2xl">
         <div className="flex flex-col gap-2">
           <span className="text-sm font-medium text-green-700">Using ETH</span>

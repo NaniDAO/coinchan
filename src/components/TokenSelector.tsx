@@ -1,10 +1,11 @@
-import { type TokenMeta, USDT_ADDRESS } from "@/lib/coins";
+import { type TokenMeta, USDT_ADDRESS, createErc20Token } from "@/lib/coins";
 import { cn } from "@/lib/utils";
 import { ChevronDownIcon, SearchIcon, CheckIcon } from "lucide-react";
-import { memo, useState } from "react";
+import { memo, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { formatEther, formatUnits, isAddress } from "viem";
+import { formatEther, formatUnits, isAddress, getAddress } from "viem";
 import { TokenImage } from "./TokenImage";
+import { searchTrustedTokens, getTrustedTokenInfo } from "@/lib/trusted-tokens";
 
 export const TokenSelector = memo(
   ({
@@ -28,11 +29,16 @@ export const TokenSelector = memo(
     const [isOpen, setIsOpen] = useState(false);
     const [showErc20Mode, setShowErc20Mode] = useState(false);
     const [erc20Address, setErc20Address] = useState("");
+    const [searchQuery, setSearchQuery] = useState("");
+    const [searchResults, setSearchResults] = useState<TokenMeta[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
 
     // Handle selection change
     const handleSelect = (token: TokenMeta) => {
       onSelect(token);
       setIsOpen(false);
+      setSearchQuery("");
+      setSearchResults([]);
     };
 
     // Handle ERC20 token creation or search
@@ -44,6 +50,60 @@ export const TokenSelector = memo(
         setIsOpen(false);
       }
     };
+
+    // Search through TrustWallet token list and existing tokens
+    useEffect(() => {
+      const searchTokens = async () => {
+        if (!searchQuery || showErc20Mode) {
+          setSearchResults([]);
+          return;
+        }
+
+        setIsSearching(true);
+        try {
+          const query = searchQuery.toLowerCase();
+
+          // First, filter existing tokens
+          const existingMatches = tokens.filter(
+            (token) =>
+              token.symbol.toLowerCase().includes(query) ||
+              token.name.toLowerCase().includes(query) ||
+              (token.id && token.id.toString().toLowerCase().includes(query)),
+          );
+
+          // Then search TrustWallet token list
+          const trustWalletResults = await searchTrustedTokens(searchQuery);
+
+          // Convert TrustWallet results to TokenMeta format
+          const trustWalletTokens: TokenMeta[] = trustWalletResults.map((result) =>
+            createErc20Token(getAddress(result.address), result.symbol, result.name, result.decimals, result.logoURI),
+          );
+
+          // Combine results, avoiding duplicates (prioritize existing tokens)
+          const combinedResults = [...existingMatches];
+          const existingAddresses = new Set(
+            existingMatches.filter((t) => t.address).map((t) => t.address?.toLowerCase()),
+          );
+
+          for (const trustToken of trustWalletTokens) {
+            if (trustToken.address && !existingAddresses.has(trustToken.address.toLowerCase())) {
+              combinedResults.push(trustToken);
+            }
+          }
+
+          setSearchResults(combinedResults);
+        } catch (error) {
+          console.error("Error searching tokens:", error);
+          setSearchResults([]);
+        } finally {
+          setIsSearching(false);
+        }
+      };
+
+      // Debounce search
+      const timeoutId = setTimeout(searchTokens, 300);
+      return () => clearTimeout(timeoutId);
+    }, [searchQuery, tokens, showErc20Mode]);
 
     // Helper functions for formatting and display
 
@@ -156,9 +216,9 @@ export const TokenSelector = memo(
                         onClick={() => setShowErc20Mode(false)}
                         className={cn(
                           "px-2.5 py-1 rounded-md text-xs font-medium transition-all duration-200",
-                          !showErc20Mode 
-                            ? "bg-background text-foreground shadow-sm" 
-                            : "text-muted-foreground hover:text-foreground"
+                          !showErc20Mode
+                            ? "bg-background text-foreground shadow-sm"
+                            : "text-muted-foreground hover:text-foreground",
                         )}
                       >
                         🪙 Coins
@@ -167,9 +227,9 @@ export const TokenSelector = memo(
                         onClick={() => setShowErc20Mode(true)}
                         className={cn(
                           "px-2.5 py-1 rounded-md text-xs font-medium transition-all duration-200",
-                          showErc20Mode 
-                            ? "bg-background text-foreground shadow-sm" 
-                            : "text-muted-foreground hover:text-foreground"
+                          showErc20Mode
+                            ? "bg-background text-foreground shadow-sm"
+                            : "text-muted-foreground hover:text-foreground",
                         )}
                       >
                         📄 ERC20
@@ -179,9 +239,7 @@ export const TokenSelector = memo(
                   {showErc20Mode && (
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <label className="block text-sm font-medium text-foreground mb-1">
-                          Token Search
-                        </label>
+                        <label className="block text-sm font-medium text-foreground mb-1">Token Search</label>
                         <div className="relative">
                           <input
                             type="text"
@@ -212,10 +270,8 @@ export const TokenSelector = memo(
                         className="w-full px-4 py-3 bg-primary text-primary-foreground rounded-xl text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-all duration-200 active:scale-[0.98] shadow-sm hover:shadow-md"
                       >
                         <span className="flex items-center justify-center gap-2">
-                          {isAddress(erc20Address) && (
-                            <CheckIcon className="w-4 h-4" />
-                          )}
-                          {isAddress(erc20Address) ? 'Add Token' : 'Search Token'}
+                          {isAddress(erc20Address) && <CheckIcon className="w-4 h-4" />}
+                          {isAddress(erc20Address) ? "Add Token" : "Search Token"}
                         </span>
                       </button>
                     </div>
@@ -228,73 +284,16 @@ export const TokenSelector = memo(
                     type="text"
                     placeholder={t("tokenSelector.search_tokens")}
                     title="Search tokens by name, symbol, or ID"
-                    onChange={(e) => {
-                      const query = e.target.value.toLowerCase();
-                      const isStableSearch =
-                        query === "usdt" || query === "tether" || query.includes("stable") || query.includes("usd");
-
-                      const w = window as any;
-                      if (w.searchDebounce) {
-                        cancelAnimationFrame(w.searchDebounce);
-                      }
-
-                      w.searchDebounce = requestAnimationFrame(() => {
-                        const visibleItems = document.querySelectorAll("[data-token-symbol]:not(.hidden)");
-                        const allItems = document.querySelectorAll("[data-token-symbol]");
-
-                        if (isStableSearch) {
-                          const usdtItem = document.querySelector("[data-token-symbol='USDT']");
-                          if (usdtItem) {
-                            usdtItem.classList.remove("hidden");
-                          }
-                        }
-
-                        const itemsToSearch = visibleItems.length > 0 ? visibleItems : allItems;
-                        const itemsArray = Array.from(itemsToSearch);
-                        let anyVisible = false;
-
-                        for (let i = 0; i < itemsArray.length; i++) {
-                          const item = itemsArray[i];
-                          const symbol = item.getAttribute("data-token-symbol")?.toLowerCase() || "";
-                          const name = item.getAttribute("data-token-name")?.toLowerCase() || "";
-                          const id = item.getAttribute("data-token-id") || "";
-
-                          if (symbol.includes(query) || name.includes(query) || id.toLowerCase().includes(query)) {
-                            item.classList.remove("hidden");
-                            anyVisible = true;
-                          } else {
-                            item.classList.add("hidden");
-                          }
-                        }
-
-                        if (isStableSearch && !anyVisible) {
-                          const usdtItem = document.querySelector("[data-token-symbol='USDT']");
-                          if (usdtItem) {
-                            usdtItem.classList.remove("hidden");
-                            anyVisible = true;
-                          }
-                        }
-
-                        if (!anyVisible && visibleItems.length > 0) {
-                          const allItemsArray = Array.from(allItems);
-                          for (let i = 0; i < allItemsArray.length; i++) {
-                            const item = allItemsArray[i];
-                            const symbol = item.getAttribute("data-token-symbol")?.toLowerCase() || "";
-                            const name = item.getAttribute("data-token-name")?.toLowerCase() || "";
-                            const id = item.getAttribute("data-token-id") || "";
-
-                            if (symbol.includes(query) || name.includes(query) || id.toLowerCase().includes(query)) {
-                              item.classList.remove("hidden");
-                            } else {
-                              item.classList.add("hidden");
-                            }
-                          }
-                        }
-                      });
-                    }}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-8 pr-3 py-2.5 border border-border rounded-lg bg-background text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
                   />
                   <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  {isSearching && (
+                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+                      <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -309,7 +308,8 @@ export const TokenSelector = memo(
                     <div className="space-y-2">
                       <h3 className="text-base font-semibold text-foreground">Add Custom Token</h3>
                       <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
-                        Enter any ERC20 token contract address to create a trading pool. Token details will be fetched automatically.
+                        Enter any ERC20 token contract address to create a trading pool. Token details will be fetched
+                        automatically.
                       </p>
                     </div>
                   </div>
@@ -327,169 +327,173 @@ export const TokenSelector = memo(
                     </div>
                   </div>
                 </div>
+              ) : searchQuery && searchResults.length === 0 && !isSearching ? (
+                <div className="p-6 text-center">
+                  <p className="text-sm text-muted-foreground">No tokens found for "{searchQuery}"</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Try a different search term or enter a contract address
+                  </p>
+                </div>
               ) : (
-                tokens.map((token) => {
-                const isSelected = token.id === selectedToken?.id && token.poolId === selectedToken?.poolId;
+                (searchQuery ? searchResults : tokens).map((token) => {
+                  const isSelected = token.id === selectedToken?.id && token.poolId === selectedToken?.poolId;
 
-                const formatReserves = (token: TokenMeta) => {
-                  if (token.id === null) return "";
+                  const formatReserves = (token: TokenMeta) => {
+                    if (token.id === null) return "";
 
-                  const cacheKey = `reserve-format-${token.id}-${token.poolId}`;
+                    const cacheKey = `reserve-format-${token.id}-${token.poolId}`;
 
-                  try {
-                    const cached = sessionStorage.getItem(cacheKey);
-                    if (cached) return cached;
-                  } catch (e) {}
+                    try {
+                      const cached = sessionStorage.getItem(cacheKey);
+                      if (cached) return cached;
+                    } catch (e) {}
 
-                  const feePercentage = token.swapFee ? Number(token.swapFee) / 100 : 1;
+                    const feePercentage = token.swapFee ? Number(token.swapFee) / 100 : 1;
 
-                  let feeStr;
-                  if (feePercentage % 1 === 0) {
-                    feeStr = `${feePercentage.toFixed(0)}%`;
-                  } else if ((feePercentage * 10) % 1 === 0) {
-                    feeStr = `${feePercentage.toFixed(1)}%`;
-                  } else {
-                    feeStr = `${feePercentage.toFixed(2)}%`;
-                  }
+                    let feeStr;
+                    if (feePercentage % 1 === 0) {
+                      feeStr = `${feePercentage.toFixed(0)}%`;
+                    } else if ((feePercentage * 10) % 1 === 0) {
+                      feeStr = `${feePercentage.toFixed(1)}%`;
+                    } else {
+                      feeStr = `${feePercentage.toFixed(2)}%`;
+                    }
 
-                  const tokenDecimals = token.decimals || 18;
+                    const tokenDecimals = token.decimals || 18;
 
-                  if (!token.liquidity || token.liquidity === 0n) {
-                    if (token.reserve0 && token.reserve0 > 0n) {
-                      const ethValue = Number(formatEther(token.reserve0));
-                      let reserveStr = "";
+                    if (!token.liquidity || token.liquidity === 0n) {
+                      if (token.reserve0 && token.reserve0 > 0n) {
+                        const ethValue = Number(formatEther(token.reserve0));
+                        let reserveStr = "";
 
-                      if (ethValue >= 1000) {
-                        reserveStr = `${Math.floor(ethValue).toLocaleString()} ETH`;
-                      } else if (ethValue >= 1.0) {
-                        reserveStr = `${ethValue.toFixed(3)} ETH`;
-                      } else if (ethValue >= 0.001) {
-                        reserveStr = `${ethValue.toFixed(4)} ETH`;
-                      } else if (ethValue >= 0.0001) {
-                        reserveStr = `${ethValue.toFixed(6)} ETH`;
-                      } else if (ethValue > 0) {
-                        reserveStr = `${ethValue.toFixed(8)} ETH`;
+                        if (ethValue >= 1000) {
+                          reserveStr = `${Math.floor(ethValue).toLocaleString()} ETH`;
+                        } else if (ethValue >= 1.0) {
+                          reserveStr = `${ethValue.toFixed(3)} ETH`;
+                        } else if (ethValue >= 0.001) {
+                          reserveStr = `${ethValue.toFixed(4)} ETH`;
+                        } else if (ethValue >= 0.0001) {
+                          reserveStr = `${ethValue.toFixed(6)} ETH`;
+                        } else if (ethValue > 0) {
+                          reserveStr = `${ethValue.toFixed(8)} ETH`;
+                        }
+
+                        const result = `${reserveStr} • ${feeStr}`;
+                        try {
+                          sessionStorage.setItem(cacheKey, result);
+                        } catch (e) {}
+                        return result;
                       }
 
-                      const result = `${reserveStr} • ${feeStr}`;
+                      const result = `No liquidity • ${feeStr}`;
                       try {
                         sessionStorage.setItem(cacheKey, result);
                       } catch (e) {}
                       return result;
                     }
 
-                    const result = `No liquidity • ${feeStr}`;
+                    let reserveStr = "";
+
+                    if (token.isCustomPool) {
+                      const ethReserveValue = Number(formatEther(token.reserve0 || 0n));
+                      const tokenReserveValue = Number(formatUnits(token.reserve1 || 0n, tokenDecimals));
+
+                      let ethStr = "";
+                      if (ethReserveValue >= 10000) {
+                        ethStr = `${Math.floor(ethReserveValue / 1000)}K ETH`;
+                      } else if (ethReserveValue >= 1000) {
+                        ethStr = `${(ethReserveValue / 1000).toFixed(1)}K ETH`;
+                      } else if (ethReserveValue >= 1.0) {
+                        ethStr = `${ethReserveValue.toFixed(2)} ETH`;
+                      } else if (ethReserveValue > 0) {
+                        ethStr = `${ethReserveValue.toFixed(4)} ETH`;
+                      }
+
+                      let tokenStr = "";
+                      if (tokenReserveValue >= 1000000) {
+                        tokenStr = `${Math.floor(tokenReserveValue / 1000000)}M ${token.symbol}`;
+                      } else if (tokenReserveValue >= 1000) {
+                        tokenStr = `${Math.floor(tokenReserveValue / 1000)}K ${token.symbol}`;
+                      } else {
+                        tokenStr = `${tokenReserveValue.toFixed(2)} ${token.symbol}`;
+                      }
+
+                      if (token.token1 === USDT_ADDRESS) {
+                        reserveStr = `${ethStr} • ${tokenStr} • ${feeStr}`;
+                      } else {
+                        reserveStr = `${ethStr} / ${tokenStr}`;
+                      }
+                    } else {
+                      const ethReserveValue = Number(formatEther(token.reserve0 || 0n));
+
+                      if (ethReserveValue >= 10000) {
+                        reserveStr = `${Math.floor(ethReserveValue / 1000)}K ETH`;
+                      } else if (ethReserveValue >= 1000) {
+                        reserveStr = `${(ethReserveValue / 1000).toFixed(1)}K ETH`;
+                      } else if (ethReserveValue >= 1.0) {
+                        reserveStr = `${ethReserveValue.toFixed(2)} ETH`;
+                      } else if (ethReserveValue >= 0.001) {
+                        reserveStr = `${ethReserveValue.toFixed(4)} ETH`;
+                      } else if (ethReserveValue > 0) {
+                        reserveStr = `${ethReserveValue.toFixed(6)} ETH`;
+                      } else {
+                        const result = `No ETH reserves • ${feeStr}`;
+                        try {
+                          sessionStorage.setItem(cacheKey, result);
+                          return result;
+                        } catch (e) {
+                          return result;
+                        }
+                      }
+                    }
+
+                    const result = `${reserveStr} • ${feeStr}`;
                     try {
                       sessionStorage.setItem(cacheKey, result);
                     } catch (e) {}
                     return result;
-                  }
+                  };
 
-                  let reserveStr = "";
+                  const reserves = formatReserves(token);
+                  const balance = formatBalance(token);
 
-                  if (token.isCustomPool) {
-                    const ethReserveValue = Number(formatEther(token.reserve0 || 0n));
-                    const tokenReserveValue = Number(formatUnits(token.reserve1 || 0n, tokenDecimals));
-
-                    let ethStr = "";
-                    if (ethReserveValue >= 10000) {
-                      ethStr = `${Math.floor(ethReserveValue / 1000)}K ETH`;
-                    } else if (ethReserveValue >= 1000) {
-                      ethStr = `${(ethReserveValue / 1000).toFixed(1)}K ETH`;
-                    } else if (ethReserveValue >= 1.0) {
-                      ethStr = `${ethReserveValue.toFixed(2)} ETH`;
-                    } else if (ethReserveValue > 0) {
-                      ethStr = `${ethReserveValue.toFixed(4)} ETH`;
-                    }
-
-                    let tokenStr = "";
-                    if (tokenReserveValue >= 1000000) {
-                      tokenStr = `${Math.floor(tokenReserveValue / 1000000)}M ${token.symbol}`;
-                    } else if (tokenReserveValue >= 1000) {
-                      tokenStr = `${Math.floor(tokenReserveValue / 1000)}K ${token.symbol}`;
-                    } else {
-                      tokenStr = `${tokenReserveValue.toFixed(2)} ${token.symbol}`;
-                    }
-
-                    if (token.token1 === USDT_ADDRESS) {
-                      reserveStr = `${ethStr} • ${tokenStr} • ${feeStr}`;
-                    } else {
-                      reserveStr = `${ethStr} / ${tokenStr}`;
-                    }
-                  } else {
-                    const ethReserveValue = Number(formatEther(token.reserve0 || 0n));
-
-                    if (ethReserveValue >= 10000) {
-                      reserveStr = `${Math.floor(ethReserveValue / 1000)}K ETH`;
-                    } else if (ethReserveValue >= 1000) {
-                      reserveStr = `${(ethReserveValue / 1000).toFixed(1)}K ETH`;
-                    } else if (ethReserveValue >= 1.0) {
-                      reserveStr = `${ethReserveValue.toFixed(2)} ETH`;
-                    } else if (ethReserveValue >= 0.001) {
-                      reserveStr = `${ethReserveValue.toFixed(4)} ETH`;
-                    } else if (ethReserveValue > 0) {
-                      reserveStr = `${ethReserveValue.toFixed(6)} ETH`;
-                    } else {
-                      const result = `No ETH reserves • ${feeStr}`;
-                      try {
-                        sessionStorage.setItem(cacheKey, result);
-                        return result;
-                      } catch (e) {
-                        return result;
-                      }
-                    }
-                  }
-
-                  const result = `${reserveStr} • ${feeStr}`;
-                  try {
-                    sessionStorage.setItem(cacheKey, result);
-                  } catch (e) {}
-                  return result;
-                };
-
-                const reserves = formatReserves(token);
-                const balance = formatBalance(token);
-
-                return (
-                  <div
-                    key={`${token?.id?.toString() ?? "eth"}-${token?.poolId?.toString() ?? "default"}`}
-                    onClick={() => handleSelect(token)}
-                    data-token-symbol={token.symbol}
-                    data-token-name={token.name}
-                    data-token-id={token.id?.toString() ?? "eth"}
-                    className={cn(
-                      "flex items-center justify-between p-3 sm:p-2 cursor-pointer touch-manipulation transition-colors content-visibility-auto contain-[50px]",
-                      isSelected ? "bg-muted" : "hover:bg-muted",
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <TokenImage token={token} />
-                      <div className="flex flex-col">
-                        <span className="font-medium">{token.symbol}</span>
-                        {reserves && <span className="text-xs text-muted-foreground">{reserves}</span>}
+                  return (
+                    <div
+                      key={`${token?.id?.toString() ?? "eth"}-${token?.poolId?.toString() ?? "default"}`}
+                      onClick={() => handleSelect(token)}
+                      className={cn(
+                        "flex items-center justify-between p-3 sm:p-2 cursor-pointer touch-manipulation transition-colors content-visibility-auto contain-[50px]",
+                        isSelected ? "bg-muted" : "hover:bg-muted",
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <TokenImage token={token} />
+                        <div className="flex flex-col">
+                          <span className="font-medium">{token.symbol}</span>
+                          {reserves && <span className="text-xs text-muted-foreground">{reserves}</span>}
+                        </div>
+                      </div>
+                      <div className="text-right min-w-[60px]">
+                        <div
+                          className={cn(
+                            "text-sm font-medium h-[18px] text-foreground",
+                            (token.id === null && isEthBalanceFetching) || token.isFetching
+                              ? "animate-pulse px-1 bg-transparent"
+                              : "",
+                          )}
+                        >
+                          {balance}
+                          {token.id === null && isEthBalanceFetching && (
+                            <span className="text-xs text-primary ml-1 inline-block animate-spin">⟳</span>
+                          )}
+                          {token.id !== null && token.isFetching && (
+                            <span className="text-xs text-primary ml-1 inline-block animate-spin">⟳</span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <div className="text-right min-w-[60px]">
-                      <div
-                        className={cn(
-                          "text-sm font-medium h-[18px] text-foreground",
-                          (token.id === null && isEthBalanceFetching) || token.isFetching
-                            ? "animate-pulse px-1 bg-transparent"
-                            : "",
-                        )}
-                      >
-                        {balance}
-                        {token.id === null && isEthBalanceFetching && (
-                          <span className="text-xs text-primary ml-1 inline-block animate-spin">⟳</span>
-                        )}
-                        {token.id !== null && token.isFetching && (
-                          <span className="text-xs text-primary ml-1 inline-block animate-spin">⟳</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
+                  );
+                })
               )}
             </div>
           </div>

@@ -1,22 +1,8 @@
 import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  formatEther,
-  formatUnits,
-  parseEther,
-  parseUnits,
-  zeroAddress,
-  isAddress,
-  erc20Abi,
-  maxUint256,
-} from "viem";
+import { formatEther, formatUnits, parseEther, parseUnits, zeroAddress, isAddress, erc20Abi, maxUint256 } from "viem";
 import { mainnet } from "viem/chains";
-import {
-  useAccount,
-  useChainId,
-  usePublicClient,
-  useWriteContract,
-} from "wagmi";
+import { useAccount, useChainId, usePublicClient, useWriteContract } from "wagmi";
 import { useWaitForTransactionReceipt } from "wagmi";
 import { NetworkError } from "./components/NetworkError";
 import { SuccessMessage } from "./components/SuccessMessage";
@@ -33,11 +19,7 @@ import { nowSec } from "./lib/utils";
 import { FeeSettings } from "./components/CreatePoolFeeSettings";
 
 // Helper function to create pool key for Cookbook pools
-const createCookbookPoolKey = (
-  tokenA: TokenMeta,
-  tokenB: TokenMeta,
-  feeBps: bigint,
-): CookbookPoolKey => {
+const createCookbookPoolKey = (tokenA: TokenMeta, tokenB: TokenMeta, feeBps: bigint): CookbookPoolKey => {
   // Handle ETH-Token pairs (the common case for pool creation)
   if (tokenA.id === null) {
     // tokenA is ETH, tokenB is the other token
@@ -80,8 +62,7 @@ const createCookbookPoolKey = (
   } else {
     // For token-token pairs, determine the appropriate addresses based on source
     // Sort by coin ID to ensure deterministic ordering
-    const [token0, token1] =
-      tokenA.id! < tokenB.id! ? [tokenA, tokenB] : [tokenB, tokenA];
+    const [token0, token1] = tokenA.id! < tokenB.id! ? [tokenA, tokenB] : [tokenB, tokenA];
 
     let token0Address: `0x${string}`;
     let token1Address: `0x${string}`;
@@ -130,11 +111,7 @@ export const CreatePool = () => {
 
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [txError, setTxError] = useState<string | null>(null);
-  const {
-    writeContractAsync,
-    isPending,
-    error: writeError,
-  } = useWriteContract();
+  const { writeContractAsync, isPending, error: writeError } = useWriteContract();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
   // Check operator status for coins contract
@@ -190,10 +167,7 @@ export const CreatePool = () => {
       const poolKey = createCookbookPoolKey(token0, token1, feeBps);
 
       // Determine amounts based on pool key ordering
-      const amount0Desired =
-        token0.id === null
-          ? parseEther(amount0)
-          : parseUnits(amount0, token0.decimals ?? 18);
+      const amount0Desired = token0.id === null ? parseEther(amount0) : parseUnits(amount0, token0.decimals ?? 18);
       const amount1Desired = parseUnits(amount1, token1.decimals ?? 18);
 
       // Check for ERC20 approval if needed
@@ -224,9 +198,7 @@ export const CreatePool = () => {
             })) as bigint;
 
             if (currentAllowance < erc20Amount) {
-              setTxError(
-                `Waiting for ${erc20Token.symbol} approval. Please confirm the transaction...`,
-              );
+              setTxError(`Waiting for ${erc20Token.symbol} approval. Please confirm the transaction...`);
 
               // Approve max allowance
               const approvalHash = await writeContractAsync({
@@ -236,9 +208,7 @@ export const CreatePool = () => {
                 args: [CookbookAddress, maxUint256],
               });
 
-              setTxError(
-                `${erc20Token.symbol} approval submitted. Waiting for confirmation...`,
-              );
+              setTxError(`${erc20Token.symbol} approval submitted. Waiting for confirmation...`);
               const receipt = await publicClient.waitForTransactionReceipt({
                 hash: approvalHash,
               });
@@ -246,9 +216,7 @@ export const CreatePool = () => {
               if (receipt.status === "success") {
                 setTxError(null);
               } else {
-                setTxError(
-                  `${erc20Token.symbol} approval failed. Please try again.`,
-                );
+                setTxError(`${erc20Token.symbol} approval failed. Please try again.`);
                 return;
               }
             }
@@ -260,21 +228,15 @@ export const CreatePool = () => {
             if (errorMsg) {
               if (error instanceof Error) {
                 if (error.message.includes("insufficient funds")) {
-                  setTxError(
-                    `Insufficient ETH for ${erc20Token.symbol} approval transaction`,
-                  );
+                  setTxError(`Insufficient ETH for ${erc20Token.symbol} approval transaction`);
                 } else if (error.message.includes("User rejected")) {
                   // User rejection is handled by the UI layer, don't set error
                   return;
                 } else {
-                  setTxError(
-                    `${erc20Token.symbol} approval failed. Please try again.`,
-                  );
+                  setTxError(`${erc20Token.symbol} approval failed. Please try again.`);
                 }
               } else {
-                setTxError(
-                  `Error checking ${erc20Token.symbol} allowance. Please try again.`,
-                );
+                setTxError(`Error checking ${erc20Token.symbol} allowance. Please try again.`);
               }
             }
             return;
@@ -283,17 +245,11 @@ export const CreatePool = () => {
       }
 
       // Check operator approval for non-cookbook coins
-      const needsToken0Approval =
-        token0.id !== null && needsOperatorApproval(token0);
+      const needsToken0Approval = token0.id !== null && needsOperatorApproval(token0);
       const needsToken1Approval = needsOperatorApproval(token1);
 
-      if (
-        (needsToken0Approval || needsToken1Approval) &&
-        isOperator === false
-      ) {
-        setTxError(
-          "Waiting for operator approval. Please confirm the transaction...",
-        );
+      if ((needsToken0Approval || needsToken1Approval) && isOperator === false) {
+        setTxError("Waiting for operator approval. Please confirm the transaction...");
 
         const approvalHash = await writeContractAsync({
           address: CoinsAddress,
@@ -421,9 +377,7 @@ export const CreatePool = () => {
 
         // If not in trusted list and input is a valid address, fetch from contract
         if (!isAddress(input)) {
-          setTxError(
-            `No token found for "${input}". Try a different search term or enter a contract address.`,
-          );
+          setTxError(`No token found for "${input}". Try a different search term or enter a contract address.`);
           return;
         }
 
@@ -473,9 +427,7 @@ export const CreatePool = () => {
         setTxError(null);
       } catch (error) {
         console.error("Error fetching ERC20 token metadata:", error);
-        setTxError(
-          "Failed to fetch token metadata. Please ensure it's a valid ERC20 contract.",
-        );
+        setTxError("Failed to fetch token metadata. Please ensure it's a valid ERC20 contract.");
       }
     },
     [publicClient],
@@ -515,9 +467,7 @@ export const CreatePool = () => {
           isEthBalanceFetching={isEthBalanceFetching}
           amount={amount1}
           onAmountChange={setAmount1}
-          showMaxButton={
-            !!(token1.balance !== undefined && token1.balance > 0n)
-          }
+          showMaxButton={!!(token1.balance !== undefined && token1.balance > 0n)}
           onMax={() => {
             if (token1.id === null) {
               const ethAmount = ((token1.balance as bigint) * 99n) / 100n;
@@ -577,12 +527,9 @@ export const CreatePool = () => {
         </div>
       )}
 
-      {((writeError && !isUserRejectionError(writeError)) ||
-        (txError && !txError.includes("Waiting for"))) && (
+      {((writeError && !isUserRejectionError(writeError)) || (txError && !txError.includes("Waiting for"))) && (
         <div className="text-sm text-destructive mt-2 bg-background/50 p-2 rounded border border-destructive/20">
-          {writeError && !isUserRejectionError(writeError)
-            ? writeError.message
-            : txError}
+          {writeError && !isUserRejectionError(writeError) ? writeError.message : txError}
         </div>
       )}
 

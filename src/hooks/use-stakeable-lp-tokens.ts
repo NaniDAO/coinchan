@@ -28,14 +28,16 @@ export function useStakeableLpTokens() {
   // Get all LP tokens that have active farms
   const farmableLpTokens = useMemo(() => {
     if (!activeStreams || !tokens) return [];
-    
+
     const currentTime = BigInt(Math.floor(Date.now() / 1000));
-    const activeFarms = activeStreams.filter(stream => stream.endTime > currentTime);
-    
-    return activeFarms.map(stream => {
-      const lpToken = tokens.find(t => t.poolId === stream.lpId);
-      return lpToken ? { lpToken, stream } : null;
-    }).filter(Boolean) as { lpToken: TokenMeta; stream: IncentiveStream }[];
+    const activeFarms = activeStreams.filter((stream) => stream.endTime > currentTime);
+
+    return activeFarms
+      .map((stream) => {
+        const lpToken = tokens.find((t) => t.poolId === stream.lpId);
+        return lpToken ? { lpToken, stream } : null;
+      })
+      .filter(Boolean) as { lpToken: TokenMeta; stream: IncentiveStream }[];
   }, [activeStreams, tokens]);
 
   // Calculate stakeable tokens and summary
@@ -46,17 +48,17 @@ export function useStakeableLpTokens() {
 
     for (const { lpToken, stream } of farmableLpTokens) {
       // Find existing staked position
-      const existingPosition = userPositions.find(p => p.chefId === stream.chefId);
+      const existingPosition = userPositions.find((p) => p.chefId === stream.chefId);
       const stakedAmount = existingPosition?.shares || 0n;
       const isStaked = stakedAmount > 0n;
-      
+
       // For now, we'll assume some balance exists if the token is found
       // In a real implementation, this would use the LP balance check
       const balance = stakedAmount > 0n ? stakedAmount : 0n; // Simplified
-      
+
       // Calculate unstakeable amount (total balance - already staked)
       const unstakeableAmount = balance > stakedAmount ? balance - stakedAmount : 0n;
-      
+
       results.push({
         lpToken,
         stream,
@@ -71,22 +73,23 @@ export function useStakeableLpTokens() {
   }, [address, farmableLpTokens, userPositions]);
 
   const summary = useMemo(() => {
-    if (!stakeableTokens) return {
-      totalStakeableTokens: 0,
-      totalUnstakeableAmount: 0n,
-      tokensWithBalance: 0,
-      fullyStakedTokens: 0,
-      partiallyStakedTokens: 0,
-      unstakedTokens: 0,
-    };
+    if (!stakeableTokens)
+      return {
+        totalStakeableTokens: 0,
+        totalUnstakeableAmount: 0n,
+        tokensWithBalance: 0,
+        fullyStakedTokens: 0,
+        partiallyStakedTokens: 0,
+        unstakedTokens: 0,
+      };
 
     return {
       totalStakeableTokens: stakeableTokens.length,
       totalUnstakeableAmount: stakeableTokens.reduce((sum, t) => sum + t.unstakeableAmount, 0n),
-      tokensWithBalance: stakeableTokens.filter(t => t.balance > 0n).length,
-      fullyStakedTokens: stakeableTokens.filter(t => t.isStaked && t.unstakeableAmount === 0n).length,
-      partiallyStakedTokens: stakeableTokens.filter(t => t.isStaked && t.unstakeableAmount > 0n).length,
-      unstakedTokens: stakeableTokens.filter(t => !t.isStaked && t.balance > 0n).length,
+      tokensWithBalance: stakeableTokens.filter((t) => t.balance > 0n).length,
+      fullyStakedTokens: stakeableTokens.filter((t) => t.isStaked && t.unstakeableAmount === 0n).length,
+      partiallyStakedTokens: stakeableTokens.filter((t) => t.isStaked && t.unstakeableAmount > 0n).length,
+      unstakedTokens: stakeableTokens.filter((t) => !t.isStaked && t.balance > 0n).length,
     };
   }, [stakeableTokens]);
 

@@ -24,8 +24,8 @@ export const ManageFarms = () => {
   // Get streams that are relevant for user positions to fetch real-time data
   const relevantStreams = useMemo(() => {
     if (!allStreams || !userPositions) return undefined;
-    return allStreams.filter(stream => 
-      userPositions.some(position => BigInt(position.chefId) === BigInt(stream.chefId))
+    return allStreams.filter((stream) =>
+      userPositions.some((position) => BigInt(position.chefId) === BigInt(stream.chefId)),
     );
   }, [allStreams, userPositions]);
 
@@ -118,8 +118,9 @@ export const ManageFarms = () => {
         <div className="grid gap-4 sm:gap-5 grid-cols-1 lg:grid-cols-2">
           {userPositions.map((position) => {
             // First try to get real-time data, fallback to stale data
-            const stream = streamsWithRealTimeData?.find((s) => BigInt(s.chefId) === BigInt(position.chefId)) ||
-                          allStreams?.find((s) => BigInt(s.chefId) === BigInt(position.chefId));
+            const stream =
+              streamsWithRealTimeData?.find((s) => BigInt(s.chefId) === BigInt(position.chefId)) ||
+              allStreams?.find((s) => BigInt(s.chefId) === BigInt(position.chefId));
             const lpToken = tokens.find((t) => stream && t.poolId === BigInt(stream.lpId));
 
             if (!stream) return null;

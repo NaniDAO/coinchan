@@ -63,8 +63,7 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
     try {
       const balance = selectedToken.balance as bigint;
       const tokenDecimals = selectedToken.decimals ?? 18;
-      const amountBigInt =
-        selectedToken.id === null ? parseEther(amount) : parseUnits(amount, tokenDecimals);
+      const amountBigInt = selectedToken.id === null ? parseEther(amount) : parseUnits(amount, tokenDecimals);
 
       if (balance > 0n) {
         const calculatedPercentage = Number((amountBigInt * 100n) / balance);

@@ -34,9 +34,7 @@ export const useUserPortfolio = ({ address }: { address: Address }) => {
   return useQuery({
     queryKey: ["user-portfolio", address],
     queryFn: async (): Promise<UserPortfolio> => {
-      const response = await fetch(
-        import.meta.env.VITE_INDEXER_URL + "/api/portfolio?address=" + address,
-      );
+      const response = await fetch(import.meta.env.VITE_INDEXER_URL + "/api/portfolio?address=" + address);
 
       if (!response.ok) {
         throw new Error("Failed to fetch user portfolio");
@@ -61,13 +59,10 @@ export const useUserPortfolio = ({ address }: { address: Address }) => {
         );
 
         // Update positions with pending rewards
-        data.positions = data.positions.map(
-          (position: Position, index: number) => ({
-            ...position,
-            pending_rewards:
-              pendingRewards[index]?.toString() || position.pending_rewards,
-          }),
-        );
+        data.positions = data.positions.map((position: Position, index: number) => ({
+          ...position,
+          pending_rewards: pendingRewards[index]?.toString() || position.pending_rewards,
+        }));
       }
 
       return data;

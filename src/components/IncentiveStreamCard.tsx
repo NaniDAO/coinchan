@@ -112,9 +112,7 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
                     </>
                   ) : hasStakeableTokens ? (
                     // Show only available LP tokens
-                    <>
-                      {formatLpAmount(lpBalance)}
-                    </>
+                    <>{formatLpAmount(lpBalance)}</>
                   ) : (
                     // Show only staked amount
                     <>
@@ -247,7 +245,10 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
           stream={stream}
           lpToken={lpToken}
           trigger={
-            <Button variant="outline" className="w-full border-muted font-mono text-sm sm:text-base uppercase tracking-wider py-2 sm:py-3">
+            <Button
+              variant="outline"
+              className="w-full border-muted font-mono text-sm sm:text-base uppercase tracking-wider py-2 sm:py-3"
+            >
               [{t("common.stake")}]
             </Button>
           }
