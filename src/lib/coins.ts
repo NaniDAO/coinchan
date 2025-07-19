@@ -147,13 +147,14 @@ export const USDT_TOKEN: TokenMeta = {
 
 // Define CULT token (CultHook integrated)
 export const CULT_TOKEN: TokenMeta = {
-  id: 0n, // Special CULT token with ID 0
+  id: 999999n, // Special CULT token with unique ID to avoid cache conflicts
   name: "Milady Cult Coin",
   symbol: "CULT",
   source: "COOKBOOK", // Use cookbook for liquidity operations
   tokenUri: "/cult.jpg", // CULT logo
   reserve0: 100000000000000000000n, // 100 ETH (placeholder - will be updated by hook)
   reserve1: 1000000000000000000000000n, // 1M CULT (18 decimals, placeholder)
+  swapFee: 30n, // 0.3% fee tier (30 bps)
   balance: 0n, // User balance
   // Custom properties for the hooked CULT pool
   isCustomPool: true,
