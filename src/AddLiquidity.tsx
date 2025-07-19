@@ -73,11 +73,27 @@ export const AddLiquidity = () => {
     isCoinToCoin: isCoinToCoin,
   });
 
+  // For custom pools like CULT, use the token's poolId directly
+  const actualPoolId = useMemo(() => {
+    let poolId;
+    if (sellToken.isCustomPool && sellToken.poolId) {
+      poolId = sellToken.poolId;
+      console.log("Using sellToken custom poolId:", sellToken.symbol, poolId.toString());
+    } else if (buyToken?.isCustomPool && buyToken?.poolId) {
+      poolId = buyToken.poolId;
+      console.log("Using buyToken custom poolId:", buyToken.symbol, poolId.toString());
+    } else {
+      poolId = mainPoolId;
+      console.log("Using computed mainPoolId:", poolId?.toString());
+    }
+    return poolId;
+  }, [sellToken.isCustomPool, sellToken.poolId, buyToken?.isCustomPool, buyToken?.poolId, mainPoolId]);
+
   // Determine source for reserves based on coin type using shared utility
   const reserveSource = determineReserveSource(coinId, isCustom);
 
   const { data: reserves } = useReserves({
-    poolId: mainPoolId,
+    poolId: actualPoolId,
     source: reserveSource,
   });
   const { data: targetReserves } = useReserves({
