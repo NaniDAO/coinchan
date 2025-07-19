@@ -17,6 +17,7 @@ import { Route as OneshotRouteImport } from './routes/oneshot'
 import { Route as LaunchRouteImport } from './routes/launch'
 import { Route as FarmRouteImport } from './routes/farm'
 import { Route as ExploreRouteImport } from './routes/explore'
+import { Route as CultRouteImport } from './routes/cult'
 import { Route as CoinpaperRouteImport } from './routes/coinpaper'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
@@ -63,6 +64,11 @@ const ExploreRoute = ExploreRouteImport.update({
   path: '/explore',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CultRoute = CultRouteImport.update({
+  id: '/cult',
+  path: '/cult',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CoinpaperRoute = CoinpaperRouteImport.update({
   id: '/coinpaper',
   path: '/coinpaper',
@@ -93,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/coinpaper': typeof CoinpaperRoute
+  '/cult': typeof CultRoute
   '/explore': typeof ExploreRoute
   '/farm': typeof FarmRoute
   '/launch': typeof LaunchRoute
@@ -108,6 +115,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/coinpaper': typeof CoinpaperRoute
+  '/cult': typeof CultRoute
   '/explore': typeof ExploreRoute
   '/farm': typeof FarmRoute
   '/launch': typeof LaunchRoute
@@ -124,6 +132,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/coinpaper': typeof CoinpaperRoute
+  '/cult': typeof CultRoute
   '/explore': typeof ExploreRoute
   '/farm': typeof FarmRoute
   '/launch': typeof LaunchRoute
@@ -141,6 +150,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/coinpaper'
+    | '/cult'
     | '/explore'
     | '/farm'
     | '/launch'
@@ -156,6 +166,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/coinpaper'
+    | '/cult'
     | '/explore'
     | '/farm'
     | '/launch'
@@ -171,6 +182,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/coinpaper'
+    | '/cult'
     | '/explore'
     | '/farm'
     | '/launch'
@@ -187,6 +199,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   CoinpaperRoute: typeof CoinpaperRoute
+  CultRoute: typeof CultRoute
   ExploreRoute: typeof ExploreRoute
   FarmRoute: typeof FarmRoute
   LaunchRoute: typeof LaunchRoute
@@ -257,6 +270,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExploreRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cult': {
+      id: '/cult'
+      path: '/cult'
+      fullPath: '/cult'
+      preLoaderRoute: typeof CultRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/coinpaper': {
       id: '/coinpaper'
       path: '/coinpaper'
@@ -299,6 +319,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   CoinpaperRoute: CoinpaperRoute,
+  CultRoute: CultRoute,
   ExploreRoute: ExploreRoute,
   FarmRoute: FarmRoute,
   LaunchRoute: LaunchRoute,

@@ -86,6 +86,27 @@ export const USDT_POOL_KEY: {
   swapFee: 30n, // 0.3% fee (30 bps) - Standard Uniswap V2 fee tier
 };
 
+// CULT token address and constants for CultHook integration
+export const CULT_ADDRESS = "0x0000000000c5dc95539589fbD24BE07c6C14eCa4" as `0x${string}`;
+export const CULT_HOOK_ADDRESS = "0x0000000000C625206C76dFd00bfD8d84A5Bfc948" as `0x${string}`;
+export const CULT_POOL_ID = 96057217671165627097175198549959274650003499289597433381056646234071826883364n;
+export const CULT_FEE_OR_HOOK = 57896044618658097711785492504343953926636021160616296542400437774503196477768n;
+
+// CULT pool configuration for hooked router
+export const CULT_POOL_KEY: {
+  id0: bigint;
+  id1: bigint;
+  token0: `0x${string}`;
+  token1: `0x${string}`;
+  feeOrHook: bigint;
+} = {
+  id0: 0n, // ETH token ID
+  id1: 0n, // CULT token ID  
+  token0: zeroAddress, // ETH address (0x0)
+  token1: CULT_ADDRESS, // CULT token address
+  feeOrHook: CULT_FEE_OR_HOOK, // Hook address encoded in feeOrHook field
+};
+
 // Function to compute a custom pool ID with specific tokens and fee
 const computeCustomPoolId = (id0: bigint, id1: bigint, token0: `0x${string}`, token1: `0x${string}`, swapFee: bigint) =>
   BigInt(
@@ -122,6 +143,24 @@ export const USDT_TOKEN: TokenMeta = {
   poolId: USDT_POOL_ID,
   poolKey: USDT_POOL_KEY as any, // Cast to any to avoid type errors
   decimals: 6, // USDT has 6 decimals
+};
+
+// Define CULT token (CultHook integrated)
+export const CULT_TOKEN: TokenMeta = {
+  id: 999999n, // Special CULT token with unique ID to avoid cache conflicts
+  name: "Milady Cult Coin",
+  symbol: "CULT",
+  source: "COOKBOOK", // Use cookbook for liquidity operations
+  tokenUri: "/cult.jpg", // Local CULT image in public folder
+  reserve0: 100000000000000000000n, // 100 ETH (placeholder - will be updated by hook)
+  reserve1: 1000000000000000000000000n, // 1M CULT (18 decimals, placeholder)
+  swapFee: 30n, // 0.3% fee tier (30 bps)
+  balance: 0n, // User balance
+  // Custom properties for the hooked CULT pool
+  isCustomPool: true,
+  poolId: CULT_POOL_ID,
+  poolKey: CULT_POOL_KEY as any, // Cast to any to avoid type errors
+  decimals: 18, // CULT has 18 decimals
 };
 
 const INIT_CODE_HASH: Hex = "0x6594461b4ce3b23f6cbdcdcf50388d5f444bf59a82f6e868dfd5ef2bfa13f6d4"; // the 0x6594…f6d4 init code hash

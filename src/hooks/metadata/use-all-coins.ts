@@ -4,7 +4,7 @@ import { CoinsMetadataHelperAbi, CoinsMetadataHelperAddress } from "@/constants/
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
 import { isCookbookCoin } from "@/lib/coin-utils";
-import { ETH_TOKEN, type TokenMeta, USDT_ADDRESS, USDT_POOL_ID, USDT_TOKEN } from "@/lib/coins";
+import { ETH_TOKEN, type TokenMeta, USDT_ADDRESS, USDT_POOL_ID, USDT_TOKEN, CULT_TOKEN, CULT_ADDRESS, CULT_POOL_ID } from "@/lib/coins";
 import { SWAP_FEE } from "@/lib/swap";
 import { useQuery } from "@tanstack/react-query";
 import type { Address } from "viem";
@@ -173,7 +173,39 @@ async function fetchOtherCoins(
     } catch {}
   }
 
-  return [...withBalances, usdtToken].sort((a, b) => {
+  // Add CULT token with reserves and balance
+  const cultToken = { ...CULT_TOKEN };
+  try {
+    const poolData = await publicClient.readContract({
+      address: CookbookAddress,
+      abi: CookbookAbi,
+      functionName: "pools",
+      args: [CULT_POOL_ID],
+    });
+    cultToken.reserve0 = poolData[0];
+    cultToken.reserve1 = poolData[1];
+  } catch {}
+  if (address) {
+    try {
+      const cultBal = (await publicClient.readContract({
+        address: CULT_ADDRESS,
+        abi: [
+          {
+            inputs: [{ internalType: "address", name: "account", type: "address" }],
+            name: "balanceOf",
+            outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+            stateMutability: "view",
+            type: "function",
+          },
+        ],
+        functionName: "balanceOf",
+        args: [address],
+      })) as bigint;
+      cultToken.balance = cultBal;
+    } catch {}
+  }
+
+  return [...withBalances, usdtToken, cultToken].sort((a, b) => {
     // Safely convert to numbers, handling potential null/undefined values
     const aLiquidity = a?.reserve0 ? Number(a.reserve0) : 0;
     const bLiquidity = b?.reserve0 ? Number(b.reserve0) : 0;
