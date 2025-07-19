@@ -23,7 +23,7 @@ import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
 import { ZAMMAbi, ZAMMAddress } from "./constants/ZAAM";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import { useWaitForTransactionReceipt } from "wagmi";
-import { TokenMeta, USDT_ADDRESS, USDT_POOL_KEY, CULT_ADDRESS } from "./lib/coins";
+import { TokenMeta, USDT_ADDRESS, USDT_POOL_KEY, CULT_ADDRESS, CULT_POOL_KEY } from "./lib/coins";
 import { useTokenSelection } from "./contexts/TokenSelectionContext";
 import {
   determineReserveSource,
@@ -351,9 +351,10 @@ export const AddLiquidity = () => {
         return;
       }
 
-      // Check if we're dealing with the special USDT token
+      // Check if we're dealing with special tokens
       let poolKey;
       const isUsdtPool = sellToken.symbol === "USDT" || buyToken?.symbol === "USDT";
+      const isUsingCult = sellToken.symbol === "CULT" || buyToken?.symbol === "CULT";
 
       // Enhanced detection of USDT usage for add liquidity
       // We need to make sure we detect all cases where USDT is being used
@@ -420,7 +421,10 @@ export const AddLiquidity = () => {
       // Determine coin type and helper contract info
       const { isCookbook } = getHelperContractInfo(coinId);
 
-      if (isUsdtPool) {
+      if (isUsingCult) {
+        // Use the specific CULT pool key with correct id1=0n and feeOrHook
+        poolKey = CULT_POOL_KEY;
+      } else if (isUsdtPool) {
         // Use the custom pool key for USDT-ETH pool
         const customToken = sellToken.isCustomPool ? sellToken : buyToken;
         poolKey = customToken?.poolKey || USDT_POOL_KEY;
@@ -500,7 +504,6 @@ export const AddLiquidity = () => {
       }
 
       // Check for CULT ERC20 approval if needed
-      const isUsingCult = sellToken.symbol === "CULT" || buyToken?.symbol === "CULT";
       if (isUsingCult) {
         const cultAmount = sellToken.symbol === "CULT" 
           ? parseUnits(sellAmt, 18) // CULT has 18 decimals
