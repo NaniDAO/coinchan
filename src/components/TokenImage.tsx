@@ -49,19 +49,19 @@ export const TokenImage = memo(
         // Ignore sessionStorage errors
       }
 
-      // Special case for CULT token - use CoinGecko image
-      if (token.symbol === "CULT") {
-        const cultUrl = "https://assets.coingecko.com/coins/images/52583/standard/cult.jpg?1733712273";
-        setActualImageUrl(cultUrl);
-        try {
-          sessionStorage.setItem(cacheKey, cultUrl);
-        } catch (e) {
-          // Ignore sessionStorage errors
-        }
-        return;
-      }
-
       const fetchMetadata = async () => {
+        // Special case for CULT token - use CoinGecko image
+        if (token.symbol === "CULT") {
+          const cultUrl = "https://assets.coingecko.com/coins/images/52583/standard/cult.jpg?1733712273";
+          setActualImageUrl(cultUrl);
+          try {
+            sessionStorage.setItem(cacheKey, cultUrl);
+          } catch (e) {
+            // Ignore sessionStorage errors
+          }
+          return;
+        }
+
         // Check for direct imageUrl first (for simple image files)
         if (token.imageUrl) {
           setActualImageUrl(token.imageUrl);
