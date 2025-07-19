@@ -54,6 +54,7 @@ export const TokenImage = memo(
         if (token.symbol === "CULT") {
           const cultUrl = "https://assets.coingecko.com/coins/images/52583/standard/cult.jpg?1733712273";
           setActualImageUrl(cultUrl);
+          setImageError(false); // Ensure we're not in error state
           try {
             sessionStorage.setItem(cacheKey, cultUrl);
           } catch (e) {
@@ -254,7 +255,9 @@ export const TokenImage = memo(
     );
   },
   (prevProps, nextProps) => {
-    // Only re-render if token ID or URI changes
-    return prevProps.token.id === nextProps.token.id && prevProps.token.tokenUri === nextProps.token.tokenUri;
+    // Only re-render if token ID, URI, or symbol changes
+    return prevProps.token.id === nextProps.token.id && 
+           prevProps.token.tokenUri === nextProps.token.tokenUri &&
+           prevProps.token.symbol === nextProps.token.symbol;
   },
 );
