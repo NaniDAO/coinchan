@@ -1465,7 +1465,9 @@ export const CultBuySell = () => {
           )}
         </Tabs>
         <div className="mt-5">
-          <PoolPriceChart poolId={CULT_POOL_ID.toString()} ticker="CULT" ethUsdPrice={stableEthUsdPrice} />
+          <ErrorBoundary>
+            <PoolPriceChart poolId={CULT_POOL_ID.toString()} ticker="CULT" ethUsdPrice={stableEthUsdPrice} />
+          </ErrorBoundary>
         </div>
         {/* Contract Links */}
         <div className="mt-8 text-center space-y-2">
