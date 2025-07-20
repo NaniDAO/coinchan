@@ -496,6 +496,15 @@ export const CultBuySell = () => {
   const chainId = useChainId();
   const publicClient = usePublicClient({ chainId: mainnet.id });
   const { data: ethUsdPrice = 0 } = useEthUsdPrice();
+  
+  // Stable version of ethUsdPrice for the chart to prevent re-renders
+  const [stableEthUsdPrice, setStableEthUsdPrice] = useState(ethUsdPrice);
+  useEffect(() => {
+    // Only update stable price if it changed significantly (more than 1%)
+    if (ethUsdPrice > 0 && Math.abs(ethUsdPrice - stableEthUsdPrice) / stableEthUsdPrice > 0.01) {
+      setStableEthUsdPrice(ethUsdPrice);
+    }
+  }, [ethUsdPrice]);
 
   // Fetch ETH balance
   const { data: ethBalance } = useBalance({
@@ -1454,7 +1463,7 @@ export const CultBuySell = () => {
           )}
         </Tabs>
         <div className="mt-5">
-          <PoolPriceChart poolId={CULT_POOL_ID.toString()} ticker="CULT" ethUsdPrice={ethUsdPrice} />
+          <PoolPriceChart poolId={CULT_POOL_ID.toString()} ticker="CULT" ethUsdPrice={stableEthUsdPrice} />
         </div>
         {/* Contract Links */}
         <div className="mt-8 text-center space-y-2">

@@ -1,7 +1,7 @@
 import type { Address } from "viem";
 
 // CULTSingleLiqETH contract constants
-export const CULTSingleLiqETHAddress: Address = "0x8FE80cd990629968e740AE425b9eEBbDCC78d939";
+export const CULTSingleLiqETHAddress: Address = "0x3461b5bb5ce7192ddc901aee8a9ecf8b6740cef4";
 
 // Same ABI as ZAMMSingleLiqETH - using identical interface
 export const CULTSingleLiqETHAbi = [

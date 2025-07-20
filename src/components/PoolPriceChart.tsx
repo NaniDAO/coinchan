@@ -213,8 +213,8 @@ const TVPriceChart: React.FC<{
       title: showUsd && ethUsdPrice ? `${ticker} / USD` : `ETH / ${ticker}`,
       priceFormat: {
         type: "price",
-        precision: showUsd ? 2 : 10,
-        minMove: showUsd ? 0.01 : 0.000000001,
+        precision: showUsd ? 8 : 10,
+        minMove: showUsd ? 0.00000001 : 0.000000001,
       } as PriceFormatBuiltIn,
     } as LineSeriesOptions);
   }, [showUsd, ethUsdPrice, ticker]);
