@@ -243,7 +243,7 @@ function CultFarmCard({ farm, lpToken, lpBalance, onHarvest, isHarvesting }: Cul
             "px-3 py-1 rounded text-xs font-mono font-bold",
             isActive ? "bg-green-900/30 text-green-400 border border-green-600/30" : "bg-gray-900/30 text-gray-400 border border-gray-600/30"
           )}>
-            {farm.status || (isActive ? t("common.active").toUpperCase() : t("common.ended").toUpperCase())}
+            {isActive ? t("common.active").toUpperCase() : t("common.ended").toUpperCase()}
           </div>
         </div>
 
