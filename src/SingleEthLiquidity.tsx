@@ -18,7 +18,7 @@ import { useTokenSelection } from "./contexts/TokenSelectionContext";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { useReserves } from "./hooks/use-reserves";
 import { determineReserveSource, isCookbookCoin } from "./lib/coin-utils";
-import { ETH_TOKEN, type TokenMeta, USDT_POOL_KEY, CULT_ADDRESS, CULT_POOL_KEY, CULT_POOL_ID } from "./lib/coins";
+import { ETH_TOKEN, type TokenMeta, USDT_POOL_KEY, CULT_POOL_KEY, CULT_POOL_ID } from "./lib/coins";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import {
   DEADLINE_SEC,
@@ -190,12 +190,16 @@ export const SingleEthLiquidity = () => {
       if (buyToken.symbol === "CULT") {
         // For CULT, use Uniswap V3 price from CheckTheChain
         try {
-          const cultPriceData = await publicClient.readContract({
+          const cultPriceData = await publicClient?.readContract({
             address: CheckTheChainAddress,
             abi: CheckTheChainAbi,
             functionName: "checkPriceInETH",
             args: ["CULT"],
           });
+
+          if (!cultPriceData) {
+            throw new Error("Unable to fetch CULT price data");
+          }
 
           // Price is returned as uint256 with 18 decimals
           // e.g., 245052318810 = 0.00000024505231881 ETH per CULT
@@ -322,7 +326,7 @@ export const SingleEthLiquidity = () => {
           const targetAddress = isCookbook ? CookbookAddress : ZAMMAddress;
           const targetAbi = isCookbook ? CookbookAbi : ZAMMAbi;
 
-          const result = await publicClient.readContract({
+          const result = await publicClient?.readContract({
             address: targetAddress,
             abi: targetAbi,
             functionName: "pools",
@@ -360,12 +364,16 @@ export const SingleEthLiquidity = () => {
       if (isCULT) {
         // For CULT, use Uniswap V3 price from CheckTheChain
         try {
-          const cultPriceData = await publicClient.readContract({
+          const cultPriceData = await publicClient?.readContract({
             address: CheckTheChainAddress,
             abi: CheckTheChainAbi,
             functionName: "checkPriceInETH",
             args: ["CULT"],
           });
+
+          if (!cultPriceData) {
+            throw new Error("Unable to fetch CULT price data");
+          }
 
           const cultPriceInETH = cultPriceData[0] as bigint;
 

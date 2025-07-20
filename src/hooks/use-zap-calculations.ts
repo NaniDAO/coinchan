@@ -3,7 +3,7 @@ import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
 import { CheckTheChainAbi, CheckTheChainAddress } from "@/constants/CheckTheChain";
 import type { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { isCookbookCoin } from "@/lib/coin-utils";
-import { type TokenMeta, CULT_POOL_KEY, CULT_FEE_OR_HOOK } from "@/lib/coins";
+import { type TokenMeta, CULT_POOL_KEY } from "@/lib/coins";
 import {
   SINGLE_ETH_SLIPPAGE_BPS,
   SWAP_FEE,
