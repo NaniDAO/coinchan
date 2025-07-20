@@ -4,13 +4,10 @@ import { useState, useMemo } from "react";
 import { formatEther, formatUnits } from "viem";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatImageURL } from "@/hooks/metadata";
 import { useActiveIncentiveStreams } from "@/hooks/use-incentive-streams";
 import { useZChefUserBalance, useZChefPendingReward, useZChefActions, useZChefPool } from "@/hooks/use-zchef-contract";
 import { useLpBalance } from "@/hooks/use-lp-balance";
-import { useCombinedApy } from "@/hooks/use-combined-apy";
 import { APYDisplay } from "@/components/farm/APYDisplay";
 import { FarmStakeDialog } from "@/components/FarmStakeDialog";
 import { FarmUnstakeDialog } from "@/components/FarmUnstakeDialog";
@@ -121,7 +118,6 @@ interface CultFarmCardProps {
 
 function CultFarmCard({ farm, lpBalance, onHarvest, isHarvesting }: CultFarmCardProps) {
   const { t } = useTranslation();
-  const { address } = useAccount();
   
   // Get real-time data
   const { data: poolData } = useZChefPool(farm.chefId);
@@ -129,7 +125,7 @@ function CultFarmCard({ farm, lpBalance, onHarvest, isHarvesting }: CultFarmCard
   const { data: pendingRewards } = useZChefPendingReward(farm.chefId);
   
   const totalShares = poolData?.[7] ?? farm.totalShares ?? 0n;
-  const hasStaked = userBalance && userBalance > 0n;
+  const hasStaked = !!(userBalance && userBalance > 0n);
   const canStake = lpBalance > 0n;
   
   // Calculate time remaining
