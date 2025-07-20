@@ -313,9 +313,10 @@ const TVPriceChart: React.FC<{
           
           // Convert to USD if needed
           if (showUsd && ethUsdPrice && ethUsdPrice > 0) {
-            // value is ETH/TOKEN ratio (how many TOKEN per 1 ETH)
-            // To get TOKEN/USD: ETH/USD / (ETH/TOKEN)
-            value = ethUsdPrice / value;
+            // value = token price in ETH (from pool)
+            // ethUsdPrice = ETH price in USD
+            // token price in USD = token price in ETH * ETH price in USD
+            value = value * ethUsdPrice;
           }
 
           // If we already have a value for this timestamp, we'll use the more recent data point
