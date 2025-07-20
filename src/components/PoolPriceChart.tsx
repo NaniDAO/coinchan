@@ -295,14 +295,15 @@ const TVPriceChart: React.FC<{
             return;
           }
 
-          const price = Number.parseFloat(d.price1);
-          // Check if price is valid
-          if (isNaN(price)) {
-            console.warn("Invalid price:", d.price1);
+          // price1 is a string representing the price in wei format (18 decimals)
+          // Convert it to a number properly
+          let value: number;
+          try {
+            value = Number(formatEther(BigInt(d.price1)));
+          } catch (e) {
+            console.warn("Invalid price format:", d.price1, e);
             return;
           }
-
-          let value = Number(formatEther(BigInt(price)));
           
           // Validate value
           if (value === 0 || !isFinite(value)) {
@@ -313,8 +314,7 @@ const TVPriceChart: React.FC<{
           // Convert to USD if needed
           if (showUsd && ethUsdPrice && ethUsdPrice > 0) {
             // value is ETH/TOKEN ratio (how many TOKEN per 1 ETH)
-            // To get TOKEN/USD: (1 ETH / TOKEN per ETH) * ETH/USD
-            // TOKEN/USD = ETH/USD / (ETH/TOKEN)
+            // To get TOKEN/USD: ETH/USD / (ETH/TOKEN)
             value = ethUsdPrice / value;
           }
 
