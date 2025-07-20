@@ -165,7 +165,21 @@ export function SwapRibbon() {
 
   if (isLoading || error || !data) return null;
 
-  // Add Farm (Alpha) as the first item
+  // Add CULT feature as the first item
+  const cultItem = {
+    id: "cult-feature",
+    snippet: (
+      <Link
+        to="/cult"
+        className="text-foreground hover:underline font-medium flex items-center gap-1"
+      >
+        <img src="/cult.jpg" alt="CULT" className="w-4 h-4 rounded-full" />
+        <span>CULT</span>
+      </Link>
+    ),
+  };
+
+  // Add Farm (Alpha) as the second item
   const farmItem = {
     id: "farm-alpha",
     snippet: (
@@ -180,7 +194,7 @@ export function SwapRibbon() {
     ),
   };
 
-  const allItems = [farmItem, ...data];
+  const allItems = [cultItem, farmItem, ...data];
   const repeated = [...allItems, ...allItems]; // Duplicate for seamless scroll
 
   return (
@@ -208,14 +222,14 @@ export function SwapRibbon() {
           <div
             key={`${item.id}-${index}`}
             style={
-              item.id === "farm-alpha"
+              item.id === "farm-alpha" || item.id === "cult-feature"
                 ? { color: "inherit" }
                 : { color: getColor(item.id) }
             }
           >
             <span className="text-sm shrink-0">{item.snippet}</span>
             <span
-              className={`text-2xl mx-2 ${item.id === "farm-alpha" ? "text-foreground" : ""}`}
+              className={`text-2xl mx-2 ${item.id === "farm-alpha" || item.id === "cult-feature" ? "text-foreground" : ""}`}
             >
               /
             </span>

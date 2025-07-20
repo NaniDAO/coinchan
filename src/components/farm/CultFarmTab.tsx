@@ -195,8 +195,8 @@ function CultFarmCard({ farm, lpToken, lpBalance, onHarvest, isHarvesting }: Cul
 
   // Check both status and time remaining
   const hasTimeRemaining = timeRemaining.seconds > 0 || timeRemaining.days > 0 || timeRemaining.hours > 0 || timeRemaining.minutes > 0;
-  // If the farm has ACTIVE status from the API, trust it (the indexer knows better)
-  const isActive = farm.status === "ACTIVE";
+  // Farm is only active if it has ACTIVE status AND time remaining
+  const isActive = farm.status === "ACTIVE" && hasTimeRemaining;
   // Safe handling of reward token decimals
   const rewardTokenDecimals = useMemo(() => {
     try {
@@ -232,7 +232,11 @@ function CultFarmCard({ farm, lpToken, lpBalance, onHarvest, isHarvesting }: Cul
                 {farm.rewardCoin?.symbol || "???"} {t("common.rewards_suffix")}
               </h4>
               <p className="text-xs text-gray-400">
-                {hasTimeRemaining ? t("common.days_hours_remaining", { days: timeRemaining.days, hours: timeRemaining.hours }) : t("common.ended")}
+                {isActive ? (
+                  hasTimeRemaining ? 
+                    t("common.days_hours_remaining", { days: timeRemaining.days, hours: timeRemaining.hours }) : 
+                    t("common.active")
+                ) : t("common.ended")}
               </p>
             </div>
           </div>
@@ -240,7 +244,7 @@ function CultFarmCard({ farm, lpToken, lpBalance, onHarvest, isHarvesting }: Cul
             "px-3 py-1 rounded text-xs font-mono font-bold",
             isActive ? "bg-green-900/30 text-green-400 border border-green-600/30" : "bg-gray-900/30 text-gray-400 border border-gray-600/30"
           )}>
-            {farm.status || (hasTimeRemaining ? t("common.active").toUpperCase() : t("common.ended").toUpperCase())}
+            {isActive ? t("common.active").toUpperCase() : t("common.ended").toUpperCase()}
           </div>
         </div>
 
