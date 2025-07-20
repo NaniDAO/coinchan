@@ -165,7 +165,7 @@ function CultFarmCard({ farm, lpToken, lpBalance, onHarvest, isHarvesting }: Cul
   }
   
   // Get real-time data
-ZA  const { data: poolData } = useZChefPool(farm.chefId);
+  const { data: poolData } = useZChefPool(farm.chefId);
   const { data: userBalance } = useZChefUserBalance(farm.chefId);
   const { data: pendingRewards, isLoading: isLoadingRewards } = useZChefPendingReward(farm.chefId);
   
