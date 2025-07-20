@@ -19,7 +19,7 @@ export function useConnectionRecovery() {
     const handleConnectorError = (error: Error) => {
       const errorMessage = error?.message || "";
       const now = Date.now();
-      
+
       // Check if this is a connector-related error
       if (
         errorMessage.includes("getChainId is not a function") ||
@@ -35,7 +35,7 @@ export function useConnectionRecovery() {
         recoveryAttempted.current = true;
 
         console.warn("Wallet connector error detected, attempting recovery...");
-        
+
         // Show user-friendly notification
         toast.error("Wallet connection issue detected. Please reconnect your wallet.", {
           duration: 5000,
@@ -83,10 +83,10 @@ export function useConnectionRecovery() {
     try {
       // First disconnect
       disconnect();
-      
+
       // Wait a bit for cleanup
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       // Try to reconnect with the first available connector
       const availableConnector = connectors[0];
       if (availableConnector) {

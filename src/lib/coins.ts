@@ -101,7 +101,7 @@ export const CULT_POOL_KEY: {
   feeOrHook: bigint;
 } = {
   id0: 0n, // ETH token ID
-  id1: 0n, // CULT token ID  
+  id1: 0n, // CULT token ID
   token0: zeroAddress, // ETH address (0x0)
   token1: CULT_ADDRESS, // CULT token address
   feeOrHook: CULT_FEE_OR_HOOK, // Hook address encoded in feeOrHook field

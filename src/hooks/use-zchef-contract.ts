@@ -6,25 +6,16 @@ import { handleWalletError } from "@/lib/errors";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Address, formatUnits } from "viem";
 import { mainnet } from "viem/chains";
-import {
-  useAccount,
-  usePublicClient,
-  useReadContract,
-  useWriteContract,
-} from "wagmi";
+import { useAccount, usePublicClient, useReadContract, useWriteContract } from "wagmi";
 
 // Retry configuration for contract operations
 const RETRY_CONFIG = {
   retries: 3,
-  retryDelay: (attemptIndex: number) =>
-    Math.min(1000 * 2 ** attemptIndex, 10000),
+  retryDelay: (attemptIndex: number) => Math.min(1000 * 2 ** attemptIndex, 10000),
 };
 
 // Helper function to execute contract transaction with retry logic and gas estimation
-async function executeWithRetry<T>(
-  fn: () => Promise<T>,
-  retries = RETRY_CONFIG.retries,
-): Promise<T> {
+async function executeWithRetry<T>(fn: () => Promise<T>, retries = RETRY_CONFIG.retries): Promise<T> {
   try {
     return await fn();
   } catch (error: any) {
@@ -46,9 +37,7 @@ async function executeWithRetry<T>(
       error?.message?.includes("gas required exceeds allowance") ||
       error?.code === -32000
     ) {
-      throw new Error(
-        "Transaction failed due to insufficient gas. Please try again with higher gas limit.",
-      );
+      throw new Error("Transaction failed due to insufficient gas. Please try again with higher gas limit.");
     }
 
     if (retries > 0) {
@@ -63,10 +52,7 @@ async function executeWithRetry<T>(
 }
 
 // Helper function to estimate gas with buffer
-async function estimateGasWithBuffer(
-  publicClient: any,
-  contractCall: any,
-): Promise<bigint> {
+async function estimateGasWithBuffer(publicClient: any, contractCall: any): Promise<bigint> {
   try {
     const gasEstimate = await publicClient.estimateContractGas(contractCall);
     // Add 20% buffer to gas estimate
@@ -103,10 +89,7 @@ export function useZChefPool(chefId: bigint | undefined) {
   });
 }
 
-export function useZChefPendingReward(
-  chefId: bigint | undefined,
-  userAddress?: `0x${string}`,
-) {
+export function useZChefPendingReward(chefId: bigint | undefined, userAddress?: `0x${string}`) {
   const { address } = useAccount();
   const targetAddress = userAddress || address;
 
@@ -122,10 +105,7 @@ export function useZChefPendingReward(
   });
 }
 
-export function useZChefUserBalance(
-  chefId: bigint | undefined,
-  userAddress?: `0x${string}`,
-) {
+export function useZChefUserBalance(chefId: bigint | undefined, userAddress?: `0x${string}`) {
   const { address } = useAccount();
   const targetAddress = userAddress || address;
 
@@ -141,10 +121,7 @@ export function useZChefUserBalance(
   });
 }
 
-export function useZChefRewardPerYear(
-  chefId: bigint | undefined,
-  userAddress?: `0x${string}`,
-) {
+export function useZChefRewardPerYear(chefId: bigint | undefined, userAddress?: `0x${string}`) {
   const { address } = useAccount();
   const targetAddress = userAddress || address;
 

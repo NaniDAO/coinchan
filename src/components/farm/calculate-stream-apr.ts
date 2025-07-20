@@ -76,14 +76,10 @@ export function calculateStreamApr({
     }
 
     // Parse reward amount with proper decimals
-    const rewardAmountBigInt = parseUnits(
-      rewardAmount,
-      rewardTokenDecimals ?? 18,
-    );
+    const rewardAmountBigInt = parseUnits(rewardAmount, rewardTokenDecimals ?? 18);
 
     // Use provided totalShares or default to 1 ETH worth of shares
-    const safeTotalShares =
-      totalShares && totalShares > 0n ? totalShares : parseEther("1");
+    const safeTotalShares = totalShares && totalShares > 0n ? totalShares : parseEther("1");
 
     // Convert duration to seconds
     const durationInSeconds = BigInt(Math.floor(durationInDays * 24 * 60 * 60));
@@ -92,14 +88,12 @@ export function calculateStreamApr({
     const rewardRate = rewardAmountBigInt / durationInSeconds;
 
     // Calculate reward per share per year (scaled by ACC_PRECISION like in the contract)
-    const rewardPerSharePerYear =
-      (rewardRate * SECONDS_IN_YEAR * ACC_PRECISION) / safeTotalShares;
+    const rewardPerSharePerYear = (rewardRate * SECONDS_IN_YEAR * ACC_PRECISION) / safeTotalShares;
 
     // Convert to human readable numbers for APR calculation
     const share = parseEther("1"); // 1 LP share
     const rewardPerSharePerYearWei = rewardPerSharePerYear / ACC_PRECISION;
-    const tokensPerSharePerYear =
-      Number(rewardPerSharePerYearWei) / Number(EIGHTEEN_DECIMALS);
+    const tokensPerSharePerYear = Number(rewardPerSharePerYearWei) / Number(EIGHTEEN_DECIMALS);
 
     // Calculate yearly reward for 1 share
     const yearlyReward = tokensPerSharePerYear * Number(share);
@@ -110,12 +104,7 @@ export function calculateStreamApr({
 
     // Calculate APR percentage
     let farmApr = 0;
-    if (
-      stakeEth > 0 &&
-      !isNaN(yearlyRewardEthValue) &&
-      !isNaN(stakeEth) &&
-      isFinite(stakeEth)
-    ) {
+    if (stakeEth > 0 && !isNaN(yearlyRewardEthValue) && !isNaN(stakeEth) && isFinite(stakeEth)) {
       farmApr = (yearlyRewardEthValue / stakeEth) * 100;
 
       // Validate the result

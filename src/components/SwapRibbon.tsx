@@ -54,15 +54,7 @@ const convertToSnippets = (swaps: any[]) => {
   const snippets = swaps
     .map((swap) => {
       try {
-        const {
-          amount0In,
-          amount0Out,
-          amount1Out,
-          amount1In,
-          id,
-          trader,
-          pool,
-        } = swap;
+        const { amount0In, amount0Out, amount1Out, amount1In, id, trader, pool } = swap;
         const isBuy = BigInt(amount0In) > 0n;
         const isSell = BigInt(amount0Out) > 0n;
 
@@ -71,11 +63,7 @@ const convertToSnippets = (swaps: any[]) => {
             id,
             snippet: (
               <>
-                <a
-                  target="_blank"
-                  href={"https://etherscan.io/address/" + trader}
-                  rel="noreferrer"
-                >
+                <a target="_blank" href={"https://etherscan.io/address/" + trader} rel="noreferrer">
                   {truncAddress(trader)}
                 </a>{" "}
                 bought {Number(formatEther(amount1Out)).toFixed(2)}{" "}
@@ -95,11 +83,7 @@ const convertToSnippets = (swaps: any[]) => {
             id,
             snippet: (
               <span style={{ color: getColor(id) }}>
-                <a
-                  target="_blank"
-                  href={"https://etherscan.io/address/" + trader}
-                  rel="noreferrer"
-                >
+                <a target="_blank" href={"https://etherscan.io/address/" + trader} rel="noreferrer">
                   {truncAddress(trader)}
                 </a>{" "}
                 sold {Number(formatEther(amount1In)).toFixed(2)}{" "}

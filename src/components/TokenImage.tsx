@@ -30,7 +30,6 @@ export const TokenImage = memo(
     const [alternativeUrls, setAlternativeUrls] = useState<string[]>([]);
     const { bg, text } = getColorForSymbol(token.symbol);
 
-
     // Check if this is the ETH token
     const isEthToken = token.id === null && token.symbol === "ETH";
 
@@ -51,7 +50,6 @@ export const TokenImage = memo(
       }
 
       const fetchMetadata = async () => {
-
         if (!token.tokenUri) return;
 
         // Skip for data URIs like the ETH SVG
@@ -66,7 +64,13 @@ export const TokenImage = memo(
         }
 
         // Handle direct image URLs (local or external)
-        if ((token.tokenUri.startsWith("http") || token.tokenUri.startsWith("/")) && (token.tokenUri.includes(".jpg") || token.tokenUri.includes(".png") || token.tokenUri.includes(".gif") || token.tokenUri.includes(".webp"))) {
+        if (
+          (token.tokenUri.startsWith("http") || token.tokenUri.startsWith("/")) &&
+          (token.tokenUri.includes(".jpg") ||
+            token.tokenUri.includes(".png") ||
+            token.tokenUri.includes(".gif") ||
+            token.tokenUri.includes(".webp"))
+        ) {
           setActualImageUrl(token.tokenUri);
           try {
             sessionStorage.setItem(cacheKey, token.tokenUri);
@@ -188,7 +192,6 @@ export const TokenImage = memo(
       return <EthereumIcon className="w-8 h-8 rounded-full" />;
     }
 
-
     // If token has no URI, show colored initial
     if (!token.tokenUri) {
       // Use token ID as a cache key to maintain stable identities
@@ -257,8 +260,10 @@ export const TokenImage = memo(
   },
   (prevProps, nextProps) => {
     // Only re-render if token ID, URI, or symbol changes
-    return prevProps.token.id === nextProps.token.id && 
-           prevProps.token.tokenUri === nextProps.token.tokenUri &&
-           prevProps.token.symbol === nextProps.token.symbol;
+    return (
+      prevProps.token.id === nextProps.token.id &&
+      prevProps.token.tokenUri === nextProps.token.tokenUri &&
+      prevProps.token.symbol === nextProps.token.symbol
+    );
   },
 );

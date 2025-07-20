@@ -209,7 +209,6 @@ export const BuySellCookbookCoin = ({
           <TabsTrigger value="sell">{t("create.sell_token", { token: symbol })}</TabsTrigger>
         </TabsList>
 
-
         <TabsContent value="buy">
           <div className="flex flex-col gap-2">
             <div className="flex justify-between items-center">

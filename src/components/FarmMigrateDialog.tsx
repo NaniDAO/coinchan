@@ -1,21 +1,11 @@
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatImageURL } from "@/hooks/metadata";
 import type { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { useActiveIncentiveStreams } from "@/hooks/use-incentive-streams";
-import {
-  useZChefActions,
-  useZChefPendingReward,
-  useZChefUserBalance,
-} from "@/hooks/use-zchef-contract";
+import { useZChefActions, useZChefPendingReward, useZChefUserBalance } from "@/hooks/use-zchef-contract";
 import { useCombinedApr } from "@/hooks/use-combined-apr";
 import type { TokenMeta } from "@/lib/coins";
 import { isUserRejectionError } from "@/lib/errors";
@@ -24,11 +14,11 @@ import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, parseUnits } from "viem";
 import { usePublicClient } from "wagmi";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
 interface FarmMigrateDialogProps {
@@ -44,7 +34,6 @@ interface FarmMigrateDialogProps {
   onSuccess?: () => void;
 }
 
-
 interface SortedPoolListProps {
   streams: IncentiveStream[];
   lpToken: TokenMeta;
@@ -57,9 +46,9 @@ function SortedPoolList({ streams, lpToken, onSelect }: SortedPoolListProps) {
 
   // Update sorted streams when APY data changes
   useEffect(() => {
-    const streamsWithAprs = streams.map(stream => ({
+    const streamsWithAprs = streams.map((stream) => ({
       stream,
-      apr: streamAprs[stream.chefId.toString()] || 0
+      apr: streamAprs[stream.chefId.toString()] || 0,
     }));
 
     // Sort by APR descending, then by total shares descending as tiebreaker
@@ -71,7 +60,7 @@ function SortedPoolList({ streams, lpToken, onSelect }: SortedPoolListProps) {
       return Number(b.stream.totalShares) - Number(a.stream.totalShares);
     });
 
-    setSortedStreams(sorted.map(item => item.stream));
+    setSortedStreams(sorted.map((item) => item.stream));
   }, [streams, streamAprs]);
 
   return (
@@ -83,9 +72,9 @@ function SortedPoolList({ streams, lpToken, onSelect }: SortedPoolListProps) {
           lpToken={lpToken}
           onSelect={() => onSelect(targetStream.chefId.toString())}
           onApyCalculated={(apy) => {
-            setStreamAprs(prev => ({
+            setStreamAprs((prev) => ({
               ...prev,
-              [targetStream.chefId.toString()]: apy
+              [targetStream.chefId.toString()]: apy,
             }));
           }}
         />
@@ -101,7 +90,12 @@ interface PoolOptionWithApyTrackingProps {
   onApyCalculated: (apy: number) => void;
 }
 
-function PoolOptionWithApyTracking({ targetStream, lpToken, onSelect, onApyCalculated: onAprCalculated }: PoolOptionWithApyTrackingProps) {
+function PoolOptionWithApyTracking({
+  targetStream,
+  lpToken,
+  onSelect,
+  onApyCalculated: onAprCalculated,
+}: PoolOptionWithApyTrackingProps) {
   const combinedAprData = useCombinedApr({
     stream: targetStream,
     lpToken,
@@ -133,11 +127,10 @@ function PoolOptionWithApyTracking({ targetStream, lpToken, onSelect, onApyCalcu
             />
           )}
           <div className="flex flex-col">
-            <span className="font-mono text-sm font-bold">
-              {targetStream.rewardCoin?.symbol || "Unknown"}
-            </span>
+            <span className="font-mono text-sm font-bold">{targetStream.rewardCoin?.symbol || "Unknown"}</span>
             <span className="font-mono text-xs text-muted-foreground">
-              {targetStream.totalShares ? formatBalance(formatEther(targetStream.totalShares), "LP") : "No stakes"} staked
+              {targetStream.totalShares ? formatBalance(formatEther(targetStream.totalShares), "LP") : "No stakes"}{" "}
+              staked
             </span>
           </div>
         </div>
@@ -145,9 +138,7 @@ function PoolOptionWithApyTracking({ targetStream, lpToken, onSelect, onApyCalcu
           <div className="font-mono text-sm font-bold text-green-600">
             {combinedAprData.isLoading ? "..." : formatApy(combinedAprData.totalApr)}
           </div>
-          <div className="font-mono text-xs text-muted-foreground">
-            APY
-          </div>
+          <div className="font-mono text-xs text-muted-foreground">APY</div>
         </div>
       </div>
     </DropdownMenuItem>
@@ -234,42 +225,32 @@ function SelectedPoolDetails({ targetStream, lpToken }: SelectedPoolDetailsProps
   );
 }
 
-export function FarmMigrateDialog({
-  stream,
-  lpToken,
-  userPosition,
-  trigger,
-  onSuccess,
-}: FarmMigrateDialogProps) {
+export function FarmMigrateDialog({ stream, lpToken, userPosition, trigger, onSuccess }: FarmMigrateDialogProps) {
   const { t } = useTranslation();
   const publicClient = usePublicClient();
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [selectedTargetChefId, setSelectedTargetChefId] = useState<string>("");
   const [txHash, setTxHash] = useState<string | null>(null);
-  const [txStatus, setTxStatus] = useState<
-    "idle" | "pending" | "confirming" | "success" | "error"
-  >("idle");
+  const [txStatus, setTxStatus] = useState<"idle" | "pending" | "confirming" | "success" | "error">("idle");
   const [txError, setTxError] = useState<string | null>(null);
 
   const { migrate } = useZChefActions();
 
   // Get all active incentive streams for the same LP token
   const { data: allStreams = [] } = useActiveIncentiveStreams();
-  
+
   // Filter to get compatible target streams (same lpId, excluding current stream)
   const compatibleStreams = useMemo(() => {
-    const filtered = allStreams.filter(
-      (s: IncentiveStream) => {
-        const sameLpId = s.lpId.toString() === stream.lpId.toString(); // Compare as strings to handle BigInt
-        const differentChef = s.chefId.toString() !== stream.chefId.toString();
-        const isActive = s.status === "ACTIVE";
-        const notEnded = Number(s.endTime) > Math.floor(Date.now() / 1000);
-        
-        return sameLpId && differentChef && isActive && notEnded;
-      }
-    );
-    
+    const filtered = allStreams.filter((s: IncentiveStream) => {
+      const sameLpId = s.lpId.toString() === stream.lpId.toString(); // Compare as strings to handle BigInt
+      const differentChef = s.chefId.toString() !== stream.chefId.toString();
+      const isActive = s.status === "ACTIVE";
+      const notEnded = Number(s.endTime) > Math.floor(Date.now() / 1000);
+
+      return sameLpId && differentChef && isActive && notEnded;
+    });
+
     // Note: We'll sort by APY in a separate component since we need to calculate APY for each stream
     return filtered;
   }, [allStreams, stream.lpId, stream.chefId]);
@@ -369,27 +350,18 @@ export function FarmMigrateDialog({
                 <h4 className="font-mono font-bold text-lg text-foreground break-all">
                   {lpToken?.symbol || `Pool ${stream.lpId}`}
                 </h4>
-                <p className="text-xs text-muted-foreground font-mono">
-                  {t("common.lp_token_pool")}
-                </p>
+                <p className="text-xs text-muted-foreground font-mono">{t("common.lp_token_pool")}</p>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="bg-background/30 border border-primary/20 rounded p-3">
-                <p className="text-muted-foreground font-mono text-xs">
-                  {t("common.staked_amount")}
-                </p>
-                <p className="font-mono font-bold text-primary">
-                  {formatBalance(maxAmount, "LP")}
-                </p>
+                <p className="text-muted-foreground font-mono text-xs">{t("common.staked_amount")}</p>
+                <p className="font-mono font-bold text-primary">{formatBalance(maxAmount, "LP")}</p>
               </div>
               <div className="bg-green-500/10 border border-green-500/30 rounded p-3">
-                <p className="text-green-600 font-mono text-xs">
-                  {t("common.pending_rewards")}
-                </p>
+                <p className="text-green-600 font-mono text-xs">{t("common.pending_rewards")}</p>
                 <p className="font-mono font-bold text-green-500">
-                  {Number.parseFloat(formatEther(actualPendingRewards)).toFixed(6)}{" "}
-                  {stream.rewardCoin?.symbol}
+                  {Number.parseFloat(formatEther(actualPendingRewards)).toFixed(6)} {stream.rewardCoin?.symbol}
                 </p>
               </div>
             </div>
@@ -398,15 +370,12 @@ export function FarmMigrateDialog({
           {/* Target Pool Selection */}
           <div className="space-y-3">
             <Label className="font-mono font-bold text-primary uppercase tracking-wide">
-              <span className="text-muted-foreground">&gt;</span>{" "}
-              {t("common.select_target_pool")}
+              <span className="text-muted-foreground">&gt;</span> {t("common.select_target_pool")}
             </Label>
-            
+
             {compatibleStreams.length === 0 ? (
               <div className="bg-yellow-500/10 border border-yellow-500/30 rounded p-4">
-                <p className="text-yellow-600 font-mono text-sm">
-                  {t("common.no_compatible_pools")}
-                </p>
+                <p className="text-yellow-600 font-mono text-sm">{t("common.no_compatible_pools")}</p>
               </div>
             ) : (
               <DropdownMenu>
@@ -418,11 +387,10 @@ export function FarmMigrateDialog({
                     {selectedTargetChefId ? (
                       <div className="flex items-center justify-between w-full">
                         <span>
-                          {compatibleStreams.find((s: IncentiveStream) => s.chefId.toString() === selectedTargetChefId)?.rewardCoin?.symbol || "Unknown"}
+                          {compatibleStreams.find((s: IncentiveStream) => s.chefId.toString() === selectedTargetChefId)
+                            ?.rewardCoin?.symbol || "Unknown"}
                         </span>
-                        {targetStream && (
-                          <SelectedPoolApy targetStream={targetStream} lpToken={lpToken} />
-                        )}
+                        {targetStream && <SelectedPoolApy targetStream={targetStream} lpToken={lpToken} />}
                       </div>
                     ) : (
                       t("common.select_pool")
@@ -431,32 +399,19 @@ export function FarmMigrateDialog({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-full min-w-[400px]">
-                  <SortedPoolList
-                    streams={compatibleStreams}
-                    lpToken={lpToken}
-                    onSelect={setSelectedTargetChefId}
-                  />
+                  <SortedPoolList streams={compatibleStreams} lpToken={lpToken} onSelect={setSelectedTargetChefId} />
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
 
             {/* Show selected target pool details */}
-            {targetStream && (
-              <SelectedPoolDetails 
-                targetStream={targetStream} 
-                lpToken={lpToken}
-              />
-            )}
+            {targetStream && <SelectedPoolDetails targetStream={targetStream} lpToken={lpToken} />}
           </div>
 
           {/* Amount Input */}
           <div className="space-y-3">
-            <Label
-              htmlFor="amount"
-              className="font-mono font-bold text-primary uppercase tracking-wide"
-            >
-              <span className="text-muted-foreground">&gt;</span>{" "}
-              {t("common.amount_to_migrate")}
+            <Label htmlFor="amount" className="font-mono font-bold text-primary uppercase tracking-wide">
+              <span className="text-muted-foreground">&gt;</span> {t("common.amount_to_migrate")}
             </Label>
             <div className="flex gap-3">
               <Input
@@ -484,21 +439,15 @@ export function FarmMigrateDialog({
             </div>
             <div className="bg-background/30 border border-primary/20 rounded p-3">
               <div className="flex justify-between text-sm font-mono">
-                <span className="text-muted-foreground">
-                  {t("common.available")}:
-                </span>
-                <span className="text-primary font-bold">
-                  {formatBalance(maxAmount, `${lpToken?.symbol} LP`)}
-                </span>
+                <span className="text-muted-foreground">{t("common.available")}:</span>
+                <span className="text-primary font-bold">{formatBalance(maxAmount, `${lpToken?.symbol} LP`)}</span>
               </div>
             </div>
           </div>
 
           {/* Migration Info */}
           <div className="bg-gradient-to-r from-primary/15 via-primary/10 to-primary/5 border border-primary/30 rounded-lg p-4">
-            <p className="font-mono font-bold mb-3 text-primary text-sm">
-              [{t("common.migration_info")}]
-            </p>
+            <p className="font-mono font-bold mb-3 text-primary text-sm">[{t("common.migration_info")}]</p>
             <ul className="space-y-2 text-sm font-mono text-muted-foreground">
               <li className="flex items-start gap-2">
                 <span className="text-primary font-bold">•</span>
@@ -558,33 +507,25 @@ export function FarmMigrateDialog({
                   {txStatus === "pending" && (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent"></div>
-                      <span className="font-mono font-bold text-primary">
-                        [{t("common.status_pending")}]
-                      </span>
+                      <span className="font-mono font-bold text-primary">[{t("common.status_pending")}]</span>
                     </>
                   )}
                   {txStatus === "confirming" && (
                     <>
                       <div className="animate-pulse h-4 w-4 bg-yellow-500 rounded-full"></div>
-                      <span className="font-mono font-bold text-yellow-500">
-                        [{t("common.status_confirming")}]
-                      </span>
+                      <span className="font-mono font-bold text-yellow-500">[{t("common.status_confirming")}]</span>
                     </>
                   )}
                   {txStatus === "success" && (
                     <>
                       <div className="h-4 w-4 bg-green-500 rounded-full"></div>
-                      <span className="font-mono font-bold text-green-500">
-                        [{t("common.status_success")}]
-                      </span>
+                      <span className="font-mono font-bold text-green-500">[{t("common.status_success")}]</span>
                     </>
                   )}
                   {txStatus === "error" && (
                     <>
                       <div className="h-4 w-4 bg-red-500 rounded-full"></div>
-                      <span className="font-mono font-bold text-red-500">
-                        [{t("common.status_error")}]
-                      </span>
+                      <span className="font-mono font-bold text-red-500">[{t("common.status_error")}]</span>
                     </>
                   )}
                 </div>
@@ -597,32 +538,24 @@ export function FarmMigrateDialog({
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 px-3 py-1.5 bg-background/50 border border-primary/20 rounded font-mono text-xs hover:bg-primary/10 transition-colors duration-200"
                     >
-                      <span className="text-muted-foreground">
-                        {t("common.tx_label")}:
-                      </span>
+                      <span className="text-muted-foreground">{t("common.tx_label")}:</span>
                       <span className="text-primary font-bold">
                         {txHash.slice(0, 6)}...{txHash.slice(-4)}
                       </span>
-                      <span className="text-muted-foreground">
-                        {t("common.external_link")}
-                      </span>
+                      <span className="text-muted-foreground">{t("common.external_link")}</span>
                     </a>
                   </div>
                 )}
 
                 {txError && (
                   <div className="text-center">
-                    <p className="text-sm text-red-400 font-mono break-words">
-                      {txError}
-                    </p>
+                    <p className="text-sm text-red-400 font-mono break-words">{txError}</p>
                   </div>
                 )}
 
                 {txStatus === "success" && (
                   <div className="text-center">
-                    <p className="text-sm text-green-400 font-mono">
-                      {t("common.position_migrated_successfully")}
-                    </p>
+                    <p className="text-sm text-green-400 font-mono">{t("common.position_migrated_successfully")}</p>
                   </div>
                 )}
               </div>
@@ -630,15 +563,13 @@ export function FarmMigrateDialog({
           )}
 
           {/* Error Display */}
-          {migrate.error &&
-            txStatus === "idle" &&
-            !isUserRejectionError(migrate.error) && (
-              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
-                <div className="text-sm text-red-400 text-center font-mono break-words">
-                  [ERROR]: {migrate.error.message}
-                </div>
+          {migrate.error && txStatus === "idle" && !isUserRejectionError(migrate.error) && (
+            <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+              <div className="text-sm text-red-400 text-center font-mono break-words">
+                [ERROR]: {migrate.error.message}
               </div>
-            )}
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

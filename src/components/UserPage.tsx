@@ -113,17 +113,12 @@ export function UserPage() {
     setUnlockError(null);
 
     try {
-      const token =
-        lockup.token || "0x0000000000000000000000000000000000000000";
+      const token = lockup.token || "0x0000000000000000000000000000000000000000";
       const to = lockup.to || address;
       // Fix coin ID logic - for ETH lockups, always use 0n
       // For token lockups, use the actual coin ID
       const id =
-        lockup.token === "0x0000000000000000000000000000000000000000"
-          ? 0n
-          : lockup.coinId
-            ? BigInt(lockup.coinId)
-            : 0n;
+        lockup.token === "0x0000000000000000000000000000000000000000" ? 0n : lockup.coinId ? BigInt(lockup.coinId) : 0n;
       const amount = lockup.amount ? BigInt(lockup.amount) : 0n;
       const unlockTime = BigInt(lockup.unlockTime);
 
@@ -133,13 +128,7 @@ export function UserPage() {
         address: CookbookAddress,
         abi: CookbookAbi,
         functionName: "unlock",
-        args: [
-          token as `0x${string}`,
-          to as `0x${string}`,
-          id,
-          amount,
-          unlockTime,
-        ],
+        args: [token as `0x${string}`, to as `0x${string}`, id, amount, unlockTime],
       });
 
       // Refetch lockups after successful unlock
@@ -164,27 +153,19 @@ export function UserPage() {
     return (
       <div className="p-6 bg-background text-foreground">
         <div className="max-w-lg border-2 border-border p-4 outline outline-offset-2 outline-border mx-auto text-center">
-          <h2 className="text-xl font-bold mb-4">
-            {t("lockup.user_dashboard").toUpperCase()}
-          </h2>
-          <p className="text-muted-foreground">
-            {t("lockup.connect_wallet_message")}
-          </p>
+          <h2 className="text-xl font-bold mb-4">{t("lockup.user_dashboard").toUpperCase()}</h2>
+          <p className="text-muted-foreground">{t("lockup.connect_wallet_message")}</p>
         </div>
       </div>
     );
   }
 
-  const sortedLockups = allLockups.sort(
-    (a, b) => Number.parseInt(b.createdAt) - Number.parseInt(a.createdAt),
-  );
+  const sortedLockups = allLockups.sort((a, b) => Number.parseInt(b.createdAt) - Number.parseInt(a.createdAt));
 
   return (
     <div className="p-6 bg-background text-foreground">
       <div className="border-2 border-double border-border p-4 outline outline-offset-2 outline-border mx-auto">
-        <h1 className="text-2xl font-bold mb-6 text-center">
-          {t("lockup.user_dashboard").toUpperCase()}
-        </h1>
+        <h1 className="text-2xl font-bold mb-6 text-center">{t("lockup.user_dashboard").toUpperCase()}</h1>
 
         <div className="mb-4 text-sm text-muted-foreground text-center">
           {t("lockup.connected")} {address}
@@ -207,9 +188,7 @@ export function UserPage() {
 
           <TabsContent value="balances" className="mt-6">
             <div className="space-y-4">
-              <h2 className="text-lg font-bold">
-                {t("lockup.token_balances").toUpperCase()}
-              </h2>
+              <h2 className="text-lg font-bold">{t("lockup.token_balances").toUpperCase()}</h2>
 
               {isLoadingPortfolio ? (
                 <div className="flex justify-center py-8">
@@ -220,9 +199,7 @@ export function UserPage() {
                   {t("lockup.error_loading_balances")} {portfolioError.message}
                 </div>
               ) : !portfolioData?.balances?.length ? (
-                <div className="text-muted-foreground text-center py-8">
-                  {t("lockup.no_token_balances")}
-                </div>
+                <div className="text-muted-foreground text-center py-8">{t("lockup.no_token_balances")}</div>
               ) : (
                 <div className="space-y-2">
                   {portfolioData.balances.map((balance) => (
@@ -242,30 +219,18 @@ export function UserPage() {
                         />
                         <div>
                           <div className="font-bold">
-                            {balance.coin_symbol &&
-                            balance.coin_name &&
-                            balance.coin_symbol !== balance.coin_name
+                            {balance.coin_symbol && balance.coin_name && balance.coin_symbol !== balance.coin_name
                               ? `${balance.coin_symbol} (${balance.coin_name})`
-                              : balance.coin_symbol ||
-                                balance.coin_name ||
-                                `Token #${balance.coin_id}`}
+                              : balance.coin_symbol || balance.coin_name || `Token #${balance.coin_id}`}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            ID: {balance.coin_id} • {balance.coin_decimals}{" "}
-                            decimals
+                            ID: {balance.coin_id} • {balance.coin_decimals} decimals
                           </div>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="font-bold">
-                          {formatBalanceFromAPI(
-                            balance.balance,
-                            balance.coin_decimals,
-                          )}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {balance.coin_symbol || "tokens"}
-                        </div>
+                        <div className="font-bold">{formatBalanceFromAPI(balance.balance, balance.coin_decimals)}</div>
+                        <div className="text-xs text-muted-foreground">{balance.coin_symbol || "tokens"}</div>
                       </div>
                     </div>
                   ))}
@@ -287,9 +252,7 @@ export function UserPage() {
                   Error loading positions: {portfolioError.message}
                 </div>
               ) : !portfolioData?.positions?.length ? (
-                <div className="text-muted-foreground text-center py-8">
-                  No positions found
-                </div>
+                <div className="text-muted-foreground text-center py-8">No positions found</div>
               ) : (
                 <div className="space-y-2">
                   {portfolioData.positions.map((position) => (
@@ -299,25 +262,19 @@ export function UserPage() {
                     >
                       <div className="flex items-center justify-between mb-2">
                         <div>
-                          <div className="text-xs text-muted-foreground">
-                            Chef #{trunc(position.chef_id, 6)}
-                          </div>
+                          <div className="text-xs text-muted-foreground">Chef #{trunc(position.chef_id, 6)}</div>
                         </div>
                         <div className="text-right">
-                          <div className="font-bold text-sm">
-                            {formatPositionShares(position.shares)} shares
-                          </div>
+                          <div className="font-bold text-sm">{formatPositionShares(position.shares)} shares</div>
                         </div>
                       </div>
 
                       <div className="flex items-center justify-between">
                         <div className="text-xs text-muted-foreground">
-                          Reward: {position.reward_symbol} (ID:{" "}
-                          {position.reward_id})
+                          Reward: {position.reward_symbol} (ID: {position.reward_id})
                         </div>
                         <div className="text-xs text-green-500">
-                          {formatPendingRewards(position.pending_rewards)}{" "}
-                          pending
+                          {formatPendingRewards(position.pending_rewards)} pending
                         </div>
                       </div>
                     </div>
@@ -329,9 +286,7 @@ export function UserPage() {
 
           <TabsContent value="lockups" className="mt-6">
             <div className="space-y-4">
-              <h2 className="text-lg font-bold">
-                {t("lockup.lockups").toUpperCase()}
-              </h2>
+              <h2 className="text-lg font-bold">{t("lockup.lockups").toUpperCase()}</h2>
 
               {isLoadingLockups ? (
                 <div className="flex justify-center py-8">
@@ -342,9 +297,7 @@ export function UserPage() {
                   {t("lockup.error_loading_lockups")} {lockupsError.message}
                 </div>
               ) : !sortedLockups.length ? (
-                <div className="text-muted-foreground text-center py-8">
-                  {t("lockup.no_lockups")}
-                </div>
+                <div className="text-muted-foreground text-center py-8">{t("lockup.no_lockups")}</div>
               ) : (
                 <div className="space-y-3">
                   {sortedLockups.map((lockup) => {
@@ -368,9 +321,7 @@ export function UserPage() {
 
               {unlockError && (
                 <div className="mt-4 p-3 border-2 border-destructive bg-card">
-                  <p className="text-sm font-bold text-destructive">
-                    ⚠ ERROR: {unlockError}
-                  </p>
+                  <p className="text-sm font-bold text-destructive">⚠ ERROR: {unlockError}</p>
                 </div>
               )}
             </div>
@@ -400,10 +351,7 @@ function LockupItem({
   const { t } = useTranslation();
   const { isActuallyUnlocked } = useLockupStatus(lockup, userAddress);
 
-  const canUnlock =
-    expired &&
-    (lockup.type === "received" || lockup.type === "sent") &&
-    !isActuallyUnlocked;
+  const canUnlock = expired && (lockup.type === "received" || lockup.type === "sent") && !isActuallyUnlocked;
 
   const lockupToTokenMeta = (lockup: LockupData): TokenMeta => {
     // ETH lockup - check token address first
@@ -430,9 +378,7 @@ function LockupItem({
     if (lockup.coin?.symbol && lockup.coin?.name) {
       return `${lockup.coin.symbol} (${lockup.coin.name})`;
     }
-    return (
-      lockup.coin?.symbol || lockup.coin?.name || `Token #${lockup.coinId}`
-    );
+    return lockup.coin?.symbol || lockup.coin?.name || `Token #${lockup.coinId}`;
   };
 
   const formatLockupAmount = (lockup: LockupData) => {
@@ -497,10 +443,7 @@ function LockupItem({
           <div>
             <div className="font-bold text-sm">{formatLockupAsset(lockup)}</div>
             <div className="text-xs text-muted-foreground">
-              {lockup.type === "sent"
-                ? t("lockup.sent_to")
-                : t("lockup.received_from")}
-              :{" "}
+              {lockup.type === "sent" ? t("lockup.sent_to") : t("lockup.received_from")}:{" "}
               {lockup.type === "sent"
                 ? `${lockup.to?.slice(0, 6)}...${lockup.to?.slice(-4)}`
                 : `${lockup.sender.slice(0, 6)}...${lockup.sender.slice(-4)}`}
@@ -511,11 +454,7 @@ function LockupItem({
           <div className="font-bold text-sm">{formatLockupAmount(lockup)}</div>
           <div
             className={`text-xs ${
-              isActuallyUnlocked
-                ? "text-blue-500"
-                : expired
-                  ? "text-green-500"
-                  : "text-orange-500"
+              isActuallyUnlocked ? "text-blue-500" : expired ? "text-green-500" : "text-orange-500"
             }`}
           >
             {isActuallyUnlocked
@@ -562,9 +501,7 @@ function LockupItem({
       )}
 
       {isActuallyUnlocked && (
-        <div className="text-xs text-blue-500 text-center py-2">
-          ✓ {t("lockup.already_claimed")}
-        </div>
+        <div className="text-xs text-blue-500 text-center py-2">✓ {t("lockup.already_claimed")}</div>
       )}
     </div>
   );

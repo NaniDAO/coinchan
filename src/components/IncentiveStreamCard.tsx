@@ -85,11 +85,7 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {lpToken?.symbol === "CULT" ? (
-              <img
-                src="/cult.jpg"
-                alt="CULT"
-                className="w-6 h-6 border border-muted"
-              />
+              <img src="/cult.jpg" alt="CULT" className="w-6 h-6 border border-muted" />
             ) : lpToken?.imageUrl ? (
               <img
                 src={formatImageURL(lpToken?.imageUrl)}
@@ -118,9 +114,7 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
                     </>
                   ) : hasStakeableTokens ? (
                     // Show only available LP tokens
-                    <>
-                      {formatLpAmount(lpBalance)}
-                    </>
+                    <>{formatLpAmount(lpBalance)}</>
                   ) : (
                     // Show only staked amount
                     <>
@@ -253,7 +247,10 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
           stream={stream}
           lpToken={lpToken}
           trigger={
-            <Button variant="outline" className="w-full border-muted font-mono text-sm sm:text-base uppercase tracking-wider py-2 sm:py-3">
+            <Button
+              variant="outline"
+              className="w-full border-muted font-mono text-sm sm:text-base uppercase tracking-wider py-2 sm:py-3"
+            >
               [{t("common.stake")}]
             </Button>
           }

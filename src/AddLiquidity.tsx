@@ -13,22 +13,14 @@ import { PoolApyDisplay } from "./components/ApyDisplay";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useOperatorStatus } from "./hooks/use-operator-status";
-import {
-  useAccount,
-  useChainId,
-  usePublicClient,
-  useWriteContract,
-} from "wagmi";
+import { useAccount, useChainId, usePublicClient, useWriteContract } from "wagmi";
 import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
 import { ZAMMAbi, ZAMMAddress } from "./constants/ZAAM";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import { useWaitForTransactionReceipt } from "wagmi";
 import { TokenMeta, USDT_ADDRESS, USDT_POOL_KEY, CULT_ADDRESS, CULT_POOL_KEY } from "./lib/coins";
 import { useTokenSelection } from "./contexts/TokenSelectionContext";
-import {
-  determineReserveSource,
-  getHelperContractInfo,
-} from "./lib/coin-utils";
+import { determineReserveSource, getHelperContractInfo } from "./lib/coin-utils";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { SlippageSettings } from "./components/SlippageSettings";
 import { NetworkError } from "./components/NetworkError";
@@ -59,8 +51,7 @@ export const AddLiquidity = () => {
   const [buyAmt, setBuyAmt] = useState("");
 
   // Use shared token selection context
-  const { sellToken, buyToken, setSellToken, setBuyToken } =
-    useTokenSelection();
+  const { sellToken, buyToken, setSellToken, setBuyToken } = useTokenSelection();
 
   const { isSellETH, isCustom, isCoinToCoin, coinId, canSwap } = useMemo(
     () => analyzeTokens(sellToken, buyToken),
@@ -82,7 +73,7 @@ export const AddLiquidity = () => {
         reserveSource: "COOKBOOK" as const,
       };
     }
-    
+
     // USDT handling
     if (sellToken.symbol === "USDT" || buyToken?.symbol === "USDT") {
       return {
@@ -90,7 +81,7 @@ export const AddLiquidity = () => {
         reserveSource: "ZAMM" as const,
       };
     }
-    
+
     // Regular tokens
     const source = determineReserveSource(coinId, isCustom);
     return {
@@ -142,11 +133,7 @@ export const AddLiquidity = () => {
 
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [txError, setTxError] = useState<string | null>(null);
-  const {
-    writeContractAsync,
-    isPending,
-    error: writeError,
-  } = useWriteContract();
+  const { writeContractAsync, isPending, error: writeError } = useWriteContract();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
   const memoizedTokens = useMemo(() => tokens, [tokens]);
@@ -201,11 +188,11 @@ export const AddLiquidity = () => {
     try {
       // For add liquidity, we need to calculate the optimal ratio based on current reserves
       // Using the ZAMM formula: amount1Optimal = (amount0Desired * reserve1) / reserve0
-      
+
       if (isSellETH && buyToken) {
         // ETH → Token: Calculate optimal token amount for the given ETH amount
         const ethAmount = parseEther(val || "0");
-        
+
         // Check for empty pool (no liquidity yet)
         if (reserves.reserve0 === 0n || reserves.reserve1 === 0n) {
           // For new pools, we can't calculate optimal ratio, user sets both amounts
@@ -215,19 +202,17 @@ export const AddLiquidity = () => {
 
         // Calculate optimal token amount: (ethAmount * tokenReserve) / ethReserve
         const optimalTokenAmount = (ethAmount * reserves.reserve1) / reserves.reserve0;
-        
+
         // Use correct decimals for the buy token (6 for USDT, 18 for others)
         const buyTokenDecimals = buyToken?.decimals || 18;
         const formattedAmount = formatUnits(optimalTokenAmount, buyTokenDecimals);
-        
-        setBuyAmt(
-          optimalTokenAmount === 0n ? "" : formattedAmount,
-        );
+
+        setBuyAmt(optimalTokenAmount === 0n ? "" : formattedAmount);
       } else if (!isSellETH && buyToken?.id === null) {
         // Token → ETH: Calculate optimal ETH amount for the given token amount
         const sellTokenDecimals = sellToken?.decimals || 18;
         const tokenAmount = parseUnits(val || "0", sellTokenDecimals);
-        
+
         // Check for empty pool (no liquidity yet)
         if (reserves.reserve0 === 0n || reserves.reserve1 === 0n) {
           // For new pools, we can't calculate optimal ratio, user sets both amounts
@@ -237,10 +222,8 @@ export const AddLiquidity = () => {
 
         // Calculate optimal ETH amount: (tokenAmount * ethReserve) / tokenReserve
         const optimalEthAmount = (tokenAmount * reserves.reserve0) / reserves.reserve1;
-        
-        setBuyAmt(
-          optimalEthAmount === 0n ? "" : formatEther(optimalEthAmount),
-        );
+
+        setBuyAmt(optimalEthAmount === 0n ? "" : formatEther(optimalEthAmount));
       } else if (isCoinToCoin && targetReserves && buyToken?.id && sellToken.id) {
         // For coin-to-coin, this is more complex and not common for add liquidity
         // Clear the field to let user input manually
@@ -261,12 +244,12 @@ export const AddLiquidity = () => {
     try {
       // For add liquidity, calculate optimal token0 amount based on pool reserves
       // Using the reverse ZAMM formula: amount0Optimal = (amount1Desired * reserve0) / reserve1
-      
+
       if (isSellETH && buyToken) {
         // User input token amount, calculate optimal ETH amount
         const buyTokenDecimals = buyToken?.decimals || 18;
         const tokenAmount = parseUnits(val || "0", buyTokenDecimals);
-        
+
         // Check for empty pool (no liquidity yet)
         if (reserves.reserve0 === 0n || reserves.reserve1 === 0n) {
           // For new pools, we can't calculate optimal ratio, user sets both amounts
@@ -276,14 +259,12 @@ export const AddLiquidity = () => {
 
         // Calculate optimal ETH amount: (tokenAmount * ethReserve) / tokenReserve
         const optimalEthAmount = (tokenAmount * reserves.reserve0) / reserves.reserve1;
-        
-        setSellAmt(
-          optimalEthAmount === 0n ? "" : formatEther(optimalEthAmount),
-        );
+
+        setSellAmt(optimalEthAmount === 0n ? "" : formatEther(optimalEthAmount));
       } else if (!isSellETH && buyToken?.id === null) {
         // User input ETH amount, calculate optimal token amount
         const ethAmount = parseEther(val || "0");
-        
+
         // Check for empty pool (no liquidity yet)
         if (reserves.reserve0 === 0n || reserves.reserve1 === 0n) {
           // For new pools, we can't calculate optimal ratio, user sets both amounts
@@ -293,12 +274,10 @@ export const AddLiquidity = () => {
 
         // Calculate optimal token amount: (ethAmount * tokenReserve) / ethReserve
         const optimalTokenAmount = (ethAmount * reserves.reserve1) / reserves.reserve0;
-        
+
         // Use correct decimals for the sell token
         const sellTokenDecimals = sellToken?.decimals || 18;
-        setSellAmt(
-          optimalTokenAmount === 0n ? "" : formatUnits(optimalTokenAmount, sellTokenDecimals),
-        );
+        setSellAmt(optimalTokenAmount === 0n ? "" : formatUnits(optimalTokenAmount, sellTokenDecimals));
       } else if (isCoinToCoin) {
         // For coin-to-coin add liquidity, this is complex and not common
         // Clear the field to let user input manually
@@ -373,15 +352,9 @@ export const AddLiquidity = () => {
       let usdtAmount = 0n;
       if (isUsingUsdt) {
         // Determine which token is USDT and get its amount
-        if (
-          (sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS) ||
-          sellToken.symbol === "USDT"
-        ) {
+        if ((sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS) || sellToken.symbol === "USDT") {
           usdtAmount = parseUnits(sellAmt, 6); // USDT has 6 decimals
-        } else if (
-          (buyToken?.isCustomPool && buyToken?.token1 === USDT_ADDRESS) ||
-          buyToken?.symbol === "USDT"
-        ) {
+        } else if ((buyToken?.isCustomPool && buyToken?.token1 === USDT_ADDRESS) || buyToken?.symbol === "USDT") {
           usdtAmount = parseUnits(buyAmt, 6); // USDT has 6 decimals
         }
 
@@ -391,15 +364,9 @@ export const AddLiquidity = () => {
         }
 
         // If USDT amount is greater than allowance, request approval
-        if (
-          usdtAllowance === undefined ||
-          usdtAllowance === 0n ||
-          usdtAmount > usdtAllowance
-        ) {
+        if (usdtAllowance === undefined || usdtAllowance === 0n || usdtAmount > usdtAllowance) {
           // Maintain consistent UX with operator approval flow
-          setTxError(
-            "Waiting for USDT approval. Please confirm the transaction...",
-          );
+          setTxError("Waiting for USDT approval. Please confirm the transaction...");
           const approved = await approveUsdtMax();
           if (approved === undefined) {
             return; // Stop if approval failed or was rejected
@@ -449,7 +416,7 @@ export const AddLiquidity = () => {
       // Use correct decimals for each token directly
       const amount0 = isSellETH ? parseEther(sellAmt) : parseEther(buyAmt); // ETH amount
       const amount1 = isSellETH
-        ? parseUnits(buyAmt, buyToken?.decimals || 18)  // Use buyToken's actual decimals
+        ? parseUnits(buyAmt, buyToken?.decimals || 18) // Use buyToken's actual decimals
         : parseUnits(sellAmt, sellToken?.decimals || 18); // Use sellToken's actual decimals
 
       // Verify we have valid amounts
@@ -461,17 +428,10 @@ export const AddLiquidity = () => {
       // Slippage protection will be calculated after getting exact amounts from ZAMMHelper
 
       // Check for USDT approvals first if using USDT pool
-      if (
-        isUsdtPool &&
-        !isSellETH &&
-        usdtAllowance !== undefined &&
-        amount1 > usdtAllowance
-      ) {
+      if (isUsdtPool && !isSellETH && usdtAllowance !== undefined && amount1 > usdtAllowance) {
         try {
           // First, show a notification about the approval step
-          setTxError(
-            "Waiting for USDT approval. Please confirm the transaction...",
-          );
+          setTxError("Waiting for USDT approval. Please confirm the transaction...");
 
           // Send the approval transaction
           const approvalHash = await approveUsdtMax();
@@ -505,9 +465,10 @@ export const AddLiquidity = () => {
 
       // Check for CULT ERC20 approval if needed
       if (isUsingCult) {
-        const cultAmount = sellToken.symbol === "CULT" 
-          ? parseUnits(sellAmt, 18) // CULT has 18 decimals
-          : parseUnits(buyAmt, 18);
+        const cultAmount =
+          sellToken.symbol === "CULT"
+            ? parseUnits(sellAmt, 18) // CULT has 18 decimals
+            : parseUnits(buyAmt, 18);
 
         if (cultAllowance === undefined || cultAmount > cultAllowance) {
           try {
@@ -517,7 +478,7 @@ export const AddLiquidity = () => {
 
             setTxError("CULT approval submitted. Waiting for confirmation...");
             const receipt = await publicClient.waitForTransactionReceipt({ hash: approved });
-            
+
             if (receipt.status === "success") {
               await refetchCultAllowance();
               setTxError(null);
@@ -544,9 +505,7 @@ export const AddLiquidity = () => {
       if (!isUsdtPool && !isUsingCult && coinId && isOperator === false) {
         try {
           // First, show a notification about the approval step
-          setTxError(
-            "Waiting for operator approval. Please confirm the transaction...",
-          );
+          setTxError("Waiting for operator approval. Please confirm the transaction...");
 
           const approvalHash = await writeContractAsync({
             address: CoinsAddress,
@@ -556,9 +515,7 @@ export const AddLiquidity = () => {
           });
 
           // Show a waiting message
-          setTxError(
-            "Operator approval submitted. Waiting for confirmation...",
-          );
+          setTxError("Operator approval submitted. Waiting for confirmation...");
 
           // Wait for the transaction to be mined
           const receipt = await publicClient.waitForTransactionReceipt({
@@ -586,9 +543,7 @@ export const AddLiquidity = () => {
 
       // Use appropriate ZAMMHelper contract based on coin type
       const { helperType } = getHelperContractInfo(coinId);
-      const helperAddress = isCookbook
-        ? ZAMMHelperV1Address
-        : ZAMMHelperAddress;
+      const helperAddress = isCookbook ? ZAMMHelperV1Address : ZAMMHelperAddress;
       const helperAbi = isCookbook ? ZAMMHelperV1Abi : ZAMMHelperAbi;
 
       try {
@@ -605,11 +560,7 @@ export const AddLiquidity = () => {
         });
 
         // Extract the values from the result array
-        const [ethAmount, calcAmount0, calcAmount1] = result as [
-          bigint,
-          bigint,
-          bigint,
-        ];
+        const [ethAmount, calcAmount0, calcAmount1] = result as [bigint, bigint, bigint];
 
         // Detailed logging to help with debugging
 
@@ -645,10 +596,7 @@ export const AddLiquidity = () => {
         // Use our utility to handle wallet errors
         const errorMsg = handleWalletError(calcErr);
         if (errorMsg) {
-          console.error(
-            `Error calling ${helperType}.calculateRequiredETH:`,
-            calcErr,
-          );
+          console.error(`Error calling ${helperType}.calculateRequiredETH:`, calcErr);
           setTxError("Failed to calculate exact ETH amount");
         }
         return;
@@ -666,12 +614,8 @@ export const AddLiquidity = () => {
             setTxError("Insufficient funds for this transaction");
           } else if (err.message.includes("InvalidMsgVal")) {
             // This is our critical error where the msg.value doesn't match what the contract expects
-            setTxError(
-              "Contract rejected ETH value. Please try again with different amounts.",
-            );
-            console.error(
-              "ZAMM contract rejected the ETH value due to strict msg.value validation.",
-            );
+            setTxError("Contract rejected ETH value. Please try again with different amounts.");
+            console.error("ZAMM contract rejected the ETH value due to strict msg.value validation.");
           } else {
             setTxError("Transaction failed. Please try again.");
           }
@@ -698,10 +642,7 @@ export const AddLiquidity = () => {
 
   return (
     <div className="relative flex flex-col">
-      <PoolApyDisplay
-        poolId={mainPoolId ? mainPoolId.toString() : undefined}
-        className="mb-2"
-      />
+      <PoolApyDisplay poolId={mainPoolId ? mainPoolId.toString() : undefined} className="mb-2" />
       {/* Provide panel */}
       <SwapPanel
         title={t("common.provide")}
@@ -711,9 +652,7 @@ export const AddLiquidity = () => {
         isEthBalanceFetching={isEthBalanceFetching}
         amount={sellAmt}
         onAmountChange={syncFromSell}
-        showMaxButton={
-          !!(sellToken.balance !== undefined && sellToken.balance > 0n)
-        }
+        showMaxButton={!!(sellToken.balance !== undefined && sellToken.balance > 0n)}
         onMax={() => {
           if (sellToken.id === null) {
             const ethAmount = ((sellToken.balance as bigint) * 99n) / 100n;
@@ -743,20 +682,13 @@ export const AddLiquidity = () => {
       <NetworkError message="manage liquidity" />
 
       {/* Slippage information */}
-      <SlippageSettings
-        slippageBps={slippageBps}
-        setSlippageBps={setSlippageBps}
-      />
+      <SlippageSettings slippageBps={slippageBps} setSlippageBps={setSlippageBps} />
 
       <div className="text-xs bg-muted/50 border border-primary/30 rounded p-2 mt-2 text-muted-foreground dark:text-gray-300">
-        <p className="font-medium mb-1">
-          {t("pool.adding_liquidity_provides")}
-        </p>
+        <p className="font-medium mb-1">{t("pool.adding_liquidity_provides")}</p>
         <ul className="list-disc pl-4 space-y-0.5">
           <li>{t("pool.lp_tokens_proof")}</li>
-          <li>
-            {t("pool.earn_fees_from_trades", { fee: Number(SWAP_FEE) / 100 })}
-          </li>
+          <li>{t("pool.earn_fees_from_trades", { fee: Number(SWAP_FEE) / 100 })}</li>
           <li>{t("pool.withdraw_anytime")}</li>
         </ul>
       </div>
@@ -790,12 +722,9 @@ export const AddLiquidity = () => {
         </div>
       )}
 
-      {((writeError && !isUserRejectionError(writeError)) ||
-        (txError && !txError.includes("Waiting for"))) && (
+      {((writeError && !isUserRejectionError(writeError)) || (txError && !txError.includes("Waiting for"))) && (
         <div className="text-sm text-destructive mt-2 bg-background/50 p-2 rounded border border-destructive/20">
-          {writeError && !isUserRejectionError(writeError)
-            ? writeError.message
-            : txError}
+          {writeError && !isUserRejectionError(writeError) ? writeError.message : txError}
         </div>
       )}
 

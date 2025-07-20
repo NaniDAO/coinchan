@@ -1,8 +1,9 @@
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
+import { CheckTheChainAbi, CheckTheChainAddress } from "@/constants/CheckTheChain";
 import type { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { isCookbookCoin } from "@/lib/coin-utils";
-import type { TokenMeta } from "@/lib/coins";
+import { type TokenMeta, CULT_POOL_KEY } from "@/lib/coins";
 import {
   SINGLE_ETH_SLIPPAGE_BPS,
   SWAP_FEE,
@@ -56,9 +57,10 @@ export function useZapCalculations() {
       const ethAmountBigInt = parseEther(ethAmount);
       const halfEthAmount = ethAmountBigInt / 2n;
 
-      // Determine if this is a Cookbook coin
+      // Determine if this is a Cookbook coin or CULT
       const tokenId = lpToken.id || 0n;
       const isCookbook = isCookbookCoin(tokenId);
+      const isCULT = lpToken.symbol === "CULT";
 
       if (!lpToken?.poolId) {
         throw new Error("LP token pool ID not defined");
@@ -70,8 +72,9 @@ export function useZapCalculations() {
       }
 
       // Determine LP source and target addresses
-      const lpSrc = isCookbook ? CookbookAddress : ZAMMAddress;
-      const lpAbi = isCookbook ? CookbookAbi : ZAMMAbi;
+      // CULT uses Cookbook for liquidity operations
+      const lpSrc = isCookbook || isCULT ? CookbookAddress : ZAMMAddress;
+      const lpAbi = isCookbook || isCULT ? CookbookAbi : ZAMMAbi;
 
       // Get swap fee for the token, preferring stream data if available
       const swapFee = lpToken.swapFee ?? SWAP_FEE;
@@ -81,23 +84,29 @@ export function useZapCalculations() {
       // the on-chain validation below after fetching fresh reserve data.
 
       // Compute pool key
-      const basePoolKey = isCookbook
-        ? computePoolKey(tokenId, swapFee, CookbookAddress)
-        : computePoolKey(tokenId, swapFee);
+      let poolKey;
+      let poolId;
 
-      // Transform ZAMM pool key to match zChef's expected structure
-      const poolKey = isCookbook
-        ? basePoolKey // Cookbook already has feeOrHook
-        : {
-            id0: basePoolKey.id0,
-            id1: basePoolKey.id1,
-            token0: basePoolKey.token0,
-            token1: basePoolKey.token1,
-            feeOrHook: (basePoolKey as any).swapFee, // Convert swapFee to feeOrHook for zChef
-          };
-
-      // Get pool ID for reserves
-      const poolId = isCookbook ? computePoolId(tokenId, swapFee, CookbookAddress) : computePoolId(tokenId, swapFee);
+      if (isCULT) {
+        // Use the predefined CULT pool key
+        poolKey = CULT_POOL_KEY;
+        poolId = lpToken.poolId; // Use the pool ID from the token metadata
+      } else if (isCookbook) {
+        const basePoolKey = computePoolKey(tokenId, swapFee, CookbookAddress);
+        poolKey = basePoolKey; // Cookbook already has feeOrHook
+        poolId = computePoolId(tokenId, swapFee, CookbookAddress);
+      } else {
+        const basePoolKey = computePoolKey(tokenId, swapFee);
+        // Transform ZAMM pool key to match zChef's expected structure
+        poolKey = {
+          id0: basePoolKey.id0,
+          id1: basePoolKey.id1,
+          token0: basePoolKey.token0,
+          token1: basePoolKey.token1,
+          feeOrHook: (basePoolKey as any).swapFee, // Convert swapFee to feeOrHook for zChef
+        };
+        poolId = computePoolId(tokenId, swapFee);
+      }
 
       // Fetch current reserves
       if (!publicClient) {
@@ -139,7 +148,39 @@ export function useZapCalculations() {
       }
 
       // Calculate how many tokens we'll get for half the ETH
-      const estimatedTokens = getAmountOut(halfEthAmount, reserves.reserve0, reserves.reserve1, swapFee);
+      let estimatedTokens: bigint;
+
+      if (isCULT) {
+        // For CULT, we need to use Uniswap V3 price from CheckTheChain
+        try {
+          const cultPriceData = await publicClient.readContract({
+            address: CheckTheChainAddress,
+            abi: CheckTheChainAbi,
+            functionName: "checkPriceInETH",
+            args: ["CULT"],
+          });
+
+          // Price is returned as uint256 with 18 decimals
+          // e.g., 245052318810 = 0.00000024505231881 ETH per CULT
+          const cultPriceInETH = cultPriceData[0] as bigint;
+
+          if (cultPriceInETH === 0n) {
+            throw new Error("Unable to fetch CULT price from oracle");
+          }
+
+          // Calculate CULT amount: ETH amount / CULT price
+          // halfEthAmount has 18 decimals, cultPriceInETH has 18 decimals
+          // Result should have 18 decimals (CULT decimals)
+          estimatedTokens = (halfEthAmount * 10n ** 18n) / cultPriceInETH;
+        } catch (err) {
+          console.error("Failed to fetch CULT price from CheckTheChain:", err);
+          // Fallback to pool-based calculation if oracle fails
+          estimatedTokens = getAmountOut(halfEthAmount, reserves.reserve0, reserves.reserve1, swapFee);
+        }
+      } else {
+        // For other tokens, use the pool reserves for calculation
+        estimatedTokens = getAmountOut(halfEthAmount, reserves.reserve0, reserves.reserve1, swapFee);
+      }
 
       if (estimatedTokens === 0n) {
         return {

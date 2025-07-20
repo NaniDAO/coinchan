@@ -57,17 +57,13 @@ export function isCultToken(tokenAddress: string): boolean {
 /**
  * Check if a pool uses the CultHook
  */
-export function isCultHookPool(
-  token0: string,
-  token1: string,
-  feeOrHook?: bigint
-): boolean {
-  const isCultPool = 
-    (token0.toLowerCase() === "0x0000000000000000000000000000000000000000" && 
-     token1.toLowerCase() === CULT_ADDRESS.toLowerCase()) ||
-    (token1.toLowerCase() === "0x0000000000000000000000000000000000000000" && 
-     token0.toLowerCase() === CULT_ADDRESS.toLowerCase());
-  
+export function isCultHookPool(token0: string, token1: string, feeOrHook?: bigint): boolean {
+  const isCultPool =
+    (token0.toLowerCase() === "0x0000000000000000000000000000000000000000" &&
+      token1.toLowerCase() === CULT_ADDRESS.toLowerCase()) ||
+    (token1.toLowerCase() === "0x0000000000000000000000000000000000000000" &&
+      token0.toLowerCase() === CULT_ADDRESS.toLowerCase());
+
   return isCultPool && feeOrHook === CULT_POOL_KEY.feeOrHook;
 }
 
@@ -79,7 +75,7 @@ export function getSwapContractAddress(
   token0: string,
   token1: string,
   feeOrHook?: bigint,
-  regularContractAddress?: string
+  regularContractAddress?: string,
 ): string {
   if (isCultHookPool(token0, token1, feeOrHook)) {
     return CultHookAddress;
@@ -96,7 +92,7 @@ export function adjustSwapParamsForCultHook(
   isExactIn: boolean,
   zeroForOne: boolean, // true = ETH→CULT, false = CULT→ETH
   amount: bigint,
-  taxRate: bigint = DEFAULT_TAX_RATE
+  taxRate: bigint = DEFAULT_TAX_RATE,
 ): {
   adjustedAmount: bigint;
   msgValue: bigint;
@@ -108,13 +104,13 @@ export function adjustSwapParamsForCultHook(
       const grossAmount = toGross(amount, taxRate);
       return {
         adjustedAmount: amount, // CultHook expects net amount
-        msgValue: grossAmount,  // Send gross amount as msg.value
+        msgValue: grossAmount, // Send gross amount as msg.value
       };
     } else {
       // exactOut: User wants exact CULT out, provide max gross ETH
       return {
         adjustedAmount: amount, // Amount out stays the same
-        msgValue: amount,       // This should be the max gross amount user willing to spend
+        msgValue: amount, // This should be the max gross amount user willing to spend
       };
     }
   } else {
@@ -123,13 +119,13 @@ export function adjustSwapParamsForCultHook(
       // User provides CULT amount, expects NET ETH out
       return {
         adjustedAmount: amount, // CULT amount stays the same
-        msgValue: 0n,           // No ETH sent for token→ETH
+        msgValue: 0n, // No ETH sent for token→ETH
       };
     } else {
       // exactOut: User wants NET ETH out, needs to provide enough CULT
       return {
         adjustedAmount: amount, // This is the net ETH amount user wants
-        msgValue: 0n,           // No ETH sent for token→ETH
+        msgValue: 0n, // No ETH sent for token→ETH
       };
     }
   }

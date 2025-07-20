@@ -3,10 +3,7 @@ import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
 import { CultHookAbi, CultHookAddress } from "@/constants/CultHook";
 import { type TokenMeta, USDT_ADDRESS, CULT_ADDRESS, CULT_POOL_KEY } from "@/lib/coins";
-import { 
-  getCultHookTaxRate,
-  toGross
-} from "@/lib/cult-hook-utils";
+import { getCultHookTaxRate, toGross } from "@/lib/cult-hook-utils";
 import {
   DEADLINE_SEC,
   SWAP_FEE,
@@ -45,9 +42,21 @@ export interface SwapParams {
  * internally checking allowances and operator status.
  */
 export async function buildSwapCalls(params: SwapParams & { publicClient: PublicClient }): Promise<Call[]> {
-  const { address, sellToken, buyToken, sellAmt, buyAmt, reserves, slippageBps, targetReserves, publicClient, recipient, exactOut } = params;
+  const {
+    address,
+    sellToken,
+    buyToken,
+    sellAmt,
+    buyAmt,
+    reserves,
+    slippageBps,
+    targetReserves,
+    publicClient,
+    recipient,
+    exactOut,
+  } = params;
   const calls: Call[] = [];
-  
+
   // Use custom recipient if provided, otherwise default to connected wallet
   // Validate the recipient is a valid address
   const swapRecipient = recipient && recipient.match(/^0x[a-fA-F0-9]{40}$/i) ? recipient : address;
@@ -57,7 +66,7 @@ export async function buildSwapCalls(params: SwapParams & { publicClient: Public
   const isCoinToCoin = !isSellETH && !isBuyETH;
   const isUSDT = (tok: TokenMeta) => tok.isCustomPool && tok.symbol === "USDT";
   const isCULT = (tok: TokenMeta) => tok.isCustomPool && tok.symbol === "CULT";
-  
+
   // Check if this swap involves the CULT hook
   const isCultHookSwap = (isSellETH && isCULT(buyToken)) || (isCULT(sellToken) && isBuyETH);
 
@@ -67,25 +76,25 @@ export async function buildSwapCalls(params: SwapParams & { publicClient: Public
   const buyAmtInUnits = parseUnits(buyAmt || "0", buyToken.decimals || 18);
   const minBuyAmount = withSlippage(buyAmtInUnits, slippageBps);
   const deadline = nowSec() + BigInt(DEADLINE_SEC);
-  
+
   // For exactOut, we need to calculate max input amount based on desired output
   let maxSellAmount = sellAmtInUnits;
   if (exactOut && !isCoinToCoin) {
     // In exactOut mode, we need to calculate the maximum input we'd need
     // to get the exact output (buyAmtInUnits) with slippage protection
     if (!reserves) throw new Error("Reserves required for exactOut calculations");
-    
+
     const isETHToToken = isSellETH;
     const outputAmount = buyAmtInUnits;
-    
+
     // Calculate required input using getAmountIn
     const requiredInput = getAmountIn(
       outputAmount,
       isETHToToken ? reserves.reserve0 : reserves.reserve1,
       isETHToToken ? reserves.reserve1 : reserves.reserve0,
-      sellToken.swapFee || buyToken?.swapFee || SWAP_FEE
+      sellToken.swapFee || buyToken?.swapFee || SWAP_FEE,
     );
-    
+
     // Add slippage buffer to the calculated input
     maxSellAmount = requiredInput + (requiredInput * slippageBps) / 10000n;
   }
@@ -230,17 +239,17 @@ export async function buildSwapCalls(params: SwapParams & { publicClient: Public
           ) as ZAMMPoolKey);
     const fromETH = isSellETH;
     const source = fromETH ? buyToken.source : sellToken.source;
-    
+
     // Handle CultHook routing for CULT swaps
     if (isCultHookSwap) {
       // Get tax rate for accurate calculations
       const taxRate = await getCultHookTaxRate();
-      
+
       if (exactOut) {
         // For exactOut CULT swaps, we need to adjust parameters
         let adjustedMaxAmount = maxSellAmount;
         let msgValue = 0n;
-        
+
         if (fromETH) {
           // ETH → CULT: User wants exact CULT out, we need to provide gross ETH
           msgValue = toGross(maxSellAmount, taxRate);
@@ -249,7 +258,7 @@ export async function buildSwapCalls(params: SwapParams & { publicClient: Public
           // CULT → ETH: User wants exact net ETH out
           // CultHook will handle the tax internally
         }
-        
+
         const args = [CULT_POOL_KEY, buyAmtInUnits, adjustedMaxAmount, fromETH, swapRecipient, deadline] as const;
         const call: Call = {
           to: CultHookAddress,
@@ -265,7 +274,7 @@ export async function buildSwapCalls(params: SwapParams & { publicClient: Public
         // swapExactIn for CULT swaps
         let adjustedAmount = sellAmtInUnits;
         let msgValue = 0n;
-        
+
         if (fromETH) {
           // ETH → CULT: User provides net ETH, we send gross
           msgValue = toGross(sellAmtInUnits, taxRate);
@@ -273,7 +282,7 @@ export async function buildSwapCalls(params: SwapParams & { publicClient: Public
         } else {
           // CULT → ETH: Standard amount, tax handled by hook
         }
-        
+
         const args = [CULT_POOL_KEY, adjustedAmount, minBuyAmount, fromETH, swapRecipient, deadline] as const;
         const call: Call = {
           to: CultHookAddress,

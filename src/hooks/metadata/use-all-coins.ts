@@ -4,7 +4,16 @@ import { CoinsMetadataHelperAbi, CoinsMetadataHelperAddress } from "@/constants/
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
 import { isCookbookCoin } from "@/lib/coin-utils";
-import { ETH_TOKEN, type TokenMeta, USDT_ADDRESS, USDT_POOL_ID, USDT_TOKEN, CULT_TOKEN, CULT_ADDRESS, CULT_POOL_ID } from "@/lib/coins";
+import {
+  ETH_TOKEN,
+  type TokenMeta,
+  USDT_ADDRESS,
+  USDT_POOL_ID,
+  USDT_TOKEN,
+  CULT_TOKEN,
+  CULT_ADDRESS,
+  CULT_POOL_ID,
+} from "@/lib/coins";
 import { SWAP_FEE } from "@/lib/swap";
 import { useQuery } from "@tanstack/react-query";
 import type { Address } from "viem";

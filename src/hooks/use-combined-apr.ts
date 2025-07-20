@@ -37,15 +37,9 @@ const EIGHTEEN_DECIMALS = 1_000_000_000_000_000_000n; // 1e18 (ZAMM & ETH)
  * Hook to calculate combined APR (base trading fees + farm incentives)
  * for incentivized liquidity pools
  */
-export function useCombinedApr({
-  stream,
-  lpToken,
-  enabled = true,
-}: UseCombinedAprParams): CombinedAprData {
+export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedAprParams): CombinedAprData {
   // Fetch base APR from trading fees
-  const { data: baseAprData, isLoading: isBaseAprLoading } = usePoolApy(
-    lpToken?.poolId?.toString(),
-  );
+  const { data: baseAprData, isLoading: isBaseAprLoading } = usePoolApy(lpToken?.poolId?.toString());
 
   const { data: farmInfo, isLoading: isFarmInfoLoading } = useReadContract({
     address: ZChefAddress,
@@ -67,8 +61,9 @@ export function useCombinedApr({
   });
 
   // Fetch farm incentive APR
-  const { data: rewardPerSharePerYearOnchain, isLoading: isFarmAprLoading } =
-    useZChefRewardPerSharePerYear(enabled ? stream.chefId : undefined);
+  const { data: rewardPerSharePerYearOnchain, isLoading: isFarmAprLoading } = useZChefRewardPerSharePerYear(
+    enabled ? stream.chefId : undefined,
+  );
 
   /**
    * Reward-per-share-per-year scaled by 1e12.
@@ -95,8 +90,7 @@ export function useCombinedApr({
           : farmInfo?.[7];
 
     // Ensure totalShares is never 0 before division
-    const safeTotalShares =
-      totalShares && totalShares > 0n ? totalShares : parseEther("1");
+    const safeTotalShares = totalShares && totalShares > 0n ? totalShares : parseEther("1");
 
     if (streamActive && safeTotalShares !== 0n) {
       return (BigInt(rewardRate) * SECONDS_IN_YEAR) / BigInt(safeTotalShares); // still ×1e12
@@ -104,13 +98,7 @@ export function useCombinedApr({
 
     // 3. ended or not enabled → 0
     return 0n;
-  }, [
-    rewardPerSharePerYearOnchain,
-    farmInfo,
-    stream.status,
-    stream.endTime,
-    stream.totalShares,
-  ]);
+  }, [rewardPerSharePerYearOnchain, farmInfo, stream.status, stream.endTime, stream.totalShares]);
 
   // Calculate combined APR
   const combinedApr = useMemo(() => {
@@ -129,13 +117,7 @@ export function useCombinedApr({
     };
 
     try {
-      if (
-        isLoading ||
-        !poolTvlInEth ||
-        !rewardPriceEth ||
-        poolTvlInEth === 0 ||
-        rewardPriceEth === 0
-      ) {
+      if (isLoading || !poolTvlInEth || !rewardPriceEth || poolTvlInEth === 0 || rewardPriceEth === 0) {
         return defaultResult;
       }
 
@@ -152,8 +134,7 @@ export function useCombinedApr({
       const share = 1000000000000000000n; // 1 LP share
 
       // Ensure totalShares has a valid value
-      const safeTotalShares =
-        totalShares && totalShares > 0n ? totalShares : parseEther("1");
+      const safeTotalShares = totalShares && totalShares > 0n ? totalShares : parseEther("1");
 
       // Ensure all numbers are valid before calculations
       const shareNum = Number(share);
@@ -161,12 +142,7 @@ export function useCombinedApr({
       const eighteenDecimalsNum = Number(EIGHTEEN_DECIMALS);
 
       // Prevent any potential division by zero
-      if (
-        !shareNum ||
-        !totalSharesNum ||
-        !eighteenDecimalsNum ||
-        totalSharesNum === 0
-      ) {
+      if (!shareNum || !totalSharesNum || !eighteenDecimalsNum || totalSharesNum === 0) {
         return {
           baseApr,
           farmApr: 0,
@@ -180,20 +156,14 @@ export function useCombinedApr({
       }
 
       const rewardPerSharePerYearWei = rewardPerSharePerYear / ACC_PRECISION;
-      const tokensPerSharePerYear =
-        Number(rewardPerSharePerYearWei) / eighteenDecimalsNum;
+      const tokensPerSharePerYear = Number(rewardPerSharePerYearWei) / eighteenDecimalsNum;
       const yearlyReward = tokensPerSharePerYear * shareNum;
       const yearlyRewardEthValue = yearlyReward * rewardPriceEth;
       const stakeEth = (shareNum / totalSharesNum) * poolTvlInEth;
 
       // Prevent division by zero and ensure all values are valid numbers
       let aprPct = 0;
-      if (
-        stakeEth > 0 &&
-        !isNaN(yearlyRewardEthValue) &&
-        !isNaN(stakeEth) &&
-        isFinite(stakeEth)
-      ) {
+      if (stakeEth > 0 && !isNaN(yearlyRewardEthValue) && !isNaN(stakeEth) && isFinite(stakeEth)) {
         aprPct = (yearlyRewardEthValue / stakeEth) * 100;
         if (isNaN(aprPct) || !isFinite(aprPct)) {
           aprPct = 0;
