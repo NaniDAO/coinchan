@@ -933,6 +933,11 @@
     "pool_id": "池 ID",
     "hook": "Hook",
     "max_balance": "MAX: {{balance}} {{token}}",
-    "lp": "LP"
+    "lp": "LP",
+    "half_eth_swapped_uniswap": "一半 ETH 通过 Uniswap V3 兑换为 CULT",
+    "remaining_eth_cult_added": "剩余 ETH + CULT 添加到 Cookbook 流动性",
+    "using_cult_optimized_zap": "使用 CULT 优化的 ETH zap 合约",
+    "default_slippage_cult": "CULT 流动性默认滑点设置为 10%",
+    "wallet_simulations_dust": "💡 注意：钱包模拟可能显示少量退款"
   }
 }

@@ -922,6 +922,11 @@
     "pool_id": "Pool ID",
     "hook": "Hook",
     "max_balance": "MAX: {{balance}} {{token}}",
-    "lp": "LP"
+    "lp": "LP",
+    "half_eth_swapped_uniswap": "Half ETH swapped to CULT via Uniswap V3",
+    "remaining_eth_cult_added": "Remaining ETH + CULT added to Cookbook liquidity",
+    "using_cult_optimized_zap": "Using CULT-optimized ETH zap contract",
+    "default_slippage_cult": "Default slippage set to 10% for CULT liquidity",
+    "wallet_simulations_dust": "💡 Note: Wallet simulations may show dust refunds"
   }
 }
