@@ -196,7 +196,8 @@ function CultFarmCard({ farm, lpToken, lpBalance, onHarvest, isHarvesting }: Cul
   // Check both status and time remaining
   const hasTimeRemaining = timeRemaining.seconds > 0 || timeRemaining.days > 0 || timeRemaining.hours > 0 || timeRemaining.minutes > 0;
   // Trust the API status - if it says ACTIVE, it's active
-  const isActive = farm.status === "ACTIVE";
+  // Also handle if the status is the translation key itself
+  const isActive = farm.status === "ACTIVE" || farm.status === "COMMON.ACTIVE";
   // Safe handling of reward token decimals
   const rewardTokenDecimals = useMemo(() => {
     try {
