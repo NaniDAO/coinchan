@@ -17,7 +17,15 @@ import { PercentageSlider } from "@/components/ui/percentage-slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingLogo } from "@/components/ui/loading-logo";
 import { handleWalletError } from "@/lib/errors";
-import { formatEther, formatUnits, parseEther, parseUnits, maxUint256, encodeFunctionData, erc20Abi } from "viem";
+import {
+  formatEther,
+  formatUnits,
+  parseEther,
+  parseUnits,
+  maxUint256,
+  encodeFunctionData,
+  erc20Abi,
+} from "viem";
 import { CultFarmTab } from "@/components/farm/CultFarmTab";
 import { ErrorBoundary } from "@/components/farm/ErrorBoundary";
 import { mainnet } from "viem/chains";
@@ -31,7 +39,10 @@ import {
   CULT_POOL_ID,
 } from "@/lib/coins";
 import { getCultHookTaxRate, toGross } from "@/lib/cult-hook-utils";
-import { CheckTheChainAbi, CheckTheChainAddress } from "@/constants/CheckTheChain";
+import {
+  CheckTheChainAbi,
+  CheckTheChainAddress,
+} from "@/constants/CheckTheChain";
 import {
   DEADLINE_SEC,
   withSlippage,
@@ -42,6 +53,7 @@ import type { Address, Hex, PublicClient } from "viem";
 import { nowSec, cn } from "./lib/utils";
 import { useReserves } from "./hooks/use-reserves";
 import { useBatchingSupported } from "./hooks/use-batching-supported";
+import PoolPriceChart from "./components/PoolPriceChart";
 
 export type Call = {
   to: Address;
@@ -62,7 +74,7 @@ export interface SwapParams {
 
 // Simplified buildSwapCalls for CULT - only handles ETH <-> CULT swaps
 export async function buildSwapCalls(
-  params: SwapParams & { publicClient: PublicClient }
+  params: SwapParams & { publicClient: PublicClient },
 ): Promise<Call[]> {
   const {
     address,
@@ -79,13 +91,11 @@ export async function buildSwapCalls(
   const calls: Call[] = [];
 
   // Determine swap context
-  const swapRecipient = 
-    recipient && /^0x[a-fA-F0-9]{40}$/.test(recipient)
-      ? recipient
-      : address;
+  const swapRecipient =
+    recipient && /^0x[a-fA-F0-9]{40}$/.test(recipient) ? recipient : address;
 
   const isSellETH = sellToken.id === null;
-  
+
   // 1. Fetch tax rate for CULT swaps
   const cultTaxRate = await getCultHookTaxRate();
 
@@ -116,7 +126,7 @@ export async function buildSwapCalls(
       buyAmtInUnits,
       r0,
       r1,
-      30n // CULT has 0.3% swap fee
+      30n, // CULT has 0.3% swap fee
     );
 
     // apply only user slippage here — tax is delivered via toGross when sending ETH
@@ -245,7 +255,9 @@ const priceUpdateAnimation = `
 
 export const CultBuySell = () => {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<"buy" | "sell" | "add-liquidity" | "remove-liquidity" | "farm">("buy");
+  const [tab, setTab] = useState<
+    "buy" | "sell" | "add-liquidity" | "remove-liquidity" | "farm"
+  >("buy");
   const [amount, setAmount] = useState("");
   const [liquidityEthAmount, setLiquidityEthAmount] = useState("");
   const [liquidityCultAmount, setLiquidityCultAmount] = useState("");
@@ -297,7 +309,6 @@ export const CultBuySell = () => {
     spender: CookbookAddress, // Cookbook for liquidity
   });
 
-
   // Fetch reserves for CULT pool from Cookbook
   const { data: reserves } = useReserves({
     poolId: CULT_POOL_ID,
@@ -343,17 +354,16 @@ export const CultBuySell = () => {
     swapFee: 30n, // 0.3% fee
   };
 
-
   // Fetch CULT total supply
   useEffect(() => {
     const fetchSupply = async () => {
       if (!publicClient) return;
       try {
-        const supply = await publicClient.readContract({
+        const supply = (await publicClient.readContract({
           address: CULT_ADDRESS,
           abi: erc20Abi,
           functionName: "totalSupply",
-        }) as bigint;
+        })) as bigint;
         setTotalSupply(supply);
       } catch (error) {
         console.error("Failed to fetch CULT supply:", error);
@@ -373,7 +383,7 @@ export const CultBuySell = () => {
         });
         const ethAmount = formatEther(balance);
         setAccumulatedTax(ethAmount);
-        
+
         // Calculate progress towards 2.488 ETH floor
         const progress = (parseFloat(ethAmount) / 2.488) * 100;
         setFloorProgress(Math.min(progress, 100));
@@ -391,7 +401,7 @@ export const CultBuySell = () => {
   useEffect(() => {
     const fetchEthPrice = async () => {
       if (!publicClient) return;
-      
+
       try {
         const ethPrice = await publicClient.readContract({
           address: CheckTheChainAddress,
@@ -399,7 +409,7 @@ export const CultBuySell = () => {
           functionName: "checkPrice",
           args: ["WETH"],
         });
-        
+
         const ethPriceUsd = Number(ethPrice[1]);
         setEthUsdPrice(ethPriceUsd);
       } catch (error) {
@@ -420,13 +430,18 @@ export const CultBuySell = () => {
       try {
         // Calculate price: 1 ETH = ? CULT
         const oneEth = parseEther("1");
-        const cultOut = getAmountOut(oneEth, reserves.reserve0, reserves.reserve1, 30n);
+        const cultOut = getAmountOut(
+          oneEth,
+          reserves.reserve0,
+          reserves.reserve1,
+          30n,
+        );
         const price = formatUnits(cultOut, 18);
-        
+
         // Animate price update
         setPriceAnimating(true);
         setTimeout(() => setPriceAnimating(false), 1000);
-        
+
         setCultPrice(parseFloat(price).toFixed(2));
 
         // Calculate USD price if we have ETH price
@@ -434,7 +449,7 @@ export const CultBuySell = () => {
           // Price of 1 CULT in ETH
           const cultPriceInEth = 1 / parseFloat(price);
           const cultPriceInUsd = cultPriceInEth * ethUsdPrice;
-          
+
           // Format USD price based on magnitude
           if (cultPriceInUsd < 0.000001) {
             setCultUsdPrice(cultPriceInUsd.toExponential(2));
@@ -444,7 +459,6 @@ export const CultBuySell = () => {
             setCultUsdPrice(cultPriceInUsd.toFixed(4));
           }
         }
-
       } catch (error) {
         console.error("Failed to calculate CULT price:", error);
       }
@@ -467,13 +481,23 @@ export const CultBuySell = () => {
       if (tab === "buy") {
         // Input: ETH amount -> Output: CULT amount
         const inWei = parseEther(amount || "0");
-        const rawOut = getAmountOut(inWei, reserves.reserve0, reserves.reserve1, 30n);
+        const rawOut = getAmountOut(
+          inWei,
+          reserves.reserve0,
+          reserves.reserve1,
+          30n,
+        );
         // Apply tax for display (actual min amount is handled in buildSwapCalls)
         return formatUnits(rawOut, 18);
       } else {
         // Input: CULT amount -> Output: ETH amount
         const inUnits = parseUnits(amount || "0", 18);
-        const rawOut = getAmountOut(inUnits, reserves.reserve1, reserves.reserve0, 30n);
+        const rawOut = getAmountOut(
+          inUnits,
+          reserves.reserve1,
+          reserves.reserve0,
+          30n,
+        );
         return formatEther(rawOut);
       }
     } catch {
@@ -482,37 +506,42 @@ export const CultBuySell = () => {
   }, [amount, reserves, tab]);
 
   // Calculate optimal liquidity amounts based on pool ratio
-  const syncLiquidityAmounts = useCallback((isEthInput: boolean, value: string) => {
-    if (!reserves || !reserves.reserve0 || !reserves.reserve1) return;
-    
-    try {
-      if (isEthInput) {
-        setLiquidityEthAmount(value);
-        if (!value || parseFloat(value) === 0) {
-          setLiquidityCultAmount("");
-          return;
+  const syncLiquidityAmounts = useCallback(
+    (isEthInput: boolean, value: string) => {
+      if (!reserves || !reserves.reserve0 || !reserves.reserve1) return;
+
+      try {
+        if (isEthInput) {
+          setLiquidityEthAmount(value);
+          if (!value || parseFloat(value) === 0) {
+            setLiquidityCultAmount("");
+            return;
+          }
+
+          // Calculate optimal CULT amount based on pool ratio
+          const ethAmount = parseEther(value);
+          const optimalCultAmount =
+            (ethAmount * reserves.reserve1) / reserves.reserve0;
+          setLiquidityCultAmount(formatUnits(optimalCultAmount, 18));
+        } else {
+          setLiquidityCultAmount(value);
+          if (!value || parseFloat(value) === 0) {
+            setLiquidityEthAmount("");
+            return;
+          }
+
+          // Calculate optimal ETH amount based on pool ratio
+          const cultAmount = parseUnits(value, 18);
+          const optimalEthAmount =
+            (cultAmount * reserves.reserve0) / reserves.reserve1;
+          setLiquidityEthAmount(formatEther(optimalEthAmount));
         }
-        
-        // Calculate optimal CULT amount based on pool ratio
-        const ethAmount = parseEther(value);
-        const optimalCultAmount = (ethAmount * reserves.reserve1) / reserves.reserve0;
-        setLiquidityCultAmount(formatUnits(optimalCultAmount, 18));
-      } else {
-        setLiquidityCultAmount(value);
-        if (!value || parseFloat(value) === 0) {
-          setLiquidityEthAmount("");
-          return;
-        }
-        
-        // Calculate optimal ETH amount based on pool ratio
-        const cultAmount = parseUnits(value, 18);
-        const optimalEthAmount = (cultAmount * reserves.reserve0) / reserves.reserve1;
-        setLiquidityEthAmount(formatEther(optimalEthAmount));
+      } catch (error) {
+        console.error("Error calculating optimal amounts:", error);
       }
-    } catch (error) {
-      console.error("Error calculating optimal amounts:", error);
-    }
-  }, [reserves]);
+    },
+    [reserves],
+  );
 
   // Calculate expected amounts when removing liquidity
   useEffect(() => {
@@ -525,7 +554,7 @@ export const CultBuySell = () => {
     try {
       const burnAmount = parseUnits(lpBurnAmount, 18);
       const totalSupply = poolInfo[6] as bigint; // Total LP supply at index 6
-      
+
       if (totalSupply === 0n) {
         setExpectedEth("0");
         setExpectedCult("0");
@@ -552,7 +581,9 @@ export const CultBuySell = () => {
       if (!ethBalance?.value) return;
 
       const adjustedBalance =
-        percentage === 100 ? (ethBalance.value * 99n) / 100n : (ethBalance.value * BigInt(percentage)) / 100n;
+        percentage === 100
+          ? (ethBalance.value * 99n) / 100n
+          : (ethBalance.value * BigInt(percentage)) / 100n;
 
       const newAmount = formatEther(adjustedBalance);
       setAmount(newAmount);
@@ -581,7 +612,9 @@ export const CultBuySell = () => {
     try {
       const amountWei = parseEther(amount);
       if (ethBalance.value > 0n) {
-        const calculatedPercentage = Number((amountWei * 100n) / ethBalance.value);
+        const calculatedPercentage = Number(
+          (amountWei * 100n) / ethBalance.value,
+        );
         setBuyPercentage(Math.min(100, Math.max(0, calculatedPercentage)));
       }
     } catch {
@@ -613,12 +646,14 @@ export const CultBuySell = () => {
             return;
           }
 
-          const receipt = await publicClient.waitForTransactionReceipt({ hash: approved });
+          const receipt = await publicClient.waitForTransactionReceipt({
+            hash: approved,
+          });
           if (receipt.status !== "success") {
             setErrorMessage("CULT approval failed");
             return;
           }
-          
+
           await refetchCultAllowance();
           setErrorMessage(null);
         } catch (err) {
@@ -653,7 +688,7 @@ export const CultBuySell = () => {
         value: ethAmount,
         chainId: mainnet.id,
       });
-      
+
       setTxHash(hash);
     } catch (err) {
       const errorMsg = handleWalletError(err);
@@ -699,7 +734,7 @@ export const CultBuySell = () => {
         }),
         chainId: mainnet.id,
       });
-      
+
       setTxHash(hash);
     } catch (err) {
       const errorMsg = handleWalletError(err);
@@ -783,16 +818,25 @@ export const CultBuySell = () => {
             alt="CULT Logo"
             className="w-20 h-20 rounded-full mx-auto mb-4 border-2 border-red-500 shadow-lg shadow-red-500/30 hover:scale-105 transition-transform"
           />
-          <h1 className="text-2xl font-bold text-transparent bg-gradient-to-r from-red-500 to-red-600 bg-clip-text">{t("cult.milady_cult_coin")}</h1>
-          <div className={cn("text-lg font-mono mt-2", priceAnimating && "price-update")}>
-            <span className="text-red-400">{t("cult.price_format", { price: cultPrice })}</span>
+          <h1 className="text-2xl font-bold text-transparent bg-gradient-to-r from-red-500 to-red-600 bg-clip-text">
+            {t("cult.milady_cult_coin")}
+          </h1>
+          <div
+            className={cn(
+              "text-lg font-mono mt-2",
+              priceAnimating && "price-update",
+            )}
+          >
+            <span className="text-red-400">
+              {t("cult.price_format", { price: cultPrice })}
+            </span>
           </div>
           {cultUsdPrice !== "--" && (
             <div className="text-sm text-gray-400 mt-1">
               {t("cult.usd_per_cult", { price: cultUsdPrice })}
             </div>
           )}
-          
+
           {/* Pool Info Display */}
           <div className="mt-4 p-3 bg-gray-900/50 border border-red-900/30 rounded-lg text-sm space-y-2">
             <div className="flex justify-between">
@@ -800,15 +844,25 @@ export const CultBuySell = () => {
               <span className="text-white font-mono text-xs">
                 {reserves ? (
                   <>
-                    {parseFloat(formatEther(reserves.reserve0)).toFixed(4)} ETH / {parseFloat(formatUnits(reserves.reserve1, 18)).toLocaleString()} CULT
+                    {parseFloat(formatEther(reserves.reserve0)).toFixed(4)} ETH
+                    /{" "}
+                    {parseFloat(
+                      formatUnits(reserves.reserve1, 18),
+                    ).toLocaleString()}{" "}
+                    CULT
                   </>
-                ) : t("cult.loading")}
+                ) : (
+                  t("cult.loading")
+                )}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">{t("cult.total_supply")}:</span>
               <span className="text-white font-mono">
-                {totalSupply > 0n ? parseFloat(formatUnits(totalSupply, 18)).toLocaleString() : "--"} CULT
+                {totalSupply > 0n
+                  ? parseFloat(formatUnits(totalSupply, 18)).toLocaleString()
+                  : "--"}{" "}
+                CULT
               </span>
             </div>
             <div className="flex justify-between">
@@ -821,8 +875,12 @@ export const CultBuySell = () => {
             </div>
             {lpBalance !== undefined && lpBalance > 0n && (
               <div className="flex justify-between">
-                <span className="text-gray-400">{t("cult.your_lp_tokens")}:</span>
-                <span className="text-white font-mono">{formatUnits(lpBalance, 18)} {t("cult.lp")}</span>
+                <span className="text-gray-400">
+                  {t("cult.your_lp_tokens")}:
+                </span>
+                <span className="text-white font-mono">
+                  {formatUnits(lpBalance, 18)} {t("cult.lp")}
+                </span>
               </div>
             )}
           </div>
@@ -830,29 +888,32 @@ export const CultBuySell = () => {
           {/* Milady Floor Charging Bar */}
           <div className="mt-4 p-4 bg-gradient-to-b from-gray-900/70 to-black/50 border border-red-900/30 rounded-lg">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-red-400">{t("cult.milady_floor_charge")}</span>
+              <span className="text-sm font-medium text-red-400">
+                {t("cult.milady_floor_charge")}
+              </span>
               <span className="text-xs text-gray-400">
-                {floorProgress > 0 && floorProgress < 100 ? "✨ " : ""}{floorProgress.toFixed(4)}%
+                {floorProgress > 0 && floorProgress < 100 ? "✨ " : ""}
+                {floorProgress.toFixed(4)}%
               </span>
             </div>
-            
+
             <div className="relative h-16 bg-black/50 rounded-lg overflow-hidden border border-red-900/20">
               {/* Background floor image */}
-              <img 
-                src="/floor.png" 
-                alt="Milady Floor" 
+              <img
+                src="/floor.png"
+                alt="Milady Floor"
                 className="absolute inset-0 w-full h-full object-cover opacity-20"
               />
-              
+
               {/* Progress bar */}
-              <div 
+              <div
                 className="absolute left-0 top-0 h-full bg-gradient-to-r from-red-600/80 to-red-500/60 transition-all duration-1000 ease-out"
                 style={{ width: `${floorProgress}%` }}
               >
                 <div className="absolute inset-0 bg-red-400/20 animate-pulse" />
                 <div className="absolute inset-0 progress-shimmer" />
               </div>
-              
+
               {/* ETH amount text overlay */}
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
@@ -865,9 +926,9 @@ export const CultBuySell = () => {
                 </div>
               </div>
             </div>
-            
+
             <div className="mt-2 flex justify-between text-xs text-gray-500">
-              <a 
+              <a
                 href="https://etherscan.io/address/0xf164Af3126e544E6d5aAEcf5Ae10cd0fBD215E02"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -877,7 +938,7 @@ export const CultBuySell = () => {
               </a>
               <span className="text-red-400">{t("cult.tax_accumulating")}</span>
             </div>
-            
+
             <div className="mt-2 text-center">
               <a
                 href="https://opensea.io/collection/milady"
@@ -888,7 +949,7 @@ export const CultBuySell = () => {
                 {t("cult.view_milady_collection")}
               </a>
             </div>
-            
+
             {/* Subtle note about hooks */}
             <div className="mt-3 text-xs text-gray-600 leading-relaxed">
               <span className="opacity-70">
@@ -898,28 +959,58 @@ export const CultBuySell = () => {
           </div>
         </div>
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as "buy" | "sell" | "add-liquidity" | "remove-liquidity" | "farm")} className="relative z-10">
+        <Tabs
+          value={tab}
+          onValueChange={(v) =>
+            setTab(
+              v as
+                | "buy"
+                | "sell"
+                | "add-liquidity"
+                | "remove-liquidity"
+                | "farm",
+            )
+          }
+          className="relative z-10"
+        >
           <TabsList className="bg-black/50 border border-red-900/30">
-            <TabsTrigger value="buy" className="transition-all duration-300 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400">
+            <TabsTrigger
+              value="buy"
+              className="transition-all duration-300 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400"
+            >
               {t("cult.buy_cult")}
             </TabsTrigger>
-            <TabsTrigger value="sell" className="transition-all duration-300 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400">
+            <TabsTrigger
+              value="sell"
+              className="transition-all duration-300 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400"
+            >
               {t("cult.sell_cult")}
             </TabsTrigger>
-            <TabsTrigger value="add-liquidity" className="transition-all duration-300 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400">
+            <TabsTrigger
+              value="add-liquidity"
+              className="transition-all duration-300 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400"
+            >
               {t("cult.add_liquidity")}
             </TabsTrigger>
-            <TabsTrigger value="remove-liquidity" className="transition-all duration-300 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400">
+            <TabsTrigger
+              value="remove-liquidity"
+              className="transition-all duration-300 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400"
+            >
               {t("cult.remove_liquidity")}
             </TabsTrigger>
-            <TabsTrigger value="farm" className="transition-all duration-300 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400">
+            <TabsTrigger
+              value="farm"
+              className="transition-all duration-300 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400"
+            >
               {t("cult.farm")}
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="buy" className="max-w-2xl">
             <div className="flex flex-col gap-2">
-              <span className="text-sm font-medium text-gray-400">{t("cult.using_eth")}</span>
+              <span className="text-sm font-medium text-gray-400">
+                {t("cult.using_eth")}
+              </span>
               <Input
                 type="number"
                 placeholder={t("cult.amount_eth")}
@@ -932,12 +1023,18 @@ export const CultBuySell = () => {
 
               {ethBalance?.value && ethBalance.value > 0n && isConnected ? (
                 <div className="mt-2 pt-2 border-t border-primary/20">
-                  <PercentageSlider value={buyPercentage} onChange={handleBuyPercentageChange} />
+                  <PercentageSlider
+                    value={buyPercentage}
+                    onChange={handleBuyPercentageChange}
+                  />
                 </div>
               ) : null}
 
               <span className="text-sm font-medium text-red-600">
-                {t("cult.you_will_receive", { amount: estimated, token: "CULT" })}
+                {t("cult.you_will_receive", {
+                  amount: estimated,
+                  token: "CULT",
+                })}
               </span>
               <Button
                 onClick={executeSwap}
@@ -959,7 +1056,9 @@ export const CultBuySell = () => {
 
           <TabsContent value="sell" className="max-w-2xl">
             <div className="flex flex-col gap-2">
-              <span className="text-sm font-medium text-red-600">{t("cult.using_cult")}</span>
+              <span className="text-sm font-medium text-red-600">
+                {t("cult.using_cult")}
+              </span>
               <div className="relative">
                 <Input
                   type="number"
@@ -972,7 +1071,12 @@ export const CultBuySell = () => {
                 />
               </div>
               <div className="flex flex-col gap-2">
-                <span className="text-sm font-medium">{t("cult.you_will_receive", { amount: estimated, token: "ETH" })}</span>
+                <span className="text-sm font-medium">
+                  {t("cult.you_will_receive", {
+                    amount: estimated,
+                    token: "ETH",
+                  })}
+                </span>
                 {cultBalance !== undefined ? (
                   <button
                     className="self-end text-sm font-medium text-red-600 hover:text-red-700 transition-colors"
@@ -982,7 +1086,10 @@ export const CultBuySell = () => {
                     {t("common.max")} ({formatUnits(cultBalance, 18)} CULT)
                   </button>
                 ) : (
-                  <button className="self-end text-sm font-medium text-gray-500" disabled={true}>
+                  <button
+                    className="self-end text-sm font-medium text-gray-500"
+                    disabled={true}
+                  >
                     {t("common.max")}
                   </button>
                 )}
@@ -1008,36 +1115,49 @@ export const CultBuySell = () => {
           <TabsContent value="add-liquidity" className="max-w-2xl">
             <div className="flex flex-col gap-4">
               <div className="space-y-2">
-                <span className="text-sm font-medium text-gray-400">{t("cult.eth_amount")}</span>
+                <span className="text-sm font-medium text-gray-400">
+                  {t("cult.eth_amount")}
+                </span>
                 <Input
                   type="number"
                   placeholder={t("cult.amount_eth")}
                   value={liquidityEthAmount}
                   min="0"
                   step="any"
-                  onChange={(e) => syncLiquidityAmounts(true, e.currentTarget.value)}
+                  onChange={(e) =>
+                    syncLiquidityAmounts(true, e.currentTarget.value)
+                  }
                   disabled={false}
                 />
               </div>
 
               <div className="space-y-2">
-                <span className="text-sm font-medium text-red-600">{t("cult.cult_amount")}</span>
+                <span className="text-sm font-medium text-red-600">
+                  {t("cult.cult_amount")}
+                </span>
                 <Input
                   type="number"
                   placeholder={t("cult.amount_cult")}
                   value={liquidityCultAmount}
                   min="0"
                   step="any"
-                  onChange={(e) => syncLiquidityAmounts(false, e.currentTarget.value)}
+                  onChange={(e) =>
+                    syncLiquidityAmounts(false, e.currentTarget.value)
+                  }
                   disabled={false}
                 />
                 {cultBalance !== undefined && (
                   <button
                     className="text-sm font-medium text-red-600 hover:text-red-700 transition-colors"
-                    onClick={() => syncLiquidityAmounts(false, formatUnits(cultBalance, 18))}
+                    onClick={() =>
+                      syncLiquidityAmounts(false, formatUnits(cultBalance, 18))
+                    }
                     disabled={false}
                   >
-                    {t("cult.max_balance", { balance: formatUnits(cultBalance, 18), token: "CULT" })}
+                    {t("cult.max_balance", {
+                      balance: formatUnits(cultBalance, 18),
+                      token: "CULT",
+                    })}
                   </button>
                 )}
               </div>
@@ -1046,12 +1166,15 @@ export const CultBuySell = () => {
               {liquidityEthAmount && liquidityCultAmount && reserves && (
                 <div className="mt-2 p-3 bg-gray-900/50 border border-red-900/30 rounded-lg text-sm space-y-1">
                   <div className="flex justify-between">
-                    <span className="text-gray-400">{t("cult.pool_share")}:</span>
+                    <span className="text-gray-400">
+                      {t("cult.pool_share")}:
+                    </span>
                     <span className="text-white font-mono">
                       {(() => {
                         const ethLiq = parseEther(liquidityEthAmount || "0");
                         const totalLiq = reserves.reserve0 + ethLiq;
-                        const share = totalLiq > 0n ? (ethLiq * 10000n) / totalLiq : 0n;
+                        const share =
+                          totalLiq > 0n ? (ethLiq * 10000n) / totalLiq : 0n;
                         return `${(Number(share) / 100).toFixed(2)}%`;
                       })()}
                     </span>
@@ -1061,7 +1184,12 @@ export const CultBuySell = () => {
 
               <Button
                 onClick={executeAddLiquidity}
-                disabled={!isConnected || isPending || !liquidityEthAmount || !liquidityCultAmount}
+                disabled={
+                  !isConnected ||
+                  isPending ||
+                  !liquidityEthAmount ||
+                  !liquidityCultAmount
+                }
                 variant="default"
                 className={`bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold transition-all duration-300 shadow-lg shadow-red-500/30`}
               >
@@ -1070,7 +1198,8 @@ export const CultBuySell = () => {
                     <LoadingLogo size="sm" className="scale-75" />
                     {t("cult.adding_liquidity")}
                   </span>
-                ) : cultAllowance !== undefined && parseUnits(liquidityCultAmount || "0", 18) > cultAllowance ? (
+                ) : cultAllowance !== undefined &&
+                  parseUnits(liquidityCultAmount || "0", 18) > cultAllowance ? (
                   t("cult.approve_cult_add_liquidity")
                 ) : (
                   t("cult.add_liquidity")
@@ -1088,15 +1217,20 @@ export const CultBuySell = () => {
               {/* LP Balance Display */}
               <div className="p-3 bg-gray-900/50 border border-red-900/30 rounded-lg text-sm">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-400">{t("cult.your_lp_balance")}:</span>
+                  <span className="text-gray-400">
+                    {t("cult.your_lp_balance")}:
+                  </span>
                   <span className="text-white font-mono">
-                    {lpBalance ? formatUnits(lpBalance, 18) : "0"} {t("cult.lp")}
+                    {lpBalance ? formatUnits(lpBalance, 18) : "0"}{" "}
+                    {t("cult.lp")}
                   </span>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <span className="text-sm font-medium text-gray-400">{t("cult.lp_tokens_to_remove")}</span>
+                <span className="text-sm font-medium text-gray-400">
+                  {t("cult.lp_tokens_to_remove")}
+                </span>
                 <Input
                   type="number"
                   placeholder={t("cult.amount_of_lp_tokens")}
@@ -1112,7 +1246,10 @@ export const CultBuySell = () => {
                     onClick={() => setLpBurnAmount(formatUnits(lpBalance, 18))}
                     disabled={false}
                   >
-                    {t("cult.max_balance", { balance: formatUnits(lpBalance, 18), token: t("cult.lp") })}
+                    {t("cult.max_balance", {
+                      balance: formatUnits(lpBalance, 18),
+                      token: t("cult.lp"),
+                    })}
                   </button>
                 )}
               </div>
@@ -1120,7 +1257,9 @@ export const CultBuySell = () => {
               {/* Expected output preview */}
               {lpBurnAmount && parseFloat(lpBurnAmount) > 0 && (
                 <div className="mt-2 p-3 bg-gray-900/50 border border-red-900/30 rounded-lg text-sm space-y-2">
-                  <div className="text-gray-400 mb-1">{t("cult.you_will_receive_preview")}</div>
+                  <div className="text-gray-400 mb-1">
+                    {t("cult.you_will_receive_preview")}
+                  </div>
                   <div className="flex justify-between">
                     <span className="text-gray-400">ETH:</span>
                     <span className="text-white font-mono">
@@ -1138,7 +1277,12 @@ export const CultBuySell = () => {
 
               <Button
                 onClick={executeRemoveLiquidity}
-                disabled={!isConnected || isPending || !lpBurnAmount || parseFloat(lpBurnAmount) <= 0}
+                disabled={
+                  !isConnected ||
+                  isPending ||
+                  !lpBurnAmount ||
+                  parseFloat(lpBurnAmount) <= 0
+                }
                 variant="default"
                 className={`bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold transition-all duration-300 shadow-lg shadow-red-500/30`}
               >
@@ -1164,10 +1308,18 @@ export const CultBuySell = () => {
             </ErrorBoundary>
           </TabsContent>
 
-          {errorMessage && <p className="text-destructive text-sm mt-2">{errorMessage}</p>}
-          {isSuccess && <p className="text-green-600 text-sm mt-2">{t("cult.transaction_confirmed")}</p>}
+          {errorMessage && (
+            <p className="text-destructive text-sm mt-2">{errorMessage}</p>
+          )}
+          {isSuccess && (
+            <p className="text-green-600 text-sm mt-2">
+              {t("cult.transaction_confirmed")}
+            </p>
+          )}
         </Tabs>
-
+        <div className="mt-5">
+          <PoolPriceChart poolId={CULT_POOL_ID.toString()} ticker="CULT" />
+        </div>
         {/* Contract Links */}
         <div className="mt-8 text-center space-y-2">
           <a
@@ -1187,7 +1339,8 @@ export const CultBuySell = () => {
             {t("cult.hook")}: {CultHookAddress}
           </a>
           <div className="text-sm text-gray-600 font-mono">
-            {t("cult.pool_id")}: {CULT_POOL_ID.toString().slice(0, 8)}...{CULT_POOL_ID.toString().slice(-8)}
+            {t("cult.pool_id")}: {CULT_POOL_ID.toString().slice(0, 8)}...
+            {CULT_POOL_ID.toString().slice(-8)}
           </div>
           <a
             href="https://cult.inc/"
