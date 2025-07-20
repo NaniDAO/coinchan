@@ -65,7 +65,9 @@ export const SingleEthLiquidity = () => {
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [txError, setTxError] = useState<string | null>(null);
 
-  const [singleEthSlippageBps, setSingleEthSlippageBps] = useState<bigint>(SINGLE_ETH_SLIPPAGE_BPS);
+  const [singleEthSlippageBps, setSingleEthSlippageBps] = useState<bigint>(
+    buyToken?.symbol === "CULT" ? 1000n : SINGLE_ETH_SLIPPAGE_BPS
+  );
   const [singleETHEstimatedCoin, setSingleETHEstimatedCoin] = useState<string>("");
 
   const { tokens, isEthBalanceFetching } = useAllCoins();
@@ -113,7 +115,14 @@ export const SingleEthLiquidity = () => {
     // Reset amounts
     setSellAmt("");
     setBuyAmt("");
-  }, [sellToken.id, buyToken?.id]);
+
+    // Update slippage for CULT token to 10%
+    if (buyToken?.symbol === "CULT") {
+      setSingleEthSlippageBps(1000n); // 10% for CULT
+    } else {
+      setSingleEthSlippageBps(SINGLE_ETH_SLIPPAGE_BPS); // Default 5% for other tokens
+    }
+  }, [sellToken.id, buyToken?.id, buyToken?.symbol]);
 
   /* helpers to sync amounts */
   const syncFromSell = async (val: string) => {
@@ -529,7 +538,10 @@ export const SingleEthLiquidity = () => {
           <li>{t("pool.remaining_eth_added")}</li>
           <li>{t("pool.earn_fees_from_trades", { fee: Number(SWAP_FEE) / 100 })}</li>
           {buyToken && buyToken.symbol === "CULT" && (
-            <li className="text-primary">Using CULT-optimized ETH zap contract</li>
+            <>
+              <li className="text-primary">Using CULT-optimized ETH zap contract</li>
+              <li className="text-primary">Default slippage increased to 10% for CULT liquidity</li>
+            </>
           )}
         </ul>
       </div>
