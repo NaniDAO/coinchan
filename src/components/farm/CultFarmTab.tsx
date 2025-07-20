@@ -12,14 +12,23 @@ import { APRDisplay } from "@/components/farm/APRDisplay";
 import { FarmStakeDialog } from "@/components/FarmStakeDialog";
 import { FarmUnstakeDialog } from "@/components/FarmUnstakeDialog";
 import { isUserRejectionError } from "@/lib/errors";
-import { CULT_TOKEN, CULT_POOL_ID } from "@/lib/coins";
+import { CULT_TOKEN, CULT_POOL_ID, type TokenMeta } from "@/lib/coins";
 import { cn, formatBalance } from "@/lib/utils";
 import type { IncentiveStream } from "@/hooks/use-incentive-streams";
+import { useAllCoins } from "@/hooks/metadata/use-all-coins";
 
 export function CultFarmTab() {
   const { t } = useTranslation();
   const { address } = useAccount();
   const [harvestingId, setHarvestingId] = useState<bigint | null>(null);
+  
+  // Get all coins including CULT with updated reserves
+  const { tokens } = useAllCoins();
+  
+  // Get the CULT token with real reserves from the tokens list
+  const cultTokenWithReserves = useMemo(() => {
+    return tokens.find(t => t.symbol === "CULT") || CULT_TOKEN;
+  }, [tokens]);
   
   // Get all active streams
   const { data: allStreams, isLoading: isLoadingStreams, error: streamsError } = useActiveIncentiveStreams();
@@ -46,7 +55,7 @@ export function CultFarmTab() {
 
   // Get LP balance for CULT pool
   const { balance: lpBalance } = useLpBalance({
-    lpToken: CULT_TOKEN,
+    lpToken: cultTokenWithReserves,
     poolId: CULT_POOL_ID,
   });
 
@@ -125,6 +134,7 @@ export function CultFarmTab() {
               <CultFarmCard
                 key={farm.chefId.toString()}
                 farm={farm}
+                lpToken={cultTokenWithReserves}
                 lpBalance={lpBalance}
                 onHarvest={handleHarvest}
                 isHarvesting={harvestingId === farm.chefId}
@@ -139,12 +149,13 @@ export function CultFarmTab() {
 
 interface CultFarmCardProps {
   farm: IncentiveStream;
+  lpToken: TokenMeta;
   lpBalance: bigint;
   onHarvest: (chefId: bigint) => Promise<void>;
   isHarvesting: boolean;
 }
 
-function CultFarmCard({ farm, lpBalance, onHarvest, isHarvesting }: CultFarmCardProps) {
+function CultFarmCard({ farm, lpToken, lpBalance, onHarvest, isHarvesting }: CultFarmCardProps) {
   const { t } = useTranslation();
   
   // Validate farm data
@@ -251,7 +262,7 @@ function CultFarmCard({ farm, lpBalance, onHarvest, isHarvesting }: CultFarmCard
             </p>
           </div>
           <div className="bg-black/30 p-3 rounded border border-red-900/20 md:col-span-2">
-            <APRDisplay stream={farm} lpToken={CULT_TOKEN} shortView={true} />
+            <APRDisplay stream={farm} lpToken={lpToken} shortView={true} />
           </div>
         </div>
 
@@ -295,7 +306,7 @@ function CultFarmCard({ farm, lpBalance, onHarvest, isHarvesting }: CultFarmCard
           {isActive && (
             <FarmStakeDialog
               stream={farm}
-              lpToken={CULT_TOKEN}
+              lpToken={lpToken}
               trigger={
                 <Button 
                   variant="outline" 
@@ -321,7 +332,7 @@ function CultFarmCard({ farm, lpBalance, onHarvest, isHarvesting }: CultFarmCard
               
               <FarmUnstakeDialog
                 stream={farm}
-                lpToken={CULT_TOKEN}
+                lpToken={lpToken}
                 userPosition={userPosition}
                 trigger={
                   <Button 

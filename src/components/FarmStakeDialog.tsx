@@ -18,7 +18,7 @@ import { useLpBalance } from "@/hooks/use-lp-balance";
 import { useStreamValidation } from "@/hooks/use-stream-validation";
 import { useZapCalculations } from "@/hooks/use-zap-calculations";
 import { useZapDeposit } from "@/hooks/use-zap-deposit";
-import { useZChefActions } from "@/hooks/use-zchef-contract";
+import { useZChefActions, useZChefUserBalance } from "@/hooks/use-zchef-contract";
 import { ETH_TOKEN, type TokenMeta } from "@/lib/coins";
 import { isUserRejectionError } from "@/lib/errors";
 import { SINGLE_ETH_SLIPPAGE_BPS } from "@/lib/swap";
@@ -72,6 +72,9 @@ export function FarmStakeDialog({
   const zapDeposit = useZapDeposit();
   const { validateStreamBeforeAction } = useStreamValidation();
   // Note: rewardPerSharePerYear is now handled in useCombinedApy hook
+
+  // Get user's staked balance in this farm
+  const { data: userStakedBalance } = useZChefUserBalance(stream.chefId);
 
   // Get actual LP token balance for this pool using the stream's LP ID
   const { balance: lpTokenBalance, isLoading: isLpBalanceLoading } =
@@ -316,6 +319,14 @@ export function FarmStakeDialog({
                   </p>
                 </div>
               </div>
+              <div className={cn(
+                "px-3 py-1 rounded text-xs font-mono font-bold",
+                stream.status === "ACTIVE" 
+                  ? "bg-green-500/10 text-green-500 border border-green-500/30" 
+                  : "bg-muted/10 text-muted-foreground border border-muted/30"
+              )}>
+                {stream.status || "ACTIVE"}
+              </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div className="bg-background/30 border border-primary/20 rounded p-3">
@@ -339,7 +350,7 @@ export function FarmStakeDialog({
                   </p>
                 </div>
               )}
-              {lpToken && lpToken.reserve1 && (
+              {lpToken && lpToken.reserve1 ? (
                 <div className="bg-background/30 border border-primary/20 rounded p-3">
                   <p className="text-muted-foreground font-mono text-xs">
                     {lpToken.symbol} {t("common.reserves")}
@@ -351,19 +362,38 @@ export function FarmStakeDialog({
                     )}
                   </p>
                 </div>
-              )}
+              ) : null}
               <div className="bg-background/30 border border-primary/20 rounded p-3">
                 <p className="text-muted-foreground font-mono text-xs">
                   {t("common.total_staked")}
                 </p>
                 <p className="font-mono font-bold text-primary">
-                  {formatBalance(formatEther(totalShares), "LP")}
+                  {formatBalance(formatEther(stream.totalShares || 0n), "LP")}
                 </p>
               </div>
             </div>
           </div>
 
           <APRDisplay stream={stream} lpToken={lpToken} shortView={false} />
+
+          {/* User Position */}
+          {userStakedBalance && userStakedBalance > 0n && (
+            <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground font-mono uppercase">
+                    {t("common.your_stake")}
+                  </p>
+                  <p className="font-mono font-bold text-green-500 text-lg mt-1">
+                    {formatBalance(formatEther(userStakedBalance), "LP")}
+                  </p>
+                </div>
+                <div className="text-xs text-green-500/80 font-mono">
+                  [{t("common.staked")}]
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Stake Mode Selection */}
           {lpToken.symbol !== "CULT" ? (
