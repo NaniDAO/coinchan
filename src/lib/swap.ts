@@ -18,7 +18,7 @@ import { type TokenMeta, USDT_ADDRESS } from "./coins";
 export const SWAP_FEE = 100n; // 1% pool fee
 export const DEADLINE_SEC = 20 * 60; // 20 minutes
 export const SLIPPAGE_BPS = 200n; // 100 basis points = 2 %
-export const SINGLE_ETH_SLIPPAGE_BPS = 500n; // 5% default slippage tolerance for Single-ETH operations
+export const SINGLE_ETH_SLIPPAGE_BPS = 500n; // 5% default slippage tolerance for LP-ZAP operations
 
 export const SLIPPAGE_OPTIONS = [
   { label: "0.5%", value: 50n },

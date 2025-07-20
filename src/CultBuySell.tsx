@@ -219,7 +219,7 @@ const CultSingleEthLiquidity = () => {
   const [sellAmt, setSellAmt] = useState("");
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [txError, setTxError] = useState<string | null>(null);
-  const [singleEthSlippageBps, setSingleEthSlippageBps] = useState<bigint>(500n); // 5% default slippage
+  const [singleEthSlippageBps, setSingleEthSlippageBps] = useState<bigint>(1000n); // 10% default slippage for CULT
   const [singleETHEstimatedCoin, setSingleETHEstimatedCoin] = useState<string>("");
 
   const { isConnected, address } = useAccount();
@@ -392,10 +392,14 @@ const CultSingleEthLiquidity = () => {
         <p className="font-medium mb-1">{t("pool.single_sided_eth_liquidity")}</p>
         <ul className="list-disc pl-4 space-y-0.5">
           <li>{t("pool.provide_only_eth")}</li>
-          <li>Half ETH swapped to CULT via Uniswap V3</li>
-          <li>Remaining ETH + CULT added to Cookbook liquidity</li>
-          <li className="text-red-400">Using CULT-optimized ETH zap contract</li>
+          <li>{t("cult.half_eth_swapped_uniswap")}</li>
+          <li>{t("cult.remaining_eth_cult_added")}</li>
+          <li className="text-red-400">{t("cult.using_cult_optimized_zap")}</li>
+          <li className="text-red-400">{t("cult.default_slippage_cult")}</li>
         </ul>
+        <p className="mt-2 text-yellow-400/80 text-xs">
+          {t("cult.wallet_simulations_dust")}
+        </p>
       </div>
 
       {/* Execute Button */}
@@ -1149,7 +1153,7 @@ export const CultBuySell = () => {
               value="single-eth"
               className="transition-all duration-300 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400 text-xs sm:text-sm"
             >
-              {t("common.single_eth")}
+              ⚡ {t("common.single_eth")}
             </TabsTrigger>
             <TabsTrigger
               value="farm"
