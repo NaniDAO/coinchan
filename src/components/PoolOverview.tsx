@@ -7,6 +7,7 @@ import { CandlestickChartIcon, LineChartIcon } from "lucide-react";
 import { useState } from "react";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { Button } from "./ui/button";
+import { useEthUsdPrice } from "@/hooks/use-eth-usd-price";
 
 enum ChartType {
   LINE = "line",
@@ -23,6 +24,7 @@ export const PoolOverview = ({
   symbol?: string;
 }) => {
   const [chartType, setChartType] = useState<ChartType>(ChartType.LINE);
+  const { data: ethUsdPrice } = useEthUsdPrice();
 
   return (
     <Tabs defaultValue="chart">
@@ -34,7 +36,7 @@ export const PoolOverview = ({
       <TabsContent value="chart" className="mt-4 sm:mt-6">
         <ErrorBoundary fallback={<p className="text-destructive">Pool chart unavailable</p>}>
           {chartType === ChartType.CANDLE && <PoolCandleChart poolId={poolId} interval={"1d"} />}
-          {chartType === ChartType.LINE && <PoolPriceChart poolId={poolId} ticker={symbol} />}
+          {chartType === ChartType.LINE && <PoolPriceChart poolId={poolId} ticker={symbol} ethUsdPrice={ethUsdPrice} />}
           <Button onClick={() => setChartType(chartType === ChartType.LINE ? ChartType.CANDLE : ChartType.LINE)}>
             {chartType === ChartType.CANDLE ? <LineChartIcon /> : <CandlestickChartIcon />}
           </Button>

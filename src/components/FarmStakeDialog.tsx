@@ -131,6 +131,13 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
     };
   }, [amount, stakeMode, debouncedZapCalculation]);
 
+  // Force LP mode for CULT pools
+  useEffect(() => {
+    if (lpToken?.symbol === "CULT" && stakeMode === "eth") {
+      setStakeMode("lp");
+    }
+  }, [lpToken?.symbol, stakeMode]);
+
   // Reset state when modal opens or closes to prevent sizing issues
   useEffect(() => {
     if (!open) {
@@ -359,28 +366,40 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
           )}
 
           {/* Stake Mode Selection */}
-          <div className="space-y-3">
-            <Label className="font-mono font-bold text-primary uppercase tracking-wide">
-              <span className="text-muted-foreground">&gt;</span> {t("common.stake_mode")}
-            </Label>
-            <Tabs
-              value={stakeMode}
-              onValueChange={(value) => {
-                setStakeMode(value as StakeMode);
-                setAmount(""); // Clear amount when switching modes
-                setZapCalculation(null); // Clear zap calculation when switching modes
-              }}
-            >
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="lp" className="font-mono font-bold tracking-wide">
-                  [{t("common.lp_tokens")}]
-                </TabsTrigger>
-                <TabsTrigger value="eth" className="font-mono font-bold tracking-wide">
-                  [{t("common.eth_zap")}]
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
+          {/* Disable ETH zap for CULT pools */}
+          {lpToken?.symbol === "CULT" ? (
+            <div className="space-y-3">
+              <Label className="font-mono font-bold text-primary uppercase tracking-wide">
+                <span className="text-muted-foreground">&gt;</span> {t("common.stake_mode")}
+              </Label>
+              <div className="font-mono text-sm text-muted-foreground">
+                [{t("common.lp_tokens")}] - ETH zap not available for CULT pools
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <Label className="font-mono font-bold text-primary uppercase tracking-wide">
+                <span className="text-muted-foreground">&gt;</span> {t("common.stake_mode")}
+              </Label>
+              <Tabs
+                value={stakeMode}
+                onValueChange={(value) => {
+                  setStakeMode(value as StakeMode);
+                  setAmount(""); // Clear amount when switching modes
+                  setZapCalculation(null); // Clear zap calculation when switching modes
+                }}
+              >
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="lp" className="font-mono font-bold tracking-wide">
+                    [{t("common.lp_tokens")}]
+                  </TabsTrigger>
+                  <TabsTrigger value="eth" className="font-mono font-bold tracking-wide">
+                    [{t("common.eth_zap")}]
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+          )}
 
           {/* Amount Input */}
           <div className="space-y-3">

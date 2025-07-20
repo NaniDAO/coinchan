@@ -3,6 +3,7 @@ import { ChevronDownIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { computePoolId } from "./lib/swap";
+import { useEthUsdPrice } from "./hooks/use-eth-usd-price";
 
 interface PoolSwapChartProps {
   // @TODO
@@ -14,6 +15,7 @@ interface PoolSwapChartProps {
 export const PoolSwapChart = ({ sellToken, buyToken, prevPair }: PoolSwapChartProps) => {
   const { t } = useTranslation();
   const [showPriceChart, setShowPriceChart] = useState<boolean>(false);
+  const { data: ethUsdPrice } = useEthUsdPrice();
 
   useEffect(() => {
     const currentPair = [sellToken.id, buyToken?.id].sort().toString();
@@ -49,7 +51,7 @@ export const PoolSwapChart = ({ sellToken, buyToken, prevPair }: PoolSwapChartPr
         <div
           className={`transition-all duration-300 ${showPriceChart ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"}`}
         >
-          <PoolPriceChart poolId={computePoolId(chartToken.id).toString()} ticker={chartToken.symbol} />
+          <PoolPriceChart poolId={computePoolId(chartToken.id).toString()} ticker={chartToken.symbol} ethUsdPrice={ethUsdPrice} />
         </div>
       )}
     </div>

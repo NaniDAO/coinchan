@@ -21,10 +21,12 @@ import { formatEther } from "viem";
 interface PriceChartProps {
   poolId: string;
   ticker: string;
+  ethUsdPrice?: number;
 }
 
-const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker }) => {
+const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker, ethUsdPrice }) => {
   const { t } = useTranslation();
+  const [showUsd, setShowUsd] = useState(false);
 
   // Internal state for time controls
   const [timeRange, setTimeRange] = useState<{
@@ -90,14 +92,15 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker }) => {
 
   return (
     <div className="w-full">
-      <div className="mb-4 flex space-x-2">
-        <Button
-          variant={timeRange.activeButton === "24h" ? "default" : "outline"}
-          size="sm"
-          onClick={setLast24Hours}
-          className="text-xs"
-        >
-          {t("coin.24h")}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="flex space-x-2">
+          <Button
+            variant={timeRange.activeButton === "24h" ? "default" : "outline"}
+            size="sm"
+            onClick={setLast24Hours}
+            className="text-xs"
+          >
+            {t("coin.24h")}
         </Button>
         <Button
           variant={timeRange.activeButton === "1w" ? "default" : "outline"}
@@ -123,6 +126,19 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker }) => {
         >
           {t("coin.all")}
         </Button>
+        </div>
+        {ethUsdPrice && (
+          <div className="ml-auto">
+            <Button
+              variant={showUsd ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowUsd(!showUsd)}
+              className="text-xs"
+            >
+              {showUsd ? "USD" : "ETH"}
+            </Button>
+          </div>
+        )}
       </div>
 
       {isLoading ? (
@@ -130,7 +146,7 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker }) => {
           <LoadingLogo />
         </div>
       ) : data && data.length > 0 ? (
-        <TVPriceChart priceData={data} ticker={ticker} />
+        <TVPriceChart priceData={data} ticker={ticker} showUsd={showUsd} ethUsdPrice={ethUsdPrice} />
       ) : (
         <div className="text-center py-20 text-muted-foreground">{t("chart.no_data")}</div>
       )}
@@ -141,7 +157,9 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker }) => {
 const TVPriceChart: React.FC<{
   priceData: PricePointData[];
   ticker: string;
-}> = ({ priceData, ticker }) => {
+  showUsd?: boolean;
+  ethUsdPrice?: number;
+}> = ({ priceData, ticker, showUsd = false, ethUsdPrice }) => {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<ReturnType<typeof createChart>>();
@@ -173,10 +191,10 @@ const TVPriceChart: React.FC<{
     priceSeriesRef.current = chart.addSeries(LineSeries, {
       color: chartTheme.lineColor,
       lineWidth: 2,
-      title: `ETH / ${ticker}`,
+      title: `ETH / ${ticker}`, // Default title, will be updated dynamically
       priceFormat: {
         type: "price",
-        precision: 10,
+        precision: 10, // Default precision, will be updated dynamically
         minMove: 0.000000001,
       } as PriceFormatBuiltIn,
     } as LineSeriesOptions);
@@ -184,7 +202,22 @@ const TVPriceChart: React.FC<{
     return () => {
       chart.remove();
     };
-  }, [ticker]);
+  }, [ticker, chartTheme]); // Remove showUsd and ethUsdPrice to prevent chart recreation
+
+  // Update chart options when showUsd or ethUsdPrice changes
+  useEffect(() => {
+    if (!priceSeriesRef.current) return;
+    
+    // Update series options based on USD mode
+    priceSeriesRef.current.applyOptions({
+      title: showUsd && ethUsdPrice ? `${ticker} / USD` : `ETH / ${ticker}`,
+      priceFormat: {
+        type: "price",
+        precision: showUsd ? 2 : 10,
+        minMove: showUsd ? 0.01 : 0.000000001,
+      } as PriceFormatBuiltIn,
+    } as LineSeriesOptions);
+  }, [showUsd, ethUsdPrice, ticker]);
 
   useEffect(() => {
     if (!priceSeriesRef.current || priceData.length === 0) return;
@@ -223,7 +256,19 @@ const TVPriceChart: React.FC<{
             return;
           }
 
-          const value = Number(formatEther(BigInt(price)));
+          let value = Number(formatEther(BigInt(price)));
+          
+          // Validate value
+          if (value === 0 || !isFinite(value)) {
+            console.warn("Invalid calculated value:", value);
+            return;
+          }
+          
+          // Convert to USD if needed
+          if (showUsd && ethUsdPrice && ethUsdPrice > 0) {
+            // ETH/TOKEN price * ETH/USD price = TOKEN/USD price
+            value = value * ethUsdPrice;
+          }
 
           // If we already have a value for this timestamp, we'll use the more recent data point
           // (which is the current one since we're iterating through sorted data)
@@ -252,7 +297,7 @@ const TVPriceChart: React.FC<{
     } catch (error) {
       console.error("Error updating price chart:", error);
     }
-  }, [priceData]);
+  }, [priceData, showUsd, ethUsdPrice, t]);
 
   return <div ref={containerRef} className="w-full" style={{ height: "400px", position: "relative", zIndex: 1 }} />;
 };

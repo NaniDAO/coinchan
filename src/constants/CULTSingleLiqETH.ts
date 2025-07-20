@@ -35,9 +35,9 @@ export const CULTSingleLiqETHAbi = [
             type: "address",
           },
           {
-            internalType: "uint96",
-            name: "swapFee",
-            type: "uint96",
+            internalType: "uint256",
+            name: "feeOrHook",
+            type: "uint256",
           },
         ],
         internalType: "struct PoolKey",

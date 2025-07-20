@@ -1,4 +1,4 @@
-import { Loader2 } from "lucide-react";
+import { CheckIcon, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseEther } from "viem";
@@ -6,7 +6,6 @@ import { mainnet } from "viem/chains";
 import { useAccount, useChainId, usePublicClient, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { NetworkError } from "./components/NetworkError";
 import { SlippageSettings } from "./components/SlippageSettings";
-import { SuccessMessage } from "./components/SuccessMessage";
 import { SwapPanel } from "./components/SwapPanel";
 import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
 import { ZAMMAbi, ZAMMAddress } from "./constants/ZAAM";
@@ -284,7 +283,7 @@ export const SingleEthLiquidity = () => {
       const isCULT = buyToken.symbol === "CULT";
 
       if (isCULT) {
-        // Use the CULT pool key for CULT-ETH
+        // Use the CULT pool key for CULT-ETH (already in Cookbook format with feeOrHook)
         targetPoolKey = CULT_POOL_KEY;
       } else if (isCustomPool) {
         // Use the custom pool key for USDT-ETH
@@ -569,7 +568,50 @@ export const SingleEthLiquidity = () => {
           {writeError && !isUserRejectionError(writeError) ? writeError.message : txError}
         </div>
       )}
-      {isSuccess && <SuccessMessage />}
+      {txHash && !isSuccess && (
+        <div className="text-sm text-primary mt-2 bg-background/50 p-2 rounded border border-primary/20">
+          <div className="flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              {t("common.status_confirming")}...
+            </span>
+            <a
+              href={`https://etherscan.io/tx/${txHash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-primary hover:text-primary/80 transition-colors"
+            >
+              <span className="font-mono text-xs">
+                {txHash.slice(0, 6)}...{txHash.slice(-4)}
+              </span>
+              <span className="text-xs">↗</span>
+            </a>
+          </div>
+        </div>
+      )}
+      {isSuccess && (
+        <div className="text-sm text-chart-2 mt-2 bg-background/50 p-2 rounded border border-chart-2/20">
+          <div className="flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <CheckIcon className="h-3 w-3" />
+              {t("common.status_success")}!
+            </span>
+            {txHash && (
+              <a
+                href={`https://etherscan.io/tx/${txHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-chart-2 hover:text-chart-2/80 transition-colors"
+              >
+                <span className="font-mono text-xs">
+                  {txHash.slice(0, 6)}...{txHash.slice(-4)}
+                </span>
+                <span className="text-xs">↗</span>
+              </a>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
