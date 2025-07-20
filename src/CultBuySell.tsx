@@ -18,6 +18,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingLogo } from "@/components/ui/loading-logo";
 import { handleWalletError } from "@/lib/errors";
 import { formatEther, formatUnits, parseEther, parseUnits, maxUint256, encodeFunctionData, erc20Abi } from "viem";
+import { CultFarmTab } from "@/components/farm/CultFarmTab";
+import { ErrorBoundary } from "@/components/farm/ErrorBoundary";
 import { mainnet } from "viem/chains";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { useErc20Allowance } from "@/hooks/use-erc20-allowance";
@@ -243,7 +245,7 @@ const priceUpdateAnimation = `
 
 export const CultBuySell = () => {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<"buy" | "sell" | "add-liquidity" | "remove-liquidity">("buy");
+  const [tab, setTab] = useState<"buy" | "sell" | "add-liquidity" | "remove-liquidity" | "farm">("buy");
   const [amount, setAmount] = useState("");
   const [liquidityEthAmount, setLiquidityEthAmount] = useState("");
   const [liquidityCultAmount, setLiquidityCultAmount] = useState("");
@@ -896,7 +898,7 @@ export const CultBuySell = () => {
           </div>
         </div>
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as "buy" | "sell" | "add-liquidity" | "remove-liquidity")} className="relative z-10">
+        <Tabs value={tab} onValueChange={(v) => setTab(v as "buy" | "sell" | "add-liquidity" | "remove-liquidity" | "farm")} className="relative z-10">
           <TabsList className="bg-black/50 border border-red-900/30">
             <TabsTrigger value="buy" className="transition-all duration-300 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400">
               {t("cult.buy_cult")}
@@ -909,6 +911,9 @@ export const CultBuySell = () => {
             </TabsTrigger>
             <TabsTrigger value="remove-liquidity" className="transition-all duration-300 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400">
               {t("cult.remove_liquidity")}
+            </TabsTrigger>
+            <TabsTrigger value="farm" className="transition-all duration-300 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400">
+              {t("cult.farm")}
             </TabsTrigger>
           </TabsList>
 
@@ -1151,6 +1156,12 @@ export const CultBuySell = () => {
                 {t("cult.note_liquidity_removal")}
               </div>
             </div>
+          </TabsContent>
+
+          <TabsContent value="farm" className="max-w-4xl">
+            <ErrorBoundary>
+              <CultFarmTab />
+            </ErrorBoundary>
           </TabsContent>
 
           {errorMessage && <p className="text-destructive text-sm mt-2">{errorMessage}</p>}

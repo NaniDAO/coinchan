@@ -6,7 +6,7 @@ import { formatUnits } from "viem";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { FarmStakeDialog } from "../FarmStakeDialog";
-import { APYDisplay } from "./APYDisplay";
+import { APRDisplay } from "./APRDisplay";
 
 interface StakingNotificationsProps {
   className?: string;
@@ -123,7 +123,7 @@ function UnstakedTokenCard({ token }: {
           </div>
           <div className="font-mono text-xs text-muted-foreground">
             {formatBalance(formatUnits(balance, 18), "LP")} • {" "}
-            <APYDisplay stream={token.stream} lpToken={token.lpToken} shortView={true} />
+            <APRDisplay stream={token.stream} lpToken={token.lpToken} shortView={true} />
           </div>
         </div>
       </div>
@@ -164,7 +164,7 @@ function PartiallyStakedTokenCard({ token }: {
           </div>
           <div className="font-mono text-xs text-muted-foreground">
             {formatBalance(formatUnits(token.unstakeableAmount, 18), "LP")} more • {" "}
-            <APYDisplay stream={token.stream} lpToken={token.lpToken} shortView={true} />
+            <APRDisplay stream={token.stream} lpToken={token.lpToken} shortView={true} />
           </div>
         </div>
       </div>

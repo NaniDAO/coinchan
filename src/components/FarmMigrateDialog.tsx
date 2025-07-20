@@ -16,7 +16,7 @@ import {
   useZChefPendingReward,
   useZChefUserBalance,
 } from "@/hooks/use-zchef-contract";
-import { useCombinedApy } from "@/hooks/use-combined-apy";
+import { useCombinedApr } from "@/hooks/use-combined-apr";
 import type { TokenMeta } from "@/lib/coins";
 import { isUserRejectionError } from "@/lib/errors";
 import { cn, formatBalance } from "@/lib/utils";
@@ -52,27 +52,27 @@ interface SortedPoolListProps {
 }
 
 function SortedPoolList({ streams, lpToken, onSelect }: SortedPoolListProps) {
-  const [streamApys, setStreamApys] = useState<Record<string, number>>({});
+  const [streamAprs, setStreamAprs] = useState<Record<string, number>>({});
   const [sortedStreams, setSortedStreams] = useState<IncentiveStream[]>(streams);
 
   // Update sorted streams when APY data changes
   useEffect(() => {
-    const streamsWithApys = streams.map(stream => ({
+    const streamsWithAprs = streams.map(stream => ({
       stream,
-      apy: streamApys[stream.chefId.toString()] || 0
+      apr: streamAprs[stream.chefId.toString()] || 0
     }));
 
-    // Sort by APY descending, then by total shares descending as tiebreaker
-    const sorted = streamsWithApys.sort((a, b) => {
-      if (a.apy !== b.apy) {
-        return b.apy - a.apy; // Higher APY first
+    // Sort by APR descending, then by total shares descending as tiebreaker
+    const sorted = streamsWithAprs.sort((a, b) => {
+      if (a.apr !== b.apr) {
+        return b.apr - a.apr; // Higher APR first
       }
-      // If APY is the same, sort by total shares (more established pools first)
+      // If APR is the same, sort by total shares (more established pools first)
       return Number(b.stream.totalShares) - Number(a.stream.totalShares);
     });
 
     setSortedStreams(sorted.map(item => item.stream));
-  }, [streams, streamApys]);
+  }, [streams, streamAprs]);
 
   return (
     <>
@@ -83,7 +83,7 @@ function SortedPoolList({ streams, lpToken, onSelect }: SortedPoolListProps) {
           lpToken={lpToken}
           onSelect={() => onSelect(targetStream.chefId.toString())}
           onApyCalculated={(apy) => {
-            setStreamApys(prev => ({
+            setStreamAprs(prev => ({
               ...prev,
               [targetStream.chefId.toString()]: apy
             }));
@@ -101,8 +101,8 @@ interface PoolOptionWithApyTrackingProps {
   onApyCalculated: (apy: number) => void;
 }
 
-function PoolOptionWithApyTracking({ targetStream, lpToken, onSelect, onApyCalculated }: PoolOptionWithApyTrackingProps) {
-  const combinedApyData = useCombinedApy({
+function PoolOptionWithApyTracking({ targetStream, lpToken, onSelect, onApyCalculated: onAprCalculated }: PoolOptionWithApyTrackingProps) {
+  const combinedAprData = useCombinedApr({
     stream: targetStream,
     lpToken,
     enabled: true,
@@ -110,10 +110,10 @@ function PoolOptionWithApyTracking({ targetStream, lpToken, onSelect, onApyCalcu
 
   // Report APY when it's calculated
   useEffect(() => {
-    if (!combinedApyData.isLoading && combinedApyData.totalApy !== undefined) {
-      onApyCalculated(combinedApyData.totalApy);
+    if (!combinedAprData.isLoading && combinedAprData.totalApr !== undefined) {
+      onAprCalculated(combinedAprData.totalApr);
     }
-  }, [combinedApyData.isLoading, combinedApyData.totalApy, onApyCalculated]);
+  }, [combinedAprData.isLoading, combinedAprData.totalApr, onAprCalculated]);
 
   const formatApy = (apy: number) => {
     if (apy === 0) return "0%";
@@ -143,7 +143,7 @@ function PoolOptionWithApyTracking({ targetStream, lpToken, onSelect, onApyCalcu
         </div>
         <div className="text-right">
           <div className="font-mono text-sm font-bold text-green-600">
-            {combinedApyData.isLoading ? "..." : formatApy(combinedApyData.totalApy)}
+            {combinedAprData.isLoading ? "..." : formatApy(combinedAprData.totalApr)}
           </div>
           <div className="font-mono text-xs text-muted-foreground">
             APY
@@ -160,7 +160,7 @@ interface SelectedPoolApyProps {
 }
 
 function SelectedPoolApy({ targetStream, lpToken }: SelectedPoolApyProps) {
-  const combinedApyData = useCombinedApy({
+  const combinedAprData = useCombinedApr({
     stream: targetStream,
     lpToken,
     enabled: true,
@@ -174,7 +174,7 @@ function SelectedPoolApy({ targetStream, lpToken }: SelectedPoolApyProps) {
 
   return (
     <span className="text-green-600 font-bold">
-      {combinedApyData.isLoading ? "..." : formatApy(combinedApyData.totalApy)}
+      {combinedAprData.isLoading ? "..." : formatApy(combinedAprData.totalApr)}
     </span>
   );
 }
@@ -186,7 +186,7 @@ interface SelectedPoolDetailsProps {
 
 function SelectedPoolDetails({ targetStream, lpToken }: SelectedPoolDetailsProps) {
   const { t } = useTranslation();
-  const combinedApyData = useCombinedApy({
+  const combinedAprData = useCombinedApr({
     stream: targetStream,
     lpToken,
     enabled: true,
@@ -214,7 +214,7 @@ function SelectedPoolDetails({ targetStream, lpToken }: SelectedPoolDetailsProps
         <div className="flex justify-between">
           <span className="text-muted-foreground">{t("common.total_apy")}:</span>
           <span className="text-primary font-bold text-green-600">
-            {combinedApyData.isLoading ? "..." : formatApy(combinedApyData.totalApy)}
+            {combinedAprData.isLoading ? "..." : formatApy(combinedAprData.totalApr)}
           </span>
         </div>
         <div className="flex justify-between">

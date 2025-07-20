@@ -30,7 +30,6 @@ import {
   analyzeTokens,
   computePoolId,
   computePoolKey,
-  getAmountIn,
   getPoolIds,
   withSlippage,
 } from "./lib/swap";
@@ -46,11 +45,9 @@ export const RemoveLiquidity = () => {
   const [lpBurnAmount, setLpBurnAmount] = useState<string>("");
 
   const {
-    isSellETH,
     isCustom: isCustomPool,
     isCoinToCoin,
     coinId,
-    canSwap,
   } = useMemo(() => analyzeTokens(sellToken, buyToken), [sellToken, buyToken]);
   const { mainPoolId } = getPoolIds(sellToken, buyToken, {
     isCustomPool: isCustomPool,
@@ -183,50 +180,8 @@ export const RemoveLiquidity = () => {
     }
   }, [tokens]);
 
-  const syncFromBuy = async (val: string) => {
-    setBuyAmt(val);
-    if (!canSwap || !reserves) return setSellAmt("");
-
-    try {
-      // Different calculation paths based on swap type
-      if (isCoinToCoin) {
-        // Calculating input from output for coin-to-coin is very complex
-        // Would require a recursive solver to find the right input amount
-        // For UI simplicity, we'll just clear the input and let the user adjust
-        setSellAmt("");
-
-        // Optional: Show a notification that this direction is not supported
-      } else if (isSellETH) {
-        // ETH → Coin path (calculate ETH input)
-        // Use correct decimals for the buy token (6 for USDT, 18 for regular coins)
-        const buyTokenDecimals = buyToken?.decimals || 18;
-        const outUnits = parseUnits(val || "0", buyTokenDecimals);
-        const inWei = getAmountIn(
-          outUnits,
-          reserves.reserve0,
-          reserves.reserve1,
-          buyToken?.swapFee ?? SWAP_FEE,
-        );
-        setSellAmt(inWei === 0n ? "" : formatEther(inWei));
-      } else {
-        // Coin → ETH path (calculate Coin input)
-        const outWei = parseEther(val || "0");
-        const inUnits = getAmountIn(
-          outWei,
-          reserves.reserve1,
-          reserves.reserve0,
-          buyToken?.swapFee ?? SWAP_FEE,
-        );
-        // Use correct decimals for the sell token (6 for USDT, 18 for regular coins)
-        const sellTokenDecimals = sellToken?.decimals || 18;
-        setSellAmt(
-          inUnits === 0n ? "" : formatUnits(inUnits, sellTokenDecimals),
-        );
-      }
-    } catch {
-      setSellAmt("");
-    }
-  };
+  // Remove liquidity only supports one-way calculation: LP amount -> Token amounts
+  // The output panels are read-only
 
   const syncFromSell = async (val: string) => {
     // In Remove Liquidity mode, track the LP burn amount separately
@@ -523,7 +478,7 @@ export const RemoveLiquidity = () => {
           onSelect={handleSellTokenSelect}
           isEthBalanceFetching={isEthBalanceFetching}
           amount={sellAmt}
-          onAmountChange={syncFromSell}
+          onAmountChange={() => {}} // Read-only, no changes allowed
           readOnly={true}
           previewLabel={t("common.preview")}
           className="mt-2 rounded-md p-2 pb-4 focus-within:ring-2 focus-within:ring-primary/60"
@@ -538,7 +493,7 @@ export const RemoveLiquidity = () => {
             onSelect={handleBuyTokenSelect}
             isEthBalanceFetching={isEthBalanceFetching}
             amount={buyAmt}
-            onAmountChange={syncFromBuy}
+            onAmountChange={() => {}} // Read-only, no changes allowed
             readOnly={true}
             previewLabel={t("common.preview")}
             className="mt-2 rounded-b-2xl pt-3 shadow-[0_0_15px_rgba(0,204,255,0.07)]"

@@ -10,7 +10,7 @@ import { FarmGridSkeleton } from "../FarmLoadingStates";
 import { IncentiveStreamCard } from "../IncentiveStreamCard";
 import { StakingNotifications } from "./StakingNotifications";
 import { FarmingGuide } from "./FarmingGuide";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useAccount } from "wagmi";
 
 const blacklistedFarms = [
@@ -23,6 +23,7 @@ export const BrowseFarms = () => {
   const { tokens, loading: isLoadingTokens } = useAllCoins();
   const { data: activeStreams, isLoading: isLoadingStreams } =
     useActiveIncentiveStreams();
+  const [showHiddenFarms, setShowHiddenFarms] = useState(false);
 
   // Filter out ended streams
   const activeOnlyStreams = useMemo(() => {
@@ -41,19 +42,39 @@ export const BrowseFarms = () => {
 
   console.log("activeOnlyStreams", activeOnlyStreams);
 
-  // Sort farms by various criteria using real-time data
-  const sortedStreams = useMemo(() => {
-    if (!streamsWithRealTimeData) return undefined;
+  // Separate active farms and hidden farms (zero staked)
+  const { activeFarms, hiddenFarms } = useMemo(() => {
+    if (!streamsWithRealTimeData) return { activeFarms: undefined, hiddenFarms: undefined };
 
-    return streamsWithRealTimeData.sort((a, b) => {
+    const active: typeof streamsWithRealTimeData = [];
+    const hidden: typeof streamsWithRealTimeData = [];
+
+    streamsWithRealTimeData.forEach((stream) => {
+      if (stream.totalShares === 0n) {
+        hidden.push(stream);
+      } else {
+        active.push(stream);
+      }
+    });
+
+    // Sort both arrays
+    const sortFn = (a: any, b: any) => {
       // First priority: Sort by total staked (descending)
       const stakeDiff = Number(b.totalShares - a.totalShares);
       if (stakeDiff !== 0) return stakeDiff;
 
       // Second priority: Sort by reward amount (descending)
       return Number(b.rewardAmount - a.rewardAmount);
-    });
+    };
+
+    return {
+      activeFarms: active.sort(sortFn),
+      hiddenFarms: hidden.sort(sortFn),
+    };
   }, [streamsWithRealTimeData]);
+
+  // Display either active or hidden farms based on toggle
+  const sortedStreams = showHiddenFarms ? hiddenFarms : activeFarms;
 
   // Could add featured farms section in the future
   // const featuredFarms = sortedStreams?.filter(stream => {
@@ -73,7 +94,7 @@ export const BrowseFarms = () => {
         <div className="flex items-center justify-between mb-3">
           <div className="flex justify-center items-center gap-3">
             <h3 className="font-mono font-bold text-sm sm:text-base uppercase tracking-wider text-primary">
-              {t("common.active_farms")}
+              {showHiddenFarms ? t("common.hidden_farms") : t("common.active_farms")}
             </h3>
             <div
               className={cn(
@@ -85,6 +106,21 @@ export const BrowseFarms = () => {
                 {sortedStreams?.length || 0}
               </span>
             </div>
+            {/* Hidden farms toggle */}
+            {hiddenFarms && hiddenFarms.length > 0 && (
+              <button
+                onClick={() => setShowHiddenFarms(!showHiddenFarms)}
+                className={cn(
+                  "text-xs font-mono px-2 py-1 rounded transition-all",
+                  showHiddenFarms
+                    ? "bg-primary/20 text-primary border border-primary/30"
+                    : "text-muted-foreground hover:text-primary border border-transparent hover:border-primary/20"
+                )}
+                title={showHiddenFarms ? t("common.show_active_farms") : t("common.show_hidden_farms")}
+              >
+                [{showHiddenFarms ? "-" : "+"}]
+              </button>
+            )}
           </div>
           <div className="hidden sm:flex items-center gap-4">
             {sortedStreams && sortedStreams.length > 0 && (
@@ -110,6 +146,15 @@ export const BrowseFarms = () => {
           </div>
         </div>
       </div>
+
+      {/* Hidden farms info message */}
+      {showHiddenFarms && hiddenFarms && hiddenFarms.length > 0 && (
+        <div className="bg-muted/10 border border-muted/30 rounded-lg p-3 mb-4">
+          <p className="text-xs font-mono text-muted-foreground">
+            {t("common.hidden_farms_info")}
+          </p>
+        </div>
+      )}
 
       {isLoadingStreams || isLoadingTokens ? (
         <FarmGridSkeleton count={6} />

@@ -18,7 +18,7 @@ import { useLpBalance } from "@/hooks/use-lp-balance";
 import { useStreamValidation } from "@/hooks/use-stream-validation";
 import { useZapCalculations } from "@/hooks/use-zap-calculations";
 import { useZapDeposit } from "@/hooks/use-zap-deposit";
-import { useZChefActions } from "@/hooks/use-zchef-contract";
+import { useZChefActions, useZChefUserBalance, useZChefPool } from "@/hooks/use-zchef-contract";
 import { ETH_TOKEN, type TokenMeta } from "@/lib/coins";
 import { isUserRejectionError } from "@/lib/errors";
 import { SINGLE_ETH_SLIPPAGE_BPS } from "@/lib/swap";
@@ -30,7 +30,7 @@ import { useAccount, usePublicClient, useWriteContract } from "wagmi";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
 import { mainnet } from "viem/chains";
-import { APYDisplay } from "./farm/APYDisplay";
+import { APRDisplay } from "./farm/APRDisplay";
 import { useLpOperatorStatus } from "@/hooks/use-lp-operator-status";
 
 interface FarmStakeDialogProps {
@@ -72,6 +72,13 @@ export function FarmStakeDialog({
   const zapDeposit = useZapDeposit();
   const { validateStreamBeforeAction } = useStreamValidation();
   // Note: rewardPerSharePerYear is now handled in useCombinedApy hook
+
+  // Get user's staked balance in this farm
+  const { data: userStakedBalance } = useZChefUserBalance(stream.chefId);
+
+  // Get real-time pool data including total staked
+  const { data: poolData } = useZChefPool(stream.chefId);
+  const totalStaked = poolData?.[7] ?? stream.totalShares ?? 0n;
 
   // Get actual LP token balance for this pool using the stream's LP ID
   const { balance: lpTokenBalance, isLoading: isLpBalanceLoading } =
@@ -316,6 +323,14 @@ export function FarmStakeDialog({
                   </p>
                 </div>
               </div>
+              <div className={cn(
+                "px-3 py-1 rounded text-xs font-mono font-bold",
+                stream.status === "ACTIVE" 
+                  ? "bg-green-500/10 text-green-500 border border-green-500/30" 
+                  : "bg-muted/10 text-muted-foreground border border-muted/30"
+              )}>
+                {stream.status || t("common.active").toUpperCase()}
+              </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div className="bg-background/30 border border-primary/20 rounded p-3">
@@ -339,41 +354,96 @@ export function FarmStakeDialog({
                   </p>
                 </div>
               )}
+              {lpToken && lpToken.reserve1 ? (
+                <div className="bg-background/30 border border-primary/20 rounded p-3">
+                  <p className="text-muted-foreground font-mono text-xs">
+                    {lpToken.symbol} {t("common.reserves")}
+                  </p>
+                  <p className="font-mono font-bold text-primary">
+                    {formatBalance(
+                      formatUnits(lpToken.reserve1, lpToken.decimals || 18),
+                      lpToken.symbol,
+                    )}
+                  </p>
+                </div>
+              ) : null}
+              <div className="bg-background/30 border border-primary/20 rounded p-3">
+                <p className="text-muted-foreground font-mono text-xs">
+                  {t("common.total_staked")}
+                </p>
+                <p className="font-mono font-bold text-primary">
+                  {formatBalance(formatEther(totalStaked), "LP")}
+                </p>
+              </div>
             </div>
           </div>
 
-          <APYDisplay stream={stream} lpToken={lpToken} shortView={false} />
+          <APRDisplay stream={stream} lpToken={lpToken} shortView={false} />
+
+          {/* User Position */}
+          {userStakedBalance && userStakedBalance > 0n && (
+            <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground font-mono uppercase">
+                    {t("common.your_stake")}
+                  </p>
+                  <p className="font-mono font-bold text-green-500 text-lg mt-1">
+                    {formatBalance(formatEther(userStakedBalance), "LP")}
+                  </p>
+                </div>
+                <div className="text-xs text-green-500/80 font-mono">
+                  [{t("common.staked")}]
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Stake Mode Selection */}
-          <div className="space-y-3">
-            <Label className="font-mono font-bold text-primary uppercase tracking-wide">
-              <span className="text-muted-foreground">&gt;</span>{" "}
-              {t("common.stake_mode")}
-            </Label>
-            <Tabs
-              value={stakeMode}
-              onValueChange={(value) => {
-                setStakeMode(value as StakeMode);
-                setAmount(""); // Clear amount when switching modes
-                setZapCalculation(null); // Clear zap calculation when switching modes
-              }}
-            >
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger
-                  value="lp"
-                  className="font-mono font-bold tracking-wide"
-                >
+          {lpToken.symbol !== "CULT" ? (
+            <div className="space-y-3">
+              <Label className="font-mono font-bold text-primary uppercase tracking-wide">
+                <span className="text-muted-foreground">&gt;</span>{" "}
+                {t("common.stake_mode")}
+              </Label>
+              <Tabs
+                value={stakeMode}
+                onValueChange={(value) => {
+                  setStakeMode(value as StakeMode);
+                  setAmount(""); // Clear amount when switching modes
+                  setZapCalculation(null); // Clear zap calculation when switching modes
+                }}
+              >
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger
+                    value="lp"
+                    className="font-mono font-bold tracking-wide"
+                  >
+                    [{t("common.lp_tokens")}]
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="eth"
+                    className="font-mono font-bold tracking-wide"
+                  >
+                    [{t("common.eth_zap")}]
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+          ) : (
+            // For CULT pools, only show LP mode without tabs
+            <div className="space-y-3">
+              <Label className="font-mono font-bold text-primary uppercase tracking-wide">
+                <span className="text-muted-foreground">&gt;</span>{" "}
+                {t("common.stake_mode")}
+              </Label>
+              <div className="border border-primary/20 rounded-lg p-3 bg-primary/5">
+                <span className="font-mono font-bold text-primary">
                   [{t("common.lp_tokens")}]
-                </TabsTrigger>
-                <TabsTrigger
-                  value="eth"
-                  className="font-mono font-bold tracking-wide"
-                >
-                  [{t("common.eth_zap")}]
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Amount Input */}
           <div className="space-y-3">
