@@ -629,10 +629,10 @@ export const CultBuySell = () => {
 
     const updatePrice = () => {
       try {
-        // Calculate price: 1 ETH = ? CULT
-        const oneEth = parseEther("1");
-        const cultOut = getAmountOut(oneEth, reserves.reserve0, reserves.reserve1, 30n);
-        const price = formatUnits(cultOut, 18);
+        // Calculate spot price from reserves (without swap fee)
+        // Price = reserve1 / reserve0 (CULT per ETH)
+        const spotPrice = (reserves.reserve1 * parseEther("1")) / reserves.reserve0;
+        const price = formatUnits(spotPrice, 18);
 
         // Animate price update
         setPriceAnimating(true);
