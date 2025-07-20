@@ -219,7 +219,7 @@ const CultSingleEthLiquidity = () => {
   const [sellAmt, setSellAmt] = useState("");
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [txError, setTxError] = useState<string | null>(null);
-  const [singleEthSlippageBps, setSingleEthSlippageBps] = useState<bigint>(500n); // 5% default slippage
+  const [singleEthSlippageBps, setSingleEthSlippageBps] = useState<bigint>(1000n); // 10% default slippage for CULT
   const [singleETHEstimatedCoin, setSingleETHEstimatedCoin] = useState<string>("");
 
   const { isConnected, address } = useAccount();
@@ -395,6 +395,7 @@ const CultSingleEthLiquidity = () => {
           <li>Half ETH swapped to CULT via Uniswap V3</li>
           <li>Remaining ETH + CULT added to Cookbook liquidity</li>
           <li className="text-red-400">Using CULT-optimized ETH zap contract</li>
+          <li className="text-red-400">Default slippage set to 10% for CULT liquidity</li>
         </ul>
       </div>
 
