@@ -18,7 +18,7 @@ import { useLpBalance } from "@/hooks/use-lp-balance";
 import { useStreamValidation } from "@/hooks/use-stream-validation";
 import { useZapCalculations } from "@/hooks/use-zap-calculations";
 import { useZapDeposit } from "@/hooks/use-zap-deposit";
-import { useZChefActions, useZChefUserBalance } from "@/hooks/use-zchef-contract";
+import { useZChefActions, useZChefUserBalance, useZChefPool } from "@/hooks/use-zchef-contract";
 import { ETH_TOKEN, type TokenMeta } from "@/lib/coins";
 import { isUserRejectionError } from "@/lib/errors";
 import { SINGLE_ETH_SLIPPAGE_BPS } from "@/lib/swap";
@@ -75,6 +75,10 @@ export function FarmStakeDialog({
 
   // Get user's staked balance in this farm
   const { data: userStakedBalance } = useZChefUserBalance(stream.chefId);
+
+  // Get real-time pool data including total staked
+  const { data: poolData } = useZChefPool(stream.chefId);
+  const totalStaked = poolData?.[7] ?? stream.totalShares ?? 0n;
 
   // Get actual LP token balance for this pool using the stream's LP ID
   const { balance: lpTokenBalance, isLoading: isLpBalanceLoading } =
@@ -325,7 +329,7 @@ export function FarmStakeDialog({
                   ? "bg-green-500/10 text-green-500 border border-green-500/30" 
                   : "bg-muted/10 text-muted-foreground border border-muted/30"
               )}>
-                {stream.status || "ACTIVE"}
+                {stream.status || t("common.active").toUpperCase()}
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
@@ -368,7 +372,7 @@ export function FarmStakeDialog({
                   {t("common.total_staked")}
                 </p>
                 <p className="font-mono font-bold text-primary">
-                  {formatBalance(formatEther(stream.totalShares || 0n), "LP")}
+                  {formatBalance(formatEther(totalStaked), "LP")}
                 </p>
               </div>
             </div>

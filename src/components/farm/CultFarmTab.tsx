@@ -79,7 +79,7 @@ export function CultFarmTab() {
     return (
       <div className="text-center py-12">
         <div className="bg-black/30 border border-red-900/30 rounded-lg p-8">
-          <p className="text-red-400 font-mono text-lg mb-2">[ ERROR LOADING FARMS ]</p>
+          <p className="text-red-400 font-mono text-lg mb-2">[ {t("common.error_loading_farms_label")} ]</p>
           <p className="text-gray-400 text-sm">{t("common.error_loading_farms")}</p>
         </div>
       </div>
@@ -90,7 +90,7 @@ export function CultFarmTab() {
     return (
       <div className="text-center py-12">
         <div className="bg-black/30 border border-red-900/30 rounded-lg p-8">
-          <p className="text-red-400 font-mono text-lg mb-2">[ CONNECT WALLET ]</p>
+          <p className="text-red-400 font-mono text-lg mb-2">[ {t("common.connect_wallet_label")} ]</p>
           <p className="text-gray-400 text-sm">{t("common.connect_wallet_to_view_farms")}</p>
         </div>
       </div>
@@ -103,7 +103,7 @@ export function CultFarmTab() {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <img src="/cult.jpg" alt="CULT" className="w-8 h-8 rounded-full border-2 border-red-600" />
-          <h3 className="text-xl font-bold text-red-400 font-mono">CULT FARMS</h3>
+          <h3 className="text-xl font-bold text-red-400 font-mono">{t("common.cult_farms")}</h3>
         </div>
         <div className="text-sm text-gray-400 font-mono">
           {formatBalance(formatEther(lpBalance), "LP")} {t("common.available")}
@@ -119,7 +119,7 @@ export function CultFarmTab() {
       ) : cultFarms.length === 0 ? (
         <div className="text-center py-12">
           <div className="bg-black/30 border border-red-900/30 rounded-lg p-8">
-            <p className="text-red-400 font-mono text-lg mb-2">[ NO ACTIVE FARMS ]</p>
+            <p className="text-red-400 font-mono text-lg mb-2">[ {t("common.no_active_farms_label")} ]</p>
             <p className="text-gray-400 text-sm">{t("common.no_cult_farms_active")}</p>
           </div>
         </div>
@@ -229,10 +229,10 @@ function CultFarmCard({ farm, lpToken, lpBalance, onHarvest, isHarvesting }: Cul
             )}
             <div>
               <h4 className="font-mono font-bold text-red-400">
-                {farm.rewardCoin?.symbol || "???"} REWARDS
+                {farm.rewardCoin?.symbol || "???"} {t("common.rewards_suffix")}
               </h4>
               <p className="text-xs text-gray-400">
-                {hasTimeRemaining ? `${timeRemaining.days}d ${timeRemaining.hours}h remaining` : t("common.ended")}
+                {hasTimeRemaining ? t("common.days_hours_remaining", { days: timeRemaining.days, hours: timeRemaining.hours }) : t("common.ended")}
               </p>
             </div>
           </div>
@@ -240,7 +240,7 @@ function CultFarmCard({ farm, lpToken, lpBalance, onHarvest, isHarvesting }: Cul
             "px-3 py-1 rounded text-xs font-mono font-bold",
             isActive ? "bg-green-900/30 text-green-400 border border-green-600/30" : "bg-gray-900/30 text-gray-400 border border-gray-600/30"
           )}>
-            {farm.status || (hasTimeRemaining ? "ACTIVE" : "ENDED")}
+            {farm.status || (hasTimeRemaining ? t("common.active").toUpperCase() : t("common.ended").toUpperCase())}
           </div>
         </div>
 

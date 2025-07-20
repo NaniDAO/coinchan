@@ -4,6 +4,7 @@ import { TokenMeta } from "@/lib/coins";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { parseEther } from "viem";
+import { useZChefPool } from "@/hooks/use-zchef-contract";
 
 interface APRDisplayProps {
   stream: IncentiveStream;
@@ -19,6 +20,10 @@ export function APRDisplay({
   const { t } = useTranslation();
   const [showFarmApr, setShowFarmApr] = useState(false);
   
+  // Get real-time pool data
+  const { data: poolData } = useZChefPool(stream.chefId);
+  const totalStaked = poolData?.[7] ?? stream.totalShares ?? 0n;
+  
   // Calculate combined APR (base + farm incentives)
   const combinedAprData = useCombinedApr({
     stream,
@@ -27,7 +32,7 @@ export function APRDisplay({
   });
 
   // Determine if farm is uninitialized (less than 0.1 ETH worth of LP tokens staked)
-  const isUninitializedFarm = stream.totalShares < parseEther("0.1");
+  const isUninitializedFarm = totalStaked < parseEther("0.1");
   
   // For uninitialized farms, show only base APR unless user clicks to reveal
   const shouldHideFarmApr = isUninitializedFarm && !showFarmApr;
