@@ -234,7 +234,7 @@ function CultFarmCard({ farm, lpToken, lpBalance, onHarvest, isHarvesting }: Cul
               <p className="text-xs text-gray-400">
                 {hasTimeRemaining ? 
                   t("common.days_hours_remaining", { days: timeRemaining.days, hours: timeRemaining.hours }) : 
-                  isActive ? t("common.active") : t("common.ended")
+                  isActive ? "Active" : "Ended"
                 }
               </p>
             </div>
@@ -243,7 +243,7 @@ function CultFarmCard({ farm, lpToken, lpBalance, onHarvest, isHarvesting }: Cul
             "px-3 py-1 rounded text-xs font-mono font-bold",
             isActive ? "bg-green-900/30 text-green-400 border border-green-600/30" : "bg-gray-900/30 text-gray-400 border border-gray-600/30"
           )}>
-            {isActive ? t("common.active").toUpperCase() : t("common.ended").toUpperCase()}
+            {isActive ? "ACTIVE" : "ENDED"}
           </div>
         </div>
 
