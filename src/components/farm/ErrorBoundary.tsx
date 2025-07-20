@@ -30,21 +30,21 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
-      return this.props.fallback || (
-        <div className="text-center py-12">
-          <div className="bg-red-900/20 border border-red-600/30 rounded-lg p-8">
-            <p className="text-red-400 font-mono text-lg mb-2">[ ERROR ]</p>
-            <p className="text-gray-400 text-sm">Something went wrong. Please refresh the page.</p>
-            {this.state.error && (
-              <details className="mt-4 text-left">
-                <summary className="cursor-pointer text-xs text-gray-500">Error details</summary>
-                <pre className="mt-2 text-xs overflow-auto p-2 bg-black/50 rounded">
-                  {this.state.error.message}
-                </pre>
-              </details>
-            )}
+      return (
+        this.props.fallback || (
+          <div className="text-center py-12">
+            <div className="bg-red-900/20 border border-red-600/30 rounded-lg p-8">
+              <p className="text-red-400 font-mono text-lg mb-2">[ ERROR ]</p>
+              <p className="text-gray-400 text-sm">Something went wrong. Please refresh the page.</p>
+              {this.state.error && (
+                <details className="mt-4 text-left">
+                  <summary className="cursor-pointer text-xs text-gray-500">Error details</summary>
+                  <pre className="mt-2 text-xs overflow-auto p-2 bg-black/50 rounded">{this.state.error.message}</pre>
+                </details>
+              )}
+            </div>
           </div>
-        </div>
+        )
       );
     }
 

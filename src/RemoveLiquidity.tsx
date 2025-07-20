@@ -3,13 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
 import { mainnet } from "viem/chains";
-import {
-  useAccount,
-  useChainId,
-  usePublicClient,
-  useWaitForTransactionReceipt,
-  useWriteContract,
-} from "wagmi";
+import { useAccount, useChainId, usePublicClient, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { SlippageSettings } from "./components/SlippageSettings";
 import { SuccessMessage } from "./components/SuccessMessage";
 import { SwapPanel } from "./components/SwapPanel";
@@ -38,8 +32,7 @@ import { nowSec } from "./lib/utils";
 export const RemoveLiquidity = () => {
   const { t } = useTranslation();
   // Use shared token selection context
-  const { sellToken, buyToken, setSellToken, setBuyToken } =
-    useTokenSelection();
+  const { sellToken, buyToken, setSellToken, setBuyToken } = useTokenSelection();
 
   const [lpTokenBalance, setLpTokenBalance] = useState<bigint>(0n);
   const [lpBurnAmount, setLpBurnAmount] = useState<string>("");
@@ -78,11 +71,7 @@ export const RemoveLiquidity = () => {
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [txError, setTxError] = useState<string | null>(null);
 
-  const {
-    writeContractAsync,
-    isPending,
-    error: writeError,
-  } = useWriteContract();
+  const { writeContractAsync, isPending, error: writeError } = useWriteContract();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
   const memoizedTokens = useMemo(() => tokens, [tokens]);
@@ -100,10 +89,10 @@ export const RemoveLiquidity = () => {
       try {
         // Calculate the pool ID - different method for custom pools
         let poolId;
-        
+
         // Check for CULT specifically first
         const isUsingCult = sellToken?.symbol === "CULT" || buyToken?.symbol === "CULT";
-        
+
         if (isUsingCult) {
           // Use the specific CULT pool ID
           poolId = CULT_POOL_ID;
@@ -117,15 +106,11 @@ export const RemoveLiquidity = () => {
           const contractAddress = isCookbook ? CookbookAddress : CoinsAddress;
 
           // Regular pool ID calculation with correct contract address
-          poolId = computePoolId(
-            coinId,
-            buyToken?.swapFee ?? SWAP_FEE,
-            contractAddress,
-          );
+          poolId = computePoolId(coinId, buyToken?.swapFee ?? SWAP_FEE, contractAddress);
         }
 
         // Determine which ZAMM address to use for LP balance lookup
-        const isCookbook = isUsingCult ? true : (isCustomPool ? false : isCookbookCoin(coinId));
+        const isCookbook = isUsingCult ? true : isCustomPool ? false : isCookbookCoin(coinId);
         const targetZAMMAddress = isCookbook ? CookbookAddress : ZAMMAddress;
         const targetZAMMAbi = isCookbook ? CookbookAbi : ZAMMAbi;
 
@@ -214,11 +199,7 @@ export const RemoveLiquidity = () => {
         const contractAddress = isCookbook ? CookbookAddress : CoinsAddress;
 
         // Regular pool ID calculation with correct contract address
-        poolId = computePoolId(
-          coinId,
-          buyToken?.swapFee ?? SWAP_FEE,
-          contractAddress,
-        );
+        poolId = computePoolId(coinId, buyToken?.swapFee ?? SWAP_FEE, contractAddress);
       }
 
       if (!publicClient) {
@@ -227,7 +208,7 @@ export const RemoveLiquidity = () => {
       }
 
       // Determine which ZAMM address to use for pool info lookup
-      const isCookbook = isUsingCult ? true : (customPoolUsed ? false : isCookbookCoin(coinId));
+      const isCookbook = isUsingCult ? true : customPoolUsed ? false : isCookbookCoin(coinId);
       const targetZAMMAddress = isCookbook ? CookbookAddress : ZAMMAddress;
       const targetZAMMAbi = isCookbook ? CookbookAbi : ZAMMAbi;
 
@@ -265,11 +246,11 @@ export const RemoveLiquidity = () => {
         isUsingCult,
         burnAmount: burnAmount.toString(),
         reserve0: reserves.reserve0.toString(),
-        reserve1: reserves.reserve1.toString(), 
+        reserve1: reserves.reserve1.toString(),
         totalSupply: totalSupply.toString(),
         ethAmount: ethAmount.toString(),
         tokenAmount: tokenAmount.toString(),
-        tokenSymbol: isUsingCult ? "CULT" : (sellToken?.symbol || buyToken?.symbol)
+        tokenSymbol: isUsingCult ? "CULT" : sellToken?.symbol || buyToken?.symbol,
       });
 
       // Sanity checks
@@ -282,10 +263,10 @@ export const RemoveLiquidity = () => {
 
       // Update the input fields with the calculated values
       setSellAmt(ethAmount === 0n ? "" : formatEther(ethAmount));
-      
+
       // Use the correct decimals for the token - handle CULT specifically
       let tokenDecimals = 18; // Default to 18 decimals
-      
+
       if (isUsingCult) {
         tokenDecimals = 18; // CULT has 18 decimals
       } else if (customPoolUsed) {
@@ -296,9 +277,7 @@ export const RemoveLiquidity = () => {
         tokenDecimals = 18; // Regular tokens have 18 decimals
       }
 
-      setBuyAmt(
-        tokenAmount === 0n ? "" : formatUnits(tokenAmount, tokenDecimals),
-      );
+      setBuyAmt(tokenAmount === 0n ? "" : formatUnits(tokenAmount, tokenDecimals));
     } catch (err) {
       console.error("Error calculating remove liquidity amounts:", err);
       setSellAmt("");
@@ -354,29 +333,18 @@ export const RemoveLiquidity = () => {
         poolKey = customToken?.poolKey || USDT_POOL_KEY;
       } else if (isCookbook) {
         // Cookbook coin pool key - use CookbookAddress as token1
-        poolKey = computePoolKey(
-          coinId,
-          buyToken?.swapFee ?? SWAP_FEE,
-          CookbookAddress,
-        );
+        poolKey = computePoolKey(coinId, buyToken?.swapFee ?? SWAP_FEE, CookbookAddress);
       } else {
         // Regular pool key
-        poolKey = computePoolKey(
-          coinId,
-          buyToken?.swapFee ?? SWAP_FEE,
-        ) as ZAMMPoolKey;
+        poolKey = computePoolKey(coinId, buyToken?.swapFee ?? SWAP_FEE) as ZAMMPoolKey;
       }
 
       // Parse the minimum amounts from the displayed expected return
-      const amount0Min = sellAmt
-        ? withSlippage(parseEther(sellAmt), slippageBps)
-        : 0n;
+      const amount0Min = sellAmt ? withSlippage(parseEther(sellAmt), slippageBps) : 0n;
 
       // Use correct decimals for token1 (6 for USDT, 18 for regular coins)
       const tokenDecimals = isUsdtPool ? 6 : 18;
-      const amount1Min = buyAmt
-        ? withSlippage(parseUnits(buyAmt, tokenDecimals), slippageBps)
-        : 0n;
+      const amount1Min = buyAmt ? withSlippage(parseUnits(buyAmt, tokenDecimals), slippageBps) : 0n;
 
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
@@ -388,14 +356,7 @@ export const RemoveLiquidity = () => {
         address: targetZAMMAddress,
         abi: targetZAMMAbi,
         functionName: "removeLiquidity",
-        args: [
-          poolKey as any,
-          burnAmount,
-          amount0Min,
-          amount1Min,
-          address,
-          deadline,
-        ],
+        args: [poolKey as any, burnAmount, amount0Min, amount1Min, address, deadline],
       });
 
       setTxHash(hash);
@@ -440,9 +401,7 @@ export const RemoveLiquidity = () => {
     <div className="relative flex flex-col">
       <div className="border-2 border-primary group hover:bg-secondary hover:text-secondary-foreground rounded-t-2xl p-3 pb-4 focus-within:ring-2 focus-within:ring-primary flex flex-col gap-2 bg-secondary/50">
         <div className="flex items-center justify-between">
-          <span className="font-medium text-foreground">
-            {t("common.lp_tokens_to_burn_label")}
-          </span>
+          <span className="font-medium text-foreground">{t("common.lp_tokens_to_burn_label")}</span>
           <div className="flex items-center gap-1">
             <span className="text-xs text-muted-foreground">
               {t("common.balance_colon")} {formatUnits(lpTokenBalance, 18)}
@@ -465,9 +424,7 @@ export const RemoveLiquidity = () => {
           onChange={(e) => syncFromSell(e.target.value)}
           className="text-lg sm:text-xl font-medium w-full bg-secondary/50 focus:outline-none h-10 text-right pr-1"
         />
-        <div className="text-xs text-muted-foreground mt-1">
-          {t("pool.lp_burn_help")}
-        </div>
+        <div className="text-xs text-muted-foreground mt-1">{t("pool.lp_burn_help")}</div>
       </div>
       <div className="relative flex flex-col">
         {/* SELL/PROVIDE panel */}
@@ -501,10 +458,7 @@ export const RemoveLiquidity = () => {
         )}
 
         {/* Slippage information - clickable to show settings */}
-        <SlippageSettings
-          setSlippageBps={setSlippageBps}
-          slippageBps={slippageBps}
-        />
+        <SlippageSettings setSlippageBps={setSlippageBps} slippageBps={slippageBps} />
         <div className="text-xs bg-muted/50 border border-primary/30 rounded p-2 mt-2 text-muted-foreground">
           <p className="font-medium mb-1">{t("pool.remove_liquidity_info")}</p>
           <ul className="list-disc pl-4 space-y-0.5">
@@ -520,25 +474,16 @@ export const RemoveLiquidity = () => {
 
         {isConnected && chainId !== mainnet.id && (
           <div className="text-xs mt-1 px-2 py-1 bg-secondary/70 border border-primary/30 rounded text-foreground">
-            <strong>Wrong Network:</strong> Please switch to Ethereum mainnet in
-            your wallet to manage liquidity
+            <strong>Wrong Network:</strong> Please switch to Ethereum mainnet in your wallet to manage liquidity
           </div>
         )}
         {/* ACTION BUTTON */}
         <button
           onClick={executeRemoveLiquidity}
-          disabled={
-            !isConnected ||
-            !lpBurnAmount ||
-            Number.parseFloat(lpBurnAmount) <= 0 ||
-            isPending
-          }
+          disabled={!isConnected || !lpBurnAmount || Number.parseFloat(lpBurnAmount) <= 0 || isPending}
           className={`mt-2 button text-base px-8 py-4 bg-primary text-primary-foreground font-bold rounded-lg transform transition-all duration-200
             ${
-              !isConnected ||
-              !lpBurnAmount ||
-              Number.parseFloat(lpBurnAmount) <= 0 ||
-              isPending
+              !isConnected || !lpBurnAmount || Number.parseFloat(lpBurnAmount) <= 0 || isPending
                 ? "opacity-50 cursor-not-allowed"
                 : "opacity-100 hover:scale-105 hover:shadow-lg focus:ring-4 focus:ring-primary/50 focus:outline-none"
             }
@@ -561,12 +506,9 @@ export const RemoveLiquidity = () => {
             {txError}
           </div>
         )}
-        {((writeError && !isUserRejectionError(writeError)) ||
-          (txError && !txError.includes("Waiting for"))) && (
+        {((writeError && !isUserRejectionError(writeError)) || (txError && !txError.includes("Waiting for"))) && (
           <div className="text-sm text-destructive mt-2 bg-background/50 p-2 rounded border border-destructive/20">
-            {writeError && !isUserRejectionError(writeError)
-              ? writeError.message
-              : txError}
+            {writeError && !isUserRejectionError(writeError) ? writeError.message : txError}
           </div>
         )}
         {isSuccess && <SuccessMessage />}
