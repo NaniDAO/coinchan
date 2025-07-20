@@ -29,12 +29,10 @@ export function CultFarmTab() {
     try {
       if (!allStreams) return [];
       
-      const currentTime = BigInt(Math.floor(Date.now() / 1000));
       return allStreams.filter(stream => {
         try {
           const matchesPool = BigInt(stream.lpId) === CULT_POOL_ID;
-          const isActive = stream.endTime > currentTime;
-          return matchesPool && isActive;
+          return matchesPool;
         } catch (err) {
           console.error(`Error processing stream ${stream?.chefId}:`, err);
           return false;
@@ -169,6 +167,7 @@ function CultFarmCard({ farm, lpBalance, onHarvest, isHarvesting }: CultFarmCard
     try {
       const now = BigInt(Math.floor(Date.now() / 1000));
       const remaining = Number(farm.endTime - now);
+      
       if (remaining <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
       
       const days = Math.floor(remaining / 86400);
@@ -183,7 +182,10 @@ function CultFarmCard({ farm, lpBalance, onHarvest, isHarvesting }: CultFarmCard
     }
   }, [farm.endTime]);
 
-  const isActive = timeRemaining.seconds > 0 || timeRemaining.days > 0 || timeRemaining.hours > 0 || timeRemaining.minutes > 0;
+  // Check both status and time remaining
+  const hasTimeRemaining = timeRemaining.seconds > 0 || timeRemaining.days > 0 || timeRemaining.hours > 0 || timeRemaining.minutes > 0;
+  // If the farm has ACTIVE status from the API, trust it (the indexer knows better)
+  const isActive = farm.status === "ACTIVE";
   // Safe handling of reward token decimals
   const rewardTokenDecimals = useMemo(() => {
     try {
@@ -219,7 +221,7 @@ function CultFarmCard({ farm, lpBalance, onHarvest, isHarvesting }: CultFarmCard
                 {farm.rewardCoin?.symbol || "???"} REWARDS
               </h4>
               <p className="text-xs text-gray-400">
-                {isActive ? `${timeRemaining.days}d ${timeRemaining.hours}h remaining` : t("common.ended")}
+                {hasTimeRemaining ? `${timeRemaining.days}d ${timeRemaining.hours}h remaining` : t("common.ended")}
               </p>
             </div>
           </div>
@@ -227,7 +229,7 @@ function CultFarmCard({ farm, lpBalance, onHarvest, isHarvesting }: CultFarmCard
             "px-3 py-1 rounded text-xs font-mono font-bold",
             isActive ? "bg-green-900/30 text-green-400 border border-green-600/30" : "bg-gray-900/30 text-gray-400 border border-gray-600/30"
           )}>
-            {isActive ? "ACTIVE" : "ENDED"}
+            {farm.status || (hasTimeRemaining ? "ACTIVE" : "ENDED")}
           </div>
         </div>
 
