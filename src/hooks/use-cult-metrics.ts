@@ -17,11 +17,6 @@ type ReservesData = {
   supply: bigint;
 } | null;
 
-interface CultPriceData {
-  cultPrice: string;
-  cultUsdPrice: string;
-}
-
 interface CultMetrics {
   totalSupply: bigint;
   accumulatedTax: string;
@@ -30,8 +25,6 @@ interface CultMetrics {
 
 // Separate hook for price updates (9s interval for shake animation)
 export function useCultPrice(reserves: ReservesData | null, ethUsdPrice: number) {
-  const publicClient = usePublicClient({ chainId: mainnet.id });
-
   return useQuery({
     queryKey: ["cultPrice", reserves?.reserve0?.toString(), reserves?.reserve1?.toString(), ethUsdPrice],
     queryFn: async () => {
