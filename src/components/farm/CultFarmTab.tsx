@@ -165,7 +165,7 @@ function CultFarmCard({ farm, lpToken, lpBalance, onHarvest, isHarvesting }: Cul
   }
   
   // Get real-time data
-  const { data: poolData } = useZChefPool(farm.chefId);
+ZA  const { data: poolData } = useZChefPool(farm.chefId);
   const { data: userBalance } = useZChefUserBalance(farm.chefId);
   const { data: pendingRewards, isLoading: isLoadingRewards } = useZChefPendingReward(farm.chefId);
   
@@ -195,8 +195,8 @@ function CultFarmCard({ farm, lpToken, lpBalance, onHarvest, isHarvesting }: Cul
 
   // Check both status and time remaining
   const hasTimeRemaining = timeRemaining.seconds > 0 || timeRemaining.days > 0 || timeRemaining.hours > 0 || timeRemaining.minutes > 0;
-  // Farm is only active if it has ACTIVE status AND time remaining
-  const isActive = farm.status === "ACTIVE" && hasTimeRemaining;
+  // Trust the API status - if it says ACTIVE, it's active
+  const isActive = farm.status === "ACTIVE";
   // Safe handling of reward token decimals
   const rewardTokenDecimals = useMemo(() => {
     try {
@@ -232,11 +232,10 @@ function CultFarmCard({ farm, lpToken, lpBalance, onHarvest, isHarvesting }: Cul
                 {farm.rewardCoin?.symbol || "???"} {t("common.rewards_suffix")}
               </h4>
               <p className="text-xs text-gray-400">
-                {isActive ? (
-                  hasTimeRemaining ? 
-                    t("common.days_hours_remaining", { days: timeRemaining.days, hours: timeRemaining.hours }) : 
-                    t("common.active")
-                ) : t("common.ended")}
+                {hasTimeRemaining ? 
+                  t("common.days_hours_remaining", { days: timeRemaining.days, hours: timeRemaining.hours }) : 
+                  isActive ? t("common.active") : t("common.ended")
+                }
               </p>
             </div>
           </div>
@@ -244,7 +243,7 @@ function CultFarmCard({ farm, lpToken, lpBalance, onHarvest, isHarvesting }: Cul
             "px-3 py-1 rounded text-xs font-mono font-bold",
             isActive ? "bg-green-900/30 text-green-400 border border-green-600/30" : "bg-gray-900/30 text-gray-400 border border-gray-600/30"
           )}>
-            {isActive ? t("common.active").toUpperCase() : t("common.ended").toUpperCase()}
+            {farm.status || (isActive ? t("common.active").toUpperCase() : t("common.ended").toUpperCase())}
           </div>
         </div>
 

@@ -171,10 +171,10 @@ export function SwapRibbon() {
     snippet: (
       <Link
         to="/cult"
-        className="text-foreground hover:underline font-medium flex items-center gap-1"
+        className="text-foreground hover:underline font-medium inline-flex items-center gap-1 align-middle"
       >
-        <img src="/cult.jpg" alt="CULT" className="w-4 h-4 rounded-full" />
-        <span>CULT</span>
+        <img src="/cult.jpg" alt="CULT" className="w-4 h-4 rounded-full inline-block align-middle" />
+        <span className="inline-block align-middle">CULT</span>
       </Link>
     ),
   };
@@ -221,15 +221,16 @@ export function SwapRibbon() {
         {repeated.map((item: any, index: number) => (
           <div
             key={`${item.id}-${index}`}
+            className="inline-flex items-center"
             style={
               item.id === "farm-alpha" || item.id === "cult-feature"
                 ? { color: "inherit" }
                 : { color: getColor(item.id) }
             }
           >
-            <span className="text-sm shrink-0">{item.snippet}</span>
+            <span className="text-sm shrink-0 inline-flex items-center">{item.snippet}</span>
             <span
-              className={`text-2xl mx-2 ${item.id === "farm-alpha" || item.id === "cult-feature" ? "text-foreground" : ""}`}
+              className={`text-2xl mx-2 inline-flex items-center ${item.id === "farm-alpha" || item.id === "cult-feature" ? "text-foreground" : ""}`}
             >
               /
             </span>
