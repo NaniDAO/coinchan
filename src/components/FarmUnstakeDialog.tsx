@@ -20,7 +20,7 @@ import { isUserRejectionError } from "@/lib/errors";
 import { cn, formatBalance } from "@/lib/utils";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { formatEther, parseUnits } from "viem";
+import { formatEther, formatUnits, parseUnits } from "viem";
 import { usePublicClient } from "wagmi";
 
 interface FarmUnstakeDialogProps {
@@ -187,6 +187,29 @@ export function FarmUnstakeDialog({
                   {stream.rewardCoin?.symbol}
                 </p>
               </div>
+              {lpToken && lpToken.reserve0 ? (
+                <div className="border border-muted p-3">
+                  <p className="text-muted-foreground font-mono text-xs uppercase tracking-wider">
+                    [{t("pool.liquidity")}]
+                  </p>
+                  <p className="font-mono font-bold text-foreground">
+                    {formatBalance(formatEther(lpToken.reserve0), "ETH")}
+                  </p>
+                </div>
+              ) : null}
+              {lpToken && lpToken.reserve1 ? (
+                <div className="border border-muted p-3">
+                  <p className="text-muted-foreground font-mono text-xs uppercase tracking-wider">
+                    [{lpToken.symbol} {t("common.reserves")}]
+                  </p>
+                  <p className="font-mono font-bold text-foreground">
+                    {formatBalance(
+                      formatUnits(lpToken.reserve1, lpToken.decimals || 18),
+                      lpToken.symbol,
+                    )}
+                  </p>
+                </div>
+              ) : null}
             </div>
           </div>
 

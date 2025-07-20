@@ -339,6 +339,27 @@ export function FarmStakeDialog({
                   </p>
                 </div>
               )}
+              {lpToken && lpToken.reserve1 && (
+                <div className="bg-background/30 border border-primary/20 rounded p-3">
+                  <p className="text-muted-foreground font-mono text-xs">
+                    {lpToken.symbol} {t("common.reserves")}
+                  </p>
+                  <p className="font-mono font-bold text-primary">
+                    {formatBalance(
+                      formatUnits(lpToken.reserve1, lpToken.decimals || 18),
+                      lpToken.symbol,
+                    )}
+                  </p>
+                </div>
+              )}
+              <div className="bg-background/30 border border-primary/20 rounded p-3">
+                <p className="text-muted-foreground font-mono text-xs">
+                  {t("common.total_staked")}
+                </p>
+                <p className="font-mono font-bold text-primary">
+                  {formatBalance(formatEther(totalShares), "LP")}
+                </p>
+              </div>
             </div>
           </div>
 
