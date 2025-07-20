@@ -345,35 +345,50 @@ export function FarmStakeDialog({
           <APYDisplay stream={stream} lpToken={lpToken} shortView={false} />
 
           {/* Stake Mode Selection */}
-          <div className="space-y-3">
-            <Label className="font-mono font-bold text-primary uppercase tracking-wide">
-              <span className="text-muted-foreground">&gt;</span>{" "}
-              {t("common.stake_mode")}
-            </Label>
-            <Tabs
-              value={stakeMode}
-              onValueChange={(value) => {
-                setStakeMode(value as StakeMode);
-                setAmount(""); // Clear amount when switching modes
-                setZapCalculation(null); // Clear zap calculation when switching modes
-              }}
-            >
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger
-                  value="lp"
-                  className="font-mono font-bold tracking-wide"
-                >
+          {lpToken.symbol !== "CULT" ? (
+            <div className="space-y-3">
+              <Label className="font-mono font-bold text-primary uppercase tracking-wide">
+                <span className="text-muted-foreground">&gt;</span>{" "}
+                {t("common.stake_mode")}
+              </Label>
+              <Tabs
+                value={stakeMode}
+                onValueChange={(value) => {
+                  setStakeMode(value as StakeMode);
+                  setAmount(""); // Clear amount when switching modes
+                  setZapCalculation(null); // Clear zap calculation when switching modes
+                }}
+              >
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger
+                    value="lp"
+                    className="font-mono font-bold tracking-wide"
+                  >
+                    [{t("common.lp_tokens")}]
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="eth"
+                    className="font-mono font-bold tracking-wide"
+                  >
+                    [{t("common.eth_zap")}]
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+          ) : (
+            // For CULT pools, only show LP mode without tabs
+            <div className="space-y-3">
+              <Label className="font-mono font-bold text-primary uppercase tracking-wide">
+                <span className="text-muted-foreground">&gt;</span>{" "}
+                {t("common.stake_mode")}
+              </Label>
+              <div className="border border-primary/20 rounded-lg p-3 bg-primary/5">
+                <span className="font-mono font-bold text-primary">
                   [{t("common.lp_tokens")}]
-                </TabsTrigger>
-                <TabsTrigger
-                  value="eth"
-                  className="font-mono font-bold tracking-wide"
-                >
-                  [{t("common.eth_zap")}]
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Amount Input */}
           <div className="space-y-3">
