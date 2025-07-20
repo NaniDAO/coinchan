@@ -164,9 +164,6 @@ function CultFarmCard({ farm, lpBalance, onHarvest, isHarvesting }: CultFarmCard
   const hasStaked = !!(userBalance && userBalance > 0n);
   const canStake = lpBalance > 0n;
   
-  // Show loading state while fetching data
-  const isLoading = isLoadingPool || isLoadingBalance || isLoadingRewards;
-  
   // Calculate time remaining
   const timeRemaining = useMemo(() => {
     try {
