@@ -11,16 +11,16 @@ import { useGetTVL } from "./use-get-tvl";
 import { useCoinPrice } from "./use-coin-price";
 import { parseEther } from "viem";
 
-interface UseCombinedApyParams {
+interface UseCombinedAprParams {
   stream: IncentiveStream;
   lpToken: TokenMeta;
   enabled?: boolean;
 }
 
-export interface CombinedApyData {
-  baseApy: number;
-  farmApy: number;
-  totalApy: number;
+export interface CombinedAprData {
+  baseApr: number;
+  farmApr: number;
+  totalApr: number;
   breakdown: {
     tradingFees: number;
     rewardSymbol: string;
@@ -34,16 +34,16 @@ const ACC_PRECISION = 1_000_000_000_000n; // 1e12
 const EIGHTEEN_DECIMALS = 1_000_000_000_000_000_000n; // 1e18 (ZAMM & ETH)
 
 /**
- * Hook to calculate combined APY (base trading fees + farm incentives)
+ * Hook to calculate combined APR (base trading fees + farm incentives)
  * for incentivized liquidity pools
  */
-export function useCombinedApy({
+export function useCombinedApr({
   stream,
   lpToken,
   enabled = true,
-}: UseCombinedApyParams): CombinedApyData {
-  // Fetch base APY from trading fees
-  const { data: baseApyData, isLoading: isBaseApyLoading } = usePoolApy(
+}: UseCombinedAprParams): CombinedAprData {
+  // Fetch base APR from trading fees
+  const { data: baseAprData, isLoading: isBaseAprLoading } = usePoolApy(
     lpToken?.poolId?.toString(),
   );
 
@@ -66,8 +66,8 @@ export function useCombinedApy({
     contractSource: undefined,
   });
 
-  // Fetch farm incentive APY
-  const { data: rewardPerSharePerYearOnchain, isLoading: isFarmApyLoading } =
+  // Fetch farm incentive APR
+  const { data: rewardPerSharePerYearOnchain, isLoading: isFarmAprLoading } =
     useZChefRewardPerSharePerYear(enabled ? stream.chefId : undefined);
 
   /**
@@ -112,15 +112,15 @@ export function useCombinedApy({
     stream.totalShares,
   ]);
 
-  // Calculate combined APY
-  const combinedApy = useMemo(() => {
-    const isLoading = isBaseApyLoading || isFarmApyLoading || isFarmInfoLoading;
+  // Calculate combined APR
+  const combinedApr = useMemo(() => {
+    const isLoading = isBaseAprLoading || isFarmAprLoading || isFarmInfoLoading;
 
     // Default fallback values
-    const defaultResult: CombinedApyData = {
-      baseApy: 0,
-      farmApy: 0,
-      totalApy: 0,
+    const defaultResult: CombinedAprData = {
+      baseApr: 0,
+      farmApr: 0,
+      totalApr: 0,
       breakdown: {
         tradingFees: Number(lpToken.swapFee || 100n),
         rewardSymbol: stream.rewardCoin?.symbol || "???",
@@ -139,8 +139,8 @@ export function useCombinedApy({
         return defaultResult;
       }
 
-      // Calculate base APY from trading fees
-      const baseApy = Number(baseApyData?.slice(0, -1)) || 0;
+      // Calculate base APR from trading fees
+      const baseApr = Number(baseAprData?.slice(0, -1)) || 0;
       const totalShares =
         stream?.totalShares && stream?.totalShares > 0n
           ? stream?.totalShares
@@ -148,7 +148,7 @@ export function useCombinedApy({
             ? parseEther("1")
             : farmInfo?.[7];
 
-      // Calculate farm APY from incentives
+      // Calculate farm APR from incentives
       const share = 1000000000000000000n; // 1 LP share
 
       // Ensure totalShares has a valid value
@@ -168,9 +168,9 @@ export function useCombinedApy({
         totalSharesNum === 0
       ) {
         return {
-          baseApy,
-          farmApy: 0,
-          totalApy: baseApy,
+          baseApr,
+          farmApr: 0,
+          totalApr: baseApr,
           breakdown: {
             tradingFees: Number(lpToken.swapFee || SWAP_FEE),
             rewardSymbol: stream.rewardCoin?.symbol || "???",
@@ -200,12 +200,12 @@ export function useCombinedApy({
         }
       }
 
-      const totalApy = baseApy + aprPct;
+      const totalApr = baseApr + aprPct;
 
       return {
-        baseApy,
-        farmApy: aprPct,
-        totalApy,
+        baseApr,
+        farmApr: aprPct,
+        totalApr,
         breakdown: {
           tradingFees: Number(lpToken.swapFee || SWAP_FEE),
           rewardSymbol: stream.rewardCoin?.symbol || "???",
@@ -213,14 +213,14 @@ export function useCombinedApy({
         isLoading: false,
       };
     } catch (error) {
-      console.error("Error calculating combined APY:", error);
+      console.error("Error calculating combined APR:", error);
       return defaultResult;
     }
   }, [
-    baseApyData,
+    baseAprData,
     rewardPerSharePerYear,
-    isBaseApyLoading,
-    isFarmApyLoading,
+    isBaseAprLoading,
+    isFarmAprLoading,
     lpToken,
     stream.rewardCoin,
     stream.totalShares,
@@ -229,5 +229,5 @@ export function useCombinedApy({
     farmInfo,
   ]);
 
-  return combinedApy;
+  return combinedApr;
 }

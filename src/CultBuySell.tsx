@@ -19,6 +19,7 @@ import { LoadingLogo } from "@/components/ui/loading-logo";
 import { handleWalletError } from "@/lib/errors";
 import { formatEther, formatUnits, parseEther, parseUnits, maxUint256, encodeFunctionData, erc20Abi } from "viem";
 import { CultFarmTab } from "@/components/farm/CultFarmTab";
+import { ErrorBoundary } from "@/components/farm/ErrorBoundary";
 import { mainnet } from "viem/chains";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { useErc20Allowance } from "@/hooks/use-erc20-allowance";
@@ -1158,7 +1159,9 @@ export const CultBuySell = () => {
           </TabsContent>
 
           <TabsContent value="farm" className="max-w-4xl">
-            <CultFarmTab />
+            <ErrorBoundary>
+              <CultFarmTab />
+            </ErrorBoundary>
           </TabsContent>
 
           {errorMessage && <p className="text-destructive text-sm mt-2">{errorMessage}</p>}

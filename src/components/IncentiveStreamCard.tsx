@@ -1,4 +1,4 @@
-import { APYDisplay } from "@/components/farm/APYDisplay";
+import { APRDisplay } from "@/components/farm/APRDisplay";
 import { formatImageURL } from "@/hooks/metadata";
 import type { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { useLpBalance } from "@/hooks/use-lp-balance";
@@ -207,7 +207,7 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
             </div>
           )}
           <div className="border border-muted p-2 sm:p-3 sm:col-span-2 lg:col-span-1">
-            <APYDisplay stream={stream} lpToken={lpToken} shortView={true} />
+            <APRDisplay stream={stream} lpToken={lpToken} shortView={true} />
           </div>
         </div>
 

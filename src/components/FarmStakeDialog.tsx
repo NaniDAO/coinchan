@@ -30,7 +30,7 @@ import { useAccount, usePublicClient, useWriteContract } from "wagmi";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
 import { mainnet } from "viem/chains";
-import { APYDisplay } from "./farm/APYDisplay";
+import { APRDisplay } from "./farm/APRDisplay";
 import { useLpOperatorStatus } from "@/hooks/use-lp-operator-status";
 
 interface FarmStakeDialogProps {
@@ -342,7 +342,7 @@ export function FarmStakeDialog({
             </div>
           </div>
 
-          <APYDisplay stream={stream} lpToken={lpToken} shortView={false} />
+          <APRDisplay stream={stream} lpToken={lpToken} shortView={false} />
 
           {/* Stake Mode Selection */}
           {lpToken.symbol !== "CULT" ? (
