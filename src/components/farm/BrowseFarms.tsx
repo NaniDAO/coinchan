@@ -116,9 +116,13 @@ export const BrowseFarms = () => {
       ) : sortedStreams && sortedStreams.length > 0 ? (
         <div className="farm-cards-container grid gap-4 sm:gap-5 grid-cols-1 lg:grid-cols-2">
           {sortedStreams?.map((stream) => {
-            const lpToken = tokens.find(
-              (t) => t.poolId === BigInt(stream.lpId),
-            );
+            const lpToken = tokens.find((t) => {
+              // Direct pool ID match
+              if (t.poolId === BigInt(stream.lpId)) return true;
+              // Special handling for CULT tokens - check if lpId matches CULT_POOL_ID
+              if (t.symbol === "CULT" && BigInt(stream.lpId) === t.poolId) return true;
+              return false;
+            });
 
             // If lpToken is not found and tokens are not loading, show error
             // Otherwise, use ETH_TOKEN as fallback during loading

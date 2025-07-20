@@ -120,7 +120,14 @@ export const ManageFarms = () => {
             // First try to get real-time data, fallback to stale data
             const stream = streamsWithRealTimeData?.find((s) => BigInt(s.chefId) === BigInt(position.chefId)) ||
                           allStreams?.find((s) => BigInt(s.chefId) === BigInt(position.chefId));
-            const lpToken = tokens.find((t) => stream && t.poolId === BigInt(stream.lpId));
+            const lpToken = tokens.find((t) => {
+              if (!stream) return false;
+              // Direct pool ID match
+              if (t.poolId === BigInt(stream.lpId)) return true;
+              // Special handling for CULT tokens - check if lpId matches CULT_POOL_ID
+              if (t.symbol === "CULT" && BigInt(stream.lpId) === t.poolId) return true;
+              return false;
+            });
 
             if (!stream) return null;
 
