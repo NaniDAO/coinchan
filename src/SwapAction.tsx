@@ -509,20 +509,30 @@ export const SwapAction = () => {
         Math.floor(Date.now() / 1000) + deadline * 24 * 60 * 60;
 
       // Prepare token addresses and IDs
+      // Special handling for CULT token which is an ERC20 at specific address
+      const CULT_ADDRESS = "0x0000000000c5dc95539589fbD24BE07c6C14eCa4";
+      const isCULT = (token: TokenMeta) => token.symbol === "CULT";
+      
       const tokenInAddress =
         sellToken.id === null
           ? "0x0000000000000000000000000000000000000000"
-          : sellToken.id < 1000000n
-            ? CookbookAddress
-            : CoinsAddress;
+          : isCULT(sellToken)
+            ? CULT_ADDRESS
+            : sellToken.id < 1000000n
+              ? CookbookAddress
+              : CoinsAddress;
       const tokenOutAddress =
         buyToken.id === null
           ? "0x0000000000000000000000000000000000000000"
-          : buyToken.id < 1000000n
-            ? CookbookAddress
-            : CoinsAddress;
-      const idIn = sellToken.id || 0n;
-      const idOut = buyToken.id || 0n;
+          : isCULT(buyToken)
+            ? CULT_ADDRESS
+            : buyToken.id < 1000000n
+              ? CookbookAddress
+              : CoinsAddress;
+      
+      // For CULT token (ERC20), use id=0 as per ERC20 standard
+      const idIn = isCULT(sellToken) ? 0n : (sellToken.id || 0n);
+      const idOut = isCULT(buyToken) ? 0n : (buyToken.id || 0n);
 
       // Parse amounts with correct decimals
       const sellTokenDecimals = sellToken.decimals || 18;
@@ -540,8 +550,9 @@ export const SwapAction = () => {
         value?: bigint;
       }> = [];
 
-      // For non-ETH, non-cookbook tokens, ensure operator approval first
-      if (sellToken.id !== null && sellToken.id >= 1000000n && !isOperator) {
+      // For non-ETH tokens, ensure proper approval
+      if (sellToken.id !== null && !isCULT(sellToken) && sellToken.id >= 1000000n && !isOperator) {
+        // For Coins.sol tokens (id >= 1000000), use setOperator
         const approvalData = encodeFunctionData({
           abi: CoinsAbi,
           functionName: "setOperator",
@@ -552,6 +563,7 @@ export const SwapAction = () => {
           data: approvalData,
         });
       }
+      // Note: CULT tokens (ERC20) would need standard ERC20 approve, but that's handled separately
 
       // Encode the makeOrder function call
       const makeOrderData = encodeFunctionData({
