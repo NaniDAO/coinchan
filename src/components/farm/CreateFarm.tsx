@@ -608,8 +608,10 @@ export const CreateFarm = () => {
 
       // Determine LP token contract and ID based on the pool ID range
       // Pool IDs < 1000000 are Cookbook pools, >= 1000000 are ZAMM pools
+      // CULT pools are always stored in Cookbook regardless of pool ID
       const poolId = formData.selectedToken.poolId || 0n;
-      const lpToken = poolId < 1000000n ? CookbookAddress : ZAMMAddress;
+      const isCultPool = formData.selectedToken.symbol === "CULT";
+      const lpToken = isCultPool || poolId < 1000000n ? CookbookAddress : ZAMMAddress;
       const lpId = poolId;
 
       // Reward token contract and ID (ETH not supported by zChef)

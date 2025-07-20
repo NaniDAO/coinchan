@@ -84,13 +84,19 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {lpToken?.imageUrl && (
+            {lpToken?.symbol === "CULT" ? (
+              <img
+                src="/cult.jpg"
+                alt="CULT"
+                className="w-6 h-6 border border-muted"
+              />
+            ) : lpToken?.imageUrl ? (
               <img
                 src={formatImageURL(lpToken?.imageUrl)}
                 alt={lpToken?.symbol}
                 className="w-6 h-6 border border-muted"
               />
-            )}
+            ) : null}
             <h3 className="font-mono font-bold text-sm uppercase tracking-wider text-foreground break-all">
               [{lpToken?.symbol}]
             </h3>

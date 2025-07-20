@@ -152,6 +152,7 @@ export const CULT_TOKEN: TokenMeta = {
   symbol: "CULT",
   source: "COOKBOOK", // Use cookbook for liquidity operations
   tokenUri: "/cult.jpg", // Local CULT image in public folder
+  imageUrl: "/cult.jpg", // Local CULT image in public folder
   reserve0: 100000000000000000000n, // 100 ETH (placeholder - will be updated by hook)
   reserve1: 1000000000000000000000000n, // 1M CULT (18 decimals, placeholder)
   swapFee: 30n, // 0.3% fee tier (30 bps)
