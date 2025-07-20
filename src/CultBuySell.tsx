@@ -498,13 +498,15 @@ export const CultBuySell = () => {
   const { data: ethUsdPrice = 0 } = useEthUsdPrice();
   
   // Stable version of ethUsdPrice for the chart to prevent re-renders
-  const [stableEthUsdPrice, setStableEthUsdPrice] = useState(ethUsdPrice);
+  const [stableEthUsdPrice, setStableEthUsdPrice] = useState(0);
   useEffect(() => {
     // Only update stable price if it changed significantly (more than 1%)
-    if (ethUsdPrice > 0 && Math.abs(ethUsdPrice - stableEthUsdPrice) / stableEthUsdPrice > 0.01) {
-      setStableEthUsdPrice(ethUsdPrice);
+    if (ethUsdPrice > 0) {
+      if (stableEthUsdPrice === 0 || Math.abs(ethUsdPrice - stableEthUsdPrice) / stableEthUsdPrice > 0.01) {
+        setStableEthUsdPrice(ethUsdPrice);
+      }
     }
-  }, [ethUsdPrice]);
+  }, [ethUsdPrice, stableEthUsdPrice]);
 
   // Fetch ETH balance
   const { data: ethBalance } = useBalance({
