@@ -239,7 +239,7 @@ export const SingleEthLiquidity = () => {
         setSingleETHEstimatedCoin(formattedTokens);
       }
     } catch (err) {
-      console.error("Error estimating Single-ETH token amount:", err);
+      console.error("Error estimating LP-ZAP token amount:", err);
       setSingleETHEstimatedCoin("");
     }
     return;
@@ -455,7 +455,7 @@ export const SingleEthLiquidity = () => {
         }
       } else {
         // Fallback for non-standard errors
-        console.error("Unknown error in Single-ETH liquidity:", err);
+        console.error("Unknown error in LP-ZAP liquidity:", err);
         setTxError("An unexpected error occurred. Please try again.");
       }
     }
@@ -539,7 +539,7 @@ export const SingleEthLiquidity = () => {
           <li>{t("pool.earn_fees_from_trades", { fee: Number(SWAP_FEE) / 100 })}</li>
           {buyToken && buyToken.symbol === "CULT" && (
             <>
-              <li className="text-primary">Using CULT-optimized ETH zap contract</li>
+              <li className="text-primary">Using CULT-optimized LP-ZAP contract</li>
               <li className="text-primary">Default slippage increased to 10% for CULT liquidity</li>
             </>
           )}
