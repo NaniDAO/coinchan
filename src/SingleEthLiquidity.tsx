@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseEther } from "viem";
 import { mainnet } from "viem/chains";
-import { useAccount, useChainId, usePublicClient, useWaitForTransactionReceipt, useWriteContract, useReadContract } from "wagmi";
+import { useAccount, useChainId, usePublicClient, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { NetworkError } from "./components/NetworkError";
 import { SlippageSettings } from "./components/SlippageSettings";
 import { SwapPanel } from "./components/SwapPanel";
@@ -78,17 +78,7 @@ export const SingleEthLiquidity = () => {
     source: reserveSource,
   });
 
-  // Fetch pool info for LP supply calculation
-  const poolContract = reserveSource === "COOKBOOK" ? CookbookAddress : ZAMMAddress;
-  const poolAbi = reserveSource === "COOKBOOK" ? CookbookAbi : ZAMMAbi;
-  
-  const { data: poolInfo } = useReadContract({
-    address: poolContract,
-    abi: poolAbi,
-    functionName: "pools",
-    args: mainPoolId ? [mainPoolId] : undefined,
-    chainId: mainnet.id,
-  });
+  // Removed unused poolInfo fetch - we'll fetch it dynamically in syncFromSell
 
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [txError, setTxError] = useState<string | null>(null);
@@ -274,10 +264,14 @@ export const SingleEthLiquidity = () => {
         // For CULT and other special pools, we need to fetch the pool info for the specific pool
         if (halfEthAmount > 0n && estimatedTokens > 0n) {
           try {
+            // Use the same address and ABI we used above for fetching reserves
+            const poolAddress = isCookbook ? CookbookAddress : ZAMMAddress;
+            const poolAbi = isCookbook ? CookbookAbi : ZAMMAbi;
+            
             // Fetch pool info for the specific pool being used
             const poolInfoResult = await publicClient?.readContract({
-              address: targetAddress,
-              abi: targetAbi,
+              address: poolAddress,
+              abi: poolAbi,
               functionName: "pools",
               args: [poolId],
             });

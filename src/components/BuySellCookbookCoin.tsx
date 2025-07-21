@@ -358,7 +358,7 @@ export const BuySellCookbookCoin = ({
                 Max
               </Button>
             </div>
-            {coinBalance && coinBalance > 0n && (
+            {coinBalance !== undefined && coinBalance > 0n && (
               <PercentageSlider
                 value={percentage}
                 onChange={handlePercentageChange}
