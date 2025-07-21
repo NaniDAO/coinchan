@@ -23,7 +23,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "./components/ui/h
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
 import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
 import { useTokenSelection } from "./contexts/TokenSelectionContext";
-import { useAllCoins } from "./hooks/metadata/use-all-coins";
+import { useOptimizedCoins } from "./hooks/use-optimized-coins";
 import { useBatchingSupported } from "./hooks/use-batching-supported";
 import { useReserves } from "./hooks/use-reserves";
 import { useENSResolution } from "./hooks/use-ens-resolution";
@@ -41,7 +41,7 @@ export const SwapAction = () => {
   const publicClient = usePublicClient({
     chainId,
   });
-  const { tokens, isEthBalanceFetching } = useAllCoins();
+  const { tokens, isEthBalanceFetching } = useOptimizedCoins();
   const { data: ethPrice } = useETHPrice();
 
   /* State */
