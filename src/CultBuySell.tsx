@@ -583,6 +583,7 @@ export const CultBuySell = () => {
   const [priceAnimating, setPriceAnimating] = useState(false);
   const [accumulatedTax, setAccumulatedTax] = useState<string>("0");
   const [floorProgress, setFloorProgress] = useState<number>(0);
+  const [swapSlippageBps, setSwapSlippageBps] = useState<bigint>(1000n); // 10% default slippage for buy/sell
   const [optimisticPriceUpdate, setOptimisticPriceUpdate] = useState<{
     timestamp: number;
     price: number;
@@ -1213,7 +1214,7 @@ export const CultBuySell = () => {
         sellAmt: amount,
         buyAmt: estimated,
         reserves,
-        slippageBps: 100n, // 1% slippage
+        slippageBps: swapSlippageBps,
         publicClient,
       });
 
@@ -1265,8 +1266,8 @@ export const CultBuySell = () => {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: priceUpdateAnimation }} />
-      <div className="min-h-screen bg-background text-foreground overflow-y-auto">
-        <div className="max-w-2xl w-full mx-auto p-4 cult-container pb-24">
+      <div className="min-h-screen bg-background text-foreground">
+        <div className="max-w-2xl w-full mx-auto p-4 cult-container">
           <div className="text-center mb-6">
             <img
               src="/cult.jpg"
@@ -1563,6 +1564,20 @@ export const CultBuySell = () => {
                     </div>
                   ) : null}
 
+                  {/* Slippage Settings */}
+                  <SlippageSettings 
+                    slippageBps={swapSlippageBps} 
+                    setSlippageBps={setSwapSlippageBps}
+                    slippageOptions={[
+                      { label: "0.5%", value: 50n },
+                      { label: "1%", value: 100n },
+                      { label: "3%", value: 300n },
+                      { label: "5%", value: 500n },
+                      { label: "10%", value: 1000n },
+                    ]}
+                    className="mb-2"
+                  />
+                  
                   {/* Output Preview */}
                   <div className="bg-muted/30 dark:bg-black/30 rounded-lg p-3 border border-green-900/30">
                     <div className="text-sm text-muted-foreground mb-1">
@@ -1667,6 +1682,20 @@ export const CultBuySell = () => {
                     )}
                   </div>
 
+                  {/* Slippage Settings */}
+                  <SlippageSettings 
+                    slippageBps={swapSlippageBps} 
+                    setSlippageBps={setSwapSlippageBps}
+                    slippageOptions={[
+                      { label: "0.5%", value: 50n },
+                      { label: "1%", value: 100n },
+                      { label: "3%", value: 300n },
+                      { label: "5%", value: 500n },
+                      { label: "10%", value: 1000n },
+                    ]}
+                    className="mb-2"
+                  />
+                  
                   {/* Output Preview */}
                   <div className="bg-muted/30 dark:bg-black/30 rounded-lg p-3 border border-green-900/30">
                     <div className="text-sm text-muted-foreground mb-1">
