@@ -16,11 +16,13 @@ import { CULT_TOKEN, CULT_POOL_ID, type TokenMeta } from "@/lib/coins";
 import { cn, formatBalance } from "@/lib/utils";
 import type { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { useAllCoins } from "@/hooks/metadata/use-all-coins";
+import { useETHPrice } from "@/hooks/use-eth-price";
 
 export function CultFarmTab() {
   const { t } = useTranslation();
   const { address } = useAccount();
   const [harvestingId, setHarvestingId] = useState<bigint | null>(null);
+  const { data: ethPrice } = useETHPrice();
 
   // Get all coins including CULT with updated reserves
   const { tokens } = useAllCoins();
@@ -138,6 +140,7 @@ export function CultFarmTab() {
                 lpBalance={lpBalance}
                 onHarvest={handleHarvest}
                 isHarvesting={harvestingId === farm.chefId}
+                ethPrice={ethPrice}
               />
             );
           })}
@@ -153,9 +156,10 @@ interface CultFarmCardProps {
   lpBalance: bigint;
   onHarvest: (chefId: bigint) => Promise<void>;
   isHarvesting: boolean;
+  ethPrice?: { priceUSD: number };
 }
 
-function CultFarmCard({ farm, lpToken, lpBalance, onHarvest, isHarvesting }: CultFarmCardProps) {
+function CultFarmCard({ farm, lpToken, lpBalance, onHarvest, isHarvesting, ethPrice }: CultFarmCardProps) {
   const { t } = useTranslation();
 
   // Validate farm data
@@ -285,26 +289,39 @@ function CultFarmCard({ farm, lpToken, lpBalance, onHarvest, isHarvesting }: Cul
               </div>
               <div>
                 <p className="text-xs text-gray-400 font-mono">{t("common.pending_rewards")}</p>
-                <p className="text-sm font-mono font-bold text-green-400">
-                  {isLoadingRewards ? (
-                    <span className="animate-pulse">...</span>
-                  ) : (
-                    (() => {
-                      try {
-                        // ZAMM rewards are 18 decimals, use formatEther
-                        const formattedRewards = formatEther(pendingRewards || 0n);
-                        return formatBalance(formattedRewards, farm.rewardCoin?.symbol || "ZAMM");
-                      } catch (error) {
-                        console.error("Error formatting pending rewards:", error, {
-                          pendingRewards,
-                          rewardCoin: farm.rewardCoin,
-                          rewardTokenDecimals,
-                        });
-                        return "0";
-                      }
-                    })()
-                  )}
-                </p>
+                <div>
+                  <p className="text-sm font-mono font-bold text-green-400">
+                    {isLoadingRewards ? (
+                      <span className="animate-pulse">...</span>
+                    ) : (
+                      (() => {
+                        try {
+                          // ZAMM rewards are 18 decimals, use formatEther
+                          const formattedRewards = formatEther(pendingRewards || 0n);
+                          return formatBalance(formattedRewards, farm.rewardCoin?.symbol || "ZAMM");
+                        } catch (error) {
+                          console.error("Error formatting pending rewards:", error, {
+                            pendingRewards,
+                            rewardCoin: farm.rewardCoin,
+                            rewardTokenDecimals,
+                          });
+                          return "0";
+                        }
+                      })()
+                    )}
+                  </p>
+                  {ethPrice?.priceUSD && pendingRewards && pendingRewards > 0n ? (
+                    <p className="text-xs text-gray-500">
+                      ≈ ${(() => {
+                        // For rewards, assume they are valued in ETH terms for now
+                        const rewardAmount = parseFloat(formatEther(pendingRewards));
+                        // Simple ETH-based valuation
+                        return (rewardAmount * ethPrice.priceUSD).toFixed(2);
+                      })()}{" "}
+                      USD
+                    </p>
+                  ) : null}
+                </div>
               </div>
             </div>
           </div>

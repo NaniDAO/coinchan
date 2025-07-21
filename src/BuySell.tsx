@@ -277,8 +277,35 @@ export const BuySell = ({
   };
 
   return (
-    <Tabs value={tab} onValueChange={(v) => setTab(v as "buy" | "sell")}>
-      <TabsList>
+    <div>
+      {/* Per-unit price information */}
+      {reserves && reserves.reserve0 > 0n && reserves.reserve1 > 0n && ethPrice?.priceUSD && (
+        <div className="mb-3 p-2 bg-muted/30 rounded-lg text-xs text-muted-foreground">
+          <div className="flex flex-col gap-1">
+            {(() => {
+              const ethAmount = parseFloat(formatEther(reserves.reserve0));
+              const tokenAmount = parseFloat(formatUnits(reserves.reserve1, 18));
+              const tokenPriceInEth = ethAmount / tokenAmount;
+              const ethPriceInToken = tokenAmount / ethAmount;
+              const tokenPriceUsd = tokenPriceInEth * ethPrice.priceUSD;
+              const totalPoolValueUsd = (ethAmount * ethPrice.priceUSD) * 2;
+              
+              return (
+                <>
+                  <div className="opacity-90">Pool Value: ${totalPoolValueUsd.toFixed(2)} USD</div>
+                  <div className="opacity-75">
+                    1 ETH = {ethPriceInToken.toFixed(6)} {symbol} | 
+                    1 {symbol} = {tokenPriceInEth.toFixed(8)} ETH (${tokenPriceUsd.toFixed(8)} USD)
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+      
+      <Tabs value={tab} onValueChange={(v) => setTab(v as "buy" | "sell")}>
+        <TabsList>
         <TabsTrigger value="buy" className="transition-all duration-300">
           Buy {name} [{symbol}]
         </TabsTrigger>
@@ -381,8 +408,9 @@ export const BuySell = ({
         </div>
       </TabsContent>
 
-      {errorMessage && <p className="text-destructive text-sm">{errorMessage}</p>}
-      {isSuccess && <p className="text-chart-2 text-sm">Tx confirmed!</p>}
-    </Tabs>
+        {errorMessage && <p className="text-destructive text-sm">{errorMessage}</p>}
+        {isSuccess && <p className="text-chart-2 text-sm">Tx confirmed!</p>}
+      </Tabs>
+    </div>
   );
 };

@@ -10,6 +10,7 @@ import { isUserRejectionError } from "@/lib/errors";
 import { cn, formatBalance } from "@/lib/utils";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useETHPrice } from "@/hooks/use-eth-price";
 import { formatEther, formatUnits, parseUnits } from "viem";
 import { usePublicClient } from "wagmi";
 
@@ -29,6 +30,7 @@ interface FarmUnstakeDialogProps {
 export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSuccess }: FarmUnstakeDialogProps) {
   const { t } = useTranslation();
   const publicClient = usePublicClient();
+  const { data: ethPrice } = useETHPrice();
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [txHash, setTxHash] = useState<string | null>(null);
@@ -236,9 +238,20 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
                 <div className="border border-muted p-3">
                   <div className="flex justify-between items-center">
                     <span className="font-mono text-muted-foreground">{t("common.rewards_to_claim")}:</span>
-                    <span className="font-mono font-bold text-green-600 text-lg">
-                      {Number.parseFloat(formatEther(actualPendingRewards)).toFixed(6)} {stream.rewardCoin?.symbol}
-                    </span>
+                    <div className="text-right">
+                      <span className="font-mono font-bold text-green-600 text-lg block">
+                        {Number.parseFloat(formatEther(actualPendingRewards)).toFixed(6)} {stream.rewardCoin?.symbol}
+                      </span>
+                      {ethPrice?.priceUSD && actualPendingRewards > 0n && (
+                        <span className="text-xs text-muted-foreground">
+                          ≈ ${(() => {
+                            // For rewards, assume ETH-based valuation for now
+                            const rewardAmount = parseFloat(formatEther(actualPendingRewards));
+                            return (rewardAmount * ethPrice.priceUSD).toFixed(2);
+                          })()} USD
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

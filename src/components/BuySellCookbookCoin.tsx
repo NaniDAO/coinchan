@@ -199,6 +199,32 @@ export const BuySellCookbookCoin = ({
 
   return (
     <div className="space-y-4">
+      {/* Per-unit price information */}
+      {reserves && reserves.reserve0 > 0n && reserves.reserve1 > 0n && ethPrice?.priceUSD && (
+        <div className="p-2 bg-muted/30 rounded-lg text-xs text-muted-foreground">
+          <div className="flex flex-col gap-1">
+            {(() => {
+              const ethAmount = parseFloat(formatEther(reserves.reserve0));
+              const tokenAmount = parseFloat(formatUnits(reserves.reserve1, 18));
+              const tokenPriceInEth = ethAmount / tokenAmount;
+              const ethPriceInToken = tokenAmount / ethAmount;
+              const tokenPriceUsd = tokenPriceInEth * ethPrice.priceUSD;
+              const totalPoolValueUsd = (ethAmount * ethPrice.priceUSD) * 2;
+              
+              return (
+                <>
+                  <div className="opacity-90">Pool Value: ${totalPoolValueUsd.toFixed(2)} USD</div>
+                  <div className="opacity-75">
+                    1 ETH = {ethPriceInToken.toFixed(6)} {symbol} | 
+                    1 {symbol} = {tokenPriceInEth.toFixed(8)} ETH (${tokenPriceUsd.toFixed(8)} USD)
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+      
       {/* Claim Section - Only show if user can claim */}
       {canClaim ? (
         <Card>

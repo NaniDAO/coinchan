@@ -214,7 +214,7 @@ export function SwapRibbon() {
           >
             <span className="text-sm shrink-0 inline-flex items-center">{item.snippet}</span>
             <span
-              className={`text-2xl mx-2 inline-flex items-center ${item.id === "farm-alpha" || item.id === "cult-feature" ? "text-foreground" : ""}`}
+              className={`text-2xl mx-3 inline-flex items-center ${item.id === "farm-alpha" || item.id === "cult-feature" ? "text-foreground" : ""}`}
             >
               /
             </span>

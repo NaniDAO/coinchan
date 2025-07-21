@@ -854,9 +854,9 @@ export const SwapAction = () => {
               })}
             </span>
           </div>
-          {/* USD values */}
+          {/* USD values and per-unit prices */}
           {ethPrice?.priceUSD && !isCoinToCoin && (
-            <div className="text-muted-foreground mt-1">
+            <div className="text-muted-foreground mt-1 space-y-0.5">
               {(() => {
                 const ethAmount = parseFloat(formatEther(reserves.reserve0));
                 const tokenAmount = parseFloat(formatUnits(
@@ -864,14 +864,22 @@ export const SwapAction = () => {
                   isCustomPool ? (sellToken.isCustomPool ? sellToken.decimals || 18 : buyToken?.decimals || 18) : 18
                 ));
                 const tokenPriceInEth = ethAmount / tokenAmount;
+                const ethPriceInToken = tokenAmount / ethAmount;
                 const tokenPriceUsd = tokenPriceInEth * ethPrice.priceUSD;
-                const ethValueUsd = ethAmount * ethPrice.priceUSD;
-                const tokenValueUsd = tokenAmount * tokenPriceUsd;
+                const totalPoolValueUsd = (ethAmount * ethPrice.priceUSD) * 2;
+                
+                const tokenSymbol = coinId ? tokens.find((t) => t.id === coinId)?.symbol || "Token" : buyToken?.symbol;
                 
                 return (
-                  <span className="opacity-75">
-                    USD: ${ethValueUsd.toFixed(2)} / ${tokenValueUsd.toFixed(2)}
-                  </span>
+                  <>
+                    <div className="opacity-75 text-xs">
+                      Total Pool Value: ${totalPoolValueUsd.toFixed(2)} USD
+                    </div>
+                    <div className="opacity-60 text-xs space-y-0.5">
+                      <div>1 ETH = {ethPriceInToken.toFixed(6)} {tokenSymbol}</div>
+                      <div>1 {tokenSymbol} = {tokenPriceInEth.toFixed(8)} ETH (${tokenPriceUsd.toFixed(8)} USD)</div>
+                    </div>
+                  </>
                 );
               })()}
             </div>
