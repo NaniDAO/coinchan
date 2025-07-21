@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseEther } from "viem";
 import { mainnet } from "viem/chains";
-import { useAccount, useChainId, usePublicClient, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import { useAccount, useChainId, usePublicClient, useWaitForTransactionReceipt, useWriteContract, useReadContract } from "wagmi";
 import { NetworkError } from "./components/NetworkError";
 import { SlippageSettings } from "./components/SlippageSettings";
 import { SwapPanel } from "./components/SwapPanel";
@@ -31,7 +31,23 @@ import {
   getPoolIds,
   withSlippage,
 } from "./lib/swap";
-import { nowSec } from "./lib/utils";
+import { nowSec, formatNumber } from "./lib/utils";
+
+// Helper function to calculate square root for LP token calculation
+const sqrt = (value: bigint): bigint => {
+  if (value < 0n) {
+    throw new Error("Square root of negative numbers is not supported");
+  }
+  if (value === 0n) return 0n;
+  
+  let z = value;
+  let x = value / 2n + 1n;
+  while (x < z) {
+    z = x;
+    x = (value / x + x) / 2n;
+  }
+  return z;
+};
 
 export const SingleEthLiquidity = () => {
   const { t } = useTranslation();
@@ -62,6 +78,18 @@ export const SingleEthLiquidity = () => {
     source: reserveSource,
   });
 
+  // Fetch pool info for LP supply calculation
+  const poolContract = reserveSource === "COOKBOOK" ? CookbookAddress : ZAMMAddress;
+  const poolAbi = reserveSource === "COOKBOOK" ? CookbookAbi : ZAMMAbi;
+  
+  const { data: poolInfo } = useReadContract({
+    address: poolContract,
+    abi: poolAbi,
+    functionName: "pools",
+    args: mainPoolId ? [mainPoolId] : undefined,
+    chainId: mainnet.id,
+  });
+
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [txError, setTxError] = useState<string | null>(null);
 
@@ -69,6 +97,8 @@ export const SingleEthLiquidity = () => {
     buyToken?.symbol === "CULT" ? 1000n : SINGLE_ETH_SLIPPAGE_BPS
   );
   const [singleETHEstimatedCoin, setSingleETHEstimatedCoin] = useState<string>("");
+  const [estimatedLpTokens, setEstimatedLpTokens] = useState<string>("");
+  const [estimatedPoolShare, setEstimatedPoolShare] = useState<string>("");
 
   const { tokens, isEthBalanceFetching } = useAllCoins();
 
@@ -237,10 +267,43 @@ export const SingleEthLiquidity = () => {
 
         const formattedTokens = formatUnits(estimatedTokens, tokenDecimals);
         setSingleETHEstimatedCoin(formattedTokens);
+        
+        // Calculate LP tokens that will be minted
+        if (poolInfo && halfEthAmount > 0n && estimatedTokens > 0n) {
+          try {
+            const totalSupply = poolInfo[6] as bigint; // Total LP supply at index 6
+            
+            if (totalSupply > 0n && targetReserves.reserve0 > 0n && targetReserves.reserve1 > 0n) {
+              // From AMM: liquidity = min(mulDiv(amount0, supply, reserve0), mulDiv(amount1, supply, reserve1))
+              const lpFromEth = (halfEthAmount * totalSupply) / targetReserves.reserve0;
+              const lpFromToken = (estimatedTokens * totalSupply) / targetReserves.reserve1;
+              const lpTokensToMint = lpFromEth < lpFromToken ? lpFromEth : lpFromToken;
+              
+              setEstimatedLpTokens(formatUnits(lpTokensToMint, 18));
+              
+              // Calculate pool share percentage
+              const newTotalSupply = totalSupply + lpTokensToMint;
+              const poolShareBps = (lpTokensToMint * 10000n) / newTotalSupply;
+              setEstimatedPoolShare(`${(Number(poolShareBps) / 100).toFixed(2)}%`);
+            } else if (totalSupply === 0n) {
+              // First liquidity provider - from AMM: liquidity = sqrt(amount0 * amount1) - MINIMUM_LIQUIDITY
+              const MINIMUM_LIQUIDITY = 1000n;
+              const lpTokens = sqrt(halfEthAmount * estimatedTokens) - MINIMUM_LIQUIDITY;
+              setEstimatedLpTokens(formatUnits(lpTokens, 18));
+              setEstimatedPoolShare("100%");
+            }
+          } catch (err) {
+            console.error("Error calculating LP tokens:", err);
+            setEstimatedLpTokens("");
+            setEstimatedPoolShare("");
+          }
+        }
       }
     } catch (err) {
       console.error("Error estimating LP-ZAP token amount:", err);
       setSingleETHEstimatedCoin("");
+      setEstimatedLpTokens("");
+      setEstimatedPoolShare("");
     }
     return;
   };
@@ -528,6 +591,20 @@ export const SingleEthLiquidity = () => {
 
       {/* Slippage */}
       <SlippageSettings setSlippageBps={setSingleEthSlippageBps} slippageBps={singleEthSlippageBps} />
+
+      {/* LP Tokens and Pool Share Estimation */}
+      {estimatedLpTokens && estimatedPoolShare && (
+        <div className="mt-2 p-3 bg-muted/30 border border-primary/20 rounded-lg">
+          <div className="flex justify-between items-center mb-1">
+            <span className="text-sm text-muted-foreground">{t("common.estimated_lp_tokens")}:</span>
+            <span className="font-mono text-sm">{formatNumber(parseFloat(estimatedLpTokens), 6)} LP</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">{t("cult.pool_share")}:</span>
+            <span className="font-mono text-sm">{estimatedPoolShare}</span>
+          </div>
+        </div>
+      )}
 
       {/* Info box */}
       <div className="text-xs bg-muted/50 border border-primary/30 rounded p-2 mt-2 text-muted-foreground">

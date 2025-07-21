@@ -28,12 +28,29 @@ import { ZAMMHelperAbi, ZAMMHelperAddress } from "./constants/ZAMMHelper";
 import { ZAMMHelperV1Abi, ZAMMHelperV1Address } from "./constants/ZAMMHelperV1";
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
 import { CookbookAddress, CookbookAbi } from "./constants/Cookbook";
-import { nowSec } from "./lib/utils";
+import { nowSec, formatNumber } from "./lib/utils";
 import { mainnet } from "viem/chains";
 import { SwapPanel } from "./components/SwapPanel";
 import { useReserves } from "./hooks/use-reserves";
 import { useErc20Allowance } from "./hooks/use-erc20-allowance";
 import { SuccessMessage } from "./components/SuccessMessage";
+import { useReadContract } from "wagmi";
+
+// Helper function to calculate square root for LP token calculation
+const sqrt = (value: bigint): bigint => {
+  if (value < 0n) {
+    throw new Error("Square root of negative numbers is not supported");
+  }
+  if (value === 0n) return 0n;
+  
+  let z = value;
+  let x = value / 2n + 1n;
+  while (x < z) {
+    z = x;
+    x = (value / x + x) / 2n;
+  }
+  return z;
+};
 
 export const AddLiquidity = () => {
   const { t } = useTranslation();
@@ -49,6 +66,45 @@ export const AddLiquidity = () => {
   /* user inputs */
   const [sellAmt, setSellAmt] = useState("");
   const [buyAmt, setBuyAmt] = useState("");
+  const [estimatedLpTokens, setEstimatedLpTokens] = useState<string>("");
+  const [estimatedPoolShare, setEstimatedPoolShare] = useState<string>("");
+
+  // Calculate expected LP tokens whenever amounts change
+  const calculateLpTokens = useCallback((ethAmount: bigint, tokenAmount: bigint) => {
+    if (!poolInfo || ethAmount === 0n || tokenAmount === 0n) {
+      setEstimatedLpTokens("");
+      setEstimatedPoolShare("");
+      return;
+    }
+
+    try {
+      const totalSupply = poolInfo[6] as bigint; // Total LP supply at index 6
+      
+      if (totalSupply > 0n && reserves?.reserve0 && reserves?.reserve1) {
+        // From AMM: liquidity = min(mulDiv(amount0, supply, reserve0), mulDiv(amount1, supply, reserve1))
+        const lpFromEth = (ethAmount * totalSupply) / reserves.reserve0;
+        const lpFromToken = (tokenAmount * totalSupply) / reserves.reserve1;
+        const lpTokensToMint = lpFromEth < lpFromToken ? lpFromEth : lpFromToken;
+        
+        setEstimatedLpTokens(formatUnits(lpTokensToMint, 18));
+        
+        // Calculate pool share percentage
+        const newTotalSupply = totalSupply + lpTokensToMint;
+        const poolShareBps = (lpTokensToMint * 10000n) / newTotalSupply;
+        setEstimatedPoolShare(`${(Number(poolShareBps) / 100).toFixed(2)}%`);
+      } else if (totalSupply === 0n) {
+        // First liquidity provider - from AMM: liquidity = sqrt(amount0 * amount1) - MINIMUM_LIQUIDITY
+        const MINIMUM_LIQUIDITY = 1000n;
+        const lpTokens = sqrt(ethAmount * tokenAmount) - MINIMUM_LIQUIDITY;
+        setEstimatedLpTokens(formatUnits(lpTokens, 18));
+        setEstimatedPoolShare("100%");
+      }
+    } catch (err) {
+      console.error("Error calculating LP tokens:", err);
+      setEstimatedLpTokens("");
+      setEstimatedPoolShare("");
+    }
+  }, [poolInfo, reserves]);
 
   // Use shared token selection context
   const { sellToken, buyToken, setSellToken, setBuyToken } = useTokenSelection();
@@ -97,6 +153,18 @@ export const AddLiquidity = () => {
   const { data: targetReserves } = useReserves({
     poolId: targetPoolId,
     source: reserveSource,
+  });
+
+  // Fetch pool info for LP supply calculation
+  const poolContract = reserveSource === "COOKBOOK" ? CookbookAddress : ZAMMAddress;
+  const poolAbi = reserveSource === "COOKBOOK" ? CookbookAbi : ZAMMAbi;
+  
+  const { data: poolInfo } = useReadContract({
+    address: poolContract,
+    abi: poolAbi,
+    functionName: "pools",
+    args: actualPoolId ? [actualPoolId] : undefined,
+    chainId: mainnet.id,
   });
 
   const [slippageBps, setSlippageBps] = useState<bigint>(SLIPPAGE_BPS);
@@ -208,6 +276,11 @@ export const AddLiquidity = () => {
         const formattedAmount = formatUnits(optimalTokenAmount, buyTokenDecimals);
 
         setBuyAmt(optimalTokenAmount === 0n ? "" : formattedAmount);
+        
+        // Calculate LP tokens
+        if (ethAmount > 0n && optimalTokenAmount > 0n) {
+          calculateLpTokens(ethAmount, optimalTokenAmount);
+        }
       } else if (!isSellETH && buyToken?.id === null) {
         // Token → ETH: Calculate optimal ETH amount for the given token amount
         const sellTokenDecimals = sellToken?.decimals || 18;
@@ -224,6 +297,11 @@ export const AddLiquidity = () => {
         const optimalEthAmount = (tokenAmount * reserves.reserve0) / reserves.reserve1;
 
         setBuyAmt(optimalEthAmount === 0n ? "" : formatEther(optimalEthAmount));
+        
+        // Calculate LP tokens
+        if (tokenAmount > 0n && optimalEthAmount > 0n) {
+          calculateLpTokens(optimalEthAmount, tokenAmount);
+        }
       } else if (isCoinToCoin && targetReserves && buyToken?.id && sellToken.id) {
         // For coin-to-coin, this is more complex and not common for add liquidity
         // Clear the field to let user input manually
@@ -261,6 +339,11 @@ export const AddLiquidity = () => {
         const optimalEthAmount = (tokenAmount * reserves.reserve0) / reserves.reserve1;
 
         setSellAmt(optimalEthAmount === 0n ? "" : formatEther(optimalEthAmount));
+        
+        // Calculate LP tokens
+        if (optimalEthAmount > 0n && tokenAmount > 0n) {
+          calculateLpTokens(optimalEthAmount, tokenAmount);
+        }
       } else if (!isSellETH && buyToken?.id === null) {
         // User input ETH amount, calculate optimal token amount
         const ethAmount = parseEther(val || "0");
@@ -278,6 +361,11 @@ export const AddLiquidity = () => {
         // Use correct decimals for the sell token
         const sellTokenDecimals = sellToken?.decimals || 18;
         setSellAmt(optimalTokenAmount === 0n ? "" : formatUnits(optimalTokenAmount, sellTokenDecimals));
+        
+        // Calculate LP tokens
+        if (ethAmount > 0n && optimalTokenAmount > 0n) {
+          calculateLpTokens(ethAmount, optimalTokenAmount);
+        }
       } else if (isCoinToCoin) {
         // For coin-to-coin add liquidity, this is complex and not common
         // Clear the field to let user input manually
@@ -683,6 +771,20 @@ export const AddLiquidity = () => {
 
       {/* Slippage information */}
       <SlippageSettings slippageBps={slippageBps} setSlippageBps={setSlippageBps} />
+
+      {/* LP Tokens and Pool Share Estimation */}
+      {estimatedLpTokens && estimatedPoolShare && (
+        <div className="mt-2 p-3 bg-muted/30 border border-primary/20 rounded-lg">
+          <div className="flex justify-between items-center mb-1">
+            <span className="text-sm text-muted-foreground">{t("common.estimated_lp_tokens")}:</span>
+            <span className="font-mono text-sm">{formatNumber(parseFloat(estimatedLpTokens), 6)} LP</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">{t("cult.pool_share")}:</span>
+            <span className="font-mono text-sm">{estimatedPoolShare}</span>
+          </div>
+        </div>
+      )}
 
       <div className="text-xs bg-muted/50 border border-primary/30 rounded p-2 mt-2 text-muted-foreground dark:text-gray-300">
         <p className="font-medium mb-1">{t("pool.adding_liquidity_provides")}</p>

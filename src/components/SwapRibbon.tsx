@@ -62,7 +62,7 @@ const convertToSnippets = (swaps: any[]) => {
           return {
             id,
             snippet: (
-              <>
+              <span style={{ color: getColor(id) }}>
                 <a target="_blank" href={"https://etherscan.io/address/" + trader} rel="noreferrer">
                   {truncAddress(trader)}
                 </a>{" "}
@@ -75,7 +75,7 @@ const convertToSnippets = (swaps: any[]) => {
                 >
                   {pool.coin1.symbol}
                 </Link>
-              </>
+              </span>
             ),
           };
         } else if (isSell) {
@@ -188,7 +188,7 @@ export function SwapRibbon() {
         rel="noreferrer"
         className="text-foreground hover:underline font-medium"
       >
-        🌾 [Farm (Alpha)]
+        <span className="ml-2">🌾</span> [Farm (Alpha)]
       </a>
     ),
   };
@@ -213,7 +213,7 @@ export function SwapRibbon() {
                 repeat: Number.POSITIVE_INFINITY,
                 repeatType: "loop",
                 ease: "linear",
-                duration: 20,
+                duration: 33,
               }
         }
       >

@@ -265,6 +265,7 @@
     "about": "About",
     "processing": "Processing...",
     "estimated": "Estimated",
+    "estimated_lp_tokens": "Estimated LP Tokens",
     "provide_eth": "Provide ETH",
     "lp_tokens_to_burn": "LP Tokens to Burn",
     "you_will_receive_eth": "You'll Receive (ETH)",

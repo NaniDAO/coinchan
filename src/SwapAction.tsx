@@ -835,12 +835,15 @@ export const SwapAction = () => {
               </span>
             ) : (
               <span>
-                {t("pool.title")}: {formatEther(reserves.reserve0).substring(0, 8)} ETH /{" "}
-                {formatUnits(
-                  reserves.reserve1,
-                  // Use the correct decimals for the token (6 for USDT, 18 for others)
-                  isCustomPool ? (sellToken.isCustomPool ? sellToken.decimals || 18 : buyToken?.decimals || 18) : 18,
-                ).substring(0, 8)}{" "}
+                {t("pool.title")}: {formatNumber(parseFloat(formatEther(reserves.reserve0)), 5)} ETH /{" "}
+                {formatNumber(
+                  parseFloat(formatUnits(
+                    reserves.reserve1,
+                    // Use the correct decimals for the token (6 for USDT, 18 for others)
+                    isCustomPool ? (sellToken.isCustomPool ? sellToken.decimals || 18 : buyToken?.decimals || 18) : 18,
+                  )),
+                  3
+                )}{" "}
                 {coinId ? tokens.find((t) => t.id === coinId)?.symbol || "Token" : buyToken?.symbol}
               </span>
             )}
