@@ -14,7 +14,7 @@ const fetchSwaps = async () => {
     body: JSON.stringify({
       query: `
       query GetSwaps {
-        swaps(limit: 5, orderBy: "timestamp", orderDirection: "desc") {
+        swaps(limit: 10, orderBy: "timestamp", orderDirection: "desc") {
           items {
             amount0In
             amount0Out
@@ -149,7 +149,22 @@ export function SwapRibbon() {
 
   if (isLoading || error || !data) return null;
 
-  // Add CULT feature as the first item
+  // Add ZAMM GOV #0 as the first item
+  const govItem = {
+    id: "zamm-gov-0",
+    snippet: (
+      <a
+        href="https://snapshot.box/#/s:zamm.eth/proposal/0xbaa757c6d1582374ad60e6b72984903e56d3a1f3f072abc9957bf9a6d01cf3d4"
+        target="_blank"
+        rel="noreferrer"
+        className="text-foreground hover:underline font-medium"
+      >
+        ✔️ ZAMM GOV #0
+      </a>
+    ),
+  };
+
+  // Add CULT feature as the second item
   const cultItem = {
     id: "cult-feature",
     snippet: (
@@ -163,7 +178,7 @@ export function SwapRibbon() {
     ),
   };
 
-  // Add Farm (Alpha) as the second item
+  // Add Farm (Alpha) as the third item
   const farmItem = {
     id: "farm-alpha",
     snippet: (
@@ -178,7 +193,7 @@ export function SwapRibbon() {
     ),
   };
 
-  const allItems = [cultItem, farmItem, ...data];
+  const allItems = [govItem, cultItem, farmItem, ...data];
   const repeated = [...allItems, ...allItems]; // Duplicate for seamless scroll
 
   return (
@@ -207,14 +222,14 @@ export function SwapRibbon() {
             key={`${item.id}-${index}`}
             className="inline-flex items-center"
             style={
-              item.id === "farm-alpha" || item.id === "cult-feature"
+              item.id === "zamm-gov-0" || item.id === "farm-alpha" || item.id === "cult-feature"
                 ? { color: "inherit" }
                 : { color: getColor(item.id) }
             }
           >
             <span className="text-sm shrink-0 inline-flex items-center">{item.snippet}</span>
             <span
-              className={`text-2xl mx-3 inline-flex items-center ${item.id === "farm-alpha" || item.id === "cult-feature" ? "text-foreground" : ""}`}
+              className={`text-2xl mx-3 inline-flex items-center ${item.id === "zamm-gov-0" || item.id === "farm-alpha" || item.id === "cult-feature" ? "text-foreground" : ""}`}
             >
               /
             </span>
