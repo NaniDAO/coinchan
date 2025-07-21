@@ -7,12 +7,16 @@ import type { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { useZChefActions, useZChefPendingReward, useZChefUserBalance } from "@/hooks/use-zchef-contract";
 import type { TokenMeta } from "@/lib/coins";
 import { isUserRejectionError } from "@/lib/errors";
-import { cn, formatBalance } from "@/lib/utils";
+import { cn, formatBalance, formatNumber } from "@/lib/utils";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useETHPrice } from "@/hooks/use-eth-price";
 import { formatEther, formatUnits, parseUnits } from "viem";
 import { usePublicClient } from "wagmi";
+import { useReserves } from "@/hooks/use-reserves";
+
+// Hardcoded ZAMM pool ID for price calculations
+const ZAMM_POOL_ID = 22979666169544372205220120853398704213623237650449182409187385558845249460832n;
 
 interface FarmUnstakeDialogProps {
   stream: IncentiveStream;
@@ -36,6 +40,13 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
   const [txHash, setTxHash] = useState<string | null>(null);
   const [txStatus, setTxStatus] = useState<"idle" | "pending" | "confirming" | "success" | "error">("idle");
   const [txError, setTxError] = useState<string | null>(null);
+  
+  // Fetch ZAMM reserves if reward token is ZAMM
+  const isZAMMReward = stream.rewardCoin?.symbol === "ZAMM";
+  const { data: zammReserves } = useReserves({
+    poolId: isZAMMReward ? ZAMM_POOL_ID : undefined,
+    source: "ZAMM"
+  });
 
   const { withdraw } = useZChefActions();
 
@@ -242,12 +253,15 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
                       <span className="font-mono font-bold text-green-600 text-lg block">
                         {Number.parseFloat(formatEther(actualPendingRewards)).toFixed(6)} {stream.rewardCoin?.symbol}
                       </span>
-                      {ethPrice?.priceUSD && actualPendingRewards > 0n && (
+                      {ethPrice?.priceUSD && actualPendingRewards > 0n && isZAMMReward && zammReserves && zammReserves.reserve0 && zammReserves.reserve1 && zammReserves.reserve0 > 0n && zammReserves.reserve1 > 0n && (
                         <span className="text-xs text-muted-foreground">
                           ≈ ${(() => {
-                            // For rewards, assume ETH-based valuation for now
                             const rewardAmount = parseFloat(formatEther(actualPendingRewards));
-                            return (rewardAmount * ethPrice.priceUSD).toFixed(2);
+                            const ethReserve = parseFloat(formatEther(zammReserves.reserve0));
+                            const zammReserve = parseFloat(formatEther(zammReserves.reserve1));
+                            const zammPriceInEth = ethReserve / zammReserve;
+                            const zammPriceUsd = zammPriceInEth * ethPrice.priceUSD;
+                            return formatNumber(rewardAmount * zammPriceUsd, 2);
                           })()} USD
                         </span>
                       )}

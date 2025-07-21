@@ -31,7 +31,7 @@ import { buildSwapCalls } from "./lib/build-swap-calls";
 import type { TokenMeta } from "./lib/coins";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import { SLIPPAGE_BPS, SWAP_FEE, analyzeTokens, getAmountIn, getAmountOut, getPoolIds, getSwapFee } from "./lib/swap";
-import { cn } from "./lib/utils";
+import { cn, formatNumber } from "./lib/utils";
 
 export const SwapAction = () => {
   const { t } = useTranslation();
@@ -873,7 +873,7 @@ export const SwapAction = () => {
                 return (
                   <>
                     <div className="opacity-75 text-xs">
-                      Total Pool Value: ${totalPoolValueUsd.toFixed(2)} USD
+                      Total Pool Value: ${formatNumber(totalPoolValueUsd, 2)} USD
                     </div>
                     <div className="opacity-60 text-xs space-y-0.5">
                       <div>1 ETH = {ethPriceInToken.toFixed(6)} {tokenSymbol}</div>

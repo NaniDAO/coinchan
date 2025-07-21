@@ -13,10 +13,14 @@ import { FarmStakeDialog } from "@/components/FarmStakeDialog";
 import { FarmUnstakeDialog } from "@/components/FarmUnstakeDialog";
 import { isUserRejectionError } from "@/lib/errors";
 import { CULT_TOKEN, CULT_POOL_ID, type TokenMeta } from "@/lib/coins";
-import { cn, formatBalance } from "@/lib/utils";
+import { cn, formatBalance, formatNumber } from "@/lib/utils";
 import type { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { useAllCoins } from "@/hooks/metadata/use-all-coins";
 import { useETHPrice } from "@/hooks/use-eth-price";
+import { useReserves } from "@/hooks/use-reserves";
+
+// Hardcoded ZAMM pool ID for price calculations
+const ZAMM_POOL_ID = 22979666169544372205220120853398704213623237650449182409187385558845249460832n;
 
 export function CultFarmTab() {
   const { t } = useTranslation();
@@ -172,6 +176,13 @@ function CultFarmCard({ farm, lpToken, lpBalance, onHarvest, isHarvesting, ethPr
   const { data: poolData } = useZChefPool(farm.chefId);
   const { data: userBalance } = useZChefUserBalance(farm.chefId);
   const { data: pendingRewards, isLoading: isLoadingRewards } = useZChefPendingReward(farm.chefId);
+  
+  // Fetch ZAMM reserves if reward token is ZAMM
+  const isZAMMReward = farm.rewardCoin?.symbol === "ZAMM";
+  const { data: zammReserves } = useReserves({
+    poolId: isZAMMReward ? ZAMM_POOL_ID : undefined,
+    source: "ZAMM"
+  });
 
   const totalShares = poolData?.[7] ?? farm.totalShares ?? 0n;
   const hasStaked = !!(userBalance && userBalance > 0n);
@@ -310,15 +321,16 @@ function CultFarmCard({ farm, lpToken, lpBalance, onHarvest, isHarvesting, ethPr
                       })()
                     )}
                   </p>
-                  {ethPrice?.priceUSD && pendingRewards && pendingRewards > 0n ? (
+                  {ethPrice?.priceUSD && pendingRewards && pendingRewards > 0n && isZAMMReward && zammReserves && zammReserves.reserve0 && zammReserves.reserve1 && zammReserves.reserve0 > 0n && zammReserves.reserve1 > 0n ? (
                     <p className="text-xs text-gray-500">
                       ≈ ${(() => {
-                        // For rewards, assume they are valued in ETH terms for now
                         const rewardAmount = parseFloat(formatEther(pendingRewards));
-                        // Simple ETH-based valuation
-                        return (rewardAmount * ethPrice.priceUSD).toFixed(2);
-                      })()}{" "}
-                      USD
+                        const ethReserve = parseFloat(formatEther(zammReserves.reserve0));
+                        const zammReserve = parseFloat(formatEther(zammReserves.reserve1));
+                        const zammPriceInEth = ethReserve / zammReserve;
+                        const zammPriceUsd = zammPriceInEth * ethPrice.priceUSD;
+                        return formatNumber(rewardAmount * zammPriceUsd, 2);
+                      })()} USD
                     </p>
                   ) : null}
                 </div>

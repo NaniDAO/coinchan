@@ -16,7 +16,7 @@ import {
   getAmountOut,
   withSlippage,
 } from "@/lib/swap";
-import { nowSec } from "@/lib/utils";
+import { nowSec, formatNumber } from "@/lib/utils";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
@@ -213,7 +213,7 @@ export const BuySellCookbookCoin = ({
               
               return (
                 <>
-                  <div className="opacity-90">Pool Value: ${totalPoolValueUsd.toFixed(2)} USD</div>
+                  <div className="opacity-90">Pool Value: ${formatNumber(totalPoolValueUsd, 2)} USD</div>
                   <div className="opacity-75">
                     1 ETH = {ethPriceInToken.toFixed(6)} {symbol} | 
                     1 {symbol} = {tokenPriceInEth.toFixed(8)} ETH (${tokenPriceUsd.toFixed(8)} USD)

@@ -36,7 +36,7 @@ import { getCultHookTaxRate, toGross } from "@/lib/cult-hook-utils";
 import { CheckTheChainAbi, CheckTheChainAddress } from "@/constants/CheckTheChain";
 import { DEADLINE_SEC, withSlippage, getAmountIn, getAmountOut } from "@/lib/swap";
 import type { Address, Hex, PublicClient } from "viem";
-import { nowSec, cn } from "./lib/utils";
+import { nowSec, cn, formatNumber } from "./lib/utils";
 import { useReserves } from "./hooks/use-reserves";
 import { useBatchingSupported } from "./hooks/use-batching-supported";
 import PoolPriceChart from "./components/PoolPriceChart";
@@ -1056,7 +1056,7 @@ export const CultBuySell = () => {
                 <div className="flex justify-between">
                   <span className="text-gray-400 text-xs">Total Value:</span>
                   <span className="text-gray-500 font-mono text-xs">
-                    ${(parseFloat(formatEther(reserves.reserve0)) * ethPrice.priceUSD * 2).toFixed(2)} USD
+                    ${formatNumber(parseFloat(formatEther(reserves.reserve0)) * ethPrice.priceUSD * 2, 2)} USD
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -1237,7 +1237,7 @@ export const CultBuySell = () => {
                 </span>
                 {ethPrice?.priceUSD && amount && (
                   <span className="text-xs text-gray-500">
-                    ≈ ${(parseFloat(amount) * ethPrice.priceUSD).toFixed(2)} USD
+                    ≈ ${formatNumber(parseFloat(amount) * ethPrice.priceUSD, 2)} USD
                   </span>
                 )}
               </div>
@@ -1283,7 +1283,7 @@ export const CultBuySell = () => {
                   </span>
                   {ethPrice?.priceUSD && estimated !== "0" && (
                     <span className="text-xs text-gray-500">
-                      ≈ ${(parseFloat(estimated) * ethPrice.priceUSD).toFixed(2)} USD
+                      ≈ ${formatNumber(parseFloat(estimated) * ethPrice.priceUSD, 2)} USD
                     </span>
                   )}
                 </div>
@@ -1334,7 +1334,7 @@ export const CultBuySell = () => {
                 />
                 {ethPrice?.priceUSD && liquidityEthAmount && (
                   <span className="text-xs text-gray-500">
-                    ≈ ${(parseFloat(liquidityEthAmount) * ethPrice.priceUSD).toFixed(2)} USD
+                    ≈ ${formatNumber(parseFloat(liquidityEthAmount) * ethPrice.priceUSD, 2)} USD
                   </span>
                 )}
               </div>
@@ -1463,7 +1463,7 @@ export const CultBuySell = () => {
                       <span className="text-white font-mono block">{parseFloat(expectedEth).toFixed(6)} ETH</span>
                       {ethPrice?.priceUSD && expectedEth !== "0" && (
                         <span className="text-xs text-gray-500">
-                          ≈ ${(parseFloat(expectedEth) * ethPrice.priceUSD).toFixed(2)} USD
+                          ≈ ${formatNumber(parseFloat(expectedEth) * ethPrice.priceUSD, 2)} USD
                         </span>
                       )}
                     </div>

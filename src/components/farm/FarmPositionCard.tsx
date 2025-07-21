@@ -1,9 +1,14 @@
 import type { IncentiveStream, IncentiveUserPosition } from "@/hooks/use-incentive-streams";
 import { useZChefPendingReward, useZChefUserBalance } from "@/hooks/use-zchef-contract";
 import { ETH_TOKEN, type TokenMeta } from "@/lib/coins";
-import { formatBalance } from "@/lib/utils";
+import { formatBalance, formatNumber } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 import { formatEther } from "viem";
+import { useETHPrice } from "@/hooks/use-eth-price";
+import { useReserves } from "@/hooks/use-reserves";
+
+// Hardcoded ZAMM pool ID for price calculations
+const ZAMM_POOL_ID = 22979666169544372205220120853398704213623237650449182409187385558845249460832n;
 import { FarmUnstakeDialog } from "../FarmUnstakeDialog";
 import { FarmMigrateDialog } from "../FarmMigrateDialog";
 import { IncentiveStreamCard } from "../IncentiveStreamCard";
@@ -19,6 +24,7 @@ interface FarmPositionCardProps {
 
 export function FarmPositionCard({ position, stream, lpToken, onHarvest, isHarvesting }: FarmPositionCardProps) {
   const { t } = useTranslation();
+  const { data: ethPrice } = useETHPrice();
 
   // Get real-time pending rewards from contract
   const { data: onchainPendingRewards } = useZChefPendingReward(stream.chefId);
@@ -27,6 +33,13 @@ export function FarmPositionCard({ position, stream, lpToken, onHarvest, isHarve
   // Get real-time user balance from contract
   const { data: onchainUserBalance } = useZChefUserBalance(stream.chefId);
   const actualUserShares = onchainUserBalance ?? position.shares;
+  
+  // Fetch ZAMM reserves if reward token is ZAMM
+  const isZAMMReward = stream.rewardCoin?.symbol === "ZAMM";
+  const { data: zammReserves } = useReserves({
+    poolId: isZAMMReward ? ZAMM_POOL_ID : undefined,
+    source: "ZAMM"
+  });
 
   // Don't show card if user has no shares
   if (!actualUserShares || actualUserShares === 0n) {
@@ -55,9 +68,23 @@ export function FarmPositionCard({ position, stream, lpToken, onHarvest, isHarve
               <span className="text-xs font-mono text-green-700 uppercase tracking-wider">
                 [{t("common.pending_rewards")}]:
               </span>
-              <span className="font-mono font-bold text-green-600 text-left sm:text-right">
-                {formatBalance(formatEther(actualPendingRewards), stream.rewardCoin?.symbol)}
-              </span>
+              <div className="text-left sm:text-right">
+                <span className="font-mono font-bold text-green-600">
+                  {formatBalance(formatEther(actualPendingRewards), stream.rewardCoin?.symbol)}
+                </span>
+                {ethPrice?.priceUSD && isZAMMReward && zammReserves && zammReserves.reserve0 && zammReserves.reserve1 && zammReserves.reserve0 > 0n && zammReserves.reserve1 > 0n && (
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    ≈ ${(() => {
+                      const rewardAmount = parseFloat(formatEther(actualPendingRewards));
+                      const ethReserve = parseFloat(formatEther(zammReserves.reserve0));
+                      const zammReserve = parseFloat(formatEther(zammReserves.reserve1));
+                      const zammPriceInEth = ethReserve / zammReserve;
+                      const zammPriceUsd = zammPriceInEth * ethPrice.priceUSD;
+                      return formatNumber(rewardAmount * zammPriceUsd, 2);
+                    })()} USD
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
