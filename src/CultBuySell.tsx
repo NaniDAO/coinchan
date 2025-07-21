@@ -590,13 +590,26 @@ export const CultBuySell = () => {
     action: 'buy' | 'sell';
     amount: string;
   } | null>(null);
+  
+  const [realtimePriceImpact, setRealtimePriceImpact] = useState<{
+    newPrice: number;
+    priceInEth: number;
+    impactPercent: number;
+    action: 'buy' | 'sell';
+  } | null>(null);
 
   const { address, isConnected } = useAccount();
   const { sendTransactionAsync, isPending } = useSendTransaction();
   const { data: ethPrice } = useETHPrice();
   const { sendCalls } = useSendCalls();
   const isBatchingSupported = useBatchingSupported();
-  const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
+  const { isSuccess } = useWaitForTransactionReceipt({ 
+    hash: txHash,
+    onReplaced: () => {
+      // Clear optimistic update if transaction is replaced
+      setOptimisticPriceUpdate(null);
+    }
+  });
   const { switchChain } = useSwitchChain();
   const chainId = useChainId();
   const publicClient = usePublicClient({ chainId: mainnet.id });
@@ -884,7 +897,87 @@ export const CultBuySell = () => {
     setExpectedCult("0");
     setTxHash(undefined);
     setErrorMessage(null);
+    setOptimisticPriceUpdate(null);
+    setRealtimePriceImpact(null);
   }, [tab]);
+  
+  // Calculate real-time price impact as user types
+  useEffect(() => {
+    if (!reserves || !amount || parseFloat(amount) <= 0 || !ethPrice?.priceUSD || (tab !== "buy" && tab !== "sell")) {
+      setRealtimePriceImpact(null);
+      return;
+    }
+    
+    // Debounce the calculation
+    const timer = setTimeout(() => {
+      try {
+        const swapAmountEth = tab === "buy" ? parseEther(amount) : 0n;
+        const swapAmountCult = tab === "sell" ? parseUnits(amount, 18) : 0n;
+        
+        let newReserve0 = reserves.reserve0;
+        let newReserve1 = reserves.reserve1;
+        
+        if (tab === "buy") {
+          // Buying CULT with ETH
+          const amountOut = getAmountOut(swapAmountEth, reserves.reserve0, reserves.reserve1, 30n);
+          newReserve0 = reserves.reserve0 + swapAmountEth;
+          newReserve1 = reserves.reserve1 - amountOut;
+          
+          // Safety check: ensure reserves don't go negative or too low
+          if (newReserve1 <= reserves.reserve1 / 100n) { // More than 99% impact
+            setRealtimePriceImpact(null);
+            return;
+          }
+        } else {
+          // Selling CULT for ETH
+          const amountOut = getAmountOut(swapAmountCult, reserves.reserve1, reserves.reserve0, 30n);
+          newReserve0 = reserves.reserve0 - amountOut;
+          newReserve1 = reserves.reserve1 + swapAmountCult;
+          
+          // Safety check: ensure reserves don't go negative or too low
+          if (newReserve0 <= reserves.reserve0 / 100n) { // More than 99% impact
+            setRealtimePriceImpact(null);
+            return;
+          }
+        }
+        
+        const currentCultPriceInEth = parseFloat(formatEther(reserves.reserve0)) / parseFloat(formatUnits(reserves.reserve1, 18));
+        const newCultPriceInEth = parseFloat(formatEther(newReserve0)) / parseFloat(formatUnits(newReserve1, 18));
+        const newCultPriceUsd = newCultPriceInEth * ethPrice.priceUSD;
+        
+        const impactPercent = ((newCultPriceInEth - currentCultPriceInEth) / currentCultPriceInEth) * 100;
+        
+        // Additional sanity check for extreme impacts
+        if (Math.abs(impactPercent) > 50) {
+          console.warn(`High price impact detected: ${impactPercent.toFixed(2)}%`);
+        }
+        
+        setRealtimePriceImpact({
+          newPrice: newCultPriceUsd,
+          priceInEth: newCultPriceInEth,
+          impactPercent,
+          action: tab as 'buy' | 'sell',
+        });
+      } catch (error) {
+        console.error("Error calculating price impact:", error);
+        setRealtimePriceImpact(null);
+      }
+    }, 300); // 300ms debounce
+    
+    return () => clearTimeout(timer);
+  }, [amount, tab, reserves, ethPrice?.priceUSD]);
+  
+  // Mark optimistic update as settled when transaction confirms
+  useEffect(() => {
+    if (isSuccess && optimisticPriceUpdate) {
+      // Clear after a delay to show settled state
+      const timer = setTimeout(() => {
+        setOptimisticPriceUpdate(null);
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isSuccess, optimisticPriceUpdate]);
 
   useEffect(() => {
     if (tab !== "buy" || !ethBalance?.value || !amount) {
@@ -1135,18 +1228,19 @@ export const CultBuySell = () => {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: priceUpdateAnimation }} />
-      <div className="max-w-2xl mx-auto p-4 cult-container">
+      <div className="flex flex-col min-h-screen bg-black">
+        <div className="max-w-2xl w-full mx-auto p-4 cult-container flex-1 pb-24">
         <div className="text-center mb-6">
           <img
             src="/cult.jpg"
             alt="CULT Logo"
             className="w-20 h-20 rounded-full mx-auto mb-4 border-2 border-red-500 shadow-lg shadow-red-500/30 hover:scale-105 transition-transform"
           />
-          <h1 className="text-2xl font-bold text-transparent bg-gradient-to-r from-red-500 to-red-600 bg-clip-text">
+          <h1 className="text-3xl font-display text-white tracking-tight">
             {t("cult.milady_cult_coin")}
           </h1>
-          <div className={cn("text-lg font-mono mt-2", priceAnimating && "price-update")}>
-            <span className="text-red-400">
+          <div className={cn("text-xl font-mono mt-3 text-white", priceAnimating && "price-update")}>
+            <span className="block">
               {t("cult.price_format", { price: formatNumber(parseFloat(cultPrice), 2) })}
             </span>
           </div>
@@ -1155,18 +1249,18 @@ export const CultBuySell = () => {
           )}
 
           {/* Pool Info Display - Improved layout with better visual hierarchy */}
-          <div className="mt-4 p-4 bg-gradient-to-b from-gray-900/70 to-gray-900/50 border border-red-900/30 rounded-lg backdrop-blur-sm">
+          <div className="mt-4 p-3 bg-black/40 border border-red-900/20 rounded">
             {/* Main Pool Stats - Larger and more prominent */}
             <div className="grid grid-cols-2 gap-4 mb-3 pb-3 border-b border-red-900/20">
               <div className="text-center">
-                <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">{t("cult.pool_eth")}</div>
-                <div className="text-white font-mono font-bold">
+                <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-roboto">{t("cult.pool_eth")}</div>
+                <div className="text-white font-mono font-bold text-lg">
                   {reserves ? formatNumber(parseFloat(formatEther(reserves.reserve0)), 4) : "--"}
                 </div>
               </div>
               <div className="text-center">
-                <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">{t("cult.pool_cult")}</div>
-                <div className="text-white font-mono font-bold">
+                <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-roboto">{t("cult.pool_cult")}</div>
+                <div className="text-white font-mono font-bold text-lg">
                   {reserves ? formatNumber(parseFloat(formatUnits(reserves.reserve1, 18)), 0) : "--"}
                 </div>
               </div>
@@ -1264,7 +1358,7 @@ export const CultBuySell = () => {
           </div>
 
           {/* Milady Floor Charging Bar */}
-          <div className="mt-4 p-4 bg-gradient-to-b from-gray-900/70 to-black/50 border border-red-900/30 rounded-lg">
+          <div className="mt-4 p-4 bg-black/30 border border-red-900/20 rounded">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-red-400">{t("cult.milady_floor_charge")}</span>
               <span className="text-xs text-gray-400">
@@ -1283,11 +1377,10 @@ export const CultBuySell = () => {
 
               {/* Progress bar */}
               <div
-                className="absolute left-0 top-0 h-full bg-gradient-to-r from-red-600/80 to-red-500/60 transition-all duration-1000 ease-out"
+                className="absolute left-0 top-0 h-full bg-red-600/50 transition-all duration-1000 ease-out"
                 style={{ width: `${floorProgress}%` }}
               >
-                <div className="absolute inset-0 bg-red-400/20 animate-pulse" />
-                <div className="absolute inset-0 progress-shimmer" />
+                <div className="absolute inset-0 bg-red-400/10" />
               </div>
 
               {/* ETH amount text overlay */}
@@ -1338,47 +1431,47 @@ export const CultBuySell = () => {
           }
           className="relative z-10"
         >
-          <TabsList className="bg-black/50 border border-red-900/30 flex flex-wrap sm:flex-nowrap overflow-x-auto">
+          <TabsList className="bg-black/30 border border-red-900/20 flex flex-wrap gap-1 p-1">
             <TabsTrigger
               value="buy"
-              className="transition-all duration-300 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400 text-xs sm:text-sm"
+              className="flex-1 min-w-[70px] transition-all duration-200 data-[state=active]:bg-red-900/30 data-[state=active]:text-red-300 data-[state=active]:border-b-2 data-[state=active]:border-red-500 border-b-2 border-transparent text-xs sm:text-sm py-2 px-2 font-mono"
             >
-              {t("cult.buy_cult")}
+              {t("common.buy")}
             </TabsTrigger>
             <TabsTrigger
               value="sell"
-              className="transition-all duration-300 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400 text-xs sm:text-sm"
+              className="flex-1 min-w-[70px] transition-all duration-200 data-[state=active]:bg-red-900/30 data-[state=active]:text-red-300 data-[state=active]:border-b-2 data-[state=active]:border-red-500 border-b-2 border-transparent text-xs sm:text-sm py-2 px-2 font-mono"
             >
-              {t("cult.sell_cult")}
+              {t("common.sell")}
             </TabsTrigger>
             <TabsTrigger
               value="add-liquidity"
-              className="transition-all duration-300 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400 text-xs sm:text-sm"
+              className="flex-1 min-w-[70px] transition-all duration-200 data-[state=active]:bg-red-900/30 data-[state=active]:text-red-300 data-[state=active]:border-b-2 data-[state=active]:border-red-500 border-b-2 border-transparent text-xs sm:text-sm py-2 px-2 font-mono"
             >
-              {t("cult.add_liquidity")}
+              {t("common.add")}
             </TabsTrigger>
             <TabsTrigger
               value="remove-liquidity"
-              className="transition-all duration-300 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400 text-xs sm:text-sm"
+              className="flex-1 min-w-[70px] transition-all duration-200 data-[state=active]:bg-red-900/30 data-[state=active]:text-red-300 data-[state=active]:border-b-2 data-[state=active]:border-red-500 border-b-2 border-transparent text-xs sm:text-sm py-2 px-2 font-mono"
             >
-              {t("cult.remove_liquidity")}
+              {t("common.remove")}
             </TabsTrigger>
             <TabsTrigger
               value="single-eth"
-              className="transition-all duration-300 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400 text-xs sm:text-sm"
+              className="flex-1 min-w-[70px] transition-all duration-200 data-[state=active]:bg-red-900/30 data-[state=active]:text-red-300 data-[state=active]:border-b-2 data-[state=active]:border-red-500 border-b-2 border-transparent text-xs sm:text-sm py-2 px-2 font-mono"
             >
-              ⚡ {t("common.single_eth")}
+              {t("common.single_eth")}
             </TabsTrigger>
             <TabsTrigger
               value="farm"
-              className="transition-all duration-300 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400 text-xs sm:text-sm"
+              className="flex-1 min-w-[70px] transition-all duration-200 data-[state=active]:bg-red-900/30 data-[state=active]:text-red-300 data-[state=active]:border-b-2 data-[state=active]:border-red-500 border-b-2 border-transparent text-xs sm:text-sm py-2 px-2 font-mono"
             >
               {t("cult.farm")}
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="buy" className="max-w-2xl">
-            <div className="bg-gradient-to-b from-gray-900/50 to-transparent p-4 rounded-lg border border-red-900/20">
+            <div className="bg-black/20 p-4 rounded border border-red-900/20">
               <div className="flex flex-col gap-4">
                 {/* Input Section with Balance */}
                 <div>
@@ -1448,12 +1541,32 @@ export const CultBuySell = () => {
                       )}
                     </div>
                   </div>
+                  
+                  {/* Real-time price impact */}
+                  {realtimePriceImpact && tab === "buy" && (
+                    <div className="mt-2 pt-2 border-t border-gray-800">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-gray-500">{t("cult.price_impact")}:</span>
+                        <span className={`font-mono font-semibold ${
+                          realtimePriceImpact.impactPercent > 0 ? 'text-green-400' : 'text-red-400'
+                        }`}>
+                          {realtimePriceImpact.impactPercent > 0 ? '+' : ''}{realtimePriceImpact.impactPercent.toFixed(2)}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs mt-1">
+                        <span className="text-gray-500">{t("cult.new_price")}:</span>
+                        <span className="font-mono text-gray-400">
+                          ${realtimePriceImpact.newPrice.toFixed(8)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <Button
                   onClick={executeSwap}
                   disabled={!isConnected || isPending || !amount || parseFloat(amount) <= 0}
                   variant="default"
-                  className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold transition-all duration-300 shadow-lg shadow-red-500/30 py-6 text-lg"
+                  className="w-full bg-red-600 hover:bg-red-700 text-white font-mono transition-all duration-300 py-4 text-base border border-red-800"
                 >
                   {isPending ? (
                     <span className="flex items-center gap-2">
@@ -1461,10 +1574,7 @@ export const CultBuySell = () => {
                       {t("cult.buying")}
                     </span>
                   ) : (
-                    <span className="flex items-center gap-2">
-                      <span>🔥</span>
-                      {t("cult.buy_cult")}
-                    </span>
+                    t("cult.buy_cult")
                   )}
                 </Button>
               </div>
@@ -1472,7 +1582,7 @@ export const CultBuySell = () => {
           </TabsContent>
 
           <TabsContent value="sell" className="max-w-2xl">
-            <div className="bg-gradient-to-b from-gray-900/50 to-transparent p-4 rounded-lg border border-red-900/20">
+            <div className="bg-black/20 p-4 rounded border border-red-900/20">
               <div className="flex flex-col gap-4">
                 {/* Input Section with Balance */}
                 <div>
@@ -1532,12 +1642,32 @@ export const CultBuySell = () => {
                       )}
                     </div>
                   </div>
+                  
+                  {/* Real-time price impact */}
+                  {realtimePriceImpact && tab === "sell" && (
+                    <div className="mt-2 pt-2 border-t border-gray-800">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-gray-500">{t("cult.price_impact")}:</span>
+                        <span className={`font-mono font-semibold ${
+                          realtimePriceImpact.impactPercent > 0 ? 'text-green-400' : 'text-red-400'
+                        }`}>
+                          {realtimePriceImpact.impactPercent > 0 ? '+' : ''}{realtimePriceImpact.impactPercent.toFixed(2)}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs mt-1">
+                        <span className="text-gray-500">{t("cult.new_price")}:</span>
+                        <span className="font-mono text-gray-400">
+                          ${realtimePriceImpact.newPrice.toFixed(8)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <Button
                   onClick={executeSwap}
                   disabled={!isConnected || isPending || !amount || parseFloat(amount) <= 0}
                   variant="outline"
-                  className="w-full border border-red-600/50 text-red-400 hover:bg-red-600/10 hover:border-red-500 transition-all duration-300 py-6 text-lg"
+                  className="w-full border border-red-600/50 text-red-400 hover:bg-red-900/20 hover:border-red-500 transition-all duration-300 py-4 text-base font-mono"
                 >
                   {isPending ? (
                     <span className="flex items-center gap-2">
@@ -1545,10 +1675,7 @@ export const CultBuySell = () => {
                       {t("cult.selling")}
                     </span>
                   ) : (
-                    <span className="flex items-center gap-2">
-                      <span>💸</span>
-                      {t("cult.sell_cult")}
-                    </span>
+                    t("cult.sell_cult")
                   )}
                 </Button>
               </div>
@@ -1848,7 +1975,19 @@ export const CultBuySell = () => {
           )}
         </Tabs>
         <div className="mt-5">
-          <ErrorBoundary>
+          <ErrorBoundary
+            fallback={
+              <div className="p-8 text-center bg-black/20 border border-red-900/20 rounded">
+                <p className="text-red-400 mb-2">{t("errors.chart_error")}</p>
+                <button 
+                  onClick={() => window.location.reload()} 
+                  className="text-sm text-gray-400 underline hover:text-gray-300"
+                >
+                  {t("common.refresh_page")}
+                </button>
+              </div>
+            }
+          >
             <EnhancedPoolPriceChart 
               poolId={CULT_POOL_ID.toString()} 
               ticker="CULT" 
@@ -1856,6 +1995,8 @@ export const CultBuySell = () => {
               optimisticUpdate={optimisticPriceUpdate}
               onUpdateComplete={() => setOptimisticPriceUpdate(null)}
               currentPrice={parseFloat(cultUsdPrice) || 0}
+              realtimeImpact={realtimePriceImpact}
+              isSuccess={isSuccess}
             />
           </ErrorBoundary>
         </div>
@@ -1891,6 +2032,7 @@ export const CultBuySell = () => {
           </a>
         </div>
       </div>
+      </div>
     </>
   );
 };
@@ -1909,9 +2051,17 @@ const EnhancedPoolPriceChart: React.FC<{
   } | null;
   onUpdateComplete: () => void;
   currentPrice: number;
-}> = ({ poolId, ticker, ethUsdPrice, optimisticUpdate, onUpdateComplete, currentPrice }) => {
+  realtimeImpact: {
+    newPrice: number;
+    priceInEth: number;
+    impactPercent: number;
+    action: 'buy' | 'sell';
+  } | null;
+  isSuccess?: boolean;
+}> = ({ poolId, ticker, ethUsdPrice, optimisticUpdate, onUpdateComplete, currentPrice, realtimeImpact, isSuccess }) => {
   const [showOptimistic, setShowOptimistic] = useState(false);
   const [priceImpact, setPriceImpact] = useState<string | null>(null);
+  const { t } = useTranslation();
   
   // Show optimistic update for 5 seconds
   useEffect(() => {
@@ -1936,21 +2086,41 @@ const EnhancedPoolPriceChart: React.FC<{
   
   return (
     <div className="relative">
+      {/* Real-time price impact indicator */}
+      {realtimeImpact && (
+        <div className="absolute top-0 left-0 z-10 bg-black/80 p-2 rounded text-xs font-mono">
+          <div className="text-gray-400 mb-1">{t("cult.price_impact_preview")}</div>
+          <div className={`font-semibold ${
+            realtimeImpact.impactPercent > 0 ? 'text-green-400' : 'text-red-400'
+          }`}>
+            {realtimeImpact.impactPercent > 0 ? '+' : ''}{realtimeImpact.impactPercent.toFixed(2)}%
+          </div>
+          <div className="text-gray-500 text-[10px] mt-1">
+            New: ${realtimeImpact.newPrice.toFixed(8)}
+          </div>
+        </div>
+      )}
+      
+      {/* Optimistic update overlay */}
       {showOptimistic && optimisticUpdate && (
-        <div className="absolute top-0 right-0 z-10 bg-gradient-to-r from-red-900/90 to-red-800/90 p-3 rounded-lg backdrop-blur-sm border border-red-600/50 shadow-lg animate-in fade-in slide-in-from-right-2 duration-300">
+        <div className={`absolute top-0 right-0 z-10 p-3 rounded-lg backdrop-blur-sm shadow-lg animate-in fade-in slide-in-from-right-2 duration-300 ${
+          isSuccess 
+            ? 'bg-gradient-to-r from-green-900/90 to-green-800/90 border border-green-600/50' 
+            : 'bg-gradient-to-r from-red-900/90 to-red-800/90 border border-red-600/50'
+        }`}>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xs text-gray-300">
-              {optimisticUpdate.action === 'buy' ? '🔥 Buying' : '💸 Selling'} {optimisticUpdate.amount} {optimisticUpdate.action === 'buy' ? 'ETH' : 'CULT'}
+              {isSuccess ? `✓ ${t("cult.settled")}:` : optimisticUpdate.action === 'buy' ? t("cult.buying") : t("cult.selling")} {optimisticUpdate.amount} {optimisticUpdate.action === 'buy' ? 'ETH' : 'CULT'}
             </span>
           </div>
           <div className="text-sm font-mono text-white">
-            Expected: ${optimisticUpdate.price.toFixed(8)}
+            {t("cult.expected")}: ${optimisticUpdate.price.toFixed(8)}
           </div>
           {priceImpact && (
             <div className={`text-xs font-semibold mt-1 ${
               priceImpact.startsWith('+') ? 'text-green-400' : 'text-red-400'
             }`}>
-              {priceImpact} impact
+              {priceImpact} {t("cult.impact")}
             </div>
           )}
           <div className="mt-2 h-1 bg-gray-700 rounded-full overflow-hidden">
@@ -1964,7 +2134,25 @@ const EnhancedPoolPriceChart: React.FC<{
           </div>
         </div>
       )}
-      <PoolPriceChart poolId={poolId} ticker={ticker} ethUsdPrice={ethUsdPrice} />
+      
+      <div className="relative">
+        <PoolPriceChart poolId={poolId} ticker={ticker} ethUsdPrice={ethUsdPrice} />
+        
+        {/* Ghost price line indicator */}
+        {realtimeImpact && (
+          <div 
+            className="absolute left-0 right-0 border-t border-dashed border-yellow-500/50 pointer-events-none"
+            style={{
+              top: '50%', // This would need to be calculated based on the actual price scale
+              transform: 'translateY(-50%)'
+            }}
+          >
+            <div className="absolute right-2 -top-3 bg-yellow-900/80 text-yellow-300 text-[10px] px-1 py-0.5 rounded font-mono">
+              {t("cult.ghost_price")}: ${realtimeImpact.newPrice.toFixed(8)}
+            </div>
+          </div>
+        )}
+      </div>
       
       <style dangerouslySetInnerHTML={{
         __html: `

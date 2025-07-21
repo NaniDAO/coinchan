@@ -905,6 +905,9 @@
     "market_cap": "Market Cap",
     "swap_fee": "Swap Fee",
     "milady_acc_tax": "mil/acc Tax",
+    "milady_tax": "Milady Tax",
+    "pool_eth": "ETH in Pool",
+    "pool_cult": "CULT in Pool",
     "your_lp_tokens": "Your LP Tokens",
     "milady_floor_charge": "Milady Floor Charge",
     "eth_floor_target": "of 2.488 ETH floor",
@@ -946,6 +949,13 @@
     "remaining_eth_cult_added": "Remaining ETH + CULT added to Cookbook liquidity",
     "using_cult_optimized_zap": "Using CULT-optimized ETH zap contract",
     "default_slippage_cult": "Default slippage set to 10% for CULT liquidity",
-    "wallet_simulations_dust": "💡 Note: Wallet simulations may show dust refunds"
+    "wallet_simulations_dust": "💡 Note: Wallet simulations may show dust refunds",
+    "price_impact": "Price Impact",
+    "new_price": "New Price",
+    "price_impact_preview": "Price Impact Preview",
+    "ghost_price": "Ghost",
+    "settled": "Settled",
+    "expected": "Expected",
+    "impact": "impact"
   }
 }
