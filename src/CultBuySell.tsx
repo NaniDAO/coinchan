@@ -1286,7 +1286,7 @@ export const CultBuySell = () => {
             {/* Pool Info Display - Improved layout with better visual hierarchy */}
             <div className="mt-4 p-3 bg-muted/20 dark:bg-black/40 border border-red-900/20 rounded">
               {/* Main Pool Stats - Larger and more prominent */}
-              <div className="grid grid-cols-2 gap-4 mb-3 pb-3 border-b border-red-900/20">
+              <div className="flex items-center justify-between mb-3 pb-3 border-b border-red-900/20">
                 <div className="text-center">
                   <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1 font-roboto">
                     {t("cult.pool_eth")}
@@ -1295,6 +1295,17 @@ export const CultBuySell = () => {
                     {reserves ? formatNumber(parseFloat(formatEther(reserves.reserve0)), 4) : "--"}
                   </div>
                 </div>
+                
+                {/* TVL in the middle */}
+                {ethPrice?.priceUSD && reserves && reserves.reserve0 > 0n && reserves.reserve1 > 0n && (
+                  <div className="text-center px-4">
+                    <div className="text-green-400 font-mono font-bold text-xl">
+                      ${formatNumber(parseFloat(formatEther(reserves.reserve0)) * ethPrice.priceUSD * 2, 2)}
+                    </div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider mt-1">TVL</div>
+                  </div>
+                )}
+                
                 <div className="text-center">
                   <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1 font-roboto">
                     {t("cult.pool_cult")}
@@ -1306,17 +1317,6 @@ export const CultBuySell = () => {
               </div>
               {/* Pool metrics in a cleaner grid layout */}
               <div className="space-y-2 text-sm">
-                {/* Pool Value with visual emphasis */}
-                {ethPrice?.priceUSD && reserves && reserves.reserve0 > 0n && reserves.reserve1 > 0n && (
-                  <div className="bg-muted/30 dark:bg-black/30 rounded-md p-2 border border-red-900/10">
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground text-xs uppercase tracking-wider">{t("common.total_value")}</span>
-                      <span className="text-green-400 font-mono font-semibold">
-                        ${formatNumber(parseFloat(formatEther(reserves.reserve0)) * ethPrice.priceUSD * 2, 2)}
-                      </span>
-                    </div>
-                  </div>
-                )}
 
                 {/* Token Metrics Grid */}
                 <div className="grid grid-cols-2 gap-2">

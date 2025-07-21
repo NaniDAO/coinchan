@@ -211,7 +211,6 @@ const TVPriceChart: React.FC<{
   const chartTheme = useChartTheme();
   const [isChartReady, setIsChartReady] = useState(false);
   const lastValidDataRef = useRef<Array<{ time: UTCTimestamp; value: number }>>();
-  const [dataVersion, setDataVersion] = useState(0);
 
   useLayoutEffect(() => {
     const container = containerRef.current;
@@ -309,11 +308,11 @@ const TVPriceChart: React.FC<{
     } as LineSeriesOptions);
   }, [showUsd, ethUsdPrice, ticker]);
 
+  // Simple effect to process and display data with price impact
   useEffect(() => {
     if (!priceSeriesRef.current || !isChartReady) return;
 
-    // If no data, show last valid data if available
-    if (priceData.length === 0) {
+    if (!priceData || priceData.length === 0) {
       if (lastValidDataRef.current && lastValidDataRef.current.length > 0) {
         priceSeriesRef.current.setData(lastValidDataRef.current);
       }
@@ -321,148 +320,89 @@ const TVPriceChart: React.FC<{
     }
 
     try {
-      // Sort ascending by timestamp
-      // Create a map to ensure uniqueness by timestamp
+      // Process the raw data
       const uniqueData = new Map<string, PricePointData>();
       priceData.forEach((point) => {
         uniqueData.set(point.timestamp, point);
       });
 
-      // Convert back to array and sort
       const sorted = Array.from(uniqueData.values()).sort(
         (a, b) => Number.parseInt(a.timestamp) - Number.parseInt(b.timestamp),
       );
 
-      // Map to chart-compatible format and ensure uniqueness of timestamps
-      const timestampMap = new Map<number, number>(); // Map to store unique timestamps with their values
+      const timestampMap = new Map<number, number>();
 
       sorted.forEach((d) => {
         try {
-          // Parse timestamp as Unix timestamp (seconds since epoch)
           const timestamp = Number.parseInt(d.timestamp);
+          if (isNaN(timestamp)) return;
 
-          // Check if timestamp is valid
-          if (isNaN(timestamp)) {
-            console.warn("Invalid timestamp:", d.timestamp);
-            return;
-          }
-
-          // price1 is a string representing the price in wei format (18 decimals)
-          // Convert it to a number properly
           let value: number;
           try {
             value = Number(formatEther(BigInt(d.price1)));
           } catch (e) {
-            console.warn("Invalid price format:", d.price1, e);
             return;
           }
 
-          // Validate value
-          if (value === 0 || !isFinite(value)) {
-            console.warn("Invalid calculated value:", value);
-            return;
-          }
+          if (value === 0 || !isFinite(value)) return;
 
-          // Convert to USD if needed
           if (showUsd && ethUsdPrice && ethUsdPrice > 0) {
-            // value = token price in ETH (from pool)
-            // ethUsdPrice = ETH price in USD
-            // token price in USD = token price in ETH * ETH price in USD
             value = value * ethUsdPrice;
           }
 
-          // If we already have a value for this timestamp, we'll use the more recent data point
-          // (which is the current one since we're iterating through sorted data)
           timestampMap.set(timestamp, value);
         } catch (err) {
-          console.error("Error processing price point:", err, d);
+          console.error("Error processing price point:", err);
         }
       });
 
-      // Convert the map to an array of points
       const points = Array.from(timestampMap.entries())
         .map(([time, value]) => ({
           time: time as UTCTimestamp,
           value,
         }))
-        .sort((a, b) => a.time - b.time); // Ensure they're sorted by time
+        .sort((a, b) => a.time - b.time);
 
-      // Push data
       if (points.length > 0) {
-        // Don't update the chart directly here anymore
-        // Just store the data and trigger a re-render
+        // Store the base data
         lastValidDataRef.current = points;
-        setDataVersion(v => v + 1); // Trigger chartData recalculation
-      } else if (lastValidDataRef.current && lastValidDataRef.current.length > 0) {
-        // Keep using last valid data
-        console.warn("No valid points in current data, using last valid data");
-      } else {
-        console.warn(t("chart.no_data"));
+        
+        // Build the data to display
+        let displayData = [...points];
+        
+        // Add price impact point if available
+        if (priceImpact && priceImpact.projectedPrice > 0) {
+          const lastPoint = points[points.length - 1];
+          if (lastPoint) {
+            let projectedValue: number;
+            
+            if (showUsd && ethUsdPrice && ethUsdPrice > 0) {
+              projectedValue = priceImpact.projectedPrice * ethUsdPrice;
+            } else {
+              projectedValue = 1 / priceImpact.projectedPrice;
+            }
+
+            if (isFinite(projectedValue) && projectedValue > 0) {
+              displayData.push({
+                time: (lastPoint.time + 60) as UTCTimestamp,
+                value: projectedValue,
+              });
+            }
+          }
+        }
+        
+        // Update the chart
+        priceSeriesRef.current.setData(displayData);
+        chartRef.current?.timeScale().fitContent();
       }
     } catch (error) {
-      console.error("Error updating price chart:", error);
-      // On error, just keep using last valid data
-    }
-  }, [priceData, showUsd, ethUsdPrice, t, isChartReady]);
-
-  // Combine base data with price impact
-  const chartData = React.useMemo(() => {
-    if (!lastValidDataRef.current || lastValidDataRef.current.length === 0) {
-      return [];
-    }
-
-    const baseData = [...lastValidDataRef.current];
-    
-    if (priceImpact && priceImpact.projectedPrice > 0) {
-      const lastPoint = baseData[baseData.length - 1];
-      if (!lastPoint) return baseData;
-
-      // Calculate the projected value based on display mode
-      let projectedValue: number;
-      
-      if (showUsd && ethUsdPrice && ethUsdPrice > 0) {
-        // USD mode: CULT price in USD
-        projectedValue = priceImpact.projectedPrice * ethUsdPrice;
-      } else {
-        // ETH mode: ETH/CULT (reciprocal of CULT price in ETH)
-        projectedValue = 1 / priceImpact.projectedPrice;
+      console.error("Error updating chart:", error);
+      // Fallback to last valid data
+      if (lastValidDataRef.current && lastValidDataRef.current.length > 0) {
+        priceSeriesRef.current.setData(lastValidDataRef.current);
       }
-
-      // Validate the projected value
-      if (!isFinite(projectedValue) || projectedValue <= 0) {
-        return baseData;
-      }
-
-      // Add the projected point
-      const projectedPoint = {
-        time: (lastPoint.time + 60) as UTCTimestamp,
-        value: projectedValue,
-      };
-
-      return [...baseData, projectedPoint];
     }
-
-    return baseData;
-  }, [priceImpact, showUsd, ethUsdPrice, dataVersion]);
-
-  // Update chart when data changes
-  useEffect(() => {
-    if (!priceSeriesRef.current || !isChartReady || chartData.length === 0) {
-      return;
-    }
-
-    // Update the chart data
-    try {
-      priceSeriesRef.current.setData(chartData);
-      
-      // Fit content if we have a price impact
-      if (priceImpact && chartRef.current) {
-        chartRef.current.timeScale().fitContent();
-      }
-    } catch (e) {
-      console.error("Error updating chart:", e);
-    }
-  }, [chartData, priceImpact, isChartReady]);
+  }, [priceData, showUsd, ethUsdPrice, priceImpact, isChartReady, t]);
 
   return (
     <div className="relative">
