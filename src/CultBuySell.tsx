@@ -1001,7 +1001,7 @@ export const CultBuySell = () => {
         console.error("Error calculating price impact:", error);
         setRealtimePriceImpact(null);
       }
-    }, 300); // 300ms debounce
+    }, 800); // 800ms debounce for smoother updates
 
     return () => clearTimeout(timer);
   }, [amount, tab, reserves, ethPrice?.priceUSD]);

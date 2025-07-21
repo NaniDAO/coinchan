@@ -211,6 +211,7 @@ const TVPriceChart: React.FC<{
   const chartTheme = useChartTheme();
   const [isChartReady, setIsChartReady] = useState(false);
   const lastValidDataRef = useRef<Array<{ time: UTCTimestamp; value: number }>>();
+  const lastImpactValueRef = useRef<number | null>(null);
 
   useLayoutEffect(() => {
     const container = containerRef.current;
@@ -415,41 +416,98 @@ const TVPriceChart: React.FC<{
 
   // Update chart when price impact changes
   useEffect(() => {
-    if (!priceSeriesRef.current || !isChartReady || !lastValidDataRef.current || lastValidDataRef.current.length === 0) {
+    if (!priceSeriesRef.current || !isChartReady) return;
+
+    // Wait for valid data before applying impact
+    if (!lastValidDataRef.current || lastValidDataRef.current.length === 0) {
       return;
     }
 
-    // Always work with the original data
-    const baseData = [...lastValidDataRef.current];
-    
-    if (priceImpact && priceImpact.projectedPrice > 0) {
-      // Get the last data point
-      const lastPoint = baseData[baseData.length - 1];
-      if (!lastPoint) return;
+    // Use RAF to ensure smooth updates
+    const rafId = requestAnimationFrame(() => {
+      if (!priceSeriesRef.current || !lastValidDataRef.current) return;
 
-      // Calculate the projected value based on display mode
-      let projectedValue: number;
+      // Always work with the original data
+      const baseData = [...lastValidDataRef.current];
       
-      if (showUsd && ethUsdPrice && ethUsdPrice > 0) {
-        // USD mode: CULT price in USD
-        projectedValue = priceImpact.projectedPrice * ethUsdPrice;
+      if (priceImpact && priceImpact.projectedPrice > 0) {
+        // Get the last data point
+        const lastPoint = baseData[baseData.length - 1];
+        if (!lastPoint) return;
+
+        // Calculate the projected value based on display mode
+        let projectedValue: number;
+        
+        if (showUsd && ethUsdPrice && ethUsdPrice > 0) {
+          // USD mode: CULT price in USD
+          projectedValue = priceImpact.projectedPrice * ethUsdPrice;
+        } else {
+          // ETH mode: ETH/CULT (reciprocal of CULT price in ETH)
+          projectedValue = 1 / priceImpact.projectedPrice;
+        }
+
+        // Validate the projected value
+        if (!isFinite(projectedValue) || projectedValue <= 0) {
+          priceSeriesRef.current.setData(baseData);
+          lastImpactValueRef.current = null;
+          return;
+        }
+
+        // Check if the change is significant enough to update
+        const percentChange = Math.abs((projectedValue - lastPoint.value) / lastPoint.value) * 100;
+        if (percentChange < 0.01) {
+          // Less than 0.01% change, don't update
+          return;
+        }
+
+        // Only update if the value has changed significantly from last impact
+        if (lastImpactValueRef.current !== null) {
+          const impactChange = Math.abs((projectedValue - lastImpactValueRef.current) / lastImpactValueRef.current) * 100;
+          if (impactChange < 0.1) {
+            // Less than 0.1% change from last impact, skip update
+            return;
+          }
+        }
+
+        lastImpactValueRef.current = projectedValue;
+
+        // Add the projected point
+        const projectedPoint = {
+          time: (lastPoint.time + 60) as UTCTimestamp, // 1 minute in the future
+          value: projectedValue,
+        };
+
+        // Update data with the projected point
+        try {
+          priceSeriesRef.current.setData([...baseData, projectedPoint]);
+          
+          // Ensure the chart fits the content smoothly
+          if (chartRef.current) {
+            const timeScale = chartRef.current.timeScale();
+            const currentRange = timeScale.getVisibleRange();
+            if (currentRange && projectedPoint.time > currentRange.to) {
+              // Extend view slightly to include the projected point
+              timeScale.setVisibleRange({
+                from: currentRange.from,
+                to: projectedPoint.time + 60,
+              });
+            }
+          }
+        } catch (e) {
+          console.error("Error updating chart with impact:", e);
+          // Fallback to base data
+          priceSeriesRef.current.setData(baseData);
+        }
       } else {
-        // ETH mode: ETH/CULT (reciprocal of CULT price in ETH)
-        projectedValue = 1 / priceImpact.projectedPrice;
+        // No impact, just show base data
+        priceSeriesRef.current.setData(baseData);
+        lastImpactValueRef.current = null;
       }
+    });
 
-      // Add the projected point
-      const projectedPoint = {
-        time: (lastPoint.time + 60) as UTCTimestamp, // 1 minute in the future
-        value: projectedValue,
-      };
-
-      // Set data with the projected point
-      priceSeriesRef.current.setData([...baseData, projectedPoint]);
-    } else {
-      // No impact, just show base data
-      priceSeriesRef.current.setData(baseData);
-    }
+    return () => {
+      cancelAnimationFrame(rafId);
+    };
   }, [priceImpact, showUsd, ethUsdPrice, isChartReady]);
 
   return (
