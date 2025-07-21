@@ -211,7 +211,7 @@ const TVPriceChart: React.FC<{
   const chartTheme = useChartTheme();
   const [isChartReady, setIsChartReady] = useState(false);
   const lastValidDataRef = useRef<Array<{ time: UTCTimestamp; value: number }>>();
-  const lastImpactValueRef = useRef<number | null>(null);
+  const [dataVersion, setDataVersion] = useState(0);
 
   useLayoutEffect(() => {
     const container = containerRef.current;
@@ -389,126 +389,80 @@ const TVPriceChart: React.FC<{
 
       // Push data
       if (points.length > 0) {
-        priceSeriesRef.current.setData(points);
-        // Store last valid data (without impact points)
+        // Don't update the chart directly here anymore
+        // Just store the data and trigger a re-render
         lastValidDataRef.current = points;
-        // Fit content to series
-        chartRef.current?.timeScale().fitContent();
+        setDataVersion(v => v + 1); // Trigger chartData recalculation
       } else if (lastValidDataRef.current && lastValidDataRef.current.length > 0) {
-        // Use last valid data if current data is empty
+        // Keep using last valid data
         console.warn("No valid points in current data, using last valid data");
-        priceSeriesRef.current.setData(lastValidDataRef.current);
       } else {
         console.warn(t("chart.no_data"));
       }
     } catch (error) {
       console.error("Error updating price chart:", error);
-      // Try to use last valid data on error
-      if (lastValidDataRef.current && lastValidDataRef.current.length > 0) {
-        try {
-          priceSeriesRef.current.setData(lastValidDataRef.current);
-        } catch (e) {
-          console.error("Failed to restore last valid data:", e);
-        }
-      }
+      // On error, just keep using last valid data
     }
   }, [priceData, showUsd, ethUsdPrice, t, isChartReady]);
 
-  // Update chart when price impact changes
-  useEffect(() => {
-    if (!priceSeriesRef.current || !isChartReady) return;
-
-    // Wait for valid data before applying impact
+  // Combine base data with price impact
+  const chartData = React.useMemo(() => {
     if (!lastValidDataRef.current || lastValidDataRef.current.length === 0) {
+      return [];
+    }
+
+    const baseData = [...lastValidDataRef.current];
+    
+    if (priceImpact && priceImpact.projectedPrice > 0) {
+      const lastPoint = baseData[baseData.length - 1];
+      if (!lastPoint) return baseData;
+
+      // Calculate the projected value based on display mode
+      let projectedValue: number;
+      
+      if (showUsd && ethUsdPrice && ethUsdPrice > 0) {
+        // USD mode: CULT price in USD
+        projectedValue = priceImpact.projectedPrice * ethUsdPrice;
+      } else {
+        // ETH mode: ETH/CULT (reciprocal of CULT price in ETH)
+        projectedValue = 1 / priceImpact.projectedPrice;
+      }
+
+      // Validate the projected value
+      if (!isFinite(projectedValue) || projectedValue <= 0) {
+        return baseData;
+      }
+
+      // Add the projected point
+      const projectedPoint = {
+        time: (lastPoint.time + 60) as UTCTimestamp,
+        value: projectedValue,
+      };
+
+      return [...baseData, projectedPoint];
+    }
+
+    return baseData;
+  }, [priceImpact, showUsd, ethUsdPrice, dataVersion]);
+
+  // Update chart when data changes
+  useEffect(() => {
+    if (!priceSeriesRef.current || !isChartReady || chartData.length === 0) {
       return;
     }
 
-    // Use RAF to ensure smooth updates
-    const rafId = requestAnimationFrame(() => {
-      if (!priceSeriesRef.current || !lastValidDataRef.current) return;
-
-      // Always work with the original data
-      const baseData = [...lastValidDataRef.current];
+    // Update the chart data
+    try {
+      priceSeriesRef.current.setData(chartData);
       
-      if (priceImpact && priceImpact.projectedPrice > 0) {
-        // Get the last data point
-        const lastPoint = baseData[baseData.length - 1];
-        if (!lastPoint) return;
-
-        // Calculate the projected value based on display mode
-        let projectedValue: number;
-        
-        if (showUsd && ethUsdPrice && ethUsdPrice > 0) {
-          // USD mode: CULT price in USD
-          projectedValue = priceImpact.projectedPrice * ethUsdPrice;
-        } else {
-          // ETH mode: ETH/CULT (reciprocal of CULT price in ETH)
-          projectedValue = 1 / priceImpact.projectedPrice;
-        }
-
-        // Validate the projected value
-        if (!isFinite(projectedValue) || projectedValue <= 0) {
-          priceSeriesRef.current.setData(baseData);
-          lastImpactValueRef.current = null;
-          return;
-        }
-
-        // Check if the change is significant enough to update
-        const percentChange = Math.abs((projectedValue - lastPoint.value) / lastPoint.value) * 100;
-        if (percentChange < 0.01) {
-          // Less than 0.01% change, don't update
-          return;
-        }
-
-        // Only update if the value has changed significantly from last impact
-        if (lastImpactValueRef.current !== null) {
-          const impactChange = Math.abs((projectedValue - lastImpactValueRef.current) / lastImpactValueRef.current) * 100;
-          if (impactChange < 0.1) {
-            // Less than 0.1% change from last impact, skip update
-            return;
-          }
-        }
-
-        lastImpactValueRef.current = projectedValue;
-
-        // Add the projected point
-        const projectedPoint = {
-          time: (lastPoint.time + 60) as UTCTimestamp, // 1 minute in the future
-          value: projectedValue,
-        };
-
-        // Update data with the projected point
-        try {
-          priceSeriesRef.current.setData([...baseData, projectedPoint]);
-          
-          // Ensure the chart fits the content smoothly
-          if (chartRef.current) {
-            const timeScale = chartRef.current.timeScale();
-            const currentRange = timeScale.getVisibleRange();
-            if (currentRange && projectedPoint.time > (currentRange.to as number)) {
-              // Extend view slightly to include the projected point
-              timeScale.setVisibleRange({
-                from: currentRange.from,
-                to: (projectedPoint.time + 60) as UTCTimestamp,
-              });
-            }
-          }
-        } catch (e) {
-          console.error("Error updating chart with impact:", e);
-          // Fallback to base data
-          priceSeriesRef.current.setData(baseData);
-        }
-      } else {
-        // No impact, just show base data
-        priceSeriesRef.current.setData(baseData);
-        lastImpactValueRef.current = null;
+      // Fit content if we have a price impact
+      if (priceImpact && chartRef.current) {
+        chartRef.current.timeScale().fitContent();
       }
-    });
-
-    return () => {
-      cancelAnimationFrame(rafId);
-    };
-  }, [priceImpact, showUsd, ethUsdPrice, isChartReady]);
+    } catch (e) {
+      console.error("Error updating chart:", e);
+    }
+  }, [chartData, priceImpact, isChartReady]);
 
   return (
     <div className="relative">
