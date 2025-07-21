@@ -3,7 +3,51 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
-import { formatEther } from "viem";
+import { formatEther, createPublicClient, http } from "viem";
+import { mainnet } from "viem/chains";
+
+// Create a public client for reading contract data
+const publicClient = createPublicClient({
+  chain: mainnet,
+  transport: http(),
+});
+
+// ERC20 ABI for symbol function
+const erc20Abi = [
+  {
+    constant: true,
+    inputs: [],
+    name: "symbol",
+    outputs: [{ name: "", type: "string" }],
+    type: "function",
+  },
+] as const;
+
+// Cache for token symbols to avoid repeated fetches
+const tokenSymbolCache = new Map<string, string>();
+
+const fetchTokenSymbol = async (tokenAddress: string): Promise<string> => {
+  if (tokenSymbolCache.has(tokenAddress)) {
+    return tokenSymbolCache.get(tokenAddress)!;
+  }
+
+  try {
+    const symbol = await publicClient.readContract({
+      address: tokenAddress as `0x${string}`,
+      abi: erc20Abi,
+      functionName: "symbol",
+    });
+
+    tokenSymbolCache.set(tokenAddress, symbol);
+    return symbol;
+  } catch (error) {
+    console.warn(`Failed to fetch symbol for token ${tokenAddress}:`, error);
+    // Return truncated address as fallback
+    const fallbackSymbol = truncAddress(tokenAddress);
+    tokenSymbolCache.set(tokenAddress, fallbackSymbol);
+    return fallbackSymbol;
+  }
+};
 
 const fetchSwaps = async () => {
   const res = await fetch(import.meta.env.VITE_INDEXER_URL + "/graphql", {
@@ -30,6 +74,10 @@ const fetchSwaps = async () => {
             trader
             txHash
             pool {
+                coin0Id
+                token0
+                coin1Id
+                token1
               coin1 {
                 id
                 symbol
@@ -45,35 +93,61 @@ const fetchSwaps = async () => {
   const { data } = await res.json();
 
   // convert swaps to human readable snippets
-  const snippets = convertToSnippets(data.swaps.items);
+  const snippets = await convertToSnippets(data.swaps.items);
 
   return snippets;
 };
 
-const convertToSnippets = (swaps: any[]) => {
-  const snippets = swaps
-    .map((swap) => {
+const convertToSnippets = async (swaps: any[]) => {
+  const snippets = await Promise.all(
+    swaps.map(async (swap) => {
       try {
         const { amount0In, amount0Out, amount1Out, amount1In, id, trader, pool } = swap;
         const isBuy = BigInt(amount0In) > 0n;
         const isSell = BigInt(amount0Out) > 0n;
+
+        // Determine if this is an ERC20 token
+        // ERC20: coin1Id is "0" but token1 is a non-zero address
+        const isErc20 =
+          pool.coin1Id === "0" &&
+          pool.token1 !== "0x0000000000000000000000000000000000000000";
+
+        let tokenSymbol = pool.coin1.symbol;
+        let coinId = pool.coin1.id;
+
+        if (isErc20) {
+          // Fetch the actual ERC20 symbol
+          tokenSymbol = await fetchTokenSymbol(pool.token1);
+          // Use token1 address as the coinId for ERC20 tokens
+          coinId = pool.token1;
+        }
 
         if (isBuy) {
           return {
             id,
             snippet: (
               <>
+<<<<<<< Updated upstream
                 <a target="_blank" href={"https://etherscan.io/address/" + trader} rel="noreferrer">
+=======
+                <a
+                  target="_blank"
+                  href={"https://etherscan.io/address/" + trader}
+                  rel="noreferrer"
+                  className="my-1"
+                >
+>>>>>>> Stashed changes
                   {truncAddress(trader)}
                 </a>{" "}
                 bought {Number(formatEther(amount1Out)).toFixed(2)}{" "}
                 <Link
                   to={`/c/$coinId`}
                   params={{
-                    coinId: pool.coin1.id,
+                    coinId: coinId,
                   }}
+                  className="py-1"
                 >
-                  {pool.coin1.symbol}
+                  {tokenSymbol}
                 </Link>
               </>
             ),
@@ -90,10 +164,10 @@ const convertToSnippets = (swaps: any[]) => {
                 <Link
                   to={`/c/$coinId`}
                   params={{
-                    coinId: pool.coin1.id,
+                    coinId: coinId,
                   }}
                 >
-                  {pool.coin1.symbol}
+                  {tokenSymbol}
                 </Link>
               </span>
             ),
@@ -105,10 +179,10 @@ const convertToSnippets = (swaps: any[]) => {
         console.warn("Skipped invalid swap", swap, e);
         return null;
       }
-    })
-    .filter((snippet) => snippet !== null);
+    }),
+  );
 
-  return snippets;
+  return snippets.filter((snippet) => snippet !== null);
 };
 
 export const useSwaps = () => {
@@ -157,7 +231,11 @@ export function SwapRibbon() {
         to="/cult"
         className="text-foreground hover:underline font-medium inline-flex items-center gap-1 align-middle"
       >
-        <img src="/cult.jpg" alt="CULT" className="w-4 h-4 rounded-full inline-block align-middle" />
+        <img
+          src="/cult.jpg"
+          alt="CULT"
+          className="w-4 h-4 rounded-full inline-block align-middle"
+        />
         <span className="inline-block align-middle">CULT</span>
       </Link>
     ),
@@ -212,7 +290,9 @@ export function SwapRibbon() {
                 : { color: getColor(item.id) }
             }
           >
-            <span className="text-sm shrink-0 inline-flex items-center">{item.snippet}</span>
+            <span className="text-sm shrink-0 inline-flex items-center">
+              {item.snippet}
+            </span>
             <span
               className={`text-2xl mx-2 inline-flex items-center ${item.id === "farm-alpha" || item.id === "cult-feature" ? "text-foreground" : ""}`}
             >
