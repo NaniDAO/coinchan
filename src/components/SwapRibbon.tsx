@@ -123,12 +123,11 @@ const convertToSnippets = async (swaps: any[]) => {
           return {
             id,
             snippet: (
-              <>
+              <span style={{ color: getColor(id) }}>
                 <a
                   target="_blank"
                   href={"https://etherscan.io/address/" + trader}
                   rel="noreferrer"
-                  className="my-1"
                 >
                   {truncAddress(trader)}
                 </a>{" "}
@@ -138,11 +137,11 @@ const convertToSnippets = async (swaps: any[]) => {
                   params={{
                     coinId: coinId,
                   }}
-                  className="py-1"
                 >
+                  {" "}
                   {tokenSymbol}
                 </Link>
-              </>
+              </span>
             ),
           };
         } else if (isSell) {
