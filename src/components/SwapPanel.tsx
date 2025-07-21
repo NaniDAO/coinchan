@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
 import { TokenSelector } from "./TokenSelector";
 import { PercentageSlider } from "./ui/percentage-slider";
+import { useETHPrice } from "@/hooks/use-eth-price";
 
 interface SwapPanelProps {
   title: string;
@@ -46,6 +47,7 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
 }) => {
   const { t } = useTranslation();
   const [percentage, setPercentage] = useState(0);
+  const { data: ethPrice } = useETHPrice();
 
   // Calculate current percentage based on amount and balance
   useEffect(() => {
@@ -131,6 +133,27 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
           )
         )}
       </div>
+      
+      {/* USD Value Display */}
+      {ethPrice?.priceUSD && amount && parseFloat(amount) > 0 && (
+        <div className="text-xs text-muted-foreground text-right pr-1 -mt-1">
+          ≈ ${(() => {
+            const numAmount = parseFloat(amount);
+            if (selectedToken.id === null) {
+              // ETH
+              return (numAmount * ethPrice.priceUSD).toFixed(2);
+            } else if (selectedToken.reserve0 && selectedToken.reserve1) {
+              // Other tokens with reserves
+              const ethReserve = parseFloat(formatEther(selectedToken.reserve0));
+              const tokenReserve = parseFloat(formatUnits(selectedToken.reserve1, selectedToken.decimals || 18));
+              const tokenPriceInEth = ethReserve / tokenReserve;
+              const tokenPriceUsd = tokenPriceInEth * ethPrice.priceUSD;
+              return (numAmount * tokenPriceUsd).toFixed(2);
+            }
+            return "0.00";
+          })()} USD
+        </div>
+      )}
 
       {showPercentageSlider && selectedToken.balance && selectedToken.balance > 0n ? (
         <div className="mt-2 pt-2 border-t border-terminal-black dark:border-terminal-white/20">

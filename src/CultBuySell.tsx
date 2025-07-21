@@ -24,6 +24,7 @@ import { ErrorBoundary } from "@/components/farm/ErrorBoundary";
 import { SlippageSettings } from "@/components/SlippageSettings";
 import { CULTSingleLiqETHAbi, CULTSingleLiqETHAddress } from "@/constants/CULTSingleLiqETH";
 import { useAllCoins } from "@/hooks/metadata/use-all-coins";
+import { useETHPrice } from "@/hooks/use-eth-price";
 import { isUserRejectionError } from "@/lib/errors";
 import { ETH_TOKEN } from "@/lib/coins";
 import { mainnet } from "viem/chains";
@@ -35,7 +36,7 @@ import { getCultHookTaxRate, toGross } from "@/lib/cult-hook-utils";
 import { CheckTheChainAbi, CheckTheChainAddress } from "@/constants/CheckTheChain";
 import { DEADLINE_SEC, withSlippage, getAmountIn, getAmountOut } from "@/lib/swap";
 import type { Address, Hex, PublicClient } from "viem";
-import { nowSec, cn } from "./lib/utils";
+import { nowSec, cn, formatNumber } from "./lib/utils";
 import { useReserves } from "./hooks/use-reserves";
 import { useBatchingSupported } from "./hooks/use-batching-supported";
 import PoolPriceChart from "./components/PoolPriceChart";
@@ -215,6 +216,7 @@ const CultSingleEthLiquidity = () => {
   const { t } = useTranslation();
   const { tokens } = useAllCoins();
   const ethToken = useMemo(() => tokens.find((t) => t.id === null) || ETH_TOKEN, [tokens]);
+  const { data: ethPrice } = useETHPrice();
 
   const [sellAmt, setSellAmt] = useState("");
   const [txHash, setTxHash] = useState<`0x${string}`>();
@@ -375,10 +377,30 @@ const CultSingleEthLiquidity = () => {
       <div className="p-3 bg-gray-900/50 border border-red-900/30 rounded-lg">
         <div className="flex justify-between items-center">
           <span className="text-gray-400 text-sm">{t("common.estimated")} CULT:</span>
-          <span className="text-white font-mono">
-            {singleETHEstimatedCoin || "0"} CULT
-          </span>
+          <div className="text-right">
+            <span className="text-white font-mono block">
+              {singleETHEstimatedCoin || "0"} CULT
+            </span>
+            {ethPrice?.priceUSD && singleETHEstimatedCoin && reserves && (
+              <span className="text-xs text-gray-500">
+                ≈ ${(() => {
+                  const cultAmount = parseFloat(singleETHEstimatedCoin);
+                  const ethAmount = parseFloat(formatEther(reserves.reserve0));
+                  const cultTotalAmount = parseFloat(formatUnits(reserves.reserve1, 18));
+                  const cultPriceInEth = ethAmount / cultTotalAmount;
+                  const cultPriceUsd = cultPriceInEth * ethPrice.priceUSD;
+                  return (cultAmount * cultPriceUsd).toFixed(2);
+                })()}{" "}
+                USD
+              </span>
+            )}
+          </div>
         </div>
+        {ethPrice?.priceUSD && sellAmt && (
+          <div className="mt-2 pt-2 border-t border-red-900/20 text-xs text-gray-500">
+            <span>ETH Input: ≈ ${(parseFloat(sellAmt) * ethPrice.priceUSD).toFixed(2)} USD</span>
+          </div>
+        )}
       </div>
 
       {/* Slippage Settings */}
@@ -493,6 +515,7 @@ export const CultBuySell = () => {
 
   const { address, isConnected } = useAccount();
   const { sendTransactionAsync, isPending } = useSendTransaction();
+  const { data: ethPrice } = useETHPrice();
   const { sendCalls } = useSendCalls();
   const isBatchingSupported = useBatchingSupported();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
@@ -1027,6 +1050,29 @@ export const CultBuySell = () => {
                 )}
               </span>
             </div>
+            {/* USD values and per-unit prices */}
+            {ethPrice?.priceUSD && reserves && reserves.reserve0 > 0n && reserves.reserve1 > 0n && (
+              <>
+                <div className="flex justify-between">
+                  <span className="text-gray-400 text-xs">Total Value:</span>
+                  <span className="text-gray-500 font-mono text-xs">
+                    ${formatNumber(parseFloat(formatEther(reserves.reserve0)) * ethPrice.priceUSD * 2, 2)} USD
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400 text-xs">Price:</span>
+                  <span className="text-gray-500 font-mono text-xs">
+                    {(() => {
+                      const ethAmount = parseFloat(formatEther(reserves.reserve0));
+                      const cultAmount = parseFloat(formatUnits(reserves.reserve1, 18));
+                      const cultPriceInEth = ethAmount / cultAmount;
+                      const cultPriceUsd = cultPriceInEth * ethPrice.priceUSD;
+                      return `1 CULT = ${cultPriceInEth.toFixed(8)} ETH ($${cultPriceUsd.toFixed(8)})`;
+                    })()}
+                  </span>
+                </div>
+              </>
+            )}
             <div className="flex justify-between">
               <span className="text-gray-400">{t("cult.total_supply")}:</span>
               <span className="text-white font-mono">
@@ -1182,12 +1228,19 @@ export const CultBuySell = () => {
                 </div>
               ) : null}
 
-              <span className="text-sm font-medium text-red-600">
-                {t("cult.you_will_receive", {
-                  amount: estimated,
-                  token: "CULT",
-                })}
-              </span>
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-medium text-red-600">
+                  {t("cult.you_will_receive", {
+                    amount: estimated,
+                    token: "CULT",
+                  })}
+                </span>
+                {ethPrice?.priceUSD && amount && (
+                  <span className="text-xs text-gray-500">
+                    ≈ ${formatNumber(parseFloat(amount) * ethPrice.priceUSD, 2)} USD
+                  </span>
+                )}
+              </div>
               <Button
                 onClick={executeSwap}
                 disabled={!isConnected || isPending || !amount}
@@ -1221,12 +1274,19 @@ export const CultBuySell = () => {
                 />
               </div>
               <div className="flex flex-col gap-2">
-                <span className="text-sm font-medium">
-                  {t("cult.you_will_receive", {
-                    amount: estimated,
-                    token: "ETH",
-                  })}
-                </span>
+                <div className="flex flex-col gap-1">
+                  <span className="text-sm font-medium">
+                    {t("cult.you_will_receive", {
+                      amount: estimated,
+                      token: "ETH",
+                    })}
+                  </span>
+                  {ethPrice?.priceUSD && estimated !== "0" && (
+                    <span className="text-xs text-gray-500">
+                      ≈ ${formatNumber(parseFloat(estimated) * ethPrice.priceUSD, 2)} USD
+                    </span>
+                  )}
+                </div>
                 {cultBalance !== undefined ? (
                   <button
                     className="self-end text-sm font-medium text-red-600 hover:text-red-700 transition-colors"
@@ -1272,6 +1332,11 @@ export const CultBuySell = () => {
                   onChange={(e) => syncLiquidityAmounts(true, e.currentTarget.value)}
                   disabled={false}
                 />
+                {ethPrice?.priceUSD && liquidityEthAmount && (
+                  <span className="text-xs text-gray-500">
+                    ≈ ${formatNumber(parseFloat(liquidityEthAmount) * ethPrice.priceUSD, 2)} USD
+                  </span>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -1285,6 +1350,19 @@ export const CultBuySell = () => {
                   onChange={(e) => syncLiquidityAmounts(false, e.currentTarget.value)}
                   disabled={false}
                 />
+                {ethPrice?.priceUSD && liquidityCultAmount && reserves && (
+                  <span className="text-xs text-gray-500">
+                    ≈ ${(() => {
+                      const cultAmount = parseFloat(liquidityCultAmount);
+                      const ethAmount = parseFloat(formatEther(reserves.reserve0));
+                      const cultTotalAmount = parseFloat(formatUnits(reserves.reserve1, 18));
+                      const cultPriceInEth = ethAmount / cultTotalAmount;
+                      const cultPriceUsd = cultPriceInEth * ethPrice.priceUSD;
+                      return (cultAmount * cultPriceUsd).toFixed(2);
+                    })()}{" "}
+                    USD
+                  </span>
+                )}
                 {cultBalance !== undefined && (
                   <button
                     className="text-sm font-medium text-red-600 hover:text-red-700 transition-colors"
@@ -1381,12 +1459,53 @@ export const CultBuySell = () => {
                   <div className="text-gray-400 mb-1">{t("cult.you_will_receive_preview")}</div>
                   <div className="flex justify-between">
                     <span className="text-gray-400">ETH:</span>
-                    <span className="text-white font-mono">{parseFloat(expectedEth).toFixed(6)} ETH</span>
+                    <div className="text-right">
+                      <span className="text-white font-mono block">{parseFloat(expectedEth).toFixed(6)} ETH</span>
+                      {ethPrice?.priceUSD && expectedEth !== "0" && (
+                        <span className="text-xs text-gray-500">
+                          ≈ ${formatNumber(parseFloat(expectedEth) * ethPrice.priceUSD, 2)} USD
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-400">CULT:</span>
-                    <span className="text-white font-mono">{parseFloat(expectedCult).toLocaleString()} CULT</span>
+                    <div className="text-right">
+                      <span className="text-white font-mono block">{parseFloat(expectedCult).toLocaleString()} CULT</span>
+                      {ethPrice?.priceUSD && expectedCult !== "0" && reserves && (
+                        <span className="text-xs text-gray-500">
+                          ≈ ${(() => {
+                            const cultAmount = parseFloat(expectedCult);
+                            const ethAmount = parseFloat(formatEther(reserves.reserve0));
+                            const cultTotalAmount = parseFloat(formatUnits(reserves.reserve1, 18));
+                            const cultPriceInEth = ethAmount / cultTotalAmount;
+                            const cultPriceUsd = cultPriceInEth * ethPrice.priceUSD;
+                            return (cultAmount * cultPriceUsd).toFixed(2);
+                          })()}{" "}
+                          USD
+                        </span>
+                      )}
+                    </div>
                   </div>
+                  {/* Total USD value */}
+                  {ethPrice?.priceUSD && expectedEth !== "0" && expectedCult !== "0" && reserves && reserves.reserve0 > 0n && reserves.reserve1 > 0n && (
+                    <div className="pt-2 mt-2 border-t border-red-900/20">
+                      <div className="flex justify-between">
+                        <span className="text-gray-400 font-semibold">Total Value:</span>
+                        <span className="text-white font-mono font-semibold">
+                          ${(() => {
+                            const ethValue = parseFloat(expectedEth) * ethPrice.priceUSD;
+                            const cultAmount = parseFloat(expectedCult);
+                            const ethReserve = parseFloat(formatEther(reserves.reserve0));
+                            const cultReserve = parseFloat(formatUnits(reserves.reserve1, 18));
+                            const cultPriceInEth = ethReserve / cultReserve;
+                            const cultValue = cultAmount * cultPriceInEth * ethPrice.priceUSD;
+                            return (ethValue + cultValue).toFixed(2);
+                          })()} USD
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

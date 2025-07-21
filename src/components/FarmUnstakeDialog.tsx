@@ -7,11 +7,16 @@ import type { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { useZChefActions, useZChefPendingReward, useZChefUserBalance } from "@/hooks/use-zchef-contract";
 import type { TokenMeta } from "@/lib/coins";
 import { isUserRejectionError } from "@/lib/errors";
-import { cn, formatBalance } from "@/lib/utils";
+import { cn, formatBalance, formatNumber } from "@/lib/utils";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useETHPrice } from "@/hooks/use-eth-price";
 import { formatEther, formatUnits, parseUnits } from "viem";
 import { usePublicClient } from "wagmi";
+import { useReserves } from "@/hooks/use-reserves";
+
+// Hardcoded ZAMM pool ID for price calculations
+const ZAMM_POOL_ID = 22979666169544372205220120853398704213623237650449182409187385558845249460832n;
 
 interface FarmUnstakeDialogProps {
   stream: IncentiveStream;
@@ -29,11 +34,19 @@ interface FarmUnstakeDialogProps {
 export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSuccess }: FarmUnstakeDialogProps) {
   const { t } = useTranslation();
   const publicClient = usePublicClient();
+  const { data: ethPrice } = useETHPrice();
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [txHash, setTxHash] = useState<string | null>(null);
   const [txStatus, setTxStatus] = useState<"idle" | "pending" | "confirming" | "success" | "error">("idle");
   const [txError, setTxError] = useState<string | null>(null);
+  
+  // Fetch ZAMM reserves if reward token is ZAMM
+  const isZAMMReward = stream.rewardCoin?.symbol === "ZAMM";
+  const { data: zammReserves } = useReserves({
+    poolId: isZAMMReward ? ZAMM_POOL_ID : undefined,
+    source: "ZAMM"
+  });
 
   const { withdraw } = useZChefActions();
 
@@ -236,9 +249,23 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
                 <div className="border border-muted p-3">
                   <div className="flex justify-between items-center">
                     <span className="font-mono text-muted-foreground">{t("common.rewards_to_claim")}:</span>
-                    <span className="font-mono font-bold text-green-600 text-lg">
-                      {Number.parseFloat(formatEther(actualPendingRewards)).toFixed(6)} {stream.rewardCoin?.symbol}
-                    </span>
+                    <div className="text-right">
+                      <span className="font-mono font-bold text-green-600 text-lg block">
+                        {Number.parseFloat(formatEther(actualPendingRewards)).toFixed(6)} {stream.rewardCoin?.symbol}
+                      </span>
+                      {ethPrice?.priceUSD && actualPendingRewards > 0n && isZAMMReward && zammReserves?.reserve0 && zammReserves?.reserve1 && zammReserves.reserve0 > 0n && zammReserves.reserve1 > 0n ? (
+                        <span className="text-xs text-muted-foreground">
+                          ≈ ${(() => {
+                            const rewardAmount = parseFloat(formatEther(actualPendingRewards));
+                            const ethReserve = parseFloat(formatEther(zammReserves.reserve0));
+                            const zammReserve = parseFloat(formatEther(zammReserves.reserve1));
+                            const zammPriceInEth = ethReserve / zammReserve;
+                            const zammPriceUsd = zammPriceInEth * ethPrice.priceUSD;
+                            return formatNumber(rewardAmount * zammPriceUsd, 2);
+                          })()} USD
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
               </div>

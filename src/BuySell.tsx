@@ -22,6 +22,7 @@ import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
 import { ZAMMAbi, ZAMMAddress } from "./constants/ZAAM";
 import { useReserves } from "./hooks/use-reserves";
+import { useETHPrice } from "./hooks/use-eth-price";
 import {
   DEADLINE_SEC,
   SWAP_FEE,
@@ -31,7 +32,7 @@ import {
   getAmountOut,
   withSlippage,
 } from "./lib/swap";
-import { nowSec } from "./lib/utils";
+import { nowSec, formatNumber } from "./lib/utils";
 
 export const BuySell = ({
   tokenId,
@@ -55,6 +56,7 @@ export const BuySell = ({
   const { switchChain } = useSwitchChain();
   const chainId = useChainId();
   const publicClient = usePublicClient({ chainId: mainnet.id });
+  const { data: ethPrice } = useETHPrice();
 
   // Fetch the lockup info to determine the custom swap fee and owner
   useEffect(() => {
@@ -139,6 +141,25 @@ export const BuySell = ({
     }
   }, [amount, reserves, tab, swapFee]);
 
+  // Calculate USD values
+  const usdValue = useMemo(() => {
+    if (!ethPrice?.priceUSD) return null;
+    
+    try {
+      if (tab === "buy") {
+        // When buying, show USD value of ETH input
+        const ethAmount = parseFloat(amount || "0");
+        return (ethAmount * ethPrice.priceUSD).toFixed(2);
+      } else {
+        // When selling, show USD value of ETH output
+        const ethAmount = parseFloat(estimated || "0");
+        return (ethAmount * ethPrice.priceUSD).toFixed(2);
+      }
+    } catch {
+      return null;
+    }
+  }, [amount, estimated, ethPrice, tab]);
+
   const handleBuyPercentageChange = useCallback(
     (percentage: number) => {
       setBuyPercentage(percentage);
@@ -211,7 +232,7 @@ export const BuySell = ({
 
     try {
       if (chainId !== mainnet.id) {
-        await switchChain({ chainId: mainnet.id });
+        switchChain({ chainId: mainnet.id });
       }
 
       const amountInUnits = parseUnits(amount || "0", 18);
@@ -256,8 +277,35 @@ export const BuySell = ({
   };
 
   return (
-    <Tabs value={tab} onValueChange={(v) => setTab(v as "buy" | "sell")}>
-      <TabsList>
+    <div>
+      {/* Per-unit price information */}
+      {reserves && reserves.reserve0 > 0n && reserves.reserve1 > 0n && ethPrice?.priceUSD && (
+        <div className="mb-3 p-2 bg-muted/30 rounded-lg text-xs text-muted-foreground">
+          <div className="flex flex-col gap-1">
+            {(() => {
+              const ethAmount = parseFloat(formatEther(reserves.reserve0));
+              const tokenAmount = parseFloat(formatUnits(reserves.reserve1, 18));
+              const tokenPriceInEth = ethAmount / tokenAmount;
+              const ethPriceInToken = tokenAmount / ethAmount;
+              const tokenPriceUsd = tokenPriceInEth * ethPrice.priceUSD;
+              const totalPoolValueUsd = (ethAmount * ethPrice.priceUSD) * 2;
+              
+              return (
+                <>
+                  <div className="opacity-90">Pool Value: ${formatNumber(totalPoolValueUsd, 2)} USD</div>
+                  <div className="opacity-75">
+                    1 ETH = {ethPriceInToken.toFixed(6)} {symbol} | 
+                    1 {symbol} = {tokenPriceInEth.toFixed(8)} ETH (${tokenPriceUsd.toFixed(8)} USD)
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+      
+      <Tabs value={tab} onValueChange={(v) => setTab(v as "buy" | "sell")}>
+        <TabsList>
         <TabsTrigger value="buy" className="transition-all duration-300">
           Buy {name} [{symbol}]
         </TabsTrigger>
@@ -278,6 +326,9 @@ export const BuySell = ({
             onChange={(e) => setAmount(e.currentTarget.value)}
             disabled={false}
           />
+          {usdValue && amount && (
+            <span className="text-xs text-muted-foreground">≈ ${usdValue} USD</span>
+          )}
 
           {ethBalance?.value && ethBalance.value > 0n && isConnected ? (
             <div className="mt-2 pt-2 border-t border-primary/20">
@@ -322,6 +373,9 @@ export const BuySell = ({
           </div>
           <div className="flex flex-col gap-2">
             <span className="text-sm font-medium">You will receive ~ {estimated} ETH</span>
+            {usdValue && estimated !== "0" && (
+              <span className="text-xs text-muted-foreground">≈ ${usdValue} USD</span>
+            )}
             {balance !== undefined ? (
               <button
                 className="self-end text-sm font-medium text-chart-2 dark:text-chart-2 hover:text-primary transition-colors"
@@ -354,8 +408,9 @@ export const BuySell = ({
         </div>
       </TabsContent>
 
-      {errorMessage && <p className="text-destructive text-sm">{errorMessage}</p>}
-      {isSuccess && <p className="text-chart-2 text-sm">Tx confirmed!</p>}
-    </Tabs>
+        {errorMessage && <p className="text-destructive text-sm">{errorMessage}</p>}
+        {isSuccess && <p className="text-chart-2 text-sm">Tx confirmed!</p>}
+      </Tabs>
+    </div>
   );
 };

@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { ZAMMLaunchAbi, ZAMMLaunchAddress } from "@/constants/ZAMMLaunch";
 import { useReserves } from "@/hooks/use-reserves";
+import { useETHPrice } from "@/hooks/use-eth-price";
 import {
   type CookbookPoolKey,
   DEADLINE_SEC,
@@ -15,7 +16,7 @@ import {
   getAmountOut,
   withSlippage,
 } from "@/lib/swap";
-import { nowSec } from "@/lib/utils";
+import { nowSec, formatNumber } from "@/lib/utils";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
@@ -40,6 +41,7 @@ export const BuySellCookbookCoin = ({
   const { address, isConnected } = useAccount();
   const { writeContractAsync, isPending } = useWriteContract();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
+  const { data: ethPrice } = useETHPrice();
   const { data: reserves } = useReserves({
     poolId,
     source: "COOKBOOK",
@@ -103,6 +105,25 @@ export const BuySellCookbookCoin = ({
       return "0";
     }
   }, [amount, reserves, tab]);
+
+  // Calculate USD values
+  const usdValue = useMemo(() => {
+    if (!ethPrice?.priceUSD) return null;
+    
+    try {
+      if (tab === "buy") {
+        // When buying, show USD value of ETH input
+        const ethAmount = parseFloat(amount || "0");
+        return (ethAmount * ethPrice.priceUSD).toFixed(2);
+      } else {
+        // When selling, show USD value of ETH output
+        const ethAmount = parseFloat(estimated || "0");
+        return (ethAmount * ethPrice.priceUSD).toFixed(2);
+      }
+    } catch {
+      return null;
+    }
+  }, [amount, estimated, ethPrice, tab]);
 
   const handleSwap = async (type: "buy" | "sell") => {
     try {
@@ -178,6 +199,32 @@ export const BuySellCookbookCoin = ({
 
   return (
     <div className="space-y-4">
+      {/* Per-unit price information */}
+      {reserves && reserves.reserve0 > 0n && reserves.reserve1 > 0n && ethPrice?.priceUSD && (
+        <div className="p-2 bg-muted/30 rounded-lg text-xs text-muted-foreground">
+          <div className="flex flex-col gap-1">
+            {(() => {
+              const ethAmount = parseFloat(formatEther(reserves.reserve0));
+              const tokenAmount = parseFloat(formatUnits(reserves.reserve1, 18));
+              const tokenPriceInEth = ethAmount / tokenAmount;
+              const ethPriceInToken = tokenAmount / ethAmount;
+              const tokenPriceUsd = tokenPriceInEth * ethPrice.priceUSD;
+              const totalPoolValueUsd = (ethAmount * ethPrice.priceUSD) * 2;
+              
+              return (
+                <>
+                  <div className="opacity-90">Pool Value: ${formatNumber(totalPoolValueUsd, 2)} USD</div>
+                  <div className="opacity-75">
+                    1 ETH = {ethPriceInToken.toFixed(6)} {symbol} | 
+                    1 {symbol} = {tokenPriceInEth.toFixed(8)} ETH (${tokenPriceUsd.toFixed(8)} USD)
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+      
       {/* Claim Section - Only show if user can claim */}
       {canClaim ? (
         <Card>
@@ -228,6 +275,9 @@ export const BuySellCookbookCoin = ({
                 Max
               </Button>
             </div>
+            {usdValue && amount && (
+              <span className="text-xs text-muted-foreground">≈ ${usdValue} USD</span>
+            )}
             <span className="text-sm font-medium">
               {t("create.you_will_receive", { amount: estimated, token: symbol })}
             </span>
@@ -259,6 +309,9 @@ export const BuySellCookbookCoin = ({
             <span className="text-sm font-medium">
               {t("create.you_will_receive", { amount: estimated, token: "ETH" })}
             </span>
+            {usdValue && estimated !== "0" && (
+              <span className="text-xs text-muted-foreground">≈ ${usdValue} USD</span>
+            )}
             <Button onClick={() => handleSwap("sell")} disabled={!isConnected || isPending || !amount}>
               {isPending ? t("swap.swapping") : t("create.sell_token", { token: symbol })}
             </Button>

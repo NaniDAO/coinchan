@@ -26,11 +26,12 @@ import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { useBatchingSupported } from "./hooks/use-batching-supported";
 import { useReserves } from "./hooks/use-reserves";
 import { useENSResolution } from "./hooks/use-ens-resolution";
+import { useETHPrice } from "./hooks/use-eth-price";
 import { buildSwapCalls } from "./lib/build-swap-calls";
 import type { TokenMeta } from "./lib/coins";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import { SLIPPAGE_BPS, SWAP_FEE, analyzeTokens, getAmountIn, getAmountOut, getPoolIds, getSwapFee } from "./lib/swap";
-import { cn } from "./lib/utils";
+import { cn, formatNumber } from "./lib/utils";
 
 export const SwapAction = () => {
   const { t } = useTranslation();
@@ -40,6 +41,7 @@ export const SwapAction = () => {
     chainId,
   });
   const { tokens, isEthBalanceFetching } = useAllCoins();
+  const { data: ethPrice } = useETHPrice();
 
   /* State */
   /* user inputs */
@@ -818,38 +820,70 @@ export const SwapAction = () => {
 
       {/* Pool information - only show in instant mode */}
       {swapMode === "instant" && canSwap && reserves && (
-        <div className="text-xs text-foreground flex justify-between px-1 mt-1">
-          {isCoinToCoin &&
-          !isDirectUsdtEthSwap &&
-          // Extra sanity check - don't show multihop if one token is ETH and the other is USDT
-          !(
-            (sellToken.id === null && buyToken?.symbol === "USDT") ||
-            (buyToken?.id === null && sellToken.symbol === "USDT")
-          ) ? (
-            <span className="flex items-center">
-              <span className="bg-chart-5/20 text-chart-5 px-1 rounded mr-1">{t("swap.route")}</span>
-              {sellToken.symbol} {t("common.to")} ETH {t("common.to")} {buyToken?.symbol}
-            </span>
-          ) : (
+        <div className="text-xs text-foreground px-1 mt-1">
+          <div className="flex justify-between">
+            {isCoinToCoin &&
+            !isDirectUsdtEthSwap &&
+            // Extra sanity check - don't show multihop if one token is ETH and the other is USDT
+            !(
+              (sellToken.id === null && buyToken?.symbol === "USDT") ||
+              (buyToken?.id === null && sellToken.symbol === "USDT")
+            ) ? (
+              <span className="flex items-center">
+                <span className="bg-chart-5/20 text-chart-5 px-1 rounded mr-1">{t("swap.route")}</span>
+                {sellToken.symbol} {t("common.to")} ETH {t("common.to")} {buyToken?.symbol}
+              </span>
+            ) : (
+              <span>
+                {t("pool.title")}: {formatEther(reserves.reserve0).substring(0, 8)} ETH /{" "}
+                {formatUnits(
+                  reserves.reserve1,
+                  // Use the correct decimals for the token (6 for USDT, 18 for others)
+                  isCustomPool ? (sellToken.isCustomPool ? sellToken.decimals || 18 : buyToken?.decimals || 18) : 18,
+                ).substring(0, 8)}{" "}
+                {coinId ? tokens.find((t) => t.id === coinId)?.symbol || "Token" : buyToken?.symbol}
+              </span>
+            )}
             <span>
-              {t("pool.title")}: {formatEther(reserves.reserve0).substring(0, 8)} ETH /{" "}
-              {formatUnits(
-                reserves.reserve1,
-                // Use the correct decimals for the token (6 for USDT, 18 for others)
-                isCustomPool ? (sellToken.isCustomPool ? sellToken.decimals || 18 : buyToken?.decimals || 18) : 18,
-              ).substring(0, 8)}{" "}
-              {coinId ? tokens.find((t) => t.id === coinId)?.symbol || "Token" : buyToken?.symbol}
+              {t("common.fee")}:{" "}
+              {getSwapFee({
+                isCustomPool: isCustomPool,
+                sellToken,
+                buyToken,
+                isCoinToCoin,
+              })}
             </span>
+          </div>
+          {/* USD values and per-unit prices */}
+          {ethPrice?.priceUSD && !isCoinToCoin && (
+            <div className="text-muted-foreground mt-1 space-y-0.5">
+              {(() => {
+                const ethAmount = parseFloat(formatEther(reserves.reserve0));
+                const tokenAmount = parseFloat(formatUnits(
+                  reserves.reserve1,
+                  isCustomPool ? (sellToken.isCustomPool ? sellToken.decimals || 18 : buyToken?.decimals || 18) : 18
+                ));
+                const tokenPriceInEth = ethAmount / tokenAmount;
+                const ethPriceInToken = tokenAmount / ethAmount;
+                const tokenPriceUsd = tokenPriceInEth * ethPrice.priceUSD;
+                const totalPoolValueUsd = (ethAmount * ethPrice.priceUSD) * 2;
+                
+                const tokenSymbol = coinId ? tokens.find((t) => t.id === coinId)?.symbol || "Token" : buyToken?.symbol;
+                
+                return (
+                  <>
+                    <div className="opacity-75 text-xs">
+                      Total Pool Value: ${formatNumber(totalPoolValueUsd, 2)} USD
+                    </div>
+                    <div className="opacity-60 text-xs space-y-0.5">
+                      <div>1 ETH = {ethPriceInToken.toFixed(6)} {tokenSymbol}</div>
+                      <div>1 {tokenSymbol} = {tokenPriceInEth.toFixed(8)} ETH (${tokenPriceUsd.toFixed(8)} USD)</div>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
           )}
-          <span>
-            {t("common.fee")}:{" "}
-            {getSwapFee({
-              isCustomPool: isCustomPool,
-              sellToken,
-              buyToken,
-              isCoinToCoin,
-            })}
-          </span>
         </div>
       )}
 
