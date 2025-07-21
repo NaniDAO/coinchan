@@ -24,6 +24,7 @@ import { ErrorBoundary } from "@/components/farm/ErrorBoundary";
 import { SlippageSettings } from "@/components/SlippageSettings";
 import { CULTSingleLiqETHAbi, CULTSingleLiqETHAddress } from "@/constants/CULTSingleLiqETH";
 import { useAllCoins } from "@/hooks/metadata/use-all-coins";
+import { useETHPrice } from "@/hooks/use-eth-price";
 import { isUserRejectionError } from "@/lib/errors";
 import { ETH_TOKEN } from "@/lib/coins";
 import { mainnet } from "viem/chains";
@@ -493,6 +494,7 @@ export const CultBuySell = () => {
 
   const { address, isConnected } = useAccount();
   const { sendTransactionAsync, isPending } = useSendTransaction();
+  const { data: ethPrice } = useETHPrice();
   const { sendCalls } = useSendCalls();
   const isBatchingSupported = useBatchingSupported();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
@@ -1027,6 +1029,24 @@ export const CultBuySell = () => {
                 )}
               </span>
             </div>
+            {/* USD values */}
+            {ethPrice?.priceUSD && reserves && (
+              <div className="flex justify-between">
+                <span className="text-gray-400 text-xs">USD:</span>
+                <span className="text-gray-500 font-mono text-xs">
+                  {(() => {
+                    const ethAmount = parseFloat(formatEther(reserves.reserve0));
+                    const cultAmount = parseFloat(formatUnits(reserves.reserve1, 18));
+                    const cultPriceInEth = ethAmount / cultAmount;
+                    const cultPriceUsd = cultPriceInEth * ethPrice.priceUSD;
+                    const ethValueUsd = ethAmount * ethPrice.priceUSD;
+                    const cultValueUsd = cultAmount * cultPriceUsd;
+                    
+                    return `$${ethValueUsd.toFixed(2)} / $${cultValueUsd.toFixed(2)}`;
+                  })()}
+                </span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-gray-400">{t("cult.total_supply")}:</span>
               <span className="text-white font-mono">
