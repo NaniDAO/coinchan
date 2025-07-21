@@ -187,8 +187,10 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
       }
     } catch (error) {
       console.error("Fill order error:", error);
-      const errorMsg = handleWalletError(error);
-      setTxError(errorMsg || t("orders.fill_failed"));
+      const errorMsg = handleWalletError(error, { t });
+      if (errorMsg) {
+        setTxError(errorMsg);
+      }
     }
   };
 
@@ -233,8 +235,10 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
       setCancelTxHash(hash);
     } catch (error) {
       console.error("Cancel order error:", error);
-      const errorMsg = handleWalletError(error);
-      setCancelTxError(errorMsg || t("orders.cancel_failed"));
+      const errorMsg = handleWalletError(error, { t });
+      if (errorMsg) {
+        setCancelTxError(errorMsg);
+      }
     }
   };
 

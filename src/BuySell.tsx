@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   useAccount,
   useBalance,
@@ -18,6 +19,7 @@ import { handleWalletError } from "@/lib/errors";
 import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
 import { mainnet } from "viem/chains";
 import { LoadingLogo } from "./components/ui/loading-logo";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "./components/ui/hover-card";
 import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
 import { ZAMMAbi, ZAMMAddress } from "./constants/ZAAM";
@@ -49,6 +51,7 @@ export const BuySell = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [swapFee, setSwapFee] = useState<bigint>(SWAP_FEE);
   const [buyPercentage, setBuyPercentage] = useState(0);
+  const { t } = useTranslation();
 
   const { address, isConnected } = useAccount();
   const { writeContractAsync, isPending } = useWriteContract();
@@ -149,11 +152,11 @@ export const BuySell = ({
       if (tab === "buy") {
         // When buying, show USD value of ETH input
         const ethAmount = parseFloat(amount || "0");
-        return (ethAmount * ethPrice.priceUSD).toFixed(2);
+        return formatNumber(ethAmount * ethPrice.priceUSD, 2);
       } else {
         // When selling, show USD value of ETH output
         const ethAmount = parseFloat(estimated || "0");
-        return (ethAmount * ethPrice.priceUSD).toFixed(2);
+        return formatNumber(ethAmount * ethPrice.priceUSD, 2);
       }
     } catch {
       return null;
@@ -218,7 +221,9 @@ export const BuySell = ({
       });
       setTxHash(hash);
     } catch (err) {
-      const errorMsg = handleWalletError(err);
+      const errorMsg = handleWalletError(err, {
+        defaultMessage: t("errors.transaction_error")
+      });
       if (errorMsg) {
         setErrorMessage(errorMsg);
       }
@@ -247,7 +252,9 @@ export const BuySell = ({
             chainId: mainnet.id,
           });
         } catch (approvalErr) {
-          const errorMsg = handleWalletError(approvalErr);
+          const errorMsg = handleWalletError(approvalErr, {
+            defaultMessage: t("errors.transaction_error")
+          });
           if (errorMsg) {
             setErrorMessage(errorMsg);
           }
@@ -269,7 +276,9 @@ export const BuySell = ({
       });
       setTxHash(hash);
     } catch (err) {
-      const errorMsg = handleWalletError(err);
+      const errorMsg = handleWalletError(err, {
+        defaultMessage: t("errors.transaction_error")
+      });
       if (errorMsg) {
         setErrorMessage(errorMsg);
       }
@@ -294,8 +303,23 @@ export const BuySell = ({
                 <>
                   <div className="opacity-90">Pool Value: ${formatNumber(totalPoolValueUsd, 2)} USD</div>
                   <div className="opacity-75">
-                    1 ETH = {ethPriceInToken.toFixed(6)} {symbol} | 
+                    1 ETH = {formatNumber(ethPriceInToken, 6)} {symbol} | 
                     1 {symbol} = {tokenPriceInEth.toFixed(8)} ETH (${tokenPriceUsd.toFixed(8)} USD)
+                  </div>
+                  <div className="opacity-60 flex items-center gap-1">
+                    <span>Fee: {Number(swapFee) / 100}%</span>
+                    <HoverCard>
+                      <HoverCardTrigger asChild>
+                        <span 
+                          className="text-[10px] opacity-70 cursor-help hover:opacity-100 transition-opacity" 
+                        >
+                          ⓘ
+                        </span>
+                      </HoverCardTrigger>
+                      <HoverCardContent className="w-auto">
+                        <p className="text-sm">{t("common.paid_to_lps")}</p>
+                      </HoverCardContent>
+                    </HoverCard>
                   </div>
                 </>
               );
@@ -337,7 +361,7 @@ export const BuySell = ({
           ) : null}
 
           <span className="text-sm font-medium text-green-800">
-            You will receive ~ {estimated} {symbol}
+            You will receive ~ {formatNumber(parseFloat(estimated), 6)} {symbol}
           </span>
           <Button
             onClick={onBuy}
@@ -372,7 +396,7 @@ export const BuySell = ({
             />
           </div>
           <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium">You will receive ~ {estimated} ETH</span>
+            <span className="text-sm font-medium">You will receive ~ {formatNumber(parseFloat(estimated), 6)} ETH</span>
             {usdValue && estimated !== "0" && (
               <span className="text-xs text-muted-foreground">≈ ${usdValue} USD</span>
             )}

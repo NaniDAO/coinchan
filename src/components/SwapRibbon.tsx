@@ -4,8 +4,9 @@ import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { formatEther } from "viem";
+import { useTranslation } from "react-i18next";
 
-const fetchSwaps = async () => {
+const fetchSwaps = async (t: (key: string) => string) => {
   const res = await fetch(import.meta.env.VITE_INDEXER_URL + "/graphql", {
     method: "POST",
     headers: {
@@ -45,12 +46,12 @@ const fetchSwaps = async () => {
   const { data } = await res.json();
 
   // convert swaps to human readable snippets
-  const snippets = convertToSnippets(data.swaps.items);
+  const snippets = convertToSnippets(data.swaps.items, t);
 
   return snippets;
 };
 
-const convertToSnippets = (swaps: any[]) => {
+const convertToSnippets = (swaps: any[], t: (key: string) => string) => {
   const snippets = swaps
     .map((swap) => {
       try {
@@ -67,7 +68,7 @@ const convertToSnippets = (swaps: any[]) => {
                   <a target="_blank" href={"https://etherscan.io/address/" + trader} rel="noreferrer" className="my-1">
                     {truncAddress(trader)}
                   </a>{" "}
-                  bought {Number(formatEther(amount1Out)).toFixed(2)}{" "}
+                  {t("swap.bought")} {Number(formatEther(amount1Out)).toFixed(2)}{" "}
                   <Link
                     to={`/c/$coinId`}
                     params={{
@@ -90,7 +91,7 @@ const convertToSnippets = (swaps: any[]) => {
                   <a target="_blank" href={"https://etherscan.io/address/" + trader} rel="noreferrer" className="my-1">
                     {truncAddress(trader)}
                   </a>{" "}
-                  sold {Number(formatEther(amount1In)).toFixed(2)}{" "}
+                  {t("swap.sold")} {Number(formatEther(amount1In)).toFixed(2)}{" "}
                   <Link
                     to={`/c/$coinId`}
                     params={{
@@ -118,9 +119,10 @@ const convertToSnippets = (swaps: any[]) => {
 };
 
 export const useSwaps = () => {
+  const { t } = useTranslation();
   return useQuery({
     queryKey: ["swaps"],
-    queryFn: fetchSwaps,
+    queryFn: () => fetchSwaps(t),
     refetchInterval: 15000, // optional: auto-refetch every 15s
   });
 };

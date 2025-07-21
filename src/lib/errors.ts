@@ -45,9 +45,11 @@ export const handleWalletError = (
   options: {
     silent?: boolean; // If true, no console log for any error
     logRejections?: boolean; // If true, log user rejections (default false)
+    defaultMessage?: string; // Custom default message for non-rejection errors
+    t?: (key: string) => string; // Translation function
   } = {},
 ): string | null => {
-  const { silent = false, logRejections = false } = options;
+  const { silent = false, logRejections = false, defaultMessage, t } = options;
 
   // If it's a user rejection, handle quietly
   if (isUserRejectionError(error)) {
@@ -63,6 +65,30 @@ export const handleWalletError = (
     console.error("Wallet error:", error);
   }
 
+  // Check for specific error types if translation function is provided
+  if (t) {
+    const errorMessage = String(error).toLowerCase();
+
+    // Check for insufficient funds
+    if (errorMessage.includes("insufficient") && errorMessage.includes("funds")) {
+      return t("errors.insufficient_funds");
+    }
+
+    // Check for gas estimation errors
+    if (errorMessage.includes("gas") && errorMessage.includes("estimation")) {
+      return t("errors.gas_estimation_failed");
+    }
+
+    // Check for network errors
+    if (errorMessage.includes("network") || errorMessage.includes("connection")) {
+      return t("errors.network_error");
+    }
+
+    // Default to transaction error
+    return t("errors.transaction_error");
+  }
+
   // Return a generic error message for non-rejection errors
-  return "Transaction failed. Please try again.";
+  // Use provided default message or generic English fallback
+  return defaultMessage || "Transaction failed. Please try again.";
 };

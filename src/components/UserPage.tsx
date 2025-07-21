@@ -139,9 +139,9 @@ export function UserPage() {
       console.error("Unlock error:", error);
 
       if (isUserRejectionError(error)) {
-        setUnlockError("Transaction rejected by user");
+        setUnlockError(t("errors.user_denied"));
       } else {
-        const errorMsg = handleWalletError(error) || "Failed to unlock";
+        const errorMsg = handleWalletError(error, { t }) || t("unlock_failed");
         setUnlockError(errorMsg);
       }
     } finally {

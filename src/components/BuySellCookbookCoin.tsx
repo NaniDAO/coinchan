@@ -3,10 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PercentageSlider } from "@/components/ui/percentage-slider";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { ZAMMLaunchAbi, ZAMMLaunchAddress } from "@/constants/ZAMMLaunch";
 import { useReserves } from "@/hooks/use-reserves";
 import { useETHPrice } from "@/hooks/use-eth-price";
+import { handleWalletError } from "@/lib/errors";
 import {
   type CookbookPoolKey,
   DEADLINE_SEC,
@@ -17,7 +20,7 @@ import {
   withSlippage,
 } from "@/lib/swap";
 import { nowSec, formatNumber } from "@/lib/utils";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
 import { mainnet } from "viem/chains";
@@ -35,6 +38,7 @@ export const BuySellCookbookCoin = ({
   const [amount, setAmount] = useState("");
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [percentage, setPercentage] = useState(0);
 
   const poolId = useMemo(() => computePoolId(coinId, SWAP_FEE, CookbookAddress), [coinId]);
 
@@ -106,6 +110,32 @@ export const BuySellCookbookCoin = ({
     }
   }, [amount, reserves, tab]);
 
+  // Sync percentage when amount changes
+  useEffect(() => {
+    if (!amount) {
+      setPercentage(0);
+      return;
+    }
+
+    try {
+      if (tab === "buy" && ethBalance) {
+        const amountBigInt = parseEther(amount);
+        if (ethBalance.value > 0n) {
+          const calculatedPercentage = Number((amountBigInt * 100n) / ethBalance.value);
+          setPercentage(Math.min(100, Math.max(0, calculatedPercentage)));
+        }
+      } else if (tab === "sell" && coinBalance) {
+        const amountBigInt = parseUnits(amount, 18);
+        if (coinBalance > 0n) {
+          const calculatedPercentage = Number((amountBigInt * 100n) / coinBalance);
+          setPercentage(Math.min(100, Math.max(0, calculatedPercentage)));
+        }
+      }
+    } catch {
+      setPercentage(0);
+    }
+  }, [amount, tab, ethBalance, coinBalance]);
+
   // Calculate USD values
   const usdValue = useMemo(() => {
     if (!ethPrice?.priceUSD) return null;
@@ -114,11 +144,11 @@ export const BuySellCookbookCoin = ({
       if (tab === "buy") {
         // When buying, show USD value of ETH input
         const ethAmount = parseFloat(amount || "0");
-        return (ethAmount * ethPrice.priceUSD).toFixed(2);
+        return formatNumber(ethAmount * ethPrice.priceUSD, 2);
       } else {
         // When selling, show USD value of ETH output
         const ethAmount = parseFloat(estimated || "0");
-        return (ethAmount * ethPrice.priceUSD).toFixed(2);
+        return formatNumber(ethAmount * ethPrice.priceUSD, 2);
       }
     } catch {
       return null;
@@ -160,17 +190,39 @@ export const BuySellCookbookCoin = ({
         value: type === "buy" ? amountIn : 0n,
       });
       setTxHash(hash);
+      setErrorMessage(null);
     } catch (error) {
-      console.error(error);
-      setErrorMessage(t("create.transaction_failed"));
+      const errorMsg = handleWalletError(error, {
+        defaultMessage: t("errors.transaction_error")
+      });
+      if (errorMsg) {
+        setErrorMessage(errorMsg);
+      }
     }
   };
 
   const handleMax = () => {
     if (tab === "buy" && ethBalance) {
-      setAmount(formatEther(ethBalance.value));
+      const maxAmount = (ethBalance.value * 99n) / 100n; // Leave 1% for gas
+      setAmount(formatEther(maxAmount));
+      setPercentage(100);
     } else if (tab === "sell" && coinBalance) {
       setAmount(formatUnits(coinBalance, 18));
+      setPercentage(100);
+    }
+  };
+
+  const handlePercentageChange = (newPercentage: number) => {
+    setPercentage(newPercentage);
+    
+    if (tab === "buy" && ethBalance) {
+      const adjustedBalance = newPercentage === 100 
+        ? (ethBalance.value * 99n) / 100n // Leave 1% for gas
+        : (ethBalance.value * BigInt(newPercentage)) / 100n;
+      setAmount(formatEther(adjustedBalance));
+    } else if (tab === "sell" && coinBalance) {
+      const adjustedBalance = (coinBalance * BigInt(newPercentage)) / 100n;
+      setAmount(formatUnits(adjustedBalance, 18));
     }
   };
 
@@ -191,9 +243,14 @@ export const BuySellCookbookCoin = ({
         args: [coinId, BigInt(launchpadBalance.toString())],
       });
       setTxHash(hash);
+      setErrorMessage(null);
     } catch (error) {
-      console.error(error);
-      setErrorMessage(t("create.transaction_failed"));
+      const errorMsg = handleWalletError(error, {
+        defaultMessage: t("errors.transaction_error")
+      });
+      if (errorMsg) {
+        setErrorMessage(errorMsg);
+      }
     }
   };
 
@@ -215,8 +272,23 @@ export const BuySellCookbookCoin = ({
                 <>
                   <div className="opacity-90">Pool Value: ${formatNumber(totalPoolValueUsd, 2)} USD</div>
                   <div className="opacity-75">
-                    1 ETH = {ethPriceInToken.toFixed(6)} {symbol} | 
-                    1 {symbol} = {tokenPriceInEth.toFixed(8)} ETH (${tokenPriceUsd.toFixed(8)} USD)
+                    1 ETH = {formatNumber(ethPriceInToken, 6)} {symbol} | 
+                    1 {symbol} = {tokenPriceInEth.toFixed(8)} ETH (${formatNumber(tokenPriceUsd, 8)} USD)
+                  </div>
+                  <div className="opacity-60 flex items-center gap-1">
+                    <span>Fee: {Number(SWAP_FEE) / 100}%</span>
+                    <HoverCard>
+                      <HoverCardTrigger asChild>
+                        <span 
+                          className="text-[10px] opacity-70 cursor-help hover:opacity-100 transition-opacity" 
+                        >
+                          ⓘ
+                        </span>
+                      </HoverCardTrigger>
+                      <HoverCardContent className="w-auto">
+                        <p className="text-sm">{t("common.paid_to_lps")}</p>
+                      </HoverCardContent>
+                    </HoverCard>
                   </div>
                 </>
               );
@@ -278,8 +350,15 @@ export const BuySellCookbookCoin = ({
             {usdValue && amount && (
               <span className="text-xs text-muted-foreground">≈ ${usdValue} USD</span>
             )}
+            {ethBalance && ethBalance.value > 0n && (
+              <PercentageSlider
+                value={percentage}
+                onChange={handlePercentageChange}
+                disabled={!isConnected}
+              />
+            )}
             <span className="text-sm font-medium">
-              {t("create.you_will_receive", { amount: estimated, token: symbol })}
+              {t("create.you_will_receive", { amount: formatNumber(parseFloat(estimated), 6), token: symbol })}
             </span>
             <Button onClick={() => handleSwap("buy")} disabled={!isConnected || isPending || !amount}>
               {isPending ? t("swap.swapping") : t("create.buy_token", { token: symbol })}
@@ -306,8 +385,15 @@ export const BuySellCookbookCoin = ({
                 Max
               </Button>
             </div>
+            {coinBalance !== undefined && coinBalance > 0n && (
+              <PercentageSlider
+                value={percentage}
+                onChange={handlePercentageChange}
+                disabled={!isConnected}
+              />
+            )}
             <span className="text-sm font-medium">
-              {t("create.you_will_receive", { amount: estimated, token: "ETH" })}
+              {t("create.you_will_receive", { amount: formatNumber(parseFloat(estimated), 6), token: "ETH" })}
             </span>
             {usdValue && estimated !== "0" && (
               <span className="text-xs text-muted-foreground">≈ ${usdValue} USD</span>
