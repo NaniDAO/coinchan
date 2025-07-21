@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
-import { formatEther, createPublicClient, http } from "viem";
+import { formatEther, createPublicClient, http, erc20Abi } from "viem";
 import { mainnet } from "viem/chains";
 
 // Create a public client for reading contract data
@@ -11,17 +11,6 @@ const publicClient = createPublicClient({
   chain: mainnet,
   transport: http(),
 });
-
-// ERC20 ABI for symbol function
-const erc20Abi = [
-  {
-    constant: true,
-    inputs: [],
-    name: "symbol",
-    outputs: [{ name: "", type: "string" }],
-    type: "function",
-  },
-] as const;
 
 // Cache for token symbols to avoid repeated fetches
 const tokenSymbolCache = new Map<string, string>();
@@ -102,7 +91,15 @@ const convertToSnippets = async (swaps: any[]) => {
   const snippets = await Promise.all(
     swaps.map(async (swap) => {
       try {
-        const { amount0In, amount0Out, amount1Out, amount1In, id, trader, pool } = swap;
+        const {
+          amount0In,
+          amount0Out,
+          amount1Out,
+          amount1In,
+          id,
+          trader,
+          pool,
+        } = swap;
         const isBuy = BigInt(amount0In) > 0n;
         const isSell = BigInt(amount0Out) > 0n;
 
@@ -127,16 +124,12 @@ const convertToSnippets = async (swaps: any[]) => {
             id,
             snippet: (
               <>
-<<<<<<< Updated upstream
-                <a target="_blank" href={"https://etherscan.io/address/" + trader} rel="noreferrer">
-=======
                 <a
                   target="_blank"
                   href={"https://etherscan.io/address/" + trader}
                   rel="noreferrer"
                   className="my-1"
                 >
->>>>>>> Stashed changes
                   {truncAddress(trader)}
                 </a>{" "}
                 bought {Number(formatEther(amount1Out)).toFixed(2)}{" "}
@@ -157,7 +150,11 @@ const convertToSnippets = async (swaps: any[]) => {
             id,
             snippet: (
               <span style={{ color: getColor(id) }}>
-                <a target="_blank" href={"https://etherscan.io/address/" + trader} rel="noreferrer">
+                <a
+                  target="_blank"
+                  href={"https://etherscan.io/address/" + trader}
+                  rel="noreferrer"
+                >
                   {truncAddress(trader)}
                 </a>{" "}
                 sold {Number(formatEther(amount1In)).toFixed(2)}{" "}
