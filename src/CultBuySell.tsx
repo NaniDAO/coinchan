@@ -2223,7 +2223,7 @@ const EnhancedPoolPriceChart: React.FC<{
             realtimeImpact
               ? {
                   currentPrice: currentPrice,
-                  projectedPrice: realtimeImpact.newPrice,
+                  projectedPrice: realtimeImpact.priceInEth, // Pass ETH price, not USD
                   impactPercent: realtimeImpact.impactPercent,
                   action: realtimeImpact.action,
                 }
