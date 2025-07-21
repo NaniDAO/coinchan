@@ -25,7 +25,7 @@ import { CultFarmTab } from "@/components/farm/CultFarmTab";
 import { ErrorBoundary } from "@/components/farm/ErrorBoundary";
 import { SlippageSettings } from "@/components/SlippageSettings";
 import { CULTSingleLiqETHAbi, CULTSingleLiqETHAddress } from "@/constants/CULTSingleLiqETH";
-import { useAllCoins } from "@/hooks/metadata/use-all-coins";
+import { useOptimizedCoins } from "@/hooks/use-optimized-coins";
 import { useETHPrice } from "@/hooks/use-eth-price";
 import { isUserRejectionError } from "@/lib/errors";
 import { ETH_TOKEN } from "@/lib/coins";
@@ -169,10 +169,10 @@ const priceUpdateAnimation = `
   .cult-container::before {
     content: '';
     position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     background: radial-gradient(circle at center, rgba(255,0,0,0.05) 0%, transparent 70%);
     pointer-events: none;
     z-index: 0;
@@ -232,7 +232,7 @@ const sqrt = (value: bigint): bigint => {
 // Wrapper component for SingleEthLiquidity with CULT pre-selected
 const CultSingleEthLiquidity = () => {
   const { t } = useTranslation();
-  const { tokens } = useAllCoins();
+  const { tokens } = useOptimizedCoins();
   const ethToken = useMemo(() => tokens.find((t) => t.id === null) || ETH_TOKEN, [tokens]);
   const { data: ethPrice } = useETHPrice();
 
@@ -1267,8 +1267,8 @@ export const CultBuySell = () => {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: priceUpdateAnimation }} />
-      <div className="min-h-screen bg-background text-foreground">
-        <div className="max-w-2xl w-full mx-auto p-4 cult-container">
+      <div className="min-h-screen bg-background text-foreground overflow-hidden">
+        <div className="max-w-2xl w-full mx-auto p-4 cult-container" style={{ overflow: 'visible' }}>
           <div className="text-center mb-6">
             <img
               src="/cult.jpg"
