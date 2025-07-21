@@ -4,14 +4,9 @@ import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { formatEther, createPublicClient, http, erc20Abi } from "viem";
+import { formatEther, erc20Abi, PublicClient } from "viem";
 import { mainnet } from "viem/chains";
-
-// Create a public client for reading contract data
-const publicClient = createPublicClient({
-  chain: mainnet,
-  transport: http(),
-});
+import { usePublicClient } from "wagmi";
 
 // Cache for token symbols to avoid repeated fetches
 const tokenSymbolCache = new Map<string, string>();
@@ -19,7 +14,10 @@ const tokenSymbolCache = new Map<string, string>();
 // Pre-populate cache with known tokens
 tokenSymbolCache.set("0x0000000000c5dc95539589fbD24BE07c6C14eCa4", "CULT");
 
-const fetchTokenSymbol = async (tokenAddress: string): Promise<string> => {
+const fetchTokenSymbol = async (
+  tokenAddress: string,
+  publicClient: PublicClient,
+): Promise<string> => {
   if (tokenSymbolCache.has(tokenAddress)) {
     return tokenSymbolCache.get(tokenAddress)!;
   }
@@ -42,7 +40,7 @@ const fetchTokenSymbol = async (tokenAddress: string): Promise<string> => {
   }
 };
 
-const fetchSwaps = async (t: (key: string) => string) => {
+const fetchSwaps = async (t: (key: string) => string, publicClient: any) => {
   const res = await fetch(import.meta.env.VITE_INDEXER_URL + "/graphql", {
     method: "POST",
     headers: {
@@ -86,12 +84,16 @@ const fetchSwaps = async (t: (key: string) => string) => {
   const { data } = await res.json();
 
   // convert swaps to human readable snippets
-  const snippets = await convertToSnippets(data.swaps.items, t);
+  const snippets = await convertToSnippets(data.swaps.items, t, publicClient);
 
   return snippets;
 };
 
-const convertToSnippets = async (swaps: any[], t: (key: string) => string) => {
+const convertToSnippets = async (
+  swaps: any[],
+  t: (key: string) => string,
+  publicClient: any,
+) => {
   const snippets = await Promise.all(
     swaps.map(async (swap) => {
       try {
@@ -122,7 +124,7 @@ const convertToSnippets = async (swaps: any[], t: (key: string) => string) => {
             tokenSymbol = "CULT";
           } else {
             // Fetch the actual ERC20 symbol
-            tokenSymbol = await fetchTokenSymbol(pool.token1);
+            tokenSymbol = await fetchTokenSymbol(pool.token1, publicClient);
           }
           // Use token1 address as the coinId for ERC20 tokens
           coinId = pool.token1;
@@ -192,9 +194,12 @@ const convertToSnippets = async (swaps: any[], t: (key: string) => string) => {
 
 export const useSwaps = () => {
   const { t } = useTranslation();
+  const publicClient = usePublicClient({
+    chainId: mainnet.id,
+  });
   return useQuery({
     queryKey: ["swaps"],
-    queryFn: () => fetchSwaps(t),
+    queryFn: () => fetchSwaps(t, publicClient),
     refetchInterval: 15000, // optional: auto-refetch every 15s
   });
 };
