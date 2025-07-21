@@ -53,6 +53,7 @@
     "save": "保存",
     "delete": "删除",
     "search": "搜索",
+    "no_results": "未找到结果",
     "filter": "筛选",
     "sort": "排序",
     "token": "代币",
