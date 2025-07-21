@@ -8,7 +8,7 @@ import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { ZAMMLaunchAbi, ZAMMLaunchAddress } from "@/constants/ZAMMLaunch";
 import { useReserves } from "@/hooks/use-reserves";
 import { useETHPrice } from "@/hooks/use-eth-price";
-import { handleWalletError, isUserRejectionError } from "@/lib/errors";
+import { handleWalletError } from "@/lib/errors";
 import {
   type CookbookPoolKey,
   DEADLINE_SEC,

@@ -633,7 +633,6 @@ export const AddLiquidity = () => {
       }
 
       // Use appropriate ZAMMHelper contract based on coin type
-      const { helperType } = getHelperContractInfo(coinId);
       const helperAddress = isCookbook ? ZAMMHelperV1Address : ZAMMHelperAddress;
       const helperAbi = isCookbook ? ZAMMHelperV1Abi : ZAMMHelperAbi;
 
