@@ -72,7 +72,7 @@ export function FarmPositionCard({ position, stream, lpToken, onHarvest, isHarve
                 <span className="font-mono font-bold text-green-600">
                   {formatBalance(formatEther(actualPendingRewards), stream.rewardCoin?.symbol)}
                 </span>
-                {ethPrice?.priceUSD && isZAMMReward && zammReserves && zammReserves.reserve0 && zammReserves.reserve1 && zammReserves.reserve0 > 0n && zammReserves.reserve1 > 0n && (
+                {ethPrice?.priceUSD && isZAMMReward && zammReserves?.reserve0 && zammReserves?.reserve1 && zammReserves.reserve0 > 0n && zammReserves.reserve1 > 0n ? (
                   <div className="text-xs text-muted-foreground mt-0.5">
                     ≈ ${(() => {
                       const rewardAmount = parseFloat(formatEther(actualPendingRewards));
@@ -83,7 +83,7 @@ export function FarmPositionCard({ position, stream, lpToken, onHarvest, isHarve
                       return formatNumber(rewardAmount * zammPriceUsd, 2);
                     })()} USD
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
           </div>

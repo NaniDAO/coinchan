@@ -253,7 +253,7 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
                       <span className="font-mono font-bold text-green-600 text-lg block">
                         {Number.parseFloat(formatEther(actualPendingRewards)).toFixed(6)} {stream.rewardCoin?.symbol}
                       </span>
-                      {ethPrice?.priceUSD && actualPendingRewards > 0n && isZAMMReward && zammReserves && zammReserves.reserve0 && zammReserves.reserve1 && zammReserves.reserve0 > 0n && zammReserves.reserve1 > 0n && (
+                      {ethPrice?.priceUSD && actualPendingRewards > 0n && isZAMMReward && zammReserves?.reserve0 && zammReserves?.reserve1 && zammReserves.reserve0 > 0n && zammReserves.reserve1 > 0n ? (
                         <span className="text-xs text-muted-foreground">
                           ≈ ${(() => {
                             const rewardAmount = parseFloat(formatEther(actualPendingRewards));
@@ -264,7 +264,7 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
                             return formatNumber(rewardAmount * zammPriceUsd, 2);
                           })()} USD
                         </span>
-                      )}
+                      ) : null}
                     </div>
                   </div>
                 </div>
