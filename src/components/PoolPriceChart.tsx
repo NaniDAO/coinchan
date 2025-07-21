@@ -383,8 +383,10 @@ const TVPriceChart: React.FC<{
             }
 
             if (isFinite(projectedValue) && projectedValue > 0) {
+              // Use current timestamp for the projected point
+              const currentTime = Math.floor(Date.now() / 1000);
               displayData.push({
-                time: (lastPoint.time + 60) as UTCTimestamp,
+                time: currentTime as UTCTimestamp,
                 value: projectedValue,
               });
             }
