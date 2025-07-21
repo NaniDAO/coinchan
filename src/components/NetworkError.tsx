@@ -11,8 +11,8 @@ interface NetworkErrorProps {
 
 export const NetworkError = ({ message, autoSwitch = true, compact = false }: NetworkErrorProps) => {
   const { t } = useTranslation();
-  const { needsNetworkSwitch, isSwitching, switchToMainnet } = useMainnetCheck({ 
-    autoSwitch: autoSwitch && !compact 
+  const { needsNetworkSwitch, isSwitching, switchToMainnet } = useMainnetCheck({
+    autoSwitch: autoSwitch && !compact,
   });
 
   if (!needsNetworkSwitch) return null;
@@ -37,12 +37,8 @@ export const NetworkError = ({ message, autoSwitch = true, compact = false }: Ne
           <AlertCircle className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
         )}
         <div className="text-sm">
-          <p className="font-medium text-yellow-800 dark:text-yellow-200">
-            {t("errors.wrong_network_title")}
-          </p>
-          <p className="text-yellow-700 dark:text-yellow-300">
-            {message || t("errors.wrong_network_message")}
-          </p>
+          <p className="font-medium text-yellow-800 dark:text-yellow-200">{t("errors.wrong_network_title")}</p>
+          <p className="text-yellow-700 dark:text-yellow-300">{message || t("errors.wrong_network_message")}</p>
         </div>
       </div>
       {!autoSwitch && (

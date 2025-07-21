@@ -64,7 +64,7 @@ export const useUserPortfolio = ({ address }: { address: Address }) => {
         // Update positions with pending rewards
         data.positions = data.positions.map((position: Position, index: number) => {
           const result = pendingRewards[index];
-          const pendingReward = result.status === 'success' ? result.result : 0n;
+          const pendingReward = result.status === "success" ? result.result : 0n;
           return {
             ...position,
             pending_rewards: pendingReward?.toString() || position.pending_rewards,

@@ -98,20 +98,22 @@ export const BuySell = ({
 
   // Batch multiple contract reads for better performance
   const { data: contractData } = useReadContracts({
-    contracts: address ? [
-      {
-        address: CoinsAddress,
-        abi: CoinsAbi,
-        functionName: "balanceOf",
-        args: [address, tokenId],
-      },
-      {
-        address: CoinsAddress,
-        abi: CoinsAbi,
-        functionName: "isOperator",
-        args: [address, ZAMMAddress],
-      },
-    ] : [],
+    contracts: address
+      ? [
+          {
+            address: CoinsAddress,
+            abi: CoinsAbi,
+            functionName: "balanceOf",
+            args: [address, tokenId],
+          },
+          {
+            address: CoinsAddress,
+            abi: CoinsAbi,
+            functionName: "isOperator",
+            args: [address, ZAMMAddress],
+          },
+        ]
+      : [],
     allowFailure: false,
   });
 
@@ -282,7 +284,7 @@ export const BuySell = ({
     <div>
       {/* Network warning */}
       <NetworkError compact />
-      
+
       {/* Per-unit price information */}
       {reserves && reserves.reserve0 > 0n && reserves.reserve1 > 0n && ethPrice?.priceUSD && (
         <div className="mb-3 p-2 bg-muted/30 rounded-lg text-xs text-muted-foreground">

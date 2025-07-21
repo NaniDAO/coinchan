@@ -9,7 +9,7 @@ const batchConfig = {
   wait: 10,
   // Batch up to 100 requests together
   maxCount: 100,
-  // Max size of batch in bytes (1MB)  
+  // Max size of batch in bytes (1MB)
   maxSize: 1_000_000,
 };
 

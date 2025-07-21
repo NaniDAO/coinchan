@@ -32,9 +32,7 @@ export function useFarmsSummary(streams: IncentiveStream[] | undefined) {
       });
 
       // Extract successful results
-      return results.map((result) => 
-        result.status === 'success' ? result.result : undefined
-      );
+      return results.map((result) => (result.status === "success" ? result.result : undefined));
     },
     enabled: !!streams && !!publicClient && streams.length > 0,
     staleTime: 30000, // 30 seconds

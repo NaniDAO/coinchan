@@ -21,9 +21,15 @@ interface PriceChartProps {
   poolId: string;
   ticker: string;
   ethUsdPrice?: number;
+  priceImpact?: {
+    currentPrice: number;
+    projectedPrice: number;
+    impactPercent: number;
+    action: "buy" | "sell";
+  } | null;
 }
 
-const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker, ethUsdPrice }) => {
+const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker, ethUsdPrice, priceImpact }) => {
   const { t } = useTranslation();
   const [showUsd, setShowUsd] = useState(false);
   const [chartError, setChartError] = useState<string | null>(null);
@@ -171,7 +177,13 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker, ethUsdPrice
           </Button>
         </div>
       ) : data && data.length > 0 ? (
-        <MemoizedTVPriceChart priceData={data} ticker={ticker} showUsd={showUsd} ethUsdPrice={ethUsdPrice} />
+        <MemoizedTVPriceChart
+          priceData={data}
+          ticker={ticker}
+          showUsd={showUsd}
+          ethUsdPrice={ethUsdPrice}
+          priceImpact={priceImpact}
+        />
       ) : (
         <div className="text-center py-20 text-muted-foreground">{t("chart.no_data")}</div>
       )}
@@ -184,11 +196,18 @@ const TVPriceChart: React.FC<{
   ticker: string;
   showUsd?: boolean;
   ethUsdPrice?: number;
-}> = ({ priceData, ticker, showUsd = false, ethUsdPrice }) => {
+  priceImpact?: {
+    currentPrice: number;
+    projectedPrice: number;
+    impactPercent: number;
+    action: "buy" | "sell";
+  } | null;
+}> = ({ priceData, ticker, showUsd = false, ethUsdPrice, priceImpact }) => {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<ReturnType<typeof createChart>>();
   const priceSeriesRef = useRef<ISeriesApi<"Line">>();
+  const impactSeriesRef = useRef<ISeriesApi<"Line">>();
   const chartTheme = useChartTheme();
   const [isChartReady, setIsChartReady] = useState(false);
   const lastValidDataRef = useRef<Array<{ time: UTCTimestamp; value: number }>>();
@@ -361,6 +380,59 @@ const TVPriceChart: React.FC<{
       }
     }
   }, [priceData, showUsd, ethUsdPrice, t, isChartReady]);
+
+  // Update price impact visualization
+  useEffect(() => {
+    if (!chartRef.current || !priceSeriesRef.current || !isChartReady || !priceImpact) {
+      // Remove impact series if no price impact
+      if (impactSeriesRef.current && chartRef.current) {
+        try {
+          chartRef.current.removeSeries(impactSeriesRef.current);
+          impactSeriesRef.current = undefined;
+        } catch (e) {
+          console.error("Failed to remove impact series:", e);
+        }
+      }
+      return;
+    }
+
+    try {
+      // Remove existing impact series
+      if (impactSeriesRef.current) {
+        chartRef.current.removeSeries(impactSeriesRef.current);
+      }
+
+      // Create new impact series with dashed line
+      impactSeriesRef.current = chartRef.current.addSeries(LineSeries, {
+        color: priceImpact.impactPercent > 0 ? "#4ade80" : "#f87171", // green or red
+        lineWidth: 2,
+        lineStyle: 2, // Dashed line
+        priceLineVisible: false,
+        lastValueVisible: false,
+        title: "",
+      } as LineSeriesOptions);
+
+      // Get the last data point time
+      const lastDataPoint = lastValidDataRef.current?.[lastValidDataRef.current.length - 1];
+      if (lastDataPoint) {
+        const projectedValue =
+          showUsd && ethUsdPrice ? priceImpact.projectedPrice : priceImpact.projectedPrice / (ethUsdPrice || 1);
+
+        // Add two points: current and projected
+        const impactData = [
+          { time: lastDataPoint.time, value: lastDataPoint.value },
+          {
+            time: (lastDataPoint.time + 60) as UTCTimestamp, // 1 minute into the future
+            value: projectedValue,
+          },
+        ];
+
+        impactSeriesRef.current.setData(impactData);
+      }
+    } catch (error) {
+      console.error("Error adding price impact visualization:", error);
+    }
+  }, [priceImpact, showUsd, ethUsdPrice, isChartReady]);
 
   return (
     <div className="relative">
