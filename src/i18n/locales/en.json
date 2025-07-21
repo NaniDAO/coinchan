@@ -677,6 +677,7 @@
   },
   "errors": {
     "wallet_connection": "Error connecting wallet",
+    "wallet_connection_refresh": "Wallet connection issue. Refreshing page...",
     "network_error": "Network error, please try again",
     "transaction_error": "Transaction failed",
     "slippage_too_high": "Slippage too high",

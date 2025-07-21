@@ -687,6 +687,7 @@
   },
   "errors": {
     "wallet_connection": "连接钱包错误",
+    "wallet_connection_refresh": "钱包连接问题，正在刷新页面...",
     "network_error": "网络错误，请重试",
     "transaction_error": "交易失败",
     "insufficient_balance": "余额不足",
