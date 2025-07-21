@@ -485,11 +485,11 @@ const TVPriceChart: React.FC<{
           if (chartRef.current) {
             const timeScale = chartRef.current.timeScale();
             const currentRange = timeScale.getVisibleRange();
-            if (currentRange && projectedPoint.time > currentRange.to) {
+            if (currentRange && projectedPoint.time > (currentRange.to as number)) {
               // Extend view slightly to include the projected point
               timeScale.setVisibleRange({
                 from: currentRange.from,
-                to: projectedPoint.time + 60,
+                to: (projectedPoint.time + 60) as UTCTimestamp,
               });
             }
           }
