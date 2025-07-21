@@ -413,77 +413,42 @@ const TVPriceChart: React.FC<{
     }
   }, [priceData, showUsd, ethUsdPrice, t, isChartReady]);
 
-  // Update price impact visualization
+  // Update chart when price impact changes
   useEffect(() => {
     if (!priceSeriesRef.current || !isChartReady || !lastValidDataRef.current || lastValidDataRef.current.length === 0) {
       return;
     }
 
-    // Get current data
-    const currentData = [...lastValidDataRef.current];
+    // Always work with the original data
+    const baseData = [...lastValidDataRef.current];
     
-    if (priceImpact) {
-      // Calculate the projected price point
-      const lastDataPoint = currentData[currentData.length - 1];
-      if (!lastDataPoint) return;
+    if (priceImpact && priceImpact.projectedPrice > 0) {
+      // Get the last data point
+      const lastPoint = baseData[baseData.length - 1];
+      if (!lastPoint) return;
 
-      let projectedChartValue: number;
+      // Calculate the projected value based on display mode
+      let projectedValue: number;
       
       if (showUsd && ethUsdPrice && ethUsdPrice > 0) {
-        // When showing USD, display CULT/USD price
-        projectedChartValue = priceImpact.projectedPrice * ethUsdPrice;
+        // USD mode: CULT price in USD
+        projectedValue = priceImpact.projectedPrice * ethUsdPrice;
       } else {
-        // When showing ETH, display ETH/CULT (how many CULT per 1 ETH)
-        projectedChartValue = 1 / priceImpact.projectedPrice;
+        // ETH mode: ETH/CULT (reciprocal of CULT price in ETH)
+        projectedValue = 1 / priceImpact.projectedPrice;
       }
 
-      // Validate projected value
-      if (!isFinite(projectedChartValue) || projectedChartValue <= 0) {
-        console.error("Invalid projected chart value:", projectedChartValue);
-        return;
-      }
+      // Add the projected point
+      const projectedPoint = {
+        time: (lastPoint.time + 60) as UTCTimestamp, // 1 minute in the future
+        value: projectedValue,
+      };
 
-      // Add the projected point to the data
-      const projectedTime = (lastDataPoint.time + 60) as UTCTimestamp;
-      const dataWithImpact = [
-        ...currentData,
-        {
-          time: projectedTime,
-          value: projectedChartValue,
-        },
-      ];
-
-      // Update the chart with the new data
-      priceSeriesRef.current.setData(dataWithImpact);
-
-      // Add a price line at the projected value
-      if ((priceSeriesRef.current as any)._impactPriceLine) {
-        priceSeriesRef.current.removePriceLine((priceSeriesRef.current as any)._impactPriceLine);
-      }
-      
-      const priceLine = priceSeriesRef.current.createPriceLine({
-        price: projectedChartValue,
-        color: priceImpact.impactPercent > 0 ? '#4ade80' : '#f87171',
-        lineWidth: 1,
-        lineStyle: 2,
-        axisLabelVisible: true,
-        title: `${priceImpact.impactPercent > 0 ? '+' : ''}${priceImpact.impactPercent.toFixed(2)}%`,
-      });
-      
-      (priceSeriesRef.current as any)._impactPriceLine = priceLine;
+      // Set data with the projected point
+      priceSeriesRef.current.setData([...baseData, projectedPoint]);
     } else {
-      // Remove price line if it exists
-      if ((priceSeriesRef.current as any)._impactPriceLine) {
-        try {
-          priceSeriesRef.current.removePriceLine((priceSeriesRef.current as any)._impactPriceLine);
-          (priceSeriesRef.current as any)._impactPriceLine = undefined;
-        } catch (e) {
-          // Ignore errors
-        }
-      }
-      
-      // Restore original data
-      priceSeriesRef.current.setData(currentData);
+      // No impact, just show base data
+      priceSeriesRef.current.setData(baseData);
     }
   }, [priceImpact, showUsd, ethUsdPrice, isChartReady]);
 
