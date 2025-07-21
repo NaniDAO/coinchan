@@ -1250,7 +1250,7 @@ export const CultBuySell = () => {
                   </div>
                 </div>
               </div>
-              {lpBalance !== undefined && lpBalance > 0n && (
+              {lpBalance !== undefined && lpBalance > 0n ? (
                 <div className="mt-3 p-2 bg-gradient-to-r from-red-900/20 to-transparent rounded-md border-l-2 border-red-500">
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-gray-400">{t("cult.your_lp_tokens")}:</span>
@@ -1259,7 +1259,7 @@ export const CultBuySell = () => {
                     </span>
                   </div>
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
 
@@ -1409,7 +1409,7 @@ export const CultBuySell = () => {
                   )}
                 </div>
 
-                {ethBalance?.value && ethBalance.value > 0n && isConnected && (
+                {ethBalance?.value && ethBalance.value > 0n && isConnected ? (
                   <div className="space-y-2">
                     <PercentageSlider value={buyPercentage} onChange={handleBuyPercentageChange} />
                     <div className="flex gap-2">
@@ -1424,7 +1424,7 @@ export const CultBuySell = () => {
                       ))}
                     </div>
                   </div>
-                )}
+                ) : null}
 
                 {/* Output Preview */}
                 <div className="bg-black/30 rounded-lg p-3 border border-green-900/30">
