@@ -42,27 +42,34 @@ export const useUserPortfolio = ({ address }: { address: Address }) => {
 
       const data = await response.json();
 
-      // fetch pending rewards for each position
-      if (data.positions && data.positions.length > 0) {
-        const pendingRewards = await Promise.all(
-          data.positions.map(async (position: Position) => {
-            return await publicClient?.readContract({
-              abi: ZChefAbi,
-              address: ZChefAddress,
-              functionName: "pendingReward",
-              args: [
-                BigInt(position.chef_id), // chefId,
-                address, // userId
-              ],
-            });
-          }),
-        );
+      // fetch pending rewards for each position using multicall for better performance
+      if (data.positions && data.positions.length > 0 && publicClient) {
+        // Build contracts array for multicall
+        const contracts = data.positions.map((position: Position) => ({
+          abi: ZChefAbi,
+          address: ZChefAddress as Address,
+          functionName: "pendingReward",
+          args: [
+            BigInt(position.chef_id), // chefId
+            address, // userId
+          ],
+        }));
+
+        // Execute all calls in a single batch
+        const pendingRewards = await publicClient.multicall({
+          contracts,
+          allowFailure: true, // Don't fail if one call fails
+        });
 
         // Update positions with pending rewards
-        data.positions = data.positions.map((position: Position, index: number) => ({
-          ...position,
-          pending_rewards: pendingRewards[index]?.toString() || position.pending_rewards,
-        }));
+        data.positions = data.positions.map((position: Position, index: number) => {
+          const result = pendingRewards[index];
+          const pendingReward = result.status === 'success' ? result.result : 0n;
+          return {
+            ...position,
+            pending_rewards: pendingReward?.toString() || position.pending_rewards,
+          };
+        });
       }
 
       return data;

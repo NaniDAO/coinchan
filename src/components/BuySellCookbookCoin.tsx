@@ -23,8 +23,7 @@ import { nowSec, formatNumber } from "@/lib/utils";
 import { useMemo, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
-import { mainnet } from "viem/chains";
-import { useAccount, useBalance, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import { useAccount, useBalance, useReadContracts, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { useGetCoin } from "@/hooks/metadata/use-get-coin";
 
 export const BuySellCookbookCoin = ({
@@ -70,33 +69,36 @@ export const BuySellCookbookCoin = ({
   });
   const { data: ethBalance } = useBalance({
     address: address,
-    chainId: mainnet.id,
-  });
-  const { data: coinBalance } = useReadContract({
-    address: CookbookAddress,
-    abi: CookbookAbi,
-    functionName: "balanceOf",
-    args: address ? [address, coinId] : undefined,
-    chainId: mainnet.id,
   });
 
-  // Get user's launchpad balance for claiming
-  const { data: launchpadBalance } = useReadContract({
-    address: ZAMMLaunchAddress,
-    abi: ZAMMLaunchAbi,
-    functionName: "balances",
-    args: address ? [coinId, address] : undefined,
-    chainId: mainnet.id,
+  // Batch multiple contract reads for better performance
+  const { data: contractData } = useReadContracts({
+    contracts: [
+      {
+        address: CookbookAddress,
+        abi: CookbookAbi,
+        functionName: "balanceOf",
+        args: address ? [address, coinId] : undefined,
+      },
+      {
+        address: ZAMMLaunchAddress,
+        abi: ZAMMLaunchAbi,
+        functionName: "balances",
+        args: address ? [coinId, address] : undefined,
+      },
+      {
+        address: ZAMMLaunchAddress,
+        abi: ZAMMLaunchAbi,
+        functionName: "sales",
+        args: [coinId],
+      },
+    ],
+    allowFailure: false,
   });
 
-  // Check if sale is actually finalized on-chain by reading the contract directly
-  const { data: saleData } = useReadContract({
-    address: ZAMMLaunchAddress,
-    abi: ZAMMLaunchAbi,
-    functionName: "sales",
-    args: [coinId],
-    chainId: mainnet.id,
-  });
+  const coinBalance = contractData?.[0];
+  const launchpadBalance = contractData?.[1];
+  const saleData = contractData?.[2];
 
   // Check if claim is available (sale finalized on-chain and user has balance)
   const canClaim = useMemo(() => {
