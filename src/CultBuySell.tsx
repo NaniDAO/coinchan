@@ -910,48 +910,83 @@ export const CultBuySell = () => {
     // Debounce the calculation
     const timer = setTimeout(() => {
       try {
-        const swapAmountEth = tab === "buy" ? parseEther(amount) : 0n;
-        const swapAmountCult = tab === "sell" ? parseUnits(amount, 18) : 0n;
+        // Parse amounts safely
+        let swapAmountEth: bigint;
+        let swapAmountCult: bigint;
+        
+        try {
+          swapAmountEth = tab === "buy" ? parseEther(amount) : 0n;
+          swapAmountCult = tab === "sell" ? parseUnits(amount, 18) : 0n;
+        } catch (e) {
+          console.error("Error parsing amounts:", e);
+          setRealtimePriceImpact(null);
+          return;
+        }
+
+        // Validate reserves
+        if (!reserves.reserve0 || !reserves.reserve1 || reserves.reserve0 === 0n || reserves.reserve1 === 0n) {
+          console.error("Invalid reserves");
+          setRealtimePriceImpact(null);
+          return;
+        }
 
         let newReserve0 = reserves.reserve0;
         let newReserve1 = reserves.reserve1;
 
         if (tab === "buy") {
           // Buying CULT with ETH
-          const amountOut = getAmountOut(swapAmountEth, reserves.reserve0, reserves.reserve1, 30n);
-          newReserve0 = reserves.reserve0 + swapAmountEth;
-          newReserve1 = reserves.reserve1 - amountOut;
-
-          // Safety check: ensure reserves don't go negative or too low
-          if (newReserve1 <= reserves.reserve1 / 100n) {
-            // More than 99% impact
+          try {
+            const amountOut = getAmountOut(swapAmountEth, reserves.reserve0, reserves.reserve1, 30n);
+            if (amountOut >= reserves.reserve1) {
+              // Would drain the pool
+              setRealtimePriceImpact(null);
+              return;
+            }
+            newReserve0 = reserves.reserve0 + swapAmountEth;
+            newReserve1 = reserves.reserve1 - amountOut;
+          } catch (e) {
+            console.error("Error calculating buy output:", e);
             setRealtimePriceImpact(null);
             return;
           }
         } else {
           // Selling CULT for ETH
-          const amountOut = getAmountOut(swapAmountCult, reserves.reserve1, reserves.reserve0, 30n);
-          newReserve0 = reserves.reserve0 - amountOut;
-          newReserve1 = reserves.reserve1 + swapAmountCult;
-
-          // Safety check: ensure reserves don't go negative or too low
-          if (newReserve0 <= reserves.reserve0 / 100n) {
-            // More than 99% impact
+          try {
+            const amountOut = getAmountOut(swapAmountCult, reserves.reserve1, reserves.reserve0, 30n);
+            if (amountOut >= reserves.reserve0) {
+              // Would drain the pool
+              setRealtimePriceImpact(null);
+              return;
+            }
+            newReserve0 = reserves.reserve0 - amountOut;
+            newReserve1 = reserves.reserve1 + swapAmountCult;
+          } catch (e) {
+            console.error("Error calculating sell output:", e);
             setRealtimePriceImpact(null);
             return;
           }
         }
 
+        // Calculate prices safely
         const currentCultPriceInEth =
           parseFloat(formatEther(reserves.reserve0)) / parseFloat(formatUnits(reserves.reserve1, 18));
         const newCultPriceInEth = parseFloat(formatEther(newReserve0)) / parseFloat(formatUnits(newReserve1, 18));
+        
+        // Validate calculated prices
+        if (!isFinite(currentCultPriceInEth) || !isFinite(newCultPriceInEth) || newCultPriceInEth <= 0) {
+          console.error("Invalid price calculation");
+          setRealtimePriceImpact(null);
+          return;
+        }
+        
         const newCultPriceUsd = newCultPriceInEth * ethPrice.priceUSD;
-
         const impactPercent = ((newCultPriceInEth - currentCultPriceInEth) / currentCultPriceInEth) * 100;
 
-        // Additional sanity check for extreme impacts
-        if (Math.abs(impactPercent) > 50) {
-          console.warn(`High price impact detected: ${impactPercent.toFixed(2)}%`);
+        // Sanity check for extreme impacts
+        if (Math.abs(impactPercent) > 90) {
+          console.warn(`Extreme price impact detected: ${impactPercent.toFixed(2)}%`);
+          setRealtimePriceImpact(null);
+          return;
         }
 
         setRealtimePriceImpact({
