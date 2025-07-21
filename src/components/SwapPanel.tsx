@@ -1,5 +1,5 @@
 import type { TokenMeta } from "@/lib/coins";
-import { cn } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -108,17 +108,24 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
         />
       </div>
       <div className="flex justify-between items-center">
-        <input
-          type="number"
-          inputMode="decimal"
-          min="0"
-          step="any"
-          placeholder="0.0"
-          value={amount}
-          onChange={(e) => onAmountChange(e.target.value)}
-          readOnly={readOnly}
-          className="transition-all duration-100 ease-in hover:bg-secondary focus:bg-muted focus:shadow-[0_0_0_2px_var(--terminal-black)] text-lg sm:text-xl font-medium w-full focus:outline-none h-10 text-right pr-1 text-foreground font-body border-none"
-        />
+        {readOnly ? (
+          // Display formatted number when readonly
+          <div className="text-lg sm:text-xl font-medium w-full h-10 text-right pr-1 text-foreground font-body flex items-center justify-end">
+            {amount ? formatNumber(parseFloat(amount), 6) : "0"}
+          </div>
+        ) : (
+          // Regular input when editable
+          <input
+            type="number"
+            inputMode="decimal"
+            min="0"
+            step="any"
+            placeholder="0.0"
+            value={amount}
+            onChange={(e) => onAmountChange(e.target.value)}
+            className="transition-all duration-100 ease-in hover:bg-secondary focus:bg-muted focus:shadow-[0_0_0_2px_var(--terminal-black)] text-lg sm:text-xl font-medium w-full focus:outline-none h-10 text-right pr-1 text-foreground font-body border-none"
+          />
+        )}
         {previewLabel ? (
           <span className="ml-1 text-xs text-foreground font-medium">{previewLabel}</span>
         ) : (
@@ -139,18 +146,19 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
         <div className="text-xs text-muted-foreground text-right pr-1 -mt-1">
           ≈ ${(() => {
             const numAmount = parseFloat(amount);
+            let usdValue = 0;
             if (selectedToken.id === null) {
               // ETH
-              return (numAmount * ethPrice.priceUSD).toFixed(2);
+              usdValue = numAmount * ethPrice.priceUSD;
             } else if (selectedToken.reserve0 && selectedToken.reserve1) {
               // Other tokens with reserves
               const ethReserve = parseFloat(formatEther(selectedToken.reserve0));
               const tokenReserve = parseFloat(formatUnits(selectedToken.reserve1, selectedToken.decimals || 18));
               const tokenPriceInEth = ethReserve / tokenReserve;
               const tokenPriceUsd = tokenPriceInEth * ethPrice.priceUSD;
-              return (numAmount * tokenPriceUsd).toFixed(2);
+              usdValue = numAmount * tokenPriceUsd;
             }
-            return "0.00";
+            return formatNumber(usdValue, 2);
           })()} USD
         </div>
       )}

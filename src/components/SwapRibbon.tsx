@@ -3,40 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
-import { formatEther, createPublicClient, http, erc20Abi } from "viem";
-import { mainnet } from "viem/chains";
-
-// Create a public client for reading contract data
-const publicClient = createPublicClient({
-  chain: mainnet,
-  transport: http(),
-});
-
-// Cache for token symbols to avoid repeated fetches
-const tokenSymbolCache = new Map<string, string>();
-
-const fetchTokenSymbol = async (tokenAddress: string): Promise<string> => {
-  if (tokenSymbolCache.has(tokenAddress)) {
-    return tokenSymbolCache.get(tokenAddress)!;
-  }
-
-  try {
-    const symbol = await publicClient.readContract({
-      address: tokenAddress as `0x${string}`,
-      abi: erc20Abi,
-      functionName: "symbol",
-    });
-
-    tokenSymbolCache.set(tokenAddress, symbol);
-    return symbol;
-  } catch (error) {
-    console.warn(`Failed to fetch symbol for token ${tokenAddress}:`, error);
-    // Return truncated address as fallback
-    const fallbackSymbol = truncAddress(tokenAddress);
-    tokenSymbolCache.set(tokenAddress, fallbackSymbol);
-    return fallbackSymbol;
-  }
-};
+import { formatEther } from "viem";
 
 const fetchSwaps = async () => {
   const res = await fetch(import.meta.env.VITE_INDEXER_URL + "/graphql", {
@@ -47,7 +14,7 @@ const fetchSwaps = async () => {
     body: JSON.stringify({
       query: `
       query GetSwaps {
-        swaps(limit: 5, orderBy: "timestamp", orderDirection: "desc") {
+        swaps(limit: 10, orderBy: "timestamp", orderDirection: "desc") {
           items {
             amount0In
             amount0Out
@@ -63,10 +30,6 @@ const fetchSwaps = async () => {
             trader
             txHash
             pool {
-                coin0Id
-                token0
-                coin1Id
-                token1
               coin1 {
                 id
                 symbol
@@ -82,90 +45,63 @@ const fetchSwaps = async () => {
   const { data } = await res.json();
 
   // convert swaps to human readable snippets
-  const snippets = await convertToSnippets(data.swaps.items);
+  const snippets = convertToSnippets(data.swaps.items);
 
   return snippets;
 };
 
-const convertToSnippets = async (swaps: any[]) => {
-  const snippets = await Promise.all(
-    swaps.map(async (swap) => {
+const convertToSnippets = (swaps: any[]) => {
+  const snippets = swaps
+    .map((swap) => {
       try {
-        const {
-          amount0In,
-          amount0Out,
-          amount1Out,
-          amount1In,
-          id,
-          trader,
-          pool,
-        } = swap;
+        const { amount0In, amount0Out, amount1Out, amount1In, id, trader, pool } = swap;
         const isBuy = BigInt(amount0In) > 0n;
         const isSell = BigInt(amount0Out) > 0n;
-
-        // Determine if this is an ERC20 token
-        // ERC20: coin1Id is "0" but token1 is a non-zero address
-        const isErc20 =
-          pool.coin1Id === "0" &&
-          pool.token1 !== "0x0000000000000000000000000000000000000000";
-
-        let tokenSymbol = pool.coin1.symbol;
-        let coinId = pool.coin1.id;
-
-        if (isErc20) {
-          // Fetch the actual ERC20 symbol
-          tokenSymbol = await fetchTokenSymbol(pool.token1);
-          // Use token1 address as the coinId for ERC20 tokens
-          coinId = pool.token1;
-        }
 
         if (isBuy) {
           return {
             id,
             snippet: (
-              <span style={{ color: getColor(id) }}>
-                <a
-                  target="_blank"
-                  href={"https://etherscan.io/address/" + trader}
-                  rel="noreferrer"
-                >
-                  {truncAddress(trader)}
-                </a>{" "}
-                bought {Number(formatEther(amount1Out)).toFixed(2)}{" "}
-                <Link
-                  to={`/c/$coinId`}
-                  params={{
-                    coinId: coinId,
-                  }}
-                >
-                  {" "}
-                  {tokenSymbol}
-                </Link>
-              </span>
+              <>
+                <span style={{ color: getColor(id) }}>
+                  <a target="_blank" href={"https://etherscan.io/address/" + trader} rel="noreferrer" className="my-1">
+                    {truncAddress(trader)}
+                  </a>{" "}
+                  bought {Number(formatEther(amount1Out)).toFixed(2)}{" "}
+                  <Link
+                    to={`/c/$coinId`}
+                    params={{
+                      coinId: pool.coin1.id,
+                    }}
+                    className="py-1"
+                  >
+                    {pool.coin1.symbol}
+                  </Link>
+                </span>
+              </>
             ),
           };
         } else if (isSell) {
           return {
             id,
             snippet: (
-              <span style={{ color: getColor(id) }}>
-                <a
-                  target="_blank"
-                  href={"https://etherscan.io/address/" + trader}
-                  rel="noreferrer"
-                >
-                  {truncAddress(trader)}
-                </a>{" "}
-                sold {Number(formatEther(amount1In)).toFixed(2)}{" "}
-                <Link
-                  to={`/c/$coinId`}
-                  params={{
-                    coinId: coinId,
-                  }}
-                >
-                  {tokenSymbol}
-                </Link>
-              </span>
+              <>
+                <span style={{ color: getColor(id) }}>
+                  <a target="_blank" href={"https://etherscan.io/address/" + trader} rel="noreferrer" className="my-1">
+                    {truncAddress(trader)}
+                  </a>{" "}
+                  sold {Number(formatEther(amount1In)).toFixed(2)}{" "}
+                  <Link
+                    to={`/c/$coinId`}
+                    params={{
+                      coinId: pool.coin1.id,
+                    }}
+                    className="py-1"
+                  >
+                    {pool.coin1.symbol}
+                  </Link>
+                </span>
+              </>
             ),
           };
         }
@@ -175,10 +111,10 @@ const convertToSnippets = async (swaps: any[]) => {
         console.warn("Skipped invalid swap", swap, e);
         return null;
       }
-    }),
-  );
+    })
+    .filter((snippet) => snippet !== null);
 
-  return snippets.filter((snippet) => snippet !== null);
+  return snippets;
 };
 
 export const useSwaps = () => {
@@ -219,25 +155,36 @@ export function SwapRibbon() {
 
   if (isLoading || error || !data) return null;
 
-  // Add CULT feature as the first item
+  // Add ZAMM GOV #0 as the first item
+  const govItem = {
+    id: "zamm-gov-0",
+    snippet: (
+      <a
+        href="https://snapshot.box/#/s:zamm.eth/proposal/0xbaa757c6d1582374ad60e6b72984903e56d3a1f3f072abc9957bf9a6d01cf3d4"
+        target="_blank"
+        rel="noreferrer"
+        className="text-foreground hover:underline font-medium my-1"
+      >
+        ✔️ ZAMM GOV #0
+      </a>
+    ),
+  };
+
+  // Add CULT feature as the second item
   const cultItem = {
     id: "cult-feature",
     snippet: (
       <Link
         to="/cult"
-        className="text-foreground hover:underline font-medium inline-flex items-center gap-1 align-middle"
+        className="text-foreground hover:underline font-medium inline-flex items-center gap-1 align-middle py-1"
       >
-        <img
-          src="/cult.jpg"
-          alt="CULT"
-          className="w-4 h-4 rounded-full inline-block align-middle"
-        />
+        <img src="/cult.jpg" alt="CULT" className="w-4 h-4 rounded-full inline-block align-middle" />
         <span className="inline-block align-middle">CULT</span>
       </Link>
     ),
   };
 
-  // Add Farm (Alpha) as the second item
+  // Add Farm (Alpha) as the third item
   const farmItem = {
     id: "farm-alpha",
     snippet: (
@@ -245,14 +192,14 @@ export function SwapRibbon() {
         href="https://www.zamm.finance/farm"
         target="_blank"
         rel="noreferrer"
-        className="text-foreground hover:underline font-medium"
+        className="text-foreground hover:underline font-medium my-1"
       >
-        🌾 [Farm (Alpha)]
+        <span className="ml-2">🌾</span> [Farm (Alpha)]
       </a>
     ),
   };
 
-  const allItems = [cultItem, farmItem, ...data];
+  const allItems = [govItem, cultItem, farmItem, ...data];
   const repeated = [...allItems, ...allItems]; // Duplicate for seamless scroll
 
   return (
@@ -272,7 +219,7 @@ export function SwapRibbon() {
                 repeat: Number.POSITIVE_INFINITY,
                 repeatType: "loop",
                 ease: "linear",
-                duration: 20,
+                duration: 33,
               }
         }
       >
@@ -281,16 +228,14 @@ export function SwapRibbon() {
             key={`${item.id}-${index}`}
             className="inline-flex items-center"
             style={
-              item.id === "farm-alpha" || item.id === "cult-feature"
+              item.id === "zamm-gov-0" || item.id === "farm-alpha" || item.id === "cult-feature"
                 ? { color: "inherit" }
                 : { color: getColor(item.id) }
             }
           >
-            <span className="text-sm shrink-0 inline-flex items-center">
-              {item.snippet}
-            </span>
+            <span className="text-sm shrink-0 inline-flex items-center">{item.snippet}</span>
             <span
-              className={`text-2xl mx-3 inline-flex items-center ${item.id === "farm-alpha" || item.id === "cult-feature" ? "text-foreground" : ""}`}
+              className={`text-2xl mx-3 inline-flex items-center ${item.id === "zamm-gov-0" || item.id === "farm-alpha" || item.id === "cult-feature" ? "text-foreground" : ""}`}
             >
               /
             </span>
