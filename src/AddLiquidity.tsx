@@ -69,43 +69,6 @@ export const AddLiquidity = () => {
   const [estimatedLpTokens, setEstimatedLpTokens] = useState<string>("");
   const [estimatedPoolShare, setEstimatedPoolShare] = useState<string>("");
 
-  // Calculate expected LP tokens whenever amounts change
-  const calculateLpTokens = useCallback((ethAmount: bigint, tokenAmount: bigint) => {
-    if (!poolInfo || ethAmount === 0n || tokenAmount === 0n) {
-      setEstimatedLpTokens("");
-      setEstimatedPoolShare("");
-      return;
-    }
-
-    try {
-      const totalSupply = poolInfo[6] as bigint; // Total LP supply at index 6
-      
-      if (totalSupply > 0n && reserves?.reserve0 && reserves?.reserve1) {
-        // From AMM: liquidity = min(mulDiv(amount0, supply, reserve0), mulDiv(amount1, supply, reserve1))
-        const lpFromEth = (ethAmount * totalSupply) / reserves.reserve0;
-        const lpFromToken = (tokenAmount * totalSupply) / reserves.reserve1;
-        const lpTokensToMint = lpFromEth < lpFromToken ? lpFromEth : lpFromToken;
-        
-        setEstimatedLpTokens(formatUnits(lpTokensToMint, 18));
-        
-        // Calculate pool share percentage
-        const newTotalSupply = totalSupply + lpTokensToMint;
-        const poolShareBps = (lpTokensToMint * 10000n) / newTotalSupply;
-        setEstimatedPoolShare(`${(Number(poolShareBps) / 100).toFixed(2)}%`);
-      } else if (totalSupply === 0n) {
-        // First liquidity provider - from AMM: liquidity = sqrt(amount0 * amount1) - MINIMUM_LIQUIDITY
-        const MINIMUM_LIQUIDITY = 1000n;
-        const lpTokens = sqrt(ethAmount * tokenAmount) - MINIMUM_LIQUIDITY;
-        setEstimatedLpTokens(formatUnits(lpTokens, 18));
-        setEstimatedPoolShare("100%");
-      }
-    } catch (err) {
-      console.error("Error calculating LP tokens:", err);
-      setEstimatedLpTokens("");
-      setEstimatedPoolShare("");
-    }
-  }, [poolInfo, reserves]);
-
   // Use shared token selection context
   const { sellToken, buyToken, setSellToken, setBuyToken } = useTokenSelection();
 
@@ -168,6 +131,43 @@ export const AddLiquidity = () => {
   });
 
   const [slippageBps, setSlippageBps] = useState<bigint>(SLIPPAGE_BPS);
+
+  // Calculate expected LP tokens whenever amounts change
+  const calculateLpTokens = useCallback((ethAmount: bigint, tokenAmount: bigint) => {
+    if (!poolInfo || ethAmount === 0n || tokenAmount === 0n) {
+      setEstimatedLpTokens("");
+      setEstimatedPoolShare("");
+      return;
+    }
+
+    try {
+      const totalSupply = poolInfo[6] as bigint; // Total LP supply at index 6
+      
+      if (totalSupply > 0n && reserves?.reserve0 && reserves?.reserve1) {
+        // From AMM: liquidity = min(mulDiv(amount0, supply, reserve0), mulDiv(amount1, supply, reserve1))
+        const lpFromEth = (ethAmount * totalSupply) / reserves.reserve0;
+        const lpFromToken = (tokenAmount * totalSupply) / reserves.reserve1;
+        const lpTokensToMint = lpFromEth < lpFromToken ? lpFromEth : lpFromToken;
+        
+        setEstimatedLpTokens(formatUnits(lpTokensToMint, 18));
+        
+        // Calculate pool share percentage
+        const newTotalSupply = totalSupply + lpTokensToMint;
+        const poolShareBps = (lpTokensToMint * 10000n) / newTotalSupply;
+        setEstimatedPoolShare(`${(Number(poolShareBps) / 100).toFixed(2)}%`);
+      } else if (totalSupply === 0n) {
+        // First liquidity provider - from AMM: liquidity = sqrt(amount0 * amount1) - MINIMUM_LIQUIDITY
+        const MINIMUM_LIQUIDITY = 1000n;
+        const lpTokens = sqrt(ethAmount * tokenAmount) - MINIMUM_LIQUIDITY;
+        setEstimatedLpTokens(formatUnits(lpTokens, 18));
+        setEstimatedPoolShare("100%");
+      }
+    } catch (err) {
+      console.error("Error calculating LP tokens:", err);
+      setEstimatedLpTokens("");
+      setEstimatedPoolShare("");
+    }
+  }, [poolInfo, reserves]);
 
   // Determine which AMM contract will handle the pool
   const targetAMMContract = useMemo(() => {
