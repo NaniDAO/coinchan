@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { PercentageSlider } from "@/components/ui/percentage-slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingLogo } from "@/components/ui/loading-logo";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { handleWalletError } from "@/lib/errors";
 import { formatEther, formatUnits, parseEther, parseUnits, maxUint256, encodeFunctionData, erc20Abi } from "viem";
 import { CultFarmTab } from "@/components/farm/CultFarmTab";
@@ -1178,17 +1179,37 @@ export const CultBuySell = () => {
               <span className="text-gray-400">{t("cult.swap_fee")}:</span>
               <div className="flex items-center gap-1">
                 <span className="text-white font-mono">0.3%</span>
-                <span 
-                  className="text-[10px] opacity-70 cursor-help hover:opacity-100 transition-opacity" 
-                  title={t("common.paid_to_lps")}
-                >
-                  ⓘ
-                </span>
+                <HoverCard>
+                  <HoverCardTrigger asChild>
+                    <span 
+                      className="text-[10px] opacity-70 cursor-help hover:opacity-100 transition-opacity" 
+                    >
+                      ⓘ
+                    </span>
+                  </HoverCardTrigger>
+                  <HoverCardContent className="w-auto">
+                    <p className="text-sm">{t("common.paid_to_lps")}</p>
+                  </HoverCardContent>
+                </HoverCard>
               </div>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">{t("cult.milady_acc_tax")}:</span>
-              <span className="text-red-400 font-mono">0.1%</span>
+              <div className="flex items-center gap-1">
+                <span className="text-red-400 font-mono">0.1%</span>
+                <HoverCard>
+                  <HoverCardTrigger asChild>
+                    <span 
+                      className="text-[10px] opacity-70 cursor-help hover:opacity-100 transition-opacity" 
+                    >
+                      ⓘ
+                    </span>
+                  </HoverCardTrigger>
+                  <HoverCardContent className="w-80">
+                    <p className="text-sm">{t("cult.culthook_description")}</p>
+                  </HoverCardContent>
+                </HoverCard>
+              </div>
             </div>
             {lpBalance !== undefined && lpBalance > 0n && (
               <div className="flex justify-between">

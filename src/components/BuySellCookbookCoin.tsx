@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PercentageSlider } from "@/components/ui/percentage-slider";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { ZAMMLaunchAbi, ZAMMLaunchAddress } from "@/constants/ZAMMLaunch";
 import { useReserves } from "@/hooks/use-reserves";
@@ -276,12 +277,18 @@ export const BuySellCookbookCoin = ({
                   </div>
                   <div className="opacity-60 flex items-center gap-1">
                     <span>Fee: {Number(SWAP_FEE) / 100}%</span>
-                    <span 
-                      className="text-[10px] opacity-70 cursor-help hover:opacity-100 transition-opacity" 
-                      title={t("common.paid_to_lps")}
-                    >
-                      ⓘ
-                    </span>
+                    <HoverCard>
+                      <HoverCardTrigger asChild>
+                        <span 
+                          className="text-[10px] opacity-70 cursor-help hover:opacity-100 transition-opacity" 
+                        >
+                          ⓘ
+                        </span>
+                      </HoverCardTrigger>
+                      <HoverCardContent className="w-auto">
+                        <p className="text-sm">{t("common.paid_to_lps")}</p>
+                      </HoverCardContent>
+                    </HoverCard>
                   </div>
                 </>
               );

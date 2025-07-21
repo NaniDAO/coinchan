@@ -19,6 +19,7 @@ import { NetworkError } from "./components/NetworkError";
 import { SlippageSettings } from "./components/SlippageSettings";
 import { SwapPanel } from "./components/SwapPanel";
 import { LoadingLogo } from "./components/ui/loading-logo";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "./components/ui/hover-card";
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
 import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
 import { useTokenSelection } from "./contexts/TokenSelectionContext";
@@ -883,12 +884,18 @@ export const SwapAction = () => {
                       <div>1 {tokenSymbol} = {tokenPriceInEth.toFixed(8)} ETH (${tokenPriceUsd.toFixed(8)} USD)</div>
                       <div className="flex items-center gap-1">
                         <span>Fee: {Number(SWAP_FEE) / 100}%</span>
-                        <span 
-                          className="text-[10px] opacity-70 cursor-help hover:opacity-100 transition-opacity" 
-                          title={t("common.paid_to_lps")}
-                        >
-                          ⓘ
-                        </span>
+                        <HoverCard>
+                          <HoverCardTrigger asChild>
+                            <span 
+                              className="text-[10px] opacity-70 cursor-help hover:opacity-100 transition-opacity" 
+                            >
+                              ⓘ
+                            </span>
+                          </HoverCardTrigger>
+                          <HoverCardContent className="w-auto">
+                            <p className="text-sm">{t("common.paid_to_lps")}</p>
+                          </HoverCardContent>
+                        </HoverCard>
                       </div>
                     </div>
                   </>

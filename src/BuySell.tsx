@@ -19,6 +19,7 @@ import { handleWalletError } from "@/lib/errors";
 import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
 import { mainnet } from "viem/chains";
 import { LoadingLogo } from "./components/ui/loading-logo";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "./components/ui/hover-card";
 import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
 import { ZAMMAbi, ZAMMAddress } from "./constants/ZAAM";
@@ -307,12 +308,18 @@ export const BuySell = ({
                   </div>
                   <div className="opacity-60 flex items-center gap-1">
                     <span>Fee: {Number(swapFee) / 100}%</span>
-                    <span 
-                      className="text-[10px] opacity-70 cursor-help hover:opacity-100 transition-opacity" 
-                      title={t("common.paid_to_lps")}
-                    >
-                      ⓘ
-                    </span>
+                    <HoverCard>
+                      <HoverCardTrigger asChild>
+                        <span 
+                          className="text-[10px] opacity-70 cursor-help hover:opacity-100 transition-opacity" 
+                        >
+                          ⓘ
+                        </span>
+                      </HoverCardTrigger>
+                      <HoverCardContent className="w-auto">
+                        <p className="text-sm">{t("common.paid_to_lps")}</p>
+                      </HoverCardContent>
+                    </HoverCard>
                   </div>
                 </>
               );
