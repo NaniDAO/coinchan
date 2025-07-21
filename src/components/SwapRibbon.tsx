@@ -62,40 +62,46 @@ const convertToSnippets = (swaps: any[]) => {
           return {
             id,
             snippet: (
-              <span style={{ color: getColor(id) }}>
-                <a target="_blank" href={"https://etherscan.io/address/" + trader} rel="noreferrer">
-                  {truncAddress(trader)}
-                </a>{" "}
-                bought {Number(formatEther(amount1Out)).toFixed(2)}{" "}
-                <Link
-                  to={`/c/$coinId`}
-                  params={{
-                    coinId: pool.coin1.id,
-                  }}
-                >
-                  {pool.coin1.symbol}
-                </Link>
-              </span>
+              <>
+                <span style={{ color: getColor(id) }}>
+                  <a target="_blank" href={"https://etherscan.io/address/" + trader} rel="noreferrer" className="my-1">
+                    {truncAddress(trader)}
+                  </a>{" "}
+                  bought {Number(formatEther(amount1Out)).toFixed(2)}{" "}
+                  <Link
+                    to={`/c/$coinId`}
+                    params={{
+                      coinId: pool.coin1.id,
+                    }}
+                    className="py-1"
+                  >
+                    {pool.coin1.symbol}
+                  </Link>
+                </span>
+              </>
             ),
           };
         } else if (isSell) {
           return {
             id,
             snippet: (
-              <span style={{ color: getColor(id) }}>
-                <a target="_blank" href={"https://etherscan.io/address/" + trader} rel="noreferrer">
-                  {truncAddress(trader)}
-                </a>{" "}
-                sold {Number(formatEther(amount1In)).toFixed(2)}{" "}
-                <Link
-                  to={`/c/$coinId`}
-                  params={{
-                    coinId: pool.coin1.id,
-                  }}
-                >
-                  {pool.coin1.symbol}
-                </Link>
-              </span>
+              <>
+                <span style={{ color: getColor(id) }}>
+                  <a target="_blank" href={"https://etherscan.io/address/" + trader} rel="noreferrer" className="my-1">
+                    {truncAddress(trader)}
+                  </a>{" "}
+                  sold {Number(formatEther(amount1In)).toFixed(2)}{" "}
+                  <Link
+                    to={`/c/$coinId`}
+                    params={{
+                      coinId: pool.coin1.id,
+                    }}
+                    className="py-1"
+                  >
+                    {pool.coin1.symbol}
+                  </Link>
+                </span>
+              </>
             ),
           };
         }
@@ -157,7 +163,7 @@ export function SwapRibbon() {
         href="https://snapshot.box/#/s:zamm.eth/proposal/0xbaa757c6d1582374ad60e6b72984903e56d3a1f3f072abc9957bf9a6d01cf3d4"
         target="_blank"
         rel="noreferrer"
-        className="text-foreground hover:underline font-medium"
+        className="text-foreground hover:underline font-medium my-1"
       >
         ✔️ ZAMM GOV #0
       </a>
@@ -170,7 +176,7 @@ export function SwapRibbon() {
     snippet: (
       <Link
         to="/cult"
-        className="text-foreground hover:underline font-medium inline-flex items-center gap-1 align-middle"
+        className="text-foreground hover:underline font-medium inline-flex items-center gap-1 align-middle py-1"
       >
         <img src="/cult.jpg" alt="CULT" className="w-4 h-4 rounded-full inline-block align-middle" />
         <span className="inline-block align-middle">CULT</span>
@@ -186,7 +192,7 @@ export function SwapRibbon() {
         href="https://www.zamm.finance/farm"
         target="_blank"
         rel="noreferrer"
-        className="text-foreground hover:underline font-medium"
+        className="text-foreground hover:underline font-medium my-1"
       >
         <span className="ml-2">🌾</span> [Farm (Alpha)]
       </a>
