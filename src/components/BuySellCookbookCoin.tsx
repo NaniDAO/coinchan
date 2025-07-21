@@ -44,7 +44,6 @@ export const BuySellCookbookCoin = ({
   // Fetch coin data to get the actual swap fee
   const { data: coinData } = useGetCoin({
     coinId: coinId.toString(),
-    source: "COOKBOOK",
   });
 
   // Get the actual swap fee from the coin's pools, defaulting to SWAP_FEE if not found
