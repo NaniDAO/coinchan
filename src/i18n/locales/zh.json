@@ -57,6 +57,7 @@
     "sort": "排序",
     "token": "代币",
     "tokens": "代币",
+    "target_token": "目标 {{token}}",
     "coins": "币种",
     "available": "可用",
     "sorted_by": "排序方式",

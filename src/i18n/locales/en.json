@@ -55,6 +55,7 @@
     "sort": "Sort",
     "token": "Token",
     "tokens": "Tokens",
+    "target_token": "Target {{token}}",
     "coins": "Coins",
     "available": "Available",
     "sorted_by": "Sorted by",
