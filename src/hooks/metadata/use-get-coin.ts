@@ -1,6 +1,6 @@
 import { SWAP_FEE } from "@/lib/swap";
 import { useQuery } from "@tanstack/react-query";
-import { formatEther } from "viem";
+import { Address, formatEther } from "viem";
 import { formatImageURL } from "./coin-utils";
 
 interface PoolData {
@@ -40,17 +40,19 @@ const fetchMetadata = async (tokenURI: string) => {
   }
 };
 
-const fetchCoinData = async (coinId: string) => {
+const fetchCoinData = async (coinId: string, token: Address) => {
   try {
-    const response = await fetch(import.meta.env.VITE_INDEXER_URL + "/graphql", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        query: `
+    const response = await fetch(
+      import.meta.env.VITE_INDEXER_URL + "/graphql",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query: `
             query GetCoinData {
-              coin(id: "${coinId.toString()}") {
+              coin(id: "${coinId.toString()}", token: "${token.toString()}") {
                 id
                 name
                 symbol
@@ -70,10 +72,17 @@ const fetchCoinData = async (coinId: string) => {
               }
             }
           `,
-      }),
-    });
+        }),
+      },
+    );
 
     const json = await response.json();
+    console.log("COIN:", {
+      coinId,
+      token,
+      response: json,
+    });
+
     const coin = json.data.coin;
 
     const metadata = await fetchMetadata(coin.tokenURI).catch((e) =>
@@ -83,7 +92,8 @@ const fetchCoinData = async (coinId: string) => {
 
     const pools = (coin.pools.items || []).map((pool: any) => {
       const price1 = BigInt(pool?.price1 ?? 0n);
-      const marketCapEth = Number(formatEther(totalSupply)) * Number(formatEther(price1));
+      const marketCapEth =
+        Number(formatEther(totalSupply)) * Number(formatEther(price1));
 
       return {
         poolId: BigInt(pool.id),
@@ -119,9 +129,15 @@ const fetchCoinData = async (coinId: string) => {
   }
 };
 
-export const useGetCoin = ({ coinId }: { coinId: string }) => {
+export const useGetCoin = ({
+  coinId,
+  token,
+}: {
+  coinId: string;
+  token: Address;
+}) => {
   return useQuery<GetCoinData>({
     queryKey: ["getCoin", coinId],
-    queryFn: () => fetchCoinData(coinId),
+    queryFn: () => fetchCoinData(coinId, token),
   });
 };

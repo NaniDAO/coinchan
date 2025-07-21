@@ -1,6 +1,6 @@
 import { TradeView } from "@/TradeView";
 import { CookbookCoinView } from "@/components/CookbookCoinView";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Alert, AlertTitle } from "@/components/ui/alert";
 import { isCookbookCoin } from "@/lib/coin-utils";
 import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
@@ -17,7 +17,6 @@ function RouteComponent() {
     return (
       <Alert className="p-2 max-w-2xl mt-2 ml-2">
         <AlertTitle>Invalid Coin ID</AlertTitle>
-        <AlertDescription>Looks</AlertDescription>
       </Alert>
     );
   }
@@ -31,7 +30,6 @@ function RouteComponent() {
     );
   }
 
-  // Apply translation to coin view
   return (
     <div aria-label={t("coin.price")}>
       <TradeView tokenId={BigInt(coinId)} />
