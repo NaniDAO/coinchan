@@ -26,10 +26,10 @@ export function useMulticallBalances(tokens: TokenMeta[]) {
   const publicClient = usePublicClient({ chainId: mainnet.id });
 
   return useQuery({
-    queryKey: ["multicall-balances", address, tokens.map(t => t.id).join(",")],
+    queryKey: ["multicall-balances", address, tokens.map((t) => t.id).join(",")],
     queryFn: async () => {
       if (!publicClient || !address || tokens.length === 0) {
-        return tokens.map(token => ({ ...token, balance: 0n }));
+        return tokens.map((token) => ({ ...token, balance: 0n }));
       }
 
       // Prepare multicall data
@@ -45,7 +45,7 @@ export function useMulticallBalances(tokens: TokenMeta[]) {
             target: address,
             callData: "0x", // ETH balance call will be handled separately
             tokenId: null,
-            isEth: true
+            isEth: true,
           });
           return;
         }
@@ -56,19 +56,21 @@ export function useMulticallBalances(tokens: TokenMeta[]) {
           calls.push({
             target: specialAddress,
             callData: encodeFunctionData({
-              abi: [{
-                inputs: [{ internalType: "address", name: "account", type: "address" }],
-                name: "balanceOf",
-                outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-                stateMutability: "view",
-                type: "function",
-              }],
+              abi: [
+                {
+                  inputs: [{ internalType: "address", name: "account", type: "address" }],
+                  name: "balanceOf",
+                  outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+                  stateMutability: "view",
+                  type: "function",
+                },
+              ],
               functionName: "balanceOf",
               args: [address],
             }),
             tokenId: token.id,
             isSpecialToken: true,
-            specialAddress
+            specialAddress,
           });
           return;
         }
@@ -85,31 +87,33 @@ export function useMulticallBalances(tokens: TokenMeta[]) {
             functionName: "balanceOf",
             args: [address, token.id],
           }),
-          tokenId: token.id
+          tokenId: token.id,
         });
       });
 
       // Execute multicall for non-ETH tokens
-      const nonEthCalls = calls.filter(call => !call.isEth);
+      const nonEthCalls = calls.filter((call) => !call.isEth);
       const multicallResults: bigint[] = [];
 
       if (nonEthCalls.length > 0) {
         try {
-          const multicallData = nonEthCalls.map(call => ({
+          const multicallData = nonEthCalls.map((call) => ({
             target: call.target,
             callData: call.callData,
           }));
 
-          const results = await publicClient.readContract({
+          const results = (await publicClient.readContract({
             address: MulticallAddress,
             abi: MulticallAbi,
             functionName: "aggregate3",
-            args: [multicallData.map(call => ({
-              target: call.target,
-              allowFailure: true,
-              callData: call.callData,
-            }))],
-          }) as { success: boolean; returnData: `0x${string}` }[];
+            args: [
+              multicallData.map((call) => ({
+                target: call.target,
+                allowFailure: true,
+                callData: call.callData,
+              })),
+            ],
+          })) as { success: boolean; returnData: `0x${string}` }[];
 
           results.forEach((result, index) => {
             if (result.success && result.returnData !== "0x") {
@@ -120,13 +124,15 @@ export function useMulticallBalances(tokens: TokenMeta[]) {
                 if (call.isSpecialToken) {
                   // Decode special token balance
                   decoded = decodeFunctionResult({
-                    abi: [{
-                      inputs: [{ internalType: "address", name: "account", type: "address" }],
-                      name: "balanceOf",
-                      outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-                      stateMutability: "view",
-                      type: "function",
-                    }],
+                    abi: [
+                      {
+                        inputs: [{ internalType: "address", name: "account", type: "address" }],
+                        name: "balanceOf",
+                        outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+                        stateMutability: "view",
+                        type: "function",
+                      },
+                    ],
                     functionName: "balanceOf",
                     data: result.returnData,
                   }) as bigint;
@@ -135,7 +141,7 @@ export function useMulticallBalances(tokens: TokenMeta[]) {
                   const tokenId = nonEthCalls[index].tokenId;
                   const isBookCoin = tokenId !== null && tokenId !== undefined ? isCookbookCoin(tokenId) : false;
                   const contractAbi = isBookCoin ? CookbookAbi : CoinsAbi;
-                  
+
                   decoded = decodeFunctionResult({
                     abi: contractAbi,
                     functionName: "balanceOf",
@@ -161,7 +167,7 @@ export function useMulticallBalances(tokens: TokenMeta[]) {
 
       // Handle ETH balance separately
       let ethBalance = 0n;
-      const hasEthToken = calls.some(call => call.isEth);
+      const hasEthToken = calls.some((call) => call.isEth);
       if (hasEthToken) {
         try {
           ethBalance = await publicClient.getBalance({ address });

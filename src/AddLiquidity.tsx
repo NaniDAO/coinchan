@@ -42,7 +42,7 @@ const sqrt = (value: bigint): bigint => {
     throw new Error("Square root of negative numbers is not supported");
   }
   if (value === 0n) return 0n;
-  
+
   let z = value;
   let x = value / 2n + 1n;
   while (x < z) {
@@ -121,7 +121,7 @@ export const AddLiquidity = () => {
   // Fetch pool info for LP supply calculation
   const poolContract = reserveSource === "COOKBOOK" ? CookbookAddress : ZAMMAddress;
   const poolAbi = reserveSource === "COOKBOOK" ? CookbookAbi : ZAMMAbi;
-  
+
   const { data: poolInfo } = useReadContract({
     address: poolContract,
     abi: poolAbi,
@@ -133,41 +133,44 @@ export const AddLiquidity = () => {
   const [slippageBps, setSlippageBps] = useState<bigint>(SLIPPAGE_BPS);
 
   // Calculate expected LP tokens whenever amounts change
-  const calculateLpTokens = useCallback((ethAmount: bigint, tokenAmount: bigint) => {
-    if (!poolInfo || ethAmount === 0n || tokenAmount === 0n) {
-      setEstimatedLpTokens("");
-      setEstimatedPoolShare("");
-      return;
-    }
-
-    try {
-      const totalSupply = poolInfo[6] as bigint; // Total LP supply at index 6
-      
-      if (totalSupply > 0n && reserves?.reserve0 && reserves?.reserve1) {
-        // From AMM: liquidity = min(mulDiv(amount0, supply, reserve0), mulDiv(amount1, supply, reserve1))
-        const lpFromEth = (ethAmount * totalSupply) / reserves.reserve0;
-        const lpFromToken = (tokenAmount * totalSupply) / reserves.reserve1;
-        const lpTokensToMint = lpFromEth < lpFromToken ? lpFromEth : lpFromToken;
-        
-        setEstimatedLpTokens(formatUnits(lpTokensToMint, 18));
-        
-        // Calculate pool share percentage
-        const newTotalSupply = totalSupply + lpTokensToMint;
-        const poolShareBps = (lpTokensToMint * 10000n) / newTotalSupply;
-        setEstimatedPoolShare(`${(Number(poolShareBps) / 100).toFixed(2)}%`);
-      } else if (totalSupply === 0n) {
-        // First liquidity provider - from AMM: liquidity = sqrt(amount0 * amount1) - MINIMUM_LIQUIDITY
-        const MINIMUM_LIQUIDITY = 1000n;
-        const lpTokens = sqrt(ethAmount * tokenAmount) - MINIMUM_LIQUIDITY;
-        setEstimatedLpTokens(formatUnits(lpTokens, 18));
-        setEstimatedPoolShare("100%");
+  const calculateLpTokens = useCallback(
+    (ethAmount: bigint, tokenAmount: bigint) => {
+      if (!poolInfo || ethAmount === 0n || tokenAmount === 0n) {
+        setEstimatedLpTokens("");
+        setEstimatedPoolShare("");
+        return;
       }
-    } catch (err) {
-      console.error("Error calculating LP tokens:", err);
-      setEstimatedLpTokens("");
-      setEstimatedPoolShare("");
-    }
-  }, [poolInfo, reserves]);
+
+      try {
+        const totalSupply = poolInfo[6] as bigint; // Total LP supply at index 6
+
+        if (totalSupply > 0n && reserves?.reserve0 && reserves?.reserve1) {
+          // From AMM: liquidity = min(mulDiv(amount0, supply, reserve0), mulDiv(amount1, supply, reserve1))
+          const lpFromEth = (ethAmount * totalSupply) / reserves.reserve0;
+          const lpFromToken = (tokenAmount * totalSupply) / reserves.reserve1;
+          const lpTokensToMint = lpFromEth < lpFromToken ? lpFromEth : lpFromToken;
+
+          setEstimatedLpTokens(formatUnits(lpTokensToMint, 18));
+
+          // Calculate pool share percentage
+          const newTotalSupply = totalSupply + lpTokensToMint;
+          const poolShareBps = (lpTokensToMint * 10000n) / newTotalSupply;
+          setEstimatedPoolShare(`${(Number(poolShareBps) / 100).toFixed(2)}%`);
+        } else if (totalSupply === 0n) {
+          // First liquidity provider - from AMM: liquidity = sqrt(amount0 * amount1) - MINIMUM_LIQUIDITY
+          const MINIMUM_LIQUIDITY = 1000n;
+          const lpTokens = sqrt(ethAmount * tokenAmount) - MINIMUM_LIQUIDITY;
+          setEstimatedLpTokens(formatUnits(lpTokens, 18));
+          setEstimatedPoolShare("100%");
+        }
+      } catch (err) {
+        console.error("Error calculating LP tokens:", err);
+        setEstimatedLpTokens("");
+        setEstimatedPoolShare("");
+      }
+    },
+    [poolInfo, reserves],
+  );
 
   // Determine which AMM contract will handle the pool
   const targetAMMContract = useMemo(() => {
@@ -276,7 +279,7 @@ export const AddLiquidity = () => {
         const formattedAmount = formatUnits(optimalTokenAmount, buyTokenDecimals);
 
         setBuyAmt(optimalTokenAmount === 0n ? "" : formattedAmount);
-        
+
         // Calculate LP tokens
         if (ethAmount > 0n && optimalTokenAmount > 0n) {
           calculateLpTokens(ethAmount, optimalTokenAmount);
@@ -297,7 +300,7 @@ export const AddLiquidity = () => {
         const optimalEthAmount = (tokenAmount * reserves.reserve0) / reserves.reserve1;
 
         setBuyAmt(optimalEthAmount === 0n ? "" : formatEther(optimalEthAmount));
-        
+
         // Calculate LP tokens
         if (tokenAmount > 0n && optimalEthAmount > 0n) {
           calculateLpTokens(optimalEthAmount, tokenAmount);
@@ -339,7 +342,7 @@ export const AddLiquidity = () => {
         const optimalEthAmount = (tokenAmount * reserves.reserve0) / reserves.reserve1;
 
         setSellAmt(optimalEthAmount === 0n ? "" : formatEther(optimalEthAmount));
-        
+
         // Calculate LP tokens
         if (optimalEthAmount > 0n && tokenAmount > 0n) {
           calculateLpTokens(optimalEthAmount, tokenAmount);
@@ -361,7 +364,7 @@ export const AddLiquidity = () => {
         // Use correct decimals for the sell token
         const sellTokenDecimals = sellToken?.decimals || 18;
         setSellAmt(optimalTokenAmount === 0n ? "" : formatUnits(optimalTokenAmount, sellTokenDecimals));
-        
+
         // Calculate LP tokens
         if (ethAmount > 0n && optimalTokenAmount > 0n) {
           calculateLpTokens(ethAmount, optimalTokenAmount);
@@ -543,7 +546,7 @@ export const AddLiquidity = () => {
         } catch (err) {
           // Use our utility to handle wallet errors
           const errorMsg = handleWalletError(err, {
-            defaultMessage: t("errors.transaction_error")
+            defaultMessage: t("errors.transaction_error"),
           });
           if (errorMsg) {
             setTxError(errorMsg);
@@ -577,7 +580,7 @@ export const AddLiquidity = () => {
             }
           } catch (err) {
             const errorMsg = handleWalletError(err, {
-              defaultMessage: t("errors.transaction_error")
+              defaultMessage: t("errors.transaction_error"),
             });
             if (errorMsg) {
               setTxError(errorMsg);
@@ -623,7 +626,7 @@ export const AddLiquidity = () => {
         } catch (err) {
           // Use our utility to handle wallet errors
           const errorMsg = handleWalletError(err, {
-            defaultMessage: t("errors.transaction_error")
+            defaultMessage: t("errors.transaction_error"),
           });
           if (errorMsg) {
             setTxError(errorMsg);
@@ -685,7 +688,7 @@ export const AddLiquidity = () => {
       } catch (calcErr) {
         // Use our utility to handle wallet errors
         const errorMsg = handleWalletError(calcErr, {
-          defaultMessage: t("errors.transaction_error")
+          defaultMessage: t("errors.transaction_error"),
         });
         if (errorMsg) {
           setTxError(errorMsg);
@@ -696,7 +699,7 @@ export const AddLiquidity = () => {
       // Handle errors, but don't display errors for user rejections
       // Use our utility to properly handle wallet errors
       const errorMsg = handleWalletError(err, {
-        defaultMessage: t("errors.transaction_error")
+        defaultMessage: t("errors.transaction_error"),
       });
       if (errorMsg) {
         // More specific error messages based on error type
@@ -705,7 +708,9 @@ export const AddLiquidity = () => {
             setTxError(t("errors.insufficient_funds") || "Insufficient funds for this transaction");
           } else if (err.message.includes("InvalidMsgVal")) {
             // This is our critical error where the msg.value doesn't match what the contract expects
-            setTxError(t("errors.contract_error") || "Contract rejected ETH value. Please try again with different amounts.");
+            setTxError(
+              t("errors.contract_error") || "Contract rejected ETH value. Please try again with different amounts.",
+            );
           } else {
             setTxError(errorMsg);
           }

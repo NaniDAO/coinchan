@@ -25,6 +25,7 @@ import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
 import { mainnet } from "viem/chains";
 import { useAccount, useBalance, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import { useGetCoin } from "@/hooks/metadata/use-get-coin";
 
 export const BuySellCookbookCoin = ({
   coinId,
@@ -40,7 +41,25 @@ export const BuySellCookbookCoin = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [percentage, setPercentage] = useState(0);
 
-  const poolId = useMemo(() => computePoolId(coinId, SWAP_FEE, CookbookAddress), [coinId]);
+  // Fetch coin data to get the actual swap fee
+  const { data: coinData } = useGetCoin({
+    coinId: coinId.toString(),
+    source: "COOKBOOK",
+  });
+
+  // Get the actual swap fee from the coin's pools, defaulting to SWAP_FEE if not found
+  const actualSwapFee = useMemo(() => {
+    if (coinData?.pools && coinData.pools.length > 0) {
+      // Find the pool with coin0Id = 0 (ETH pool)
+      const ethPool = coinData.pools.find((pool: any) => pool.coin0Id === 0n);
+      if (ethPool?.swapFee) {
+        return ethPool.swapFee;
+      }
+    }
+    return SWAP_FEE;
+  }, [coinData]);
+
+  const poolId = useMemo(() => computePoolId(coinId, actualSwapFee, CookbookAddress), [coinId, actualSwapFee]);
 
   const { address, isConnected } = useAccount();
   const { writeContractAsync, isPending } = useWriteContract();
@@ -95,13 +114,13 @@ export const BuySellCookbookCoin = ({
       if (tab === "buy") {
         // Input: ETH amount -> Output: token amount
         const inWei = parseEther(amount || "0");
-        const rawOut = getAmountOut(inWei, reserves.reserve0, reserves.reserve1, SWAP_FEE);
+        const rawOut = getAmountOut(inWei, reserves.reserve0, reserves.reserve1, actualSwapFee);
         const minOut = withSlippage(rawOut);
         return formatUnits(minOut, 18);
       } else {
         // Input: token amount -> Output: ETH amount
         const inUnits = parseUnits(amount || "0", 18);
-        const rawOut = getAmountOut(inUnits, reserves.reserve1, reserves.reserve0, SWAP_FEE);
+        const rawOut = getAmountOut(inUnits, reserves.reserve1, reserves.reserve0, actualSwapFee);
         const minOut = withSlippage(rawOut);
         return formatEther(minOut);
       }
@@ -139,7 +158,7 @@ export const BuySellCookbookCoin = ({
   // Calculate USD values
   const usdValue = useMemo(() => {
     if (!ethPrice?.priceUSD) return null;
-    
+
     try {
       if (tab === "buy") {
         // When buying, show USD value of ETH input
@@ -165,7 +184,7 @@ export const BuySellCookbookCoin = ({
         throw new Error("Reserves not loaded");
       }
 
-      const poolKey = computePoolKey(coinId, SWAP_FEE, CookbookAddress) as CookbookPoolKey;
+      const poolKey = computePoolKey(coinId, actualSwapFee, CookbookAddress) as CookbookPoolKey;
 
       const amountIn = type === "buy" ? parseEther(amount) : parseUnits(amount, 18);
       const amountOutMin = withSlippage(
@@ -173,7 +192,7 @@ export const BuySellCookbookCoin = ({
           amountIn,
           type === "buy" ? reserves.reserve0 : reserves.reserve1,
           type === "buy" ? reserves.reserve1 : reserves.reserve0,
-          SWAP_FEE,
+          actualSwapFee,
         ),
         200n,
       );
@@ -193,7 +212,7 @@ export const BuySellCookbookCoin = ({
       setErrorMessage(null);
     } catch (error) {
       const errorMsg = handleWalletError(error, {
-        defaultMessage: t("errors.transaction_error")
+        defaultMessage: t("errors.transaction_error"),
       });
       if (errorMsg) {
         setErrorMessage(errorMsg);
@@ -214,11 +233,12 @@ export const BuySellCookbookCoin = ({
 
   const handlePercentageChange = (newPercentage: number) => {
     setPercentage(newPercentage);
-    
+
     if (tab === "buy" && ethBalance) {
-      const adjustedBalance = newPercentage === 100 
-        ? (ethBalance.value * 99n) / 100n // Leave 1% for gas
-        : (ethBalance.value * BigInt(newPercentage)) / 100n;
+      const adjustedBalance =
+        newPercentage === 100
+          ? (ethBalance.value * 99n) / 100n // Leave 1% for gas
+          : (ethBalance.value * BigInt(newPercentage)) / 100n;
       setAmount(formatEther(adjustedBalance));
     } else if (tab === "sell" && coinBalance) {
       const adjustedBalance = (coinBalance * BigInt(newPercentage)) / 100n;
@@ -246,7 +266,7 @@ export const BuySellCookbookCoin = ({
       setErrorMessage(null);
     } catch (error) {
       const errorMsg = handleWalletError(error, {
-        defaultMessage: t("errors.transaction_error")
+        defaultMessage: t("errors.transaction_error"),
       });
       if (errorMsg) {
         setErrorMessage(errorMsg);
@@ -266,22 +286,20 @@ export const BuySellCookbookCoin = ({
               const tokenPriceInEth = ethAmount / tokenAmount;
               const ethPriceInToken = tokenAmount / ethAmount;
               const tokenPriceUsd = tokenPriceInEth * ethPrice.priceUSD;
-              const totalPoolValueUsd = (ethAmount * ethPrice.priceUSD) * 2;
-              
+              const totalPoolValueUsd = ethAmount * ethPrice.priceUSD * 2;
+
               return (
                 <>
                   <div className="opacity-90">Pool Value: ${formatNumber(totalPoolValueUsd, 2)} USD</div>
                   <div className="opacity-75">
-                    1 ETH = {formatNumber(ethPriceInToken, 6)} {symbol} | 
-                    1 {symbol} = {tokenPriceInEth.toFixed(8)} ETH (${formatNumber(tokenPriceUsd, 8)} USD)
+                    1 ETH = {formatNumber(ethPriceInToken, 6)} {symbol} | 1 {symbol} = {tokenPriceInEth.toFixed(8)} ETH
+                    (${formatNumber(tokenPriceUsd, 8)} USD)
                   </div>
                   <div className="opacity-60 flex items-center gap-1">
-                    <span>Fee: {Number(SWAP_FEE) / 100}%</span>
+                    <span>Fee: {Number(actualSwapFee) / 100}%</span>
                     <HoverCard>
                       <HoverCardTrigger asChild>
-                        <span 
-                          className="text-[10px] opacity-70 cursor-help hover:opacity-100 transition-opacity" 
-                        >
+                        <span className="text-[10px] opacity-70 cursor-help hover:opacity-100 transition-opacity">
                           ⓘ
                         </span>
                       </HoverCardTrigger>
@@ -296,7 +314,7 @@ export const BuySellCookbookCoin = ({
           </div>
         </div>
       )}
-      
+
       {/* Claim Section - Only show if user can claim */}
       {canClaim ? (
         <Card>
@@ -347,15 +365,9 @@ export const BuySellCookbookCoin = ({
                 Max
               </Button>
             </div>
-            {usdValue && amount && (
-              <span className="text-xs text-muted-foreground">≈ ${usdValue} USD</span>
-            )}
+            {usdValue && amount && <span className="text-xs text-muted-foreground">≈ ${usdValue} USD</span>}
             {ethBalance && ethBalance.value > 0n && (
-              <PercentageSlider
-                value={percentage}
-                onChange={handlePercentageChange}
-                disabled={!isConnected}
-              />
+              <PercentageSlider value={percentage} onChange={handlePercentageChange} disabled={!isConnected} />
             )}
             <span className="text-sm font-medium">
               {t("create.you_will_receive", { amount: formatNumber(parseFloat(estimated), 6), token: symbol })}
@@ -386,18 +398,12 @@ export const BuySellCookbookCoin = ({
               </Button>
             </div>
             {coinBalance !== undefined && coinBalance > 0n && (
-              <PercentageSlider
-                value={percentage}
-                onChange={handlePercentageChange}
-                disabled={!isConnected}
-              />
+              <PercentageSlider value={percentage} onChange={handlePercentageChange} disabled={!isConnected} />
             )}
             <span className="text-sm font-medium">
               {t("create.you_will_receive", { amount: formatNumber(parseFloat(estimated), 6), token: "ETH" })}
             </span>
-            {usdValue && estimated !== "0" && (
-              <span className="text-xs text-muted-foreground">≈ ${usdValue} USD</span>
-            )}
+            {usdValue && estimated !== "0" && <span className="text-xs text-muted-foreground">≈ ${usdValue} USD</span>}
             <Button onClick={() => handleSwap("sell")} disabled={!isConnected || isPending || !amount}>
               {isPending ? t("swap.swapping") : t("create.sell_token", { token: symbol })}
             </Button>

@@ -111,31 +111,31 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker, ethUsdPrice
             className="text-xs"
           >
             {t("coin.24h")}
-        </Button>
-        <Button
-          variant={timeRange.activeButton === "1w" ? "default" : "outline"}
-          size="sm"
-          onClick={setLastWeek}
-          className="text-xs"
-        >
-          {t("coin.7d")}
-        </Button>
-        <Button
-          variant={timeRange.activeButton === "1m" ? "default" : "outline"}
-          size="sm"
-          onClick={setLastMonth}
-          className="text-xs"
-        >
-          {t("coin.30d")}
-        </Button>
-        <Button
-          variant={timeRange.activeButton === "all" ? "default" : "outline"}
-          size="sm"
-          onClick={setAllTime}
-          className="text-xs"
-        >
-          {t("coin.all")}
-        </Button>
+          </Button>
+          <Button
+            variant={timeRange.activeButton === "1w" ? "default" : "outline"}
+            size="sm"
+            onClick={setLastWeek}
+            className="text-xs"
+          >
+            {t("coin.7d")}
+          </Button>
+          <Button
+            variant={timeRange.activeButton === "1m" ? "default" : "outline"}
+            size="sm"
+            onClick={setLastMonth}
+            className="text-xs"
+          >
+            {t("coin.30d")}
+          </Button>
+          <Button
+            variant={timeRange.activeButton === "all" ? "default" : "outline"}
+            size="sm"
+            onClick={setAllTime}
+            className="text-xs"
+          >
+            {t("coin.all")}
+          </Button>
         </div>
         {ethUsdPrice && (
           <div className="ml-auto">
@@ -164,7 +164,7 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker, ethUsdPrice
             onClick={() => {
               setChartError(null);
               // Trigger refetch by changing time range slightly
-              setTimeRange(prev => ({ ...prev, endTs: Math.floor(Date.now() / 1000) }));
+              setTimeRange((prev) => ({ ...prev, endTs: Math.floor(Date.now() / 1000) }));
             }}
           >
             {t("common.retry")}
@@ -245,7 +245,7 @@ const TVPriceChart: React.FC<{
   // Update chart options when showUsd or ethUsdPrice changes
   useEffect(() => {
     if (!priceSeriesRef.current) return;
-    
+
     // Update series options based on USD mode
     priceSeriesRef.current.applyOptions({
       title: showUsd && ethUsdPrice ? `${ticker} / USD` : `ETH / ${ticker}`,
@@ -259,7 +259,7 @@ const TVPriceChart: React.FC<{
 
   useEffect(() => {
     if (!priceSeriesRef.current || !isChartReady) return;
-    
+
     // If no data, show last valid data if available
     if (priceData.length === 0) {
       if (lastValidDataRef.current && lastValidDataRef.current.length > 0) {
@@ -304,13 +304,13 @@ const TVPriceChart: React.FC<{
             console.warn("Invalid price format:", d.price1, e);
             return;
           }
-          
+
           // Validate value
           if (value === 0 || !isFinite(value)) {
             console.warn("Invalid calculated value:", value);
             return;
           }
-          
+
           // Convert to USD if needed
           if (showUsd && ethUsdPrice && ethUsdPrice > 0) {
             // value = token price in ETH (from pool)

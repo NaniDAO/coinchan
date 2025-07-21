@@ -3,13 +3,13 @@
 }
 
 .cult-container::before {
-  content: '';
+  content: "";
   position: absolute;
   top: -50%;
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle at center, rgba(255,0,0,0.05) 0%, transparent 70%);
+  background: radial-gradient(circle at center, rgba(255, 0, 0, 0.05) 0%, transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
@@ -20,18 +20,36 @@
 }
 
 @keyframes shake {
-  0% { transform: translate(0, 0) rotate(0deg); }
-  20% { transform: translate(-2px, 0) rotate(-1deg); }
-  40% { transform: translate(2px, 0) rotate(1deg); }
-  60% { transform: translate(-2px, 0) rotate(-1deg); }
-  80% { transform: translate(2px, 0) rotate(1deg); }
-  100% { transform: translate(0, 0) rotate(0deg); }
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  20% {
+    transform: translate(-2px, 0) rotate(-1deg);
+  }
+  40% {
+    transform: translate(2px, 0) rotate(1deg);
+  }
+  60% {
+    transform: translate(-2px, 0) rotate(-1deg);
+  }
+  80% {
+    transform: translate(2px, 0) rotate(1deg);
+  }
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
 }
 
 @keyframes glow {
-  0% { text-shadow: 0 0 5px #ff0000; }
-  50% { text-shadow: 0 0 20px #ff0000, 0 0 30px #ff0000; }
-  100% { text-shadow: 0 0 5px #ff0000; }
+  0% {
+    text-shadow: 0 0 5px #ff0000;
+  }
+  50% {
+    text-shadow: 0 0 20px #ff0000, 0 0 30px #ff0000;
+  }
+  100% {
+    text-shadow: 0 0 5px #ff0000;
+  }
 }
 
 .price-update {
@@ -39,8 +57,12 @@
 }
 
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 .shimmer {

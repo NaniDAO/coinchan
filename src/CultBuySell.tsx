@@ -218,7 +218,7 @@ const sqrt = (value: bigint): bigint => {
     throw new Error("Square root of negative numbers is not supported");
   }
   if (value === 0n) return 0n;
-  
+
   let z = value;
   let x = value / 2n + 1n;
   while (x < z) {
@@ -276,7 +276,7 @@ const CultSingleEthLiquidity = () => {
     try {
       const ethAmount = parseEther(val || "0");
       const halfEthAmount = ethAmount / 2n;
-      
+
       // Fetch CULT price from CheckTheChain
       const cultPriceData = await publicClient?.readContract({
         address: CheckTheChainAddress,
@@ -302,24 +302,24 @@ const CultSingleEthLiquidity = () => {
       // Calculate expected LP tokens and pool share
       if (poolInfo) {
         const totalSupply = poolInfo[6] as bigint; // Total LP supply at index 6
-        
+
         // Calculate how many LP tokens will be minted
         // Using the standard liquidity formula: sqrt(x * y)
         // But since we're adding to existing pool, we use the proportional formula
-        
+
         // The remaining half ETH will be added as liquidity along with the swapped CULT
         const ethLiquidity = halfEthAmount;
         const cultLiquidity = estimatedTokens;
-        
+
         // Calculate LP tokens based on the AMM formula
         if (totalSupply > 0n && reserves.reserve0 > 0n && reserves.reserve1 > 0n) {
           // From AMM: liquidity = min(mulDiv(amount0, supply, reserve0), mulDiv(amount1, supply, reserve1))
           const lpFromEth = (ethLiquidity * totalSupply) / reserves.reserve0;
           const lpFromCult = (cultLiquidity * totalSupply) / reserves.reserve1;
           const lpTokensToMint = lpFromEth < lpFromCult ? lpFromEth : lpFromCult;
-          
+
           setEstimatedLpTokens(formatUnits(lpTokensToMint, 18));
-          
+
           // Calculate pool share percentage
           const newTotalSupply = totalSupply + lpTokensToMint;
           const poolShareBps = (lpTokensToMint * 10000n) / newTotalSupply;
@@ -378,7 +378,7 @@ const CultSingleEthLiquidity = () => {
 
       const cultPriceInETH = cultPriceData[0] as bigint;
       const estimatedTokens = (halfEthAmount * 10n ** 18n) / cultPriceInETH;
-      
+
       // Apply slippage
       const minTokenAmount = withSlippage(estimatedTokens, singleEthSlippageBps);
       const amount0Min = withSlippage(halfEthAmount, singleEthSlippageBps);
@@ -389,21 +389,14 @@ const CultSingleEthLiquidity = () => {
         address: CULTSingleLiqETHAddress,
         abi: CULTSingleLiqETHAbi,
         functionName: "addSingleLiqETH",
-        args: [
-          CULT_POOL_KEY,
-          minTokenAmount,
-          amount0Min,
-          amount1Min,
-          address,
-          deadline,
-        ],
+        args: [CULT_POOL_KEY, minTokenAmount, amount0Min, amount1Min, address, deadline],
         value: ethAmount,
       });
 
       setTxHash(hash);
     } catch (err: unknown) {
       const errorMsg = handleWalletError(err, {
-        defaultMessage: t("errors.transaction_error")
+        defaultMessage: t("errors.transaction_error"),
       });
       if (errorMsg) {
         console.error("Single-sided ETH liquidity error:", err);
@@ -459,43 +452,37 @@ const CultSingleEthLiquidity = () => {
                   const cultPriceInEth = ethAmount / cultTotalAmount;
                   const cultPriceUsd = cultPriceInEth * ethPrice.priceUSD;
                   return formatNumber(cultAmount * cultPriceUsd, 2);
-                })()}{" "}
-                {t("common.usd")}
+                })()} {t("common.usd")}
               </span>
             )}
           </div>
         </div>
-        
+
         {/* LP Tokens and Pool Share */}
         {estimatedLpTokens && estimatedPoolShare && (
           <>
             <div className="mt-2 pt-2 border-t border-red-900/20 flex justify-between items-center">
               <span className="text-gray-400 text-sm">{t("common.estimated_lp_tokens")}:</span>
-              <span className="text-white font-mono">
-                {parseFloat(estimatedLpTokens).toFixed(6)} LP
-              </span>
+              <span className="text-white font-mono">{parseFloat(estimatedLpTokens).toFixed(6)} LP</span>
             </div>
             <div className="flex justify-between items-center mt-1">
               <span className="text-gray-400 text-sm">{t("cult.pool_share")}:</span>
-              <span className="text-white font-mono">
-                {estimatedPoolShare}
-              </span>
+              <span className="text-white font-mono">{estimatedPoolShare}</span>
             </div>
           </>
         )}
-        
+
         {ethPrice?.priceUSD && sellAmt && (
           <div className="mt-2 pt-2 border-t border-red-900/20 text-xs text-gray-500">
-            <span>{t("common.eth_input")}: ≈ ${formatNumber(parseFloat(sellAmt) * ethPrice.priceUSD, 2)} {t("common.usd")}</span>
+            <span>
+              {t("common.eth_input")}: ≈ ${formatNumber(parseFloat(sellAmt) * ethPrice.priceUSD, 2)} {t("common.usd")}
+            </span>
           </div>
         )}
       </div>
 
       {/* Slippage Settings */}
-      <SlippageSettings 
-        setSlippageBps={setSingleEthSlippageBps} 
-        slippageBps={singleEthSlippageBps} 
-      />
+      <SlippageSettings setSlippageBps={setSingleEthSlippageBps} slippageBps={singleEthSlippageBps} />
 
       {/* Info */}
       <div className="text-xs bg-gray-900/50 border border-red-900/30 rounded p-2 text-gray-400">
@@ -507,9 +494,7 @@ const CultSingleEthLiquidity = () => {
           <li className="text-red-400">{t("cult.using_cult_optimized_zap")}</li>
           <li className="text-red-400">{t("cult.default_slippage_cult")}</li>
         </ul>
-        <p className="mt-2 text-yellow-400/80 text-xs">
-          {t("cult.wallet_simulations_dust")}
-        </p>
+        <p className="mt-2 text-yellow-400/80 text-xs">{t("cult.wallet_simulations_dust")}</p>
       </div>
 
       {/* Execute Button */}
@@ -531,11 +516,9 @@ const CultSingleEthLiquidity = () => {
 
       {/* Status & Errors */}
       {txError && (
-        <div className="text-sm text-red-400 mt-2 bg-red-900/20 p-2 rounded border border-red-900/30">
-          {txError}
-        </div>
+        <div className="text-sm text-red-400 mt-2 bg-red-900/20 p-2 rounded border border-red-900/30">{txError}</div>
       )}
-      {(writeError && !isUserRejectionError(writeError)) && (
+      {writeError && !isUserRejectionError(writeError) && (
         <div className="text-sm text-red-400 mt-2 bg-red-900/20 p-2 rounded border border-red-900/30">
           {writeError.message}
         </div>
@@ -611,7 +594,7 @@ export const CultBuySell = () => {
   const chainId = useChainId();
   const publicClient = usePublicClient({ chainId: mainnet.id });
   const { data: ethUsdPrice = 0 } = useEthUsdPrice();
-  
+
   // Stable version of ethUsdPrice for the chart to prevent re-renders
   const [stableEthUsdPrice, setStableEthUsdPrice] = useState(0);
   useEffect(() => {
@@ -953,7 +936,7 @@ export const CultBuySell = () => {
           setErrorMessage(null);
         } catch (err) {
           const errorMsg = handleWalletError(err, {
-            defaultMessage: t("errors.transaction_error")
+            defaultMessage: t("errors.transaction_error"),
           });
           if (errorMsg) {
             setErrorMessage(`Approval failed: ${errorMsg}`);
@@ -989,7 +972,7 @@ export const CultBuySell = () => {
       setTxHash(hash);
     } catch (err) {
       const errorMsg = handleWalletError(err, {
-        defaultMessage: t("errors.transaction_error")
+        defaultMessage: t("errors.transaction_error"),
       });
       if (errorMsg) {
         setErrorMessage(errorMsg);
@@ -1037,7 +1020,7 @@ export const CultBuySell = () => {
       setTxHash(hash);
     } catch (err) {
       const errorMsg = handleWalletError(err, {
-        defaultMessage: t("errors.transaction_error")
+        defaultMessage: t("errors.transaction_error"),
       });
       if (errorMsg) {
         setErrorMessage(errorMsg);
@@ -1103,7 +1086,7 @@ export const CultBuySell = () => {
       }
     } catch (err) {
       const errorMsg = handleWalletError(err, {
-        defaultMessage: t("errors.transaction_error")
+        defaultMessage: t("errors.transaction_error"),
       });
       if (errorMsg) {
         setErrorMessage(errorMsg);
@@ -1125,7 +1108,9 @@ export const CultBuySell = () => {
             {t("cult.milady_cult_coin")}
           </h1>
           <div className={cn("text-lg font-mono mt-2", priceAnimating && "price-update")}>
-            <span className="text-red-400">{t("cult.price_format", { price: formatNumber(parseFloat(cultPrice), 2) })}</span>
+            <span className="text-red-400">
+              {t("cult.price_format", { price: formatNumber(parseFloat(cultPrice), 2) })}
+            </span>
           </div>
           {cultUsdPrice !== "--" && (
             <div className="text-sm text-gray-400 mt-1">{t("cult.usd_per_cult", { price: cultUsdPrice })}</div>
@@ -1152,7 +1137,8 @@ export const CultBuySell = () => {
                 <div className="flex justify-between">
                   <span className="text-gray-400 text-xs">{t("common.total_value")}:</span>
                   <span className="text-gray-500 font-mono text-xs">
-                    ${formatNumber(parseFloat(formatEther(reserves.reserve0)) * ethPrice.priceUSD * 2, 2)} {t("common.usd")}
+                    ${formatNumber(parseFloat(formatEther(reserves.reserve0)) * ethPrice.priceUSD * 2, 2)}{" "}
+                    {t("common.usd")}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -1181,11 +1167,7 @@ export const CultBuySell = () => {
                 <span className="text-white font-mono">0.3%</span>
                 <HoverCard>
                   <HoverCardTrigger asChild>
-                    <span 
-                      className="text-[10px] opacity-70 cursor-help hover:opacity-100 transition-opacity" 
-                    >
-                      ⓘ
-                    </span>
+                    <span className="text-[10px] opacity-70 cursor-help hover:opacity-100 transition-opacity">ⓘ</span>
                   </HoverCardTrigger>
                   <HoverCardContent className="w-auto">
                     <p className="text-sm">{t("common.paid_to_lps")}</p>
@@ -1199,11 +1181,7 @@ export const CultBuySell = () => {
                 <span className="text-red-400 font-mono">0.1%</span>
                 <HoverCard>
                   <HoverCardTrigger asChild>
-                    <span 
-                      className="text-[10px] opacity-70 cursor-help hover:opacity-100 transition-opacity" 
-                    >
-                      ⓘ
-                    </span>
+                    <span className="text-[10px] opacity-70 cursor-help hover:opacity-100 transition-opacity">ⓘ</span>
                   </HoverCardTrigger>
                   <HoverCardContent className="w-80">
                     <p className="text-sm">{t("cult.culthook_description")}</p>
@@ -1291,7 +1269,9 @@ export const CultBuySell = () => {
 
         <Tabs
           value={tab}
-          onValueChange={(v) => setTab(v as "buy" | "sell" | "add-liquidity" | "remove-liquidity" | "single-eth" | "farm")}
+          onValueChange={(v) =>
+            setTab(v as "buy" | "sell" | "add-liquidity" | "remove-liquidity" | "single-eth" | "farm")
+          }
           className="relative z-10"
         >
           <TabsList className="bg-black/50 border border-red-900/30 flex flex-wrap sm:flex-nowrap overflow-x-auto">
@@ -1501,8 +1481,7 @@ export const CultBuySell = () => {
                         const cultPriceInEth = ethAmount / cultTotalAmount;
                         const cultPriceUsd = cultPriceInEth * ethPrice.priceUSD;
                         return formatNumber(cultAmount * cultPriceUsd, 2);
-                      })()}{" "}
-                      {t("common.usd")}
+                      })()} {t("common.usd")}
                     </span>
                   )}
                   {cultBalance !== undefined && (
@@ -1614,7 +1593,9 @@ export const CultBuySell = () => {
                   <div className="flex justify-between">
                     <span className="text-gray-400">CULT:</span>
                     <div className="text-right">
-                      <span className="text-white font-mono block">{formatNumber(parseFloat(expectedCult), 0)} CULT</span>
+                      <span className="text-white font-mono block">
+                        {formatNumber(parseFloat(expectedCult), 0)} CULT
+                      </span>
                       {ethPrice?.priceUSD && expectedCult !== "0" && reserves && (
                         <span className="text-xs text-gray-500">
                           ≈ ${(() => {
@@ -1624,31 +1605,35 @@ export const CultBuySell = () => {
                             const cultPriceInEth = ethAmount / cultTotalAmount;
                             const cultPriceUsd = cultPriceInEth * ethPrice.priceUSD;
                             return formatNumber(cultAmount * cultPriceUsd, 2);
-                          })()}{" "}
-                          {t("common.usd")}
+                          })()} {t("common.usd")}
                         </span>
                       )}
                     </div>
                   </div>
                   {/* Total USD value */}
-                  {ethPrice?.priceUSD && expectedEth !== "0" && expectedCult !== "0" && reserves && reserves.reserve0 > 0n && reserves.reserve1 > 0n && (
-                    <div className="pt-2 mt-2 border-t border-red-900/20">
-                      <div className="flex justify-between">
-                        <span className="text-gray-400 font-semibold">{t("common.total_value")}:</span>
-                        <span className="text-white font-mono font-semibold">
-                          ${(() => {
-                            const ethValue = parseFloat(expectedEth) * ethPrice.priceUSD;
-                            const cultAmount = parseFloat(expectedCult);
-                            const ethReserve = parseFloat(formatEther(reserves.reserve0));
-                            const cultReserve = parseFloat(formatUnits(reserves.reserve1, 18));
-                            const cultPriceInEth = ethReserve / cultReserve;
-                            const cultValue = cultAmount * cultPriceInEth * ethPrice.priceUSD;
-                            return (ethValue + cultValue).toFixed(2);
-                          })()} USD
-                        </span>
+                  {ethPrice?.priceUSD &&
+                    expectedEth !== "0" &&
+                    expectedCult !== "0" &&
+                    reserves &&
+                    reserves.reserve0 > 0n &&
+                    reserves.reserve1 > 0n && (
+                      <div className="pt-2 mt-2 border-t border-red-900/20">
+                        <div className="flex justify-between">
+                          <span className="text-gray-400 font-semibold">{t("common.total_value")}:</span>
+                          <span className="text-white font-mono font-semibold">
+                            ${(() => {
+                              const ethValue = parseFloat(expectedEth) * ethPrice.priceUSD;
+                              const cultAmount = parseFloat(expectedCult);
+                              const ethReserve = parseFloat(formatEther(reserves.reserve0));
+                              const cultReserve = parseFloat(formatUnits(reserves.reserve1, 18));
+                              const cultPriceInEth = ethReserve / cultReserve;
+                              const cultValue = cultAmount * cultPriceInEth * ethPrice.priceUSD;
+                              return (ethValue + cultValue).toFixed(2);
+                            })()} USD
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
                 </div>
               )}
 

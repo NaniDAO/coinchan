@@ -51,7 +51,11 @@ export const PoolSwapChart = ({ sellToken, buyToken, prevPair }: PoolSwapChartPr
         <div
           className={`transition-all duration-300 ${showPriceChart ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"}`}
         >
-          <PoolPriceChart poolId={computePoolId(chartToken.id).toString()} ticker={chartToken.symbol} ethUsdPrice={ethUsdPrice} />
+          <PoolPriceChart
+            poolId={computePoolId(chartToken.id).toString()}
+            ticker={chartToken.symbol}
+            ethUsdPrice={ethUsdPrice}
+          />
         </div>
       )}
     </div>

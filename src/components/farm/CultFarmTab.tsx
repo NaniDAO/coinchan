@@ -176,12 +176,12 @@ function CultFarmCard({ farm, lpToken, lpBalance, onHarvest, isHarvesting, ethPr
   const { data: poolData } = useZChefPool(farm.chefId);
   const { data: userBalance } = useZChefUserBalance(farm.chefId);
   const { data: pendingRewards, isLoading: isLoadingRewards } = useZChefPendingReward(farm.chefId);
-  
+
   // Fetch ZAMM reserves if reward token is ZAMM
   const isZAMMReward = farm.rewardCoin?.symbol === "ZAMM";
   const { data: zammReserves } = useReserves({
     poolId: isZAMMReward ? ZAMM_POOL_ID : undefined,
-    source: "ZAMM"
+    source: "ZAMM",
   });
 
   const totalShares = poolData?.[7] ?? farm.totalShares ?? 0n;
@@ -321,7 +321,15 @@ function CultFarmCard({ farm, lpToken, lpBalance, onHarvest, isHarvesting, ethPr
                       })()
                     )}
                   </p>
-                  {ethPrice?.priceUSD && pendingRewards && pendingRewards > 0n && isZAMMReward && zammReserves && zammReserves.reserve0 && zammReserves.reserve1 && zammReserves.reserve0 > 0n && zammReserves.reserve1 > 0n ? (
+                  {ethPrice?.priceUSD &&
+                  pendingRewards &&
+                  pendingRewards > 0n &&
+                  isZAMMReward &&
+                  zammReserves &&
+                  zammReserves.reserve0 &&
+                  zammReserves.reserve1 &&
+                  zammReserves.reserve0 > 0n &&
+                  zammReserves.reserve1 > 0n ? (
                     <p className="text-xs text-gray-500">
                       ≈ ${(() => {
                         const rewardAmount = parseFloat(formatEther(pendingRewards));
