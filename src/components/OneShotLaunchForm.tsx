@@ -194,7 +194,7 @@ export const OneShotLaunchForm = () => {
       if (isUserRejectionError(error)) {
         toast.error(t("create.launch_cancelled", "Launch cancelled by user"));
       } else {
-        const errorMessage = handleWalletError(error);
+        const errorMessage = handleWalletError(error, { t });
         toast.error(errorMessage || t("create.launch_failed", "Failed to launch coin. Please try again."));
       }
     }

@@ -8,6 +8,7 @@ import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { ZAMMLaunchAbi, ZAMMLaunchAddress } from "@/constants/ZAMMLaunch";
 import { useReserves } from "@/hooks/use-reserves";
 import { useETHPrice } from "@/hooks/use-eth-price";
+import { handleWalletError, isUserRejectionError } from "@/lib/errors";
 import {
   type CookbookPoolKey,
   DEADLINE_SEC,
@@ -142,11 +143,11 @@ export const BuySellCookbookCoin = ({
       if (tab === "buy") {
         // When buying, show USD value of ETH input
         const ethAmount = parseFloat(amount || "0");
-        return (ethAmount * ethPrice.priceUSD).toFixed(2);
+        return formatNumber(ethAmount * ethPrice.priceUSD, 2);
       } else {
         // When selling, show USD value of ETH output
         const ethAmount = parseFloat(estimated || "0");
-        return (ethAmount * ethPrice.priceUSD).toFixed(2);
+        return formatNumber(ethAmount * ethPrice.priceUSD, 2);
       }
     } catch {
       return null;
@@ -188,9 +189,14 @@ export const BuySellCookbookCoin = ({
         value: type === "buy" ? amountIn : 0n,
       });
       setTxHash(hash);
+      setErrorMessage(null);
     } catch (error) {
-      console.error(error);
-      setErrorMessage(t("create.transaction_failed"));
+      const errorMsg = handleWalletError(error, {
+        defaultMessage: t("errors.transaction_error")
+      });
+      if (errorMsg) {
+        setErrorMessage(errorMsg);
+      }
     }
   };
 
@@ -236,9 +242,14 @@ export const BuySellCookbookCoin = ({
         args: [coinId, BigInt(launchpadBalance.toString())],
       });
       setTxHash(hash);
+      setErrorMessage(null);
     } catch (error) {
-      console.error(error);
-      setErrorMessage(t("create.transaction_failed"));
+      const errorMsg = handleWalletError(error, {
+        defaultMessage: t("errors.transaction_error")
+      });
+      if (errorMsg) {
+        setErrorMessage(errorMsg);
+      }
     }
   };
 
@@ -261,7 +272,16 @@ export const BuySellCookbookCoin = ({
                   <div className="opacity-90">Pool Value: ${formatNumber(totalPoolValueUsd, 2)} USD</div>
                   <div className="opacity-75">
                     1 ETH = {formatNumber(ethPriceInToken, 6)} {symbol} | 
-                    1 {symbol} = {tokenPriceInEth.toFixed(8)} ETH (${tokenPriceUsd.toFixed(8)} USD)
+                    1 {symbol} = {tokenPriceInEth.toFixed(8)} ETH (${formatNumber(tokenPriceUsd, 8)} USD)
+                  </div>
+                  <div className="opacity-60 flex items-center gap-1">
+                    <span>Fee: {Number(SWAP_FEE) / 100}%</span>
+                    <span 
+                      className="text-[10px] opacity-70 cursor-help hover:opacity-100 transition-opacity" 
+                      title={t("common.paid_to_lps")}
+                    >
+                      ⓘ
+                    </span>
                   </div>
                 </>
               );
@@ -331,7 +351,7 @@ export const BuySellCookbookCoin = ({
               />
             )}
             <span className="text-sm font-medium">
-              {t("create.you_will_receive", { amount: estimated, token: symbol })}
+              {t("create.you_will_receive", { amount: formatNumber(parseFloat(estimated), 6), token: symbol })}
             </span>
             <Button onClick={() => handleSwap("buy")} disabled={!isConnected || isPending || !amount}>
               {isPending ? t("swap.swapping") : t("create.buy_token", { token: symbol })}
@@ -366,7 +386,7 @@ export const BuySellCookbookCoin = ({
               />
             )}
             <span className="text-sm font-medium">
-              {t("create.you_will_receive", { amount: estimated, token: "ETH" })}
+              {t("create.you_will_receive", { amount: formatNumber(parseFloat(estimated), 6), token: "ETH" })}
             </span>
             {usdValue && estimated !== "0" && (
               <span className="text-xs text-muted-foreground">≈ ${usdValue} USD</span>

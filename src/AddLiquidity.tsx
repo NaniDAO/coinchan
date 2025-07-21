@@ -542,10 +542,11 @@ export const AddLiquidity = () => {
           }
         } catch (err) {
           // Use our utility to handle wallet errors
-          const errorMsg = handleWalletError(err);
+          const errorMsg = handleWalletError(err, {
+            defaultMessage: t("errors.transaction_error")
+          });
           if (errorMsg) {
-            console.error("Failed to approve USDT:", err);
-            setTxError("Failed to approve USDT");
+            setTxError(errorMsg);
           }
           return;
         }
@@ -575,10 +576,11 @@ export const AddLiquidity = () => {
               return;
             }
           } catch (err) {
-            const errorMsg = handleWalletError(err);
+            const errorMsg = handleWalletError(err, {
+              defaultMessage: t("errors.transaction_error")
+            });
             if (errorMsg) {
-              console.error("Failed to approve CULT:", err);
-              setTxError("Failed to approve CULT");
+              setTxError(errorMsg);
             }
             return;
           }
@@ -620,10 +622,11 @@ export const AddLiquidity = () => {
           }
         } catch (err) {
           // Use our utility to handle wallet errors
-          const errorMsg = handleWalletError(err);
+          const errorMsg = handleWalletError(err, {
+            defaultMessage: t("errors.transaction_error")
+          });
           if (errorMsg) {
-            console.error("Failed to approve operator:", err);
-            setTxError("Failed to approve the liquidity contract as operator");
+            setTxError(errorMsg);
           }
           return;
         }
@@ -682,33 +685,33 @@ export const AddLiquidity = () => {
         setTxHash(hash);
       } catch (calcErr) {
         // Use our utility to handle wallet errors
-        const errorMsg = handleWalletError(calcErr);
+        const errorMsg = handleWalletError(calcErr, {
+          defaultMessage: t("errors.transaction_error")
+        });
         if (errorMsg) {
-          console.error(`Error calling ${helperType}.calculateRequiredETH:`, calcErr);
-          setTxError("Failed to calculate exact ETH amount");
+          setTxError(errorMsg);
         }
         return;
       }
     } catch (err) {
       // Handle errors, but don't display errors for user rejections
       // Use our utility to properly handle wallet errors
-      const errorMsg = handleWalletError(err);
+      const errorMsg = handleWalletError(err, {
+        defaultMessage: t("errors.transaction_error")
+      });
       if (errorMsg) {
-        console.error("Add liquidity execution error:", err);
-
         // More specific error messages based on error type
         if (err instanceof Error) {
           if (err.message.includes("insufficient funds")) {
-            setTxError("Insufficient funds for this transaction");
+            setTxError(t("errors.insufficient_funds") || "Insufficient funds for this transaction");
           } else if (err.message.includes("InvalidMsgVal")) {
             // This is our critical error where the msg.value doesn't match what the contract expects
-            setTxError("Contract rejected ETH value. Please try again with different amounts.");
-            console.error("ZAMM contract rejected the ETH value due to strict msg.value validation.");
+            setTxError(t("errors.contract_error") || "Contract rejected ETH value. Please try again with different amounts.");
           } else {
-            setTxError("Transaction failed. Please try again.");
+            setTxError(errorMsg);
           }
         } else {
-          setTxError("Unknown error during liquidity provision");
+          setTxError(errorMsg);
         }
       }
     }

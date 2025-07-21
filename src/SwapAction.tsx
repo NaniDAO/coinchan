@@ -806,7 +806,7 @@ export const SwapAction = () => {
             {sellAmt && buyAmt && buyToken && (
               <div className="pt-2 border-t border-primary/10">
                 <div className="text-xs text-muted-foreground dark:text-gray-300">
-                  Rate: 1 {sellToken.symbol} = {(Number.parseFloat(buyAmt) / Number.parseFloat(sellAmt)).toFixed(6)}{" "}
+                  Rate: 1 {sellToken.symbol} = {formatNumber(Number.parseFloat(buyAmt) / Number.parseFloat(sellAmt), 6)}{" "}
                   {buyToken.symbol}
                 </div>
               </div>
@@ -881,6 +881,15 @@ export const SwapAction = () => {
                     <div className="opacity-60 text-xs space-y-0.5">
                       <div>1 ETH = {formatNumber(ethPriceInToken, 6)} {tokenSymbol}</div>
                       <div>1 {tokenSymbol} = {tokenPriceInEth.toFixed(8)} ETH (${tokenPriceUsd.toFixed(8)} USD)</div>
+                      <div className="flex items-center gap-1">
+                        <span>Fee: {Number(SWAP_FEE) / 100}%</span>
+                        <span 
+                          className="text-[10px] opacity-70 cursor-help hover:opacity-100 transition-opacity" 
+                          title={t("common.paid_to_lps")}
+                        >
+                          ⓘ
+                        </span>
+                      </div>
                     </div>
                   </>
                 );

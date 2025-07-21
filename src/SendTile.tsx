@@ -271,7 +271,7 @@ const SendTileComponent = () => {
       if (isUserRejectionError(error)) {
         setTxError(t("create.transaction_rejected"));
       } else {
-        const errorMsg = handleWalletError(error) || t("create.transaction_failed");
+        const errorMsg = handleWalletError(error, { t });
         setTxError(errorMsg);
       }
     }

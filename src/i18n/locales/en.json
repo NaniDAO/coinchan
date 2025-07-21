@@ -64,6 +64,7 @@
     "hide": "Hide",
     "details": "Details",
     "fee": "Fee",
+    "paid_to_lps": "Paid to LPs",
     "multi_hop": "Multi-hop",
     "pool": "Pool",
     "single_eth": "LP-ZAP",
@@ -265,6 +266,9 @@
     "about": "About",
     "processing": "Processing...",
     "estimated": "Estimated",
+    "eth_input": "ETH Input",
+    "total_value": "Total Value",
+    "usd": "USD",
     "estimated_lp_tokens": "Estimated LP Tokens",
     "provide_eth": "Provide ETH",
     "lp_tokens_to_burn": "LP Tokens to Burn",
@@ -680,7 +684,8 @@
     "gas_estimation_failed": "Gas estimation failed",
     "contract_error": "Contract error",
     "price_impact_too_high": "Slippage too high",
-    "unknown_error": "Unknown error occurred"
+    "unknown_error": "Unknown error occurred",
+    "insufficient_funds": "Insufficient funds for this transaction"
   },
   "notifications": {
     "transaction_sent": "Transaction sent",
@@ -820,6 +825,7 @@
     "unlocking": "Unlocking",
     "unlock_for_recipient": "Unlock for Recipient",
     "unlock": "Unlock",
+    "unlock_failed": "Failed to unlock",
     "unlock_available_after_expiry": "Unlock available after expiry",
     "already_claimed": "Already claimed",
     "sent_to": "Sent to",
