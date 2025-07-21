@@ -3,10 +3,8 @@ import { useTranslation } from "react-i18next";
 import {
   useAccount,
   useBalance,
-  useChainId,
   usePublicClient,
-  useReadContract,
-  useSwitchChain,
+  useReadContracts,
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
@@ -20,11 +18,13 @@ import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
 import { mainnet } from "viem/chains";
 import { LoadingLogo } from "./components/ui/loading-logo";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "./components/ui/hover-card";
+import { NetworkError } from "./components/NetworkError";
 import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
 import { ZAMMAbi, ZAMMAddress } from "./constants/ZAAM";
 import { useReserves } from "./hooks/use-reserves";
 import { useETHPrice } from "./hooks/use-eth-price";
+import { useRequireMainnet } from "./hooks/use-mainnet-check";
 import {
   DEADLINE_SEC,
   SWAP_FEE,
@@ -56,8 +56,7 @@ export const BuySell = ({
   const { address, isConnected } = useAccount();
   const { writeContractAsync, isPending } = useWriteContract();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
-  const { switchChain } = useSwitchChain();
-  const chainId = useChainId();
+  const { isReady } = useRequireMainnet();
   const publicClient = usePublicClient({ chainId: mainnet.id });
   const { data: ethPrice } = useETHPrice();
 
@@ -97,25 +96,32 @@ export const BuySell = ({
     };
   }, [publicClient, tokenId, address]);
 
-  const { data: balance } = useReadContract({
-    address: CoinsAddress,
-    abi: CoinsAbi,
-    functionName: "balanceOf",
-    args: address ? [address, tokenId] : undefined,
-    chainId: mainnet.id,
+  // Batch multiple contract reads for better performance
+  const { data: contractData } = useReadContracts({
+    contracts: address
+      ? [
+          {
+            address: CoinsAddress,
+            abi: CoinsAbi,
+            functionName: "balanceOf",
+            args: [address, tokenId],
+          },
+          {
+            address: CoinsAddress,
+            abi: CoinsAbi,
+            functionName: "isOperator",
+            args: [address, ZAMMAddress],
+          },
+        ]
+      : [],
+    allowFailure: false,
   });
+
+  const balance = contractData?.[0];
+  const isOperator = contractData?.[1];
 
   const { data: ethBalance } = useBalance({
     address: address,
-    chainId: mainnet.id,
-  });
-
-  const { data: isOperator } = useReadContract({
-    address: CoinsAddress,
-    abi: CoinsAbi,
-    functionName: "isOperator",
-    args: address ? [address, ZAMMAddress] : undefined,
-    chainId: mainnet.id,
   });
 
   const { data: reserves } = useReserves({
@@ -196,15 +202,11 @@ export const BuySell = ({
   }, [amount, ethBalance?.value, tab]);
 
   const onBuy = async () => {
-    if (!reserves || !address) return;
+    if (!reserves || !address || !isReady) return;
 
     setErrorMessage(null);
 
     try {
-      if (chainId !== mainnet.id) {
-        switchChain({ chainId: mainnet.id });
-      }
-
       const amountInWei = parseEther(amount || "0");
       const rawOut = getAmountOut(amountInWei, reserves.reserve0, reserves.reserve1, swapFee);
       const amountOutMin = withSlippage(rawOut);
@@ -217,7 +219,6 @@ export const BuySell = ({
         functionName: "swapExactIn",
         args: [poolKey, amountInWei, amountOutMin, true, address, deadline],
         value: amountInWei,
-        chainId: mainnet.id,
       });
       setTxHash(hash);
     } catch (err) {
@@ -231,15 +232,11 @@ export const BuySell = ({
   };
 
   const onSell = async () => {
-    if (!reserves || !address) return;
+    if (!reserves || !address || !isReady) return;
 
     setErrorMessage(null);
 
     try {
-      if (chainId !== mainnet.id) {
-        switchChain({ chainId: mainnet.id });
-      }
-
       const amountInUnits = parseUnits(amount || "0", 18);
 
       if (!isOperator) {
@@ -249,7 +246,6 @@ export const BuySell = ({
             abi: CoinsAbi,
             functionName: "setOperator",
             args: [ZAMMAddress, true],
-            chainId: mainnet.id,
           });
         } catch (approvalErr) {
           const errorMsg = handleWalletError(approvalErr, {
@@ -272,7 +268,6 @@ export const BuySell = ({
         abi: ZAMMAbi,
         functionName: "swapExactIn",
         args: [poolKey, amountInUnits, amountOutMin, false, address, deadline],
-        chainId: mainnet.id,
       });
       setTxHash(hash);
     } catch (err) {
@@ -287,6 +282,9 @@ export const BuySell = ({
 
   return (
     <div>
+      {/* Network warning */}
+      <NetworkError compact />
+
       {/* Per-unit price information */}
       {reserves && reserves.reserve0 > 0n && reserves.reserve1 > 0n && ethPrice?.priceUSD && (
         <div className="mb-3 p-2 bg-muted/30 rounded-lg text-xs text-muted-foreground">
@@ -361,7 +359,7 @@ export const BuySell = ({
             </span>
             <Button
               onClick={onBuy}
-              disabled={!isConnected || isPending || !amount}
+              disabled={!isConnected || !isReady || isPending || !amount}
               variant="default"
               className={`bg-green-600 hover:bg-green-700 text-white font-bold transition-opacity duration-300`}
             >
@@ -414,7 +412,7 @@ export const BuySell = ({
             </div>
             <Button
               onClick={onSell}
-              disabled={!isConnected || isPending || !amount}
+              disabled={!isConnected || !isReady || isPending || !amount}
               variant="outline"
               className={`dark:border-accent dark:text-accent dark:hover:bg-accent/10 transition-opacity duration-300 `}
             >

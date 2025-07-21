@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { usePublicClient } from "wagmi";
 import { ZChefAbi, ZChefAddress } from "@/constants/zChef";
 import type { IncentiveStream } from "./use-incentive-streams";
+import type { Address } from "viem";
 
 /**
  * Hook to get real-time farm summary data including total staked amounts
@@ -10,22 +11,28 @@ import type { IncentiveStream } from "./use-incentive-streams";
 export function useFarmsSummary(streams: IncentiveStream[] | undefined) {
   const publicClient = usePublicClient();
 
-  // Batch fetch all pool data in a single query
+  // Batch fetch all pool data in a single multicall
   const { data: poolsData } = useQuery({
     queryKey: ["farms-summary", streams?.map((s) => s.chefId.toString())],
     queryFn: async () => {
-      if (!streams || !publicClient) return [];
+      if (!streams || !publicClient || streams.length === 0) return [];
 
-      const poolDataPromises = streams.map((stream) =>
-        publicClient.readContract({
-          address: ZChefAddress,
-          abi: ZChefAbi,
-          functionName: "pools",
-          args: [stream.chefId],
-        }),
-      );
+      // Build contracts array for multicall
+      const contracts = streams.map((stream) => ({
+        address: ZChefAddress as Address,
+        abi: ZChefAbi,
+        functionName: "pools",
+        args: [stream.chefId],
+      }));
 
-      return Promise.all(poolDataPromises);
+      // Execute all calls in a single batch
+      const results = await publicClient.multicall({
+        contracts,
+        allowFailure: true,
+      });
+
+      // Extract successful results
+      return results.map((result) => (result.status === "success" ? result.result : undefined));
     },
     enabled: !!streams && !!publicClient && streams.length > 0,
     staleTime: 30000, // 30 seconds

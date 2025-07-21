@@ -340,13 +340,26 @@ export const SwapAction = () => {
       }
 
       if (calls.length === 1) {
-        const hash = await sendTransactionAsync({
-          account: address,
-          chainId: mainnet.id,
-          data: calls[0].data,
-          to: calls[0].to,
-          value: calls[0].value,
-        });
+        let hash: `0x${string}`;
+        try {
+          hash = await sendTransactionAsync({
+            account: address,
+            chainId: mainnet.id,
+            data: calls[0].data,
+            to: calls[0].to,
+            value: calls[0].value,
+          });
+        } catch (error: any) {
+          // Handle connector.getChainId error specifically
+          if (error?.message?.includes("getChainId is not a function")) {
+            console.error("Connector compatibility issue:", error);
+            setTxError(t("errors.wallet_connection_refresh"));
+            // Try to reload the page to reinitialize the connection
+            setTimeout(() => window.location.reload(), 2000);
+            return;
+          }
+          throw error;
+        }
 
         const receipt = await publicClient.waitForTransactionReceipt({
           hash,
@@ -365,12 +378,25 @@ export const SwapAction = () => {
         } else {
           // sequentially execute while waiting for each transaction to be mined
           for (const call of calls) {
-            const hash = await sendTransactionAsync({
-              to: call.to,
-              value: call.value,
-              data: call.data,
-              chainId: mainnet.id,
-            });
+            let hash: `0x${string}`;
+            try {
+              hash = await sendTransactionAsync({
+                to: call.to,
+                value: call.value,
+                data: call.data,
+                chainId: mainnet.id,
+              });
+            } catch (error: any) {
+              // Handle connector.getChainId error specifically
+              if (error?.message?.includes("getChainId is not a function")) {
+                console.error("Connector compatibility issue:", error);
+                setTxError(t("errors.wallet_connection_refresh"));
+                // Try to reload the page to reinitialize the connection
+                setTimeout(() => window.location.reload(), 2000);
+                return;
+              }
+              throw error;
+            }
 
             const receipt = await publicClient.waitForTransactionReceipt({
               hash,
@@ -525,13 +551,26 @@ export const SwapAction = () => {
       // Execute the calls (approval + order creation)
       if (calls.length === 1) {
         // Just the order creation
-        const orderHash = await sendTransactionAsync({
-          to: calls[0].to,
-          data: calls[0].data,
-          value: calls[0].value,
-          account: address,
-          chainId: mainnet.id,
-        });
+        let orderHash: `0x${string}`;
+        try {
+          orderHash = await sendTransactionAsync({
+            to: calls[0].to,
+            data: calls[0].data,
+            value: calls[0].value,
+            account: address,
+            chainId: mainnet.id,
+          });
+        } catch (error: any) {
+          // Handle connector.getChainId error specifically
+          if (error?.message?.includes("getChainId is not a function")) {
+            console.error("Connector compatibility issue:", error);
+            setTxError(t("errors.wallet_connection_refresh"));
+            // Try to reload the page to reinitialize the connection
+            setTimeout(() => window.location.reload(), 2000);
+            return;
+          }
+          throw error;
+        }
 
         const receipt = await publicClient!.waitForTransactionReceipt({
           hash: orderHash,
@@ -550,12 +589,25 @@ export const SwapAction = () => {
         } else {
           // Sequential execution
           for (const call of calls) {
-            const hash = await sendTransactionAsync({
-              to: call.to,
-              value: call.value,
-              data: call.data,
-              chainId: mainnet.id,
-            });
+            let hash: `0x${string}`;
+            try {
+              hash = await sendTransactionAsync({
+                to: call.to,
+                value: call.value,
+                data: call.data,
+                chainId: mainnet.id,
+              });
+            } catch (error: any) {
+              // Handle connector.getChainId error specifically
+              if (error?.message?.includes("getChainId is not a function")) {
+                console.error("Connector compatibility issue:", error);
+                setTxError(t("errors.wallet_connection_refresh"));
+                // Try to reload the page to reinitialize the connection
+                setTimeout(() => window.location.reload(), 2000);
+                return;
+              }
+              throw error;
+            }
 
             const receipt = await publicClient!.waitForTransactionReceipt({
               hash,

@@ -21,9 +21,15 @@ interface PriceChartProps {
   poolId: string;
   ticker: string;
   ethUsdPrice?: number;
+  priceImpact?: {
+    currentPrice: number;
+    projectedPrice: number;  // CULT price in ETH after the trade
+    impactPercent: number;
+    action: "buy" | "sell";
+  } | null;
 }
 
-const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker, ethUsdPrice }) => {
+const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker, ethUsdPrice, priceImpact }) => {
   const { t } = useTranslation();
   const [showUsd, setShowUsd] = useState(false);
   const [chartError, setChartError] = useState<string | null>(null);
@@ -171,7 +177,13 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker, ethUsdPrice
           </Button>
         </div>
       ) : data && data.length > 0 ? (
-        <MemoizedTVPriceChart priceData={data} ticker={ticker} showUsd={showUsd} ethUsdPrice={ethUsdPrice} />
+        <MemoizedTVPriceChart
+          priceData={data}
+          ticker={ticker}
+          showUsd={showUsd}
+          ethUsdPrice={ethUsdPrice}
+          priceImpact={priceImpact}
+        />
       ) : (
         <div className="text-center py-20 text-muted-foreground">{t("chart.no_data")}</div>
       )}
@@ -184,11 +196,18 @@ const TVPriceChart: React.FC<{
   ticker: string;
   showUsd?: boolean;
   ethUsdPrice?: number;
-}> = ({ priceData, ticker, showUsd = false, ethUsdPrice }) => {
+  priceImpact?: {
+    currentPrice: number;
+    projectedPrice: number;
+    impactPercent: number;
+    action: "buy" | "sell";
+  } | null;
+}> = ({ priceData, ticker, showUsd = false, ethUsdPrice, priceImpact }) => {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<ReturnType<typeof createChart>>();
   const priceSeriesRef = useRef<ISeriesApi<"Line">>();
+  const impactSeriesRef = useRef<ISeriesApi<"Line">>();
   const chartTheme = useChartTheme();
   const [isChartReady, setIsChartReady] = useState(false);
   const lastValidDataRef = useRef<Array<{ time: UTCTimestamp; value: number }>>();
@@ -198,6 +217,18 @@ const TVPriceChart: React.FC<{
     if (!container) return;
 
     try {
+      // Clean up any existing chart first
+      if (chartRef.current) {
+        try {
+          chartRef.current.remove();
+        } catch (e) {
+          console.error("Error removing existing chart:", e);
+        }
+        chartRef.current = undefined;
+        priceSeriesRef.current = undefined;
+        impactSeriesRef.current = undefined;
+      }
+
       // Create chart
       const chart = createChart(container, {
         layout: {
@@ -232,9 +263,29 @@ const TVPriceChart: React.FC<{
 
       setIsChartReady(true);
 
+      // Handle window resize
+      const handleResize = () => {
+        if (chartRef.current && container) {
+          try {
+            chartRef.current.applyOptions({
+              width: container.clientWidth,
+            });
+          } catch (e) {
+            console.error("Error resizing chart:", e);
+          }
+        }
+      };
+
+      window.addEventListener('resize', handleResize);
+
       return () => {
+        window.removeEventListener('resize', handleResize);
         setIsChartReady(false);
-        chart.remove();
+        try {
+          chart.remove();
+        } catch (e) {
+          console.error("Error cleaning up chart:", e);
+        }
       };
     } catch (error) {
       console.error("Failed to create chart:", error);
@@ -257,11 +308,11 @@ const TVPriceChart: React.FC<{
     } as LineSeriesOptions);
   }, [showUsd, ethUsdPrice, ticker]);
 
+  // Simple effect to process and display data with price impact
   useEffect(() => {
     if (!priceSeriesRef.current || !isChartReady) return;
 
-    // If no data, show last valid data if available
-    if (priceData.length === 0) {
+    if (!priceData || priceData.length === 0) {
       if (lastValidDataRef.current && lastValidDataRef.current.length > 0) {
         priceSeriesRef.current.setData(lastValidDataRef.current);
       }
@@ -269,98 +320,155 @@ const TVPriceChart: React.FC<{
     }
 
     try {
-      // Sort ascending by timestamp
-      // Create a map to ensure uniqueness by timestamp
+      // Process the raw data
       const uniqueData = new Map<string, PricePointData>();
       priceData.forEach((point) => {
         uniqueData.set(point.timestamp, point);
       });
 
-      // Convert back to array and sort
       const sorted = Array.from(uniqueData.values()).sort(
         (a, b) => Number.parseInt(a.timestamp) - Number.parseInt(b.timestamp),
       );
 
-      // Map to chart-compatible format and ensure uniqueness of timestamps
-      const timestampMap = new Map<number, number>(); // Map to store unique timestamps with their values
+      const timestampMap = new Map<number, number>();
 
       sorted.forEach((d) => {
         try {
-          // Parse timestamp as Unix timestamp (seconds since epoch)
           const timestamp = Number.parseInt(d.timestamp);
+          if (isNaN(timestamp)) return;
 
-          // Check if timestamp is valid
-          if (isNaN(timestamp)) {
-            console.warn("Invalid timestamp:", d.timestamp);
-            return;
-          }
-
-          // price1 is a string representing the price in wei format (18 decimals)
-          // Convert it to a number properly
           let value: number;
           try {
             value = Number(formatEther(BigInt(d.price1)));
           } catch (e) {
-            console.warn("Invalid price format:", d.price1, e);
             return;
           }
 
-          // Validate value
-          if (value === 0 || !isFinite(value)) {
-            console.warn("Invalid calculated value:", value);
-            return;
-          }
+          if (value === 0 || !isFinite(value)) return;
 
-          // Convert to USD if needed
           if (showUsd && ethUsdPrice && ethUsdPrice > 0) {
-            // value = token price in ETH (from pool)
-            // ethUsdPrice = ETH price in USD
-            // token price in USD = token price in ETH * ETH price in USD
             value = value * ethUsdPrice;
           }
 
-          // If we already have a value for this timestamp, we'll use the more recent data point
-          // (which is the current one since we're iterating through sorted data)
           timestampMap.set(timestamp, value);
         } catch (err) {
-          console.error("Error processing price point:", err, d);
+          console.error("Error processing price point:", err);
         }
       });
 
-      // Convert the map to an array of points
       const points = Array.from(timestampMap.entries())
         .map(([time, value]) => ({
           time: time as UTCTimestamp,
           value,
         }))
-        .sort((a, b) => a.time - b.time); // Ensure they're sorted by time
+        .sort((a, b) => a.time - b.time);
 
-      // Push data
       if (points.length > 0) {
-        priceSeriesRef.current.setData(points);
-        // Store last valid data
+        // Store the base data
         lastValidDataRef.current = points;
-        // Fit content to series
-        chartRef.current?.timeScale().fitContent();
-      } else if (lastValidDataRef.current && lastValidDataRef.current.length > 0) {
-        // Use last valid data if current data is empty
-        console.warn("No valid points in current data, using last valid data");
-        priceSeriesRef.current.setData(lastValidDataRef.current);
-      } else {
-        console.warn(t("chart.no_data"));
-      }
-    } catch (error) {
-      console.error("Error updating price chart:", error);
-      // Try to use last valid data on error
-      if (lastValidDataRef.current && lastValidDataRef.current.length > 0) {
-        try {
-          priceSeriesRef.current.setData(lastValidDataRef.current);
-        } catch (e) {
-          console.error("Failed to restore last valid data:", e);
+        
+        // Log some sample data to understand the format
+        if (points.length > 0) {
+          console.log('Historical data sample:', {
+            firstPoint: points[0],
+            lastPoint: points[points.length - 1],
+            dataLength: points.length,
+            showUsd,
+            mode: showUsd ? 'USD' : 'ETH/CULT'
+          });
+        }
+        
+        // Build the data to display
+        let displayData = [...points];
+        
+        // Add price impact point if available
+        if (priceImpact && priceImpact.projectedPrice > 0) {
+          const lastPoint = points[points.length - 1];
+          if (lastPoint) {
+            console.log('Price impact calculation:', {
+              mode: showUsd ? 'USD' : 'ETH',
+              projectedPrice: priceImpact.projectedPrice,
+              ethUsdPrice,
+              lastPointValue: lastPoint.value,
+              impactPercent: priceImpact.impactPercent
+            });
+            
+            let projectedValue: number;
+            
+            if (showUsd && ethUsdPrice && ethUsdPrice > 0) {
+              projectedValue = priceImpact.projectedPrice * ethUsdPrice;
+            } else {
+              // Try without inverting first to see if that's the issue
+              projectedValue = priceImpact.projectedPrice;
+              console.log('Testing without inversion:', {
+                directValue: projectedValue,
+                invertedValue: 1 / priceImpact.projectedPrice,
+                lastPointValue: lastPoint.value
+              });
+              
+              // If the direct value is way off from lastPoint.value, use inverted
+              const directRatio = projectedValue / lastPoint.value;
+              const invertedRatio = (1 / priceImpact.projectedPrice) / lastPoint.value;
+              
+              console.log('Ratios:', {
+                directRatio,
+                invertedRatio,
+                directDiff: Math.abs(1 - directRatio),
+                invertedDiff: Math.abs(1 - invertedRatio)
+              });
+              
+              // Use the value that's closer to the last point
+              if (Math.abs(1 - invertedRatio) < Math.abs(1 - directRatio)) {
+                projectedValue = 1 / priceImpact.projectedPrice;
+                console.log('Using inverted value');
+              } else {
+                console.log('Using direct value');
+              }
+            }
+            
+            console.log('Final calculated values:', {
+              projectedValue,
+              lastValue: lastPoint.value,
+              ratio: projectedValue / lastPoint.value,
+              percentDiff: ((projectedValue - lastPoint.value) / lastPoint.value * 100).toFixed(2) + '%'
+            });
+
+            if (isFinite(projectedValue) && projectedValue > 0) {
+              // Place the projected point just after the last historical point
+              // This avoids time gaps that might confuse the chart
+              const projectedTime = lastPoint.time + 1; // Just 1 second after
+              displayData.push({
+                time: projectedTime as UTCTimestamp,
+                value: projectedValue,
+              });
+              console.log('Added projected point at time:', projectedTime);
+            } else {
+              console.error('Invalid projected value:', projectedValue);
+            }
+          }
+        }
+        
+        // Update the chart
+        console.log(`Setting ${displayData.length} points to chart (${points.length} historical + ${displayData.length - points.length} projected)`);
+        priceSeriesRef.current.setData(displayData);
+        
+        // Make sure we see all the data
+        if (chartRef.current) {
+          chartRef.current.timeScale().fitContent();
+          
+          // Also log the visible range
+          const visibleRange = chartRef.current.timeScale().getVisibleRange();
+          console.log('Visible range after fitContent:', visibleRange);
         }
       }
+    } catch (error) {
+      console.error("Error updating chart:", error);
+      // Fallback to last valid data
+      if (lastValidDataRef.current && lastValidDataRef.current.length > 0) {
+        priceSeriesRef.current.setData(lastValidDataRef.current);
+      }
     }
-  }, [priceData, showUsd, ethUsdPrice, t, isChartReady]);
+  }, [priceData, showUsd, ethUsdPrice, priceImpact, isChartReady, t]);
 
   return (
     <div className="relative">

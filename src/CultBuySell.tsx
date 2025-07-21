@@ -6,6 +6,7 @@ import {
   useChainId,
   usePublicClient,
   useReadContract,
+  useReadContracts,
   useSendCalls,
   useSendTransaction,
   useSwitchChain,
@@ -409,7 +410,7 @@ const CultSingleEthLiquidity = () => {
     <div className="space-y-4">
       {/* ETH Input */}
       <div className="space-y-2">
-        <span className="text-sm font-medium text-gray-400">{t("common.provide_eth")}</span>
+        <span className="text-sm font-medium text-muted-foreground">{t("common.provide_eth")}</span>
         <Input
           type="number"
           placeholder={t("cult.amount_eth")}
@@ -421,7 +422,7 @@ const CultSingleEthLiquidity = () => {
         />
         {ethToken.balance !== undefined && ethToken.balance > 0n && (
           <button
-            className="text-sm font-medium text-gray-400 hover:text-white transition-colors"
+            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             onClick={() => {
               const ethAmount = ((ethToken.balance as bigint) * 99n) / 100n;
               syncFromSell(formatEther(ethAmount));
@@ -438,13 +439,13 @@ const CultSingleEthLiquidity = () => {
       {/* Estimated CULT Output */}
       <div className="p-3 bg-gray-900/50 border border-red-900/30 rounded-lg">
         <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">{t("common.estimated")} CULT:</span>
+          <span className="text-muted-foreground text-sm">{t("common.estimated")} CULT:</span>
           <div className="text-right">
             <span className="text-white font-mono block">
               {singleETHEstimatedCoin ? formatNumber(parseFloat(singleETHEstimatedCoin), 6) : "0"} CULT
             </span>
             {ethPrice?.priceUSD && singleETHEstimatedCoin && reserves && (
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-muted-foreground">
                 ≈ ${(() => {
                   const cultAmount = parseFloat(singleETHEstimatedCoin);
                   const ethAmount = parseFloat(formatEther(reserves.reserve0));
@@ -462,18 +463,18 @@ const CultSingleEthLiquidity = () => {
         {estimatedLpTokens && estimatedPoolShare && (
           <>
             <div className="mt-2 pt-2 border-t border-red-900/20 flex justify-between items-center">
-              <span className="text-gray-400 text-sm">{t("common.estimated_lp_tokens")}:</span>
+              <span className="text-muted-foreground text-sm">{t("common.estimated_lp_tokens")}:</span>
               <span className="text-white font-mono">{parseFloat(estimatedLpTokens).toFixed(6)} LP</span>
             </div>
             <div className="flex justify-between items-center mt-1">
-              <span className="text-gray-400 text-sm">{t("cult.pool_share")}:</span>
+              <span className="text-muted-foreground text-sm">{t("cult.pool_share")}:</span>
               <span className="text-white font-mono">{estimatedPoolShare}</span>
             </div>
           </>
         )}
 
         {ethPrice?.priceUSD && sellAmt && (
-          <div className="mt-2 pt-2 border-t border-red-900/20 text-xs text-gray-500">
+          <div className="mt-2 pt-2 border-t border-red-900/20 text-xs text-muted-foreground">
             <span>
               {t("common.eth_input")}: ≈ ${formatNumber(parseFloat(sellAmt) * ethPrice.priceUSD, 2)} {t("common.usd")}
             </span>
@@ -485,7 +486,7 @@ const CultSingleEthLiquidity = () => {
       <SlippageSettings setSlippageBps={setSingleEthSlippageBps} slippageBps={singleEthSlippageBps} />
 
       {/* Info */}
-      <div className="text-xs bg-gray-900/50 border border-red-900/30 rounded p-2 text-gray-400">
+      <div className="text-xs bg-muted/50 dark:bg-gray-900/50 border border-red-900/30 rounded p-2 text-muted-foreground">
         <p className="font-medium mb-1">{t("pool.single_sided_eth_liquidity")}</p>
         <ul className="list-disc pl-4 space-y-0.5">
           <li>{t("pool.provide_only_eth")}</li>
@@ -502,7 +503,8 @@ const CultSingleEthLiquidity = () => {
         onClick={executeSingleETHLiquidity}
         disabled={!isConnected || isPending || !sellAmt || parseFloat(sellAmt) <= 0}
         variant="default"
-        className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold transition-all duration-300 shadow-lg shadow-red-500/30"
+        className="w-full font-bold transition-all duration-300 shadow-lg shadow-primary/30"
+        style={{ backgroundColor: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}
       >
         {isPending ? (
           <span className="flex items-center gap-2">
@@ -580,16 +582,36 @@ export const CultBuySell = () => {
   const [cultPrice, setCultPrice] = useState<string>("--.--.--");
   const [cultUsdPrice, setCultUsdPrice] = useState<string>("--");
   const [priceAnimating, setPriceAnimating] = useState(false);
-  const [totalSupply, setTotalSupply] = useState<bigint>(0n);
   const [accumulatedTax, setAccumulatedTax] = useState<string>("0");
   const [floorProgress, setFloorProgress] = useState<number>(0);
+  const [swapSlippageBps, setSwapSlippageBps] = useState<bigint>(1000n); // 10% default slippage for buy/sell
+  const [optimisticPriceUpdate, setOptimisticPriceUpdate] = useState<{
+    timestamp: number;
+    price: number;
+    priceInEth: number;
+    action: "buy" | "sell";
+    amount: string;
+  } | null>(null);
+
+  const [realtimePriceImpact, setRealtimePriceImpact] = useState<{
+    newPrice: number;
+    priceInEth: number;
+    impactPercent: number;
+    action: "buy" | "sell";
+  } | null>(null);
 
   const { address, isConnected } = useAccount();
   const { sendTransactionAsync, isPending } = useSendTransaction();
   const { data: ethPrice } = useETHPrice();
   const { sendCalls } = useSendCalls();
   const isBatchingSupported = useBatchingSupported();
-  const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
+  const { isSuccess } = useWaitForTransactionReceipt({
+    hash: txHash,
+    onReplaced: () => {
+      // Clear optimistic update if transaction is replaced
+      setOptimisticPriceUpdate(null);
+    },
+  });
   const { switchChain } = useSwitchChain();
   const chainId = useChainId();
   const publicClient = usePublicClient({ chainId: mainnet.id });
@@ -609,16 +631,6 @@ export const CultBuySell = () => {
   // Fetch ETH balance
   const { data: ethBalance } = useBalance({
     address: address,
-    chainId: mainnet.id,
-  });
-
-  // Fetch CULT balance
-  const { data: cultBalance } = useReadContract({
-    address: CULT_ADDRESS,
-    abi: erc20Abi,
-    functionName: "balanceOf",
-    args: address ? [address] : undefined,
-    chainId: mainnet.id,
   });
 
   // CULT allowance for Cookbook (liquidity)
@@ -637,23 +649,47 @@ export const CultBuySell = () => {
     source: "COOKBOOK", // CULT uses Cookbook for liquidity
   });
 
-  // Fetch LP balance for CULT pool
-  const { data: lpBalance } = useReadContract({
-    address: CookbookAddress,
-    abi: CookbookAbi,
-    functionName: "balanceOf",
-    args: address ? [address, CULT_POOL_ID] : undefined,
-    chainId: mainnet.id,
+  // Batch multiple contract reads for better performance
+  const { data: contractData } = useReadContracts({
+    contracts: [
+      {
+        address: CULT_ADDRESS,
+        abi: erc20Abi,
+        functionName: "balanceOf",
+        args: address ? [address] : undefined,
+      },
+      {
+        address: CookbookAddress,
+        abi: CookbookAbi,
+        functionName: "balanceOf",
+        args: address ? [address, CULT_POOL_ID] : undefined,
+      },
+      {
+        address: CookbookAddress,
+        abi: CookbookAbi,
+        functionName: "pools",
+        args: [CULT_POOL_ID],
+      },
+      {
+        address: CULT_ADDRESS,
+        abi: erc20Abi,
+        functionName: "balanceOf",
+        args: [CULT_ADDRESS], // CULT's balance of itself = treasury
+      },
+    ],
+    allowFailure: false,
   });
 
-  // Fetch pool info for total supply
-  const { data: poolInfo } = useReadContract({
-    address: CookbookAddress,
-    abi: CookbookAbi,
-    functionName: "pools",
-    args: [CULT_POOL_ID],
-    chainId: mainnet.id,
-  });
+  const cultBalance = contractData?.[0];
+  const lpBalance = contractData?.[1];
+  const poolInfo = contractData?.[2];
+  const treasuryBalance = (contractData?.[3] as bigint) || 0n;
+
+  // CULT total supply is fixed at 100 billion tokens
+  const totalSupply = parseUnits("100000000000", 18); // 100 billion CULT
+
+  // Calculate circulating supply (total - treasury)
+  const circulatingSupply = totalSupply - treasuryBalance;
 
   // Create token metadata objects
   const ethToken: TokenMeta = {
@@ -675,25 +711,6 @@ export const CultBuySell = () => {
     poolKey: CULT_POOL_KEY as any, // Type cast to avoid TS error
     swapFee: 30n, // 0.3% fee
   };
-
-  // Fetch CULT total supply
-  useEffect(() => {
-    const fetchSupply = async () => {
-      if (!publicClient) return;
-      try {
-        const supply = (await publicClient.readContract({
-          address: CULT_ADDRESS,
-          abi: erc20Abi,
-          functionName: "totalSupply",
-        })) as bigint;
-        setTotalSupply(supply);
-      } catch (error) {
-        console.error("Failed to fetch CULT supply:", error);
-      }
-    };
-
-    fetchSupply();
-  }, [publicClient]);
 
   // Fetch accumulated tax from the treasury address
   useEffect(() => {
@@ -881,7 +898,125 @@ export const CultBuySell = () => {
     setExpectedCult("0");
     setTxHash(undefined);
     setErrorMessage(null);
+    setOptimisticPriceUpdate(null);
+    setRealtimePriceImpact(null);
   }, [tab]);
+
+  // Calculate real-time price impact as user types
+  useEffect(() => {
+    if (!reserves || !amount || parseFloat(amount) <= 0 || !ethPrice?.priceUSD || (tab !== "buy" && tab !== "sell")) {
+      setRealtimePriceImpact(null);
+      return;
+    }
+
+    // Debounce the calculation
+    const timer = setTimeout(() => {
+      try {
+        // Parse amounts safely
+        let swapAmountEth: bigint;
+        let swapAmountCult: bigint;
+        
+        try {
+          swapAmountEth = tab === "buy" ? parseEther(amount) : 0n;
+          swapAmountCult = tab === "sell" ? parseUnits(amount, 18) : 0n;
+        } catch (e) {
+          console.error("Error parsing amounts:", e);
+          setRealtimePriceImpact(null);
+          return;
+        }
+
+        // Validate reserves
+        if (!reserves.reserve0 || !reserves.reserve1 || reserves.reserve0 === 0n || reserves.reserve1 === 0n) {
+          console.error("Invalid reserves");
+          setRealtimePriceImpact(null);
+          return;
+        }
+
+        let newReserve0 = reserves.reserve0;
+        let newReserve1 = reserves.reserve1;
+
+        if (tab === "buy") {
+          // Buying CULT with ETH
+          try {
+            const amountOut = getAmountOut(swapAmountEth, reserves.reserve0, reserves.reserve1, 30n);
+            if (amountOut >= reserves.reserve1) {
+              // Would drain the pool
+              setRealtimePriceImpact(null);
+              return;
+            }
+            newReserve0 = reserves.reserve0 + swapAmountEth;
+            newReserve1 = reserves.reserve1 - amountOut;
+          } catch (e) {
+            console.error("Error calculating buy output:", e);
+            setRealtimePriceImpact(null);
+            return;
+          }
+        } else {
+          // Selling CULT for ETH
+          try {
+            const amountOut = getAmountOut(swapAmountCult, reserves.reserve1, reserves.reserve0, 30n);
+            if (amountOut >= reserves.reserve0) {
+              // Would drain the pool
+              setRealtimePriceImpact(null);
+              return;
+            }
+            newReserve0 = reserves.reserve0 - amountOut;
+            newReserve1 = reserves.reserve1 + swapAmountCult;
+          } catch (e) {
+            console.error("Error calculating sell output:", e);
+            setRealtimePriceImpact(null);
+            return;
+          }
+        }
+
+        // Calculate prices safely
+        const currentCultPriceInEth =
+          parseFloat(formatEther(reserves.reserve0)) / parseFloat(formatUnits(reserves.reserve1, 18));
+        const newCultPriceInEth = parseFloat(formatEther(newReserve0)) / parseFloat(formatUnits(newReserve1, 18));
+        
+        // Validate calculated prices
+        if (!isFinite(currentCultPriceInEth) || !isFinite(newCultPriceInEth) || newCultPriceInEth <= 0) {
+          console.error("Invalid price calculation");
+          setRealtimePriceImpact(null);
+          return;
+        }
+        
+        const newCultPriceUsd = newCultPriceInEth * ethPrice.priceUSD;
+        const impactPercent = ((newCultPriceInEth - currentCultPriceInEth) / currentCultPriceInEth) * 100;
+
+        // Sanity check for extreme impacts
+        if (Math.abs(impactPercent) > 90) {
+          console.warn(`Extreme price impact detected: ${impactPercent.toFixed(2)}%`);
+          setRealtimePriceImpact(null);
+          return;
+        }
+
+        setRealtimePriceImpact({
+          newPrice: newCultPriceUsd,
+          priceInEth: newCultPriceInEth,
+          impactPercent,
+          action: tab as "buy" | "sell",
+        });
+      } catch (error) {
+        console.error("Error calculating price impact:", error);
+        setRealtimePriceImpact(null);
+      }
+    }, 800); // 800ms debounce for smoother updates
+
+    return () => clearTimeout(timer);
+  }, [amount, tab, reserves, ethPrice?.priceUSD]);
+
+  // Mark optimistic update as settled when transaction confirms
+  useEffect(() => {
+    if (isSuccess && optimisticPriceUpdate) {
+      // Clear after a delay to show settled state
+      const timer = setTimeout(() => {
+        setOptimisticPriceUpdate(null);
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isSuccess, optimisticPriceUpdate]);
 
   useEffect(() => {
     if (tab !== "buy" || !ethBalance?.value || !amount) {
@@ -1039,6 +1174,39 @@ export const CultBuySell = () => {
         return;
       }
 
+      // Calculate price impact for optimistic update only for buy/sell tabs
+      if (amount && parseFloat(amount) > 0 && ethPrice?.priceUSD && (tab === "buy" || tab === "sell")) {
+        const swapAmountEth = tab === "buy" ? parseEther(amount) : 0n;
+        const swapAmountCult = tab === "sell" ? parseUnits(amount, 18) : 0n;
+
+        let newReserve0 = reserves.reserve0;
+        let newReserve1 = reserves.reserve1;
+
+        if (tab === "buy") {
+          // Buying CULT with ETH
+          const amountOut = getAmountOut(swapAmountEth, reserves.reserve0, reserves.reserve1, 30n);
+          newReserve0 = reserves.reserve0 + swapAmountEth;
+          newReserve1 = reserves.reserve1 - amountOut;
+        } else {
+          // Selling CULT for ETH
+          const amountOut = getAmountOut(swapAmountCult, reserves.reserve1, reserves.reserve0, 30n);
+          newReserve0 = reserves.reserve0 - amountOut;
+          newReserve1 = reserves.reserve1 + swapAmountCult;
+        }
+
+        const newCultPriceInEth = parseFloat(formatEther(newReserve0)) / parseFloat(formatUnits(newReserve1, 18));
+        const newCultPriceUsd = newCultPriceInEth * ethPrice.priceUSD;
+
+        // Set optimistic update
+        setOptimisticPriceUpdate({
+          timestamp: Date.now(),
+          price: newCultPriceUsd,
+          priceInEth: newCultPriceInEth,
+          action: tab as "buy" | "sell",
+          amount: amount,
+        });
+      }
+
       const sellToken = tab === "buy" ? ethToken : cultToken;
 
       const calls = await buildSwapCalls({
@@ -1047,7 +1215,7 @@ export const CultBuySell = () => {
         sellAmt: amount,
         buyAmt: estimated,
         reserves,
-        slippageBps: 100n, // 1% slippage
+        slippageBps: swapSlippageBps,
         publicClient,
       });
 
@@ -1091,667 +1259,994 @@ export const CultBuySell = () => {
       if (errorMsg) {
         setErrorMessage(errorMsg);
       }
+      // Clear optimistic update on error
+      setOptimisticPriceUpdate(null);
     }
   };
 
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: priceUpdateAnimation }} />
-      <div className="max-w-2xl mx-auto p-4 cult-container">
-        <div className="text-center mb-6">
-          <img
-            src="/cult.jpg"
-            alt="CULT Logo"
-            className="w-20 h-20 rounded-full mx-auto mb-4 border-2 border-red-500 shadow-lg shadow-red-500/30 hover:scale-105 transition-transform"
-          />
-          <h1 className="text-2xl font-bold text-transparent bg-gradient-to-r from-red-500 to-red-600 bg-clip-text">
-            {t("cult.milady_cult_coin")}
-          </h1>
-          <div className={cn("text-lg font-mono mt-2", priceAnimating && "price-update")}>
-            <span className="text-red-400">
-              {t("cult.price_format", { price: formatNumber(parseFloat(cultPrice), 2) })}
-            </span>
-          </div>
-          {cultUsdPrice !== "--" && (
-            <div className="text-sm text-gray-400 mt-1">{t("cult.usd_per_cult", { price: cultUsdPrice })}</div>
-          )}
-
-          {/* Pool Info Display */}
-          <div className="mt-4 p-3 bg-gray-900/50 border border-red-900/30 rounded-lg text-sm space-y-2">
-            <div className="flex justify-between">
-              <span className="text-gray-400">{t("cult.pool_reserves")}:</span>
-              <span className="text-white font-mono text-xs">
-                {reserves ? (
-                  <>
-                    {formatNumber(parseFloat(formatEther(reserves.reserve0)), 4)} ETH /{" "}
-                    {formatNumber(parseFloat(formatUnits(reserves.reserve1, 18)), 0)} CULT
-                  </>
-                ) : (
-                  t("cult.loading")
-                )}
-              </span>
+      <div className="min-h-screen bg-background text-foreground">
+        <div className="max-w-2xl w-full mx-auto p-4 cult-container">
+          <div className="text-center mb-6">
+            <img
+              src="/cult.jpg"
+              alt="CULT Logo"
+              className="w-20 h-20 rounded-full mx-auto mb-4 border-2 border-red-500 shadow-lg shadow-red-500/30 hover:scale-105 transition-transform"
+            />
+            <h1 className="text-3xl font-display text-foreground tracking-tight">{t("cult.milady_cult_coin")}</h1>
+            <div className={cn("text-xl font-mono mt-3 text-foreground", priceAnimating && "price-update")}>
+              <span className="block">{t("cult.price_format", { price: formatNumber(parseFloat(cultPrice), 2) })}</span>
             </div>
-            {/* USD values and per-unit prices */}
-            {ethPrice?.priceUSD && reserves && reserves.reserve0 > 0n && reserves.reserve1 > 0n && (
-              <>
-                <div className="flex justify-between">
-                  <span className="text-gray-400 text-xs">{t("common.total_value")}:</span>
-                  <span className="text-gray-500 font-mono text-xs">
-                    ${formatNumber(parseFloat(formatEther(reserves.reserve0)) * ethPrice.priceUSD * 2, 2)}{" "}
-                    {t("common.usd")}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400 text-xs">{t("common.price")}:</span>
-                  <span className="text-gray-500 font-mono text-xs">
-                    {(() => {
-                      const ethAmount = parseFloat(formatEther(reserves.reserve0));
-                      const cultAmount = parseFloat(formatUnits(reserves.reserve1, 18));
-                      const cultPriceInEth = ethAmount / cultAmount;
-                      const cultPriceUsd = cultPriceInEth * ethPrice.priceUSD;
-                      return `1 CULT = ${cultPriceInEth.toFixed(8)} ETH ($${formatNumber(cultPriceUsd, 8)})`;
-                    })()}
-                  </span>
-                </div>
-              </>
+            {cultUsdPrice !== "--" && (
+              <div className="text-sm text-muted-foreground mt-1">{t("cult.usd_per_cult", { price: cultUsdPrice })}</div>
             )}
-            <div className="flex justify-between">
-              <span className="text-gray-400">{t("cult.total_supply")}:</span>
-              <span className="text-white font-mono">
-                {totalSupply > 0n ? formatNumber(parseFloat(formatUnits(totalSupply, 18)), 0) : "--"} CULT
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">{t("cult.swap_fee")}:</span>
-              <div className="flex items-center gap-1">
-                <span className="text-white font-mono">0.3%</span>
-                <HoverCard>
-                  <HoverCardTrigger asChild>
-                    <span className="text-[10px] opacity-70 cursor-help hover:opacity-100 transition-opacity">ⓘ</span>
-                  </HoverCardTrigger>
-                  <HoverCardContent className="w-auto">
-                    <p className="text-sm">{t("common.paid_to_lps")}</p>
-                  </HoverCardContent>
-                </HoverCard>
-              </div>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">{t("cult.milady_acc_tax")}:</span>
-              <div className="flex items-center gap-1">
-                <span className="text-red-400 font-mono">0.1%</span>
-                <HoverCard>
-                  <HoverCardTrigger asChild>
-                    <span className="text-[10px] opacity-70 cursor-help hover:opacity-100 transition-opacity">ⓘ</span>
-                  </HoverCardTrigger>
-                  <HoverCardContent className="w-80">
-                    <p className="text-sm">{t("cult.culthook_description")}</p>
-                  </HoverCardContent>
-                </HoverCard>
-              </div>
-            </div>
-            {lpBalance !== undefined && lpBalance > 0n && (
-              <div className="flex justify-between">
-                <span className="text-gray-400">{t("cult.your_lp_tokens")}:</span>
-                <span className="text-white font-mono">
-                  {formatUnits(lpBalance, 18)} {t("cult.lp")}
-                </span>
-              </div>
-            )}
-          </div>
 
-          {/* Milady Floor Charging Bar */}
-          <div className="mt-4 p-4 bg-gradient-to-b from-gray-900/70 to-black/50 border border-red-900/30 rounded-lg">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-red-400">{t("cult.milady_floor_charge")}</span>
-              <span className="text-xs text-gray-400">
-                {floorProgress > 0 && floorProgress < 100 ? "✨ " : ""}
-                {floorProgress.toFixed(4)}%
-              </span>
-            </div>
-
-            <div className="relative h-16 bg-black/50 rounded-lg overflow-hidden border border-red-900/20">
-              {/* Background floor image */}
-              <img
-                src="/floor.png"
-                alt="Milady Floor"
-                className="absolute inset-0 w-full h-full object-cover opacity-20"
-              />
-
-              {/* Progress bar */}
-              <div
-                className="absolute left-0 top-0 h-full bg-gradient-to-r from-red-600/80 to-red-500/60 transition-all duration-1000 ease-out"
-                style={{ width: `${floorProgress}%` }}
-              >
-                <div className="absolute inset-0 bg-red-400/20 animate-pulse" />
-                <div className="absolute inset-0 progress-shimmer" />
-              </div>
-
-              {/* ETH amount text overlay */}
-              <div className="absolute inset-0 flex items-center justify-center">
+            {/* Pool Info Display - Improved layout with better visual hierarchy */}
+            <div className="mt-4 p-3 bg-muted/20 dark:bg-black/40 border border-red-900/20 rounded">
+              {/* Main Pool Stats - Larger and more prominent */}
+              <div className="flex items-center justify-between mb-3 pb-3 border-b border-red-900/20">
                 <div className="text-center">
-                  <div className="text-white font-mono text-sm font-bold drop-shadow-lg">
-                    {parseFloat(accumulatedTax).toFixed(6)} ETH
+                  <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1 font-roboto">
+                    {t("cult.pool_eth")}
                   </div>
-                  <div className="text-xs text-gray-300 drop-shadow">{t("cult.eth_floor_target")}</div>
+                  <div className="text-foreground font-mono font-bold text-lg">
+                    {reserves ? formatNumber(parseFloat(formatEther(reserves.reserve0)), 4) : "--"}
+                  </div>
                 </div>
+                
+                {/* TVL in the middle */}
+                {ethPrice?.priceUSD && reserves && reserves.reserve0 > 0n && reserves.reserve1 > 0n && (
+                  <div className="text-center px-4">
+                    <div className="text-green-400 font-mono font-bold text-xl">
+                      ${formatNumber(parseFloat(formatEther(reserves.reserve0)) * ethPrice.priceUSD * 2, 2)}
+                    </div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider mt-1">TVL</div>
+                  </div>
+                )}
+                
+                <div className="text-center">
+                  <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1 font-roboto">
+                    {t("cult.pool_cult")}
+                  </div>
+                  <div className="text-foreground font-mono font-bold text-lg">
+                    {reserves ? formatNumber(parseFloat(formatUnits(reserves.reserve1, 18)), 0) : "--"}
+                  </div>
+                </div>
+              </div>
+              {/* Pool metrics in a cleaner grid layout */}
+              <div className="space-y-2 text-sm">
+
+                {/* Token Metrics Grid */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-muted/20 dark:bg-black/20 rounded p-2">
+                    <div className="text-xs text-muted-foreground mb-1">{t("cult.total_supply")}</div>
+                    <div className="text-foreground font-mono text-sm">
+                      {formatNumber(parseFloat(formatUnits(totalSupply, 18)) / 1e9, 1)}B
+                    </div>
+                  </div>
+                  <div className="bg-muted/20 dark:bg-black/20 rounded p-2">
+                    <div className="text-xs text-muted-foreground mb-1">{t("cult.treasury")}</div>
+                    <div className="text-orange-400 font-mono text-sm">
+                      {formatNumber(parseFloat(formatUnits(treasuryBalance, 18)) / 1e9, 1)}B
+                    </div>
+                  </div>
+                  <div className="bg-muted/20 dark:bg-black/20 rounded p-2">
+                    <div className="text-xs text-muted-foreground mb-1">{t("cult.circulating")}</div>
+                    <div className="text-blue-400 font-mono text-sm">
+                      {formatNumber(parseFloat(formatUnits(circulatingSupply, 18)) / 1e9, 1)}B
+                    </div>
+                  </div>
+                  <div className="bg-muted/20 dark:bg-black/20 rounded p-2">
+                    <div className="text-xs text-muted-foreground mb-1">{t("cult.market_cap")}</div>
+                    <div className="text-purple-400 font-mono text-sm font-semibold">
+                      {(() => {
+                        if (!reserves || reserves.reserve0 === 0n || reserves.reserve1 === 0n || !ethPrice?.priceUSD) {
+                          return "--";
+                        }
+                        const cultPriceInEth =
+                          parseFloat(formatEther(reserves.reserve0)) / parseFloat(formatUnits(reserves.reserve1, 18));
+                        const cultPriceUsd = cultPriceInEth * ethPrice.priceUSD;
+                        const marketCap = parseFloat(formatUnits(circulatingSupply, 18)) * cultPriceUsd;
+                        return marketCap >= 1e6
+                          ? `$${formatNumber(marketCap / 1e6, 1)}M`
+                          : `$${formatNumber(marketCap, 0)}`;
+                      })()}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Fee Information */}
+                <div className="flex justify-between items-center mt-3 pt-3 border-t border-red-900/20">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-muted-foreground">{t("cult.swap_fee")}:</span>
+                      <span className="text-white font-mono text-sm">0.3%</span>
+                      <HoverCard>
+                        <HoverCardTrigger asChild>
+                          <span className="text-[10px] opacity-50 cursor-help hover:opacity-100 transition-opacity">
+                            ⓘ
+                          </span>
+                        </HoverCardTrigger>
+                        <HoverCardContent className="w-auto">
+                          <p className="text-sm">{t("common.paid_to_lps")}</p>
+                        </HoverCardContent>
+                      </HoverCard>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-muted-foreground">{t("cult.milady_tax")}:</span>
+                      <span className="text-red-400 font-mono text-sm">0.1%</span>
+                      <HoverCard>
+                        <HoverCardTrigger asChild>
+                          <span className="text-[10px] opacity-50 cursor-help hover:opacity-100 transition-opacity">
+                            ⓘ
+                          </span>
+                        </HoverCardTrigger>
+                        <HoverCardContent className="w-80">
+                          <p className="text-sm">{t("cult.culthook_description")}</p>
+                        </HoverCardContent>
+                      </HoverCard>
+                    </div>
+                  </div>
+                </div>
+                {lpBalance !== undefined && lpBalance > 0n ? (
+                  <div className="mt-3 p-2 bg-gradient-to-r from-red-900/20 to-transparent rounded-md border-l-2 border-red-500">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-muted-foreground">{t("cult.your_lp_tokens")}:</span>
+                      <span className="text-white font-mono font-semibold">
+                        {formatUnits(lpBalance, 18)} {t("cult.lp")}
+                      </span>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </div>
 
-            <div className="mt-2 flex justify-between text-xs text-gray-500">
-              <a
-                href="https://etherscan.io/address/0xf164Af3126e544E6d5aAEcf5Ae10cd0fBD215E02"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-red-400 transition-colors"
-              >
-                {t("cult.treasury")}: 0xf164...5E02
-              </a>
-              <span className="text-red-400">{t("cult.tax_accumulating")}</span>
-            </div>
+            {/* Milady Floor Charging Bar */}
+            <div className="mt-4 p-4 bg-black/30 border border-red-900/20 rounded">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-red-400">{t("cult.milady_floor_charge")}</span>
+                <span className="text-xs text-muted-foreground">
+                  {floorProgress > 0 && floorProgress < 100 ? "✨ " : ""}
+                  {floorProgress.toFixed(4)}%
+                </span>
+              </div>
 
-            <div className="mt-2 text-center">
-              <a
-                href="https://opensea.io/collection/milady"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-red-400 hover:text-red-300 transition-colors inline-flex items-center gap-1"
-              >
-                {t("cult.view_milady_collection")}
-              </a>
-            </div>
+              <div className="relative h-16 bg-muted/50 dark:bg-black/50 rounded-lg overflow-hidden border border-red-900/20">
+                {/* Background floor image */}
+                <img
+                  src="/floor.png"
+                  alt="Milady Floor"
+                  className="absolute inset-0 w-full h-full object-cover opacity-20"
+                />
 
-            {/* Subtle note about hooks */}
-            <div className="mt-3 text-xs text-gray-600 leading-relaxed">
-              <span className="opacity-70">{t("cult.culthook_description")}</span>
+                {/* Progress bar */}
+                <div
+                  className="absolute left-0 top-0 h-full bg-red-600/50 transition-all duration-1000 ease-out"
+                  style={{ width: `${floorProgress}%` }}
+                >
+                  <div className="absolute inset-0 bg-red-400/10" />
+                </div>
+
+                {/* ETH amount text overlay */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="text-white font-mono text-sm font-bold drop-shadow-lg">
+                      {parseFloat(accumulatedTax).toFixed(6)} ETH
+                    </div>
+                    <div className="text-xs text-muted-foreground/90 drop-shadow">{t("cult.eth_floor_target")}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-2 flex justify-between text-xs text-muted-foreground">
+                <a
+                  href="https://etherscan.io/address/0xf164Af3126e544E6d5aAEcf5Ae10cd0fBD215E02"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-red-400 transition-colors"
+                >
+                  {t("cult.treasury")}: 0xf164...5E02
+                </a>
+                <span className="text-red-400">{t("cult.tax_accumulating")}</span>
+              </div>
+
+              <div className="mt-2 text-center">
+                <a
+                  href="https://opensea.io/collection/milady"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-red-400 hover:text-red-300 transition-colors inline-flex items-center gap-1"
+                >
+                  {t("cult.view_milady_collection")}
+                </a>
+              </div>
+
+              {/* Subtle note about hooks */}
+              <div className="mt-3 text-xs text-muted-foreground/80 leading-relaxed">
+                <span className="opacity-70">{t("cult.culthook_description")}</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <Tabs
-          value={tab}
-          onValueChange={(v) =>
-            setTab(v as "buy" | "sell" | "add-liquidity" | "remove-liquidity" | "single-eth" | "farm")
-          }
-          className="relative z-10"
-        >
-          <TabsList className="bg-black/50 border border-red-900/30 flex flex-wrap sm:flex-nowrap overflow-x-auto">
-            <TabsTrigger
-              value="buy"
-              className="transition-all duration-300 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400 text-xs sm:text-sm"
-            >
-              {t("cult.buy_cult")}
-            </TabsTrigger>
-            <TabsTrigger
-              value="sell"
-              className="transition-all duration-300 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400 text-xs sm:text-sm"
-            >
-              {t("cult.sell_cult")}
-            </TabsTrigger>
-            <TabsTrigger
-              value="add-liquidity"
-              className="transition-all duration-300 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400 text-xs sm:text-sm"
-            >
-              {t("cult.add_liquidity")}
-            </TabsTrigger>
-            <TabsTrigger
-              value="remove-liquidity"
-              className="transition-all duration-300 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400 text-xs sm:text-sm"
-            >
-              {t("cult.remove_liquidity")}
-            </TabsTrigger>
-            <TabsTrigger
-              value="single-eth"
-              className="transition-all duration-300 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400 text-xs sm:text-sm"
-            >
-              ⚡ {t("common.single_eth")}
-            </TabsTrigger>
-            <TabsTrigger
-              value="farm"
-              className="transition-all duration-300 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400 text-xs sm:text-sm"
-            >
-              {t("cult.farm")}
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="buy" className="max-w-2xl">
-            <div className="flex flex-col gap-2">
-              <span className="text-sm font-medium text-gray-400">{t("cult.using_eth")}</span>
-              <Input
-                type="number"
-                placeholder={t("cult.amount_eth")}
-                value={amount}
-                min="0"
-                step="any"
-                onChange={(e) => setAmount(e.currentTarget.value)}
-                disabled={false}
-              />
-
-              {ethBalance?.value && ethBalance.value > 0n && isConnected ? (
-                <div className="mt-2 pt-2 border-t border-primary/20">
-                  <PercentageSlider value={buyPercentage} onChange={handleBuyPercentageChange} />
-                </div>
-              ) : null}
-
-              <div className="flex flex-col gap-1">
-                <span className="text-sm font-medium text-red-600">
-                  {t("cult.you_will_receive", {
-                    amount: formatNumber(parseFloat(estimated), 6),
-                    token: "CULT",
-                  })}
-                </span>
-                {ethPrice?.priceUSD && amount && (
-                  <span className="text-xs text-gray-500">
-                    ≈ ${formatNumber(parseFloat(amount) * ethPrice.priceUSD, 2)} {t("common.usd")}
-                  </span>
-                )}
-              </div>
-              <Button
-                onClick={executeSwap}
-                disabled={!isConnected || isPending || !amount}
-                variant="default"
-                className={`bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold transition-all duration-300 shadow-lg shadow-red-500/30`}
+          <Tabs
+            value={tab}
+            onValueChange={(v) =>
+              setTab(v as "buy" | "sell" | "add-liquidity" | "remove-liquidity" | "single-eth" | "farm")
+            }
+            className="relative z-10"
+          >
+            <TabsList className="bg-muted/30 dark:bg-black/30 border border-red-900/20 flex flex-wrap gap-1 p-1">
+              <TabsTrigger
+                value="buy"
+                className="flex-1 min-w-[70px] transition-all duration-200 data-[state=active]:bg-red-900/30 data-[state=active]:text-red-300 data-[state=active]:border-b-2 data-[state=active]:border-red-500 border-b-2 border-transparent text-xs sm:text-sm py-2 px-2 font-mono"
               >
-                {isPending ? (
-                  <span className="flex items-center gap-2">
-                    <LoadingLogo size="sm" className="scale-75" />
-                    {t("cult.buying")}
-                  </span>
-                ) : (
-                  t("cult.buy_cult")
-                )}
-              </Button>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="sell" className="max-w-2xl">
-            <div className="flex flex-col gap-2">
-              <span className="text-sm font-medium text-red-600">{t("cult.using_cult")}</span>
-              <div className="relative">
-                <Input
-                  type="number"
-                  placeholder={t("cult.amount_cult")}
-                  value={amount}
-                  min="0"
-                  step="any"
-                  onChange={(e) => setAmount(e.currentTarget.value)}
-                  disabled={false}
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <div className="flex flex-col gap-1">
-                  <span className="text-sm font-medium">
-                    {t("cult.you_will_receive", {
-                      amount: formatNumber(parseFloat(estimated), 6),
-                      token: "ETH",
-                    })}
-                  </span>
-                  {ethPrice?.priceUSD && estimated !== "0" && (
-                    <span className="text-xs text-gray-500">
-                      ≈ ${formatNumber(parseFloat(estimated) * ethPrice.priceUSD, 2)} {t("common.usd")}
-                    </span>
-                  )}
-                </div>
-                {cultBalance !== undefined ? (
-                  <button
-                    className="self-end text-sm font-medium text-red-600 hover:text-red-700 transition-colors"
-                    onClick={() => setAmount(formatUnits(cultBalance, 18))}
-                    disabled={false}
-                  >
-                    {t("common.max")} ({formatUnits(cultBalance, 18)} CULT)
-                  </button>
-                ) : (
-                  <button className="self-end text-sm font-medium text-gray-500" disabled={true}>
-                    {t("common.max")}
-                  </button>
-                )}
-              </div>
-              <Button
-                onClick={executeSwap}
-                disabled={!isConnected || isPending || !amount}
-                variant="outline"
-                className={`border border-red-600/50 text-red-400 hover:bg-red-600/10 hover:border-red-500 transition-all duration-300`}
+                {t("common.buy")}
+              </TabsTrigger>
+              <TabsTrigger
+                value="sell"
+                className="flex-1 min-w-[70px] transition-all duration-200 data-[state=active]:bg-red-900/30 data-[state=active]:text-red-300 data-[state=active]:border-b-2 data-[state=active]:border-red-500 border-b-2 border-transparent text-xs sm:text-sm py-2 px-2 font-mono"
               >
-                {isPending ? (
-                  <span className="flex items-center gap-2">
-                    <LoadingLogo size="sm" className="scale-75" />
-                    {t("cult.selling")}
-                  </span>
-                ) : (
-                  t("cult.sell_cult")
-                )}
-              </Button>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="add-liquidity" className="max-w-2xl">
-            <div className="flex flex-col gap-4">
-              <div className="space-y-2">
-                <span className="text-sm font-medium text-gray-400">{t("cult.eth_amount")}</span>
-                <Input
-                  type="number"
-                  placeholder={t("cult.amount_eth")}
-                  value={liquidityEthAmount}
-                  min="0"
-                  step="any"
-                  onChange={(e) => syncLiquidityAmounts(true, e.currentTarget.value)}
-                  disabled={false}
-                />
-                <div className="flex flex-col gap-1">
-                  {ethPrice?.priceUSD && liquidityEthAmount && (
-                    <span className="text-xs text-gray-500">
-                      ≈ ${formatNumber(parseFloat(liquidityEthAmount) * ethPrice.priceUSD, 2)} {t("common.usd")}
-                    </span>
-                  )}
-                  {ethBalance && (
-                    <button
-                      className="text-sm font-medium text-red-600 hover:text-red-700 transition-colors"
-                      onClick={() => {
-                        const maxEth = (ethBalance.value * 99n) / 100n; // Leave 1% for gas
-                        syncLiquidityAmounts(true, formatEther(maxEth));
-                      }}
-                      disabled={false}
-                    >
-                      {t("cult.max_balance", {
-                        balance: formatEther((ethBalance.value * 99n) / 100n),
-                        token: "ETH",
-                      })}
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <span className="text-sm font-medium text-red-600">{t("cult.cult_amount")}</span>
-                <Input
-                  type="number"
-                  placeholder={t("cult.amount_cult")}
-                  value={liquidityCultAmount}
-                  min="0"
-                  step="any"
-                  onChange={(e) => syncLiquidityAmounts(false, e.currentTarget.value)}
-                  disabled={false}
-                />
-                <div className="flex flex-col gap-1">
-                  {ethPrice?.priceUSD && liquidityCultAmount && reserves && (
-                    <span className="text-xs text-gray-500">
-                      ≈ ${(() => {
-                        const cultAmount = parseFloat(liquidityCultAmount);
-                        const ethAmount = parseFloat(formatEther(reserves.reserve0));
-                        const cultTotalAmount = parseFloat(formatUnits(reserves.reserve1, 18));
-                        const cultPriceInEth = ethAmount / cultTotalAmount;
-                        const cultPriceUsd = cultPriceInEth * ethPrice.priceUSD;
-                        return formatNumber(cultAmount * cultPriceUsd, 2);
-                      })()} {t("common.usd")}
-                    </span>
-                  )}
-                  {cultBalance !== undefined && (
-                    <button
-                      className="text-sm font-medium text-red-600 hover:text-red-700 transition-colors"
-                      onClick={() => syncLiquidityAmounts(false, formatUnits(cultBalance, 18))}
-                      disabled={false}
-                    >
-                      {t("cult.max_balance", {
-                        balance: formatUnits(cultBalance, 18),
-                        token: "CULT",
-                      })}
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Show pool share preview */}
-              {liquidityEthAmount && liquidityCultAmount && reserves && (
-                <div className="mt-2 p-3 bg-gray-900/50 border border-red-900/30 rounded-lg text-sm space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">{t("cult.pool_share")}:</span>
-                    <span className="text-white font-mono">
-                      {(() => {
-                        const ethLiq = parseEther(liquidityEthAmount || "0");
-                        const totalLiq = reserves.reserve0 + ethLiq;
-                        const share = totalLiq > 0n ? (ethLiq * 10000n) / totalLiq : 0n;
-                        return `${(Number(share) / 100).toFixed(2)}%`;
-                      })()}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              <Button
-                onClick={executeAddLiquidity}
-                disabled={!isConnected || isPending || !liquidityEthAmount || !liquidityCultAmount}
-                variant="default"
-                className={`bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold transition-all duration-300 shadow-lg shadow-red-500/30`}
+                {t("common.sell")}
+              </TabsTrigger>
+              <TabsTrigger
+                value="add-liquidity"
+                className="flex-1 min-w-[70px] transition-all duration-200 data-[state=active]:bg-red-900/30 data-[state=active]:text-red-300 data-[state=active]:border-b-2 data-[state=active]:border-red-500 border-b-2 border-transparent text-xs sm:text-sm py-2 px-2 font-mono"
               >
-                {isPending ? (
-                  <span className="flex items-center gap-2">
-                    <LoadingLogo size="sm" className="scale-75" />
-                    {t("cult.adding_liquidity")}
-                  </span>
-                ) : cultAllowance !== undefined && parseUnits(liquidityCultAmount || "0", 18) > cultAllowance ? (
-                  t("cult.approve_cult_add_liquidity")
-                ) : (
-                  t("cult.add_liquidity")
-                )}
-              </Button>
+                {t("common.add")}
+              </TabsTrigger>
+              <TabsTrigger
+                value="remove-liquidity"
+                className="flex-1 min-w-[70px] transition-all duration-200 data-[state=active]:bg-red-900/30 data-[state=active]:text-red-300 data-[state=active]:border-b-2 data-[state=active]:border-red-500 border-b-2 border-transparent text-xs sm:text-sm py-2 px-2 font-mono"
+              >
+                {t("common.remove")}
+              </TabsTrigger>
+              <TabsTrigger
+                value="single-eth"
+                className="flex-1 min-w-[70px] transition-all duration-200 data-[state=active]:bg-red-900/30 data-[state=active]:text-red-300 data-[state=active]:border-b-2 data-[state=active]:border-red-500 border-b-2 border-transparent text-xs sm:text-sm py-2 px-2 font-mono"
+              >
+                {t("common.single_eth")}
+              </TabsTrigger>
+              <TabsTrigger
+                value="farm"
+                className="flex-1 min-w-[70px] transition-all duration-200 data-[state=active]:bg-red-900/30 data-[state=active]:text-red-300 data-[state=active]:border-b-2 data-[state=active]:border-red-500 border-b-2 border-transparent text-xs sm:text-sm py-2 px-2 font-mono"
+              >
+                {t("cult.farm")}
+              </TabsTrigger>
+            </TabsList>
 
-              <div className="text-xs text-gray-500 text-center mt-2">{t("cult.note_cult_liquidity")}</div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="remove-liquidity" className="max-w-2xl">
-            <div className="flex flex-col gap-4">
-              {/* LP Balance Display */}
-              <div className="p-3 bg-gray-900/50 border border-red-900/30 rounded-lg text-sm">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400">{t("cult.your_lp_balance")}:</span>
-                  <span className="text-white font-mono">
-                    {lpBalance ? formatUnits(lpBalance, 18) : "0"} {t("cult.lp")}
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <span className="text-sm font-medium text-gray-400">{t("cult.lp_tokens_to_remove")}</span>
-                <Input
-                  type="number"
-                  placeholder={t("cult.amount_of_lp_tokens")}
-                  value={lpBurnAmount}
-                  min="0"
-                  step="any"
-                  onChange={(e) => setLpBurnAmount(e.currentTarget.value)}
-                  disabled={false}
-                />
-                {lpBalance !== undefined && lpBalance > 0n && (
-                  <button
-                    className="text-sm font-medium text-red-600 hover:text-red-700 transition-colors"
-                    onClick={() => setLpBurnAmount(formatUnits(lpBalance, 18))}
-                    disabled={false}
-                  >
-                    {t("cult.max_balance", {
-                      balance: formatUnits(lpBalance, 18),
-                      token: t("cult.lp"),
-                    })}
-                  </button>
-                )}
-              </div>
-
-              {/* Expected output preview */}
-              {lpBurnAmount && parseFloat(lpBurnAmount) > 0 && (
-                <div className="mt-2 p-3 bg-gray-900/50 border border-red-900/30 rounded-lg text-sm space-y-2">
-                  <div className="text-gray-400 mb-1">{t("cult.you_will_receive_preview")}</div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">ETH:</span>
-                    <div className="text-right">
-                      <span className="text-white font-mono block">{formatNumber(parseFloat(expectedEth), 6)} ETH</span>
-                      {ethPrice?.priceUSD && expectedEth !== "0" && (
-                        <span className="text-xs text-gray-500">
-                          ≈ ${formatNumber(parseFloat(expectedEth) * ethPrice.priceUSD, 2)} {t("common.usd")}
+            <TabsContent value="buy" className="max-w-2xl">
+              <div className="bg-muted/20 dark:bg-black/20 p-4 rounded border border-red-900/20">
+                <div className="flex flex-col gap-4">
+                  {/* Input Section with Balance */}
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-medium text-muted-foreground">{t("cult.using_eth")}</span>
+                      {ethBalance && (
+                        <span className="text-xs text-muted-foreground">
+                          {t("common.balance")}: {formatNumber(parseFloat(formatEther(ethBalance.value)), 4)} ETH
                         </span>
                       )}
                     </div>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">CULT:</span>
-                    <div className="text-right">
-                      <span className="text-white font-mono block">
-                        {formatNumber(parseFloat(expectedCult), 0)} CULT
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        placeholder={t("cult.amount_eth")}
+                        value={amount}
+                        min="0"
+                        step="any"
+                        onChange={(e) => setAmount(e.currentTarget.value)}
+                        className="pr-16 bg-black/30 border-border focus:border-red-500 transition-colors"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">ETH</span>
+                    </div>
+                    {ethPrice?.priceUSD && amount && (
+                      <span className="text-xs text-muted-foreground mt-1 block">
+                        ≈ ${formatNumber(parseFloat(amount) * ethPrice.priceUSD, 2)} USD
                       </span>
-                      {ethPrice?.priceUSD && expectedCult !== "0" && reserves && (
-                        <span className="text-xs text-gray-500">
-                          ≈ ${(() => {
-                            const cultAmount = parseFloat(expectedCult);
-                            const ethAmount = parseFloat(formatEther(reserves.reserve0));
-                            const cultTotalAmount = parseFloat(formatUnits(reserves.reserve1, 18));
-                            const cultPriceInEth = ethAmount / cultTotalAmount;
-                            const cultPriceUsd = cultPriceInEth * ethPrice.priceUSD;
-                            return formatNumber(cultAmount * cultPriceUsd, 2);
-                          })()} {t("common.usd")}
-                        </span>
-                      )}
-                    </div>
+                    )}
                   </div>
-                  {/* Total USD value */}
-                  {ethPrice?.priceUSD &&
-                    expectedEth !== "0" &&
-                    expectedCult !== "0" &&
-                    reserves &&
-                    reserves.reserve0 > 0n &&
-                    reserves.reserve1 > 0n && (
-                      <div className="pt-2 mt-2 border-t border-red-900/20">
-                        <div className="flex justify-between">
-                          <span className="text-gray-400 font-semibold">{t("common.total_value")}:</span>
-                          <span className="text-white font-mono font-semibold">
-                            ${(() => {
-                              const ethValue = parseFloat(expectedEth) * ethPrice.priceUSD;
-                              const cultAmount = parseFloat(expectedCult);
-                              const ethReserve = parseFloat(formatEther(reserves.reserve0));
-                              const cultReserve = parseFloat(formatUnits(reserves.reserve1, 18));
-                              const cultPriceInEth = ethReserve / cultReserve;
-                              const cultValue = cultAmount * cultPriceInEth * ethPrice.priceUSD;
-                              return (ethValue + cultValue).toFixed(2);
-                            })()} USD
+
+                  {ethBalance?.value && ethBalance.value > 0n && isConnected ? (
+                    <div className="space-y-2">
+                      <PercentageSlider value={buyPercentage} onChange={handleBuyPercentageChange} />
+                      <div className="flex gap-2">
+                        {[25, 50, 75, 100].map((percent) => (
+                          <button
+                            key={percent}
+                            onClick={() => handleBuyPercentageChange(percent)}
+                            className="flex-1 py-1 px-2 text-xs bg-black/30 hover:bg-red-900/30 border border-border hover:border-red-600 rounded transition-all"
+                          >
+                            {percent}%
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {/* Slippage Settings */}
+                  <SlippageSettings 
+                    slippageBps={swapSlippageBps} 
+                    setSlippageBps={setSwapSlippageBps}
+                    slippageOptions={[
+                      { label: "0.5%", value: 50n },
+                      { label: "1%", value: 100n },
+                      { label: "3%", value: 300n },
+                      { label: "5%", value: 500n },
+                      { label: "10%", value: 1000n },
+                    ]}
+                    className="mb-2"
+                  />
+                  
+                  {/* Output Preview */}
+                  <div className="bg-muted/30 dark:bg-black/30 rounded-lg p-3 border border-green-900/30">
+                    <div className="text-sm text-muted-foreground mb-1">
+                      {t("cult.you_will_receive", { amount: formatNumber(parseFloat(estimated), 2), token: "CULT" })}
+                    </div>
+                    {ethPrice?.priceUSD && amount && reserves && (
+                      <div className="text-xs text-muted-foreground">
+                        ≈ ${(() => {
+                          const cultAmount = parseFloat(estimated);
+                          const ethAmount = parseFloat(formatEther(reserves.reserve0));
+                          const cultTotalAmount = parseFloat(formatUnits(reserves.reserve1, 18));
+                          const cultPriceInEth = ethAmount / cultTotalAmount;
+                          const cultPriceUsd = cultPriceInEth * ethPrice.priceUSD;
+                          return formatNumber(cultAmount * cultPriceUsd, 2);
+                        })()} USD
+                      </div>
+                    )}
+
+                    {/* Real-time price impact */}
+                    {realtimePriceImpact && tab === "buy" && (
+                      <div className="mt-2 pt-2 border-t border-border">
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-muted-foreground">{t("cult.price_impact")}:</span>
+                          <span
+                            className={`font-mono font-semibold ${
+                              realtimePriceImpact.impactPercent > 0 ? "text-green-400" : "text-red-400"
+                            }`}
+                          >
+                            {realtimePriceImpact.impactPercent > 0 ? "+" : ""}
+                            {realtimePriceImpact.impactPercent.toFixed(2)}%
                           </span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs mt-1">
+                          <span className="text-muted-foreground">{t("cult.new_price")}:</span>
+                          <span className="font-mono text-muted-foreground">${realtimePriceImpact.newPrice.toFixed(8)}</span>
                         </div>
                       </div>
                     )}
+                  </div>
+                  <Button
+                    onClick={executeSwap}
+                    disabled={!isConnected || isPending || !amount || parseFloat(amount) <= 0}
+                    variant="default"
+                    className="w-full font-mono transition-all duration-300 py-4 text-base border border-primary/50"
+                    style={{ backgroundColor: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}
+                  >
+                    {isPending ? (
+                      <span className="flex items-center gap-2">
+                        <LoadingLogo size="sm" className="scale-75" />
+                        {t("cult.buying")}
+                      </span>
+                    ) : (
+                      t("cult.buy_cult")
+                    )}
+                  </Button>
                 </div>
-              )}
+              </div>
+            </TabsContent>
 
-              <Button
-                onClick={executeRemoveLiquidity}
-                disabled={!isConnected || isPending || !lpBurnAmount || parseFloat(lpBurnAmount) <= 0}
-                variant="default"
-                className={`bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold transition-all duration-300 shadow-lg shadow-red-500/30`}
-              >
-                {isPending ? (
+            <TabsContent value="sell" className="max-w-2xl">
+              <div className="bg-muted/20 dark:bg-black/20 p-4 rounded border border-red-900/20">
+                <div className="flex flex-col gap-4">
+                  {/* Input Section with Balance */}
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-medium text-red-600">{t("cult.using_cult")}</span>
+                      {cultBalance !== undefined && (
+                        <span className="text-xs text-muted-foreground">
+                          {t("common.balance")}: {formatNumber(parseFloat(formatUnits(cultBalance, 18)), 2)} CULT
+                        </span>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        placeholder={t("cult.amount_cult")}
+                        value={amount}
+                        min="0"
+                        step="any"
+                        onChange={(e) => setAmount(e.currentTarget.value)}
+                        className="pr-16 bg-black/30 border-border focus:border-red-500 transition-colors"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">CULT</span>
+                    </div>
+                    {cultBalance !== undefined && cultBalance > 0n && (
+                      <div className="flex gap-2 mt-2">
+                        <button
+                          className="px-3 py-1 text-xs bg-red-900/30 hover:bg-red-900/50 border border-red-700 rounded transition-all"
+                          onClick={() => setAmount(formatUnits(cultBalance, 18))}
+                        >
+                          {t("common.max")}
+                        </button>
+                        {[25, 50, 75].map((percent) => (
+                          <button
+                            key={percent}
+                            onClick={() => setAmount(formatUnits((cultBalance * BigInt(percent)) / 100n, 18))}
+                            className="px-3 py-1 text-xs bg-black/30 hover:bg-red-900/30 border border-border hover:border-red-600 rounded transition-all"
+                          >
+                            {percent}%
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Slippage Settings */}
+                  <SlippageSettings 
+                    slippageBps={swapSlippageBps} 
+                    setSlippageBps={setSwapSlippageBps}
+                    slippageOptions={[
+                      { label: "0.5%", value: 50n },
+                      { label: "1%", value: 100n },
+                      { label: "3%", value: 300n },
+                      { label: "5%", value: 500n },
+                      { label: "10%", value: 1000n },
+                    ]}
+                    className="mb-2"
+                  />
+                  
+                  {/* Output Preview */}
+                  <div className="bg-muted/30 dark:bg-black/30 rounded-lg p-3 border border-green-900/30">
+                    <div className="text-sm text-muted-foreground mb-1">
+                      {t("cult.you_will_receive", { amount: formatNumber(parseFloat(estimated), 6), token: "ETH" })}
+                    </div>
+                    {ethPrice?.priceUSD && estimated !== "0" && (
+                      <div className="text-xs text-muted-foreground">
+                        ≈ ${formatNumber(parseFloat(estimated) * ethPrice.priceUSD, 2)} USD
+                      </div>
+                    )}
+
+                    {/* Real-time price impact */}
+                    {realtimePriceImpact && tab === "sell" && (
+                      <div className="mt-2 pt-2 border-t border-border">
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-muted-foreground">{t("cult.price_impact")}:</span>
+                          <span
+                            className={`font-mono font-semibold ${
+                              realtimePriceImpact.impactPercent > 0 ? "text-green-400" : "text-red-400"
+                            }`}
+                          >
+                            {realtimePriceImpact.impactPercent > 0 ? "+" : ""}
+                            {realtimePriceImpact.impactPercent.toFixed(2)}%
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs mt-1">
+                          <span className="text-muted-foreground">{t("cult.new_price")}:</span>
+                          <span className="font-mono text-muted-foreground">${realtimePriceImpact.newPrice.toFixed(8)}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <Button
+                    onClick={executeSwap}
+                    disabled={!isConnected || isPending || !amount || parseFloat(amount) <= 0}
+                    variant="ghost"
+                    className="w-full border-2 border-red-600/50 hover:bg-red-900/20 hover:border-red-500 transition-all duration-300 py-4 text-base font-mono"
+                    style={{ color: '#dc2626' }}
+                  >
+                    {isPending ? (
+                      <span className="flex items-center gap-2">
+                        <LoadingLogo size="sm" className="scale-75" />
+                        {t("cult.selling")}
+                      </span>
+                    ) : (
+                      t("cult.sell_cult")
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="add-liquidity" className="max-w-2xl">
+              <div className="flex flex-col gap-4">
+                <div className="space-y-2">
+                  <span className="text-sm font-medium text-muted-foreground">{t("cult.eth_amount")}</span>
+                  <Input
+                    type="number"
+                    placeholder={t("cult.amount_eth")}
+                    value={liquidityEthAmount}
+                    min="0"
+                    step="any"
+                    onChange={(e) => syncLiquidityAmounts(true, e.currentTarget.value)}
+                    disabled={false}
+                  />
+                  <div className="flex flex-col gap-1">
+                    {ethPrice?.priceUSD && liquidityEthAmount && (
+                      <span className="text-xs text-muted-foreground">
+                        ≈ ${formatNumber(parseFloat(liquidityEthAmount) * ethPrice.priceUSD, 2)} {t("common.usd")}
+                      </span>
+                    )}
+                    {ethBalance && (
+                      <button
+                        className="text-sm font-medium text-red-600 hover:text-red-700 transition-colors"
+                        onClick={() => {
+                          const maxEth = (ethBalance.value * 99n) / 100n; // Leave 1% for gas
+                          syncLiquidityAmounts(true, formatEther(maxEth));
+                        }}
+                        disabled={false}
+                      >
+                        {t("cult.max_balance", {
+                          balance: formatEther((ethBalance.value * 99n) / 100n),
+                          token: "ETH",
+                        })}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="text-sm font-medium text-red-600">{t("cult.cult_amount")}</span>
+                  <Input
+                    type="number"
+                    placeholder={t("cult.amount_cult")}
+                    value={liquidityCultAmount}
+                    min="0"
+                    step="any"
+                    onChange={(e) => syncLiquidityAmounts(false, e.currentTarget.value)}
+                    disabled={false}
+                  />
+                  <div className="flex flex-col gap-1">
+                    {ethPrice?.priceUSD && liquidityCultAmount && reserves && (
+                      <span className="text-xs text-muted-foreground">
+                        ≈ ${(() => {
+                          const cultAmount = parseFloat(liquidityCultAmount);
+                          const ethAmount = parseFloat(formatEther(reserves.reserve0));
+                          const cultTotalAmount = parseFloat(formatUnits(reserves.reserve1, 18));
+                          const cultPriceInEth = ethAmount / cultTotalAmount;
+                          const cultPriceUsd = cultPriceInEth * ethPrice.priceUSD;
+                          return formatNumber(cultAmount * cultPriceUsd, 2);
+                        })()} {t("common.usd")}
+                      </span>
+                    )}
+                    {cultBalance !== undefined && (
+                      <button
+                        className="text-sm font-medium text-red-600 hover:text-red-700 transition-colors"
+                        onClick={() => syncLiquidityAmounts(false, formatUnits(cultBalance, 18))}
+                        disabled={false}
+                      >
+                        {t("cult.max_balance", {
+                          balance: formatUnits(cultBalance, 18),
+                          token: "CULT",
+                        })}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Show pool share preview */}
+                {liquidityEthAmount && liquidityCultAmount && reserves && (
+                  <div className="mt-2 p-3 bg-gray-900/50 border border-red-900/30 rounded-lg text-sm space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">{t("cult.pool_share")}:</span>
+                      <span className="text-white font-mono">
+                        {(() => {
+                          const ethLiq = parseEther(liquidityEthAmount || "0");
+                          const totalLiq = reserves.reserve0 + ethLiq;
+                          const share = totalLiq > 0n ? (ethLiq * 10000n) / totalLiq : 0n;
+                          return `${(Number(share) / 100).toFixed(2)}%`;
+                        })()}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                <Button
+                  onClick={executeAddLiquidity}
+                  disabled={!isConnected || isPending || !liquidityEthAmount || !liquidityCultAmount}
+                  variant="default"
+                  className="font-bold transition-all duration-300 shadow-lg shadow-primary/30"
+                  style={{ backgroundColor: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}
+                >
+                  {isPending ? (
+                    <span className="flex items-center gap-2">
+                      <LoadingLogo size="sm" className="scale-75" />
+                      {t("cult.adding_liquidity")}
+                    </span>
+                  ) : cultAllowance !== undefined && parseUnits(liquidityCultAmount || "0", 18) > cultAllowance ? (
+                    t("cult.approve_cult_add_liquidity")
+                  ) : (
+                    t("cult.add_liquidity")
+                  )}
+                </Button>
+
+                <div className="text-xs text-muted-foreground text-center mt-2">{t("cult.note_cult_liquidity")}</div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="remove-liquidity" className="max-w-2xl">
+              <div className="flex flex-col gap-4">
+                {/* LP Balance Display */}
+                <div className="p-3 bg-gray-900/50 border border-red-900/30 rounded-lg text-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">{t("cult.your_lp_balance")}:</span>
+                    <span className="text-white font-mono">
+                      {lpBalance ? formatUnits(lpBalance, 18) : "0"} {t("cult.lp")}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="text-sm font-medium text-muted-foreground">{t("cult.lp_tokens_to_remove")}</span>
+                  <Input
+                    type="number"
+                    placeholder={t("cult.amount_of_lp_tokens")}
+                    value={lpBurnAmount}
+                    min="0"
+                    step="any"
+                    onChange={(e) => setLpBurnAmount(e.currentTarget.value)}
+                    disabled={false}
+                  />
+                  {lpBalance !== undefined && lpBalance > 0n && (
+                    <button
+                      className="text-sm font-medium text-red-600 hover:text-red-700 transition-colors"
+                      onClick={() => setLpBurnAmount(formatUnits(lpBalance, 18))}
+                      disabled={false}
+                    >
+                      {t("cult.max_balance", {
+                        balance: formatUnits(lpBalance, 18),
+                        token: t("cult.lp"),
+                      })}
+                    </button>
+                  )}
+                </div>
+
+                {/* Expected output preview */}
+                {lpBurnAmount && parseFloat(lpBurnAmount) > 0 && (
+                  <div className="mt-2 p-3 bg-gray-900/50 border border-red-900/30 rounded-lg text-sm space-y-2">
+                    <div className="text-muted-foreground mb-1">{t("cult.you_will_receive_preview")}</div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">ETH:</span>
+                      <div className="text-right">
+                        <span className="text-white font-mono block">
+                          {formatNumber(parseFloat(expectedEth), 6)} ETH
+                        </span>
+                        {ethPrice?.priceUSD && expectedEth !== "0" && (
+                          <span className="text-xs text-muted-foreground">
+                            ≈ ${formatNumber(parseFloat(expectedEth) * ethPrice.priceUSD, 2)} {t("common.usd")}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">CULT:</span>
+                      <div className="text-right">
+                        <span className="text-white font-mono block">
+                          {formatNumber(parseFloat(expectedCult), 0)} CULT
+                        </span>
+                        {ethPrice?.priceUSD && expectedCult !== "0" && reserves && (
+                          <span className="text-xs text-muted-foreground">
+                            ≈ ${(() => {
+                              const cultAmount = parseFloat(expectedCult);
+                              const ethAmount = parseFloat(formatEther(reserves.reserve0));
+                              const cultTotalAmount = parseFloat(formatUnits(reserves.reserve1, 18));
+                              const cultPriceInEth = ethAmount / cultTotalAmount;
+                              const cultPriceUsd = cultPriceInEth * ethPrice.priceUSD;
+                              return formatNumber(cultAmount * cultPriceUsd, 2);
+                            })()} {t("common.usd")}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {/* Total USD value */}
+                    {ethPrice?.priceUSD &&
+                      expectedEth !== "0" &&
+                      expectedCult !== "0" &&
+                      reserves &&
+                      reserves.reserve0 > 0n &&
+                      reserves.reserve1 > 0n && (
+                        <div className="pt-2 mt-2 border-t border-red-900/20">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground font-semibold">{t("common.total_value")}:</span>
+                            <span className="text-white font-mono font-semibold">
+                              ${(() => {
+                                const ethValue = parseFloat(expectedEth) * ethPrice.priceUSD;
+                                const cultAmount = parseFloat(expectedCult);
+                                const ethReserve = parseFloat(formatEther(reserves.reserve0));
+                                const cultReserve = parseFloat(formatUnits(reserves.reserve1, 18));
+                                const cultPriceInEth = ethReserve / cultReserve;
+                                const cultValue = cultAmount * cultPriceInEth * ethPrice.priceUSD;
+                                return (ethValue + cultValue).toFixed(2);
+                              })()} USD
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                  </div>
+                )}
+
+                <Button
+                  onClick={executeRemoveLiquidity}
+                  disabled={!isConnected || isPending || !lpBurnAmount || parseFloat(lpBurnAmount) <= 0}
+                  variant="default"
+                  className="font-bold transition-all duration-300 shadow-lg shadow-primary/30"
+                  style={{ backgroundColor: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}
+                >
+                  {isPending ? (
+                    <span className="flex items-center gap-2">
+                      <LoadingLogo size="sm" className="scale-75" />
+                      {t("cult.removing_liquidity")}
+                    </span>
+                  ) : (
+                    t("cult.remove_liquidity")
+                  )}
+                </Button>
+
+                <div className="text-xs text-muted-foreground text-center mt-2">{t("cult.note_liquidity_removal")}</div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="single-eth" className="max-w-2xl">
+              <CultSingleEthLiquidity />
+            </TabsContent>
+
+            <TabsContent value="farm" className="max-w-4xl">
+              <ErrorBoundary>
+                <CultFarmTab />
+              </ErrorBoundary>
+            </TabsContent>
+
+            {/* Transaction Status & Error Messages */}
+            {errorMessage && !txHash && (
+              <div className="text-sm text-red-400 mt-2 bg-red-900/20 p-2 rounded border border-red-900/30">
+                {errorMessage}
+              </div>
+            )}
+            {txHash && !isSuccess && (
+              <div className="text-sm text-yellow-400 mt-2 bg-yellow-900/20 p-2 rounded border border-yellow-900/30">
+                <div className="flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <LoadingLogo size="sm" className="scale-75" />
-                    {t("cult.removing_liquidity")}
+                    {t("common.status_confirming")}...
                   </span>
-                ) : (
-                  t("cult.remove_liquidity")
-                )}
-              </Button>
-
-              <div className="text-xs text-gray-500 text-center mt-2">{t("cult.note_liquidity_removal")}</div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="single-eth" className="max-w-2xl">
-            <CultSingleEthLiquidity />
-          </TabsContent>
-
-          <TabsContent value="farm" className="max-w-4xl">
-            <ErrorBoundary>
-              <CultFarmTab />
-            </ErrorBoundary>
-          </TabsContent>
-
-          {/* Transaction Status & Error Messages */}
-          {errorMessage && !txHash && (
-            <div className="text-sm text-red-400 mt-2 bg-red-900/20 p-2 rounded border border-red-900/30">
-              {errorMessage}
-            </div>
-          )}
-          {txHash && !isSuccess && (
-            <div className="text-sm text-yellow-400 mt-2 bg-yellow-900/20 p-2 rounded border border-yellow-900/30">
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-2">
-                  <LoadingLogo size="sm" className="scale-75" />
-                  {t("common.status_confirming")}...
-                </span>
-                <a
-                  href={`https://etherscan.io/tx/${txHash}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-yellow-500 hover:text-yellow-400 transition-colors"
-                >
-                  <span className="font-mono text-xs">
-                    {txHash.slice(0, 6)}...{txHash.slice(-4)}
-                  </span>
-                  <span className="text-xs">{t("common.external_link")}</span>
-                </a>
-              </div>
-            </div>
-          )}
-          {isSuccess && (
-            <div className="text-sm text-green-400 mt-2 bg-green-900/20 p-2 rounded border border-green-900/30">
-              <div className="flex items-center justify-between">
-                <span>{t("cult.transaction_confirmed")}</span>
-                {txHash && (
                   <a
                     href={`https://etherscan.io/tx/${txHash}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-green-500 hover:text-green-400 transition-colors"
+                    className="inline-flex items-center gap-1 text-yellow-500 hover:text-yellow-400 transition-colors"
                   >
                     <span className="font-mono text-xs">
                       {txHash.slice(0, 6)}...{txHash.slice(-4)}
                     </span>
                     <span className="text-xs">{t("common.external_link")}</span>
                   </a>
-                )}
+                </div>
               </div>
-            </div>
-          )}
-        </Tabs>
-        <div className="mt-5">
-          <ErrorBoundary>
-            <PoolPriceChart poolId={CULT_POOL_ID.toString()} ticker="CULT" ethUsdPrice={stableEthUsdPrice} />
-          </ErrorBoundary>
-        </div>
-        {/* Contract Links */}
-        <div className="mt-8 text-center space-y-2">
-          <a
-            href={`https://etherscan.io/address/${CULT_ADDRESS}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block text-sm text-gray-500 hover:text-red-500 transition-colors font-mono"
-          >
-            CULT: {CULT_ADDRESS}
-          </a>
-          <a
-            href={`https://etherscan.io/address/${CultHookAddress}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block text-sm text-gray-500 hover:text-red-500 transition-colors font-mono"
-          >
-            {t("cult.hook")}: {CultHookAddress}
-          </a>
-          <div className="text-sm text-gray-600 font-mono">
-            {t("cult.pool_id")}: {CULT_POOL_ID.toString().slice(0, 8)}...
-            {CULT_POOL_ID.toString().slice(-8)}
+            )}
+            {isSuccess && (
+              <div className="text-sm text-green-400 mt-2 bg-green-900/20 p-2 rounded border border-green-900/30">
+                <div className="flex items-center justify-between">
+                  <span>{t("cult.transaction_confirmed")}</span>
+                  {txHash && (
+                    <a
+                      href={`https://etherscan.io/tx/${txHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-green-500 hover:text-green-400 transition-colors"
+                    >
+                      <span className="font-mono text-xs">
+                        {txHash.slice(0, 6)}...{txHash.slice(-4)}
+                      </span>
+                      <span className="text-xs">{t("common.external_link")}</span>
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+          </Tabs>
+          <div className="mt-5">
+            <ErrorBoundary
+              fallback={
+                <div className="p-8 text-center bg-black/20 border border-red-900/20 rounded">
+                  <p className="text-red-400 mb-2">{t("errors.chart_error")}</p>
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="text-sm text-muted-foreground underline hover:text-gray-300"
+                  >
+                    {t("common.refresh_page")}
+                  </button>
+                </div>
+              }
+            >
+              <EnhancedPoolPriceChart
+                poolId={CULT_POOL_ID.toString()}
+                ticker="CULT"
+                ethUsdPrice={stableEthUsdPrice}
+                optimisticUpdate={optimisticPriceUpdate}
+                onUpdateComplete={() => setOptimisticPriceUpdate(null)}
+                currentPrice={parseFloat(cultUsdPrice) || 0}
+                realtimeImpact={realtimePriceImpact}
+                isSuccess={isSuccess}
+              />
+            </ErrorBoundary>
           </div>
-          <a
-            href="https://cult.inc/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block text-sm text-gray-500 hover:text-red-500 transition-colors mt-2"
-          >
-            cult.inc ↗
-          </a>
+          {/* Contract Links */}
+          <div className="mt-8 text-center space-y-2">
+            <a
+              href={`https://etherscan.io/address/${CULT_ADDRESS}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block text-sm text-muted-foreground hover:text-red-500 transition-colors font-mono"
+            >
+              CULT: {CULT_ADDRESS}
+            </a>
+            <a
+              href={`https://etherscan.io/address/${CultHookAddress}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block text-sm text-muted-foreground hover:text-red-500 transition-colors font-mono"
+            >
+              {t("cult.hook")}: {CultHookAddress}
+            </a>
+            <div className="text-sm text-muted-foreground/80 font-mono">
+              {t("cult.pool_id")}: {CULT_POOL_ID.toString().slice(0, 8)}...
+              {CULT_POOL_ID.toString().slice(-8)}
+            </div>
+            <a
+              href="https://cult.inc/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block text-sm text-muted-foreground hover:text-red-500 transition-colors mt-2"
+            >
+              cult.inc ↗
+            </a>
+          </div>
         </div>
       </div>
     </>
+  );
+};
+
+// Enhanced Pool Price Chart with Optimistic Updates
+const EnhancedPoolPriceChart: React.FC<{
+  poolId: string;
+  ticker: string;
+  ethUsdPrice?: number;
+  optimisticUpdate: {
+    timestamp: number;
+    price: number;
+    priceInEth: number;
+    action: "buy" | "sell";
+    amount: string;
+  } | null;
+  onUpdateComplete: () => void;
+  currentPrice: number;
+  realtimeImpact: {
+    newPrice: number;
+    priceInEth: number;
+    impactPercent: number;
+    action: "buy" | "sell";
+  } | null;
+  isSuccess?: boolean;
+}> = ({ poolId, ticker, ethUsdPrice, optimisticUpdate, onUpdateComplete, currentPrice, realtimeImpact, isSuccess }) => {
+  const [showOptimistic, setShowOptimistic] = useState(false);
+  const [priceImpact, setPriceImpact] = useState<string | null>(null);
+  const { t } = useTranslation();
+
+  // Show optimistic update for 5 seconds
+  useEffect(() => {
+    if (optimisticUpdate) {
+      setShowOptimistic(true);
+
+      // Calculate price impact percentage
+      if (currentPrice > 0) {
+        const impact = ((optimisticUpdate.price - currentPrice) / currentPrice) * 100;
+        setPriceImpact(impact > 0 ? `+${impact.toFixed(2)}%` : `${impact.toFixed(2)}%`);
+      }
+
+      const timer = setTimeout(() => {
+        setShowOptimistic(false);
+        setPriceImpact(null);
+        onUpdateComplete();
+      }, 5000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [optimisticUpdate, onUpdateComplete, currentPrice]);
+
+  return (
+    <div className="relative">
+      {/* Real-time price impact indicator - moved to bottom left */}
+      {realtimeImpact && (
+        <div className="absolute bottom-2 left-2 z-10 bg-background/90 dark:bg-black/90 backdrop-blur-sm p-3 rounded-lg border border-border dark:border-border text-xs font-mono">
+          <div className="text-muted-foreground mb-1 text-[10px] uppercase tracking-wider">
+            {t("cult.price_impact_preview")}
+          </div>
+          <div
+            className={`font-bold text-base ${realtimeImpact.impactPercent > 0 ? "text-green-400" : "text-red-400"}`}
+          >
+            {realtimeImpact.impactPercent > 0 ? "+" : ""}
+            {realtimeImpact.impactPercent.toFixed(2)}%
+          </div>
+          <div className="text-muted-foreground text-[11px] mt-1">
+            {t("cult.new_price")}: ${realtimeImpact.newPrice.toFixed(8)}
+          </div>
+        </div>
+      )}
+
+      {/* Optimistic update overlay */}
+      {showOptimistic && optimisticUpdate && (
+        <div
+          className={`absolute top-0 right-0 z-10 p-3 rounded-lg backdrop-blur-sm shadow-lg animate-in fade-in slide-in-from-right-2 duration-300 ${
+            isSuccess
+              ? "bg-gradient-to-r from-green-900/90 to-green-800/90 border border-green-600/50"
+              : "bg-gradient-to-r from-red-900/90 to-red-800/90 border border-red-600/50"
+          }`}
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xs text-muted-foreground/90">
+              {isSuccess
+                ? `✓ ${t("cult.settled")}:`
+                : optimisticUpdate.action === "buy"
+                  ? t("cult.buying")
+                  : t("cult.selling")}{" "}
+              {optimisticUpdate.amount} {optimisticUpdate.action === "buy" ? "ETH" : "CULT"}
+            </span>
+          </div>
+          <div className="text-sm font-mono text-primary-foreground">
+            {t("cult.expected")}: ${optimisticUpdate.price.toFixed(8)}
+          </div>
+          {priceImpact && (
+            <div
+              className={`text-xs font-semibold mt-1 ${
+                priceImpact.startsWith("+") ? "text-green-400" : "text-red-400"
+              }`}
+            >
+              {priceImpact} {t("cult.impact")}
+            </div>
+          )}
+          <div className="mt-2 h-1 bg-muted-foreground/30 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-red-500 to-red-600 transition-all duration-[5000ms] ease-linear"
+              style={{
+                width: "0%",
+                animation: "progress 5s linear forwards",
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="relative">
+        <PoolPriceChart
+          poolId={poolId}
+          ticker={ticker}
+          ethUsdPrice={ethUsdPrice}
+          priceImpact={
+            realtimeImpact
+              ? {
+                  currentPrice: currentPrice,
+                  projectedPrice: realtimeImpact.priceInEth, // Pass ETH price, not USD
+                  impactPercent: realtimeImpact.impactPercent,
+                  action: realtimeImpact.action,
+                }
+              : null
+          }
+        />
+      </div>
+
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+          @keyframes progress {
+            from { width: 100%; }
+            to { width: 0%; }
+          }
+        `,
+        }}
+      />
+    </div>
   );
 };

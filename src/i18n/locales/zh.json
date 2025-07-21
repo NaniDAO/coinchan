@@ -13,6 +13,8 @@
     "connect": "连接钱包",
     "connect_wallet_to_continue": "请连接您的钱包以继续",
     "uploading": "上传中...",
+    "switching": "切换中...",
+    "switch_network": "切换网络",
     "days": "天",
     "disconnect": "断开连接",
     "asset_overview": "资产总览",
@@ -687,6 +689,10 @@
   },
   "errors": {
     "wallet_connection": "连接钱包错误",
+    "wallet_connection_refresh": "钱包连接问题，正在刷新页面...",
+    "wrong_network_title": "网络错误",
+    "wrong_network_message": "请切换到以太坊主网继续",
+    "wrong_network_compact": "网络错误",
     "network_error": "网络错误，请重试",
     "transaction_error": "交易失败",
     "insufficient_balance": "余额不足",
@@ -906,8 +912,13 @@
     "usd_per_cult": "每个 CULT ${{price}} 美元",
     "pool_reserves": "池储备",
     "total_supply": "总供应量",
+    "circulating": "流通供应量",
+    "market_cap": "市值",
     "swap_fee": "交换费",
     "milady_acc_tax": "mil/acc 税",
+    "milady_tax": "Milady 税",
+    "pool_eth": "池中 ETH",
+    "pool_cult": "池中 CULT",
     "your_lp_tokens": "您的 LP 代币",
     "milady_floor_charge": "Milady 地板价充值",
     "eth_floor_target": "目标 2.488 ETH 地板价",
@@ -949,6 +960,13 @@
     "remaining_eth_cult_added": "剩余 ETH + CULT 添加到 Cookbook 流动性",
     "using_cult_optimized_zap": "使用 CULT 优化的 ETH zap 合约",
     "default_slippage_cult": "CULT 流动性默认滑点设置为 10%",
-    "wallet_simulations_dust": "💡 注意：钱包模拟可能显示少量退款"
+    "wallet_simulations_dust": "💡 注意：钱包模拟可能显示少量退款",
+    "price_impact": "价格影响",
+    "new_price": "新价格",
+    "price_impact_preview": "价格影响预览",
+    "ghost_price": "预期价格",
+    "settled": "已结算",
+    "expected": "预期",
+    "impact": "影响"
   }
 }
