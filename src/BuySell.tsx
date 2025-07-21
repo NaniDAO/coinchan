@@ -294,7 +294,7 @@ export const BuySell = ({
                 <>
                   <div className="opacity-90">Pool Value: ${formatNumber(totalPoolValueUsd, 2)} USD</div>
                   <div className="opacity-75">
-                    1 ETH = {ethPriceInToken.toFixed(6)} {symbol} | 
+                    1 ETH = {formatNumber(ethPriceInToken, 6)} {symbol} | 
                     1 {symbol} = {tokenPriceInEth.toFixed(8)} ETH (${tokenPriceUsd.toFixed(8)} USD)
                   </div>
                 </>

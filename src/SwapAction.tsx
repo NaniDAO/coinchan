@@ -879,7 +879,7 @@ export const SwapAction = () => {
                       Total Pool Value: ${formatNumber(totalPoolValueUsd, 2)} USD
                     </div>
                     <div className="opacity-60 text-xs space-y-0.5">
-                      <div>1 ETH = {ethPriceInToken.toFixed(6)} {tokenSymbol}</div>
+                      <div>1 ETH = {formatNumber(ethPriceInToken, 6)} {tokenSymbol}</div>
                       <div>1 {tokenSymbol} = {tokenPriceInEth.toFixed(8)} ETH (${tokenPriceUsd.toFixed(8)} USD)</div>
                     </div>
                   </>
