@@ -16,6 +16,9 @@ const publicClient = createPublicClient({
 // Cache for token symbols to avoid repeated fetches
 const tokenSymbolCache = new Map<string, string>();
 
+// Pre-populate cache with known tokens
+tokenSymbolCache.set("0x0000000000c5dc95539589fbD24BE07c6C14eCa4", "CULT");
+
 const fetchTokenSymbol = async (tokenAddress: string): Promise<string> => {
   if (tokenSymbolCache.has(tokenAddress)) {
     return tokenSymbolCache.get(tokenAddress)!;
@@ -114,8 +117,13 @@ const convertToSnippets = async (swaps: any[], t: (key: string) => string) => {
         let coinId = pool.coin1.id;
 
         if (isErc20) {
-          // Fetch the actual ERC20 symbol
-          tokenSymbol = await fetchTokenSymbol(pool.token1);
+          // Check if this is CULT token
+          if (pool.token1 === "0x0000000000c5dc95539589fbD24BE07c6C14eCa4") {
+            tokenSymbol = "CULT";
+          } else {
+            // Fetch the actual ERC20 symbol
+            tokenSymbol = await fetchTokenSymbol(pool.token1);
+          }
           // Use token1 address as the coinId for ERC20 tokens
           coinId = pool.token1;
         }
