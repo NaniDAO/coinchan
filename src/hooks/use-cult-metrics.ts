@@ -79,16 +79,18 @@ export function useCultMetrics(reserves: ReservesData | null, ethUsdPrice: numbe
           abi: erc20Abi,
           functionName: "totalSupply",
         }),
-        publicClient.readContract({
-          address: CultHookAddress,
-          abi: CultHookAbi,
-          functionName: "receiver",
-        }).then(async (receiverAddress) => {
-          // Get ETH balance of the receiver (tax accumulator)
-          return publicClient.getBalance({
-            address: receiverAddress as `0x${string}`,
-          });
-        }),
+        publicClient
+          .readContract({
+            address: CultHookAddress,
+            abi: CultHookAbi,
+            functionName: "receiver",
+          })
+          .then(async (receiverAddress) => {
+            // Get ETH balance of the receiver (tax accumulator)
+            return publicClient.getBalance({
+              address: receiverAddress as `0x${string}`,
+            });
+          }),
       ]);
 
       const totalSupply = totalSupplyResult as bigint;
@@ -111,11 +113,7 @@ export function useCultMetrics(reserves: ReservesData | null, ethUsdPrice: numbe
 }
 
 // Hook for swap amount calculations
-export function useCultSwapEstimate(
-  amount: string,
-  tab: "buy" | "sell",
-  reserves: ReservesData | null
-) {
+export function useCultSwapEstimate(amount: string, tab: "buy" | "sell", reserves: ReservesData | null) {
   return useQuery({
     queryKey: ["cultSwapEstimate", amount, tab, reserves?.reserve0?.toString(), reserves?.reserve1?.toString()],
     queryFn: () => {

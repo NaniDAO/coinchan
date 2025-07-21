@@ -82,7 +82,7 @@ export const CookbookCoinView = ({ coinId }: { coinId: bigint }) => {
       </ErrorBoundary>
       <PoolOverview
         coinId={coinId.toString()}
-        poolId={computePoolId(coinId, SWAP_FEE, CookbookAddress).toString()}
+        poolId={computePoolId(coinId, swapFees?.[0] ?? SWAP_FEE, CookbookAddress).toString()}
         symbol={symbol}
       />
     </div>

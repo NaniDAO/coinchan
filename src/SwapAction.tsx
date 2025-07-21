@@ -253,7 +253,7 @@ export const SwapAction = () => {
         // Use correct decimals for the sell token (6 for USDT, 18 for regular coins)
         const sellTokenDecimals = sellToken?.decimals || 18;
         const inUnits = parseUnits(val || "0", sellTokenDecimals);
-        const outWei = getAmountOut(inUnits, reserves.reserve1, reserves.reserve0, SWAP_FEE);
+        const outWei = getAmountOut(inUnits, reserves.reserve1, reserves.reserve0, sellToken?.swapFee ?? SWAP_FEE);
         setBuyAmt(outWei === 0n ? "" : formatEther(outWei));
       }
     } catch {
@@ -838,12 +838,18 @@ export const SwapAction = () => {
               <span>
                 {t("pool.title")}: {formatNumber(parseFloat(formatEther(reserves.reserve0)), 5)} ETH /{" "}
                 {formatNumber(
-                  parseFloat(formatUnits(
-                    reserves.reserve1,
-                    // Use the correct decimals for the token (6 for USDT, 18 for others)
-                    isCustomPool ? (sellToken.isCustomPool ? sellToken.decimals || 18 : buyToken?.decimals || 18) : 18,
-                  )),
-                  3
+                  parseFloat(
+                    formatUnits(
+                      reserves.reserve1,
+                      // Use the correct decimals for the token (6 for USDT, 18 for others)
+                      isCustomPool
+                        ? sellToken.isCustomPool
+                          ? sellToken.decimals || 18
+                          : buyToken?.decimals || 18
+                        : 18,
+                    ),
+                  ),
+                  3,
                 )}{" "}
                 {coinId ? tokens.find((t) => t.id === coinId)?.symbol || "Token" : buyToken?.symbol}
               </span>
@@ -863,32 +869,39 @@ export const SwapAction = () => {
             <div className="text-muted-foreground mt-1 space-y-0.5">
               {(() => {
                 const ethAmount = parseFloat(formatEther(reserves.reserve0));
-                const tokenAmount = parseFloat(formatUnits(
-                  reserves.reserve1,
-                  isCustomPool ? (sellToken.isCustomPool ? sellToken.decimals || 18 : buyToken?.decimals || 18) : 18
-                ));
+                const tokenAmount = parseFloat(
+                  formatUnits(
+                    reserves.reserve1,
+                    isCustomPool ? (sellToken.isCustomPool ? sellToken.decimals || 18 : buyToken?.decimals || 18) : 18,
+                  ),
+                );
                 const tokenPriceInEth = ethAmount / tokenAmount;
                 const ethPriceInToken = tokenAmount / ethAmount;
                 const tokenPriceUsd = tokenPriceInEth * ethPrice.priceUSD;
-                const totalPoolValueUsd = (ethAmount * ethPrice.priceUSD) * 2;
-                
+                const totalPoolValueUsd = ethAmount * ethPrice.priceUSD * 2;
+
                 const tokenSymbol = coinId ? tokens.find((t) => t.id === coinId)?.symbol || "Token" : buyToken?.symbol;
-                
+                // Get the actual token data to access its swap fee
+                const poolToken = coinId ? tokens.find((t) => t.id === coinId) : buyToken;
+                const actualSwapFee = poolToken?.swapFee ?? SWAP_FEE;
+
                 return (
                   <>
                     <div className="opacity-75 text-xs">
                       Total Pool Value: ${formatNumber(totalPoolValueUsd, 2)} USD
                     </div>
                     <div className="opacity-60 text-xs space-y-0.5">
-                      <div>1 ETH = {formatNumber(ethPriceInToken, 6)} {tokenSymbol}</div>
-                      <div>1 {tokenSymbol} = {tokenPriceInEth.toFixed(8)} ETH (${tokenPriceUsd.toFixed(8)} USD)</div>
+                      <div>
+                        1 ETH = {formatNumber(ethPriceInToken, 6)} {tokenSymbol}
+                      </div>
+                      <div>
+                        1 {tokenSymbol} = {tokenPriceInEth.toFixed(8)} ETH (${tokenPriceUsd.toFixed(8)} USD)
+                      </div>
                       <div className="flex items-center gap-1">
-                        <span>Fee: {Number(SWAP_FEE) / 100}%</span>
+                        <span>Fee: {Number(actualSwapFee) / 100}%</span>
                         <HoverCard>
                           <HoverCardTrigger asChild>
-                            <span 
-                              className="text-[10px] opacity-70 cursor-help hover:opacity-100 transition-opacity" 
-                            >
+                            <span className="text-[10px] opacity-70 cursor-help hover:opacity-100 transition-opacity">
                               ⓘ
                             </span>
                           </HoverCardTrigger>

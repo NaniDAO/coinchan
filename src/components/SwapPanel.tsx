@@ -140,7 +140,7 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
           )
         )}
       </div>
-      
+
       {/* USD Value Display */}
       {ethPrice?.priceUSD && amount && parseFloat(amount) > 0 && (
         <div className="text-xs text-muted-foreground text-right pr-1 -mt-1">

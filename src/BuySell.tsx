@@ -147,7 +147,7 @@ export const BuySell = ({
   // Calculate USD values
   const usdValue = useMemo(() => {
     if (!ethPrice?.priceUSD) return null;
-    
+
     try {
       if (tab === "buy") {
         // When buying, show USD value of ETH input
@@ -222,7 +222,7 @@ export const BuySell = ({
       setTxHash(hash);
     } catch (err) {
       const errorMsg = handleWalletError(err, {
-        defaultMessage: t("errors.transaction_error")
+        defaultMessage: t("errors.transaction_error"),
       });
       if (errorMsg) {
         setErrorMessage(errorMsg);
@@ -253,7 +253,7 @@ export const BuySell = ({
           });
         } catch (approvalErr) {
           const errorMsg = handleWalletError(approvalErr, {
-            defaultMessage: t("errors.transaction_error")
+            defaultMessage: t("errors.transaction_error"),
           });
           if (errorMsg) {
             setErrorMessage(errorMsg);
@@ -277,7 +277,7 @@ export const BuySell = ({
       setTxHash(hash);
     } catch (err) {
       const errorMsg = handleWalletError(err, {
-        defaultMessage: t("errors.transaction_error")
+        defaultMessage: t("errors.transaction_error"),
       });
       if (errorMsg) {
         setErrorMessage(errorMsg);
@@ -297,22 +297,20 @@ export const BuySell = ({
               const tokenPriceInEth = ethAmount / tokenAmount;
               const ethPriceInToken = tokenAmount / ethAmount;
               const tokenPriceUsd = tokenPriceInEth * ethPrice.priceUSD;
-              const totalPoolValueUsd = (ethAmount * ethPrice.priceUSD) * 2;
-              
+              const totalPoolValueUsd = ethAmount * ethPrice.priceUSD * 2;
+
               return (
                 <>
                   <div className="opacity-90">Pool Value: ${formatNumber(totalPoolValueUsd, 2)} USD</div>
                   <div className="opacity-75">
-                    1 ETH = {formatNumber(ethPriceInToken, 6)} {symbol} | 
-                    1 {symbol} = {tokenPriceInEth.toFixed(8)} ETH (${tokenPriceUsd.toFixed(8)} USD)
+                    1 ETH = {formatNumber(ethPriceInToken, 6)} {symbol} | 1 {symbol} = {tokenPriceInEth.toFixed(8)} ETH
+                    (${tokenPriceUsd.toFixed(8)} USD)
                   </div>
                   <div className="opacity-60 flex items-center gap-1">
                     <span>Fee: {Number(swapFee) / 100}%</span>
                     <HoverCard>
                       <HoverCardTrigger asChild>
-                        <span 
-                          className="text-[10px] opacity-70 cursor-help hover:opacity-100 transition-opacity" 
-                        >
+                        <span className="text-[10px] opacity-70 cursor-help hover:opacity-100 transition-opacity">
                           ⓘ
                         </span>
                       </HoverCardTrigger>
@@ -327,110 +325,110 @@ export const BuySell = ({
           </div>
         </div>
       )}
-      
+
       <Tabs value={tab} onValueChange={(v) => setTab(v as "buy" | "sell")}>
         <TabsList>
-        <TabsTrigger value="buy" className="transition-all duration-300">
-          Buy {name} [{symbol}]
-        </TabsTrigger>
-        <TabsTrigger value="sell" className="transition-all duration-300">
-          Sell {name} [{symbol}]
-        </TabsTrigger>
-      </TabsList>
+          <TabsTrigger value="buy" className="transition-all duration-300">
+            Buy {name} [{symbol}]
+          </TabsTrigger>
+          <TabsTrigger value="sell" className="transition-all duration-300">
+            Sell {name} [{symbol}]
+          </TabsTrigger>
+        </TabsList>
 
-      <TabsContent value="buy" className="max-w-2xl">
-        <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium text-green-700">Using ETH</span>
-          <Input
-            type="number"
-            placeholder="Amount ETH"
-            value={amount}
-            min="0"
-            step="any"
-            onChange={(e) => setAmount(e.currentTarget.value)}
-            disabled={false}
-          />
-          {usdValue && amount && (
-            <span className="text-xs text-muted-foreground">≈ ${usdValue} USD</span>
-          )}
-
-          {ethBalance?.value && ethBalance.value > 0n && isConnected ? (
-            <div className="mt-2 pt-2 border-t border-primary/20">
-              <PercentageSlider value={buyPercentage} onChange={handleBuyPercentageChange} />
-            </div>
-          ) : null}
-
-          <span className="text-sm font-medium text-green-800">
-            You will receive ~ {formatNumber(parseFloat(estimated), 6)} {symbol}
-          </span>
-          <Button
-            onClick={onBuy}
-            disabled={!isConnected || isPending || !amount}
-            variant="default"
-            className={`bg-green-600 hover:bg-green-700 text-white font-bold transition-opacity duration-300`}
-          >
-            {isPending ? (
-              <span className="flex items-center gap-2">
-                <LoadingLogo size="sm" className="scale-75" />
-                Buying…
-              </span>
-            ) : (
-              `Buy ${symbol}`
-            )}
-          </Button>
-        </div>
-      </TabsContent>
-
-      <TabsContent value="sell" className="max-w-2xl">
-        <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium text-accent dark:text-accent">Using {symbol}</span>
-          <div className="relative">
+        <TabsContent value="buy" className="max-w-2xl">
+          <div className="flex flex-col gap-2">
+            <span className="text-sm font-medium text-green-700">Using ETH</span>
             <Input
               type="number"
-              placeholder={`Amount ${symbol}`}
+              placeholder="Amount ETH"
               value={amount}
               min="0"
               step="any"
               onChange={(e) => setAmount(e.currentTarget.value)}
               disabled={false}
             />
+            {usdValue && amount && <span className="text-xs text-muted-foreground">≈ ${usdValue} USD</span>}
+
+            {ethBalance?.value && ethBalance.value > 0n && isConnected ? (
+              <div className="mt-2 pt-2 border-t border-primary/20">
+                <PercentageSlider value={buyPercentage} onChange={handleBuyPercentageChange} />
+              </div>
+            ) : null}
+
+            <span className="text-sm font-medium text-green-800">
+              You will receive ~ {formatNumber(parseFloat(estimated), 6)} {symbol}
+            </span>
+            <Button
+              onClick={onBuy}
+              disabled={!isConnected || isPending || !amount}
+              variant="default"
+              className={`bg-green-600 hover:bg-green-700 text-white font-bold transition-opacity duration-300`}
+            >
+              {isPending ? (
+                <span className="flex items-center gap-2">
+                  <LoadingLogo size="sm" className="scale-75" />
+                  Buying…
+                </span>
+              ) : (
+                `Buy ${symbol}`
+              )}
+            </Button>
           </div>
+        </TabsContent>
+
+        <TabsContent value="sell" className="max-w-2xl">
           <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium">You will receive ~ {formatNumber(parseFloat(estimated), 6)} ETH</span>
-            {usdValue && estimated !== "0" && (
-              <span className="text-xs text-muted-foreground">≈ ${usdValue} USD</span>
-            )}
-            {balance !== undefined ? (
-              <button
-                className="self-end text-sm font-medium text-chart-2 dark:text-chart-2 hover:text-primary transition-colors"
-                onClick={() => setAmount(formatUnits(balance, 18))}
+            <span className="text-sm font-medium text-accent dark:text-accent">Using {symbol}</span>
+            <div className="relative">
+              <Input
+                type="number"
+                placeholder={`Amount ${symbol}`}
+                value={amount}
+                min="0"
+                step="any"
+                onChange={(e) => setAmount(e.currentTarget.value)}
                 disabled={false}
-              >
-                MAX ({formatUnits(balance, 18)})
-              </button>
-            ) : (
-              <button className="self-end text-sm font-medium text-chart-2 dark:text-chart-2" disabled={!balance}>
-                MAX
-              </button>
-            )}
-          </div>
-          <Button
-            onClick={onSell}
-            disabled={!isConnected || isPending || !amount}
-            variant="outline"
-            className={`dark:border-accent dark:text-accent dark:hover:bg-accent/10 transition-opacity duration-300 `}
-          >
-            {isPending ? (
-              <span className="flex items-center gap-2">
-                <LoadingLogo size="sm" className="scale-75" />
-                Selling…
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <span className="text-sm font-medium">
+                You will receive ~ {formatNumber(parseFloat(estimated), 6)} ETH
               </span>
-            ) : (
-              `Sell ${symbol}`
-            )}
-          </Button>
-        </div>
-      </TabsContent>
+              {usdValue && estimated !== "0" && (
+                <span className="text-xs text-muted-foreground">≈ ${usdValue} USD</span>
+              )}
+              {balance !== undefined ? (
+                <button
+                  className="self-end text-sm font-medium text-chart-2 dark:text-chart-2 hover:text-primary transition-colors"
+                  onClick={() => setAmount(formatUnits(balance, 18))}
+                  disabled={false}
+                >
+                  MAX ({formatUnits(balance, 18)})
+                </button>
+              ) : (
+                <button className="self-end text-sm font-medium text-chart-2 dark:text-chart-2" disabled={!balance}>
+                  MAX
+                </button>
+              )}
+            </div>
+            <Button
+              onClick={onSell}
+              disabled={!isConnected || isPending || !amount}
+              variant="outline"
+              className={`dark:border-accent dark:text-accent dark:hover:bg-accent/10 transition-opacity duration-300 `}
+            >
+              {isPending ? (
+                <span className="flex items-center gap-2">
+                  <LoadingLogo size="sm" className="scale-75" />
+                  Selling…
+                </span>
+              ) : (
+                `Sell ${symbol}`
+              )}
+            </Button>
+          </div>
+        </TabsContent>
 
         {errorMessage && <p className="text-destructive text-sm">{errorMessage}</p>}
         {isSuccess && <p className="text-chart-2 text-sm">Tx confirmed!</p>}

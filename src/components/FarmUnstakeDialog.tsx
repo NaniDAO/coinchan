@@ -40,12 +40,12 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
   const [txHash, setTxHash] = useState<string | null>(null);
   const [txStatus, setTxStatus] = useState<"idle" | "pending" | "confirming" | "success" | "error">("idle");
   const [txError, setTxError] = useState<string | null>(null);
-  
+
   // Fetch ZAMM reserves if reward token is ZAMM
   const isZAMMReward = stream.rewardCoin?.symbol === "ZAMM";
   const { data: zammReserves } = useReserves({
     poolId: isZAMMReward ? ZAMM_POOL_ID : undefined,
-    source: "ZAMM"
+    source: "ZAMM",
   });
 
   const { withdraw } = useZChefActions();
@@ -253,7 +253,13 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
                       <span className="font-mono font-bold text-green-600 text-lg block">
                         {Number.parseFloat(formatEther(actualPendingRewards)).toFixed(6)} {stream.rewardCoin?.symbol}
                       </span>
-                      {ethPrice?.priceUSD && actualPendingRewards > 0n && isZAMMReward && zammReserves?.reserve0 && zammReserves?.reserve1 && zammReserves.reserve0 > 0n && zammReserves.reserve1 > 0n ? (
+                      {ethPrice?.priceUSD &&
+                      actualPendingRewards > 0n &&
+                      isZAMMReward &&
+                      zammReserves?.reserve0 &&
+                      zammReserves?.reserve1 &&
+                      zammReserves.reserve0 > 0n &&
+                      zammReserves.reserve1 > 0n ? (
                         <span className="text-xs text-muted-foreground">
                           ≈ ${(() => {
                             const rewardAmount = parseFloat(formatEther(actualPendingRewards));

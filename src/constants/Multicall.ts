@@ -8,23 +8,23 @@ export const MulticallAbi = [
           {
             internalType: "address",
             name: "target",
-            type: "address"
+            type: "address",
           },
           {
             internalType: "bool",
             name: "allowFailure",
-            type: "bool"
+            type: "bool",
           },
           {
             internalType: "bytes",
             name: "callData",
-            type: "bytes"
-          }
+            type: "bytes",
+          },
         ],
         internalType: "struct Multicall3.Call3[]",
         name: "calls",
-        type: "tuple[]"
-      }
+        type: "tuple[]",
+      },
     ],
     name: "aggregate3",
     outputs: [
@@ -33,20 +33,20 @@ export const MulticallAbi = [
           {
             internalType: "bool",
             name: "success",
-            type: "bool"
+            type: "bool",
           },
           {
             internalType: "bytes",
             name: "returnData",
-            type: "bytes"
-          }
+            type: "bytes",
+          },
         ],
         internalType: "struct Multicall3.Result[]",
         name: "returnData",
-        type: "tuple[]"
-      }
+        type: "tuple[]",
+      },
     ],
     stateMutability: "payable",
-    type: "function"
-  }
+    type: "function",
+  },
 ] as const;

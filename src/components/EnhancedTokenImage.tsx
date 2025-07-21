@@ -38,7 +38,7 @@ class ImageCache {
 
   set(key: string, url: string | null): void {
     this.cache.set(key, { url, timestamp: Date.now() });
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       try {
         sessionStorage.setItem(`token-image-${key}`, JSON.stringify({ url, timestamp: Date.now() }));
       } catch (e) {
@@ -56,8 +56,8 @@ class ImageCache {
   }
 
   loadFromStorage(key: string): string | null {
-    if (typeof window === 'undefined') return null;
-    
+    if (typeof window === "undefined") return null;
+
     try {
       const stored = sessionStorage.getItem(`token-image-${key}`);
       if (stored) {
@@ -104,10 +104,7 @@ const loadImageWithFallbacks = async (tokenUri: string, cacheKey: string): Promi
   // Handle direct image URLs
   if (
     (tokenUri.startsWith("http") || tokenUri.startsWith("/")) &&
-    (tokenUri.includes(".jpg") ||
-      tokenUri.includes(".png") ||
-      tokenUri.includes(".gif") ||
-      tokenUri.includes(".webp"))
+    (tokenUri.includes(".jpg") || tokenUri.includes(".png") || tokenUri.includes(".gif") || tokenUri.includes(".webp"))
   ) {
     if (!imageCache.hasFailed(tokenUri)) {
       try {
@@ -139,7 +136,7 @@ const loadImageWithFallbacks = async (tokenUri: string, cacheKey: string): Promi
 
     for (const gateway of gateways) {
       if (imageCache.hasFailed(gateway)) continue;
-      
+
       try {
         await new Promise((resolve, reject) => {
           const img = new Image();
@@ -160,9 +157,7 @@ const loadImageWithFallbacks = async (tokenUri: string, cacheKey: string): Promi
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 2000); // Shorter timeout
 
-    const uri = tokenUri.startsWith("ipfs://")
-      ? `https://content.wrappr.wtf/ipfs/${tokenUri.slice(7)}`
-      : tokenUri;
+    const uri = tokenUri.startsWith("ipfs://") ? `https://content.wrappr.wtf/ipfs/${tokenUri.slice(7)}` : tokenUri;
 
     if (imageCache.hasFailed(uri)) {
       imageCache.set(cacheKey, null);
@@ -181,7 +176,7 @@ const loadImageWithFallbacks = async (tokenUri: string, cacheKey: string): Promi
         const formattedUrl = imageUrl.startsWith("ipfs://")
           ? `https://content.wrappr.wtf/ipfs/${imageUrl.slice(7)}`
           : imageUrl;
-        
+
         if (!imageCache.hasFailed(formattedUrl)) {
           try {
             await new Promise((resolve, reject) => {
@@ -207,19 +202,19 @@ const loadImageWithFallbacks = async (tokenUri: string, cacheKey: string): Promi
 };
 
 export const EnhancedTokenImage = memo(
-  ({ token, size = 'default' }: { token: TokenMeta; size?: 'sm' | 'default' | 'lg' }) => {
+  ({ token, size = "default" }: { token: TokenMeta; size?: "sm" | "default" | "lg" }) => {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [imageError, setImageError] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
-    
+
     const { bg, text } = getColorForSymbol(token.symbol);
     const isEthToken = token.id === null && token.symbol === "ETH";
     const cacheKey = `${token.id ?? "eth"}-${token.symbol}`;
 
     const sizeClasses = {
       sm: "w-6 h-6 text-xs",
-      default: "w-8 h-8 text-sm", 
-      lg: "w-12 h-12 text-base"
+      default: "w-8 h-8 text-sm",
+      lg: "w-12 h-12 text-base",
     };
 
     const loadImage = useCallback(async () => {
@@ -268,9 +263,7 @@ export const EnhancedTokenImage = memo(
     }
 
     if (isLoading) {
-      return (
-        <div className={`${sizeClasses[size]} rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse`} />
-      );
+      return <div className={`${sizeClasses[size]} rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse`} />;
     }
 
     if (imageUrl && !imageError) {
@@ -293,7 +286,7 @@ export const EnhancedTokenImage = memo(
         {getInitials(token.symbol)}
       </div>
     );
-  }
+  },
 );
 
 EnhancedTokenImage.displayName = "EnhancedTokenImage";

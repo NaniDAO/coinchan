@@ -33,12 +33,12 @@ export function FarmPositionCard({ position, stream, lpToken, onHarvest, isHarve
   // Get real-time user balance from contract
   const { data: onchainUserBalance } = useZChefUserBalance(stream.chefId);
   const actualUserShares = onchainUserBalance ?? position.shares;
-  
+
   // Fetch ZAMM reserves if reward token is ZAMM
   const isZAMMReward = stream.rewardCoin?.symbol === "ZAMM";
   const { data: zammReserves } = useReserves({
     poolId: isZAMMReward ? ZAMM_POOL_ID : undefined,
-    source: "ZAMM"
+    source: "ZAMM",
   });
 
   // Don't show card if user has no shares
@@ -72,7 +72,12 @@ export function FarmPositionCard({ position, stream, lpToken, onHarvest, isHarve
                 <span className="font-mono font-bold text-green-600">
                   {formatBalance(formatEther(actualPendingRewards), stream.rewardCoin?.symbol)}
                 </span>
-                {ethPrice?.priceUSD && isZAMMReward && zammReserves?.reserve0 && zammReserves?.reserve1 && zammReserves.reserve0 > 0n && zammReserves.reserve1 > 0n ? (
+                {ethPrice?.priceUSD &&
+                isZAMMReward &&
+                zammReserves?.reserve0 &&
+                zammReserves?.reserve1 &&
+                zammReserves.reserve0 > 0n &&
+                zammReserves.reserve1 > 0n ? (
                   <div className="text-xs text-muted-foreground mt-0.5">
                     ≈ ${(() => {
                       const rewardAmount = parseFloat(formatEther(actualPendingRewards));

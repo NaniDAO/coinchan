@@ -37,10 +37,10 @@ export const OptimizedTokenSelector = memo(
       if (searchTerm.trim()) {
         const search = searchTerm.toLowerCase();
         filtered = tokens.filter(
-          token =>
+          (token) =>
             token.name.toLowerCase().includes(search) ||
             token.symbol.toLowerCase().includes(search) ||
-            token.id?.toString().includes(search)
+            token.id?.toString().includes(search),
         );
       }
 
@@ -72,16 +72,19 @@ export const OptimizedTokenSelector = memo(
     }, [tokens, searchTerm]);
 
     // Handle selection
-    const handleSelect = useCallback((token: TokenMeta) => {
-      onSelect(token);
-      setIsOpen(false);
-      setSearchTerm("");
-    }, [onSelect]);
+    const handleSelect = useCallback(
+      (token: TokenMeta) => {
+        onSelect(token);
+        setIsOpen(false);
+        setSearchTerm("");
+      },
+      [onSelect],
+    );
 
     // Format balance with caching
     const formatBalance = useCallback((token: TokenMeta) => {
       const cacheKey = `balance-${token.id}-${token.balance}`;
-      
+
       try {
         const cached = sessionStorage.getItem(cacheKey);
         if (cached) return cached;
@@ -164,10 +167,7 @@ export const OptimizedTokenSelector = memo(
             </div>
           </div>
           <ChevronDownIcon
-            className={cn(
-              "h-5 w-5 text-gray-400 transition-transform duration-200",
-              isOpen && "rotate-180"
-            )}
+            className={cn("h-5 w-5 text-gray-400 transition-transform duration-200", isOpen && "rotate-180")}
           />
         </button>
 
@@ -197,7 +197,7 @@ export const OptimizedTokenSelector = memo(
 
                   return (
                     <div
-                      key={token.id?.toString() || 'eth'}
+                      key={token.id?.toString() || "eth"}
                       className="flex items-center justify-between p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 border-b last:border-b-0"
                       onClick={() => handleSelect(token)}
                     >
@@ -219,9 +219,7 @@ export const OptimizedTokenSelector = memo(
                   );
                 })
               ) : (
-                <div className="p-4 text-center text-gray-500">
-                  {t("common.no_results")}
-                </div>
+                <div className="p-4 text-center text-gray-500">{t("common.no_results")}</div>
               )}
               {filteredTokens.length > 50 && (
                 <div className="p-3 text-center text-sm text-gray-500 bg-gray-50 dark:bg-gray-700">
@@ -233,15 +231,10 @@ export const OptimizedTokenSelector = memo(
         )}
 
         {/* Backdrop to close dropdown */}
-        {isOpen && (
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => setIsOpen(false)}
-          />
-        )}
+        {isOpen && <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />}
       </div>
     );
-  }
+  },
 );
 
 OptimizedTokenSelector.displayName = "OptimizedTokenSelector";

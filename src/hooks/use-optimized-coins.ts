@@ -47,10 +47,7 @@ const processTokenImage = async (tokenUri: string): Promise<string | null> => {
   // Handle direct image URLs
   if (
     (tokenUri.startsWith("http") || tokenUri.startsWith("/")) &&
-    (tokenUri.includes(".jpg") ||
-      tokenUri.includes(".png") ||
-      tokenUri.includes(".gif") ||
-      tokenUri.includes(".webp"))
+    (tokenUri.includes(".jpg") || tokenUri.includes(".png") || tokenUri.includes(".gif") || tokenUri.includes(".webp"))
   ) {
     await preloadImage(tokenUri);
     return tokenUri;
@@ -60,7 +57,7 @@ const processTokenImage = async (tokenUri: string): Promise<string | null> => {
   if (tokenUri.startsWith("ipfs://")) {
     const hash = tokenUri.slice(7);
     const primaryUrl = `https://content.wrappr.wtf/ipfs/${hash}`;
-    
+
     // Try primary IPFS gateway
     if (await preloadImage(primaryUrl)) {
       return primaryUrl;
@@ -85,9 +82,7 @@ const processTokenImage = async (tokenUri: string): Promise<string | null> => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000);
 
-    const uri = tokenUri.startsWith("ipfs://")
-      ? `https://content.wrappr.wtf/ipfs/${tokenUri.slice(7)}`
-      : tokenUri;
+    const uri = tokenUri.startsWith("ipfs://") ? `https://content.wrappr.wtf/ipfs/${tokenUri.slice(7)}` : tokenUri;
 
     const response = await fetch(uri, { signal: controller.signal });
     clearTimeout(timeoutId);
@@ -101,7 +96,7 @@ const processTokenImage = async (tokenUri: string): Promise<string | null> => {
         const formattedUrl = imageUrl.startsWith("ipfs://")
           ? `https://content.wrappr.wtf/ipfs/${imageUrl.slice(7)}`
           : imageUrl;
-        
+
         await preloadImage(formattedUrl);
         return formattedUrl;
       }
@@ -147,7 +142,7 @@ const fetchTokenMetadata = async (): Promise<TokenMeta[]> => {
     });
 
     const { data } = await response.json();
-    
+
     // Process tokens and preload popular token images
     const tokens: TokenMeta[] = await Promise.all(
       data.pools.items
@@ -183,20 +178,19 @@ const fetchTokenMetadata = async (): Promise<TokenMeta[]> => {
           }
 
           return token;
-        })
+        }),
     );
 
     return tokens.sort((a, b) => {
       const aLiquidity = a.reserve0 ? Number(a.reserve0) : 0;
       const bLiquidity = b.reserve0 ? Number(b.reserve0) : 0;
-      
+
       if (aLiquidity === bLiquidity) {
         return Number(b.id) - Number(a.id); // Secondary sort by ID
       }
-      
+
       return bLiquidity - aLiquidity; // Primary sort by liquidity
     });
-
   } catch (error) {
     console.error("Failed to fetch token metadata:", error);
     return [];
@@ -207,7 +201,6 @@ const fetchTokenMetadata = async (): Promise<TokenMeta[]> => {
  * Optimized hook for coins with better loading performance
  */
 export function useOptimizedCoins() {
-
   // Fetch metadata
   const {
     data: tokenMetadata = [],

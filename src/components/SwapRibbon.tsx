@@ -14,10 +14,7 @@ const tokenSymbolCache = new Map<string, string>();
 // Pre-populate cache with known tokens
 tokenSymbolCache.set("0x0000000000c5dc95539589fbD24BE07c6C14eCa4", "CULT");
 
-const fetchTokenSymbol = async (
-  tokenAddress: string,
-  publicClient: PublicClient,
-): Promise<string> => {
+const fetchTokenSymbol = async (tokenAddress: string, publicClient: PublicClient): Promise<string> => {
   if (tokenSymbolCache.has(tokenAddress)) {
     return tokenSymbolCache.get(tokenAddress)!;
   }
@@ -89,31 +86,17 @@ const fetchSwaps = async (t: (key: string) => string, publicClient: any) => {
   return snippets;
 };
 
-const convertToSnippets = async (
-  swaps: any[],
-  t: (key: string) => string,
-  publicClient: any,
-) => {
+const convertToSnippets = async (swaps: any[], t: (key: string) => string, publicClient: any) => {
   const snippets = await Promise.all(
     swaps.map(async (swap) => {
       try {
-        const {
-          amount0In,
-          amount0Out,
-          amount1Out,
-          amount1In,
-          id,
-          trader,
-          pool,
-        } = swap;
+        const { amount0In, amount0Out, amount1Out, amount1In, id, trader, pool } = swap;
         const isBuy = BigInt(amount0In) > 0n;
         const isSell = BigInt(amount0Out) > 0n;
 
         // Determine if this is an ERC20 token
         // ERC20: coin1Id is "0" but token1 is a non-zero address
-        const isErc20 =
-          pool.coin1Id === "0" &&
-          pool.token1 !== "0x0000000000000000000000000000000000000000";
+        const isErc20 = pool.coin1Id === "0" && pool.token1 !== "0x0000000000000000000000000000000000000000";
 
         let tokenSymbol = pool.coin1.symbol;
         let coinId = pool.coin1.id;
@@ -135,11 +118,7 @@ const convertToSnippets = async (
             id,
             snippet: (
               <span style={{ color: getColor(id) }}>
-                <a
-                  target="_blank"
-                  href={"https://etherscan.io/address/" + trader}
-                  rel="noreferrer"
-                >
+                <a target="_blank" href={"https://etherscan.io/address/" + trader} rel="noreferrer">
                   {truncAddress(trader)}
                 </a>{" "}
                 {t("swap.bought")} {Number(formatEther(amount1Out)).toFixed(2)}{" "}
@@ -160,11 +139,7 @@ const convertToSnippets = async (
             id,
             snippet: (
               <span style={{ color: getColor(id) }}>
-                <a
-                  target="_blank"
-                  href={"https://etherscan.io/address/" + trader}
-                  rel="noreferrer"
-                >
+                <a target="_blank" href={"https://etherscan.io/address/" + trader} rel="noreferrer">
                   {truncAddress(trader)}
                 </a>{" "}
                 {t("swap.sold")} {Number(formatEther(amount1In)).toFixed(2)}{" "}
@@ -257,11 +232,7 @@ export function SwapRibbon() {
         to="/cult"
         className="text-foreground hover:underline font-medium inline-flex items-center gap-1 align-middle"
       >
-        <img
-          src="/cult.jpg"
-          alt="CULT"
-          className="w-4 h-4 rounded-full inline-block align-middle"
-        />
+        <img src="/cult.jpg" alt="CULT" className="w-4 h-4 rounded-full inline-block align-middle" />
         <span className="inline-block align-middle">CULT</span>
       </Link>
     ),
@@ -302,7 +273,7 @@ export function SwapRibbon() {
                 repeat: Number.POSITIVE_INFINITY,
                 repeatType: "loop",
                 ease: "linear",
-                duration: 20,
+                duration: 33,
               }
         }
       >
@@ -316,9 +287,7 @@ export function SwapRibbon() {
                 : { color: getColor(item.id) }
             }
           >
-            <span className="text-sm shrink-0 inline-flex items-center">
-              {item.snippet}
-            </span>
+            <span className="text-sm shrink-0 inline-flex items-center">{item.snippet}</span>
             <span
               className={`text-2xl mx-3 inline-flex items-center ${item.id === "farm-alpha" || item.id === "cult-feature" ? "text-foreground" : ""}`}
             >

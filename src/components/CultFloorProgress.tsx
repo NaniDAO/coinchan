@@ -8,7 +8,7 @@ interface CultFloorProgressProps {
 
 export const CultFloorProgress = React.memo(({ floorProgress, accumulatedTax }: CultFloorProgressProps) => {
   const { t } = useTranslation();
-  
+
   return (
     <div className="relative">
       <div className="text-xs text-gray-400 mb-2 flex justify-between">

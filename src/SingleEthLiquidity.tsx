@@ -39,7 +39,7 @@ const sqrt = (value: bigint): bigint => {
     throw new Error("Square root of negative numbers is not supported");
   }
   if (value === 0n) return 0n;
-  
+
   let z = value;
   let x = value / 2n + 1n;
   while (x < z) {
@@ -84,7 +84,7 @@ export const SingleEthLiquidity = () => {
   const [txError, setTxError] = useState<string | null>(null);
 
   const [singleEthSlippageBps, setSingleEthSlippageBps] = useState<bigint>(
-    buyToken?.symbol === "CULT" ? 1000n : SINGLE_ETH_SLIPPAGE_BPS
+    buyToken?.symbol === "CULT" ? 1000n : SINGLE_ETH_SLIPPAGE_BPS,
   );
   const [singleETHEstimatedCoin, setSingleETHEstimatedCoin] = useState<string>("");
   const [estimatedLpTokens, setEstimatedLpTokens] = useState<string>("");
@@ -259,7 +259,7 @@ export const SingleEthLiquidity = () => {
 
         const formattedTokens = formatUnits(estimatedTokens, tokenDecimals);
         setSingleETHEstimatedCoin(formattedTokens);
-        
+
         // Calculate LP tokens that will be minted
         // For CULT and other special pools, we need to fetch the pool info for the specific pool
         if (halfEthAmount > 0n && estimatedTokens > 0n) {
@@ -267,7 +267,7 @@ export const SingleEthLiquidity = () => {
             // Use the same address and ABI we used above for fetching reserves
             const poolAddress = isCookbook ? CookbookAddress : ZAMMAddress;
             const poolAbi = isCookbook ? CookbookAbi : ZAMMAbi;
-            
+
             // Fetch pool info for the specific pool being used
             const poolInfoResult = await publicClient?.readContract({
               address: poolAddress,
@@ -275,19 +275,19 @@ export const SingleEthLiquidity = () => {
               functionName: "pools",
               args: [poolId],
             });
-            
+
             if (poolInfoResult) {
               const poolData = poolInfoResult as unknown as readonly bigint[];
               const totalSupply = poolData[6] as bigint; // Total LP supply at index 6
-              
+
               if (totalSupply > 0n && targetReserves.reserve0 > 0n && targetReserves.reserve1 > 0n) {
                 // From AMM: liquidity = min(mulDiv(amount0, supply, reserve0), mulDiv(amount1, supply, reserve1))
                 const lpFromEth = (halfEthAmount * totalSupply) / targetReserves.reserve0;
                 const lpFromToken = (estimatedTokens * totalSupply) / targetReserves.reserve1;
                 const lpTokensToMint = lpFromEth < lpFromToken ? lpFromEth : lpFromToken;
-                
+
                 setEstimatedLpTokens(formatUnits(lpTokensToMint, 18));
-                
+
                 // Calculate pool share percentage
                 const newTotalSupply = totalSupply + lpTokensToMint;
                 const poolShareBps = (lpTokensToMint * 10000n) / newTotalSupply;
