@@ -54,8 +54,6 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker, ethUsdPrice
     gcTime: 300000, // Keep in cache for 5 minutes (formerly cacheTime)
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    // Disable refetching while showing price impact
-    enabled: !priceImpact,
   });
 
   // Time range presets
@@ -213,7 +211,6 @@ const TVPriceChart: React.FC<{
   const chartTheme = useChartTheme();
   const [isChartReady, setIsChartReady] = useState(false);
   const lastValidDataRef = useRef<Array<{ time: UTCTimestamp; value: number }>>();
-  const hasActiveImpactRef = useRef(false);
 
   useLayoutEffect(() => {
     const container = containerRef.current;
@@ -313,11 +310,6 @@ const TVPriceChart: React.FC<{
 
   useEffect(() => {
     if (!priceSeriesRef.current || !isChartReady) return;
-
-    // Skip updating if we have an active price impact visualization
-    if (hasActiveImpactRef.current) {
-      return;
-    }
 
     // If no data, show last valid data if available
     if (priceData.length === 0) {
@@ -421,66 +413,27 @@ const TVPriceChart: React.FC<{
     }
   }, [priceData, showUsd, ethUsdPrice, t, isChartReady]);
 
-  // Reset impact flag when priceImpact is removed
-  useEffect(() => {
-    if (!priceImpact) {
-      hasActiveImpactRef.current = false;
-    }
-  }, [priceImpact]);
-
   // Update price impact visualization
   useEffect(() => {
-    if (!chartRef.current || !priceSeriesRef.current || !isChartReady) {
+    if (!priceSeriesRef.current || !isChartReady || !lastValidDataRef.current || lastValidDataRef.current.length === 0) {
       return;
     }
 
-    // Clean up previous visualizations
-    if ((priceSeriesRef.current as any)._impactPriceLine) {
-      try {
-        priceSeriesRef.current.removePriceLine((priceSeriesRef.current as any)._impactPriceLine);
-        (priceSeriesRef.current as any)._impactPriceLine = undefined;
-      } catch (e) {
-        // Ignore errors
-      }
-    }
+    // Get current data
+    const currentData = [...lastValidDataRef.current];
+    
+    if (priceImpact) {
+      // Calculate the projected price point
+      const lastDataPoint = currentData[currentData.length - 1];
+      if (!lastDataPoint) return;
 
-    if (impactSeriesRef.current) {
-      try {
-        if ((impactSeriesRef.current as any)._connectionSeries) {
-          chartRef.current.removeSeries((impactSeriesRef.current as any)._connectionSeries);
-        }
-        chartRef.current.removeSeries(impactSeriesRef.current);
-        impactSeriesRef.current = undefined;
-      } catch (e) {
-        // Ignore errors
-      }
-    }
-
-    // Exit if no price impact data
-    if (!priceImpact || !lastValidDataRef.current || lastValidDataRef.current.length === 0) {
-      hasActiveImpactRef.current = false;
-      return;
-    }
-
-    try {
-      // Get the last data point
-      const lastDataPoint = lastValidDataRef.current[lastValidDataRef.current.length - 1];
-      if (!lastDataPoint) {
-        return;
-      }
-
-      // The chart shows ETH/CULT price (how many CULT per 1 ETH)
-      // priceImpact.projectedPrice is the CULT price in ETH
-      // So we calculate: 1 / priceImpact.projectedPrice to get CULT per ETH
       let projectedChartValue: number;
       
       if (showUsd && ethUsdPrice && ethUsdPrice > 0) {
-        // When showing USD, we display CULT/USD price
-        // Convert CULT price from ETH to USD
+        // When showing USD, display CULT/USD price
         projectedChartValue = priceImpact.projectedPrice * ethUsdPrice;
       } else {
-        // When showing ETH, we display ETH/CULT (how many CULT per 1 ETH)
-        // So we need the reciprocal of the CULT price in ETH
+        // When showing ETH, display ETH/CULT (how many CULT per 1 ETH)
         projectedChartValue = 1 / priceImpact.projectedPrice;
       }
 
@@ -490,89 +443,47 @@ const TVPriceChart: React.FC<{
         return;
       }
 
-      // Create a marker series for the impact point
-      impactSeriesRef.current = chartRef.current.addSeries(LineSeries, {
-        color: priceImpact.impactPercent > 0 ? "#4ade80" : "#f87171",
-        lineWidth: 3,
-        lastValueVisible: true,
-        crosshairMarkerVisible: true,
-        priceLineVisible: false,
-        priceFormat: {
-          type: "price",
-          precision: showUsd ? 8 : 10,
-          minMove: showUsd ? 0.00000001 : 0.000000001,
-        } as PriceFormatBuiltIn,
-      } as LineSeriesOptions);
+      // Add the projected point to the data
+      const projectedTime = (lastDataPoint.time + 60) as UTCTimestamp;
+      const dataWithImpact = [
+        ...currentData,
+        {
+          time: projectedTime,
+          value: projectedChartValue,
+        },
+      ];
 
-      // Add a single point for the projected price
-      const projectedTime = (lastDataPoint.time + 60) as UTCTimestamp; // 1 minute in the future
+      // Update the chart with the new data
+      priceSeriesRef.current.setData(dataWithImpact);
+
+      // Add a price line at the projected value
+      if ((priceSeriesRef.current as any)._impactPriceLine) {
+        priceSeriesRef.current.removePriceLine((priceSeriesRef.current as any)._impactPriceLine);
+      }
       
-      // Create a point marker by using a very short line
-      impactSeriesRef.current.setData([{
-        time: projectedTime,
-        value: projectedChartValue,
-      }, {
-        time: (projectedTime + 1) as UTCTimestamp,
-        value: projectedChartValue,
-      }]);
-      
-      // Add a dashed line from current to projected price
-      const connectionSeries = chartRef.current.addSeries(LineSeries, {
-        color: priceImpact.impactPercent > 0 ? "#4ade80" : "#f87171",
-        lineWidth: 1,
-        lineStyle: 2, // Dashed
-        priceLineVisible: false,
-        lastValueVisible: false,
-        crosshairMarkerVisible: false,
-      } as LineSeriesOptions);
-      
-      connectionSeries.setData([
-        { time: lastDataPoint.time, value: lastDataPoint.value },
-        { time: projectedTime, value: projectedChartValue },
-      ]);
-      
-      // Store reference for cleanup
-      (impactSeriesRef.current as any)._connectionSeries = connectionSeries;
-      
-      // Add a horizontal price line at the projected value
       const priceLine = priceSeriesRef.current.createPriceLine({
         price: projectedChartValue,
         color: priceImpact.impactPercent > 0 ? '#4ade80' : '#f87171',
         lineWidth: 1,
         lineStyle: 2,
         axisLabelVisible: true,
-        title: showUsd ? `$${projectedChartValue.toFixed(8)}` : `${projectedChartValue.toFixed(2)} CULT`,
+        title: `${priceImpact.impactPercent > 0 ? '+' : ''}${priceImpact.impactPercent.toFixed(2)}%`,
       });
       
       (priceSeriesRef.current as any)._impactPriceLine = priceLine;
-      
-      // Mark that we have an active impact visualization
-      hasActiveImpactRef.current = true;
-      
-      // Slightly adjust view to include the projected point
-      const visibleRange = chartRef.current.timeScale().getVisibleRange();
-      if (visibleRange) {
-        const extendedTo = Math.max(visibleRange.to as number, projectedTime + 60) as UTCTimestamp;
-        chartRef.current.timeScale().setVisibleRange({
-          from: visibleRange.from,
-          to: extendedTo,
-        });
-      }
-    } catch (error) {
-      console.error("Error adding price impact visualization:", error);
-      hasActiveImpactRef.current = false;
-      // Clean up on error
-      if (impactSeriesRef.current && chartRef.current) {
+    } else {
+      // Remove price line if it exists
+      if ((priceSeriesRef.current as any)._impactPriceLine) {
         try {
-          if ((impactSeriesRef.current as any)._connectionSeries) {
-            chartRef.current.removeSeries((impactSeriesRef.current as any)._connectionSeries);
-          }
-          chartRef.current.removeSeries(impactSeriesRef.current);
-          impactSeriesRef.current = undefined;
+          priceSeriesRef.current.removePriceLine((priceSeriesRef.current as any)._impactPriceLine);
+          (priceSeriesRef.current as any)._impactPriceLine = undefined;
         } catch (e) {
-          // Ignore cleanup errors
+          // Ignore errors
         }
       }
+      
+      // Restore original data
+      priceSeriesRef.current.setData(currentData);
     }
   }, [priceImpact, showUsd, ethUsdPrice, isChartReady]);
 
