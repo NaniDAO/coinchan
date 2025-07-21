@@ -217,6 +217,18 @@ const TVPriceChart: React.FC<{
     if (!container) return;
 
     try {
+      // Clean up any existing chart first
+      if (chartRef.current) {
+        try {
+          chartRef.current.remove();
+        } catch (e) {
+          console.error("Error removing existing chart:", e);
+        }
+        chartRef.current = undefined;
+        priceSeriesRef.current = undefined;
+        impactSeriesRef.current = undefined;
+      }
+
       // Create chart
       const chart = createChart(container, {
         layout: {
@@ -251,9 +263,29 @@ const TVPriceChart: React.FC<{
 
       setIsChartReady(true);
 
+      // Handle window resize
+      const handleResize = () => {
+        if (chartRef.current && container) {
+          try {
+            chartRef.current.applyOptions({
+              width: container.clientWidth,
+            });
+          } catch (e) {
+            console.error("Error resizing chart:", e);
+          }
+        }
+      };
+
+      window.addEventListener('resize', handleResize);
+
       return () => {
+        window.removeEventListener('resize', handleResize);
         setIsChartReady(false);
-        chart.remove();
+        try {
+          chart.remove();
+        } catch (e) {
+          console.error("Error cleaning up chart:", e);
+        }
       };
     } catch (error) {
       console.error("Failed to create chart:", error);
@@ -383,31 +415,28 @@ const TVPriceChart: React.FC<{
 
   // Update price impact visualization
   useEffect(() => {
-    if (!chartRef.current || !priceSeriesRef.current || !isChartReady) {
-      // Remove impact series if chart not ready
-      if (impactSeriesRef.current && chartRef.current) {
-        try {
-          chartRef.current.removeSeries(impactSeriesRef.current);
-          impactSeriesRef.current = undefined;
-        } catch (e) {
-          console.error("Failed to remove impact series:", e);
-        }
-      }
+    if (!chartRef.current || !priceSeriesRef.current || !isChartReady || !lastValidDataRef.current) {
       return;
+    }
+
+    // Remove previous price line if it exists
+    if ((priceSeriesRef.current as any)._impactPriceLine) {
+      try {
+        priceSeriesRef.current.removePriceLine((priceSeriesRef.current as any)._impactPriceLine);
+        (priceSeriesRef.current as any)._impactPriceLine = undefined;
+      } catch (e) {
+        // Ignore errors
+      }
     }
 
     // Remove impact series if no price impact data
     if (!priceImpact) {
       if (impactSeriesRef.current) {
         try {
-          // Remove price line if it exists
-          if ((impactSeriesRef.current as any)._priceLine) {
-            impactSeriesRef.current.removePriceLine((impactSeriesRef.current as any)._priceLine);
-          }
           chartRef.current.removeSeries(impactSeriesRef.current);
           impactSeriesRef.current = undefined;
         } catch (e) {
-          console.error("Failed to remove impact series:", e);
+          // Ignore errors
         }
       }
       return;
@@ -415,7 +444,8 @@ const TVPriceChart: React.FC<{
 
     try {
       // Get the last data point from the current series
-      const lastDataPoint = lastValidDataRef.current?.[lastValidDataRef.current.length - 1];
+      const currentData = [...lastValidDataRef.current];
+      const lastDataPoint = currentData[currentData.length - 1];
       if (!lastDataPoint) {
         console.warn("No last data point available for price impact visualization");
         return;
@@ -424,11 +454,11 @@ const TVPriceChart: React.FC<{
       // Calculate projected value based on display mode
       let projectedValue: number;
       if (showUsd && ethUsdPrice && ethUsdPrice > 0) {
-        // Already in USD
-        projectedValue = priceImpact.projectedPrice;
+        // Convert price impact to USD
+        projectedValue = priceImpact.projectedPrice * ethUsdPrice;
       } else {
-        // Convert from USD to ETH price
-        projectedValue = priceImpact.projectedPrice / (ethUsdPrice || 1);
+        // Use ETH price
+        projectedValue = priceImpact.projectedPrice;
       }
 
       // Validate projected value
@@ -440,25 +470,20 @@ const TVPriceChart: React.FC<{
       // Remove existing impact series if it exists
       if (impactSeriesRef.current) {
         try {
-          // Remove price line if it exists
-          if ((impactSeriesRef.current as any)._priceLine) {
-            impactSeriesRef.current.removePriceLine((impactSeriesRef.current as any)._priceLine);
-          }
           chartRef.current.removeSeries(impactSeriesRef.current);
         } catch (e) {
-          // Series might already be removed
+          // Ignore errors
         }
       }
 
-      // Create new impact series with subtle dashed line
+      // Create impact series for the projection line only
       impactSeriesRef.current = chartRef.current.addSeries(LineSeries, {
         color: priceImpact.impactPercent > 0 ? "#4ade80" : "#f87171", // green or red
-        lineWidth: 1,
+        lineWidth: 2,
         lineStyle: 2, // Dashed line
-        priceLineVisible: true,
-        lastValueVisible: true,
-        crosshairMarkerVisible: false,
-        title: "",
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: true,
         priceFormat: {
           type: "price",
           precision: showUsd ? 8 : 10,
@@ -466,10 +491,10 @@ const TVPriceChart: React.FC<{
         } as PriceFormatBuiltIn,
       } as LineSeriesOptions);
 
-      // Create impact visualization with a subtle line from current to projected price
-      const projectedTime = (lastDataPoint.time + 60) as UTCTimestamp; // 1 minute into the future
+      // Create a projection from the last point
+      const projectedTime = (lastDataPoint.time + 300) as UTCTimestamp; // 5 minutes into the future
       
-      // Create a short line from current price to projected price
+      // Set only the projection line data
       const impactData = [
         { 
           time: lastDataPoint.time, 
@@ -483,8 +508,8 @@ const TVPriceChart: React.FC<{
       
       impactSeriesRef.current.setData(impactData);
       
-      // Add a price line at the projected value
-      const priceLine = impactSeriesRef.current.createPriceLine({
+      // Add a price line at the projected value on the main series
+      const priceLine = priceSeriesRef.current.createPriceLine({
         price: projectedValue,
         color: priceImpact.impactPercent > 0 ? '#4ade80' : '#f87171',
         lineWidth: 1,
@@ -494,19 +519,21 @@ const TVPriceChart: React.FC<{
       });
       
       // Store price line reference for cleanup
-      (impactSeriesRef.current as any)._priceLine = priceLine;
+      (priceSeriesRef.current as any)._impactPriceLine = priceLine;
       
-      // Ensure the chart shows both current and projected points
-      chartRef.current.timeScale().fitContent();
+      // Adjust time scale to show the projection without losing current view
+      const visibleRange = chartRef.current.timeScale().getVisibleRange();
+      if (visibleRange) {
+        chartRef.current.timeScale().setVisibleRange({
+          from: visibleRange.from,
+          to: Math.max(visibleRange.to as number, projectedTime) as UTCTimestamp,
+        });
+      }
     } catch (error) {
       console.error("Error adding price impact visualization:", error);
       // Clean up on error
       if (impactSeriesRef.current && chartRef.current) {
         try {
-          // Remove price line if it exists
-          if ((impactSeriesRef.current as any)._priceLine) {
-            impactSeriesRef.current.removePriceLine((impactSeriesRef.current as any)._priceLine);
-          }
           chartRef.current.removeSeries(impactSeriesRef.current);
           impactSeriesRef.current = undefined;
         } catch (e) {

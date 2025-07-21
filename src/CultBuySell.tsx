@@ -1621,7 +1621,7 @@ export const CultBuySell = () => {
                     onClick={executeSwap}
                     disabled={!isConnected || isPending || !amount || parseFloat(amount) <= 0}
                     variant="default"
-                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-mono transition-all duration-300 py-4 text-base border border-primary/50"
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground dark:text-primary-foreground font-mono transition-all duration-300 py-4 text-base border border-primary/50"
                   >
                     {isPending ? (
                       <span className="flex items-center gap-2">
@@ -1732,7 +1732,7 @@ export const CultBuySell = () => {
                     onClick={executeSwap}
                     disabled={!isConnected || isPending || !amount || parseFloat(amount) <= 0}
                     variant="outline"
-                    className="w-full border border-red-600/50 text-red-400 hover:bg-red-900/20 hover:border-red-500 transition-all duration-300 py-4 text-base font-mono"
+                    className="w-full border border-red-600/50 text-red-600 dark:text-red-400 hover:bg-red-900/20 hover:border-red-500 transition-all duration-300 py-4 text-base font-mono"
                   >
                     {isPending ? (
                       <span className="flex items-center gap-2">
@@ -1844,7 +1844,7 @@ export const CultBuySell = () => {
                   onClick={executeAddLiquidity}
                   disabled={!isConnected || isPending || !liquidityEthAmount || !liquidityCultAmount}
                   variant="default"
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold transition-all duration-300 shadow-lg shadow-primary/30"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground dark:text-primary-foreground font-bold transition-all duration-300 shadow-lg shadow-primary/30"
                 >
                   {isPending ? (
                     <span className="flex items-center gap-2">
@@ -1967,7 +1967,7 @@ export const CultBuySell = () => {
                   onClick={executeRemoveLiquidity}
                   disabled={!isConnected || isPending || !lpBurnAmount || parseFloat(lpBurnAmount) <= 0}
                   variant="default"
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold transition-all duration-300 shadow-lg shadow-primary/30"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground dark:text-primary-foreground font-bold transition-all duration-300 shadow-lg shadow-primary/30"
                 >
                   {isPending ? (
                     <span className="flex items-center gap-2">
