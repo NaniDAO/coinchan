@@ -367,6 +367,17 @@ const TVPriceChart: React.FC<{
         // Store the base data
         lastValidDataRef.current = points;
         
+        // Log some sample data to understand the format
+        if (points.length > 0) {
+          console.log('Historical data sample:', {
+            firstPoint: points[0],
+            lastPoint: points[points.length - 1],
+            dataLength: points.length,
+            showUsd,
+            mode: showUsd ? 'USD' : 'ETH/CULT'
+          });
+        }
+        
         // Build the data to display
         let displayData = [...points];
         
@@ -374,28 +385,81 @@ const TVPriceChart: React.FC<{
         if (priceImpact && priceImpact.projectedPrice > 0) {
           const lastPoint = points[points.length - 1];
           if (lastPoint) {
+            console.log('Price impact calculation:', {
+              mode: showUsd ? 'USD' : 'ETH',
+              projectedPrice: priceImpact.projectedPrice,
+              ethUsdPrice,
+              lastPointValue: lastPoint.value,
+              impactPercent: priceImpact.impactPercent
+            });
+            
             let projectedValue: number;
             
             if (showUsd && ethUsdPrice && ethUsdPrice > 0) {
               projectedValue = priceImpact.projectedPrice * ethUsdPrice;
             } else {
-              projectedValue = 1 / priceImpact.projectedPrice;
+              // Try without inverting first to see if that's the issue
+              projectedValue = priceImpact.projectedPrice;
+              console.log('Testing without inversion:', {
+                directValue: projectedValue,
+                invertedValue: 1 / priceImpact.projectedPrice,
+                lastPointValue: lastPoint.value
+              });
+              
+              // If the direct value is way off from lastPoint.value, use inverted
+              const directRatio = projectedValue / lastPoint.value;
+              const invertedRatio = (1 / priceImpact.projectedPrice) / lastPoint.value;
+              
+              console.log('Ratios:', {
+                directRatio,
+                invertedRatio,
+                directDiff: Math.abs(1 - directRatio),
+                invertedDiff: Math.abs(1 - invertedRatio)
+              });
+              
+              // Use the value that's closer to the last point
+              if (Math.abs(1 - invertedRatio) < Math.abs(1 - directRatio)) {
+                projectedValue = 1 / priceImpact.projectedPrice;
+                console.log('Using inverted value');
+              } else {
+                console.log('Using direct value');
+              }
             }
+            
+            console.log('Final calculated values:', {
+              projectedValue,
+              lastValue: lastPoint.value,
+              ratio: projectedValue / lastPoint.value,
+              percentDiff: ((projectedValue - lastPoint.value) / lastPoint.value * 100).toFixed(2) + '%'
+            });
 
             if (isFinite(projectedValue) && projectedValue > 0) {
-              // Use current timestamp for the projected point
-              const currentTime = Math.floor(Date.now() / 1000);
+              // Place the projected point just after the last historical point
+              // This avoids time gaps that might confuse the chart
+              const projectedTime = lastPoint.time + 1; // Just 1 second after
               displayData.push({
-                time: currentTime as UTCTimestamp,
+                time: projectedTime as UTCTimestamp,
                 value: projectedValue,
               });
+              console.log('Added projected point at time:', projectedTime);
+            } else {
+              console.error('Invalid projected value:', projectedValue);
             }
           }
         }
         
         // Update the chart
+        console.log(`Setting ${displayData.length} points to chart (${points.length} historical + ${displayData.length - points.length} projected)`);
         priceSeriesRef.current.setData(displayData);
-        chartRef.current?.timeScale().fitContent();
+        
+        // Make sure we see all the data
+        if (chartRef.current) {
+          chartRef.current.timeScale().fitContent();
+          
+          // Also log the visible range
+          const visibleRange = chartRef.current.timeScale().getVisibleRange();
+          console.log('Visible range after fitContent:', visibleRange);
+        }
       }
     } catch (error) {
       console.error("Error updating chart:", error);
