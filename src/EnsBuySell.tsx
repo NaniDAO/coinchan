@@ -8,7 +8,6 @@ import { ConnectMenu } from "./ConnectMenu";
 import { useETHPrice } from "./hooks/use-eth-price";
 import { SwapPanel } from "./components/SwapPanel";
 import PoolPriceChart from "./components/PoolPriceChart";
-import { computePoolId } from "./lib/swap";
 import { ChevronDownIcon } from "lucide-react";
 import { 
   type TokenMeta, 

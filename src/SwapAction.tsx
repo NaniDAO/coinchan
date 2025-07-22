@@ -364,8 +364,6 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
         }
 
         // Calculate prices - ETH per token with higher precision
-        const tokenDecimals = isSellETH ? (buyToken?.decimals || 18) : (sellToken?.decimals || 18);
-        
         // Use BigInt math for better precision
         const scaleFactor = BigInt(10) ** BigInt(18);
         const currentPrice = (reserve0 * scaleFactor) / reserve1;
