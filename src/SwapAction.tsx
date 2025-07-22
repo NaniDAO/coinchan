@@ -324,7 +324,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
         const reserve0 = reserves.reserve0;
         const reserve1 = reserves.reserve1;
         
-        if (reserve0 === 0n || reserve1 === 0n) {
+        if (!reserve0 || !reserve1 || reserve0 === 0n || reserve1 === 0n) {
           setPriceImpact(null);
           return;
         }
@@ -337,7 +337,9 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
           // Selling ETH for token
           try {
             const swapAmountEth = parseEther(sellAmt || "0");
-            const buyTokenSwapFee = buyToken?.swapFee ?? SWAP_FEE;
+            // For ENS and other custom pools, use their specific swap fee
+            // ENS uses 30n (0.3%) fee specifically
+            const buyTokenSwapFee = buyToken?.symbol === "ENS" ? 30n : (buyToken?.swapFee ?? SWAP_FEE);
             const amountOut = getAmountOut(swapAmountEth, reserve0, reserve1, buyTokenSwapFee);
             
             if (amountOut >= reserve1) {
@@ -359,7 +361,8 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
           try {
             const sellTokenDecimals = sellToken?.decimals || 18;
             const swapAmountToken = parseUnits(sellAmt || "0", sellTokenDecimals);
-            const sellTokenSwapFee = sellToken?.swapFee ?? SWAP_FEE;
+            // ENS uses 30n (0.3%) fee specifically
+            const sellTokenSwapFee = sellToken?.symbol === "ENS" ? 30n : (sellToken?.swapFee ?? SWAP_FEE);
             const amountOut = getAmountOut(swapAmountToken, reserve1, reserve0, sellTokenSwapFee);
             
             if (amountOut >= reserve0) {
@@ -433,7 +436,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
     }, 500); // 500ms debounce
 
     return () => clearTimeout(timer);
-  }, [sellAmt, reserves, isSellETH, sellToken, buyToken, isCoinToCoin]);
+  }, [sellAmt, reserves, isSellETH, sellToken, buyToken, isCoinToCoin, isENSPool]);
 
   const executeSwap = async () => {
     try {
