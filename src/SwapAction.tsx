@@ -1062,7 +1062,7 @@ export const SwapAction = () => {
               </span>
               {priceImpact && (
                 <span 
-                  className={`text-xs font-medium ${\
+                  className={`text-xs font-medium ${
                     priceImpact.impactPercent > 0 ? "text-green-600" : "text-red-600"
                   }`}
                 >
