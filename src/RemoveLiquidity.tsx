@@ -191,12 +191,16 @@ export const RemoveLiquidity = () => {
     try {
       // Calculate the pool ID - different method for custom pools
       const isUsingCult = sellToken?.symbol === "CULT" || buyToken?.symbol === "CULT";
+      const isUsingEns = sellToken?.symbol === "ENS" || buyToken?.symbol === "ENS";
       const customPoolUsed = sellToken?.isCustomPool || buyToken?.isCustomPool;
       let poolId;
 
       if (isUsingCult) {
         // Use the specific CULT pool ID
         poolId = CULT_POOL_ID;
+      } else if (isUsingEns) {
+        // Use the specific ENS pool ID
+        poolId = 107895081322979037665933919470752294545033231002190305779392467929211865476585n;
       } else if (customPoolUsed) {
         // Use the custom token's poolId if available
         const customToken = sellToken?.isCustomPool ? sellToken : buyToken;
@@ -216,7 +220,7 @@ export const RemoveLiquidity = () => {
       }
 
       // Determine which ZAMM address to use for pool info lookup
-      const isCookbook = isUsingCult ? true : customPoolUsed ? false : isCookbookCoin(coinId);
+      const isCookbook = (isUsingCult || isUsingEns) ? true : customPoolUsed ? false : isCookbookCoin(coinId);
       const targetZAMMAddress = isCookbook ? CookbookAddress : ZAMMAddress;
       const targetZAMMAbi = isCookbook ? CookbookAbi : ZAMMAbi;
 
@@ -252,13 +256,14 @@ export const RemoveLiquidity = () => {
       // Log calculation details for debugging
       console.log("RemoveLiquidity calculation:", {
         isUsingCult,
+        isUsingEns,
         burnAmount: burnAmount.toString(),
         reserve0: reserves.reserve0.toString(),
         reserve1: reserves.reserve1.toString(),
         totalSupply: totalSupply.toString(),
         ethAmount: ethAmount.toString(),
         tokenAmount: tokenAmount.toString(),
-        tokenSymbol: isUsingCult ? "CULT" : sellToken?.symbol || buyToken?.symbol,
+        tokenSymbol: isUsingCult ? "CULT" : isUsingEns ? "ENS" : sellToken?.symbol || buyToken?.symbol,
       });
 
       // Sanity checks
@@ -272,11 +277,13 @@ export const RemoveLiquidity = () => {
       // Update the input fields with the calculated values
       setSellAmt(ethAmount === 0n ? "" : formatEther(ethAmount));
 
-      // Use the correct decimals for the token - handle CULT specifically
+      // Use the correct decimals for the token - handle CULT and ENS specifically
       let tokenDecimals = 18; // Default to 18 decimals
 
       if (isUsingCult) {
         tokenDecimals = 18; // CULT has 18 decimals
+      } else if (isUsingEns) {
+        tokenDecimals = 18; // ENS has 18 decimals
       } else if (customPoolUsed) {
         // For other custom pools (like USDT), use their actual decimals
         const customToken = sellToken?.isCustomPool ? sellToken : buyToken;
