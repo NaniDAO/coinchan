@@ -22,12 +22,11 @@ import { AddLiquidity } from "./AddLiquidity";
 import { RemoveLiquidity } from "./RemoveLiquidity";
 import { SingleEthLiquidity } from "./SingleEthLiquidity";
 import { useTokenSelection } from "./contexts/TokenSelectionContext";
-import { getAmountOut, withSlippage, nowSec, DEADLINE_SEC } from "./lib/swap";
-import { PercentageSlider } from "./components/ui/percentage-slider";
+import { getAmountOut, withSlippage, DEADLINE_SEC } from "./lib/swap";
+import { nowSec } from "./lib/utils";
 import { Button } from "./components/ui/button";
 import { LoadingLogo } from "./components/ui/loading-logo";
 import { useErc20Allowance } from "./hooks/use-erc20-allowance";
-import { formatNumber } from "./lib/utils";
 import { handleWalletError } from "./lib/errors";
 
 export const EnsBuySell = () => {
@@ -35,7 +34,7 @@ export const EnsBuySell = () => {
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient({ chainId: mainnet.id });
   const { data: ethPrice } = useETHPrice();
-  const { sellToken: contextSellToken, buyToken: contextBuyToken, setSellToken, setBuyToken } = useTokenSelection();
+  const { setSellToken, setBuyToken } = useTokenSelection();
   const [poolReserves, setPoolReserves] = useState<{
     reserve0: bigint;
     reserve1: bigint;
