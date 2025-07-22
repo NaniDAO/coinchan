@@ -264,15 +264,17 @@ const TVPriceChart: React.FC<{
       // Add impact series for projected price (dotted line)
       impactSeriesRef.current = chart.addSeries(LineSeries, {
         color: chartTheme.lineColor, // Will be updated based on buy/sell
-        lineWidth: 2,
+        lineWidth: 3, // Make it slightly thicker for visibility
         lineStyle: 2, // Dotted line
         priceLineVisible: false,
-        lastValueVisible: false,
+        lastValueVisible: true, // Show the last value
         priceFormat: {
           type: "price",
           precision: 10,
           minMove: 0.000000001,
         } as PriceFormatBuiltIn,
+        crosshairMarkerVisible: true,
+        crosshairMarkerRadius: 4,
       } as LineSeriesOptions);
 
       setIsChartReady(true);
@@ -399,52 +401,33 @@ const TVPriceChart: React.FC<{
         if (priceImpact && priceImpact.projectedPrice > 0) {
           const lastPoint = points[points.length - 1];
           if (lastPoint) {
-            console.log('Price impact calculation:', {
-              mode: showUsd ? 'USD' : 'ETH',
+            console.log('Price impact data:', {
+              action: priceImpact.action,
+              currentPrice: priceImpact.currentPrice,
               projectedPrice: priceImpact.projectedPrice,
-              ethUsdPrice,
+              impactPercent: priceImpact.impactPercent,
               lastPointValue: lastPoint.value,
-              impactPercent: priceImpact.impactPercent
+              showUsd
             });
             
             let projectedValue: number;
             
             if (showUsd && ethUsdPrice && ethUsdPrice > 0) {
+              // Convert ETH price to USD
               projectedValue = priceImpact.projectedPrice * ethUsdPrice;
             } else {
-              // Try without inverting first to see if that's the issue
+              // Use ETH price directly
               projectedValue = priceImpact.projectedPrice;
-              console.log('Testing without inversion:', {
-                directValue: projectedValue,
-                invertedValue: 1 / priceImpact.projectedPrice,
-                lastPointValue: lastPoint.value
-              });
-              
-              // If the direct value is way off from lastPoint.value, use inverted
-              const directRatio = projectedValue / lastPoint.value;
-              const invertedRatio = (1 / priceImpact.projectedPrice) / lastPoint.value;
-              
-              console.log('Ratios:', {
-                directRatio,
-                invertedRatio,
-                directDiff: Math.abs(1 - directRatio),
-                invertedDiff: Math.abs(1 - invertedRatio)
-              });
-              
-              // Use the value that's closer to the last point
-              if (Math.abs(1 - invertedRatio) < Math.abs(1 - directRatio)) {
-                projectedValue = 1 / priceImpact.projectedPrice;
-                console.log('Using inverted value');
-              } else {
-                console.log('Using direct value');
-              }
             }
             
-            console.log('Final calculated values:', {
+            console.log('Projected value calculation:', {
               projectedValue,
               lastValue: lastPoint.value,
-              ratio: projectedValue / lastPoint.value,
-              percentDiff: ((projectedValue - lastPoint.value) / lastPoint.value * 100).toFixed(2) + '%'
+              expectedChange: priceImpact.action === 'buy' ? 'increase' : 'decrease',
+              actualChange: projectedValue > lastPoint.value ? 'increase' : 'decrease',
+              percentDiff: ((projectedValue - lastPoint.value) / lastPoint.value * 100).toFixed(2) + '%',
+              isCorrectDirection: (priceImpact.action === 'buy' && projectedValue > lastPoint.value) || 
+                                 (priceImpact.action === 'sell' && projectedValue < lastPoint.value)
             });
 
             if (isFinite(projectedValue) && projectedValue > 0) {
@@ -463,7 +446,13 @@ const TVPriceChart: React.FC<{
               
               // Set the impact line data
               impactSeriesRef.current.setData(impactData);
-              console.log(`Added ${priceImpact.action} impact line with color ${impactColor}`);
+              console.log(`Added ${priceImpact.action} impact line with color ${impactColor}`, {
+                impactData,
+                linePoints: impactData.length,
+                fromValue: impactData[0].value,
+                toValue: impactData[1].value,
+                change: ((impactData[1].value - impactData[0].value) / impactData[0].value * 100).toFixed(2) + '%'
+              });
             } else {
               console.error('Invalid projected value:', projectedValue);
               // Clear impact series if invalid

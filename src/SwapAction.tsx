@@ -334,8 +334,23 @@ export const SwapAction = () => {
         }
 
         // Calculate prices - ETH per token
-        const currentPriceInEth = parseFloat(formatEther(reserve0)) / parseFloat(formatUnits(reserve1, sellToken?.decimals || 18));
-        const newPriceInEth = parseFloat(formatEther(newReserve0)) / parseFloat(formatUnits(newReserve1, sellToken?.decimals || 18));
+        const tokenDecimals = isSellETH ? (buyToken?.decimals || 18) : (sellToken?.decimals || 18);
+        const currentPriceInEth = parseFloat(formatEther(reserve0)) / parseFloat(formatUnits(reserve1, tokenDecimals));
+        const newPriceInEth = parseFloat(formatEther(newReserve0)) / parseFloat(formatUnits(newReserve1, tokenDecimals));
+        
+        console.log('SwapAction price impact calculation:', {
+          action,
+          isSellETH,
+          tokenSymbol: isSellETH ? buyToken?.symbol : sellToken?.symbol,
+          tokenDecimals,
+          reserve0: formatEther(reserve0),
+          reserve1: formatUnits(reserve1, tokenDecimals),
+          newReserve0: formatEther(newReserve0),
+          newReserve1: formatUnits(newReserve1, tokenDecimals),
+          currentPriceInEth,
+          newPriceInEth,
+          expectedChange: action === 'buy' ? 'price should increase' : 'price should decrease'
+        });
 
         // Validate calculated prices
         if (!isFinite(currentPriceInEth) || !isFinite(newPriceInEth) || newPriceInEth <= 0) {

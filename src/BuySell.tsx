@@ -271,6 +271,21 @@ export const BuySell = ({
         // Calculate prices - ETH per token
         const currentPriceInEth = parseFloat(formatEther(reserve0)) / parseFloat(formatUnits(reserve1, 18));
         const newPriceInEth = parseFloat(formatEther(newReserve0)) / parseFloat(formatUnits(newReserve1, 18));
+        
+        // For charting: when buying tokens (adding ETH), price goes up; when selling tokens (removing ETH), price goes down
+        const ethReserveChange = tab === 'buy' ? 'increase' : 'decrease';
+        
+        console.log('BuySell price impact calculation:', {
+          action: tab,
+          ethReserveChange,
+          reserve0: formatEther(reserve0),
+          reserve1: formatUnits(reserve1, 18),
+          newReserve0: formatEther(newReserve0),
+          newReserve1: formatUnits(newReserve1, 18),
+          currentPriceInEth,
+          newPriceInEth,
+          priceChange: newPriceInEth > currentPriceInEth ? 'up' : 'down'
+        });
 
         // Validate calculated prices
         if (!isFinite(currentPriceInEth) || !isFinite(newPriceInEth) || newPriceInEth <= 0) {

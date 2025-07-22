@@ -261,6 +261,17 @@ export const BuySellCookbookCoin = ({
         // Calculate prices - ETH per token
         const currentPriceInEth = parseFloat(formatEther(reserve0)) / parseFloat(formatUnits(reserve1, 18));
         const newPriceInEth = parseFloat(formatEther(newReserve0)) / parseFloat(formatUnits(newReserve1, 18));
+        
+        console.log('BuySellCookbookCoin price impact calculation:', {
+          action: tab,
+          reserve0: formatEther(reserve0),
+          reserve1: formatUnits(reserve1, 18),
+          newReserve0: formatEther(newReserve0),
+          newReserve1: formatUnits(newReserve1, 18),
+          currentPriceInEth,
+          newPriceInEth,
+          expectedChange: tab === 'buy' ? 'price should increase' : 'price should decrease'
+        });
 
         // Validate calculated prices
         if (!isFinite(currentPriceInEth) || !isFinite(newPriceInEth) || newPriceInEth <= 0) {
