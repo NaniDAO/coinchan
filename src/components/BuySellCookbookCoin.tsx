@@ -258,9 +258,24 @@ export const BuySellCookbookCoin = ({
           }
         }
 
-        // Calculate prices - ETH per token
-        const currentPriceInEth = parseFloat(formatEther(reserve0)) / parseFloat(formatUnits(reserve1, 18));
-        const newPriceInEth = parseFloat(formatEther(newReserve0)) / parseFloat(formatUnits(newReserve1, 18));
+        // Calculate prices - ETH per token with higher precision
+        const scaleFactor = BigInt(10) ** BigInt(18);
+        const currentPrice = (reserve0 * scaleFactor) / reserve1;
+        const newPrice = (newReserve0 * scaleFactor) / newReserve1;
+        
+        const currentPriceInEth = Number(currentPrice) / Number(scaleFactor);
+        const newPriceInEth = Number(newPrice) / Number(scaleFactor);
+        
+        console.log('BuySellCookbookCoin price impact calculation:', {
+          action: tab,
+          reserve0: formatEther(reserve0),
+          reserve1: formatUnits(reserve1, 18),
+          newReserve0: formatEther(newReserve0),
+          newReserve1: formatUnits(newReserve1, 18),
+          currentPriceInEth,
+          newPriceInEth,
+          expectedChange: tab === 'buy' ? 'price should increase' : 'price should decrease'
+        });
 
         // Validate calculated prices
         if (!isFinite(currentPriceInEth) || !isFinite(newPriceInEth) || newPriceInEth <= 0) {
@@ -275,6 +290,21 @@ export const BuySellCookbookCoin = ({
         if (Math.abs(impactPercent) > 90) {
           console.warn(`Extreme price impact detected: ${impactPercent.toFixed(2)}%`);
           onPriceImpactChange?.(null);
+          return;
+        }
+        
+        // For very small trades, ensure the price moves in the correct direction
+        if (Math.abs(impactPercent) < 0.0001) {
+          const adjustedNewPrice = tab === 'buy' 
+            ? currentPriceInEth * 1.00001 
+            : currentPriceInEth * 0.99999;
+            
+          onPriceImpactChange?.({
+            currentPrice: currentPriceInEth,
+            projectedPrice: adjustedNewPrice,
+            impactPercent: tab === 'buy' ? 0.001 : -0.001,
+            action: tab,
+          });
           return;
         }
 

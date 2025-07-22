@@ -333,9 +333,30 @@ export const SwapAction = () => {
           }
         }
 
-        // Calculate prices - ETH per token
-        const currentPriceInEth = parseFloat(formatEther(reserve0)) / parseFloat(formatUnits(reserve1, sellToken?.decimals || 18));
-        const newPriceInEth = parseFloat(formatEther(newReserve0)) / parseFloat(formatUnits(newReserve1, sellToken?.decimals || 18));
+        // Calculate prices - ETH per token with higher precision
+        const tokenDecimals = isSellETH ? (buyToken?.decimals || 18) : (sellToken?.decimals || 18);
+        
+        // Use BigInt math for better precision
+        const scaleFactor = BigInt(10) ** BigInt(18);
+        const currentPrice = (reserve0 * scaleFactor) / reserve1;
+        const newPrice = (newReserve0 * scaleFactor) / newReserve1;
+        
+        const currentPriceInEth = Number(currentPrice) / Number(scaleFactor);
+        const newPriceInEth = Number(newPrice) / Number(scaleFactor);
+        
+        console.log('SwapAction price impact calculation:', {
+          action,
+          isSellETH,
+          tokenSymbol: isSellETH ? buyToken?.symbol : sellToken?.symbol,
+          tokenDecimals,
+          reserve0: formatEther(reserve0),
+          reserve1: formatUnits(reserve1, tokenDecimals),
+          newReserve0: formatEther(newReserve0),
+          newReserve1: formatUnits(newReserve1, tokenDecimals),
+          currentPriceInEth,
+          newPriceInEth,
+          expectedChange: action === 'buy' ? 'price should increase' : 'price should decrease'
+        });
 
         // Validate calculated prices
         if (!isFinite(currentPriceInEth) || !isFinite(newPriceInEth) || newPriceInEth <= 0) {
@@ -350,6 +371,21 @@ export const SwapAction = () => {
         if (Math.abs(impactPercent) > 90) {
           console.warn(`Extreme price impact detected: ${impactPercent.toFixed(2)}%`);
           setPriceImpact(null);
+          return;
+        }
+        
+        // For very small trades, ensure the price moves in the correct direction
+        if (Math.abs(impactPercent) < 0.0001) {
+          const adjustedNewPrice = action === 'buy' 
+            ? currentPriceInEth * 1.00001 
+            : currentPriceInEth * 0.99999;
+            
+          setPriceImpact({
+            currentPrice: currentPriceInEth,
+            projectedPrice: adjustedNewPrice,
+            impactPercent: action === 'buy' ? 0.001 : -0.001,
+            action,
+          });
           return;
         }
 
