@@ -23,6 +23,7 @@ import { Route as CoinpaperRouteImport } from './routes/coinpaper'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UUserIdRouteImport } from './routes/u.$userId'
+import { Route as PPoolIdRouteImport } from './routes/p.$poolId'
 import { Route as CCoinIdRouteImport } from './routes/c.$coinId'
 
 const UserRoute = UserRouteImport.update({
@@ -95,6 +96,11 @@ const UUserIdRoute = UUserIdRouteImport.update({
   path: '/u/$userId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PPoolIdRoute = PPoolIdRouteImport.update({
+  id: '/p/$poolId',
+  path: '/p/$poolId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CCoinIdRoute = CCoinIdRouteImport.update({
   id: '/c/$coinId',
   path: '/c/$coinId',
@@ -116,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/swap': typeof SwapRoute
   '/user': typeof UserRoute
   '/c/$coinId': typeof CCoinIdRoute
+  '/p/$poolId': typeof PPoolIdRoute
   '/u/$userId': typeof UUserIdRoute
 }
 export interface FileRoutesByTo {
@@ -133,6 +140,7 @@ export interface FileRoutesByTo {
   '/swap': typeof SwapRoute
   '/user': typeof UserRoute
   '/c/$coinId': typeof CCoinIdRoute
+  '/p/$poolId': typeof PPoolIdRoute
   '/u/$userId': typeof UUserIdRoute
 }
 export interface FileRoutesById {
@@ -151,6 +159,7 @@ export interface FileRoutesById {
   '/swap': typeof SwapRoute
   '/user': typeof UserRoute
   '/c/$coinId': typeof CCoinIdRoute
+  '/p/$poolId': typeof PPoolIdRoute
   '/u/$userId': typeof UUserIdRoute
 }
 export interface FileRouteTypes {
@@ -170,6 +179,7 @@ export interface FileRouteTypes {
     | '/swap'
     | '/user'
     | '/c/$coinId'
+    | '/p/$poolId'
     | '/u/$userId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -187,6 +197,7 @@ export interface FileRouteTypes {
     | '/swap'
     | '/user'
     | '/c/$coinId'
+    | '/p/$poolId'
     | '/u/$userId'
   id:
     | '__root__'
@@ -204,6 +215,7 @@ export interface FileRouteTypes {
     | '/swap'
     | '/user'
     | '/c/$coinId'
+    | '/p/$poolId'
     | '/u/$userId'
   fileRoutesById: FileRoutesById
 }
@@ -222,6 +234,7 @@ export interface RootRouteChildren {
   SwapRoute: typeof SwapRoute
   UserRoute: typeof UserRoute
   CCoinIdRoute: typeof CCoinIdRoute
+  PPoolIdRoute: typeof PPoolIdRoute
   UUserIdRoute: typeof UUserIdRoute
 }
 
@@ -325,6 +338,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UUserIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/p/$poolId': {
+      id: '/p/$poolId'
+      path: '/p/$poolId'
+      fullPath: '/p/$poolId'
+      preLoaderRoute: typeof PPoolIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/c/$coinId': {
       id: '/c/$coinId'
       path: '/c/$coinId'
@@ -350,6 +370,7 @@ const rootRouteChildren: RootRouteChildren = {
   SwapRoute: SwapRoute,
   UserRoute: UserRoute,
   CCoinIdRoute: CCoinIdRoute,
+  PPoolIdRoute: PPoolIdRoute,
   UUserIdRoute: UUserIdRoute,
 }
 export const routeTree = rootRouteImport

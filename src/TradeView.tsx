@@ -129,16 +129,6 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
     );
   }
 
-  console.log("TradeView:", {
-    name,
-    symbol,
-    imageUrl,
-    description,
-    tokenURI,
-    poolIds: _poolIds,
-    swapFees,
-  });
-
   return (
     <div className="w-full mx-auto flex flex-col gap-4 px-2 py-4 pb-16 sm:p-6 sm:pb-16">
       <Link
@@ -184,10 +174,10 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
         }
       >
         <div>
-          <BuySell 
-            tokenId={tokenId} 
-            name={name} 
-            symbol={symbol} 
+          <BuySell
+            tokenId={tokenId}
+            name={name}
+            symbol={symbol}
             onPriceImpactChange={setPriceImpact}
           />
         </div>
