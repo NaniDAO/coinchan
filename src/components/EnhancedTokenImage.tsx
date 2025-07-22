@@ -209,6 +209,7 @@ export const EnhancedTokenImage = memo(
 
     const { bg, text } = getColorForSymbol(token.symbol);
     const isEthToken = token.id === null && token.symbol === "ETH";
+    const isEnsToken = token.id?.toLowerCase() === "0xc18360217d8f7ab5e7c516566761ea12ce7f9d72";
     const cacheKey = `${token.id ?? "eth"}-${token.symbol}`;
 
     const sizeClasses = {
@@ -258,6 +259,25 @@ export const EnhancedTokenImage = memo(
       return (
         <div className={`${sizeClasses[size]} flex items-center justify-center rounded-full bg-black`}>
           <EthereumIcon className="w-full h-full text-white p-1" />
+        </div>
+      );
+    }
+    
+    if (isEnsToken) {
+      const svgSizes = {
+        sm: "w-4 h-4",
+        default: "w-6 h-6",
+        lg: "w-8 h-8"
+      };
+      
+      return (
+        <div className={`${sizeClasses[size]} rounded-full overflow-hidden bg-white flex items-center justify-center`}>
+          <svg width="32" height="32" viewBox="0 0 202 231" fill="none" xmlns="http://www.w3.org/2000/svg" className={svgSizes[size]}>
+            <path d="M98.3592 2.80337L34.8353 107.327C34.3371 108.147 33.1797 108.238 32.5617 107.505C26.9693 100.864 6.13478 72.615 31.9154 46.8673C55.4403 23.3726 85.4045 6.62129 96.5096 0.831705C97.7695 0.174847 99.0966 1.59007 98.3592 2.80337Z" fill="#011A25"/>
+            <path d="M94.8459 230.385C96.1137 231.273 97.6758 229.759 96.8261 228.467C82.6374 206.886 35.4713 135.081 28.9559 124.302C22.5295 113.67 9.88976 96.001 8.83534 80.8842C8.7301 79.3751 6.64332 79.0687 6.11838 80.4879C5.27178 82.7767 4.37045 85.5085 3.53042 88.6292C-7.07427 128.023 8.32698 169.826 41.7753 193.238L94.8459 230.386V230.385Z" fill="#011A25"/>
+            <path d="M103.571 228.526L167.095 124.003C167.593 123.183 168.751 123.092 169.369 123.825C174.961 130.465 195.796 158.715 170.015 184.463C146.49 207.957 116.526 224.709 105.421 230.498C104.161 231.155 102.834 229.74 103.571 228.526Z" fill="#011A25"/>
+            <path d="M107.154 0.930762C105.886 0.0433954 104.324 1.5567 105.174 2.84902C119.363 24.4301 166.529 96.2354 173.044 107.014C179.471 117.646 192.11 135.315 193.165 150.432C193.27 151.941 195.357 152.247 195.882 150.828C196.728 148.539 197.63 145.808 198.47 142.687C209.074 103.293 193.673 61.4905 160.225 38.078L107.154 0.930762Z" fill="#011A25"/>
+          </svg>
         </div>
       );
     }
