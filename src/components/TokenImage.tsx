@@ -33,8 +33,8 @@ export const TokenImage = memo(
     // Check if this is the ETH token
     const isEthToken = token.id === null && token.symbol === "ETH";
     
-    // Check if this is the ENS token
-    const isEnsToken = token.id?.toLowerCase() === "0xc18360217d8f7ab5e7c516566761ea12ce7f9d72";
+    // Check if this is the ENS token (custom pool with ENS symbol)
+    const isEnsToken = token.isCustomPool && token.symbol === "ENS";
 
     // Cache images in sessionStorage to prevent repeated fetches
     const cacheKey = `token-image-${token.id ?? "eth"}-url`;

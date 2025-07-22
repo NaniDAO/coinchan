@@ -629,7 +629,7 @@ export const SwapAction = () => {
       
       // Special handling for ENS token which is an ERC20 at specific address
       const ENS_ADDRESS = "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72";
-      const isENS = (token: TokenMeta) => token.symbol === "ENS" || token.id?.toString() === ENS_ADDRESS.toLowerCase();
+      const isENS = (token: TokenMeta) => token.isCustomPool && token.symbol === "ENS";
 
       const tokenInAddress =
         sellToken.id === null

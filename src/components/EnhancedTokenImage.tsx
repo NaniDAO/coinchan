@@ -209,7 +209,7 @@ export const EnhancedTokenImage = memo(
 
     const { bg, text } = getColorForSymbol(token.symbol);
     const isEthToken = token.id === null && token.symbol === "ETH";
-    const isEnsToken = token.id?.toLowerCase() === "0xc18360217d8f7ab5e7c516566761ea12ce7f9d72";
+    const isEnsToken = token.isCustomPool && token.symbol === "ENS";
     const cacheKey = `${token.id ?? "eth"}-${token.symbol}`;
 
     const sizeClasses = {

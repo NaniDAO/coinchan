@@ -66,7 +66,7 @@ export async function buildSwapCalls(params: SwapParams & { publicClient: Public
   const isCoinToCoin = !isSellETH && !isBuyETH;
   const isUSDT = (tok: TokenMeta) => tok.isCustomPool && tok.symbol === "USDT";
   const isCULT = (tok: TokenMeta) => tok.isCustomPool && tok.symbol === "CULT";
-  const isENS = (tok: TokenMeta) => tok.symbol === "ENS" || tok.id?.toString() === ENS_ADDRESS.toLowerCase();
+  const isENS = (tok: TokenMeta) => tok.isCustomPool && tok.symbol === "ENS";
 
   // Check if this swap involves the CULT hook
   const isCultHookSwap = (isSellETH && isCULT(buyToken)) || (isCULT(sellToken) && isBuyETH);
@@ -152,7 +152,7 @@ export async function buildSwapCalls(params: SwapParams & { publicClient: Public
       address: ENS_ADDRESS,
       abi: erc20Abi,
       functionName: "allowance",
-      args: [address, ZAMMAddress],
+      args: [address, CookbookAddress],
     });
 
     // For exactOut, we need to approve the max amount we might spend
@@ -163,7 +163,7 @@ export async function buildSwapCalls(params: SwapParams & { publicClient: Public
         data: encodeFunctionData({
           abi: erc20Abi,
           functionName: "approve",
-          args: [ZAMMAddress, maxUint256],
+          args: [CookbookAddress, maxUint256],
         }) as Hex,
       });
     }
