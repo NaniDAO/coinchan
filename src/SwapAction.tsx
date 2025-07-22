@@ -34,7 +34,14 @@ import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import { SLIPPAGE_BPS, SWAP_FEE, analyzeTokens, getAmountIn, getAmountOut, getPoolIds, getSwapFee } from "./lib/swap";
 import { cn, formatNumber } from "./lib/utils";
 
-export const SwapAction = () => {
+interface SwapActionProps {
+  lockedTokens?: {
+    sellToken: TokenMeta;
+    buyToken: TokenMeta;
+  };
+}
+
+export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
   const { t } = useTranslation();
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
@@ -51,8 +58,22 @@ export const SwapAction = () => {
   const [customRecipient, setCustomRecipient] = useState<string>("");
   const [showRecipientInput, setShowRecipientInput] = useState(false);
 
-  // Use shared token selection context
-  const { sellToken, buyToken, setSellToken, setBuyToken, flipTokens } = useTokenSelection();
+  // Use shared token selection context, but override with locked tokens if provided
+  const tokenSelectionContext = useTokenSelection();
+  const { 
+    sellToken: contextSellToken, 
+    buyToken: contextBuyToken, 
+    setSellToken: contextSetSellToken, 
+    setBuyToken: contextSetBuyToken, 
+    flipTokens: contextFlipTokens 
+  } = tokenSelectionContext;
+  
+  // Use locked tokens if provided, otherwise use context
+  const sellToken = lockedTokens?.sellToken || contextSellToken;
+  const buyToken = lockedTokens?.buyToken || contextBuyToken;
+  const setSellToken = lockedTokens ? () => {} : contextSetSellToken;
+  const setBuyToken = lockedTokens ? () => {} : contextSetBuyToken;
+  const flipTokens = lockedTokens ? () => {} : contextFlipTokens;
 
   /* Limit order specific state */
   const [swapMode, setSwapMode] = useState<"instant" | "limit">("instant");
@@ -80,9 +101,13 @@ export const SwapAction = () => {
     isCoinToCoin: isCoinToCoin,
   });
 
+  // Special handling for ENS to ensure reserves are always fetched correctly
+  const isENSPool = sellToken?.symbol === "ENS" || buyToken?.symbol === "ENS";
+  const ensPoolId = isENSPool ? 107895081322979037665933919470752294545033231002190305779392467929211865476585n : undefined;
+  
   const { data: reserves } = useReserves({
-    poolId: mainPoolId,
-    source: sellToken?.id === null ? buyToken?.source : sellToken.source,
+    poolId: isENSPool ? ensPoolId : mainPoolId,
+    source: isENSPool ? "COOKBOOK" : (sellToken?.id === null ? buyToken?.source : sellToken.source),
   });
   const { data: targetReserves } = useReserves({
     poolId: targetPoolId,
@@ -134,7 +159,14 @@ export const SwapAction = () => {
     // Reset recipient input
     setCustomRecipient("");
     setShowRecipientInput(false);
-  }, [sellToken.id, buyToken?.id]);
+    
+    // Set 10% slippage for ENS pools, default for others
+    if (sellToken?.symbol === "ENS" || buyToken?.symbol === "ENS") {
+      setSlippageBps(1000n); // 10%
+    } else {
+      setSlippageBps(SLIPPAGE_BPS); // Default 5%
+    }
+  }, [sellToken.id, buyToken?.id, sellToken?.symbol, buyToken?.symbol]);
 
   useEffect(() => {
     if (tokens.length && sellToken.id === null /* ETH */) {
@@ -269,7 +301,12 @@ export const SwapAction = () => {
 
   // Calculate price impact for swap visualization
   useEffect(() => {
-    if (!reserves || !sellAmt || parseFloat(sellAmt) === 0 || isCoinToCoin) {
+    // For ENS swaps, always calculate price impact since they're direct ETH swaps
+    const isENSSwap = sellToken?.symbol === "ENS" || buyToken?.symbol === "ENS";
+    const isCULTSwap = sellToken?.symbol === "CULT" || buyToken?.symbol === "CULT";
+    const isCustomDirectSwap = isENSSwap || isCULTSwap;
+    
+    if (!reserves || !sellAmt || parseFloat(sellAmt) === 0 || (isCoinToCoin && !isCustomDirectSwap)) {
       setPriceImpact(null);
       return;
     }
@@ -334,8 +371,6 @@ export const SwapAction = () => {
         }
 
         // Calculate prices - ETH per token with higher precision
-        const tokenDecimals = isSellETH ? (buyToken?.decimals || 18) : (sellToken?.decimals || 18);
-        
         // Use BigInt math for better precision
         const scaleFactor = BigInt(10) ** BigInt(18);
         const currentPrice = (reserve0 * scaleFactor) / reserve1;
@@ -344,19 +379,6 @@ export const SwapAction = () => {
         const currentPriceInEth = Number(currentPrice) / Number(scaleFactor);
         const newPriceInEth = Number(newPrice) / Number(scaleFactor);
         
-        console.log('SwapAction price impact calculation:', {
-          action,
-          isSellETH,
-          tokenSymbol: isSellETH ? buyToken?.symbol : sellToken?.symbol,
-          tokenDecimals,
-          reserve0: formatEther(reserve0),
-          reserve1: formatUnits(reserve1, tokenDecimals),
-          newReserve0: formatEther(newReserve0),
-          newReserve1: formatUnits(newReserve1, tokenDecimals),
-          currentPriceInEth,
-          newPriceInEth,
-          expectedChange: action === 'buy' ? 'price should increase' : 'price should decrease'
-        });
 
         // Validate calculated prices
         if (!isFinite(currentPriceInEth) || !isFinite(newPriceInEth) || newPriceInEth <= 0) {
@@ -887,17 +909,20 @@ export const SwapAction = () => {
           }}
           showPercentageSlider={lastEditedField === "sell"}
           className="pb-4"
+          readOnly={!!lockedTokens}
         />
 
         {/* FLIP button - absolutely positioned */}
-        <div
-          className={cn(
-            "absolute left-1/2 -translate-x-1/2 z-10",
-            !!(sellToken.balance && sellToken.balance > 0n) ? "top-[63%]" : "top-[50%]",
-          )}
-        >
-          <FlipActionButton onClick={handleFlipTokens} className="" />
-        </div>
+        {!lockedTokens && (
+          <div
+            className={cn(
+              "absolute left-1/2 -translate-x-1/2 z-10",
+              !!(sellToken.balance && sellToken.balance > 0n) ? "top-[63%]" : "top-[50%]",
+            )}
+          >
+            <FlipActionButton onClick={handleFlipTokens} className="" />
+          </div>
+        )}
 
         {/* BUY panel */}
         {buyToken && (
@@ -910,6 +935,7 @@ export const SwapAction = () => {
             amount={buyAmt}
             onAmountChange={syncFromBuy}
             className="pt-4"
+            readOnly={!!lockedTokens}
           />
         )}
       </div>

@@ -17,6 +17,7 @@ import { Route as OneshotRouteImport } from './routes/oneshot'
 import { Route as LaunchRouteImport } from './routes/launch'
 import { Route as FarmRouteImport } from './routes/farm'
 import { Route as ExploreRouteImport } from './routes/explore'
+import { Route as EnsRouteImport } from './routes/ens'
 import { Route as CultRouteImport } from './routes/cult'
 import { Route as CoinpaperRouteImport } from './routes/coinpaper'
 import { Route as AboutRouteImport } from './routes/about'
@@ -64,6 +65,11 @@ const ExploreRoute = ExploreRouteImport.update({
   path: '/explore',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EnsRoute = EnsRouteImport.update({
+  id: '/ens',
+  path: '/ens',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CultRoute = CultRouteImport.update({
   id: '/cult',
   path: '/cult',
@@ -100,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/coinpaper': typeof CoinpaperRoute
   '/cult': typeof CultRoute
+  '/ens': typeof EnsRoute
   '/explore': typeof ExploreRoute
   '/farm': typeof FarmRoute
   '/launch': typeof LaunchRoute
@@ -116,6 +123,7 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/coinpaper': typeof CoinpaperRoute
   '/cult': typeof CultRoute
+  '/ens': typeof EnsRoute
   '/explore': typeof ExploreRoute
   '/farm': typeof FarmRoute
   '/launch': typeof LaunchRoute
@@ -133,6 +141,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/coinpaper': typeof CoinpaperRoute
   '/cult': typeof CultRoute
+  '/ens': typeof EnsRoute
   '/explore': typeof ExploreRoute
   '/farm': typeof FarmRoute
   '/launch': typeof LaunchRoute
@@ -151,6 +160,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/coinpaper'
     | '/cult'
+    | '/ens'
     | '/explore'
     | '/farm'
     | '/launch'
@@ -167,6 +177,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/coinpaper'
     | '/cult'
+    | '/ens'
     | '/explore'
     | '/farm'
     | '/launch'
@@ -183,6 +194,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/coinpaper'
     | '/cult'
+    | '/ens'
     | '/explore'
     | '/farm'
     | '/launch'
@@ -200,6 +212,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   CoinpaperRoute: typeof CoinpaperRoute
   CultRoute: typeof CultRoute
+  EnsRoute: typeof EnsRoute
   ExploreRoute: typeof ExploreRoute
   FarmRoute: typeof FarmRoute
   LaunchRoute: typeof LaunchRoute
@@ -270,6 +283,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExploreRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ens': {
+      id: '/ens'
+      path: '/ens'
+      fullPath: '/ens'
+      preLoaderRoute: typeof EnsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cult': {
       id: '/cult'
       path: '/cult'
@@ -320,6 +340,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   CoinpaperRoute: CoinpaperRoute,
   CultRoute: CultRoute,
+  EnsRoute: EnsRoute,
   ExploreRoute: ExploreRoute,
   FarmRoute: FarmRoute,
   LaunchRoute: LaunchRoute,

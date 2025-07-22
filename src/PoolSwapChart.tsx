@@ -20,21 +20,26 @@ interface PoolSwapChartProps {
 
 export const PoolSwapChart = ({ sellToken, buyToken, prevPair, priceImpact }: PoolSwapChartProps) => {
   const { t } = useTranslation();
-  const [showPriceChart, setShowPriceChart] = useState<boolean>(false);
+  const [showPriceChart, setShowPriceChart] = useState<boolean>(false); // Hidden by default
   const { data: ethUsdPrice } = useEthUsdPrice();
 
   useEffect(() => {
     const currentPair = [sellToken.id, buyToken?.id].sort().toString();
 
     if (prevPair !== null && prevPair !== currentPair) {
-      setShowPriceChart(false);
+      // Keep chart visible when switching pairs
     }
   }, [prevPair]);
 
-  const chartToken =
+  // Special handling for ENS which has id=0n
+  const isENSSwap = buyToken?.symbol === "ENS" || sellToken?.symbol === "ENS";
+  const ensToken = buyToken?.symbol === "ENS" ? buyToken : sellToken?.symbol === "ENS" ? sellToken : null;
+  
+  const chartToken = isENSSwap ? ensToken :
     buyToken && buyToken.id !== null ? buyToken : sellToken && sellToken.id !== null ? sellToken : null;
 
-  if (!chartToken || chartToken.id === null || chartToken.id === undefined) return null;
+  // ENS and other ERC20s have id=0n which is falsy but valid
+  if (!chartToken || (!isENSSwap && (chartToken.id === null || chartToken.id === undefined))) return null;
 
   return (
     <div className="relative flex flex-col">
@@ -58,7 +63,8 @@ export const PoolSwapChart = ({ sellToken, buyToken, prevPair, priceImpact }: Po
           className={`transition-all duration-300 ${showPriceChart ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"}`}
         >
           <PoolPriceChart
-            poolId={chartToken.poolId ? chartToken.poolId.toString() : computePoolId(chartToken.id).toString()}
+            poolId={isENSSwap ? "107895081322979037665933919470752294545033231002190305779392467929211865476585" : 
+                   (chartToken.poolId ? chartToken.poolId.toString() : computePoolId(chartToken.id).toString())}
             ticker={chartToken.symbol}
             ethUsdPrice={ethUsdPrice}
             priceImpact={priceImpact}

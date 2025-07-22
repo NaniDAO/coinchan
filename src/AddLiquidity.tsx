@@ -139,6 +139,15 @@ export const AddLiquidity = () => {
   });
 
   const [slippageBps, setSlippageBps] = useState<bigint>(SLIPPAGE_BPS);
+  
+  // Set 10% slippage for ENS pools, default for others
+  useEffect(() => {
+    if (sellToken?.symbol === "ENS" || buyToken?.symbol === "ENS") {
+      setSlippageBps(1000n); // 10%
+    } else {
+      setSlippageBps(SLIPPAGE_BPS); // Default 5%
+    }
+  }, [sellToken?.symbol, buyToken?.symbol]);
 
   // Calculate expected LP tokens whenever amounts change
   const calculateLpTokens = useCallback(
@@ -825,6 +834,16 @@ export const AddLiquidity = () => {
           isEthBalanceFetching={isEthBalanceFetching}
           amount={buyAmt}
           onAmountChange={syncFromBuy}
+          showMaxButton={!!(buyToken.balance !== undefined && buyToken.balance > 0n)}
+          onMax={() => {
+            if (buyToken.id === null) {
+              const ethAmount = ((buyToken.balance as bigint) * 99n) / 100n;
+              syncFromBuy(formatEther(ethAmount));
+            } else {
+              const decimals = buyToken.decimals || 18;
+              syncFromBuy(formatUnits(buyToken.balance as bigint, decimals));
+            }
+          }}
           className="mt-2 rounded-b-2xl pt-3 shadow-[0_0_15px_rgba(0,204,255,0.07)]"
         />
       )}

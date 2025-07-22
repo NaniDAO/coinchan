@@ -31,6 +31,7 @@
     "user": "用户",
     "add": "添加",
     "remove": "移除",
+    "zap": "闪兑",
     "claim": "领取",
     "max": "最大",
     "amount": "金额",
@@ -49,6 +50,7 @@
     "theme": "主题",
     "light": "明亮",
     "dark": "暗黑",
+    "connect_wallet_to_trade": "连接钱包进行交易",
     "english": "English",
     "chinese": "中文",
     "edit": "编辑",
@@ -670,7 +672,26 @@
     "token_info": "代币信息",
     "contract_address": "合约地址",
     "created_at": "创建时间",
-    "creator": "创建者"
+    "creator": "创建者",
+    "pool_fee": "池费",
+    "decimals": "小数位",
+    "pool_eth": "池中ETH",
+    "pool_ens": "池中ENS"
+  },
+  "ens": {
+    "title": "ENS/ETH 交易",
+    "description": "直接用ETH交易以太坊名称服务（ENS）代币",
+    "about_title": "关于ENS",
+    "about_description": "以太坊名称服务（ENS）是一个基于以太坊区块链的分布式、开放和可扩展的命名系统。ENS将人类可读的名称（如'alice.eth'）转换为机器可读的标识符。",
+    "price_chart": "ENS/ETH 价格图表",
+    "buy_ens": "买入ENS",
+    "sell_ens": "卖出ENS",
+    "you_pay": "您支付",
+    "you_receive": "您将收到",
+    "buying": "买入中...",
+    "selling": "卖出中...",
+    "transaction_confirmed": "交易已确认！",
+    "max": "最大"
   },
   "chart": {
     "price": "价格",

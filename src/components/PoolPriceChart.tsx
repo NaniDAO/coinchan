@@ -383,16 +383,6 @@ const TVPriceChart: React.FC<{
         // Store the base data
         lastValidDataRef.current = points;
         
-        // Log some sample data to understand the format
-        if (points.length > 0) {
-          console.log('Historical data sample:', {
-            firstPoint: points[0],
-            lastPoint: points[points.length - 1],
-            dataLength: points.length,
-            showUsd,
-            mode: showUsd ? 'USD' : 'ETH/CULT'
-          });
-        }
         
         // Build the data to display
         let displayData = [...points];
@@ -401,14 +391,6 @@ const TVPriceChart: React.FC<{
         if (priceImpact && priceImpact.projectedPrice > 0) {
           const lastPoint = points[points.length - 1];
           if (lastPoint) {
-            console.log('Price impact data:', {
-              action: priceImpact.action,
-              currentPrice: priceImpact.currentPrice,
-              projectedPrice: priceImpact.projectedPrice,
-              impactPercent: priceImpact.impactPercent,
-              lastPointValue: lastPoint.value,
-              showUsd
-            });
             
             let projectedValue: number;
             
@@ -420,15 +402,6 @@ const TVPriceChart: React.FC<{
               projectedValue = priceImpact.projectedPrice;
             }
             
-            console.log('Projected value calculation:', {
-              projectedValue,
-              lastValue: lastPoint.value,
-              expectedChange: priceImpact.action === 'buy' ? 'increase' : 'decrease',
-              actualChange: projectedValue > lastPoint.value ? 'increase' : 'decrease',
-              percentDiff: ((projectedValue - lastPoint.value) / lastPoint.value * 100).toFixed(2) + '%',
-              isCorrectDirection: (priceImpact.action === 'buy' && projectedValue > lastPoint.value) || 
-                                 (priceImpact.action === 'sell' && projectedValue < lastPoint.value)
-            });
 
             if (isFinite(projectedValue) && projectedValue > 0) {
               // Create impact line data: from last point to projected point
@@ -446,15 +419,7 @@ const TVPriceChart: React.FC<{
               
               // Set the impact line data
               impactSeriesRef.current.setData(impactData);
-              console.log(`Added ${priceImpact.action} impact line with color ${impactColor}`, {
-                impactData,
-                linePoints: impactData.length,
-                fromValue: impactData[0].value,
-                toValue: impactData[1].value,
-                change: ((impactData[1].value - impactData[0].value) / impactData[0].value * 100).toFixed(2) + '%'
-              });
             } else {
-              console.error('Invalid projected value:', projectedValue);
               // Clear impact series if invalid
               impactSeriesRef.current.setData([]);
             }
@@ -468,16 +433,11 @@ const TVPriceChart: React.FC<{
         }
         
         // Update the main chart with historical data only
-        console.log(`Setting ${displayData.length} historical points to chart`);
         priceSeriesRef.current.setData(displayData);
         
         // Make sure we see all the data
         if (chartRef.current) {
           chartRef.current.timeScale().fitContent();
-          
-          // Also log the visible range
-          const visibleRange = chartRef.current.timeScale().getVisibleRange();
-          console.log('Visible range after fitContent:', visibleRange);
         }
       }
     } catch (error) {
