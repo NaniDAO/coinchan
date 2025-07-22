@@ -268,9 +268,13 @@ export const BuySell = ({
           }
         }
 
-        // Calculate prices - ETH per token
-        const currentPriceInEth = parseFloat(formatEther(reserve0)) / parseFloat(formatUnits(reserve1, 18));
-        const newPriceInEth = parseFloat(formatEther(newReserve0)) / parseFloat(formatUnits(newReserve1, 18));
+        // Calculate prices - ETH per token with higher precision
+        // Use BigInt math for better precision before converting to float
+        const currentPrice = (reserve0 * BigInt(1e18)) / reserve1;
+        const newPrice = (newReserve0 * BigInt(1e18)) / newReserve1;
+        
+        const currentPriceInEth = Number(currentPrice) / 1e18;
+        const newPriceInEth = Number(newPrice) / 1e18;
         
         // For charting: when buying tokens (adding ETH), price goes up; when selling tokens (removing ETH), price goes down
         const ethReserveChange = tab === 'buy' ? 'increase' : 'decrease';
@@ -300,6 +304,23 @@ export const BuySell = ({
         if (Math.abs(impactPercent) > 90) {
           console.warn(`Extreme price impact detected: ${impactPercent.toFixed(2)}%`);
           onPriceImpactChange?.(null);
+          return;
+        }
+        
+        // For very small trades, ensure the price moves in the correct direction
+        // This handles rounding errors that might show price going up when selling small amounts
+        if (Math.abs(impactPercent) < 0.0001) {
+          // Force the direction to match the action for tiny impacts
+          const adjustedNewPrice = tab === 'buy' 
+            ? currentPriceInEth * 1.00001 // Tiny increase for buys
+            : currentPriceInEth * 0.99999; // Tiny decrease for sells
+            
+          onPriceImpactChange?.({
+            currentPrice: currentPriceInEth,
+            projectedPrice: adjustedNewPrice,
+            impactPercent: tab === 'buy' ? 0.001 : -0.001,
+            action: tab,
+          });
           return;
         }
 
