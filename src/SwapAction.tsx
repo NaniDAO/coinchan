@@ -306,7 +306,15 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
     const isCULTSwap = sellToken?.symbol === "CULT" || buyToken?.symbol === "CULT";
     const isCustomDirectSwap = isENSSwap || isCULTSwap;
     
-    if (!reserves || !sellAmt || parseFloat(sellAmt) === 0 || (isCoinToCoin && !isCustomDirectSwap)) {
+    // For custom direct swaps (ENS, CULT), we should always calculate price impact
+    // For regular coin-to-coin swaps, skip price impact calculation
+    if (!reserves || !sellAmt || parseFloat(sellAmt) === 0) {
+      setPriceImpact(null);
+      return;
+    }
+    
+    // Skip price impact for coin-to-coin swaps EXCEPT custom direct swaps
+    if (isCoinToCoin && !isCustomDirectSwap) {
       setPriceImpact(null);
       return;
     }
