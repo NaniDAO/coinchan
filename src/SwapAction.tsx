@@ -290,7 +290,10 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
 
   // Calculate price impact for swap visualization
   useEffect(() => {
-    if (!reserves || !sellAmt || parseFloat(sellAmt) === 0 || isCoinToCoin) {
+    // For ENS swaps, always calculate price impact since they're direct ETH swaps
+    const isENSSwap = sellToken?.symbol === "ENS" || buyToken?.symbol === "ENS";
+    
+    if (!reserves || !sellAmt || parseFloat(sellAmt) === 0 || (isCoinToCoin && !isENSSwap)) {
       setPriceImpact(null);
       return;
     }

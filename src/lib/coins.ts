@@ -182,25 +182,9 @@ export const ENS_POOL_KEY: {
   feeOrHook: 30n, // 0.3% fee (30 bps) - Cookbook uses feeOrHook instead of swapFee
 };
 
-// Function to compute Cookbook pool ID with feeOrHook
-const computeCookbookPoolId = (id0: bigint, id1: bigint, token0: `0x${string}`, token1: `0x${string}`, feeOrHook: bigint) =>
-  BigInt(
-    keccak256(
-      encodeAbiParameters(
-        parseAbiParameters("uint256 id0, uint256 id1, address token0, address token1, uint256 feeOrHook"),
-        [id0, id1, token0, token1, feeOrHook],
-      ),
-    ),
-  );
 
-// Compute the pool ID for ENS-ETH
-export const ENS_POOL_ID = computeCookbookPoolId(
-  ENS_POOL_KEY.id0,
-  ENS_POOL_KEY.id1,
-  ENS_POOL_KEY.token0,
-  ENS_POOL_KEY.token1,
-  ENS_POOL_KEY.feeOrHook,
-);
+// ENS pool ID (hardcoded for performance and stability)
+export const ENS_POOL_ID = 107895081322979037665933919470752294545033231002190305779392467929211865476585n;
 
 // Define ENS token
 export const ENS_TOKEN: TokenMeta = {
