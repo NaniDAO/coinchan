@@ -380,12 +380,13 @@ export const SwapAction = () => {
             ? currentPriceInEth * 1.00001 
             : currentPriceInEth * 0.99999;
             
-          setPriceImpact({
+          const impact = {
             currentPrice: currentPriceInEth,
             projectedPrice: adjustedNewPrice,
             impactPercent: action === 'buy' ? 0.001 : -0.001,
             action,
-          });
+          };
+          setPriceImpact(impact);
           return;
         }
 
@@ -1049,14 +1050,26 @@ export const SwapAction = () => {
                 {coinId ? tokens.find((t) => t.id === coinId)?.symbol || "Token" : buyToken?.symbol}
               </span>
             )}
-            <span>
-              {t("common.fee")}:{" "}
-              {getSwapFee({
-                isCustomPool: isCustomPool,
-                sellToken,
-                buyToken,
-                isCoinToCoin,
-              })}
+            <span className="flex items-center gap-2">
+              <span>
+                {t("common.fee")}:{" "}
+                {getSwapFee({
+                  isCustomPool: isCustomPool,
+                  sellToken,
+                  buyToken,
+                  isCoinToCoin,
+                })}
+              </span>
+              {priceImpact && (
+                <span 
+                  className={`text-xs font-medium ${\
+                    priceImpact.impactPercent > 0 ? "text-green-600" : "text-red-600"
+                  }`}
+                >
+                  {priceImpact.impactPercent > 0 ? "+" : ""}
+                  {priceImpact.impactPercent.toFixed(2)}%
+                </span>
+              )}
             </span>
           </div>
           {/* USD values and per-unit prices */}

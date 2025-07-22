@@ -56,6 +56,12 @@ export const BuySellCookbookCoin = ({
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [percentage, setPercentage] = useState(0);
+  const [priceImpact, setPriceImpact] = useState<{
+    currentPrice: number;
+    projectedPrice: number;
+    impactPercent: number;
+    action: "buy" | "sell";
+  } | null>(null);
 
   // Fetch coin data to get the actual swap fee
   const { data: coinData } = useGetCoin({
@@ -201,6 +207,7 @@ export const BuySellCookbookCoin = ({
   // Calculate price impact
   useEffect(() => {
     if (!reserves || !amount || parseFloat(amount) === 0) {
+      setPriceImpact(null);
       onPriceImpactChange?.(null);
       return;
     }
@@ -299,23 +306,28 @@ export const BuySellCookbookCoin = ({
             ? currentPriceInEth * 1.00001 
             : currentPriceInEth * 0.99999;
             
-          onPriceImpactChange?.({
+          const impact = {
             currentPrice: currentPriceInEth,
             projectedPrice: adjustedNewPrice,
             impactPercent: tab === 'buy' ? 0.001 : -0.001,
             action: tab,
-          });
+          };
+          setPriceImpact(impact);
+          onPriceImpactChange?.(impact);
           return;
         }
 
-        onPriceImpactChange?.({
+        const impact = {
           currentPrice: currentPriceInEth,
           projectedPrice: newPriceInEth,
           impactPercent,
           action: tab,
-        });
+        };
+        setPriceImpact(impact);
+        onPriceImpactChange?.(impact);
       } catch (error) {
         console.error("Error calculating price impact:", error);
+        setPriceImpact(null);
         onPriceImpactChange?.(null);
       }
     }, 500); // 500ms debounce
@@ -580,12 +592,24 @@ export const BuySellCookbookCoin = ({
                 disabled={!isConnected}
               />
             )}
-            <span className="text-sm font-medium">
-              {t("create.you_will_receive", {
-                amount: formatNumber(parseFloat(estimated), 6),
-                token: symbol,
-              })}
-            </span>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">
+                {t("create.you_will_receive", {
+                  amount: formatNumber(parseFloat(estimated), 6),
+                  token: symbol,
+                })}
+              </span>
+              {priceImpact && (
+                <span 
+                  className={`text-xs font-medium ${
+                    priceImpact.impactPercent > 0 ? "text-green-600" : "text-red-600"
+                  }`}
+                >
+                  {priceImpact.impactPercent > 0 ? "+" : ""}
+                  {priceImpact.impactPercent.toFixed(2)}%
+                </span>
+              )}
+            </div>
             <Button
               onClick={() => handleSwap("buy")}
               disabled={!isConnected || isPending || !amount}
@@ -630,12 +654,24 @@ export const BuySellCookbookCoin = ({
                 disabled={!isConnected}
               />
             )}
-            <span className="text-sm font-medium">
-              {t("create.you_will_receive", {
-                amount: formatNumber(parseFloat(estimated), 6),
-                token: "ETH",
-              })}
-            </span>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">
+                {t("create.you_will_receive", {
+                  amount: formatNumber(parseFloat(estimated), 6),
+                  token: "ETH",
+                })}
+              </span>
+              {priceImpact && (
+                <span 
+                  className={`text-xs font-medium ${
+                    priceImpact.impactPercent > 0 ? "text-green-600" : "text-red-600"
+                  }`}
+                >
+                  {priceImpact.impactPercent > 0 ? "+" : ""}
+                  {priceImpact.impactPercent.toFixed(2)}%
+                </span>
+              )}
+            </div>
             {usdValue && estimated !== "0" && (
               <span className="text-xs text-muted-foreground">
                 ≈ ${usdValue} USD
