@@ -7,6 +7,7 @@ import { useAccount, usePublicClient, useWriteContract, useWaitForTransactionRec
 import { ConnectMenu } from "./ConnectMenu";
 import { useETHPrice } from "./hooks/use-eth-price";
 import { SwapPanel } from "./components/SwapPanel";
+import { SlippageSettings } from "./components/SlippageSettings";
 import PoolPriceChart from "./components/PoolPriceChart";
 import { ChevronDownIcon } from "lucide-react";
 import { 
@@ -57,6 +58,7 @@ export const EnsBuySell = () => {
     action: "buy" | "sell";
   } | null>(null);
   const [showPriceChart, setShowPriceChart] = useState<boolean>(true); // Open by default
+  const [slippageBps, setSlippageBps] = useState<bigint>(1000n); // Default 10% for ENS
   
   const { writeContractAsync, isPending } = useWriteContract();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
@@ -259,7 +261,7 @@ export const EnsBuySell = () => {
         // Buy ENS with ETH
         const ethIn = parseEther(sellAmount);
         const ensOut = getAmountOut(ethIn, poolReserves.reserve0, poolReserves.reserve1, 30n);
-        const minOut = withSlippage(ensOut);
+        const minOut = withSlippage(ensOut, slippageBps);
         const deadline = nowSec() + BigInt(DEADLINE_SEC);
         
         const hash = await writeContractAsync({
@@ -289,7 +291,7 @@ export const EnsBuySell = () => {
         }
         
         const ethOut = getAmountOut(ensIn, poolReserves.reserve1, poolReserves.reserve0, 30n);
-        const minOut = withSlippage(ethOut);
+        const minOut = withSlippage(ethOut, slippageBps);
         const deadline = nowSec() + BigInt(DEADLINE_SEC);
         
         const hash = await writeContractAsync({
@@ -442,12 +444,23 @@ export const EnsBuySell = () => {
                     <p className="text-green-600 text-sm">{t("ens.transaction_confirmed")}</p>
                   )}
                   
+                  {/* Slippage Settings */}
+                  <div className="mt-4">
+                    <SlippageSettings 
+                      slippageBps={slippageBps} 
+                      setSlippageBps={setSlippageBps} 
+                    />
+                  </div>
+                  
                   {/* Price impact display */}
                   {priceImpact && (
-                    <div className="text-xs text-muted-foreground">
-                      {t("swap.price_impact")}: <span className={priceImpact.impactPercent > 0 ? "text-green-600" : "text-red-600"}>
-                        {priceImpact.impactPercent > 0 ? "+" : ""}{priceImpact.impactPercent.toFixed(2)}%
-                      </span>
+                    <div className="mt-2 p-2 bg-muted/50 rounded-md">
+                      <div className="text-xs text-muted-foreground flex items-center justify-between">
+                        <span>{t("swap.price_impact")}:</span>
+                        <span className={`font-medium ${priceImpact.impactPercent > 0 ? "text-green-600" : "text-red-600"}`}>
+                          {priceImpact.impactPercent > 0 ? "+" : ""}{priceImpact.impactPercent.toFixed(2)}%
+                        </span>
+                      </div>
                     </div>
                   )}
                 </div>

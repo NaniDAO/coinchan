@@ -84,7 +84,7 @@ export const SingleEthLiquidity = () => {
   const [txError, setTxError] = useState<string | null>(null);
 
   const [singleEthSlippageBps, setSingleEthSlippageBps] = useState<bigint>(
-    buyToken?.symbol === "CULT" ? 1000n : SINGLE_ETH_SLIPPAGE_BPS,
+    (buyToken?.symbol === "CULT" || buyToken?.symbol === "ENS") ? 1000n : SINGLE_ETH_SLIPPAGE_BPS,
   );
   const [singleETHEstimatedCoin, setSingleETHEstimatedCoin] = useState<string>("");
   const [estimatedLpTokens, setEstimatedLpTokens] = useState<string>("");
@@ -136,9 +136,9 @@ export const SingleEthLiquidity = () => {
     setSellAmt("");
     setBuyAmt("");
 
-    // Update slippage for CULT token to 10%
-    if (buyToken?.symbol === "CULT") {
-      setSingleEthSlippageBps(1000n); // 10% for CULT
+    // Update slippage for CULT and ENS tokens to 10%
+    if (buyToken?.symbol === "CULT" || buyToken?.symbol === "ENS") {
+      setSingleEthSlippageBps(1000n); // 10% for CULT and ENS
     } else {
       setSingleEthSlippageBps(SINGLE_ETH_SLIPPAGE_BPS); // Default 5% for other tokens
     }

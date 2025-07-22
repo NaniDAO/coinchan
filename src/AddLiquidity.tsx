@@ -139,6 +139,15 @@ export const AddLiquidity = () => {
   });
 
   const [slippageBps, setSlippageBps] = useState<bigint>(SLIPPAGE_BPS);
+  
+  // Set 10% slippage for ENS pools, default for others
+  useEffect(() => {
+    if (sellToken?.symbol === "ENS" || buyToken?.symbol === "ENS") {
+      setSlippageBps(1000n); // 10%
+    } else {
+      setSlippageBps(SLIPPAGE_BPS); // Default 5%
+    }
+  }, [sellToken?.symbol, buyToken?.symbol]);
 
   // Calculate expected LP tokens whenever amounts change
   const calculateLpTokens = useCallback(

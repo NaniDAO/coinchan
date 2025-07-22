@@ -159,7 +159,14 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
     // Reset recipient input
     setCustomRecipient("");
     setShowRecipientInput(false);
-  }, [sellToken.id, buyToken?.id]);
+    
+    // Set 10% slippage for ENS pools, default for others
+    if (sellToken?.symbol === "ENS" || buyToken?.symbol === "ENS") {
+      setSlippageBps(1000n); // 10%
+    } else {
+      setSlippageBps(SLIPPAGE_BPS); // Default 5%
+    }
+  }, [sellToken.id, buyToken?.id, sellToken?.symbol, buyToken?.symbol]);
 
   useEffect(() => {
     if (tokens.length && sellToken.id === null /* ETH */) {
