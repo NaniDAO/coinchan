@@ -404,7 +404,7 @@
     "max_slippage": "最大滑点",
     "slippage_tolerance": "滑点容忍度",
     "slippage_warning": "您的交易可能被抢先交易",
-    "price_impact": "滑点",
+    "price_impact": "价格影响",
     "minimum_received": "最少获得",
     "route": "路径",
     "swapping": "正在通过ZAMM池寻找最优路径...",
