@@ -397,7 +397,7 @@
     "max_slippage": "Max slippage",
     "slippage_tolerance": "Slippage Tolerance",
     "slippage_warning": "Your transaction may be frontrun",
-    "price_impact": "Slippage",
+    "price_impact": "Price Impact",
     "minimum_received": "Minimum Received",
     "route": "Route",
     "swapping": "Finding optimal route through ZAMM pools...",
