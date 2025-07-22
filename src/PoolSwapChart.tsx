@@ -34,7 +34,7 @@ export const PoolSwapChart = ({ sellToken, buyToken, prevPair, priceImpact }: Po
   const chartToken =
     buyToken && buyToken.id !== null ? buyToken : sellToken && sellToken.id !== null ? sellToken : null;
 
-  if (!chartToken || chartToken.id === null) return null;
+  if (!chartToken || chartToken.id === null || chartToken.id === undefined) return null;
 
   return (
     <div className="relative flex flex-col">
@@ -58,7 +58,7 @@ export const PoolSwapChart = ({ sellToken, buyToken, prevPair, priceImpact }: Po
           className={`transition-all duration-300 ${showPriceChart ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"}`}
         >
           <PoolPriceChart
-            poolId={computePoolId(chartToken.id).toString()}
+            poolId={chartToken.poolId ? chartToken.poolId.toString() : computePoolId(chartToken.id).toString()}
             ticker={chartToken.symbol}
             ethUsdPrice={ethUsdPrice}
             priceImpact={priceImpact}

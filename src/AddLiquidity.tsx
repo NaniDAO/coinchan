@@ -18,7 +18,7 @@ import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
 import { ZAMMAbi, ZAMMAddress } from "./constants/ZAAM";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import { useWaitForTransactionReceipt } from "wagmi";
-import { TokenMeta, USDT_ADDRESS, USDT_POOL_KEY, CULT_ADDRESS, CULT_POOL_KEY } from "./lib/coins";
+import { TokenMeta, USDT_ADDRESS, USDT_POOL_KEY, CULT_ADDRESS, CULT_POOL_KEY, ENS_ADDRESS, ENS_POOL_KEY } from "./lib/coins";
 import { useTokenSelection } from "./contexts/TokenSelectionContext";
 import { determineReserveSource, getHelperContractInfo } from "./lib/coin-utils";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
@@ -83,12 +83,20 @@ export const AddLiquidity = () => {
     isCoinToCoin: isCoinToCoin,
   });
 
-  // Simple direct handling for CULT and other custom pools
+  // Simple direct handling for CULT, ENS and other custom pools
   const { actualPoolId, reserveSource } = useMemo(() => {
     // Direct CULT handling
     if (sellToken.symbol === "CULT" || buyToken?.symbol === "CULT") {
       return {
         actualPoolId: sellToken.symbol === "CULT" ? sellToken.poolId : buyToken?.poolId,
+        reserveSource: "COOKBOOK" as const,
+      };
+    }
+    
+    // Direct ENS handling
+    if (sellToken.symbol === "ENS" || buyToken?.symbol === "ENS") {
+      return {
+        actualPoolId: sellToken.symbol === "ENS" ? sellToken.poolId : buyToken?.poolId,
         reserveSource: "COOKBOOK" as const,
       };
     }
@@ -200,6 +208,14 @@ export const AddLiquidity = () => {
   } = useErc20Allowance({
     token: CULT_ADDRESS,
     spender: CookbookAddress, // CULT uses Cookbook for liquidity
+  });
+  const {
+    allowance: ensAllowance,
+    refetchAllowance: refetchEnsAllowance,
+    approveMax: approveEnsMax,
+  } = useErc20Allowance({
+    token: ENS_ADDRESS,
+    spender: CookbookAddress, // ENS uses Cookbook for liquidity
   });
 
   const [txHash, setTxHash] = useState<`0x${string}`>();
@@ -425,6 +441,7 @@ export const AddLiquidity = () => {
       let poolKey;
       const isUsdtPool = sellToken.symbol === "USDT" || buyToken?.symbol === "USDT";
       const isUsingCult = sellToken.symbol === "CULT" || buyToken?.symbol === "CULT";
+      const isUsingEns = sellToken.symbol === "ENS" || buyToken?.symbol === "ENS";
 
       // Enhanced detection of USDT usage for add liquidity
       // We need to make sure we detect all cases where USDT is being used
@@ -482,6 +499,9 @@ export const AddLiquidity = () => {
       if (isUsingCult) {
         // Use the specific CULT pool key with correct id1=0n and feeOrHook
         poolKey = CULT_POOL_KEY;
+      } else if (isUsingEns) {
+        // Use the specific ENS pool key with correct id1=0n and feeOrHook
+        poolKey = ENS_POOL_KEY;
       } else if (isUsdtPool) {
         // Use the custom pool key for USDT-ETH pool
         const customToken = sellToken.isCustomPool ? sellToken : buyToken;
@@ -589,13 +609,48 @@ export const AddLiquidity = () => {
           }
         }
       }
+      
+      // Check for ENS ERC20 approval if needed
+      if (isUsingEns) {
+        const ensAmount =
+          sellToken.symbol === "ENS"
+            ? parseUnits(sellAmt, 18) // ENS has 18 decimals
+            : parseUnits(buyAmt, 18);
+
+        if (ensAllowance === undefined || ensAmount > ensAllowance) {
+          try {
+            setTxError("Waiting for ENS approval. Please confirm the transaction...");
+            const approved = await approveEnsMax();
+            if (!approved) return;
+
+            setTxError("ENS approval submitted. Waiting for confirmation...");
+            const receipt = await publicClient.waitForTransactionReceipt({ hash: approved });
+
+            if (receipt.status === "success") {
+              await refetchEnsAllowance();
+              setTxError(null);
+            } else {
+              setTxError("ENS approval failed. Please try again.");
+              return;
+            }
+          } catch (err) {
+            const errorMsg = handleWalletError(err, {
+              defaultMessage: t("errors.transaction_error"),
+            });
+            if (errorMsg) {
+              setTxError(errorMsg);
+            }
+            return;
+          }
+        }
+      }
 
       // Check if the user needs to approve the target AMM contract as operator
       // This is reflexive to the pool source:
       // - Cookbook pool: Approve CookbookAddress as operator on CoinsAddress
       // - ZAMM pool: Approve ZAMMAddress as operator on CoinsAddress
-      // Only needed for ERC6909 coins, not for ERC20s like USDT/CULT
-      if (!isUsdtPool && !isUsingCult && coinId && isOperator === false) {
+      // Only needed for ERC6909 coins, not for ERC20s like USDT/CULT/ENS
+      if (!isUsdtPool && !isUsingCult && !isUsingEns && coinId && isOperator === false) {
         try {
           // First, show a notification about the approval step
           setTxError("Waiting for operator approval. Please confirm the transaction...");

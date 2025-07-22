@@ -92,6 +92,9 @@ export const CULT_HOOK_ADDRESS = "0x0000000000C625206C76dFd00bfD8d84A5Bfc948" as
 export const CULT_POOL_ID = 96057217671165627097175198549959274650003499289597433381056646234071826883364n;
 export const CULT_FEE_OR_HOOK = 57896044618658097711785492504343953926636021160616296542400437774503196477768n;
 
+// ENS token address
+export const ENS_ADDRESS = "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72" as `0x${string}`;
+
 // CULT pool configuration for hooked router
 export const CULT_POOL_KEY: {
   id0: bigint;
@@ -162,6 +165,60 @@ export const CULT_TOKEN: TokenMeta = {
   poolId: CULT_POOL_ID,
   poolKey: CULT_POOL_KEY as any, // Cast to any to avoid type errors
   decimals: 18, // CULT has 18 decimals
+};
+
+// ENS pool configuration for Cookbook
+export const ENS_POOL_KEY: {
+  id0: bigint;
+  id1: bigint;
+  token0: `0x${string}`;
+  token1: `0x${string}`;
+  feeOrHook: bigint;
+} = {
+  id0: 0n, // ETH token ID
+  id1: 0n, // ENS token ID (ERC20 uses id=0)
+  token0: zeroAddress, // ETH address (0x0)
+  token1: ENS_ADDRESS, // ENS token address
+  feeOrHook: 30n, // 0.3% fee (30 bps) - Cookbook uses feeOrHook instead of swapFee
+};
+
+// Function to compute Cookbook pool ID with feeOrHook
+const computeCookbookPoolId = (id0: bigint, id1: bigint, token0: `0x${string}`, token1: `0x${string}`, feeOrHook: bigint) =>
+  BigInt(
+    keccak256(
+      encodeAbiParameters(
+        parseAbiParameters("uint256 id0, uint256 id1, address token0, address token1, uint256 feeOrHook"),
+        [id0, id1, token0, token1, feeOrHook],
+      ),
+    ),
+  );
+
+// Compute the pool ID for ENS-ETH
+export const ENS_POOL_ID = computeCookbookPoolId(
+  ENS_POOL_KEY.id0,
+  ENS_POOL_KEY.id1,
+  ENS_POOL_KEY.token0,
+  ENS_POOL_KEY.token1,
+  ENS_POOL_KEY.feeOrHook,
+);
+
+// Define ENS token
+export const ENS_TOKEN: TokenMeta = {
+  id: 0n, // Special ENS token with ID 0 (ERC20)
+  name: "Ethereum Name Service",
+  symbol: "ENS",
+  source: "COOKBOOK", // Use Cookbook for ENS pools
+  tokenUri: undefined, // No tokenUri for ENS
+  reserve0: 1000000000000000000000n, // 1000 ETH (placeholder - will be updated by hook)
+  reserve1: 2000000000000000000000000n, // 2M ENS (18 decimals, placeholder)
+  swapFee: 30n, // 0.3% fee tier (30 bps)
+  balance: 0n, // User balance
+  // Custom properties for the ENS pool
+  isCustomPool: true,
+  poolId: ENS_POOL_ID,
+  poolKey: ENS_POOL_KEY as any, // Cast to any to avoid type errors
+  decimals: 18, // ENS has 18 decimals
+  token1: ENS_ADDRESS, // Add token1 for identification
 };
 
 const INIT_CODE_HASH: Hex = "0x6594461b4ce3b23f6cbdcdcf50388d5f444bf59a82f6e868dfd5ef2bfa13f6d4"; // the 0x6594…f6d4 init code hash

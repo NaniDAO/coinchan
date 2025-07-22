@@ -13,6 +13,9 @@ import {
   CULT_TOKEN,
   CULT_ADDRESS,
   CULT_POOL_ID,
+  ENS_TOKEN,
+  ENS_ADDRESS,
+  ENS_POOL_ID,
 } from "@/lib/coins";
 import { SWAP_FEE } from "@/lib/swap";
 import { useQuery } from "@tanstack/react-query";
@@ -214,7 +217,39 @@ async function fetchOtherCoins(
     } catch {}
   }
 
-  return [...withBalances, usdtToken, cultToken].sort((a, b) => {
+  // Add ENS token with reserves and balance
+  const ensToken = { ...ENS_TOKEN };
+  try {
+    const poolData = await publicClient.readContract({
+      address: CookbookAddress,
+      abi: CookbookAbi,
+      functionName: "pools",
+      args: [ENS_POOL_ID],
+    });
+    ensToken.reserve0 = poolData[0];
+    ensToken.reserve1 = poolData[1];
+  } catch {}
+  if (address) {
+    try {
+      const ensBal = (await publicClient.readContract({
+        address: ENS_ADDRESS,
+        abi: [
+          {
+            inputs: [{ internalType: "address", name: "account", type: "address" }],
+            name: "balanceOf",
+            outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+            stateMutability: "view",
+            type: "function",
+          },
+        ],
+        functionName: "balanceOf",
+        args: [address],
+      })) as bigint;
+      ensToken.balance = ensBal;
+    } catch {}
+  }
+
+  return [...withBalances, usdtToken, cultToken, ensToken].sort((a, b) => {
     // Safely convert to numbers, handling potential null/undefined values
     const aLiquidity = a?.reserve0 ? Number(a.reserve0) : 0;
     const bLiquidity = b?.reserve0 ? Number(b.reserve0) : 0;
@@ -370,9 +405,73 @@ async function originalFetchOtherCoins(
     usdtToken.balance = usdtBal;
   }
 
+  // Add CULT token with reserves and balance
+  const cultToken = { ...CULT_TOKEN };
+  try {
+    const poolData = await publicClient.readContract({
+      address: CookbookAddress,
+      abi: CookbookAbi,
+      functionName: "pools",
+      args: [CULT_POOL_ID],
+    });
+    cultToken.reserve0 = poolData[0];
+    cultToken.reserve1 = poolData[1];
+  } catch {}
+  if (address) {
+    try {
+      const cultBal = (await publicClient.readContract({
+        address: CULT_ADDRESS,
+        abi: [
+          {
+            inputs: [{ internalType: "address", name: "account", type: "address" }],
+            name: "balanceOf",
+            outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+            stateMutability: "view",
+            type: "function",
+          },
+        ],
+        functionName: "balanceOf",
+        args: [address],
+      })) as bigint;
+      cultToken.balance = cultBal;
+    } catch {}
+  }
+
+  // Add ENS token with reserves and balance
+  const ensToken = { ...ENS_TOKEN };
+  try {
+    const poolData = await publicClient.readContract({
+      address: CookbookAddress,
+      abi: CookbookAbi,
+      functionName: "pools",
+      args: [ENS_POOL_ID],
+    });
+    ensToken.reserve0 = poolData[0];
+    ensToken.reserve1 = poolData[1];
+  } catch {}
+  if (address) {
+    try {
+      const ensBal = (await publicClient.readContract({
+        address: ENS_ADDRESS,
+        abi: [
+          {
+            inputs: [{ internalType: "address", name: "account", type: "address" }],
+            name: "balanceOf",
+            outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+            stateMutability: "view",
+            type: "function",
+          },
+        ],
+        functionName: "balanceOf",
+        args: [address],
+      })) as bigint;
+      ensToken.balance = ensBal;
+    } catch {}
+  }
+
   // Sort coins by ETH reserves descending
   const sortedCoins = coins.sort((a, b) => Number((b.reserve0 || 0n) - (a.reserve0 || 0n)));
-  return [...sortedCoins, usdtToken];
+  return [...sortedCoins, usdtToken, cultToken, ensToken];
 }
 
 /**

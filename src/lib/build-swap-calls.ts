@@ -2,7 +2,7 @@ import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
 import { CultHookAbi, CultHookAddress } from "@/constants/CultHook";
-import { type TokenMeta, USDT_ADDRESS, CULT_ADDRESS, CULT_POOL_KEY } from "@/lib/coins";
+import { type TokenMeta, USDT_ADDRESS, CULT_ADDRESS, CULT_POOL_KEY, ENS_ADDRESS } from "@/lib/coins";
 import { getCultHookTaxRate, toGross } from "@/lib/cult-hook-utils";
 import {
   DEADLINE_SEC,
@@ -66,6 +66,7 @@ export async function buildSwapCalls(params: SwapParams & { publicClient: Public
   const isCoinToCoin = !isSellETH && !isBuyETH;
   const isUSDT = (tok: TokenMeta) => tok.isCustomPool && tok.symbol === "USDT";
   const isCULT = (tok: TokenMeta) => tok.isCustomPool && tok.symbol === "CULT";
+  const isENS = (tok: TokenMeta) => tok.isCustomPool && tok.symbol === "ENS";
 
   // Check if this swap involves the CULT hook
   const isCultHookSwap = (isSellETH && isCULT(buyToken)) || (isCULT(sellToken) && isBuyETH);
@@ -145,8 +146,31 @@ export async function buildSwapCalls(params: SwapParams & { publicClient: Public
     }
   }
 
-  // 2. For non-ETH, non-USDT, non-CULT tokens, check operator and add setOperator if needed
-  if (!isSellETH && !isUSDT(sellToken) && !isCULT(sellToken)) {
+  // 1c. If selling ENS, check allowance and add approve if needed
+  if (!isSellETH && isENS(sellToken)) {
+    const allowance: bigint = await publicClient.readContract({
+      address: ENS_ADDRESS,
+      abi: erc20Abi,
+      functionName: "allowance",
+      args: [address, CookbookAddress],
+    });
+
+    // For exactOut, we need to approve the max amount we might spend
+    const approvalAmount = exactOut ? maxSellAmount : sellAmtInUnits;
+    if (allowance < approvalAmount) {
+      calls.push({
+        to: ENS_ADDRESS,
+        data: encodeFunctionData({
+          abi: erc20Abi,
+          functionName: "approve",
+          args: [CookbookAddress, maxUint256],
+        }) as Hex,
+      });
+    }
+  }
+
+  // 2. For non-ETH, non-USDT, non-CULT, non-ENS tokens, check operator and add setOperator if needed
+  if (!isSellETH && !isUSDT(sellToken) && !isCULT(sellToken) && !isENS(sellToken)) {
     const isOperator: boolean = await publicClient.readContract({
       address: CoinsAddress,
       abi: CoinsAbi,

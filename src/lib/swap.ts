@@ -399,12 +399,19 @@ export function analyzeTokens(
 
   const isSellUSDT = sell.symbol === "USDT";
   const isBuyUSDT = buy?.symbol === "USDT";
+  const isSellENS = sell.symbol === "ENS";
+  const isBuyENS = buy?.symbol === "ENS";
+  const isSellCULT = sell.symbol === "CULT";
+  const isBuyCULT = buy?.symbol === "CULT";
 
   const isDirectUsdtEth = (isSellETH && isBuyUSDT) || (isBuyETH && isSellUSDT);
+  const isDirectCustomEth = isDirectUsdtEth || 
+    (isSellETH && isBuyENS) || (isBuyETH && isSellENS) ||
+    (isSellETH && isBuyCULT) || (isBuyETH && isSellCULT);
 
   const isCustom = sell.isCustomPool || Boolean(buy?.isCustomPool);
 
-  const isCoinToCoin = !isDirectUsdtEth && sell.id !== null && buy?.id !== null && sell.id !== buy?.id;
+  const isCoinToCoin = !isDirectCustomEth && sell.id !== null && buy?.id !== null && sell.id !== buy?.id;
 
   // coinId logic as before…
   let coinId: bigint;
