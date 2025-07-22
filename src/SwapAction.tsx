@@ -90,6 +90,12 @@ export const SwapAction = () => {
   });
 
   const [slippageBps, setSlippageBps] = useState<bigint>(SLIPPAGE_BPS);
+  const [priceImpact, setPriceImpact] = useState<{
+    currentPrice: number;
+    projectedPrice: number;
+    impactPercent: number;
+    action: "buy" | "sell";
+  } | null>(null);
 
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [txError, setTxError] = useState<string | null>(null);
@@ -260,6 +266,107 @@ export const SwapAction = () => {
       setBuyAmt("");
     }
   };
+
+  // Calculate price impact for swap visualization
+  useEffect(() => {
+    if (!reserves || !sellAmt || parseFloat(sellAmt) === 0 || isCoinToCoin) {
+      setPriceImpact(null);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      try {
+        const reserve0 = reserves.reserve0;
+        const reserve1 = reserves.reserve1;
+        
+        if (reserve0 === 0n || reserve1 === 0n) {
+          setPriceImpact(null);
+          return;
+        }
+
+        let newReserve0: bigint;
+        let newReserve1: bigint;
+        let action: "buy" | "sell";
+
+        if (isSellETH) {
+          // Selling ETH for token
+          try {
+            const swapAmountEth = parseEther(sellAmt || "0");
+            const buyTokenSwapFee = buyToken?.swapFee ?? SWAP_FEE;
+            const amountOut = getAmountOut(swapAmountEth, reserve0, reserve1, buyTokenSwapFee);
+            
+            if (amountOut >= reserve1) {
+              // Would drain the pool
+              setPriceImpact(null);
+              return;
+            }
+            
+            newReserve0 = reserve0 + swapAmountEth;
+            newReserve1 = reserve1 - amountOut;
+            action = "buy"; // Buying the token with ETH
+          } catch (e) {
+            console.error("Error calculating ETH->Token swap output:", e);
+            setPriceImpact(null);
+            return;
+          }
+        } else {
+          // Selling token for ETH
+          try {
+            const sellTokenDecimals = sellToken?.decimals || 18;
+            const swapAmountToken = parseUnits(sellAmt || "0", sellTokenDecimals);
+            const sellTokenSwapFee = sellToken?.swapFee ?? SWAP_FEE;
+            const amountOut = getAmountOut(swapAmountToken, reserve1, reserve0, sellTokenSwapFee);
+            
+            if (amountOut >= reserve0) {
+              // Would drain the pool
+              setPriceImpact(null);
+              return;
+            }
+            
+            newReserve0 = reserve0 - amountOut;
+            newReserve1 = reserve1 + swapAmountToken;
+            action = "sell"; // Selling the token for ETH
+          } catch (e) {
+            console.error("Error calculating Token->ETH swap output:", e);
+            setPriceImpact(null);
+            return;
+          }
+        }
+
+        // Calculate prices - ETH per token
+        const currentPriceInEth = parseFloat(formatEther(reserve0)) / parseFloat(formatUnits(reserve1, sellToken?.decimals || 18));
+        const newPriceInEth = parseFloat(formatEther(newReserve0)) / parseFloat(formatUnits(newReserve1, sellToken?.decimals || 18));
+
+        // Validate calculated prices
+        if (!isFinite(currentPriceInEth) || !isFinite(newPriceInEth) || newPriceInEth <= 0) {
+          console.error("Invalid price calculation");
+          setPriceImpact(null);
+          return;
+        }
+
+        const impactPercent = ((newPriceInEth - currentPriceInEth) / currentPriceInEth) * 100;
+
+        // Sanity check for extreme impacts
+        if (Math.abs(impactPercent) > 90) {
+          console.warn(`Extreme price impact detected: ${impactPercent.toFixed(2)}%`);
+          setPriceImpact(null);
+          return;
+        }
+
+        setPriceImpact({
+          currentPrice: currentPriceInEth,
+          projectedPrice: newPriceInEth,
+          impactPercent,
+          action,
+        });
+      } catch (error) {
+        console.error("Error calculating price impact:", error);
+        setPriceImpact(null);
+      }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timer);
+  }, [sellAmt, reserves, isSellETH, sellToken, buyToken, isCoinToCoin]);
 
   const executeSwap = async () => {
     try {
@@ -1041,7 +1148,12 @@ export const SwapAction = () => {
       )}
 
       <div className="mt-4 border-t border-primary pt-4">
-        <PoolSwapChart buyToken={buyToken} sellToken={sellToken} prevPair={prevPairRef.current} />
+        <PoolSwapChart 
+          buyToken={buyToken} 
+          sellToken={sellToken} 
+          prevPair={prevPairRef.current} 
+          priceImpact={priceImpact}
+        />
       </div>
     </div>
   );
