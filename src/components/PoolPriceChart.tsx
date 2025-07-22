@@ -261,6 +261,20 @@ const TVPriceChart: React.FC<{
         } as PriceFormatBuiltIn,
       } as LineSeriesOptions);
 
+      // Add impact series for projected price (dotted line)
+      impactSeriesRef.current = chart.addSeries(LineSeries, {
+        color: chartTheme.lineColor, // Will be updated based on buy/sell
+        lineWidth: 2,
+        lineStyle: 2, // Dotted line
+        priceLineVisible: false,
+        lastValueVisible: false,
+        priceFormat: {
+          type: "price",
+          precision: 10,
+          minMove: 0.000000001,
+        } as PriceFormatBuiltIn,
+      } as LineSeriesOptions);
+
       setIsChartReady(true);
 
       // Handle window resize
@@ -310,7 +324,7 @@ const TVPriceChart: React.FC<{
 
   // Simple effect to process and display data with price impact
   useEffect(() => {
-    if (!priceSeriesRef.current || !isChartReady) return;
+    if (!priceSeriesRef.current || !impactSeriesRef.current || !isChartReady) return;
 
     if (!priceData || priceData.length === 0) {
       if (lastValidDataRef.current && lastValidDataRef.current.length > 0) {
@@ -434,22 +448,38 @@ const TVPriceChart: React.FC<{
             });
 
             if (isFinite(projectedValue) && projectedValue > 0) {
-              // Place the projected point just after the last historical point
-              // This avoids time gaps that might confuse the chart
+              // Create impact line data: from last point to projected point
               const projectedTime = lastPoint.time + 1; // Just 1 second after
-              displayData.push({
-                time: projectedTime as UTCTimestamp,
-                value: projectedValue,
+              const impactData = [
+                { time: lastPoint.time, value: lastPoint.value },
+                { time: projectedTime as UTCTimestamp, value: projectedValue }
+              ];
+              
+              // Update impact series color based on buy/sell action
+              const impactColor = priceImpact.action === 'buy' ? '#10b981' : '#ef4444'; // green for buy, red for sell
+              impactSeriesRef.current.applyOptions({
+                color: impactColor,
               });
-              console.log('Added projected point at time:', projectedTime);
+              
+              // Set the impact line data
+              impactSeriesRef.current.setData(impactData);
+              console.log(`Added ${priceImpact.action} impact line with color ${impactColor}`);
             } else {
               console.error('Invalid projected value:', projectedValue);
+              // Clear impact series if invalid
+              impactSeriesRef.current.setData([]);
             }
+          } else {
+            // Clear impact series when no price impact
+            impactSeriesRef.current.setData([]);
           }
+        } else {
+          // Clear impact series when no price impact
+          impactSeriesRef.current.setData([]);
         }
         
-        // Update the chart
-        console.log(`Setting ${displayData.length} points to chart (${points.length} historical + ${displayData.length - points.length} projected)`);
+        // Update the main chart with historical data only
+        console.log(`Setting ${displayData.length} historical points to chart`);
         priceSeriesRef.current.setData(displayData);
         
         // Make sure we see all the data
