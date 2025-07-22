@@ -660,7 +660,26 @@
     "token_info": "Token Info",
     "contract_address": "Contract Address",
     "created_at": "Created At",
-    "creator": "Creator"
+    "creator": "Creator",
+    "pool_fee": "Pool Fee",
+    "decimals": "Decimals",
+    "pool_eth": "Pool ETH",
+    "pool_ens": "Pool ENS"
+  },
+  "ens": {
+    "title": "ENS/ETH Trading",
+    "description": "Trade Ethereum Name Service (ENS) tokens directly with ETH",
+    "about_title": "About ENS",
+    "about_description": "The Ethereum Name Service (ENS) is a distributed, open, and extensible naming system based on the Ethereum blockchain. ENS converts human-readable names like 'alice.eth' into machine-readable identifiers.",
+    "price_chart": "ENS/ETH Price Chart",
+    "buy_ens": "Buy ENS",
+    "sell_ens": "Sell ENS",
+    "you_pay": "You pay",
+    "you_receive": "You receive",
+    "buying": "Buying...",
+    "selling": "Selling...",
+    "transaction_confirmed": "Transaction confirmed!",
+    "max": "Max"
   },
   "chart": {
     "price": "Price",

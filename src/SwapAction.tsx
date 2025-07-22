@@ -34,7 +34,14 @@ import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import { SLIPPAGE_BPS, SWAP_FEE, analyzeTokens, getAmountIn, getAmountOut, getPoolIds, getSwapFee } from "./lib/swap";
 import { cn, formatNumber } from "./lib/utils";
 
-export const SwapAction = () => {
+interface SwapActionProps {
+  lockedTokens?: {
+    sellToken: TokenMeta;
+    buyToken: TokenMeta;
+  };
+}
+
+export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
   const { t } = useTranslation();
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
@@ -51,8 +58,22 @@ export const SwapAction = () => {
   const [customRecipient, setCustomRecipient] = useState<string>("");
   const [showRecipientInput, setShowRecipientInput] = useState(false);
 
-  // Use shared token selection context
-  const { sellToken, buyToken, setSellToken, setBuyToken, flipTokens } = useTokenSelection();
+  // Use shared token selection context, but override with locked tokens if provided
+  const tokenSelectionContext = useTokenSelection();
+  const { 
+    sellToken: contextSellToken, 
+    buyToken: contextBuyToken, 
+    setSellToken: contextSetSellToken, 
+    setBuyToken: contextSetBuyToken, 
+    flipTokens: contextFlipTokens 
+  } = tokenSelectionContext;
+  
+  // Use locked tokens if provided, otherwise use context
+  const sellToken = lockedTokens?.sellToken || contextSellToken;
+  const buyToken = lockedTokens?.buyToken || contextBuyToken;
+  const setSellToken = lockedTokens ? () => {} : contextSetSellToken;
+  const setBuyToken = lockedTokens ? () => {} : contextSetBuyToken;
+  const flipTokens = lockedTokens ? () => {} : contextFlipTokens;
 
   /* Limit order specific state */
   const [swapMode, setSwapMode] = useState<"instant" | "limit">("instant");
@@ -887,17 +908,20 @@ export const SwapAction = () => {
           }}
           showPercentageSlider={lastEditedField === "sell"}
           className="pb-4"
+          readOnly={!!lockedTokens}
         />
 
         {/* FLIP button - absolutely positioned */}
-        <div
-          className={cn(
-            "absolute left-1/2 -translate-x-1/2 z-10",
-            !!(sellToken.balance && sellToken.balance > 0n) ? "top-[63%]" : "top-[50%]",
-          )}
-        >
-          <FlipActionButton onClick={handleFlipTokens} className="" />
-        </div>
+        {!lockedTokens && (
+          <div
+            className={cn(
+              "absolute left-1/2 -translate-x-1/2 z-10",
+              !!(sellToken.balance && sellToken.balance > 0n) ? "top-[63%]" : "top-[50%]",
+            )}
+          >
+            <FlipActionButton onClick={handleFlipTokens} className="" />
+          </div>
+        )}
 
         {/* BUY panel */}
         {buyToken && (
@@ -910,6 +934,7 @@ export const SwapAction = () => {
             amount={buyAmt}
             onAmountChange={syncFromBuy}
             className="pt-4"
+            readOnly={!!lockedTokens}
           />
         )}
       </div>
