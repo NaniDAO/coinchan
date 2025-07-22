@@ -7,7 +7,9 @@ import { useAccount, usePublicClient, useWriteContract, useWaitForTransactionRec
 import { ConnectMenu } from "./ConnectMenu";
 import { useETHPrice } from "./hooks/use-eth-price";
 import { SwapPanel } from "./components/SwapPanel";
-import { PoolSwapChart } from "./PoolSwapChart";
+import PoolPriceChart from "./components/PoolPriceChart";
+import { computePoolId } from "./lib/swap";
+import { ChevronDownIcon } from "lucide-react";
 import { 
   type TokenMeta, 
   ETH_TOKEN, 
@@ -41,6 +43,7 @@ export const EnsBuySell = () => {
   }>({ reserve0: 0n, reserve1: 0n });
   
   const [ensBalance, setEnsBalance] = useState<bigint>(0n);
+  const [ethBalance, setEthBalance] = useState<bigint>(0n);
   const [activeTab, setActiveTab] = useState<"swap" | "add" | "remove" | "zap">("swap");
   const [swapDirection, setSwapDirection] = useState<"buy" | "sell">("buy"); // buy = ETH->ENS, sell = ENS->ETH
   const [sellAmount, setSellAmount] = useState("");
@@ -54,6 +57,7 @@ export const EnsBuySell = () => {
     impactPercent: number;
     action: "buy" | "sell";
   } | null>(null);
+  const [showPriceChart, setShowPriceChart] = useState<boolean>(true); // Open by default
   
   const { writeContractAsync, isPending } = useWriteContract();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
@@ -65,9 +69,10 @@ export const EnsBuySell = () => {
   // Create token metadata objects with current data
   const ethToken = useMemo<TokenMeta>(() => ({
     ...ETH_TOKEN,
+    balance: ethBalance,
     reserve0: poolReserves.reserve0,
     reserve1: poolReserves.reserve1,
-  }), [poolReserves.reserve0, poolReserves.reserve1]);
+  }), [ethBalance, poolReserves.reserve0, poolReserves.reserve1]);
 
   const ensToken = useMemo<TokenMeta>(() => ({
     ...ENS_TOKEN,
@@ -115,28 +120,32 @@ export const EnsBuySell = () => {
     return () => clearInterval(interval);
   }, [publicClient]);
 
-  // Fetch ENS balance
+  // Fetch ENS and ETH balances
   useEffect(() => {
-    const fetchBalance = async () => {
+    const fetchBalances = async () => {
       if (!publicClient || !address) return;
       
       try {
-        const balance = await publicClient.readContract({
+        // Fetch ENS balance
+        const ensBalance = await publicClient.readContract({
           address: ENS_ADDRESS,
           abi: erc20Abi,
           functionName: "balanceOf",
           args: [address],
         });
+        setEnsBalance(ensBalance as bigint);
         
-        setEnsBalance(balance as bigint);
+        // Fetch ETH balance
+        const ethBalance = await publicClient.getBalance({ address });
+        setEthBalance(ethBalance);
       } catch (error) {
-        console.error("Failed to fetch ENS balance:", error);
+        console.error("Failed to fetch balances:", error);
       }
     };
 
-    fetchBalance();
-    // Refresh balance every 30 seconds
-    const interval = setInterval(fetchBalance, 30000);
+    fetchBalances();
+    // Refresh balances every 30 seconds
+    const interval = setInterval(fetchBalances, 30000);
     return () => clearInterval(interval);
   }, [publicClient, address]);
 
@@ -147,9 +156,9 @@ export const EnsBuySell = () => {
   
   const ensUsdPrice = ensPrice * (ethPrice?.priceUSD || 0);
   
-  // ENS has a total supply of 100M tokens (hardcoded for performance)
-  const totalSupply = 100000000n * 10n ** 18n; // 100M tokens with 18 decimals
-  const marketCapUsd = ensUsdPrice * Number(formatUnits(totalSupply, 18));
+  // ENS has a circulating supply of 33,165,585 tokens
+  const circulatingSupply = 33165585n * 10n ** 18n; // 33,165,585 tokens with 18 decimals
+  const marketCapUsd = ensUsdPrice * Number(formatUnits(circulatingSupply, 18));
   
   // Calculate output based on input
   const calculateOutput = useCallback((value: string, field: "sell" | "buy") => {
@@ -319,39 +328,6 @@ export const EnsBuySell = () => {
         </div>
       </div>
 
-      {/* Market Stats with ENS theme */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mb-6 md:mb-8">
-        <div className="bg-card border border-[#0080BC]/20 dark:border-[#0080BC]/10 rounded-lg p-3 md:p-4 text-center hover:border-[#0080BC]/40 dark:hover:border-[#0080BC]/20 transition-colors">
-          <p className="text-xs md:text-sm text-muted-foreground">{t("coin.price")}</p>
-          <p className="text-lg md:text-xl font-bold text-[#0080BC] dark:text-[#5BA0CC]">
-            {ensPrice > 0 ? `${ensPrice.toFixed(6)} ETH` : "-"}
-          </p>
-          <p className="text-xs md:text-sm text-muted-foreground">
-            ${ensUsdPrice.toFixed(2)}
-          </p>
-        </div>
-        
-        <div className="bg-card border border-[#0080BC]/20 dark:border-[#0080BC]/10 rounded-lg p-3 md:p-4 text-center hover:border-[#0080BC]/40 dark:hover:border-[#0080BC]/20 transition-colors">
-          <p className="text-xs md:text-sm text-muted-foreground">{t("coin.market_cap")}</p>
-          <p className="text-lg md:text-xl font-bold text-[#0080BC] dark:text-[#5BA0CC]">
-            ${marketCapUsd > 0 ? (marketCapUsd / 1e6).toFixed(2) + "M" : "-"}
-          </p>
-        </div>
-        
-        <div className="bg-card border border-[#0080BC]/20 dark:border-[#0080BC]/10 rounded-lg p-3 md:p-4 text-center hover:border-[#0080BC]/40 dark:hover:border-[#0080BC]/20 transition-colors">
-          <p className="text-xs md:text-sm text-muted-foreground">{t("coin.pool_eth")}</p>
-          <p className="text-lg md:text-xl font-bold">
-            {formatEther(poolReserves.reserve0)} ETH
-          </p>
-        </div>
-        
-        <div className="bg-card border border-[#0080BC]/20 dark:border-[#0080BC]/10 rounded-lg p-3 md:p-4 text-center hover:border-[#0080BC]/40 dark:hover:border-[#0080BC]/20 transition-colors">
-          <p className="text-xs md:text-sm text-muted-foreground">{t("coin.pool_ens")}</p>
-          <p className="text-lg md:text-xl font-bold">
-            {Number(formatUnits(poolReserves.reserve1, 18)).toLocaleString()} ENS
-          </p>
-        </div>
-      </div>
 
       {/* Trading Interface with ENS theme */}
       <div className="bg-card border border-[#0080BC]/20 dark:border-[#0080BC]/10 rounded-lg p-4 md:p-6 mb-6 md:mb-8">
@@ -373,32 +349,8 @@ export const EnsBuySell = () => {
             
             <TabsContent value="swap" className="mt-4">
               <div className="space-y-4">
-                {/* Buy/Sell Toggle */}
-                <div className="flex gap-2 p-1 bg-muted rounded-lg">
-                  <button
-                    onClick={() => setSwapDirection("buy")}
-                    className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
-                      swapDirection === "buy"
-                        ? "bg-[#0080BC] text-white"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {t("ens.buy_ens")}
-                  </button>
-                  <button
-                    onClick={() => setSwapDirection("sell")}
-                    className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
-                      swapDirection === "sell"
-                        ? "bg-[#0080BC] text-white"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {t("ens.sell_ens")}
-                  </button>
-                </div>
-                
                 {/* Custom simplified swap for ENS */}
-                <div className="space-y-4">
+                <div className="relative space-y-1">
                   {/* Sell panel */}
                   <SwapPanel
                     title={swapDirection === "buy" ? t("ens.you_pay") : t("ens.you_pay")}
@@ -416,12 +368,10 @@ export const EnsBuySell = () => {
                     onMax={() => {
                       if (swapDirection === "buy") {
                         // Max ETH (leave some for gas)
-                        publicClient?.getBalance({ address: address! }).then((balance) => {
-                          const maxEth = (balance * 99n) / 100n;
-                          const formatted = formatEther(maxEth);
-                          setSellAmount(formatted);
-                          calculateOutput(formatted, "sell");
-                        });
+                        const maxEth = (ethBalance * 99n) / 100n;
+                        const formatted = formatEther(maxEth);
+                        setSellAmount(formatted);
+                        calculateOutput(formatted, "sell");
                       } else {
                         // Max ENS
                         const formatted = formatUnits(ensBalance, 18);
@@ -429,9 +379,29 @@ export const EnsBuySell = () => {
                         calculateOutput(formatted, "sell");
                       }
                     }}
-                    showPercentageSlider={lastEditedField === "sell"}
-                    className="pb-4"
+                    showPercentageSlider={lastEditedField === "sell" && 
+                      ((swapDirection === "buy" && ethBalance > 0n) || 
+                       (swapDirection === "sell" && ensBalance > 0n))}
+                    className="pb-2"
                   />
+                  
+                  {/* Flip button */}
+                  <div className="relative py-1">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <button
+                        onClick={() => {
+                          setSwapDirection(swapDirection === "buy" ? "sell" : "buy");
+                          setSellAmount("");
+                          setBuyAmount("");
+                        }}
+                        className="bg-background border-2 border-[#0080BC]/20 rounded-full p-2 hover:border-[#0080BC]/40 transition-all hover:rotate-180 duration-300"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M7 16V4M7 4L3 8M7 4L11 8M17 8V20M17 20L21 16M17 20L13 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
                   
                   {/* Buy panel */}
                   <SwapPanel
@@ -447,7 +417,7 @@ export const EnsBuySell = () => {
                       calculateOutput(val, "buy");
                     }}
                     showPercentageSlider={lastEditedField === "buy"}
-                    className="pt-4"
+                    className="pt-2"
                   />
                   
                   {/* Swap button */}
@@ -485,16 +455,71 @@ export const EnsBuySell = () => {
                 
                 {/* Chart */}
                 <div className="mt-4 border-t border-primary pt-4">
-                  <PoolSwapChart 
-                    buyToken={swapDirection === "buy" ? ensToken : ethToken} 
-                    sellToken={swapDirection === "buy" ? ethToken : ensToken} 
-                    prevPair={null} 
-                    priceImpact={priceImpact}
-                  />
+                  <div className="relative flex flex-col">
+                    <div className="flex items-center justify-between mb-2">
+                      <button
+                        onClick={() => setShowPriceChart((prev) => !prev)}
+                        className="text-xs text-muted-foreground flex items-center gap-1 hover:text-primary"
+                      >
+                        {showPriceChart ? t("coin.hide_chart") : t("coin.show_chart")}
+                        <ChevronDownIcon className={`w-3 h-3 transition-transform ${showPriceChart ? "rotate-180" : ""}`} />
+                      </button>
+                      {showPriceChart && (
+                        <div className="text-xs text-muted-foreground">
+                          ENS/ETH {t("coin.price_history")}
+                        </div>
+                      )}
+                    </div>
+
+                    {showPriceChart && (
+                      <div className="transition-all duration-300">
+                        <PoolPriceChart
+                          poolId={ENS_POOL_ID.toString()}
+                          ticker="ENS"
+                          ethUsdPrice={ethPrice?.priceUSD}
+                          priceImpact={priceImpact}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="text-xs text-muted-foreground text-center">
                   {t("coin.pool_fee")}: 0.3%
+                </div>
+                
+                {/* Market Stats - subtle below chart */}
+                <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                  <div className="text-center">
+                    <p className="text-muted-foreground opacity-70">{t("coin.price")}</p>
+                    <p className="font-medium">
+                      {ensPrice > 0 ? `${ensPrice.toFixed(6)} ETH` : "-"}
+                    </p>
+                    <p className="text-muted-foreground opacity-60">
+                      ${ensUsdPrice.toFixed(2)}
+                    </p>
+                  </div>
+                  
+                  <div className="text-center">
+                    <p className="text-muted-foreground opacity-70">{t("coin.market_cap")}</p>
+                    <p className="font-medium">
+                      ${marketCapUsd > 1e9 ? (marketCapUsd / 1e9).toFixed(2) + "B" : marketCapUsd > 0 ? (marketCapUsd / 1e6).toFixed(2) + "M" : "-"}
+                    </p>
+                  </div>
+                  
+                  <div className="text-center">
+                    <p className="text-muted-foreground opacity-70">{t("coin.pool_eth")}</p>
+                    <p className="font-medium">
+                      {formatEther(poolReserves.reserve0)} ETH
+                    </p>
+                  </div>
+                  
+                  <div className="text-center">
+                    <p className="text-muted-foreground opacity-70">{t("coin.pool_ens")}</p>
+                    <p className="font-medium">
+                      {Number(formatUnits(poolReserves.reserve1, 18)).toFixed(3)} ENS
+                    </p>
+                  </div>
                 </div>
               </div>
             </TabsContent>

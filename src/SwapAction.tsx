@@ -101,9 +101,13 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
     isCoinToCoin: isCoinToCoin,
   });
 
+  // Special handling for ENS to ensure reserves are always fetched correctly
+  const isENSPool = sellToken?.symbol === "ENS" || buyToken?.symbol === "ENS";
+  const ensPoolId = isENSPool ? 107895081322979037665933919470752294545033231002190305779392467929211865476585n : undefined;
+  
   const { data: reserves } = useReserves({
-    poolId: mainPoolId,
-    source: sellToken?.id === null ? buyToken?.source : sellToken.source,
+    poolId: isENSPool ? ensPoolId : mainPoolId,
+    source: isENSPool ? "COOKBOOK" : (sellToken?.id === null ? buyToken?.source : sellToken.source),
   });
   const { data: targetReserves } = useReserves({
     poolId: targetPoolId,
@@ -292,8 +296,10 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
   useEffect(() => {
     // For ENS swaps, always calculate price impact since they're direct ETH swaps
     const isENSSwap = sellToken?.symbol === "ENS" || buyToken?.symbol === "ENS";
+    const isCULTSwap = sellToken?.symbol === "CULT" || buyToken?.symbol === "CULT";
+    const isCustomDirectSwap = isENSSwap || isCULTSwap;
     
-    if (!reserves || !sellAmt || parseFloat(sellAmt) === 0 || (isCoinToCoin && !isENSSwap)) {
+    if (!reserves || !sellAmt || parseFloat(sellAmt) === 0 || (isCoinToCoin && !isCustomDirectSwap)) {
       setPriceImpact(null);
       return;
     }
@@ -368,19 +374,6 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
         const currentPriceInEth = Number(currentPrice) / Number(scaleFactor);
         const newPriceInEth = Number(newPrice) / Number(scaleFactor);
         
-        console.log('SwapAction price impact calculation:', {
-          action,
-          isSellETH,
-          tokenSymbol: isSellETH ? buyToken?.symbol : sellToken?.symbol,
-          tokenDecimals,
-          reserve0: formatEther(reserve0),
-          reserve1: formatUnits(reserve1, tokenDecimals),
-          newReserve0: formatEther(newReserve0),
-          newReserve1: formatUnits(newReserve1, tokenDecimals),
-          currentPriceInEth,
-          newPriceInEth,
-          expectedChange: action === 'buy' ? 'price should increase' : 'price should decrease'
-        });
 
         // Validate calculated prices
         if (!isFinite(currentPriceInEth) || !isFinite(newPriceInEth) || newPriceInEth <= 0) {
