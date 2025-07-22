@@ -20,21 +20,22 @@ interface PoolSwapChartProps {
 
 export const PoolSwapChart = ({ sellToken, buyToken, prevPair, priceImpact }: PoolSwapChartProps) => {
   const { t } = useTranslation();
-  const [showPriceChart, setShowPriceChart] = useState<boolean>(false);
+  const [showPriceChart, setShowPriceChart] = useState<boolean>(false); // Hidden by default
   const { data: ethUsdPrice } = useEthUsdPrice();
 
   useEffect(() => {
     const currentPair = [sellToken.id, buyToken?.id].sort().toString();
 
     if (prevPair !== null && prevPair !== currentPair) {
-      setShowPriceChart(false);
+      // Keep chart visible when switching pairs
     }
   }, [prevPair]);
 
   const chartToken =
     buyToken && buyToken.id !== null ? buyToken : sellToken && sellToken.id !== null ? sellToken : null;
 
-  if (!chartToken || chartToken.id === null || chartToken.id === undefined) return null;
+  // ENS and other ERC20s have id=0n which is falsy but valid
+  if (!chartToken || (chartToken.id === null || chartToken.id === undefined)) return null;
 
   return (
     <div className="relative flex flex-col">

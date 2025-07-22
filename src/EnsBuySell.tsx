@@ -1,19 +1,20 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { formatEther, formatUnits, erc20Abi } from "viem";
+import { formatEther, formatUnits, parseEther, parseUnits, erc20Abi, maxUint256 } from "viem";
 import { mainnet } from "viem/chains";
-import { useAccount, usePublicClient } from "wagmi";
+import { useAccount, usePublicClient, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 
-import PoolPriceChart from "./components/PoolPriceChart";
 import { ConnectMenu } from "./ConnectMenu";
 import { useETHPrice } from "./hooks/use-eth-price";
-import { SwapAction } from "./SwapAction";
+import { SwapPanel } from "./components/SwapPanel";
+import { PoolSwapChart } from "./PoolSwapChart";
 import { 
   type TokenMeta, 
   ETH_TOKEN, 
   ENS_TOKEN, 
   ENS_POOL_ID, 
-  ENS_ADDRESS
+  ENS_ADDRESS,
+  ENS_POOL_KEY
 } from "./lib/coins";
 import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
@@ -21,13 +22,20 @@ import { AddLiquidity } from "./AddLiquidity";
 import { RemoveLiquidity } from "./RemoveLiquidity";
 import { SingleEthLiquidity } from "./SingleEthLiquidity";
 import { useTokenSelection } from "./contexts/TokenSelectionContext";
+import { getAmountOut, withSlippage, nowSec, DEADLINE_SEC } from "./lib/swap";
+import { PercentageSlider } from "./components/ui/percentage-slider";
+import { Button } from "./components/ui/button";
+import { LoadingLogo } from "./components/ui/loading-logo";
+import { useErc20Allowance } from "./hooks/use-erc20-allowance";
+import { formatNumber } from "./lib/utils";
+import { handleWalletError } from "./lib/errors";
 
 export const EnsBuySell = () => {
   const { t } = useTranslation();
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient({ chainId: mainnet.id });
   const { data: ethPrice } = useETHPrice();
-  const { setSellToken, setBuyToken } = useTokenSelection();
+  const { sellToken: contextSellToken, buyToken: contextBuyToken, setSellToken, setBuyToken } = useTokenSelection();
   const [poolReserves, setPoolReserves] = useState<{
     reserve0: bigint;
     reserve1: bigint;
@@ -35,12 +43,32 @@ export const EnsBuySell = () => {
   
   const [ensBalance, setEnsBalance] = useState<bigint>(0n);
   const [activeTab, setActiveTab] = useState<"swap" | "add" | "remove" | "zap">("swap");
+  const [swapDirection, setSwapDirection] = useState<"buy" | "sell">("buy"); // buy = ETH->ENS, sell = ENS->ETH
+  const [sellAmount, setSellAmount] = useState("");
+  const [buyAmount, setBuyAmount] = useState("");
+  const [lastEditedField, setLastEditedField] = useState<"sell" | "buy">("sell");
+  const [txHash, setTxHash] = useState<`0x${string}`>();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [priceImpact, setPriceImpact] = useState<{
+    currentPrice: number;
+    projectedPrice: number;
+    impactPercent: number;
+    action: "buy" | "sell";
+  } | null>(null);
   
-  // Create token metadata objects for liquidity operations
+  const { writeContractAsync, isPending } = useWriteContract();
+  const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
+  const { allowance: ensAllowance } = useErc20Allowance({
+    token: ENS_ADDRESS,
+    spender: CookbookAddress,
+  });
+  
+  // Create token metadata objects with current data
   const ethToken = useMemo<TokenMeta>(() => ({
     ...ETH_TOKEN,
-    balance: 0n, // Will be updated by liquidity components
-  }), []);
+    reserve0: poolReserves.reserve0,
+    reserve1: poolReserves.reserve1,
+  }), [poolReserves.reserve0, poolReserves.reserve1]);
 
   const ensToken = useMemo<TokenMeta>(() => ({
     ...ENS_TOKEN,
@@ -49,11 +77,6 @@ export const EnsBuySell = () => {
     reserve1: poolReserves.reserve1,
   }), [ensBalance, poolReserves.reserve0, poolReserves.reserve1]);
   
-  // Create locked tokens for SwapAction
-  const lockedTokens = useMemo(() => ({
-    sellToken: ETH_TOKEN,
-    buyToken: ensToken,
-  }), [ensToken]);
 
   // Set tokens in context when tab changes to add/remove/zap
   useEffect(() => {
@@ -128,6 +151,160 @@ export const EnsBuySell = () => {
   // ENS has a total supply of 100M tokens (hardcoded for performance)
   const totalSupply = 100000000n * 10n ** 18n; // 100M tokens with 18 decimals
   const marketCapUsd = ensUsdPrice * Number(formatUnits(totalSupply, 18));
+  
+  // Calculate output based on input
+  const calculateOutput = useCallback((value: string, field: "sell" | "buy") => {
+    if (!poolReserves.reserve0 || !poolReserves.reserve1 || !value || parseFloat(value) === 0) {
+      if (field === "sell") setBuyAmount("");
+      else setSellAmount("");
+      return;
+    }
+    
+    try {
+      if (field === "sell") {
+        // User is editing sell amount
+        if (swapDirection === "buy") {
+          // Buying ENS with ETH
+          const ethIn = parseEther(value);
+          const ensOut = getAmountOut(ethIn, poolReserves.reserve0, poolReserves.reserve1, 30n);
+          setBuyAmount(formatUnits(ensOut, 18));
+        } else {
+          // Selling ENS for ETH
+          const ensIn = parseUnits(value, 18);
+          const ethOut = getAmountOut(ensIn, poolReserves.reserve1, poolReserves.reserve0, 30n);
+          setBuyAmount(formatEther(ethOut));
+        }
+      } else {
+        // User is editing buy amount (exact out)
+        if (swapDirection === "buy") {
+          // Want exact ENS out, calculate ETH in
+          const ensOut = parseUnits(value, 18);
+          // For exact out: amountIn = (reserveIn * amountOut * 10000) / ((reserveOut - amountOut) * (10000 - fee))
+          const ethIn = (poolReserves.reserve0 * ensOut * 10000n) / ((poolReserves.reserve1 - ensOut) * 9970n);
+          setSellAmount(formatEther(ethIn));
+        } else {
+          // Want exact ETH out, calculate ENS in
+          const ethOut = parseEther(value);
+          const ensIn = (poolReserves.reserve1 * ethOut * 10000n) / ((poolReserves.reserve0 - ethOut) * 9970n);
+          setSellAmount(formatUnits(ensIn, 18));
+        }
+      }
+    } catch (error) {
+      console.error("Error calculating swap amounts:", error);
+      if (field === "sell") setBuyAmount("");
+      else setSellAmount("");
+    }
+  }, [poolReserves, swapDirection]);
+  
+  // Calculate price impact
+  useEffect(() => {
+    if (!poolReserves.reserve0 || !poolReserves.reserve1 || !sellAmount || parseFloat(sellAmount) === 0) {
+      setPriceImpact(null);
+      return;
+    }
+    
+    const timer = setTimeout(() => {
+      try {
+        let newReserve0 = poolReserves.reserve0;
+        let newReserve1 = poolReserves.reserve1;
+        
+        if (swapDirection === "buy") {
+          // Buying ENS with ETH
+          const ethIn = parseEther(sellAmount);
+          const ensOut = getAmountOut(ethIn, poolReserves.reserve0, poolReserves.reserve1, 30n);
+          newReserve0 = poolReserves.reserve0 + ethIn;
+          newReserve1 = poolReserves.reserve1 - ensOut;
+        } else {
+          // Selling ENS for ETH
+          const ensIn = parseUnits(sellAmount, 18);
+          const ethOut = getAmountOut(ensIn, poolReserves.reserve1, poolReserves.reserve0, 30n);
+          newReserve0 = poolReserves.reserve0 - ethOut;
+          newReserve1 = poolReserves.reserve1 + ensIn;
+        }
+        
+        const currentPrice = Number(formatEther(poolReserves.reserve0)) / Number(formatUnits(poolReserves.reserve1, 18));
+        const newPrice = Number(formatEther(newReserve0)) / Number(formatUnits(newReserve1, 18));
+        const impactPercent = ((newPrice - currentPrice) / currentPrice) * 100;
+        
+        setPriceImpact({
+          currentPrice,
+          projectedPrice: newPrice,
+          impactPercent,
+          action: swapDirection,
+        });
+      } catch (error) {
+        console.error("Error calculating price impact:", error);
+        setPriceImpact(null);
+      }
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [sellAmount, swapDirection, poolReserves]);
+  
+  // Execute swap
+  const executeSwap = async () => {
+    if (!address || !sellAmount) return;
+    
+    setErrorMessage(null);
+    
+    try {
+      if (swapDirection === "buy") {
+        // Buy ENS with ETH
+        const ethIn = parseEther(sellAmount);
+        const ensOut = getAmountOut(ethIn, poolReserves.reserve0, poolReserves.reserve1, 30n);
+        const minOut = withSlippage(ensOut);
+        const deadline = nowSec() + BigInt(DEADLINE_SEC);
+        
+        const hash = await writeContractAsync({
+          address: CookbookAddress,
+          abi: CookbookAbi,
+          functionName: "swapExactIn",
+          args: [ENS_POOL_KEY as any, ethIn, minOut, true, address, deadline],
+          value: ethIn,
+        });
+        
+        setTxHash(hash);
+        setSellAmount("");
+        setBuyAmount("");
+      } else {
+        // Sell ENS for ETH
+        const ensIn = parseUnits(sellAmount, 18);
+        
+        // Check allowance
+        if (!ensAllowance || ensAllowance < ensIn) {
+          const approveHash = await writeContractAsync({
+            address: ENS_ADDRESS,
+            abi: erc20Abi,
+            functionName: "approve",
+            args: [CookbookAddress, maxUint256],
+          });
+          await publicClient?.waitForTransactionReceipt({ hash: approveHash });
+        }
+        
+        const ethOut = getAmountOut(ensIn, poolReserves.reserve1, poolReserves.reserve0, 30n);
+        const minOut = withSlippage(ethOut);
+        const deadline = nowSec() + BigInt(DEADLINE_SEC);
+        
+        const hash = await writeContractAsync({
+          address: CookbookAddress,
+          abi: CookbookAbi,
+          functionName: "swapExactIn",
+          args: [ENS_POOL_KEY as any, ensIn, minOut, false, address, deadline],
+        });
+        
+        setTxHash(hash);
+        setSellAmount("");
+        setBuyAmount("");
+      }
+    } catch (err) {
+      const errorMsg = handleWalletError(err, {
+        defaultMessage: t("errors.transaction_error"),
+      });
+      if (errorMsg) {
+        setErrorMessage(errorMsg);
+      }
+    }
+  };
 
   return (
     <div className="container mx-auto max-w-2xl px-4 py-8">
@@ -196,7 +373,131 @@ export const EnsBuySell = () => {
             </TabsList>
             
             <TabsContent value="swap" className="mt-4">
-              <SwapAction lockedTokens={lockedTokens} />
+              <div className="space-y-4">
+                {/* Buy/Sell Toggle */}
+                <div className="flex gap-2 p-1 bg-muted rounded-lg">
+                  <button
+                    onClick={() => setSwapDirection("buy")}
+                    className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+                      swapDirection === "buy"
+                        ? "bg-[#0080BC] text-white"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {t("ens.buy_ens")}
+                  </button>
+                  <button
+                    onClick={() => setSwapDirection("sell")}
+                    className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+                      swapDirection === "sell"
+                        ? "bg-[#0080BC] text-white"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {t("ens.sell_ens")}
+                  </button>
+                </div>
+                
+                {/* Custom simplified swap for ENS */}
+                <div className="space-y-4">
+                  {/* Sell panel */}
+                  <SwapPanel
+                    title={swapDirection === "buy" ? t("ens.you_pay") : t("ens.you_pay")}
+                    selectedToken={swapDirection === "buy" ? ethToken : ensToken}
+                    tokens={[]} // Empty array prevents token selection
+                    onSelect={() => {}} // No-op
+                    isEthBalanceFetching={false}
+                    amount={sellAmount}
+                    onAmountChange={(val) => {
+                      setSellAmount(val);
+                      setLastEditedField("sell");
+                      calculateOutput(val, "sell");
+                    }}
+                    showMaxButton={true}
+                    onMax={() => {
+                      if (swapDirection === "buy") {
+                        // Max ETH (leave some for gas)
+                        publicClient?.getBalance({ address: address! }).then((balance) => {
+                          const maxEth = (balance * 99n) / 100n;
+                          const formatted = formatEther(maxEth);
+                          setSellAmount(formatted);
+                          calculateOutput(formatted, "sell");
+                        });
+                      } else {
+                        // Max ENS
+                        const formatted = formatUnits(ensBalance, 18);
+                        setSellAmount(formatted);
+                        calculateOutput(formatted, "sell");
+                      }
+                    }}
+                    showPercentageSlider={lastEditedField === "sell"}
+                    className="pb-4"
+                  />
+                  
+                  {/* Buy panel */}
+                  <SwapPanel
+                    title={swapDirection === "buy" ? t("ens.you_receive") : t("ens.you_receive")}
+                    selectedToken={swapDirection === "buy" ? ensToken : ethToken}
+                    tokens={[]} // Empty array prevents token selection
+                    onSelect={() => {}} // No-op
+                    isEthBalanceFetching={false}
+                    amount={buyAmount}
+                    onAmountChange={(val) => {
+                      setBuyAmount(val);
+                      setLastEditedField("buy");
+                      calculateOutput(val, "buy");
+                    }}
+                    showPercentageSlider={lastEditedField === "buy"}
+                    className="pt-4"
+                  />
+                  
+                  {/* Swap button */}
+                  <Button
+                    onClick={executeSwap}
+                    disabled={!isConnected || isPending || !sellAmount || parseFloat(sellAmount) === 0}
+                    className="w-full bg-[#0080BC] hover:bg-[#0066CC] text-white"
+                  >
+                    {isPending ? (
+                      <span className="flex items-center gap-2">
+                        <LoadingLogo size="sm" />
+                        {swapDirection === "buy" ? t("ens.buying") : t("ens.selling")}
+                      </span>
+                    ) : (
+                      swapDirection === "buy" ? t("ens.buy_ens") : t("ens.sell_ens")
+                    )}
+                  </Button>
+                  
+                  {errorMessage && (
+                    <p className="text-destructive text-sm">{errorMessage}</p>
+                  )}
+                  {isSuccess && (
+                    <p className="text-green-600 text-sm">{t("ens.transaction_confirmed")}</p>
+                  )}
+                  
+                  {/* Price impact display */}
+                  {priceImpact && (
+                    <div className="text-xs text-muted-foreground">
+                      {t("swap.price_impact")}: <span className={priceImpact.impactPercent > 0 ? "text-green-600" : "text-red-600"}>
+                        {priceImpact.impactPercent > 0 ? "+" : ""}{priceImpact.impactPercent.toFixed(2)}%
+                      </span>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Chart */}
+                <div className="mt-4 border-t border-primary pt-4">
+                  <PoolSwapChart 
+                    buyToken={swapDirection === "buy" ? ensToken : ethToken} 
+                    sellToken={swapDirection === "buy" ? ethToken : ensToken} 
+                    prevPair={null} 
+                    priceImpact={priceImpact}
+                  />
+                </div>
+                
+                <div className="text-xs text-muted-foreground text-center">
+                  {t("coin.pool_fee")}: 0.3%
+                </div>
+              </div>
             </TabsContent>
             
             <TabsContent value="add" className="mt-4">
@@ -214,17 +515,6 @@ export const EnsBuySell = () => {
         )}
       </div>
 
-      {/* Price Chart with ENS theme */}
-      <div className="bg-card border border-[#0080BC]/20 dark:border-[#0080BC]/10 rounded-lg p-6">
-        <h2 className="text-lg md:text-xl font-semibold mb-4 text-[#0080BC] dark:text-[#5BA0CC]">{t("ens.price_chart")}</h2>
-        <div className="h-[300px] md:h-[400px]">
-          <PoolPriceChart
-            poolId={ENS_POOL_ID.toString()}
-            ticker="ENS"
-            ethUsdPrice={ethPrice?.priceUSD}
-          />
-        </div>
-      </div>
 
       {/* Info Section with ENS theme */}
       <div className="mt-6 md:mt-8 bg-card border border-[#0080BC]/20 dark:border-[#0080BC]/10 rounded-lg p-4 md:p-6">
