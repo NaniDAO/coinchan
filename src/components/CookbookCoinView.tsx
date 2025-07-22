@@ -7,7 +7,7 @@ import { CookbookAddress } from "@/constants/Cookbook";
 import { useGetCoin } from "@/hooks/metadata/use-get-coin";
 import { SWAP_FEE, computePoolId } from "@/lib/swap";
 import { Link } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { mainnet } from "viem/chains";
 import { useReadContract } from "wagmi";
 import { BuyCoinSale } from "./BuyCoinSale";
@@ -18,6 +18,13 @@ import { PoolOverview } from "./PoolOverview";
 import { VotePanel } from "./VotePanel";
 
 export const CookbookCoinView = ({ coinId }: { coinId: bigint }) => {
+  const [priceImpact, setPriceImpact] = useState<{
+    currentPrice: number;
+    projectedPrice: number;
+    impactPercent: number;
+    action: "buy" | "sell";
+  } | null>(null);
+
   const { data, isLoading: isLoadingGetCoin } = useGetCoin({
     coinId: coinId.toString(),
     token: CookbookAddress,
@@ -110,6 +117,7 @@ export const CookbookCoinView = ({ coinId }: { coinId: bigint }) => {
           <BuyCoinSale
             coinId={coinId}
             symbol={symbol?.length === 0 ? name : symbol}
+            onPriceImpactChange={setPriceImpact}
           />
         </div>
       </ErrorBoundary>
@@ -126,6 +134,7 @@ export const CookbookCoinView = ({ coinId }: { coinId: bigint }) => {
           CookbookAddress,
         ).toString()}
         symbol={symbol}
+        priceImpact={priceImpact}
       />
     </div>
   );

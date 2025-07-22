@@ -10,9 +10,15 @@ interface PoolSwapChartProps {
   sellToken: any;
   buyToken: any;
   prevPair: any;
+  priceImpact?: {
+    currentPrice: number;
+    projectedPrice: number;
+    impactPercent: number;
+    action: "buy" | "sell";
+  } | null;
 }
 
-export const PoolSwapChart = ({ sellToken, buyToken, prevPair }: PoolSwapChartProps) => {
+export const PoolSwapChart = ({ sellToken, buyToken, prevPair, priceImpact }: PoolSwapChartProps) => {
   const { t } = useTranslation();
   const [showPriceChart, setShowPriceChart] = useState<boolean>(false);
   const { data: ethUsdPrice } = useEthUsdPrice();
@@ -55,6 +61,7 @@ export const PoolSwapChart = ({ sellToken, buyToken, prevPair }: PoolSwapChartPr
             poolId={computePoolId(chartToken.id).toString()}
             ticker={chartToken.symbol}
             ethUsdPrice={ethUsdPrice}
+            priceImpact={priceImpact}
           />
         </div>
       )}

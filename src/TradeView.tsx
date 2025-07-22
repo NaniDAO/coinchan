@@ -76,6 +76,12 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
     }, [data]);
 
   const [txHash] = useState<`0x${string}`>();
+  const [priceImpact, setPriceImpact] = useState<{
+    currentPrice: number;
+    projectedPrice: number;
+    impactPercent: number;
+    action: "buy" | "sell";
+  } | null>(null);
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
   const { data: isOwner, isLoading: isCheckingOwner } = useIsOwner({
     tokenId,
@@ -178,7 +184,12 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
         }
       >
         <div>
-          <BuySell tokenId={tokenId} name={name} symbol={symbol} />
+          <BuySell 
+            tokenId={tokenId} 
+            name={name} 
+            symbol={symbol} 
+            onPriceImpactChange={setPriceImpact}
+          />
         </div>
       </ErrorBoundary>
       <ErrorBoundary
@@ -210,6 +221,7 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
           CoinsAddress,
         ).toString()}
         symbol={symbol}
+        priceImpact={priceImpact}
       />
       <div className="mt-4 sm:mt-6"></div>
     </div>

@@ -39,9 +39,16 @@ import { useGetCoin } from "@/hooks/metadata/use-get-coin";
 export const BuySellCookbookCoin = ({
   coinId,
   symbol,
+  onPriceImpactChange,
 }: {
   coinId: bigint;
   symbol: string;
+  onPriceImpactChange?: (impact: {
+    currentPrice: number;
+    projectedPrice: number;
+    impactPercent: number;
+    action: "buy" | "sell";
+  } | null) => void;
 }) => {
   const { t } = useTranslation();
   const [tab, setTab] = useState<"buy" | "sell">("buy");
@@ -190,6 +197,101 @@ export const BuySellCookbookCoin = ({
       setPercentage(0);
     }
   }, [amount, tab, ethBalance, coinBalance]);
+
+  // Calculate price impact
+  useEffect(() => {
+    if (!reserves || !amount || parseFloat(amount) === 0) {
+      onPriceImpactChange?.(null);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      try {
+        const reserve0 = reserves.reserve0;
+        const reserve1 = reserves.reserve1;
+        
+        if (reserve0 === 0n || reserve1 === 0n) {
+          onPriceImpactChange?.(null);
+          return;
+        }
+
+        let newReserve0: bigint;
+        let newReserve1: bigint;
+
+        if (tab === "buy") {
+          // Buying token with ETH
+          try {
+            const swapAmountEth = parseEther(amount || "0");
+            const amountOut = getAmountOut(swapAmountEth, reserve0, reserve1, actualSwapFee);
+            
+            if (amountOut >= reserve1) {
+              // Would drain the pool
+              onPriceImpactChange?.(null);
+              return;
+            }
+            
+            newReserve0 = reserve0 + swapAmountEth;
+            newReserve1 = reserve1 - amountOut;
+          } catch (e) {
+            console.error("Error calculating buy output:", e);
+            onPriceImpactChange?.(null);
+            return;
+          }
+        } else {
+          // Selling token for ETH
+          try {
+            const swapAmountToken = parseUnits(amount || "0", 18);
+            const amountOut = getAmountOut(swapAmountToken, reserve1, reserve0, actualSwapFee);
+            
+            if (amountOut >= reserve0) {
+              // Would drain the pool
+              onPriceImpactChange?.(null);
+              return;
+            }
+            
+            newReserve0 = reserve0 - amountOut;
+            newReserve1 = reserve1 + swapAmountToken;
+          } catch (e) {
+            console.error("Error calculating sell output:", e);
+            onPriceImpactChange?.(null);
+            return;
+          }
+        }
+
+        // Calculate prices - ETH per token
+        const currentPriceInEth = parseFloat(formatEther(reserve0)) / parseFloat(formatUnits(reserve1, 18));
+        const newPriceInEth = parseFloat(formatEther(newReserve0)) / parseFloat(formatUnits(newReserve1, 18));
+
+        // Validate calculated prices
+        if (!isFinite(currentPriceInEth) || !isFinite(newPriceInEth) || newPriceInEth <= 0) {
+          console.error("Invalid price calculation");
+          onPriceImpactChange?.(null);
+          return;
+        }
+
+        const impactPercent = ((newPriceInEth - currentPriceInEth) / currentPriceInEth) * 100;
+
+        // Sanity check for extreme impacts
+        if (Math.abs(impactPercent) > 90) {
+          console.warn(`Extreme price impact detected: ${impactPercent.toFixed(2)}%`);
+          onPriceImpactChange?.(null);
+          return;
+        }
+
+        onPriceImpactChange?.({
+          currentPrice: currentPriceInEth,
+          projectedPrice: newPriceInEth,
+          impactPercent,
+          action: tab,
+        });
+      } catch (error) {
+        console.error("Error calculating price impact:", error);
+        onPriceImpactChange?.(null);
+      }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timer);
+  }, [amount, tab, reserves, actualSwapFee, onPriceImpactChange]);
 
   // Calculate USD values
   const usdValue = useMemo(() => {
