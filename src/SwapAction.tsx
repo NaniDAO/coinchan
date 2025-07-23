@@ -60,14 +60,14 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
 
   // Use shared token selection context, but override with locked tokens if provided
   const tokenSelectionContext = useTokenSelection();
-  const { 
-    sellToken: contextSellToken, 
-    buyToken: contextBuyToken, 
-    setSellToken: contextSetSellToken, 
-    setBuyToken: contextSetBuyToken, 
-    flipTokens: contextFlipTokens 
+  const {
+    sellToken: contextSellToken,
+    buyToken: contextBuyToken,
+    setSellToken: contextSetSellToken,
+    setBuyToken: contextSetBuyToken,
+    flipTokens: contextFlipTokens,
   } = tokenSelectionContext;
-  
+
   // Use locked tokens if provided, otherwise use context
   const sellToken = lockedTokens?.sellToken || contextSellToken;
   const buyToken = lockedTokens?.buyToken || contextBuyToken;
@@ -103,11 +103,13 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
 
   // Special handling for ENS to ensure reserves are always fetched correctly
   const isENSPool = sellToken?.symbol === "ENS" || buyToken?.symbol === "ENS";
-  const ensPoolId = isENSPool ? 107895081322979037665933919470752294545033231002190305779392467929211865476585n : undefined;
-  
+  const ensPoolId = isENSPool
+    ? 107895081322979037665933919470752294545033231002190305779392467929211865476585n
+    : undefined;
+
   const { data: reserves } = useReserves({
     poolId: isENSPool ? ensPoolId : mainPoolId,
-    source: isENSPool ? "COOKBOOK" : (sellToken?.id === null ? buyToken?.source : sellToken.source),
+    source: isENSPool ? "COOKBOOK" : sellToken?.id === null ? buyToken?.source : sellToken.source,
   });
   const { data: targetReserves } = useReserves({
     poolId: targetPoolId,
@@ -159,7 +161,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
     // Reset recipient input
     setCustomRecipient("");
     setShowRecipientInput(false);
-    
+
     // Set 10% slippage for ENS pools, default for others
     if (sellToken?.symbol === "ENS" || buyToken?.symbol === "ENS") {
       setSlippageBps(1000n); // 10%
@@ -305,14 +307,14 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
     const isENSSwap = sellToken?.symbol === "ENS" || buyToken?.symbol === "ENS";
     const isCULTSwap = sellToken?.symbol === "CULT" || buyToken?.symbol === "CULT";
     const isCustomDirectSwap = isENSSwap || isCULTSwap;
-    
+
     // For custom direct swaps (ENS, CULT), we should always calculate price impact
     // For regular coin-to-coin swaps, skip price impact calculation
     if (!reserves || !sellAmt || parseFloat(sellAmt) === 0) {
       setPriceImpact(null);
       return;
     }
-    
+
     // Skip price impact for coin-to-coin swaps EXCEPT custom direct swaps
     if (isCoinToCoin && !isCustomDirectSwap) {
       setPriceImpact(null);
@@ -323,7 +325,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
       try {
         const reserve0 = reserves.reserve0;
         const reserve1 = reserves.reserve1;
-        
+
         if (!reserve0 || !reserve1 || reserve0 === 0n || reserve1 === 0n) {
           setPriceImpact(null);
           return;
@@ -341,13 +343,13 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
             // ENS uses 30n (0.3%) fee specifically
             const buyTokenSwapFee = buyToken?.symbol === "ENS" ? 30n : (buyToken?.swapFee ?? SWAP_FEE);
             const amountOut = getAmountOut(swapAmountEth, reserve0, reserve1, buyTokenSwapFee);
-            
+
             if (amountOut >= reserve1) {
               // Would drain the pool
               setPriceImpact(null);
               return;
             }
-            
+
             newReserve0 = reserve0 + swapAmountEth;
             newReserve1 = reserve1 - amountOut;
             action = "buy"; // Buying the token with ETH
@@ -364,13 +366,13 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
             // ENS uses 30n (0.3%) fee specifically
             const sellTokenSwapFee = sellToken?.symbol === "ENS" ? 30n : (sellToken?.swapFee ?? SWAP_FEE);
             const amountOut = getAmountOut(swapAmountToken, reserve1, reserve0, sellTokenSwapFee);
-            
+
             if (amountOut >= reserve0) {
               // Would drain the pool
               setPriceImpact(null);
               return;
             }
-            
+
             newReserve0 = reserve0 - amountOut;
             newReserve1 = reserve1 + swapAmountToken;
             action = "sell"; // Selling the token for ETH
@@ -386,10 +388,9 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
         const scaleFactor = BigInt(10) ** BigInt(18);
         const currentPrice = (reserve0 * scaleFactor) / reserve1;
         const newPrice = (newReserve0 * scaleFactor) / newReserve1;
-        
+
         const currentPriceInEth = Number(currentPrice) / Number(scaleFactor);
         const newPriceInEth = Number(newPrice) / Number(scaleFactor);
-        
 
         // Validate calculated prices
         if (!isFinite(currentPriceInEth) || !isFinite(newPriceInEth) || newPriceInEth <= 0) {
@@ -406,17 +407,15 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
           setPriceImpact(null);
           return;
         }
-        
+
         // For very small trades, ensure the price moves in the correct direction
         if (Math.abs(impactPercent) < 0.0001) {
-          const adjustedNewPrice = action === 'buy' 
-            ? currentPriceInEth * 1.00001 
-            : currentPriceInEth * 0.99999;
-            
+          const adjustedNewPrice = action === "buy" ? currentPriceInEth * 1.00001 : currentPriceInEth * 0.99999;
+
           const impact = {
             currentPrice: currentPriceInEth,
             projectedPrice: adjustedNewPrice,
-            impactPercent: action === 'buy' ? 0.001 : -0.001,
+            impactPercent: action === "buy" ? 0.001 : -0.001,
             action,
           };
           setPriceImpact(impact);
@@ -659,7 +658,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
       // Special handling for CULT token which is an ERC20 at specific address
       const CULT_ADDRESS = "0x0000000000c5dc95539589fbD24BE07c6C14eCa4";
       const isCULT = (token: TokenMeta) => token.symbol === "CULT";
-      
+
       // Special handling for ENS token which is an ERC20 at specific address
       const ENS_ADDRESS = "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72";
       const isENS = (token: TokenMeta) => token.isCustomPool && token.symbol === "ENS";
@@ -1106,10 +1105,8 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
                 })}
               </span>
               {priceImpact && (
-                <span 
-                  className={`text-xs font-medium ${
-                    priceImpact.impactPercent > 0 ? "text-green-600" : "text-red-600"
-                  }`}
+                <span
+                  className={`text-xs font-medium ${priceImpact.impactPercent > 0 ? "text-green-600" : "text-red-600"}`}
                 >
                   {priceImpact.impactPercent > 0 ? "+" : ""}
                   {priceImpact.impactPercent.toFixed(2)}%
@@ -1242,10 +1239,10 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
       )}
 
       <div className="mt-4 border-t border-primary pt-4">
-        <PoolSwapChart 
-          buyToken={buyToken} 
-          sellToken={sellToken} 
-          prevPair={prevPairRef.current} 
+        <PoolSwapChart
+          buyToken={buyToken}
+          sellToken={sellToken}
+          prevPair={prevPairRef.current}
           priceImpact={priceImpact}
         />
       </div>

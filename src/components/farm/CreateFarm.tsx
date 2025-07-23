@@ -198,7 +198,7 @@ export const CreateFarm = () => {
   // Get pool TVL if a token is selected
   const { data: poolTvlInEth } = useGetTVL({
     poolId: formData.selectedToken?.poolId ? BigInt(formData.selectedToken.poolId) : undefined,
-    source: formData.selectedToken?.source ?? "ZAMM", // @TODO
+    source: formData.selectedToken?.source ?? "ZAMM",
   });
 
   if (!tokens || tokens.length === 0) {
@@ -531,12 +531,14 @@ export const CreateFarm = () => {
       }
       const durationSeconds = BigInt(durationInSeconds);
 
-      // Determine LP token contract and ID based on the pool ID range
-      // Pool IDs < 1000000 are Cookbook pools, >= 1000000 are ZAMM pools
-      // CULT pools are always stored in Cookbook regardless of pool ID
+      // Determine LP token based on token source
+      // ENS uses Cookbook despite having a large pool ID
       const poolId = formData.selectedToken.poolId || 0n;
       const isCultPool = formData.selectedToken.symbol === "CULT";
-      const lpToken = isCultPool || poolId < 1000000n ? CookbookAddress : ZAMMAddress;
+      const isENSPool = formData.selectedToken.symbol === "ENS";
+      const isCookbookToken = formData.selectedToken.source === "COOKBOOK";
+      // Use Cookbook for CULT, ENS, or any token with COOKBOOK source
+      const lpToken = isCultPool || isENSPool || isCookbookToken || poolId < 1000000n ? CookbookAddress : ZAMMAddress;
       const lpId = poolId;
 
       // Reward token contract and ID (ETH not supported by zChef)

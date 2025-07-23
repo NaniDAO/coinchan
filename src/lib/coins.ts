@@ -182,7 +182,6 @@ export const ENS_POOL_KEY: {
   feeOrHook: 30n, // 0.3% fee (30 bps) - Cookbook uses feeOrHook instead of swapFee
 };
 
-
 // ENS pool ID (hardcoded for performance and stability)
 export const ENS_POOL_ID = 107895081322979037665933919470752294545033231002190305779392467929211865476585n;
 

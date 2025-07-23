@@ -18,7 +18,15 @@ import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
 import { ZAMMAbi, ZAMMAddress } from "./constants/ZAAM";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import { useWaitForTransactionReceipt } from "wagmi";
-import { TokenMeta, USDT_ADDRESS, USDT_POOL_KEY, CULT_ADDRESS, CULT_POOL_KEY, ENS_ADDRESS, ENS_POOL_KEY } from "./lib/coins";
+import {
+  TokenMeta,
+  USDT_ADDRESS,
+  USDT_POOL_KEY,
+  CULT_ADDRESS,
+  CULT_POOL_KEY,
+  ENS_ADDRESS,
+  ENS_POOL_KEY,
+} from "./lib/coins";
 import { useTokenSelection } from "./contexts/TokenSelectionContext";
 import { determineReserveSource, getHelperContractInfo } from "./lib/coin-utils";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
@@ -92,7 +100,7 @@ export const AddLiquidity = () => {
         reserveSource: "COOKBOOK" as const,
       };
     }
-    
+
     // Direct ENS handling
     if (sellToken.symbol === "ENS" || buyToken?.symbol === "ENS") {
       return {
@@ -139,7 +147,7 @@ export const AddLiquidity = () => {
   });
 
   const [slippageBps, setSlippageBps] = useState<bigint>(SLIPPAGE_BPS);
-  
+
   // Set 10% slippage for ENS pools, default for others
   useEffect(() => {
     if (sellToken?.symbol === "ENS" || buyToken?.symbol === "ENS") {
@@ -545,6 +553,44 @@ export const AddLiquidity = () => {
         return;
       }
 
+      // Validate balances
+      const ethRequired = amount0;
+      const ethAvailable = sellToken.id === null ? sellToken.balance || 0n : buyToken?.balance || 0n;
+
+      if (ethAvailable < ethRequired) {
+        setTxError("Insufficient ETH balance");
+        return;
+      }
+
+      // For non-ETH token balance validation
+      const tokenRequired = amount1;
+      let tokenAvailable = 0n;
+
+      if (isUsdtPool) {
+        tokenAvailable = isSellETH ? buyToken?.balance || 0n : sellToken.balance || 0n;
+      } else if (isUsingCult) {
+        tokenAvailable = sellToken.symbol === "CULT" ? sellToken.balance || 0n : buyToken?.balance || 0n;
+      } else if (isUsingEns) {
+        tokenAvailable = sellToken.symbol === "ENS" ? sellToken.balance || 0n : buyToken?.balance || 0n;
+      } else {
+        // For ERC6909 coins
+        tokenAvailable = isSellETH ? buyToken?.balance || 0n : sellToken.balance || 0n;
+      }
+
+      if (tokenAvailable < tokenRequired) {
+        const tokenSymbol = isUsdtPool
+          ? "USDT"
+          : isUsingCult
+            ? "CULT"
+            : isUsingEns
+              ? "ENS"
+              : isSellETH
+                ? buyToken?.symbol
+                : sellToken.symbol;
+        setTxError(`Insufficient ${tokenSymbol} balance`);
+        return;
+      }
+
       // Slippage protection will be calculated after getting exact amounts from ZAMMHelper
 
       // Check for USDT approvals first if using USDT pool
@@ -618,7 +664,7 @@ export const AddLiquidity = () => {
           }
         }
       }
-      
+
       // Check for ENS ERC20 approval if needed
       if (isUsingEns) {
         const ensAmount =
@@ -878,10 +924,12 @@ export const AddLiquidity = () => {
 
       <button
         onClick={executeAddLiquidity}
-        disabled={!isConnected || isPending}
+        disabled={
+          !isConnected || isPending || !sellAmt || !buyAmt || parseFloat(sellAmt) === 0 || parseFloat(buyAmt) === 0
+        }
         className={`mt-2 button text-base px-8 py-4 bg-primary text-primary-foreground font-bold rounded-lg transform transition-all duration-200
           ${
-            !isConnected || isPending
+            !isConnected || isPending || !sellAmt || !buyAmt || parseFloat(sellAmt) === 0 || parseFloat(buyAmt) === 0
               ? "opacity-50 cursor-not-allowed"
               : "opacity-100 hover:scale-105 hover:shadow-lg focus:ring-4 focus:ring-primary/50 focus:outline-none"
           }

@@ -3,7 +3,7 @@ import { formatImageURL } from "@/hooks/metadata";
 import type { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { useLpBalance } from "@/hooks/use-lp-balance";
 import { useZChefPool, useZChefUserBalance, useZChefUtilities } from "@/hooks/use-zchef-contract";
-import type { TokenMeta } from "@/lib/coins";
+import { ENS_POOL_ID, type TokenMeta } from "@/lib/coins";
 import { cn, formatBalance } from "@/lib/utils";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -11,6 +11,7 @@ import { formatEther, formatUnits } from "viem";
 import { useEnsName } from "wagmi";
 import { FarmStakeDialog } from "./FarmStakeDialog";
 import { Button } from "./ui/button";
+import { ENSLogo } from "./icons/ENSLogo";
 
 interface IncentiveStreamCardProps {
   stream: IncentiveStream;
@@ -40,9 +41,13 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
 
   // Helper function to format LP amounts with consistent precision
   const formatLpAmount = (amount: bigint, includeUnit = true) => {
-    const formatted = Number(formatUnits(amount, 18))
-      .toFixed(4)
-      .replace(/\.?0+$/, "");
+    const num = Number(formatUnits(amount, 18));
+    // Format with 4 decimal places, then remove only trailing zeros after decimal point
+    let formatted = num.toFixed(4);
+    // Remove trailing zeros after decimal point, but keep at least 2 decimal places
+    if (formatted.includes('.')) {
+      formatted = formatted.replace(/(\.\d{2})\d*?0+$/, '$1').replace(/\.00$/, '.00');
+    }
     return includeUnit ? `${formatted} LP` : formatted;
   };
 
@@ -65,6 +70,7 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
     const elapsed = now - BigInt(stream.startTime);
 
     if (elapsed <= 0n) return 0;
+    if (totalDuration <= 0n) return 100; // Invalid duration, consider complete
     if (elapsed >= totalDuration) return 100;
 
     const progress = Number((elapsed * 100n) / totalDuration);
@@ -73,6 +79,9 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
   }, [stream.startTime, stream.endTime]);
 
   // totalValueLocked and dailyRewards are now handled by APYDisplay component
+
+  // Check if this farm is incentivizing the ENS pool
+  const isENSFarm = BigInt(stream.lpId) === ENS_POOL_ID;
 
   return (
     <div
@@ -84,7 +93,9 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {lpToken?.symbol === "CULT" ? (
+            {isENSFarm ? (
+              <ENSLogo className="w-6 h-6" />
+            ) : lpToken?.symbol === "CULT" ? (
               <img src="/cult.jpg" alt="CULT" className="w-6 h-6 border border-muted" />
             ) : lpToken?.imageUrl ? (
               <img
@@ -94,7 +105,7 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
               />
             ) : null}
             <h3 className="font-mono font-bold text-sm uppercase tracking-wider text-foreground break-all">
-              [{lpToken?.symbol}]
+              [{isENSFarm ? "ENS" : lpToken?.symbol}]
             </h3>
           </div>
           <div className="flex items-center gap-2">

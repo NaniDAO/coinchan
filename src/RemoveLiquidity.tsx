@@ -49,7 +49,9 @@ export const RemoveLiquidity = () => {
 
   // Override for ENS
   const isENS = sellToken?.symbol === "ENS" || buyToken?.symbol === "ENS";
-  const actualPoolId = isENS ? 107895081322979037665933919470752294545033231002190305779392467929211865476585n : mainPoolId;
+  const actualPoolId = isENS
+    ? 107895081322979037665933919470752294545033231002190305779392467929211865476585n
+    : mainPoolId;
 
   // Determine source for reserves based on coin type using shared utility
   const reserveSource = isENS ? "COOKBOOK" : determineReserveSource(coinId, isCustomPool);
@@ -118,7 +120,7 @@ export const RemoveLiquidity = () => {
         }
 
         // Determine which ZAMM address to use for LP balance lookup
-        const isCookbook = (isUsingCult || isUsingEns) ? true : isCustomPool ? false : isCookbookCoin(coinId);
+        const isCookbook = isUsingCult || isUsingEns ? true : isCustomPool ? false : isCookbookCoin(coinId);
         const targetZAMMAddress = isCookbook ? CookbookAddress : ZAMMAddress;
         const targetZAMMAbi = isCookbook ? CookbookAbi : ZAMMAbi;
 
@@ -220,7 +222,7 @@ export const RemoveLiquidity = () => {
       }
 
       // Determine which ZAMM address to use for pool info lookup
-      const isCookbook = (isUsingCult || isUsingEns) ? true : customPoolUsed ? false : isCookbookCoin(coinId);
+      const isCookbook = isUsingCult || isUsingEns ? true : customPoolUsed ? false : isCookbookCoin(coinId);
       const targetZAMMAddress = isCookbook ? CookbookAddress : ZAMMAddress;
       const targetZAMMAbi = isCookbook ? CookbookAbi : ZAMMAbi;
 
@@ -350,7 +352,7 @@ export const RemoveLiquidity = () => {
           id1: 0n,
           token0: "0x0000000000000000000000000000000000000000" as `0x${string}`,
           token1: "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72" as `0x${string}`,
-          feeOrHook: 30n
+          feeOrHook: 30n,
         };
       } else if (isUsdtPool) {
         // Use the custom pool key for USDT-ETH pool

@@ -3,7 +3,7 @@ import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
 import { CheckTheChainAbi, CheckTheChainAddress } from "@/constants/CheckTheChain";
 import type { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { isCookbookCoin } from "@/lib/coin-utils";
-import { type TokenMeta, CULT_POOL_KEY } from "@/lib/coins";
+import { type TokenMeta, CULT_POOL_KEY, ENS_POOL_KEY } from "@/lib/coins";
 import {
   SINGLE_ETH_SLIPPAGE_BPS,
   SWAP_FEE,
@@ -57,24 +57,28 @@ export function useZapCalculations() {
       const ethAmountBigInt = parseEther(ethAmount);
       const halfEthAmount = ethAmountBigInt / 2n;
 
-      // Determine if this is a Cookbook coin or CULT
+      // Determine if this is a Cookbook coin, CULT, or ENS
       const tokenId = lpToken.id || 0n;
       const isCookbook = isCookbookCoin(tokenId);
       const isCULT = lpToken.symbol === "CULT";
+      const isENS = lpToken.symbol === "ENS";
 
-      if (!lpToken?.poolId) {
+      // For ENS, we should use the stream's lpId directly
+      const poolIdToUse = isENS ? BigInt(stream.lpId) : lpToken?.poolId;
+
+      if (!poolIdToUse) {
         throw new Error("LP token pool ID not defined");
       }
 
-      // Validate that the stream's LP pool matches our token
-      if (BigInt(stream.lpId) !== BigInt(lpToken.poolId)) {
+      // Validate that the stream's LP pool matches our token (skip for ENS since we use stream.lpId)
+      if (!isENS && lpToken.poolId && BigInt(stream.lpId) !== BigInt(lpToken.poolId)) {
         throw new Error("Stream LP ID does not match token pool ID");
       }
 
       // Determine LP source and target addresses
-      // CULT uses Cookbook for liquidity operations
-      const lpSrc = isCookbook || isCULT ? CookbookAddress : ZAMMAddress;
-      const lpAbi = isCookbook || isCULT ? CookbookAbi : ZAMMAbi;
+      // CULT and ENS use Cookbook for liquidity operations
+      const lpSrc = isCookbook || isCULT || isENS ? CookbookAddress : ZAMMAddress;
+      const lpAbi = isCookbook || isCULT || isENS ? CookbookAbi : ZAMMAbi;
 
       // Get swap fee for the token, preferring stream data if available
       const swapFee = lpToken.swapFee ?? SWAP_FEE;
@@ -90,7 +94,11 @@ export function useZapCalculations() {
       if (isCULT) {
         // Use the predefined CULT pool key
         poolKey = CULT_POOL_KEY;
-        poolId = lpToken.poolId; // Use the pool ID from the token metadata
+        poolId = lpToken.poolId || 0n; // Use the pool ID from the token metadata
+      } else if (isENS) {
+        // Use the predefined ENS pool key
+        poolKey = ENS_POOL_KEY;
+        poolId = poolIdToUse; // Use the stream's lpId for ENS
       } else if (isCookbook) {
         const basePoolKey = computePoolKey(tokenId, swapFee, CookbookAddress);
         poolKey = basePoolKey; // Cookbook already has feeOrHook

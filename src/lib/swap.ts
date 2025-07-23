@@ -405,9 +405,12 @@ export function analyzeTokens(
   const isBuyCULT = buy?.symbol === "CULT";
 
   const isDirectUsdtEth = (isSellETH && isBuyUSDT) || (isBuyETH && isSellUSDT);
-  const isDirectCustomEth = isDirectUsdtEth || 
-    (isSellETH && isBuyENS) || (isBuyETH && isSellENS) ||
-    (isSellETH && isBuyCULT) || (isBuyETH && isSellCULT);
+  const isDirectCustomEth =
+    isDirectUsdtEth ||
+    (isSellETH && isBuyENS) ||
+    (isBuyETH && isSellENS) ||
+    (isSellETH && isBuyCULT) ||
+    (isBuyETH && isSellCULT);
 
   const isCustom = sell.isCustomPool || Boolean(buy?.isCustomPool);
 

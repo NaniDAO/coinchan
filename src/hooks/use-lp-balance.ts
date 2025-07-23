@@ -57,11 +57,12 @@ export function useLpBalance({ lpToken, poolId: providedPoolId, enabled = true }
         }
 
         // Determine which ZAMM address to use for LP balance lookup
-        // CULT tokens should always use Cookbook
+        // CULT and ENS tokens should always use Cookbook
+        const isENS = lpToken.symbol === "ENS";
         const isCookbook =
-          lpToken.symbol === "CULT" || (lpToken.isCustomPool ? false : lpToken.id ? isCookbookCoin(lpToken.id) : false);
-        const targetZAMMAddress = isCookbook || lpToken.symbol === "CULT" ? CookbookAddress : ZAMMAddress;
-        const targetZAMMAbi = isCookbook || lpToken.symbol === "CULT" ? CookbookAbi : ZAMMAbi;
+          lpToken.symbol === "CULT" || isENS || (lpToken.isCustomPool ? false : lpToken.id ? isCookbookCoin(lpToken.id) : false);
+        const targetZAMMAddress = isCookbook ? CookbookAddress : ZAMMAddress;
+        const targetZAMMAbi = isCookbook ? CookbookAbi : ZAMMAbi;
 
         // Read the user's LP token balance for this pool
         const lpBalance = (await publicClient.readContract({
