@@ -4,7 +4,6 @@ import { formatEther, formatUnits, parseEther, parseUnits, erc20Abi, maxUint256 
 import { mainnet } from "viem/chains";
 import { useAccount, usePublicClient, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 
-import { ConnectMenu } from "./ConnectMenu";
 import { useETHPrice } from "./hooks/use-eth-price";
 import { SwapPanel } from "./components/SwapPanel";
 import { SlippageSettings } from "./components/SlippageSettings";
@@ -23,9 +22,11 @@ import { Button } from "./components/ui/button";
 import { LoadingLogo } from "./components/ui/loading-logo";
 import { useErc20Allowance } from "./hooks/use-erc20-allowance";
 import { handleWalletError } from "./lib/errors";
+import { ConnectWallet } from "./components/ConnectWallet";
 import { CheckTheChainAbi, CheckTheChainAddress } from "./constants/CheckTheChain";
 import { TrendingUp, Zap, ArrowRight, Sparkles } from "lucide-react";
 import { ENSLogo } from "./components/icons/ENSLogo";
+import { usePoolApy } from "./hooks/use-pool-apy";
 
 export const EnsBuySell = () => {
   const { t } = useTranslation();
@@ -69,6 +70,9 @@ export const EnsBuySell = () => {
     token: ENS_ADDRESS,
     spender: CookbookAddress,
   });
+
+  // Fetch pool APR for ENS pool
+  const { data: poolApr } = usePoolApy(ENS_POOL_ID.toString());
 
 
   // Create token metadata objects with current data
@@ -447,15 +451,9 @@ export const EnsBuySell = () => {
 
       {/* Trading Interface with ENS theme */}
       <div className="bg-card border border-[#0080BC]/20 dark:border-[#0080BC]/10 rounded-lg p-4 md:p-6 mb-6 md:mb-8">
-        {!isConnected ? (
-          <div className="text-center py-8">
-            <p className="text-muted-foreground mb-4">{t("common.connect_wallet_to_trade")}</p>
-            <ConnectMenu />
-          </div>
-        ) : (
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-            {/* Subtle arbitrage notification */}
-            {arbitrageInfo && activeTab !== arbitrageInfo.type && (
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+          {/* Subtle arbitrage notification */}
+          {arbitrageInfo && activeTab !== arbitrageInfo.type && (
               <div className="mb-2 flex justify-end">
                 <button
                   onClick={() => setActiveTab(arbitrageInfo.type)}
@@ -483,13 +481,19 @@ export const EnsBuySell = () => {
                           {formatNumber(arbitrageInfo.ensFromUniV3, 4)}
                         </span>
                         <ENSLogo className="h-3 w-3" />
-                        <span className="text-muted-foreground">{t("ens.for")}</span>
-                        <span className="font-medium">{arbitrageInfo.testAmountETH} ETH</span>
+                        <span className="font-semibold text-green-600 dark:text-green-400">
+                          (+{arbitrageInfo.percentGain.toFixed(1)}%)
+                        </span>
                       </span>
                       <ArrowRight className="h-3 w-3" />
                       <span className="flex items-center gap-1">
                         <Zap className="h-3 w-3" />
                         <span className="font-medium">{t("ens.zap_lp")}</span>
+                        {poolApr && (
+                          <span className="text-[#0080BC] font-semibold">
+                            {Number(poolApr.slice(0, -1)).toFixed(1)}% APR
+                          </span>
+                        )}
                       </span>
                     </>
                   )}
@@ -624,29 +628,32 @@ export const EnsBuySell = () => {
                   />
 
                   {/* Swap button */}
-                  <Button
-                    onClick={executeSwap}
-                    disabled={
-                      !isConnected ||
-                      isPending ||
-                      !sellAmount ||
-                      parseFloat(sellAmount) === 0 ||
-                      (swapDirection === "buy" && ethBalance > 0n && parseEther(sellAmount || "0") > ethBalance) ||
-                      (swapDirection === "sell" && ensBalance > 0n && parseUnits(sellAmount || "0", 18) > ensBalance)
-                    }
-                    className="w-full bg-[#0080BC] hover:bg-[#0066CC] text-white"
-                  >
-                    {isPending ? (
-                      <span className="flex items-center gap-2">
-                        <LoadingLogo size="sm" />
-                        {swapDirection === "buy" ? t("ens.buying") : t("ens.selling")}
-                      </span>
-                    ) : swapDirection === "buy" ? (
-                      t("ens.buy_ens")
-                    ) : (
-                      t("ens.sell_ens")
-                    )}
-                  </Button>
+                  {!isConnected ? (
+                    <ConnectWallet />
+                  ) : (
+                    <Button
+                      onClick={executeSwap}
+                      disabled={
+                        isPending ||
+                        !sellAmount ||
+                        parseFloat(sellAmount) === 0 ||
+                        (swapDirection === "buy" && ethBalance > 0n && parseEther(sellAmount || "0") > ethBalance) ||
+                        (swapDirection === "sell" && ensBalance > 0n && parseUnits(sellAmount || "0", 18) > ensBalance)
+                      }
+                      className="w-full bg-[#0080BC] hover:bg-[#0066CC] text-white"
+                    >
+                      {isPending ? (
+                        <span className="flex items-center gap-2">
+                          <LoadingLogo size="sm" />
+                          {swapDirection === "buy" ? t("ens.buying") : t("ens.selling")}
+                        </span>
+                      ) : swapDirection === "buy" ? (
+                        t("ens.buy_ens")
+                      ) : (
+                        t("ens.sell_ens")
+                      )}
+                    </Button>
+                  )}
 
                   {errorMessage && <p className="text-destructive text-sm">{errorMessage}</p>}
                   {isSuccess && <p className="text-green-600 text-sm">{t("ens.transaction_confirmed")}</p>}
@@ -750,7 +757,6 @@ export const EnsBuySell = () => {
               <ENSZapWrapper />
             </TabsContent>
           </Tabs>
-        )}
       </div>
 
       {/* Info Section with ENS theme */}
