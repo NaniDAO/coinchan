@@ -26,7 +26,6 @@ import { ConnectMenu } from "./ConnectMenu";
 import { CheckTheChainAbi, CheckTheChainAddress } from "./constants/CheckTheChain";
 import { TrendingUp, Zap, ArrowRight, Sparkles } from "lucide-react";
 import { ENSLogo } from "./components/icons/ENSLogo";
-import { usePoolApy } from "./hooks/use-pool-apy";
 import { EnsFarmTab } from "./components/farm/EnsFarmTab";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { useActiveIncentiveStreams } from "./hooks/use-incentive-streams";
