@@ -721,7 +721,12 @@
     "oracle_sync_status": "Oracle sync",
     "oracle_in_sync": "In sync",
     "oracle_out_of_sync": "Out of sync (>6% drift)",
-    "oracle_sync_tooltip": "The zap contract uses its ETH balance as a price oracle. This shows if it's within 6% of the current Uniswap V3 ENS price"
+    "oracle_sync_tooltip": "The zap contract uses its ETH balance as a price oracle. This shows if it's within 6% of the current Uniswap V3 ENS price",
+    "get": "Get",
+    "for": "for",
+    "zap_lp": "ZAP & LP",
+    "gas_savings_direct_eth": "Gas savings: ETH sent directly with zero calldata cost",
+    "eth_sent_to": "ETH sent to"
   },
   "chart": {
     "price": "Price",

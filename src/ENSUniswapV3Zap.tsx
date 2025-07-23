@@ -427,6 +427,8 @@ export const ENSUniswapV3Zap = () => {
           <li>{t("pool.provide_only_eth")}</li>
           <li className="text-[#0080BC]">{t("ens.half_eth_swapped_v3")}</li>
           <li>{t("ens.remaining_eth_added_to_cookbook_pool")}</li>
+          <li className="text-green-600 dark:text-green-400">{t("ens.gas_savings_direct_eth")}</li>
+          <li>{t("ens.eth_sent_to")} <a href="https://app.ens.domains/ens.zamm.eth" target="_blank" rel="noopener noreferrer" className="text-[#0080BC] hover:underline">ens.zamm.eth</a></li>
           <li>{t("pool.earn_fees_from_trades", { fee: 0.3 })}</li>
           <li className="text-[#0080BC]">{t("ens.default_slippage_10")}</li>
           <li className="flex items-center gap-1">

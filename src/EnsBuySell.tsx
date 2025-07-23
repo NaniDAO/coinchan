@@ -18,11 +18,14 @@ import { RemoveLiquidity } from "./RemoveLiquidity";
 import { ENSZapWrapper } from "./ENSZapWrapper";
 import { useTokenSelection } from "./contexts/TokenSelectionContext";
 import { getAmountOut, withSlippage, DEADLINE_SEC } from "./lib/swap";
-import { nowSec } from "./lib/utils";
+import { nowSec, formatNumber } from "./lib/utils";
 import { Button } from "./components/ui/button";
 import { LoadingLogo } from "./components/ui/loading-logo";
 import { useErc20Allowance } from "./hooks/use-erc20-allowance";
 import { handleWalletError } from "./lib/errors";
+import { CheckTheChainAbi, CheckTheChainAddress } from "./constants/CheckTheChain";
+import { TrendingUp, Zap, ArrowRight, Sparkles } from "lucide-react";
+import { ENSLogo } from "./components/icons/ENSLogo";
 
 export const EnsBuySell = () => {
   const { t } = useTranslation();
@@ -52,6 +55,13 @@ export const EnsBuySell = () => {
   } | null>(null);
   const [showPriceChart, setShowPriceChart] = useState<boolean>(true); // Open by default
   const [slippageBps, setSlippageBps] = useState<bigint>(1000n); // Default 10% for ENS
+  const [arbitrageInfo, setArbitrageInfo] = useState<{
+    type: "swap" | "zap"; // Which tab to highlight
+    ensFromUniV3: number;
+    ensFromCookbook: number;
+    percentGain: number;
+    testAmountETH: string; // Amount of ETH used for calculation
+  } | null>(null);
 
   const { writeContractAsync, isPending } = useWriteContract();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
@@ -59,6 +69,7 @@ export const EnsBuySell = () => {
     token: ENS_ADDRESS,
     spender: CookbookAddress,
   });
+
 
   // Create token metadata objects with current data
   const ethToken = useMemo<TokenMeta>(
@@ -147,6 +158,81 @@ export const EnsBuySell = () => {
     const interval = setInterval(fetchBalances, 30000);
     return () => clearInterval(interval);
   }, [publicClient, address]);
+
+  // Check for arbitrage opportunity
+  useEffect(() => {
+    const checkArbitrage = async () => {
+      if (!publicClient || !poolReserves.reserve0 || !poolReserves.reserve1) return;
+
+      try {
+        // Get Uniswap V3 price from oracle
+        const ensPriceData = await publicClient.readContract({
+          address: CheckTheChainAddress,
+          abi: CheckTheChainAbi,
+          functionName: "checkPriceInETH",
+          args: ["ENS"],
+        });
+
+        if (!ensPriceData) return;
+
+        const uniV3PriceInETH = ensPriceData[0] as bigint;
+        if (uniV3PriceInETH === 0n) return;
+
+        // Use sensible amount for arbitrage display:
+        // - Default to 0.01 ETH demo amount
+        // - If user is connected and 1% of their balance > 0.01 ETH, use that
+        const onePercentBalance = isConnected && ethBalance > 0n 
+          ? (ethBalance * 1n) / 100n 
+          : 0n;
+        const minAmount = parseEther("0.01");
+        const testAmount = onePercentBalance > minAmount ? onePercentBalance : minAmount;
+        const testAmountString = formatEther(testAmount);
+        
+        // Calculate ENS from both sources
+        const ensFromUniV3 = (testAmount * 10n ** 18n) / uniV3PriceInETH;
+        const ensFromCookbook = getAmountOut(testAmount, poolReserves.reserve0, poolReserves.reserve1, 30n);
+        
+        // Determine which opportunity exists
+        if (ensFromCookbook > ensFromUniV3) {
+          // Cookbook gives more ENS - highlight SWAP tab
+          const extraENS = ensFromCookbook - ensFromUniV3;
+          const percentGain = Number((extraENS * 10000n) / ensFromUniV3) / 100;
+          
+          if (percentGain > 0.5) {
+            setArbitrageInfo({
+              type: "swap",
+              ensFromUniV3: Number(formatUnits(ensFromUniV3, 18)),
+              ensFromCookbook: Number(formatUnits(ensFromCookbook, 18)),
+              percentGain,
+              testAmountETH: testAmountString,
+            });
+          }
+        } else if (ensFromUniV3 > ensFromCookbook) {
+          // Uniswap gives more ENS - highlight ZAP tab
+          const extraENS = ensFromUniV3 - ensFromCookbook;
+          const percentGain = Number((extraENS * 10000n) / ensFromCookbook) / 100;
+          
+          if (percentGain > 0.5) {
+            setArbitrageInfo({
+              type: "zap",
+              ensFromUniV3: Number(formatUnits(ensFromUniV3, 18)),
+              ensFromCookbook: Number(formatUnits(ensFromCookbook, 18)),
+              percentGain,
+              testAmountETH: testAmountString,
+            });
+          }
+        } else {
+          // No significant difference
+          setArbitrageInfo(null);
+        }
+      } catch (error) {
+        console.error("Failed to check arbitrage:", error);
+      }
+    };
+
+    // Check on mount and when pool reserves or balance change
+    checkArbitrage();
+  }, [publicClient, poolReserves, ethBalance, isConnected]);
 
   // Calculate market cap and price
   const ensPrice =
@@ -368,12 +454,66 @@ export const EnsBuySell = () => {
           </div>
         ) : (
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+            {/* Subtle arbitrage notification */}
+            {arbitrageInfo && activeTab !== arbitrageInfo.type && (
+              <div className="mb-2 flex justify-end">
+                <button
+                  onClick={() => setActiveTab(arbitrageInfo.type)}
+                  className="group relative flex items-center gap-2 px-3 py-1.5 text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full hover:bg-green-200 dark:hover:bg-green-900/50 transition-all animate-pulse hover:animate-none"
+                >
+                  <TrendingUp className="h-3 w-3" />
+                  {arbitrageInfo.type === "swap" ? (
+                    <>
+                      <span className="text-muted-foreground">{arbitrageInfo.testAmountETH} ETH</span>
+                      <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                      <span className="flex items-center gap-1 font-medium">
+                        {formatNumber(arbitrageInfo.ensFromCookbook, 4)}
+                        <ENSLogo className="h-3 w-3" />
+                      </span>
+                      <span className="ml-1 font-semibold text-green-600 dark:text-green-400">
+                        +{arbitrageInfo.percentGain.toFixed(1)}%
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-3 w-3" />
+                      <span className="flex items-center gap-1">
+                        <span className="text-muted-foreground">{t("ens.get")}</span>
+                        <span className="font-medium">
+                          {formatNumber(arbitrageInfo.ensFromUniV3, 4)}
+                        </span>
+                        <ENSLogo className="h-3 w-3" />
+                        <span className="text-muted-foreground">{t("ens.for")}</span>
+                        <span className="font-medium">{arbitrageInfo.testAmountETH} ETH</span>
+                      </span>
+                      <ArrowRight className="h-3 w-3" />
+                      <span className="flex items-center gap-1">
+                        <Zap className="h-3 w-3" />
+                        <span className="font-medium">{t("ens.zap_lp")}</span>
+                      </span>
+                    </>
+                  )}
+                  <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  </span>
+                </button>
+              </div>
+            )}
             <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-1 bg-[#0080BC]/5 dark:bg-[#0080BC]/10">
               <TabsTrigger
                 value="swap"
-                className="data-[state=active]:bg-[#0080BC]/20 dark:data-[state=active]:bg-[#0080BC]/30 data-[state=active]:text-[#0080BC] dark:data-[state=active]:text-white"
+                className={`relative data-[state=active]:bg-[#0080BC]/20 dark:data-[state=active]:bg-[#0080BC]/30 data-[state=active]:text-[#0080BC] dark:data-[state=active]:text-white ${
+                  arbitrageInfo?.type === "swap" && activeTab !== "swap" ? "ring-1 ring-green-400/50" : ""
+                }`}
               >
                 {t("common.swap")}
+                {arbitrageInfo?.type === "swap" && activeTab !== "swap" && (
+                  <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  </span>
+                )}
               </TabsTrigger>
               <TabsTrigger
                 value="add"
@@ -389,9 +529,17 @@ export const EnsBuySell = () => {
               </TabsTrigger>
               <TabsTrigger
                 value="zap"
-                className="data-[state=active]:bg-[#0080BC]/20 dark:data-[state=active]:bg-[#0080BC]/30 data-[state=active]:text-[#0080BC] dark:data-[state=active]:text-white"
+                className={`relative data-[state=active]:bg-[#0080BC]/20 dark:data-[state=active]:bg-[#0080BC]/30 data-[state=active]:text-[#0080BC] dark:data-[state=active]:text-white ${
+                  arbitrageInfo?.type === "zap" && activeTab !== "zap" ? "ring-1 ring-green-400/50" : ""
+                }`}
               >
                 {t("common.zap")}
+                {arbitrageInfo?.type === "zap" && activeTab !== "zap" && (
+                  <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  </span>
+                )}
               </TabsTrigger>
             </TabsList>
 
@@ -645,6 +793,7 @@ export const EnsBuySell = () => {
           ens.domains ↗
         </a>
       </div>
+
     </div>
   );
 };
