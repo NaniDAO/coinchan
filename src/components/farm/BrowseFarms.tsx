@@ -148,6 +148,8 @@ export const BrowseFarms = () => {
               if (t.poolId === BigInt(stream.lpId)) return true;
               // Special handling for CULT tokens - check if lpId matches CULT_POOL_ID
               if (t.symbol === "CULT" && BigInt(stream.lpId) === t.poolId) return true;
+              // Special handling for ENS tokens - check if lpId matches ENS_POOL_ID
+              if (t.symbol === "ENS" && BigInt(stream.lpId) === t.poolId) return true;
               return false;
             });
 

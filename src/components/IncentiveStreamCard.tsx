@@ -3,7 +3,7 @@ import { formatImageURL } from "@/hooks/metadata";
 import type { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { useLpBalance } from "@/hooks/use-lp-balance";
 import { useZChefPool, useZChefUserBalance, useZChefUtilities } from "@/hooks/use-zchef-contract";
-import type { TokenMeta } from "@/lib/coins";
+import { ENS_POOL_ID, type TokenMeta } from "@/lib/coins";
 import { cn, formatBalance } from "@/lib/utils";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -11,6 +11,7 @@ import { formatEther, formatUnits } from "viem";
 import { useEnsName } from "wagmi";
 import { FarmStakeDialog } from "./FarmStakeDialog";
 import { Button } from "./ui/button";
+import { ENSLogo } from "./icons/ENSLogo";
 
 interface IncentiveStreamCardProps {
   stream: IncentiveStream;
@@ -74,6 +75,9 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
 
   // totalValueLocked and dailyRewards are now handled by APYDisplay component
 
+  // Check if this farm is incentivizing the ENS pool
+  const isENSFarm = stream.lpId === ENS_POOL_ID;
+
   return (
     <div
       className={cn(
@@ -84,7 +88,9 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {lpToken?.symbol === "CULT" ? (
+            {isENSFarm ? (
+              <ENSLogo className="w-6 h-6" />
+            ) : lpToken?.symbol === "CULT" ? (
               <img src="/cult.jpg" alt="CULT" className="w-6 h-6 border border-muted" />
             ) : lpToken?.imageUrl ? (
               <img
@@ -94,7 +100,7 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
               />
             ) : null}
             <h3 className="font-mono font-bold text-sm uppercase tracking-wider text-foreground break-all">
-              [{lpToken?.symbol}]
+              [{isENSFarm ? "ENS" : lpToken?.symbol}]
             </h3>
           </div>
           <div className="flex items-center gap-2">

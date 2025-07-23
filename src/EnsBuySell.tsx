@@ -22,7 +22,7 @@ import { Button } from "./components/ui/button";
 import { LoadingLogo } from "./components/ui/loading-logo";
 import { useErc20Allowance } from "./hooks/use-erc20-allowance";
 import { handleWalletError } from "./lib/errors";
-import { ConnectWallet } from "./components/ConnectWallet";
+import { ConnectMenu } from "./ConnectMenu";
 import { CheckTheChainAbi, CheckTheChainAddress } from "./constants/CheckTheChain";
 import { TrendingUp, Zap, ArrowRight, Sparkles } from "lucide-react";
 import { ENSLogo } from "./components/icons/ENSLogo";
@@ -629,7 +629,7 @@ export const EnsBuySell = () => {
 
                   {/* Swap button */}
                   {!isConnected ? (
-                    <ConnectWallet />
+                    <ConnectMenu />
                   ) : (
                     <Button
                       onClick={executeSwap}
