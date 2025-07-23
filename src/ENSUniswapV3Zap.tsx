@@ -1,5 +1,5 @@
-import { CheckIcon, Loader2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { CheckIcon, Loader2, X, ExternalLink } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseEther } from "viem";
 import { mainnet } from "viem/chains";
@@ -11,18 +11,17 @@ import { ENSLogo } from "./components/icons/ENSLogo";
 import { ENSZapAbi, ENSZapAddress } from "./constants/ENSZap";
 import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
 import { CheckTheChainAbi, CheckTheChainAddress } from "./constants/CheckTheChain";
-import { useTokenSelection } from "./contexts/TokenSelectionContext";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { useReserves } from "./hooks/use-reserves";
 import { ETH_TOKEN, ENS_TOKEN, ENS_POOL_ID, ENS_POOL_KEY } from "./lib/coins";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
-import { DEADLINE_SEC, SINGLE_ETH_SLIPPAGE_BPS, getAmountOut, withSlippage } from "./lib/swap";
+import { DEADLINE_SEC, getAmountOut, withSlippage } from "./lib/swap";
 import { nowSec, formatNumber } from "./lib/utils";
 
 // Helper function to calculate square root for LP token calculation
 const sqrt = (value: bigint): bigint => {
   if (value < 0n) {
-    throw new Error("Square root of negative numbers is not supported");
+    throw new Error("Square root of negative numbers is not supported"); // Technical error, no translation needed
   }
   if (value === 0n) return 0n;
 
@@ -46,6 +45,9 @@ export const ENSUniswapV3Zap = () => {
   const [singleETHEstimatedCoin, setSingleETHEstimatedCoin] = useState<string>("");
   const [estimatedLpTokens, setEstimatedLpTokens] = useState<string>("");
   const [estimatedPoolShare, setEstimatedPoolShare] = useState<string>("");
+  const [oracleInSync, setOracleInSync] = useState<boolean | null>(null);
+  const [zapContractBalance, setZapContractBalance] = useState<bigint>(0n);
+  const [ensPriceFromOracle, setEnsPriceFromOracle] = useState<bigint>(0n);
 
   const { tokens, isEthBalanceFetching } = useAllCoins();
 
@@ -66,7 +68,7 @@ export const ENSUniswapV3Zap = () => {
   // Fetch ENS pool reserves from Cookbook
   const { data: reserves } = useReserves({
     poolId: ENS_POOL_ID,
-    source: "cookbook",
+    source: "COOKBOOK",
   });
 
   // Reset UI state when component mounts
@@ -75,6 +77,53 @@ export const ENSUniswapV3Zap = () => {
     setTxError(null);
     setSellAmt("");
   }, []);
+
+  // Check oracle sync status
+  useEffect(() => {
+    const checkOracleSync = async () => {
+      if (!publicClient) return;
+
+      try {
+        // Fetch ETH balance of the zap contract
+        const balance = await publicClient.getBalance({
+          address: ENSZapAddress
+        });
+        setZapContractBalance(balance);
+
+        // Fetch ENS price from CheckTheChain oracle
+        const ensPriceData = await publicClient.readContract({
+          address: CheckTheChainAddress,
+          abi: CheckTheChainAbi,
+          functionName: "checkPriceInETH",
+          args: ["ENS"],
+        });
+
+        if (ensPriceData) {
+          const priceInWei = ensPriceData[0] as bigint;
+          setEnsPriceFromOracle(priceInWei);
+
+          // Check if they're within 6% tolerance
+          // The zap contract uses its balance as the price oracle
+          // We need to check if: |balance - priceInWei| / priceInWei <= 0.06
+          if (priceInWei > 0n && balance > 0n) {
+            const diff = balance > priceInWei ? balance - priceInWei : priceInWei - balance;
+            const percentDiff = (diff * 10000n) / priceInWei;
+            setOracleInSync(percentDiff <= 600n); // 6% = 600 basis points
+          } else {
+            setOracleInSync(null);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to check oracle sync:", err);
+        setOracleInSync(null);
+      }
+    };
+
+    checkOracleSync();
+    // Check every 30 seconds
+    const interval = setInterval(checkOracleSync, 30000);
+    return () => clearInterval(interval);
+  }, [publicClient]);
 
   /* helpers to sync amounts */
   const syncFromSell = async (val: string) => {
@@ -104,7 +153,7 @@ export const ENSUniswapV3Zap = () => {
         });
 
         if (!ensPriceData) {
-          throw new Error("Unable to fetch ENS price data");
+          throw new Error(t("errors.unable_to_fetch_ens_price"));
         }
 
         // Price is returned as uint256 with 18 decimals
@@ -112,7 +161,7 @@ export const ENSUniswapV3Zap = () => {
         const ensPriceInETH = ensPriceData[0] as bigint;
 
         if (ensPriceInETH === 0n) {
-          throw new Error("Unable to fetch ENS price");
+          throw new Error(t("errors.unable_to_fetch_ens_price"));
         }
 
         // Calculate ENS amount: ETH amount / ENS price
@@ -191,19 +240,19 @@ export const ENSUniswapV3Zap = () => {
   const executeENSZap = async () => {
     // Validate inputs
     if (!address || !publicClient) {
-      setTxError("Missing required data for transaction");
+      setTxError(t("errors.missing_required_data"));
       return;
     }
 
     if (!sellAmt || Number.parseFloat(sellAmt) <= 0) {
-      setTxError("Please enter a valid ETH amount");
+      setTxError(t("errors.enter_valid_eth_amount"));
       return;
     }
 
     // Validate sufficient ETH balance
     const requiredEth = parseEther(sellAmt);
     if (ethBalance < requiredEth) {
-      setTxError("Insufficient ETH balance");
+      setTxError(t("errors.insufficient_eth_balance"));
       return;
     }
 
@@ -212,7 +261,7 @@ export const ENSUniswapV3Zap = () => {
     try {
       // Check if we're on mainnet
       if (chainId !== mainnet.id) {
-        setTxError("Please connect to Ethereum mainnet to perform this action");
+        setTxError(t("errors.connect_to_mainnet"));
         return;
       }
 
@@ -233,13 +282,13 @@ export const ENSUniswapV3Zap = () => {
         });
 
         if (!ensPriceData) {
-          throw new Error("Unable to fetch ENS price data");
+          throw new Error(t("errors.unable_to_fetch_ens_price"));
         }
 
         const ensPriceInETH = ensPriceData[0] as bigint;
 
         if (ensPriceInETH === 0n) {
-          throw new Error("Unable to fetch ENS price");
+          throw new Error(t("errors.unable_to_fetch_ens_price"));
         }
 
         // Calculate ENS amount: ETH amount / ENS price
@@ -334,7 +383,7 @@ export const ENSUniswapV3Zap = () => {
         />
       </div>
 
-      <NetworkError message="manage liquidity" />
+      <NetworkError message={t("pool.manage_liquidity")} />
 
       {/* Slippage */}
       <SlippageSettings setSlippageBps={setSingleEthSlippageBps} slippageBps={singleEthSlippageBps} />
@@ -347,7 +396,7 @@ export const ENSUniswapV3Zap = () => {
             <span className="font-mono text-sm flex items-center gap-1">
               {formatNumber(parseFloat(estimatedLpTokens), 6)}
               <ENSLogo className="h-3 w-3 text-[#0080BC]" />
-              LP
+              {t("common.lp")}
             </span>
           </div>
           <div className="flex justify-between items-center">
@@ -359,13 +408,44 @@ export const ENSUniswapV3Zap = () => {
 
       {/* Info box */}
       <div className="text-xs bg-[#0080BC]/5 border border-[#0080BC]/30 rounded p-2 mt-2 text-muted-foreground">
-        <p className="font-medium mb-1">{t("pool.single_sided_eth_liquidity")} (Uniswap V3 Route)</p>
+        <div className="flex items-start justify-between mb-1">
+          <p className="font-medium">{t("pool.single_sided_eth_liquidity")} (Uniswap V3 Route)</p>
+          <a
+            href={`https://etherscan.io/address/${ENSZapAddress}#code`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-0.5 text-[#0080BC] hover:text-[#0066CC] transition-colors"
+          >
+            <ExternalLink className="h-3 w-3" />
+          </a>
+        </div>
         <ul className="list-disc pl-4 space-y-0.5">
           <li>{t("pool.provide_only_eth")}</li>
-          <li className="text-[#0080BC]">Half ETH swapped via Uniswap V3 (better depth)</li>
-          <li>{t("pool.remaining_eth_added")} to ENS Cookbook pool</li>
+          <li className="text-[#0080BC]">{t("ens.half_eth_swapped_v3")}</li>
+          <li>{t("ens.remaining_eth_added_to_cookbook_pool")}</li>
           <li>{t("pool.earn_fees_from_trades", { fee: 0.3 })}</li>
-          <li className="text-[#0080BC]">Default slippage: 10% for ENS liquidity</li>
+          <li className="text-[#0080BC]">{t("ens.default_slippage_10")}</li>
+          <li className="flex items-center gap-1">
+            <span title={t("ens.oracle_sync_tooltip")}>{t("ens.oracle_sync_status")}:</span>
+            {oracleInSync === null ? (
+              <span className="text-muted-foreground">{t("common.loading")}</span>
+            ) : oracleInSync ? (
+              <>
+                <CheckIcon className="h-3 w-3 text-green-500" />
+                <span className="text-green-500">{t("ens.oracle_in_sync")}</span>
+              </>
+            ) : (
+              <>
+                <X className="h-3 w-3 text-red-500" />
+                <span className="text-red-500">{t("ens.oracle_out_of_sync")}</span>
+                {zapContractBalance > 0n && ensPriceFromOracle > 0n && (
+                  <span className="text-[10px] text-muted-foreground ml-1">
+                    ({formatEther(zapContractBalance).slice(0, 8)} vs {formatEther(ensPriceFromOracle).slice(0, 8)} ETH)
+                  </span>
+                )}
+              </>
+            )}
+          </li>
         </ul>
       </div>
 
@@ -402,13 +482,13 @@ export const ENSUniswapV3Zap = () => {
       </button>
 
       {/* Status & errors */}
-      {txError && txError.includes("Waiting for") && (
+      {txError && txError.includes(t("common.waiting_for")) && (
         <div className="text-sm text-[#0080BC] mt-2 flex items-center bg-background/50 p-2 rounded border border-[#0080BC]/20">
           <Loader2 className="h-3 w-3 animate-spin mr-2" />
           {txError}
         </div>
       )}
-      {((writeError && !isUserRejectionError(writeError)) || (txError && !txError.includes("Waiting for"))) && (
+      {((writeError && !isUserRejectionError(writeError)) || (txError && !txError.includes(t("common.waiting_for")))) && (
         <div className="text-sm text-destructive mt-2 bg-background/50 p-2 rounded border border-destructive/20">
           {writeError && !isUserRejectionError(writeError) ? writeError.message : txError}
         </div>

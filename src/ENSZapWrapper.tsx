@@ -8,7 +8,7 @@ import { CheckTheChainAbi, CheckTheChainAddress } from "./constants/CheckTheChai
 import { useReserves } from "./hooks/use-reserves";
 import { ENS_POOL_ID } from "./lib/coins";
 import { getAmountOut } from "./lib/swap";
-import { RefreshCw, TrendingUp, Zap } from "lucide-react";
+import { RefreshCw, Zap } from "lucide-react";
 import { UniswapLogo } from "./components/icons/UniswapLogo";
 import { ENSLogo } from "./components/icons/ENSLogo";
 import { formatNumber } from "./lib/utils";
@@ -28,7 +28,7 @@ export const ENSZapWrapper = () => {
   const publicClient = usePublicClient();
   const { data: reserves } = useReserves({
     poolId: ENS_POOL_ID,
-    source: "cookbook",
+    source: "COOKBOOK",
   });
 
   // Listen to ETH amount changes from child components
@@ -99,7 +99,7 @@ export const ENSZapWrapper = () => {
           setSelectedRoute(newBestRoute);
         }
       } catch (err) {
-        console.error("Error determining best route:", err);
+        console.error(t("ens.error_determining_route"), err);
       }
     }, 300); // 300ms debounce
 
@@ -118,10 +118,10 @@ export const ENSZapWrapper = () => {
               <Zap className="h-4 w-4 text-[#0080BC]" />
             )}
             <span className="text-sm font-medium">
-              {selectedRoute === "v3" ? "Uniswap V3 Route" : "Direct Pool Route"}
+              {selectedRoute === "v3" ? t("ens.uniswap_v3_route") : t("ens.direct_pool_route")}
             </span>
             {autoMode && bestRoute === selectedRoute && percentDiff > 1 && (
-              <span className="text-xs text-[#0080BC] font-medium">+{percentDiff.toFixed(1)}% better</span>
+              <span className="text-xs text-[#0080BC] font-medium">{t("ens.percent_better", { percent: percentDiff.toFixed(1) })}</span>
             )}
           </div>
 
@@ -135,7 +135,7 @@ export const ENSZapWrapper = () => {
             className="flex items-center gap-1 text-xs text-muted-foreground hover:text-[#0080BC] transition-colors"
           >
             <RefreshCw className={`h-3 w-3 ${autoMode ? "animate-pulse" : ""}`} />
-            {autoMode ? "Auto" : "Manual"}
+            {autoMode ? t("ens.auto_mode") : t("ens.manual_mode")}
           </button>
         </div>
 
@@ -143,7 +143,7 @@ export const ENSZapWrapper = () => {
         {v3Output > 0n && directOutput > 0n && (
           <div className="text-xs space-y-1">
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Expected ENS output:</span>
+              <span className="text-muted-foreground">{t("ens.expected_output")}:</span>
               <span className="font-mono font-medium flex items-center gap-1">
                 {formatNumber(Number(formatUnits(selectedRoute === "v3" ? v3Output : directOutput, 18)), 4)}
                 <ENSLogo className="h-3 w-3 text-[#0080BC]" />
@@ -161,7 +161,7 @@ export const ENSZapWrapper = () => {
                   }`}
                 >
                   <UniswapLogo className="h-3 w-3" />
-                  V3 Route
+                  {t("ens.v3_route")}
                   {bestRoute === "v3" && " ✓"}
                 </button>
                 <button
@@ -173,7 +173,7 @@ export const ENSZapWrapper = () => {
                   }`}
                 >
                   <Zap className="h-3 w-3" />
-                  Direct Route
+                  {t("ens.direct_route")}
                   {bestRoute === "direct" && " ✓"}
                 </button>
               </div>

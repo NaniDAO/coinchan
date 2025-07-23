@@ -651,7 +651,7 @@ export const SingleEthLiquidity = () => {
           isPending ||
           !sellAmt ||
           parseFloat(sellAmt) === 0 ||
-          (sellToken.balance && parseEther(sellAmt || "0") > sellToken.balance)
+          (sellToken.balance !== undefined && parseEther(sellAmt || "0") > sellToken.balance)
         }
         className={`mt-2 w-full button text-base px-8 py-4 bg-primary text-primary-foreground font-bold rounded-lg transform transition-all duration-200
           ${
@@ -659,7 +659,7 @@ export const SingleEthLiquidity = () => {
             isPending ||
             !sellAmt ||
             parseFloat(sellAmt) === 0 ||
-            (sellToken.balance && parseEther(sellAmt || "0") > sellToken.balance)
+            (sellToken.balance !== undefined && parseEther(sellAmt || "0") > sellToken.balance)
               ? "opacity-50 cursor-not-allowed"
               : "opacity-100 hover:scale-105 hover:shadow-lg focus:ring-4 focus:ring-primary/50 focus:outline-none"
           }
