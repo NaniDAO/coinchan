@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseEther, parseUnits, erc20Abi, maxUint256 } from "viem";
 import { mainnet } from "viem/chains";
@@ -7,7 +7,8 @@ import { useAccount, usePublicClient, useWriteContract, useWaitForTransactionRec
 import { useETHPrice } from "./hooks/use-eth-price";
 import { SwapPanel } from "./components/SwapPanel";
 import { SlippageSettings } from "./components/SlippageSettings";
-import PoolPriceChart from "./components/PoolPriceChart";
+// Lazy load heavy components
+const PoolPriceChart = lazy(() => import("./components/PoolPriceChart"));
 import { ChevronDownIcon } from "lucide-react";
 import { type TokenMeta, ETH_TOKEN, ENS_TOKEN, ENS_POOL_ID, ENS_ADDRESS, ENS_POOL_KEY } from "./lib/coins";
 import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
@@ -17,7 +18,7 @@ import { RemoveLiquidity } from "./RemoveLiquidity";
 import { ENSZapWrapper } from "./ENSZapWrapper";
 import { useTokenSelection } from "./contexts/TokenSelectionContext";
 import { getAmountOut, withSlippage, DEADLINE_SEC } from "./lib/swap";
-import { nowSec, formatNumber } from "./lib/utils";
+import { nowSec, formatNumber, debounce } from "./lib/utils";
 import { Button } from "./components/ui/button";
 import { LoadingLogo } from "./components/ui/loading-logo";
 import { useErc20Allowance } from "./hooks/use-erc20-allowance";
@@ -26,7 +27,9 @@ import { ConnectMenu } from "./ConnectMenu";
 import { CheckTheChainAbi, CheckTheChainAddress } from "./constants/CheckTheChain";
 import { TrendingUp, Zap, ArrowRight, Sparkles } from "lucide-react";
 import { ENSLogo } from "./components/icons/ENSLogo";
-import { EnsFarmTab } from "./components/farm/EnsFarmTab";
+const EnsFarmTab = lazy(() =>
+  import("./components/farm/EnsFarmTab").then((module) => ({ default: module.EnsFarmTab })),
+);
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { useActiveIncentiveStreams } from "./hooks/use-incentive-streams";
 import { useCombinedApr } from "./hooks/use-combined-apr";
@@ -52,12 +55,6 @@ export const EnsBuySell = () => {
   const [lastEditedField, setLastEditedField] = useState<"sell" | "buy">("sell");
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [priceImpact, setPriceImpact] = useState<{
-    currentPrice: number;
-    projectedPrice: number;
-    impactPercent: number;
-    action: "buy" | "sell";
-  } | null>(null);
   const [showPriceChart, setShowPriceChart] = useState<boolean>(true); // Open by default
   const [slippageBps, setSlippageBps] = useState<bigint>(1000n); // Default 10% for ENS
   const [arbitrageInfo, setArbitrageInfo] = useState<{
@@ -75,48 +72,60 @@ export const EnsBuySell = () => {
     spender: CookbookAddress,
   });
 
-  
   // Get active incentive streams for ENS
   const { data: allStreams } = useActiveIncentiveStreams();
-  
+
   // Find ENS farm
   const ensFarm = useMemo(() => {
     if (!allStreams) return null;
     // Look for farms incentivizing the ENS pool
     return allStreams.find((stream) => BigInt(stream.lpId) === ENS_POOL_ID);
   }, [allStreams]);
-  
+
   // Get base APR for the pool
   const { data: poolApr } = usePoolApy(ENS_POOL_ID.toString());
-  
+
   // Get combined APR - always call the hook but disable it when no farm exists
   const { farmApr = 0 } = useCombinedApr({
-    stream: ensFarm || {} as any,
+    stream: ensFarm || ({} as any),
     lpToken: ENS_TOKEN,
     enabled: !!ensFarm,
   });
 
-
-  // Create token metadata objects with current data
-  const ethToken = useMemo<TokenMeta>(
-    () => ({
+  // Create token metadata objects with current data - optimized to reduce object creation
+  const ethToken = useMemo<TokenMeta>(() => {
+    // Only create new object if values actually changed
+    if (
+      ETH_TOKEN.balance === ethBalance &&
+      ETH_TOKEN.reserve0 === poolReserves.reserve0 &&
+      ETH_TOKEN.reserve1 === poolReserves.reserve1
+    ) {
+      return ETH_TOKEN;
+    }
+    return {
       ...ETH_TOKEN,
       balance: ethBalance,
       reserve0: poolReserves.reserve0,
       reserve1: poolReserves.reserve1,
-    }),
-    [ethBalance, poolReserves.reserve0, poolReserves.reserve1],
-  );
+    };
+  }, [ethBalance, poolReserves.reserve0, poolReserves.reserve1]);
 
-  const ensToken = useMemo<TokenMeta>(
-    () => ({
+  const ensToken = useMemo<TokenMeta>(() => {
+    // Only create new object if values actually changed
+    if (
+      ENS_TOKEN.balance === ensBalance &&
+      ENS_TOKEN.reserve0 === poolReserves.reserve0 &&
+      ENS_TOKEN.reserve1 === poolReserves.reserve1
+    ) {
+      return ENS_TOKEN;
+    }
+    return {
       ...ENS_TOKEN,
       balance: ensBalance,
       reserve0: poolReserves.reserve0,
       reserve1: poolReserves.reserve1,
-    }),
-    [ensBalance, poolReserves.reserve0, poolReserves.reserve1],
-  );
+    };
+  }, [ensBalance, poolReserves.reserve0, poolReserves.reserve1]);
 
   // Set tokens in context when tab changes to add/remove/zap
   useEffect(() => {
@@ -126,71 +135,76 @@ export const EnsBuySell = () => {
     }
   }, [activeTab, ethToken, ensToken, setSellToken, setBuyToken]);
 
-  // Fetch pool reserves
+  // Consolidated data fetching for pool reserves and balances
   useEffect(() => {
-    const fetchPoolData = async () => {
+    const fetchAllData = async () => {
       if (!publicClient) return;
 
       try {
-        const poolData = await publicClient?.readContract({
-          address: CookbookAddress,
-          abi: CookbookAbi,
-          functionName: "pools",
-          args: [ENS_POOL_ID],
-        });
+        // Batch fetch pool data and balances in parallel
+        const promises = [];
 
+        // Pool data
+        promises.push(
+          publicClient.readContract({
+            address: CookbookAddress,
+            abi: CookbookAbi,
+            functionName: "pools",
+            args: [ENS_POOL_ID],
+          }),
+        );
+
+        // Balances if address is available
+        if (address) {
+          promises.push(
+            publicClient.readContract({
+              address: ENS_ADDRESS,
+              abi: erc20Abi,
+              functionName: "balanceOf",
+              args: [address],
+            }),
+            publicClient.getBalance({ address }),
+          );
+        }
+
+        const results = await Promise.all(promises);
+
+        // Update pool reserves
+        const poolData = results[0];
         if (Array.isArray(poolData) && poolData.length >= 2) {
           setPoolReserves({
             reserve0: poolData[0] as bigint, // ETH
             reserve1: poolData[1] as bigint, // ENS
           });
         }
+
+        // Update balances if fetched
+        if (address && results.length > 1) {
+          const ensBalance = results[1] as bigint;
+          const ethBalance = results[2] as bigint;
+
+          if (ensBalance !== undefined) {
+            setEnsBalance(ensBalance);
+          }
+          if (ethBalance !== undefined) {
+            setEthBalance(ethBalance);
+          }
+        }
       } catch (error) {
-        console.error("Failed to fetch ENS pool data:", error);
+        console.error("Failed to fetch data:", error);
       }
     };
 
-    fetchPoolData();
+    fetchAllData();
     // Refresh every 30 seconds
-    const interval = setInterval(fetchPoolData, 30000);
-    return () => clearInterval(interval);
-  }, [publicClient]);
-
-  // Fetch ENS and ETH balances
-  useEffect(() => {
-    const fetchBalances = async () => {
-      if (!publicClient || !address) return;
-
-      try {
-        // Fetch ENS balance
-        const ensBalance = await publicClient?.readContract({
-          address: ENS_ADDRESS,
-          abi: erc20Abi,
-          functionName: "balanceOf",
-          args: [address],
-        });
-        if (ensBalance !== undefined) {
-          setEnsBalance(ensBalance as bigint);
-        }
-
-        // Fetch ETH balance
-        const ethBalance = await publicClient?.getBalance({ address });
-        if (ethBalance !== undefined) {
-          setEthBalance(ethBalance);
-        }
-      } catch (error) {
-        console.error("Failed to fetch balances:", error);
-      }
-    };
-
-    fetchBalances();
-    // Refresh balances every 30 seconds
-    const interval = setInterval(fetchBalances, 30000);
+    const interval = setInterval(fetchAllData, 30000);
     return () => clearInterval(interval);
   }, [publicClient, address]);
 
-  // Check for arbitrage opportunity
+  // Check for arbitrage opportunity with proper cleanup
   useEffect(() => {
+    let cancelled = false;
+
     const checkArbitrage = async () => {
       if (!publicClient || !poolReserves.reserve0 || !poolReserves.reserve1) return;
 
@@ -211,24 +225,22 @@ export const EnsBuySell = () => {
         // Use sensible amount for arbitrage display:
         // - Default to 0.01 ETH demo amount
         // - If user is connected and 1% of their balance > 0.01 ETH, use that
-        const onePercentBalance = isConnected && ethBalance > 0n 
-          ? ethBalance / 100n 
-          : 0n;
+        const onePercentBalance = isConnected && ethBalance > 0n ? ethBalance / 100n : 0n;
         const minAmount = parseEther("0.01");
         const testAmount = onePercentBalance > minAmount ? onePercentBalance : minAmount;
         const testAmountString = formatEther(testAmount);
-        
+
         // Calculate ENS from both sources
         const ensFromUniV3 = (testAmount * 10n ** 18n) / uniV3PriceInETH;
         const ensFromCookbook = getAmountOut(testAmount, poolReserves.reserve0, poolReserves.reserve1, 30n);
-        
+
         // Determine which opportunity exists
-        if (ensFromCookbook > ensFromUniV3) {
+        if (ensFromCookbook > ensFromUniV3 && ensFromUniV3 > 0n) {
           // Cookbook gives more ENS - highlight SWAP tab
           const extraENS = ensFromCookbook - ensFromUniV3;
           const percentGain = Number((extraENS * 10000n) / ensFromUniV3) / 100;
-          
-          if (percentGain > 0.5) {
+
+          if (percentGain > 0.5 && !cancelled) {
             setArbitrageInfo({
               type: "swap",
               ensFromUniV3: Number(formatUnits(ensFromUniV3, 18)),
@@ -237,12 +249,12 @@ export const EnsBuySell = () => {
               testAmountETH: testAmountString,
             });
           }
-        } else if (ensFromUniV3 > ensFromCookbook) {
+        } else if (ensFromUniV3 > ensFromCookbook && ensFromCookbook > 0n) {
           // Uniswap gives more ENS - highlight ZAP tab
           const extraENS = ensFromUniV3 - ensFromCookbook;
           const percentGain = Number((extraENS * 10000n) / ensFromCookbook) / 100;
-          
-          if (percentGain > 0.5) {
+
+          if (percentGain > 0.5 && !cancelled) {
             setArbitrageInfo({
               type: "zap",
               ensFromUniV3: Number(formatUnits(ensFromUniV3, 18)),
@@ -251,7 +263,7 @@ export const EnsBuySell = () => {
               testAmountETH: testAmountString,
             });
           }
-        } else {
+        } else if (!cancelled) {
           // No significant difference
           setArbitrageInfo(null);
         }
@@ -262,24 +274,42 @@ export const EnsBuySell = () => {
 
     // Check on mount and when pool reserves or balance change
     checkArbitrage();
+
+    return () => {
+      cancelled = true;
+    };
   }, [publicClient, poolReserves, ethBalance, isConnected]);
 
-  // Calculate market cap and price
-  const ensPrice =
-    poolReserves.reserve0 > 0n && poolReserves.reserve1 > 0n
-      ? Number(formatEther(poolReserves.reserve0)) / Number(formatUnits(poolReserves.reserve1, 18))
-      : 0;
+  // Calculate market cap and price with memoization
+  const { ensPrice, ensUsdPrice, marketCapUsd } = useMemo(() => {
+    const price =
+      poolReserves.reserve0 > 0n && poolReserves.reserve1 > 0n
+        ? Number(formatEther(poolReserves.reserve0)) / Number(formatUnits(poolReserves.reserve1, 18))
+        : 0;
 
-  const ensUsdPrice = ensPrice * (ethPrice?.priceUSD || 0);
+    const usdPrice = price * (ethPrice?.priceUSD || 0);
 
-  // ENS has a circulating supply of 33,165,585 tokens
-  const circulatingSupply = 33165585n * 10n ** 18n; // 33,165,585 tokens with 18 decimals
-  const marketCapUsd = ensUsdPrice * Number(formatUnits(circulatingSupply, 18));
+    // ENS has a circulating supply of 33,165,585 tokens
+    const circulatingSupply = 33165585n * 10n ** 18n; // 33,165,585 tokens with 18 decimals
+    const marketCap = usdPrice * Number(formatUnits(circulatingSupply, 18));
+
+    return { ensPrice: price, ensUsdPrice: usdPrice, marketCapUsd: marketCap };
+  }, [poolReserves.reserve0, poolReserves.reserve1, ethPrice?.priceUSD]);
 
   // Calculate output based on input
   const calculateOutput = useCallback(
     (value: string, field: "sell" | "buy") => {
       if (!poolReserves.reserve0 || !poolReserves.reserve1 || !value || parseFloat(value) === 0) {
+        if (field === "sell") setBuyAmount("");
+        else setSellAmount("");
+        return;
+      }
+
+      // Minimum liquidity check to prevent calculation errors
+      const minEthLiquidity = parseEther("0.1");
+      const minEnsLiquidity = parseUnits("100", 18);
+      if (poolReserves.reserve0 < minEthLiquidity || poolReserves.reserve1 < minEnsLiquidity) {
+        setErrorMessage(t("errors.insufficient_liquidity"));
         if (field === "sell") setBuyAmount("");
         else setSellAmount("");
         return;
@@ -305,13 +335,33 @@ export const EnsBuySell = () => {
             // Want exact ENS out, calculate ETH in
             const ensOut = parseUnits(value, 18);
             // For exact out: amountIn = (reserveIn * amountOut * 10000) / ((reserveOut - amountOut) * (10000 - fee))
-            const ethIn = (poolReserves.reserve0 * ensOut * 10000n) / ((poolReserves.reserve1 - ensOut) * 9970n);
-            setSellAmount(formatEther(ethIn));
+            // Ensure we don't exceed available reserves
+            if (poolReserves.reserve1 > ensOut && ensOut > 0n) {
+              const denominator = (poolReserves.reserve1 - ensOut) * 9970n;
+              if (denominator > 0n) {
+                const ethIn = (poolReserves.reserve0 * ensOut * 10000n) / denominator;
+                setSellAmount(formatEther(ethIn));
+              } else {
+                setSellAmount("");
+              }
+            } else {
+              setSellAmount("");
+            }
           } else {
             // Want exact ETH out, calculate ENS in
             const ethOut = parseEther(value);
-            const ensIn = (poolReserves.reserve1 * ethOut * 10000n) / ((poolReserves.reserve0 - ethOut) * 9970n);
-            setSellAmount(formatUnits(ensIn, 18));
+            // Ensure we don't exceed available reserves
+            if (poolReserves.reserve0 > ethOut && ethOut > 0n) {
+              const denominator = (poolReserves.reserve0 - ethOut) * 9970n;
+              if (denominator > 0n) {
+                const ensIn = (poolReserves.reserve1 * ethOut * 10000n) / denominator;
+                setSellAmount(formatUnits(ensIn, 18));
+              } else {
+                setSellAmount("");
+              }
+            } else {
+              setSellAmount("");
+            }
           }
         }
       } catch (error) {
@@ -320,54 +370,54 @@ export const EnsBuySell = () => {
         else setSellAmount("");
       }
     },
-    [poolReserves, swapDirection],
+    [poolReserves, swapDirection, setBuyAmount, setSellAmount],
   );
 
-  // Calculate price impact
-  useEffect(() => {
+  // Debounced version for user input to prevent excessive recalculations
+  const debouncedCalculateOutput = useMemo(
+    () => debounce((value: string, field: "sell" | "buy") => calculateOutput(value, field), 300),
+    [calculateOutput],
+  );
+
+  // Calculate price impact with memoization
+  const priceImpact = useMemo(() => {
     if (!poolReserves.reserve0 || !poolReserves.reserve1 || !sellAmount || parseFloat(sellAmount) === 0) {
-      setPriceImpact(null);
-      return;
+      return null;
     }
 
-    const timer = setTimeout(() => {
-      try {
-        let newReserve0 = poolReserves.reserve0;
-        let newReserve1 = poolReserves.reserve1;
+    try {
+      let newReserve0 = poolReserves.reserve0;
+      let newReserve1 = poolReserves.reserve1;
 
-        if (swapDirection === "buy") {
-          // Buying ENS with ETH
-          const ethIn = parseEther(sellAmount);
-          const ensOut = getAmountOut(ethIn, poolReserves.reserve0, poolReserves.reserve1, 30n);
-          newReserve0 = poolReserves.reserve0 + ethIn;
-          newReserve1 = poolReserves.reserve1 - ensOut;
-        } else {
-          // Selling ENS for ETH
-          const ensIn = parseUnits(sellAmount, 18);
-          const ethOut = getAmountOut(ensIn, poolReserves.reserve1, poolReserves.reserve0, 30n);
-          newReserve0 = poolReserves.reserve0 - ethOut;
-          newReserve1 = poolReserves.reserve1 + ensIn;
-        }
-
-        const currentPrice =
-          Number(formatEther(poolReserves.reserve0)) / Number(formatUnits(poolReserves.reserve1, 18));
-        const newPrice = Number(formatEther(newReserve0)) / Number(formatUnits(newReserve1, 18));
-        const impactPercent = ((newPrice - currentPrice) / currentPrice) * 100;
-
-        setPriceImpact({
-          currentPrice,
-          projectedPrice: newPrice,
-          impactPercent,
-          action: swapDirection,
-        });
-      } catch (error) {
-        console.error("Error calculating price impact:", error);
-        setPriceImpact(null);
+      if (swapDirection === "buy") {
+        // Buying ENS with ETH
+        const ethIn = parseEther(sellAmount);
+        const ensOut = getAmountOut(ethIn, poolReserves.reserve0, poolReserves.reserve1, 30n);
+        newReserve0 = poolReserves.reserve0 + ethIn;
+        newReserve1 = poolReserves.reserve1 - ensOut;
+      } else {
+        // Selling ENS for ETH
+        const ensIn = parseUnits(sellAmount, 18);
+        const ethOut = getAmountOut(ensIn, poolReserves.reserve1, poolReserves.reserve0, 30n);
+        newReserve0 = poolReserves.reserve0 - ethOut;
+        newReserve1 = poolReserves.reserve1 + ensIn;
       }
-    }, 500);
 
-    return () => clearTimeout(timer);
-  }, [sellAmount, swapDirection, poolReserves]);
+      const currentPrice = Number(formatEther(poolReserves.reserve0)) / Number(formatUnits(poolReserves.reserve1, 18));
+      const newPrice = Number(formatEther(newReserve0)) / Number(formatUnits(newReserve1, 18));
+      const impactPercent = ((newPrice - currentPrice) / currentPrice) * 100;
+
+      return {
+        currentPrice,
+        projectedPrice: newPrice,
+        impactPercent,
+        action: swapDirection,
+      };
+    } catch (error) {
+      console.error("Error calculating price impact:", error);
+      return null;
+    }
+  }, [sellAmount, swapDirection, poolReserves.reserve0, poolReserves.reserve1]);
 
   // Execute swap
   const executeSwap = async () => {
@@ -421,7 +471,13 @@ export const EnsBuySell = () => {
             functionName: "approve",
             args: [CookbookAddress, maxUint256],
           });
-          await publicClient?.waitForTransactionReceipt({ hash: approveHash });
+
+          try {
+            await publicClient?.waitForTransactionReceipt({ hash: approveHash });
+          } catch (approvalError) {
+            setErrorMessage(t("errors.approval_failed"));
+            return;
+          }
         }
 
         const ethOut = getAmountOut(ensIn, poolReserves.reserve1, poolReserves.reserve0, 30n);
@@ -454,7 +510,14 @@ export const EnsBuySell = () => {
       {/* Header with ENS theme */}
       <div className="mb-4 sm:mb-8 text-center">
         <div className="flex items-center justify-center gap-3">
-          <svg width="36" height="36" className="sm:w-12 sm:h-12" viewBox="0 0 202 231" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg
+            width="36"
+            height="36"
+            className="sm:w-12 sm:h-12"
+            viewBox="0 0 202 231"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
             <path
               d="M98.3592 2.80337L34.8353 107.327C34.3371 108.147 33.1797 108.238 32.5617 107.505C26.9693 100.864 6.13478 72.615 31.9154 46.8673C55.4403 23.3726 85.4045 6.62129 96.5096 0.831705C97.7695 0.174847 99.0966 1.59007 98.3592 2.80337Z"
               fill="#0080BC"
@@ -480,323 +543,353 @@ export const EnsBuySell = () => {
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
           {/* Subtle arbitrage notification */}
           {arbitrageInfo && activeTab !== arbitrageInfo.type && (
-              <div className="mb-2 flex justify-center sm:justify-end">
-                <button
-                  onClick={() => setActiveTab(arbitrageInfo.type)}
-                  className="group relative flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full hover:bg-green-200 dark:hover:bg-green-900/50 transition-all animate-pulse hover:animate-none"
-                >
-                  <TrendingUp className="h-3 w-3" />
-                  {arbitrageInfo.type === "swap" ? (
-                    <>
-                      <span className="hidden sm:inline text-muted-foreground">{arbitrageInfo.testAmountETH} ETH</span>
-                      <span className="sm:hidden text-muted-foreground text-[10px]">{arbitrageInfo.testAmountETH.slice(0, 4)} ETH</span>
-                      <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                      <span className="flex items-center gap-0.5 sm:gap-1 font-medium">
-                        <span className="hidden sm:inline">{formatNumber(arbitrageInfo.ensFromCookbook, 4)}</span>
-                        <span className="sm:hidden text-[10px]">{formatNumber(arbitrageInfo.ensFromCookbook, 2)}</span>
+            <div className="mb-2 flex justify-center sm:justify-end">
+              <button
+                onClick={() => setActiveTab(arbitrageInfo.type)}
+                className="group relative flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full hover:bg-green-200 dark:hover:bg-green-900/50 transition-all animate-pulse hover:animate-none"
+              >
+                <TrendingUp className="h-3 w-3" />
+                {arbitrageInfo.type === "swap" ? (
+                  <>
+                    <span className="hidden sm:inline text-muted-foreground">{arbitrageInfo.testAmountETH} ETH</span>
+                    <span className="sm:hidden text-muted-foreground text-[10px]">
+                      {arbitrageInfo.testAmountETH.slice(0, 4)} ETH
+                    </span>
+                    <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                    <span className="flex items-center gap-0.5 sm:gap-1 font-medium">
+                      <span className="hidden sm:inline">{formatNumber(arbitrageInfo.ensFromCookbook, 4)}</span>
+                      <span className="sm:hidden text-[10px]">{formatNumber(arbitrageInfo.ensFromCookbook, 2)}</span>
+                      <ENSLogo className="h-3 w-3" />
+                    </span>
+                    <span className="ml-0.5 sm:ml-1 font-semibold text-green-600 dark:text-green-400 text-[10px] sm:text-xs">
+                      +{arbitrageInfo.percentGain.toFixed(1)}%
+                    </span>
+                  </>
+                ) : (
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <Sparkles className="h-3 w-3 flex-shrink-0" />
+                    <span className="flex items-center gap-0.5 sm:gap-1">
+                      <span className="hidden sm:inline text-muted-foreground">{t("ens.get")}</span>
+                      <span className="font-medium flex items-center gap-0.5">
+                        <span className="hidden sm:inline">{formatNumber(arbitrageInfo.ensFromUniV3, 4)}</span>
+                        <span className="sm:hidden text-[10px]">{formatNumber(arbitrageInfo.ensFromUniV3, 2)}</span>
                         <ENSLogo className="h-3 w-3" />
                       </span>
-                      <span className="ml-0.5 sm:ml-1 font-semibold text-green-600 dark:text-green-400 text-[10px] sm:text-xs">
+                      <span className="font-semibold text-green-600 dark:text-green-400 text-[10px] sm:text-xs">
                         +{arbitrageInfo.percentGain.toFixed(1)}%
                       </span>
-                    </>
-                  ) : (
-                    <div className="flex items-center gap-1 sm:gap-2">
-                      <Sparkles className="h-3 w-3 flex-shrink-0" />
-                      <span className="flex items-center gap-0.5 sm:gap-1">
-                        <span className="hidden sm:inline text-muted-foreground">{t("ens.get")}</span>
-                        <span className="font-medium flex items-center gap-0.5">
-                          <span className="hidden sm:inline">{formatNumber(arbitrageInfo.ensFromUniV3, 4)}</span>
-                          <span className="sm:hidden text-[10px]">{formatNumber(arbitrageInfo.ensFromUniV3, 2)}</span>
-                          <ENSLogo className="h-3 w-3" />
+                    </span>
+                    <ArrowRight className="h-3 w-3 flex-shrink-0 hidden sm:inline" />
+                    <span className="flex items-center gap-0.5 sm:gap-1">
+                      <Zap className="h-3 w-3 flex-shrink-0 hidden sm:inline" />
+                      <span className="font-medium text-[10px] sm:text-xs hidden sm:inline">{t("ens.zap_lp")}</span>
+                      {(poolApr || farmApr > 0) && (
+                        <span className="text-[#0080BC] font-semibold text-[10px] sm:text-xs hidden sm:inline">
+                          APR {(Number(poolApr?.slice(0, -1) || 0) + farmApr).toFixed(1)}%
                         </span>
-                        <span className="font-semibold text-green-600 dark:text-green-400 text-[10px] sm:text-xs">
-                          +{arbitrageInfo.percentGain.toFixed(1)}%
-                        </span>
-                      </span>
-                      <ArrowRight className="h-3 w-3 flex-shrink-0 hidden sm:inline" />
-                      <span className="flex items-center gap-0.5 sm:gap-1">
-                        <Zap className="h-3 w-3 flex-shrink-0 hidden sm:inline" />
-                        <span className="font-medium text-[10px] sm:text-xs hidden sm:inline">{t("ens.zap_lp")}</span>
-                        {(poolApr || farmApr > 0) && (
-                          <span className="text-[#0080BC] font-semibold text-[10px] sm:text-xs hidden sm:inline">
-                            APR {(Number(poolApr?.slice(0, -1) || 0) + farmApr).toFixed(1)}%
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                  )}
-                  <span className="absolute -top-1 -right-1 flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                  </span>
-                </button>
-              </div>
-            )}
-            <TabsList className="flex flex-wrap sm:grid sm:grid-cols-5 gap-1 bg-[#0080BC]/5 dark:bg-[#0080BC]/10 p-1 h-auto w-full">
-              <TabsTrigger
-                value="swap"
-                className={`relative flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-[#0080BC]/20 dark:data-[state=active]:bg-[#0080BC]/30 data-[state=active]:text-[#0080BC] dark:data-[state=active]:text-white ${
-                  arbitrageInfo?.type === "swap" && activeTab !== "swap" ? "ring-1 ring-green-400/50" : ""
-                }`}
-              >
-                {t("common.swap")}
-                {arbitrageInfo?.type === "swap" && activeTab !== "swap" && (
-                  <span className="absolute -top-1 -right-1 flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                  </span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger
-                value="add"
-                className="flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-[#0080BC]/20 dark:data-[state=active]:bg-[#0080BC]/30 data-[state=active]:text-[#0080BC] dark:data-[state=active]:text-white"
-              >
-                {t("common.add")}
-              </TabsTrigger>
-              <TabsTrigger
-                value="remove"
-                className="flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-[#0080BC]/20 dark:data-[state=active]:bg-[#0080BC]/30 data-[state=active]:text-[#0080BC] dark:data-[state=active]:text-white"
-              >
-                {t("common.remove")}
-              </TabsTrigger>
-              <TabsTrigger
-                value="zap"
-                className={`relative flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-[#0080BC]/20 dark:data-[state=active]:bg-[#0080BC]/30 data-[state=active]:text-[#0080BC] dark:data-[state=active]:text-white ${
-                  arbitrageInfo?.type === "zap" && activeTab !== "zap" ? "ring-1 ring-green-400/50" : ""
-                }`}
-              >
-                {t("common.zap")}
-                {arbitrageInfo?.type === "zap" && activeTab !== "zap" && (
-                  <span className="absolute -top-1 -right-1 flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                  </span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger
-                value="farm"
-                className="flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-[#0080BC]/20 dark:data-[state=active]:bg-[#0080BC]/30 data-[state=active]:text-[#0080BC] dark:data-[state=active]:text-white"
-              >
-                {t("common.farm")}
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="swap" className="mt-2 sm:mt-4">
-              <div className="space-y-2 sm:space-y-4">
-                {/* Custom simplified swap for ENS */}
-                <div className="relative space-y-1">
-                  {/* Sell panel */}
-                  <SwapPanel
-                    title={swapDirection === "buy" ? t("ens.you_pay") : t("ens.you_pay")}
-                    selectedToken={swapDirection === "buy" ? ethToken : ensToken}
-                    tokens={[]} // Empty array prevents token selection
-                    onSelect={() => {}} // No-op
-                    isEthBalanceFetching={false}
-                    amount={sellAmount}
-                    onAmountChange={(val) => {
-                      setSellAmount(val);
-                      setLastEditedField("sell");
-                      calculateOutput(val, "sell");
-                    }}
-                    showMaxButton={true}
-                    onMax={() => {
-                      if (swapDirection === "buy") {
-                        // Max ETH (leave some for gas)
-                        const maxEth = (ethBalance * 99n) / 100n;
-                        const formatted = formatEther(maxEth);
-                        setSellAmount(formatted);
-                        calculateOutput(formatted, "sell");
-                      } else {
-                        // Max ENS
-                        const formatted = formatUnits(ensBalance, 18);
-                        setSellAmount(formatted);
-                        calculateOutput(formatted, "sell");
-                      }
-                    }}
-                    showPercentageSlider={
-                      lastEditedField === "sell" &&
-                      ((swapDirection === "buy" && ethBalance > 0n) || (swapDirection === "sell" && ensBalance > 0n))
-                    }
-                    className="pb-2"
-                  />
-
-                  {/* Flip button */}
-                  <div className="relative py-1">
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <button
-                        onClick={() => {
-                          setSwapDirection(swapDirection === "buy" ? "sell" : "buy");
-                          setSellAmount("");
-                          setBuyAmount("");
-                        }}
-                        className="bg-background border-2 border-[#0080BC]/20 rounded-full p-2 hover:border-[#0080BC]/40 transition-all hover:rotate-180 duration-300"
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path
-                            d="M7 16V4M7 4L3 8M7 4L11 8M17 8V20M17 20L21 16M17 20L13 16"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Buy panel */}
-                  <SwapPanel
-                    title={swapDirection === "buy" ? t("ens.you_receive") : t("ens.you_receive")}
-                    selectedToken={swapDirection === "buy" ? ensToken : ethToken}
-                    tokens={[]} // Empty array prevents token selection
-                    onSelect={() => {}} // No-op
-                    isEthBalanceFetching={false}
-                    amount={buyAmount}
-                    onAmountChange={(val) => {
-                      setBuyAmount(val);
-                      setLastEditedField("buy");
-                      calculateOutput(val, "buy");
-                    }}
-                    showPercentageSlider={lastEditedField === "buy"}
-                    className="pt-2"
-                  />
-
-                  {/* Swap button */}
-                  {!isConnected ? (
-                    <ConnectMenu />
-                  ) : (
-                    <Button
-                      onClick={executeSwap}
-                      disabled={
-                        isPending ||
-                        !sellAmount ||
-                        parseFloat(sellAmount) === 0 ||
-                        (swapDirection === "buy" && ethBalance > 0n && parseEther(sellAmount || "0") > ethBalance) ||
-                        (swapDirection === "sell" && ensBalance > 0n && parseUnits(sellAmount || "0", 18) > ensBalance)
-                      }
-                      className="w-full bg-[#0080BC] hover:bg-[#0066CC] text-white"
-                    >
-                      {isPending ? (
-                        <span className="flex items-center gap-2">
-                          <LoadingLogo size="sm" />
-                          {swapDirection === "buy" ? t("ens.buying") : t("ens.selling")}
-                        </span>
-                      ) : swapDirection === "buy" ? (
-                        t("ens.buy_ens")
-                      ) : (
-                        t("ens.sell_ens")
                       )}
-                    </Button>
-                  )}
-
-                  {errorMessage && <p className="text-destructive text-sm">{errorMessage}</p>}
-                  {isSuccess && <p className="text-green-600 text-sm">{t("ens.transaction_confirmed")}</p>}
-
-                  {/* Slippage Settings */}
-                  <div className="mt-4">
-                    <SlippageSettings slippageBps={slippageBps} setSlippageBps={setSlippageBps} />
+                    </span>
                   </div>
+                )}
+                <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                </span>
+              </button>
+            </div>
+          )}
+          <TabsList className="flex flex-wrap sm:grid sm:grid-cols-5 gap-1 bg-[#0080BC]/5 dark:bg-[#0080BC]/10 p-1 h-auto w-full">
+            <TabsTrigger
+              value="swap"
+              className={`relative flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-[#0080BC]/20 dark:data-[state=active]:bg-[#0080BC]/30 data-[state=active]:text-[#0080BC] dark:data-[state=active]:text-white ${
+                arbitrageInfo?.type === "swap" && activeTab !== "swap" ? "ring-1 ring-green-400/50" : ""
+              }`}
+            >
+              {t("common.swap")}
+              {arbitrageInfo?.type === "swap" && activeTab !== "swap" && (
+                <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger
+              value="add"
+              className="flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-[#0080BC]/20 dark:data-[state=active]:bg-[#0080BC]/30 data-[state=active]:text-[#0080BC] dark:data-[state=active]:text-white"
+            >
+              {t("common.add")}
+            </TabsTrigger>
+            <TabsTrigger
+              value="remove"
+              className="flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-[#0080BC]/20 dark:data-[state=active]:bg-[#0080BC]/30 data-[state=active]:text-[#0080BC] dark:data-[state=active]:text-white"
+            >
+              {t("common.remove")}
+            </TabsTrigger>
+            <TabsTrigger
+              value="zap"
+              className={`relative flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-[#0080BC]/20 dark:data-[state=active]:bg-[#0080BC]/30 data-[state=active]:text-[#0080BC] dark:data-[state=active]:text-white ${
+                arbitrageInfo?.type === "zap" && activeTab !== "zap" ? "ring-1 ring-green-400/50" : ""
+              }`}
+            >
+              {t("common.zap")}
+              {arbitrageInfo?.type === "zap" && activeTab !== "zap" && (
+                <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger
+              value="farm"
+              className="flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-[#0080BC]/20 dark:data-[state=active]:bg-[#0080BC]/30 data-[state=active]:text-[#0080BC] dark:data-[state=active]:text-white"
+            >
+              {t("common.farm")}
+            </TabsTrigger>
+          </TabsList>
 
-                  {/* Price impact display */}
-                  {priceImpact && (
-                    <div className="mt-2 p-2 bg-muted/50 rounded-md">
-                      <div className="text-xs text-muted-foreground flex items-center justify-between">
-                        <span>{t("swap.price_impact")}:</span>
-                        <span
-                          className={`font-medium ${priceImpact.impactPercent > 0 ? "text-green-600" : "text-red-600"}`}
-                        >
-                          {priceImpact.impactPercent > 0 ? "+" : ""}
-                          {priceImpact.impactPercent.toFixed(2)}%
-                        </span>
-                      </div>
-                    </div>
-                  )}
+          <TabsContent value="swap" className="mt-2 sm:mt-4">
+            <div className="space-y-2 sm:space-y-4">
+              {/* Custom simplified swap for ENS */}
+              <div className="relative space-y-1">
+                {/* Sell panel */}
+                <SwapPanel
+                  title={swapDirection === "buy" ? t("ens.you_pay") : t("ens.you_pay")}
+                  selectedToken={swapDirection === "buy" ? ethToken : ensToken}
+                  tokens={[]} // Empty array prevents token selection
+                  onSelect={() => {}} // No-op
+                  isEthBalanceFetching={false}
+                  amount={sellAmount}
+                  onAmountChange={(val) => {
+                    setSellAmount(val);
+                    setLastEditedField("sell");
+                    debouncedCalculateOutput(val, "sell");
+                  }}
+                  showMaxButton={true}
+                  onMax={() => {
+                    if (swapDirection === "buy") {
+                      // Max ETH (leave some for gas)
+                      const maxEth = (ethBalance * 99n) / 100n;
+                      const formatted = formatEther(maxEth);
+                      setSellAmount(formatted);
+                      calculateOutput(formatted, "sell");
+                    } else {
+                      // Max ENS
+                      const formatted = formatUnits(ensBalance, 18);
+                      setSellAmount(formatted);
+                      calculateOutput(formatted, "sell");
+                    }
+                  }}
+                  showPercentageSlider={
+                    lastEditedField === "sell" &&
+                    ((swapDirection === "buy" && ethBalance > 0n) || (swapDirection === "sell" && ensBalance > 0n))
+                  }
+                  className="pb-2"
+                />
+
+                {/* Flip button */}
+                <div className="relative py-1">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <button
+                      onClick={() => {
+                        setSwapDirection(swapDirection === "buy" ? "sell" : "buy");
+                        setSellAmount("");
+                        setBuyAmount("");
+                      }}
+                      className="bg-background border-2 border-[#0080BC]/20 rounded-full p-2 hover:border-[#0080BC]/40 transition-all hover:rotate-180 duration-300"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                          d="M7 16V4M7 4L3 8M7 4L11 8M17 8V20M17 20L21 16M17 20L13 16"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
 
-                {/* Chart */}
-                <div className="mt-4 border-t border-primary pt-4">
-                  <div className="relative flex flex-col">
-                    <div className="flex items-center justify-between mb-2">
-                      <button
-                        onClick={() => setShowPriceChart((prev) => !prev)}
-                        className="text-xs text-muted-foreground flex items-center gap-1 hover:text-primary"
-                      >
-                        {showPriceChart ? t("coin.hide_chart") : t("coin.show_chart")}
-                        <ChevronDownIcon
-                          className={`w-3 h-3 transition-transform ${showPriceChart ? "rotate-180" : ""}`}
-                        />
-                      </button>
-                      {showPriceChart && (
-                        <div className="text-xs text-muted-foreground">ENS/ETH {t("coin.price_history")}</div>
-                      )}
-                    </div>
+                {/* Buy panel */}
+                <SwapPanel
+                  title={swapDirection === "buy" ? t("ens.you_receive") : t("ens.you_receive")}
+                  selectedToken={swapDirection === "buy" ? ensToken : ethToken}
+                  tokens={[]} // Empty array prevents token selection
+                  onSelect={() => {}} // No-op
+                  isEthBalanceFetching={false}
+                  amount={buyAmount}
+                  onAmountChange={(val) => {
+                    setBuyAmount(val);
+                    setLastEditedField("buy");
+                    debouncedCalculateOutput(val, "buy");
+                  }}
+                  showPercentageSlider={lastEditedField === "buy"}
+                  className="pt-2"
+                />
 
+                {/* Swap button */}
+                {!isConnected ? (
+                  <ConnectMenu />
+                ) : (
+                  <Button
+                    onClick={executeSwap}
+                    disabled={
+                      isPending ||
+                      !sellAmount ||
+                      parseFloat(sellAmount) === 0 ||
+                      (swapDirection === "buy" && ethBalance > 0n && parseEther(sellAmount || "0") > ethBalance) ||
+                      (swapDirection === "sell" && ensBalance > 0n && parseUnits(sellAmount || "0", 18) > ensBalance)
+                    }
+                    className="w-full bg-[#0080BC] hover:bg-[#0066CC] text-white"
+                  >
+                    {isPending ? (
+                      <span className="flex items-center gap-2">
+                        <LoadingLogo size="sm" />
+                        {swapDirection === "buy" ? t("ens.buying") : t("ens.selling")}
+                      </span>
+                    ) : swapDirection === "buy" ? (
+                      t("ens.buy_ens")
+                    ) : (
+                      t("ens.sell_ens")
+                    )}
+                  </Button>
+                )}
+
+                {errorMessage && <p className="text-destructive text-sm">{errorMessage}</p>}
+                {isSuccess && <p className="text-green-600 text-sm">{t("ens.transaction_confirmed")}</p>}
+
+                {/* Slippage Settings */}
+                <div className="mt-4">
+                  <SlippageSettings slippageBps={slippageBps} setSlippageBps={setSlippageBps} />
+                </div>
+
+                {/* Price impact display */}
+                {priceImpact && (
+                  <div className="mt-2 p-2 bg-muted/50 rounded-md">
+                    <div className="text-xs text-muted-foreground flex items-center justify-between">
+                      <span>{t("swap.price_impact")}:</span>
+                      <span
+                        className={`font-medium ${priceImpact.impactPercent > 0 ? "text-green-600" : "text-red-600"}`}
+                      >
+                        {priceImpact.impactPercent > 0 ? "+" : ""}
+                        {priceImpact.impactPercent.toFixed(2)}%
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Chart */}
+              <div className="mt-4 border-t border-primary pt-4">
+                <div className="relative flex flex-col">
+                  <div className="flex items-center justify-between mb-2">
+                    <button
+                      onClick={() => setShowPriceChart((prev) => !prev)}
+                      className="text-xs text-muted-foreground flex items-center gap-1 hover:text-primary"
+                    >
+                      {showPriceChart ? t("coin.hide_chart") : t("coin.show_chart")}
+                      <ChevronDownIcon
+                        className={`w-3 h-3 transition-transform ${showPriceChart ? "rotate-180" : ""}`}
+                      />
+                    </button>
                     {showPriceChart && (
-                      <div className="transition-all duration-300">
+                      <div className="text-xs text-muted-foreground">ENS/ETH {t("coin.price_history")}</div>
+                    )}
+                  </div>
+
+                  {showPriceChart && (
+                    <div className="transition-all duration-300">
+                      <Suspense
+                        fallback={
+                          <div className="h-64 flex items-center justify-center">
+                            <LoadingLogo />
+                          </div>
+                        }
+                      >
                         <PoolPriceChart
                           poolId={ENS_POOL_ID.toString()}
                           ticker="ENS"
                           ethUsdPrice={ethPrice?.priceUSD}
                           priceImpact={priceImpact}
                         />
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="text-xs text-muted-foreground text-center">{t("coin.pool_fee")}: 0.3%</div>
-
-                {/* Market Stats - subtle below chart */}
-                <div className="mt-4 sm:mt-6 grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 text-xs">
-                  <div className="text-center">
-                    <p className="text-muted-foreground opacity-70">{t("coin.price")}</p>
-                    <p className="font-medium">{ensPrice > 0 ? `${ensPrice.toFixed(6)} ETH` : "-"}</p>
-                    <p className="text-muted-foreground opacity-60">${ensUsdPrice.toFixed(2)}</p>
-                  </div>
-
-                  <div className="text-center">
-                    <p className="text-muted-foreground opacity-70">{t("coin.market_cap")}</p>
-                    <p className="font-medium">
-                      $
-                      {marketCapUsd > 1e9
-                        ? (marketCapUsd / 1e9).toFixed(2) + "B"
-                        : marketCapUsd > 0
-                          ? (marketCapUsd / 1e6).toFixed(2) + "M"
-                          : "-"}
-                    </p>
-                  </div>
-
-                  <div className="text-center">
-                    <p className="text-muted-foreground opacity-70">{t("coin.pool_eth")}</p>
-                    <p className="font-medium">{formatEther(poolReserves.reserve0)} ETH</p>
-                  </div>
-
-                  <div className="text-center">
-                    <p className="text-muted-foreground opacity-70">{t("coin.pool_ens")}</p>
-                    <p className="font-medium">{Number(formatUnits(poolReserves.reserve1, 18)).toFixed(3)} ENS</p>
-                  </div>
+                      </Suspense>
+                    </div>
+                  )}
                 </div>
               </div>
-            </TabsContent>
 
-            <TabsContent value="add" className="mt-2 sm:mt-4">
+              <div className="text-xs text-muted-foreground text-center">{t("coin.pool_fee")}: 0.3%</div>
+
+              {/* Market Stats - subtle below chart */}
+              <div className="mt-4 sm:mt-6 grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 text-xs">
+                <div className="text-center">
+                  <p className="text-muted-foreground opacity-70">{t("coin.price")}</p>
+                  <p className="font-medium">{ensPrice > 0 ? `${ensPrice.toFixed(6)} ETH` : "-"}</p>
+                  <p className="text-muted-foreground opacity-60">${ensUsdPrice.toFixed(2)}</p>
+                </div>
+
+                <div className="text-center">
+                  <p className="text-muted-foreground opacity-70">{t("coin.market_cap")}</p>
+                  <p className="font-medium">
+                    $
+                    {marketCapUsd > 1e9
+                      ? (marketCapUsd / 1e9).toFixed(2) + "B"
+                      : marketCapUsd > 0
+                        ? (marketCapUsd / 1e6).toFixed(2) + "M"
+                        : "-"}
+                  </p>
+                </div>
+
+                <div className="text-center">
+                  <p className="text-muted-foreground opacity-70">{t("coin.pool_eth")}</p>
+                  <p className="font-medium">{formatEther(poolReserves.reserve0)} ETH</p>
+                </div>
+
+                <div className="text-center">
+                  <p className="text-muted-foreground opacity-70">{t("coin.pool_ens")}</p>
+                  <p className="font-medium">{Number(formatUnits(poolReserves.reserve1, 18)).toFixed(3)} ENS</p>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="add" className="mt-2 sm:mt-4">
+            <ErrorBoundary
+              fallback={<div className="text-center py-4 text-destructive">{t("common.error_loading_component")}</div>}
+            >
               <AddLiquidity />
-            </TabsContent>
+            </ErrorBoundary>
+          </TabsContent>
 
-            <TabsContent value="remove" className="mt-2 sm:mt-4">
+          <TabsContent value="remove" className="mt-2 sm:mt-4">
+            <ErrorBoundary
+              fallback={<div className="text-center py-4 text-destructive">{t("common.error_loading_component")}</div>}
+            >
               <RemoveLiquidity />
-            </TabsContent>
+            </ErrorBoundary>
+          </TabsContent>
 
-            <TabsContent value="zap" className="mt-2 sm:mt-4">
+          <TabsContent value="zap" className="mt-2 sm:mt-4">
+            <ErrorBoundary
+              fallback={<div className="text-center py-4 text-destructive">{t("common.error_loading_component")}</div>}
+            >
               <ENSZapWrapper />
-            </TabsContent>
-            <TabsContent value="farm" className="mt-2 sm:mt-4">
-              <ErrorBoundary fallback={<div>{t("common.error_loading_farm")}</div>}>
+            </ErrorBoundary>
+          </TabsContent>
+          <TabsContent value="farm" className="mt-2 sm:mt-4">
+            <ErrorBoundary fallback={<div>{t("common.error_loading_farm")}</div>}>
+              <Suspense
+                fallback={
+                  <div className="h-64 flex items-center justify-center">
+                    <LoadingLogo />
+                  </div>
+                }
+              >
                 <EnsFarmTab />
-              </ErrorBoundary>
-            </TabsContent>
-          </Tabs>
+              </Suspense>
+            </ErrorBoundary>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Info Section with ENS theme */}
@@ -839,7 +932,6 @@ export const EnsBuySell = () => {
           ens.domains ↗
         </a>
       </div>
-
     </div>
   );
 };

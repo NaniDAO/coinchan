@@ -284,136 +284,142 @@ export const AddLiquidity = () => {
   }, [tokens, sellToken, buyToken]);
 
   /* helpers to sync amounts */
-  const syncFromSell = async (val: string) => {
-    // Add Liquidity mode - calculate optimal token1 amount based on pool reserves
-    setSellAmt(val);
-    if (!canSwap || !reserves) return setBuyAmt("");
+  const syncFromSell = useCallback(
+    async (val: string) => {
+      // Add Liquidity mode - calculate optimal token1 amount based on pool reserves
+      setSellAmt(val);
+      if (!canSwap || !reserves) return setBuyAmt("");
 
-    try {
-      // For add liquidity, we need to calculate the optimal ratio based on current reserves
-      // Using the ZAMM formula: amount1Optimal = (amount0Desired * reserve1) / reserve0
+      try {
+        // For add liquidity, we need to calculate the optimal ratio based on current reserves
+        // Using the ZAMM formula: amount1Optimal = (amount0Desired * reserve1) / reserve0
 
-      if (isSellETH && buyToken) {
-        // ETH → Token: Calculate optimal token amount for the given ETH amount
-        const ethAmount = parseEther(val || "0");
+        if (isSellETH && buyToken) {
+          // ETH → Token: Calculate optimal token amount for the given ETH amount
+          const ethAmount = parseEther(val || "0");
 
-        // Check for empty pool (no liquidity yet)
-        if (reserves.reserve0 === 0n || reserves.reserve1 === 0n) {
-          // For new pools, we can't calculate optimal ratio, user sets both amounts
+          // Check for empty pool (no liquidity yet)
+          if (reserves.reserve0 === 0n || reserves.reserve1 === 0n) {
+            // For new pools, we can't calculate optimal ratio, user sets both amounts
+            setBuyAmt("");
+            return;
+          }
+
+          // Calculate optimal token amount: (ethAmount * tokenReserve) / ethReserve
+          const optimalTokenAmount = (ethAmount * reserves.reserve1) / reserves.reserve0;
+
+          // Use correct decimals for the buy token (6 for USDT, 18 for others)
+          const buyTokenDecimals = buyToken?.decimals || 18;
+          const formattedAmount = formatUnits(optimalTokenAmount, buyTokenDecimals);
+
+          setBuyAmt(optimalTokenAmount === 0n ? "" : formattedAmount);
+
+          // Calculate LP tokens
+          if (ethAmount > 0n && optimalTokenAmount > 0n) {
+            calculateLpTokens(ethAmount, optimalTokenAmount);
+          }
+        } else if (!isSellETH && buyToken?.id === null) {
+          // Token → ETH: Calculate optimal ETH amount for the given token amount
+          const sellTokenDecimals = sellToken?.decimals || 18;
+          const tokenAmount = parseUnits(val || "0", sellTokenDecimals);
+
+          // Check for empty pool (no liquidity yet)
+          if (reserves.reserve0 === 0n || reserves.reserve1 === 0n) {
+            // For new pools, we can't calculate optimal ratio, user sets both amounts
+            setBuyAmt("");
+            return;
+          }
+
+          // Calculate optimal ETH amount: (tokenAmount * ethReserve) / tokenReserve
+          const optimalEthAmount = (tokenAmount * reserves.reserve0) / reserves.reserve1;
+
+          setBuyAmt(optimalEthAmount === 0n ? "" : formatEther(optimalEthAmount));
+
+          // Calculate LP tokens
+          if (tokenAmount > 0n && optimalEthAmount > 0n) {
+            calculateLpTokens(optimalEthAmount, tokenAmount);
+          }
+        } else if (isCoinToCoin && targetReserves && buyToken?.id && sellToken.id) {
+          // For coin-to-coin, this is more complex and not common for add liquidity
+          // Clear the field to let user input manually
           setBuyAmt("");
-          return;
-        }
-
-        // Calculate optimal token amount: (ethAmount * tokenReserve) / ethReserve
-        const optimalTokenAmount = (ethAmount * reserves.reserve1) / reserves.reserve0;
-
-        // Use correct decimals for the buy token (6 for USDT, 18 for others)
-        const buyTokenDecimals = buyToken?.decimals || 18;
-        const formattedAmount = formatUnits(optimalTokenAmount, buyTokenDecimals);
-
-        setBuyAmt(optimalTokenAmount === 0n ? "" : formattedAmount);
-
-        // Calculate LP tokens
-        if (ethAmount > 0n && optimalTokenAmount > 0n) {
-          calculateLpTokens(ethAmount, optimalTokenAmount);
-        }
-      } else if (!isSellETH && buyToken?.id === null) {
-        // Token → ETH: Calculate optimal ETH amount for the given token amount
-        const sellTokenDecimals = sellToken?.decimals || 18;
-        const tokenAmount = parseUnits(val || "0", sellTokenDecimals);
-
-        // Check for empty pool (no liquidity yet)
-        if (reserves.reserve0 === 0n || reserves.reserve1 === 0n) {
-          // For new pools, we can't calculate optimal ratio, user sets both amounts
+        } else {
+          // Fallback: clear the buy amount for edge cases
           setBuyAmt("");
-          return;
         }
-
-        // Calculate optimal ETH amount: (tokenAmount * ethReserve) / tokenReserve
-        const optimalEthAmount = (tokenAmount * reserves.reserve0) / reserves.reserve1;
-
-        setBuyAmt(optimalEthAmount === 0n ? "" : formatEther(optimalEthAmount));
-
-        // Calculate LP tokens
-        if (tokenAmount > 0n && optimalEthAmount > 0n) {
-          calculateLpTokens(optimalEthAmount, tokenAmount);
-        }
-      } else if (isCoinToCoin && targetReserves && buyToken?.id && sellToken.id) {
-        // For coin-to-coin, this is more complex and not common for add liquidity
-        // Clear the field to let user input manually
-        setBuyAmt("");
-      } else {
-        // Fallback: clear the buy amount for edge cases
+      } catch (err) {
         setBuyAmt("");
       }
-    } catch (err) {
-      setBuyAmt("");
-    }
-  };
+    },
+    [canSwap, reserves, isSellETH, buyToken, sellToken, publicClient, calculateLpTokens],
+  );
 
-  const syncFromBuy = async (val: string) => {
-    setBuyAmt(val);
-    if (!canSwap || !reserves) return setSellAmt("");
+  const syncFromBuy = useCallback(
+    async (val: string) => {
+      setBuyAmt(val);
+      if (!canSwap || !reserves) return setSellAmt("");
 
-    try {
-      // For add liquidity, calculate optimal token0 amount based on pool reserves
-      // Using the reverse ZAMM formula: amount0Optimal = (amount1Desired * reserve0) / reserve1
+      try {
+        // For add liquidity, calculate optimal token0 amount based on pool reserves
+        // Using the reverse ZAMM formula: amount0Optimal = (amount1Desired * reserve0) / reserve1
 
-      if (isSellETH && buyToken) {
-        // User input token amount, calculate optimal ETH amount
-        const buyTokenDecimals = buyToken?.decimals || 18;
-        const tokenAmount = parseUnits(val || "0", buyTokenDecimals);
+        if (isSellETH && buyToken) {
+          // User input token amount, calculate optimal ETH amount
+          const buyTokenDecimals = buyToken?.decimals || 18;
+          const tokenAmount = parseUnits(val || "0", buyTokenDecimals);
 
-        // Check for empty pool (no liquidity yet)
-        if (reserves.reserve0 === 0n || reserves.reserve1 === 0n) {
-          // For new pools, we can't calculate optimal ratio, user sets both amounts
+          // Check for empty pool (no liquidity yet)
+          if (reserves.reserve0 === 0n || reserves.reserve1 === 0n) {
+            // For new pools, we can't calculate optimal ratio, user sets both amounts
+            setSellAmt("");
+            return;
+          }
+
+          // Calculate optimal ETH amount: (tokenAmount * ethReserve) / tokenReserve
+          const optimalEthAmount = (tokenAmount * reserves.reserve0) / reserves.reserve1;
+
+          setSellAmt(optimalEthAmount === 0n ? "" : formatEther(optimalEthAmount));
+
+          // Calculate LP tokens
+          if (optimalEthAmount > 0n && tokenAmount > 0n) {
+            calculateLpTokens(optimalEthAmount, tokenAmount);
+          }
+        } else if (!isSellETH && buyToken?.id === null) {
+          // User input ETH amount, calculate optimal token amount
+          const ethAmount = parseEther(val || "0");
+
+          // Check for empty pool (no liquidity yet)
+          if (reserves.reserve0 === 0n || reserves.reserve1 === 0n) {
+            // For new pools, we can't calculate optimal ratio, user sets both amounts
+            setSellAmt("");
+            return;
+          }
+
+          // Calculate optimal token amount: (ethAmount * tokenReserve) / ethReserve
+          const optimalTokenAmount = (ethAmount * reserves.reserve1) / reserves.reserve0;
+
+          // Use correct decimals for the sell token
+          const sellTokenDecimals = sellToken?.decimals || 18;
+          setSellAmt(optimalTokenAmount === 0n ? "" : formatUnits(optimalTokenAmount, sellTokenDecimals));
+
+          // Calculate LP tokens
+          if (ethAmount > 0n && optimalTokenAmount > 0n) {
+            calculateLpTokens(ethAmount, optimalTokenAmount);
+          }
+        } else if (isCoinToCoin) {
+          // For coin-to-coin add liquidity, this is complex and not common
+          // Clear the field to let user input manually
           setSellAmt("");
-          return;
-        }
-
-        // Calculate optimal ETH amount: (tokenAmount * ethReserve) / tokenReserve
-        const optimalEthAmount = (tokenAmount * reserves.reserve0) / reserves.reserve1;
-
-        setSellAmt(optimalEthAmount === 0n ? "" : formatEther(optimalEthAmount));
-
-        // Calculate LP tokens
-        if (optimalEthAmount > 0n && tokenAmount > 0n) {
-          calculateLpTokens(optimalEthAmount, tokenAmount);
-        }
-      } else if (!isSellETH && buyToken?.id === null) {
-        // User input ETH amount, calculate optimal token amount
-        const ethAmount = parseEther(val || "0");
-
-        // Check for empty pool (no liquidity yet)
-        if (reserves.reserve0 === 0n || reserves.reserve1 === 0n) {
-          // For new pools, we can't calculate optimal ratio, user sets both amounts
+        } else {
+          // Fallback: clear the sell amount for edge cases
           setSellAmt("");
-          return;
         }
-
-        // Calculate optimal token amount: (ethAmount * tokenReserve) / ethReserve
-        const optimalTokenAmount = (ethAmount * reserves.reserve1) / reserves.reserve0;
-
-        // Use correct decimals for the sell token
-        const sellTokenDecimals = sellToken?.decimals || 18;
-        setSellAmt(optimalTokenAmount === 0n ? "" : formatUnits(optimalTokenAmount, sellTokenDecimals));
-
-        // Calculate LP tokens
-        if (ethAmount > 0n && optimalTokenAmount > 0n) {
-          calculateLpTokens(ethAmount, optimalTokenAmount);
-        }
-      } else if (isCoinToCoin) {
-        // For coin-to-coin add liquidity, this is complex and not common
-        // Clear the field to let user input manually
-        setSellAmt("");
-      } else {
-        // Fallback: clear the sell amount for edge cases
+      } catch (err) {
         setSellAmt("");
       }
-    } catch (err) {
-      setSellAmt("");
-    }
-  };
+    },
+    [canSwap, reserves, isSellETH, buyToken, sellToken, calculateLpTokens],
+  );
 
   const handleBuyTokenSelect = useCallback(
     (token: TokenMeta) => {

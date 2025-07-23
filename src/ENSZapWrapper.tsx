@@ -69,7 +69,10 @@ export const ENSZapWrapper = () => {
               v3Tokens = (((halfEthAmount * 10n ** 18n) / ensPriceInETH) * 997n) / 1000n;
             }
           }
-        } catch {}
+        } catch (error) {
+          console.error("Failed to fetch ENS price from oracle:", error);
+          // Continue with fallback calculation
+        }
 
         // Get direct pool output
         let directTokens = 0n;
@@ -80,12 +83,23 @@ export const ENSZapWrapper = () => {
         setV3Output(v3Tokens);
         setDirectOutput(directTokens);
 
-        // Calculate percentage difference
+        // Calculate percentage difference with safety checks
         if (v3Tokens > 0n && directTokens > 0n) {
-          const larger = v3Tokens > directTokens ? v3Tokens : directTokens;
-          const smaller = v3Tokens > directTokens ? directTokens : v3Tokens;
-          const diff = ((larger - smaller) * 10000n) / smaller;
-          setPercentDiff(Number(diff) / 100);
+          try {
+            const larger = v3Tokens > directTokens ? v3Tokens : directTokens;
+            const smaller = v3Tokens > directTokens ? directTokens : v3Tokens;
+            if (smaller > 0n) {
+              const diff = ((larger - smaller) * 10000n) / smaller;
+              const percentValue = Number(diff) / 100;
+              // Cap at 999% to prevent display issues
+              setPercentDiff(Math.min(percentValue, 999));
+            } else {
+              setPercentDiff(0);
+            }
+          } catch (error) {
+            console.error("Error calculating percentage difference:", error);
+            setPercentDiff(0);
+          }
         } else {
           setPercentDiff(0);
         }
@@ -94,12 +108,19 @@ export const ENSZapWrapper = () => {
         const newBestRoute = v3Tokens > directTokens ? "v3" : "direct";
         setBestRoute(newBestRoute);
 
-        // Auto-select if in auto mode
+        // Auto-select if in auto mode with fallback
         if (autoMode) {
-          setSelectedRoute(newBestRoute);
+          // Only switch if we have valid outputs
+          if (v3Tokens > 0n || directTokens > 0n) {
+            setSelectedRoute(newBestRoute);
+          }
         }
       } catch (err) {
         console.error(t("ens.error_determining_route"), err);
+        // Reset to safe defaults on error
+        setV3Output(0n);
+        setDirectOutput(0n);
+        setPercentDiff(0);
       }
     }, 300); // 300ms debounce
 
@@ -121,7 +142,9 @@ export const ENSZapWrapper = () => {
               {selectedRoute === "v3" ? t("ens.uniswap_v3_route") : t("ens.direct_pool_route")}
             </span>
             {autoMode && bestRoute === selectedRoute && percentDiff > 1 && (
-              <span className="text-xs text-[#0080BC] font-medium">{t("ens.percent_better", { percent: percentDiff.toFixed(1) })}</span>
+              <span className="text-xs text-[#0080BC] font-medium">
+                {t("ens.percent_better", { percent: percentDiff.toFixed(1) })}
+              </span>
             )}
           </div>
 

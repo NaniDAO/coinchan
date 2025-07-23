@@ -301,14 +301,16 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                 ) : null}
                 <div>
                   <h3 className="font-mono font-bold text-lg text-primary break-all">
-                    {BigInt(stream.lpId) === ENS_POOL_ID ? "ENS" : lpToken?.symbol ||
-                      (() => {
-                        const lpId = stream.lpId?.toString();
-                        // LP IDs are always full uint, truncate for UI
-                        return lpId && lpId.length > 12
-                          ? `Pool ${lpId.slice(0, 6)}...${lpId.slice(-6)}`
-                          : `Pool ${lpId}`;
-                      })()}
+                    {BigInt(stream.lpId) === ENS_POOL_ID
+                      ? "ENS"
+                      : lpToken?.symbol ||
+                        (() => {
+                          const lpId = stream.lpId?.toString();
+                          // LP IDs are always full uint, truncate for UI
+                          return lpId && lpId.length > 12
+                            ? `Pool ${lpId.slice(0, 6)}...${lpId.slice(-6)}`
+                            : `Pool ${lpId}`;
+                        })()}
                   </h3>
                   <p className="text-xs text-muted-foreground font-mono">{t("common.lp_token_pool")}</p>
                 </div>
@@ -343,7 +345,10 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                     {BigInt(stream.lpId) === ENS_POOL_ID ? "ENS" : lpToken.symbol} {t("common.reserves")}
                   </p>
                   <p className="font-mono font-bold text-primary">
-                    {formatBalance(formatUnits(lpToken.reserve1, lpToken.decimals || 18), BigInt(stream.lpId) === ENS_POOL_ID ? "ENS" : lpToken.symbol)}
+                    {formatBalance(
+                      formatUnits(lpToken.reserve1, lpToken.decimals || 18),
+                      BigInt(stream.lpId) === ENS_POOL_ID ? "ENS" : lpToken.symbol,
+                    )}
                   </p>
                 </div>
               ) : null}

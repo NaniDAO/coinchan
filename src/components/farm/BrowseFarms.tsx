@@ -151,22 +151,23 @@ export const BrowseFarms = () => {
         <div className="farm-cards-container grid gap-4 sm:gap-5 grid-cols-1 lg:grid-cols-2">
           {sortedStreams?.map((stream) => {
             // Special handling for ENS farms - always use ENS token with correct poolId and fresh reserves
-            const lpToken = BigInt(stream.lpId) === ENS_POOL_ID 
-              ? { 
-                  ...(tokens.find((t) => t.symbol === "ENS") || {}), 
-                  poolId: ENS_POOL_ID, 
-                  source: "COOKBOOK" as const,
-                  reserve0: ensReserves?.reserve0 || 0n,
-                  reserve1: ensReserves?.reserve1 || 0n,
-                  liquidity: ensReserves?.reserve0 || 0n,
-                } as TokenMeta
-              : tokens.find((t) => {
-                  // Direct pool ID match
-                  if (t.poolId === BigInt(stream.lpId)) return true;
-                  // Special handling for CULT tokens - check if lpId matches CULT_POOL_ID
-                  if (t.symbol === "CULT" && BigInt(stream.lpId) === t.poolId) return true;
-                  return false;
-                });
+            const lpToken =
+              BigInt(stream.lpId) === ENS_POOL_ID
+                ? ({
+                    ...(tokens.find((t) => t.symbol === "ENS") || {}),
+                    poolId: ENS_POOL_ID,
+                    source: "COOKBOOK" as const,
+                    reserve0: ensReserves?.reserve0 || 0n,
+                    reserve1: ensReserves?.reserve1 || 0n,
+                    liquidity: ensReserves?.reserve0 || 0n,
+                  } as TokenMeta)
+                : tokens.find((t) => {
+                    // Direct pool ID match
+                    if (t.poolId === BigInt(stream.lpId)) return true;
+                    // Special handling for CULT tokens - check if lpId matches CULT_POOL_ID
+                    if (t.symbol === "CULT" && BigInt(stream.lpId) === t.poolId) return true;
+                    return false;
+                  });
 
             // If lpToken is not found and tokens are not loading, show error
             // Otherwise, use ETH_TOKEN as fallback during loading

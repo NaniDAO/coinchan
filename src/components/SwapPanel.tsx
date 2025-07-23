@@ -1,7 +1,7 @@
 import type { TokenMeta } from "@/lib/coins";
 import { cn, formatNumber } from "@/lib/utils";
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, memo, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
 import { TokenSelector } from "./TokenSelector";
@@ -142,26 +142,7 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
       </div>
 
       {/* USD Value Display */}
-      {ethPrice?.priceUSD && amount && parseFloat(amount) > 0 && (
-        <div className="text-xs text-muted-foreground text-right pr-1 -mt-1">
-          ≈ ${(() => {
-            const numAmount = parseFloat(amount);
-            let usdValue = 0;
-            if (selectedToken.id === null) {
-              // ETH
-              usdValue = numAmount * ethPrice.priceUSD;
-            } else if (selectedToken.reserve0 && selectedToken.reserve1) {
-              // Other tokens with reserves
-              const ethReserve = parseFloat(formatEther(selectedToken.reserve0));
-              const tokenReserve = parseFloat(formatUnits(selectedToken.reserve1, selectedToken.decimals || 18));
-              const tokenPriceInEth = ethReserve / tokenReserve;
-              const tokenPriceUsd = tokenPriceInEth * ethPrice.priceUSD;
-              usdValue = numAmount * tokenPriceUsd;
-            }
-            return formatNumber(usdValue, 2);
-          })()} USD
-        </div>
-      )}
+      <UsdValueDisplay ethPrice={ethPrice} amount={amount} selectedToken={selectedToken} />
 
       {showPercentageSlider && selectedToken.balance && selectedToken.balance > 0n ? (
         <div className="mt-2 pt-2 border-t border-terminal-black dark:border-terminal-white/20">
@@ -175,3 +156,41 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
     </div>
   );
 };
+
+// Memoized USD value display to prevent recalculation on every render
+const UsdValueDisplay = memo(
+  ({
+    ethPrice,
+    amount,
+    selectedToken,
+  }: {
+    ethPrice?: { priceUSD: number };
+    amount: string;
+    selectedToken: TokenMeta;
+  }) => {
+    const usdValue = useMemo(() => {
+      if (!ethPrice?.priceUSD || !amount || parseFloat(amount) <= 0) return null;
+
+      const numAmount = parseFloat(amount);
+      let value = 0;
+
+      if (selectedToken.id === null) {
+        // ETH
+        value = numAmount * ethPrice.priceUSD;
+      } else if (selectedToken.reserve0 && selectedToken.reserve1) {
+        // Other tokens with reserves
+        const ethReserve = parseFloat(formatEther(selectedToken.reserve0));
+        const tokenReserve = parseFloat(formatUnits(selectedToken.reserve1, selectedToken.decimals || 18));
+        const tokenPriceInEth = ethReserve / tokenReserve;
+        const tokenPriceUsd = tokenPriceInEth * ethPrice.priceUSD;
+        value = numAmount * tokenPriceUsd;
+      }
+
+      return value > 0 ? formatNumber(value, 2) : null;
+    }, [ethPrice, amount, selectedToken]);
+
+    if (!usdValue) return null;
+
+    return <div className="text-xs text-muted-foreground text-right pr-1 -mt-1">≈ ${usdValue} USD</div>;
+  },
+);

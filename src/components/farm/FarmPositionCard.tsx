@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { formatEther } from "viem";
 import { useETHPrice } from "@/hooks/use-eth-price";
 import { useReserves } from "@/hooks/use-reserves";
+import { memo } from "react";
 
 // Hardcoded ZAMM pool ID for price calculations
 const ZAMM_POOL_ID = 22979666169544372205220120853398704213623237650449182409187385558845249460832n;
@@ -22,7 +23,13 @@ interface FarmPositionCardProps {
   isHarvesting: boolean;
 }
 
-export function FarmPositionCard({ position, stream, lpToken, onHarvest, isHarvesting }: FarmPositionCardProps) {
+export const FarmPositionCard = memo(function FarmPositionCard({
+  position,
+  stream,
+  lpToken,
+  onHarvest,
+  isHarvesting,
+}: FarmPositionCardProps) {
   const { t } = useTranslation();
   const { data: ethPrice } = useETHPrice();
 
@@ -40,13 +47,17 @@ export function FarmPositionCard({ position, stream, lpToken, onHarvest, isHarve
     poolId: isZAMMReward ? ZAMM_POOL_ID : undefined,
     source: "ZAMM",
   });
+  // Determine if this is an expired farm
+  const currentTime = BigInt(Math.floor(Date.now() / 1000));
+  const isExpired = stream.endTime <= currentTime;
 
-  // Don't show card if user has no shares
-  if (!actualUserShares || actualUserShares === 0n) {
-    return null;
-  }
   return (
-    <div className="bg-card text-card-foreground border-2 border-border transition-all h group relative overflow-hidden">
+    <div className="bg-card text-card-foreground border-2 border-border transition-all h-full group relative overflow-hidden">
+      {isExpired && (
+        <div className="absolute top-2 right-2 z-10 px-2 py-1 bg-yellow-600/90 text-white text-xs font-mono uppercase">
+          [{t("common.expired")}]
+        </div>
+      )}
       <IncentiveStreamCard stream={stream} lpToken={lpToken || ETH_TOKEN} />
       <div className="p-4 sm:p-6">
         {/* Staked Amount Display */}
@@ -145,4 +156,4 @@ export function FarmPositionCard({ position, stream, lpToken, onHarvest, isHarve
       </div>
     </div>
   );
-}
+});
