@@ -83,11 +83,11 @@ export function EnsFarmTab() {
   const { address } = useAccount();
   const publicClient = usePublicClient();
   const [lpBalance, setLpBalance] = useState(0n);
-  
+
   useEffect(() => {
     const fetchLpBalance = async () => {
       if (!address || !publicClient) return;
-      
+
       try {
         // Read directly from Cookbook contract for ENS pool
         const balance = (await publicClient.readContract({
@@ -96,14 +96,14 @@ export function EnsFarmTab() {
           functionName: "balanceOf",
           args: [address, ENS_POOL_ID],
         })) as bigint;
-        
+
         setLpBalance(balance);
       } catch (err) {
         console.error("Failed to fetch ENS LP balance:", err);
         setLpBalance(0n);
       }
     };
-    
+
     fetchLpBalance();
   }, [userAddress, publicClient]);
 
@@ -221,16 +221,16 @@ function EnsFarmCard({ farm, lpToken, onHarvest, isHarvesting, ethPrice }: EnsFa
   const { data: poolData } = useZChefPool(farm.chefId);
   const { data: userBalance } = useZChefUserBalance(farm.chefId);
   const { data: pendingRewards, isLoading: isLoadingRewards } = useZChefPendingReward(farm.chefId);
-  
+
   // Get LP balance directly from Cookbook for ENS
   const { address: connectedAddress } = useAccount();
   const publicClientCard = usePublicClient();
   const [userLpBalance, setUserLpBalance] = useState(0n);
-  
+
   useEffect(() => {
     const fetchLpBalance = async () => {
       if (!connectedAddress || !publicClientCard) return;
-      
+
       try {
         // Always use ENS_POOL_ID for ENS farms
         const balance = (await publicClientCard.readContract({
@@ -239,17 +239,17 @@ function EnsFarmCard({ farm, lpToken, onHarvest, isHarvesting, ethPrice }: EnsFa
           functionName: "balanceOf",
           args: [connectedAddress, ENS_POOL_ID],
         })) as bigint;
-        
+
         setUserLpBalance(balance);
       } catch (err) {
         console.error("Failed to fetch ENS LP balance in card:", err);
         setUserLpBalance(0n);
       }
     };
-    
+
     fetchLpBalance();
   }, [connectedAddress, publicClientCard]);
-  
+
   // Get combined APR data to show base and farm APR separately
   const { baseApr, farmApr } = useCombinedApr({
     stream: farm,
@@ -361,9 +361,7 @@ function EnsFarmCard({ farm, lpToken, onHarvest, isHarvesting, ethPrice }: EnsFa
             <p className="text-xs text-muted-foreground font-mono">{t("common.apr")}</p>
             <div className="text-sm font-mono font-bold">
               <span className="text-primary">Base APR {baseApr.toFixed(1)}%</span>
-              {farmApr > 0 && (
-                <span className="text-green-600"> + Farm APR {farmApr.toFixed(1)}%</span>
-              )}
+              {farmApr > 0 && <span className="text-green-600"> + Farm APR {farmApr.toFixed(1)}%</span>}
             </div>
           </div>
         </div>

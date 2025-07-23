@@ -60,7 +60,9 @@ export function useLpBalance({ lpToken, poolId: providedPoolId, enabled = true }
         // CULT and ENS tokens should always use Cookbook
         const isENS = lpToken.symbol === "ENS";
         const isCookbook =
-          lpToken.symbol === "CULT" || isENS || (lpToken.isCustomPool ? false : lpToken.id ? isCookbookCoin(lpToken.id) : false);
+          lpToken.symbol === "CULT" ||
+          isENS ||
+          (lpToken.isCustomPool ? false : lpToken.id ? isCookbookCoin(lpToken.id) : false);
         const targetZAMMAddress = isCookbook ? CookbookAddress : ZAMMAddress;
         const targetZAMMAbi = isCookbook ? CookbookAbi : ZAMMAbi;
 

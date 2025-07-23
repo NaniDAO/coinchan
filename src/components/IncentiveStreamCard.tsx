@@ -45,8 +45,8 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
     // Format with 4 decimal places, then remove only trailing zeros after decimal point
     let formatted = num.toFixed(4);
     // Remove trailing zeros after decimal point, but keep at least 2 decimal places
-    if (formatted.includes('.')) {
-      formatted = formatted.replace(/(\.\d{2})\d*?0+$/, '$1').replace(/\.00$/, '.00');
+    if (formatted.includes(".")) {
+      formatted = formatted.replace(/(\.\d{2})\d*?0+$/, "$1").replace(/\.00$/, ".00");
     }
     return includeUnit ? `${formatted} LP` : formatted;
   };

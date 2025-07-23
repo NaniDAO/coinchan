@@ -358,12 +358,19 @@ export const SingleEthLiquidity = () => {
 
       // Make sure buyToken.id is properly processed as a BigInt
       // This ensures both searched and manually selected tokens work the same
-      const targetTokenId =
-        typeof buyToken.id === "bigint"
-          ? buyToken.id
-          : buyToken.id !== null && buyToken.id !== undefined
-            ? BigInt(String(buyToken.id))
-            : 0n; // Fallback to 0n if ID is null/undefined (shouldn't happen based on validation)
+      let targetTokenId: bigint;
+      try {
+        targetTokenId =
+          typeof buyToken.id === "bigint"
+            ? buyToken.id
+            : buyToken.id !== null && buyToken.id !== undefined
+              ? BigInt(String(buyToken.id))
+              : 0n;
+      } catch (error) {
+        console.error("Failed to convert token ID to BigInt:", error);
+        setTxError(t("errors.invalid_token_id"));
+        return;
+      }
 
       // Get correct swap fee for the token (30bps for USDT, default 100bps for regular tokens)
       const swapFee = buyToken.swapFee ?? SWAP_FEE;
@@ -633,7 +640,7 @@ export const SingleEthLiquidity = () => {
           <li>{t("pool.provide_only_eth")}</li>
           <li>{t("pool.half_eth_swapped")}</li>
           <li>{t("pool.remaining_eth_added")}</li>
-          <li>{t("pool.earn_fees_from_trades", { fee: Number(SWAP_FEE) / 100 })}</li>
+          <li>{t("pool.earn_fees_from_trades", { fee: Number(buyToken?.swapFee ?? SWAP_FEE) / 100 })}</li>
           {buyToken && buyToken.symbol === "CULT" && (
             <>
               <li className="text-primary">Using CULT-optimized LP-ZAP contract</li>

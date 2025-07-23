@@ -86,7 +86,7 @@ export const ENSUniswapV3Zap = () => {
       try {
         // Fetch ETH balance of the zap contract
         const balance = await publicClient.getBalance({
-          address: ENSZapAddress
+          address: ENSZapAddress,
         });
         setZapContractBalance(balance);
 
@@ -305,28 +305,29 @@ export const ENSUniswapV3Zap = () => {
 
       // Simply send ETH directly to the ENS Zap contract
       // The contract will handle the zap internally via its receive/fallback function
-      
+
       // First, estimate gas for the transaction
       let gasEstimate = 300000n; // Default fallback
       try {
-        gasEstimate = await publicClient?.estimateGas({
-          account: address,
-          to: ENSZapAddress,
-          value: ethAmount,
-        }) || 300000n;
+        gasEstimate =
+          (await publicClient?.estimateGas({
+            account: address,
+            to: ENSZapAddress,
+            value: ethAmount,
+          })) || 300000n;
       } catch (e) {
         console.warn("Gas estimation failed, using default", e);
       }
-      
+
       // Add 20% buffer to the estimate for safety
       // This ensures complex operations (swap + add liquidity) have enough gas
       // Unused gas is automatically refunded
       const gasLimit = (gasEstimate * 120n) / 100n;
-      
+
       const hash = await sendTransactionAsync({
         to: ENSZapAddress,
         value: ethAmount, // Send the full ETH amount
-        gas: gasLimit, // Use estimated gas + 20% buffer
+        gas: gasLimit < 500000n ? 500000n : gasLimit, // Use estimated gas + 20% buffer with minimum
       });
 
       setTxHash(hash);
@@ -389,8 +390,28 @@ export const ENSUniswapV3Zap = () => {
 
       <NetworkError message={t("pool.manage_liquidity")} />
 
-      {/* Slippage */}
-      <SlippageSettings setSlippageBps={setSingleEthSlippageBps} slippageBps={singleEthSlippageBps} />
+      {/* Oracle Sync Status */}
+      <div className="mt-2 p-3 bg-[#0080BC]/5 border border-[#0080BC]/20 rounded-lg">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">{t("ens.oracle_sync")}:</span>
+          <div className="flex items-center gap-1">
+            {oracleInSync === null ? (
+              <span className="text-sm text-muted-foreground">{t("common.loading")}</span>
+            ) : oracleInSync ? (
+              <>
+                <CheckIcon className="h-3 w-3 text-green-500" />
+                <span className="text-sm text-green-500">{t("ens.in_sync")}</span>
+              </>
+            ) : (
+              <>
+                <X className="h-3 w-3 text-red-500" />
+                <span className="text-sm text-red-500">{t("ens.out_of_sync")}</span>
+              </>
+            )}
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground mt-1">{t("ens.oracle_slippage_guard", { percentage: 6 })}</p>
+      </div>
 
       {/* LP Tokens and Pool Share Estimation */}
       {estimatedLpTokens && estimatedPoolShare && (
@@ -428,31 +449,19 @@ export const ENSUniswapV3Zap = () => {
           <li className="text-[#0080BC]">{t("ens.half_eth_swapped_v3")}</li>
           <li>{t("ens.remaining_eth_added_to_cookbook_pool")}</li>
           <li className="text-green-600 dark:text-green-400">{t("ens.gas_savings_direct_eth")}</li>
-          <li>{t("ens.eth_sent_to")} <a href="https://app.ens.domains/ens.zamm.eth" target="_blank" rel="noopener noreferrer" className="text-[#0080BC] hover:underline">ens.zamm.eth</a></li>
-          <li>{t("pool.earn_fees_from_trades", { fee: 0.3 })}</li>
-          <li className="text-[#0080BC]">{t("ens.default_slippage_10")}</li>
-          <li className="text-xs opacity-75">{t("ens.dust_refund_note_v3")}</li>
-          <li className="flex items-center gap-1">
-            <span title={t("ens.oracle_sync_tooltip")}>{t("ens.oracle_sync_status")}:</span>
-            {oracleInSync === null ? (
-              <span className="text-muted-foreground">{t("common.loading")}</span>
-            ) : oracleInSync ? (
-              <>
-                <CheckIcon className="h-3 w-3 text-green-500" />
-                <span className="text-green-500">{t("ens.oracle_in_sync")}</span>
-              </>
-            ) : (
-              <>
-                <X className="h-3 w-3 text-red-500" />
-                <span className="text-red-500">{t("ens.oracle_out_of_sync")}</span>
-                {zapContractBalance > 0n && ensPriceFromOracle > 0n && (
-                  <span className="text-[10px] text-muted-foreground ml-1">
-                    ({formatEther(zapContractBalance).slice(0, 8)} vs {formatEther(ensPriceFromOracle).slice(0, 8)} ETH)
-                  </span>
-                )}
-              </>
-            )}
+          <li>
+            {t("ens.eth_sent_to")}{" "}
+            <a
+              href="https://app.ens.domains/ens.zamm.eth"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#0080BC] hover:underline"
+            >
+              ens.zamm.eth
+            </a>
           </li>
+          <li>{t("pool.earn_fees_from_trades", { fee: 0.3 })}</li>
+          <li className="text-xs opacity-75">{t("ens.dust_refund_note_v3")}</li>
         </ul>
       </div>
 
