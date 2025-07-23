@@ -34,6 +34,12 @@ export function EnsFarmTab() {
   // Get all coins including ENS with updated reserves
   const { tokens } = useAllCoins();
 
+  // Get fresh reserves for ENS pool
+  const { data: ensReserves } = useReserves({
+    poolId: ENS_POOL_ID,
+    source: "COOKBOOK",
+  });
+
   // Get the ENS token with real reserves from the tokens list
   const ensTokenWithReserves = useMemo(() => {
     const ensToken = tokens.find((t) => t.symbol === "ENS") || ENS_TOKEN;
@@ -42,8 +48,11 @@ export function EnsFarmTab() {
       ...ensToken,
       poolId: ENS_POOL_ID,
       source: "COOKBOOK" as const,
+      reserve0: ensReserves?.reserve0 || ensToken.reserve0,
+      reserve1: ensReserves?.reserve1 || ensToken.reserve1,
+      liquidity: ensReserves?.reserve0 || ensToken.liquidity,
     };
-  }, [tokens]);
+  }, [tokens, ensReserves]);
 
   // Get all active streams
   const { data: allStreams, isLoading: isLoadingStreams, error: streamsError } = useActiveIncentiveStreams();

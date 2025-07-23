@@ -13,7 +13,7 @@ import { useStreamValidation } from "@/hooks/use-stream-validation";
 import { useZapCalculations } from "@/hooks/use-zap-calculations";
 import { useZapDeposit } from "@/hooks/use-zap-deposit";
 import { useZChefActions, useZChefUserBalance, useZChefPool } from "@/hooks/use-zchef-contract";
-import { ETH_TOKEN, type TokenMeta } from "@/lib/coins";
+import { ETH_TOKEN, ENS_POOL_ID, type TokenMeta } from "@/lib/coins";
 import { isUserRejectionError } from "@/lib/errors";
 import { SINGLE_ETH_SLIPPAGE_BPS } from "@/lib/swap";
 import { cn, formatBalance } from "@/lib/utils";
@@ -26,6 +26,7 @@ import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
 import { mainnet } from "viem/chains";
 import { APRDisplay } from "./farm/APRDisplay";
 import { useLpOperatorStatus } from "@/hooks/use-lp-operator-status";
+import { ENSLogo } from "./icons/ENSLogo";
 
 interface FarmStakeDialogProps {
   stream: IncentiveStream;
@@ -283,7 +284,12 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
           <div className="border border-primary/30 rounded-lg p-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
-                {lpToken?.imageUrl && (
+                {BigInt(stream.lpId) === ENS_POOL_ID ? (
+                  <div className="relative">
+                    <ENSLogo className="w-8 h-8" />
+                    <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-primary/30 to-transparent opacity-50 blur-sm"></div>
+                  </div>
+                ) : lpToken?.imageUrl ? (
                   <div className="relative">
                     <img
                       src={formatImageURL(lpToken.imageUrl)}
@@ -292,10 +298,10 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                     />
                     <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-primary/30 to-transparent opacity-50 blur-sm"></div>
                   </div>
-                )}
+                ) : null}
                 <div>
                   <h3 className="font-mono font-bold text-lg text-primary break-all">
-                    {lpToken?.symbol ||
+                    {BigInt(stream.lpId) === ENS_POOL_ID ? "ENS" : lpToken?.symbol ||
                       (() => {
                         const lpId = stream.lpId?.toString();
                         // LP IDs are always full uint, truncate for UI
@@ -334,10 +340,10 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
               {lpToken && lpToken.reserve1 ? (
                 <div className="bg-background/30 border border-primary/20 rounded p-3">
                   <p className="text-muted-foreground font-mono text-xs">
-                    {lpToken.symbol} {t("common.reserves")}
+                    {BigInt(stream.lpId) === ENS_POOL_ID ? "ENS" : lpToken.symbol} {t("common.reserves")}
                   </p>
                   <p className="font-mono font-bold text-primary">
-                    {formatBalance(formatUnits(lpToken.reserve1, lpToken.decimals || 18), lpToken.symbol)}
+                    {formatBalance(formatUnits(lpToken.reserve1, lpToken.decimals || 18), BigInt(stream.lpId) === ENS_POOL_ID ? "ENS" : lpToken.symbol)}
                   </p>
                 </div>
               ) : null}
