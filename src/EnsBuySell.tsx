@@ -30,6 +30,7 @@ import { EnsFarmTab } from "./components/farm/EnsFarmTab";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { useActiveIncentiveStreams } from "./hooks/use-incentive-streams";
 import { useCombinedApr } from "./hooks/use-combined-apr";
+import { usePoolApy } from "./hooks/use-pool-apy";
 
 export const EnsBuySell = () => {
   const { t } = useTranslation();
@@ -84,6 +85,9 @@ export const EnsBuySell = () => {
     // Look for farms incentivizing the ENS pool
     return allStreams.find((stream) => BigInt(stream.lpId) === ENS_POOL_ID);
   }, [allStreams]);
+  
+  // Get base APR for the pool
+  const { data: poolApr } = usePoolApy(ENS_POOL_ID.toString());
   
   // Get combined APR - always call the hook but disable it when no farm exists
   const { farmApr = 0 } = useCombinedApr({
@@ -511,9 +515,10 @@ export const EnsBuySell = () => {
                       <span className="flex items-center gap-1">
                         <Zap className="h-3 w-3" />
                         <span className="font-medium">{t("ens.zap_lp")}</span>
-                        {farmApr > 0 && (
+                        {(poolApr || farmApr > 0) && (
                           <span className="text-[#0080BC] font-semibold">
-                            {farmApr.toFixed(1)}% farm APR
+                            {poolApr && `Base APR ${Number(poolApr.slice(0, -1)).toFixed(1)}%`}
+                            {farmApr > 0 && ` + Farm APR ${farmApr.toFixed(1)}%`}
                           </span>
                         )}
                       </span>

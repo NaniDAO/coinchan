@@ -8,19 +8,19 @@ import { formatImageURL } from "@/hooks/metadata";
 import { useActiveIncentiveStreams } from "@/hooks/use-incentive-streams";
 import { useZChefUserBalance, useZChefPendingReward, useZChefActions, useZChefPool } from "@/hooks/use-zchef-contract";
 import { useLpBalance } from "@/hooks/use-lp-balance";
-import { APRDisplay } from "@/components/farm/APRDisplay";
 import { FarmStakeDialog } from "@/components/FarmStakeDialog";
 import { FarmUnstakeDialog } from "@/components/FarmUnstakeDialog";
 import { isUserRejectionError } from "@/lib/errors";
 import { ENS_TOKEN, ENS_POOL_ID, type TokenMeta } from "@/lib/coins";
 import { cn, formatBalance, formatNumber } from "@/lib/utils";
+import { useCombinedApr } from "@/hooks/use-combined-apr";
 import type { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { useAllCoins } from "@/hooks/metadata/use-all-coins";
 import { useETHPrice } from "@/hooks/use-eth-price";
 import { useReserves } from "@/hooks/use-reserves";
 import { ENSLogo } from "@/components/icons/ENSLogo";
 
-// Hardcoded ENS farm chef ID
+// ENS farm chef ID from the user's specification
 const ENS_FARM_CHEF_ID = 9911777932062439318891919186675338016828468353880863972728110112967458165574n;
 
 // Hardcoded ZAMM pool ID for price calculations
@@ -37,7 +37,13 @@ export function EnsFarmTab() {
 
   // Get the ENS token with real reserves from the tokens list
   const ensTokenWithReserves = useMemo(() => {
-    return tokens.find((t) => t.symbol === "ENS") || ENS_TOKEN;
+    const ensToken = tokens.find((t) => t.symbol === "ENS") || ENS_TOKEN;
+    // Ensure the token has the correct pool ID and source for LP balance fetching
+    return {
+      ...ensToken,
+      poolId: ENS_POOL_ID,
+      source: "COOKBOOK" as const,
+    };
   }, [tokens]);
 
   // Get all active streams
@@ -65,7 +71,7 @@ export function EnsFarmTab() {
     }
   }, [allStreams]);
 
-  // Get LP balance for ENS pool
+  // Get LP balance for ENS pool using hardcoded pool ID from Cookbook
   const { balance: lpBalance } = useLpBalance({
     lpToken: ensTokenWithReserves,
     poolId: ENS_POOL_ID,
@@ -182,6 +188,13 @@ function EnsFarmCard({ farm, lpToken, lpBalance, onHarvest, isHarvesting, ethPri
   const { data: poolData } = useZChefPool(farm.chefId);
   const { data: userBalance } = useZChefUserBalance(farm.chefId);
   const { data: pendingRewards, isLoading: isLoadingRewards } = useZChefPendingReward(farm.chefId);
+  
+  // Get combined APR data to show base and farm APR separately
+  const { baseApr, farmApr } = useCombinedApr({
+    stream: farm,
+    lpToken: lpToken,
+    enabled: true,
+  });
 
   // Fetch ZAMM reserves if reward token is ZAMM
   const isZAMMReward = farm.rewardCoin?.symbol === "ZAMM";
@@ -278,7 +291,7 @@ function EnsFarmCard({ farm, lpToken, lpBalance, onHarvest, isHarvesting, ethPri
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <div className="bg-muted/10 p-3 rounded border border-border">
             <p className="text-xs text-muted-foreground font-mono">{t("common.total_rewards")}</p>
             <p className="text-sm font-mono font-bold text-primary">
@@ -289,8 +302,14 @@ function EnsFarmCard({ farm, lpToken, lpBalance, onHarvest, isHarvesting, ethPri
             <p className="text-xs text-muted-foreground font-mono">{t("common.total_staked")}</p>
             <p className="text-sm font-mono font-bold text-primary">{formatBalance(formatEther(totalShares), "LP")}</p>
           </div>
-          <div className="bg-muted/10 p-3 rounded border border-border md:col-span-2">
-            <APRDisplay stream={farm} lpToken={lpToken} shortView={true} />
+          <div className="bg-muted/10 p-3 rounded border border-border">
+            <p className="text-xs text-muted-foreground font-mono">{t("common.apr")}</p>
+            <div className="text-sm font-mono font-bold">
+              <span className="text-primary">Base APR {baseApr.toFixed(1)}%</span>
+              {farmApr > 0 && (
+                <span className="text-green-600"> + Farm APR {farmApr.toFixed(1)}%</span>
+              )}
+            </div>
           </div>
         </div>
 

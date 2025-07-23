@@ -190,6 +190,8 @@
     "no_active_farms": "No active farms",
     "no_cult_farms_active": "No active CULT farms at the moment",
     "cult_farms": "CULT FARMS",
+    "ens_farms": "ENS FARMS",
+    "no_ens_farms_active": "No active ENS farms at the moment",
     "no_active_farms_label": "NO ACTIVE FARMS",
     "error_loading_farms_label": "ERROR LOADING FARMS",
     "connect_wallet_label": "CONNECT WALLET",

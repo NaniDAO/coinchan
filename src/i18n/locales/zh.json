@@ -191,6 +191,8 @@
     "no_active_farms": "暂无活跃农场",
     "no_cult_farms_active": "目前没有活跃的 CULT 农场",
     "cult_farms": "CULT 农场",
+    "ens_farms": "ENS 农场",
+    "no_ens_farms_active": "目前没有活跃的 ENS 农场",
     "no_active_farms_label": "没有活跃农场",
     "error_loading_farms_label": "加载农场出错",
     "connect_wallet_label": "连接钱包",
