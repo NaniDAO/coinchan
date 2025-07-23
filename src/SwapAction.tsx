@@ -1032,13 +1032,14 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
 
       {swapMode === "instant" && (
         <SwapController
-          onAmountChange={(sellAmount, buyAmount) => {
+          onAmountChange={(sellAmount) => {
             setSellAmt(sellAmount);
             syncFromSell(sellAmount);
           }}
-          onTokensChange={(sellToken, buyToken) => {
-            // @TODO
-          }}
+          // Pass current state to make placeholder dynamic
+          currentSellToken={sellToken}
+          currentBuyToken={buyToken ?? undefined}
+          currentSellAmount={sellAmt}
         />
       )}
 

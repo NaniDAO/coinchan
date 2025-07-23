@@ -1,33 +1,49 @@
-// Updated SwapController.tsx
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { Input } from "./ui/input";
 import { useTokenSelection } from "../contexts/TokenSelectionContext";
 import { useAllCoins } from "../hooks/metadata/use-all-coins";
 import type { TokenMeta } from "../lib/coins";
 
 interface SwapControllerProps {
-  onAmountChange?: (sellAmount: string, buyAmount: string) => void;
-  onTokensChange?: (sellToken: TokenMeta, buyToken: TokenMeta) => void;
+  onAmountChange?: (sellAmount: string) => void;
   // Add these props to receive current state
   currentSellToken?: TokenMeta;
   currentBuyToken?: TokenMeta;
   currentSellAmount?: string;
-  currentBuyAmount?: string;
 }
 
 export const SwapController = ({
   onAmountChange,
-  onTokensChange,
   currentSellToken,
   currentBuyToken,
   currentSellAmount,
-  currentBuyAmount,
 }: SwapControllerProps) => {
   const [input, setInput] = useState("");
   const [lastParsedCommand, setLastParsedCommand] = useState("");
 
   const { setSellToken, setBuyToken } = useTokenSelection();
   const { tokens } = useAllCoins();
+
+  // Sync input with current swap state
+  useEffect(() => {
+    if (currentSellToken && currentBuyToken && currentSellAmount) {
+      const amount =
+        parseFloat(currentSellAmount) > 0 ? currentSellAmount : "0.01";
+      const newCommand = `swap ${amount} ${currentSellToken.symbol} for ${currentBuyToken.symbol}`;
+
+      // Only update if the command would be different to avoid infinite loops
+      if (newCommand !== input && newCommand !== lastParsedCommand) {
+        setInput(newCommand);
+        setLastParsedCommand(newCommand);
+      }
+    }
+  }, [
+    currentSellToken,
+    currentBuyToken,
+    currentSellAmount,
+    input,
+    lastParsedCommand,
+  ]);
 
   // Create a map of token symbols to token objects for quick lookup
   // Prefer tokens with highest reserve0 for better accuracy
@@ -152,20 +168,11 @@ export const SwapController = ({
       setSellToken(sellToken);
       setBuyToken(buyToken);
 
-      // Call callbacks if provided
-      onTokensChange?.(sellToken, buyToken);
-      onAmountChange?.(amount, "");
+      onAmountChange?.(amount);
 
       return true;
     },
-    [
-      tokenMap,
-      setSellToken,
-      setBuyToken,
-      onTokensChange,
-      onAmountChange,
-      parseSwapCommand,
-    ],
+    [tokenMap, setSellToken, setBuyToken, onAmountChange, parseSwapCommand],
   );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -201,6 +208,11 @@ export const SwapController = ({
 
   // Generate dynamic placeholder text based on current token selection and amounts
   const placeholderText = useMemo(() => {
+    // If input has content, show a simpler placeholder
+    if (input && input.trim()) {
+      return "Enter swap command";
+    }
+
     // If we have current tokens selected, show a command with them
     if (currentSellToken && currentBuyToken) {
       const amount =
@@ -240,7 +252,14 @@ export const SwapController = ({
       return `Try: "swap 0.01 ${availableTokens[0]} for ${availableTokens[1]}"`;
     }
     return "Enter swap command (e.g., swap 0.01 ZAMM for ETH)";
-  }, [tokenMap, currentSellToken, currentBuyToken, currentSellAmount, tokens]);
+  }, [
+    tokenMap,
+    currentSellToken,
+    currentBuyToken,
+    currentSellAmount,
+    tokens,
+    input,
+  ]);
 
   // Generate suggestion text that updates based on current state
   const suggestionText = useMemo(() => {
