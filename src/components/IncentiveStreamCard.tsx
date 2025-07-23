@@ -81,7 +81,7 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
   // totalValueLocked and dailyRewards are now handled by APYDisplay component
 
   // Check if this farm is incentivizing the ENS pool
-  const isENSFarm = stream.lpId === ENS_POOL_ID;
+  const isENSFarm = BigInt(stream.lpId) === ENS_POOL_ID;
 
   return (
     <div
