@@ -75,8 +75,6 @@ export const EnsBuySell = () => {
     spender: CookbookAddress,
   });
 
-  // Fetch pool APR for ENS pool
-  const { data: poolApr } = usePoolApy(ENS_POOL_ID.toString());
   
   // Get active incentive streams for ENS
   const { data: allStreams } = useActiveIncentiveStreams();
@@ -88,12 +86,12 @@ export const EnsBuySell = () => {
     return allStreams.find((stream) => BigInt(stream.lpId) === ENS_POOL_ID);
   }, [allStreams]);
   
-  // Get combined APR if ENS farm exists
-  const { farmApr } = ensFarm ? useCombinedApr({
-    stream: ensFarm,
+  // Get combined APR - always call the hook but disable it when no farm exists
+  const { farmApr = 0 } = useCombinedApr({
+    stream: ensFarm || {} as any,
     lpToken: ENS_TOKEN,
-    enabled: true,
-  }) : { farmApr: 0 };
+    enabled: !!ensFarm,
+  });
 
 
   // Create token metadata objects with current data
@@ -514,11 +512,9 @@ export const EnsBuySell = () => {
                       <span className="flex items-center gap-1">
                         <Zap className="h-3 w-3" />
                         <span className="font-medium">{t("ens.zap_lp")}</span>
-                        {(poolApr || farmApr > 0) && (
+                        {farmApr > 0 && (
                           <span className="text-[#0080BC] font-semibold">
-                            {poolApr && `${Number(poolApr.slice(0, -1)).toFixed(1)}%`}
-                            {farmApr > 0 && ` + ${farmApr.toFixed(1)}% farm`}
-                            {" APR"}
+                            {farmApr.toFixed(1)}% farm APR
                           </span>
                         )}
                       </span>
