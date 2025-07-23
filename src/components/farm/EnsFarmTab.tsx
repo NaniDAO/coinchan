@@ -4,7 +4,6 @@ import { useState, useMemo } from "react";
 import { formatEther, formatUnits } from "viem";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { formatImageURL } from "@/hooks/metadata";
 import { useActiveIncentiveStreams } from "@/hooks/use-incentive-streams";
 import { useZChefUserBalance, useZChefPendingReward, useZChefActions, useZChefPool } from "@/hooks/use-zchef-contract";
 import { useLpBalance } from "@/hooks/use-lp-balance";
