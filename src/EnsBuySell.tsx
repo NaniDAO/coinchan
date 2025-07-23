@@ -27,6 +27,10 @@ import { CheckTheChainAbi, CheckTheChainAddress } from "./constants/CheckTheChai
 import { TrendingUp, Zap, ArrowRight, Sparkles } from "lucide-react";
 import { ENSLogo } from "./components/icons/ENSLogo";
 import { usePoolApy } from "./hooks/use-pool-apy";
+import { EnsFarmTab } from "./components/farm/EnsFarmTab";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+import { useActiveIncentiveStreams } from "./hooks/use-incentive-streams";
+import { useCombinedApr } from "./hooks/use-combined-apr";
 
 export const EnsBuySell = () => {
   const { t } = useTranslation();
@@ -73,6 +77,23 @@ export const EnsBuySell = () => {
 
   // Fetch pool APR for ENS pool
   const { data: poolApr } = usePoolApy(ENS_POOL_ID.toString());
+  
+  // Get active incentive streams for ENS
+  const { data: allStreams } = useActiveIncentiveStreams();
+  
+  // Find ENS farm
+  const ensFarm = useMemo(() => {
+    if (!allStreams) return null;
+    // Look for farms incentivizing the ENS pool
+    return allStreams.find((stream) => BigInt(stream.lpId) === ENS_POOL_ID);
+  }, [allStreams]);
+  
+  // Get combined APR if ENS farm exists
+  const { farmApr } = useCombinedApr({
+    stream: ensFarm!,
+    lpToken: ENS_TOKEN,
+    enabled: !!ensFarm,
+  });
 
 
   // Create token metadata objects with current data
@@ -110,7 +131,7 @@ export const EnsBuySell = () => {
       if (!publicClient) return;
 
       try {
-        const poolData = await publicClient.readContract({
+        const poolData = await publicClient?.readContract({
           address: CookbookAddress,
           abi: CookbookAbi,
           functionName: "pools",
@@ -141,17 +162,21 @@ export const EnsBuySell = () => {
 
       try {
         // Fetch ENS balance
-        const ensBalance = await publicClient.readContract({
+        const ensBalance = await publicClient?.readContract({
           address: ENS_ADDRESS,
           abi: erc20Abi,
           functionName: "balanceOf",
           args: [address],
         });
-        setEnsBalance(ensBalance as bigint);
+        if (ensBalance !== undefined) {
+          setEnsBalance(ensBalance as bigint);
+        }
 
         // Fetch ETH balance
-        const ethBalance = await publicClient.getBalance({ address });
-        setEthBalance(ethBalance);
+        const ethBalance = await publicClient?.getBalance({ address });
+        if (ethBalance !== undefined) {
+          setEthBalance(ethBalance);
+        }
       } catch (error) {
         console.error("Failed to fetch balances:", error);
       }
@@ -170,7 +195,7 @@ export const EnsBuySell = () => {
 
       try {
         // Get Uniswap V3 price from oracle
-        const ensPriceData = await publicClient.readContract({
+        const ensPriceData = await publicClient?.readContract({
           address: CheckTheChainAddress,
           abi: CheckTheChainAbi,
           functionName: "checkPriceInETH",
@@ -186,7 +211,7 @@ export const EnsBuySell = () => {
         // - Default to 0.01 ETH demo amount
         // - If user is connected and 1% of their balance > 0.01 ETH, use that
         const onePercentBalance = isConnected && ethBalance > 0n 
-          ? (ethBalance * 1n) / 100n 
+          ? ethBalance / 100n 
           : 0n;
         const minAmount = parseEther("0.01");
         const testAmount = onePercentBalance > minAmount ? onePercentBalance : minAmount;
@@ -489,9 +514,11 @@ export const EnsBuySell = () => {
                       <span className="flex items-center gap-1">
                         <Zap className="h-3 w-3" />
                         <span className="font-medium">{t("ens.zap_lp")}</span>
-                        {poolApr && (
+                        {(poolApr || farmApr > 0) && (
                           <span className="text-[#0080BC] font-semibold">
-                            {Number(poolApr.slice(0, -1)).toFixed(1)}% APR
+                            {poolApr && `${Number(poolApr.slice(0, -1)).toFixed(1)}%`}
+                            {farmApr > 0 && ` + ${farmApr.toFixed(1)}% farm`}
+                            {" APR"}
                           </span>
                         )}
                       </span>
@@ -504,7 +531,7 @@ export const EnsBuySell = () => {
                 </button>
               </div>
             )}
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-1 bg-[#0080BC]/5 dark:bg-[#0080BC]/10">
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 gap-1 bg-[#0080BC]/5 dark:bg-[#0080BC]/10">
               <TabsTrigger
                 value="swap"
                 className={`relative data-[state=active]:bg-[#0080BC]/20 dark:data-[state=active]:bg-[#0080BC]/30 data-[state=active]:text-[#0080BC] dark:data-[state=active]:text-white ${
@@ -544,6 +571,12 @@ export const EnsBuySell = () => {
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                   </span>
                 )}
+              </TabsTrigger>
+              <TabsTrigger
+                value="farm"
+                className="data-[state=active]:bg-[#0080BC]/20 dark:data-[state=active]:bg-[#0080BC]/30 data-[state=active]:text-[#0080BC] dark:data-[state=active]:text-white"
+              >
+                {t("common.farm")}
               </TabsTrigger>
             </TabsList>
 
@@ -755,6 +788,11 @@ export const EnsBuySell = () => {
 
             <TabsContent value="zap" className="mt-4">
               <ENSZapWrapper />
+            </TabsContent>
+            <TabsContent value="farm" className="mt-4">
+              <ErrorBoundary fallback={<div>{t("common.error_loading_farm")}</div>}>
+                <EnsFarmTab />
+              </ErrorBoundary>
             </TabsContent>
           </Tabs>
       </div>

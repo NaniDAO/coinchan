@@ -326,7 +326,7 @@ export const ENSUniswapV3Zap = () => {
       const hash = await sendTransactionAsync({
         to: ENSZapAddress,
         value: ethAmount, // Send the full ETH amount
-        gas: gasLimit, // Use estimated gas + 50% buffer
+        gas: gasLimit, // Use estimated gas + 20% buffer
       });
 
       setTxHash(hash);

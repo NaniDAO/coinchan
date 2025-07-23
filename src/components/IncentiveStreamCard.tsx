@@ -41,9 +41,13 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
 
   // Helper function to format LP amounts with consistent precision
   const formatLpAmount = (amount: bigint, includeUnit = true) => {
-    const formatted = Number(formatUnits(amount, 18))
-      .toFixed(4)
-      .replace(/\.?0+$/, "");
+    const num = Number(formatUnits(amount, 18));
+    // Format with 4 decimal places, then remove only trailing zeros after decimal point
+    let formatted = num.toFixed(4);
+    // Remove trailing zeros after decimal point, but keep at least 2 decimal places
+    if (formatted.includes('.')) {
+      formatted = formatted.replace(/(\.\d{2})\d*?0+$/, '$1').replace(/\.00$/, '.00');
+    }
     return includeUnit ? `${formatted} LP` : formatted;
   };
 
@@ -66,6 +70,7 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
     const elapsed = now - BigInt(stream.startTime);
 
     if (elapsed <= 0n) return 0;
+    if (totalDuration <= 0n) return 100; // Invalid duration, consider complete
     if (elapsed >= totalDuration) return 100;
 
     const progress = Number((elapsed * 100n) / totalDuration);
