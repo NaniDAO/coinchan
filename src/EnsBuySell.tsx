@@ -89,11 +89,11 @@ export const EnsBuySell = () => {
   }, [allStreams]);
   
   // Get combined APR if ENS farm exists
-  const { farmApr } = useCombinedApr({
-    stream: ensFarm!,
+  const { farmApr } = ensFarm ? useCombinedApr({
+    stream: ensFarm,
     lpToken: ENS_TOKEN,
-    enabled: !!ensFarm,
-  });
+    enabled: true,
+  }) : { farmApr: 0, baseApr: 0, totalApr: 0, breakdown: { tradingFees: 0, rewardSymbol: '' }, isLoading: false };
 
 
   // Create token metadata objects with current data
