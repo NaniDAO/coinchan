@@ -61,12 +61,14 @@ export const BuyCoinSale = ({
 }: {
   coinId: bigint;
   symbol: string;
-  onPriceImpactChange?: (impact: {
-    currentPrice: number;
-    projectedPrice: number;
-    impactPercent: number;
-    action: "buy" | "sell";
-  } | null) => void;
+  onPriceImpactChange?: (
+    impact: {
+      currentPrice: number;
+      projectedPrice: number;
+      impactPercent: number;
+      action: "buy" | "sell";
+    } | null,
+  ) => void;
 }) => {
   /* chain + account hooks */
   const { data: sale, isLoading } = useCoinSale({ coinId: coinId.toString() });
@@ -242,7 +244,8 @@ export const BuyCoinSale = ({
   /* early exits */
   if (isLoading) return <div>{t("sale.loading")}</div>;
   if (!sale) return <div>{t("sale.not_found")}</div>;
-  if (sale.status === "FINALIZED") return <BuySellCookbookCoin coinId={coinId} symbol={symbol} onPriceImpactChange={onPriceImpactChange} />;
+  if (sale.status === "FINALIZED")
+    return <BuySellCookbookCoin coinId={coinId} symbol={symbol} onPriceImpactChange={onPriceImpactChange} />;
 
   const activeTranches = sale.tranches.items
     .filter((t: Tranche) => BigInt(t.remaining) > 0n && Number(t.deadline) * 1000 > Date.now())

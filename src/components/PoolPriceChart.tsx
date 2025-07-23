@@ -23,7 +23,7 @@ interface PriceChartProps {
   ethUsdPrice?: number;
   priceImpact?: {
     currentPrice: number;
-    projectedPrice: number;  // CULT price in ETH after the trade
+    projectedPrice: number; // CULT price in ETH after the trade
     impactPercent: number;
     action: "buy" | "sell";
   } | null;
@@ -292,10 +292,10 @@ const TVPriceChart: React.FC<{
         }
       };
 
-      window.addEventListener('resize', handleResize);
+      window.addEventListener("resize", handleResize);
 
       return () => {
-        window.removeEventListener('resize', handleResize);
+        window.removeEventListener("resize", handleResize);
         setIsChartReady(false);
         try {
           chart.remove();
@@ -382,18 +382,16 @@ const TVPriceChart: React.FC<{
       if (points.length > 0) {
         // Store the base data
         lastValidDataRef.current = points;
-        
-        
+
         // Build the data to display
         let displayData = [...points];
-        
+
         // Add price impact point if available
         if (priceImpact && priceImpact.projectedPrice > 0) {
           const lastPoint = points[points.length - 1];
           if (lastPoint) {
-            
             let projectedValue: number;
-            
+
             if (showUsd && ethUsdPrice && ethUsdPrice > 0) {
               // Convert ETH price to USD
               projectedValue = priceImpact.projectedPrice * ethUsdPrice;
@@ -401,22 +399,21 @@ const TVPriceChart: React.FC<{
               // Use ETH price directly
               projectedValue = priceImpact.projectedPrice;
             }
-            
 
             if (isFinite(projectedValue) && projectedValue > 0) {
               // Create impact line data: from last point to projected point
               const projectedTime = lastPoint.time + 1; // Just 1 second after
               const impactData = [
                 { time: lastPoint.time, value: lastPoint.value },
-                { time: projectedTime as UTCTimestamp, value: projectedValue }
+                { time: projectedTime as UTCTimestamp, value: projectedValue },
               ];
-              
+
               // Update impact series color based on buy/sell action
-              const impactColor = priceImpact.action === 'buy' ? '#10b981' : '#ef4444'; // green for buy, red for sell
+              const impactColor = priceImpact.action === "buy" ? "#10b981" : "#ef4444"; // green for buy, red for sell
               impactSeriesRef.current.applyOptions({
                 color: impactColor,
               });
-              
+
               // Set the impact line data
               impactSeriesRef.current.setData(impactData);
             } else {
@@ -431,10 +428,10 @@ const TVPriceChart: React.FC<{
           // Clear impact series when no price impact
           impactSeriesRef.current.setData([]);
         }
-        
+
         // Update the main chart with historical data only
         priceSeriesRef.current.setData(displayData);
-        
+
         // Make sure we see all the data
         if (chartRef.current) {
           chartRef.current.timeScale().fitContent();

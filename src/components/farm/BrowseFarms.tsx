@@ -1,7 +1,8 @@
 import { useAllCoins } from "@/hooks/metadata/use-all-coins";
 import { useActiveIncentiveStreams } from "@/hooks/use-incentive-streams";
 import { useFarmsSummary } from "@/hooks/use-farms-summary";
-import { ETH_TOKEN } from "@/lib/coins";
+import { useReserves } from "@/hooks/use-reserves";
+import { ETH_TOKEN, ENS_POOL_ID, type TokenMeta } from "@/lib/coins";
 import { cn, formatBalance } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 import { formatEther } from "viem";
@@ -21,6 +22,12 @@ export const BrowseFarms = () => {
   const { tokens, loading: isLoadingTokens } = useAllCoins();
   const { data: activeStreams, isLoading: isLoadingStreams } = useActiveIncentiveStreams();
   const [showHiddenFarms, setShowHiddenFarms] = useState(false);
+
+  // Get fresh reserves for ENS pool
+  const { data: ensReserves } = useReserves({
+    poolId: ENS_POOL_ID,
+    source: "COOKBOOK",
+  });
 
   // Filter out ended streams
   const activeOnlyStreams = useMemo(() => {
@@ -143,13 +150,23 @@ export const BrowseFarms = () => {
       ) : sortedStreams && sortedStreams.length > 0 ? (
         <div className="farm-cards-container grid gap-4 sm:gap-5 grid-cols-1 lg:grid-cols-2">
           {sortedStreams?.map((stream) => {
-            const lpToken = tokens.find((t) => {
-              // Direct pool ID match
-              if (t.poolId === BigInt(stream.lpId)) return true;
-              // Special handling for CULT tokens - check if lpId matches CULT_POOL_ID
-              if (t.symbol === "CULT" && BigInt(stream.lpId) === t.poolId) return true;
-              return false;
-            });
+            // Special handling for ENS farms - always use ENS token with correct poolId and fresh reserves
+            const lpToken = BigInt(stream.lpId) === ENS_POOL_ID 
+              ? { 
+                  ...(tokens.find((t) => t.symbol === "ENS") || {}), 
+                  poolId: ENS_POOL_ID, 
+                  source: "COOKBOOK" as const,
+                  reserve0: ensReserves?.reserve0 || 0n,
+                  reserve1: ensReserves?.reserve1 || 0n,
+                  liquidity: ensReserves?.reserve0 || 0n,
+                } as TokenMeta
+              : tokens.find((t) => {
+                  // Direct pool ID match
+                  if (t.poolId === BigInt(stream.lpId)) return true;
+                  // Special handling for CULT tokens - check if lpId matches CULT_POOL_ID
+                  if (t.symbol === "CULT" && BigInt(stream.lpId) === t.poolId) return true;
+                  return false;
+                });
 
             // If lpToken is not found and tokens are not loading, show error
             // Otherwise, use ETH_TOKEN as fallback during loading
