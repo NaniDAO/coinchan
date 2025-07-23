@@ -227,6 +227,7 @@
     "unstaking_will_claim_rewards": "解除质押时将自动领取待收奖励",
     "time_remaining": "剩余时间",
     "ended": "已结束",
+    "expired": "已过期",
     "ends_in": "结束于",
     "daily_rewards": "每日奖励",
     "total_rewards": "总奖励",
