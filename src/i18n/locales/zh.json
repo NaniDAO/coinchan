@@ -739,7 +739,8 @@
     "for": "只需",
     "zap_lp": "ZAP并提供流动性",
     "gas_savings_direct_eth": "节省Gas费：直接发送ETH，零calldata成本",
-    "eth_sent_to": "ETH发送至"
+    "eth_sent_to": "ETH发送至",
+    "dust_refund_note_v3": "钱包预览可能显示ETH/ENS的微量退款 - 这是正常的"
   },
   "chart": {
     "price": "价格",

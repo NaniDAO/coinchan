@@ -431,6 +431,7 @@ export const ENSUniswapV3Zap = () => {
           <li>{t("ens.eth_sent_to")} <a href="https://app.ens.domains/ens.zamm.eth" target="_blank" rel="noopener noreferrer" className="text-[#0080BC] hover:underline">ens.zamm.eth</a></li>
           <li>{t("pool.earn_fees_from_trades", { fee: 0.3 })}</li>
           <li className="text-[#0080BC]">{t("ens.default_slippage_10")}</li>
+          <li className="text-xs opacity-75">{t("ens.dust_refund_note_v3")}</li>
           <li className="flex items-center gap-1">
             <span title={t("ens.oracle_sync_tooltip")}>{t("ens.oracle_sync_status")}:</span>
             {oracleInSync === null ? (

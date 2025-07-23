@@ -729,7 +729,8 @@
     "for": "for",
     "zap_lp": "ZAP & LP",
     "gas_savings_direct_eth": "Gas savings: ETH sent directly with zero calldata cost",
-    "eth_sent_to": "ETH sent to"
+    "eth_sent_to": "ETH sent to",
+    "dust_refund_note_v3": "Wallet previews may show dust refunds in ETH/ENS - this is normal"
   },
   "chart": {
     "price": "Price",
