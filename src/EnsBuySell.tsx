@@ -450,11 +450,11 @@ export const EnsBuySell = () => {
   };
 
   return (
-    <div className="container mx-auto max-w-2xl px-4 py-8">
+    <div className="container mx-auto max-w-2xl px-2 sm:px-4 py-4 sm:py-8">
       {/* Header with ENS theme */}
-      <div className="mb-8 text-center">
+      <div className="mb-4 sm:mb-8 text-center">
         <div className="flex items-center justify-center gap-3">
-          <svg width="48" height="48" viewBox="0 0 202 231" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg width="36" height="36" className="sm:w-12 sm:h-12" viewBox="0 0 202 231" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path
               d="M98.3592 2.80337L34.8353 107.327C34.3371 108.147 33.1797 108.238 32.5617 107.505C26.9693 100.864 6.13478 72.615 31.9154 46.8673C55.4403 23.3726 85.4045 6.62129 96.5096 0.831705C97.7695 0.174847 99.0966 1.59007 98.3592 2.80337Z"
               fill="#0080BC"
@@ -476,53 +476,55 @@ export const EnsBuySell = () => {
       </div>
 
       {/* Trading Interface with ENS theme */}
-      <div className="bg-card border border-[#0080BC]/20 dark:border-[#0080BC]/10 rounded-lg p-4 md:p-6 mb-6 md:mb-8">
+      <div className="bg-card border border-[#0080BC]/20 dark:border-[#0080BC]/10 rounded-lg p-2 sm:p-4 md:p-6 mb-4 sm:mb-6 md:mb-8">
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
           {/* Subtle arbitrage notification */}
           {arbitrageInfo && activeTab !== arbitrageInfo.type && (
-              <div className="mb-2 flex justify-end">
+              <div className="mb-2 flex justify-center sm:justify-end">
                 <button
                   onClick={() => setActiveTab(arbitrageInfo.type)}
-                  className="group relative flex items-center gap-2 px-3 py-1.5 text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full hover:bg-green-200 dark:hover:bg-green-900/50 transition-all animate-pulse hover:animate-none"
+                  className="group relative flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full hover:bg-green-200 dark:hover:bg-green-900/50 transition-all animate-pulse hover:animate-none"
                 >
                   <TrendingUp className="h-3 w-3" />
                   {arbitrageInfo.type === "swap" ? (
                     <>
-                      <span className="text-muted-foreground">{arbitrageInfo.testAmountETH} ETH</span>
+                      <span className="hidden sm:inline text-muted-foreground">{arbitrageInfo.testAmountETH} ETH</span>
+                      <span className="sm:hidden text-muted-foreground text-[10px]">{arbitrageInfo.testAmountETH.slice(0, 4)} ETH</span>
                       <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                      <span className="flex items-center gap-1 font-medium">
-                        {formatNumber(arbitrageInfo.ensFromCookbook, 4)}
+                      <span className="flex items-center gap-0.5 sm:gap-1 font-medium">
+                        <span className="hidden sm:inline">{formatNumber(arbitrageInfo.ensFromCookbook, 4)}</span>
+                        <span className="sm:hidden text-[10px]">{formatNumber(arbitrageInfo.ensFromCookbook, 2)}</span>
                         <ENSLogo className="h-3 w-3" />
                       </span>
-                      <span className="ml-1 font-semibold text-green-600 dark:text-green-400">
+                      <span className="ml-0.5 sm:ml-1 font-semibold text-green-600 dark:text-green-400 text-[10px] sm:text-xs">
                         +{arbitrageInfo.percentGain.toFixed(1)}%
                       </span>
                     </>
                   ) : (
-                    <>
-                      <Sparkles className="h-3 w-3" />
-                      <span className="flex items-center gap-1">
-                        <span className="text-muted-foreground">{t("ens.get")}</span>
-                        <span className="font-medium">
-                          {formatNumber(arbitrageInfo.ensFromUniV3, 4)}
+                    <div className="flex items-center gap-1 sm:gap-2">
+                      <Sparkles className="h-3 w-3 flex-shrink-0" />
+                      <span className="flex items-center gap-0.5 sm:gap-1">
+                        <span className="hidden sm:inline text-muted-foreground">{t("ens.get")}</span>
+                        <span className="font-medium flex items-center gap-0.5">
+                          <span className="hidden sm:inline">{formatNumber(arbitrageInfo.ensFromUniV3, 4)}</span>
+                          <span className="sm:hidden text-[10px]">{formatNumber(arbitrageInfo.ensFromUniV3, 2)}</span>
+                          <ENSLogo className="h-3 w-3" />
                         </span>
-                        <ENSLogo className="h-3 w-3" />
-                        <span className="font-semibold text-green-600 dark:text-green-400">
-                          (+{arbitrageInfo.percentGain.toFixed(1)}%)
+                        <span className="font-semibold text-green-600 dark:text-green-400 text-[10px] sm:text-xs">
+                          +{arbitrageInfo.percentGain.toFixed(1)}%
                         </span>
                       </span>
-                      <ArrowRight className="h-3 w-3" />
-                      <span className="flex items-center gap-1">
-                        <Zap className="h-3 w-3" />
-                        <span className="font-medium">{t("ens.zap_lp")}</span>
+                      <ArrowRight className="h-3 w-3 flex-shrink-0 hidden sm:inline" />
+                      <span className="flex items-center gap-0.5 sm:gap-1">
+                        <Zap className="h-3 w-3 flex-shrink-0 hidden sm:inline" />
+                        <span className="font-medium text-[10px] sm:text-xs hidden sm:inline">{t("ens.zap_lp")}</span>
                         {(poolApr || farmApr > 0) && (
-                          <span className="text-[#0080BC] font-semibold">
-                            {poolApr && `Base APR ${Number(poolApr.slice(0, -1)).toFixed(1)}%`}
-                            {farmApr > 0 && ` + Farm APR ${farmApr.toFixed(1)}%`}
+                          <span className="text-[#0080BC] font-semibold text-[10px] sm:text-xs hidden sm:inline">
+                            APR {(Number(poolApr?.slice(0, -1) || 0) + farmApr).toFixed(1)}%
                           </span>
                         )}
                       </span>
-                    </>
+                    </div>
                   )}
                   <span className="absolute -top-1 -right-1 flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -531,10 +533,10 @@ export const EnsBuySell = () => {
                 </button>
               </div>
             )}
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 gap-1 bg-[#0080BC]/5 dark:bg-[#0080BC]/10">
+            <TabsList className="flex flex-wrap sm:grid sm:grid-cols-5 gap-1 bg-[#0080BC]/5 dark:bg-[#0080BC]/10 p-1 h-auto w-full">
               <TabsTrigger
                 value="swap"
-                className={`relative data-[state=active]:bg-[#0080BC]/20 dark:data-[state=active]:bg-[#0080BC]/30 data-[state=active]:text-[#0080BC] dark:data-[state=active]:text-white ${
+                className={`relative flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-[#0080BC]/20 dark:data-[state=active]:bg-[#0080BC]/30 data-[state=active]:text-[#0080BC] dark:data-[state=active]:text-white ${
                   arbitrageInfo?.type === "swap" && activeTab !== "swap" ? "ring-1 ring-green-400/50" : ""
                 }`}
               >
@@ -548,19 +550,19 @@ export const EnsBuySell = () => {
               </TabsTrigger>
               <TabsTrigger
                 value="add"
-                className="data-[state=active]:bg-[#0080BC]/20 dark:data-[state=active]:bg-[#0080BC]/30 data-[state=active]:text-[#0080BC] dark:data-[state=active]:text-white"
+                className="flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-[#0080BC]/20 dark:data-[state=active]:bg-[#0080BC]/30 data-[state=active]:text-[#0080BC] dark:data-[state=active]:text-white"
               >
                 {t("common.add")}
               </TabsTrigger>
               <TabsTrigger
                 value="remove"
-                className="data-[state=active]:bg-[#0080BC]/20 dark:data-[state=active]:bg-[#0080BC]/30 data-[state=active]:text-[#0080BC] dark:data-[state=active]:text-white"
+                className="flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-[#0080BC]/20 dark:data-[state=active]:bg-[#0080BC]/30 data-[state=active]:text-[#0080BC] dark:data-[state=active]:text-white"
               >
                 {t("common.remove")}
               </TabsTrigger>
               <TabsTrigger
                 value="zap"
-                className={`relative data-[state=active]:bg-[#0080BC]/20 dark:data-[state=active]:bg-[#0080BC]/30 data-[state=active]:text-[#0080BC] dark:data-[state=active]:text-white ${
+                className={`relative flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-[#0080BC]/20 dark:data-[state=active]:bg-[#0080BC]/30 data-[state=active]:text-[#0080BC] dark:data-[state=active]:text-white ${
                   arbitrageInfo?.type === "zap" && activeTab !== "zap" ? "ring-1 ring-green-400/50" : ""
                 }`}
               >
@@ -574,14 +576,14 @@ export const EnsBuySell = () => {
               </TabsTrigger>
               <TabsTrigger
                 value="farm"
-                className="data-[state=active]:bg-[#0080BC]/20 dark:data-[state=active]:bg-[#0080BC]/30 data-[state=active]:text-[#0080BC] dark:data-[state=active]:text-white"
+                className="flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-[#0080BC]/20 dark:data-[state=active]:bg-[#0080BC]/30 data-[state=active]:text-[#0080BC] dark:data-[state=active]:text-white"
               >
                 {t("common.farm")}
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="swap" className="mt-4">
-              <div className="space-y-4">
+            <TabsContent value="swap" className="mt-2 sm:mt-4">
+              <div className="space-y-2 sm:space-y-4">
                 {/* Custom simplified swap for ENS */}
                 <div className="relative space-y-1">
                   {/* Sell panel */}
@@ -746,7 +748,7 @@ export const EnsBuySell = () => {
                 <div className="text-xs text-muted-foreground text-center">{t("coin.pool_fee")}: 0.3%</div>
 
                 {/* Market Stats - subtle below chart */}
-                <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                <div className="mt-4 sm:mt-6 grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 text-xs">
                   <div className="text-center">
                     <p className="text-muted-foreground opacity-70">{t("coin.price")}</p>
                     <p className="font-medium">{ensPrice > 0 ? `${ensPrice.toFixed(6)} ETH` : "-"}</p>
@@ -778,18 +780,18 @@ export const EnsBuySell = () => {
               </div>
             </TabsContent>
 
-            <TabsContent value="add" className="mt-4">
+            <TabsContent value="add" className="mt-2 sm:mt-4">
               <AddLiquidity />
             </TabsContent>
 
-            <TabsContent value="remove" className="mt-4">
+            <TabsContent value="remove" className="mt-2 sm:mt-4">
               <RemoveLiquidity />
             </TabsContent>
 
-            <TabsContent value="zap" className="mt-4">
+            <TabsContent value="zap" className="mt-2 sm:mt-4">
               <ENSZapWrapper />
             </TabsContent>
-            <TabsContent value="farm" className="mt-4">
+            <TabsContent value="farm" className="mt-2 sm:mt-4">
               <ErrorBoundary fallback={<div>{t("common.error_loading_farm")}</div>}>
                 <EnsFarmTab />
               </ErrorBoundary>
