@@ -66,6 +66,52 @@ export function FarmGridSkeleton({ count = 6 }: { count?: number }) {
   );
 }
 
+export function FarmPositionSkeleton() {
+  return (
+    <div className="bg-card text-card-foreground border-2 border-border">
+      <div className="p-4 border-b border-border animate-pulse">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-6 h-6 bg-muted rounded" />
+            <div className="h-4 w-24 bg-muted rounded" />
+          </div>
+          <div className="h-6 w-16 bg-muted rounded" />
+        </div>
+        <div className="mt-3 h-6 w-40 bg-muted rounded" />
+      </div>
+      <div className="p-4 space-y-4 animate-pulse">
+        <div className="space-y-2">
+          <div className="flex justify-between">
+            <div className="h-4 w-24 bg-muted rounded" />
+            <div className="h-4 w-20 bg-muted rounded" />
+          </div>
+          <div className="h-2 bg-muted rounded" />
+        </div>
+        <div className="h-12 bg-muted rounded" />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div className="h-16 bg-muted rounded" />
+          <div className="h-16 bg-muted rounded" />
+          <div className="h-16 bg-muted rounded" />
+        </div>
+        <div className="h-10 bg-muted rounded" />
+      </div>
+      <div className="p-4 sm:p-6 space-y-3">
+        <div className="p-3 border border-muted bg-background">
+          <div className="h-4 w-full bg-muted rounded" />
+        </div>
+        <div className="p-3 border border-green-700/20 bg-background">
+          <div className="h-4 w-full bg-muted rounded" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="h-10 bg-muted rounded" />
+          <div className="h-10 bg-muted rounded" />
+          <div className="h-10 bg-muted rounded" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function FarmTransactionLoading({ operation }: { operation: string }) {
   const { t } = useTranslation();
 

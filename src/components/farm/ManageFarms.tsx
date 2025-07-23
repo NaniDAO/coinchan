@@ -4,11 +4,11 @@ import { useFarmsSummary } from "@/hooks/use-farms-summary";
 import { useZChefActions } from "@/hooks/use-zchef-contract";
 import { isUserRejectionError } from "@/lib/errors";
 import { cn } from "@/lib/utils";
-import { useState, useMemo } from "react";
+import { useState, useMemo, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import { useAccount } from "wagmi";
 import { ErrorBoundary } from "../ErrorBoundary";
-import { FarmGridSkeleton } from "../FarmLoadingStates";
+import { FarmGridSkeleton, FarmPositionSkeleton } from "../FarmLoadingStates";
 import { FarmPositionCard } from "./FarmPositionCard";
 
 export const ManageFarms = () => {
@@ -22,11 +22,16 @@ export const ManageFarms = () => {
   const { harvest } = useZChefActions();
 
   // Get streams that are relevant for user positions to fetch real-time data
+  // Include expired farms where user has positions
   const relevantStreams = useMemo(() => {
     if (!allStreams || !userPositions) return undefined;
-    return allStreams.filter((stream) =>
-      userPositions.some((position) => BigInt(position.chefId) === BigInt(stream.chefId)),
-    );
+    return allStreams.filter((stream) => {
+      // Always include streams where user has positions, regardless of status
+      const hasPosition = userPositions.some(
+        (position) => BigInt(position.chefId) === BigInt(stream.chefId) && BigInt(position.shares) > 0n,
+      );
+      return hasPosition;
+    });
   }, [allStreams, userPositions]);
 
   // Get real-time farm data using the same pattern as Browse Farms
@@ -115,37 +120,41 @@ export const ManageFarms = () => {
       ) : isLoadingPositions ? (
         <FarmGridSkeleton count={3} />
       ) : userPositions && userPositions.length > 0 ? (
-        <div className="grid gap-4 sm:gap-5 grid-cols-1 lg:grid-cols-2">
-          {userPositions.map((position) => {
-            // First try to get real-time data, fallback to stale data
-            const stream =
-              streamsWithRealTimeData?.find((s) => BigInt(s.chefId) === BigInt(position.chefId)) ||
-              allStreams?.find((s) => BigInt(s.chefId) === BigInt(position.chefId));
-            const lpToken = tokens.find((t) => {
-              if (!stream) return false;
-              // Direct pool ID match
-              if (t.poolId === BigInt(stream.lpId)) return true;
-              // Special handling for CULT tokens - check if lpId matches CULT_POOL_ID
-              if (t.symbol === "CULT" && BigInt(stream.lpId) === t.poolId) return true;
-              return false;
-            });
+        <div className="grid gap-4 sm:gap-5 grid-cols-1 lg:grid-cols-2 will-change-transform">
+          {userPositions
+            .filter((position) => BigInt(position.shares) > 0n) // Only show positions with shares
+            .map((position) => {
+              // First try to get real-time data, fallback to stale data
+              const stream =
+                streamsWithRealTimeData?.find((s) => BigInt(s.chefId) === BigInt(position.chefId)) ||
+                allStreams?.find((s) => BigInt(s.chefId) === BigInt(position.chefId));
+              const lpToken = tokens.find((t) => {
+                if (!stream) return false;
+                // Direct pool ID match
+                if (t.poolId === BigInt(stream.lpId)) return true;
+                // Special handling for CULT tokens - check if lpId matches CULT_POOL_ID
+                if (t.symbol === "CULT" && BigInt(stream.lpId) === t.poolId) return true;
+                return false;
+              });
 
-            if (!stream) return null;
+              if (!stream) return null;
 
-            return (
-              <div key={position.chefId.toString()} className="group">
-                <ErrorBoundary fallback={<div>Error</div>}>
-                  <FarmPositionCard
-                    position={position}
-                    stream={stream}
-                    lpToken={lpToken}
-                    onHarvest={handleHarvest}
-                    isHarvesting={harvestingId === position.chefId}
-                  />
-                </ErrorBoundary>
-              </div>
-            );
-          })}
+              return (
+                <div key={position.chefId.toString()} className="group min-h-[400px] lg:min-h-[450px]">
+                  <ErrorBoundary fallback={<FarmPositionSkeleton />}>
+                    <Suspense fallback={<FarmPositionSkeleton />}>
+                      <FarmPositionCard
+                        position={position}
+                        stream={stream}
+                        lpToken={lpToken}
+                        onHarvest={handleHarvest}
+                        isHarvesting={harvestingId === position.chefId}
+                      />
+                    </Suspense>
+                  </ErrorBoundary>
+                </div>
+              );
+            })}
         </div>
       ) : (
         <div className="text-center py-12 sm:py-16">

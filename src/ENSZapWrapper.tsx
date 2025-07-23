@@ -24,7 +24,6 @@ export const ENSZapWrapper = () => {
   const [v3Output, setV3Output] = useState<bigint>(0n);
   const [directOutput, setDirectOutput] = useState<bigint>(0n);
   const [percentDiff, setPercentDiff] = useState<number>(0);
-  const [isCalculating, setIsCalculating] = useState(false);
 
   const publicClient = usePublicClient();
   const { data: reserves } = useReserves({

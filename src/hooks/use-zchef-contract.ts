@@ -100,7 +100,8 @@ export function useZChefPendingReward(chefId: bigint | undefined, userAddress?: 
     args: chefId && targetAddress ? [chefId, targetAddress] : undefined,
     query: {
       enabled: !!chefId && !!targetAddress,
-      staleTime: 15000,
+      staleTime: 30000, // Increase to 30s to reduce flicker
+      gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
     },
   });
 }
@@ -116,7 +117,8 @@ export function useZChefUserBalance(chefId: bigint | undefined, userAddress?: `0
     args: chefId && targetAddress ? [targetAddress, chefId] : undefined,
     query: {
       enabled: !!chefId && !!targetAddress,
-      staleTime: 15000,
+      staleTime: 30000, // Increase to 30s to reduce flicker
+      gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
     },
   });
 }

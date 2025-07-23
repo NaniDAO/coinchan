@@ -86,7 +86,7 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
   return (
     <div
       className={cn(
-        "bg-card text-card-foreground w-full border",
+        "bg-card text-card-foreground w-full border transform-gpu",
         hasStakeableTokens || hasStakedTokens ? "border-green-600" : "border-border",
       )}
     >
@@ -120,17 +120,17 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
                 <div className="text-xs text-green-600 font-mono mt-1">
                   {hasStakeableTokens && hasStakedTokens ? (
                     // Show both available LP and staked amounts
-                    <>
+                    <span className="whitespace-nowrap">
                       {formatLpAmount(lpBalance)} / {formatLpAmount(stakedAmount || 0n, false)} {t("common.staked")}
-                    </>
+                    </span>
                   ) : hasStakeableTokens ? (
                     // Show only available LP tokens
-                    <>{formatLpAmount(lpBalance)}</>
+                    <span className="whitespace-nowrap">{formatLpAmount(lpBalance)}</span>
                   ) : (
                     // Show only staked amount
-                    <>
+                    <span className="whitespace-nowrap">
                       {formatLpAmount(stakedAmount || 0n)} {t("common.staked")}
-                    </>
+                    </span>
                   )}
                 </div>
               )}
@@ -196,7 +196,7 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
         </div>
 
         {/* Pool Information */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 min-h-[72px]">
           <div className="border border-muted p-2 sm:p-3">
             <p className="text-muted-foreground font-mono text-xs">[{t("common.total_staked")}]</p>
             <p className="font-mono font-bold text-sm text-foreground mt-1">

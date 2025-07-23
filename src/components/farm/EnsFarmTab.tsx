@@ -191,6 +191,7 @@ export function EnsFarmTab() {
                 onHarvest={handleHarvest}
                 isHarvesting={harvestingId === farm.chefId}
                 ethPrice={ethPrice}
+                userLpBalance={lpBalance}
               />
             );
           })}
@@ -206,9 +207,10 @@ interface EnsFarmCardProps {
   onHarvest: (chefId: bigint) => Promise<void>;
   isHarvesting: boolean;
   ethPrice?: { priceUSD: number };
+  userLpBalance: bigint;
 }
 
-function EnsFarmCard({ farm, lpToken, onHarvest, isHarvesting, ethPrice }: EnsFarmCardProps) {
+function EnsFarmCard({ farm, lpToken, onHarvest, isHarvesting, ethPrice, userLpBalance }: EnsFarmCardProps) {
   const { t } = useTranslation();
 
   // Validate farm data
@@ -221,34 +223,6 @@ function EnsFarmCard({ farm, lpToken, onHarvest, isHarvesting, ethPrice }: EnsFa
   const { data: poolData } = useZChefPool(farm.chefId);
   const { data: userBalance } = useZChefUserBalance(farm.chefId);
   const { data: pendingRewards, isLoading: isLoadingRewards } = useZChefPendingReward(farm.chefId);
-
-  // Get LP balance directly from Cookbook for ENS
-  const { address: connectedAddress } = useAccount();
-  const publicClientCard = usePublicClient();
-  const [userLpBalance, setUserLpBalance] = useState(0n);
-
-  useEffect(() => {
-    const fetchLpBalance = async () => {
-      if (!connectedAddress || !publicClientCard) return;
-
-      try {
-        // Always use ENS_POOL_ID for ENS farms
-        const balance = (await publicClientCard.readContract({
-          address: CookbookAddress,
-          abi: CookbookAbi,
-          functionName: "balanceOf",
-          args: [connectedAddress, ENS_POOL_ID],
-        })) as bigint;
-
-        setUserLpBalance(balance);
-      } catch (err) {
-        console.error("Failed to fetch ENS LP balance in card:", err);
-        setUserLpBalance(0n);
-      }
-    };
-
-    fetchLpBalance();
-  }, [connectedAddress, publicClientCard]);
 
   // Get combined APR data to show base and farm APR separately
   const { baseApr, farmApr } = useCombinedApr({

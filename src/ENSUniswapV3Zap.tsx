@@ -5,7 +5,6 @@ import { formatEther, formatUnits, parseEther } from "viem";
 import { mainnet } from "viem/chains";
 import { useAccount, useChainId, usePublicClient, useWaitForTransactionReceipt, useSendTransaction } from "wagmi";
 import { NetworkError } from "./components/NetworkError";
-import { SlippageSettings } from "./components/SlippageSettings";
 import { SwapPanel } from "./components/SwapPanel";
 import { ENSLogo } from "./components/icons/ENSLogo";
 import { ENSZapAddress } from "./constants/ENSZap";
@@ -41,13 +40,10 @@ export const ENSUniswapV3Zap = () => {
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [txError, setTxError] = useState<string | null>(null);
 
-  const [singleEthSlippageBps, setSingleEthSlippageBps] = useState<bigint>(1000n); // 10% for ENS
   const [singleETHEstimatedCoin, setSingleETHEstimatedCoin] = useState<string>("");
   const [estimatedLpTokens, setEstimatedLpTokens] = useState<string>("");
   const [estimatedPoolShare, setEstimatedPoolShare] = useState<string>("");
   const [oracleInSync, setOracleInSync] = useState<boolean | null>(null);
-  const [zapContractBalance, setZapContractBalance] = useState<bigint>(0n);
-  const [ensPriceFromOracle, setEnsPriceFromOracle] = useState<bigint>(0n);
 
   const { tokens, isEthBalanceFetching } = useAllCoins();
 
@@ -88,7 +84,7 @@ export const ENSUniswapV3Zap = () => {
         const balance = await publicClient.getBalance({
           address: ENSZapAddress,
         });
-        setZapContractBalance(balance);
+        // Balance is used for oracle sync check below
 
         // Fetch ENS price from CheckTheChain oracle
         const ensPriceData = await publicClient.readContract({
@@ -100,7 +96,7 @@ export const ENSUniswapV3Zap = () => {
 
         if (ensPriceData) {
           const priceInWei = ensPriceData[0] as bigint;
-          setEnsPriceFromOracle(priceInWei);
+          // Price is used for oracle sync check below
 
           // Check if they're within 6% tolerance
           // The zap contract uses its balance as the price oracle

@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseEther, parseUnits, erc20Abi, maxUint256 } from "viem";
 import { mainnet } from "viem/chains";
@@ -7,7 +7,8 @@ import { useAccount, usePublicClient, useWriteContract, useWaitForTransactionRec
 import { useETHPrice } from "./hooks/use-eth-price";
 import { SwapPanel } from "./components/SwapPanel";
 import { SlippageSettings } from "./components/SlippageSettings";
-import PoolPriceChart from "./components/PoolPriceChart";
+// Lazy load heavy components
+const PoolPriceChart = lazy(() => import("./components/PoolPriceChart"));
 import { ChevronDownIcon } from "lucide-react";
 import { type TokenMeta, ETH_TOKEN, ENS_TOKEN, ENS_POOL_ID, ENS_ADDRESS, ENS_POOL_KEY } from "./lib/coins";
 import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
@@ -17,7 +18,7 @@ import { RemoveLiquidity } from "./RemoveLiquidity";
 import { ENSZapWrapper } from "./ENSZapWrapper";
 import { useTokenSelection } from "./contexts/TokenSelectionContext";
 import { getAmountOut, withSlippage, DEADLINE_SEC } from "./lib/swap";
-import { nowSec, formatNumber } from "./lib/utils";
+import { nowSec, formatNumber, debounce } from "./lib/utils";
 import { Button } from "./components/ui/button";
 import { LoadingLogo } from "./components/ui/loading-logo";
 import { useErc20Allowance } from "./hooks/use-erc20-allowance";
@@ -26,7 +27,9 @@ import { ConnectMenu } from "./ConnectMenu";
 import { CheckTheChainAbi, CheckTheChainAddress } from "./constants/CheckTheChain";
 import { TrendingUp, Zap, ArrowRight, Sparkles } from "lucide-react";
 import { ENSLogo } from "./components/icons/ENSLogo";
-import { EnsFarmTab } from "./components/farm/EnsFarmTab";
+const EnsFarmTab = lazy(() =>
+  import("./components/farm/EnsFarmTab").then((module) => ({ default: module.EnsFarmTab })),
+);
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { useActiveIncentiveStreams } from "./hooks/use-incentive-streams";
 import { useCombinedApr } from "./hooks/use-combined-apr";
@@ -52,12 +55,6 @@ export const EnsBuySell = () => {
   const [lastEditedField, setLastEditedField] = useState<"sell" | "buy">("sell");
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [priceImpact, setPriceImpact] = useState<{
-    currentPrice: number;
-    projectedPrice: number;
-    impactPercent: number;
-    action: "buy" | "sell";
-  } | null>(null);
   const [showPriceChart, setShowPriceChart] = useState<boolean>(true); // Open by default
   const [slippageBps, setSlippageBps] = useState<bigint>(1000n); // Default 10% for ENS
   const [arbitrageInfo, setArbitrageInfo] = useState<{
@@ -95,26 +92,40 @@ export const EnsBuySell = () => {
     enabled: !!ensFarm,
   });
 
-  // Create token metadata objects with current data
-  const ethToken = useMemo<TokenMeta>(
-    () => ({
+  // Create token metadata objects with current data - optimized to reduce object creation
+  const ethToken = useMemo<TokenMeta>(() => {
+    // Only create new object if values actually changed
+    if (
+      ETH_TOKEN.balance === ethBalance &&
+      ETH_TOKEN.reserve0 === poolReserves.reserve0 &&
+      ETH_TOKEN.reserve1 === poolReserves.reserve1
+    ) {
+      return ETH_TOKEN;
+    }
+    return {
       ...ETH_TOKEN,
       balance: ethBalance,
       reserve0: poolReserves.reserve0,
       reserve1: poolReserves.reserve1,
-    }),
-    [ethBalance, poolReserves.reserve0, poolReserves.reserve1],
-  );
+    };
+  }, [ethBalance, poolReserves.reserve0, poolReserves.reserve1]);
 
-  const ensToken = useMemo<TokenMeta>(
-    () => ({
+  const ensToken = useMemo<TokenMeta>(() => {
+    // Only create new object if values actually changed
+    if (
+      ENS_TOKEN.balance === ensBalance &&
+      ENS_TOKEN.reserve0 === poolReserves.reserve0 &&
+      ENS_TOKEN.reserve1 === poolReserves.reserve1
+    ) {
+      return ENS_TOKEN;
+    }
+    return {
       ...ENS_TOKEN,
       balance: ensBalance,
       reserve0: poolReserves.reserve0,
       reserve1: poolReserves.reserve1,
-    }),
-    [ensBalance, poolReserves.reserve0, poolReserves.reserve1],
-  );
+    };
+  }, [ensBalance, poolReserves.reserve0, poolReserves.reserve1]);
 
   // Set tokens in context when tab changes to add/remove/zap
   useEffect(() => {
@@ -124,71 +135,76 @@ export const EnsBuySell = () => {
     }
   }, [activeTab, ethToken, ensToken, setSellToken, setBuyToken]);
 
-  // Fetch pool reserves
+  // Consolidated data fetching for pool reserves and balances
   useEffect(() => {
-    const fetchPoolData = async () => {
+    const fetchAllData = async () => {
       if (!publicClient) return;
 
       try {
-        const poolData = await publicClient?.readContract({
-          address: CookbookAddress,
-          abi: CookbookAbi,
-          functionName: "pools",
-          args: [ENS_POOL_ID],
-        });
+        // Batch fetch pool data and balances in parallel
+        const promises = [];
 
+        // Pool data
+        promises.push(
+          publicClient.readContract({
+            address: CookbookAddress,
+            abi: CookbookAbi,
+            functionName: "pools",
+            args: [ENS_POOL_ID],
+          }),
+        );
+
+        // Balances if address is available
+        if (address) {
+          promises.push(
+            publicClient.readContract({
+              address: ENS_ADDRESS,
+              abi: erc20Abi,
+              functionName: "balanceOf",
+              args: [address],
+            }),
+            publicClient.getBalance({ address }),
+          );
+        }
+
+        const results = await Promise.all(promises);
+
+        // Update pool reserves
+        const poolData = results[0];
         if (Array.isArray(poolData) && poolData.length >= 2) {
           setPoolReserves({
             reserve0: poolData[0] as bigint, // ETH
             reserve1: poolData[1] as bigint, // ENS
           });
         }
+
+        // Update balances if fetched
+        if (address && results.length > 1) {
+          const ensBalance = results[1] as bigint;
+          const ethBalance = results[2] as bigint;
+
+          if (ensBalance !== undefined) {
+            setEnsBalance(ensBalance);
+          }
+          if (ethBalance !== undefined) {
+            setEthBalance(ethBalance);
+          }
+        }
       } catch (error) {
-        console.error("Failed to fetch ENS pool data:", error);
+        console.error("Failed to fetch data:", error);
       }
     };
 
-    fetchPoolData();
+    fetchAllData();
     // Refresh every 30 seconds
-    const interval = setInterval(fetchPoolData, 30000);
-    return () => clearInterval(interval);
-  }, [publicClient]);
-
-  // Fetch ENS and ETH balances
-  useEffect(() => {
-    const fetchBalances = async () => {
-      if (!publicClient || !address) return;
-
-      try {
-        // Fetch ENS balance
-        const ensBalance = await publicClient?.readContract({
-          address: ENS_ADDRESS,
-          abi: erc20Abi,
-          functionName: "balanceOf",
-          args: [address],
-        });
-        if (ensBalance !== undefined) {
-          setEnsBalance(ensBalance as bigint);
-        }
-
-        // Fetch ETH balance
-        const ethBalance = await publicClient?.getBalance({ address });
-        if (ethBalance !== undefined) {
-          setEthBalance(ethBalance);
-        }
-      } catch (error) {
-        console.error("Failed to fetch balances:", error);
-      }
-    };
-
-    fetchBalances();
-    // Refresh balances every 30 seconds
-    const interval = setInterval(fetchBalances, 30000);
+    const interval = setInterval(fetchAllData, 30000);
     return () => clearInterval(interval);
   }, [publicClient, address]);
 
-  // Check for arbitrage opportunity
+  // Check for arbitrage opportunity with proper cleanup
   useEffect(() => {
+    let cancelled = false;
+
     const checkArbitrage = async () => {
       if (!publicClient || !poolReserves.reserve0 || !poolReserves.reserve1) return;
 
@@ -219,12 +235,12 @@ export const EnsBuySell = () => {
         const ensFromCookbook = getAmountOut(testAmount, poolReserves.reserve0, poolReserves.reserve1, 30n);
 
         // Determine which opportunity exists
-        if (ensFromCookbook > ensFromUniV3) {
+        if (ensFromCookbook > ensFromUniV3 && ensFromUniV3 > 0n) {
           // Cookbook gives more ENS - highlight SWAP tab
           const extraENS = ensFromCookbook - ensFromUniV3;
           const percentGain = Number((extraENS * 10000n) / ensFromUniV3) / 100;
 
-          if (percentGain > 0.5) {
+          if (percentGain > 0.5 && !cancelled) {
             setArbitrageInfo({
               type: "swap",
               ensFromUniV3: Number(formatUnits(ensFromUniV3, 18)),
@@ -233,12 +249,12 @@ export const EnsBuySell = () => {
               testAmountETH: testAmountString,
             });
           }
-        } else if (ensFromUniV3 > ensFromCookbook) {
+        } else if (ensFromUniV3 > ensFromCookbook && ensFromCookbook > 0n) {
           // Uniswap gives more ENS - highlight ZAP tab
           const extraENS = ensFromUniV3 - ensFromCookbook;
           const percentGain = Number((extraENS * 10000n) / ensFromCookbook) / 100;
 
-          if (percentGain > 0.5) {
+          if (percentGain > 0.5 && !cancelled) {
             setArbitrageInfo({
               type: "zap",
               ensFromUniV3: Number(formatUnits(ensFromUniV3, 18)),
@@ -247,7 +263,7 @@ export const EnsBuySell = () => {
               testAmountETH: testAmountString,
             });
           }
-        } else {
+        } else if (!cancelled) {
           // No significant difference
           setArbitrageInfo(null);
         }
@@ -258,24 +274,42 @@ export const EnsBuySell = () => {
 
     // Check on mount and when pool reserves or balance change
     checkArbitrage();
+
+    return () => {
+      cancelled = true;
+    };
   }, [publicClient, poolReserves, ethBalance, isConnected]);
 
-  // Calculate market cap and price
-  const ensPrice =
-    poolReserves.reserve0 > 0n && poolReserves.reserve1 > 0n
-      ? Number(formatEther(poolReserves.reserve0)) / Number(formatUnits(poolReserves.reserve1, 18))
-      : 0;
+  // Calculate market cap and price with memoization
+  const { ensPrice, ensUsdPrice, marketCapUsd } = useMemo(() => {
+    const price =
+      poolReserves.reserve0 > 0n && poolReserves.reserve1 > 0n
+        ? Number(formatEther(poolReserves.reserve0)) / Number(formatUnits(poolReserves.reserve1, 18))
+        : 0;
 
-  const ensUsdPrice = ensPrice * (ethPrice?.priceUSD || 0);
+    const usdPrice = price * (ethPrice?.priceUSD || 0);
 
-  // ENS has a circulating supply of 33,165,585 tokens
-  const circulatingSupply = 33165585n * 10n ** 18n; // 33,165,585 tokens with 18 decimals
-  const marketCapUsd = ensUsdPrice * Number(formatUnits(circulatingSupply, 18));
+    // ENS has a circulating supply of 33,165,585 tokens
+    const circulatingSupply = 33165585n * 10n ** 18n; // 33,165,585 tokens with 18 decimals
+    const marketCap = usdPrice * Number(formatUnits(circulatingSupply, 18));
+
+    return { ensPrice: price, ensUsdPrice: usdPrice, marketCapUsd: marketCap };
+  }, [poolReserves.reserve0, poolReserves.reserve1, ethPrice?.priceUSD]);
 
   // Calculate output based on input
   const calculateOutput = useCallback(
     (value: string, field: "sell" | "buy") => {
       if (!poolReserves.reserve0 || !poolReserves.reserve1 || !value || parseFloat(value) === 0) {
+        if (field === "sell") setBuyAmount("");
+        else setSellAmount("");
+        return;
+      }
+
+      // Minimum liquidity check to prevent calculation errors
+      const minEthLiquidity = parseEther("0.1");
+      const minEnsLiquidity = parseUnits("100", 18);
+      if (poolReserves.reserve0 < minEthLiquidity || poolReserves.reserve1 < minEnsLiquidity) {
+        setErrorMessage(t("errors.insufficient_liquidity"));
         if (field === "sell") setBuyAmount("");
         else setSellAmount("");
         return;
@@ -301,13 +335,33 @@ export const EnsBuySell = () => {
             // Want exact ENS out, calculate ETH in
             const ensOut = parseUnits(value, 18);
             // For exact out: amountIn = (reserveIn * amountOut * 10000) / ((reserveOut - amountOut) * (10000 - fee))
-            const ethIn = (poolReserves.reserve0 * ensOut * 10000n) / ((poolReserves.reserve1 - ensOut) * 9970n);
-            setSellAmount(formatEther(ethIn));
+            // Ensure we don't exceed available reserves
+            if (poolReserves.reserve1 > ensOut && ensOut > 0n) {
+              const denominator = (poolReserves.reserve1 - ensOut) * 9970n;
+              if (denominator > 0n) {
+                const ethIn = (poolReserves.reserve0 * ensOut * 10000n) / denominator;
+                setSellAmount(formatEther(ethIn));
+              } else {
+                setSellAmount("");
+              }
+            } else {
+              setSellAmount("");
+            }
           } else {
             // Want exact ETH out, calculate ENS in
             const ethOut = parseEther(value);
-            const ensIn = (poolReserves.reserve1 * ethOut * 10000n) / ((poolReserves.reserve0 - ethOut) * 9970n);
-            setSellAmount(formatUnits(ensIn, 18));
+            // Ensure we don't exceed available reserves
+            if (poolReserves.reserve0 > ethOut && ethOut > 0n) {
+              const denominator = (poolReserves.reserve0 - ethOut) * 9970n;
+              if (denominator > 0n) {
+                const ensIn = (poolReserves.reserve1 * ethOut * 10000n) / denominator;
+                setSellAmount(formatUnits(ensIn, 18));
+              } else {
+                setSellAmount("");
+              }
+            } else {
+              setSellAmount("");
+            }
           }
         }
       } catch (error) {
@@ -316,54 +370,54 @@ export const EnsBuySell = () => {
         else setSellAmount("");
       }
     },
-    [poolReserves, swapDirection],
+    [poolReserves, swapDirection, setBuyAmount, setSellAmount],
   );
 
-  // Calculate price impact
-  useEffect(() => {
+  // Debounced version for user input to prevent excessive recalculations
+  const debouncedCalculateOutput = useMemo(
+    () => debounce((value: string, field: "sell" | "buy") => calculateOutput(value, field), 300),
+    [calculateOutput],
+  );
+
+  // Calculate price impact with memoization
+  const priceImpact = useMemo(() => {
     if (!poolReserves.reserve0 || !poolReserves.reserve1 || !sellAmount || parseFloat(sellAmount) === 0) {
-      setPriceImpact(null);
-      return;
+      return null;
     }
 
-    const timer = setTimeout(() => {
-      try {
-        let newReserve0 = poolReserves.reserve0;
-        let newReserve1 = poolReserves.reserve1;
+    try {
+      let newReserve0 = poolReserves.reserve0;
+      let newReserve1 = poolReserves.reserve1;
 
-        if (swapDirection === "buy") {
-          // Buying ENS with ETH
-          const ethIn = parseEther(sellAmount);
-          const ensOut = getAmountOut(ethIn, poolReserves.reserve0, poolReserves.reserve1, 30n);
-          newReserve0 = poolReserves.reserve0 + ethIn;
-          newReserve1 = poolReserves.reserve1 - ensOut;
-        } else {
-          // Selling ENS for ETH
-          const ensIn = parseUnits(sellAmount, 18);
-          const ethOut = getAmountOut(ensIn, poolReserves.reserve1, poolReserves.reserve0, 30n);
-          newReserve0 = poolReserves.reserve0 - ethOut;
-          newReserve1 = poolReserves.reserve1 + ensIn;
-        }
-
-        const currentPrice =
-          Number(formatEther(poolReserves.reserve0)) / Number(formatUnits(poolReserves.reserve1, 18));
-        const newPrice = Number(formatEther(newReserve0)) / Number(formatUnits(newReserve1, 18));
-        const impactPercent = ((newPrice - currentPrice) / currentPrice) * 100;
-
-        setPriceImpact({
-          currentPrice,
-          projectedPrice: newPrice,
-          impactPercent,
-          action: swapDirection,
-        });
-      } catch (error) {
-        console.error("Error calculating price impact:", error);
-        setPriceImpact(null);
+      if (swapDirection === "buy") {
+        // Buying ENS with ETH
+        const ethIn = parseEther(sellAmount);
+        const ensOut = getAmountOut(ethIn, poolReserves.reserve0, poolReserves.reserve1, 30n);
+        newReserve0 = poolReserves.reserve0 + ethIn;
+        newReserve1 = poolReserves.reserve1 - ensOut;
+      } else {
+        // Selling ENS for ETH
+        const ensIn = parseUnits(sellAmount, 18);
+        const ethOut = getAmountOut(ensIn, poolReserves.reserve1, poolReserves.reserve0, 30n);
+        newReserve0 = poolReserves.reserve0 - ethOut;
+        newReserve1 = poolReserves.reserve1 + ensIn;
       }
-    }, 500);
 
-    return () => clearTimeout(timer);
-  }, [sellAmount, swapDirection, poolReserves]);
+      const currentPrice = Number(formatEther(poolReserves.reserve0)) / Number(formatUnits(poolReserves.reserve1, 18));
+      const newPrice = Number(formatEther(newReserve0)) / Number(formatUnits(newReserve1, 18));
+      const impactPercent = ((newPrice - currentPrice) / currentPrice) * 100;
+
+      return {
+        currentPrice,
+        projectedPrice: newPrice,
+        impactPercent,
+        action: swapDirection,
+      };
+    } catch (error) {
+      console.error("Error calculating price impact:", error);
+      return null;
+    }
+  }, [sellAmount, swapDirection, poolReserves.reserve0, poolReserves.reserve1]);
 
   // Execute swap
   const executeSwap = async () => {
@@ -417,7 +471,13 @@ export const EnsBuySell = () => {
             functionName: "approve",
             args: [CookbookAddress, maxUint256],
           });
-          await publicClient?.waitForTransactionReceipt({ hash: approveHash });
+
+          try {
+            await publicClient?.waitForTransactionReceipt({ hash: approveHash });
+          } catch (approvalError) {
+            setErrorMessage(t("errors.approval_failed"));
+            return;
+          }
         }
 
         const ethOut = getAmountOut(ensIn, poolReserves.reserve1, poolReserves.reserve0, 30n);
@@ -602,7 +662,7 @@ export const EnsBuySell = () => {
                   onAmountChange={(val) => {
                     setSellAmount(val);
                     setLastEditedField("sell");
-                    calculateOutput(val, "sell");
+                    debouncedCalculateOutput(val, "sell");
                   }}
                   showMaxButton={true}
                   onMax={() => {
@@ -661,7 +721,7 @@ export const EnsBuySell = () => {
                   onAmountChange={(val) => {
                     setBuyAmount(val);
                     setLastEditedField("buy");
-                    calculateOutput(val, "buy");
+                    debouncedCalculateOutput(val, "buy");
                   }}
                   showPercentageSlider={lastEditedField === "buy"}
                   className="pt-2"
@@ -739,12 +799,20 @@ export const EnsBuySell = () => {
 
                   {showPriceChart && (
                     <div className="transition-all duration-300">
-                      <PoolPriceChart
-                        poolId={ENS_POOL_ID.toString()}
-                        ticker="ENS"
-                        ethUsdPrice={ethPrice?.priceUSD}
-                        priceImpact={priceImpact}
-                      />
+                      <Suspense
+                        fallback={
+                          <div className="h-64 flex items-center justify-center">
+                            <LoadingLogo />
+                          </div>
+                        }
+                      >
+                        <PoolPriceChart
+                          poolId={ENS_POOL_ID.toString()}
+                          ticker="ENS"
+                          ethUsdPrice={ethPrice?.priceUSD}
+                          priceImpact={priceImpact}
+                        />
+                      </Suspense>
                     </div>
                   )}
                 </div>
@@ -810,7 +878,15 @@ export const EnsBuySell = () => {
           </TabsContent>
           <TabsContent value="farm" className="mt-2 sm:mt-4">
             <ErrorBoundary fallback={<div>{t("common.error_loading_farm")}</div>}>
-              <EnsFarmTab />
+              <Suspense
+                fallback={
+                  <div className="h-64 flex items-center justify-center">
+                    <LoadingLogo />
+                  </div>
+                }
+              >
+                <EnsFarmTab />
+              </Suspense>
             </ErrorBoundary>
           </TabsContent>
         </Tabs>
