@@ -1,18 +1,18 @@
-import { useAccount } from "wagmi";
+import { useAccount, usePublicClient } from "wagmi";
 import { useTranslation } from "react-i18next";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { formatEther, formatUnits } from "viem";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useActiveIncentiveStreams } from "@/hooks/use-incentive-streams";
 import { useZChefUserBalance, useZChefPendingReward, useZChefActions, useZChefPool } from "@/hooks/use-zchef-contract";
-import { useLpBalance } from "@/hooks/use-lp-balance";
 import { FarmStakeDialog } from "@/components/FarmStakeDialog";
 import { FarmUnstakeDialog } from "@/components/FarmUnstakeDialog";
 import { isUserRejectionError } from "@/lib/errors";
 import { ENS_TOKEN, ENS_POOL_ID, type TokenMeta } from "@/lib/coins";
 import { cn, formatBalance, formatNumber } from "@/lib/utils";
 import { useCombinedApr } from "@/hooks/use-combined-apr";
+import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import type { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { useAllCoins } from "@/hooks/metadata/use-all-coins";
 import { useETHPrice } from "@/hooks/use-eth-price";
@@ -27,7 +27,7 @@ const ZAMM_POOL_ID = 22979666169544372205220120853398704213623237650449182409187
 
 export function EnsFarmTab() {
   const { t } = useTranslation();
-  const { address } = useAccount();
+  const { address: userAddress } = useAccount();
   const [harvestingId, setHarvestingId] = useState<bigint | null>(null);
   const { data: ethPrice } = useETHPrice();
 
@@ -70,11 +70,33 @@ export function EnsFarmTab() {
     }
   }, [allStreams]);
 
-  // Get LP balance for ENS pool using hardcoded pool ID from Cookbook
-  const { balance: lpBalance } = useLpBalance({
-    lpToken: ensTokenWithReserves,
-    poolId: ENS_POOL_ID,
-  });
+  // Get LP balance for ENS pool - directly read from Cookbook like RemoveLiquidity does
+  const { address } = useAccount();
+  const publicClient = usePublicClient();
+  const [lpBalance, setLpBalance] = useState(0n);
+  
+  useEffect(() => {
+    const fetchLpBalance = async () => {
+      if (!address || !publicClient) return;
+      
+      try {
+        // Read directly from Cookbook contract for ENS pool
+        const balance = (await publicClient.readContract({
+          address: CookbookAddress,
+          abi: CookbookAbi,
+          functionName: "balanceOf",
+          args: [address, ENS_POOL_ID],
+        })) as bigint;
+        
+        setLpBalance(balance);
+      } catch (err) {
+        console.error("Failed to fetch ENS LP balance:", err);
+        setLpBalance(0n);
+      }
+    };
+    
+    fetchLpBalance();
+  }, [userAddress, publicClient]);
 
   const { harvest } = useZChefActions();
 
@@ -103,7 +125,7 @@ export function EnsFarmTab() {
     );
   }
 
-  if (!address) {
+  if (!userAddress) {
     return (
       <div className="text-center py-12">
         <div className="bg-muted/10 border border-primary/30 rounded-lg p-8">
@@ -191,11 +213,33 @@ function EnsFarmCard({ farm, lpToken, onHarvest, isHarvesting, ethPrice }: EnsFa
   const { data: userBalance } = useZChefUserBalance(farm.chefId);
   const { data: pendingRewards, isLoading: isLoadingRewards } = useZChefPendingReward(farm.chefId);
   
-  // Get LP balance using the farm's lpId
-  const { balance: userLpBalance } = useLpBalance({
-    lpToken: lpToken,
-    poolId: farm.lpId,
-  });
+  // Get LP balance directly from Cookbook for ENS
+  const { address: connectedAddress } = useAccount();
+  const publicClientCard = usePublicClient();
+  const [userLpBalance, setUserLpBalance] = useState(0n);
+  
+  useEffect(() => {
+    const fetchLpBalance = async () => {
+      if (!connectedAddress || !publicClientCard) return;
+      
+      try {
+        // Always use ENS_POOL_ID for ENS farms
+        const balance = (await publicClientCard.readContract({
+          address: CookbookAddress,
+          abi: CookbookAbi,
+          functionName: "balanceOf",
+          args: [connectedAddress, ENS_POOL_ID],
+        })) as bigint;
+        
+        setUserLpBalance(balance);
+      } catch (err) {
+        console.error("Failed to fetch ENS LP balance in card:", err);
+        setUserLpBalance(0n);
+      }
+    };
+    
+    fetchLpBalance();
+  }, [connectedAddress, publicClientCard]);
   
   // Get combined APR data to show base and farm APR separately
   const { baseApr, farmApr } = useCombinedApr({

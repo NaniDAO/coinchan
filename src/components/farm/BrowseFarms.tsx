@@ -1,7 +1,7 @@
 import { useAllCoins } from "@/hooks/metadata/use-all-coins";
 import { useActiveIncentiveStreams } from "@/hooks/use-incentive-streams";
 import { useFarmsSummary } from "@/hooks/use-farms-summary";
-import { ETH_TOKEN, ENS_POOL_ID } from "@/lib/coins";
+import { ETH_TOKEN, ENS_POOL_ID, type TokenMeta } from "@/lib/coins";
 import { cn, formatBalance } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 import { formatEther } from "viem";
@@ -143,9 +143,9 @@ export const BrowseFarms = () => {
       ) : sortedStreams && sortedStreams.length > 0 ? (
         <div className="farm-cards-container grid gap-4 sm:gap-5 grid-cols-1 lg:grid-cols-2">
           {sortedStreams?.map((stream) => {
-            // Special handling for ENS farms - always use ENS token
+            // Special handling for ENS farms - always use ENS token with correct poolId
             const lpToken = BigInt(stream.lpId) === ENS_POOL_ID 
-              ? tokens.find((t) => t.symbol === "ENS")
+              ? { ...(tokens.find((t) => t.symbol === "ENS") || {}), poolId: ENS_POOL_ID, source: "COOKBOOK" as const } as TokenMeta
               : tokens.find((t) => {
                   // Direct pool ID match
                   if (t.poolId === BigInt(stream.lpId)) return true;
