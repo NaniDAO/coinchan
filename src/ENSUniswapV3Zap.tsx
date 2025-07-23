@@ -8,13 +8,13 @@ import { NetworkError } from "./components/NetworkError";
 import { SlippageSettings } from "./components/SlippageSettings";
 import { SwapPanel } from "./components/SwapPanel";
 import { ENSLogo } from "./components/icons/ENSLogo";
-import { ENSZapAbi, ENSZapAddress } from "./constants/ENSZap";
+import { ENSZapAddress } from "./constants/ENSZap";
 import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
 import { CheckTheChainAbi, CheckTheChainAddress } from "./constants/CheckTheChain";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { useReserves } from "./hooks/use-reserves";
 import { ETH_TOKEN, ENS_TOKEN, ENS_POOL_ID } from "./lib/coins";
-import { handleWalletError, isUserRejectionError } from "./lib/errors";
+import { handleWalletError } from "./lib/errors";
 import { getAmountOut } from "./lib/swap";
 import { formatNumber } from "./lib/utils";
 
