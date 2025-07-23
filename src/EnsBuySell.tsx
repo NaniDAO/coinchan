@@ -93,7 +93,7 @@ export const EnsBuySell = () => {
     stream: ensFarm,
     lpToken: ENS_TOKEN,
     enabled: true,
-  }) : { farmApr: 0, baseApr: 0, totalApr: 0, breakdown: { tradingFees: 0, rewardSymbol: '' }, isLoading: false };
+  }) : { farmApr: 0 };
 
 
   // Create token metadata objects with current data
