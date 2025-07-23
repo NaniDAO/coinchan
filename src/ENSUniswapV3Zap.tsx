@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseEther } from "viem";
 import { mainnet } from "viem/chains";
-import { useAccount, useChainId, usePublicClient, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import { useAccount, useChainId, usePublicClient, useWaitForTransactionReceipt, useSendTransaction } from "wagmi";
 import { NetworkError } from "./components/NetworkError";
 import { SlippageSettings } from "./components/SlippageSettings";
 import { SwapPanel } from "./components/SwapPanel";
@@ -13,10 +13,10 @@ import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
 import { CheckTheChainAbi, CheckTheChainAddress } from "./constants/CheckTheChain";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { useReserves } from "./hooks/use-reserves";
-import { ETH_TOKEN, ENS_TOKEN, ENS_POOL_ID, ENS_POOL_KEY } from "./lib/coins";
+import { ETH_TOKEN, ENS_TOKEN, ENS_POOL_ID } from "./lib/coins";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
-import { DEADLINE_SEC, getAmountOut, withSlippage } from "./lib/swap";
-import { nowSec, formatNumber } from "./lib/utils";
+import { getAmountOut } from "./lib/swap";
+import { formatNumber } from "./lib/utils";
 
 // Helper function to calculate square root for LP token calculation
 const sqrt = (value: bigint): bigint => {
@@ -53,7 +53,7 @@ export const ENSUniswapV3Zap = () => {
 
   const { isConnected, address } = useAccount();
   const chainId = useChainId();
-  const { writeContractAsync, isPending, error: writeError } = useWriteContract();
+  const { sendTransactionAsync, isPending } = useSendTransaction();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
   const publicClient = usePublicClient({
     chainId,
@@ -265,7 +265,6 @@ export const ENSUniswapV3Zap = () => {
         return;
       }
 
-      const deadline = nowSec() + BigInt(DEADLINE_SEC);
       const ethAmount = parseEther(sellAmt);
 
       // The contract will use half of the ETH to swap for tokens on Uniswap V3
@@ -304,25 +303,30 @@ export const ENSUniswapV3Zap = () => {
         }
       }
 
-      // Apply slippage tolerance
-      const minTokenAmount = withSlippage(estimatedTokens, singleEthSlippageBps);
-      const amount0Min = withSlippage(halfEthAmount, singleEthSlippageBps);
-      const amount1Min = withSlippage(estimatedTokens, singleEthSlippageBps);
-
-      // Call addSingleLiqETH on the ENS Zap contract
-      const hash = await writeContractAsync({
-        address: ENSZapAddress,
-        abi: ENSZapAbi,
-        functionName: "addSingleLiqETH",
-        args: [
-          ENS_POOL_KEY as any, // Pool key with feeOrHook
-          minTokenAmount, // Minimum tokens from swap
-          amount0Min, // Minimum ETH for liquidity
-          amount1Min, // Minimum tokens for liquidity
-          address, // LP tokens receiver
-          deadline,
-        ],
+      // Simply send ETH directly to the ENS Zap contract
+      // The contract will handle the zap internally via its receive/fallback function
+      
+      // First, estimate gas for the transaction
+      let gasEstimate = 300000n; // Default fallback
+      try {
+        gasEstimate = await publicClient?.estimateGas({
+          account: address,
+          to: ENSZapAddress,
+          value: ethAmount,
+        }) || 300000n;
+      } catch (e) {
+        console.warn("Gas estimation failed, using default", e);
+      }
+      
+      // Add 20% buffer to the estimate for safety
+      // This ensures complex operations (swap + add liquidity) have enough gas
+      // Unused gas is automatically refunded
+      const gasLimit = (gasEstimate * 120n) / 100n;
+      
+      const hash = await sendTransactionAsync({
+        to: ENSZapAddress,
         value: ethAmount, // Send the full ETH amount
+        gas: gasLimit, // Use estimated gas + 50% buffer
       });
 
       setTxHash(hash);
@@ -488,9 +492,9 @@ export const ENSUniswapV3Zap = () => {
           {txError}
         </div>
       )}
-      {((writeError && !isUserRejectionError(writeError)) || (txError && !txError.includes(t("common.waiting_for")))) && (
+      {txError && !txError.includes(t("common.waiting_for")) && (
         <div className="text-sm text-destructive mt-2 bg-background/50 p-2 rounded border border-destructive/20">
-          {writeError && !isUserRejectionError(writeError) ? writeError.message : txError}
+          {txError}
         </div>
       )}
       {txHash && !isSuccess && (
