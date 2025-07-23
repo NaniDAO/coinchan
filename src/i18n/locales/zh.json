@@ -324,6 +324,7 @@
     "half_eth_swapped": "一半ETH将兑换为代币",
     "remaining_eth_paired": "剩余ETH将与兑换的代币配对",
     "lp_tokens_staked_automatically": "LP代币将自动质押",
+    "dust_refund_note": "钱包模拟中可能会显示少量ETH/代币的尘埃退款",
     "eth_input": "ETH输入",
     "eth_for_swap": "兑换用ETH",
     "estimated_tokens": "预计代币",

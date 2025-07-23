@@ -148,12 +148,16 @@ export function EnsFarmTab() {
               console.error("Invalid farm data in ensFarms:", farm);
               return null;
             }
+            // Ensure lpToken has the correct poolId that matches the farm's lpId
+            const farmLpToken = {
+              ...ensTokenWithReserves,
+              poolId: farm.lpId, // Use the farm's lpId to ensure consistency
+            };
             return (
               <EnsFarmCard
                 key={farm.chefId.toString()}
                 farm={farm}
-                lpToken={ensTokenWithReserves}
-                lpBalance={lpBalance}
+                lpToken={farmLpToken}
                 onHarvest={handleHarvest}
                 isHarvesting={harvestingId === farm.chefId}
                 ethPrice={ethPrice}
@@ -169,13 +173,12 @@ export function EnsFarmTab() {
 interface EnsFarmCardProps {
   farm: IncentiveStream;
   lpToken: TokenMeta;
-  lpBalance: bigint;
   onHarvest: (chefId: bigint) => Promise<void>;
   isHarvesting: boolean;
   ethPrice?: { priceUSD: number };
 }
 
-function EnsFarmCard({ farm, lpToken, lpBalance, onHarvest, isHarvesting, ethPrice }: EnsFarmCardProps) {
+function EnsFarmCard({ farm, lpToken, onHarvest, isHarvesting, ethPrice }: EnsFarmCardProps) {
   const { t } = useTranslation();
 
   // Validate farm data
@@ -188,6 +191,12 @@ function EnsFarmCard({ farm, lpToken, lpBalance, onHarvest, isHarvesting, ethPri
   const { data: poolData } = useZChefPool(farm.chefId);
   const { data: userBalance } = useZChefUserBalance(farm.chefId);
   const { data: pendingRewards, isLoading: isLoadingRewards } = useZChefPendingReward(farm.chefId);
+  
+  // Get LP balance using the farm's lpId
+  const { balance: userLpBalance } = useLpBalance({
+    lpToken: lpToken,
+    poolId: farm.lpId,
+  });
   
   // Get combined APR data to show base and farm APR separately
   const { baseApr, farmApr } = useCombinedApr({
@@ -205,7 +214,7 @@ function EnsFarmCard({ farm, lpToken, lpBalance, onHarvest, isHarvesting, ethPri
 
   const totalShares = poolData?.[7] ?? farm.totalShares ?? 0n;
   const hasStaked = !!(userBalance && userBalance > 0n);
-  const canStake = lpBalance > 0n;
+  const canStake = userLpBalance > 0n;
 
   // Calculate time remaining
   const timeRemaining = useMemo(() => {
@@ -258,16 +267,10 @@ function EnsFarmCard({ farm, lpToken, lpBalance, onHarvest, isHarvesting, ethPri
         {/* Farm Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {farm.rewardCoin?.imageUrl && (
-              <img
-                src={formatImageURL(farm.rewardCoin.imageUrl)}
-                alt={farm.rewardCoin.symbol}
-                className="w-6 h-6 rounded-full"
-              />
-            )}
+            <ENSLogo className="w-6 h-6" />
             <div>
               <h4 className="font-mono font-bold text-primary">
-                {farm.rewardCoin?.symbol || "???"} {t("common.rewards_suffix")}
+                ENS {t("common.pool")} - {farm.rewardCoin?.symbol || "???"} {t("common.rewards_suffix")}
               </h4>
               <p className="text-xs text-muted-foreground">
                 {hasTimeRemaining

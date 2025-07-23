@@ -462,6 +462,10 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                     <span className="text-primary font-bold">•</span>
                     <span>{t("common.lp_tokens_staked_automatically")}</span>
                   </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-primary font-bold">•</span>
+                    <span className="text-xs opacity-75">{t("common.dust_refund_note")}</span>
+                  </li>
                 </ul>
               </div>
             )}

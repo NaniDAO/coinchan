@@ -324,6 +324,7 @@
     "half_eth_swapped": "Half ETH will be swapped to the token",
     "remaining_eth_paired": "Remaining ETH will be paired with swapped tokens",
     "lp_tokens_staked_automatically": "LP tokens will be staked automatically",
+    "dust_refund_note": "You may see small dust refunds of ETH/tokens in wallet simulation",
     "eth_input": "ETH Input",
     "eth_for_swap": "ETH for Swap",
     "estimated_tokens": "Estimated Tokens",
