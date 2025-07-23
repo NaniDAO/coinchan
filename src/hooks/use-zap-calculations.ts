@@ -71,7 +71,7 @@ export function useZapCalculations() {
       }
 
       // Validate that the stream's LP pool matches our token (skip for ENS since we use stream.lpId)
-      if (!isENS && BigInt(stream.lpId) !== BigInt(lpToken.poolId)) {
+      if (!isENS && lpToken.poolId && BigInt(stream.lpId) !== BigInt(lpToken.poolId)) {
         throw new Error("Stream LP ID does not match token pool ID");
       }
 
