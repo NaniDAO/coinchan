@@ -4,13 +4,7 @@ import { ResponsiveContainer, Tooltip, Treemap } from "recharts";
 import { type Address, formatUnits, getAddress } from "viem";
 import { useEnsName } from "wagmi";
 import { Table, TableBody, TableCell, TableHead, TableRow } from "./ui/table";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "./ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { ZAMMAddress } from "@/constants/ZAAM";
 import { CookbookAddress } from "@/constants/Cookbook";
 
@@ -75,28 +69,14 @@ export const CoinHolders = ({
   if (error) return <div>Error: {error.message}</div>;
 
   // Separate pool addresses from regular holders
-  const poolAddresses = [
-    ZAMMAddress.toLowerCase(),
-    CookbookAddress.toLowerCase(),
-  ];
-  const poolHolders = data.filter((holder) =>
-    poolAddresses.includes(holder.address.toLowerCase()),
-  );
-  const nonPoolHolders = data.filter(
-    (holder) => !poolAddresses.includes(holder.address.toLowerCase()),
-  );
+  const poolAddresses = [ZAMMAddress.toLowerCase(), CookbookAddress.toLowerCase()];
+  const poolHolders = data.filter((holder) => poolAddresses.includes(holder.address.toLowerCase()));
+  const nonPoolHolders = data.filter((holder) => !poolAddresses.includes(holder.address.toLowerCase()));
 
   // Calculate total supply and pool percentage
-  const totalSupply = data.reduce(
-    (acc, holder) => acc + BigInt(holder.balance),
-    BigInt(0),
-  );
-  const poolBalance = poolHolders.reduce(
-    (acc, holder) => acc + BigInt(holder.balance),
-    BigInt(0),
-  );
-  const poolPercentage =
-    totalSupply > 0n ? (Number(poolBalance) / Number(totalSupply)) * 100 : 0;
+  const totalSupply = data.reduce((acc, holder) => acc + BigInt(holder.balance), BigInt(0));
+  const poolBalance = poolHolders.reduce((acc, holder) => acc + BigInt(holder.balance), BigInt(0));
+  const poolPercentage = totalSupply > 0n ? (Number(poolBalance) / Number(totalSupply)) * 100 : 0;
 
   return (
     <div className="space-y-4">
@@ -105,28 +85,18 @@ export const CoinHolders = ({
         <Card>
           <CardHeader>
             <CardTitle>Pool Holdings</CardTitle>
-            <CardDescription>
-              Liquidity held by ZAMM and Cookbook pools
-            </CardDescription>
+            <CardDescription>Liquidity held by ZAMM and Cookbook pools</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               {poolHolders.map((holder, index) => {
-                const isZAMM =
-                  holder.address.toLowerCase() === ZAMMAddress.toLowerCase();
+                const isZAMM = holder.address.toLowerCase() === ZAMMAddress.toLowerCase();
                 const poolName = isZAMM ? "ZAMM Pool" : "Cookbook Pool";
                 const balance = formatUnits(BigInt(holder.balance), 18);
-                const percentage =
-                  totalSupply > 0n
-                    ? (Number(BigInt(holder.balance)) / Number(totalSupply)) *
-                      100
-                    : 0;
+                const percentage = totalSupply > 0n ? (Number(BigInt(holder.balance)) / Number(totalSupply)) * 100 : 0;
 
                 return (
-                  <div
-                    key={index}
-                    className="flex justify-between items-center p-2 rounded bg-muted/50"
-                  >
+                  <div key={index} className="flex justify-between items-center p-2 rounded bg-muted/50">
                     <div>
                       <div className="font-medium">{poolName}</div>
                       <div className="text-sm text-muted-foreground">
@@ -138,9 +108,7 @@ export const CoinHolders = ({
                       <div className="font-medium">
                         {Number(balance).toFixed(4)} {symbol}
                       </div>
-                      <div className="text-sm text-muted-foreground">
-                        {percentage.toFixed(2)}%
-                      </div>
+                      <div className="text-sm text-muted-foreground">{percentage.toFixed(2)}%</div>
                     </div>
                   </div>
                 );
@@ -195,13 +163,7 @@ export const CoinHoldersTreemap = ({ data }: { data: Holder[] }) => {
             content={({ payload }) => {
               if (!payload || payload.length === 0) return null;
               const item = payload[0].payload;
-              return (
-                <CoinHolderTag
-                  address={item.address}
-                  balance={item.size}
-                  symbol={item.symbol}
-                />
-              );
+              return <CoinHolderTag address={item.address} balance={item.size} symbol={item.symbol} />;
             }}
           />
         </Treemap>
@@ -290,11 +252,7 @@ const CustomTreemapContent = (props: any) => {
   const { x, y, width, height, address, color } = props;
 
   return (
-    <a
-      href={`https://etherscan.io/address/${address}`}
-      target="_blank"
-      rel="noopener noreferrer"
-    >
+    <a href={`https://etherscan.io/address/${address}`} target="_blank" rel="noopener noreferrer">
       <g>
         <rect
           x={x}
@@ -309,13 +267,7 @@ const CustomTreemapContent = (props: any) => {
           }}
         />
         {width > 60 && height > 20 ? (
-          <text
-            x={x + width / 2}
-            y={y + height / 2}
-            textAnchor="middle"
-            fill="#fff"
-            fontSize={12}
-          >
+          <text x={x + width / 2} y={y + height / 2} textAnchor="middle" fill="#fff" fontSize={12}>
             {/* {name} */}
           </text>
         ) : null}
@@ -333,10 +285,7 @@ const CoinHoldersTable = ({
   data: Holder[];
   symbol: string;
 }) => {
-  const totalSupply = data.reduce(
-    (acc, holder) => acc + BigInt(holder.balance),
-    BigInt(0),
-  );
+  const totalSupply = data.reduce((acc, holder) => acc + BigInt(holder.balance), BigInt(0));
 
   return (
     <Table>
@@ -389,11 +338,7 @@ export const CoinHolderTableRow = ({
         {Number(
           (
             (Number.parseFloat(formatUnits(BigInt(balance), 18)) /
-              Number.parseFloat(
-                totalSupply
-                  ? formatUnits(totalSupply, 18)
-                  : DEFAULT_TOTAL_SUPPLY.toString(),
-              )) *
+              Number.parseFloat(totalSupply ? formatUnits(totalSupply, 18) : DEFAULT_TOTAL_SUPPLY.toString())) *
             100
           ).toString(),
         ).toFixed(4)}

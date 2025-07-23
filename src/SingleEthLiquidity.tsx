@@ -84,7 +84,7 @@ export const SingleEthLiquidity = () => {
   const [txError, setTxError] = useState<string | null>(null);
 
   const [singleEthSlippageBps, setSingleEthSlippageBps] = useState<bigint>(
-    (buyToken?.symbol === "CULT" || buyToken?.symbol === "ENS") ? 1000n : SINGLE_ETH_SLIPPAGE_BPS,
+    buyToken?.symbol === "CULT" || buyToken?.symbol === "ENS" ? 1000n : SINGLE_ETH_SLIPPAGE_BPS,
   );
   const [singleETHEstimatedCoin, setSingleETHEstimatedCoin] = useState<string>("");
   const [estimatedLpTokens, setEstimatedLpTokens] = useState<string>("");
@@ -148,6 +148,11 @@ export const SingleEthLiquidity = () => {
   const syncFromSell = async (val: string) => {
     // Single-ETH liquidity mode - estimate the token amount the user will get
     setSellAmt(val);
+
+    // Emit event for ENS wrapper to listen (only for ENS)
+    if (buyToken?.symbol === "ENS") {
+      window.dispatchEvent(new CustomEvent("ensZapEthAmountChange", { detail: { amount: val } }));
+    }
     // Allow custom pools like USDT with id=0
     if (!reserves || !val || !buyToken || (buyToken.id === null && !buyToken.isCustomPool)) {
       setSingleETHEstimatedCoin("");
@@ -332,6 +337,13 @@ export const SingleEthLiquidity = () => {
 
     if (!sellAmt || Number.parseFloat(sellAmt) <= 0) {
       setTxError("Please enter a valid ETH amount");
+      return;
+    }
+
+    // Validate ETH balance
+    const ethRequired = parseEther(sellAmt);
+    if (sellToken.balance && sellToken.balance < ethRequired) {
+      setTxError("Insufficient ETH balance");
       return;
     }
 
@@ -634,10 +646,20 @@ export const SingleEthLiquidity = () => {
       {/* ACTION BUTTON */}
       <button
         onClick={executeSingleETHLiquidity}
-        disabled={!isConnected || isPending}
+        disabled={
+          !isConnected ||
+          isPending ||
+          !sellAmt ||
+          parseFloat(sellAmt) === 0 ||
+          (sellToken.balance && parseEther(sellAmt || "0") > sellToken.balance)
+        }
         className={`mt-2 w-full button text-base px-8 py-4 bg-primary text-primary-foreground font-bold rounded-lg transform transition-all duration-200
           ${
-            !isConnected || isPending
+            !isConnected ||
+            isPending ||
+            !sellAmt ||
+            parseFloat(sellAmt) === 0 ||
+            (sellToken.balance && parseEther(sellAmt || "0") > sellToken.balance)
               ? "opacity-50 cursor-not-allowed"
               : "opacity-100 hover:scale-105 hover:shadow-lg focus:ring-4 focus:ring-primary/50 focus:outline-none"
           }

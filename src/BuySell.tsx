@@ -45,12 +45,14 @@ export const BuySell = ({
   tokenId: bigint;
   name: string;
   symbol: string;
-  onPriceImpactChange?: (impact: {
-    currentPrice: number;
-    projectedPrice: number;
-    impactPercent: number;
-    action: "buy" | "sell";
-  } | null) => void;
+  onPriceImpactChange?: (
+    impact: {
+      currentPrice: number;
+      projectedPrice: number;
+      impactPercent: number;
+      action: "buy" | "sell";
+    } | null,
+  ) => void;
 }) => {
   const [tab, setTab] = useState<"buy" | "sell">("buy");
   const [amount, setAmount] = useState("");
@@ -226,7 +228,7 @@ export const BuySell = ({
       try {
         const reserve0 = reserves.reserve0;
         const reserve1 = reserves.reserve1;
-        
+
         if (reserve0 === 0n || reserve1 === 0n) {
           onPriceImpactChange?.(null);
           return;
@@ -240,13 +242,13 @@ export const BuySell = ({
           try {
             const swapAmountEth = parseEther(amount || "0");
             const amountOut = getAmountOut(swapAmountEth, reserve0, reserve1, swapFee);
-            
+
             if (amountOut >= reserve1) {
               // Would drain the pool
               onPriceImpactChange?.(null);
               return;
             }
-            
+
             newReserve0 = reserve0 + swapAmountEth;
             newReserve1 = reserve1 - amountOut;
           } catch (e) {
@@ -259,13 +261,13 @@ export const BuySell = ({
           try {
             const swapAmountToken = parseUnits(amount || "0", 18);
             const amountOut = getAmountOut(swapAmountToken, reserve1, reserve0, swapFee);
-            
+
             if (amountOut >= reserve0) {
               // Would drain the pool
               onPriceImpactChange?.(null);
               return;
             }
-            
+
             newReserve0 = reserve0 - amountOut;
             newReserve1 = reserve1 + swapAmountToken;
           } catch (e) {
@@ -279,14 +281,14 @@ export const BuySell = ({
         // Use BigInt math for better precision before converting to float
         const currentPrice = (reserve0 * BigInt(1e18)) / reserve1;
         const newPrice = (newReserve0 * BigInt(1e18)) / newReserve1;
-        
+
         const currentPriceInEth = Number(currentPrice) / 1e18;
         const newPriceInEth = Number(newPrice) / 1e18;
-        
+
         // For charting: when buying tokens (adding ETH), price goes up; when selling tokens (removing ETH), price goes down
-        const ethReserveChange = tab === 'buy' ? 'increase' : 'decrease';
-        
-        console.log('BuySell price impact calculation:', {
+        const ethReserveChange = tab === "buy" ? "increase" : "decrease";
+
+        console.log("BuySell price impact calculation:", {
           action: tab,
           ethReserveChange,
           reserve0: formatEther(reserve0),
@@ -295,7 +297,7 @@ export const BuySell = ({
           newReserve1: formatUnits(newReserve1, 18),
           currentPriceInEth,
           newPriceInEth,
-          priceChange: newPriceInEth > currentPriceInEth ? 'up' : 'down'
+          priceChange: newPriceInEth > currentPriceInEth ? "up" : "down",
         });
 
         // Validate calculated prices
@@ -313,19 +315,20 @@ export const BuySell = ({
           onPriceImpactChange?.(null);
           return;
         }
-        
+
         // For very small trades, ensure the price moves in the correct direction
         // This handles rounding errors that might show price going up when selling small amounts
         if (Math.abs(impactPercent) < 0.0001) {
           // Force the direction to match the action for tiny impacts
-          const adjustedNewPrice = tab === 'buy' 
-            ? currentPriceInEth * 1.00001 // Tiny increase for buys
-            : currentPriceInEth * 0.99999; // Tiny decrease for sells
-            
+          const adjustedNewPrice =
+            tab === "buy"
+              ? currentPriceInEth * 1.00001 // Tiny increase for buys
+              : currentPriceInEth * 0.99999; // Tiny decrease for sells
+
           const impact = {
             currentPrice: currentPriceInEth,
             projectedPrice: adjustedNewPrice,
-            impactPercent: tab === 'buy' ? 0.001 : -0.001,
+            impactPercent: tab === "buy" ? 0.001 : -0.001,
             action: tab,
           };
           setPriceImpact(impact);
@@ -509,10 +512,8 @@ export const BuySell = ({
                 You will receive ~ {formatNumber(parseFloat(estimated), 6)} {symbol}
               </span>
               {priceImpact && (
-                <span 
-                  className={`text-xs font-medium ${
-                    priceImpact.impactPercent > 0 ? "text-green-600" : "text-red-600"
-                  }`}
+                <span
+                  className={`text-xs font-medium ${priceImpact.impactPercent > 0 ? "text-green-600" : "text-red-600"}`}
                 >
                   {priceImpact.impactPercent > 0 ? "+" : ""}
                   {priceImpact.impactPercent.toFixed(2)}%
@@ -557,7 +558,7 @@ export const BuySell = ({
                   You will receive ~ {formatNumber(parseFloat(estimated), 6)} ETH
                 </span>
                 {priceImpact && (
-                  <span 
+                  <span
                     className={`text-xs font-medium ${
                       priceImpact.impactPercent > 0 ? "text-green-600" : "text-red-600"
                     }`}
