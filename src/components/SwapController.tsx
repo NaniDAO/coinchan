@@ -293,7 +293,7 @@ export const SwapController = ({
         </div>
       )}
       {errorText && (
-        <div className="mt-1 text-xs text-destructive text-center">
+        <div className="mt-1 text-xs text-muted-foreground text-center">
           {errorText}
         </div>
       )}
