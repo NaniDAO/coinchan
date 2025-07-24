@@ -5,9 +5,6 @@ import {
   useRandomLoadingText,
 } from "../hooks/use-landing-data";
 import { useProtocolStats } from "../hooks/use-protocol-stats";
-import { SwapModal } from "./SwapModal";
-import { ZammLogo } from "./ZammLogo";
-import { Card } from "./ui/card";
 import { useTheme } from "@/lib/theme";
 
 interface LandingPageProps {
@@ -225,7 +222,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
 
       {/* Video */}
       <video
-        className="fixed bottom-5 right-5 w-20 h-20"
+        className="fixed bottom-5 right-5 w-40 h-40"
         style={{
           clipPath: "polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)",
         }}
@@ -234,20 +231,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
         loop
         muted
       />
-
-      <style jsx>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.3s ease-in;
-        }
-      `}</style>
     </div>
   );
 };

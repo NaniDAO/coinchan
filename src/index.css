@@ -551,7 +551,12 @@ body {
 
 .token-loading {
   animation: shimmer 1.5s infinite;
-  background: linear-gradient(90deg, var(--terminal-gray) 0%, var(--terminal-white) 50%, var(--terminal-gray) 100%);
+  background: linear-gradient(
+    90deg,
+    var(--terminal-gray) 0%,
+    var(--terminal-white) 50%,
+    var(--terminal-gray) 100%
+  );
   background-size: 200% 100%;
   border: 1px solid var(--terminal-black);
 }
@@ -570,6 +575,18 @@ body {
 
 .animate-terminal-ping {
   animation: terminal-ping 0.4s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-in;
 }
 
 /* Hide scrollbars or style them minimally */
