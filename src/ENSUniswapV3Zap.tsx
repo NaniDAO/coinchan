@@ -1,4 +1,5 @@
 import { CheckIcon, Loader2, X, ExternalLink } from "lucide-react";
+import { SlippageSettings } from "./components/SlippageSettings";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseEther } from "viem";
@@ -44,6 +45,7 @@ export const ENSUniswapV3Zap = () => {
   const [estimatedLpTokens, setEstimatedLpTokens] = useState<string>("");
   const [estimatedPoolShare, setEstimatedPoolShare] = useState<string>("");
   const [oracleInSync, setOracleInSync] = useState<boolean | null>(null);
+  const [slippageBps, setSlippageBps] = useState<bigint>(1000n); // Default 10% for ENS V3 ZAP
 
   const { tokens, isEthBalanceFetching } = useAllCoins();
 
@@ -300,24 +302,16 @@ export const ENSUniswapV3Zap = () => {
       }
 
       // Calculate slippage for the swap output and LP amounts
-      const slippageBps = 600n; // 6% slippage for V3 swaps
       const amountOutMin = withSlippage(estimatedTokens, slippageBps);
       
-      // For LP calculations, we need minimum amounts for both ETH and ENS
-      // These protect against sandwich attacks during liquidity addition
+      // For LP calculations, we need to be more conservative
+      // The contract will determine actual ETH amount based on ENS received
+      // So we use the user's slippage setting for both amounts
       const amount0Min = withSlippage(halfEthAmount, slippageBps);
+      const amount1Min = withSlippage(estimatedTokens, slippageBps);
       
-      // Calculate amount1Min based on Cookbook pool's expected ratio
-      // This accounts for the fact that V3 and Cookbook pools may have different prices
-      let amount1Min: bigint;
-      if (reserves && reserves.reserve0 > 0n && reserves.reserve1 > 0n) {
-        // Calculate how much ENS the Cookbook pool expects for halfEthAmount
-        const expectedEnsForLiquidity = (halfEthAmount * reserves.reserve1) / reserves.reserve0;
-        amount1Min = withSlippage(expectedEnsForLiquidity, slippageBps);
-      } else {
-        // Fallback: use the V3 estimate if we don't have pool reserves
-        amount1Min = amountOutMin;
-      }
+      // Note: The contract handles the case where it gets more ENS than expected
+      // and adjusts the ETH amount accordingly, refunding any excess
       
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
@@ -410,7 +404,11 @@ export const ENSUniswapV3Zap = () => {
             )}
           </div>
         </div>
-        <p className="text-xs text-muted-foreground mt-1">{t("ens.oracle_slippage_guard", { percentage: 6 })}</p>
+      </div>
+
+      {/* Slippage Settings */}
+      <div className="mt-2">
+        <SlippageSettings slippageBps={slippageBps} setSlippageBps={setSlippageBps} />
       </div>
 
       {/* LP Tokens and Pool Share Estimation */}
