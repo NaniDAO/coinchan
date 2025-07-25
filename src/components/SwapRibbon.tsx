@@ -119,10 +119,6 @@ const convertToSnippets = async (
           pool.coin1Id === "0" &&
           pool.token1 !== "0x0000000000000000000000000000000000000000";
 
-        if (pool.coin1 === null) {
-          console.log("SWAP:", { swap, isErc20 });
-        }
-
         let tokenSymbol = pool.coin1?.symbol;
         let coinId = pool.coin1Id;
 
@@ -200,8 +196,6 @@ const convertToSnippets = async (
       }
     }),
   );
-
-  console.log("SNIPPETS:", snippets);
 
   return snippets.filter((snippet) => snippet !== null);
 };

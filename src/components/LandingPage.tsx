@@ -6,30 +6,13 @@ import {
 } from "../hooks/use-landing-data";
 import { useProtocolStats } from "../hooks/use-protocol-stats";
 import { useTheme } from "@/lib/theme";
-import { getRandomDiamondColor } from "@/lib/color";
+import { TrendingFarm } from "./TrendingFarm";
+import { ErrorBoundary } from "./ErrorBoundary";
+import { LoadingLogo } from "./ui/loading-logo";
 
 interface LandingPageProps {
   onEnterApp?: () => void;
 }
-
-interface TrendingFarmProps {
-  ticker: string;
-  apr: string;
-}
-
-const TrendingFarm: React.FC<TrendingFarmProps> = ({ ticker, apr }) => {
-  const color = getRandomDiamondColor(ticker);
-  return (
-    <div className="text-lg">
-      <span className="text-muted-foreground">└── </span>
-      <span className="font-bold" style={{ color }}>
-        {ticker.toUpperCase()}
-      </span>
-      <span className="text-muted-foreground"> = </span>
-      <span className="text-primary font-bold">{apr}%</span>
-    </div>
-  );
-};
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
   const { t } = useTranslation();
@@ -170,9 +153,27 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
       <div className="mb-4">
         <div className="text-lg mb-2 font-bold">trending:</div>
         <div className="space-y-0 text-xs">
-          <TrendingFarm ticker="CULT" apr="410.52" />
-          <TrendingFarm ticker="ENS" apr="239.72" />
-          <TrendingFarm ticker="ZAMM" apr="147.43" />
+          <ErrorBoundary fallback={<LoadingLogo />}>
+            <TrendingFarm
+              chefId="107452621584058933773078057973488854580628742066235689429927554548147274163352"
+              url="/cult"
+              imgUrl="/cult.jpg"
+            />
+          </ErrorBoundary>
+          <ErrorBoundary fallback={<LoadingLogo />}>
+            <TrendingFarm
+              chefId="9911777932062439318891919186675338016828468353880863972728110112967458165574"
+              url="/ens"
+              imgUrl="/ens.svg"
+              color="var(--diamond-blue)"
+            />
+          </ErrorBoundary>
+          <ErrorBoundary fallback={<LoadingLogo />}>
+            <TrendingFarm
+              chefId="81451133389625739869445444104677551191235868870135185413665230560425375295858"
+              url="/farm"
+            />
+          </ErrorBoundary>
         </div>
       </div>
 

@@ -1,3 +1,5 @@
+import { keccak256, toHex } from "viem";
+
 export const getRandomDiamondColor = (salt: string): string => {
   // Array of diamond color CSS variables
   const diamondColors = [
@@ -10,12 +12,7 @@ export const getRandomDiamondColor = (salt: string): string => {
   ];
 
   // Simple hash function to convert string to number
-  let hash = 0;
-  for (let i = 0; i < salt.length; i++) {
-    const char = salt.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash; // Convert to 32-bit integer
-  }
+  let hash = Number(keccak256(toHex(salt)));
 
   // Use absolute value and modulo to get consistent index
   const index = Math.abs(hash) % diamondColors.length;

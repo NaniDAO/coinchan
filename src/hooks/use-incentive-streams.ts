@@ -147,23 +147,6 @@ export function useActiveIncentiveStreams() {
   });
 }
 
-export function useIncentiveStream(chefId: bigint | undefined) {
-  return useQuery({
-    queryKey: ["incentiveStream", chefId?.toString()],
-    queryFn: async (): Promise<IncentiveStream | null> => {
-      if (!chefId) return null;
-      const response = await fetch(`${INDEXER_URL}/api/incentive-streams/${chefId}`);
-      if (!response.ok) {
-        if (response.status === 404) return null;
-        throw new Error("Failed to fetch incentive stream");
-      }
-      return response.json();
-    },
-    enabled: !!chefId,
-    staleTime: 30000,
-  });
-}
-
 export function useUserIncentivePositions(userAddress?: `0x${string}`) {
   const { address } = useAccount();
   const targetAddress = userAddress || address;
@@ -238,10 +221,15 @@ export function useUserIncentivePositions(userAddress?: `0x${string}`) {
         const rewardRate = Number(stream.rewardRate);
         const isActive = stream.status === "ACTIVE";
 
-        const sharePercentage = totalShares > 0 ? ((share / totalShares) * 100).toFixed(4) : "0.0000";
+        const sharePercentage =
+          totalShares > 0 ? ((share / totalShares) * 100).toFixed(4) : "0.0000";
 
         const estimatedApy =
-          totalShares > 0 && isActive ? ((rewardRate * 31536000 * share) / (totalShares * 1e12)).toFixed(2) : "0.00";
+          totalShares > 0 && isActive
+            ? ((rewardRate * 31536000 * share) / (totalShares * 1e12)).toFixed(
+                2,
+              )
+            : "0.00";
 
         return {
           // Position details
@@ -291,7 +279,10 @@ export function useUserIncentivePositions(userAddress?: `0x${string}`) {
   });
 }
 
-export function useUserIncentivePosition(chefId: bigint | undefined, userAddress?: `0x${string}`) {
+export function useUserIncentivePosition(
+  chefId: bigint | undefined,
+  userAddress?: `0x${string}`,
+) {
   const { address } = useAccount();
   const targetAddress = userAddress || address;
 
@@ -300,7 +291,9 @@ export function useUserIncentivePosition(chefId: bigint | undefined, userAddress
     queryFn: async (): Promise<IncentiveUserPosition | null> => {
       if (!chefId || !targetAddress) return null;
 
-      const response = await fetch(`${INDEXER_URL}/api/incentive-positions/${chefId}/${targetAddress}`);
+      const response = await fetch(
+        `${INDEXER_URL}/api/incentive-positions/${chefId}/${targetAddress}`,
+      );
       if (!response.ok) {
         throw new Error("Failed to fetch user incentive position");
       }
@@ -319,7 +312,9 @@ export function useIncentiveStreamsByLpPool(lpId: bigint | undefined) {
     queryKey: ["incentiveStreamsByLpPool", lpId?.toString()],
     queryFn: async (): Promise<IncentiveStream[]> => {
       if (!lpId) return [];
-      const response = await fetch(`${INDEXER_URL}/api/incentive-streams?lpId=${lpId}`);
+      const response = await fetch(
+        `${INDEXER_URL}/api/incentive-streams?lpId=${lpId}`,
+      );
       if (!response.ok) {
         throw new Error("Failed to fetch incentive streams by LP pool");
       }
@@ -339,7 +334,9 @@ export function useIncentiveStreamAPY(chefId: bigint | undefined) {
       totalValueLocked: bigint;
     } | null> => {
       if (!chefId) return null;
-      const response = await fetch(`${INDEXER_URL}/api/incentive-streams/${chefId}/apy`);
+      const response = await fetch(
+        `${INDEXER_URL}/api/incentive-streams/${chefId}/apy`,
+      );
       if (!response.ok) {
         if (response.status === 404) return null;
         throw new Error("Failed to fetch incentive stream APY");
@@ -351,7 +348,10 @@ export function useIncentiveStreamAPY(chefId: bigint | undefined) {
   });
 }
 
-export function useIncentiveStreamHistory(chefId: bigint | undefined, userAddress?: `0x${string}`) {
+export function useIncentiveStreamHistory(
+  chefId: bigint | undefined,
+  userAddress?: `0x${string}`,
+) {
   const { address } = useAccount();
   const targetAddress = userAddress || address;
 
@@ -380,8 +380,11 @@ export function useIncentiveStreamHistory(chefId: bigint | undefined, userAddres
         txHash: `0x${string}`;
       }>;
     }> => {
-      if (!chefId || !targetAddress) return { deposits: [], withdraws: [], harvests: [] };
-      const response = await fetch(`${INDEXER_URL}/api/incentive-streams/${chefId}/history?user=${targetAddress}`);
+      if (!chefId || !targetAddress)
+        return { deposits: [], withdraws: [], harvests: [] };
+      const response = await fetch(
+        `${INDEXER_URL}/api/incentive-streams/${chefId}/history?user=${targetAddress}`,
+      );
       if (!response.ok) {
         throw new Error("Failed to fetch incentive stream history");
       }
