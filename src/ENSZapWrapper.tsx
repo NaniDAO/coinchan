@@ -110,9 +110,19 @@ export const ENSZapWrapper = () => {
 
         // Auto-select if in auto mode with fallback
         if (autoMode) {
-          // Only switch if we have valid outputs
+          // Only switch routes if:
+          // 1. We have valid outputs
+          // 2. The difference is significant (> 5%)
+          // 3. OR this is the first calculation (no route selected yet)
           if (v3Tokens > 0n || directTokens > 0n) {
-            setSelectedRoute(newBestRoute);
+            // If no route selected yet, select the best one
+            if (!selectedRoute) {
+              setSelectedRoute(newBestRoute);
+            } else if (percentDiff > 5) {
+              // Only switch if the difference is significant
+              // This prevents flickering between routes for small differences
+              setSelectedRoute(newBestRoute);
+            }
           }
         }
       } catch (err) {
@@ -141,9 +151,9 @@ export const ENSZapWrapper = () => {
             <span className="text-sm font-medium">
               {selectedRoute === "v3" ? t("ens.uniswap_v3_route") : t("ens.direct_pool_route")}
             </span>
-            {autoMode && bestRoute === selectedRoute && percentDiff > 1 && (
+            {bestRoute === selectedRoute && percentDiff > 1 && (
               <span className="text-xs text-[#0080BC] font-medium">
-                {t("ens.percent_better", { percent: percentDiff.toFixed(1) })}
+                {autoMode ? t("ens.percent_better", { percent: percentDiff.toFixed(1) }) : `(${t("ens.percent_better", { percent: percentDiff.toFixed(1) })})`}
               </span>
             )}
           </div>

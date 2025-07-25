@@ -302,16 +302,31 @@ export const ENSUniswapV3Zap = () => {
       }
 
       // Calculate minimum amounts with slippage protection
-      // Match CULT implementation exactly
       
+      // FIRST LEG: V3 Swap
       // minTokenAmount: Minimum ENS tokens expected from the V3 swap
       const minTokenAmount = withSlippage(estimatedTokens, slippageBps);
       
-      // amount0Min: Minimum ETH for liquidity (half of input with slippage)
+      // SECOND LEG: Liquidity Addition to Cookbook Pool
+      // Need to calculate based on Cookbook pool's ratio, not V3 price
+      
+      // Calculate expected ENS for liquidity based on Cookbook pool
+      let expectedENSForLiquidity = estimatedTokens;
+      
+      if (reserves && reserves.reserve0 > 0n && reserves.reserve1 > 0n) {
+        // How much ENS would Cookbook pool expect for halfEthAmount?
+        const cookbookExpectedENS = (halfEthAmount * reserves.reserve1) / reserves.reserve0;
+        
+        // Use the LOWER of V3 estimate or Cookbook expectation
+        // This ensures amount1Min is achievable regardless of which pool has better price
+        expectedENSForLiquidity = cookbookExpectedENS < estimatedTokens ? cookbookExpectedENS : estimatedTokens;
+      }
+      
+      // amount0Min: Minimum ETH for liquidity (with slippage)
       const amount0Min = withSlippage(halfEthAmount, slippageBps);
       
-      // amount1Min: Minimum ENS for liquidity (same as swap estimate with slippage)
-      const amount1Min = withSlippage(estimatedTokens, slippageBps);
+      // amount1Min: Minimum ENS for liquidity (conservative, based on lower expectation)
+      const amount1Min = withSlippage(expectedENSForLiquidity, slippageBps);
       
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
