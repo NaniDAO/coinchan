@@ -59,87 +59,107 @@ export const Route = createRootRoute({
 
         <main className="mt-8 flex flex-col items-center justify-center !space-y-0 bg-foreground">
           {/* Header */}
-          <div
-            className={cn(
-              "!p-2 w-screen bg-background justify-between text-foreground flex flex-row items-center outline-2 outline-offset-2 outline-background relative",
-            )}
-          >
-            {/* Logo */}
-            <div className="flex-shrink-0">
-              <ZammLogo
-                className="!m-0"
-                size="small"
-                onClick={handleLogoClick}
-              />
-            </div>
+          <div className="!p-2 w-screen bg-background justify-between text-foreground flex flex-row items-center outline-2 outline-offset-2 outline-background relative">
+            {/* Mobile Layout */}
+            <div className="flex md:hidden w-full items-center">
+              {/* Left: Logo */}
+              <div className="flex-shrink-0">
+                <ZammLogo
+                  className="!m-0"
+                  size="small"
+                  onClick={handleLogoClick}
+                />
+              </div>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex md:flex-row md:space-x-3 ml-2">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  className={navLinkClasses(link.to)}
+              {/* Center: Navigation Links (visible on mobile) */}
+              <nav className="flex flex-1 justify-center mx-4">
+                <div className="flex space-x-1">
+                  {navLinks.map((link) => (
+                    <Link
+                      key={link.to}
+                      to={link.to}
+                      className={cn(
+                        "cursor-pointer border-2 border-transparent transition-all duration-100 font-bold font-body no-underline text-foreground text-center flex items-center justify-center uppercase tracking-wider hover:bg-accent hover:text-accent-foreground rounded-md",
+                        "text-xs px-2 py-1.5",
+                        location.pathname === link.to
+                          ? "active bg-accent text-accent-foreground"
+                          : "",
+                      )}
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </div>
+              </nav>
+
+              {/* Right: Menu Button */}
+              <div className="flex-shrink-0">
+                <button
+                  onClick={handleMobileMenuToggle}
+                  className="p-2 hover:bg-accent hover:text-accent-foreground rounded-md transition-colors"
+                  aria-label="Toggle menu"
                 >
-                  {link.label}
-                </Link>
-              ))}
-            </nav>
-
-            {/* Desktop Right Side */}
-            <div className="hidden md:flex items-center gap-2.5 mr-10 flex-shrink-0">
-              <Link to="/oneshot">
-                <Button variant="outline" size="sm">
-                  {t("navigation.create", "Create")}
-                </Button>
-              </Link>
-              <RainbowConnectButton />
-              <UserSettingsMenu />
+                  {isMobileMenuOpen ? (
+                    <X className="h-5 w-5" />
+                  ) : (
+                    <Menu className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
             </div>
 
-            {/* Mobile Right Side */}
-            <div className="flex md:hidden items-center gap-2 flex-shrink-0">
-              <Link to="/oneshot">
-                <Button variant="outline" size="sm" className="text-xs px-2">
-                  {t("navigation.create", "Create")}
-                </Button>
-              </Link>
-              <RainbowConnectButton />
-              <UserSettingsMenu />
-              <button
-                onClick={handleMobileMenuToggle}
-                className="p-2 hover:bg-accent hover:text-accent-foreground rounded-md transition-colors"
-                aria-label="Toggle menu"
-              >
-                {isMobileMenuOpen ? (
-                  <X className="h-5 w-5" />
-                ) : (
-                  <Menu className="h-5 w-5" />
-                )}
-              </button>
-            </div>
-          </div>
+            {/* Desktop Layout */}
+            <div className="hidden md:flex w-full items-center">
+              {/* Logo */}
+              <div className="flex-shrink-0">
+                <ZammLogo
+                  className="!m-0"
+                  size="small"
+                  onClick={handleLogoClick}
+                />
+              </div>
 
-          {/* Mobile Navigation Menu */}
-          {isMobileMenuOpen && (
-            <div className="md:hidden w-screen bg-background border-b-2 border-border shadow-lg z-50">
-              <nav className="flex flex-col space-y-1 p-4">
+              {/* Desktop Navigation */}
+              <nav className="flex flex-row space-x-3 ml-2">
                 {navLinks.map((link) => (
                   <Link
                     key={link.to}
                     to={link.to}
-                    onClick={handleNavClick}
-                    className={cn(
-                      "cursor-pointer border-2 border-transparent transition-all duration-100 font-extrabold font-body no-underline text-foreground text-center flex items-center justify-center uppercase tracking-widest text-lg hover:bg-accent hover:text-accent-foreground rounded-md py-3",
-                      location.pathname === link.to
-                        ? "active bg-accent text-accent-foreground"
-                        : "",
-                    )}
+                    className={navLinkClasses(link.to)}
                   >
                     {link.label}
                   </Link>
                 ))}
               </nav>
+
+              {/* Desktop Right Side */}
+              <div className="flex items-center gap-2.5 mr-10 flex-shrink-0 ml-auto">
+                <Link to="/oneshot">
+                  <Button variant="outline" size="sm">
+                    {t("navigation.create", "Create")}
+                  </Button>
+                </Link>
+                <RainbowConnectButton />
+                <UserSettingsMenu />
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile Dropdown Menu */}
+          {isMobileMenuOpen && (
+            <div className="md:hidden w-screen bg-background border-b-2 border-border shadow-lg z-50">
+              <div className="flex flex-col space-y-3 p-4">
+                {/* Action Buttons */}
+                <div className="flex items-center justify-center gap-3">
+                  <Link to="/oneshot" onClick={handleNavClick}>
+                    <Button variant="outline" size="sm">
+                      {t("navigation.create", "Create")}
+                    </Button>
+                  </Link>
+                  <RainbowConnectButton />
+                  <UserSettingsMenu />
+                </div>
+              </div>
             </div>
           )}
 
