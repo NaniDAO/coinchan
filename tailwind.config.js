@@ -19,6 +19,16 @@ module.exports = {
         background: "var(--background)",
         foreground: "var(--foreground)",
       },
+      colors: {
+        diamond: {
+          pink: "var(--diamond-pink)",
+          blue: "var(--diamond-blue)",
+          yellow: "var(--diamond-yellow)",
+          green: "var(--diamond-green)",
+          orange: "var(--diamond-orange)",
+          purple: "var(--diamond-purple)",
+        },
+      },
       animation: {
         marquee: "marquee 30s linear infinite",
       },
