@@ -308,25 +308,20 @@ export const ENSUniswapV3Zap = () => {
       const minTokenAmount = withSlippage(estimatedTokens, slippageBps);
       
       // SECOND LEG: Liquidity Addition to Cookbook Pool
-      // Need to calculate based on Cookbook pool's ratio, not V3 price
+      // The contract will add liquidity with whatever ENS it gets from V3
       
-      // Calculate expected ENS for liquidity based on Cookbook pool
-      let expectedENSForLiquidity = estimatedTokens;
+      // amount0Min: Minimum ETH for liquidity
+      // The contract might use less than halfEthAmount if it gets a lot of ENS from V3
+      // So we set this conservatively
+      const amount0Min = withSlippage(halfEthAmount, slippageBps * 2n); // Double slippage for flexibility
       
-      if (reserves && reserves.reserve0 > 0n && reserves.reserve1 > 0n) {
-        // How much ENS would Cookbook pool expect for halfEthAmount?
-        const cookbookExpectedENS = (halfEthAmount * reserves.reserve1) / reserves.reserve0;
-        
-        // Use the LOWER of V3 estimate or Cookbook expectation
-        // This ensures amount1Min is achievable regardless of which pool has better price
-        expectedENSForLiquidity = cookbookExpectedENS < estimatedTokens ? cookbookExpectedENS : estimatedTokens;
-      }
-      
-      // amount0Min: Minimum ETH for liquidity (with slippage)
-      const amount0Min = withSlippage(halfEthAmount, slippageBps);
-      
-      // amount1Min: Minimum ENS for liquidity (conservative, based on lower expectation)
-      const amount1Min = withSlippage(expectedENSForLiquidity, slippageBps);
+      // amount1Min: Minimum ENS for liquidity
+      // This should be MUCH lower than minTokenAmount because:
+      // 1. We might get more ENS from V3 than minTokenAmount
+      // 2. The contract calculates optimal amounts based on pool ratio
+      // 3. We just need to ensure the transaction doesn't revert
+      // Set to 50% of minTokenAmount to be very conservative
+      const amount1Min = minTokenAmount / 2n;
       
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
