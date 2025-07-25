@@ -63,13 +63,13 @@ export const Route = createRootRoute({
             {/* Mobile Layout */}
             <div className="flex md:hidden w-full items-center">
               {/* Left: Logo */}
-              <div className="flex-shrink-0">
+              {/* <div className="flex-shrink-0">
                 <ZammLogo
                   className="!m-0"
                   size="small"
                   onClick={handleLogoClick}
                 />
-              </div>
+              </div> */}
 
               {/* Center: Navigation Links (visible on mobile) */}
               <nav className="flex flex-1 justify-center mx-4">
