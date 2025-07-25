@@ -6,6 +6,7 @@ import {
 } from "../hooks/use-landing-data";
 import { useProtocolStats } from "../hooks/use-protocol-stats";
 import { useTheme } from "@/lib/theme";
+import { getRandomDiamondColor } from "@/lib/color";
 
 interface LandingPageProps {
   onEnterApp?: () => void;
@@ -17,10 +18,13 @@ interface TrendingFarmProps {
 }
 
 const TrendingFarm: React.FC<TrendingFarmProps> = ({ ticker, apr }) => {
+  const color = getRandomDiamondColor(ticker);
   return (
-    <div className="text-xs">
+    <div className="text-lg">
       <span className="text-muted-foreground">└── </span>
-      <span className="font-bold">{ticker.toLowerCase()}</span>
+      <span className="font-bold" style={{ color }}>
+        {ticker.toUpperCase()}
+      </span>
       <span className="text-muted-foreground"> = </span>
       <span className="text-primary font-bold">{apr}%</span>
     </div>
@@ -99,9 +103,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
   };
 
   return (
-    <div className="bg-background text-foreground font-mono h-full p-4">
+    <div className="bg-background text-foreground font-mono h-full lg:pl-8  p-4">
       {/* Title */}
-      <h1 className="text-xl font-bold mb-4 text-left">{t("landing.title")}</h1>
+      <h1 className="text-4xl tracking-widest font-bold mb-4 text-left">
+        {t("landing.title")}
+      </h1>
 
       {/* Terminal Boot Lines */}
       <div className="mb-4 min-h-[60px]">
@@ -162,7 +168,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
 
       {/* Trending Farms Section */}
       <div className="mb-4">
-        <div className="text-sm mb-2 font-bold">trending:</div>
+        <div className="text-lg mb-2 font-bold">trending:</div>
         <div className="space-y-0 text-xs">
           <TrendingFarm ticker="CULT" apr="410.52" />
           <TrendingFarm ticker="ENS" apr="239.72" />
@@ -172,8 +178,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
 
       {/* Protocol Stats - Single Column Format */}
       <div className="mb-6">
-        <div className="text-sm mb-2 font-bold">protocol:</div>
-        <div className="space-y-1 text-sm">
+        <div className="text-lg mb-2 font-bold">protocol:</div>
+        <div className="text-lg space-y-1">
           <div>
             <span className="text-muted-foreground">eth_swapped = </span>
             <span className="font-bold">
