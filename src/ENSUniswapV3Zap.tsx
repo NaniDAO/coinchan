@@ -1,21 +1,22 @@
-import { CheckIcon, Loader2, X, ExternalLink } from "lucide-react";
+import { CheckIcon, Loader2, ExternalLink } from "lucide-react";
+import { SlippageSettings } from "./components/SlippageSettings";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseEther } from "viem";
 import { mainnet } from "viem/chains";
-import { useAccount, useChainId, usePublicClient, useWaitForTransactionReceipt, useSendTransaction } from "wagmi";
+import { useAccount, useChainId, usePublicClient, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { NetworkError } from "./components/NetworkError";
 import { SwapPanel } from "./components/SwapPanel";
 import { ENSLogo } from "./components/icons/ENSLogo";
-import { ENSZapAddress } from "./constants/ENSZap";
+import { ENSZapAddress, ENSZapAbi } from "./constants/ENSZap";
 import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
 import { CheckTheChainAbi, CheckTheChainAddress } from "./constants/CheckTheChain";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { useReserves } from "./hooks/use-reserves";
-import { ETH_TOKEN, ENS_TOKEN, ENS_POOL_ID } from "./lib/coins";
+import { ETH_TOKEN, ENS_TOKEN, ENS_POOL_ID, ENS_POOL_KEY } from "./lib/coins";
 import { handleWalletError } from "./lib/errors";
-import { getAmountOut } from "./lib/swap";
-import { formatNumber } from "./lib/utils";
+import { getAmountOut, withSlippage, DEADLINE_SEC } from "./lib/swap";
+import { formatNumber, nowSec } from "./lib/utils";
 
 // Helper function to calculate square root for LP token calculation
 const sqrt = (value: bigint): bigint => {
@@ -43,13 +44,13 @@ export const ENSUniswapV3Zap = () => {
   const [singleETHEstimatedCoin, setSingleETHEstimatedCoin] = useState<string>("");
   const [estimatedLpTokens, setEstimatedLpTokens] = useState<string>("");
   const [estimatedPoolShare, setEstimatedPoolShare] = useState<string>("");
-  const [oracleInSync, setOracleInSync] = useState<boolean | null>(null);
+  const [slippageBps, setSlippageBps] = useState<bigint>(1000n); // Default 10% for ENS V3 ZAP
 
   const { tokens, isEthBalanceFetching } = useAllCoins();
 
   const { isConnected, address } = useAccount();
   const chainId = useChainId();
-  const { sendTransactionAsync, isPending } = useSendTransaction();
+  const { writeContractAsync, isPending } = useWriteContract();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
   const publicClient = usePublicClient({
     chainId,
@@ -74,52 +75,6 @@ export const ENSUniswapV3Zap = () => {
     setSellAmt("");
   }, []);
 
-  // Check oracle sync status
-  useEffect(() => {
-    const checkOracleSync = async () => {
-      if (!publicClient) return;
-
-      try {
-        // Fetch ETH balance of the zap contract
-        const balance = await publicClient.getBalance({
-          address: ENSZapAddress,
-        });
-        // Balance is used for oracle sync check below
-
-        // Fetch ENS price from CheckTheChain oracle
-        const ensPriceData = await publicClient.readContract({
-          address: CheckTheChainAddress,
-          abi: CheckTheChainAbi,
-          functionName: "checkPriceInETH",
-          args: ["ENS"],
-        });
-
-        if (ensPriceData) {
-          const priceInWei = ensPriceData[0] as bigint;
-          // Price is used for oracle sync check below
-
-          // Check if they're within 6% tolerance
-          // The zap contract uses its balance as the price oracle
-          // We need to check if: |balance - priceInWei| / priceInWei <= 0.06
-          if (priceInWei > 0n && balance > 0n) {
-            const diff = balance > priceInWei ? balance - priceInWei : priceInWei - balance;
-            const percentDiff = (diff * 10000n) / priceInWei;
-            setOracleInSync(percentDiff <= 600n); // 6% = 600 basis points
-          } else {
-            setOracleInSync(null);
-          }
-        }
-      } catch (err) {
-        console.error("Failed to check oracle sync:", err);
-        setOracleInSync(null);
-      }
-    };
-
-    checkOracleSync();
-    // Check every 30 seconds
-    const interval = setInterval(checkOracleSync, 30000);
-    return () => clearInterval(interval);
-  }, [publicClient]);
 
   /* helpers to sync amounts */
   const syncFromSell = async (val: string) => {
@@ -162,9 +117,6 @@ export const ENSUniswapV3Zap = () => {
 
         // Calculate ENS amount: ETH amount / ENS price
         estimatedTokens = (halfEthAmount * 10n ** 18n) / ensPriceInETH;
-
-        // Apply 0.3% Uniswap V3 fee
-        estimatedTokens = (estimatedTokens * 997n) / 1000n;
       } catch (err) {
         console.error("Failed to fetch ENS price from CheckTheChain:", err);
         // Fallback to Cookbook pool price if reserves available
@@ -288,7 +240,6 @@ export const ENSUniswapV3Zap = () => {
 
         // Calculate ENS amount: ETH amount / ENS price
         estimatedTokens = (halfEthAmount * 10n ** 18n) / ensPriceInETH;
-        estimatedTokens = (estimatedTokens * 997n) / 1000n; // Apply 0.3% fee
       } catch (err) {
         console.error("Failed to fetch ENS price from CheckTheChain:", err);
         // Fallback to Cookbook pool price if reserves available
@@ -299,31 +250,46 @@ export const ENSUniswapV3Zap = () => {
         }
       }
 
-      // Simply send ETH directly to the ENS Zap contract
-      // The contract will handle the zap internally via its receive/fallback function
+      // Calculate minimum amounts with slippage protection
+      
+      // FIRST LEG: V3 Swap
+      // minTokenAmount: Minimum ENS tokens expected from the V3 swap
+      const minTokenAmount = withSlippage(estimatedTokens, slippageBps);
+      
+      // SECOND LEG: Liquidity Addition to Cookbook Pool
+      // The contract will add liquidity with whatever ENS it gets from V3
+      
+      // amount0Min: Minimum ETH for liquidity
+      // Apply standard slippage to halfEthAmount
+      const amount0Min = withSlippage(halfEthAmount, slippageBps);
+      
+      // amount1Min: Minimum ENS for liquidity
+      // This needs to be lower than minTokenAmount to account for:
+      // 1. Potential price differences between V3 and Cookbook
+      // 2. The contract optimizing amounts based on pool ratio
+      // Use 80% of minTokenAmount to allow some flexibility
+      const amount1Min = (minTokenAmount * 80n) / 100n;
+      
+      const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
-      // First, estimate gas for the transaction
-      let gasEstimate = 300000n; // Default fallback
-      try {
-        gasEstimate =
-          (await publicClient?.estimateGas({
-            account: address,
-            to: ENSZapAddress,
-            value: ethAmount,
-          })) || 300000n;
-      } catch (e) {
-        console.warn("Gas estimation failed, using default", e);
-      }
+      // Debug logging
+      console.log("ENS Zap Parameters:", {
+        ethAmount: formatEther(ethAmount),
+        halfEthAmount: formatEther(halfEthAmount),
+        estimatedTokens: formatUnits(estimatedTokens, 18),
+        minTokenAmount: formatUnits(minTokenAmount, 18),
+        amount0Min: formatEther(amount0Min),
+        amount1Min: formatUnits(amount1Min, 18),
+        slippageBps: slippageBps.toString(),
+      });
 
-      // Add 20% buffer to the estimate for safety
-      // This ensures complex operations (swap + add liquidity) have enough gas
-      // Unused gas is automatically refunded
-      const gasLimit = (gasEstimate * 120n) / 100n;
-
-      const hash = await sendTransactionAsync({
-        to: ENSZapAddress,
-        value: ethAmount, // Send the full ETH amount
-        gas: gasLimit < 500000n ? 500000n : gasLimit, // Use estimated gas + 20% buffer with minimum
+      // Call addSingleLiqETH with proper parameters
+      const hash = await writeContractAsync({
+        address: ENSZapAddress,
+        abi: ENSZapAbi,
+        functionName: "addSingleLiqETH",
+        args: [ENS_POOL_KEY as any, minTokenAmount, amount0Min, amount1Min, address, deadline],
+        value: ethAmount,
       });
 
       setTxHash(hash);
@@ -386,27 +352,9 @@ export const ENSUniswapV3Zap = () => {
 
       <NetworkError message={t("pool.manage_liquidity")} />
 
-      {/* Oracle Sync Status */}
-      <div className="mt-2 p-3 bg-[#0080BC]/5 border border-[#0080BC]/20 rounded-lg">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">{t("ens.oracle_sync")}:</span>
-          <div className="flex items-center gap-1">
-            {oracleInSync === null ? (
-              <span className="text-sm text-muted-foreground">{t("common.loading")}</span>
-            ) : oracleInSync ? (
-              <>
-                <CheckIcon className="h-3 w-3 text-green-500" />
-                <span className="text-sm text-green-500">{t("ens.in_sync")}</span>
-              </>
-            ) : (
-              <>
-                <X className="h-3 w-3 text-red-500" />
-                <span className="text-sm text-red-500">{t("ens.out_of_sync")}</span>
-              </>
-            )}
-          </div>
-        </div>
-        <p className="text-xs text-muted-foreground mt-1">{t("ens.oracle_slippage_guard", { percentage: 6 })}</p>
+      {/* Slippage Settings */}
+      <div className="mt-2">
+        <SlippageSettings slippageBps={slippageBps} setSlippageBps={setSlippageBps} />
       </div>
 
       {/* LP Tokens and Pool Share Estimation */}
@@ -444,7 +392,6 @@ export const ENSUniswapV3Zap = () => {
           <li>{t("pool.provide_only_eth")}</li>
           <li className="text-[#0080BC]">{t("ens.half_eth_swapped_v3")}</li>
           <li>{t("ens.remaining_eth_added_to_cookbook_pool")}</li>
-          <li className="text-green-600 dark:text-green-400">{t("ens.gas_savings_direct_eth")}</li>
           <li>
             {t("ens.eth_sent_to")}{" "}
             <a
