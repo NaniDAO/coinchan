@@ -44,7 +44,6 @@ export const ENSUniswapV3Zap = () => {
   const [singleETHEstimatedCoin, setSingleETHEstimatedCoin] = useState<string>("");
   const [estimatedLpTokens, setEstimatedLpTokens] = useState<string>("");
   const [estimatedPoolShare, setEstimatedPoolShare] = useState<string>("");
-  const [oracleInSync, setOracleInSync] = useState<boolean | null>(null);
   const [slippageBps, setSlippageBps] = useState<bigint>(1000n); // Default 10% for ENS V3 ZAP
 
   const { tokens, isEthBalanceFetching } = useAllCoins();
@@ -76,52 +75,6 @@ export const ENSUniswapV3Zap = () => {
     setSellAmt("");
   }, []);
 
-  // Check oracle sync status
-  useEffect(() => {
-    const checkOracleSync = async () => {
-      if (!publicClient) return;
-
-      try {
-        // Fetch ETH balance of the zap contract
-        const balance = await publicClient.getBalance({
-          address: ENSZapAddress,
-        });
-        // Balance is used for oracle sync check below
-
-        // Fetch ENS price from CheckTheChain oracle
-        const ensPriceData = await publicClient.readContract({
-          address: CheckTheChainAddress,
-          abi: CheckTheChainAbi,
-          functionName: "checkPriceInETH",
-          args: ["ENS"],
-        });
-
-        if (ensPriceData) {
-          const priceInWei = ensPriceData[0] as bigint;
-          // Price is used for oracle sync check below
-
-          // Check if they're within 6% tolerance
-          // The zap contract uses its balance as the price oracle
-          // We need to check if: |balance - priceInWei| / priceInWei <= 0.06
-          if (priceInWei > 0n && balance > 0n) {
-            const diff = balance > priceInWei ? balance - priceInWei : priceInWei - balance;
-            const percentDiff = (diff * 10000n) / priceInWei;
-            setOracleInSync(percentDiff <= 600n); // 6% = 600 basis points
-          } else {
-            setOracleInSync(null);
-          }
-        }
-      } catch (err) {
-        console.error("Failed to check oracle sync:", err);
-        setOracleInSync(null);
-      }
-    };
-
-    checkOracleSync();
-    // Check every 30 seconds
-    const interval = setInterval(checkOracleSync, 30000);
-    return () => clearInterval(interval);
-  }, [publicClient]);
 
   /* helpers to sync amounts */
   const syncFromSell = async (val: string) => {
@@ -164,9 +117,6 @@ export const ENSUniswapV3Zap = () => {
 
         // Calculate ENS amount: ETH amount / ENS price
         estimatedTokens = (halfEthAmount * 10n ** 18n) / ensPriceInETH;
-
-        // Apply 0.3% Uniswap V3 fee
-        estimatedTokens = (estimatedTokens * 997n) / 1000n;
       } catch (err) {
         console.error("Failed to fetch ENS price from CheckTheChain:", err);
         // Fallback to Cookbook pool price if reserves available
@@ -290,7 +240,6 @@ export const ENSUniswapV3Zap = () => {
 
         // Calculate ENS amount: ETH amount / ENS price
         estimatedTokens = (halfEthAmount * 10n ** 18n) / ensPriceInETH;
-        estimatedTokens = (estimatedTokens * 997n) / 1000n; // Apply 0.3% fee
       } catch (err) {
         console.error("Failed to fetch ENS price from CheckTheChain:", err);
         // Fallback to Cookbook pool price if reserves available
@@ -322,6 +271,17 @@ export const ENSUniswapV3Zap = () => {
       const amount1Min = (minTokenAmount * 80n) / 100n;
       
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
+
+      // Debug logging
+      console.log("ENS Zap Parameters:", {
+        ethAmount: formatEther(ethAmount),
+        halfEthAmount: formatEther(halfEthAmount),
+        estimatedTokens: formatUnits(estimatedTokens, 18),
+        minTokenAmount: formatUnits(minTokenAmount, 18),
+        amount0Min: formatEther(amount0Min),
+        amount1Min: formatUnits(amount1Min, 18),
+        slippageBps: slippageBps.toString(),
+      });
 
       // Call addSingleLiqETH with proper parameters
       const hash = await writeContractAsync({
@@ -391,28 +351,6 @@ export const ENSUniswapV3Zap = () => {
       </div>
 
       <NetworkError message={t("pool.manage_liquidity")} />
-
-      {/* Oracle Sync Status */}
-      <div className="mt-2 p-3 bg-[#0080BC]/5 border border-[#0080BC]/20 rounded-lg">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">{t("ens.oracle_sync")}:</span>
-          <div className="flex items-center gap-1">
-            {oracleInSync === null ? (
-              <span className="text-sm text-muted-foreground">{t("common.loading")}</span>
-            ) : oracleInSync ? (
-              <>
-                <CheckIcon className="h-3 w-3 text-green-500" />
-                <span className="text-sm text-green-500">{t("ens.in_sync")}</span>
-              </>
-            ) : (
-              <>
-                <X className="h-3 w-3 text-red-500" />
-                <span className="text-sm text-red-500">{t("ens.out_of_sync")}</span>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
 
       {/* Slippage Settings */}
       <div className="mt-2">

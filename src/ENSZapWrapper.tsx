@@ -66,7 +66,7 @@ export const ENSZapWrapper = () => {
           if (ensPriceData) {
             const ensPriceInETH = ensPriceData[0] as bigint;
             if (ensPriceInETH > 0n) {
-              v3Tokens = (((halfEthAmount * 10n ** 18n) / ensPriceInETH) * 997n) / 1000n;
+              v3Tokens = (halfEthAmount * 10n ** 18n) / ensPriceInETH;
             }
           }
         } catch (error) {
