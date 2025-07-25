@@ -3,19 +3,19 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseEther } from "viem";
 import { mainnet } from "viem/chains";
-import { useAccount, useChainId, usePublicClient, useWaitForTransactionReceipt, useSendTransaction } from "wagmi";
+import { useAccount, useChainId, usePublicClient, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { NetworkError } from "./components/NetworkError";
 import { SwapPanel } from "./components/SwapPanel";
 import { ENSLogo } from "./components/icons/ENSLogo";
-import { ENSZapAddress } from "./constants/ENSZap";
+import { ENSZapAddress, ENSZapAbi } from "./constants/ENSZap";
 import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
 import { CheckTheChainAbi, CheckTheChainAddress } from "./constants/CheckTheChain";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { useReserves } from "./hooks/use-reserves";
-import { ETH_TOKEN, ENS_TOKEN, ENS_POOL_ID } from "./lib/coins";
+import { ETH_TOKEN, ENS_TOKEN, ENS_POOL_ID, ENS_POOL_KEY } from "./lib/coins";
 import { handleWalletError } from "./lib/errors";
-import { getAmountOut } from "./lib/swap";
-import { formatNumber } from "./lib/utils";
+import { getAmountOut, withSlippage, DEADLINE_SEC } from "./lib/swap";
+import { formatNumber, nowSec } from "./lib/utils";
 
 // Helper function to calculate square root for LP token calculation
 const sqrt = (value: bigint): bigint => {
@@ -49,7 +49,7 @@ export const ENSUniswapV3Zap = () => {
 
   const { isConnected, address } = useAccount();
   const chainId = useChainId();
-  const { sendTransactionAsync, isPending } = useSendTransaction();
+  const { writeContractAsync, isPending } = useWriteContract();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
   const publicClient = usePublicClient({
     chainId,
@@ -299,31 +299,25 @@ export const ENSUniswapV3Zap = () => {
         }
       }
 
-      // Simply send ETH directly to the ENS Zap contract
-      // The contract will handle the zap internally via its receive/fallback function
+      // Calculate slippage for the swap output and LP amounts
+      const slippageBps = 600n; // 6% slippage for V3 swaps
+      const amountOutMin = withSlippage(estimatedTokens, slippageBps);
+      
+      // For LP calculations, we need minimum amounts for both ETH and ENS
+      // These protect against sandwich attacks during liquidity addition
+      // The contract will determine actual amounts based on ZAMM pool reserves
+      const amount0Min = withSlippage(halfEthAmount, slippageBps);
+      const amount1Min = amountOutMin; // Use the same as amountOutMin for consistency
+      
+      const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
-      // First, estimate gas for the transaction
-      let gasEstimate = 300000n; // Default fallback
-      try {
-        gasEstimate =
-          (await publicClient?.estimateGas({
-            account: address,
-            to: ENSZapAddress,
-            value: ethAmount,
-          })) || 300000n;
-      } catch (e) {
-        console.warn("Gas estimation failed, using default", e);
-      }
-
-      // Add 20% buffer to the estimate for safety
-      // This ensures complex operations (swap + add liquidity) have enough gas
-      // Unused gas is automatically refunded
-      const gasLimit = (gasEstimate * 120n) / 100n;
-
-      const hash = await sendTransactionAsync({
-        to: ENSZapAddress,
-        value: ethAmount, // Send the full ETH amount
-        gas: gasLimit < 500000n ? 500000n : gasLimit, // Use estimated gas + 20% buffer with minimum
+      // Call addSingleLiqETH with proper parameters
+      const hash = await writeContractAsync({
+        address: ENSZapAddress,
+        abi: ENSZapAbi,
+        functionName: "addSingleLiqETH",
+        args: [ENS_POOL_KEY as any, amountOutMin, amount0Min, amount1Min, address, deadline],
+        value: ethAmount,
       });
 
       setTxHash(hash);
@@ -444,7 +438,6 @@ export const ENSUniswapV3Zap = () => {
           <li>{t("pool.provide_only_eth")}</li>
           <li className="text-[#0080BC]">{t("ens.half_eth_swapped_v3")}</li>
           <li>{t("ens.remaining_eth_added_to_cookbook_pool")}</li>
-          <li className="text-green-600 dark:text-green-400">{t("ens.gas_savings_direct_eth")}</li>
           <li>
             {t("ens.eth_sent_to")}{" "}
             <a
