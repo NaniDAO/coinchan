@@ -311,17 +311,15 @@ export const ENSUniswapV3Zap = () => {
       // The contract will add liquidity with whatever ENS it gets from V3
       
       // amount0Min: Minimum ETH for liquidity
-      // The contract might use less than halfEthAmount if it gets a lot of ENS from V3
-      // So we set this conservatively
-      const amount0Min = withSlippage(halfEthAmount, slippageBps * 2n); // Double slippage for flexibility
+      // Apply standard slippage to halfEthAmount
+      const amount0Min = withSlippage(halfEthAmount, slippageBps);
       
       // amount1Min: Minimum ENS for liquidity
-      // This should be MUCH lower than minTokenAmount because:
-      // 1. We might get more ENS from V3 than minTokenAmount
-      // 2. The contract calculates optimal amounts based on pool ratio
-      // 3. We just need to ensure the transaction doesn't revert
-      // Set to 50% of minTokenAmount to be very conservative
-      const amount1Min = minTokenAmount / 2n;
+      // This needs to be lower than minTokenAmount to account for:
+      // 1. Potential price differences between V3 and Cookbook
+      // 2. The contract optimizing amounts based on pool ratio
+      // Use 80% of minTokenAmount to allow some flexibility
+      const amount1Min = (minTokenAmount * 80n) / 100n;
       
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
