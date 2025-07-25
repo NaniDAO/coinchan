@@ -305,9 +305,19 @@ export const ENSUniswapV3Zap = () => {
       
       // For LP calculations, we need minimum amounts for both ETH and ENS
       // These protect against sandwich attacks during liquidity addition
-      // The contract will determine actual amounts based on ZAMM pool reserves
       const amount0Min = withSlippage(halfEthAmount, slippageBps);
-      const amount1Min = amountOutMin; // Use the same as amountOutMin for consistency
+      
+      // Calculate amount1Min based on Cookbook pool's expected ratio
+      // This accounts for the fact that V3 and Cookbook pools may have different prices
+      let amount1Min: bigint;
+      if (reserves && reserves.reserve0 > 0n && reserves.reserve1 > 0n) {
+        // Calculate how much ENS the Cookbook pool expects for halfEthAmount
+        const expectedEnsForLiquidity = (halfEthAmount * reserves.reserve1) / reserves.reserve0;
+        amount1Min = withSlippage(expectedEnsForLiquidity, slippageBps);
+      } else {
+        // Fallback: use the V3 estimate if we don't have pool reserves
+        amount1Min = amountOutMin;
+      }
       
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
