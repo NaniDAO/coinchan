@@ -1,4 +1,4 @@
-import { CheckIcon, Loader2, X, ExternalLink } from "lucide-react";
+import { CheckIcon, Loader2, ExternalLink } from "lucide-react";
 import { SlippageSettings } from "./components/SlippageSettings";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
