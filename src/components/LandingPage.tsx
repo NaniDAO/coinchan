@@ -231,7 +231,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
       <video
         className="fixed bottom-5 right-5 w-40 h-40"
         style={{
-          clipPath: "polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)",
+          clipPath: "polygon(50% 10%, 75% 50%, 50% 90%, 25% 50%)",
         }}
         src={theme === "dark" ? "/zammzamm-bw.mp4" : "/zammzamm.mp4"}
         autoPlay
