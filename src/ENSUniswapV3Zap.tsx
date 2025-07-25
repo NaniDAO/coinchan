@@ -301,17 +301,17 @@ export const ENSUniswapV3Zap = () => {
         }
       }
 
-      // Calculate slippage for the swap output and LP amounts
-      const amountOutMin = withSlippage(estimatedTokens, slippageBps);
+      // Calculate minimum amounts with slippage protection
+      // Following the same pattern as CULT implementation
       
-      // For LP calculations, we need to be more conservative
-      // The contract will determine actual ETH amount based on ENS received
-      // So we use the user's slippage setting for both amounts
+      // minTokenAmount: Minimum tokens expected from the swap
+      const minTokenAmount = withSlippage(estimatedTokens, slippageBps);
+      
+      // amount0Min: Minimum ETH for liquidity (half of input with slippage)
       const amount0Min = withSlippage(halfEthAmount, slippageBps);
-      const amount1Min = withSlippage(estimatedTokens, slippageBps);
       
-      // Note: The contract handles the case where it gets more ENS than expected
-      // and adjusts the ETH amount accordingly, refunding any excess
+      // amount1Min: Minimum tokens for liquidity (same as swap estimate with slippage)
+      const amount1Min = withSlippage(estimatedTokens, slippageBps);
       
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
@@ -320,7 +320,7 @@ export const ENSUniswapV3Zap = () => {
         address: ENSZapAddress,
         abi: ENSZapAbi,
         functionName: "addSingleLiqETH",
-        args: [ENS_POOL_KEY as any, amountOutMin, amount0Min, amount1Min, address, deadline],
+        args: [ENS_POOL_KEY as any, minTokenAmount, amount0Min, amount1Min, address, deadline],
         value: ethAmount,
       });
 
