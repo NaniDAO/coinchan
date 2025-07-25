@@ -302,16 +302,35 @@ export const ENSUniswapV3Zap = () => {
       }
 
       // Calculate minimum amounts with slippage protection
-      // Following the same pattern as CULT implementation
       
-      // minTokenAmount: Minimum tokens expected from the swap
+      // minTokenAmount: Minimum ENS tokens expected from the V3 swap (first leg)
       const minTokenAmount = withSlippage(estimatedTokens, slippageBps);
       
-      // amount0Min: Minimum ETH for liquidity (half of input with slippage)
-      const amount0Min = withSlippage(halfEthAmount, slippageBps);
+      // For liquidity addition (second leg), we need to calculate based on Cookbook pool ratio
+      // The contract will receive ENS from V3, then calculate how much ETH to pair with it
       
-      // amount1Min: Minimum tokens for liquidity (same as swap estimate with slippage)
-      const amount1Min = withSlippage(estimatedTokens, slippageBps);
+      // Calculate expected liquidity amounts based on Cookbook pool reserves
+      let expectedETHForLiquidity = halfEthAmount;
+      let expectedENSForLiquidity = estimatedTokens;
+      
+      if (reserves && reserves.reserve0 > 0n && reserves.reserve1 > 0n) {
+        // Calculate how much ETH the Cookbook pool would want for our estimated ENS
+        const ethNeeded = (estimatedTokens * reserves.reserve0) / reserves.reserve1;
+        
+        // The contract uses the lesser of halfEthAmount or calculated ETH needed
+        if (ethNeeded < halfEthAmount) {
+          expectedETHForLiquidity = ethNeeded;
+          expectedENSForLiquidity = estimatedTokens;
+        } else {
+          // If we don't have enough ETH for all the ENS, calculate how much ENS we'll actually use
+          expectedETHForLiquidity = halfEthAmount;
+          expectedENSForLiquidity = (halfEthAmount * reserves.reserve1) / reserves.reserve0;
+        }
+      }
+      
+      // Apply slippage to the expected liquidity amounts
+      const amount0Min = withSlippage(expectedETHForLiquidity, slippageBps);
+      const amount1Min = withSlippage(expectedENSForLiquidity, slippageBps);
       
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
