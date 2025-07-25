@@ -153,7 +153,9 @@ export const ENSZapWrapper = () => {
             </span>
             {bestRoute === selectedRoute && percentDiff > 1 && (
               <span className="text-xs text-[#0080BC] font-medium">
-                {autoMode ? t("ens.percent_better", { percent: percentDiff.toFixed(1) }) : `(${t("ens.percent_better", { percent: percentDiff.toFixed(1) })})`}
+                {autoMode
+                  ? t("ens.percent_better", { percent: percentDiff.toFixed(1) })
+                  : `(${t("ens.percent_better", { percent: percentDiff.toFixed(1) })})`}
               </span>
             )}
           </div>

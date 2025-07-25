@@ -1,9 +1,10 @@
-import { ZAMMLaunchAbi, ZAMMLaunchAddress } from "@/constants/ZAMMLaunch";
+import { zCurveAbi, zCurveAddress } from "@/constants/zCurve";
 import { pinImageToPinata, pinJsonToPinata } from "@/lib/pinata";
 import { type ChangeEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAccount, usePublicClient, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { z } from "zod";
+import { ZCurveBondingChart } from "@/components/ZCurveBondingChart";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -18,12 +19,15 @@ import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { parseEther } from "viem";
 
-// Hardcoded parameters for one-shot launch (scaled to 18 decimals)
+// Hardcoded parameters for zCurve launch
 const ONE_SHOT_PARAMS = {
-  totalCoins: parseEther("495000000"), // 495mm coins in single tranche for sale (18 decimals)
-  creatorSupply: parseEther("10000000"), // 10mm creator supply (1% of 1B total) (18 decimals)
-  totalTranchePrice: 1, // 1 ETH total cost for entire 495M coin tranche
-  unlockDate: 0, // No unlock period - coins unlock after sale finalizes
+  creatorSupply: BigInt(0), // No creator supply
+  creatorUnlock: 0, // No unlock period
+  saleCap: parseEther("800000000"), // 800M coins for sale
+  lpSupply: parseEther("200000000"), // 200M coins for liquidity
+  ethTarget: parseEther("0.01"), // 0.01 ETH target for testing
+  divisor: BigInt("17066666634666666680000000"), // Hardcoded divisor
+  feeOrHook: 30, // 0.3% AMM fee in bps
 };
 
 // Validation schema
@@ -152,11 +156,14 @@ export const OneShotLaunchForm = () => {
 
       // Simulate contract to get the predicted coin ID
       const contractArgs = [
-        ONE_SHOT_PARAMS.creatorSupply, // creatorSupply: 10mm tokens (1%) - already in wei
-        BigInt(ONE_SHOT_PARAMS.unlockDate), // unlockDate: 0 (unlocks after sale ends)
-        metadataUri, // metadataURI
-        [ONE_SHOT_PARAMS.totalCoins], // trancheCoins: [495mm] - single tranche - already in wei
-        [BigInt(parseEther(ONE_SHOT_PARAMS.totalTranchePrice.toString()))], // tranchePrice: [1 ETH] - total cost for entire tranche
+        ONE_SHOT_PARAMS.creatorSupply, // creatorSupply: 0
+        BigInt(ONE_SHOT_PARAMS.creatorUnlock), // creatorUnlock: 0
+        ONE_SHOT_PARAMS.saleCap, // saleCap: 800M tokens (as uint96)
+        ONE_SHOT_PARAMS.lpSupply, // lpSupply: 200M tokens (as uint96)
+        ONE_SHOT_PARAMS.ethTarget, // ethTargetWei: 10 ETH (as uint128)
+        ONE_SHOT_PARAMS.divisor, // divisor: hardcoded value
+        BigInt(ONE_SHOT_PARAMS.feeOrHook), // feeOrHook: 30 (0.3% fee)
+        metadataUri, // uri: metadata URI
       ] as const;
 
       if (publicClient) {
@@ -164,23 +171,23 @@ export const OneShotLaunchForm = () => {
           // Simulate the transaction to get the predicted coin ID
           const { result } = await publicClient.simulateContract({
             account,
-            address: ZAMMLaunchAddress,
-            abi: ZAMMLaunchAbi,
+            address: zCurveAddress,
+            abi: zCurveAbi,
             functionName: "launch",
             args: contractArgs,
           });
 
-          // Set the predicted launch ID
-          setLaunchId(result);
+          // Set the predicted launch ID (first element of tuple)
+          setLaunchId(result[0]);
         } catch (simError) {
           console.warn("Contract simulation failed, proceeding without coin ID prediction:", simError);
         }
       }
 
-      // Call launch() with hardcoded one-shot parameters
+      // Call launch() with hardcoded zCurve parameters
       writeContract({
-        address: ZAMMLaunchAddress,
-        abi: ZAMMLaunchAbi,
+        address: zCurveAddress,
+        abi: zCurveAbi,
         functionName: "launch",
         args: contractArgs,
       });
@@ -212,29 +219,39 @@ export const OneShotLaunchForm = () => {
           <div className="grid grid-cols-1 gap-3 text-sm">
             <div className="bg-background border border-border rounded p-3">
               <div className="font-medium text-foreground">
-                {t("create.oneshot_supply_breakdown", "1B Total: 495M sale + 495M liquidity + 10M creator")}
+                {t("create.oneshot_supply_breakdown", "1B Total: 800M sale + 200M liquidity")}
               </div>
               <div className="text-muted-foreground text-xs mt-1">
-                {t("create.oneshot_percentages", "49.5% public • 49.5% locked • 1% creator")}
+                {t("create.oneshot_percentages", "80% public sale • 20% liquidity pool")}
               </div>
             </div>
             <div className="bg-background border border-border rounded p-3">
               <div className="font-medium text-foreground">
-                {t("create.oneshot_sale_price", "Sale: 495M coins for 1 ETH total")}
+                {t("create.oneshot_sale_price", "Sale: 800M coins with 0.01 ETH target")}
               </div>
               <div className="text-muted-foreground text-xs mt-1">
-                {t("create.oneshot_sale_note", "Anyone can buy any amount")}
+                {t("create.oneshot_sale_note", "Quadratic bonding curve pricing")}
               </div>
             </div>
             <div className="bg-background border border-border rounded p-3">
               <div className="font-medium text-foreground">
-                {t("create.oneshot_auto_liquidity", "Auto-liquidity: 495M + 1 ETH → Trading Pool")}
+                {t("create.oneshot_auto_liquidity", "Auto-liquidity: 200M + raised ETH → Trading Pool")}
               </div>
               <div className="text-muted-foreground text-xs mt-1">
-                {t("create.oneshot_instant_trading", "Enables instant trading when sale completes")}
+                {t("create.oneshot_instant_trading", "0.3% trading fee • Auto-finalizes at target")}
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Bonding Curve Visualization */}
+        <div className="mb-6">
+          <ZCurveBondingChart
+            saleCap={ONE_SHOT_PARAMS.saleCap}
+            divisor={ONE_SHOT_PARAMS.divisor}
+            ethTarget={ONE_SHOT_PARAMS.ethTarget}
+            currentSold={BigInt(0)}
+          />
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
