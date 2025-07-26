@@ -138,51 +138,40 @@ export const GovernanceProposals: React.FC = () => {
   }
 
   if (error) {
-    return (
-      <div className="text-xs">
-        <div className="flex items-center gap-2 text-red-400">
-          <span>&gt;</span>
-          <span>failed to load proposals</span>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   if (!proposals || proposals.length === 0) {
-    return (
-      <div className="text-xs">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <span>&gt;</span>
-          <span>no proposals found</span>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (
-    <div className="text-xs space-y-1">
-      {proposals.map((proposal) => (
-        <div
-          key={proposal.id}
-          className="max-w-fit border-2 border-border py-1 px-2 hover:scale-105 flex items-center gap-2"
-        >
-          <span className="text-muted-foreground">&gt;</span>
-          <a
-            href={`https://snapshot.org/#/${proposal.space.id}/proposal/${proposal.id}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-primary transition-colors cursor-pointer flex-1 min-w-0"
+    <div className="mb-6">
+      <div className="text-lg mb-2 font-bold">governance:</div>
+      <div className="text-xs space-y-1">
+        {proposals.map((proposal) => (
+          <div
+            key={proposal.id}
+            className="max-w-fit border-2 border-border py-1 px-2 hover:scale-105 flex items-center gap-2"
           >
-            <span className="font-bold">{truncateTitle(proposal.title)}</span>
-          </a>
-          <span className={`${getStateColor(proposal.state)} font-mono`}>
-            [{proposal.state}]
-          </span>
-          <span className="text-muted-foreground font-mono">
-            {formatTimeAgo(proposal.start)}
-          </span>
-        </div>
-      ))}
+            <span className="text-muted-foreground">&gt;</span>
+            <a
+              href={`https://snapshot.org/#/${proposal.space.id}/proposal/${proposal.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-primary transition-colors cursor-pointer flex-1 min-w-0"
+            >
+              <span className="font-bold">{truncateTitle(proposal.title)}</span>
+            </a>
+            <span className={`${getStateColor(proposal.state)} font-mono`}>
+              [{proposal.state}]
+            </span>
+            <span className="text-muted-foreground font-mono">
+              {formatTimeAgo(proposal.start)}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };

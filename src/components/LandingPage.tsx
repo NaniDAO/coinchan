@@ -179,10 +179,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
       </div>
 
       {/* Governance */}
-      <div className="mb-6">
-        <div className="text-lg mb-2 font-bold">governance:</div>
-        <GovernanceProposals />
-      </div>
+      <GovernanceProposals />
 
       {/* Protocol Stats - Single Column Format */}
       <div className="mb-6">
