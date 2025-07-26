@@ -13,7 +13,10 @@ import ErrorFallback, { ErrorBoundary } from "./components/ErrorBoundary";
 import { PoolOverview } from "./components/PoolOverview";
 import { VotePanel } from "./components/VotePanel";
 import { LoadingLogo } from "./components/ui/loading-logo";
-import { CheckTheChainAbi, CheckTheChainAddress } from "./constants/CheckTheChain";
+import {
+  CheckTheChainAbi,
+  CheckTheChainAddress,
+} from "./constants/CheckTheChain";
 import { CoinsAddress } from "./constants/Coins";
 import { useGetCoin } from "./hooks/metadata/use-get-coin";
 import { useIsOwner } from "./hooks/use-is-owner";
@@ -30,9 +33,12 @@ export const BuySellFallback = ({
 }) => {
   return (
     <div className="p-4 border border-destructive/30 bg-destructive/10 rounded-md">
-      <h3 className="font-medium text-destructive">Trading temporarily unavailable</h3>
+      <h3 className="font-medium text-destructive">
+        Trading temporarily unavailable
+      </h3>
       <p className="text-sm text-destructive/80 mt-2">
-        We're experiencing issues loading the trading interface for {name} [{symbol}]. Please try again later.
+        We're experiencing issues loading the trading interface for {name} [
+        {symbol}]. Please try again later.
       </p>
       <div className="mt-4 bg-background p-3 rounded-md text-sm border border-border">
         <p className="font-medium">Token Details:</p>
@@ -53,12 +59,21 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
     token: CoinsAddress,
   });
 
-  const [name, symbol, imageUrl, description, tokenURI, _poolIds, swapFees] = useMemo(() => {
-    if (!data) return ["", "", "", "", "", undefined, [100n]];
-    const pools = data.pools.map((pool) => pool.poolId);
-    const swapFees = data.pools.map((pool) => BigInt(pool.swapFee));
-    return [data.name!, data.symbol!, data.imageUrl!, data.description!, data.tokenURI!, pools, swapFees];
-  }, [data]);
+  const [name, symbol, imageUrl, description, tokenURI, _poolIds, swapFees] =
+    useMemo(() => {
+      if (!data) return ["", "", "", "", "", undefined, [100n]];
+      const pools = data.pools.map((pool) => pool.poolId);
+      const swapFees = data.pools.map((pool) => BigInt(pool.swapFee));
+      return [
+        data.name!,
+        data.symbol!,
+        data.imageUrl!,
+        data.description!,
+        data.tokenURI!,
+        pools,
+        swapFees,
+      ];
+    }, [data]);
 
   const [txHash] = useState<`0x${string}`>();
   const [priceImpact, setPriceImpact] = useState<{
@@ -100,7 +115,10 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
   if (isLoadingGetCoin) {
     return (
       <div className="w-full max-w-screen mx-auto flex flex-col gap-4 px-2 py-4 pb-16 sm:p-6 sm:pb-16">
-        <Link to="/explore" className="text-sm self-start underline py-2 px-1 touch-manipulation">
+        <Link
+          to="/explore"
+          className="text-sm self-start underline py-2 px-1 touch-manipulation"
+        >
           ⬅︎ Back to Explorer
         </Link>
         <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
@@ -111,25 +129,27 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
     );
   }
 
-  console.log("TradeView:", {
-    name,
-    symbol,
-    imageUrl,
-    description,
-    tokenURI,
-    poolIds: _poolIds,
-    swapFees,
-  });
-
   return (
     <div className="w-full mx-auto flex flex-col gap-4 px-2 py-4 pb-16 sm:p-6 sm:pb-16">
-      <Link to="/explore" className="text-sm self-start underline py-2 px-1 touch-manipulation">
+      <Link
+        to="/explore"
+        className="text-sm self-start underline py-2 px-1 touch-manipulation"
+      >
         ⬅︎ Back to Explorer
       </Link>
 
-      <CoinPreview coinId={tokenId} name={name} symbol={symbol} isLoading={isLoadingGetCoin} />
+      <CoinPreview
+        coinId={tokenId}
+        name={name}
+        symbol={symbol}
+        isLoading={isLoadingGetCoin}
+      />
 
-      <ErrorBoundary fallback={<ErrorFallback errorMessage="Error rendering Coin Info Card" />}>
+      <ErrorBoundary
+        fallback={
+          <ErrorFallback errorMessage="Error rendering Coin Info Card" />
+        }
+      >
         <CoinInfoCard
           coinId={tokenId}
           name={name}
@@ -148,12 +168,23 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
       </ErrorBoundary>
 
       {/* Wrap BuySell component in an ErrorBoundary to prevent crashes */}
-      <ErrorBoundary fallback={<BuySellFallback tokenId={tokenId} name={name} symbol={symbol} />}>
+      <ErrorBoundary
+        fallback={
+          <BuySellFallback tokenId={tokenId} name={name} symbol={symbol} />
+        }
+      >
         <div>
-          <BuySell tokenId={tokenId} name={name} symbol={symbol} onPriceImpactChange={setPriceImpact} />
+          <BuySell
+            tokenId={tokenId}
+            name={name}
+            symbol={symbol}
+            onPriceImpactChange={setPriceImpact}
+          />
         </div>
       </ErrorBoundary>
-      <ErrorBoundary fallback={<ErrorFallback errorMessage="Error rendering voting panel" />}>
+      <ErrorBoundary
+        fallback={<ErrorFallback errorMessage="Error rendering voting panel" />}
+      >
         <VotePanel coinId={tokenId} />
       </ErrorBoundary>
 
@@ -161,14 +192,24 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
       {isCheckingOwner && <LoadingLogo size="sm" />}
       {isOwner && (
         <div className="mt-4 sm:mt-6 max-w-2xl">
-          <ErrorBoundary fallback={<p className="text-destructive">Vesting claim feature unavailable</p>}>
+          <ErrorBoundary
+            fallback={
+              <p className="text-destructive">
+                Vesting claim feature unavailable
+              </p>
+            }
+          >
             <ClaimVested coinId={tokenId} />
           </ErrorBoundary>
         </div>
       )}
       <PoolOverview
         coinId={tokenId.toString()}
-        poolId={computePoolId(tokenId, swapFees?.[0] ?? SWAP_FEE, CoinsAddress).toString()}
+        poolId={computePoolId(
+          tokenId,
+          swapFees?.[0] ?? SWAP_FEE,
+          CoinsAddress,
+        ).toString()}
         symbol={symbol}
         priceImpact={priceImpact}
       />

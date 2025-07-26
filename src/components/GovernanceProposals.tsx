@@ -73,6 +73,7 @@ const fetchSnapshotProposals = async (
   });
 
   if (!response.ok) {
+    console.error("Failed to fetch proposals", await response.text());
     throw new Error("Failed to fetch proposals");
   }
 
@@ -80,7 +81,7 @@ const fetchSnapshotProposals = async (
   return data.data.proposals;
 };
 
-export const useSnapshotProposals = (
+const useSnapshotProposals = (
   space: string = "zamm.eth",
   first: number = 3,
 ) => {

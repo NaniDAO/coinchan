@@ -37,8 +37,6 @@ export const TrendingFarm: React.FC<TrendingFarmProps> = ({
 
   if (!farmColor || !ticker || !totalApr) return null;
 
-  console.log(farmColor, ticker, totalApr, imageUrl);
-
   return (
     <div className="w-fit text-lg">
       <Link to={url} className={"flex flex-row items-center hover:underline"}>
