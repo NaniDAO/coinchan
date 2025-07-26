@@ -9,6 +9,7 @@ import { useTheme } from "@/lib/theme";
 import { TrendingFarm } from "./TrendingFarm";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { LoadingLogo } from "./ui/loading-logo";
+import { GovernanceProposals } from "./GovernanceProposals";
 
 interface LandingPageProps {
   onEnterApp?: () => void;
@@ -175,6 +176,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
             />
           </ErrorBoundary>
         </div>
+      </div>
+
+      {/* Governance */}
+      <div className="mb-6">
+        <div className="text-lg mb-2 font-bold">governance:</div>
+        <GovernanceProposals />
       </div>
 
       {/* Protocol Stats - Single Column Format */}
