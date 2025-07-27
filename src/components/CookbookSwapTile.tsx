@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, parseEther } from "viem";
-import { useAccount, useBalance, usePublicClient, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useAccount, useBalance, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
