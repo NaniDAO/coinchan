@@ -240,7 +240,7 @@ export function ZCurveAddLiquidity({ coinId, poolId: providedPoolId, feeOrHook =
         address: CookbookAddress,
         abi: CookbookAbi,
         functionName: "addLiquidity",
-        args: [poolKey, amount0Min, amount1Min, BigInt(0), address, deadline],
+        args: [poolKey, amount0, amount1, amount0Min, amount1Min, address, deadline],
         value: amount0, // Send ETH
       });
 
