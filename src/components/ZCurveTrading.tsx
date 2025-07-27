@@ -12,7 +12,7 @@ import { LoadingLogo } from "@/components/ui/loading-logo";
 import { ZCurvePriceImpact } from "@/components/ZCurvePriceImpact";
 
 import { zCurveAbi, zCurveAddress } from "@/constants/zCurve";
-import { useZCurveSale, useZCurveBalance } from "@/hooks/use-zcurve-sale";
+import { useZCurveSale, useZCurveBalance, useZCurveSaleSummary } from "@/hooks/use-zcurve-sale";
 import { handleWalletError, isUserRejectionError } from "@/lib/errors";
 import { UNIT_SCALE } from "@/lib/zCurveHelpers";
 import { debounce } from "@/lib/utils";
@@ -46,6 +46,7 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
 
   // Fetch data
   const { data: sale, isLoading: saleLoading } = useZCurveSale(coinId);
+  const { data: saleSummary } = useZCurveSaleSummary(coinId, address);
   const { data: userBalance } = useZCurveBalance(coinId, address);
   const { data: ethBalance } = useBalance({ address });
   const { data: coinData } = useGetCoin({
@@ -80,12 +81,12 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
       name: coinData?.name || sale?.coin?.name || "Token",
       decimals: 18,
       image: coinIcon || coinData?.imageUrl || sale?.coin?.imageUrl || "",
-      balance: userBalance ? BigInt(userBalance.balance) : 0n,
+      balance: saleSummary?.userBalance ? BigInt(saleSummary.userBalance) : userBalance ? BigInt(userBalance.balance) : 0n,
       reserve0: 0n,
       reserve1: 0n,
       source: "COOKBOOK" as const,
     }),
-    [coinId, coinSymbol, coinData, coinIcon, userBalance, sale],
+    [coinId, coinSymbol, coinData, coinIcon, userBalance, saleSummary, sale],
   );
 
   // Calculate output based on input using view helpers
@@ -256,7 +257,8 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
           }
 
           // Validate token balance
-          if (userBalance && BigInt(userBalance.balance) < maxCoins) {
+          const tokenBalance = saleSummary?.userBalance ? BigInt(saleSummary.userBalance) : userBalance ? BigInt(userBalance.balance) : 0n;
+          if (tokenBalance < maxCoins) {
             setErrorMessage(t("trade.insufficient_balance"));
             return;
           }
@@ -277,7 +279,8 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
           }
 
           // Validate token balance
-          if (userBalance && BigInt(userBalance.balance) < coinsIn) {
+          const tokenBalance = saleSummary?.userBalance ? BigInt(saleSummary.userBalance) : userBalance ? BigInt(userBalance.balance) : 0n;
+          if (tokenBalance < coinsIn) {
             setErrorMessage(t("trade.insufficient_balance"));
             return;
           }
@@ -305,8 +308,6 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
           });
         }
       }
-
-      toast.info(swapDirection === "buy" ? t("trade.buy_initiated") : t("trade.sell_initiated"));
     } catch (error) {
       console.error("Trade error:", error);
 
@@ -388,7 +389,7 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
             calculateOutput(formatted, "sell");
           } else {
             // Max tokens
-            const maxTokens = userBalance ? BigInt(userBalance.balance) : 0n;
+            const maxTokens = saleSummary?.userBalance ? BigInt(saleSummary.userBalance) : userBalance ? BigInt(userBalance.balance) : 0n;
             const formatted = formatEther(maxTokens);
             setSellAmount(formatted);
             calculateOutput(formatted, "sell");
@@ -397,7 +398,7 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
         showPercentageSlider={
           lastEditedField === "sell" &&
           ((swapDirection === "buy" && !!ethBalance && ethBalance.value > 0n) ||
-            (swapDirection === "sell" && !!userBalance && BigInt(userBalance.balance) > 0n))
+            (swapDirection === "sell" && ((saleSummary?.userBalance && BigInt(saleSummary.userBalance) > 0n) || (userBalance && BigInt(userBalance.balance) > 0n)))) || false
         }
         disabled={tradingDisabled}
       />

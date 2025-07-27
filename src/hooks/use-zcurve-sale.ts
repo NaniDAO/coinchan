@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { Address } from "viem";
+import { usePublicClient } from "wagmi";
+import { zCurveAbi, zCurveAddress } from "@/constants/zCurve";
 
 const API_URL = import.meta.env.VITE_INDEXER_URL + "/graphql";
 
@@ -352,6 +354,45 @@ export function useZCurveFinalization(coinId: string | undefined) {
     },
     enabled: !!coinId,
     staleTime: 60 * 1000, // 1 minute - finalization doesn't change
+  });
+}
+
+// Fetch sale summary with user balance from contract
+export function useZCurveSaleSummary(coinId: string | undefined, userAddress: Address | undefined) {
+  const publicClient = usePublicClient();
+  
+  return useQuery({
+    queryKey: ["zcurve", "saleSummary", coinId, userAddress],
+    queryFn: async () => {
+      if (!coinId || !publicClient) throw new Error("Missing parameters");
+      
+      const result = await publicClient.readContract({
+        address: zCurveAddress,
+        abi: zCurveAbi,
+        functionName: "saleSummary",
+        args: [BigInt(coinId), userAddress || "0x0000000000000000000000000000000000000000"],
+      });
+      
+      return {
+        creator: result[0],
+        saleCap: result[1].toString(),
+        netSold: result[2].toString(),
+        ethEscrow: result[3].toString(),
+        ethTarget: result[4].toString(),
+        deadline: result[5].toString(),
+        isLive: result[6],
+        isFinalized: result[7],
+        currentPrice: result[8].toString(),
+        percentFunded: Number(result[9]),
+        timeRemaining: result[10].toString(),
+        userBalance: result[11].toString(),
+        feeOrHook: result[12].toString(),
+        divisor: result[13].toString(),
+        quadCap: result[14].toString(),
+      };
+    },
+    enabled: !!coinId && !!publicClient,
+    staleTime: 10 * 1000, // 10 seconds
   });
 }
 
