@@ -5,7 +5,6 @@ import { useAccount } from "wagmi";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CookbookSwapTile } from "@/components/CookbookSwapTile";
-import { TokenImage } from "@/components/TokenImage";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ZCurveClaim } from "@/components/ZCurveClaim";
 import { LoadingLogo } from "@/components/ui/loading-logo";
@@ -139,8 +138,8 @@ function FinalizedPoolTradingInner({
   }, [reserves, ethPrice?.priceUSD, sale]);
 
   return (
-    <div className="w-full flex justify-center">
-      <div className="w-full max-w-7xl px-2 sm:px-4 py-4 sm:py-8">
+    <div className="w-full">
+      <div className="w-full px-4 lg:px-8 py-4 sm:py-8">
       {/* Claimable Balance Alert */}
       {hasClaimableBalance && (
         <Alert className="mb-4 sm:mb-6 border-2 border-primary bg-gradient-to-r from-primary/20 to-primary/10 shadow-xl">
@@ -161,45 +160,36 @@ function FinalizedPoolTradingInner({
         </div>
       )}
 
-      {/* Header with coin info - matching ENS style */}
-      <div className="mb-4 sm:mb-8 text-center">
-        <div className="flex items-center justify-center gap-3 mb-3">
-          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden">
-            <TokenImage token={coinToken} />
-          </div>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold">{coinToken.name}</h1>
-            <p className="text-muted-foreground">{coinToken.symbol}</p>
-          </div>
-        </div>
-        {sale?.coin?.description && (
+      {/* Simplified header with description only if available */}
+      {sale?.coin?.description && (
+        <div className="mb-4 sm:mb-6 text-center">
           <p className="text-sm text-muted-foreground max-w-2xl mx-auto px-4">
             {sale.coin.description}
           </p>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Trading Interface - Desktop: side by side, Mobile: stacked */}
       <div className="mb-4 sm:mb-6 md:mb-8">
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
           {/* Tabs at the top */}
-          <div className="bg-card border border-border rounded-t-lg p-2">
-            <TabsList className="flex flex-wrap sm:grid sm:grid-cols-3 gap-1 bg-muted/50 p-1 h-auto w-full max-w-md mx-auto">
+          <div className="bg-card border border-border rounded-t-lg p-3 lg:p-4">
+            <TabsList className="flex flex-wrap sm:grid sm:grid-cols-3 gap-2 bg-muted/50 p-2 h-auto w-full max-w-lg mx-auto">
               <TabsTrigger 
                 value="swap" 
-                className="flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                className="flex-1 sm:flex-initial px-4 py-2 lg:px-6 lg:py-3 text-xs sm:text-sm lg:text-base data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
               >
                 {t("common.swap")}
               </TabsTrigger>
               <TabsTrigger 
                 value="add" 
-                className="flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                className="flex-1 sm:flex-initial px-4 py-2 lg:px-6 lg:py-3 text-xs sm:text-sm lg:text-base data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
               >
                 {t("common.add")}
               </TabsTrigger>
               <TabsTrigger 
                 value="remove" 
-                className="flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                className="flex-1 sm:flex-initial px-4 py-2 lg:px-6 lg:py-3 text-xs sm:text-sm lg:text-base data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
               >
                 {t("common.remove")}
               </TabsTrigger>
@@ -207,14 +197,14 @@ function FinalizedPoolTradingInner({
           </div>
 
           <TabsContent value="swap" className="mt-0">
-            {/* Center the content similar to ENS page */}
-            <div className="max-w-7xl mx-auto">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+            {/* Full width layout for desktop */}
+            <div className="w-full">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-8">
                 {/* Chart Section - Desktop: Left, Mobile: Below swap */}
-                <div className="order-2 lg:order-1 bg-card border border-border rounded-lg p-4 lg:p-6">
+                <div className="order-2 xl:order-1 bg-card border border-border rounded-lg p-4 lg:p-8">
                 <div className="h-full flex flex-col">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-medium">{coinSymbol}/ETH {t("common.chart")}</h3>
+                    <h3 className="text-sm lg:text-base font-semibold">{t("common.chart")}</h3>
                     <div className="flex items-center gap-2">
                       <Button
                         variant="ghost"
@@ -239,12 +229,12 @@ function FinalizedPoolTradingInner({
                   <div className={`flex-1 ${!showPriceChart && "lg:block hidden"}`}>
                     <Suspense
                       fallback={
-                        <div className="h-[400px] flex items-center justify-center">
+                        <div className="h-[400px] lg:h-[500px] flex items-center justify-center">
                           <LoadingLogo />
                         </div>
                       }
                     >
-                      <div className="h-[400px]">
+                      <div className="h-[400px] lg:h-[500px]">
                         {chartType === "line" ? (
                           <PoolPriceChart
                             poolId={poolId}
@@ -259,15 +249,15 @@ function FinalizedPoolTradingInner({
                   </div>
 
                   {/* Market Stats */}
-                  <div className="mt-4 pt-4 border-t border-border grid grid-cols-2 gap-4 text-xs">
+                  <div className="mt-4 lg:mt-6 pt-4 lg:pt-6 border-t border-border grid grid-cols-2 gap-4 lg:gap-6 text-xs lg:text-sm">
                     <div>
-                      <p className="text-muted-foreground mb-1">{t("coin.price")}</p>
-                      <p className="font-medium">{coinPrice > 0 ? `${coinPrice.toFixed(6)} ETH` : "-"}</p>
-                      <p className="text-muted-foreground text-xs">${coinUsdPrice.toFixed(2)}</p>
+                      <p className="text-muted-foreground mb-1 lg:mb-2">{t("coin.price")}</p>
+                      <p className="font-medium lg:text-base">{coinPrice > 0 ? `${coinPrice.toFixed(6)} ETH` : "-"}</p>
+                      <p className="text-muted-foreground text-xs lg:text-sm">${coinUsdPrice.toFixed(2)}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground mb-1">{t("coin.market_cap")}</p>
-                      <p className="font-medium">
+                      <p className="text-muted-foreground mb-1 lg:mb-2">{t("coin.market_cap")}</p>
+                      <p className="font-medium lg:text-base">
                         $
                         {marketCapUsd > 1e9
                           ? (marketCapUsd / 1e9).toFixed(2) + "B"
@@ -277,12 +267,12 @@ function FinalizedPoolTradingInner({
                       </p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground mb-1">{t("coin.pool_eth")}</p>
-                      <p className="font-medium">{formatNumber(Number(formatEther(reserves?.reserve0 || 0n)), 4)} ETH</p>
+                      <p className="text-muted-foreground mb-1 lg:mb-2">{t("coin.pool_eth")}</p>
+                      <p className="font-medium lg:text-base">{formatNumber(Number(formatEther(reserves?.reserve0 || 0n)), 4)} ETH</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground mb-1">{t("coin.pool_tokens", "Pool Tokens")}</p>
-                      <p className="font-medium">
+                      <p className="text-muted-foreground mb-1 lg:mb-2">{t("coin.pool_tokens", "Pool Tokens")}</p>
+                      <p className="font-medium lg:text-base">
                         {formatNumber(Number(formatUnits(reserves?.reserve1 || 0n, 18)), 0)} {coinSymbol}
                       </p>
                     </div>
@@ -291,8 +281,8 @@ function FinalizedPoolTradingInner({
               </div>
 
               {/* Swap Section - Desktop: Right, Mobile: Top */}
-              <div className="order-1 lg:order-2 bg-card border border-border rounded-lg p-4 lg:p-6">
-                <div className="max-w-md mx-auto">
+              <div className="order-1 xl:order-2 bg-card border border-border rounded-lg p-4 lg:p-8">
+                <div className="max-w-lg mx-auto">
                   <CookbookSwapTile 
                     coinId={coinId}
                     coinName={sale?.coin?.name || coinName}
@@ -302,12 +292,12 @@ function FinalizedPoolTradingInner({
                     feeOrHook={30n}
                   />
                   
-                  <div className="mt-4 text-center">
-                    <p className="text-xs text-muted-foreground">{t("coin.pool_fee")}: 0.3%</p>
+                  <div className="mt-4 lg:mt-6 text-center">
+                    <p className="text-xs lg:text-sm text-muted-foreground">{t("coin.pool_fee")}: 0.3%</p>
                   </div>
                   
                   {/* Vote Panel centered at bottom of swap tile */}
-                  <div className="mt-6 flex justify-center">
+                  <div className="mt-6 lg:mt-8 flex justify-center">
                     <VotePanel coinId={BigInt(coinId)} />
                   </div>
                 </div>
@@ -317,25 +307,73 @@ function FinalizedPoolTradingInner({
           </TabsContent>
 
           <TabsContent value="add" className="mt-0">
-            <div className="bg-card border border-border rounded-lg p-4 lg:p-6">
-              <div className="max-w-2xl mx-auto">
-                <ZCurveAddLiquidity 
-                  coinId={coinId} 
-                  poolId={poolId}
-                  feeOrHook={30n}
-                />
+            <div className="w-full">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-8">
+                {/* Add Liquidity Form */}
+                <div className="bg-card border border-border rounded-lg p-4 lg:p-8">
+                  <ZCurveAddLiquidity 
+                    coinId={coinId} 
+                    poolId={poolId}
+                    feeOrHook={30n}
+                  />
+                </div>
+                
+                {/* Pool Info for Add Liquidity */}
+                <div className="bg-card border border-border rounded-lg p-4 lg:p-8">
+                  <h3 className="text-lg lg:text-xl font-semibold mb-4 lg:mb-6">{t("liquidity.pool_info")}</h3>
+                  <div className="space-y-4 lg:space-y-6">
+                    <div>
+                      <p className="text-sm lg:text-base text-muted-foreground mb-1 lg:mb-2">{t("coin.current_price")}</p>
+                      <p className="font-medium lg:text-lg">{coinPrice > 0 ? `${coinPrice.toFixed(6)} ETH` : "-"}</p>
+                      <p className="text-sm lg:text-base text-muted-foreground">${coinUsdPrice.toFixed(2)} USD</p>
+                    </div>
+                    <div>
+                      <p className="text-sm lg:text-base text-muted-foreground mb-1 lg:mb-2">{t("coin.pool_liquidity")}</p>
+                      <p className="font-medium lg:text-lg">{formatNumber(Number(formatEther(reserves?.reserve0 || 0n)), 4)} ETH</p>
+                      <p className="text-sm lg:text-base text-muted-foreground">{formatNumber(Number(formatUnits(reserves?.reserve1 || 0n, 18)), 0)} {coinSymbol}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm lg:text-base text-muted-foreground mb-1 lg:mb-2">{t("coin.pool_fee")}</p>
+                      <p className="font-medium lg:text-lg">0.3%</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </TabsContent>
 
           <TabsContent value="remove" className="mt-0">
-            <div className="bg-card border border-border rounded-lg p-4 lg:p-6">
-              <div className="max-w-2xl mx-auto">
-                <ZCurveRemoveLiquidity 
-                  coinId={coinId}
-                  poolId={poolId}
-                  feeOrHook={30n}
-                />
+            <div className="w-full">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-8">
+                {/* Remove Liquidity Form */}
+                <div className="bg-card border border-border rounded-lg p-4 lg:p-8">
+                  <ZCurveRemoveLiquidity 
+                    coinId={coinId}
+                    poolId={poolId}
+                    feeOrHook={30n}
+                  />
+                </div>
+                
+                {/* Pool Info for Remove Liquidity */}
+                <div className="bg-card border border-border rounded-lg p-4 lg:p-8">
+                  <h3 className="text-lg lg:text-xl font-semibold mb-4 lg:mb-6">{t("liquidity.your_position")}</h3>
+                  <div className="space-y-4 lg:space-y-6">
+                    <div>
+                      <p className="text-sm lg:text-base text-muted-foreground mb-1 lg:mb-2">{t("coin.current_price")}</p>
+                      <p className="font-medium lg:text-lg">{coinPrice > 0 ? `${coinPrice.toFixed(6)} ETH` : "-"}</p>
+                      <p className="text-sm lg:text-base text-muted-foreground">${coinUsdPrice.toFixed(2)} USD</p>
+                    </div>
+                    <div>
+                      <p className="text-sm lg:text-base text-muted-foreground mb-1 lg:mb-2">{t("coin.pool_liquidity")}</p>
+                      <p className="font-medium lg:text-lg">{formatNumber(Number(formatEther(reserves?.reserve0 || 0n)), 4)} ETH</p>
+                      <p className="text-sm lg:text-base text-muted-foreground">{formatNumber(Number(formatUnits(reserves?.reserve1 || 0n, 18)), 0)} {coinSymbol}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm lg:text-base text-muted-foreground mb-1 lg:mb-2">{t("coin.pool_fee")}</p>
+                      <p className="font-medium lg:text-lg">0.3%</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </TabsContent>
@@ -343,30 +381,30 @@ function FinalizedPoolTradingInner({
       </div>
 
       {/* Info Section */}
-      <div className="mt-6 md:mt-8 bg-card border border-border rounded-lg p-4 md:p-6">
-        <h2 className="text-lg md:text-xl font-semibold mb-4">
+      <div className="mt-6 md:mt-8 bg-card border border-border rounded-lg p-4 md:p-6 lg:p-8">
+        <h2 className="text-lg md:text-xl lg:text-2xl font-semibold mb-4 lg:mb-6">
           {t("coin.pool_details", "Pool Details")}
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 text-sm">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 text-sm lg:text-base">
           <div>
-            <p className="text-muted-foreground">{t("coin.total_supply")}</p>
-            <p className="font-medium">
+            <p className="text-muted-foreground mb-1">{t("coin.total_supply")}</p>
+            <p className="font-medium lg:text-lg">
               1,000,000,000 {coinSymbol}
             </p>
           </div>
           <div>
-            <p className="text-muted-foreground">{t("coin.pool_fee")}</p>
-            <p className="font-medium">0.3%</p>
+            <p className="text-muted-foreground mb-1">{t("coin.pool_fee")}</p>
+            <p className="font-medium lg:text-lg">0.3%</p>
           </div>
           <div>
-            <p className="text-muted-foreground">{t("coin.pool_id")}</p>
-            <p className="font-mono text-xs break-all hover:text-primary transition-colors">
+            <p className="text-muted-foreground mb-1">{t("coin.pool_id")}</p>
+            <p className="font-mono text-xs lg:text-sm break-all hover:text-primary transition-colors">
               {poolId}
             </p>
           </div>
           <div>
-            <p className="text-muted-foreground">{t("coin.decimals")}</p>
-            <p className="font-medium">18</p>
+            <p className="text-muted-foreground mb-1">{t("coin.decimals")}</p>
+            <p className="font-medium lg:text-lg">18</p>
           </div>
         </div>
       </div>
