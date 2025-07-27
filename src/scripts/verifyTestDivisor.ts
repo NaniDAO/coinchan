@@ -1,12 +1,10 @@
 import { parseEther, formatEther } from "viem";
 import { calculateCost, calculateOneshotDivisor } from "../lib/zCurveMath";
-import { UNIT_SCALE } from "../lib/zCurveHelpers";
 
 console.log("=== Verify Test Divisor (0.01 ETH Target) ===\n");
 
 const saleCap = parseEther("800000000"); // 800M
 const quadCap = parseEther("200000000"); // 200M
-const lpSupply = parseEther("200000000"); // 200M
 const ethTarget = parseEther("0.01"); // 0.01 ETH for testing
 const divisor = calculateOneshotDivisor();
 
