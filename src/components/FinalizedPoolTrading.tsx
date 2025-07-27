@@ -6,7 +6,7 @@ import { useAccount } from "wagmi";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BuySellCookbookCoin } from "@/components/BuySellCookbookCoin";
+import { CookbookSwapTile } from "@/components/CookbookSwapTile";
 import { PoolOverview } from "@/components/PoolOverview";
 import { TokenImage } from "@/components/TokenImage";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -197,7 +197,15 @@ export function FinalizedPoolTrading({
           <div className="max-w-md mx-auto">
             <Card className="border-2 border-border bg-background">
               <CardContent className="pt-6">
-                <BuySellCookbookCoin coinId={BigInt(coinId)} symbol={coinSymbol} />
+                <CookbookSwapTile 
+                  coinId={coinId}
+                  coinName={coinName}
+                  coinSymbol={coinSymbol}
+                  coinIcon={coinIcon}
+                  poolId={poolId}
+                  userBalance={saleSummary?.userBalance ? BigInt(saleSummary.userBalance) : undefined}
+                  feeOrHook={sale?.feeOrHook}
+                />
               </CardContent>
             </Card>
           </div>
