@@ -231,8 +231,8 @@ export function CookbookSwapTile({
         writeContract({
           address: CookbookAddress,
           abi: CookbookAbi,
-          functionName: "swap",
-          args: [poolKey, true, ethIn, minTokens, address, deadline],
+          functionName: "swapExactIn",
+          args: [poolKey, ethIn, minTokens, true, address, deadline],
           value: ethIn,
         });
       } else {
@@ -251,8 +251,8 @@ export function CookbookSwapTile({
         writeContract({
           address: CookbookAddress,
           abi: CookbookAbi,
-          functionName: "swap",
-          args: [poolKey, false, tokensIn, minEth, address, deadline],
+          functionName: "swapExactIn",
+          args: [poolKey, tokensIn, minEth, false, address, deadline],
         });
       }
     } catch (error) {
