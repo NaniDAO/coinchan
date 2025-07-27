@@ -369,7 +369,7 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
       <SwapPanel
         title={t("trade.you_pay")}
         selectedToken={swapDirection === "buy" ? ethToken : coinToken}
-        tokens={[]} // Fixed pair, no selection
+        tokens={[swapDirection === "buy" ? ethToken : coinToken]} // Pass the token to prevent dropdown
         onSelect={() => {}} // No-op
         isEthBalanceFetching={false}
         amount={sellAmount}
@@ -439,7 +439,7 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
       <SwapPanel
         title={t("trade.you_receive")}
         selectedToken={swapDirection === "buy" ? coinToken : ethToken}
-        tokens={[]} // Fixed pair, no selection
+        tokens={[swapDirection === "buy" ? coinToken : ethToken]} // Pass the token to prevent dropdown
         onSelect={() => {}} // No-op
         isEthBalanceFetching={false}
         amount={buyAmount}

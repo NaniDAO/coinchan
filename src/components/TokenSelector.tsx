@@ -90,13 +90,17 @@ export const TokenSelector = memo(
       }
     };
 
+    // Don't allow dropdown if only one token or no tokens
+    const isDropdownDisabled = tokens.length <= 1;
+
     return (
       <div className="relative">
         {/* Selected token display with thumbnail */}
         <div
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={() => !isDropdownDisabled && setIsOpen(!isOpen)}
           className={cn(
-            "z-10 hover:bg-muted flex items-center gap-2 cursor-pointer px-2 py-1 touch-manipulation border border-border transition-colors",
+            "z-10 hover:bg-muted flex items-center gap-2 px-2 py-1 touch-manipulation border border-border transition-colors",
+            isDropdownDisabled ? "cursor-default" : "cursor-pointer",
             className,
           )}
         >
@@ -123,11 +127,11 @@ export const TokenSelector = memo(
               </div>
             </div>
           </div>
-          <ChevronDownIcon className="w-4 h-4 ml-1" />
+          {!isDropdownDisabled && <ChevronDownIcon className="w-4 h-4 ml-1" />}
         </div>
 
         {/* Dropdown list with thumbnails */}
-        {isOpen && (
+        {isOpen && !isDropdownDisabled && (
           <div className="absolute z-50 mt-1 w-[calc(100vw-40px)] sm:w-64 max-h-[60vh] sm:max-h-96 overflow-y-auto border-2 bg-background border-border">
             {/* Search input */}
             <div className="sticky top-0 p-2 bg-muted border-b-2 border-border">
