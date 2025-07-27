@@ -1,6 +1,12 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -31,9 +37,17 @@ export function UnifiedCoinTrading({
 }: UnifiedCoinTradingProps) {
   const { t } = useTranslation();
 
-  const { data: sale, isLoading: saleLoading } = useZCurveSale(coinId);
+  const {
+    data: sale,
+    isLoading: saleLoading,
+    error: saleError,
+  } = useZCurveSale(coinId);
   const { data: finalization } = useZCurveFinalization(coinId);
-
+  console.log("ZCURVESALE:", {
+    sale,
+    saleLoading,
+    saleError,
+  });
   // Time formatting utility
   const formatTimeRemaining = useMemo(() => {
     return (deadline: Date): string => {
@@ -43,7 +57,9 @@ export function UnifiedCoinTrading({
       if (diff <= 0) return "Expired";
 
       const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const hours = Math.floor(
+        (diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+      );
 
       if (days > 0) return `${days}d ${hours}h`;
       if (hours > 0) return `${hours}h`;
@@ -54,27 +70,28 @@ export function UnifiedCoinTrading({
   }, []);
 
   // Memoize computed values to prevent unnecessary recalculations
-  const { isZCurveActive, isFinalized, hasPool, deadline, isExpired } = useMemo(() => {
-    const active = sale && sale.status === "ACTIVE";
-    const finalized = sale?.status === "FINALIZED" || !!finalization;
+  const { isZCurveActive, isFinalized, hasPool, deadline, isExpired } =
+    useMemo(() => {
+      const active = sale && sale.status === "ACTIVE";
+      const finalized = sale?.status === "FINALIZED" || !!finalization;
 
-    // Calculate expected pool ID from sale parameters
-    const expectedPoolId = sale ? getExpectedPoolId(sale) : null;
-    const poolIdValue = poolId || expectedPoolId;
-    const hasPoolValue = finalized && poolIdValue && poolIdValue !== "0";
+      // Calculate expected pool ID from sale parameters
+      const expectedPoolId = sale ? getExpectedPoolId(sale) : null;
+      const poolIdValue = poolId || expectedPoolId;
+      const hasPoolValue = finalized && poolIdValue && poolIdValue !== "0";
 
-    // Calculate sale deadline
-    const deadlineDate = sale ? new Date(Number(sale.deadline) * 1000) : null;
-    const expired = deadlineDate && deadlineDate < new Date();
+      // Calculate sale deadline
+      const deadlineDate = sale ? new Date(Number(sale.deadline) * 1000) : null;
+      const expired = deadlineDate && deadlineDate < new Date();
 
-    return {
-      isZCurveActive: active,
-      isFinalized: finalized,
-      hasPool: hasPoolValue,
-      deadline: deadlineDate,
-      isExpired: expired,
-    };
-  }, [sale, finalization, poolId]);
+      return {
+        isZCurveActive: active,
+        isFinalized: finalized,
+        hasPool: hasPoolValue,
+        deadline: deadlineDate,
+        isExpired: expired,
+      };
+    }, [sale, finalization, poolId]);
 
   if (saleLoading) {
     return (
@@ -120,7 +137,17 @@ export function UnifiedCoinTrading({
                   </div>
                 )}
               </CardTitle>
-              <Badge variant={isZCurveActive ? "default" : isFinalized ? "secondary" : "outline"}>{sale.status}</Badge>
+              <Badge
+                variant={
+                  isZCurveActive
+                    ? "default"
+                    : isFinalized
+                      ? "secondary"
+                      : "outline"
+                }
+              >
+                {sale.status}
+              </Badge>
             </div>
             {isZCurveActive && deadline && (
               <CardDescription>
@@ -150,25 +177,41 @@ export function UnifiedCoinTrading({
       <Card className="border-2 border-border bg-background hover:shadow-lg transition-all duration-200">
         <CardHeader>
           <CardTitle>
-            {isZCurveActive ? t("trade.trade_on_curve", "Trade on Curve") : t("trade.trade", "Trade")}
+            {isZCurveActive
+              ? t("trade.trade_on_curve", "Trade on Curve")
+              : t("trade.trade", "Trade")}
           </CardTitle>
           {isZCurveActive && (
             <CardDescription>
-              {t("trade.zcurve_description", "Buy and sell tokens on the bonding curve during the sale period")}
+              {t(
+                "trade.zcurve_description",
+                "Buy and sell tokens on the bonding curve during the sale period",
+              )}
             </CardDescription>
           )}
         </CardHeader>
         <CardContent>
           {isZCurveActive ? (
-            <ZCurveTrading coinId={coinId} coinName={coinName} coinSymbol={coinSymbol} coinIcon={coinIcon} />
+            <ZCurveTrading
+              coinId={coinId}
+              coinName={coinName}
+              coinSymbol={coinSymbol}
+              coinIcon={coinIcon}
+            />
           ) : hasPool ? (
             <BuySellCookbookCoin coinId={BigInt(coinId)} symbol={coinSymbol} />
           ) : (
             <Alert>
               <AlertDescription>
                 {isExpired && !isFinalized
-                  ? t("trade.waiting_finalization", "Sale expired. Waiting for finalization...")
-                  : t("trade.no_liquidity", "No liquidity available for trading")}
+                  ? t(
+                      "trade.waiting_finalization",
+                      "Sale expired. Waiting for finalization...",
+                    )
+                  : t(
+                      "trade.no_liquidity",
+                      "No liquidity available for trading",
+                    )}
               </AlertDescription>
             </Alert>
           )}
@@ -182,13 +225,39 @@ export function UnifiedCoinTrading({
       {isZCurveActive && (
         <Card className="border-2 border-border bg-background hover:shadow-md transition-all duration-200">
           <CardHeader>
-            <CardTitle className="text-base font-bold">{t("trade.how_it_works", "How It Works")}</CardTitle>
+            <CardTitle className="text-base font-bold">
+              {t("trade.how_it_works", "How It Works")}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <p>• {t("trade.zcurve_info_1", "Tokens are traded on a bonding curve during the sale")}</p>
-            <p>• {t("trade.zcurve_info_2", "Price increases as more tokens are sold")}</p>
-            <p>• {t("trade.zcurve_info_3", "You can buy and sell at any time during the sale")}</p>
-            <p>• {t("trade.zcurve_info_4", "After finalization, liquidity moves to an AMM pool")}</p>
+            <p>
+              •{" "}
+              {t(
+                "trade.zcurve_info_1",
+                "Tokens are traded on a bonding curve during the sale",
+              )}
+            </p>
+            <p>
+              •{" "}
+              {t(
+                "trade.zcurve_info_2",
+                "Price increases as more tokens are sold",
+              )}
+            </p>
+            <p>
+              •{" "}
+              {t(
+                "trade.zcurve_info_3",
+                "You can buy and sell at any time during the sale",
+              )}
+            </p>
+            <p>
+              •{" "}
+              {t(
+                "trade.zcurve_info_4",
+                "After finalization, liquidity moves to an AMM pool",
+              )}
+            </p>
           </CardContent>
         </Card>
       )}
