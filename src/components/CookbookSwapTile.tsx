@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, parseEther } from "viem";
-import { useAccount, useBalance, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useAccount, useBalance, useWriteContract, useWaitForTransactionReceipt, useReadContract } from "wagmi";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -59,14 +59,18 @@ export function CookbookSwapTile({
     token: CookbookAddress,
   });
 
-  // Get balances
+  // Get ETH balance
   const { data: ethBalance } = useBalance({ address });
-  const { data: tokenBalance } = useBalance({
-    address,
-    token: CookbookAddress,
-    // @ts-ignore - coinId is a string but we need to pass it as the correct type
-    args: [BigInt(coinId)],
-    enabled: !!address,
+  
+  // Get Cookbook ERC6909 token balance
+  const { data: cookbookBalance } = useReadContract({
+    address: CookbookAddress,
+    abi: CookbookAbi,
+    functionName: "balanceOf",
+    args: address ? [address, BigInt(coinId)] : undefined,
+    query: {
+      enabled: !!address,
+    },
   });
 
   // Compute pool ID and key
@@ -132,12 +136,12 @@ export function CookbookSwapTile({
       decimals: 18,
       image: coinIcon || coinData?.imageUrl || "",
       tokenUri: coinIcon || coinData?.imageUrl || "",
-      balance: providedUserBalance || tokenBalance?.value || 0n,
+      balance: providedUserBalance || (cookbookBalance as bigint) || 0n,
       reserve0: reserves?.reserve0 || 0n,
       reserve1: reserves?.reserve1 || 0n,
       source: "COOKBOOK" as const,
     }),
-    [coinId, coinSymbol, coinData, coinIcon, coinName, providedUserBalance, tokenBalance, reserves],
+    [coinId, coinSymbol, coinData, coinIcon, coinName, providedUserBalance, cookbookBalance, reserves],
   );
 
   // Calculate output based on input
@@ -242,7 +246,7 @@ export function CookbookSwapTile({
         const minEth = withSlippage(expectedEth, slippageBps);
 
         // Validate token balance
-        const currentTokenBalance = providedUserBalance || tokenBalance?.value || 0n;
+        const currentTokenBalance = providedUserBalance || (cookbookBalance as bigint) || 0n;
         if (currentTokenBalance < tokensIn) {
           setErrorMessage(t("trade.insufficient_balance"));
           return;
@@ -313,7 +317,7 @@ export function CookbookSwapTile({
             calculateOutput(formatted, "sell");
           } else {
             // Max tokens
-            const maxTokens = providedUserBalance || tokenBalance?.value || 0n;
+            const maxTokens = providedUserBalance || (cookbookBalance as bigint) || 0n;
             const formatted = formatEther(maxTokens);
             setSellAmount(formatted);
             calculateOutput(formatted, "sell");
@@ -322,7 +326,7 @@ export function CookbookSwapTile({
         showPercentageSlider={
           lastEditedField === "sell" &&
           ((swapDirection === "buy" && !!ethBalance && ethBalance.value > 0n) ||
-            (swapDirection === "sell" && ((providedUserBalance && providedUserBalance > 0n) || (tokenBalance && tokenBalance.value > 0n))))
+            (swapDirection === "sell" && ((providedUserBalance && providedUserBalance > 0n) || (!!cookbookBalance && (cookbookBalance as bigint) > 0n))))
         }
       />
 

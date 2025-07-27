@@ -1,23 +1,29 @@
-import { useMemo } from "react";
+import { useMemo, useState, lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
-import { formatEther } from "viem";
+import { formatEther, formatUnits } from "viem";
 import { useAccount } from "wagmi";
 
-import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CookbookSwapTile } from "@/components/CookbookSwapTile";
-import { PoolOverview } from "@/components/PoolOverview";
 import { TokenImage } from "@/components/TokenImage";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ZCurveClaim } from "@/components/ZCurveClaim";
-import PoolPriceChart from "@/components/PoolPriceChart";
+import { LoadingLogo } from "@/components/ui/loading-logo";
 import { useETHPrice } from "@/hooks/use-eth-price";
+import { AddLiquidity } from "@/AddLiquidity";
+import { RemoveLiquidity } from "@/RemoveLiquidity";
+import { TokenSelectionProvider, useTokenSelection } from "@/contexts/TokenSelectionContext";
+import { ChevronDownIcon } from "lucide-react";
 
 import type { TokenMeta } from "@/lib/coins";
 import { useZCurveSale, useZCurveSaleSummary, useZCurveBalance } from "@/hooks/use-zcurve-sale";
 import { computeZCurvePoolId } from "@/lib/zCurvePoolId";
 import { useReserves } from "@/hooks/use-reserves";
 import { formatNumber } from "@/lib/utils";
+
+// Lazy load heavy components
+const PoolPriceChart = lazy(() => import("@/components/PoolPriceChart"));
+import React from "react";
 
 interface FinalizedPoolTradingProps {
   coinId: string;
@@ -27,7 +33,7 @@ interface FinalizedPoolTradingProps {
   poolId?: string;
 }
 
-export function FinalizedPoolTrading({
+function FinalizedPoolTradingInner({
   coinId,
   coinName = "Token",
   coinSymbol = "TOKEN",
@@ -36,6 +42,9 @@ export function FinalizedPoolTrading({
 }: FinalizedPoolTradingProps) {
   const { t } = useTranslation();
   const { address } = useAccount();
+  const [activeTab, setActiveTab] = useState<"swap" | "add" | "remove">("swap");
+  const [showPriceChart, setShowPriceChart] = useState<boolean>(true);
+  const { setSellToken, setBuyToken } = useTokenSelection();
   
   // Fetch sale and user data
   const { data: sale } = useZCurveSale(coinId);
@@ -56,63 +65,71 @@ export function FinalizedPoolTrading({
     enabled: !!poolId,
   } as any);
 
-  // Create token metadata
-  const tokenMeta = useMemo<TokenMeta>(() => ({
+  // Create token metadata objects for ETH and the coin
+  const ethToken = useMemo<TokenMeta>(() => ({
+    id: null,
+    symbol: "ETH",
+    name: "Ethereum",
+    decimals: 18,
+    image: "", // Will use theme-aware icon
+    balance: 0n, // Will be fetched by components
+    reserve0: reserves?.reserve0 || 0n,
+    reserve1: reserves?.reserve1 || 0n,
+    source: "COOKBOOK" as const,
+  }), [reserves]);
+
+  const coinToken = useMemo<TokenMeta>(() => ({
     id: BigInt(coinId),
     symbol: coinSymbol || sale?.coin?.symbol || "TOKEN",
     name: coinName || sale?.coin?.name || "Token",
     decimals: 18,
     image: coinIcon || sale?.coin?.imageUrl || "",
-    balance: saleSummary?.userBalance ? BigInt(saleSummary.userBalance) : 0n,
+    tokenUri: coinIcon || sale?.coin?.imageUrl || "",
+    balance: 0n, // Will be fetched by components
     reserve0: reserves?.reserve0 || 0n,
     reserve1: reserves?.reserve1 || 0n,
     source: "COOKBOOK" as const,
-  }), [coinId, coinSymbol, coinName, sale, coinIcon, saleSummary, reserves]);
+  }), [coinId, coinSymbol, coinName, sale, coinIcon, reserves]);
 
-  // Calculate pool metrics
-  const poolMetrics = useMemo(() => {
-    if (!reserves || !sale) return null;
-    
-    const ethReserve = reserves.reserve0;
-    const tokenReserve = reserves.reserve1;
-    const totalSupply = sale.coin?.totalSupply ? BigInt(sale.coin.totalSupply) : 0n;
-    
-    // Calculate market cap in ETH
-    const marketCapETH = totalSupply > 0n && tokenReserve > 0n && ethReserve > 0n
-      ? (totalSupply * ethReserve) / tokenReserve
-      : 0n;
-    
-    // Calculate token price in ETH
-    const tokenPriceETH = tokenReserve > 0n ? (ethReserve * 10n ** 18n) / tokenReserve : 0n;
-    
-    return {
-      ethReserve: formatEther(ethReserve),
-      tokenReserve: formatEther(tokenReserve),
-      marketCapETH: formatEther(marketCapETH),
-      tokenPriceETH: formatEther(tokenPriceETH),
-      totalSupply: formatEther(totalSupply),
-    };
-  }, [reserves, sale]);
+  // Set tokens in context when tab changes
+  React.useEffect(() => {
+    if (activeTab === "add" || activeTab === "remove") {
+      setSellToken(ethToken);
+      setBuyToken(coinToken);
+    }
+  }, [activeTab, ethToken, coinToken, setSellToken, setBuyToken]);
 
-  // Check if user has claimable balance
-  const balance = saleSummary?.userBalance ? BigInt(saleSummary.userBalance) : userBalance ? BigInt(userBalance.balance) : 0n;
-  const hasClaimableBalance = balance > 0n;
+  // Check if user has claimable balance from zCurve (NOT their Cookbook balance)
+  const zCurveBalance = saleSummary?.userBalance ? BigInt(saleSummary.userBalance) : userBalance ? BigInt(userBalance.balance) : 0n;
+  const hasClaimableBalance = zCurveBalance > 0n;
 
   if (!poolId) {
     return (
-      <Card>
-        <CardContent className="py-8">
-          <Alert>
-            <AlertDescription>
-              {t("trade.pool_not_found", "Pool not found")}
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
+      <div className="container mx-auto max-w-2xl px-2 sm:px-4 py-4 sm:py-8">
+        <Alert>
+          <AlertDescription>
+            {t("trade.pool_not_found", "Pool not found")}
+          </AlertDescription>
+        </Alert>
+      </div>
     );
   }
 
   const { data: ethPrice } = useETHPrice();
+
+  // Calculate market cap and price
+  const { coinPrice, coinUsdPrice, marketCapUsd } = useMemo(() => {
+    const price =
+      reserves?.reserve0 && reserves?.reserve1 && reserves.reserve0 > 0n && reserves.reserve1 > 0n
+        ? Number(formatEther(reserves.reserve0)) / Number(formatUnits(reserves.reserve1, 18))
+        : 0;
+
+    const usdPrice = price * (ethPrice?.priceUSD || 0);
+    const totalSupply = sale?.coin?.totalSupply ? BigInt(sale.coin.totalSupply) : 0n;
+    const marketCap = usdPrice * Number(formatUnits(totalSupply, 18));
+
+    return { coinPrice: price, coinUsdPrice: usdPrice, marketCapUsd: marketCap };
+  }, [reserves, ethPrice?.priceUSD, sale]);
 
   return (
     <div className="container mx-auto max-w-2xl px-2 sm:px-4 py-4 sm:py-8">
@@ -138,29 +155,38 @@ export function FinalizedPoolTrading({
 
       {/* Header with coin info - matching ENS style */}
       <div className="mb-4 sm:mb-8 text-center">
-        <div className="flex items-center justify-center gap-3 mb-4">
+        <div className="flex items-center justify-center gap-3">
           <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden">
-            <TokenImage token={tokenMeta} />
+            <TokenImage token={coinToken} />
           </div>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold">{tokenMeta.name}</h1>
-            <p className="text-muted-foreground">{tokenMeta.symbol}</p>
+            <h1 className="text-2xl sm:text-3xl font-bold">{coinToken.name}</h1>
+            <p className="text-muted-foreground">{coinToken.symbol}</p>
           </div>
         </div>
       </div>
 
-      {/* Trading Interface - matching ENS style */}
+      {/* Trading Interface - matching ENS style with proper tabs */}
       <div className="bg-card border border-border rounded-lg p-2 sm:p-4 md:p-6 mb-4 sm:mb-6 md:mb-8">
-        <Tabs defaultValue="swap" className="w-full">
-          <TabsList className="grid grid-cols-3 gap-1 bg-muted/50 p-1 h-auto w-full">
-            <TabsTrigger value="swap" className="flex-1 px-2 py-1.5 text-xs sm:text-sm">
-              {t("common.swap", "Swap")}
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+          <TabsList className="flex flex-wrap sm:grid sm:grid-cols-3 gap-1 bg-muted/50 p-1 h-auto w-full">
+            <TabsTrigger 
+              value="swap" 
+              className="flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+            >
+              {t("common.swap")}
             </TabsTrigger>
-            <TabsTrigger value="chart" className="flex-1 px-2 py-1.5 text-xs sm:text-sm">
-              {t("common.chart", "Chart")}
+            <TabsTrigger 
+              value="add" 
+              className="flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+            >
+              {t("common.add")}
             </TabsTrigger>
-            <TabsTrigger value="info" className="flex-1 px-2 py-1.5 text-xs sm:text-sm">
-              {t("common.info", "Info")}
+            <TabsTrigger 
+              value="remove" 
+              className="flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+            >
+              {t("common.remove")}
             </TabsTrigger>
           </TabsList>
 
@@ -172,68 +198,133 @@ export function FinalizedPoolTrading({
                 coinSymbol={sale?.coin?.symbol || coinSymbol}
                 coinIcon={sale?.coin?.imageUrl || coinIcon}
                 poolId={poolId}
-                userBalance={saleSummary?.userBalance ? BigInt(saleSummary.userBalance) : undefined}
-                feeOrHook={30n} // Hardcode to 30 bps for curve launched pools
+                feeOrHook={30n}
               />
 
-              {/* Market Stats - below swap like ENS */}
-              {poolMetrics && (
-                <div className="mt-4 sm:mt-6 grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 text-xs">
-                  <div className="text-center">
-                    <p className="text-muted-foreground opacity-70">{t("coin.price")}</p>
-                    <p className="font-medium">{formatNumber(parseFloat(poolMetrics.tokenPriceETH), 6)} ETH</p>
-                    {ethPrice?.priceUSD && (
-                      <p className="text-muted-foreground opacity-60">
-                        ${formatNumber(parseFloat(poolMetrics.tokenPriceETH) * ethPrice.priceUSD, 2)}
-                      </p>
+              {/* Chart */}
+              <div className="mt-4 border-t border-border pt-4">
+                <div className="relative flex flex-col">
+                  <div className="flex items-center justify-between mb-2">
+                    <button
+                      onClick={() => setShowPriceChart((prev) => !prev)}
+                      className="text-xs text-muted-foreground flex items-center gap-1 hover:text-primary"
+                    >
+                      {showPriceChart ? t("coin.hide_chart") : t("coin.show_chart")}
+                      <ChevronDownIcon
+                        className={`w-3 h-3 transition-transform ${showPriceChart ? "rotate-180" : ""}`}
+                      />
+                    </button>
+                    {showPriceChart && (
+                      <div className="text-xs text-muted-foreground">
+                        {coinSymbol}/ETH {t("coin.price_history")}
+                      </div>
                     )}
                   </div>
-                  <div className="text-center">
-                    <p className="text-muted-foreground opacity-70">{t("coin.market_cap")}</p>
-                    <p className="font-medium">{formatNumber(parseFloat(poolMetrics.marketCapETH), 2)} ETH</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-muted-foreground opacity-70">{t("coin.pool_eth")}</p>
-                    <p className="font-medium">{formatNumber(parseFloat(poolMetrics.ethReserve), 4)} ETH</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-muted-foreground opacity-70">{t("coin.pool_tokens", "Pool Tokens")}</p>
-                    <p className="font-medium">{formatNumber(parseFloat(poolMetrics.tokenReserve), 0)} {tokenMeta.symbol}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </TabsContent>
 
-          <TabsContent value="chart" className="mt-2 sm:mt-4">
-            <div className="h-64 sm:h-96">
-              <PoolPriceChart 
-                poolId={poolId || ""}
-                ticker={coinSymbol}
-                ethUsdPrice={ethPrice?.priceUSD}
-              />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="info" className="mt-2 sm:mt-4">
-            <div className="space-y-4">
-              <PoolOverview poolId={poolId || ""} coinId={coinId} symbol={coinSymbol} />
-              
-              {/* Token Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground">{t("coin.total_supply")}</p>
-                  <p className="font-medium">{formatNumber(parseFloat(poolMetrics?.totalSupply || "0"), 0)} {coinSymbol}</p>
+                  {showPriceChart && (
+                    <div className="transition-all duration-300">
+                      <Suspense
+                        fallback={
+                          <div className="h-64 flex items-center justify-center">
+                            <LoadingLogo />
+                          </div>
+                        }
+                      >
+                        <PoolPriceChart
+                          poolId={poolId}
+                          ticker={coinSymbol}
+                          ethUsdPrice={ethPrice?.priceUSD}
+                        />
+                      </Suspense>
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <p className="text-muted-foreground">{t("coin.pool_fee")}</p>
-                  <p className="font-medium">0.3%</p>
+              </div>
+
+              <div className="text-xs text-muted-foreground text-center">{t("coin.pool_fee")}: 0.3%</div>
+
+              {/* Market Stats - subtle below chart */}
+              <div className="mt-4 sm:mt-6 grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 text-xs">
+                <div className="text-center">
+                  <p className="text-muted-foreground opacity-70">{t("coin.price")}</p>
+                  <p className="font-medium">{coinPrice > 0 ? `${coinPrice.toFixed(6)} ETH` : "-"}</p>
+                  <p className="text-muted-foreground opacity-60">${coinUsdPrice.toFixed(2)}</p>
+                </div>
+
+                <div className="text-center">
+                  <p className="text-muted-foreground opacity-70">{t("coin.market_cap")}</p>
+                  <p className="font-medium">
+                    $
+                    {marketCapUsd > 1e9
+                      ? (marketCapUsd / 1e9).toFixed(2) + "B"
+                      : marketCapUsd > 0
+                        ? (marketCapUsd / 1e6).toFixed(2) + "M"
+                        : "-"}
+                  </p>
+                </div>
+
+                <div className="text-center">
+                  <p className="text-muted-foreground opacity-70">{t("coin.pool_eth")}</p>
+                  <p className="font-medium">{formatEther(reserves?.reserve0 || 0n)} ETH</p>
+                </div>
+
+                <div className="text-center">
+                  <p className="text-muted-foreground opacity-70">{t("coin.pool_tokens", "Pool Tokens")}</p>
+                  <p className="font-medium">
+                    {Number(formatUnits(reserves?.reserve1 || 0n, 18)).toFixed(3)} {coinSymbol}
+                  </p>
                 </div>
               </div>
             </div>
           </TabsContent>
+
+          <TabsContent value="add" className="mt-2 sm:mt-4">
+            <AddLiquidity />
+          </TabsContent>
+
+          <TabsContent value="remove" className="mt-2 sm:mt-4">
+            <RemoveLiquidity />
+          </TabsContent>
         </Tabs>
       </div>
+
+      {/* Info Section */}
+      <div className="mt-6 md:mt-8 bg-card border border-border rounded-lg p-4 md:p-6">
+        <h2 className="text-lg md:text-xl font-semibold mb-4">
+          {t("coin.about_title", "About")} {coinToken.name}
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 text-sm">
+          <div>
+            <p className="text-muted-foreground">{t("coin.total_supply")}</p>
+            <p className="font-medium">
+              {formatNumber(Number(formatUnits(BigInt(sale?.coin?.totalSupply || "0"), 18)), 0)} {coinSymbol}
+            </p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">{t("coin.pool_fee")}</p>
+            <p className="font-medium">0.3%</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">{t("coin.pool_id")}</p>
+            <p className="font-mono text-xs break-all hover:text-primary transition-colors">
+              {poolId}
+            </p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">{t("coin.decimals")}</p>
+            <p className="font-medium">18</p>
+          </div>
+        </div>
+      </div>
     </div>
+  );
+}
+
+// Export wrapped component with TokenSelectionProvider
+export function FinalizedPoolTrading(props: FinalizedPoolTradingProps) {
+  return (
+    <TokenSelectionProvider>
+      <FinalizedPoolTradingInner {...props} />
+    </TokenSelectionProvider>
   );
 }
