@@ -42,7 +42,6 @@ export function CookbookSwapTile({
 }: CookbookSwapTileProps) {
   const { t } = useTranslation();
   const { address, isConnected } = useAccount();
-  const publicClient = usePublicClient();
   const { theme } = useTheme();
 
   // States
