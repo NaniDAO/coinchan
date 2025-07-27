@@ -108,14 +108,16 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
 
       {/* Unified Trading Interface */}
       <ErrorBoundary fallback={<ErrorFallback errorMessage="Error rendering trading interface" />}>
-        <div className="max-w-2xl">
-          <UnifiedCoinTrading
+        <div className="w-full flex justify-center">
+          <div className="w-full max-w-2xl">
+            <UnifiedCoinTrading
             coinId={coinId.toString()}
             coinName={name}
             coinSymbol={symbol}
             coinIcon={imageUrl}
             poolId={poolIdString}
           />
+          </div>
         </div>
       </ErrorBoundary>
 

@@ -13,16 +13,20 @@ import { useETHPrice } from "@/hooks/use-eth-price";
 import { AddLiquidity } from "@/AddLiquidity";
 import { RemoveLiquidity } from "@/RemoveLiquidity";
 import { TokenSelectionProvider, useTokenSelection } from "@/contexts/TokenSelectionContext";
-import { ChevronDownIcon } from "lucide-react";
+import { ChevronDownIcon, CandlestickChartIcon, LineChartIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useTheme } from "@/lib/theme";
 
 import type { TokenMeta } from "@/lib/coins";
 import { useZCurveSale, useZCurveSaleSummary, useZCurveBalance } from "@/hooks/use-zcurve-sale";
 import { computeZCurvePoolId } from "@/lib/zCurvePoolId";
 import { useReserves } from "@/hooks/use-reserves";
 import { formatNumber } from "@/lib/utils";
+import { PoolOverview } from "@/components/PoolOverview";
 
 // Lazy load heavy components
 const PoolPriceChart = lazy(() => import("@/components/PoolPriceChart"));
+const PoolCandleChart = lazy(() => import("@/PoolCandleChart"));
 import React from "react";
 
 interface FinalizedPoolTradingProps {
@@ -42,8 +46,10 @@ function FinalizedPoolTradingInner({
 }: FinalizedPoolTradingProps) {
   const { t } = useTranslation();
   const { address } = useAccount();
+  const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState<"swap" | "add" | "remove">("swap");
   const [showPriceChart, setShowPriceChart] = useState<boolean>(true);
+  const [chartType, setChartType] = useState<"line" | "candle">("line");
   const { setSellToken, setBuyToken } = useTokenSelection();
   
   // Fetch sale and user data
@@ -71,12 +77,12 @@ function FinalizedPoolTradingInner({
     symbol: "ETH",
     name: "Ethereum",
     decimals: 18,
-    image: "", // Will use theme-aware icon
+    image: theme === "dark" ? "/svgs/eth-dark.svg" : "/svgs/eth-light.svg",
     balance: 0n, // Will be fetched by components
     reserve0: reserves?.reserve0 || 0n,
     reserve1: reserves?.reserve1 || 0n,
     source: "COOKBOOK" as const,
-  }), [reserves]);
+  }), [reserves, theme]);
 
   const coinToken = useMemo<TokenMeta>(() => ({
     id: BigInt(coinId),
@@ -132,7 +138,8 @@ function FinalizedPoolTradingInner({
   }, [reserves, ethPrice?.priceUSD, sale]);
 
   return (
-    <div className="container mx-auto max-w-7xl px-2 sm:px-4 py-4 sm:py-8">
+    <div className="w-full flex justify-center">
+      <div className="w-full max-w-7xl px-2 sm:px-4 py-4 sm:py-8">
       {/* Claimable Balance Alert */}
       {hasClaimableBalance && (
         <Alert className="mb-4 sm:mb-6 border-2 border-primary bg-gradient-to-r from-primary/20 to-primary/10 shadow-xl">
@@ -201,15 +208,25 @@ function FinalizedPoolTradingInner({
                 <div className="h-full flex flex-col">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-sm font-medium">{coinSymbol}/ETH {t("common.chart")}</h3>
-                    <button
-                      onClick={() => setShowPriceChart((prev) => !prev)}
-                      className="lg:hidden text-xs text-muted-foreground flex items-center gap-1 hover:text-primary"
-                    >
-                      {showPriceChart ? t("coin.hide_chart") : t("coin.show_chart")}
-                      <ChevronDownIcon
-                        className={`w-3 h-3 transition-transform ${showPriceChart ? "rotate-180" : ""}`}
-                      />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setChartType(chartType === "line" ? "candle" : "line")}
+                        className="h-8 px-2"
+                      >
+                        {chartType === "line" ? <CandlestickChartIcon className="h-4 w-4" /> : <LineChartIcon className="h-4 w-4" />}
+                      </Button>
+                      <button
+                        onClick={() => setShowPriceChart((prev) => !prev)}
+                        className="lg:hidden text-xs text-muted-foreground flex items-center gap-1 hover:text-primary"
+                      >
+                        {showPriceChart ? t("coin.hide_chart") : t("coin.show_chart")}
+                        <ChevronDownIcon
+                          className={`w-3 h-3 transition-transform ${showPriceChart ? "rotate-180" : ""}`}
+                        />
+                      </button>
+                    </div>
                   </div>
 
                   <div className={`flex-1 ${!showPriceChart && "lg:block hidden"}`}>
@@ -221,11 +238,15 @@ function FinalizedPoolTradingInner({
                       }
                     >
                       <div className="h-[400px]">
-                        <PoolPriceChart
-                          poolId={poolId}
-                          ticker={coinSymbol}
-                          ethUsdPrice={ethPrice?.priceUSD}
-                        />
+                        {chartType === "line" ? (
+                          <PoolPriceChart
+                            poolId={poolId}
+                            ticker={coinSymbol}
+                            ethUsdPrice={ethPrice?.priceUSD}
+                          />
+                        ) : (
+                          <PoolCandleChart poolId={poolId} interval="1d" />
+                        )}
                       </div>
                     </Suspense>
                   </div>
@@ -328,6 +349,12 @@ function FinalizedPoolTradingInner({
           </div>
         </div>
       </div>
+
+      {/* Pool Overview - Holders and Activity */}
+      <div className="mt-6 md:mt-8">
+        <PoolOverview coinId={coinId} poolId={poolId} symbol={coinSymbol} priceImpact={null} />
+      </div>
+    </div>
     </div>
   );
 }
