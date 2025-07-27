@@ -9,6 +9,7 @@ import { CookbookAddress } from "@/constants/Cookbook";
 import { useGetCoin } from "@/hooks/metadata/use-get-coin";
 import { useZCurveSale } from "@/hooks/use-zcurve-sale";
 import { SWAP_FEE, computePoolId } from "@/lib/swap";
+import { computeZCurvePoolId } from "@/lib/zCurvePoolId";
 
 import { CoinPreview } from "./CoinPreview";
 import { CoinInfoCard } from "./CoinInfoCard";
@@ -71,7 +72,10 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
   }, [coinData, ethPriceData]);
 
   // Determine pool ID for AMM trading (after zCurve finalization)
-  const poolId = poolIds?.[0] || computePoolId(coinId, swapFees?.[0] ?? SWAP_FEE, CookbookAddress).toString();
+  // For zCurve sales, always use 30 bps fee
+  const poolId = zcurveSale 
+    ? computeZCurvePoolId(coinId, 30n) // Use hardcoded 30 bps for zCurve pools
+    : (poolIds?.[0] || computePoolId(coinId, swapFees?.[0] ?? SWAP_FEE, CookbookAddress).toString());
 
   // Ensure poolId is always a string
   const poolIdString = typeof poolId === "bigint" ? poolId.toString() : poolId;
