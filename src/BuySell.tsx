@@ -17,7 +17,11 @@ import { handleWalletError } from "@/lib/errors";
 import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
 import { mainnet } from "viem/chains";
 import { LoadingLogo } from "./components/ui/loading-logo";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "./components/ui/hover-card";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "./components/ui/hover-card";
 import { NetworkError } from "./components/NetworkError";
 import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
@@ -94,10 +98,14 @@ export const BuySell = ({
 
         const [, , , , , lockupSwapFee] = lockup;
 
-        const customSwapFee = lockupSwapFee && lockupSwapFee > 0n ? lockupSwapFee : SWAP_FEE;
+        const customSwapFee =
+          lockupSwapFee && lockupSwapFee > 0n ? lockupSwapFee : SWAP_FEE;
         setSwapFee(customSwapFee);
       } catch (err) {
-        console.error(`BuySell: Failed to fetch lockup info for token ${tokenId.toString()}:`, err);
+        console.error(
+          `BuySell: Failed to fetch lockup info for token ${tokenId.toString()}:`,
+          err,
+        );
         if (isMounted) {
           setSwapFee(SWAP_FEE);
         }
@@ -150,13 +158,23 @@ export const BuySell = ({
       if (tab === "buy") {
         // Input: ETH amount -> Output: token amount
         const inWei = parseEther(amount || "0");
-        const rawOut = getAmountOut(inWei, reserves.reserve0, reserves.reserve1, swapFee);
+        const rawOut = getAmountOut(
+          inWei,
+          reserves.reserve0,
+          reserves.reserve1,
+          swapFee,
+        );
         const minOut = withSlippage(rawOut);
         return formatUnits(minOut, 18);
       } else {
         // Input: token amount -> Output: ETH amount
         const inUnits = parseUnits(amount || "0", 18);
-        const rawOut = getAmountOut(inUnits, reserves.reserve1, reserves.reserve0, swapFee);
+        const rawOut = getAmountOut(
+          inUnits,
+          reserves.reserve1,
+          reserves.reserve0,
+          swapFee,
+        );
         const minOut = withSlippage(rawOut);
         return formatEther(minOut);
       }
@@ -191,7 +209,9 @@ export const BuySell = ({
       if (!ethBalance?.value) return;
 
       const adjustedBalance =
-        percentage === 100 ? (ethBalance.value * 99n) / 100n : (ethBalance.value * BigInt(percentage)) / 100n;
+        percentage === 100
+          ? (ethBalance.value * 99n) / 100n
+          : (ethBalance.value * BigInt(percentage)) / 100n;
 
       const newAmount = formatEther(adjustedBalance);
       setAmount(newAmount);
@@ -208,7 +228,9 @@ export const BuySell = ({
     try {
       const amountWei = parseEther(amount);
       if (ethBalance.value > 0n) {
-        const calculatedPercentage = Number((amountWei * 100n) / ethBalance.value);
+        const calculatedPercentage = Number(
+          (amountWei * 100n) / ethBalance.value,
+        );
         setBuyPercentage(Math.min(100, Math.max(0, calculatedPercentage)));
       }
     } catch {
@@ -241,7 +263,12 @@ export const BuySell = ({
           // Buying token with ETH
           try {
             const swapAmountEth = parseEther(amount || "0");
-            const amountOut = getAmountOut(swapAmountEth, reserve0, reserve1, swapFee);
+            const amountOut = getAmountOut(
+              swapAmountEth,
+              reserve0,
+              reserve1,
+              swapFee,
+            );
 
             if (amountOut >= reserve1) {
               // Would drain the pool
@@ -260,7 +287,12 @@ export const BuySell = ({
           // Selling token for ETH
           try {
             const swapAmountToken = parseUnits(amount || "0", 18);
-            const amountOut = getAmountOut(swapAmountToken, reserve1, reserve0, swapFee);
+            const amountOut = getAmountOut(
+              swapAmountToken,
+              reserve1,
+              reserve0,
+              swapFee,
+            );
 
             if (amountOut >= reserve0) {
               // Would drain the pool
@@ -285,33 +317,25 @@ export const BuySell = ({
         const currentPriceInEth = Number(currentPrice) / 1e18;
         const newPriceInEth = Number(newPrice) / 1e18;
 
-        // For charting: when buying tokens (adding ETH), price goes up; when selling tokens (removing ETH), price goes down
-        const ethReserveChange = tab === "buy" ? "increase" : "decrease";
-
-        console.log("BuySell price impact calculation:", {
-          action: tab,
-          ethReserveChange,
-          reserve0: formatEther(reserve0),
-          reserve1: formatUnits(reserve1, 18),
-          newReserve0: formatEther(newReserve0),
-          newReserve1: formatUnits(newReserve1, 18),
-          currentPriceInEth,
-          newPriceInEth,
-          priceChange: newPriceInEth > currentPriceInEth ? "up" : "down",
-        });
-
         // Validate calculated prices
-        if (!isFinite(currentPriceInEth) || !isFinite(newPriceInEth) || newPriceInEth <= 0) {
+        if (
+          !isFinite(currentPriceInEth) ||
+          !isFinite(newPriceInEth) ||
+          newPriceInEth <= 0
+        ) {
           console.error("Invalid price calculation");
           onPriceImpactChange?.(null);
           return;
         }
 
-        const impactPercent = ((newPriceInEth - currentPriceInEth) / currentPriceInEth) * 100;
+        const impactPercent =
+          ((newPriceInEth - currentPriceInEth) / currentPriceInEth) * 100;
 
         // Sanity check for extreme impacts
         if (Math.abs(impactPercent) > 90) {
-          console.warn(`Extreme price impact detected: ${impactPercent.toFixed(2)}%`);
+          console.warn(
+            `Extreme price impact detected: ${impactPercent.toFixed(2)}%`,
+          );
           onPriceImpactChange?.(null);
           return;
         }
@@ -361,11 +385,20 @@ export const BuySell = ({
 
     try {
       const amountInWei = parseEther(amount || "0");
-      const rawOut = getAmountOut(amountInWei, reserves.reserve0, reserves.reserve1, swapFee);
+      const rawOut = getAmountOut(
+        amountInWei,
+        reserves.reserve0,
+        reserves.reserve1,
+        swapFee,
+      );
       const amountOutMin = withSlippage(rawOut);
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
-      const poolKey = computePoolKey(tokenId, swapFee, CoinsAddress) as ZAMMPoolKey;
+      const poolKey = computePoolKey(
+        tokenId,
+        swapFee,
+        CoinsAddress,
+      ) as ZAMMPoolKey;
       const hash = await writeContractAsync({
         address: ZAMMAddress,
         abi: ZAMMAbi,
@@ -411,11 +444,20 @@ export const BuySell = ({
         }
       }
 
-      const rawOut = getAmountOut(amountInUnits, reserves.reserve1, reserves.reserve0, swapFee);
+      const rawOut = getAmountOut(
+        amountInUnits,
+        reserves.reserve1,
+        reserves.reserve0,
+        swapFee,
+      );
       const amountOutMin = withSlippage(rawOut);
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
-      const poolKey = computePoolKey(tokenId, swapFee, CoinsAddress) as ZAMMPoolKey;
+      const poolKey = computePoolKey(
+        tokenId,
+        swapFee,
+        CoinsAddress,
+      ) as ZAMMPoolKey;
       const hash = await writeContractAsync({
         address: ZAMMAddress,
         abi: ZAMMAbi,
@@ -439,43 +481,51 @@ export const BuySell = ({
       <NetworkError compact />
 
       {/* Per-unit price information */}
-      {reserves && reserves.reserve0 > 0n && reserves.reserve1 > 0n && ethPrice?.priceUSD && (
-        <div className="mb-3 p-2 bg-muted/30 rounded-lg text-xs text-muted-foreground">
-          <div className="flex flex-col gap-1">
-            {(() => {
-              const ethAmount = parseFloat(formatEther(reserves.reserve0));
-              const tokenAmount = parseFloat(formatUnits(reserves.reserve1, 18));
-              const tokenPriceInEth = ethAmount / tokenAmount;
-              const ethPriceInToken = tokenAmount / ethAmount;
-              const tokenPriceUsd = tokenPriceInEth * ethPrice.priceUSD;
-              const totalPoolValueUsd = ethAmount * ethPrice.priceUSD * 2;
+      {reserves &&
+        reserves.reserve0 > 0n &&
+        reserves.reserve1 > 0n &&
+        ethPrice?.priceUSD && (
+          <div className="mb-3 p-2 bg-muted/30 rounded-lg text-xs text-muted-foreground">
+            <div className="flex flex-col gap-1">
+              {(() => {
+                const ethAmount = parseFloat(formatEther(reserves.reserve0));
+                const tokenAmount = parseFloat(
+                  formatUnits(reserves.reserve1, 18),
+                );
+                const tokenPriceInEth = ethAmount / tokenAmount;
+                const ethPriceInToken = tokenAmount / ethAmount;
+                const tokenPriceUsd = tokenPriceInEth * ethPrice.priceUSD;
+                const totalPoolValueUsd = ethAmount * ethPrice.priceUSD * 2;
 
-              return (
-                <>
-                  <div className="opacity-90">Pool Value: ${formatNumber(totalPoolValueUsd, 2)} USD</div>
-                  <div className="opacity-75">
-                    1 ETH = {formatNumber(ethPriceInToken, 6)} {symbol} | 1 {symbol} = {tokenPriceInEth.toFixed(8)} ETH
-                    (${tokenPriceUsd.toFixed(8)} USD)
-                  </div>
-                  <div className="opacity-60 flex items-center gap-1">
-                    <span>Fee: {Number(swapFee) / 100}%</span>
-                    <HoverCard>
-                      <HoverCardTrigger asChild>
-                        <span className="text-[10px] opacity-70 cursor-help hover:opacity-100 transition-opacity">
-                          ⓘ
-                        </span>
-                      </HoverCardTrigger>
-                      <HoverCardContent className="w-auto">
-                        <p className="text-sm">{t("common.paid_to_lps")}</p>
-                      </HoverCardContent>
-                    </HoverCard>
-                  </div>
-                </>
-              );
-            })()}
+                return (
+                  <>
+                    <div className="opacity-90">
+                      Pool Value: ${formatNumber(totalPoolValueUsd, 2)} USD
+                    </div>
+                    <div className="opacity-75">
+                      1 ETH = {formatNumber(ethPriceInToken, 6)} {symbol} | 1{" "}
+                      {symbol} = {tokenPriceInEth.toFixed(8)} ETH ($
+                      {tokenPriceUsd.toFixed(8)} USD)
+                    </div>
+                    <div className="opacity-60 flex items-center gap-1">
+                      <span>Fee: {Number(swapFee) / 100}%</span>
+                      <HoverCard>
+                        <HoverCardTrigger asChild>
+                          <span className="text-[10px] opacity-70 cursor-help hover:opacity-100 transition-opacity">
+                            ⓘ
+                          </span>
+                        </HoverCardTrigger>
+                        <HoverCardContent className="w-auto">
+                          <p className="text-sm">{t("common.paid_to_lps")}</p>
+                        </HoverCardContent>
+                      </HoverCard>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as "buy" | "sell")}>
         <TabsList>
@@ -489,7 +539,9 @@ export const BuySell = ({
 
         <TabsContent value="buy" className="max-w-2xl">
           <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-green-700">Using ETH</span>
+            <span className="text-sm font-medium text-green-700">
+              Using ETH
+            </span>
             <Input
               type="number"
               placeholder="Amount ETH"
@@ -499,17 +551,25 @@ export const BuySell = ({
               onChange={(e) => setAmount(e.currentTarget.value)}
               disabled={false}
             />
-            {usdValue && amount && <span className="text-xs text-muted-foreground">≈ ${usdValue} USD</span>}
+            {usdValue && amount && (
+              <span className="text-xs text-muted-foreground">
+                ≈ ${usdValue} USD
+              </span>
+            )}
 
             {ethBalance?.value && ethBalance.value > 0n && isConnected ? (
               <div className="mt-2 pt-2 border-t border-primary/20">
-                <PercentageSlider value={buyPercentage} onChange={handleBuyPercentageChange} />
+                <PercentageSlider
+                  value={buyPercentage}
+                  onChange={handleBuyPercentageChange}
+                />
               </div>
             ) : null}
 
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-green-800">
-                You will receive ~ {formatNumber(parseFloat(estimated), 6)} {symbol}
+                You will receive ~ {formatNumber(parseFloat(estimated), 6)}{" "}
+                {symbol}
               </span>
               {priceImpact && (
                 <span
@@ -540,7 +600,9 @@ export const BuySell = ({
 
         <TabsContent value="sell" className="max-w-2xl">
           <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-accent dark:text-accent">Using {symbol}</span>
+            <span className="text-sm font-medium text-accent dark:text-accent">
+              Using {symbol}
+            </span>
             <div className="relative">
               <Input
                 type="number"
@@ -555,12 +617,15 @@ export const BuySell = ({
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">
-                  You will receive ~ {formatNumber(parseFloat(estimated), 6)} ETH
+                  You will receive ~ {formatNumber(parseFloat(estimated), 6)}{" "}
+                  ETH
                 </span>
                 {priceImpact && (
                   <span
                     className={`text-xs font-medium ${
-                      priceImpact.impactPercent > 0 ? "text-green-600" : "text-red-600"
+                      priceImpact.impactPercent > 0
+                        ? "text-green-600"
+                        : "text-red-600"
                     }`}
                   >
                     {priceImpact.impactPercent > 0 ? "+" : ""}
@@ -569,7 +634,9 @@ export const BuySell = ({
                 )}
               </div>
               {usdValue && estimated !== "0" && (
-                <span className="text-xs text-muted-foreground">≈ ${usdValue} USD</span>
+                <span className="text-xs text-muted-foreground">
+                  ≈ ${usdValue} USD
+                </span>
               )}
               {balance !== undefined ? (
                 <button
@@ -580,7 +647,10 @@ export const BuySell = ({
                   MAX ({formatUnits(balance, 18)})
                 </button>
               ) : (
-                <button className="self-end text-sm font-medium text-chart-2 dark:text-chart-2" disabled={!balance}>
+                <button
+                  className="self-end text-sm font-medium text-chart-2 dark:text-chart-2"
+                  disabled={!balance}
+                >
                   MAX
                 </button>
               )}
@@ -603,7 +673,9 @@ export const BuySell = ({
           </div>
         </TabsContent>
 
-        {errorMessage && <p className="text-destructive text-sm">{errorMessage}</p>}
+        {errorMessage && (
+          <p className="text-destructive text-sm">{errorMessage}</p>
+        )}
         {isSuccess && <p className="text-chart-2 text-sm">Tx confirmed!</p>}
       </Tabs>
     </div>

@@ -4,13 +4,22 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseEther } from "viem";
 import { mainnet } from "viem/chains";
-import { useAccount, useChainId, usePublicClient, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import {
+  useAccount,
+  useChainId,
+  usePublicClient,
+  useWaitForTransactionReceipt,
+  useWriteContract,
+} from "wagmi";
 import { NetworkError } from "./components/NetworkError";
 import { SwapPanel } from "./components/SwapPanel";
 import { ENSLogo } from "./components/icons/ENSLogo";
 import { ENSZapAddress, ENSZapAbi } from "./constants/ENSZap";
 import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
-import { CheckTheChainAbi, CheckTheChainAddress } from "./constants/CheckTheChain";
+import {
+  CheckTheChainAbi,
+  CheckTheChainAddress,
+} from "./constants/CheckTheChain";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { useReserves } from "./hooks/use-reserves";
 import { ETH_TOKEN, ENS_TOKEN, ENS_POOL_ID, ENS_POOL_KEY } from "./lib/coins";
@@ -41,7 +50,8 @@ export const ENSUniswapV3Zap = () => {
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [txError, setTxError] = useState<string | null>(null);
 
-  const [singleETHEstimatedCoin, setSingleETHEstimatedCoin] = useState<string>("");
+  const [singleETHEstimatedCoin, setSingleETHEstimatedCoin] =
+    useState<string>("");
   const [estimatedLpTokens, setEstimatedLpTokens] = useState<string>("");
   const [estimatedPoolShare, setEstimatedPoolShare] = useState<string>("");
   const [slippageBps, setSlippageBps] = useState<bigint>(1000n); // Default 10% for ENS V3 ZAP
@@ -80,7 +90,9 @@ export const ENSUniswapV3Zap = () => {
     setSellAmt(val);
 
     // Emit event for parent wrapper to listen
-    window.dispatchEvent(new CustomEvent("ensZapEthAmountChange", { detail: { amount: val } }));
+    window.dispatchEvent(
+      new CustomEvent("ensZapEthAmountChange", { detail: { amount: val } }),
+    );
     if (!reserves || !val || parseFloat(val) === 0) {
       setSingleETHEstimatedCoin("");
       setEstimatedLpTokens("");
@@ -120,7 +132,12 @@ export const ENSUniswapV3Zap = () => {
         console.error("Failed to fetch ENS price from CheckTheChain:", err);
         // Fallback to Cookbook pool price if reserves available
         if (reserves && reserves.reserve0 > 0n && reserves.reserve1 > 0n) {
-          estimatedTokens = getAmountOut(halfEthAmount, reserves.reserve0, reserves.reserve1, 30n);
+          estimatedTokens = getAmountOut(
+            halfEthAmount,
+            reserves.reserve0,
+            reserves.reserve1,
+            30n,
+          );
         } else {
           estimatedTokens = 0n;
         }
@@ -148,22 +165,32 @@ export const ENSUniswapV3Zap = () => {
               const poolData = poolInfoResult as unknown as readonly bigint[];
               const totalSupply = poolData[6] as bigint; // Total LP supply at index 6
 
-              if (totalSupply > 0n && reserves.reserve0 > 0n && reserves.reserve1 > 0n) {
+              if (
+                totalSupply > 0n &&
+                reserves.reserve0 > 0n &&
+                reserves.reserve1 > 0n
+              ) {
                 // From AMM: liquidity = min(mulDiv(amount0, supply, reserve0), mulDiv(amount1, supply, reserve1))
-                const lpFromEth = (halfEthAmount * totalSupply) / reserves.reserve0;
-                const lpFromToken = (estimatedTokens * totalSupply) / reserves.reserve1;
-                const lpTokensToMint = lpFromEth < lpFromToken ? lpFromEth : lpFromToken;
+                const lpFromEth =
+                  (halfEthAmount * totalSupply) / reserves.reserve0;
+                const lpFromToken =
+                  (estimatedTokens * totalSupply) / reserves.reserve1;
+                const lpTokensToMint =
+                  lpFromEth < lpFromToken ? lpFromEth : lpFromToken;
 
                 setEstimatedLpTokens(formatUnits(lpTokensToMint, 18));
 
                 // Calculate pool share percentage
                 const newTotalSupply = totalSupply + lpTokensToMint;
                 const poolShareBps = (lpTokensToMint * 10000n) / newTotalSupply;
-                setEstimatedPoolShare(`${(Number(poolShareBps) / 100).toFixed(2)}%`);
+                setEstimatedPoolShare(
+                  `${(Number(poolShareBps) / 100).toFixed(2)}%`,
+                );
               } else if (totalSupply === 0n) {
                 // First liquidity provider
                 const MINIMUM_LIQUIDITY = 1000n;
-                const lpTokens = sqrt(halfEthAmount * estimatedTokens) - MINIMUM_LIQUIDITY;
+                const lpTokens =
+                  sqrt(halfEthAmount * estimatedTokens) - MINIMUM_LIQUIDITY;
                 setEstimatedLpTokens(formatUnits(lpTokens, 18));
                 setEstimatedPoolShare("100%");
               }
@@ -243,7 +270,12 @@ export const ENSUniswapV3Zap = () => {
         console.error("Failed to fetch ENS price from CheckTheChain:", err);
         // Fallback to Cookbook pool price if reserves available
         if (reserves && reserves.reserve0 > 0n && reserves.reserve1 > 0n) {
-          estimatedTokens = getAmountOut(halfEthAmount, reserves.reserve0, reserves.reserve1, 30n);
+          estimatedTokens = getAmountOut(
+            halfEthAmount,
+            reserves.reserve0,
+            reserves.reserve1,
+            30n,
+          );
         } else {
           estimatedTokens = 0n;
         }
@@ -271,23 +303,19 @@ export const ENSUniswapV3Zap = () => {
 
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
-      // Debug logging
-      console.log("ENS Zap Parameters:", {
-        ethAmount: formatEther(ethAmount),
-        halfEthAmount: formatEther(halfEthAmount),
-        estimatedTokens: formatUnits(estimatedTokens, 18),
-        minTokenAmount: formatUnits(minTokenAmount, 18),
-        amount0Min: formatEther(amount0Min),
-        amount1Min: formatUnits(amount1Min, 18),
-        slippageBps: slippageBps.toString(),
-      });
-
       // Call addSingleLiqETH with proper parameters
       const hash = await writeContractAsync({
         address: ENSZapAddress,
         abi: ENSZapAbi,
         functionName: "addSingleLiqETH",
-        args: [ENS_POOL_KEY as any, minTokenAmount, amount0Min, amount1Min, address, deadline],
+        args: [
+          ENS_POOL_KEY as any,
+          minTokenAmount,
+          amount0Min,
+          amount1Min,
+          address,
+          deadline,
+        ],
         value: ethAmount,
       });
 
@@ -353,14 +381,19 @@ export const ENSUniswapV3Zap = () => {
 
       {/* Slippage Settings */}
       <div className="mt-2">
-        <SlippageSettings slippageBps={slippageBps} setSlippageBps={setSlippageBps} />
+        <SlippageSettings
+          slippageBps={slippageBps}
+          setSlippageBps={setSlippageBps}
+        />
       </div>
 
       {/* LP Tokens and Pool Share Estimation */}
       {estimatedLpTokens && estimatedPoolShare && (
         <div className="mt-2 p-3 bg-[#0080BC]/5 border border-[#0080BC]/20 rounded-lg">
           <div className="flex justify-between items-center mb-1">
-            <span className="text-sm text-muted-foreground">{t("common.estimated_lp_tokens")}:</span>
+            <span className="text-sm text-muted-foreground">
+              {t("common.estimated_lp_tokens")}:
+            </span>
             <span className="font-mono text-sm flex items-center gap-1">
               {formatNumber(parseFloat(estimatedLpTokens), 6)}
               <ENSLogo className="h-3 w-3 text-[#0080BC]" />
@@ -368,7 +401,9 @@ export const ENSUniswapV3Zap = () => {
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">{t("cult.pool_share")}:</span>
+            <span className="text-sm text-muted-foreground">
+              {t("cult.pool_share")}:
+            </span>
             <span className="font-mono text-sm">{estimatedPoolShare}</span>
           </div>
         </div>
@@ -377,7 +412,9 @@ export const ENSUniswapV3Zap = () => {
       {/* Info box */}
       <div className="text-xs bg-[#0080BC]/5 border border-[#0080BC]/30 rounded p-2 mt-2 text-muted-foreground">
         <div className="flex items-start justify-between mb-1">
-          <p className="font-medium">{t("pool.single_sided_eth_liquidity")} (Uniswap V3 Route)</p>
+          <p className="font-medium">
+            {t("pool.single_sided_eth_liquidity")} (Uniswap V3 Route)
+          </p>
           <a
             href={`https://etherscan.io/address/${ENSZapAddress}#code`}
             target="_blank"
