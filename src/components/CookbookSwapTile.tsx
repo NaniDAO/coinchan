@@ -131,6 +131,7 @@ export function CookbookSwapTile({
       name: coinName || coinData?.name || "Token",
       decimals: 18,
       image: coinIcon || coinData?.imageUrl || "",
+      tokenUri: coinIcon || coinData?.imageUrl || "",
       balance: providedUserBalance || tokenBalance?.value || 0n,
       reserve0: reserves?.reserve0 || 0n,
       reserve1: reserves?.reserve1 || 0n,
