@@ -94,9 +94,9 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
 
   // Calculate important values
   const calculatedValues = useMemo(() => {
-    // First meaningful price is at 2 * UNIT_SCALE (after first 2 free ticks)
-    const firstPrice =
-      calculateCost(2n * UNIT_SCALE + 1n, quadCap, divisor) - calculateCost(2n * UNIT_SCALE, quadCap, divisor);
+    // First meaningful price is for 1 full token (1e18 units) after first 2 free ticks
+    const firstTokenPrice =
+      calculateCost(2n * UNIT_SCALE + parseEther("1"), quadCap, divisor) - calculateCost(2n * UNIT_SCALE, quadCap, divisor);
 
     // Calculate average price when target is reached
     // We need to find how many tokens would be sold to reach the target
@@ -117,20 +117,20 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
     targetTokens = low;
 
     // Average price is total ETH raised / tokens sold
-    const avgPriceAtTarget = targetTokens > 0n ? (ethTarget * parseEther("1")) / targetTokens : 0n;
+    const avgPriceAtTarget = targetTokens > 0n ? ethTarget / targetTokens : 0n;
 
     // Max raise is the cost of selling all tokens
     const maxRaise = calculateCost(saleCap, quadCap, divisor);
 
-    // Find transition point price if quadCap exists
+    // Find transition point price for 1 full token if quadCap exists
     let transitionPrice = 0n;
     if (quadCap && quadCap < saleCap) {
       transitionPrice =
-        calculateCost(quadCap + UNIT_SCALE, quadCap, divisor) - calculateCost(quadCap, quadCap, divisor);
+        calculateCost(quadCap + parseEther("1"), quadCap, divisor) - calculateCost(quadCap, quadCap, divisor);
     }
 
     return {
-      firstPrice,
+      firstPrice: firstTokenPrice,
       avgPriceAtTarget,
       maxRaise,
       targetTokens,
@@ -312,12 +312,20 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
       <div className="grid grid-cols-3 gap-2 text-xs">
         <div className="text-center p-2 bg-muted/30 rounded">
           <div className="text-muted-foreground">{t("create.starting_price", "Starting Price")}</div>
-          <div className="font-medium">{Number(formatEther(calculatedValues.firstPrice)).toFixed(8)} ETH/token</div>
+          <div className="font-medium">
+            {calculatedValues.firstPrice === 0n ? "~0" : 
+             Number(formatEther(calculatedValues.firstPrice)) < 0.00000001 ? 
+             Number(formatEther(calculatedValues.firstPrice)).toExponential(2) :
+             Number(formatEther(calculatedValues.firstPrice)).toFixed(8)} ETH/token
+          </div>
         </div>
         <div className="text-center p-2 bg-muted/30 rounded">
           <div className="text-muted-foreground">{t("create.avg_price_at_target", "Avg Price @ Target")}</div>
           <div className="font-medium">
-            {Number(formatEther(calculatedValues.avgPriceAtTarget)).toFixed(8)} ETH/token
+            {calculatedValues.avgPriceAtTarget === 0n ? "~0" :
+             Number(formatEther(calculatedValues.avgPriceAtTarget)) < 0.00000001 ?
+             Number(formatEther(calculatedValues.avgPriceAtTarget)).toExponential(2) :
+             Number(formatEther(calculatedValues.avgPriceAtTarget)).toFixed(8)} ETH/token
           </div>
         </div>
         <div className="text-center p-2 bg-muted/30 rounded">
@@ -329,12 +337,15 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div className="text-center p-2 bg-muted/30 rounded">
             <div className="text-muted-foreground">{t("create.quadratic_phase", "Quadratic Phase")}</div>
-            <div className="font-medium">Until {Number(formatEther(quadCap)).toFixed(0)} tokens</div>
+            <div className="font-medium">Until {Number(formatEther(quadCap)).toLocaleString()} tokens</div>
           </div>
           <div className="text-center p-2 bg-muted/30 rounded">
             <div className="text-muted-foreground">{t("create.linear_price", "Linear Price")}</div>
             <div className="font-medium">
-              {Number(formatEther(calculatedValues.transitionPrice)).toFixed(8)} ETH/token
+              {calculatedValues.transitionPrice === 0n ? "~0" :
+               Number(formatEther(calculatedValues.transitionPrice)) < 0.00000001 ?
+               Number(formatEther(calculatedValues.transitionPrice)).toExponential(2) :
+               Number(formatEther(calculatedValues.transitionPrice)).toFixed(8)} ETH/token
             </div>
           </div>
         </div>

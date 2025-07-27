@@ -56,12 +56,14 @@ type OneShotFormValues = z.infer<typeof oneShotFormSchema>;
 // Helper function to format token amounts in human-readable format
 const formatTokenAmount = (amount: bigint): string => {
   const tokens = Number(amount / parseEther("1"));
-  if (tokens >= 1000000) {
-    return (tokens / 1000000).toFixed(0) + "M";
+  if (tokens >= 1000000000) {
+    return (tokens / 1000000000).toLocaleString(undefined, { maximumFractionDigits: 0 }) + "B";
+  } else if (tokens >= 1000000) {
+    return (tokens / 1000000).toLocaleString(undefined, { maximumFractionDigits: 0 }) + "M";
   } else if (tokens >= 1000) {
-    return (tokens / 1000).toFixed(0) + "K";
+    return (tokens / 1000).toLocaleString(undefined, { maximumFractionDigits: 0 }) + "K";
   }
-  return tokens.toFixed(0);
+  return tokens.toLocaleString(undefined, { maximumFractionDigits: 0 });
 };
 
 // Helper function to format ETH amounts
