@@ -40,10 +40,13 @@ export function computeZCurvePoolId(coinId: bigint, feeOrHook: bigint = DEFAULT_
     [poolKey.id0, poolKey.id1, poolKey.token0, poolKey.token1, poolKey.feeOrHook],
   );
 
-  const poolId = keccak256(encoded);
-  console.log("Computed pool ID:", poolId);
+  const poolIdHex = keccak256(encoded);
+  const poolIdBigInt = BigInt(poolIdHex);
+  console.log("Computed pool ID (hex):", poolIdHex);
+  console.log("Computed pool ID (decimal):", poolIdBigInt.toString());
   
-  return poolId;
+  // Return as decimal string to match computePoolId from swap.ts
+  return poolIdBigInt.toString();
 }
 
 /**

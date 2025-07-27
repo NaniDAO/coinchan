@@ -132,7 +132,7 @@ function FinalizedPoolTradingInner({
   }, [reserves, ethPrice?.priceUSD, sale]);
 
   return (
-    <div className="container mx-auto max-w-2xl px-2 sm:px-4 py-4 sm:py-8">
+    <div className="container mx-auto max-w-7xl px-2 sm:px-4 py-4 sm:py-8">
       {/* Claimable Balance Alert */}
       {hasClaimableBalance && (
         <Alert className="mb-4 sm:mb-6 border-2 border-primary bg-gradient-to-r from-primary/20 to-primary/10 shadow-xl">
@@ -166,124 +166,136 @@ function FinalizedPoolTradingInner({
         </div>
       </div>
 
-      {/* Trading Interface - matching ENS style with proper tabs */}
-      <div className="bg-card border border-border rounded-lg p-2 sm:p-4 md:p-6 mb-4 sm:mb-6 md:mb-8">
+      {/* Trading Interface - Desktop: side by side, Mobile: stacked */}
+      <div className="mb-4 sm:mb-6 md:mb-8">
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-          <TabsList className="flex flex-wrap sm:grid sm:grid-cols-3 gap-1 bg-muted/50 p-1 h-auto w-full">
-            <TabsTrigger 
-              value="swap" 
-              className="flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
-            >
-              {t("common.swap")}
-            </TabsTrigger>
-            <TabsTrigger 
-              value="add" 
-              className="flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
-            >
-              {t("common.add")}
-            </TabsTrigger>
-            <TabsTrigger 
-              value="remove" 
-              className="flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
-            >
-              {t("common.remove")}
-            </TabsTrigger>
-          </TabsList>
+          {/* Tabs at the top */}
+          <div className="bg-card border border-border rounded-t-lg p-2">
+            <TabsList className="flex flex-wrap sm:grid sm:grid-cols-3 gap-1 bg-muted/50 p-1 h-auto w-full max-w-md mx-auto">
+              <TabsTrigger 
+                value="swap" 
+                className="flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              >
+                {t("common.swap")}
+              </TabsTrigger>
+              <TabsTrigger 
+                value="add" 
+                className="flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              >
+                {t("common.add")}
+              </TabsTrigger>
+              <TabsTrigger 
+                value="remove" 
+                className="flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              >
+                {t("common.remove")}
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-          <TabsContent value="swap" className="mt-2 sm:mt-4">
-            <div className="space-y-2 sm:space-y-4">
-              <CookbookSwapTile 
-                coinId={coinId}
-                coinName={sale?.coin?.name || coinName}
-                coinSymbol={sale?.coin?.symbol || coinSymbol}
-                coinIcon={sale?.coin?.imageUrl || coinIcon}
-                poolId={poolId}
-                feeOrHook={30n}
-              />
-
-              {/* Chart */}
-              <div className="mt-4 border-t border-border pt-4">
-                <div className="relative flex flex-col">
-                  <div className="flex items-center justify-between mb-2">
+          <TabsContent value="swap" className="mt-0">
+            {/* Desktop: Chart left, Swap right. Mobile: Swap top, Chart bottom */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+              {/* Chart Section - Desktop: Left, Mobile: Below swap */}
+              <div className="order-2 lg:order-1 bg-card border border-border rounded-lg p-4 lg:p-6">
+                <div className="h-full flex flex-col">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-medium">{coinSymbol}/ETH {t("common.chart")}</h3>
                     <button
                       onClick={() => setShowPriceChart((prev) => !prev)}
-                      className="text-xs text-muted-foreground flex items-center gap-1 hover:text-primary"
+                      className="lg:hidden text-xs text-muted-foreground flex items-center gap-1 hover:text-primary"
                     >
                       {showPriceChart ? t("coin.hide_chart") : t("coin.show_chart")}
                       <ChevronDownIcon
                         className={`w-3 h-3 transition-transform ${showPriceChart ? "rotate-180" : ""}`}
                       />
                     </button>
-                    {showPriceChart && (
-                      <div className="text-xs text-muted-foreground">
-                        {coinSymbol}/ETH {t("coin.price_history")}
-                      </div>
-                    )}
                   </div>
 
-                  {showPriceChart && (
-                    <div className="transition-all duration-300">
-                      <Suspense
-                        fallback={
-                          <div className="h-64 flex items-center justify-center">
-                            <LoadingLogo />
-                          </div>
-                        }
-                      >
+                  <div className={`flex-1 ${!showPriceChart && "lg:block hidden"}`}>
+                    <Suspense
+                      fallback={
+                        <div className="h-[400px] flex items-center justify-center">
+                          <LoadingLogo />
+                        </div>
+                      }
+                    >
+                      <div className="h-[400px]">
                         <PoolPriceChart
                           poolId={poolId}
                           ticker={coinSymbol}
                           ethUsdPrice={ethPrice?.priceUSD}
                         />
-                      </Suspense>
+                      </div>
+                    </Suspense>
+                  </div>
+
+                  {/* Market Stats */}
+                  <div className="mt-4 pt-4 border-t border-border grid grid-cols-2 gap-4 text-xs">
+                    <div>
+                      <p className="text-muted-foreground mb-1">{t("coin.price")}</p>
+                      <p className="font-medium">{coinPrice > 0 ? `${coinPrice.toFixed(6)} ETH` : "-"}</p>
+                      <p className="text-muted-foreground text-xs">${coinUsdPrice.toFixed(2)}</p>
                     </div>
-                  )}
+                    <div>
+                      <p className="text-muted-foreground mb-1">{t("coin.market_cap")}</p>
+                      <p className="font-medium">
+                        $
+                        {marketCapUsd > 1e9
+                          ? (marketCapUsd / 1e9).toFixed(2) + "B"
+                          : marketCapUsd > 0
+                            ? (marketCapUsd / 1e6).toFixed(2) + "M"
+                            : "-"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground mb-1">{t("coin.pool_eth")}</p>
+                      <p className="font-medium">{formatNumber(Number(formatEther(reserves?.reserve0 || 0n)), 4)} ETH</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground mb-1">{t("coin.pool_tokens", "Pool Tokens")}</p>
+                      <p className="font-medium">
+                        {formatNumber(Number(formatUnits(reserves?.reserve1 || 0n, 18)), 0)} {coinSymbol}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="text-xs text-muted-foreground text-center">{t("coin.pool_fee")}: 0.3%</div>
-
-              {/* Market Stats - subtle below chart */}
-              <div className="mt-4 sm:mt-6 grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 text-xs">
-                <div className="text-center">
-                  <p className="text-muted-foreground opacity-70">{t("coin.price")}</p>
-                  <p className="font-medium">{coinPrice > 0 ? `${coinPrice.toFixed(6)} ETH` : "-"}</p>
-                  <p className="text-muted-foreground opacity-60">${coinUsdPrice.toFixed(2)}</p>
-                </div>
-
-                <div className="text-center">
-                  <p className="text-muted-foreground opacity-70">{t("coin.market_cap")}</p>
-                  <p className="font-medium">
-                    $
-                    {marketCapUsd > 1e9
-                      ? (marketCapUsd / 1e9).toFixed(2) + "B"
-                      : marketCapUsd > 0
-                        ? (marketCapUsd / 1e6).toFixed(2) + "M"
-                        : "-"}
-                  </p>
-                </div>
-
-                <div className="text-center">
-                  <p className="text-muted-foreground opacity-70">{t("coin.pool_eth")}</p>
-                  <p className="font-medium">{formatEther(reserves?.reserve0 || 0n)} ETH</p>
-                </div>
-
-                <div className="text-center">
-                  <p className="text-muted-foreground opacity-70">{t("coin.pool_tokens", "Pool Tokens")}</p>
-                  <p className="font-medium">
-                    {Number(formatUnits(reserves?.reserve1 || 0n, 18)).toFixed(3)} {coinSymbol}
-                  </p>
+              {/* Swap Section - Desktop: Right, Mobile: Top */}
+              <div className="order-1 lg:order-2 bg-card border border-border rounded-lg p-4 lg:p-6">
+                <div className="max-w-md mx-auto">
+                  <CookbookSwapTile 
+                    coinId={coinId}
+                    coinName={sale?.coin?.name || coinName}
+                    coinSymbol={sale?.coin?.symbol || coinSymbol}
+                    coinIcon={sale?.coin?.imageUrl || coinIcon}
+                    poolId={poolId}
+                    feeOrHook={30n}
+                  />
+                  
+                  <div className="mt-4 text-center">
+                    <p className="text-xs text-muted-foreground">{t("coin.pool_fee")}: 0.3%</p>
+                  </div>
                 </div>
               </div>
             </div>
           </TabsContent>
 
-          <TabsContent value="add" className="mt-2 sm:mt-4">
-            <AddLiquidity />
+          <TabsContent value="add" className="mt-0">
+            <div className="bg-card border border-border rounded-lg p-4 lg:p-6">
+              <div className="max-w-2xl mx-auto">
+                <AddLiquidity />
+              </div>
+            </div>
           </TabsContent>
 
-          <TabsContent value="remove" className="mt-2 sm:mt-4">
-            <RemoveLiquidity />
+          <TabsContent value="remove" className="mt-0">
+            <div className="bg-card border border-border rounded-lg p-4 lg:p-6">
+              <div className="max-w-2xl mx-auto">
+                <RemoveLiquidity />
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
