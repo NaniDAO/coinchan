@@ -98,9 +98,7 @@ async function fetchGraphQL(query: string, variables?: Record<string, any>) {
   const result = await response.json();
 
   if (result.errors) {
-    throw new Error(
-      `GraphQL errors: ${result.errors.map((e: any) => e.message).join(", ")}`,
-    );
+    throw new Error(`GraphQL errors: ${result.errors.map((e: any) => e.message).join(", ")}`);
   }
 
   return result.data;
@@ -161,10 +159,7 @@ export function useZCurveSale(coinId: string | undefined) {
 }
 
 // Fetch user's zCurve balance for a specific coin
-export function useZCurveBalance(
-  coinId: string | undefined,
-  userAddress: Address | undefined,
-) {
+export function useZCurveBalance(coinId: string | undefined, userAddress: Address | undefined) {
   return useQuery({
     queryKey: ["zcurve", "balance", coinId, userAddress],
     queryFn: async () => {
@@ -414,10 +409,7 @@ export function useZCurveUserBalances(userAddress: Address | undefined) {
 }
 
 // Fetch user's zCurve activity (purchases and sells)
-export function useZCurveUserActivity(
-  userAddress: Address | undefined,
-  limit = 20,
-) {
+export function useZCurveUserActivity(userAddress: Address | undefined, limit = 20) {
   return useQuery({
     queryKey: ["zcurve", "userActivity", userAddress, limit],
     queryFn: async () => {

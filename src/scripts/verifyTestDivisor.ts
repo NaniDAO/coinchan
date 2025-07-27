@@ -18,7 +18,7 @@ console.log(`  Divisor: ${divisor}\n`);
 
 // Verify we hit the target
 const totalRaised = calculateCost(saleCap, quadCap, divisor);
-const percentOfTarget = (Number(totalRaised) / Number(ethTarget) * 100).toFixed(2);
+const percentOfTarget = ((Number(totalRaised) / Number(ethTarget)) * 100).toFixed(2);
 
 console.log("1. Target Achievement:");
 console.log(`   Target: 0.01 ETH`);
@@ -37,30 +37,33 @@ let cumulativeTokens = 0n;
 
 for (const amount of testAmounts) {
   const ethIn = parseEther(amount);
-  
+
   // Find how many tokens we can buy with this ETH
   let low = 0n;
   let high = saleCap - cumulativeTokens;
-  
+
   while (low < high) {
     const mid = (low + high + 1n) / 2n;
-    const cost = calculateCost(cumulativeTokens + mid, quadCap, divisor) - 
-                 calculateCost(cumulativeTokens, quadCap, divisor);
+    const cost =
+      calculateCost(cumulativeTokens + mid, quadCap, divisor) - calculateCost(cumulativeTokens, quadCap, divisor);
     if (cost <= ethIn) {
       low = mid;
     } else {
       high = mid - 1n;
     }
   }
-  
+
   const tokensReceived = low;
-  const actualCost = calculateCost(cumulativeTokens + tokensReceived, quadCap, divisor) - 
-                     calculateCost(cumulativeTokens, quadCap, divisor);
+  const actualCost =
+    calculateCost(cumulativeTokens + tokensReceived, quadCap, divisor) -
+    calculateCost(cumulativeTokens, quadCap, divisor);
   const avgPrice = tokensReceived > 0n ? actualCost / tokensReceived : 0n;
-  const percentOfSupply = (Number(tokensReceived) / Number(saleCap) * 100).toFixed(2);
-  
-  console.log(`   ${amount.padEnd(10)} | ${formatTokens(tokensReceived).padEnd(15)} | ${percentOfSupply.padEnd(11)}% | ${formatEther(avgPrice).slice(0, 10)}`);
-  
+  const percentOfSupply = ((Number(tokensReceived) / Number(saleCap)) * 100).toFixed(2);
+
+  console.log(
+    `   ${amount.padEnd(10)} | ${formatTokens(tokensReceived).padEnd(15)} | ${percentOfSupply.padEnd(11)}% | ${formatEther(avgPrice).slice(0, 10)}`,
+  );
+
   cumulativeCost += actualCost;
   cumulativeTokens += tokensReceived;
 }
@@ -76,20 +79,22 @@ const stages = [
   { pct: 10, desc: "Mid quadratic" },
   { pct: 25, desc: "End quadratic" },
   { pct: 50, desc: "Linear phase" },
-  { pct: 100, desc: "Sale complete" }
+  { pct: 100, desc: "Sale complete" },
 ];
 
 for (const { pct, desc } of stages) {
   const tokensSold = (saleCap * BigInt(Math.floor(pct * 100))) / 10000n;
-  
+
   let marginalPrice = 0n;
   if (tokensSold < saleCap && tokensSold > 0n) {
-    marginalPrice = calculateCost(tokensSold + parseEther("1"), quadCap, divisor) - 
-                    calculateCost(tokensSold, quadCap, divisor);
+    marginalPrice =
+      calculateCost(tokensSold + parseEther("1"), quadCap, divisor) - calculateCost(tokensSold, quadCap, divisor);
   }
-  
+
   const stage = pct <= 25 ? "Quad" : "Linear";
-  console.log(`   ${stage.padEnd(6)} | ${formatTokens(tokensSold).padEnd(11)} | ${formatEther(marginalPrice).slice(0, 14)} | ${desc}`);
+  console.log(
+    `   ${stage.padEnd(6)} | ${formatTokens(tokensSold).padEnd(11)} | ${formatEther(marginalPrice).slice(0, 14)} | ${desc}`,
+  );
 }
 
 // Sanity checks

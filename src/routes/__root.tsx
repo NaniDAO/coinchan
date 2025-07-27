@@ -4,13 +4,7 @@ import UserSettingsMenu from "@/components/UserSettingsMenu";
 import { ZammLogo } from "@/components/ZammLogo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import {
-  Link,
-  Outlet,
-  createRootRoute,
-  useLocation,
-  useNavigate,
-} from "@tanstack/react-router";
+import { Link, Outlet, createRootRoute, useLocation, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
@@ -45,9 +39,7 @@ export const Route = createRootRoute({
       cn(
         "cursor-pointer border-2 border-transparent transition-all duration-100 font-extrabold font-body no-underline text-foreground flex-1 text-center flex items-center justify-center min-w-fit uppercase tracking-widest hover:bg-accent hover:text-accent-foreground",
         "md:text-lg text-base px-3 py-2 md:py-0",
-        location.pathname === path
-          ? "active bg-accent text-accent-foreground"
-          : "",
+        location.pathname === path ? "active bg-accent text-accent-foreground" : "",
       );
 
     return (
@@ -66,21 +58,13 @@ export const Route = createRootRoute({
           >
             {/* Logo */}
             <div className="flex-shrink-0">
-              <ZammLogo
-                className="!m-0"
-                size="small"
-                onClick={handleLogoClick}
-              />
+              <ZammLogo className="!m-0" size="small" onClick={handleLogoClick} />
             </div>
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex md:flex-row md:space-x-3 ml-2">
               {navLinks.map((link) => (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  className={navLinkClasses(link.to)}
-                >
+                <Link key={link.to} to={link.to} className={navLinkClasses(link.to)}>
                   {link.label}
                 </Link>
               ))}
@@ -111,11 +95,7 @@ export const Route = createRootRoute({
                 className="p-2 hover:bg-accent hover:text-accent-foreground rounded-md transition-colors"
                 aria-label="Toggle menu"
               >
-                {isMobileMenuOpen ? (
-                  <X className="h-5 w-5" />
-                ) : (
-                  <Menu className="h-5 w-5" />
-                )}
+                {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </button>
             </div>
           </div>
@@ -133,9 +113,7 @@ export const Route = createRootRoute({
                       onClick={handleNavClick}
                       className={cn(
                         "cursor-pointer border-2 border-transparent transition-all duration-100 font-extrabold font-body no-underline text-foreground text-center flex items-center justify-center uppercase tracking-widest text-lg hover:bg-accent hover:text-accent-foreground rounded-md py-3",
-                        location.pathname === link.to
-                          ? "active bg-accent text-accent-foreground"
-                          : "",
+                        location.pathname === link.to ? "active bg-accent text-accent-foreground" : "",
                       )}
                     >
                       {link.label}

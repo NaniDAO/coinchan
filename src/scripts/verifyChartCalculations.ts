@@ -16,14 +16,14 @@ console.log(`  ETH Target: ${formatEther(ethTarget)} ETH`);
 console.log(`  Divisor: ${divisor}\n`);
 
 // Calculate first token price (after 2 free ticks)
-const firstTokenPrice = calculateCost(2n * UNIT_SCALE + parseEther("1"), quadCap, divisor) - 
-                       calculateCost(2n * UNIT_SCALE, quadCap, divisor);
+const firstTokenPrice =
+  calculateCost(2n * UNIT_SCALE + parseEther("1"), quadCap, divisor) - calculateCost(2n * UNIT_SCALE, quadCap, divisor);
 console.log(`First token price: ${formatEther(firstTokenPrice)} ETH`);
 console.log(`  In scientific: ${Number(formatEther(firstTokenPrice)).toExponential(2)}`);
 
 // Calculate transition price
-const transitionPrice = calculateCost(quadCap + parseEther("1"), quadCap, divisor) - 
-                       calculateCost(quadCap, quadCap, divisor);
+const transitionPrice =
+  calculateCost(quadCap + parseEther("1"), quadCap, divisor) - calculateCost(quadCap, quadCap, divisor);
 console.log(`\nTransition price (at quadCap): ${formatEther(transitionPrice)} ETH`);
 console.log(`  In scientific: ${Number(formatEther(transitionPrice)).toExponential(2)}`);
 

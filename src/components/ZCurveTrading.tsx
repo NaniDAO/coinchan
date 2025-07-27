@@ -14,6 +14,7 @@ import { ZCurvePriceImpact } from "@/components/ZCurvePriceImpact";
 import { zCurveAbi, zCurveAddress } from "@/constants/zCurve";
 import { useZCurveSale, useZCurveBalance } from "@/hooks/use-zcurve-sale";
 import { handleWalletError, isUserRejectionError } from "@/lib/errors";
+import { UNIT_SCALE } from "@/lib/zCurveHelpers";
 import { debounce } from "@/lib/utils";
 import type { TokenMeta } from "@/lib/coins";
 import { useGetCoin } from "@/hooks/metadata/use-get-coin";
@@ -172,15 +173,24 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
     setErrorMessage(null);
 
     try {
-      const slippageMultiplier = (10000n - slippageBps) / 10000n;
-      const slippageMultiplierInverse = (10000n + slippageBps) / 10000n;
+      // Calculate slippage multipliers (e.g., 1000 bps = 10% slippage)
+      // slippageMultiplier: for min amounts (90% of expected with 10% slippage)
+      // slippageMultiplierInverse: for max amounts (110% of expected with 10% slippage)
+      const slippageMultiplier = 10000n - slippageBps;
+      const slippageMultiplierInverse = 10000n + slippageBps;
       const isExactOut = lastEditedField === "buy";
 
       if (swapDirection === "buy") {
         // Buying tokens with ETH
         if (isExactOut) {
           // User wants exact tokens out (buyExactCoins)
-          const coinsOut = parseEther(buyAmount);
+          let coinsOut = parseEther(buyAmount);
+
+          // Ensure coinsOut is at least UNIT_SCALE to avoid NoWant error
+          if (coinsOut > 0n && coinsOut < UNIT_SCALE) {
+            coinsOut = UNIT_SCALE;
+          }
+
           // Apply slippage to increase max ETH willing to pay
           const maxEth = (parseEther(sellAmount) * slippageMultiplierInverse) / 10000n;
 
@@ -215,7 +225,12 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
             args: [BigInt(coinId), ethIn],
           });
 
-          const minCoins = (expectedCoins * slippageMultiplier) / 10000n;
+          let minCoins = (expectedCoins * slippageMultiplier) / 10000n;
+
+          // Ensure minCoins is at least UNIT_SCALE to avoid NoWant error
+          if (minCoins > 0n && minCoins < UNIT_SCALE) {
+            minCoins = UNIT_SCALE;
+          }
 
           writeContract({
             address: zCurveAddress,
@@ -231,7 +246,12 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
           // User wants exact ETH out (sellForExactETH)
           const ethOut = parseEther(buyAmount);
           // Apply slippage to increase max coins willing to sell
-          const maxCoins = (parseEther(sellAmount) * slippageMultiplierInverse) / 10000n;
+          let maxCoins = (parseEther(sellAmount) * slippageMultiplierInverse) / 10000n;
+
+          // Ensure maxCoins is at least UNIT_SCALE to avoid NoWant error
+          if (maxCoins > 0n && maxCoins < UNIT_SCALE) {
+            maxCoins = UNIT_SCALE;
+          }
 
           // Validate token balance
           if (userBalance && BigInt(userBalance.balance) < maxCoins) {
@@ -247,7 +267,12 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
           });
         } else {
           // User wants to sell exact tokens (sellExactCoins)
-          const coinsIn = parseEther(sellAmount);
+          let coinsIn = parseEther(sellAmount);
+
+          // Ensure coinsIn is at least UNIT_SCALE to avoid NoWant error
+          if (coinsIn > 0n && coinsIn < UNIT_SCALE) {
+            coinsIn = UNIT_SCALE;
+          }
 
           // Validate token balance
           if (userBalance && BigInt(userBalance.balance) < coinsIn) {
@@ -263,7 +288,12 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
             args: [BigInt(coinId), coinsIn],
           });
 
-          const minEth = (expectedEth * slippageMultiplier) / 10000n;
+          let minEth = (expectedEth * slippageMultiplier) / 10000n;
+
+          // Ensure minEth is at least UNIT_SCALE to avoid NoWant error
+          if (minEth > 0n && minEth < UNIT_SCALE) {
+            minEth = UNIT_SCALE;
+          }
 
           writeContract({
             address: zCurveAddress,

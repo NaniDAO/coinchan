@@ -54,10 +54,7 @@ const SNAPSHOT_QUERY = `
   }
 `;
 
-const fetchSnapshotProposals = async (
-  space: string,
-  first: number = 3,
-): Promise<SnapshotProposal[]> => {
+const fetchSnapshotProposals = async (space: string, first: number = 3): Promise<SnapshotProposal[]> => {
   const response = await fetch("https://hub.snapshot.org/graphql", {
     method: "POST",
     headers: {
@@ -81,10 +78,7 @@ const fetchSnapshotProposals = async (
   return data.data.proposals;
 };
 
-const useSnapshotProposals = (
-  space: string = "zamm.eth",
-  first: number = 3,
-) => {
+const useSnapshotProposals = (space: string = "zamm.eth", first: number = 3) => {
   return useQuery({
     queryKey: ["snapshot-proposals", space, first],
     queryFn: () => fetchSnapshotProposals(space, first),
@@ -164,12 +158,8 @@ export const GovernanceProposals: React.FC = () => {
             >
               <span className="font-bold">{truncateTitle(proposal.title)}</span>
             </a>
-            <span className={`${getStateColor(proposal.state)} font-mono`}>
-              [{proposal.state}]
-            </span>
-            <span className="text-muted-foreground font-mono">
-              {formatTimeAgo(proposal.start)}
-            </span>
+            <span className={`${getStateColor(proposal.state)} font-mono`}>[{proposal.state}]</span>
+            <span className="text-muted-foreground font-mono">{formatTimeAgo(proposal.start)}</span>
           </div>
         ))}
       </div>

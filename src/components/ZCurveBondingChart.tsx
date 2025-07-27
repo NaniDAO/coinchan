@@ -96,7 +96,8 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
   const calculatedValues = useMemo(() => {
     // First meaningful price is for 1 full token (1e18 units) after first 2 free ticks
     const firstTokenPrice =
-      calculateCost(2n * UNIT_SCALE + parseEther("1"), quadCap, divisor) - calculateCost(2n * UNIT_SCALE, quadCap, divisor);
+      calculateCost(2n * UNIT_SCALE + parseEther("1"), quadCap, divisor) -
+      calculateCost(2n * UNIT_SCALE, quadCap, divisor);
 
     // Calculate average price when target is reached
     // We need to find how many tokens would be sold to reach the target
@@ -148,6 +149,7 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
       layout: {
         background: { type: ColorType.Solid, color: theme.backgroundColor },
         textColor: theme.textColor,
+        attributionLogo: false,
       },
       grid: {
         vertLines: { color: theme.gridColor },
@@ -313,19 +315,23 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
         <div className="text-center p-2 bg-muted/30 rounded">
           <div className="text-muted-foreground">{t("create.starting_price", "Starting Price")}</div>
           <div className="font-medium">
-            {calculatedValues.firstPrice === 0n ? "~0" : 
-             Number(formatEther(calculatedValues.firstPrice)) < 0.00000001 ? 
-             Number(formatEther(calculatedValues.firstPrice)).toExponential(2) :
-             Number(formatEther(calculatedValues.firstPrice)).toFixed(8)} ETH/token
+            {calculatedValues.firstPrice === 0n
+              ? "~0"
+              : Number(formatEther(calculatedValues.firstPrice)) < 0.00000001
+                ? Number(formatEther(calculatedValues.firstPrice)).toExponential(2)
+                : Number(formatEther(calculatedValues.firstPrice)).toFixed(8)}{" "}
+            ETH/token
           </div>
         </div>
         <div className="text-center p-2 bg-muted/30 rounded">
           <div className="text-muted-foreground">{t("create.avg_price_at_target", "Avg Price @ Target")}</div>
           <div className="font-medium">
-            {calculatedValues.avgPriceAtTarget === 0n ? "~0" :
-             Number(formatEther(calculatedValues.avgPriceAtTarget)) < 0.00000001 ?
-             Number(formatEther(calculatedValues.avgPriceAtTarget)).toExponential(2) :
-             Number(formatEther(calculatedValues.avgPriceAtTarget)).toFixed(8)} ETH/token
+            {calculatedValues.avgPriceAtTarget === 0n
+              ? "~0"
+              : Number(formatEther(calculatedValues.avgPriceAtTarget)) < 0.00000001
+                ? Number(formatEther(calculatedValues.avgPriceAtTarget)).toExponential(2)
+                : Number(formatEther(calculatedValues.avgPriceAtTarget)).toFixed(8)}{" "}
+            ETH/token
           </div>
         </div>
         <div className="text-center p-2 bg-muted/30 rounded">
@@ -342,10 +348,12 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
           <div className="text-center p-2 bg-muted/30 rounded">
             <div className="text-muted-foreground">{t("create.linear_price", "Linear Price")}</div>
             <div className="font-medium">
-              {calculatedValues.transitionPrice === 0n ? "~0" :
-               Number(formatEther(calculatedValues.transitionPrice)) < 0.00000001 ?
-               Number(formatEther(calculatedValues.transitionPrice)).toExponential(2) :
-               Number(formatEther(calculatedValues.transitionPrice)).toFixed(8)} ETH/token
+              {calculatedValues.transitionPrice === 0n
+                ? "~0"
+                : Number(formatEther(calculatedValues.transitionPrice)) < 0.00000001
+                  ? Number(formatEther(calculatedValues.transitionPrice)).toExponential(2)
+                  : Number(formatEther(calculatedValues.transitionPrice)).toFixed(8)}{" "}
+              ETH/token
             </div>
           </div>
         </div>

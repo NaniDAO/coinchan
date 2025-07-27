@@ -224,9 +224,7 @@ export function useIncentiveStream(chefId: string) {
         const result = await response.json();
 
         if (result.errors) {
-          throw new Error(
-            `GraphQL errors: ${result.errors.map((e: any) => e.message).join(", ")}`,
-          );
+          throw new Error(`GraphQL errors: ${result.errors.map((e: any) => e.message).join(", ")}`);
         }
 
         if (!result.data?.incentiveStream) {

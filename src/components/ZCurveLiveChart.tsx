@@ -76,6 +76,7 @@ export function ZCurveLiveChart({ sale, previewAmount, isBuying = true }: ZCurve
       layout: {
         background: { type: ColorType.Solid, color: theme.backgroundColor },
         textColor: theme.textColor,
+        attributionLogo: false,
       },
       grid: {
         vertLines: { color: theme.gridColor },
