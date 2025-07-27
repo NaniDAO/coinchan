@@ -10,7 +10,7 @@ import { BuySellCookbookCoin } from "@/components/BuySellCookbookCoin";
 import { ZCurveSaleProgress } from "@/components/ZCurveSaleProgress";
 import { ZCurveLiveChart } from "@/components/ZCurveLiveChart";
 import { ZCurveReserves } from "@/components/ZCurveReserves";
-import { PoolOverview } from "@/components/PoolOverview";
+import { FinalizedPoolTrading } from "@/components/FinalizedPoolTrading";
 
 import { useZCurveSale, useZCurveFinalization, useZCurveBalance, useZCurveSaleSummary } from "@/hooks/use-zcurve-sale";
 import { getExpectedPoolId } from "@/lib/zCurvePoolId";
@@ -104,6 +104,21 @@ export function UnifiedCoinTrading({
   const balance = saleSummary?.userBalance ? BigInt(saleSummary.userBalance) : userBalance ? BigInt(userBalance.balance) : 0n;
   const hasClaimableBalance = balance > 0n && (sale?.status === "FINALIZED" || saleSummary?.isFinalized);
 
+  // For finalized sales with pools, use the clean trading layout
+  if (isFinalized && hasPool) {
+    return (
+      <div className="w-full px-4">
+        <FinalizedPoolTrading 
+          coinId={coinId}
+          coinName={coinName}
+          coinSymbol={coinSymbol}
+          coinIcon={coinIcon}
+          poolId={computedPoolId || undefined}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="w-full">
       <div className="max-w-[1600px] mx-auto px-4 space-y-6">
@@ -191,17 +206,6 @@ export function UnifiedCoinTrading({
             <Card className="border-2 border-border bg-background hover:shadow-lg transition-all duration-200 h-full">
               <CardContent className="pt-6">
                 <ZCurveLiveChart sale={sale} />
-              </CardContent>
-            </Card>
-          </div>
-        )}
-        
-        {/* Pool Overview for finalized sales */}
-        {isFinalized && hasPool && computedPoolId && (
-          <div className="lg:col-span-7">
-            <Card className="border-2 border-border bg-background hover:shadow-lg transition-all duration-200 h-full">
-              <CardContent className="pt-6">
-                <PoolOverview poolId={computedPoolId} coinId={coinId} symbol={coinSymbol} />
               </CardContent>
             </Card>
           </div>
