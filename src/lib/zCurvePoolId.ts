@@ -1,4 +1,4 @@
-import { keccak256, encodePacked, type Address } from "viem";
+import { keccak256, encodeAbiParameters, parseAbiParameters, type Address } from "viem";
 import { CookbookAddress } from "@/constants/Cookbook";
 
 // Default fee in bps (30 = 0.3%)
@@ -34,9 +34,9 @@ export function computeZCurvePoolId(coinId: bigint, feeOrHook: bigint = DEFAULT_
   });
 
   // Encode the struct according to Solidity ABI encoding
-  // PoolKey is 5 * 32 bytes = 160 bytes (0xa0 in hex)
-  const encoded = encodePacked(
-    ["uint256", "uint256", "address", "address", "uint256"],
+  // Must match the encoding used in computePoolId from swap.ts
+  const encoded = encodeAbiParameters(
+    parseAbiParameters("uint256 id0, uint256 id1, address token0, address token1, uint256 feeOrHook"),
     [poolKey.id0, poolKey.id1, poolKey.token0, poolKey.token1, poolKey.feeOrHook],
   );
 
