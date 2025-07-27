@@ -5,6 +5,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowRightIcon, Clock } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CoinPriceChangeBadge } from "./CoinPriceChangeBadge";
+import { ZCurveSaleBadge } from "./ZCurveSaleBadge";
 
 interface CoinCardProps {
   coin: any;
@@ -128,6 +129,11 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
             {displayName} [{displaySymbol}]
           </h3>
           <CoinPriceChangeBadge coinId={coin.coinId.toString()} />
+        </div>
+
+        {/* zCurve sale badge */}
+        <div className="px-2 pb-2">
+          <ZCurveSaleBadge coinId={coin.coinId.toString()} />
         </div>
 
         {/* Deadline badge for active tranche sales */}

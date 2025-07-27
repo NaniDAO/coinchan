@@ -1,5 +1,5 @@
 import { TradeView } from "@/TradeView";
-import { CookbookCoinView } from "@/components/CookbookCoinView";
+import { UnifiedCoinView } from "@/components/UnifiedCoinView";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { isCookbookCoin } from "@/lib/coin-utils";
 import { createFileRoute } from "@tanstack/react-router";
@@ -25,7 +25,7 @@ function RouteComponent() {
   if (isCookbook) {
     return (
       <div>
-        <CookbookCoinView coinId={BigInt(coinId)} />
+        <UnifiedCoinView coinId={BigInt(coinId)} />
       </div>
     );
   }

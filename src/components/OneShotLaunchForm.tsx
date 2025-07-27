@@ -1,5 +1,6 @@
 import { zCurveAbi, zCurveAddress } from "@/constants/zCurve";
 import { pinImageToPinata, pinJsonToPinata } from "@/lib/pinata";
+import { calculateOneshotDivisor } from "@/lib/zCurveMath";
 import { type ChangeEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAccount, usePublicClient, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
@@ -19,6 +20,9 @@ import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { parseEther } from "viem";
 
+// Calculate the correct divisor for our parameters
+const calculatedDivisor = calculateOneshotDivisor();
+
 // Hardcoded parameters for zCurve launch
 const ONE_SHOT_PARAMS = {
   creatorSupply: BigInt(0), // No creator supply
@@ -26,8 +30,10 @@ const ONE_SHOT_PARAMS = {
   saleCap: parseEther("800000000"), // 800M coins for sale
   lpSupply: parseEther("200000000"), // 200M coins for liquidity
   ethTarget: parseEther("0.01"), // 0.01 ETH target for testing
-  divisor: BigInt("17066666634666666680000000"), // Hardcoded divisor
+  divisor: calculatedDivisor, // Calculated to achieve target
   feeOrHook: 30, // 0.3% AMM fee in bps
+  quadCap: parseEther("200000000"), // Match LP supply for quadratic phase
+  duration: 60 * 60 * 24 * 14, // 2 weeks in seconds
 };
 
 // Validation schema
@@ -154,15 +160,20 @@ export const OneShotLaunchForm = () => {
       setIsUploading(false);
       toast.info("Starting blockchain transaction...");
 
+      // Pack quadCap with LP unlock flags (0 means keep in zCurve)
+      const quadCapWithFlags = ONE_SHOT_PARAMS.quadCap; // No LP unlock, so just the quadCap value
+
       // Simulate contract to get the predicted coin ID
       const contractArgs = [
         ONE_SHOT_PARAMS.creatorSupply, // creatorSupply: 0
         BigInt(ONE_SHOT_PARAMS.creatorUnlock), // creatorUnlock: 0
         ONE_SHOT_PARAMS.saleCap, // saleCap: 800M tokens (as uint96)
         ONE_SHOT_PARAMS.lpSupply, // lpSupply: 200M tokens (as uint96)
-        ONE_SHOT_PARAMS.ethTarget, // ethTargetWei: 10 ETH (as uint128)
+        ONE_SHOT_PARAMS.ethTarget, // ethTargetWei: 0.01 ETH (as uint128)
         ONE_SHOT_PARAMS.divisor, // divisor: hardcoded value
         BigInt(ONE_SHOT_PARAMS.feeOrHook), // feeOrHook: 30 (0.3% fee)
+        quadCapWithFlags, // quadCapWithFlags: quadCap with no LP unlock
+        BigInt(ONE_SHOT_PARAMS.duration), // duration: 2 weeks (as uint56)
         metadataUri, // uri: metadata URI
       ] as const;
 
@@ -230,7 +241,7 @@ export const OneShotLaunchForm = () => {
                 {t("create.oneshot_sale_price", "Sale: 800M coins with 0.01 ETH target")}
               </div>
               <div className="text-muted-foreground text-xs mt-1">
-                {t("create.oneshot_sale_note", "Quadratic bonding curve pricing")}
+                {t("create.oneshot_sale_note", "Quadratic pricing up to 200M, then linear • 2 week deadline")}
               </div>
             </div>
             <div className="bg-background border border-border rounded p-3">
@@ -250,6 +261,7 @@ export const OneShotLaunchForm = () => {
             saleCap={ONE_SHOT_PARAMS.saleCap}
             divisor={ONE_SHOT_PARAMS.divisor}
             ethTarget={ONE_SHOT_PARAMS.ethTarget}
+            quadCap={ONE_SHOT_PARAMS.quadCap}
             currentSold={BigInt(0)}
           />
         </div>
