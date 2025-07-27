@@ -1,7 +1,7 @@
 import { zCurveAbi, zCurveAddress } from "@/constants/zCurve";
 import { pinImageToPinata, pinJsonToPinata } from "@/lib/pinata";
 import { calculateOneshotDivisor } from "@/lib/zCurveMath";
-import { type ChangeEvent, useState } from "react";
+import { type ChangeEvent, useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useAccount, usePublicClient, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { z } from "zod";
@@ -37,7 +37,7 @@ const ONE_SHOT_PARAMS = {
   creatorUnlock: 0, // No unlock period
   saleCap: quantizeToUnitScale(parseEther("800000000")), // 800M coins for sale (quantized)
   lpSupply: quantizeToUnitScale(parseEther("200000000")), // 200M coins for liquidity (quantized)
-  ethTarget: parseEther("0.01"), // 0.01 ETH target (wei values don't need quantization)
+  ethTarget: parseEther("0.01"), // 0.01 ETH target for testing (wei values don't need quantization)
   divisor: calculatedDivisor, // Calculated to achieve target
   feeOrHook: 30, // 0.3% AMM fee in bps
   quadCap: quantizeToUnitScale(parseEther("200000000")), // Match LP supply for quadratic phase (quantized)
@@ -52,6 +52,28 @@ const oneShotFormSchema = z.object({
 });
 
 type OneShotFormValues = z.infer<typeof oneShotFormSchema>;
+
+// Helper function to format token amounts in human-readable format
+const formatTokenAmount = (amount: bigint): string => {
+  const tokens = Number(amount / parseEther("1"));
+  if (tokens >= 1000000) {
+    return (tokens / 1000000).toFixed(0) + "M";
+  } else if (tokens >= 1000) {
+    return (tokens / 1000).toFixed(0) + "K";
+  }
+  return tokens.toFixed(0);
+};
+
+// Helper function to format ETH amounts
+const formatEthAmount = (amount: bigint): string => {
+  const eth = Number(amount) / 1e18;
+  if (eth < 0.01) {
+    return eth.toFixed(3);
+  } else if (eth < 1) {
+    return eth.toFixed(2);
+  }
+  return eth.toFixed(1);
+};
 
 export const OneShotLaunchForm = () => {
   const { data: hash, error, isPending, writeContract } = useWriteContract();
@@ -77,6 +99,35 @@ export const OneShotLaunchForm = () => {
   // Keep track of the image buffer and upload state
   const [imageBuffer, setImageBuffer] = useState<ArrayBuffer | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+
+  // Computed values for display
+  const displayValues = useMemo(() => {
+    const saleCap = formatTokenAmount(ONE_SHOT_PARAMS.saleCap);
+    const lpSupply = formatTokenAmount(ONE_SHOT_PARAMS.lpSupply);
+    const quadCap = formatTokenAmount(ONE_SHOT_PARAMS.quadCap);
+    const ethTarget = formatEthAmount(ONE_SHOT_PARAMS.ethTarget);
+    const totalSupply = formatTokenAmount(ONE_SHOT_PARAMS.saleCap + ONE_SHOT_PARAMS.lpSupply);
+    const salePercent = Math.round(
+      (Number(ONE_SHOT_PARAMS.saleCap) / Number(ONE_SHOT_PARAMS.saleCap + ONE_SHOT_PARAMS.lpSupply)) * 100,
+    );
+    const lpPercent = Math.round(
+      (Number(ONE_SHOT_PARAMS.lpSupply) / Number(ONE_SHOT_PARAMS.saleCap + ONE_SHOT_PARAMS.lpSupply)) * 100,
+    );
+    const days = ONE_SHOT_PARAMS.duration / (60 * 60 * 24);
+    const fee = ONE_SHOT_PARAMS.feeOrHook / 100;
+
+    return {
+      saleCap,
+      lpSupply,
+      quadCap,
+      ethTarget,
+      totalSupply,
+      salePercent,
+      lpPercent,
+      days,
+      fee,
+    };
+  }, []);
 
   // Launch tracking state
   const [launchId, setLaunchId] = useState<bigint | null>(null);
@@ -249,32 +300,62 @@ export const OneShotLaunchForm = () => {
               style={{ boxShadow: "0 0 8px var(--primary)" }}
             />
             <h3 className="font-bold text-foreground text-base sm:text-lg">
-              {t("create.instant_coin_sale", "Instant Coin Sale")}
+              {t("create.instant_coin_sale", "zCurve Bonding Curve Launch")}
             </h3>
           </div>
           <div className="grid grid-cols-1 gap-2 sm:gap-3 text-xs sm:text-sm">
             <div className="border-2 border-border bg-background hover:shadow-md transition-all duration-200 p-2 sm:p-3">
               <div className="font-bold text-foreground text-sm sm:text-base">
-                {t("create.oneshot_supply_breakdown", "1B Total: 800M sale + 200M liquidity")}
+                {t(
+                  "create.oneshot_supply_breakdown",
+                  "{{totalSupply}} Total Supply: {{saleCap}} bonding curve + {{lpSupply}} liquidity",
+                  {
+                    totalSupply: displayValues.totalSupply,
+                    saleCap: displayValues.saleCap,
+                    lpSupply: displayValues.lpSupply,
+                  },
+                )}
               </div>
               <div className="text-muted-foreground text-xs mt-1">
-                {t("create.oneshot_percentages", "80% public sale • 20% liquidity pool")}
+                {t(
+                  "create.oneshot_percentages",
+                  "{{salePercent}}% public bonding curve • {{lpPercent}}% auto-liquidity",
+                  {
+                    salePercent: displayValues.salePercent,
+                    lpPercent: displayValues.lpPercent,
+                  },
+                )}
               </div>
             </div>
             <div className="border-2 border-border bg-background hover:shadow-md transition-all duration-200 p-2 sm:p-3">
               <div className="font-bold text-foreground text-sm sm:text-base">
-                {t("create.oneshot_sale_price", "Sale: 800M coins with 0.01 ETH target")}
+                {t("create.oneshot_sale_price", "Bonding Curve: Quadratic → Linear pricing")}
               </div>
               <div className="text-muted-foreground text-xs mt-1">
-                {t("create.oneshot_sale_note", "Quadratic pricing up to 200M, then linear • 2 week deadline")}
+                {t(
+                  "create.oneshot_sale_note",
+                  "Target: {{target}} ETH • Quadratic until {{quadCap}} sold • {{days}} day deadline",
+                  {
+                    target: displayValues.ethTarget,
+                    quadCap: displayValues.quadCap,
+                    days: displayValues.days,
+                  },
+                )}
               </div>
             </div>
             <div className="border-2 border-border bg-background hover:shadow-md transition-all duration-200 p-2 sm:p-3">
               <div className="font-bold text-foreground text-sm sm:text-base">
-                {t("create.oneshot_auto_liquidity", "Auto-liquidity: 200M + raised ETH → Trading Pool")}
+                {t("create.oneshot_auto_liquidity", "Auto-Finalization: Creates AMM pool on success")}
               </div>
               <div className="text-muted-foreground text-xs mt-1">
-                {t("create.oneshot_instant_trading", "0.3% trading fee • Auto-finalizes at target")}
+                {t(
+                  "create.oneshot_instant_trading",
+                  "{{lpSupply}} tokens + ETH raised → {{fee}}% fee AMM • Instant trading",
+                  {
+                    lpSupply: displayValues.lpSupply,
+                    fee: displayValues.fee,
+                  },
+                )}
               </div>
             </div>
           </div>

@@ -8,7 +8,7 @@ import {
   PriceScaleMode,
   type UTCTimestamp,
 } from "lightweight-charts";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, parseEther } from "viem";
 
@@ -32,6 +32,8 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
   const chartRef = useRef<ReturnType<typeof createChart> | null>(null);
   const areaSeriesRef = useRef<ISeriesApi<"Area"> | null>(null);
   const chartTheme = useChartTheme();
+  const [hoveredPrice, setHoveredPrice] = useState<string | null>(null);
+  const [hoveredAmount, setHoveredAmount] = useState<string | null>(null);
 
   // Map the theme to what lightweight-charts expects
   const theme = {
@@ -90,6 +92,52 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
     }
   };
 
+  // Calculate important values
+  const calculatedValues = useMemo(() => {
+    // First meaningful price is at 2 * UNIT_SCALE (after first 2 free ticks)
+    const firstPrice =
+      calculateCost(2n * UNIT_SCALE + 1n, quadCap, divisor) - calculateCost(2n * UNIT_SCALE, quadCap, divisor);
+
+    // Calculate average price when target is reached
+    // We need to find how many tokens would be sold to reach the target
+    let low = 0n;
+    let high = saleCap;
+    let targetTokens = saleCap;
+
+    // Binary search to find amount of tokens that would raise ethTarget
+    while (low < high) {
+      const mid = (low + high) / 2n;
+      const cost = calculateCost(mid, quadCap, divisor);
+      if (cost < ethTarget) {
+        low = mid + 1n;
+      } else {
+        high = mid;
+      }
+    }
+    targetTokens = low;
+
+    // Average price is total ETH raised / tokens sold
+    const avgPriceAtTarget = targetTokens > 0n ? (ethTarget * parseEther("1")) / targetTokens : 0n;
+
+    // Max raise is the cost of selling all tokens
+    const maxRaise = calculateCost(saleCap, quadCap, divisor);
+
+    // Find transition point price if quadCap exists
+    let transitionPrice = 0n;
+    if (quadCap && quadCap < saleCap) {
+      transitionPrice =
+        calculateCost(quadCap + UNIT_SCALE, quadCap, divisor) - calculateCost(quadCap, quadCap, divisor);
+    }
+
+    return {
+      firstPrice,
+      avgPriceAtTarget,
+      maxRaise,
+      targetTokens,
+      transitionPrice,
+    };
+  }, [saleCap, divisor, ethTarget, quadCap]);
+
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
@@ -122,11 +170,15 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
         borderVisible: false,
       },
       crosshair: {
+        mode: 1, // Magnet mode
         horzLine: {
-          visible: false,
+          visible: true,
+          labelVisible: true,
+          labelBackgroundColor: theme.backgroundColor,
         },
         vertLine: {
-          visible: false,
+          visible: true,
+          labelVisible: false,
         },
       },
     });
@@ -148,15 +200,16 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
     });
     areaSeriesRef.current = areaSeries;
 
-    // Generate curve data points
+    // Generate curve data points with token mapping
     const dataPoints: LineData[] = [];
-    const numPoints = 100;
-    const saleCapNum = Number(saleCap / parseEther("1")); // Convert to token units
+    const tokenMap = new Map<number, bigint>(); // Map x-coordinate to token amount
+    const numPoints = 200; // More points for smoother curve
 
     for (let i = 0; i <= numPoints; i++) {
-      const tokensSold = BigInt(Math.floor((i / numPoints) * saleCapNum)) * parseEther("1");
+      const tokensSold = (saleCap * BigInt(i)) / BigInt(numPoints);
       const totalCost = calculateCost(tokensSold, quadCap, divisor);
 
+      tokenMap.set(i, tokensSold);
       dataPoints.push({
         time: i as UTCTimestamp,
         value: Number(formatEther(totalCost)),
@@ -164,6 +217,23 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
     }
 
     areaSeries.setData(dataPoints);
+
+    // Subscribe to crosshair move for interactive tooltips
+    chart.subscribeCrosshairMove((param) => {
+      if (!param.time || !param.point) {
+        setHoveredPrice(null);
+        setHoveredAmount(null);
+        return;
+      }
+
+      const timeIndex = param.time as number;
+      const tokenAmount = tokenMap.get(timeIndex);
+      if (tokenAmount !== undefined) {
+        const cost = calculateCost(tokenAmount, quadCap, divisor);
+        setHoveredAmount(formatEther(tokenAmount).slice(0, 8));
+        setHoveredPrice(formatEther(cost).slice(0, 8));
+      }
+    });
 
     // Add a horizontal line for the ETH target
     const targetEthValue = Number(formatEther(ethTarget));
@@ -214,6 +284,11 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium text-muted-foreground">{t("create.bonding_curve", "Bonding Curve")}</h3>
+        {hoveredAmount && hoveredPrice && (
+          <div className="text-xs text-foreground">
+            {hoveredAmount} tokens = {hoveredPrice} ETH
+          </div>
+        )}
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 bg-green-500 rounded-full" />
@@ -237,23 +312,33 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
       <div className="grid grid-cols-3 gap-2 text-xs">
         <div className="text-center p-2 bg-muted/30 rounded">
           <div className="text-muted-foreground">{t("create.starting_price", "Starting Price")}</div>
-          <div className="font-medium">
-            {Number(formatEther(calculateCost(UNIT_SCALE, quadCap, divisor))).toFixed(8)} ETH
-          </div>
+          <div className="font-medium">{Number(formatEther(calculatedValues.firstPrice)).toFixed(8)} ETH/token</div>
         </div>
         <div className="text-center p-2 bg-muted/30 rounded">
           <div className="text-muted-foreground">{t("create.avg_price_at_target", "Avg Price @ Target")}</div>
           <div className="font-medium">
-            {(Number(formatEther(ethTarget)) / Number(formatEther(saleCap))).toFixed(8)} ETH
+            {Number(formatEther(calculatedValues.avgPriceAtTarget)).toFixed(8)} ETH/token
           </div>
         </div>
         <div className="text-center p-2 bg-muted/30 rounded">
           <div className="text-muted-foreground">{t("create.max_raise", "Max Raise")}</div>
-          <div className="font-medium">
-            {Number(formatEther(calculateCost(saleCap, quadCap, divisor))).toFixed(2)} ETH
-          </div>
+          <div className="font-medium">{Number(formatEther(calculatedValues.maxRaise)).toFixed(4)} ETH</div>
         </div>
       </div>
+      {quadCap && quadCap > 0n && quadCap < saleCap ? (
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="text-center p-2 bg-muted/30 rounded">
+            <div className="text-muted-foreground">{t("create.quadratic_phase", "Quadratic Phase")}</div>
+            <div className="font-medium">Until {Number(formatEther(quadCap)).toFixed(0)} tokens</div>
+          </div>
+          <div className="text-center p-2 bg-muted/30 rounded">
+            <div className="text-muted-foreground">{t("create.linear_price", "Linear Price")}</div>
+            <div className="font-medium">
+              {Number(formatEther(calculatedValues.transitionPrice)).toFixed(8)} ETH/token
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };

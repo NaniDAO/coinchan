@@ -92,11 +92,41 @@ export function calculateDivisor(saleCap: bigint, quadCap: bigint, targetRaised:
 /**
  * Calculate divisor for the oneshot parameters
  * Target: 0.01 ETH raised for 800M saleCap with 200M quadCap
+ * This is for testing purposes with a lower ETH requirement
  */
 export function calculateOneshotDivisor(): bigint {
   const saleCap = parseEther("800000000"); // 800M
   const quadCap = parseEther("200000000"); // 200M
-  const targetRaised = parseEther("0.01"); // 0.01 ETH
+  const targetRaised = parseEther("0.01"); // 0.01 ETH - for testing
+
+  return calculateDivisor(saleCap, quadCap, targetRaised);
+}
+
+/**
+ * Get preset divisor values for common target raises
+ * These are pre-calculated for the standard 800M sale / 200M quadcap
+ */
+export function getPresetDivisor(targetETH: "0.01" | "0.1" | "0.5" | "1" | "2" | "5" | "8.5"): bigint {
+  const presets: Record<string, bigint> = {
+    "0.01": 444444444444444111111111111111666666666666666n, // Original (too flat)
+    "0.1": 44444444444444411111111111111166666666666666n, // 10x steeper
+    "0.5": 8888888888888882222222222222233333333333333n, // Better price discovery
+    "1": 4444444444444441111111111111116666666666666n, // Good balance
+    "2": 2222222222222220555555555555558333333333333n, // Recommended
+    "5": 888888888888888222222222222223333333333333n, // Aggressive
+    "8.5": 522875816993463660130718954249019607843137n, // Pump.fun style
+  };
+
+  return presets[targetETH];
+}
+
+/**
+ * Calculate divisor dynamically for different preset target raises
+ */
+export function calculatePresetDivisor(targetETH: string): bigint {
+  const saleCap = parseEther("800000000"); // 800M
+  const quadCap = parseEther("200000000"); // 200M
+  const targetRaised = parseEther(targetETH);
 
   return calculateDivisor(saleCap, quadCap, targetRaised);
 }

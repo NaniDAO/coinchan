@@ -598,7 +598,15 @@
     "oneshot_sale_note": "Anyone can buy any amount",
     "oneshot_auto_liquidity": "Auto-liquidity: 495M + 1 ETH → Trading Pool",
     "oneshot_instant_trading": "Enables instant trading when sale completes",
-    "launch_successful": "Your coin launch was successful!"
+    "launch_successful": "Your coin launch was successful!",
+    "oneshot_launch_title": "⚡ ONESHOT LAUNCH",
+    "avg_price_at_target": "Avg Price @ Target",
+    "max_raise": "Max Raise",
+    "quadratic_phase": "Quadratic Phase",
+    "linear_price": "Linear Price",
+    "price_curve": "Price Curve",
+    "eth_target": "ETH Target",
+    "linear_phase": "Linear Phase"
   },
   "explore": {
     "title": "Explore",
@@ -880,7 +888,26 @@
     "estimate_placeholder": "Estimate will appear here",
     "buy": "Buy",
     "sweep_tranche": "Sweep tranche",
-    "sequential_filling_note": "Only the cheapest available tranche can be purchased"
+    "sequential_filling_note": "Only the cheapest available tranche can be purchased",
+    "tokens_sold": "Tokens Sold",
+    "current_price": "Current Price"
+  },
+  "trade": {
+    "eth_in_escrow": "ETH in Escrow",
+    "buy": "Buy",
+    "sell": "Sell",
+    "buy_initiated": "Buy transaction initiated",
+    "sell_initiated": "Sell transaction initiated",
+    "buy_successful": "Buy successful!",
+    "sell_successful": "Sell successful!",
+    "sale_finalized": "Sale has been finalized",
+    "sale_expired": "Sale has expired",
+    "you_pay": "You Pay",
+    "you_receive": "You Receive",
+    "invalid_amount": "Invalid amount",
+    "insufficient_balance": "Insufficient balance",
+    "transaction_cancelled": "Transaction cancelled",
+    "transaction_failed": "Transaction failed"
   },
   "about": {
     "title": "About ZAMM",
