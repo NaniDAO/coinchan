@@ -48,44 +48,44 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
   const calculateCost = (n: bigint, quadCapValue: bigint | undefined, d: bigint): bigint => {
     // Convert to "tick" count (1 tick = UNIT_SCALE base-units)
     const m = n / UNIT_SCALE;
-    
+
     // First tick free
     if (m < BigInt(2)) return BigInt(0);
-    
+
     // If no quadCap specified, use pure quadratic
     if (!quadCapValue) {
       const a = m * (m - BigInt(1));
       const b = a * (BigInt(2) * m - BigInt(1));
       return (b * parseEther("1")) / (BigInt(6) * d);
     }
-    
+
     // How many ticks do we run pure-quad? Up to the quadCap
     const K = quadCapValue / UNIT_SCALE;
-    
+
     // We factor out the common (6*d) denominator and 1 ETH numerator
     const denom = BigInt(6) * d;
     const oneETH = parseEther("1");
-    
+
     if (m <= K) {
       // PURE QUADRATIC PHASE
       // sum_{i=0..m-1} i^2 = m*(m-1)*(2m-1)/6
-      const sumSq = m * (m - BigInt(1)) * (BigInt(2) * m - BigInt(1)) / BigInt(6);
+      const sumSq = (m * (m - BigInt(1)) * (BigInt(2) * m - BigInt(1))) / BigInt(6);
       return (sumSq * oneETH) / denom;
     } else {
       // MIXED PHASE: QUAD TILL K, THEN LINEAR TAIL
       // 1) Quad area for first K ticks:
       //    sum_{i=0..K-1} i^2 = K*(K-1)*(2K-1)/6
-      const sumK = K * (K - BigInt(1)) * (BigInt(2) * K - BigInt(1)) / BigInt(6);
+      const sumK = (K * (K - BigInt(1)) * (BigInt(2) * K - BigInt(1))) / BigInt(6);
       const quadCost = (sumK * oneETH) / denom;
-      
+
       // 2) Marginal price at tick K (for ticks K→m):
       //    p_K = cost(K+1) - cost(K) = (K^2 * 1 ETH) / (6*d)
       const pK = (K * K * oneETH) / denom;
-      
+
       // 3) Linear tail for the remaining (m - K) ticks
       const tailTicks = m - K;
       const tailCost = pK * tailTicks;
-      
+
       return quadCost + tailCost;
     }
   };
@@ -223,12 +223,12 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
             <div className="w-3 h-3 bg-amber-500 rounded-full" />
             <span>{t("create.eth_target", "ETH Target")}</span>
           </div>
-          {quadCap && quadCap > BigInt(0) && quadCap < saleCap && (
+          {quadCap && quadCap > 0n && quadCap < saleCap ? (
             <div className="flex items-center gap-1">
               <div className="w-3 h-[2px] bg-indigo-500" />
               <span>{t("create.linear_phase", "Linear Phase")}</span>
             </div>
-          )}
+          ) : null}
         </div>
       </div>
       <div className="border rounded-lg bg-background p-2">
@@ -237,7 +237,9 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
       <div className="grid grid-cols-3 gap-2 text-xs">
         <div className="text-center p-2 bg-muted/30 rounded">
           <div className="text-muted-foreground">{t("create.starting_price", "Starting Price")}</div>
-          <div className="font-medium">{Number(formatEther(calculateCost(UNIT_SCALE, quadCap, divisor))).toFixed(8)} ETH</div>
+          <div className="font-medium">
+            {Number(formatEther(calculateCost(UNIT_SCALE, quadCap, divisor))).toFixed(8)} ETH
+          </div>
         </div>
         <div className="text-center p-2 bg-muted/30 rounded">
           <div className="text-muted-foreground">{t("create.avg_price_at_target", "Avg Price @ Target")}</div>

@@ -27,6 +27,10 @@ interface SwapPanelProps {
   /** Callback when percentage changes */
   onPercentageChange?: (percentage: number) => void;
   className?: string;
+  /** Disable the input */
+  disabled?: boolean;
+  /** Show loading state */
+  isLoading?: boolean;
 }
 
 export const SwapPanel: React.FC<SwapPanelProps> = ({
@@ -44,6 +48,8 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
   showPercentageSlider = false,
   onPercentageChange,
   className = "",
+  disabled = false,
+  isLoading = false,
 }) => {
   const { t } = useTranslation();
   const [percentage, setPercentage] = useState(0);
@@ -108,10 +114,10 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
         />
       </div>
       <div className="flex justify-between items-center">
-        {readOnly ? (
-          // Display formatted number when readonly
+        {readOnly || isLoading ? (
+          // Display formatted number when readonly or loading
           <div className="text-lg sm:text-xl font-medium w-full h-10 text-right pr-1 text-foreground font-body flex items-center justify-end">
-            {amount ? formatNumber(parseFloat(amount), 6) : "0"}
+            {isLoading ? "..." : amount ? formatNumber(parseFloat(amount), 6) : "0"}
           </div>
         ) : (
           // Regular input when editable
@@ -123,7 +129,8 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
             placeholder="0.0"
             value={amount}
             onChange={(e) => onAmountChange(e.target.value)}
-            className="transition-all duration-100 ease-in hover:bg-secondary focus:bg-muted focus:shadow-[0_0_0_2px_var(--terminal-black)] text-lg sm:text-xl font-medium w-full focus:outline-none h-10 text-right pr-1 text-foreground font-body border-none"
+            disabled={disabled}
+            className="transition-all duration-100 ease-in hover:bg-secondary focus:bg-muted focus:shadow-[0_0_0_2px_var(--terminal-black)] text-lg sm:text-xl font-medium w-full focus:outline-none h-10 text-right pr-1 text-foreground font-body border-none disabled:opacity-50 disabled:cursor-not-allowed"
           />
         )}
         {previewLabel ? (

@@ -70,13 +70,13 @@ export function useZCurveSale(coinId: string | undefined) {
     queryKey: ["zcurve", "sale", coinId],
     queryFn: async () => {
       if (!coinId) throw new Error("No coin ID provided");
-      
+
       const response = await fetch(`${API_URL}/zcurve/sales/${coinId}`);
       if (!response.ok) {
         if (response.status === 404) return null;
         throw new Error("Failed to fetch zCurve sale data");
       }
-      
+
       const data = await response.json();
       return data as ZCurveSale;
     },
@@ -91,15 +91,13 @@ export function useZCurveBalance(coinId: string | undefined, userAddress: Addres
     queryKey: ["zcurve", "balance", coinId, userAddress],
     queryFn: async () => {
       if (!coinId || !userAddress) throw new Error("Missing parameters");
-      
-      const response = await fetch(
-        `${API_URL}/zcurve/balances/${coinId}/${userAddress}`
-      );
+
+      const response = await fetch(`${API_URL}/zcurve/balances/${coinId}/${userAddress}`);
       if (!response.ok) {
         if (response.status === 404) return null;
         throw new Error("Failed to fetch zCurve balance");
       }
-      
+
       const data = await response.json();
       return data as ZCurveBalance;
     },
@@ -114,12 +112,10 @@ export function useZCurvePurchases(coinId: string | undefined, limit = 10) {
     queryKey: ["zcurve", "purchases", coinId, limit],
     queryFn: async () => {
       if (!coinId) throw new Error("No coin ID provided");
-      
-      const response = await fetch(
-        `${API_URL}/zcurve/purchases/${coinId}?limit=${limit}`
-      );
+
+      const response = await fetch(`${API_URL}/zcurve/purchases/${coinId}?limit=${limit}`);
       if (!response.ok) throw new Error("Failed to fetch purchases");
-      
+
       const data = await response.json();
       return data as ZCurvePurchase[];
     },
@@ -134,12 +130,10 @@ export function useZCurveSells(coinId: string | undefined, limit = 10) {
     queryKey: ["zcurve", "sells", coinId, limit],
     queryFn: async () => {
       if (!coinId) throw new Error("No coin ID provided");
-      
-      const response = await fetch(
-        `${API_URL}/zcurve/sells/${coinId}?limit=${limit}`
-      );
+
+      const response = await fetch(`${API_URL}/zcurve/sells/${coinId}?limit=${limit}`);
       if (!response.ok) throw new Error("Failed to fetch sells");
-      
+
       const data = await response.json();
       return data as ZCurveSell[];
     },
@@ -155,7 +149,7 @@ export function useActiveZCurveSales() {
     queryFn: async () => {
       const response = await fetch(`${API_URL}/zcurve/sales?status=ACTIVE`);
       if (!response.ok) throw new Error("Failed to fetch active sales");
-      
+
       const data = await response.json();
       return data as ZCurveSale[];
     },
@@ -169,13 +163,13 @@ export function useZCurveFinalization(coinId: string | undefined) {
     queryKey: ["zcurve", "finalization", coinId],
     queryFn: async () => {
       if (!coinId) throw new Error("No coin ID provided");
-      
+
       const response = await fetch(`${API_URL}/zcurve/finalizations/${coinId}`);
       if (!response.ok) {
         if (response.status === 404) return null;
         throw new Error("Failed to fetch finalization data");
       }
-      
+
       const data = await response.json();
       return data as ZCurveFinalization;
     },

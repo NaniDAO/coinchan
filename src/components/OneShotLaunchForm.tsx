@@ -20,6 +20,14 @@ import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { parseEther } from "viem";
 
+// UNIT_SCALE from zCurve contract - all coin amounts must be multiples of this
+const UNIT_SCALE = 1e12;
+
+// Helper to ensure values are properly quantized to UNIT_SCALE
+const quantizeToUnitScale = (value: bigint): bigint => {
+  return (value / BigInt(UNIT_SCALE)) * BigInt(UNIT_SCALE);
+};
+
 // Calculate the correct divisor for our parameters
 const calculatedDivisor = calculateOneshotDivisor();
 
@@ -27,12 +35,12 @@ const calculatedDivisor = calculateOneshotDivisor();
 const ONE_SHOT_PARAMS = {
   creatorSupply: BigInt(0), // No creator supply
   creatorUnlock: 0, // No unlock period
-  saleCap: parseEther("800000000"), // 800M coins for sale
-  lpSupply: parseEther("200000000"), // 200M coins for liquidity
-  ethTarget: parseEther("0.01"), // 0.01 ETH target for testing
+  saleCap: quantizeToUnitScale(parseEther("800000000")), // 800M coins for sale (quantized)
+  lpSupply: quantizeToUnitScale(parseEther("200000000")), // 200M coins for liquidity (quantized)
+  ethTarget: parseEther("0.01"), // 0.01 ETH target (wei values don't need quantization)
   divisor: calculatedDivisor, // Calculated to achieve target
   feeOrHook: 30, // 0.3% AMM fee in bps
-  quadCap: parseEther("200000000"), // Match LP supply for quadratic phase
+  quadCap: quantizeToUnitScale(parseEther("200000000")), // Match LP supply for quadratic phase (quantized)
   duration: 60 * 60 * 24 * 14, // 2 weeks in seconds
 };
 
@@ -163,6 +171,13 @@ export const OneShotLaunchForm = () => {
       // Pack quadCap with LP unlock flags (0 means keep in zCurve)
       const quadCapWithFlags = ONE_SHOT_PARAMS.quadCap; // No LP unlock, so just the quadCap value
 
+      // Validate divisor
+      if (!ONE_SHOT_PARAMS.divisor || ONE_SHOT_PARAMS.divisor === 0n) {
+        toast.error("Invalid configuration: divisor calculation failed");
+        setIsUploading(false);
+        return;
+      }
+
       // Simulate contract to get the predicted coin ID
       const contractArgs = [
         ONE_SHOT_PARAMS.creatorSupply, // creatorSupply: 0
@@ -221,31 +236,41 @@ export const OneShotLaunchForm = () => {
   return (
     <div className="container mx-auto px-4 py-6 sm:py-8">
       <div className="max-w-2xl mx-auto">
-        {/* Parameters Display */}
-        <div className="bg-muted/30 border-2 border-border rounded-lg p-4 mb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-lg">⚡</span>
-            <h3 className="font-semibold text-foreground">{t("create.instant_coin_sale", "Instant Coin Sale")}</h3>
+        {/* Header with ASCII aesthetic */}
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold mb-2">{t("create.oneshot_launch_title", "⚡ ONESHOT LAUNCH")}</h1>
+          <div className="ascii-divider text-muted-foreground">════════════════════════════════════</div>
+        </div>
+        {/* Parameters Display with Landing Page Style */}
+        <div className="border-2 border-border bg-background hover:shadow-lg transition-all duration-200 p-3 sm:p-4 mb-4 sm:mb-6">
+          <div className="flex items-center gap-2 mb-2 sm:mb-3">
+            <div
+              className="w-3 h-3 rounded-full bg-primary shadow-sm"
+              style={{ boxShadow: "0 0 8px var(--primary)" }}
+            />
+            <h3 className="font-bold text-foreground text-base sm:text-lg">
+              {t("create.instant_coin_sale", "Instant Coin Sale")}
+            </h3>
           </div>
-          <div className="grid grid-cols-1 gap-3 text-sm">
-            <div className="bg-background border border-border rounded p-3">
-              <div className="font-medium text-foreground">
+          <div className="grid grid-cols-1 gap-2 sm:gap-3 text-xs sm:text-sm">
+            <div className="border-2 border-border bg-background hover:shadow-md transition-all duration-200 p-2 sm:p-3">
+              <div className="font-bold text-foreground text-sm sm:text-base">
                 {t("create.oneshot_supply_breakdown", "1B Total: 800M sale + 200M liquidity")}
               </div>
               <div className="text-muted-foreground text-xs mt-1">
                 {t("create.oneshot_percentages", "80% public sale • 20% liquidity pool")}
               </div>
             </div>
-            <div className="bg-background border border-border rounded p-3">
-              <div className="font-medium text-foreground">
+            <div className="border-2 border-border bg-background hover:shadow-md transition-all duration-200 p-2 sm:p-3">
+              <div className="font-bold text-foreground text-sm sm:text-base">
                 {t("create.oneshot_sale_price", "Sale: 800M coins with 0.01 ETH target")}
               </div>
               <div className="text-muted-foreground text-xs mt-1">
                 {t("create.oneshot_sale_note", "Quadratic pricing up to 200M, then linear • 2 week deadline")}
               </div>
             </div>
-            <div className="bg-background border border-border rounded p-3">
-              <div className="font-medium text-foreground">
+            <div className="border-2 border-border bg-background hover:shadow-md transition-all duration-200 p-2 sm:p-3">
+              <div className="font-bold text-foreground text-sm sm:text-base">
                 {t("create.oneshot_auto_liquidity", "Auto-liquidity: 200M + raised ETH → Trading Pool")}
               </div>
               <div className="text-muted-foreground text-xs mt-1">
@@ -320,12 +345,12 @@ export const OneShotLaunchForm = () => {
             </div>
           </div>
 
-          {/* Submit Button */}
+          {/* Submit Button with Landing Style */}
           <div className="flex flex-col sm:flex-row gap-4">
             <Button
               type="submit"
               disabled={isPending || !account || isUploading}
-              className="flex-1 min-h-[44px]"
+              className="flex-1 min-h-[44px] font-bold border-2 hover:shadow-lg transition-all duration-200"
               size="lg"
             >
               {isUploading
@@ -354,7 +379,7 @@ export const OneShotLaunchForm = () => {
 
           {/* Transaction Success Display */}
           {hash && (
-            <Alert className="border-green-200 bg-green-50">
+            <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950">
               <AlertTitle className="text-green-800">
                 {txLoading ? "⏳" : txSuccess ? "✅" : "📤"}{" "}
                 {txSuccess
@@ -367,7 +392,7 @@ export const OneShotLaunchForm = () => {
                   ? t("create.launch_successful", "Your coin launch was successful!")
                   : t("create.launch_submitted", "Your oneshot launch has been submitted!")}
                 <div className="mt-2 space-y-2">
-                  <div className="text-xs font-mono bg-green-100 p-2 rounded break-all">
+                  <div className="text-xs font-mono bg-green-100 dark:bg-green-900 p-2 rounded break-all">
                     {t("common.transaction_hash", "Transaction")}: {hash}
                   </div>
                   <div className="flex gap-2 flex-wrap">

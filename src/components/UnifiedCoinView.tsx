@@ -19,16 +19,16 @@ import ErrorFallback, { ErrorBoundary } from "./ErrorBoundary";
 
 export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
   const { t } = useTranslation();
-  
+
   // Fetch coin metadata
   const { data: coinData, isLoading: isLoadingCoin } = useGetCoin({
     coinId: coinId.toString(),
     token: CookbookAddress,
   });
-  
+
   // Check for zCurve sale
   const { data: zcurveSale } = useZCurveSale(coinId.toString());
-  
+
   // Fetch ETH price for market cap calculation
   const { data: ethPriceData } = useReadContract({
     address: CheckTheChainAddress,
@@ -40,7 +40,7 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
       staleTime: 60_000,
     },
   });
-  
+
   // Extract coin data
   const [name, symbol, imageUrl, description, tokenURI, poolIds, swapFees] = useMemo(() => {
     if (!coinData) return ["", "", "", "", "", undefined, [100n]];
@@ -56,36 +56,34 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
       fees,
     ];
   }, [coinData]);
-  
+
   // Calculate market cap in USD
   const marketCapUsd = useMemo(() => {
     if (!coinData || !ethPriceData) return null;
-    
+
     const priceStr = ethPriceData[1];
     const ethPriceUsd = Number.parseFloat(priceStr);
-    
+
     if (isNaN(ethPriceUsd) || ethPriceUsd === 0) return null;
     if (coinData.marketCapEth === undefined) return null;
-    
+
     return coinData.marketCapEth * ethPriceUsd;
   }, [coinData, ethPriceData]);
-  
+
   // Determine pool ID for AMM trading (after zCurve finalization)
   const poolId = poolIds?.[0] || computePoolId(coinId, swapFees?.[0] ?? SWAP_FEE, CookbookAddress).toString();
-  
+
+  // Ensure poolId is always a string
+  const poolIdString = typeof poolId === "bigint" ? poolId.toString() : poolId;
+
   return (
     <div className="w-full max-w-screen mx-auto flex flex-col gap-4 px-2 py-4 pb-16 sm:p-6 sm:pb-16">
       <Link to="/explore" className="text-sm self-start underline py-2 px-1 touch-manipulation">
         ⬅︎ {t("navigation.back_to_explorer", "Back to Explorer")}
       </Link>
-      
-      <CoinPreview 
-        coinId={coinId} 
-        name={name} 
-        symbol={symbol} 
-        isLoading={isLoadingCoin} 
-      />
-      
+
+      <CoinPreview coinId={coinId} name={name} symbol={symbol} isLoading={isLoadingCoin} />
+
       <ErrorBoundary fallback={<ErrorFallback errorMessage="Error rendering Coin Info Card" />}>
         <CoinInfoCard
           coinId={coinId}
@@ -103,7 +101,7 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
           isLoading={isLoadingCoin}
         />
       </ErrorBoundary>
-      
+
       {/* Unified Trading Interface */}
       <ErrorBoundary fallback={<ErrorFallback errorMessage="Error rendering trading interface" />}>
         <div className="max-w-2xl">
@@ -112,26 +110,21 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
             coinName={name}
             coinSymbol={symbol}
             coinIcon={imageUrl}
-            poolId={poolId}
+            poolId={poolIdString}
           />
         </div>
       </ErrorBoundary>
-      
+
       {/* Vote Panel - only show if not in active zCurve sale */}
       {(!zcurveSale || zcurveSale.status !== "ACTIVE") && (
         <ErrorBoundary fallback={<ErrorFallback errorMessage="Error rendering voting panel" />}>
           <VotePanel coinId={coinId} />
         </ErrorBoundary>
       )}
-      
+
       {/* Pool Overview - only show if AMM pool exists */}
       {(!zcurveSale || zcurveSale.status === "FINALIZED") && (
-        <PoolOverview
-          coinId={coinId.toString()}
-          poolId={poolId}
-          symbol={symbol}
-          priceImpact={null}
-        />
+        <PoolOverview coinId={coinId.toString()} poolId={poolIdString} symbol={symbol} priceImpact={null} />
       )}
     </div>
   );
