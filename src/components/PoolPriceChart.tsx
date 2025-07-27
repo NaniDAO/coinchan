@@ -33,6 +33,8 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker, ethUsdPrice
   const { t } = useTranslation();
   const [showUsd, setShowUsd] = useState(false);
   const [chartError, setChartError] = useState<string | null>(null);
+  
+  console.log("PoolPriceChart - poolId:", poolId, "ticker:", ticker);
 
   // Internal state for time controls
   const [timeRange, setTimeRange] = useState<{

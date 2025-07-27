@@ -43,6 +43,9 @@ export function UnifiedCoinTrading({
     sale,
     saleLoading,
     saleError,
+    saleSummary,
+    computedPoolId: sale ? getExpectedPoolId(sale) : null,
+    feeOrHook: sale?.feeOrHook,
   });
   // Time formatting utility
   const formatTimeRemaining = useMemo(() => {
