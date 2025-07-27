@@ -16,6 +16,7 @@ import { useZCurveSale, useZCurveBalance } from "@/hooks/use-zcurve-sale";
 import { handleWalletError, isUserRejectionError } from "@/lib/errors";
 import { UNIT_SCALE } from "@/lib/zCurveHelpers";
 import { debounce } from "@/lib/utils";
+import { useTheme } from "@/lib/theme";
 import type { TokenMeta } from "@/lib/coins";
 import { useGetCoin } from "@/hooks/metadata/use-get-coin";
 import { CookbookAddress } from "@/constants/Cookbook";
@@ -32,6 +33,7 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
   const { t } = useTranslation();
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
+  const { theme } = useTheme();
 
   // States
   const [swapDirection, setSwapDirection] = useState<"buy" | "sell">("buy"); // buy = ETH->Token, sell = Token->ETH
@@ -62,28 +64,28 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
       symbol: "ETH",
       name: "Ethereum",
       decimals: 18,
-      image: "/eth-logo.png",
+      image: theme === "dark" ? "/svgs/eth-dark.svg" : "/svgs/eth-light.svg",
       balance: ethBalance?.value || 0n,
       reserve0: 0n,
       reserve1: 0n,
       source: "COOKBOOK" as const,
     }),
-    [ethBalance?.value],
+    [ethBalance?.value, theme],
   );
 
   const coinToken = useMemo<TokenMeta>(
     () => ({
       id: BigInt(coinId),
-      symbol: coinSymbol || coinData?.symbol || "TOKEN",
-      name: coinData?.name || "Token",
+      symbol: coinSymbol || coinData?.symbol || sale?.coin?.symbol || "TOKEN",
+      name: coinData?.name || sale?.coin?.name || "Token",
       decimals: 18,
-      image: coinIcon || coinData?.imageUrl || "",
+      image: coinIcon || coinData?.imageUrl || sale?.coin?.imageUrl || "",
       balance: userBalance ? BigInt(userBalance.balance) : 0n,
       reserve0: 0n,
       reserve1: 0n,
       source: "COOKBOOK" as const,
     }),
-    [coinId, coinSymbol, coinData, coinIcon, userBalance],
+    [coinId, coinSymbol, coinData, coinIcon, userBalance, sale],
   );
 
   // Calculate output based on input using view helpers
@@ -483,8 +485,13 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
       )}
 
       {/* Price Impact */}
-      {sellAmount && parseFloat(sellAmount) > 0 && (
-        <ZCurvePriceImpact sale={sale} tradeAmount={sellAmount} isBuying={swapDirection === "buy"} />
+      {((lastEditedField === "sell" && sellAmount && parseFloat(sellAmount) > 0) ||
+        (lastEditedField === "buy" && buyAmount && parseFloat(buyAmount) > 0)) && (
+        <ZCurvePriceImpact
+          sale={sale}
+          tradeAmount={lastEditedField === "sell" ? sellAmount : buyAmount}
+          isBuying={swapDirection === "buy"}
+        />
       )}
 
       {/* Error message */}

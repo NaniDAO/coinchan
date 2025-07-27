@@ -137,10 +137,48 @@ export function ZCurveLiveChart({ sale, previewAmount, isBuying = true }: ZCurve
 
     areaSeries.setData(dataPoints);
 
-    // Add current position marker
+    // Add current position marker with shadow point
     if (netSold > 0n) {
-      // Note: setMarkers is not available in newer versions
-      // Could add a vertical line or other indicator here if needed
+      const currentCost = calculateCost(netSold);
+
+      // Create a line series for the current position point
+      const currentPositionSeries = chart.addSeries(LineSeries, {
+        color: "#f59e0b", // Amber color for current position
+        lineStyle: 0, // Solid line style
+        crosshairMarkerVisible: true,
+        crosshairMarkerRadius: 8,
+        lastValueVisible: false,
+        lineVisible: false, // Hide the line, show only the marker
+      });
+
+      // Add the current position point
+      currentPositionSeries.setData([
+        { time: Number(formatEther(netSold)) as UTCTimestamp, value: Number(formatEther(currentCost)) },
+      ]);
+
+      // Add a shadow/glow effect using a larger semi-transparent circle
+      const shadowSeries = chart.addSeries(LineSeries, {
+        color: "rgba(245, 158, 11, 0.3)", // Semi-transparent amber
+        lineStyle: 0,
+        crosshairMarkerVisible: true,
+        crosshairMarkerRadius: 16,
+        lastValueVisible: false,
+        lineVisible: false,
+      });
+
+      shadowSeries.setData([
+        { time: Number(formatEther(netSold)) as UTCTimestamp, value: Number(formatEther(currentCost)) },
+      ]);
+
+      // Add a vertical line at current position
+      areaSeries.createPriceLine({
+        price: Number(formatEther(currentCost)),
+        color: "#f59e0b",
+        lineWidth: 1,
+        lineStyle: 2, // Dashed
+        axisLabelVisible: true,
+        title: t("sale.current_price", "Current"),
+      });
     }
 
     // Add preview indicator if provided
@@ -210,12 +248,29 @@ export function ZCurveLiveChart({ sale, previewAmount, isBuying = true }: ZCurve
     };
   }, [sale, previewAmount, isBuying, appTheme, t]);
 
+  // Calculate sale progress
+  const saleProgress = Number((netSold * 100n) / saleCap);
+  const currentPrice = calculateCost(netSold + UNIT_SCALE) - calculateCost(netSold);
+  const formattedPrice = formatEther(currentPrice);
+
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-muted-foreground">{t("sale.live_price_curve", "Live Price Curve")}</h3>
+    <div className="space-y-3">
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium">{t("sale.live_price_curve", "Live Price Curve")}</h3>
+          <div className="flex items-center gap-4 text-xs">
+            <div className="flex items-center gap-1">
+              <span className="text-muted-foreground">{t("sale.progress", "Progress")}:</span>
+              <span className="font-medium">{saleProgress.toFixed(1)}%</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-muted-foreground">{t("sale.current", "Current")}:</span>
+              <span className="font-medium">{formattedPrice.slice(0, 8)} ETH</span>
+            </div>
+          </div>
+        </div>
         {hoveredAmount && hoveredPrice && (
-          <div className="text-xs text-muted-foreground">
+          <div className="text-xs text-muted-foreground text-right">
             {hoveredAmount} {t("common.tokens", "tokens")} = {hoveredPrice} ETH
           </div>
         )}
@@ -229,6 +284,12 @@ export function ZCurveLiveChart({ sale, previewAmount, isBuying = true }: ZCurve
             <div className="w-3 h-3 bg-green-500 rounded-full" />
             <span>{t("sale.price_curve", "Price Curve")}</span>
           </div>
+          {netSold > 0n && (
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 bg-amber-500 rounded-full shadow-lg shadow-amber-500/50" />
+              <span>{t("sale.current_position", "Current Position")}</span>
+            </div>
+          )}
           {previewAmount && previewAmount > 0n ? (
             <div className="flex items-center gap-1">
               <div className={`w-3 h-[2px] ${isBuying ? "bg-blue-500" : "bg-red-500"}`} />
@@ -236,8 +297,15 @@ export function ZCurveLiveChart({ sale, previewAmount, isBuying = true }: ZCurve
             </div>
           ) : null}
         </div>
-        <div>
-          {t("sale.tokens_sold", "Sold")}: {formatEther(netSold).slice(0, 8)} / {formatEther(saleCap).slice(0, 8)}
+        <div className="flex items-center gap-4">
+          {netSold > 0n && (
+            <div>
+              {t("sale.current_price_label", "Current Price")}: {formatEther(calculateCost(netSold)).slice(0, 8)} ETH
+            </div>
+          )}
+          <div>
+            {t("sale.tokens_sold", "Sold")}: {formatEther(netSold).slice(0, 8)} / {formatEther(saleCap).slice(0, 8)}
+          </div>
         </div>
       </div>
     </div>

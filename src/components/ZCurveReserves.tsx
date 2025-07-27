@@ -4,6 +4,14 @@ import { formatEther } from "viem";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ZCurveSale } from "@/hooks/use-zcurve-sale";
 
+// Helper function to format large numbers with commas
+function formatTokenAmount(value: bigint): string {
+  const formatted = formatEther(value);
+  const [whole, decimal] = formatted.split(".");
+  const withCommas = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return decimal ? `${withCommas}.${decimal.slice(0, 2)}` : withCommas;
+}
+
 interface ZCurveReservesProps {
   sale: ZCurveSale;
   className?: string;
@@ -45,7 +53,7 @@ export function ZCurveReserves({ sale, className = "" }: ZCurveReservesProps) {
 
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">{t("trade.tokens_available", "Tokens Available")}</p>
-            <p className="text-sm font-medium">{formatEther(reserves.tokenReserve).slice(0, 8)}</p>
+            <p className="text-sm font-medium">{formatTokenAmount(reserves.tokenReserve)}</p>
             <p className="text-xs text-muted-foreground">{t("trade.can_be_purchased", "Can be purchased")}</p>
           </div>
         </div>

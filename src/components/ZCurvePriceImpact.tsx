@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, parseEther } from "viem";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon } from "lucide-react";
 import type { ZCurveSale } from "@/hooks/use-zcurve-sale";
 import { UNIT_SCALE, unpackQuadCap } from "@/lib/zCurveHelpers";
@@ -105,32 +104,45 @@ export function ZCurvePriceImpact({ sale, tradeAmount, isBuying, className = "" 
 
   if (!priceImpact) return null;
 
+  const impactColor = priceImpact.isHighImpact
+    ? "text-amber-600 dark:text-amber-400"
+    : priceImpact.impactPercent > 0
+      ? "text-green-600 dark:text-green-400"
+      : "text-muted-foreground";
+
+  const borderColor = priceImpact.isHighImpact
+    ? "border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/20"
+    : priceImpact.impactPercent > 0
+      ? "border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/20"
+      : "";
+
   return (
-    <Alert
-      variant={priceImpact.isHighImpact ? "destructive" : "default"}
-      className={`${className} ${priceImpact.isHighImpact ? "border-amber-500 dark:border-amber-400" : ""}`}
-    >
-      <InfoIcon className="h-4 w-4" />
-      <AlertDescription className="flex flex-col gap-1">
-        <div className="flex justify-between items-center">
-          <span className="text-xs font-medium">{t("trade.price_impact", "Price Impact")}</span>
-          <span
-            className={`text-sm font-bold ${
-              priceImpact.isHighImpact ? "text-amber-600 dark:text-amber-400" : "text-foreground"
-            }`}
-          >
-            {priceImpact.impactPercent.toFixed(2)}%
-          </span>
+    <div className={`rounded-lg border p-3 ${borderColor} ${className}`}>
+      <div className="flex items-start gap-2">
+        <InfoIcon className="h-4 w-4 text-muted-foreground mt-0.5" />
+        <div className="flex-1 space-y-1">
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium">
+              {isBuying ? t("trade.buy_impact", "Buy Impact") : t("trade.sell_impact", "Sell Impact")}
+            </span>
+            <span className={`text-sm font-semibold ${impactColor}`}>
+              {priceImpact.impactPercent > 0 ? "+" : ""}
+              {priceImpact.impactPercent.toFixed(2)}%
+            </span>
+          </div>
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>
+              {t("trade.price_per_token", "Price per token")}: {priceImpact.currentPrice.toFixed(6)} →{" "}
+              {priceImpact.newPrice.toFixed(6)} ETH
+            </span>
+          </div>
+          {priceImpact.isHighImpact && (
+            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+              {t("trade.high_impact_warning", "Large trade - consider splitting into smaller amounts")}
+            </p>
+          )}
         </div>
-        <div className="flex justify-between text-xs text-muted-foreground">
-          <span>
-            {t("trade.current_price", "Current")}: {priceImpact.currentPrice.toFixed(8)} ETH
-          </span>
-          <span>
-            {t("trade.new_price", "New")}: {priceImpact.newPrice.toFixed(8)} ETH
-          </span>
-        </div>
-      </AlertDescription>
-    </Alert>
+      </div>
+    </div>
   );
 }
