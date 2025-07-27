@@ -289,11 +289,6 @@ export const OneShotLaunchForm = () => {
   return (
     <div className="container mx-auto px-4 py-6 sm:py-8">
       <div className="max-w-2xl mx-auto">
-        {/* Header with ASCII aesthetic */}
-        <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold mb-2">{t("create.oneshot_launch_title", "⚡ ONESHOT LAUNCH")}</h1>
-          <div className="ascii-divider text-muted-foreground">════════════════════════════════════</div>
-        </div>
         {/* Parameters Display with Landing Page Style */}
         <div className="border-2 border-border bg-background hover:shadow-lg transition-all duration-200 p-3 sm:p-4 mb-4 sm:mb-6">
           <div className="flex items-center gap-2 mb-2 sm:mb-3">

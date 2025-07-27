@@ -20,6 +20,7 @@ import { debounce, nowSec } from "@/lib/utils";
 import { useTheme } from "@/lib/theme";
 import type { TokenMeta } from "@/lib/coins";
 import { ConnectMenu } from "@/ConnectMenu";
+import { getEthereumIconDataUri } from "@/components/EthereumIcon";
 
 interface CookbookSwapTileProps {
   coinId: string;
@@ -115,11 +116,11 @@ export function CookbookSwapTile({
   // Create token metadata objects
   const ethToken = useMemo<TokenMeta>(
     () => ({
-      id: 0n,
+      id: null,
       symbol: "ETH",
       name: "Ethereum",
       decimals: 18,
-      image: theme === "dark" ? "/svgs/eth-dark.svg" : "/svgs/eth-light.svg",
+      image: getEthereumIconDataUri(theme),
       balance: ethBalance?.value || 0n,
       reserve0: reserves?.reserve0 || 0n,
       reserve1: reserves?.reserve1 || 0n,

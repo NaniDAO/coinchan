@@ -599,7 +599,6 @@
     "oneshot_auto_liquidity": "Auto-Finalization: Creates AMM pool on success",
     "oneshot_instant_trading": "{{lpSupply}} tokens + ETH raised → {{fee}}% fee AMM • Instant trading",
     "launch_successful": "Your coin launch was successful!",
-    "oneshot_launch_title": "⚡ ONESHOT LAUNCH",
     "avg_price_at_target": "Avg Price @ Target",
     "max_raise": "Max Raise",
     "quadratic_phase": "Quadratic Phase",

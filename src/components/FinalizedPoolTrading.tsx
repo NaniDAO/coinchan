@@ -10,19 +10,20 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ZCurveClaim } from "@/components/ZCurveClaim";
 import { LoadingLogo } from "@/components/ui/loading-logo";
 import { useETHPrice } from "@/hooks/use-eth-price";
-import { AddLiquidity } from "@/AddLiquidity";
-import { RemoveLiquidity } from "@/RemoveLiquidity";
+import { ZCurveAddLiquidity } from "@/components/ZCurveAddLiquidity";
+import { ZCurveRemoveLiquidity } from "@/components/ZCurveRemoveLiquidity";
 import { TokenSelectionProvider, useTokenSelection } from "@/contexts/TokenSelectionContext";
 import { ChevronDownIcon, CandlestickChartIcon, LineChartIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/lib/theme";
+import { getEthereumIconDataUri } from "@/components/EthereumIcon";
 
 import type { TokenMeta } from "@/lib/coins";
 import { useZCurveSale, useZCurveSaleSummary, useZCurveBalance } from "@/hooks/use-zcurve-sale";
 import { computeZCurvePoolId } from "@/lib/zCurvePoolId";
 import { useReserves } from "@/hooks/use-reserves";
 import { formatNumber } from "@/lib/utils";
-import { PoolOverview } from "@/components/PoolOverview";
+import { VotePanel } from "@/components/VotePanel";
 
 // Lazy load heavy components
 const PoolPriceChart = lazy(() => import("@/components/PoolPriceChart"));
@@ -77,7 +78,7 @@ function FinalizedPoolTradingInner({
     symbol: "ETH",
     name: "Ethereum",
     decimals: 18,
-    image: theme === "dark" ? "/svgs/eth-dark.svg" : "/svgs/eth-light.svg",
+    image: getEthereumIconDataUri(theme),
     balance: 0n, // Will be fetched by components
     reserve0: reserves?.reserve0 || 0n,
     reserve1: reserves?.reserve1 || 0n,
@@ -162,7 +163,7 @@ function FinalizedPoolTradingInner({
 
       {/* Header with coin info - matching ENS style */}
       <div className="mb-4 sm:mb-8 text-center">
-        <div className="flex items-center justify-center gap-3">
+        <div className="flex items-center justify-center gap-3 mb-3">
           <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden">
             <TokenImage token={coinToken} />
           </div>
@@ -171,6 +172,11 @@ function FinalizedPoolTradingInner({
             <p className="text-muted-foreground">{coinToken.symbol}</p>
           </div>
         </div>
+        {sale?.coin?.description && (
+          <p className="text-sm text-muted-foreground max-w-2xl mx-auto px-4">
+            {sale.coin.description}
+          </p>
+        )}
       </div>
 
       {/* Trading Interface - Desktop: side by side, Mobile: stacked */}
@@ -201,10 +207,11 @@ function FinalizedPoolTradingInner({
           </div>
 
           <TabsContent value="swap" className="mt-0">
-            {/* Desktop: Chart left, Swap right. Mobile: Swap top, Chart bottom */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-              {/* Chart Section - Desktop: Left, Mobile: Below swap */}
-              <div className="order-2 lg:order-1 bg-card border border-border rounded-lg p-4 lg:p-6">
+            {/* Center the content similar to ENS page */}
+            <div className="max-w-7xl mx-auto">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+                {/* Chart Section - Desktop: Left, Mobile: Below swap */}
+                <div className="order-2 lg:order-1 bg-card border border-border rounded-lg p-4 lg:p-6">
                 <div className="h-full flex flex-col">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-sm font-medium">{coinSymbol}/ETH {t("common.chart")}</h3>
@@ -298,15 +305,25 @@ function FinalizedPoolTradingInner({
                   <div className="mt-4 text-center">
                     <p className="text-xs text-muted-foreground">{t("coin.pool_fee")}: 0.3%</p>
                   </div>
+                  
+                  {/* Vote Panel centered at bottom of swap tile */}
+                  <div className="mt-6 flex justify-center">
+                    <VotePanel coinId={BigInt(coinId)} />
+                  </div>
                 </div>
               </div>
+            </div>
             </div>
           </TabsContent>
 
           <TabsContent value="add" className="mt-0">
             <div className="bg-card border border-border rounded-lg p-4 lg:p-6">
               <div className="max-w-2xl mx-auto">
-                <AddLiquidity />
+                <ZCurveAddLiquidity 
+                  coinId={coinId} 
+                  poolId={poolId}
+                  feeOrHook={30n}
+                />
               </div>
             </div>
           </TabsContent>
@@ -314,7 +331,11 @@ function FinalizedPoolTradingInner({
           <TabsContent value="remove" className="mt-0">
             <div className="bg-card border border-border rounded-lg p-4 lg:p-6">
               <div className="max-w-2xl mx-auto">
-                <RemoveLiquidity />
+                <ZCurveRemoveLiquidity 
+                  coinId={coinId}
+                  poolId={poolId}
+                  feeOrHook={30n}
+                />
               </div>
             </div>
           </TabsContent>
@@ -324,13 +345,13 @@ function FinalizedPoolTradingInner({
       {/* Info Section */}
       <div className="mt-6 md:mt-8 bg-card border border-border rounded-lg p-4 md:p-6">
         <h2 className="text-lg md:text-xl font-semibold mb-4">
-          {t("coin.about_title", "About")} {coinToken.name}
+          {t("coin.pool_details", "Pool Details")}
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 text-sm">
           <div>
             <p className="text-muted-foreground">{t("coin.total_supply")}</p>
             <p className="font-medium">
-              {formatNumber(Number(formatUnits(BigInt(sale?.coin?.totalSupply || "0"), 18)), 0)} {coinSymbol}
+              1,000,000,000 {coinSymbol}
             </p>
           </div>
           <div>
@@ -350,10 +371,6 @@ function FinalizedPoolTradingInner({
         </div>
       </div>
 
-      {/* Pool Overview - Holders and Activity */}
-      <div className="mt-6 md:mt-8">
-        <PoolOverview coinId={coinId} poolId={poolId} symbol={coinSymbol} priceImpact={null} />
-      </div>
     </div>
     </div>
   );

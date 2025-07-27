@@ -19,7 +19,7 @@ export const PoolOverview = ({
   } | null;
 }) => {
   return (
-    <Tabs defaultValue="holders">
+    <Tabs defaultValue="activity">
       <TabsList>
         <TabsTrigger value="holders">Holders</TabsTrigger>
         <TabsTrigger value="activity">Activity</TabsTrigger>
