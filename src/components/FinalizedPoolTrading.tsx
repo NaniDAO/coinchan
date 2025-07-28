@@ -1,4 +1,4 @@
-import { useMemo, useState, lazy, Suspense } from "react";
+import { useMemo, useState, lazy } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits } from "viem";
 import { useAccount } from "wagmi";
@@ -7,7 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CookbookSwapTile } from "@/components/CookbookSwapTile";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ZCurveClaim } from "@/components/ZCurveClaim";
-import { LoadingLogo } from "@/components/ui/loading-logo";
 import { useETHPrice } from "@/hooks/use-eth-price";
 import { ZCurveAddLiquidity } from "@/components/ZCurveAddLiquidity";
 import { ZCurveRemoveLiquidity } from "@/components/ZCurveRemoveLiquidity";
@@ -15,12 +14,6 @@ import {
   TokenSelectionProvider,
   useTokenSelection,
 } from "@/contexts/TokenSelectionContext";
-import {
-  ChevronDownIcon,
-  CandlestickChartIcon,
-  LineChartIcon,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useTheme } from "@/lib/theme";
 import { getEthereumIconDataUri } from "@/components/EthereumIcon";
 
@@ -33,14 +26,9 @@ import {
 import { computeZCurvePoolId } from "@/lib/zCurvePoolId";
 import { useReserves } from "@/hooks/use-reserves";
 import { formatNumber } from "@/lib/utils";
-import { VotePanel } from "@/components/VotePanel";
-
-// Lazy load heavy components
-const PoolPriceChart = lazy(() => import("@/components/PoolPriceChart"));
-const PoolCandleChart = lazy(() => import("@/PoolCandleChart"));
 import React from "react";
-import { formatImageURL } from "@/hooks/metadata";
 import { PoolChart } from "./PoolChart";
+import { ChevronDown } from "lucide-react";
 
 interface FinalizedPoolTradingProps {
   coinId: string;
@@ -211,10 +199,6 @@ function FinalizedPoolTradingInner({
           poolId={poolId}
           coinSymbol={coinSymbol}
           ethPrice={ethPrice}
-          coinPrice={coinPrice}
-          coinUsdPrice={coinUsdPrice}
-          marketCapUsd={marketCapUsd}
-          reserves={reserves}
         />
 
         <Tabs
@@ -259,156 +243,120 @@ function FinalizedPoolTradingInner({
           </TabsContent>
 
           <TabsContent value="add" className="mt-0">
-            <div className="w-full">
-              <div className="grid grid-cols-1 lg:grid-rows-2 gap-4 lg:gap-6 xl:gap-8">
-                {/* Add Liquidity Form */}
-                <div className="bg-card border border-border rounded-lg p-4 lg:p-6 xl:p-8">
-                  <ZCurveAddLiquidity
-                    coinId={coinId}
-                    poolId={poolId}
-                    feeOrHook={30n}
-                  />
-                </div>
-
-                {/* Pool Info for Add Liquidity */}
-                <div className="bg-card border border-border rounded-lg p-4 lg:p-6 xl:p-8">
-                  <h3 className="text-lg lg:text-xl font-semibold mb-4 lg:mb-6">
-                    {t("liquidity.pool_info")}
-                  </h3>
-                  <div className="space-y-4 lg:space-y-6">
-                    <div>
-                      <p className="text-sm lg:text-base text-muted-foreground mb-1 lg:mb-2">
-                        {t("coin.current_price")}
-                      </p>
-                      <p className="font-medium lg:text-lg">
-                        {coinPrice > 0 ? `${coinPrice.toFixed(6)} ETH` : "-"}
-                      </p>
-                      <p className="text-sm lg:text-base text-muted-foreground">
-                        ${coinUsdPrice.toFixed(2)} USD
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm lg:text-base text-muted-foreground mb-1 lg:mb-2">
-                        {t("coin.pool_liquidity")}
-                      </p>
-                      <p className="font-medium lg:text-lg">
-                        {formatNumber(
-                          Number(formatEther(reserves?.reserve0 || 0n)),
-                          4,
-                        )}{" "}
-                        ETH
-                      </p>
-                      <p className="text-sm lg:text-base text-muted-foreground">
-                        {formatNumber(
-                          Number(formatUnits(reserves?.reserve1 || 0n, 18)),
-                          0,
-                        )}{" "}
-                        {coinSymbol}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm lg:text-base text-muted-foreground mb-1 lg:mb-2">
-                        {t("coin.pool_fee")}
-                      </p>
-                      <p className="font-medium lg:text-lg">0.3%</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <div className="w-full bg-card border border-border rounded-lg p-4 lg:p-6 xl:p-8">
+              <ZCurveAddLiquidity
+                coinId={coinId}
+                poolId={poolId}
+                feeOrHook={30n}
+              />
             </div>
           </TabsContent>
 
           <TabsContent value="remove" className="mt-0">
-            <div className="w-full">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 xl:gap-8">
-                {/* Remove Liquidity Form */}
-                <div className="bg-card border border-border rounded-lg p-4 lg:p-6 xl:p-8">
-                  <ZCurveRemoveLiquidity
-                    coinId={coinId}
-                    poolId={poolId}
-                    feeOrHook={30n}
-                  />
-                </div>
-
-                {/* Pool Info for Remove Liquidity */}
-                <div className="bg-card border border-border rounded-lg p-4 lg:p-6 xl:p-8">
-                  <h3 className="text-lg lg:text-xl font-semibold mb-4 lg:mb-6">
-                    {t("liquidity.your_position")}
-                  </h3>
-                  <div className="space-y-4 lg:space-y-6">
-                    <div>
-                      <p className="text-sm lg:text-base text-muted-foreground mb-1 lg:mb-2">
-                        {t("coin.current_price")}
-                      </p>
-                      <p className="font-medium lg:text-lg">
-                        {coinPrice > 0 ? `${coinPrice.toFixed(6)} ETH` : "-"}
-                      </p>
-                      <p className="text-sm lg:text-base text-muted-foreground">
-                        ${coinUsdPrice.toFixed(2)} USD
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm lg:text-base text-muted-foreground mb-1 lg:mb-2">
-                        {t("coin.pool_liquidity")}
-                      </p>
-                      <p className="font-medium lg:text-lg">
-                        {formatNumber(
-                          Number(formatEther(reserves?.reserve0 || 0n)),
-                          4,
-                        )}{" "}
-                        ETH
-                      </p>
-                      <p className="text-sm lg:text-base text-muted-foreground">
-                        {formatNumber(
-                          Number(formatUnits(reserves?.reserve1 || 0n, 18)),
-                          0,
-                        )}{" "}
-                        {coinSymbol}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm lg:text-base text-muted-foreground mb-1 lg:mb-2">
-                        {t("coin.pool_fee")}
-                      </p>
-                      <p className="font-medium lg:text-lg">0.3%</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <div className="w-full bg-card border border-border rounded-lg p-4 lg:p-6 xl:p-8">
+              {/* Remove Liquidity Form */}
+              <ZCurveRemoveLiquidity
+                coinId={coinId}
+                poolId={poolId}
+                feeOrHook={30n}
+              />
             </div>
           </TabsContent>
         </Tabs>
       </div>
 
       {/* Info Section */}
-      <div className="mt-6 md:mt-8 bg-card border border-border rounded-lg p-4 md:p-6 lg:p-8">
-        <h2 className="text-lg md:text-xl lg:text-2xl font-semibold mb-4 lg:mb-6">
-          {t("coin.pool_details", "Pool Details")}
+      <div className="mt-6 md:mt-8 bg-card rounded-lg p-6">
+        <h2 className="text-lg md:text-xl font-semibold mb-6 flex items-center gap-2">
+          <span className="w-2 h-2 bg-primary rounded-full"></span>
+          ETH / {coinToken.symbol} {t("coin.pool_details", "Pool")}
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 text-sm lg:text-base">
+
+        {/* Unified Stats Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+          {/* Price */}
           <div>
-            <p className="text-muted-foreground mb-1">
-              {t("coin.total_supply")}
-            </p>
-            <p className="font-medium lg:text-lg">
-              {formatNumber(1_000_000_000, 0)} {coinSymbol}
-            </p>
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+              Price
+            </div>
+            <div className="font-semibold text-lg">
+              {coinPrice > 0 ? `${coinPrice.toFixed(6)} ETH` : "-"}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              ${coinUsdPrice.toFixed(2)}
+            </div>
           </div>
+
+          {/* Market Cap */}
           <div>
-            <p className="text-muted-foreground mb-1">{t("coin.pool_fee")}</p>
-            <p className="font-medium lg:text-lg">0.3%</p>
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+              Market Cap
+            </div>
+            <div className="font-semibold text-lg">
+              $
+              {marketCapUsd > 1e9
+                ? (marketCapUsd / 1e9).toFixed(2) + "B"
+                : marketCapUsd > 0
+                  ? (marketCapUsd / 1e6).toFixed(2) + "M"
+                  : "-"}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {formatNumber(1_000_000_000, 0)} supply
+            </div>
           </div>
+
+          {/* ETH Liquidity */}
           <div>
-            <p className="text-muted-foreground mb-1">{t("coin.pool_id")}</p>
-            <p className="font-mono text-xs lg:text-sm break-all hover:text-primary transition-colors">
-              {poolId}
-            </p>
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+              ETH Liquidity
+            </div>
+            <div className="font-semibold text-lg">
+              {formatNumber(Number(formatEther(reserves?.reserve0 || 0n)), 4)}
+            </div>
+            <div className="text-xs text-muted-foreground">ETH</div>
           </div>
+
+          {/* Token Liquidity */}
           <div>
-            <p className="text-muted-foreground mb-1">{t("coin.decimals")}</p>
-            <p className="font-medium lg:text-lg">18</p>
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+              {coinSymbol} Liquidity
+            </div>
+            <div className="font-semibold text-lg">
+              {formatNumber(
+                Number(formatUnits(reserves?.reserve1 || 0n, 18)),
+                0,
+              )}
+            </div>
+            <div className="text-xs text-muted-foreground flex items-center gap-1">
+              {coinSymbol}
+              <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full text-xs font-medium">
+                0.3% Fee
+              </span>
+            </div>
           </div>
         </div>
+
+        {/* Technical Details - Minimalist */}
+        <details className="group pt-4">
+          <summary className="flex items-center justify-between cursor-pointer py-2 hover:text-primary transition-colors">
+            <span className="text-sm font-medium text-muted-foreground">
+              Technical Details
+            </span>
+            <ChevronDown className="h-4 w-4 text-muted-foreground group-open:rotate-180 transition-transform" />
+          </summary>
+          <div className="mt-3 space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Pool ID</span>
+              <span className="font-mono text-xs text-primary">
+                {poolId?.slice(0, 8)}...{poolId?.slice(-6)}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Decimals</span>
+              <span>18</span>
+            </div>
+          </div>
+        </details>
       </div>
     </div>
   );

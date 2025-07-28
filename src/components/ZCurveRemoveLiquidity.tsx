@@ -1,7 +1,12 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseUnits } from "viem";
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import {
+  useAccount,
+  useReadContract,
+  useWriteContract,
+  useWaitForTransactionReceipt,
+} from "wagmi";
 import { mainnet } from "viem/chains";
 
 import { Button } from "@/components/ui/button";
@@ -15,7 +20,12 @@ import { Loader2 } from "lucide-react";
 
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { nowSec, formatNumber } from "@/lib/utils";
-import { DEADLINE_SEC, SLIPPAGE_BPS, withSlippage, type CookbookPoolKey } from "@/lib/swap";
+import {
+  DEADLINE_SEC,
+  SLIPPAGE_BPS,
+  withSlippage,
+  type CookbookPoolKey,
+} from "@/lib/swap";
 import { handleWalletError } from "@/lib/errors";
 import { useTokenSelection } from "@/contexts/TokenSelectionContext";
 import { useReserves } from "@/hooks/use-reserves";
@@ -27,11 +37,15 @@ interface ZCurveRemoveLiquidityProps {
   feeOrHook?: bigint;
 }
 
-export function ZCurveRemoveLiquidity({ coinId, poolId: providedPoolId, feeOrHook = 30n }: ZCurveRemoveLiquidityProps) {
+export function ZCurveRemoveLiquidity({
+  coinId,
+  poolId: providedPoolId,
+  feeOrHook = 30n,
+}: ZCurveRemoveLiquidityProps) {
   const { t } = useTranslation();
   const { address, isConnected } = useAccount();
   const { sellToken, buyToken } = useTokenSelection();
-  
+
   // State
   const [lpAmount, setLpAmount] = useState("");
   const [percentage, setPercentage] = useState(0);
@@ -42,7 +56,9 @@ export function ZCurveRemoveLiquidity({ coinId, poolId: providedPoolId, feeOrHoo
 
   // Compute pool ID if not provided
   const poolId = useMemo(() => {
-    return BigInt(providedPoolId || computeZCurvePoolId(BigInt(coinId), feeOrHook));
+    return BigInt(
+      providedPoolId || computeZCurvePoolId(BigInt(coinId), feeOrHook),
+    );
   }, [providedPoolId, coinId, feeOrHook]);
 
   // Get LP token balance
@@ -84,12 +100,12 @@ export function ZCurveRemoveLiquidity({ coinId, poolId: providedPoolId, feeOrHoo
 
       try {
         const totalSupply = poolInfo[6] as bigint;
-        
+
         if (totalSupply > 0n) {
           // Calculate proportional amounts
           const amount0 = (lpTokens * reserves.reserve0) / totalSupply;
           const amount1 = (lpTokens * reserves.reserve1) / totalSupply;
-          
+
           setEstimatedEth(formatEther(amount0));
           setEstimatedTokens(formatUnits(amount1, 18));
         }
@@ -122,7 +138,7 @@ export function ZCurveRemoveLiquidity({ coinId, poolId: providedPoolId, feeOrHoo
   const handlePercentageChange = (value: number[]) => {
     const newPercentage = value[0];
     setPercentage(newPercentage);
-    
+
     if (lpBalance) {
       const amount = (lpBalance * BigInt(newPercentage)) / 100n;
       setLpAmount(formatUnits(amount, 18));
@@ -132,7 +148,7 @@ export function ZCurveRemoveLiquidity({ coinId, poolId: providedPoolId, feeOrHoo
   // Handle LP amount changes
   const handleLpAmountChange = (value: string) => {
     setLpAmount(value);
-    
+
     if (lpBalance && value) {
       try {
         const amount = parseUnits(value, 18);
@@ -161,12 +177,18 @@ export function ZCurveRemoveLiquidity({ coinId, poolId: providedPoolId, feeOrHoo
 
     try {
       const lpTokens = parseUnits(lpAmount, 18);
-      
+
       // Calculate minimum amounts with slippage
       const totalSupply = poolInfo?.[6] as bigint;
-      const amount0 = totalSupply > 0n ? (lpTokens * (reserves?.reserve0 || 0n)) / totalSupply : 0n;
-      const amount1 = totalSupply > 0n ? (lpTokens * (reserves?.reserve1 || 0n)) / totalSupply : 0n;
-      
+      const amount0 =
+        totalSupply > 0n
+          ? (lpTokens * (reserves?.reserve0 || 0n)) / totalSupply
+          : 0n;
+      const amount1 =
+        totalSupply > 0n
+          ? (lpTokens * (reserves?.reserve1 || 0n)) / totalSupply
+          : 0n;
+
       const amount0Min = withSlippage(amount0, slippageBps);
       const amount1Min = withSlippage(amount1, slippageBps);
 
@@ -220,7 +242,10 @@ export function ZCurveRemoveLiquidity({ coinId, poolId: providedPoolId, feeOrHoo
   return (
     <div className="space-y-4">
       <div className="text-sm text-muted-foreground">
-        {t("liquidity.remove_liquidity_description", "Remove liquidity to get back ETH and tokens")}
+        {t(
+          "liquidity.remove_liquidity_description",
+          "Remove liquidity to get back ETH and tokens",
+        )}
       </div>
 
       {/* LP Token Input */}
@@ -295,7 +320,9 @@ export function ZCurveRemoveLiquidity({ coinId, poolId: providedPoolId, feeOrHoo
         <Alert>
           <AlertDescription>
             <div className="space-y-2">
-              <div className="text-sm font-medium">{t("liquidity.you_will_receive")}:</div>
+              <div className="text-sm font-medium">
+                {t("liquidity.you_will_receive")}:
+              </div>
               <div className="flex items-center gap-2">
                 <div className="w-5 h-5">
                   <TokenImage token={sellToken} />
@@ -306,7 +333,10 @@ export function ZCurveRemoveLiquidity({ coinId, poolId: providedPoolId, feeOrHoo
                 <div className="w-5 h-5">
                   <TokenImage token={buyToken} />
                 </div>
-                <span>{formatNumber(parseFloat(estimatedTokens), 6)} {buyToken.symbol}</span>
+                <span>
+                  {formatNumber(parseFloat(estimatedTokens), 6)}{" "}
+                  {buyToken.symbol}
+                </span>
               </div>
             </div>
           </AlertDescription>
@@ -338,7 +368,9 @@ export function ZCurveRemoveLiquidity({ coinId, poolId: providedPoolId, feeOrHoo
       {/* Remove Liquidity Button */}
       <Button
         onClick={handleRemoveLiquidity}
-        disabled={!isConnected || isPending || !lpAmount || parseFloat(lpAmount) === 0}
+        disabled={
+          !isConnected || isPending || !lpAmount || parseFloat(lpAmount) === 0
+        }
         className="w-full"
         size="lg"
         variant="destructive"
@@ -352,15 +384,6 @@ export function ZCurveRemoveLiquidity({ coinId, poolId: providedPoolId, feeOrHoo
           t("liquidity.remove_liquidity")
         )}
       </Button>
-
-      {/* Pool Info */}
-      {reserves && (
-        <div className="text-xs text-muted-foreground space-y-1">
-          <div>{t("liquidity.pool_reserves")}:</div>
-          <div>• ETH: {formatNumber(parseFloat(formatEther(reserves.reserve0)), 6)}</div>
-          <div>• {buyToken.symbol}: {formatNumber(parseFloat(formatUnits(reserves.reserve1, 18)), 0)}</div>
-        </div>
-      )}
     </div>
   );
 }
