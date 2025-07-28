@@ -3,6 +3,7 @@ import {
   ColorType,
   createChart,
   AreaSeries,
+  LineSeries,
   type ISeriesApi,
   type LineData,
   PriceScaleMode,
@@ -18,6 +19,7 @@ interface ZCurveBondingChartProps {
   ethTarget: bigint; // in wei (e.g., 10 ETH)
   quadCap?: bigint; // quadratic cap - where curve transitions to linear
   currentSold?: bigint; // current amount sold (0 for new launch)
+  showMarginalPrice?: boolean; // Show marginal price chart
 }
 
 export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
@@ -26,14 +28,19 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
   ethTarget,
   quadCap,
   currentSold = BigInt(0),
+  showMarginalPrice = true,
 }) => {
   const { t } = useTranslation();
-  const chartContainerRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<ReturnType<typeof createChart> | null>(null);
-  const areaSeriesRef = useRef<ISeriesApi<"Area"> | null>(null);
+  const cumulativeChartContainerRef = useRef<HTMLDivElement>(null);
+  const marginalChartContainerRef = useRef<HTMLDivElement>(null);
+  const cumulativeChartRef = useRef<ReturnType<typeof createChart> | null>(null);
+  const marginalChartRef = useRef<ReturnType<typeof createChart> | null>(null);
+  const cumulativeSeriesRef = useRef<ISeriesApi<"Area"> | null>(null);
+  const marginalSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
   const chartTheme = useChartTheme();
   const [hoveredPrice, setHoveredPrice] = useState<string | null>(null);
   const [hoveredAmount, setHoveredAmount] = useState<string | null>(null);
+  const [hoveredMarginalPrice, setHoveredMarginalPrice] = useState<string | null>(null);
 
   // Map the theme to what lightweight-charts expects
   const theme = {
@@ -92,6 +99,25 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
     }
   };
 
+  // Calculate marginal price at a given token amount
+  const calculateMarginalPrice = (tokensSold: bigint, quadCapValue: bigint | undefined, d: bigint): bigint => {
+    const ticks = tokensSold / UNIT_SCALE;
+    const K = quadCapValue ? quadCapValue / UNIT_SCALE : BigInt(0);
+    
+    if (ticks < BigInt(2)) return BigInt(0);
+    
+    const denom = BigInt(6) * d;
+    const oneETH = parseEther("1");
+    
+    if (!quadCapValue || ticks <= K) {
+      // Quadratic phase: marginal price = (ticks^2 * 1 ETH) / (6 * divisor)
+      return (ticks * ticks * oneETH) / denom;
+    } else {
+      // Linear phase: constant marginal price = (K^2 * 1 ETH) / (6 * divisor)
+      return (K * K * oneETH) / denom;
+    }
+  };
+
   // Calculate important values
   const calculatedValues = useMemo(() => {
     // First meaningful price is for 1 full token (1e18 units) after first 2 free ticks
@@ -126,8 +152,7 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
     // Find transition point price for 1 full token if quadCap exists
     let transitionPrice = 0n;
     if (quadCap && quadCap < saleCap) {
-      transitionPrice =
-        calculateCost(quadCap + parseEther("1"), quadCap, divisor) - calculateCost(quadCap, quadCap, divisor);
+      transitionPrice = calculateMarginalPrice(quadCap, quadCap, divisor);
     }
 
     return {
@@ -139,12 +164,13 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
     };
   }, [saleCap, divisor, ethTarget, quadCap]);
 
+  // Create cumulative ETH raised chart
   useEffect(() => {
-    if (!chartContainerRef.current) return;
+    if (!cumulativeChartContainerRef.current) return;
 
     // Create chart
-    const chart = createChart(chartContainerRef.current, {
-      width: chartContainerRef.current.clientWidth,
+    const chart = createChart(cumulativeChartContainerRef.current, {
+      width: cumulativeChartContainerRef.current.clientWidth,
       height: 300,
       layout: {
         background: { type: ColorType.Solid, color: theme.backgroundColor },
@@ -185,13 +211,13 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
       },
     });
 
-    chartRef.current = chart;
+    cumulativeChartRef.current = chart;
 
     // Create area series for filled area under curve
     const areaSeries = chart.addSeries(AreaSeries, {
-      lineColor: "#10b981",
-      topColor: "rgba(16, 185, 129, 0.4)",
-      bottomColor: "rgba(16, 185, 129, 0.04)",
+      lineColor: "#0084ff",
+      topColor: "rgba(0, 132, 255, 0.4)",
+      bottomColor: "rgba(0, 132, 255, 0.04)",
       lineWidth: 2,
       priceFormat: {
         type: "custom",
@@ -200,7 +226,7 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
         },
       },
     });
-    areaSeriesRef.current = areaSeries;
+    cumulativeSeriesRef.current = areaSeries;
 
     // Generate curve data points with token mapping
     const dataPoints: LineData[] = [];
@@ -250,15 +276,18 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
 
     // Add visual indicator for quadCap transition if it exists
     if (quadCap && quadCap < saleCap) {
-      // Add a subtle vertical reference line at the transition point
+      // Since lightweight-charts doesn't support vertical lines well,
+      // we'll add a note about the transition in the UI instead
       const quadCapCost = calculateCost(quadCap, quadCap, divisor);
+      
+      // Could add a price line at the cost level where transition happens
       areaSeries.createPriceLine({
         price: Number(formatEther(quadCapCost)),
-        color: "#6366f1",
+        color: '#ef4444',
         lineWidth: 1,
         lineStyle: 3, // Dotted
         axisLabelVisible: false,
-        title: "",
+        title: '',
       });
     }
 
@@ -267,9 +296,9 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
 
     // Handle resize
     const handleResize = () => {
-      if (chartContainerRef.current && chart) {
+      if (cumulativeChartContainerRef.current && chart) {
         chart.applyOptions({
-          width: chartContainerRef.current.clientWidth,
+          width: cumulativeChartContainerRef.current.clientWidth,
         });
       }
     };
@@ -282,35 +311,215 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
     };
   }, [saleCap, divisor, ethTarget, quadCap, currentSold, theme]);
 
+  // Create marginal price chart
+  useEffect(() => {
+    if (!showMarginalPrice || !marginalChartContainerRef.current) return;
+
+    // Create chart
+    const chart = createChart(marginalChartContainerRef.current, {
+      width: marginalChartContainerRef.current.clientWidth,
+      height: 250,
+      layout: {
+        background: { type: ColorType.Solid, color: theme.backgroundColor },
+        textColor: theme.textColor,
+        attributionLogo: false,
+      },
+      grid: {
+        vertLines: { color: theme.gridColor },
+        horzLines: { color: theme.gridColor },
+      },
+      leftPriceScale: {
+        mode: PriceScaleMode.Normal,
+        borderColor: theme.borderColor,
+        borderVisible: false,
+        scaleMargins: {
+          top: 0.1,
+          bottom: 0.1,
+        },
+      },
+      rightPriceScale: {
+        visible: false,
+      },
+      timeScale: {
+        visible: false,
+        borderVisible: false,
+      },
+      crosshair: {
+        mode: 1, // Magnet mode
+        horzLine: {
+          visible: true,
+          labelVisible: true,
+          labelBackgroundColor: theme.backgroundColor,
+        },
+        vertLine: {
+          visible: true,
+          labelVisible: false,
+        },
+      },
+    });
+
+    marginalChartRef.current = chart;
+
+    // Create line series for marginal price
+    const lineSeries = chart.addSeries(LineSeries, {
+      color: "#ff7f00",
+      lineWidth: 2,
+      priceFormat: {
+        type: "custom",
+        formatter: (price: number) => {
+          if (price < 0.00000001) {
+            return price.toExponential(2) + " ETH/token";
+          }
+          return `${price.toFixed(8)} ETH/token`;
+        },
+      },
+    });
+    marginalSeriesRef.current = lineSeries;
+
+    // Generate marginal price data points
+    const dataPoints: LineData[] = [];
+    const tokenMap = new Map<number, bigint>(); // Map x-coordinate to token amount
+    const numPoints = 200; // More points for smoother curve
+
+    for (let i = 0; i <= numPoints; i++) {
+      const tokensSold = (saleCap * BigInt(i)) / BigInt(numPoints);
+      if (tokensSold === 0n) continue; // Skip zero to avoid division issues
+      
+      const marginalPrice = calculateMarginalPrice(tokensSold, quadCap, divisor);
+
+      tokenMap.set(i, tokensSold);
+      dataPoints.push({
+        time: i as UTCTimestamp,
+        value: Number(formatEther(marginalPrice)),
+      });
+    }
+
+    lineSeries.setData(dataPoints);
+
+    // Subscribe to crosshair move for interactive tooltips
+    chart.subscribeCrosshairMove((param) => {
+      if (!param.time || !param.point) {
+        setHoveredMarginalPrice(null);
+        return;
+      }
+
+      const timeIndex = param.time as number;
+      const tokenAmount = tokenMap.get(timeIndex);
+      if (tokenAmount !== undefined && tokenAmount > 0n) {
+        const marginalPrice = calculateMarginalPrice(tokenAmount, quadCap, divisor);
+        const priceStr = formatEther(marginalPrice);
+        const priceNum = Number(priceStr);
+        if (priceNum < 0.00000001) {
+          setHoveredMarginalPrice(priceNum.toExponential(2));
+        } else {
+          setHoveredMarginalPrice(priceStr.slice(0, 10));
+        }
+      }
+    });
+
+    // Add visual indicator for quadCap transition if it exists  
+    if (quadCap && quadCap < saleCap) {
+      // Find the marginal price at transition
+      const transitionPrice = calculateMarginalPrice(quadCap, quadCap, divisor);
+      
+      // Add a horizontal reference line at the transition price
+      lineSeries.createPriceLine({
+        price: Number(formatEther(transitionPrice)),
+        color: '#ef4444',
+        lineWidth: 2,
+        lineStyle: 2, // Dashed
+        axisLabelVisible: true,
+        title: 'Linear Price',
+      });
+    }
+
+    // Fit content
+    chart.timeScale().fitContent();
+
+    // Handle resize
+    const handleResize = () => {
+      if (marginalChartContainerRef.current && chart) {
+        chart.applyOptions({
+          width: marginalChartContainerRef.current.clientWidth,
+        });
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      chart.remove();
+    };
+  }, [saleCap, divisor, quadCap, showMarginalPrice, theme]);
+
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-muted-foreground">{t("create.bonding_curve", "Bonding Curve")}</h3>
-        {hoveredAmount && hoveredPrice && (
-          <div className="text-xs text-foreground">
-            {hoveredAmount} tokens = {hoveredPrice} ETH
-          </div>
-        )}
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-green-500 rounded-full" />
-            <span>{t("create.price_curve", "Price Curve")}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-amber-500 rounded-full" />
-            <span>{t("create.eth_target", "ETH Target")}</span>
-          </div>
-          {quadCap && quadCap > 0n && quadCap < saleCap ? (
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-[2px] bg-indigo-500" />
-              <span>{t("create.linear_phase", "Linear Phase")}</span>
+    <div className="space-y-4">
+      {/* Cumulative ETH Raised Chart */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium text-muted-foreground">
+            {t("create.cumulative_eth_raised", "Cumulative ETH Raised")}
+          </h3>
+          {hoveredAmount && hoveredPrice && (
+            <div className="text-xs text-foreground">
+              {hoveredAmount} tokens = {hoveredPrice} ETH
             </div>
-          ) : null}
+          )}
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 bg-blue-500 rounded-full" />
+              <span>{t("create.eth_raised", "ETH Raised")}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 bg-amber-500 rounded-full" />
+              <span>{t("create.eth_target", "ETH Target")}</span>
+            </div>
+            {quadCap && quadCap > 0n && quadCap < saleCap ? (
+              <div className="flex items-center gap-1">
+                <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-red-500" />
+                <span>{t("create.quadcap_transition", "K (Transition)")}</span>
+              </div>
+            ) : null}
+          </div>
+        </div>
+        <div className="border rounded-lg bg-background p-2">
+          <div ref={cumulativeChartContainerRef} className="w-full h-[300px]" />
         </div>
       </div>
-      <div className="border rounded-lg bg-background p-2">
-        <div ref={chartContainerRef} className="w-full h-[300px]" />
-      </div>
+
+      {/* Marginal Price Chart */}
+      {showMarginalPrice ? (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium text-muted-foreground">
+              {t("create.marginal_price", "Marginal Price (ETH per token)")}
+            </h3>
+            {hoveredMarginalPrice && (
+              <div className="text-xs text-foreground">
+                Price: {hoveredMarginalPrice} ETH/token
+              </div>
+            )}
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 bg-orange-500 rounded-full" />
+                <span>{t("create.price_per_token", "Price per Token")}</span>
+              </div>
+              {quadCap && quadCap > 0n && quadCap < saleCap ? (
+                <div className="flex items-center gap-1">
+                  <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-red-500" />
+                  <span>{t("create.quadcap_transition", "K (Transition)")}</span>
+                </div>
+              ) : null}
+            </div>
+          </div>
+          <div className="border rounded-lg bg-background p-2">
+            <div ref={marginalChartContainerRef} className="w-full h-[250px]" />
+          </div>
+        </div>
+      ) : null}
+
+      {/* Key Metrics */}
       <div className="grid grid-cols-3 gap-2 text-xs">
         <div className="text-center p-2 bg-muted/30 rounded">
           <div className="text-muted-foreground">{t("create.starting_price", "Starting Price")}</div>

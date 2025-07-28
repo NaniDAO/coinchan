@@ -1,6 +1,5 @@
 import { zCurveAbi, zCurveAddress } from "@/constants/zCurve";
 import { pinImageToPinata, pinJsonToPinata } from "@/lib/pinata";
-import { calculateOneshotDivisor } from "@/lib/zCurveMath";
 import { type ChangeEvent, useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useAccount, usePublicClient, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
@@ -28,9 +27,6 @@ const quantizeToUnitScale = (value: bigint): bigint => {
   return (value / BigInt(UNIT_SCALE)) * BigInt(UNIT_SCALE);
 };
 
-// Calculate the correct divisor for our parameters
-const calculatedDivisor = calculateOneshotDivisor();
-
 // Hardcoded parameters for zCurve launch
 const ONE_SHOT_PARAMS = {
   creatorSupply: BigInt(0), // No creator supply
@@ -38,17 +34,17 @@ const ONE_SHOT_PARAMS = {
   saleCap: quantizeToUnitScale(parseEther("800000000")), // 800M coins for sale (quantized)
   lpSupply: quantizeToUnitScale(parseEther("200000000")), // 200M coins for liquidity (quantized)
   ethTarget: parseEther("0.01"), // 0.01 ETH target for testing (wei values don't need quantization)
-  divisor: calculatedDivisor, // Calculated to achieve target
+  divisor: 2193868799999997460800000000001533333333333334n, // Hardcoded divisor for 552M quadCap @ 0.01 ETH target
   feeOrHook: 30, // 0.3% AMM fee in bps
-  quadCap: quantizeToUnitScale(parseEther("200000000")), // Match LP supply for quadratic phase (quantized)
+  quadCap: quantizeToUnitScale(parseEther("552000000")), // 552M (69% of sale supply) for quadratic phase (quantized)
   duration: 60 * 60 * 24 * 14, // 2 weeks in seconds
 };
 
 // Validation schema
 const oneShotFormSchema = z.object({
-  metadataName: z.string().min(1, "Name is required").max(100, "Name must be 100 characters or less"),
-  metadataSymbol: z.string().min(1, "Symbol is required").max(50, "Symbol must be 50 characters or less"),
-  metadataDescription: z.string().max(500, "Description must be 500 characters or less").optional(),
+  metadataName: z.string().min(1).max(100),
+  metadataSymbol: z.string().min(1).max(50),
+  metadataDescription: z.string().max(500).optional(),
 });
 
 type OneShotFormValues = z.infer<typeof oneShotFormSchema>;
@@ -184,12 +180,12 @@ export const OneShotLaunchForm = () => {
     e.preventDefault();
 
     if (!validateForm()) {
-      toast.error("Please fix the form errors");
+      toast.error(t("common.error_fix_form", "Please fix the form errors"));
       return;
     }
 
     if (!account) {
-      toast.error("Please connect your wallet");
+      toast.error(t("common.error_connect_wallet", "Please connect your wallet"));
       return;
     }
 
@@ -199,7 +195,7 @@ export const OneShotLaunchForm = () => {
       // Upload image to Pinata if provided
       let imageUrl = "";
       if (imageBuffer) {
-        toast.info("Uploading image...");
+        toast.info(t("create.uploading_image", "Uploading image..."));
         const imageUri = await pinImageToPinata(imageBuffer, `${formData.metadataName}-logo`, {
           name: `${formData.metadataName}-logo`,
         });
@@ -215,18 +211,18 @@ export const OneShotLaunchForm = () => {
       };
 
       // Upload metadata to Pinata
-      toast.info("Uploading metadata...");
+      toast.info(t("create.uploading_metadata", "Uploading metadata..."));
       const metadataUri = await pinJsonToPinata(metadata);
 
       setIsUploading(false);
-      toast.info("Starting blockchain transaction...");
+      toast.info(t("create.starting_blockchain_transaction", "Starting blockchain transaction..."));
 
       // Pack quadCap with LP unlock flags (0 means keep in zCurve)
       const quadCapWithFlags = ONE_SHOT_PARAMS.quadCap; // No LP unlock, so just the quadCap value
 
       // Validate divisor
       if (!ONE_SHOT_PARAMS.divisor || ONE_SHOT_PARAMS.divisor === 0n) {
-        toast.error("Invalid configuration: divisor calculation failed");
+        toast.error(t("create.invalid_configuration", "Invalid configuration: divisor calculation failed"));
         setIsUploading(false);
         return;
       }

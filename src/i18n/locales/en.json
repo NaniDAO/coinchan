@@ -645,7 +645,21 @@
     "linear_price": "Linear Price",
     "price_curve": "Price Curve",
     "eth_target": "ETH Target",
-    "linear_phase": "Linear Phase"
+    "linear_phase": "Linear Phase",
+    "name_required": "Name is required",
+    "name_max_length": "Name must be 100 characters or less",
+    "symbol_required": "Symbol is required",
+    "symbol_max_length": "Symbol must be 50 characters or less",
+    "description_max_length": "Description must be 500 characters or less",
+    "uploading_image": "Uploading image...",
+    "uploading_metadata": "Uploading metadata...",
+    "starting_blockchain_transaction": "Starting blockchain transaction...",
+    "invalid_configuration": "Invalid configuration: divisor calculation failed",
+    "cumulative_eth_raised": "Cumulative ETH Raised",
+    "eth_raised": "ETH Raised",
+    "quadcap_transition": "K (Transition)",
+    "marginal_price": "Marginal Price (ETH per token)",
+    "price_per_token": "Price per Token"
   },
   "explore": {
     "title": "Explore",

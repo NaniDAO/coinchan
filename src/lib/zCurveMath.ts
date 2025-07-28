@@ -91,12 +91,12 @@ export function calculateDivisor(saleCap: bigint, quadCap: bigint, targetRaised:
 
 /**
  * Calculate divisor for the oneshot parameters
- * Target: 0.01 ETH raised for 800M saleCap with 200M quadCap
+ * Target: 0.01 ETH raised for 800M saleCap with 552M quadCap (69% of sale supply)
  * This is for testing purposes with a lower ETH requirement
  */
 export function calculateOneshotDivisor(): bigint {
   const saleCap = parseEther("800000000"); // 800M
-  const quadCap = parseEther("200000000"); // 200M
+  const quadCap = parseEther("552000000"); // 552M (69% of sale supply)
   const targetRaised = parseEther("0.01"); // 0.01 ETH - for testing
 
   return calculateDivisor(saleCap, quadCap, targetRaised);
