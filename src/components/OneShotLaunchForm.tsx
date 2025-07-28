@@ -1,28 +1,29 @@
 import { zCurveAbi, zCurveAddress } from "@/constants/zCurve";
 import { pinImageToPinata, pinJsonToPinata } from "@/lib/pinata";
-import { type ChangeEvent, useState, useMemo } from "react";
+import { type ChangeEvent, useState, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useAccount, usePublicClient, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { z } from "zod";
 import { ZCurveBondingChart } from "@/components/ZCurveBondingChart";
+import "@/components/ui/animations.css";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { ImageInput } from "@/components/ui/image-input";
 import { Input } from "@/components/ui/input";
-// shadcn components
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
 import { handleWalletError, isUserRejectionError } from "@/lib/errors";
-import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { parseEther } from "viem";
 
-// UNIT_SCALE from zCurve contract - all coin amounts must be multiples of this
-const UNIT_SCALE = 1e12;
+import { formatEther, parseEther } from "viem";
+import { packQuadCap, UNIT_SCALE } from "@/lib/zCurveHelpers";
 
-// Helper to ensure values are properly quantized to UNIT_SCALE
+import { Link } from "@tanstack/react-router";
+import { AlertCircle, Info, Rocket, CheckCircle2, Sparkles } from "lucide-react";
+
+// Quantize values to unit scale to match contract requirements
 const quantizeToUnitScale = (value: bigint): bigint => {
   return (value / BigInt(UNIT_SCALE)) * BigInt(UNIT_SCALE);
 };
@@ -40,59 +41,68 @@ const ONE_SHOT_PARAMS = {
   duration: 60 * 60 * 24 * 14, // 2 weeks in seconds
 };
 
-// Validation schema
+// Validation schema with better constraints
 const oneShotFormSchema = z.object({
-  metadataName: z.string().min(1).max(100),
-  metadataSymbol: z.string().min(1).max(50),
+  metadataName: z
+    .string()
+    .min(1)
+    .max(100)
+    .regex(/^[a-zA-Z0-9\s\-_.]+$/, "Name can only contain letters, numbers, spaces, hyphens, underscores and dots"),
+  metadataSymbol: z
+    .string()
+    .min(1)
+    .max(50)
+    .regex(/^[A-Z0-9]+$/, "Symbol must be uppercase letters and numbers only")
+    .transform((val) => val.toUpperCase()),
   metadataDescription: z.string().max(500).optional(),
 });
 
-type OneShotFormValues = z.infer<typeof oneShotFormSchema>;
+type OneShotFormData = z.infer<typeof oneShotFormSchema>;
 
-// Helper function to format token amounts in human-readable format
+// Format large numbers with M/B suffixes
 const formatTokenAmount = (amount: bigint): string => {
-  const tokens = Number(amount / parseEther("1"));
-  if (tokens >= 1000000000) {
-    return (tokens / 1000000000).toLocaleString(undefined, { maximumFractionDigits: 0 }) + "B";
-  } else if (tokens >= 1000000) {
-    return (tokens / 1000000).toLocaleString(undefined, { maximumFractionDigits: 0 }) + "M";
-  } else if (tokens >= 1000) {
-    return (tokens / 1000).toLocaleString(undefined, { maximumFractionDigits: 0 }) + "K";
-  }
-  return tokens.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  const num = Number(formatEther(amount));
+  if (num >= 1_000_000_000) return `${(num / 1_000_000_000).toFixed(1)}B`;
+  if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(0)}M`;
+  return num.toLocaleString();
 };
 
-// Helper function to format ETH amounts
+// Format ETH amounts
 const formatEthAmount = (amount: bigint): string => {
-  const eth = Number(amount) / 1e18;
-  if (eth < 0.01) {
-    return eth.toFixed(3);
-  } else if (eth < 1) {
-    return eth.toFixed(2);
-  }
-  return eth.toFixed(1);
+  return Number(formatEther(amount)).toFixed(2);
 };
 
-export const OneShotLaunchForm = () => {
-  const { data: hash, error, isPending, writeContract } = useWriteContract();
-  const { address: account } = useAccount();
+export function OneShotLaunchForm() {
   const { t } = useTranslation();
+  const { address: account } = useAccount();
   const publicClient = usePublicClient();
+  const {
+    writeContract,
+    data: hash,
+    isPending,
+    error,
+    reset: resetTransaction, // eslint-disable-line @typescript-eslint/no-unused-vars
+  } = useWriteContract();
 
-  // Transaction success monitoring
-  const { isSuccess: txSuccess, isLoading: txLoading } = useWaitForTransactionReceipt({
-    hash,
-  });
+  // Wait for transaction
+  const {
+    isLoading: txLoading,
+    isSuccess: txSuccess,
+    data: receipt, // eslint-disable-line @typescript-eslint/no-unused-vars
+  } = useWaitForTransactionReceipt({ hash });
 
-  // State for form data
-  const [formData, setFormData] = useState<OneShotFormValues>({
+  // Store launched coin ID
+  const [launchId, setLaunchId] = useState<bigint | null>(null);
+
+  // Form state
+  const [formData, setFormData] = useState<OneShotFormData>({
     metadataName: "",
     metadataSymbol: "",
     metadataDescription: "",
   });
 
-  // Validation errors
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   // Keep track of the image buffer and upload state
   const [imageBuffer, setImageBuffer] = useState<ArrayBuffer | null>(null);
@@ -127,23 +137,84 @@ export const OneShotLaunchForm = () => {
     };
   }, []);
 
-  // Launch tracking state
-  const [launchId, setLaunchId] = useState<bigint | null>(null);
-
-  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = useCallback((e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    
+    // Handle symbol uppercase transformation
+    const processedValue = name === "metadataSymbol" ? value.toUpperCase() : value;
+    
+    setFormData((prev) => ({ ...prev, [name]: processedValue }));
 
-    // Clear error when user starts typing
+    // Clear error for this field when user starts typing
     if (errors[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+    }
+  }, [errors]);
+
+  const handleBlur = useCallback((e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name } = e.target;
+    setTouched((prev) => ({ ...prev, [name]: true }));
+    
+    // Validate single field on blur
+    try {
+      const fieldSchema = oneShotFormSchema.shape[name as keyof typeof oneShotFormSchema.shape];
+      if (fieldSchema) {
+        fieldSchema.parse(formData[name as keyof OneShotFormData]);
+        setErrors((prev) => ({ ...prev, [name]: "" }));
+      }
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const fieldError = error.errors[0];
+        if (fieldError) {
+          setErrors((prev) => ({ ...prev, [name]: getErrorMessage(name, fieldError) }));
+        }
+      }
+    }
+  }, [formData]);
+
+  const getErrorMessage = (field: string, error: z.ZodIssue): string => {
+    if (error.code === "too_small" && error.minimum === 1) {
+      if (field === "metadataName") {
+        return t("create.name_required", "Name is required");
+      } else if (field === "metadataSymbol") {
+        return t("create.symbol_required", "Symbol is required");
+      }
+    } else if (error.code === "too_big") {
+      if (field === "metadataName") {
+        return t("create.name_max_length", "Name must be 100 characters or less");
+      } else if (field === "metadataSymbol") {
+        return t("create.symbol_max_length", "Symbol must be 50 characters or less");
+      } else if (field === "metadataDescription") {
+        return t("create.description_max_length", "Description must be 500 characters or less");
+      }
+    } else if (error.code === "invalid_string" && error.validation === "regex") {
+      if (field === "metadataName") {
+        return t("create.name_invalid_characters", "Name can only contain letters, numbers, spaces, hyphens, underscores and dots");
+      } else if (field === "metadataSymbol") {
+        return t("create.symbol_invalid_characters", "Symbol must be uppercase letters and numbers only");
+      }
+    }
+    return error.message;
+  };
+
+  const handleImageFileChange = async (file: File | File[] | undefined) => {
+    if (file && !Array.isArray(file)) {
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error(t("create.image_too_large", "Image must be less than 5MB"));
+        return;
+      }
+
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        toast.error(t("create.invalid_image_type", "Please upload an image file"));
+        return;
+      }
+
+      const buffer = await file.arrayBuffer();
+      setImageBuffer(buffer);
+    } else {
+      setImageBuffer(null);
     }
   };
 
@@ -155,24 +226,22 @@ export const OneShotLaunchForm = () => {
     } catch (error) {
       if (error instanceof z.ZodError) {
         const newErrors: Record<string, string> = {};
-        for (const err of error.errors) {
-          if (err.path.length > 0) {
-            newErrors[err.path[0] as string] = err.message;
+        error.errors.forEach((err) => {
+          if (err.path[0]) {
+            const field = err.path[0].toString();
+            newErrors[field] = getErrorMessage(field, err);
           }
-        }
+        });
         setErrors(newErrors);
+        
+        // Mark all fields as touched to show errors
+        setTouched({
+          metadataName: true,
+          metadataSymbol: true,
+          metadataDescription: true,
+        });
       }
       return false;
-    }
-  };
-
-  const handleImageFileChange = (file: File | File[] | undefined) => {
-    if (file && !Array.isArray(file)) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImageBuffer(e.target?.result as ArrayBuffer);
-      };
-      reader.readAsArrayBuffer(file);
     }
   };
 
@@ -192,23 +261,29 @@ export const OneShotLaunchForm = () => {
     try {
       setIsUploading(true);
 
-      // Upload image to Pinata if provided
-      let imageUrl = "";
+      // Create metadata
+      const metadata: Record<string, unknown> = {
+        name: formData.metadataName.trim(),
+        symbol: formData.metadataSymbol.trim(),
+        decimals: 18,
+      };
+
+      if (formData.metadataDescription?.trim()) {
+        metadata.description = formData.metadataDescription.trim();
+      }
+
+      // Upload image first if provided
       if (imageBuffer) {
         toast.info(t("create.uploading_image", "Uploading image..."));
         const imageUri = await pinImageToPinata(imageBuffer, `${formData.metadataName}-logo`, {
-          name: `${formData.metadataName}-logo`,
+          keyvalues: {
+            coinName: formData.metadataName,
+            coinSymbol: formData.metadataSymbol,
+            type: "coin-logo",
+          },
         });
-        imageUrl = imageUri;
+        metadata.image = imageUri;
       }
-
-      // Create metadata object
-      const metadata = {
-        name: formData.metadataName,
-        symbol: formData.metadataSymbol,
-        description: formData.metadataDescription || "",
-        image: imageUrl,
-      };
 
       // Upload metadata to Pinata
       toast.info(t("create.uploading_metadata", "Uploading metadata..."));
@@ -217,8 +292,8 @@ export const OneShotLaunchForm = () => {
       setIsUploading(false);
       toast.info(t("create.starting_blockchain_transaction", "Starting blockchain transaction..."));
 
-      // Pack quadCap with LP unlock flags (0 means keep in zCurve)
-      const quadCapWithFlags = ONE_SHOT_PARAMS.quadCap; // No LP unlock, so just the quadCap value
+      // Pack quadCap with lpUnlock (0 for public sale)
+      const quadCapWithFlags = packQuadCap(ONE_SHOT_PARAMS.quadCap, BigInt(0));
 
       // Validate divisor
       if (!ONE_SHOT_PARAMS.divisor || ONE_SHOT_PARAMS.divisor === 0n) {
@@ -227,7 +302,7 @@ export const OneShotLaunchForm = () => {
         return;
       }
 
-      // Simulate contract to get the predicted coin ID
+      // Prepare contract arguments
       const contractArgs = [
         ONE_SHOT_PARAMS.creatorSupply, // creatorSupply: 0
         BigInt(ONE_SHOT_PARAMS.creatorUnlock), // creatorUnlock: 0
@@ -237,10 +312,11 @@ export const OneShotLaunchForm = () => {
         ONE_SHOT_PARAMS.divisor, // divisor: hardcoded value
         BigInt(ONE_SHOT_PARAMS.feeOrHook), // feeOrHook: 30 (0.3% fee)
         quadCapWithFlags, // quadCapWithFlags: quadCap with no LP unlock
-        BigInt(ONE_SHOT_PARAMS.duration), // duration: 2 weeks (as uint56)
-        metadataUri, // uri: metadata URI
+        BigInt(ONE_SHOT_PARAMS.duration), // duration: 2 weeks
+        metadataUri, // uri: IPFS metadata URI
       ] as const;
 
+      // Try to simulate first to get the coin ID
       if (publicClient) {
         try {
           // Simulate the transaction to get the predicted coin ID
@@ -282,217 +358,318 @@ export const OneShotLaunchForm = () => {
     }
   };
 
+  // Check if form is valid for submit button
+  const isFormValid = useMemo(() => {
+    try {
+      oneShotFormSchema.parse(formData);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [formData]);
+
+
   return (
     <div className="container mx-auto px-4 py-6 sm:py-8">
       <div className="max-w-2xl mx-auto">
-        {/* Parameters Display with Landing Page Style */}
-        <div className="border-2 border-border bg-background hover:shadow-lg transition-all duration-200 p-3 sm:p-4 mb-4 sm:mb-6">
-          <div className="flex items-center gap-2 mb-2 sm:mb-3">
-            <div
-              className="w-3 h-3 rounded-full bg-primary shadow-sm"
-              style={{ boxShadow: "0 0 8px var(--primary)" }}
-            />
-            <h3 className="font-bold text-foreground text-base sm:text-lg">
-              {t("create.instant_coin_sale", "zCurve Bonding Curve Launch")}
-            </h3>
-          </div>
-          <div className="grid grid-cols-1 gap-2 sm:gap-3 text-xs sm:text-sm">
-            <div className="border-2 border-border bg-background hover:shadow-md transition-all duration-200 p-2 sm:p-3">
-              <div className="font-bold text-foreground text-sm sm:text-base">
-                {t(
-                  "create.oneshot_supply_breakdown",
-                  "{{totalSupply}} Total Supply: {{saleCap}} bonding curve + {{lpSupply}} liquidity",
-                  {
-                    totalSupply: displayValues.totalSupply,
-                    saleCap: displayValues.saleCap,
-                    lpSupply: displayValues.lpSupply,
-                  },
-                )}
-              </div>
-              <div className="text-muted-foreground text-xs mt-1">
-                {t(
-                  "create.oneshot_percentages",
-                  "{{salePercent}}% public bonding curve • {{lpPercent}}% auto-liquidity",
-                  {
-                    salePercent: displayValues.salePercent,
-                    lpPercent: displayValues.lpPercent,
-                  },
-                )}
-              </div>
-            </div>
-            <div className="border-2 border-border bg-background hover:shadow-md transition-all duration-200 p-2 sm:p-3">
-              <div className="font-bold text-foreground text-sm sm:text-base">
-                {t("create.oneshot_sale_price", "Bonding Curve: Quadratic → Linear pricing")}
-              </div>
-              <div className="text-muted-foreground text-xs mt-1">
-                {t(
-                  "create.oneshot_sale_note",
-                  "Target: {{target}} ETH • Quadratic until {{quadCap}} sold • {{days}} day deadline",
-                  {
-                    target: displayValues.ethTarget,
-                    quadCap: displayValues.quadCap,
-                    days: displayValues.days,
-                  },
-                )}
-              </div>
-            </div>
-            <div className="border-2 border-border bg-background hover:shadow-md transition-all duration-200 p-2 sm:p-3">
-              <div className="font-bold text-foreground text-sm sm:text-base">
-                {t("create.oneshot_auto_liquidity", "Auto-Finalization: Creates AMM pool on success")}
-              </div>
-              <div className="text-muted-foreground text-xs mt-1">
-                {t(
-                  "create.oneshot_instant_trading",
-                  "{{lpSupply}} tokens + ETH raised → {{fee}}% fee AMM • Instant trading",
-                  {
-                    lpSupply: displayValues.lpSupply,
-                    fee: displayValues.fee,
-                  },
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Bonding Curve Visualization */}
-        <div className="mb-6">
-          <ZCurveBondingChart
-            saleCap={ONE_SHOT_PARAMS.saleCap}
-            divisor={ONE_SHOT_PARAMS.divisor}
-            ethTarget={ONE_SHOT_PARAMS.ethTarget}
-            quadCap={ONE_SHOT_PARAMS.quadCap}
-            currentSold={BigInt(0)}
-          />
-        </div>
-
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Token Information */}
           <div className="space-y-4">
             <div>
-              <Label htmlFor="metadataName" className="mb-2">
-                {t("create.name", "Name")} *
+              <Label htmlFor="metadataName" className="mb-2 flex items-center gap-1">
+                {t("create.name", "Name")} <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="metadataName"
-                name="metadataName"
-                value={formData.metadataName}
-                onChange={handleInputChange}
-                placeholder={t("create.enter_name", "Enter coin name")}
-                className={errors.metadataName ? "border-red-500" : ""}
-              />
-              {errors.metadataName && <p className="text-red-500 text-sm mt-2">{errors.metadataName}</p>}
+              <div className="relative">
+                <Input
+                  id="metadataName"
+                  name="metadataName"
+                  value={formData.metadataName}
+                  onChange={handleInputChange}
+                  onBlur={handleBlur}
+                  placeholder={t("create.enter_name", "Enter coin name")}
+                  className={`transition-all duration-200 ${errors.metadataName && touched.metadataName ? "border-red-500 shake" : ""}`}
+                  disabled={isPending || isUploading}
+                  maxLength={100}
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+                  {formData.metadataName.length}/100
+                </span>
+              </div>
+              {errors.metadataName && touched.metadataName && (
+                <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  {errors.metadataName}
+                </p>
+              )}
             </div>
 
             <div>
-              <Label htmlFor="metadataSymbol" className="mb-2">
-                {t("create.symbol", "Symbol")} *
+              <Label htmlFor="metadataSymbol" className="mb-2 flex items-center gap-1">
+                {t("create.symbol", "Symbol")} <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="metadataSymbol"
-                name="metadataSymbol"
-                value={formData.metadataSymbol}
-                onChange={handleInputChange}
-                placeholder={t("create.enter_symbol", "Enter coin symbol")}
-                className={errors.metadataSymbol ? "border-red-500" : ""}
-                maxLength={50}
-              />
-              {errors.metadataSymbol && <p className="text-red-500 text-sm mt-2">{errors.metadataSymbol}</p>}
+              <div className="relative">
+                <Input
+                  id="metadataSymbol"
+                  name="metadataSymbol"
+                  value={formData.metadataSymbol}
+                  onChange={handleInputChange}
+                  onBlur={handleBlur}
+                  placeholder={t("create.enter_symbol", "Enter coin symbol")}
+                  className={`transition-all duration-200 ${errors.metadataSymbol && touched.metadataSymbol ? "border-red-500 shake" : ""}`}
+                  disabled={isPending || isUploading}
+                  maxLength={50}
+                  style={{ textTransform: "uppercase" }}
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+                  {formData.metadataSymbol.length}/50
+                </span>
+              </div>
+              {errors.metadataSymbol && touched.metadataSymbol && (
+                <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  {errors.metadataSymbol}
+                </p>
+              )}
+              <p className="text-muted-foreground text-xs mt-1">
+                {t("create.symbol_uppercase_hint", "Will be automatically converted to uppercase")}
+              </p>
             </div>
 
             <div>
               <Label htmlFor="metadataDescription" className="mb-2">
                 {t("create.description", "Description")}
+                <span className="text-muted-foreground text-xs ml-2">
+                  {t("common.optional", "optional")}
+                </span>
               </Label>
               <Textarea
                 id="metadataDescription"
                 name="metadataDescription"
                 value={formData.metadataDescription}
                 onChange={handleInputChange}
+                onBlur={handleBlur}
                 placeholder={t("create.enter_description", "Describe your coin")}
                 rows={3}
+                disabled={isPending || isUploading}
+                maxLength={500}
+                className="resize-none"
               />
+              <p className="text-muted-foreground text-xs mt-1 text-right">
+                {formData.metadataDescription?.length || 0}/500
+              </p>
             </div>
 
             <div>
-              <Label className="mb-2">{t("create.image", "Image")}</Label>
-              <ImageInput onChange={handleImageFileChange} />
+              <Label className="mb-2">
+                {t("create.image", "Image")}
+                <span className="text-muted-foreground text-xs ml-2">
+                  {t("common.optional", "optional")}
+                </span>
+              </Label>
+              <ImageInput 
+                onChange={handleImageFileChange} 
+              />
+              <p className="text-muted-foreground text-xs mt-1">
+                {t("create.image_requirements", "Max 5MB, PNG/JPG/GIF supported")}
+              </p>
             </div>
           </div>
+
+          {/* Parameters Display with Landing Page Style */}
+          <div className="border-2 border-border bg-background hover:shadow-lg transition-all duration-200 p-3 sm:p-4 rounded-lg relative overflow-hidden group">
+            {/* Animated gradient background */}
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="flex items-center gap-2 mb-2 sm:mb-3 relative z-10">
+              <div
+                className="w-3 h-3 rounded-full bg-primary shadow-sm animate-pulse"
+                style={{ boxShadow: "0 0 8px var(--primary)" }}
+              />
+              <h3 className="font-bold text-foreground text-base sm:text-lg flex items-center gap-2">
+                {t("create.instant_coin_sale", "zCurve Bonding Curve Launch")}
+                <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+              </h3>
+            </div>
+            <div className="grid grid-cols-1 gap-2 sm:gap-3 text-xs sm:text-sm relative z-10">
+              <div className="border-2 border-border bg-background hover:shadow-md transition-all duration-200 p-2 sm:p-3 rounded-lg">
+                <div className="font-bold text-foreground text-sm sm:text-base">
+                  {t(
+                    "create.oneshot_supply_breakdown",
+                    "{{totalSupply}} Total Supply: {{saleCap}} bonding curve + {{lpSupply}} liquidity",
+                    {
+                      totalSupply: displayValues.totalSupply,
+                      saleCap: displayValues.saleCap,
+                      lpSupply: displayValues.lpSupply,
+                    },
+                  )}
+                </div>
+                <div className="text-muted-foreground text-xs mt-1">
+                  {t(
+                    "create.oneshot_percentages",
+                    "{{salePercent}}% public bonding curve • {{lpPercent}}% auto-liquidity",
+                    {
+                      salePercent: displayValues.salePercent,
+                      lpPercent: displayValues.lpPercent,
+                    },
+                  )}
+                </div>
+              </div>
+              <div className="border-2 border-border bg-background hover:shadow-md transition-all duration-200 p-2 sm:p-3 rounded-lg">
+                <div className="font-bold text-foreground text-sm sm:text-base">
+                  {t("create.oneshot_sale_price", "Bonding Curve: Quadratic → Linear pricing")}
+                </div>
+                <div className="text-muted-foreground text-xs mt-1">
+                  {t(
+                    "create.oneshot_sale_note",
+                    "Target: {{target}} ETH • Quadratic until {{quadCap}} sold ({{quadPercent}}%) • {{days}} day deadline",
+                    {
+                      target: displayValues.ethTarget,
+                      quadCap: displayValues.quadCap,
+                      quadPercent: Math.round((Number(ONE_SHOT_PARAMS.quadCap) / Number(ONE_SHOT_PARAMS.saleCap)) * 100),
+                      days: displayValues.days,
+                    },
+                  )}
+                </div>
+              </div>
+              <div className="border-2 border-border bg-background hover:shadow-md transition-all duration-200 p-2 sm:p-3 rounded-lg">
+                <div className="font-bold text-foreground text-sm sm:text-base">
+                  {t("create.oneshot_auto_liquidity", "Auto-Finalization: Creates AMM pool on success")}
+                </div>
+                <div className="text-muted-foreground text-xs mt-1">
+                  {t(
+                    "create.oneshot_instant_trading",
+                    "{{lpSupply}} tokens + ETH raised → {{fee}}% fee AMM • Instant trading",
+                    {
+                      lpSupply: displayValues.lpSupply,
+                      fee: displayValues.fee,
+                    },
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bonding Curve Visualization */}
+          <div className="border-2 border-border rounded-lg p-4 bg-background hover:shadow-md transition-all duration-200">
+            <ZCurveBondingChart
+              saleCap={ONE_SHOT_PARAMS.saleCap}
+              divisor={ONE_SHOT_PARAMS.divisor}
+              ethTarget={ONE_SHOT_PARAMS.ethTarget}
+              quadCap={ONE_SHOT_PARAMS.quadCap}
+              currentSold={BigInt(0)}
+            />
+          </div>
+
+          {/* Info Alert */}
+          {!account && (
+            <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
+              <Info className="h-4 w-4 text-blue-600" />
+              <AlertTitle className="text-blue-800 dark:text-blue-200">
+                {t("common.wallet_required", "Wallet Required")}
+              </AlertTitle>
+              <AlertDescription className="text-blue-700 dark:text-blue-300">
+                {t("common.connect_wallet_to_continue", "Please connect your wallet to continue")}
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* Submit Button with Landing Style */}
           <div className="flex flex-col sm:flex-row gap-4">
             <Button
               type="submit"
-              disabled={isPending || !account || isUploading}
-              className="flex-1 min-h-[44px] font-bold border-2 hover:shadow-lg transition-all duration-200"
+              disabled={isPending || !account || isUploading || !isFormValid}
+              className="flex-1 min-h-[44px] font-bold border-2 hover:shadow-lg transition-all duration-200 relative"
               size="lg"
             >
-              {isUploading
-                ? t("common.uploading", "Uploading...")
-                : isPending
-                  ? t("create.launching", "Launching...")
-                  : t("common.launch", "Launch")}
+              {isUploading ? (
+                <>
+                  <span className="animate-pulse">{t("common.uploading", "Uploading...")}</span>
+                </>
+              ) : isPending ? (
+                <>
+                  <span className="animate-pulse">{t("create.launching", "Launching...")}</span>
+                </>
+              ) : (
+                <>
+                  <Rocket className="w-4 h-4 mr-2" />
+                  {t("common.launch", "Launch")}
+                </>
+              )}
             </Button>
           </div>
-
-          {!account && (
-            <div className="text-center">
-              <p className="text-muted-foreground text-sm">
-                {t("common.connect_wallet_to_continue", "Please connect your wallet to continue")}
-              </p>
-            </div>
-          )}
 
           {/* Error Display */}
           {error && (
             <Alert variant="destructive">
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error.message}</AlertDescription>
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>{t("common.error", "Error")}</AlertTitle>
+              <AlertDescription className="break-words">{error.message}</AlertDescription>
             </Alert>
           )}
 
           {/* Transaction Success Display */}
           {hash && (
-            <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950">
-              <AlertTitle className="text-green-800">
-                {txLoading ? "⏳" : txSuccess ? "✅" : "📤"}{" "}
-                {txSuccess
-                  ? t("create.transaction_confirmed", "Transaction Confirmed")
-                  : t("create.transaction_submitted", "Transaction Submitted")}
-                !
-              </AlertTitle>
-              <AlertDescription className="text-green-700">
-                {txSuccess
-                  ? t("create.launch_successful", "Your coin launch was successful!")
-                  : t("create.launch_submitted", "Your oneshot launch has been submitted!")}
-                <div className="mt-2 space-y-2">
-                  <div className="text-xs font-mono bg-green-100 dark:bg-green-900 p-2 rounded break-all">
-                    {t("common.transaction_hash", "Transaction")}: {hash}
-                  </div>
-                  <div className="flex gap-2 flex-wrap">
-                    <a
-                      href={`https://etherscan.io/tx/${hash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-green-600 hover:text-green-800 text-sm underline"
-                    >
-                      View on Etherscan →
-                    </a>
-                    {launchId !== null && (
-                      <Link
-                        to="/c/$coinId"
-                        params={{ coinId: launchId.toString() }}
-                        className="text-green-600 hover:text-green-800 text-sm underline"
-                      >
-                        View Coin Sale →
-                      </Link>
-                    )}
-                    <Link to="/explore" className="text-green-600 hover:text-green-800 text-sm underline">
-                      {t("create.view_all_coins", "View All Coins")} →
-                    </Link>
-                  </div>
+            <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950 fade-in">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5">
+                  {txLoading ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-green-600 border-t-transparent" />
+                  ) : (
+                    <CheckCircle2 className="h-5 w-5 text-green-600 pulse-success" />
+                  )}
                 </div>
-              </AlertDescription>
+                <div className="flex-1">
+                  <AlertTitle className="text-green-800 dark:text-green-200">
+                    {txSuccess
+                      ? t("create.transaction_confirmed", "Transaction Confirmed")
+                      : t("create.transaction_submitted", "Transaction Submitted")}
+                    !
+                  </AlertTitle>
+                  <AlertDescription className="text-green-700 dark:text-green-300">
+                    {txSuccess
+                      ? t("create.launch_successful", "Your coin launch was successful!")
+                      : t("create.launch_submitted", "Your oneshot launch has been submitted!")}
+                    <div className="mt-3 space-y-2">
+                      <div className="text-xs font-mono bg-green-100 dark:bg-green-900 p-2 rounded break-all">
+                        {t("common.transaction_hash", "Transaction")}: {hash}
+                      </div>
+                      <div className="flex gap-2 flex-wrap">
+                        <a
+                          href={`https://etherscan.io/tx/${hash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-green-600 hover:text-green-800 text-sm underline inline-flex items-center gap-1"
+                        >
+                          {t("common.view_on_etherscan", "View on Etherscan")}
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                        </a>
+                        {launchId !== null && (
+                          <Link
+                            to="/c/$coinId"
+                            params={{ coinId: launchId.toString() }}
+                            className="text-green-600 hover:text-green-800 text-sm underline inline-flex items-center gap-1"
+                          >
+                            {t("create.view_coin_sale", "View Coin Sale")}
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                            </svg>
+                          </Link>
+                        )}
+                        <Link 
+                          to="/explore" 
+                          className="text-green-600 hover:text-green-800 text-sm underline inline-flex items-center gap-1"
+                        >
+                          {t("create.view_all_coins", "View All Coins")}
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                          </svg>
+                        </Link>
+                      </div>
+                    </div>
+                  </AlertDescription>
+                </div>
+              </div>
             </Alert>
           )}
         </form>
@@ -503,11 +680,13 @@ export const OneShotLaunchForm = () => {
             to="/launch"
             className="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1 text-sm"
           >
-            <span>←</span>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
             {t("navigation.back_to_advanced_launch", "Back to Advanced Launch")}
           </Link>
         </div>
       </div>
     </div>
   );
-};
+}
