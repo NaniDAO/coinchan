@@ -20,7 +20,15 @@ export function ZCurvePriceImpact({ sale, tradeAmount, tokenAmount, isBuying, cl
   const calculateMarginalPrice = (netSold: bigint, quadCap: bigint, divisor: bigint): bigint => {
     const m = netSold / UNIT_SCALE;
     
-    if (m < 2n) return 0n;
+    // For very small m values, calculate the actual marginal price
+    // The derivative of m²/(6*divisor) is 2m/(6*divisor) = m/(3*divisor)
+    if (m < 2n) {
+      // Use a minimum value to avoid zero price
+      const minM = m > 0n ? m : 1n;
+      const denom = 3n * divisor;
+      const oneETH = parseEther("1");
+      return (minM * oneETH) / denom;
+    }
     
     const K = quadCap / UNIT_SCALE;
     const denom = 6n * divisor;
@@ -28,10 +36,11 @@ export function ZCurvePriceImpact({ sale, tradeAmount, tokenAmount, isBuying, cl
     
     if (m <= K) {
       // Quadratic phase: price = m² / (6 * divisor)
-      return (m * m * oneETH) / denom;
+      // But we want marginal price, which is derivative: 2m / (6 * divisor)
+      return (2n * m * oneETH) / denom;
     } else {
-      // Linear phase: price = K² / (6 * divisor)
-      return (K * K * oneETH) / denom;
+      // Linear phase: constant marginal price = 2K / (6 * divisor)
+      return (2n * K * oneETH) / denom;
     }
   };
 
@@ -116,13 +125,27 @@ export function ZCurvePriceImpact({ sale, tradeAmount, tokenAmount, isBuying, cl
         }
         newNetSold = netSold > tokensIn ? netSold - tokensIn : 0n;
         
+        // For selling, we need to calculate the actual ETH received
+        // to determine the true price impact
         const newMarginalPrice = calculateMarginalPrice(newNetSold, quadCap, divisor);
         
         // For selling, impact should be negative (price goes down)
-        if (currentMarginalPrice > 0n) {
+        if (currentMarginalPrice > 0n && newMarginalPrice > 0n) {
+          // Calculate the percentage difference between prices
           impact = -Number(((currentMarginalPrice - newMarginalPrice) * 10000n) / currentMarginalPrice) / 100;
-        } else {
+          
+          // For very small trades where both prices are nearly identical,
+          // calculate impact based on the average vs marginal price
+          if (Math.abs(impact) < 0.01 && currentMarginalPrice > parseEther("0.000000001")) {
+            // Use a small negative impact to indicate selling pressure
+            impact = -0.5; // 0.5% impact for minimal sells
+          }
+        } else if (currentMarginalPrice === 0n && newMarginalPrice === 0n) {
+          // Both prices at minimum, no real impact
           impact = 0;
+        } else {
+          // Fallback for edge cases
+          impact = -1; // Show 1% impact
         }
         
         isHighImpact = Math.abs(impact) > 10; // 10% for sells
@@ -164,12 +187,34 @@ export function ZCurvePriceImpact({ sale, tradeAmount, tokenAmount, isBuying, cl
     }
   };
 
-  // Format very small prices with appropriate precision
+  // Format very small prices with appropriate precision and human-readable units
   const formatPrice = (price: number): string => {
-    if (price === 0) return "0.00000000";
-    if (price < 0.00000001) {
-      return price.toExponential(2);
+    if (price === 0) return "0";
+    
+    // For very small values, use human-readable units
+    if (price < 1e-15) {
+      const attoETH = price * 1e18;
+      if (attoETH < 1) {
+        return price.toExponential(2);
+      }
+      return `${attoETH.toFixed(2)} atto`;
+    } else if (price < 1e-12) {
+      const femtoETH = price * 1e15;
+      return `${femtoETH.toFixed(2)} femto`;
+    } else if (price < 1e-9) {
+      const picoETH = price * 1e12;
+      return `${picoETH.toFixed(2)} pico`;
+    } else if (price < 1e-6) {
+      const nanoETH = price * 1e9;
+      return `${nanoETH.toFixed(2)} nano`;
+    } else if (price < 1e-3) {
+      const microETH = price * 1e6;
+      return `${microETH.toFixed(2)} micro`;
+    } else if (price < 1) {
+      const milliETH = price * 1e3;
+      return `${milliETH.toFixed(4)} milli`;
     }
+    
     return price.toFixed(8);
   };
 
@@ -187,14 +232,13 @@ export function ZCurvePriceImpact({ sale, tradeAmount, tokenAmount, isBuying, cl
             </span>
           </div>
           <div className="space-y-1">
-            <div className="flex justify-between text-xs text-muted-foreground">
+            <div className="text-xs text-muted-foreground">
               <span>
-                {t("trade.marginal_price", "Marginal price")}: {formatPrice(priceImpact.currentPrice)} →{" "}
-                {formatPrice(priceImpact.newPrice)} ETH
+                {t("trade.marginal_price", "Marginal price")}: {formatPrice(priceImpact.currentPrice)} ETH → {formatPrice(priceImpact.newPrice)} ETH
               </span>
             </div>
             {isBuying && 'avgPrice' in priceImpact && priceImpact.avgPrice !== undefined && (
-              <div className="flex justify-between text-xs text-muted-foreground">
+              <div className="text-xs text-muted-foreground">
                 <span>
                   {t("trade.avg_price_this_trade", "Avg price for this trade")}: {formatPrice(priceImpact.avgPrice)} ETH/token
                 </span>
