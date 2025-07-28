@@ -19,7 +19,7 @@ export const PoolChart = ({ poolId, coinSymbol, ethPrice }: PoolChartProps) => {
   const [chartType, setChartType] = useState<"line" | "candle">("line");
 
   return (
-    <div className="lg:col-span-7 p-2">
+    <div className="bg-card py-2 px-1 lg:col-span-7 p-2">
       <Suspense
         fallback={
           <div className="flex items-center justify-center">

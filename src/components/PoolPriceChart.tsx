@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { LoadingLogo } from "@/components/ui/loading-logo";
 import { useChartTheme } from "@/hooks/use-chart-theme";
 import { type PricePointData, fetchPoolPricePoints } from "@/lib/indexer";
+import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import {
   ColorType,
@@ -29,12 +30,15 @@ interface PriceChartProps {
   } | null;
 }
 
-const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker, ethUsdPrice, priceImpact }) => {
+const PoolPriceChart: React.FC<PriceChartProps> = ({
+  poolId,
+  ticker,
+  ethUsdPrice,
+  priceImpact,
+}) => {
   const { t } = useTranslation();
   const [showUsd, setShowUsd] = useState(false);
   const [chartError, setChartError] = useState<string | null>(null);
-  
-  console.log("PoolPriceChart - poolId:", poolId, "ticker:", ticker);
 
   // Internal state for time controls
   const [timeRange, setTimeRange] = useState<{
@@ -50,8 +54,20 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker, ethUsdPrice
   });
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["poolPricePoints", poolId, timeRange.startTs, timeRange.endTs, timeRange.desiredPoints],
-    queryFn: () => fetchPoolPricePoints(poolId, timeRange.startTs, timeRange.endTs, timeRange.desiredPoints),
+    queryKey: [
+      "poolPricePoints",
+      poolId,
+      timeRange.startTs,
+      timeRange.endTs,
+      timeRange.desiredPoints,
+    ],
+    queryFn: () =>
+      fetchPoolPricePoints(
+        poolId,
+        timeRange.startTs,
+        timeRange.endTs,
+        timeRange.desiredPoints,
+      ),
     staleTime: 60000, // Consider data fresh for 1 minute
     gcTime: 300000, // Keep in cache for 5 minutes (formerly cacheTime)
     retry: 3,
@@ -111,50 +127,68 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker, ethUsdPrice
   return (
     <div className="w-full">
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <div className="flex space-x-2">
-          <Button
-            variant={timeRange.activeButton === "24h" ? "default" : "outline"}
-            size="sm"
+        <div className="flex border border-border">
+          <button
             onClick={setLast24Hours}
-            className="text-xs"
+            className={cn(
+              "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
+              timeRange.activeButton === "24hr" &&
+                "bg-accent text-accent-foreground",
+            )}
           >
             {t("coin.24h")}
-          </Button>
-          <Button
-            variant={timeRange.activeButton === "1w" ? "default" : "outline"}
-            size="sm"
+          </button>
+          <button
             onClick={setLastWeek}
-            className="text-xs"
+            className={cn(
+              "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
+              timeRange.activeButton === "1w" &&
+                "bg-accent text-accent-foreground",
+            )}
           >
             {t("coin.7d")}
-          </Button>
-          <Button
-            variant={timeRange.activeButton === "1m" ? "default" : "outline"}
-            size="sm"
+          </button>
+          <button
             onClick={setLastMonth}
-            className="text-xs"
+            className={cn(
+              "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
+              timeRange.activeButton === "1m" &&
+                "bg-accent text-accent-foreground",
+            )}
           >
             {t("coin.30d")}
-          </Button>
-          <Button
-            variant={timeRange.activeButton === "all" ? "default" : "outline"}
-            size="sm"
+          </button>
+          <button
             onClick={setAllTime}
-            className="text-xs"
+            className={cn(
+              "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
+              timeRange.activeButton === "all" &&
+                "bg-accent text-accent-foreground",
+            )}
           >
             {t("coin.all")}
-          </Button>
+          </button>
         </div>
         {ethUsdPrice && (
-          <div className="ml-auto">
-            <Button
-              variant={showUsd ? "default" : "outline"}
-              size="sm"
-              onClick={() => setShowUsd(!showUsd)}
-              className="text-xs"
+          <div className="flex flex-row ml-auto">
+            <button
+              onClick={() => setShowUsd(false)}
+              className={cn(
+                "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
+                !showUsd && "bg-accent text-accent-foreground",
+              )}
             >
-              {showUsd ? "USD" : "ETH"}
-            </Button>
+              ETH
+            </button>
+            <button
+              onClick={() => setShowUsd(true)}
+              className={cn(
+                "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
+                showUsd && "bg-accent text-accent-foreground",
+              )}
+            >
+              USD
+            </button>
           </div>
         )}
       </div>
@@ -164,7 +198,7 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker, ethUsdPrice
           <LoadingLogo />
         </div>
       ) : chartError ? (
-        <div className="text-center py-20">
+        <div className="text-center">
           <p className="text-red-400 mb-4">{chartError}</p>
           <Button
             variant="outline"
@@ -172,7 +206,10 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker, ethUsdPrice
             onClick={() => {
               setChartError(null);
               // Trigger refetch by changing time range slightly
-              setTimeRange((prev) => ({ ...prev, endTs: Math.floor(Date.now() / 1000) }));
+              setTimeRange((prev) => ({
+                ...prev,
+                endTs: Math.floor(Date.now() / 1000),
+              }));
             }}
           >
             {t("common.retry")}
@@ -187,7 +224,9 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker, ethUsdPrice
           priceImpact={priceImpact}
         />
       ) : (
-        <div className="text-center py-20 text-muted-foreground">{t("chart.no_data")}</div>
+        <div className="text-center py-20 text-muted-foreground">
+          {t("chart.no_data")}
+        </div>
       )}
     </div>
   );
@@ -212,7 +251,8 @@ const TVPriceChart: React.FC<{
   const impactSeriesRef = useRef<ISeriesApi<"Line">>();
   const chartTheme = useChartTheme();
   const [isChartReady, setIsChartReady] = useState(false);
-  const lastValidDataRef = useRef<Array<{ time: UTCTimestamp; value: number }>>();
+  const lastValidDataRef =
+    useRef<Array<{ time: UTCTimestamp; value: number }>>();
 
   useLayoutEffect(() => {
     const container = containerRef.current;
@@ -328,7 +368,8 @@ const TVPriceChart: React.FC<{
 
   // Simple effect to process and display data with price impact
   useEffect(() => {
-    if (!priceSeriesRef.current || !impactSeriesRef.current || !isChartReady) return;
+    if (!priceSeriesRef.current || !impactSeriesRef.current || !isChartReady)
+      return;
 
     if (!priceData || priceData.length === 0) {
       if (lastValidDataRef.current && lastValidDataRef.current.length > 0) {
@@ -411,7 +452,8 @@ const TVPriceChart: React.FC<{
               ];
 
               // Update impact series color based on buy/sell action
-              const impactColor = priceImpact.action === "buy" ? "#10b981" : "#ef4444"; // green for buy, red for sell
+              const impactColor =
+                priceImpact.action === "buy" ? "#10b981" : "#ef4444"; // green for buy, red for sell
               impactSeriesRef.current.applyOptions({
                 color: impactColor,
               });
@@ -450,7 +492,11 @@ const TVPriceChart: React.FC<{
 
   return (
     <div className="relative">
-      <div ref={containerRef} className="w-full" style={{ height: "400px", position: "relative", zIndex: 1 }} />
+      <div
+        ref={containerRef}
+        className="w-full"
+        style={{ height: "400px", position: "relative", zIndex: 1 }}
+      />
       {!isChartReady && (
         <div className="absolute inset-0 flex items-center justify-center bg-background/80">
           <LoadingLogo size="sm" />
