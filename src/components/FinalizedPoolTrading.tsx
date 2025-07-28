@@ -243,7 +243,7 @@ function FinalizedPoolTradingInner({
           </TabsContent>
 
           <TabsContent value="add" className="mt-0">
-            <div className="w-full bg-card border border-border rounded-lg p-4 lg:p-6 xl:p-8">
+            <div className="w-full">
               <ZCurveAddLiquidity
                 coinId={coinId}
                 poolId={poolId}
@@ -253,7 +253,7 @@ function FinalizedPoolTradingInner({
           </TabsContent>
 
           <TabsContent value="remove" className="mt-0">
-            <div className="w-full bg-card border border-border rounded-lg p-4 lg:p-6 xl:p-8">
+            <div className="w-full">
               {/* Remove Liquidity Form */}
               <ZCurveRemoveLiquidity
                 coinId={coinId}

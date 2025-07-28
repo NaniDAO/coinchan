@@ -11,10 +11,7 @@ import {
 import { mainnet } from "viem/chains";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { TokenImage } from "@/components/TokenImage";
 import { SlippageSettings } from "@/components/SlippageSettings";
 import { SuccessMessage } from "@/components/SuccessMessage";
 import { Loader2 } from "lucide-react";
@@ -31,6 +28,7 @@ import { handleWalletError } from "@/lib/errors";
 import { useTokenSelection } from "@/contexts/TokenSelectionContext";
 import { useReserves } from "@/hooks/use-reserves";
 import { computeZCurvePoolId } from "@/lib/zCurvePoolId";
+import { SwapPanel } from "./SwapPanel";
 
 // Helper function to calculate square root for LP token calculation
 const sqrt = (value: bigint): bigint => {
@@ -116,6 +114,23 @@ export function ZCurveAddLiquidity({
   // Transaction handling
   const { data: hash, isPending, writeContractAsync } = useWriteContract();
   const { isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  // Create enhanced token objects with balance information for SwapPanel
+  const ethTokenWithBalance = useMemo(() => {
+    if (!sellToken) return null;
+    return {
+      ...sellToken,
+      balance: ethBalance?.value || 0n,
+    };
+  }, [sellToken, ethBalance]);
+
+  const buyTokenWithBalance = useMemo(() => {
+    if (!buyToken) return null;
+    return {
+      ...buyToken,
+      balance: tokenBalance || 0n,
+    };
+  }, [buyToken, tokenBalance]);
 
   // Calculate expected LP tokens
   const calculateLpTokens = useCallback(
@@ -287,7 +302,7 @@ export function ZCurveAddLiquidity({
     }
   };
 
-  if (!sellToken || !buyToken) {
+  if (!ethTokenWithBalance || !buyTokenWithBalance) {
     return (
       <Alert>
         <AlertDescription>Loading pool information...</AlertDescription>
@@ -304,60 +319,55 @@ export function ZCurveAddLiquidity({
         )}
       </div>
 
-      {/* ETH Input */}
-      <div className="space-y-2">
-        <Label>{t("common.eth_amount")}</Label>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 flex-1">
-            <div className="w-6 h-6">
-              <TokenImage token={sellToken} />
-            </div>
-            <span className="font-medium">ETH</span>
-          </div>
-          <Input
-            type="number"
-            placeholder="0.0"
-            value={ethAmount}
-            onChange={(e) => {
-              setEthAmount(e.target.value);
-              setLastEditedField("eth");
-            }}
-            disabled={isPending}
-          />
-        </div>
-        <div className="text-xs text-muted-foreground">
-          {t("common.balance")}: {formatEther(ethBalance?.value || 0n)} ETH
-        </div>
-      </div>
+      {/* ETH Input - Using SwapPanel correctly */}
+      <SwapPanel
+        title={t("common.eth_amount")}
+        selectedToken={ethTokenWithBalance}
+        tokens={[ethTokenWithBalance]}
+        amount={ethAmount}
+        onAmountChange={(value) => {
+          setEthAmount(value);
+          setLastEditedField("eth");
+        }}
+        onSelect={() => {}}
+        isEthBalanceFetching={isPending}
+        showMaxButton={true}
+        onMax={() => {
+          const maxEth = ethBalance?.value
+            ? formatEther((ethBalance.value * 99n) / 100n)
+            : "0";
+          setEthAmount(maxEth);
+          setLastEditedField("eth");
+        }}
+        showPercentageSlider={true}
+        onPercentageChange={() => setLastEditedField("eth")}
+        disabled={isPending}
+        isLoading={isCalculating && lastEditedField === "token"}
+      />
 
-      {/* Token Input */}
-      <div className="space-y-2">
-        <Label>
-          {buyToken.symbol} {t("common.amount")}
-        </Label>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 flex-1">
-            <div className="w-6 h-6">
-              <TokenImage token={buyToken} />
-            </div>
-            <span className="font-medium">{buyToken.symbol}</span>
-          </div>
-          <Input
-            type="number"
-            placeholder="0.0"
-            value={tokenAmount}
-            onChange={(e) => {
-              setTokenAmount(e.target.value);
-              setLastEditedField("token");
-            }}
-            disabled={isPending || isCalculating}
-          />
-        </div>
-        <div className="text-xs text-muted-foreground">
-          {t("common.balance")}: {formatUnits(tokenBalance || 0n, 18)}{" "}
-          {buyToken.symbol}
-        </div>
-      </div>
+      {/* Token Input - Using SwapPanel correctly */}
+      <SwapPanel
+        title={`${buyTokenWithBalance.symbol} ${t("common.amount")}`}
+        selectedToken={buyTokenWithBalance}
+        tokens={[buyTokenWithBalance]}
+        amount={tokenAmount}
+        onAmountChange={(value) => {
+          setTokenAmount(value);
+          setLastEditedField("token");
+        }}
+        onSelect={() => {}}
+        isEthBalanceFetching={isPending || isCalculating}
+        showMaxButton={true}
+        onMax={() => {
+          const maxTokens = tokenBalance ? formatUnits(tokenBalance, 18) : "0";
+          setTokenAmount(maxTokens);
+          setLastEditedField("token");
+        }}
+        showPercentageSlider={true}
+        onPercentageChange={() => setLastEditedField("token")}
+        disabled={isPending}
+        isLoading={isCalculating && lastEditedField === "eth"}
+      />
 
       {/* LP Token Estimate */}
       {estimatedLpTokens && (
