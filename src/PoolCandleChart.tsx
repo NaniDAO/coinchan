@@ -15,7 +15,6 @@ import {
 import type React from "react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Button } from "./components/ui/button";
 import { useChartTheme } from "./hooks/use-chart-theme";
 import { type CandleData, fetchPoolCandles } from "./lib/indexer";
 import { cn } from "./lib/utils";
