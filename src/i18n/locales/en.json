@@ -404,7 +404,10 @@
     "pool_info": "Pool Info",
     "your_position": "Your Position",
     "lp_tokens": "LP Tokens",
-    "remove_percentage": "Remove Percentage"
+    "remove_percentage": "Remove Percentage",
+    "add_liquidity_description": "Add liquidity to earn fees from trades",
+    "remove_liquidity_description": "Remove liquidity to get back ETH and tokens",
+    "remove_liquidity": "Remove Liquidity"
   },
   "claim": {
     "alert_title": "You have tokens to claim!",

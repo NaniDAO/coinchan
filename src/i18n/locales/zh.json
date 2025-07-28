@@ -411,7 +411,10 @@
     "pool_info": "池信息",
     "your_position": "您的仓位",
     "lp_tokens": "LP代币",
-    "remove_percentage": "移除百分比"
+    "remove_percentage": "移除百分比",
+    "add_liquidity_description": "添加流动性以从交易中赚取手续费",
+    "remove_liquidity_description": "移除流动性以取回ETH和代币",
+    "remove_liquidity": "移除流动性"
   },
   "claim": {
     "alert_title": "您有代币可以领取！",
