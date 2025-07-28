@@ -136,15 +136,13 @@ export function UnifiedCoinTrading({
   // For finalized sales with pools, use the clean trading layout
   if (isFinalized && hasPool) {
     return (
-      <div className="">
-        <FinalizedPoolTrading
-          coinId={coinId}
-          coinName={coinName}
-          coinSymbol={coinSymbol}
-          coinIcon={coinIcon}
-          poolId={computedPoolId || undefined}
-        />
-      </div>
+      <FinalizedPoolTrading
+        coinId={coinId}
+        coinName={coinName}
+        coinSymbol={coinSymbol}
+        coinIcon={coinIcon}
+        poolId={computedPoolId || undefined}
+      />
     );
   }
 

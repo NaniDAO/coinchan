@@ -135,17 +135,13 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
           <ErrorFallback errorMessage="Error rendering trading interface" />
         }
       >
-        <div className="w-screen flex justify-center">
-          <div className="">
-            <UnifiedCoinTrading
-              coinId={coinId.toString()}
-              coinName={name}
-              coinSymbol={symbol}
-              coinIcon={imageUrl}
-              poolId={poolIdString}
-            />
-          </div>
-        </div>
+        <UnifiedCoinTrading
+          coinId={coinId.toString()}
+          coinName={name}
+          coinSymbol={symbol}
+          coinIcon={imageUrl}
+          poolId={poolIdString}
+        />
       </ErrorBoundary>
 
       {/* Vote Panel - only show if not in active zCurve sale */}
