@@ -96,6 +96,11 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
     }
   };
 
+  // Quantize token amounts to UNIT_SCALE to match contract requirements
+  const quantizeToUnitScale = (value: bigint): bigint => {
+    return (value / UNIT_SCALE) * UNIT_SCALE;
+  };
+
   // Calculate output based on input using view helpers
   const calculateOutput = useCallback(
     async (value: string, field: "sell" | "buy") => {
@@ -211,6 +216,9 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
             return;
           }
 
+          // Quantize to UNIT_SCALE
+          coinsOut = quantizeToUnitScale(coinsOut);
+
           // Ensure coinsOut is at least UNIT_SCALE to avoid NoWant error
           if (coinsOut > 0n && coinsOut < UNIT_SCALE) {
             coinsOut = UNIT_SCALE;
@@ -260,6 +268,9 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
           });
 
           let minCoins = (expectedCoins * slippageMultiplier) / 10000n;
+          
+          // Quantize to UNIT_SCALE
+          minCoins = quantizeToUnitScale(minCoins);
 
           // Ensure minCoins is at least UNIT_SCALE to avoid NoWant error
           if (minCoins > 0n && minCoins < UNIT_SCALE) {
@@ -290,6 +301,9 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
             return;
           }
           let maxCoins = (sellAmountParsed * slippageMultiplierInverse) / 10000n;
+          
+          // Quantize to UNIT_SCALE
+          maxCoins = quantizeToUnitScale(maxCoins);
 
           // Ensure maxCoins is at least UNIT_SCALE to avoid NoWant error
           if (maxCoins > 0n && maxCoins < UNIT_SCALE) {
@@ -316,6 +330,9 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
             setErrorMessage(t("trade.invalid_amount", "Invalid amount"));
             return;
           }
+
+          // Quantize to UNIT_SCALE
+          coinsIn = quantizeToUnitScale(coinsIn);
 
           // Ensure coinsIn is at least UNIT_SCALE to avoid NoWant error
           if (coinsIn > 0n && coinsIn < UNIT_SCALE) {
