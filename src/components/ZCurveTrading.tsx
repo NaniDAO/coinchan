@@ -87,6 +87,15 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
     [coinId, coinSymbol, coinData, coinIcon, userBalance, saleSummary, sale],
   );
 
+  // Safe parseEther wrapper
+  const safeParseEther = (value: string): bigint | null => {
+    try {
+      return parseEther(value);
+    } catch {
+      return null;
+    }
+  };
+
   // Calculate output based on input using view helpers
   const calculateOutput = useCallback(
     async (value: string, field: "sell" | "buy") => {
@@ -100,11 +109,22 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
       setErrorMessage(null);
 
       try {
+        // Validate and parse the input value
+        let parsedValue: bigint;
+        try {
+          parsedValue = parseEther(value);
+        } catch (e) {
+          setErrorMessage(t("trade.invalid_amount", "Invalid amount"));
+          if (field === "sell") setBuyAmount("");
+          else setSellAmount("");
+          return;
+        }
+
         if (field === "sell") {
           // User is editing sell amount
           if (swapDirection === "buy") {
             // Buying tokens with ETH - use coinsForETH
-            const ethIn = parseEther(value);
+            const ethIn = parsedValue;
             const coinsOut = await publicClient.readContract({
               address: zCurveAddress,
               abi: zCurveAbi,
@@ -114,7 +134,7 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
             setBuyAmount(formatEther(coinsOut));
           } else {
             // Selling tokens for ETH - use sellRefund
-            const coinsIn = parseEther(value);
+            const coinsIn = parsedValue;
             const ethOut = await publicClient.readContract({
               address: zCurveAddress,
               abi: zCurveAbi,
@@ -127,7 +147,7 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
           // User is editing buy amount (exact out)
           if (swapDirection === "buy") {
             // Want exact tokens out, calculate ETH in - use buyCost
-            const coinsOut = parseEther(value);
+            const coinsOut = parsedValue;
             const ethIn = await publicClient.readContract({
               address: zCurveAddress,
               abi: zCurveAbi,
@@ -137,7 +157,7 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
             setSellAmount(formatEther(ethIn));
           } else {
             // Want exact ETH out, calculate tokens in - use coinsToBurnForETH
-            const ethOut = parseEther(value);
+            const ethOut = parsedValue;
             const coinsIn = await publicClient.readContract({
               address: zCurveAddress,
               abi: zCurveAbi,
@@ -185,7 +205,11 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
         // Buying tokens with ETH
         if (isExactOut) {
           // User wants exact tokens out (buyExactCoins)
-          let coinsOut = parseEther(buyAmount);
+          let coinsOut = safeParseEther(buyAmount);
+          if (!coinsOut) {
+            setErrorMessage(t("trade.invalid_amount", "Invalid amount"));
+            return;
+          }
 
           // Ensure coinsOut is at least UNIT_SCALE to avoid NoWant error
           if (coinsOut > 0n && coinsOut < UNIT_SCALE) {
@@ -193,7 +217,12 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
           }
 
           // Apply slippage to increase max ETH willing to pay
-          const maxEth = (parseEther(sellAmount) * slippageMultiplierInverse) / 10000n;
+          const sellAmountParsed = safeParseEther(sellAmount);
+          if (!sellAmountParsed) {
+            setErrorMessage(t("trade.invalid_amount", "Invalid amount"));
+            return;
+          }
+          const maxEth = (sellAmountParsed * slippageMultiplierInverse) / 10000n;
 
           // Validate ETH balance with some buffer for gas
           if (ethBalance && ethBalance.value < maxEth) {
@@ -210,7 +239,11 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
           });
         } else {
           // User wants to spend exact ETH (buyForExactETH)
-          const ethIn = parseEther(sellAmount);
+          const ethIn = safeParseEther(sellAmount);
+          if (!ethIn) {
+            setErrorMessage(t("trade.invalid_amount", "Invalid amount"));
+            return;
+          }
 
           // Validate ETH balance
           if (ethBalance && ethBalance.value < ethIn) {
@@ -245,9 +278,18 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
         // Selling tokens for ETH
         if (isExactOut) {
           // User wants exact ETH out (sellForExactETH)
-          const ethOut = parseEther(buyAmount);
+          const ethOut = safeParseEther(buyAmount);
+          if (!ethOut) {
+            setErrorMessage(t("trade.invalid_amount", "Invalid amount"));
+            return;
+          }
           // Apply slippage to increase max coins willing to sell
-          let maxCoins = (parseEther(sellAmount) * slippageMultiplierInverse) / 10000n;
+          const sellAmountParsed = safeParseEther(sellAmount);
+          if (!sellAmountParsed) {
+            setErrorMessage(t("trade.invalid_amount", "Invalid amount"));
+            return;
+          }
+          let maxCoins = (sellAmountParsed * slippageMultiplierInverse) / 10000n;
 
           // Ensure maxCoins is at least UNIT_SCALE to avoid NoWant error
           if (maxCoins > 0n && maxCoins < UNIT_SCALE) {
@@ -269,7 +311,11 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
           });
         } else {
           // User wants to sell exact tokens (sellExactCoins)
-          let coinsIn = parseEther(sellAmount);
+          let coinsIn = safeParseEther(sellAmount);
+          if (!coinsIn) {
+            setErrorMessage(t("trade.invalid_amount", "Invalid amount"));
+            return;
+          }
 
           // Ensure coinsIn is at least UNIT_SCALE to avoid NoWant error
           if (coinsIn > 0n && coinsIn < UNIT_SCALE) {
@@ -488,7 +534,8 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
         (lastEditedField === "buy" && buyAmount && parseFloat(buyAmount) > 0)) && (
         <ZCurvePriceImpact
           sale={sale}
-          tradeAmount={lastEditedField === "sell" ? sellAmount : buyAmount}
+          tradeAmount={swapDirection === "buy" ? sellAmount : sellAmount}
+          tokenAmount={swapDirection === "buy" ? buyAmount : undefined}
           isBuying={swapDirection === "buy"}
         />
       )}

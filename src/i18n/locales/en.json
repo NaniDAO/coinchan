@@ -974,7 +974,13 @@
     "invalid_amount": "Invalid amount",
     "insufficient_balance": "Insufficient balance",
     "transaction_cancelled": "Transaction cancelled",
-    "transaction_failed": "Transaction failed"
+    "transaction_failed": "Transaction failed",
+    "buy_impact": "Buy Impact",
+    "sell_impact": "Sell Impact",
+    "price_per_token": "Price per token",
+    "marginal_price": "Marginal price",
+    "avg_price_this_trade": "Avg price for this trade",
+    "high_impact_warning": "Large trade - consider splitting into smaller amounts"
   },
   "about": {
     "title": "About ZAMM",
