@@ -16,7 +16,6 @@ import { useZCurveSale, useZCurveBalance, useZCurveSaleSummary } from "@/hooks/u
 import { handleWalletError, isUserRejectionError } from "@/lib/errors";
 import { UNIT_SCALE } from "@/lib/zCurveHelpers";
 import { debounce } from "@/lib/utils";
-import { useTheme } from "@/lib/theme";
 import type { TokenMeta } from "@/lib/coins";
 import { useGetCoin } from "@/hooks/metadata/use-get-coin";
 import { CookbookAddress } from "@/constants/Cookbook";
@@ -33,7 +32,6 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
   const { t } = useTranslation();
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
-  const { theme } = useTheme();
 
   // States
   const [swapDirection, setSwapDirection] = useState<"buy" | "sell">("buy"); // buy = ETH->Token, sell = Token->ETH
@@ -61,17 +59,17 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
   // Create token metadata objects
   const ethToken = useMemo<TokenMeta>(
     () => ({
-      id: 0n,
+      id: null,
       symbol: "ETH",
       name: "Ethereum",
       decimals: 18,
-      image: theme === "dark" ? "/svgs/eth-dark.svg" : "/svgs/eth-light.svg",
+      tokenUri: "", // ETH uses EthereumIcon component, not a URI
       balance: ethBalance?.value || 0n,
       reserve0: 0n,
       reserve1: 0n,
       source: "COOKBOOK" as const,
     }),
-    [ethBalance?.value, theme],
+    [ethBalance?.value],
   );
 
   const coinToken = useMemo<TokenMeta>(
@@ -80,7 +78,7 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
       symbol: coinSymbol || coinData?.symbol || sale?.coin?.symbol || "TOKEN",
       name: coinData?.name || sale?.coin?.name || "Token",
       decimals: 18,
-      image: coinIcon || coinData?.imageUrl || sale?.coin?.imageUrl || "",
+      tokenUri: coinIcon || coinData?.tokenURI || sale?.coin?.tokenURI || coinData?.imageUrl || sale?.coin?.imageUrl || "",
       balance: saleSummary?.userBalance ? BigInt(saleSummary.userBalance) : userBalance ? BigInt(userBalance.balance) : 0n,
       reserve0: 0n,
       reserve1: 0n,

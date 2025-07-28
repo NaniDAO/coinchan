@@ -715,6 +715,7 @@
     "transaction_hash": "交易哈希",
     "view_all_coins": "查看所有币种",
     "view_coin_sale": "查看代币销售",
+    "waiting_for_confirmation": "等待区块链确认...",
     "tokens_equals_eth": "{{amount}} 代币 = {{price}} ETH",
     "price_per_token_value": "价格：{{price}} ETH/代币",
     "free_first_tokens": "免费（前200万代币）",

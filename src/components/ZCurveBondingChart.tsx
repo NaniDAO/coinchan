@@ -171,21 +171,27 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
     let targetTokens = saleCap;
 
     // Binary search to find amount of tokens that would raise ethTarget
-    while (low < high) {
+    while (high - low > UNIT_SCALE) { // Continue until we're within 1 tick
       const mid = (low + high) / 2n;
       const cost = calculateCost(mid, quadCap, divisor);
       if (cost < ethTarget) {
-        low = mid + 1n;
+        low = mid;
       } else {
         high = mid;
       }
     }
-    targetTokens = low;
-
-    // Average price is total ETH raised / tokens sold
-    // For the test parameters, we'll use the actual amount that would be raised
-    const actualRaisedAtTarget = calculateCost(targetTokens, quadCap, divisor);
-    const avgPriceAtTarget = targetTokens > 0n ? actualRaisedAtTarget / targetTokens : 0n;
+    
+    // Check which is closer to target
+    const lowCost = calculateCost(low, quadCap, divisor);
+    const highCost = calculateCost(high, quadCap, divisor);
+    const lowDiff = ethTarget > lowCost ? ethTarget - lowCost : lowCost - ethTarget;
+    const highDiff = ethTarget > highCost ? ethTarget - highCost : highCost - ethTarget;
+    
+    targetTokens = lowDiff < highDiff ? low : high;
+    const actualRaisedAtTarget = lowDiff < highDiff ? lowCost : highCost;
+    
+    // We'll calculate the average price in the display component
+    // to maintain precision
 
     // Max raise is the cost of selling all tokens
     const maxRaise = calculateCost(saleCap, quadCap, divisor);
@@ -198,9 +204,9 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
 
     return {
       firstPrice: firstTokenPrice,
-      avgPriceAtTarget,
       maxRaise,
       targetTokens,
+      actualRaisedAtTarget,
       transitionPrice,
     };
   }, [saleCap, divisor, ethTarget, quadCap]);
@@ -580,9 +586,15 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
         <div className="text-center p-2 bg-muted/30 rounded">
           <div className="text-muted-foreground">{t("create.avg_price_at_target", "Avg Price @ Target")}</div>
           <div className="font-medium">
-            {calculatedValues.avgPriceAtTarget === 0n 
+            {calculatedValues.targetTokens === 0n || calculatedValues.actualRaisedAtTarget === 0n
               ? t("common.calculating", "Calculating...") 
-              : t("create.price_per_token_short", "{{price}}/token", { price: formatSmallEthValue(calculatedValues.avgPriceAtTarget, true) })}
+              : (() => {
+                  // Calculate average price: total ETH / total tokens
+                  const avgPriceWei = calculatedValues.actualRaisedAtTarget * BigInt(1e18) / calculatedValues.targetTokens;
+                  return t("create.price_per_token_short", "{{price}}/token", { 
+                    price: formatSmallEthValue(avgPriceWei, true) 
+                  });
+                })()}
           </div>
         </div>
         <div className="text-center p-2 bg-muted/30 rounded">

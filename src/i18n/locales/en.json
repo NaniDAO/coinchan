@@ -567,6 +567,7 @@
     "transaction_hash": "Transaction Hash",
     "view_all_coins": "View All Coins",
     "view_coin_sale": "View Coin Sale",
+    "waiting_for_confirmation": "Waiting for blockchain confirmation...",
     "tokens_equals_eth": "{{amount}} tokens = {{price}} ETH",
     "price_per_token_value": "Price: {{price}} ETH/token",
     "free_first_tokens": "Free (first 2M tokens)",

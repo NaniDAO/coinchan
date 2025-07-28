@@ -606,67 +606,87 @@ export function OneShotLaunchForm() {
 
           {/* Transaction Success Display */}
           {hash && (
-            <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950 fade-in">
-              <div className="flex items-start gap-3">
-                <div className="mt-0.5">
-                  {txLoading ? (
-                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-green-600 border-t-transparent" />
-                  ) : (
-                    <CheckCircle2 className="h-5 w-5 text-green-600 pulse-success" />
+            <Alert className="border-2 border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950 fade-in">
+              <div className="space-y-4">
+                {/* Header with icon and title */}
+                <div className="flex items-center gap-3">
+                  <div className="flex-shrink-0">
+                    {txLoading ? (
+                      <div className="animate-spin rounded-full h-8 w-8 border-4 border-green-600 border-t-transparent" />
+                    ) : (
+                      <div className="relative">
+                        <CheckCircle2 className="h-8 w-8 text-green-600 pulse-success" />
+                        <div className="absolute inset-0 h-8 w-8 bg-green-600 rounded-full animate-ping opacity-20" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <AlertTitle className="text-green-800 dark:text-green-200 text-lg font-bold">
+                      {txSuccess
+                        ? t("create.transaction_confirmed", "Transaction Confirmed")
+                        : t("create.transaction_submitted", "Transaction Submitted")}!
+                    </AlertTitle>
+                    <p className="text-green-700 dark:text-green-300 text-sm mt-1">
+                      {txSuccess
+                        ? t("create.launch_successful", "Your coin launch was successful!")
+                        : t("create.launch_submitted", "Your oneshot launch has been submitted!")}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Transaction Hash */}
+                <div className="bg-green-100 dark:bg-green-900/50 rounded-lg p-3 border border-green-200 dark:border-green-800">
+                  <p className="text-xs text-green-700 dark:text-green-300 mb-1">
+                    {t("common.transaction_hash", "Transaction Hash")}
+                  </p>
+                  <p className="font-mono text-xs sm:text-sm text-green-800 dark:text-green-200 break-all">
+                    {hash}
+                  </p>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <a
+                    href={`https://etherscan.io/tx/${hash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors duration-200 font-medium text-sm"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                    {t("common.view_on_etherscan", "View on Etherscan")}
+                  </a>
+                  
+                  {launchId !== null && (
+                    <Link
+                      to="/c/$coinId"
+                      params={{ coinId: launchId.toString() }}
+                      className="flex items-center justify-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors duration-200 font-medium text-sm"
+                    >
+                      <Rocket className="w-4 h-4" />
+                      {t("create.view_coin_sale", "View Coin Sale")}
+                    </Link>
                   )}
+                  
+                  <Link 
+                    to="/explore" 
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-background hover:bg-muted border-2 border-border text-foreground rounded-lg transition-colors duration-200 font-medium text-sm"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                    </svg>
+                    {t("create.view_all_coins", "View All Coins")}
+                  </Link>
                 </div>
-                <div className="flex-1">
-                  <AlertTitle className="text-green-800 dark:text-green-200">
-                    {txSuccess
-                      ? t("create.transaction_confirmed", "Transaction Confirmed")
-                      : t("create.transaction_submitted", "Transaction Submitted")}
-                    !
-                  </AlertTitle>
-                  <AlertDescription className="text-green-700 dark:text-green-300">
-                    {txSuccess
-                      ? t("create.launch_successful", "Your coin launch was successful!")
-                      : t("create.launch_submitted", "Your oneshot launch has been submitted!")}
-                    <div className="mt-3 space-y-2">
-                      <div className="text-xs font-mono bg-green-100 dark:bg-green-900 p-2 rounded break-all">
-                        {t("common.transaction_hash", "Transaction")}: {hash}
-                      </div>
-                      <div className="flex gap-2 flex-wrap">
-                        <a
-                          href={`https://etherscan.io/tx/${hash}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-green-600 hover:text-green-800 text-sm underline inline-flex items-center gap-1"
-                        >
-                          {t("common.view_on_etherscan", "View on Etherscan")}
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                          </svg>
-                        </a>
-                        {launchId !== null && (
-                          <Link
-                            to="/c/$coinId"
-                            params={{ coinId: launchId.toString() }}
-                            className="text-green-600 hover:text-green-800 text-sm underline inline-flex items-center gap-1"
-                          >
-                            {t("create.view_coin_sale", "View Coin Sale")}
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                            </svg>
-                          </Link>
-                        )}
-                        <Link 
-                          to="/explore" 
-                          className="text-green-600 hover:text-green-800 text-sm underline inline-flex items-center gap-1"
-                        >
-                          {t("create.view_all_coins", "View All Coins")}
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                          </svg>
-                        </Link>
-                      </div>
-                    </div>
-                  </AlertDescription>
-                </div>
+
+                {/* Loading indicator for transaction confirmation */}
+                {txLoading && (
+                  <div className="flex items-center justify-center gap-2 text-sm text-green-700 dark:text-green-300">
+                    <div className="w-2 h-2 bg-green-600 rounded-full animate-pulse" />
+                    {t("create.waiting_for_confirmation", "Waiting for blockchain confirmation...")}
+                  </div>
+                )}
               </div>
             </Alert>
           )}
