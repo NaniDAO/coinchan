@@ -121,7 +121,7 @@ export function UnifiedCoinTrading({
 
   return (
     <div className="w-full">
-      <div className="max-w-[1600px] mx-auto px-4 space-y-6">
+      <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
         {/* Claimable Balance Alert - Most prominent when available */}
       {hasClaimableBalance && (
         <Alert className="border-2 border-primary bg-gradient-to-r from-primary/20 to-primary/10 shadow-xl">

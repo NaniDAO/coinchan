@@ -76,6 +76,7 @@
     "pool": "资金池",
     "single_eth": "LP-ZAP",
     "change": "更改",
+    "chart": "图表",
     "browse_files": "浏览文件",
     "select_file": "选择文件",
     "drag_drop": "拖放",
@@ -92,6 +93,8 @@
     "loading_previous": "加载上一页结果...",
     "with": "与",
     "launch": "发行",
+    "holders": "持有者",
+    "activity": "活动",
     "farm": "农场",
     "farm_alpha": "农场 (Alpha)",
     "farm_description": "质押 LP 代币来获得激励农场的奖励",
@@ -399,6 +402,40 @@
     "preview_expected_return": "预览显示预期的ETH和代币返还",
     "lp_burn_help": "输入您要销毁的LP代币数量以收回ETH和代币。",
     "manage_liquidity": "管理流动性"
+  },
+  "liquidity": {
+    "estimated_lp_tokens": "预计LP代币",
+    "pool_share": "池份额",
+    "add_liquidity": "添加流动性",
+    "pool_reserves": "池储备",
+    "pool_info": "池信息",
+    "your_position": "您的仓位",
+    "lp_tokens": "LP代币",
+    "remove_percentage": "移除百分比"
+  },
+  "claim": {
+    "alert_title": "您有代币可以领取！",
+    "alert_description": "销售已完成，您有代币可以领取。请查看下方领取。",
+    "section_title": "代币领取"
+  },
+  "holders": {
+    "unclaimed_tokens": "未领取代币",
+    "unclaimed_description": "来自zCurve销售等待领取的代币",
+    "zcurve_contract": "zCurve合约",
+    "unclaimed_note": "这些代币将在用户领取分配时分发",
+    "pool_holdings": "池持有量",
+    "pool_description": "ZAMM和Cookbook池持有的流动性",
+    "zamm_pool": "ZAMM池",
+    "cookbook_pool": "Cookbook池",
+    "total_pool_holdings": "总池持有量",
+    "distribution_summary": "代币分配概览",
+    "unclaimed_supply": "未领取 (zCurve)",
+    "pool_liquidity": "池流动性",
+    "user_holdings": "用户持有",
+    "circulating_supply": "流通供应",
+    "actual_holders": "实际代币持有者",
+    "actual_holders_description": "不包括未领取代币和池流动性",
+    "percentage": "百分比"
   },
   "swap": {
     "title": "兑换",
@@ -798,7 +835,11 @@
     "pool_fee": "池费",
     "decimals": "小数位",
     "pool_eth": "池中ETH",
-    "pool_ens": "池中ENS"
+    "pool_ens": "池中ENS",
+    "pool_tokens": "池中代币",
+    "pool_liquidity": "池流动性",
+    "pool_id": "池ID",
+    "current_price": "当前价格"
   },
   "ens": {
     "title": "ENS/ETH 交易",

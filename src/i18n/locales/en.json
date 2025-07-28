@@ -74,6 +74,7 @@
     "pool": "Pool",
     "single_eth": "LP-ZAP",
     "change": "Change",
+    "chart": "Chart",
     "browse_files": "Browse Files",
     "select_file": "Select File",
     "drag_drop": "Drag & drop",
@@ -90,6 +91,8 @@
     "loading_previous": "Loading previous results...",
     "with": "with",
     "launch": "Launch",
+    "holders": "Holders",
+    "activity": "Activity",
     "farm": "Farm",
     "farm_alpha": "Farm (Alpha)",
     "farm_description": "Stake LP tokens to earn rewards from incentive farms",
@@ -393,6 +396,40 @@
     "lp_burn_help": "Enter the amount of LP tokens you want to burn to receive ETH and tokens back.",
     "manage_liquidity": "manage liquidity"
   },
+  "liquidity": {
+    "estimated_lp_tokens": "Estimated LP Tokens",
+    "pool_share": "Pool Share",
+    "add_liquidity": "Add Liquidity",
+    "pool_reserves": "Pool Reserves",
+    "pool_info": "Pool Info",
+    "your_position": "Your Position",
+    "lp_tokens": "LP Tokens",
+    "remove_percentage": "Remove Percentage"
+  },
+  "claim": {
+    "alert_title": "You have tokens to claim!",
+    "alert_description": "The sale has finalized and you have tokens ready to claim. See below to claim them.",
+    "section_title": "Token Claim"
+  },
+  "holders": {
+    "unclaimed_tokens": "Unclaimed Tokens",
+    "unclaimed_description": "Tokens from zCurve sale waiting to be claimed",
+    "zcurve_contract": "zCurve Contract",
+    "unclaimed_note": "These tokens will be distributed as users claim their allocations",
+    "pool_holdings": "Pool Holdings",
+    "pool_description": "Liquidity held by ZAMM and Cookbook pools",
+    "zamm_pool": "ZAMM Pool",
+    "cookbook_pool": "Cookbook Pool",
+    "total_pool_holdings": "Total Pool Holdings",
+    "distribution_summary": "Token Distribution Summary",
+    "unclaimed_supply": "Unclaimed (zCurve)",
+    "pool_liquidity": "Pool Liquidity",
+    "user_holdings": "User Holdings",
+    "circulating_supply": "Circulating Supply",
+    "actual_holders": "Actual Token Holders",
+    "actual_holders_description": "Excluding unclaimed tokens and pool liquidity",
+    "percentage": "Percentage"
+  },
   "swap": {
     "title": "Swap",
     "from": "From",
@@ -680,7 +717,11 @@
     "pool_fee": "Pool Fee",
     "decimals": "Decimals",
     "pool_eth": "Pool ETH",
-    "pool_ens": "Pool ENS"
+    "pool_ens": "Pool ENS",
+    "pool_tokens": "Pool Tokens",
+    "pool_liquidity": "Pool Liquidity",
+    "pool_id": "Pool ID",
+    "current_price": "Current Price"
   },
   "ens": {
     "title": "ENS/ETH Trading",

@@ -57,12 +57,14 @@ function FinalizedPoolTradingInner({
   const { data: saleSummary } = useZCurveSaleSummary(coinId, address);
   const { data: userBalance } = useZCurveBalance(coinId, address);
   
-  // Calculate pool ID with hardcoded 30 bps for curve launched pools
+  // Calculate pool ID - use feeOrHook from sale data if available
   const poolId = useMemo(() => {
     if (providedPoolId) return providedPoolId;
-    // Use 30 bps (0.3% fee) for all curve launched pools
-    return computeZCurvePoolId(BigInt(coinId), 30n);
-  }, [providedPoolId, coinId]);
+    // Use feeOrHook from sale data, default to 30 bps (0.3% fee) if not available
+    const feeOrHook = sale?.feeOrHook ? BigInt(sale.feeOrHook) : 30n;
+    const finalFee = feeOrHook === 0n ? 30n : feeOrHook; // Default to 30 bps if 0
+    return computeZCurvePoolId(BigInt(coinId), finalFee);
+  }, [providedPoolId, coinId, sale]);
 
   // Fetch pool reserves
   const { data: reserves } = useReserves({
@@ -111,7 +113,7 @@ function FinalizedPoolTradingInner({
 
   if (!poolId) {
     return (
-      <div className="container mx-auto max-w-2xl px-2 sm:px-4 py-4 sm:py-8">
+      <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         <Alert>
           <AlertDescription>
             {t("trade.pool_not_found", "Pool not found")}
@@ -131,7 +133,8 @@ function FinalizedPoolTradingInner({
         : 0;
 
     const usdPrice = price * (ethPrice?.priceUSD || 0);
-    const totalSupply = sale?.coin?.totalSupply ? BigInt(sale.coin.totalSupply) : 0n;
+    // Use 1 billion (1e9) as the total supply for all zCurve launched tokens
+    const totalSupply = 1_000_000_000n * 10n ** 18n; // 1 billion tokens with 18 decimals
     const marketCap = usdPrice * Number(formatUnits(totalSupply, 18));
 
     return { coinPrice: price, coinUsdPrice: usdPrice, marketCapUsd: marketCap };
@@ -139,7 +142,7 @@ function FinalizedPoolTradingInner({
 
   return (
     <div className="w-full">
-      <div className="w-full px-4 lg:px-8 py-4 sm:py-8">
+      <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
       {/* Claimable Balance Alert */}
       {hasClaimableBalance && (
         <Alert className="mb-4 sm:mb-6 border-2 border-primary bg-gradient-to-r from-primary/20 to-primary/10 shadow-xl">
@@ -160,12 +163,28 @@ function FinalizedPoolTradingInner({
         </div>
       )}
 
-      {/* Simplified header with description only if available */}
+      {/* Coin header with description - Desktop: Above trading interface, Mobile: hidden */}
       {sale?.coin?.description && (
-        <div className="mb-4 sm:mb-6 text-center">
-          <p className="text-sm text-muted-foreground max-w-2xl mx-auto px-4">
-            {sale.coin.description}
-          </p>
+        <div className="hidden lg:block mb-6 bg-card border border-border rounded-lg p-6">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex items-start gap-4">
+              {coinIcon && (
+                <img 
+                  src={coinIcon} 
+                  alt={coinName} 
+                  className="w-12 h-12 rounded-full flex-shrink-0"
+                />
+              )}
+              <div className="flex-1">
+                <h2 className="text-xl font-semibold mb-2">
+                  {coinName} ({coinSymbol})
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {sale.coin.description}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -174,7 +193,7 @@ function FinalizedPoolTradingInner({
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
           {/* Tabs at the top */}
           <div className="bg-card border border-border rounded-t-lg p-3 lg:p-4">
-            <TabsList className="flex flex-wrap sm:grid sm:grid-cols-3 gap-2 bg-muted/50 p-2 h-auto w-full max-w-lg mx-auto">
+            <TabsList className="flex flex-wrap sm:grid sm:grid-cols-3 gap-2 bg-muted/50 p-2 h-auto w-full max-w-2xl mx-auto">
               <TabsTrigger 
                 value="swap" 
                 className="flex-1 sm:flex-initial px-4 py-2 lg:px-6 lg:py-3 text-xs sm:text-sm lg:text-base data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
@@ -199,9 +218,9 @@ function FinalizedPoolTradingInner({
           <TabsContent value="swap" className="mt-0">
             {/* Full width layout for desktop */}
             <div className="w-full">
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 xl:gap-8">
                 {/* Chart Section - Desktop: Left, Mobile: Below swap */}
-                <div className="order-2 xl:order-1 bg-card border border-border rounded-lg p-4 lg:p-8">
+                <div className="order-2 lg:order-1 bg-card border border-border rounded-lg p-4 lg:p-6 xl:p-8">
                 <div className="h-full flex flex-col">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-sm lg:text-base font-semibold">{t("common.chart")}</h3>
@@ -281,8 +300,8 @@ function FinalizedPoolTradingInner({
               </div>
 
               {/* Swap Section - Desktop: Right, Mobile: Top */}
-              <div className="order-1 xl:order-2 bg-card border border-border rounded-lg p-4 lg:p-8">
-                <div className="max-w-lg mx-auto">
+              <div className="order-1 lg:order-2 bg-card border border-border rounded-lg p-4 lg:p-6 xl:p-8">
+                <div className="w-full">
                   <CookbookSwapTile 
                     coinId={coinId}
                     coinName={sale?.coin?.name || coinName}
@@ -308,9 +327,9 @@ function FinalizedPoolTradingInner({
 
           <TabsContent value="add" className="mt-0">
             <div className="w-full">
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 xl:gap-8">
                 {/* Add Liquidity Form */}
-                <div className="bg-card border border-border rounded-lg p-4 lg:p-8">
+                <div className="bg-card border border-border rounded-lg p-4 lg:p-6 xl:p-8">
                   <ZCurveAddLiquidity 
                     coinId={coinId} 
                     poolId={poolId}
@@ -319,7 +338,7 @@ function FinalizedPoolTradingInner({
                 </div>
                 
                 {/* Pool Info for Add Liquidity */}
-                <div className="bg-card border border-border rounded-lg p-4 lg:p-8">
+                <div className="bg-card border border-border rounded-lg p-4 lg:p-6 xl:p-8">
                   <h3 className="text-lg lg:text-xl font-semibold mb-4 lg:mb-6">{t("liquidity.pool_info")}</h3>
                   <div className="space-y-4 lg:space-y-6">
                     <div>
@@ -344,9 +363,9 @@ function FinalizedPoolTradingInner({
 
           <TabsContent value="remove" className="mt-0">
             <div className="w-full">
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 xl:gap-8">
                 {/* Remove Liquidity Form */}
-                <div className="bg-card border border-border rounded-lg p-4 lg:p-8">
+                <div className="bg-card border border-border rounded-lg p-4 lg:p-6 xl:p-8">
                   <ZCurveRemoveLiquidity 
                     coinId={coinId}
                     poolId={poolId}
@@ -355,7 +374,7 @@ function FinalizedPoolTradingInner({
                 </div>
                 
                 {/* Pool Info for Remove Liquidity */}
-                <div className="bg-card border border-border rounded-lg p-4 lg:p-8">
+                <div className="bg-card border border-border rounded-lg p-4 lg:p-6 xl:p-8">
                   <h3 className="text-lg lg:text-xl font-semibold mb-4 lg:mb-6">{t("liquidity.your_position")}</h3>
                   <div className="space-y-4 lg:space-y-6">
                     <div>
@@ -389,7 +408,7 @@ function FinalizedPoolTradingInner({
           <div>
             <p className="text-muted-foreground mb-1">{t("coin.total_supply")}</p>
             <p className="font-medium lg:text-lg">
-              1,000,000,000 {coinSymbol}
+              {formatNumber(1_000_000_000, 0)} {coinSymbol}
             </p>
           </div>
           <div>

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { CoinHolders } from "@/components/CoinHolders";
 import { PoolEvents } from "@/components/PoolEvents";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,11 +19,13 @@ export const PoolOverview = ({
     action: "buy" | "sell";
   } | null;
 }) => {
+  const { t } = useTranslation();
+  
   return (
     <Tabs defaultValue="activity">
       <TabsList>
-        <TabsTrigger value="holders">Holders</TabsTrigger>
-        <TabsTrigger value="activity">Activity</TabsTrigger>
+        <TabsTrigger value="holders">{t("common.holders")}</TabsTrigger>
+        <TabsTrigger value="activity">{t("common.activity")}</TabsTrigger>
       </TabsList>
       <TabsContent value="holders" className="mt-4 sm:mt-6">
         <ErrorBoundary fallback={<p className="text-destructive">Pool holders unavailable</p>}>
