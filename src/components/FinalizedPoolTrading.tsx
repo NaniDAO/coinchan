@@ -173,8 +173,6 @@ function FinalizedPoolTradingInner({
         </div>
       )}
 
-      {/* Remove the desktop-only header - we'll show metadata above swap tile instead */}
-
       {/* Trading Interface - Desktop: side by side, Mobile: stacked */}
       <div className="mb-4 sm:mb-6 md:mb-8">
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
