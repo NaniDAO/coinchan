@@ -18,6 +18,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "./components/ui/button";
 import { useChartTheme } from "./hooks/use-chart-theme";
 import { type CandleData, fetchPoolCandles } from "./lib/indexer";
+import { cn } from "./lib/utils";
 
 const ONE_MONTH = 30 * 24 * 60 * 60;
 const RANGE = 7 * 24 * 60 * 60;
@@ -27,22 +28,34 @@ interface CandleChartProps {
   interval?: "1m" | "1h" | "1d";
 }
 
-const PoolCandleChart: React.FC<CandleChartProps> = ({ poolId, interval = "1h" }) => {
+const PoolCandleChart: React.FC<CandleChartProps> = ({
+  poolId,
+  interval = "1h",
+}) => {
   const { t } = useTranslation();
-  const [selectedInterval, setSelectedInterval] = useState<"1m" | "1h" | "1d">(interval);
+  const [selectedInterval, setSelectedInterval] = useState<"1m" | "1h" | "1d">(
+    interval,
+  );
 
-  const { data, isLoading, error, isFetchingNextPage, fetchNextPage } = useInfiniteQuery({
-    queryKey: ["poolCandles", poolId, selectedInterval],
-    initialPageParam: {
-      to: Math.floor(Date.now() / 1000),
-      from: Math.floor(Date.now() / 1000) - ONE_MONTH,
-    },
-    queryFn: ({ pageParam }) => fetchPoolCandles(poolId, selectedInterval, pageParam.from, pageParam.to),
-    getNextPageParam: (lastPage) => {
-      const oldest = lastPage[0]?.date ?? 0;
-      return oldest ? { from: oldest - RANGE, to: oldest } : undefined;
-    },
-  });
+  const { data, isLoading, error, isFetchingNextPage, fetchNextPage } =
+    useInfiniteQuery({
+      queryKey: ["poolCandles", poolId, selectedInterval],
+      initialPageParam: {
+        to: Math.floor(Date.now() / 1000),
+        from: Math.floor(Date.now() / 1000) - ONE_MONTH,
+      },
+      queryFn: ({ pageParam }) =>
+        fetchPoolCandles(
+          poolId,
+          selectedInterval,
+          pageParam.from,
+          pageParam.to,
+        ),
+      getNextPageParam: (lastPage) => {
+        const oldest = lastPage[0]?.date ?? 0;
+        return oldest ? { from: oldest - RANGE, to: oldest } : undefined;
+      },
+    });
 
   if (error) console.error(error);
 
@@ -54,25 +67,25 @@ const PoolCandleChart: React.FC<CandleChartProps> = ({ poolId, interval = "1h" }
 
   return (
     <div className="w-full">
-      <div className="mb-4 flex space-x-2">
-        <Button
-          variant="outline"
+      <div className="flex w-fit border border-border">
+        <button
           onClick={() => handleIntervalChange("1h")}
-          className={`px-3 py-1 rounded ${
-            selectedInterval === "1h" ? "bg-primary text-background" : "bg-secondary text-foreground"
-          }`}
+          className={cn(
+            "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
+            selectedInterval === "1h" && "bg-accent text-accent-foreground",
+          )}
         >
           1h
-        </Button>
-        <Button
-          variant="outline"
+        </button>
+        <button
           onClick={() => handleIntervalChange("1d")}
-          className={`px-3 py-1 rounded ${
-            selectedInterval === "1d" ? "bg-primary text-background" : "bg-secondary text-foreground"
-          }`}
+          className={cn(
+            "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
+            selectedInterval === "1d" && "bg-accent text-accent-foreground",
+          )}
         >
           1d
-        </Button>
+        </button>
       </div>
 
       {isLoading ? (
@@ -89,7 +102,9 @@ const PoolCandleChart: React.FC<CandleChartProps> = ({ poolId, interval = "1h" }
           }}
         />
       ) : (
-        <div className="text-center py-20 text-muted-foreground">{t("chart.no_candle_data")}</div>
+        <div className="text-center py-20 text-muted-foreground">
+          {t("chart.no_candle_data")}
+        </div>
       )}
     </div>
   );
@@ -100,7 +115,10 @@ interface TVChartProps {
   onVisibleTimeRangeChange: () => void;
 }
 
-const TVCandlestick: React.FC<TVChartProps> = ({ rawData, onVisibleTimeRangeChange }) => {
+const TVCandlestick: React.FC<TVChartProps> = ({
+  rawData,
+  onVisibleTimeRangeChange,
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi>();
   const seriesRef = useRef<ISeriesApi<"Candlestick">>();
@@ -162,9 +180,12 @@ const TVCandlestick: React.FC<TVChartProps> = ({ rawData, onVisibleTimeRangeChan
   useEffect(() => {
     if (!seriesRef.current) return;
 
-    let filtered = rawData.filter((d) => !(d.open === d.high && d.high === d.low && d.low === d.close));
+    let filtered = rawData.filter(
+      (d) => !(d.open === d.high && d.high === d.low && d.low === d.close),
+    );
     const highs = filtered.map((d) => d.high).sort((a, b) => a - b);
-    const cutoff = highs[Math.floor(highs.length * 0.99)] ?? Number.POSITIVE_INFINITY;
+    const cutoff =
+      highs[Math.floor(highs.length * 0.99)] ?? Number.POSITIVE_INFINITY;
     filtered = filtered.filter((d) => d.high <= cutoff);
 
     const tvData: TVCandlestickData[] = filtered
@@ -176,7 +197,9 @@ const TVCandlestick: React.FC<TVChartProps> = ({ rawData, onVisibleTimeRangeChan
         close: d.close,
       }))
       .sort((a, b) => a.time - b.time)
-      .filter((item, index, arr) => index === 0 || item.time !== arr[index - 1].time);
+      .filter(
+        (item, index, arr) => index === 0 || item.time !== arr[index - 1].time,
+      );
 
     seriesRef.current.setData(tvData);
 
@@ -186,7 +209,12 @@ const TVCandlestick: React.FC<TVChartProps> = ({ rawData, onVisibleTimeRangeChan
     }
   }, [rawData]);
 
-  return <div ref={containerRef} style={{ width: "100%", height: "400px", position: "relative" }} />;
+  return (
+    <div
+      ref={containerRef}
+      style={{ width: "100%", height: "400px", position: "relative" }}
+    />
+  );
 };
 
 export default PoolCandleChart;

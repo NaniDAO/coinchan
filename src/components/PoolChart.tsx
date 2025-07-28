@@ -35,31 +35,31 @@ export const PoolChart = ({ poolId, coinSymbol, ethPrice }: PoolChartProps) => {
         ) : (
           <PoolCandleChart poolId={poolId} interval="1d" />
         )}
-        <div className="flex flex-row items-center gap-2">
-          <button
-            onClick={() => setChartType("candle")}
-            className={cn(
-              "h-8",
-              chartType === "candle"
-                ? "bg-primary !text-primary-foreground"
-                : "bg-transparent",
-            )}
-          >
-            <CandlestickChartIcon className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => setChartType("line")}
-            className={cn(
-              "h-8",
-              chartType === "line"
-                ? "bg-primary !text-primary-foreground"
-                : "bg-transparent",
-            )}
-          >
-            <LineChartIcon className="h-4 w-4" />
-          </button>
-        </div>
       </Suspense>
+      <div className="w-fit border border-border flex flex-row items-center">
+        <button
+          onClick={() => setChartType("candle")}
+          className={cn(
+            "h-8 p-1 flex items-center justify-center",
+            chartType === "candle"
+              ? "bg-primary !text-primary-foreground"
+              : "bg-transparent",
+          )}
+        >
+          <CandlestickChartIcon className="h-4 w-4" />
+        </button>
+        <button
+          onClick={() => setChartType("line")}
+          className={cn(
+            "h-8 p-1 flex items-center justify-center",
+            chartType === "line"
+              ? "bg-primary !text-primary-foreground"
+              : "bg-transparent",
+          )}
+        >
+          <LineChartIcon className="h-4 w-4" />
+        </button>
+      </div>
     </div>
   );
 };
