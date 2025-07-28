@@ -68,10 +68,20 @@ function FinalizedPoolTradingInner({
 
   // Fetch pool reserves
   const { data: reserves } = useReserves({
-    poolId: poolId || "",
+    poolId: poolId ? BigInt(poolId) : undefined,
     source: "COOKBOOK" as const,
-    enabled: !!poolId,
-  } as any);
+  });
+  
+  // Debug logging
+  console.log("FinalizedPoolTrading Debug:", {
+    coinId,
+    sale,
+    feeOrHook: sale?.feeOrHook,
+    poolId,
+    reserves,
+    reserve0: reserves?.reserve0?.toString(),
+    reserve1: reserves?.reserve1?.toString(),
+  });
 
   // Create token metadata objects for ETH and the coin
   const ethToken = useMemo<TokenMeta>(() => ({
@@ -163,30 +173,7 @@ function FinalizedPoolTradingInner({
         </div>
       )}
 
-      {/* Coin header with description - Desktop: Above trading interface, Mobile: hidden */}
-      {sale?.coin?.description && (
-        <div className="hidden lg:block mb-6 bg-card border border-border rounded-lg p-6">
-          <div className="max-w-4xl mx-auto">
-            <div className="flex items-start gap-4">
-              {coinIcon && (
-                <img 
-                  src={coinIcon} 
-                  alt={coinName} 
-                  className="w-12 h-12 rounded-full flex-shrink-0"
-                />
-              )}
-              <div className="flex-1">
-                <h2 className="text-xl font-semibold mb-2">
-                  {coinName} ({coinSymbol})
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  {sale.coin.description}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Remove the desktop-only header - we'll show metadata above swap tile instead */}
 
       {/* Trading Interface - Desktop: side by side, Mobile: stacked */}
       <div className="mb-4 sm:mb-6 md:mb-8">
@@ -302,17 +289,73 @@ function FinalizedPoolTradingInner({
               {/* Swap Section - Desktop: Right, Mobile: Top */}
               <div className="order-1 lg:order-2 bg-card border border-border rounded-lg p-4 lg:p-6 xl:p-8">
                 <div className="w-full">
-                  <CookbookSwapTile 
+                  {/* Token Metadata */}
+                  <div className="mb-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      {coinIcon && (
+                        <img 
+                          src={coinIcon} 
+                          alt={coinName} 
+                          className="w-16 h-16 rounded-full"
+                        />
+                      )}
+                      <div>
+                        <h2 className="text-2xl font-bold">
+                          {coinName} ({coinSymbol})
+                        </h2>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <span>[CURVE]</span>
+                          <span>•</span>
+                          <span>ID: {coinId}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {sale?.coin?.description && (
+                      <p className="text-sm text-muted-foreground mb-4">
+                        {sale.coin.description}
+                      </p>
+                    )}
+                    
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground mb-1">{t("coin.pool_fee")}</p>
+                        <p className="font-medium">0.3%</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground mb-1">{t("coin.market_cap")}</p>
+                        <p className="font-medium">
+                          {marketCapUsd > 0 ? (
+                            <>
+                              {(marketCapUsd / (ethPrice?.priceUSD || 1)).toFixed(2)} ETH
+                              <span className="text-xs text-muted-foreground ml-1">
+                                (~${formatNumber(marketCapUsd, 0)})
+                              </span>
+                            </>
+                          ) : (
+                            "N/A"
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <a 
+                      href={`/coin/${coinId}`}
+                      className="inline-block mt-3 text-xs text-primary hover:underline"
+                    >
+                      {t("coin.view_token_metadata", "View Token Metadata")} →
+                    </a>
+                  </div>
+                  
+                  <div className="border-t pt-6">
+                    <CookbookSwapTile 
                     coinId={coinId}
                     coinName={sale?.coin?.name || coinName}
                     coinSymbol={sale?.coin?.symbol || coinSymbol}
                     coinIcon={sale?.coin?.imageUrl || coinIcon}
                     poolId={poolId}
                     feeOrHook={30n}
-                  />
-                  
-                  <div className="mt-4 lg:mt-6 text-center">
-                    <p className="text-xs lg:text-sm text-muted-foreground">{t("coin.pool_fee")}: 0.3%</p>
+                    />
                   </div>
                   
                   {/* Vote Panel centered at bottom of swap tile */}

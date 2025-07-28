@@ -130,7 +130,7 @@ export function UnifiedCoinTrading({
             {t("claim.alert_title", "You have tokens to claim!")}
           </AlertTitle>
           <AlertDescription className="text-base mt-2">
-            {t("claim.alert_description", "The sale has finalized and you have tokens ready to claim. Scroll down to claim them.")}
+            {t("claim.alert_description", "The sale has finalized and you have tokens ready to claim. See below to claim them.")}
           </AlertDescription>
         </Alert>
       )}

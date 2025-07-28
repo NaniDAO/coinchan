@@ -839,7 +839,8 @@
     "pool_tokens": "池中代币",
     "pool_liquidity": "池流动性",
     "pool_id": "池ID",
-    "current_price": "当前价格"
+    "current_price": "当前价格",
+    "view_token_metadata": "查看代币元数据"
   },
   "ens": {
     "title": "ENS/ETH 交易",

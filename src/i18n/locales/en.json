@@ -721,7 +721,8 @@
     "pool_tokens": "Pool Tokens",
     "pool_liquidity": "Pool Liquidity",
     "pool_id": "Pool ID",
-    "current_price": "Current Price"
+    "current_price": "Current Price",
+    "view_token_metadata": "View Token Metadata"
   },
   "ens": {
     "title": "ENS/ETH Trading",
