@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { mainnet } from "viem/chains";
 import { useReadContract } from "wagmi";

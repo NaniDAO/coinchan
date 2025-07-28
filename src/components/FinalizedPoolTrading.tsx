@@ -1,4 +1,4 @@
-import { useMemo, useState, lazy } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits } from "viem";
 import { useAccount } from "wagmi";

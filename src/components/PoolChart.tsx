@@ -1,5 +1,4 @@
 import { Suspense, useState, lazy } from "react";
-import { Button } from "./ui/button";
 import { CandlestickChartIcon, LineChartIcon } from "lucide-react";
 import { LoadingLogo } from "./ui/loading-logo";
 import { cn } from "@/lib/utils";
@@ -36,9 +35,8 @@ export const PoolChart = ({ poolId, coinSymbol, ethPrice }: PoolChartProps) => {
         ) : (
           <PoolCandleChart poolId={poolId} interval="1d" />
         )}
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
+        <div className="flex flex-row items-center gap-2">
+          <button
             onClick={() => setChartType("candle")}
             className={cn(
               "h-8",
@@ -48,9 +46,8 @@ export const PoolChart = ({ poolId, coinSymbol, ethPrice }: PoolChartProps) => {
             )}
           >
             <CandlestickChartIcon className="h-4 w-4" />
-          </Button>
-          <Button
-            size="sm"
+          </button>
+          <button
             onClick={() => setChartType("line")}
             className={cn(
               "h-8",
@@ -60,7 +57,7 @@ export const PoolChart = ({ poolId, coinSymbol, ethPrice }: PoolChartProps) => {
             )}
           >
             <LineChartIcon className="h-4 w-4" />
-          </Button>
+          </button>
         </div>
       </Suspense>
     </div>

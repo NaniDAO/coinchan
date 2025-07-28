@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { BuySell } from "./BuySell";
 import { ClaimVested } from "./ClaimVested";
 
-import { Link } from "@tanstack/react-router";
 import { mainnet } from "viem/chains";
 import { useReadContract, useWaitForTransactionReceipt } from "wagmi";
 import { SWAP_FEE, computePoolId } from "./lib/swap";

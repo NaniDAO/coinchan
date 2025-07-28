@@ -1,7 +1,6 @@
 import { RainbowConnectButton } from "@/components/RainbowConnectButton";
 import { SwapRibbon } from "@/components/SwapRibbon";
 import UserSettingsMenu from "@/components/UserSettingsMenu";
-import { ZammLogo } from "@/components/ZammLogo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {

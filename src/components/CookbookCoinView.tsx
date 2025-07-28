@@ -6,7 +6,6 @@ import {
 import { CookbookAddress } from "@/constants/Cookbook";
 import { useGetCoin } from "@/hooks/metadata/use-get-coin";
 import { SWAP_FEE, computePoolId } from "@/lib/swap";
-import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { mainnet } from "viem/chains";
 import { useReadContract } from "wagmi";
