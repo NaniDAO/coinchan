@@ -81,14 +81,12 @@ export function OneShotLaunchForm() {
     data: hash,
     isPending,
     error,
-    reset: resetTransaction, // eslint-disable-line @typescript-eslint/no-unused-vars
   } = useWriteContract();
 
   // Wait for transaction
   const {
     isLoading: txLoading,
     isSuccess: txSuccess,
-    data: receipt, // eslint-disable-line @typescript-eslint/no-unused-vars
   } = useWaitForTransactionReceipt({ hash });
 
   // Store launched coin ID
