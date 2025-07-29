@@ -152,7 +152,13 @@ export const ZCurveSales = () => {
                         </div>
                         <div className="mt-2 space-y-1 text-xs">
                           <div>
-                            price: {parseFloat(sale.currentPrice).toFixed(6)}{" "}
+                            price: {(() => {
+                              const price = Number.parseFloat(sale.currentPrice);
+                              if (price === 0) return "0";
+                              if (price < 1e-15) return price.toExponential(2);
+                              if (price < 1e-6) return price.toFixed(9);
+                              return price.toFixed(8);
+                            })()}{" "}
                             ETH
                           </div>
                           <div>

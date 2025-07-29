@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Card,
@@ -17,6 +17,8 @@ import { ZCurveSaleProgress } from "@/components/ZCurveSaleProgress";
 import { ZCurveLiveChart } from "@/components/ZCurveLiveChart";
 import { ZCurveReserves } from "@/components/ZCurveReserves";
 import { FinalizedPoolTrading } from "@/components/FinalizedPoolTrading";
+import { ZCurveActivity } from "@/components/ZCurveActivity";
+import { ZCurvePriceChart } from "@/components/ZCurvePriceChart";
 
 import {
   useZCurveSale,
@@ -26,6 +28,11 @@ import {
 } from "@/hooks/use-zcurve-sale";
 import { getExpectedPoolId } from "@/lib/zCurvePoolId";
 import { useAccount } from "wagmi";
+
+interface ChartPreviewData {
+  amount: bigint;
+  isBuying: boolean;
+}
 
 interface UnifiedCoinTradingProps {
   coinId: string;
@@ -43,6 +50,7 @@ export function UnifiedCoinTrading({
   poolId,
 }: UnifiedCoinTradingProps) {
   const { t } = useTranslation();
+  const [chartPreview, setChartPreview] = useState<ChartPreviewData | null>(null);
 
   const {
     data: sale,
@@ -248,7 +256,11 @@ export function UnifiedCoinTrading({
               </Card>
               <Card className="border-2 border-border bg-background hover:shadow-lg transition-all duration-200 h-fit">
                 <CardContent className="pt-6">
-                  <ZCurveLiveChart sale={sale} />
+                  <ZCurveLiveChart 
+                    sale={sale} 
+                    previewAmount={chartPreview?.amount}
+                    isBuying={chartPreview?.isBuying}
+                  />
                 </CardContent>
               </Card>
             </div>
@@ -282,6 +294,7 @@ export function UnifiedCoinTrading({
                     coinName={coinName}
                     coinSymbol={coinSymbol}
                     coinIcon={coinIcon}
+                    onPreviewChange={setChartPreview}
                   />
                 ) : hasPool ? (
                   <BuySellCookbookCoin
@@ -372,6 +385,41 @@ export function UnifiedCoinTrading({
             )}
           </div>
         </div>
+
+        {/* Activity and Price Chart Section - Side by side for active zCurve */}
+        {isZCurveActive && sale && (
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-8">
+            {/* Price Chart */}
+            <Card className="border-2 border-border bg-background">
+              <CardHeader>
+                <CardTitle className="text-lg font-bold">
+                  {t("trade.price_chart", "Price Chart")}
+                </CardTitle>
+                <CardDescription>
+                  {t("trade.price_chart_desc", "Historical price movement and volume")}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ZCurvePriceChart coinId={coinId} coinSymbol={coinSymbol} />
+              </CardContent>
+            </Card>
+
+            {/* Recent Activity */}
+            <Card className="border-2 border-border bg-background">
+              <CardHeader>
+                <CardTitle className="text-lg font-bold">
+                  {t("trade.recent_activity", "Recent Activity")}
+                </CardTitle>
+                <CardDescription>
+                  {t("trade.activity_desc", "Latest buy and sell transactions")}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ZCurveActivity coinId={coinId} coinSymbol={coinSymbol} />
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -21,14 +21,20 @@ import { useGetCoin } from "@/hooks/metadata/use-get-coin";
 import { CookbookAddress } from "@/constants/Cookbook";
 import { ConnectMenu } from "@/ConnectMenu";
 
+interface ChartPreviewData {
+  amount: bigint;
+  isBuying: boolean;
+}
+
 interface ZCurveTradingProps {
   coinId: string;
   coinName?: string;
   coinSymbol?: string;
   coinIcon?: string;
+  onPreviewChange?: (preview: ChartPreviewData | null) => void;
 }
 
-export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurveTradingProps) {
+export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon, onPreviewChange }: ZCurveTradingProps) {
   const { t } = useTranslation();
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
@@ -47,6 +53,13 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
   const { data: saleSummary } = useZCurveSaleSummary(coinId, address);
   const { data: userBalance } = useZCurveBalance(coinId, address);
   const { data: ethBalance } = useBalance({ address });
+
+  // Clear preview on unmount
+  useEffect(() => {
+    return () => {
+      onPreviewChange?.(null);
+    };
+  }, [onPreviewChange]);
   const { data: coinData } = useGetCoin({
     coinId,
     token: CookbookAddress,
@@ -107,6 +120,7 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
       if (!publicClient || !sale || !value || parseFloat(value) === 0) {
         if (field === "sell") setBuyAmount("");
         else setSellAmount("");
+        onPreviewChange?.(null);
         return;
       }
 
@@ -160,6 +174,11 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
               args: [BigInt(coinId), coinsOut],
             });
             setSellAmount(formatEther(ethIn));
+            // Update chart preview
+            onPreviewChange?.({
+              amount: coinsOut,
+              isBuying: true,
+            });
           } else {
             // Want exact ETH out, calculate tokens in - use coinsToBurnForETH
             const ethOut = parsedValue;
@@ -170,17 +189,23 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
               args: [BigInt(coinId), ethOut],
             });
             setSellAmount(formatEther(coinsIn));
+            // Update chart preview
+            onPreviewChange?.({
+              amount: coinsIn,
+              isBuying: false,
+            });
           }
         }
       } catch (error) {
         console.error("Error calculating swap amounts:", error);
         if (field === "sell") setBuyAmount("");
         else setSellAmount("");
+        onPreviewChange?.(null);
       } finally {
         setIsCalculating(false);
       }
     },
-    [publicClient, sale, swapDirection, coinId],
+    [publicClient, sale, swapDirection, coinId, onPreviewChange],
   );
 
   // Debounced version for user input
@@ -547,8 +572,8 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
       )}
 
       {/* Price Impact */}
-      {((lastEditedField === "sell" && sellAmount && parseFloat(sellAmount) > 0) ||
-        (lastEditedField === "buy" && buyAmount && parseFloat(buyAmount) > 0)) && (
+      {((lastEditedField === "sell" && sellAmount && Number.parseFloat(sellAmount) > 0) ||
+        (lastEditedField === "buy" && buyAmount && Number.parseFloat(buyAmount) > 0)) && (
         <ZCurvePriceImpact
           sale={sale}
           tradeAmount={swapDirection === "buy" ? sellAmount : sellAmount}
@@ -571,7 +596,13 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon }: ZCurve
       <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-muted-foreground">
         <div className="flex justify-between">
           <span>{t("sale.current_price")}</span>
-          <span>{sale.currentPrice ? formatEther(BigInt(sale.currentPrice)).slice(0, 10) : "0"} ETH</span>
+          <span>{sale.currentPrice ? (() => {
+            const price = Number(formatEther(BigInt(sale.currentPrice)));
+            if (price === 0) return "0";
+            if (price < 1e-15) return price.toExponential(2);
+            if (price < 1e-6) return price.toFixed(9);
+            return price.toFixed(8);
+          })() : "0"} ETH</span>
         </div>
         <div className="flex justify-between">
           <span>{t("trade.eth_in_escrow")}</span>

@@ -72,6 +72,11 @@ export function ZCurveSaleProgress({ sale }: ZCurveSaleProgressProps) {
             {formatEther(saleCap).slice(0, 8)} {t("common.cap", "cap")}
           </span>
         </div>
+        {saleCap > 0n && (
+          <div className="text-xs text-muted-foreground text-center">
+            {((Number(netSold) / Number(saleCap)) * 100).toFixed(2)}% {t("sale.of_total_supply", "of total supply")}
+          </div>
+        )}
       </div>
 
       {/* Price Info */}
@@ -81,9 +86,13 @@ export function ZCurveSaleProgress({ sale }: ZCurveSaleProgressProps) {
             {t("sale.current_price", "Current Price")}
           </p>
           <p className="text-sm font-medium">
-            {sale.currentPrice
-              ? formatEther(BigInt(sale.currentPrice)).slice(0, 10)
-              : "0"}{" "}
+            {sale.currentPrice ? (() => {
+              const price = Number(formatEther(BigInt(sale.currentPrice)));
+              if (price === 0) return "0";
+              if (price < 1e-15) return price.toExponential(2);
+              if (price < 1e-6) return price.toFixed(9);
+              return price.toFixed(8);
+            })() : "0"}{" "}
             ETH
           </p>
         </div>

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { formatEther } from "viem";
+import { formatEther, parseEther } from "viem";
 import {
   createChart,
   type IChartApi,
@@ -60,15 +60,14 @@ export function ZCurveLiveChart({
       // Pure quadratic phase
       const sumSq = (m * (m - 1n) * (2n * m - 1n)) / 6n;
       return (sumSq * oneETH) / denom;
-    } else {
-      // Mixed phase: quadratic then linear
-      const sumK = (K * (K - 1n) * (2n * K - 1n)) / 6n;
-      const quadCost = (sumK * oneETH) / denom;
-      const pK = (K * K * oneETH) / denom;
-      const tailTicks = m - K;
-      const tailCost = pK * tailTicks;
-      return quadCost + tailCost;
     }
+    // Mixed phase: quadratic then linear
+    const sumK = (K * (K - 1n) * (2n * K - 1n)) / 6n;
+    const quadCost = (sumK * oneETH) / denom;
+    const pK = (K * K * oneETH) / denom;
+    const tailTicks = m - K;
+    const tailCost = pK * tailTicks;
+    return quadCost + tailCost;
   };
 
   useEffect(() => {
@@ -191,33 +190,69 @@ export function ZCurveLiveChart({
       });
     }
 
-    // Add preview indicator if provided
+    // Add preview visualization if previewAmount is provided
     if (previewAmount && previewAmount > 0n) {
-      const previewSeries = chart.addSeries(LineSeries, {
-        color: isBuying ? "#3b82f6" : "#ef4444",
-        lineWidth: 2,
-        lineStyle: 2, // Dashed
-      });
-
       const startPoint = netSold;
       const endPoint = isBuying
         ? netSold + previewAmount
         : netSold - previewAmount;
 
       if (endPoint >= 0n && endPoint <= saleCap) {
-        const startCost = calculateCost(startPoint);
-        const endCost = calculateCost(endPoint);
+        // Add shaded area for the preview range
+        const previewAreaSeries = chart.addSeries(AreaSeries, {
+          topColor: isBuying ? 'rgba(59, 130, 246, 0.4)' : 'rgba(239, 68, 68, 0.4)',
+          bottomColor: isBuying ? 'rgba(59, 130, 246, 0.05)' : 'rgba(239, 68, 68, 0.05)',
+          lineColor: isBuying ? '#3b82f6' : '#ef4444',
+          lineWidth: 2,
+          crosshairMarkerVisible: false,
+        });
 
-        previewSeries.setData([
-          {
-            time: Number(formatEther(startPoint)) as UTCTimestamp,
-            value: Number(formatEther(startCost)),
-          },
-          {
-            time: Number(formatEther(endPoint)) as UTCTimestamp,
-            value: Number(formatEther(endCost)),
-          },
-        ]);
+        // Generate preview area data points
+        const previewDataPoints = [];
+        const step = (endPoint - startPoint) / 20n; // 20 points for smooth curve
+        const actualStep = step > 0n ? step : -step;
+        const stepDirection = step > 0n ? 1n : -1n;
+        
+        for (let i = 0n; i <= 20n; i++) {
+          const point = startPoint + (actualStep * i * stepDirection);
+          if (point >= 0n && point <= saleCap) {
+            const cost = calculateCost(point);
+            previewDataPoints.push({
+              time: Number(formatEther(point)) as UTCTimestamp,
+              value: Number(formatEther(cost)),
+            });
+          }
+        }
+        
+        previewAreaSeries.setData(previewDataPoints);
+
+        // Add preview end marker
+        const endCost = calculateCost(endPoint);
+        const previewMarkerSeries = chart.addSeries(LineSeries, {
+          color: isBuying ? '#3b82f6' : '#ef4444',
+          lineWidth: 1,
+          crosshairMarkerVisible: true,
+          crosshairMarkerRadius: 6,
+          crosshairMarkerBorderColor: isBuying ? '#3b82f6' : '#ef4444',
+          crosshairMarkerBackgroundColor: isBuying ? '#3b82f6' : '#ef4444',
+        });
+        
+        previewMarkerSeries.setData([{
+          time: Number(formatEther(endPoint)) as UTCTimestamp,
+          value: Number(formatEther(endCost)),
+        }]);
+
+        // Add arrow or indicator showing direction
+        
+        // Create a price line at the new position
+        previewAreaSeries.createPriceLine({
+          price: Number(formatEther(endCost)),
+          color: isBuying ? '#3b82f6' : '#ef4444',
+          lineWidth: 1,
+          lineStyle: 2, // Dashed
+          axisLabelVisible: true,
+          title: isBuying ? '→ New Price' : '← New Price',
+        });
       }
     }
 
@@ -264,7 +299,7 @@ export function ZCurveLiveChart({
       window.removeEventListener("resize", handleResize);
       chart.remove();
     };
-  }, [sale, previewAmount, isBuying, appTheme, t]);
+  }, [sale, previewAmount, isBuying, appTheme, t, calculateCost, quadCap, netSold, theme]);
 
   // Calculate sale progress
   const saleProgress = Number((netSold * 100n) / saleCap);
@@ -337,12 +372,42 @@ export function ZCurveLiveChart({
           {netSold > 0n && (
             <div>
               {t("sale.current_price_label", "Current Price")}:{" "}
-              {formatEther(calculateCost(netSold)).slice(0, 8)} ETH
+              {(() => {
+                // Calculate marginal price at current netSold
+                const m = netSold / UNIT_SCALE;
+                const K = quadCap / UNIT_SCALE;
+                const denom = 6n * divisor;
+                const oneETH = parseEther("1");
+                
+                let marginalPrice = 0n;
+                if (m < 2n) {
+                  // Use a minimum value to avoid zero price
+                  const minM = m > 0n ? m : 1n;
+                  marginalPrice = (minM * oneETH) / (3n * divisor);
+                } else if (m <= K) {
+                  // Quadratic phase: marginal price = 2m / (6 * divisor)
+                  marginalPrice = (2n * m * oneETH) / denom;
+                } else {
+                  // Linear phase: constant marginal price = 2K / (6 * divisor)
+                  marginalPrice = (2n * K * oneETH) / denom;
+                }
+                
+                const price = Number(formatEther(marginalPrice));
+                if (price === 0) return "0";
+                if (price < 1e-15) return price.toExponential(2);
+                if (price < 1e-6) return price.toFixed(9);
+                return price.toFixed(8);
+              })()} ETH
             </div>
           )}
           <div>
             {t("sale.tokens_sold", "Sold")}: {formatEther(netSold).slice(0, 8)}{" "}
             / {formatEther(saleCap).slice(0, 8)}
+            {saleCap > 0n && (
+              <span className="text-muted-foreground">
+                {" "}({((Number(netSold) / Number(saleCap)) * 100).toFixed(2)}%)
+              </span>
+            )}
           </div>
         </div>
       </div>

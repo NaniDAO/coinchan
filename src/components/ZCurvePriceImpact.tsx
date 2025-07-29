@@ -178,44 +178,31 @@ export function ZCurvePriceImpact({ sale, tradeAmount, tokenAmount, isBuying, cl
       ? "border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/20"
       : "border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/20";
 
-  // Format the display - always show sign
+  // Format the display - always show sign with more precision for small impacts
   const formatImpact = () => {
+    const absImpact = Math.abs(priceImpact.impactPercent);
+    const precision = absImpact < 0.01 ? 3 : 2;
     if (isBuying) {
-      return `+${Math.abs(priceImpact.impactPercent).toFixed(2)}%`;
+      return `+${absImpact.toFixed(precision)}%`;
     } else {
-      return `${priceImpact.impactPercent.toFixed(2)}%`; // Already negative
+      return `${priceImpact.impactPercent.toFixed(precision)}%`; // Already negative
     }
   };
 
-  // Format very small prices with appropriate precision and human-readable units
+  // Format very small prices with appropriate precision
   const formatPrice = (price: number): string => {
     if (price === 0) return "0";
     
-    // For very small values, use human-readable units
+    // For very small values, use more decimal places
     if (price < 1e-15) {
-      const attoETH = price * 1e18;
-      if (attoETH < 1) {
-        return price.toExponential(2);
-      }
-      return `${attoETH.toFixed(2)} atto`;
-    } else if (price < 1e-12) {
-      const femtoETH = price * 1e15;
-      return `${femtoETH.toFixed(2)} femto`;
-    } else if (price < 1e-9) {
-      const picoETH = price * 1e12;
-      return `${picoETH.toFixed(2)} pico`;
+      return price.toExponential(2);
     } else if (price < 1e-6) {
-      const nanoETH = price * 1e9;
-      return `${nanoETH.toFixed(2)} nano`;
-    } else if (price < 1e-3) {
-      const microETH = price * 1e6;
-      return `${microETH.toFixed(2)} micro`;
+      return price.toFixed(9);
     } else if (price < 1) {
-      const milliETH = price * 1e3;
-      return `${milliETH.toFixed(4)} milli`;
+      return price.toFixed(8);
     }
     
-    return price.toFixed(8);
+    return price.toFixed(6);
   };
 
   return (
