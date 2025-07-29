@@ -126,7 +126,13 @@ export const ZCurveSales = () => {
                 >
                   <div
                     key={sale.coinId}
-                    className="border border-card hover:border-border p-3 bg-card text-card-foreground transition-all duration-100"
+                    className="border border-card hover:border-border p-3 bg-card text-card-foreground transition-all duration-100 relative overflow-hidden"
+                    style={{
+                      background: `linear-gradient(to right, 
+                        rgba(34, 197, 94, 0.05) 0%, 
+                        rgba(34, 197, 94, 0.1) ${Math.min(Number(sale.netSold) / Number(sale.saleCap) * 100, 100)}%, 
+                        transparent ${Math.min(Number(sale.netSold) / Number(sale.saleCap) * 100, 100)}%)`
+                    }}
                   >
                     <div className="flex items-start gap-4">
                       {/* Coin Image */}
@@ -224,6 +230,16 @@ export const ZCurveSales = () => {
                           {new Date(sale.createdAt * 1000).toLocaleDateString()}
                         </div>
                       </div>
+                    </div>
+                    
+                    {/* Progress bar at bottom */}
+                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-border/20">
+                      <div 
+                        className="h-full bg-green-500/50 transition-all duration-300"
+                        style={{ 
+                          width: `${Math.min(Number(sale.netSold) / Number(sale.saleCap) * 100, 100)}%` 
+                        }}
+                      />
                     </div>
                   </div>
                 </Link>
