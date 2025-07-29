@@ -12,7 +12,9 @@ import {
 } from "lightweight-charts";
 import { useTheme } from "@/lib/theme";
 import type { ZCurveSale } from "@/hooks/use-zcurve-sale";
+import { useZCurveSaleSummary } from "@/hooks/use-zcurve-sale";
 import { UNIT_SCALE, unpackQuadCap } from "@/lib/zCurveHelpers";
+import { useAccount } from "wagmi";
 
 interface ZCurveLiveChartProps {
   sale: ZCurveSale;
@@ -27,16 +29,20 @@ export function ZCurveLiveChart({
 }: ZCurveLiveChartProps) {
   const { t } = useTranslation();
   const { theme: appTheme } = useTheme();
+  const { address } = useAccount();
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const [hoveredPrice, setHoveredPrice] = useState<string | null>(null);
   const [hoveredAmount, setHoveredAmount] = useState<string | null>(null);
 
-  // Extract sale parameters
-  const saleCap = BigInt(sale.saleCap);
-  const divisor = BigInt(sale.divisor);
-  const quadCap = unpackQuadCap(BigInt(sale.quadCap));
-  const netSold = BigInt(sale.netSold);
+  // Get real-time onchain data
+  const { data: onchainData } = useZCurveSaleSummary(sale.coinId, address);
+
+  // Use onchain data if available, otherwise fall back to indexed data
+  const saleCap = onchainData ? BigInt(onchainData.saleCap) : BigInt(sale.saleCap);
+  const divisor = onchainData ? BigInt(onchainData.divisor) : BigInt(sale.divisor);
+  const quadCap = unpackQuadCap(onchainData ? BigInt(onchainData.quadCap) : BigInt(sale.quadCap));
+  const netSold = onchainData ? BigInt(onchainData.netSold) : BigInt(sale.netSold);
 
   // Theme configuration
   const theme = {
@@ -321,7 +327,7 @@ export function ZCurveLiveChart({
       window.removeEventListener("resize", handleResize);
       chart.remove();
     };
-  }, [sale, previewAmount, isBuying, appTheme, t, calculateCost, quadCap, netSold, theme]);
+  }, [sale, previewAmount, isBuying, appTheme, t, calculateCost, quadCap, netSold, saleCap, divisor, theme]);
 
   // Calculate sale progress
   const saleProgress = Number((netSold * 100n) / saleCap);
