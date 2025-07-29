@@ -16,10 +16,11 @@ export function LanguageSwitcher() {
     i18n.changeLanguage(newLang);
   };
 
-  // Get current language label
-  const getCurrentLanguageLabel = () => {
-    const lang = languages.find(l => l.code === currentLanguage);
-    return lang ? lang.label : "English";
+  // Get opposite language label (what user will switch to)
+  const getOppositeLanguageLabel = () => {
+    const oppositeLang = currentLanguage === "en" ? "zh" : "en";
+    const lang = languages.find(l => l.code === oppositeLang);
+    return lang ? lang.label : "中文";
   };
 
   return (
@@ -28,7 +29,7 @@ export function LanguageSwitcher() {
       className="px-3 py-1 text-sm bg-background text-foreground border border-foreground rounded hover:bg-foreground hover:text-background transition-colors"
       aria-label={`Switch language to ${currentLanguage === "en" ? "中文" : "English"}`}
     >
-      {getCurrentLanguageLabel()}
+      {getOppositeLanguageLabel()}
     </button>
   );
 }

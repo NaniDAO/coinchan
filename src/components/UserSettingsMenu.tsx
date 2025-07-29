@@ -30,9 +30,10 @@ export function UserSettingsMenu() {
     changeLanguage(newLang);
   };
 
-  const getCurrentLanguageLabel = () => {
-    const lang = languages.find(l => l.code === currentLanguage);
-    return lang ? lang.label : "English";
+  const getOppositeLanguageLabel = () => {
+    const oppositeLang = currentLanguage === "en" ? "zh" : "en";
+    const lang = languages.find(l => l.code === oppositeLang);
+    return lang ? lang.label : "中文";
   };
 
   return (
@@ -52,7 +53,7 @@ export function UserSettingsMenu() {
           className="!px-2 !py-1 bg-background text-foreground !border !border-foreground"
           onClick={toggleLanguage}
         >
-          {getCurrentLanguageLabel()}
+          {getOppositeLanguageLabel()}
         </DropdownMenuItem>
 
         <DropdownMenuItem
