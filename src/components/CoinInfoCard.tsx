@@ -17,6 +17,8 @@ interface CoinInfoCardProps {
   isEthPriceData: boolean;
   tokenURI: string;
   isLoading: boolean;
+  isZCurveBonding?: boolean;
+  zcurveFeeOrHook?: string;
 }
 
 export const CoinInfoCard = ({
@@ -33,6 +35,8 @@ export const CoinInfoCard = ({
   isEthPriceData,
   tokenURI,
   isLoading,
+  isZCurveBonding = false,
+  zcurveFeeOrHook,
 }: CoinInfoCardProps) => {
   // State for tracking image loading and errors
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -159,14 +163,29 @@ export const CoinInfoCard = ({
               {isLoading ? (
                 <div className="h-3 bg-muted/40 rounded w-10 skeleton"></div>
               ) : (
-                <span className="font-medium text-primary transition-opacity duration-300">
-                  {swapFee.map((s, i) => (
-                    <span key={i}>
-                      {i > 0 && " | "}
-                      {(Number(s) / 100).toFixed(2)}%
-                    </span>
-                  ))}
-                </span>
+                <>
+                  <span className="font-medium text-primary transition-opacity duration-300">
+                    {isZCurveBonding ? (
+                      <span className="group relative inline-flex items-center">
+                        0%
+                        <span className="ml-1 text-xs text-muted-foreground cursor-help">ⓘ</span>
+                        <span className="absolute left-0 bottom-full mb-2 hidden group-hover:block bg-popover text-popover-foreground text-xs p-2 rounded shadow-lg whitespace-nowrap z-10">
+                          {zcurveFeeOrHook && BigInt(zcurveFeeOrHook) < 10000n ? 
+                            `${(Number(zcurveFeeOrHook) / 100).toFixed(2)}% swap fee will begin once graduated to zAMM` : 
+                            "0.3% swap fee will begin once graduated to zAMM"
+                          }
+                        </span>
+                      </span>
+                    ) : (
+                      swapFee.map((s, i) => (
+                        <span key={i}>
+                          {i > 0 && " | "}
+                          {(Number(s) / 100).toFixed(2)}%
+                        </span>
+                      ))
+                    )}
+                  </span>
+                </>
               )}
               {!isLoading && isOwner && <span className="text-xs text-chart-2">(You are the owner)</span>}
             </div>
@@ -180,9 +199,13 @@ export const CoinInfoCard = ({
             ) : (
               marketCapEth !== null && (
                 <div className="flex items-center gap-1 transition-opacity duration-300">
-                  <span className="font-medium market-cap-text">Est. Market Cap:</span>
-                  <span className="market-cap-text">{marketCapEth ? formatNumber(marketCapEth, 2) : "N/A"} ETH</span>
-                  {marketCapUsd !== null ? (
+                  <span className="font-medium market-cap-text">
+                    {isZCurveBonding ? "Implied Market Cap:" : "Est. Market Cap:"}
+                  </span>
+                  <span className="market-cap-text">
+                    {marketCapEth !== null && marketCapEth !== 0 ? formatNumber(marketCapEth, 2) : "N/A"} ETH
+                  </span>
+                  {marketCapUsd !== null && marketCapUsd !== 0 ? (
                     <span className="ml-1 market-cap-text">(~${formatNumber(marketCapUsd, 0)})</span>
                   ) : isEthPriceData ? (
                     <span className="ml-1 market-cap-text">(USD price processing...)</span>

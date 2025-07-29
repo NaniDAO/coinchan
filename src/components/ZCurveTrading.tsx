@@ -598,11 +598,23 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon, onPrevie
           <span>{t("sale.current_price")}</span>
           <span>{sale.currentPrice ? (() => {
             const price = Number(formatEther(BigInt(sale.currentPrice)));
-            if (price === 0) return "0";
-            if (price < 1e-15) return price.toExponential(2);
-            if (price < 1e-6) return price.toFixed(9);
-            return price.toFixed(8);
-          })() : "0"} ETH</span>
+            if (price === 0) return "0 ETH";
+            
+            // Format very small prices with better readability
+            if (price < 1e-15) {
+              const exp = Math.floor(Math.log10(price));
+              const mantissa = (price / Math.pow(10, exp)).toFixed(2);
+              return `${mantissa}×10^${exp} ETH`;
+            }
+            if (price < 1e-9) {
+              const gwei = price * 1e9;
+              return `${gwei.toFixed(3)} gwei`;
+            }
+            if (price < 1e-6) {
+              return price.toFixed(9) + " ETH";
+            }
+            return price.toFixed(8) + " ETH";
+          })() : "0 ETH"}</span>
         </div>
         <div className="flex justify-between">
           <span>{t("trade.eth_in_escrow")}</span>

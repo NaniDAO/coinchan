@@ -78,7 +78,6 @@ export function ZCurveClaim({ coinId, coinSymbol = "TOKEN" }: ZCurveClaimProps) 
   }
 
   const claimableAmount = balance;
-  const totalPurchased = userBalance ? BigInt(userBalance.totalPurchased) : 0n;
   const totalClaimed = userBalance ? BigInt(userBalance.totalClaimed) : 0n;
 
   return (
@@ -109,13 +108,6 @@ export function ZCurveClaim({ coinId, coinSymbol = "TOKEN" }: ZCurveClaimProps) 
               </span>
             </div>
           )}
-
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">{t("claim.total_purchased", "Total Purchased")}</span>
-            <span>
-              {formatEther(totalPurchased)} {coinSymbol}
-            </span>
-          </div>
         </div>
 
         <Button

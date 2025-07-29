@@ -2,8 +2,9 @@ import { zCurveAbi, zCurveAddress } from "@/constants/zCurve";
 import { pinImageToPinata, pinJsonToPinata } from "@/lib/pinata";
 import { type ChangeEvent, useState, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { useAccount, usePublicClient, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import { useAccount, usePublicClient, useWaitForTransactionReceipt, useWriteContract, useGasPrice } from "wagmi";
 import { z } from "zod";
+import { useETHPrice } from "@/hooks/use-eth-price";
 import { ZCurveBondingChart } from "@/components/ZCurveBondingChart";
 import "@/components/ui/animations.css";
 
@@ -41,6 +42,9 @@ const ONE_SHOT_PARAMS = {
   duration: 60 * 60 * 24 * 14, // 2 weeks in seconds
 };
 
+// Gas estimate for launching a zCurve
+const ZCURVE_LAUNCH_GAS = 179603n;
+
 // Validation schema with better constraints
 const oneShotFormSchema = z.object({
   metadataName: z
@@ -76,6 +80,8 @@ export function OneShotLaunchForm() {
   const { t } = useTranslation();
   const { address: account } = useAccount();
   const publicClient = usePublicClient();
+  const { data: gasPrice } = useGasPrice();
+  const { data: ethPrice } = useETHPrice();
   const {
     writeContract,
     data: hash,
@@ -134,6 +140,22 @@ export function OneShotLaunchForm() {
       fee,
     };
   }, []);
+
+  // Calculate gas estimates
+  const gasEstimate = useMemo(() => {
+    if (!gasPrice || !ethPrice) return null;
+    
+    const gasCostWei = ZCURVE_LAUNCH_GAS * gasPrice;
+    const gasCostETH = Number(formatEther(gasCostWei));
+    const gasCostUSD = gasCostETH * ethPrice.priceUSD;
+    
+    return {
+      gas: ZCURVE_LAUNCH_GAS.toString(),
+      eth: gasCostETH.toFixed(6),
+      usd: gasCostUSD.toFixed(2),
+      gwei: Number(formatEther(gasPrice * 10n ** 9n)).toFixed(2),
+    };
+  }, [gasPrice, ethPrice]);
 
   const handleInputChange = useCallback((e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -568,6 +590,31 @@ export function OneShotLaunchForm() {
                 {t("common.connect_wallet_to_continue", "Please connect your wallet to continue")}
               </AlertDescription>
             </Alert>
+          )}
+
+          {/* Gas Estimate */}
+          {gasEstimate && (
+            <div className="rounded-lg border-2 border-border bg-muted/50 p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Info className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">
+                    {t("launch.estimated_gas_cost", "Estimated Gas Cost")}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-semibold">
+                    {gasEstimate.eth} ETH
+                    <span className="text-muted-foreground ml-1">
+                      (${gasEstimate.usd})
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {gasEstimate.gas} gas @ {gasEstimate.gwei} gwei
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Submit Button with Landing Style */}

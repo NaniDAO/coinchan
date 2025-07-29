@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 import { ZCurveTrading } from "@/components/ZCurveTrading";
 import { ZCurveClaim } from "@/components/ZCurveClaim";
@@ -132,14 +132,6 @@ export function UnifiedCoinTrading({
     );
   }
 
-  // Check if user has claimable balance
-  const balance = saleSummary?.userBalance
-    ? BigInt(saleSummary.userBalance)
-    : userBalance
-      ? BigInt(userBalance.balance)
-      : 0n;
-  const hasClaimableBalance =
-    balance > 0n && (sale?.status === "FINALIZED" || saleSummary?.isFinalized);
 
   // For finalized sales with pools, use the clean trading layout
   if (isFinalized && hasPool) {
@@ -157,30 +149,10 @@ export function UnifiedCoinTrading({
   return (
     <div className="w-full">
       <div className="space-y-6">
-        {/* Claimable Balance Alert - Most prominent when available */}
-        {hasClaimableBalance && (
-          <Alert className="border-2 border-primary bg-gradient-to-r from-primary/20 to-primary/10 shadow-xl">
-            <AlertTitle className="text-lg font-bold flex items-center gap-2">
-              <span className="text-2xl animate-bounce">💰</span>
-              {t("claim.alert_title", "You have tokens to claim!")}
-            </AlertTitle>
-            <AlertDescription className="text-base mt-2">
-              {t(
-                "claim.alert_description",
-                "The sale has finalized and you have tokens ready to claim. See below to claim them.",
-              )}
-            </AlertDescription>
-          </Alert>
-        )}
 
         {/* Claim Section (if applicable) */}
         {sale?.status === "FINALIZED" && (
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-center">
-              {t("claim.section_title", "Token Claim")}
-            </h2>
-            <ZCurveClaim coinId={coinId} coinSymbol={coinSymbol} />
-          </div>
+          <ZCurveClaim coinId={coinId} coinSymbol={coinSymbol} />
         )}
 
         {/* Desktop: Side by side, Mobile: Stacked */}

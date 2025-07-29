@@ -175,6 +175,7 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
       layout: {
         background: { type: ColorType.Solid, color: theme.backgroundColor },
         textColor: theme.textColor,
+        attributionLogo: false,
       },
       grid: {
         vertLines: { color: theme.gridColor },

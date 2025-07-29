@@ -36,7 +36,14 @@ export function ZCurveSaleProgress({ sale }: ZCurveSaleProgressProps) {
         </div>
         <Progress value={fundedPercentage} className="h-3" />
         <div className="flex justify-between text-xs text-muted-foreground">
-          <span>{formatEther(ethEscrow).slice(0, 8)} ETH</span>
+          <span>{(() => {
+            const ethValue = Number(formatEther(ethEscrow));
+            if (ethValue === 0) return "0";
+            if (ethValue < 0.0001) return ethValue.toFixed(9);
+            if (ethValue < 0.01) return ethValue.toFixed(6);
+            if (ethValue < 1) return ethValue.toFixed(4);
+            return ethValue.toFixed(2);
+          })()} ETH</span>
           <span>
             {t("sale.target", "Target")}: {formatEther(ethTarget)} ETH
           </span>
@@ -66,10 +73,20 @@ export function ZCurveSaleProgress({ sale }: ZCurveSaleProgressProps) {
         </div>
         <div className="flex justify-between text-xs text-muted-foreground">
           <span>
-            {formatEther(netSold).slice(0, 8)} {t("common.sold", "sold")}
+            {(() => {
+              const value = Number(formatEther(netSold));
+              if (value === 0) return "0";
+              if (value < 1000) return value.toFixed(0);
+              if (value < 1000000) return (value / 1000).toFixed(1) + "K";
+              return (value / 1000000).toFixed(1) + "M";
+            })()} {t("common.sold", "sold")}
           </span>
           <span>
-            {formatEther(saleCap).slice(0, 8)} {t("common.cap", "cap")}
+            {(() => {
+              const value = Number(formatEther(saleCap));
+              if (value < 1000000) return (value / 1000).toFixed(0) + "K";
+              return (value / 1000000).toFixed(0) + "M";
+            })()} {t("common.cap", "cap")}
           </span>
         </div>
         {saleCap > 0n && (
@@ -89,11 +106,23 @@ export function ZCurveSaleProgress({ sale }: ZCurveSaleProgressProps) {
             {sale.currentPrice ? (() => {
               const price = Number(formatEther(BigInt(sale.currentPrice)));
               if (price === 0) return "0";
-              if (price < 1e-15) return price.toExponential(2);
-              if (price < 1e-6) return price.toFixed(9);
+              
+              // Format very small prices with better readability
+              if (price < 1e-15) {
+                const exp = Math.floor(Math.log10(price));
+                const mantissa = (price / Math.pow(10, exp)).toFixed(2);
+                return `${mantissa}×10^${exp}`;
+              }
+              if (price < 1e-9) {
+                const gwei = price * 1e9;
+                return `${gwei.toFixed(3)} gwei`;
+              }
+              if (price < 1e-6) {
+                return price.toFixed(9);
+              }
               return price.toFixed(8);
             })() : "0"}{" "}
-            ETH
+            {sale.currentPrice && Number(formatEther(BigInt(sale.currentPrice))) >= 1e-9 ? "ETH" : ""}
           </p>
         </div>
         <div className="space-y-1">

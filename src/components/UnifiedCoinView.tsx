@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { mainnet } from "viem/chains";
 import { useReadContract } from "wagmi";
+import { formatEther } from "viem";
 
 import {
   CheckTheChainAbi,
@@ -61,18 +62,73 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
       ];
     }, [coinData]);
 
-  // Calculate market cap in USD
-  const marketCapUsd = useMemo(() => {
-    if (!coinData || !ethPriceData) return null;
+  // Calculate market cap based on phase
+  const { marketCapEth, marketCapUsd, effectiveSwapFee, isZCurveBonding } = useMemo(() => {
+    if (!ethPriceData) {
+      return { 
+        marketCapEth: null, 
+        marketCapUsd: null, 
+        effectiveSwapFee: swapFees, 
+        isZCurveBonding: false 
+      };
+    }
 
     const priceStr = ethPriceData[1];
     const ethPriceUsd = Number.parseFloat(priceStr);
 
-    if (isNaN(ethPriceUsd) || ethPriceUsd === 0) return null;
-    if (coinData.marketCapEth === undefined) return null;
+    if (isNaN(ethPriceUsd) || ethPriceUsd === 0) {
+      return { 
+        marketCapEth: null, 
+        marketCapUsd: null, 
+        effectiveSwapFee: swapFees, 
+        isZCurveBonding: false 
+      };
+    }
 
-    return coinData.marketCapEth * ethPriceUsd;
-  }, [coinData, ethPriceData]);
+    // Check if in active zCurve bonding phase
+    if (zcurveSale && zcurveSale.status === "ACTIVE") {
+      // During bonding curve phase
+      const ethEscrow = Number(formatEther(BigInt(zcurveSale.ethEscrow)));
+      const netSold = Number(formatEther(BigInt(zcurveSale.netSold)));
+      const totalSupply = BigInt(zcurveSale.coin?.totalSupply || "0");
+      const totalSupplyNum = Number(formatEther(totalSupply));
+      
+      // Calculate implied price based on ETH in escrow vs tokens sold
+      let impliedMarketCapEth = 0;
+      if (netSold > 0) {
+        const impliedPrice = ethEscrow / netSold;
+        impliedMarketCapEth = impliedPrice * totalSupplyNum;
+      }
+      
+      return {
+        marketCapEth: impliedMarketCapEth,
+        marketCapUsd: impliedMarketCapEth * ethPriceUsd,
+        effectiveSwapFee: [0n], // 0% during bonding
+        isZCurveBonding: true
+      };
+    }
+
+    // For finalized AMM pools (including graduated zCurve)
+    let actualSwapFee = swapFees;
+    if (zcurveSale && zcurveSale.status === "FINALIZED") {
+      // Extract the actual fee from feeOrHook (it's stored as basis points)
+      const feeOrHook = BigInt(zcurveSale.feeOrHook);
+      // Check if it's a simple fee (not a hook address)
+      if (feeOrHook < 10000n) {
+        actualSwapFee = [feeOrHook];
+      } else {
+        // Default to 30 bps if it's a hook
+        actualSwapFee = [30n];
+      }
+    }
+    
+    return {
+      marketCapEth: coinData?.marketCapEth ?? null,
+      marketCapUsd: coinData?.marketCapEth ? coinData.marketCapEth * ethPriceUsd : null,
+      effectiveSwapFee: actualSwapFee,
+      isZCurveBonding: false
+    };
+  }, [coinData, ethPriceData, zcurveSale, swapFees]);
 
   // Determine pool ID for AMM trading (after zCurve finalization)
   // For zCurve sales, always use 30 bps fee
@@ -110,14 +166,16 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
             description || t("coin.no_description", "No description available")
           }
           imageUrl={imageUrl}
-          swapFee={swapFees}
+          swapFee={effectiveSwapFee}
           isOwner={false}
           type={"COOKBOOK"}
-          marketCapEth={coinData?.marketCapEth ?? 0}
+          marketCapEth={marketCapEth ?? 0}
           marketCapUsd={marketCapUsd ?? 0}
           isEthPriceData={ethPriceData !== undefined}
           tokenURI={tokenURI}
           isLoading={isLoadingCoin}
+          isZCurveBonding={isZCurveBonding}
+          zcurveFeeOrHook={zcurveSale?.feeOrHook}
         />
       </ErrorBoundary>
 

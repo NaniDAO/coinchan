@@ -17,31 +17,35 @@ export function ZCurvePriceImpact({ sale, tradeAmount, tokenAmount, isBuying, cl
   const { t } = useTranslation();
 
   // Helper function to calculate marginal price at a given netSold amount
+  // This matches the zCurve contract's _cost function
   const calculateMarginalPrice = (netSold: bigint, quadCap: bigint, divisor: bigint): bigint => {
-    const m = netSold / UNIT_SCALE;
-    
-    // For very small m values, calculate the actual marginal price
-    // The derivative of m²/(6*divisor) is 2m/(6*divisor) = m/(3*divisor)
-    if (m < 2n) {
-      // Use a minimum value to avoid zero price
-      const minM = m > 0n ? m : 1n;
-      const denom = 3n * divisor;
-      const oneETH = parseEther("1");
-      return (minM * oneETH) / denom;
-    }
-    
-    const K = quadCap / UNIT_SCALE;
-    const denom = 6n * divisor;
     const oneETH = parseEther("1");
     
-    if (m <= K) {
-      // Quadratic phase: price = m² / (6 * divisor)
-      // But we want marginal price, which is derivative: 2m / (6 * divisor)
-      return (2n * m * oneETH) / denom;
-    } else {
-      // Linear phase: constant marginal price = 2K / (6 * divisor)
-      return (2n * K * oneETH) / denom;
-    }
+    // Calculate cost of next UNIT_SCALE tokens
+    const cost = (n: bigint): bigint => {
+      const m = n / UNIT_SCALE;
+      if (m < 2n) return 0n; // First tick free
+      
+      const K = quadCap / UNIT_SCALE;
+      const denom = 6n * divisor;
+      
+      if (m <= K) {
+        // Quadratic phase: sum of squares formula
+        const sumSq = (m * (m - 1n) * (2n * m - 1n)) / 6n;
+        return (sumSq * oneETH) / denom;
+      } else {
+        // Mixed phase
+        const sumK = (K * (K - 1n) * (2n * K - 1n)) / 6n;
+        const quadCost = (sumK * oneETH) / denom;
+        const pK = (K * K * oneETH) / denom;
+        const tailTicks = m - K;
+        const tailCost = pK * tailTicks;
+        return quadCost + tailCost;
+      }
+    };
+    
+    // Marginal price is the cost of the next UNIT_SCALE tokens
+    return cost(netSold + UNIT_SCALE) - cost(netSold);
   };
 
   const priceImpact = useMemo(() => {
@@ -84,26 +88,23 @@ export function ZCurvePriceImpact({ sale, tradeAmount, tokenAmount, isBuying, cl
         } catch {
           return null;
         }
-        const avgPriceForTrade = ethIn * parseEther("1") / tokensOut;
+        // Calculate average price with better precision
+        // avgPrice = ethIn / tokensOut, but we multiply by 1e18 to maintain precision
+        const avgPriceForTrade = tokensOut > 0n ? (ethIn * parseEther("1")) / tokensOut : 0n;
         
         // For buying, impact should be positive (price goes up)
-        if (currentMarginalPrice > parseEther("0.000000001")) { // Above 1 gwei
-          // Compare the average price of the trade to the current marginal price
-          impact = Number(((avgPriceForTrade - currentMarginalPrice) * 10000n) / currentMarginalPrice) / 100;
+        // When both prices are very small or zero, show minimal impact
+        if (currentMarginalPrice === 0n && newMarginalPrice === 0n) {
+          impact = 0;
+        } else if (currentMarginalPrice === 0n) {
+          // Starting from zero, show reasonable impact based on new price
+          impact = 100; // 100% impact when starting from 0
         } else {
-          // When starting from very low prices, calculate impact differently
-          // Compare average price to new marginal price
-          if (newMarginalPrice > 0n && avgPriceForTrade > newMarginalPrice) {
-            // If avg price is higher than new marginal, show moderate impact
-            impact = Number(((avgPriceForTrade - newMarginalPrice) * 10000n) / avgPriceForTrade) / 100;
-            // Cap the impact for better UX when starting from near 0
-            impact = Math.min(impact, 50); // Cap at 50% for near-zero starts
-          } else if (newMarginalPrice > 0n) {
-            // Normal progression
-            impact = 10; // Show 10% for initial purchases
-          } else {
-            impact = 0;
-          }
+          // Normal case: calculate percentage change
+          const priceDiff = newMarginalPrice > currentMarginalPrice 
+            ? newMarginalPrice - currentMarginalPrice 
+            : currentMarginalPrice - newMarginalPrice;
+          impact = Number((priceDiff * 10000n) / currentMarginalPrice) / 100;
         }
         
         isHighImpact = impact > 10; // 10% for buys
@@ -193,16 +194,21 @@ export function ZCurvePriceImpact({ sale, tradeAmount, tokenAmount, isBuying, cl
   const formatPrice = (price: number): string => {
     if (price === 0) return "0";
     
-    // For very small values, use more decimal places
+    // For very small values, use more readable format
     if (price < 1e-15) {
-      return price.toExponential(2);
+      const exp = Math.floor(Math.log10(price));
+      const mantissa = (price / Math.pow(10, exp)).toFixed(2);
+      return `${mantissa}×10^${exp} ETH`;
+    } else if (price < 1e-9) {
+      const gwei = price * 1e9;
+      return `${gwei.toFixed(3)} gwei`;
     } else if (price < 1e-6) {
-      return price.toFixed(9);
+      return price.toFixed(9) + " ETH";
     } else if (price < 1) {
-      return price.toFixed(8);
+      return price.toFixed(8) + " ETH";
     }
     
-    return price.toFixed(6);
+    return price.toFixed(6) + " ETH";
   };
 
   return (
@@ -221,13 +227,13 @@ export function ZCurvePriceImpact({ sale, tradeAmount, tokenAmount, isBuying, cl
           <div className="space-y-1">
             <div className="text-xs text-muted-foreground">
               <span>
-                {t("trade.marginal_price", "Marginal price")}: {formatPrice(priceImpact.currentPrice)} ETH → {formatPrice(priceImpact.newPrice)} ETH
+                {t("trade.marginal_price", "Marginal price")}: {formatPrice(priceImpact.currentPrice)} → {formatPrice(priceImpact.newPrice)}
               </span>
             </div>
             {isBuying && 'avgPrice' in priceImpact && priceImpact.avgPrice !== undefined && (
               <div className="text-xs text-muted-foreground">
                 <span>
-                  {t("trade.avg_price_this_trade", "Avg price for this trade")}: {formatPrice(priceImpact.avgPrice)} ETH/token
+                  {t("trade.avg_price_this_trade", "Avg price for this trade")}: {formatPrice(priceImpact.avgPrice)}/token
                 </span>
               </div>
             )}
