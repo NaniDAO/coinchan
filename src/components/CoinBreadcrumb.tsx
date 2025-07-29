@@ -9,7 +9,6 @@ import {
 import { useTranslation } from "react-i18next";
 import { Logo } from "./Logo";
 import { useZCurveSale } from "@/hooks/use-zcurve-sale";
-import { ChevronLeft } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
 export const CoinBreadcrumb = ({ coinId }: { coinId: bigint }) => {
