@@ -1,11 +1,13 @@
 import { type CoinData, formatImageURL, getAlternativeImageUrls } from "@/hooks/metadata/coin-utils";
 import { useCoinSale } from "@/hooks/use-coin-sale";
+import { useZCurveSale } from "@/hooks/use-zcurve-sale";
 import { cn, formatDeadline } from "@/lib/utils";
 import { Link } from "@tanstack/react-router";
 import { ArrowRightIcon, Clock } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CoinPriceChangeBadge } from "./CoinPriceChangeBadge";
 import { ZCurveSaleBadge } from "./ZCurveSaleBadge";
+import { CreatorDisplay } from "./CreatorDisplay";
 
 interface CoinCardProps {
   coin: any;
@@ -22,6 +24,9 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
   const { data: saleData } = useCoinSale({
     coinId: coin.coinId.toString(),
   });
+  
+  // Fetch zCurve sale data
+  const { data: zCurveSale } = useZCurveSale(coin.coinId.toString());
 
   // Reset states when coin changes
   useEffect(() => {
@@ -135,6 +140,17 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
         <div className="px-2 pb-2">
           <ZCurveSaleBadge coinId={coin.coinId.toString()} />
         </div>
+        
+        {/* Creator display for zCurve coins */}
+        {zCurveSale && zCurveSale.creator && (
+          <div className="px-2 pb-2">
+            <CreatorDisplay 
+              address={zCurveSale.creator} 
+              size="sm"
+              className="text-xs justify-center"
+            />
+          </div>
+        )}
 
         {/* Deadline badge for active tranche sales */}
         {deadlineInfo && (

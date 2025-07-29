@@ -93,18 +93,32 @@ export function ZCurvePriceImpact({ sale, tradeAmount, tokenAmount, isBuying, cl
         const avgPriceForTrade = tokensOut > 0n ? (ethIn * parseEther("1")) / tokensOut : 0n;
         
         // For buying, impact should be positive (price goes up)
-        // When both prices are very small or zero, show minimal impact
-        if (currentMarginalPrice === 0n && newMarginalPrice === 0n) {
-          impact = 0;
-        } else if (currentMarginalPrice === 0n) {
-          // Starting from zero, show reasonable impact based on new price
-          impact = 100; // 100% impact when starting from 0
-        } else {
+        // Calculate the actual price change more accurately
+        if (currentMarginalPrice === 0n && newMarginalPrice > 0n) {
+          // Starting from zero, show 100% impact
+          impact = 100;
+        } else if (currentMarginalPrice > 0n && newMarginalPrice > currentMarginalPrice) {
           // Normal case: calculate percentage change
-          const priceDiff = newMarginalPrice > currentMarginalPrice 
-            ? newMarginalPrice - currentMarginalPrice 
-            : currentMarginalPrice - newMarginalPrice;
+          const priceDiff = newMarginalPrice - currentMarginalPrice;
           impact = Number((priceDiff * 10000n) / currentMarginalPrice) / 100;
+          
+          // For very small impacts, ensure we show at least some change
+          if (impact < 0.001 && tokensOut > UNIT_SCALE) {
+            // Calculate based on average vs marginal price difference
+            const avgDiff = avgPriceForTrade > currentMarginalPrice 
+              ? avgPriceForTrade - currentMarginalPrice
+              : 0n;
+            if (avgDiff > 0n) {
+              impact = Math.max(0.01, Number((avgDiff * 10000n) / currentMarginalPrice) / 100);
+            }
+          }
+        } else if (currentMarginalPrice === newMarginalPrice && tokensOut > 0n) {
+          // Prices appear the same due to rounding, but there's still an impact
+          // Use the ratio of trade size to current supply as a proxy
+          const supplyImpact = Number((tokensOut * 1000n) / (netSold + 1n)) / 10;
+          impact = Math.max(0.01, Math.min(supplyImpact, 1)); // Between 0.01% and 1%
+        } else {
+          impact = 0;
         }
         
         isHighImpact = impact > 10; // 10% for buys
@@ -192,23 +206,32 @@ export function ZCurvePriceImpact({ sale, tradeAmount, tokenAmount, isBuying, cl
 
   // Format very small prices with appropriate precision
   const formatPrice = (price: number): string => {
-    if (price === 0) return "0";
+    if (price === 0) return "0 ETH";
     
-    // For very small values, use more readable format
+    // For extremely small values, use gwei or wei
     if (price < 1e-15) {
-      const exp = Math.floor(Math.log10(price));
-      const mantissa = (price / Math.pow(10, exp)).toFixed(2);
-      return `${mantissa}×10^${exp} ETH`;
+      const wei = price * 1e18;
+      if (wei < 0.001) {
+        return `${wei.toExponential(2)} wei`;
+      }
+      return `${wei.toFixed(3)} wei`;
     } else if (price < 1e-9) {
       const gwei = price * 1e9;
-      return `${gwei.toFixed(3)} gwei`;
+      if (gwei < 0.001) {
+        return `${gwei.toFixed(6)} gwei`;
+      } else if (gwei < 1) {
+        return `${gwei.toFixed(4)} gwei`;
+      }
+      return `${gwei.toFixed(2)} gwei`;
     } else if (price < 1e-6) {
-      return price.toFixed(9) + " ETH";
+      return `${(price * 1e6).toFixed(3)} μETH`;
+    } else if (price < 0.001) {
+      return `${(price * 1000).toFixed(4)} mETH`;
     } else if (price < 1) {
-      return price.toFixed(8) + " ETH";
+      return price.toFixed(6) + " ETH";
     }
     
-    return price.toFixed(6) + " ETH";
+    return price.toFixed(4) + " ETH";
   };
 
   return (
@@ -225,15 +248,18 @@ export function ZCurvePriceImpact({ sale, tradeAmount, tokenAmount, isBuying, cl
             </span>
           </div>
           <div className="space-y-1">
-            <div className="text-xs text-muted-foreground">
-              <span>
-                {t("trade.marginal_price", "Marginal price")}: {formatPrice(priceImpact.currentPrice)} → {formatPrice(priceImpact.newPrice)}
-              </span>
-            </div>
+            {/* Only show price change if there's a meaningful difference */}
+            {Math.abs(priceImpact.newPrice - priceImpact.currentPrice) > priceImpact.currentPrice * 0.0001 && (
+              <div className="text-xs text-muted-foreground">
+                <span>
+                  {t("trade.price_change", "Price")}: {formatPrice(priceImpact.currentPrice)} → {formatPrice(priceImpact.newPrice)}
+                </span>
+              </div>
+            )}
             {isBuying && 'avgPrice' in priceImpact && priceImpact.avgPrice !== undefined && (
               <div className="text-xs text-muted-foreground">
                 <span>
-                  {t("trade.avg_price_this_trade", "Avg price for this trade")}: {formatPrice(priceImpact.avgPrice)}/token
+                  {t("trade.avg_price_this_trade", "Avg price")}: {formatPrice(priceImpact.avgPrice)}
                 </span>
               </div>
             )}

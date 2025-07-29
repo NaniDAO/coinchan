@@ -109,20 +109,29 @@ export function ZCurveSaleProgress({ sale }: ZCurveSaleProgressProps) {
               
               // Format very small prices with better readability
               if (price < 1e-15) {
-                const exp = Math.floor(Math.log10(price));
-                const mantissa = (price / Math.pow(10, exp)).toFixed(2);
-                return `${mantissa}×10^${exp}`;
+                const wei = price * 1e18;
+                if (wei < 0.001) {
+                  return `${wei.toExponential(2)} wei`;
+                }
+                return `${wei.toFixed(3)} wei`;
               }
               if (price < 1e-9) {
                 const gwei = price * 1e9;
-                return `${gwei.toFixed(3)} gwei`;
+                if (gwei < 0.001) {
+                  return `${gwei.toFixed(6)} gwei`;
+                } else if (gwei < 1) {
+                  return `${gwei.toFixed(4)} gwei`;
+                }
+                return `${gwei.toFixed(2)} gwei`;
               }
               if (price < 1e-6) {
-                return price.toFixed(9);
+                return `${(price * 1e6).toFixed(3)} μETH`;
               }
-              return price.toFixed(8);
-            })() : "0"}{" "}
-            {sale.currentPrice && Number(formatEther(BigInt(sale.currentPrice))) >= 1e-9 ? "ETH" : ""}
+              if (price < 0.001) {
+                return `${(price * 1000).toFixed(4)} mETH`;
+              }
+              return `${price.toFixed(6)} ETH`;
+            })() : "0 ETH"}
           </p>
         </div>
         <div className="space-y-1">

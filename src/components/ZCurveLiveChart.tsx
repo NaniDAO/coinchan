@@ -328,6 +328,36 @@ export function ZCurveLiveChart({
   const currentPrice =
     calculateCost(netSold + UNIT_SCALE) - calculateCost(netSold);
   const formattedPrice = formatEther(currentPrice);
+  
+  // Format price in readable units (wei, gwei, etc)
+  const formatReadablePrice = (price: number): string => {
+    if (price === 0) return "0 ETH";
+    
+    // For extremely small values, use gwei or wei
+    if (price < 1e-15) {
+      const wei = price * 1e18;
+      if (wei < 0.001) {
+        return `${wei.toExponential(2)} wei`;
+      }
+      return `${wei.toFixed(3)} wei`;
+    } else if (price < 1e-9) {
+      const gwei = price * 1e9;
+      if (gwei < 0.001) {
+        return `${gwei.toFixed(6)} gwei`;
+      } else if (gwei < 1) {
+        return `${gwei.toFixed(4)} gwei`;
+      }
+      return `${gwei.toFixed(2)} gwei`;
+    } else if (price < 1e-6) {
+      return `${(price * 1e6).toFixed(3)} μETH`;
+    } else if (price < 0.001) {
+      return `${(price * 1000).toFixed(4)} mETH`;
+    } else if (price < 1) {
+      return `${price.toFixed(6)} ETH`;
+    }
+    
+    return `${price.toFixed(4)} ETH`;
+  };
 
   return (
     <div className="space-y-3">
@@ -353,16 +383,7 @@ export function ZCurveLiveChart({
                 {t("sale.current", "Current")}:
               </span>
               <span className="font-medium">
-                {(() => {
-                  const price = Number(formattedPrice);
-                  if (price === 0) return "0";
-                  if (price < 1e-15) return price.toExponential(2);
-                  if (price < 1e-9) return price.toFixed(12);
-                  if (price < 1e-6) return price.toFixed(9);
-                  if (price < 0.01) return price.toFixed(8);
-                  if (price < 1) return price.toFixed(6);
-                  return price.toFixed(4);
-                })()} ETH
+                {formatReadablePrice(Number(formattedPrice))}
               </span>
             </div>
           </div>
@@ -433,22 +454,8 @@ export function ZCurveLiveChart({
                 const nextCost = calculateCost(netSold + UNIT_SCALE);
                 const marginalPrice = nextCost - currentCost;
                 
-                const price = Number(formatEther(marginalPrice));
-                if (price === 0) return "0";
-                if (price < 1e-15) {
-                  const exp = Math.floor(Math.log10(price));
-                  const mantissa = (price / Math.pow(10, exp)).toFixed(2);
-                  return `${mantissa}×10^${exp}`;
-                }
-                if (price < 1e-9) {
-                  const gwei = price * 1e9;
-                  return `${gwei.toFixed(3)} gwei`;
-                }
-                if (price < 1e-6) return price.toFixed(9);
-                if (price < 0.001) return price.toFixed(8);
-                if (price < 1) return price.toFixed(6);
-                return price.toFixed(4);
-              })()} ETH
+                return formatReadablePrice(Number(formatEther(marginalPrice)));
+              })()}
             </div>
           )}
           <div>

@@ -174,6 +174,7 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
           isLoading={isLoadingCoin}
           isZCurveBonding={isZCurveBonding}
           zcurveFeeOrHook={zcurveSale?.feeOrHook}
+          creator={zcurveSale?.creator}
         />
       </ErrorBoundary>
 

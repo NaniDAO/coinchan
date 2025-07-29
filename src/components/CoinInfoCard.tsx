@@ -2,6 +2,8 @@ import { getAlternativeImageUrls } from "@/hooks/metadata";
 import type { CoinSource } from "@/lib/coins";
 import { formatNumber } from "@/lib/utils";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { Address } from "viem";
+import { CreatorDisplay } from "./CreatorDisplay";
 
 interface CoinInfoCardProps {
   coinId: bigint;
@@ -19,6 +21,7 @@ interface CoinInfoCardProps {
   isLoading: boolean;
   isZCurveBonding?: boolean;
   zcurveFeeOrHook?: string;
+  creator?: Address;
 }
 
 export const CoinInfoCard = ({
@@ -37,6 +40,7 @@ export const CoinInfoCard = ({
   isLoading,
   isZCurveBonding = false,
   zcurveFeeOrHook,
+  creator,
 }: CoinInfoCardProps) => {
   // State for tracking image loading and errors
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -152,6 +156,17 @@ export const CoinInfoCard = ({
           <p className="text-sm font-medium description-text mt-1 overflow-y-auto max-h-20 content-transition loaded">
             {description || "No description available"}
           </p>
+        )}
+
+        {/* Creator */}
+        {creator && (
+          <div className="mt-2">
+            <CreatorDisplay 
+              address={creator} 
+              size="sm"
+              className="text-xs"
+            />
+          </div>
         )}
 
         {/* Market Cap Estimation and Swap Fee */}
