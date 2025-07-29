@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { formatEther, parseEther } from "viem";
+import { formatEther } from "viem";
 import {
   createChart,
   type IChartApi,
@@ -383,29 +383,26 @@ export function ZCurveLiveChart({
               {t("sale.current_price_label", "Current Price")}:{" "}
               {(() => {
                 // Calculate marginal price at current netSold
-                const m = netSold / UNIT_SCALE;
-                const K = quadCap / UNIT_SCALE;
-                const denom = 6n * divisor;
-                const oneETH = parseEther("1");
-                
-                let marginalPrice = 0n;
-                if (m < 2n) {
-                  // Use a minimum value to avoid zero price
-                  const minM = m > 0n ? m : 1n;
-                  marginalPrice = (minM * oneETH) / (3n * divisor);
-                } else if (m <= K) {
-                  // Quadratic phase: marginal price = 2m / (6 * divisor)
-                  marginalPrice = (2n * m * oneETH) / denom;
-                } else {
-                  // Linear phase: constant marginal price = 2K / (6 * divisor)
-                  marginalPrice = (2n * K * oneETH) / denom;
-                }
+                // For very early sales, use the actual delta between current and next unit
+                const currentCost = calculateCost(netSold);
+                const nextCost = calculateCost(netSold + UNIT_SCALE);
+                const marginalPrice = nextCost - currentCost;
                 
                 const price = Number(formatEther(marginalPrice));
                 if (price === 0) return "0";
-                if (price < 1e-15) return price.toExponential(2);
+                if (price < 1e-15) {
+                  const exp = Math.floor(Math.log10(price));
+                  const mantissa = (price / Math.pow(10, exp)).toFixed(2);
+                  return `${mantissa}×10^${exp}`;
+                }
+                if (price < 1e-9) {
+                  const gwei = price * 1e9;
+                  return `${gwei.toFixed(3)} gwei`;
+                }
                 if (price < 1e-6) return price.toFixed(9);
-                return price.toFixed(8);
+                if (price < 0.001) return price.toFixed(8);
+                if (price < 1) return price.toFixed(6);
+                return price.toFixed(4);
               })()} ETH
             </div>
           )}
