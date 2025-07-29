@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Badge } from "./ui/badge";
+import { CreatorDisplay } from "./CreatorDisplay";
 
 // GraphQL query
 const GET_ZCURVE_SALES = `
@@ -153,21 +154,45 @@ export const ZCurveSales = () => {
                         <div className="mt-2 space-y-1 text-xs">
                           <div>
                             price: {(() => {
-                              const price = Number.parseFloat(sale.currentPrice);
-                              if (price === 0) return "0";
-                              if (price < 1e-15) return price.toExponential(2);
-                              if (price < 1e-6) return price.toFixed(9);
-                              return price.toFixed(8);
-                            })()}{" "}
-                            ETH
+                              // currentPrice is in wei, need to convert to ETH
+                              const priceInEth = Number(sale.currentPrice) / 1e18;
+                              if (priceInEth === 0) return "0";
+                              if (priceInEth < 1e-15) {
+                                const wei = priceInEth * 1e18;
+                                return `${wei.toExponential(2)} wei`;
+                              }
+                              if (priceInEth < 1e-9) {
+                                const gwei = priceInEth * 1e9;
+                                return `${gwei.toFixed(3)} gwei`;
+                              }
+                              if (priceInEth < 1e-6) {
+                                return `${(priceInEth * 1e6).toFixed(3)} μETH`;
+                              }
+                              if (priceInEth < 0.001) {
+                                return `${(priceInEth * 1000).toFixed(4)} mETH`;
+                              }
+                              return `${priceInEth.toFixed(6)} ETH`;
+                            })()}
                           </div>
                           <div>
-                            funded: {parseFloat(sale.percentFunded).toFixed(1)}%
+                            funded: {(() => {
+                              // Calculate funding percentage from ethEscrow and ethTarget
+                              const ethEscrow = BigInt(sale.ethEscrow);
+                              const ethTarget = BigInt(sale.ethTarget);
+                              if (ethTarget === 0n) return "0.0";
+                              const percentage = Number((ethEscrow * 10000n) / ethTarget) / 100;
+                              return percentage.toFixed(1);
+                            })()}%
                           </div>
                           <div>purchases: {sale.purchases.totalCount}</div>
-                          <div>
-                            creator: {sale.creator.slice(0, 8)}...
-                            {sale.creator.slice(-6)}
+                          <div className="flex items-center gap-1">
+                            <span>creator:</span>
+                            <CreatorDisplay 
+                              address={sale.creator} 
+                              size="sm"
+                              showLabel={false}
+                              className="text-xs"
+                            />
                           </div>
                         </div>
                       </div>
