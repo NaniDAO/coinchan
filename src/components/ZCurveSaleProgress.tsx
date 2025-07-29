@@ -141,6 +141,22 @@ export function ZCurveSaleProgress({ sale }: ZCurveSaleProgressProps) {
               if (price < 0.001) {
                 return `${(price * 1000).toFixed(4)} mETH`;
               }
+              if (price < 0.01) {
+                // Format small numbers with notation like 0.{6}1234
+                const str = price.toFixed(12).replace(/\.?0+$/, '');
+                const parts = str.split('.');
+                if (parts.length === 2 && parts[1].length > 3) {
+                  const leadingZeros = parts[1].match(/^0+/)?.[0].length || 0;
+                  if (leadingZeros >= 3) {
+                    const significantPart = parts[1].slice(leadingZeros);
+                    return (
+                      <span className="font-mono">
+                        0.{`{${leadingZeros}}`}{significantPart.slice(0, 4)} ETH
+                      </span>
+                    );
+                  }
+                }
+              }
               return `${price.toFixed(6)} ETH`;
             })()}
           </p>

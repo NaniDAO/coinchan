@@ -1,9 +1,8 @@
-import { getAlternativeImageUrls } from "@/hooks/metadata";
 import type { CoinSource } from "@/lib/coins";
 import { formatNumber } from "@/lib/utils";
-import { useCallback, useEffect, useRef, useState } from "react";
 import type { Address } from "viem";
 import { CreatorDisplay } from "./CreatorDisplay";
+import { CoinImagePopup } from "./CoinImagePopup";
 
 interface CoinInfoCardProps {
   coinId: bigint;
@@ -42,74 +41,28 @@ export const CoinInfoCard = ({
   zcurveFeeOrHook,
   creator,
 }: CoinInfoCardProps) => {
-  // State for tracking image loading and errors
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageError, setImageError] = useState(false);
-  const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
-  const alternativeUrlsRef = useRef<string[]>([]);
-  const attemptedUrlsRef = useRef<Set<string>>(new Set());
-
-  // Initialize image loading
-  useEffect(() => {
-    if (!imageUrl) return;
-
-    setImageLoaded(false);
-    setImageError(false);
-    attemptedUrlsRef.current = new Set();
-
-    // Generate alternative URLs for fallback
-    alternativeUrlsRef.current = getAlternativeImageUrls(imageUrl);
-
-    setCurrentImageUrl(imageUrl);
-    attemptedUrlsRef.current.add(imageUrl);
-  }, [imageUrl]);
-
-  // Handle image load error with fallback attempt
-  const handleImageError = useCallback(() => {
-    console.error(`Image failed to load for coin ${coinId.toString()}`);
-
-    // Try next alternative URL if available
-    if (alternativeUrlsRef.current.length > 0) {
-      // Find the first URL we haven't tried yet
-      const nextUrl = alternativeUrlsRef.current.find((url) => !attemptedUrlsRef.current.has(url));
-
-      if (nextUrl) {
-        attemptedUrlsRef.current.add(nextUrl);
-        setCurrentImageUrl(nextUrl);
-        // Don't set error yet, we're trying an alternative
-        return;
-      }
-    }
-
-    // If we've exhausted all alternatives, mark as error
-    setImageError(true);
-  }, [coinId]);
+  // Since CoinImagePopup handles its own fallback logic, we just pass the URL
+  const currentImageUrl = imageUrl || null;
 
   return (
     <div
       className={`flex items-start gap-4 mb-4 p-4 border-muted border-2 bg-muted/10 text-muted-foreground rounded-lg content-transition ${isLoading ? "loading" : "loaded fadeIn"}`}
     >
       <div className="flex-shrink-0">
-        <div className="w-16 h-16 relative">
-          {/* Base colored circle (always visible) */}
-          <div
-            className={`w-full h-full flex bg-destructive text-background justify-center items-center rounded-full ${isLoading ? "animate-pulse" : ""}`}
-          >
-            {isLoading ? "TKN" : symbol}
+        {isLoading ? (
+          <div className="w-16 h-16 relative">
+            <div className="w-full h-full flex bg-destructive text-background justify-center items-center rounded-full animate-pulse">
+              TKN
+            </div>
           </div>
-          {/* Use enhanced image loading with fallbacks */}
-          {!isLoading && !imageError && currentImageUrl && (
-            <img
-              src={currentImageUrl}
-              alt={`${symbol} logo`}
-              className={`absolute inset-0 w-full h-full rounded-full object-cover transition-opacity duration-300 ${imageLoaded ? "opacity-100" : "opacity-0"}`}
-              style={{ zIndex: 1 }}
-              onLoad={() => setImageLoaded(true)}
-              onError={handleImageError}
-              loading="lazy"
-            />
-          )}
-        </div>
+        ) : (
+          <CoinImagePopup
+            imageUrl={currentImageUrl}
+            coinName={name}
+            coinSymbol={symbol}
+            size="md"
+          />
+        )}
       </div>
       <div className="flex flex-col flex-grow overflow-hidden">
         <div className="flex items-baseline space-x-2">

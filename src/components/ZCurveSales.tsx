@@ -5,6 +5,8 @@ import { Link } from "@tanstack/react-router";
 import { Badge } from "./ui/badge";
 import { CreatorDisplay } from "./CreatorDisplay";
 import { ZCurveMiniChart } from "./ZCurveMiniChart";
+import { CoinImagePopup } from "./CoinImagePopup";
+import { useTheme } from "@/lib/theme-provider";
 
 // GraphQL query
 const GET_ZCURVE_SALES = `
@@ -85,6 +87,7 @@ const useZCurveSales = () => {
 
 export const ZCurveSales = () => {
   const { data: sales, isLoading, error } = useZCurveSales();
+  const { theme } = useTheme();
 
   if (isLoading) {
     return (
@@ -156,17 +159,13 @@ export const ZCurveSales = () => {
                     <div className="flex items-start gap-4">
                       {/* Coin Image */}
                       <div className="flex-shrink-0">
-                        {sale.coin.imageUrl ? (
-                          <img
-                            src={formatImageURL(sale.coin.imageUrl)}
-                            alt={sale.coin.name}
-                            className="w-8 h-8 border border-black"
-                          />
-                        ) : (
-                          <div className="w-8 h-8 border border-black bg-gray-200 flex items-center justify-center">
-                            <span className="text-xs font-mono">?</span>
-                          </div>
-                        )}
+                        <CoinImagePopup
+                          imageUrl={sale.coin.imageUrl ? formatImageURL(sale.coin.imageUrl) : null}
+                          coinName={sale.coin.name}
+                          coinSymbol={sale.coin.symbol}
+                          size="sm"
+                          className="border border-border"
+                        />
                       </div>
 
                       {/* Sale Info */}
@@ -177,9 +176,13 @@ export const ZCurveSales = () => {
                         <div className="text-gray-600 mt-1">
                           {sale.coin.description}
                         </div>
-                        <div className="mt-2 space-y-1 text-xs">
-                          <div>
-                            {sale.status === "FINALIZED" ? "final" : ""} price: {(() => {
+                        <div className="mt-2 space-y-2 text-xs">
+                          {/* Price and funding info */}
+                          <div className="grid grid-cols-2 gap-x-3 text-[11px]">
+                            <div>
+                              <span className="text-muted-foreground">{sale.status === "FINALIZED" ? "final price:" : "price:"}</span>
+                              <div className="font-medium">
+                                {(() => {
                               // For finalized sales, if currentPrice is 0, calculate from ethEscrow/netSold
                               let priceInWei = Number(sale.currentPrice);
                               
@@ -201,6 +204,25 @@ export const ZCurveSales = () => {
                                 return "0";
                               }
                               
+                              // Helper to format small numbers with visual grouping
+                              const formatSmallNumber = (num: number): string => {
+                                const str = num.toFixed(12).replace(/\.?0+$/, '');
+                                const parts = str.split('.');
+                                if (parts.length === 2 && parts[1].length > 3) {
+                                  // Count leading zeros after decimal
+                                  const leadingZeros = parts[1].match(/^0+/)?.[0].length || 0;
+                                  if (leadingZeros >= 3) {
+                                    // Show as 0.{6}1234 format
+                                    const significantPart = parts[1].slice(leadingZeros);
+                                    return `0.{${leadingZeros}}${significantPart.slice(0, 4)}`;
+                                  }
+                                  // Group digits with thin spaces for readability
+                                  const grouped = parts[1].replace(/(\d{3})(?=\d)/g, '$1 ');
+                                  return `0.${grouped}`;
+                                }
+                                return str;
+                              };
+                              
                               // Format based on size
                               if (priceInEth < 1e-15) {
                                 const wei = priceInEth * 1e18;
@@ -217,14 +239,22 @@ export const ZCurveSales = () => {
                               if (priceInEth < 1e-6) {
                                 return `${(priceInEth * 1e6).toFixed(3)} μETH`;
                               }
-                              if (priceInEth < 0.001) {
-                                return `${(priceInEth * 1000).toFixed(4)} mETH`;
+                              if (priceInEth < 0.01) {
+                                // Use visual separators for small ETH amounts
+                                return (
+                                  <span className="font-mono">
+                                    {formatSmallNumber(priceInEth)} ETH
+                                  </span>
+                                );
                               }
                               return `${priceInEth.toFixed(6)} ETH`;
                             })()}
-                          </div>
-                          <div>
-                            funded: {(() => {
+                              </div>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">funded:</span>
+                              <div className="font-medium">
+                                {(() => {
                               if (sale.status === "FINALIZED") return "100.0";
                               // Calculate funding percentage from ethEscrow and ethTarget
                               const ethEscrow = BigInt(sale.ethEscrow);
@@ -233,15 +263,19 @@ export const ZCurveSales = () => {
                               const percentage = Number((ethEscrow * 10000n) / ethTarget) / 100;
                               return percentage.toFixed(1);
                             })()}%
-                          </div>
-                          <div>purchases: {sale.purchases.totalCount}</div>
-                          <div>unique wallets: {uniqueWallets.size}</div>
-                          {uniqueBuyers.size > 0 && uniqueSellers.size > 0 && (
-                            <div className="text-[11px] opacity-75">
-                              ({uniqueBuyers.size} buyers, {uniqueSellers.size} sellers)
+                              </div>
                             </div>
-                          )}
-                          <div className="flex items-center gap-1">
+                          </div>
+                          
+                          {/* Trading activity */}
+                          <div className="border-t border-border/30 pt-1 text-[11px]">
+                            <div className="font-medium">
+                              buys: {sale.purchases?.totalCount || 0} | sells: {sale.sells?.totalCount || 0} | wallets: {uniqueWallets.size}
+                            </div>
+                          </div>
+                          
+                          {/* Creator */}
+                          <div className="flex items-center gap-1 border-t border-border/30 pt-1">
                             <span>creator:</span>
                             <CreatorDisplay 
                               address={sale.creator} 
@@ -277,8 +311,26 @@ export const ZCurveSales = () => {
                         >
                           {sale.status}
                         </Badge>
-                        <div className="mt-2 text-gray-600">
-                          {new Date(sale.createdAt * 1000).toLocaleDateString()}
+                        <div className="mt-2 text-gray-600 text-[11px]">
+                          <div>{new Date(sale.createdAt * 1000).toLocaleDateString()}</div>
+                          <div>
+                            {(() => {
+                              const deadline = new Date(Number(sale.deadline) * 1000);
+                              const created = new Date(sale.createdAt * 1000);
+                              const durationMs = deadline.getTime() - created.getTime();
+                              const days = Math.round(durationMs / (1000 * 60 * 60 * 24));
+                              
+                              if (days === 14) {
+                                return "→ 2 weeks";
+                              } else if (days === 7) {
+                                return "→ 1 week";
+                              } else if (days === 1) {
+                                return "→ 1 day";
+                              } else {
+                                return `→ ${days} days`;
+                              }
+                            })()}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -300,6 +352,20 @@ export const ZCurveSales = () => {
           )}
         </div>
       </div>
+      
+      {/* Animated Logo */}
+      <video
+        className="fixed bottom-5 right-5 w-32 h-32 md:w-40 md:h-40 opacity-80 pointer-events-none"
+        style={{
+          clipPath: "polygon(50% 10%, 75% 50%, 50% 90%, 25% 50%)",
+          zIndex: 10
+        }}
+        src={theme === "dark" ? "/zammzamm-bw.mp4" : "/zammzamm.mp4"}
+        autoPlay
+        loop
+        muted
+        playsInline
+      />
     </div>
   );
 };
