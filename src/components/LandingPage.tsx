@@ -61,6 +61,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
 
   // Terminal boot animation
   useEffect(() => {
+    // Clear any existing lines when the effect runs
+    setTerminalLines([]);
+    
     const lines = [
       t("landing.initializing"),
       t("landing.connecting_chains"),
@@ -71,7 +74,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
     let currentLine = 0;
     const typeInterval = setInterval(() => {
       if (currentLine < lines.length) {
-        setTerminalLines((prev) => [...prev, lines[currentLine]]);
+        setTerminalLines((prev) => {
+          // Prevent adding duplicate lines
+          if (!prev.includes(lines[currentLine])) {
+            return [...prev, lines[currentLine]];
+          }
+          return prev;
+        });
         currentLine++;
       } else {
         clearInterval(typeInterval);

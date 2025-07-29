@@ -193,11 +193,16 @@ export function ZCurveLiveChart({
     // Add preview visualization if previewAmount is provided
     if (previewAmount && previewAmount > 0n) {
       const startPoint = netSold;
-      const endPoint = isBuying
+      let endPoint = isBuying
         ? netSold + previewAmount
         : netSold - previewAmount;
 
-      if (endPoint >= 0n && endPoint <= saleCap) {
+      // Clamp endPoint to valid range
+      if (endPoint < 0n) endPoint = 0n;
+      if (endPoint > saleCap) endPoint = saleCap;
+
+      // Only show preview if there's actually a change
+      if (endPoint !== startPoint) {
         // Add shaded area for the preview range
         const previewAreaSeries = chart.addSeries(AreaSeries, {
           topColor: isBuying ? 'rgba(59, 130, 246, 0.4)' : 'rgba(239, 68, 68, 0.4)',
@@ -207,14 +212,28 @@ export function ZCurveLiveChart({
           crosshairMarkerVisible: false,
         });
 
-        // Generate preview area data points
+        // Generate preview area data points that follow the exact curve
         const previewDataPoints = [];
-        const step = (endPoint - startPoint) / 20n; // 20 points for smooth curve
-        const actualStep = step > 0n ? step : -step;
-        const stepDirection = step > 0n ? 1n : -1n;
+        const numPoints = 50; // More points for smoother curve
         
-        for (let i = 0n; i <= 20n; i++) {
-          const point = startPoint + (actualStep * i * stepDirection);
+        // Ensure we're going in the right direction
+        const actualStart = isBuying ? startPoint : endPoint;
+        const actualEnd = isBuying ? endPoint : startPoint;
+        
+        // Calculate step size
+        const totalRange = actualEnd > actualStart ? actualEnd - actualStart : actualStart - actualEnd;
+        const stepSize = totalRange / BigInt(numPoints);
+        
+        // Generate points along the curve
+        for (let i = 0; i <= numPoints; i++) {
+          let point: bigint;
+          if (actualEnd > actualStart) {
+            point = actualStart + (stepSize * BigInt(i));
+          } else {
+            point = actualStart - (stepSize * BigInt(i));
+          }
+          
+          // Ensure point is within valid range
           if (point >= 0n && point <= saleCap) {
             const cost = calculateCost(point);
             previewDataPoints.push({
@@ -223,6 +242,9 @@ export function ZCurveLiveChart({
             });
           }
         }
+        
+        // Sort points by time to ensure proper rendering
+        previewDataPoints.sort((a, b) => a.time - b.time);
         
         previewAreaSeries.setData(previewDataPoints);
 
