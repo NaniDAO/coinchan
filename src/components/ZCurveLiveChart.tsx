@@ -20,7 +20,11 @@ interface ZCurveLiveChartProps {
   isBuying?: boolean; // true for buy, false for sell
 }
 
-export function ZCurveLiveChart({ sale, previewAmount, isBuying = true }: ZCurveLiveChartProps) {
+export function ZCurveLiveChart({
+  sale,
+  previewAmount,
+  isBuying = true,
+}: ZCurveLiveChartProps) {
   const { t } = useTranslation();
   const { theme: appTheme } = useTheme();
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -153,7 +157,10 @@ export function ZCurveLiveChart({ sale, previewAmount, isBuying = true }: ZCurve
 
       // Add the current position point
       currentPositionSeries.setData([
-        { time: Number(formatEther(netSold)) as UTCTimestamp, value: Number(formatEther(currentCost)) },
+        {
+          time: Number(formatEther(netSold)) as UTCTimestamp,
+          value: Number(formatEther(currentCost)),
+        },
       ]);
 
       // Add a shadow/glow effect using a larger semi-transparent circle
@@ -167,7 +174,10 @@ export function ZCurveLiveChart({ sale, previewAmount, isBuying = true }: ZCurve
       });
 
       shadowSeries.setData([
-        { time: Number(formatEther(netSold)) as UTCTimestamp, value: Number(formatEther(currentCost)) },
+        {
+          time: Number(formatEther(netSold)) as UTCTimestamp,
+          value: Number(formatEther(currentCost)),
+        },
       ]);
 
       // Add a vertical line at current position
@@ -190,15 +200,23 @@ export function ZCurveLiveChart({ sale, previewAmount, isBuying = true }: ZCurve
       });
 
       const startPoint = netSold;
-      const endPoint = isBuying ? netSold + previewAmount : netSold - previewAmount;
+      const endPoint = isBuying
+        ? netSold + previewAmount
+        : netSold - previewAmount;
 
       if (endPoint >= 0n && endPoint <= saleCap) {
         const startCost = calculateCost(startPoint);
         const endCost = calculateCost(endPoint);
 
         previewSeries.setData([
-          { time: Number(formatEther(startPoint)) as UTCTimestamp, value: Number(formatEther(startCost)) },
-          { time: Number(formatEther(endPoint)) as UTCTimestamp, value: Number(formatEther(endCost)) },
+          {
+            time: Number(formatEther(startPoint)) as UTCTimestamp,
+            value: Number(formatEther(startCost)),
+          },
+          {
+            time: Number(formatEther(endPoint)) as UTCTimestamp,
+            value: Number(formatEther(endCost)),
+          },
         ]);
       }
     }
@@ -250,22 +268,31 @@ export function ZCurveLiveChart({ sale, previewAmount, isBuying = true }: ZCurve
 
   // Calculate sale progress
   const saleProgress = Number((netSold * 100n) / saleCap);
-  const currentPrice = calculateCost(netSold + UNIT_SCALE) - calculateCost(netSold);
+  const currentPrice =
+    calculateCost(netSold + UNIT_SCALE) - calculateCost(netSold);
   const formattedPrice = formatEther(currentPrice);
 
   return (
     <div className="space-y-3">
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium">{t("sale.live_price_curve", "Live Price Curve")}</h3>
+          <h3 className="text-sm font-medium">
+            {t("sale.live_price_curve", "Live Price Curve")}
+          </h3>
           <div className="flex items-center gap-4 text-xs">
             <div className="flex items-center gap-1">
-              <span className="text-muted-foreground">{t("sale.progress", "Progress")}:</span>
+              <span className="text-muted-foreground">
+                {t("sale.progress", "Progress")}:
+              </span>
               <span className="font-medium">{saleProgress.toFixed(1)}%</span>
             </div>
             <div className="flex items-center gap-1">
-              <span className="text-muted-foreground">{t("sale.current", "Current")}:</span>
-              <span className="font-medium">{formattedPrice.slice(0, 8)} ETH</span>
+              <span className="text-muted-foreground">
+                {t("sale.current", "Current")}:
+              </span>
+              <span className="font-medium">
+                {formattedPrice.slice(0, 8)} ETH
+              </span>
             </div>
           </div>
         </div>
@@ -276,7 +303,10 @@ export function ZCurveLiveChart({ sale, previewAmount, isBuying = true }: ZCurve
         )}
       </div>
 
-      <div ref={chartContainerRef} className="w-full h-[400px] bg-background border border-border rounded-lg" />
+      <div
+        ref={chartContainerRef}
+        className="w-full h-[400px] bg-background border border-border rounded-lg"
+      />
 
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <div className="flex items-center gap-4">
@@ -292,19 +322,27 @@ export function ZCurveLiveChart({ sale, previewAmount, isBuying = true }: ZCurve
           )}
           {previewAmount && previewAmount > 0n ? (
             <div className="flex items-center gap-1">
-              <div className={`w-3 h-[2px] ${isBuying ? "bg-blue-500" : "bg-red-500"}`} />
-              <span>{isBuying ? t("trade.buy_preview", "Buy Preview") : t("trade.sell_preview", "Sell Preview")}</span>
+              <div
+                className={`w-3 h-[2px] ${isBuying ? "bg-blue-500" : "bg-red-500"}`}
+              />
+              <span>
+                {isBuying
+                  ? t("trade.buy_preview", "Buy Preview")
+                  : t("trade.sell_preview", "Sell Preview")}
+              </span>
             </div>
           ) : null}
         </div>
         <div className="flex items-center gap-4">
           {netSold > 0n && (
             <div>
-              {t("sale.current_price_label", "Current Price")}: {formatEther(calculateCost(netSold)).slice(0, 8)} ETH
+              {t("sale.current_price_label", "Current Price")}:{" "}
+              {formatEther(calculateCost(netSold)).slice(0, 8)} ETH
             </div>
           )}
           <div>
-            {t("sale.tokens_sold", "Sold")}: {formatEther(netSold).slice(0, 8)} / {formatEther(saleCap).slice(0, 8)}
+            {t("sale.tokens_sold", "Sold")}: {formatEther(netSold).slice(0, 8)}{" "}
+            / {formatEther(saleCap).slice(0, 8)}
           </div>
         </div>
       </div>

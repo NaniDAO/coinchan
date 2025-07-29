@@ -148,7 +148,7 @@ export function UnifiedCoinTrading({
 
   return (
     <div className="w-full">
-      <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
+      <div className="space-y-6">
         {/* Claimable Balance Alert - Most prominent when available */}
         {hasClaimableBalance && (
           <Alert className="border-2 border-primary bg-gradient-to-r from-primary/20 to-primary/10 shadow-xl">
@@ -165,71 +165,6 @@ export function UnifiedCoinTrading({
           </Alert>
         )}
 
-        {/* Sale Status Banner */}
-        {sale && (
-          <Card className="border-2 border-border bg-background hover:shadow-lg transition-all duration-200">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg font-bold">
-                  {isZCurveActive ? (
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-3 h-3 rounded-full bg-green-500"
-                        style={{ boxShadow: "0 0 8px rgba(34, 197, 94, 0.4)" }}
-                      />
-                      {t("trade.zcurve_sale_active", "zCurve Sale Active")}
-                    </div>
-                  ) : isFinalized ? (
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-3 h-3 rounded-full bg-blue-500"
-                        style={{ boxShadow: "0 0 8px rgba(59, 130, 246, 0.4)" }}
-                      />
-                      {t("trade.amm_trading_active", "AMM Trading Active")}
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-3 h-3 rounded-full bg-amber-500"
-                        style={{ boxShadow: "0 0 8px rgba(245, 158, 11, 0.4)" }}
-                      />
-                      {t("trade.sale_expired", "Sale Expired")}
-                    </div>
-                  )}
-                </CardTitle>
-                <Badge
-                  variant={
-                    isZCurveActive
-                      ? "default"
-                      : isFinalized
-                        ? "secondary"
-                        : "outline"
-                  }
-                >
-                  {isFinalized ? "AMM" : sale.status}
-                </Badge>
-              </div>
-              {isZCurveActive && deadline && (
-                <CardDescription>
-                  {t("trade.ends_in", "Ends in")}{" "}
-                  {formatTimeRemaining(deadline)}
-                </CardDescription>
-              )}
-              {isFinalized && hasPool && (
-                <CardDescription>
-                  {t(
-                    "trade.amm_pool_description",
-                    "Trade on Cookbook AMM with instant liquidity",
-                  )}
-                </CardDescription>
-              )}
-            </CardHeader>
-
-            {/* Sale Progress */}
-            {isZCurveActive && <ZCurveSaleProgress sale={sale} />}
-          </Card>
-        )}
-
         {/* Claim Section (if applicable) */}
         {sale?.status === "FINALIZED" && (
           <div className="space-y-4">
@@ -244,8 +179,74 @@ export function UnifiedCoinTrading({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Chart Section - Takes more space on desktop */}
           {isZCurveActive && sale && (
-            <div className="lg:col-span-7">
-              <Card className="border-2 border-border bg-background hover:shadow-lg transition-all duration-200 h-full">
+            <div className="lg:col-span-7 flex flex-col gap-8">
+              <Card className="border-2 border-border bg-background hover:shadow-lg transition-all duration-200">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg font-bold">
+                      {isZCurveActive ? (
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full bg-green-500"
+                            style={{
+                              boxShadow: "0 0 8px rgba(34, 197, 94, 0.4)",
+                            }}
+                          />
+                          {t("trade.zcurve_sale_active", "zCurve Sale Active")}
+                        </div>
+                      ) : isFinalized ? (
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full bg-blue-500"
+                            style={{
+                              boxShadow: "0 0 8px rgba(59, 130, 246, 0.4)",
+                            }}
+                          />
+                          {t("trade.amm_trading_active", "AMM Trading Active")}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full bg-amber-500"
+                            style={{
+                              boxShadow: "0 0 8px rgba(245, 158, 11, 0.4)",
+                            }}
+                          />
+                          {t("trade.sale_expired", "Sale Expired")}
+                        </div>
+                      )}
+                    </CardTitle>
+                    <Badge
+                      variant={
+                        isZCurveActive
+                          ? "default"
+                          : isFinalized
+                            ? "secondary"
+                            : "outline"
+                      }
+                    >
+                      {isFinalized ? "AMM" : sale.status}
+                    </Badge>
+                  </div>
+                  {isZCurveActive && deadline && (
+                    <CardDescription>
+                      {t("trade.ends_in", "Ends in")}{" "}
+                      {formatTimeRemaining(deadline)}
+                    </CardDescription>
+                  )}
+                  {isFinalized && hasPool && (
+                    <CardDescription>
+                      {t(
+                        "trade.amm_pool_description",
+                        "Trade on Cookbook AMM with instant liquidity",
+                      )}
+                    </CardDescription>
+                  )}
+                </CardHeader>
+
+                {isZCurveActive && <ZCurveSaleProgress sale={sale} />}
+              </Card>
+              <Card className="border-2 border-border bg-background hover:shadow-lg transition-all duration-200 h-fit">
                 <CardContent className="pt-6">
                   <ZCurveLiveChart sale={sale} />
                 </CardContent>
