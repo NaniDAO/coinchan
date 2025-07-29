@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 import { handleWalletError, isUserRejectionError } from "@/lib/errors";
 import { toast } from "sonner";
+import { useTheme } from "@/lib/theme";
 
 import { formatEther, parseEther } from "viem";
 import { packQuadCap, UNIT_SCALE } from "@/lib/zCurveHelpers";
@@ -80,6 +81,7 @@ const formatEthAmount = (amount: bigint): string => {
 export function OneShotLaunchForm() {
   const { t, i18n, ready } = useTranslation();
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const { address: account } = useAccount();
   const publicClient = usePublicClient();
   const { data: gasPrice } = useGasPrice();
@@ -176,6 +178,13 @@ export function OneShotLaunchForm() {
     }
     return t("create.oneshot_header", "Fair launch a Coin.\nTrade to find its price.\nThen seed liquidity in zAMM.");
   }, [t, ready, currentLang]);
+
+  // Helper to get translated text with Chinese fallback
+  const getTranslated = useCallback((key: string, defaultText: string, params?: any): string => {
+    if (!ready) return defaultText;
+    const result = t(key, defaultText, params);
+    return typeof result === 'string' ? result : defaultText;
+  }, [t, ready]);
 
   // Handle redirect after successful transaction
   useEffect(() => {
@@ -643,16 +652,16 @@ export function OneShotLaunchForm() {
                 style={{ boxShadow: "0 0 8px var(--primary)" }}
               />
               <h3 className="font-bold text-foreground text-base sm:text-lg flex items-center gap-2">
-                {t("create.instant_coin_sale", "zCurve Bonding Curve Launch")}
+                {getTranslated("create.instant_coin_sale", "Instant Coin Sale")}
                 <Sparkles className="w-4 h-4 text-primary animate-pulse" />
               </h3>
             </div>
             <div className="grid grid-cols-1 gap-2 sm:gap-3 text-xs sm:text-sm relative z-10">
               <div className="border-2 border-border bg-background hover:shadow-md transition-all duration-200 p-2 sm:p-3 rounded-lg">
                 <div className="font-bold text-foreground text-sm sm:text-base">
-                  {t(
+                  {getTranslated(
                     "create.oneshot_supply_breakdown",
-                    "{{totalSupply}} Total Supply: {{saleCap}} bonding curve + {{lpSupply}} liquidity",
+                    "{{totalSupply}} Total: {{saleCap}} bonding curve + {{lpSupply}} liquidity",
                     {
                       totalSupply: displayValues.totalSupply,
                       saleCap: displayValues.saleCap,
@@ -661,7 +670,7 @@ export function OneShotLaunchForm() {
                   )}
                 </div>
                 <div className="text-muted-foreground text-xs mt-1">
-                  {t(
+                  {getTranslated(
                     "create.oneshot_percentages",
                     "{{salePercent}}% public bonding curve • {{lpPercent}}% auto-liquidity",
                     {
@@ -673,10 +682,10 @@ export function OneShotLaunchForm() {
               </div>
               <div className="border-2 border-border bg-background hover:shadow-md transition-all duration-200 p-2 sm:p-3 rounded-lg">
                 <div className="font-bold text-foreground text-sm sm:text-base">
-                  {t("create.oneshot_sale_price", "Bonding Curve: Quadratic → Linear pricing")}
+                  {getTranslated("create.oneshot_sale_price", "Bonding Curve: Quadratic → Linear pricing")}
                 </div>
                 <div className="text-muted-foreground text-xs mt-1">
-                  {t(
+                  {getTranslated(
                     "create.oneshot_sale_note",
                     "Target: {{target}} ETH • Quadratic until {{quadCap}} sold ({{quadPercent}}%) • {{days}} day deadline",
                     {
@@ -690,10 +699,10 @@ export function OneShotLaunchForm() {
               </div>
               <div className="border-2 border-border bg-background hover:shadow-md transition-all duration-200 p-2 sm:p-3 rounded-lg">
                 <div className="font-bold text-foreground text-sm sm:text-base">
-                  {t("create.oneshot_auto_liquidity", "Auto-Finalization: Creates AMM pool on success")}
+                  {getTranslated("create.oneshot_auto_liquidity", "Auto-Finalization: Creates AMM pool on success")}
                 </div>
                 <div className="text-muted-foreground text-xs mt-1">
-                  {t(
+                  {getTranslated(
                     "create.oneshot_instant_trading",
                     "{{lpSupply}} tokens + ETH raised → {{fee}}% fee AMM • Instant trading",
                     {
@@ -842,6 +851,22 @@ export function OneShotLaunchForm() {
           </Link>
         </div>
       </div>
+      
+      {/* Subtle video animation - appears after interaction */}
+      {hasInteracted && (
+        <video
+          className="fixed bottom-5 right-5 w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 opacity-0 animate-fade-in-video"
+          style={{
+            clipPath: "polygon(50% 10%, 75% 50%, 50% 90%, 25% 50%)",
+            animationDelay: "2s",
+          }}
+          src={theme === "dark" ? "/zammzamm-bw.mp4" : "/zammzamm.mp4"}
+          autoPlay
+          loop
+          muted
+          playsInline
+        />
+      )}
     </div>
   );
 }
