@@ -8,7 +8,12 @@ import { ThemeProvider, useTheme } from "./lib/theme";
 import { routeTree } from "./routeTree.gen";
 import { config } from "./wagmi.ts";
 import "@rainbow-me/rainbowkit/styles.css";
-import { type Locale, RainbowKitProvider, darkTheme, lightTheme } from "@rainbow-me/rainbowkit";
+import {
+  type Locale,
+  RainbowKitProvider,
+  darkTheme,
+  lightTheme,
+} from "@rainbow-me/rainbowkit";
 import { WagmiProvider } from "wagmi";
 
 import "./index.css";
@@ -22,6 +27,7 @@ const queryClient = new QueryClient({
     queries: {
       // Reduce the frequency of background refetches
       staleTime: 30000, // 30 seconds
+      gcTime: 1000 * 60 * 60 * 24, // 24 hours
       refetchInterval: false,
       refetchOnWindowFocus: false,
       // Retry less aggressively
