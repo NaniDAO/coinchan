@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { CoinPriceChangeBadge } from "./CoinPriceChangeBadge";
 import { ZCurveSaleBadge } from "./ZCurveSaleBadge";
 import { CreatorDisplay } from "./CreatorDisplay";
+import { ZCurveMiniChart } from "./ZCurveMiniChart";
 
 interface CoinCardProps {
   coin: any;
@@ -149,6 +150,18 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
               size="sm"
               className="text-xs justify-center"
             />
+          </div>
+        )}
+        
+        {/* Bonding curve preview for zCurve sales */}
+        {zCurveSale && (
+          <div className="px-2 pb-2 w-full">
+            <div className="border border-border rounded-sm p-1 bg-muted/20">
+              <ZCurveMiniChart 
+                sale={zCurveSale} 
+                className="h-12 w-full"
+              />
+            </div>
           </div>
         )}
 
