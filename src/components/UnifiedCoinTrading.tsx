@@ -21,7 +21,7 @@ import { FinalizedPoolTrading } from "@/components/FinalizedPoolTrading";
 import { ZCurveActivity } from "@/components/ZCurveActivity";
 import { ZCurvePriceChart } from "@/components/ZCurvePriceChart";
 import { CreatorDisplay } from "@/components/CreatorDisplay";
-import { ZCurveMiniChart } from "@/components/ZCurveMiniChart";
+import { CoinImagePopup } from "@/components/CoinImagePopup";
 
 import {
   useZCurveSale,
@@ -169,6 +169,29 @@ export function UnifiedCoinTrading({
             <div className="lg:col-span-7 flex flex-col gap-8">
               <Card className="border-2 border-border bg-background hover:shadow-lg transition-all duration-200">
                 <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between mb-3">
+                    {/* Coin Image */}
+                    {(coinIcon || sale?.coin?.imageUrl) && (
+                      <CoinImagePopup
+                        imageUrl={coinIcon || sale?.coin?.imageUrl || null}
+                        coinName={coinName || sale?.coin?.name || "Token"}
+                        coinSymbol={coinSymbol || sale?.coin?.symbol}
+                        size="md"
+                        className="border-2 border-border"
+                      />
+                    )}
+                    <Badge
+                      variant={
+                        isZCurveActive
+                          ? "default"
+                          : isFinalized
+                            ? "secondary"
+                            : "outline"
+                      }
+                    >
+                      {isFinalized ? "AMM" : sale.status}
+                    </Badge>
+                  </div>
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg font-bold">
                       {isZCurveActive ? (
@@ -203,17 +226,6 @@ export function UnifiedCoinTrading({
                         </div>
                       )}
                     </CardTitle>
-                    <Badge
-                      variant={
-                        isZCurveActive
-                          ? "default"
-                          : isFinalized
-                            ? "secondary"
-                            : "outline"
-                      }
-                    >
-                      {isFinalized ? "AMM" : sale.status}
-                    </Badge>
                   </div>
                   {isZCurveActive && deadline && (
                     <CardDescription>
@@ -237,16 +249,6 @@ export function UnifiedCoinTrading({
                         size="sm"
                         className="text-xs"
                         showLabel={true}
-                      />
-                    </div>
-                  )}
-                  
-                  {/* Mini bonding curve preview */}
-                  {sale && (
-                    <div className="mt-3 border border-border rounded-sm p-2 bg-muted/20">
-                      <ZCurveMiniChart 
-                        sale={sale} 
-                        className="h-16 w-full"
                       />
                     </div>
                   )}

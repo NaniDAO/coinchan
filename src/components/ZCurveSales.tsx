@@ -156,8 +156,20 @@ export const ZCurveSales = () => {
                               rgba(245, 158, 11, 0.1) 100%)`
                           : `linear-gradient(to right, 
                               rgba(34, 197, 94, 0.05) 0%, 
-                              rgba(34, 197, 94, 0.1) ${Math.min(Number(sale.netSold) / Number(sale.saleCap) * 100, 100)}%, 
-                              transparent ${Math.min(Number(sale.netSold) / Number(sale.saleCap) * 100, 100)}%)`
+                              rgba(34, 197, 94, 0.1) ${(() => {
+                                const ethEscrow = BigInt(sale.ethEscrow);
+                                const ethTarget = BigInt(sale.ethTarget);
+                                if (ethTarget === 0n) return 0;
+                                const percentage = Number((ethEscrow * 10000n) / ethTarget) / 100;
+                                return Math.min(percentage, 100);
+                              })()}%, 
+                              transparent ${(() => {
+                                const ethEscrow = BigInt(sale.ethEscrow);
+                                const ethTarget = BigInt(sale.ethTarget);
+                                if (ethTarget === 0n) return 0;
+                                const percentage = Number((ethEscrow * 10000n) / ethTarget) / 100;
+                                return Math.min(percentage, 100);
+                              })()}%)`
                       }}
                     >
                     <div className="flex items-start gap-4">
@@ -187,17 +199,24 @@ export const ZCurveSales = () => {
                               <span className="text-muted-foreground">{sale.status === "FINALIZED" ? t("sale.final_price_label") : t("sale.price_label")}</span>
                               <div className="font-medium">
                                 {(() => {
-                              // For finalized sales, if currentPrice is 0, calculate from ethEscrow/netSold
+                              // For finalized sales, if currentPrice is 0, calculate from ethTarget or ethEscrow
                               let priceInWei = Number(sale.currentPrice);
                               
                               if (sale.status === "FINALIZED" && priceInWei === 0) {
-                                // Calculate average price from total raised / tokens sold
-                                const ethEscrow = BigInt(sale.ethEscrow);
-                                const netSold = BigInt(sale.netSold);
-                                if (netSold > 0n) {
-                                  // Price per token = ethEscrow / netSold
-                                  // Keep in wei for precision
-                                  priceInWei = Number((ethEscrow * BigInt(1e18)) / netSold);
+                                // For finalized sales, calculate average price from what was actually raised
+                                const tokensSold = BigInt(sale.netSold);
+                                
+                                // Check if we have ethEscrow first (amount in escrow before finalization)
+                                let ethRaised = BigInt(sale.ethEscrow);
+                                
+                                // If ethEscrow is 0 (funds transferred), use ethTarget as approximation
+                                if (ethRaised === 0n) {
+                                  ethRaised = BigInt(sale.ethTarget);
+                                }
+                                
+                                if (tokensSold > 0n && ethRaised > 0n) {
+                                  // Average price per token = total ETH raised / tokens sold
+                                  priceInWei = Number((ethRaised * BigInt(1e18)) / tokensSold);
                                 }
                               }
                               
@@ -348,7 +367,13 @@ export const ZCurveSales = () => {
                       <div 
                         className={`h-full transition-all duration-300 ${sale.status === "FINALIZED" ? "bg-amber-500/50" : "bg-green-500/50"}`}
                         style={{ 
-                          width: sale.status === "FINALIZED" ? '100%' : `${Math.min(Number(sale.netSold) / Number(sale.saleCap) * 100, 100)}%` 
+                          width: sale.status === "FINALIZED" ? '100%' : `${(() => {
+                            const ethEscrow = BigInt(sale.ethEscrow);
+                            const ethTarget = BigInt(sale.ethTarget);
+                            if (ethTarget === 0n) return 0;
+                            const percentage = Number((ethEscrow * 10000n) / ethTarget) / 100;
+                            return Math.min(percentage, 100);
+                          })()}%` 
                         }}
                       />
                     </div>

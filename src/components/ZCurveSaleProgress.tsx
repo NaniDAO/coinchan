@@ -117,8 +117,12 @@ export function ZCurveSaleProgress({ sale }: ZCurveSaleProgressProps) {
               
               // For finalized sales with 0 currentPrice, calculate average price
               if (isFinalized && priceInWei === 0n && netSold > 0n) {
-                // Average price = total ETH raised / tokens sold
-                priceInWei = (ethEscrow * BigInt(1e18)) / netSold;
+                // Use ethEscrow if available, otherwise use ethTarget
+                const ethRaised = ethEscrow > 0n ? ethEscrow : ethTarget;
+                if (ethRaised > 0n) {
+                  // Average price = total ETH raised / tokens sold
+                  priceInWei = (ethRaised * BigInt(1e18)) / netSold;
+                }
               }
               
               const price = Number(formatEther(priceInWei));

@@ -59,15 +59,17 @@ export function CoinImagePopup({
       </button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-w-lg p-0 overflow-hidden">
-          <div className="relative">
-            <img
-              src={imageUrl || ""}
-              alt={`${coinName} logo`}
-              className="w-full h-auto max-h-[80vh] object-contain"
-            />
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background/90 to-transparent p-4">
-              <h3 className="text-lg font-bold text-foreground">
+        <DialogContent className="max-w-2xl sm:max-w-3xl md:max-w-4xl p-0 overflow-hidden">
+          <div className="relative bg-background">
+            <div className="flex items-center justify-center p-8 bg-muted/20">
+              <img
+                src={imageUrl || ""}
+                alt={`${coinName} logo`}
+                className="max-w-full max-h-[70vh] object-contain rounded-lg"
+              />
+            </div>
+            <div className="p-4 border-t border-border">
+              <h3 className="text-xl font-bold text-foreground">
                 {coinName} {coinSymbol && `(${coinSymbol})`}
               </h3>
             </div>
