@@ -10,6 +10,8 @@ import {
   type UTCTimestamp,
   CandlestickSeries,
   AreaSeries,
+  HistogramSeries,
+  type HistogramData,
 } from "lightweight-charts";
 import { useTheme } from "@/lib/theme";
 import { LoadingLogo } from "@/components/ui/loading-logo";
@@ -91,38 +93,64 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
       "1d": 86400,
     }[timeInterval];
     
-    const candles: CandlestickData[] = [];
-    let currentCandle: CandlestickData | null = null;
-    let currentPeriod = 0;
+    const candles = new Map<number, {
+      open: number;
+      high: number;
+      low: number;
+      close: number;
+      openTime: number;
+      closeTime: number;
+      prices: { time: number; price: number }[];
+    }>();
     
+    // Group price points by period
     priceData.forEach(point => {
       const period = Math.floor(point.timestamp / intervalSeconds) * intervalSeconds;
       
-      if (period !== currentPeriod || !currentCandle) {
-        if (currentCandle) {
-          candles.push(currentCandle);
-        }
-        
-        currentCandle = {
-          time: period as UTCTimestamp,
+      if (!candles.has(period)) {
+        candles.set(period, {
           open: point.price,
           high: point.price,
           low: point.price,
           close: point.price,
-        };
-        currentPeriod = period;
-      } else {
-        currentCandle.high = Math.max(currentCandle.high, point.price);
-        currentCandle.low = Math.min(currentCandle.low, point.price);
-        currentCandle.close = point.price;
+          openTime: point.timestamp,
+          closeTime: point.timestamp,
+          prices: [],
+        });
+      }
+      
+      const candle = candles.get(period)!;
+      candle.prices.push({ time: point.timestamp, price: point.price });
+      candle.high = Math.max(candle.high, point.price);
+      candle.low = Math.min(candle.low, point.price);
+      
+      // Update open/close based on actual timestamps
+      if (point.timestamp < candle.openTime) {
+        candle.open = point.price;
+        candle.openTime = point.timestamp;
+      }
+      if (point.timestamp > candle.closeTime) {
+        candle.close = point.price;
+        candle.closeTime = point.timestamp;
       }
     });
     
-    if (currentCandle) {
-      candles.push(currentCandle);
-    }
+    // Convert to array and sort prices within each candle by time
+    const candleArray: CandlestickData[] = Array.from(candles.entries())
+      .map(([period, data]) => {
+        // Sort prices by time to get proper open/close
+        data.prices.sort((a, b) => a.time - b.time);
+        return {
+          time: period as UTCTimestamp,
+          open: data.prices[0]?.price || data.open,
+          high: data.high,
+          low: data.low,
+          close: data.prices[data.prices.length - 1]?.price || data.close,
+        };
+      })
+      .sort((a, b) => a.time - b.time);
     
-    return candles;
+    return candleArray;
   }, [priceData, timeInterval]);
   
   // Line chart data
@@ -133,7 +161,7 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
     }));
   }, [priceData]);
   
-  // Volume data
+  // Volume data with buy/sell differentiation
   const volumeData = React.useMemo(() => {
     const intervalSeconds = {
       "5m": 300,
@@ -142,18 +170,27 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
       "1d": 86400,
     }[timeInterval];
     
-    const volumes = new Map<number, number>();
+    const volumes = new Map<number, { buy: number; sell: number; total: number }>();
     
     priceData.forEach(point => {
       const period = Math.floor(point.timestamp / intervalSeconds) * intervalSeconds;
-      volumes.set(period, (volumes.get(period) || 0) + point.volume);
+      const current = volumes.get(period) || { buy: 0, sell: 0, total: 0 };
+      
+      if (point.type === "buy") {
+        current.buy += point.volume;
+      } else {
+        current.sell += point.volume;
+      }
+      current.total += point.volume;
+      
+      volumes.set(period, current);
     });
     
     return Array.from(volumes.entries())
-      .map(([time, volume]) => ({
+      .map(([time, vol]) => ({
         time: time as UTCTimestamp,
-        value: volume,
-        color: volume > 0 ? 'rgba(34, 197, 94, 0.5)' : 'rgba(239, 68, 68, 0.5)',
+        value: vol.total,
+        color: vol.buy > vol.sell ? '#22c55e' : '#ef4444',
       }))
       .sort((a, b) => a.time - b.time);
   }, [priceData, timeInterval]);
@@ -219,24 +256,16 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
       areaSeries.setData(lineData);
     }
     
-    // Add volume bars
+    // Add volume histogram
     if (volumeData.length > 0) {
-      const volumeSeries = chart.addSeries(CandlestickSeries, {
+      const volumeSeries = chart.addSeries(HistogramSeries, {
         priceScaleId: 'volume',
-        upColor: 'rgba(34, 197, 94, 0.5)',
-        downColor: 'rgba(239, 68, 68, 0.5)',
+        priceFormat: {
+          type: 'volume',
+        },
       });
       
-      // Convert volume to candle format for histogram effect
-      const volumeBars = volumeData.map(v => ({
-        time: v.time,
-        open: 0,
-        high: v.value,
-        low: 0,
-        close: v.value,
-      }));
-      
-      volumeSeries.setData(volumeBars);
+      volumeSeries.setData(volumeData as HistogramData[]);
       
       chart.priceScale('volume').applyOptions({
         scaleMargins: {
@@ -300,8 +329,91 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
     );
   }
   
+  // Calculate summary statistics
+  const stats = React.useMemo(() => {
+    if (priceData.length === 0) return null;
+    
+    const prices = priceData.map(p => p.price);
+    const currentPrice = prices[prices.length - 1];
+    const openPrice = prices[0];
+    const highPrice = Math.max(...prices);
+    const lowPrice = Math.min(...prices);
+    const priceChange = currentPrice - openPrice;
+    const priceChangePercent = (priceChange / openPrice) * 100;
+    const totalVolume = priceData.reduce((sum, p) => sum + p.volume, 0);
+    const buyVolume = priceData.filter(p => p.type === "buy").reduce((sum, p) => sum + p.volume, 0);
+    const sellVolume = totalVolume - buyVolume;
+    
+    return {
+      currentPrice,
+      openPrice,
+      highPrice,
+      lowPrice,
+      priceChange,
+      priceChangePercent,
+      totalVolume,
+      buyVolume,
+      sellVolume,
+    };
+  }, [priceData]);
+
   return (
     <div className="space-y-4">
+      {/* Summary Stats */}
+      {stats && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">{t("chart.current_price", "Current Price")}</p>
+            <p className={cn(
+              "text-sm font-mono font-medium",
+              stats.priceChange >= 0 ? "text-green-600" : "text-red-600"
+            )}>
+              {stats.currentPrice < 0.00001 
+                ? stats.currentPrice.toExponential(3)
+                : stats.currentPrice.toFixed(8)
+              } ETH
+            </p>
+            <p className={cn(
+              "text-xs",
+              stats.priceChange >= 0 ? "text-green-600" : "text-red-600"
+            )}>
+              {stats.priceChange >= 0 ? "+" : ""}{stats.priceChangePercent.toFixed(2)}%
+            </p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">{t("chart.24h_high_low", "24h High/Low")}</p>
+            <p className="text-sm font-mono">
+              {stats.highPrice < 0.00001 
+                ? stats.highPrice.toExponential(3)
+                : stats.highPrice.toFixed(8)
+              }
+            </p>
+            <p className="text-sm font-mono text-muted-foreground">
+              {stats.lowPrice < 0.00001 
+                ? stats.lowPrice.toExponential(3)
+                : stats.lowPrice.toFixed(8)
+              }
+            </p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">{t("chart.volume_24h", "24h Volume")}</p>
+            <p className="text-sm font-mono">{stats.totalVolume.toFixed(4)} ETH</p>
+            <div className="flex gap-2 text-xs">
+              <span className="text-green-600">Buy: {((stats.buyVolume / stats.totalVolume) * 100).toFixed(0)}%</span>
+              <span className="text-red-600">Sell: {((stats.sellVolume / stats.totalVolume) * 100).toFixed(0)}%</span>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">{t("chart.trades", "Trades")}</p>
+            <p className="text-sm font-mono">{priceData.length}</p>
+            <div className="flex gap-2 text-xs">
+              <span className="text-green-600">Buys: {priceData.filter(p => p.type === "buy").length}</span>
+              <span className="text-red-600">Sells: {priceData.filter(p => p.type === "sell").length}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Chart Controls */}
       <div className="flex items-center justify-between">
         <div className="flex gap-2">
@@ -367,11 +479,15 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
       <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 bg-green-500 rounded-sm" />
-          <span>{t("chart.buy_volume", "Buy Volume")}</span>
+          <span>{t("chart.buy_dominant", "Buy Dominant")}</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 bg-red-500 rounded-sm" />
-          <span>{t("chart.sell_volume", "Sell Volume")}</span>
+          <span>{t("chart.sell_dominant", "Sell Dominant")}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-[2px] bg-orange-500" />
+          <span>{t("chart.price_trend", "Price Trend")}</span>
         </div>
       </div>
     </div>
