@@ -704,12 +704,12 @@ export function OneShotLaunchForm() {
               </div>
               <div className="border-2 border-border bg-background hover:shadow-md transition-all duration-200 p-2 sm:p-3 rounded-lg">
                 <div className="font-bold text-foreground text-sm sm:text-base">
-                  {getTranslated("create.oneshot_auto_liquidity", "Auto-Finalization: Creates AMM pool on success")}
+                  {getTranslated("create.oneshot_auto_liquidity", "Auto-Finalization: Creates zAMM pool on success")}
                 </div>
                 <div className="text-muted-foreground text-xs mt-1">
                   {getTranslated(
                     "create.oneshot_instant_trading",
-                    "{{lpSupply}} tokens + ETH raised → {{fee}}% fee AMM • Instant trading",
+                    "{{lpSupply}} tokens + ETH raised → {{fee}}% fee zAMM • Instant trading",
                     {
                       lpSupply: displayValues.lpSupply,
                       fee: displayValues.fee,
