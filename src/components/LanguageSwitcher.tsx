@@ -2,13 +2,8 @@ import { useTranslation } from "react-i18next";
 
 export function LanguageSwitcher() {
   const { i18n } = useTranslation();
-  const currentLanguage = i18n.language;
-
-  // Languages supported
-  const languages = [
-    { code: "en", label: "English" },
-    { code: "zh", label: "中文" },
-  ];
+  // Normalize language code to handle cases like "en-US" -> "en"
+  const currentLanguage = i18n.language.split('-')[0];
 
   // Toggle language handler
   const toggleLanguage = () => {
@@ -18,9 +13,12 @@ export function LanguageSwitcher() {
 
   // Get opposite language label (what user will switch to)
   const getOppositeLanguageLabel = () => {
-    const oppositeLang = currentLanguage === "en" ? "zh" : "en";
-    const lang = languages.find(l => l.code === oppositeLang);
-    return lang ? lang.label : "中文";
+    // Always show the opposite language label
+    if (currentLanguage === "en") {
+      return "中文"; // Show Chinese when in English
+    } else {
+      return "English"; // Show English when in Chinese
+    }
   };
 
   return (

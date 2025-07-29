@@ -6,6 +6,7 @@ import { useAccount, usePublicClient, useWaitForTransactionReceipt, useWriteCont
 import { z } from "zod";
 import { useETHPrice } from "@/hooks/use-eth-price";
 import { ZCurveBondingChart } from "@/components/ZCurveBondingChart";
+import { AnimatedLogo } from "@/components/ui/animated-logo";
 import "@/components/ui/animations.css";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -111,6 +112,10 @@ export function OneShotLaunchForm() {
   // Keep track of the image buffer and upload state
   const [imageBuffer, setImageBuffer] = useState<ArrayBuffer | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  
+  // Animation states
+  const [isFormActive, setIsFormActive] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(false);
 
   // Computed values for display
   const displayValues = useMemo(() => {
@@ -164,6 +169,7 @@ export function OneShotLaunchForm() {
     const processedValue = name === "metadataSymbol" ? value.toUpperCase() : value;
     
     setFormData((prev) => ({ ...prev, [name]: processedValue }));
+    if (!hasInteracted) setHasInteracted(true);
 
     // Clear error for this field when user starts typing
     if (errors[name]) {
@@ -218,6 +224,7 @@ export function OneShotLaunchForm() {
   };
 
   const handleImageFileChange = async (file: File | File[] | undefined) => {
+    if (!hasInteracted) setHasInteracted(true);
     if (file && !Array.isArray(file)) {
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
@@ -392,14 +399,37 @@ export function OneShotLaunchForm() {
   return (
     <div className="container mx-auto px-4 py-6 sm:py-8">
       <div className="max-w-2xl mx-auto">
-        {/* Terminal-style Header */}
-        <div className="mb-8 text-center">
+        {/* Terminal-style Header with Animated Logo */}
+        <div className="mb-8 text-center relative">
+          {/* Floating animated logo - subtle and responsive */}
+          <div 
+            className={`absolute -top-4 -right-4 sm:-top-6 sm:-right-6 transition-all duration-700 ease-out ${
+              hasInteracted ? 'opacity-70 float-animation' : 'opacity-0'
+            }`}
+            style={{
+              transform: hasInteracted ? 'scale(1) rotate(0deg)' : 'scale(0.8) rotate(-15deg)'
+            }}>
+            <AnimatedLogo 
+              size="sm" 
+              animated={isFormActive || isPending} 
+              className="hover:opacity-100 transition-opacity duration-300"
+            />
+          </div>
           <h1 key={i18n.language} className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold text-foreground leading-tight whitespace-pre-line">
             {t("create.oneshot_header")}
           </h1>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form 
+          onSubmit={handleSubmit} 
+          className="space-y-6"
+          onFocus={() => setIsFormActive(true)}
+          onBlur={(e) => {
+            // Only set inactive if focus moved outside the form
+            if (!e.currentTarget.contains(e.relatedTarget)) {
+              setIsFormActive(false);
+            }
+          }}>
           {/* Basic Token Information */}
           <div className="space-y-4">
             <div>
@@ -647,6 +677,16 @@ export function OneShotLaunchForm() {
               quadCap={ONE_SHOT_PARAMS.quadCap}
               currentSold={BigInt(0)}
             />
+            <div className="mt-3 text-center">
+              <a 
+                href="https://curve.zamm.eth.limo/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 underline underline-offset-2"
+              >
+                {t("create.learn_more_zcurve")}
+              </a>
+            </div>
           </div>
 
           {/* Error Display */}

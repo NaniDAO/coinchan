@@ -14,12 +14,8 @@ export function UserSettingsMenu() {
   const { toggleTheme } = useTheme();
   const navigate = useNavigate();
   const { i18n, t } = useTranslation();
-  const currentLanguage = i18n.language;
-
-  const languages = [
-    { code: "en", label: "English" },
-    { code: "zh", label: "中文" },
-  ];
+  // Normalize language code to handle cases like "en-US" -> "en"
+  const currentLanguage = i18n.language.split('-')[0];
 
   const changeLanguage = (code: string) => {
     i18n.changeLanguage(code);
@@ -31,9 +27,12 @@ export function UserSettingsMenu() {
   };
 
   const getOppositeLanguageLabel = () => {
-    const oppositeLang = currentLanguage === "en" ? "zh" : "en";
-    const lang = languages.find(l => l.code === oppositeLang);
-    return lang ? lang.label : "中文";
+    // Always show the opposite language label
+    if (currentLanguage === "en") {
+      return "中文"; // Show Chinese when in English
+    } else {
+      return "English"; // Show English when in Chinese
+    }
   };
 
   return (

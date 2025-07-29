@@ -47,3 +47,33 @@
 .pulse-success {
   animation: pulse-success 2s infinite;
 }
+
+/* Gentle float animation for logos */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.float-animation {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Subtle entrance animation */
+@keyframes fadeInFloat {
+  from {
+    opacity: 0;
+    transform: scale(0.8) rotate(-15deg);
+  }
+  to {
+    opacity: 0.7;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.fade-in-float {
+  animation: fadeInFloat 0.7s ease-out forwards;
+}
