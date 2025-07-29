@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Badge } from "./ui/badge";
 import { CreatorDisplay } from "./CreatorDisplay";
+import { ZCurveMiniChart } from "./ZCurveMiniChart";
 
 // GraphQL query
 const GET_ZCURVE_SALES = `
@@ -197,14 +198,15 @@ export const ZCurveSales = () => {
                         </div>
                       </div>
 
-                      {/* <ZCurveBondingChart
-                        saleCap={BigInt(sale.saleCap)}
-                        divisor={BigInt(sale.divisor)}
-                        ethTarget={BigInt(sale.ethTarget)}
-                        quadCap={BigInt(sale.quadCap)}
-                        currentSold={BigInt(0)}
-                        showMarginalPrice={true}
-                      /> */}
+                      {/* Bonding Curve Chart */}
+                      <div className="flex-shrink-0 w-32">
+                        <div className="border border-border rounded-sm p-1 bg-muted/20">
+                          <ZCurveMiniChart 
+                            sale={sale} 
+                            className="h-16 w-full"
+                          />
+                        </div>
+                      </div>
 
                       {/* Status */}
                       <div className="text-right font-mono text-xs">
