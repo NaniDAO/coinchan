@@ -35,8 +35,8 @@ const ONE_SHOT_PARAMS = {
   creatorUnlock: 0, // No unlock period
   saleCap: quantizeToUnitScale(parseEther("800000000")), // 800M coins for sale (quantized)
   lpSupply: quantizeToUnitScale(parseEther("200000000")), // 200M coins for liquidity (quantized)
-  ethTarget: parseEther("0.01"), // 0.01 ETH target for testing (wei values don't need quantization)
-  divisor: 2193868799999997460800000000001533333333333334n, // Hardcoded divisor for 552M quadCap @ 0.01 ETH target
+  ethTarget: parseEther("10"), // 10 ETH target (wei values don't need quantization)
+  divisor: 2193868799999997460800000000001533333333334n, // Hardcoded divisor for 552M quadCap @ 10 ETH target
   feeOrHook: 30, // 0.3% AMM fee in bps
   quadCap: quantizeToUnitScale(parseEther("552000000")), // 552M (69% of sale supply) for quadratic phase (quantized)
   duration: 60 * 60 * 24 * 14, // 2 weeks in seconds
