@@ -169,8 +169,12 @@ export const TokenSelector = memo(
                         const symbol = item.getAttribute("data-token-symbol")?.toLowerCase() || "";
                         const name = item.getAttribute("data-token-name")?.toLowerCase() || "";
                         const id = item.getAttribute("data-token-id") || "";
+                        
+                        // Enhanced search: also match if query is a number and matches start of ID
+                        const queryIsNumber = !isNaN(Number(query));
+                        const idMatches = queryIsNumber ? id.startsWith(query) : id.toLowerCase().includes(query);
 
-                        if (symbol.includes(query) || name.includes(query) || id.toLowerCase().includes(query)) {
+                        if (symbol.includes(query) || name.includes(query) || idMatches) {
                           item.classList.remove("hidden");
                           anyVisible = true;
                         } else {
@@ -193,8 +197,12 @@ export const TokenSelector = memo(
                           const symbol = item.getAttribute("data-token-symbol")?.toLowerCase() || "";
                           const name = item.getAttribute("data-token-name")?.toLowerCase() || "";
                           const id = item.getAttribute("data-token-id") || "";
+                          
+                          // Enhanced search: also match if query is a number and matches start of ID
+                          const queryIsNumber = !isNaN(Number(query));
+                          const idMatches = queryIsNumber ? id.startsWith(query) : id.toLowerCase().includes(query);
 
-                          if (symbol.includes(query) || name.includes(query) || id.toLowerCase().includes(query)) {
+                          if (symbol.includes(query) || name.includes(query) || idMatches) {
                             item.classList.remove("hidden");
                           } else {
                             item.classList.add("hidden");
@@ -347,7 +355,12 @@ export const TokenSelector = memo(
                     <div className="flex items-center gap-2">
                       <TokenImage token={token} />
                       <div className="flex flex-col">
-                        <span className="font-medium">{token.symbol}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-medium">{token.symbol}</span>
+                          {token.id !== null && (
+                            <span className="text-xs text-muted-foreground">#{token.id.toString()}</span>
+                          )}
+                        </div>
                         {reserves && <span className="text-xs text-muted-foreground">{reserves}</span>}
                       </div>
                     </div>

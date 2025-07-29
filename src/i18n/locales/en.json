@@ -686,7 +686,7 @@
     "new": "New",
     "all": "All",
     "all_coins": "All Coins",
-    "launch_sales": "Launch Sales",
+    "launch_sales": "IZOs",
     "trading_pools": "Trading Pools",
     "no_results": "No results found",
     "available_tokens": "Available tokens",
@@ -1034,7 +1034,7 @@
   },
   "landing": {
     "title": "ZAMM DEFI",
-    "tagline": "The Efficient Ethereum Exchange",
+    "tagline": "Efficient Ethereum Exchange",
     "progress_loading": "[{{progress}}%]",
     "enter_zamm": "ENTER ZAMM",
     "enter_app_aria": "Enter the ZAMM application",

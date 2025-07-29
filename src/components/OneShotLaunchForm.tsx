@@ -1,6 +1,6 @@
 import { zCurveAbi, zCurveAddress } from "@/constants/zCurve";
 import { pinImageToPinata, pinJsonToPinata } from "@/lib/pinata";
-import { type ChangeEvent, useState, useMemo, useCallback, useEffect } from "react";
+import React, { type ChangeEvent, useState, useMemo, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useAccount, usePublicClient, useWaitForTransactionReceipt, useWriteContract, useGasPrice } from "wagmi";
 import { z } from "zod";
@@ -177,8 +177,28 @@ export function OneShotLaunchForm() {
   // Helper to get translated text with Chinese fallback
   const getTranslated = useCallback((key: string, defaultText: string, params?: any): string => {
     if (!ready) return defaultText;
-    const result = t(key, defaultText, params);
-    return typeof result === 'string' ? result : defaultText;
+    
+    // Try to get the translation
+    try {
+      if (params) {
+        // For parameterized translations, pass params correctly
+        const result = t(key, { ...params });
+        if (result && result !== key) {
+          return String(result);
+        }
+      } else {
+        // For simple translations
+        const result = t(key);
+        if (result && result !== key) {
+          return String(result);
+        }
+      }
+    } catch (e) {
+      console.warn('Translation error for key:', key, e);
+    }
+    
+    // Fallback to default text
+    return defaultText;
   }, [t, ready]);
 
   // Calculate form completion percentage
@@ -628,7 +648,7 @@ export function OneShotLaunchForm() {
           </div>
 
           {/* Parameters Display with Landing Page Style */}
-          <div className="border-2 border-border bg-background hover:shadow-lg transition-all duration-200 p-3 sm:p-4 rounded-lg relative overflow-hidden group">
+          <div key={`params-${currentLang}`} className="border-2 border-border bg-background hover:shadow-lg transition-all duration-200 p-3 sm:p-4 rounded-lg relative overflow-hidden group">
             {/* Animated gradient background */}
             <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="flex items-center gap-2 mb-2 sm:mb-3 relative z-10">

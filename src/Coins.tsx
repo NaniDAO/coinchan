@@ -12,10 +12,19 @@ import { debounce } from "./lib/utils";
 // Page size for pagination
 const PAGE_SIZE = 20;
 
-// Helper function to check if a coin should appear in Launch Sales tab
+// Helper function to check if a coin should appear in IZOs tab
 const shouldShowInLaunchSales = (coin: CoinData): boolean => {
   // Show coins that have any sale status (ACTIVE, EXPIRED, FINALIZED)
-  return coin.saleStatus !== null && coin.saleStatus !== undefined;
+  if (coin.saleStatus !== null && coin.saleStatus !== undefined) {
+    return true;
+  }
+  
+  // Also include zCurve coins - they have a specific pattern
+  // zCurve coins typically have high coin IDs and may not have traditional sale status
+  // For now, we'll need to rely on the backend to properly tag these
+  // TODO: Add proper zCurve detection once backend provides the necessary data
+  
+  return false;
 };
 
 function escapeRegExp(input: string): string {

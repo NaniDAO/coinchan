@@ -213,51 +213,20 @@ export function SwapRibbon() {
 
   if (isLoading || error || !data) return null;
 
-  // Add ZAMM GOV #0 as the first item
-  const govItem = {
-    id: "zamm-gov-0",
-    snippet: (
-      <a
-        href="https://snapshot.box/#/s:zamm.eth/proposal/0xbaa757c6d1582374ad60e6b72984903e56d3a1f3f072abc9957bf9a6d01cf3d4"
-        target="_blank"
-        rel="noreferrer"
-        className="text-foreground hover:underline font-medium my-1"
-      >
-        ✔️ ZAMM GOV #0
-      </a>
-    ),
-  };
-
-  // Add CULT feature as the first item
-  const cultItem = {
-    id: "cult-feature",
+  // Add zCurve item as the first item
+  const zCurveItem = {
+    id: "zcurve-launch",
     snippet: (
       <Link
-        to="/cult"
+        to="/oneshot"
         className="text-foreground hover:underline font-medium inline-flex items-center gap-1 align-middle"
       >
-        <img src="/cult.jpg" alt="CULT" className="w-4 h-4 rounded-full inline-block align-middle" />
-        <span className="inline-block align-middle">CULT</span>
+        <span className="inline-block align-middle">zCurve ノ ⏝ ‿ ⌒ 〰</span>
       </Link>
     ),
   };
 
-  // Add Farm (Alpha) as the second item
-  const farmItem = {
-    id: "farm-alpha",
-    snippet: (
-      <a
-        href="https://www.zamm.finance/farm"
-        target="_blank"
-        rel="noreferrer"
-        className="text-foreground hover:underline font-medium"
-      >
-        🌾 [Farm (Alpha)]
-      </a>
-    ),
-  };
-
-  const allItems = [govItem, cultItem, farmItem, ...data];
+  const allItems = [zCurveItem, ...data];
   const repeated = [...allItems, ...allItems]; // Duplicate for seamless scroll
 
   return (
@@ -286,14 +255,14 @@ export function SwapRibbon() {
             key={`${item.id}-${index}`}
             className="inline-flex items-center"
             style={
-              item.id === "farm-alpha" || item.id === "cult-feature"
+              item.id === "zcurve-launch"
                 ? { color: "inherit" }
                 : { color: getColor(item.id) }
             }
           >
             <span className="text-sm shrink-0 inline-flex items-center">{item.snippet}</span>
             <span
-              className={`text-2xl mx-3 inline-flex items-center ${item.id === "farm-alpha" || item.id === "cult-feature" ? "text-foreground" : ""}`}
+              className={`text-2xl mx-3 inline-flex items-center ${item.id === "zcurve-launch" ? "text-foreground" : ""}`}
             >
               /
             </span>
