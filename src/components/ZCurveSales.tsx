@@ -27,6 +27,15 @@ const GET_ZCURVE_SALES = `
         saleCap
         purchases {
           totalCount
+          items {
+            buyer
+          }
+        }
+        sells {
+          totalCount
+          items {
+            seller
+          }
         }
         status
         coin {
@@ -117,27 +126,33 @@ export const ZCurveSales = () => {
             </div>
           ) : (
             <div className="border-l-4 border-border m-0 p-0">
-              {sales.map((sale: any) => (
-                <Link
-                  to="/c/$coinId"
-                  params={{
-                    coinId: sale.coinId,
-                  }}
-                >
-                  <div
+              {sales.map((sale: any) => {
+                // Calculate unique buyers and sellers
+                const uniqueBuyers = new Set(sale.purchases?.items?.map((p: any) => p.buyer) || []);
+                const uniqueSellers = new Set(sale.sells?.items?.map((s: any) => s.seller) || []);
+                const uniqueWallets = new Set([...uniqueBuyers, ...uniqueSellers]);
+                
+                return (
+                  <Link
                     key={sale.coinId}
-                    className="border border-card hover:border-border p-3 bg-card text-card-foreground transition-all duration-100 relative overflow-hidden"
-                    style={{
-                      background: sale.status === "FINALIZED" 
-                        ? `linear-gradient(to right, 
-                            rgba(245, 158, 11, 0.05) 0%, 
-                            rgba(245, 158, 11, 0.1) 100%)`
-                        : `linear-gradient(to right, 
-                            rgba(34, 197, 94, 0.05) 0%, 
-                            rgba(34, 197, 94, 0.1) ${Math.min(Number(sale.netSold) / Number(sale.saleCap) * 100, 100)}%, 
-                            transparent ${Math.min(Number(sale.netSold) / Number(sale.saleCap) * 100, 100)}%)`
+                    to="/c/$coinId"
+                    params={{
+                      coinId: sale.coinId,
                     }}
                   >
+                    <div
+                      className="border border-card hover:border-border p-3 bg-card text-card-foreground transition-all duration-100 relative overflow-hidden"
+                      style={{
+                        background: sale.status === "FINALIZED" 
+                          ? `linear-gradient(to right, 
+                              rgba(245, 158, 11, 0.05) 0%, 
+                              rgba(245, 158, 11, 0.1) 100%)`
+                          : `linear-gradient(to right, 
+                              rgba(34, 197, 94, 0.05) 0%, 
+                              rgba(34, 197, 94, 0.1) ${Math.min(Number(sale.netSold) / Number(sale.saleCap) * 100, 100)}%, 
+                              transparent ${Math.min(Number(sale.netSold) / Number(sale.saleCap) * 100, 100)}%)`
+                      }}
+                    >
                     <div className="flex items-start gap-4">
                       {/* Coin Image */}
                       <div className="flex-shrink-0">
@@ -165,12 +180,35 @@ export const ZCurveSales = () => {
                         <div className="mt-2 space-y-1 text-xs">
                           <div>
                             {sale.status === "FINALIZED" ? "final" : ""} price: {(() => {
-                              // currentPrice is in wei, need to convert to ETH
-                              const priceInEth = Number(sale.currentPrice) / 1e18;
-                              if (priceInEth === 0) return "0";
+                              // For finalized sales, if currentPrice is 0, calculate from ethEscrow/netSold
+                              let priceInWei = Number(sale.currentPrice);
+                              
+                              if (sale.status === "FINALIZED" && priceInWei === 0) {
+                                // Calculate average price from total raised / tokens sold
+                                const ethEscrow = BigInt(sale.ethEscrow);
+                                const netSold = BigInt(sale.netSold);
+                                if (netSold > 0n) {
+                                  // Price per token = ethEscrow / netSold
+                                  // Keep in wei for precision
+                                  priceInWei = Number((ethEscrow * BigInt(1e18)) / netSold);
+                                }
+                              }
+                              
+                              const priceInEth = priceInWei / 1e18;
+                              
+                              // Handle truly zero price
+                              if (priceInEth === 0) {
+                                return "0";
+                              }
+                              
+                              // Format based on size
                               if (priceInEth < 1e-15) {
                                 const wei = priceInEth * 1e18;
-                                return `${wei.toExponential(2)} wei`;
+                                if (wei < 1) {
+                                  // For sub-wei prices (from integer division)
+                                  return `${(priceInWei / 1e18).toExponential(2)} ETH`;
+                                }
+                                return `${wei.toFixed(0)} wei`;
                               }
                               if (priceInEth < 1e-9) {
                                 const gwei = priceInEth * 1e9;
@@ -197,6 +235,12 @@ export const ZCurveSales = () => {
                             })()}%
                           </div>
                           <div>purchases: {sale.purchases.totalCount}</div>
+                          <div>unique wallets: {uniqueWallets.size}</div>
+                          {uniqueBuyers.size > 0 && uniqueSellers.size > 0 && (
+                            <div className="text-[11px] opacity-75">
+                              ({uniqueBuyers.size} buyers, {uniqueSellers.size} sellers)
+                            </div>
+                          )}
                           <div className="flex items-center gap-1">
                             <span>creator:</span>
                             <CreatorDisplay 
@@ -250,7 +294,8 @@ export const ZCurveSales = () => {
                     </div>
                   </div>
                 </Link>
-              ))}
+              );
+              })}
             </div>
           )}
         </div>

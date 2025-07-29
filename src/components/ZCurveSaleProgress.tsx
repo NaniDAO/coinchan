@@ -105,9 +105,18 @@ export function ZCurveSaleProgress({ sale }: ZCurveSaleProgressProps) {
             {isFinalized ? t("sale.final_price", "Final Price") : t("sale.current_price", "Current Price")}
           </p>
           <p className="text-sm font-medium">
-            {sale.currentPrice ? (() => {
-              const price = Number(formatEther(BigInt(sale.currentPrice)));
-              if (price === 0) return "0";
+            {(() => {
+              let priceInWei = sale.currentPrice ? BigInt(sale.currentPrice) : 0n;
+              
+              // For finalized sales with 0 currentPrice, calculate average price
+              if (isFinalized && priceInWei === 0n && netSold > 0n) {
+                // Average price = total ETH raised / tokens sold
+                priceInWei = (ethEscrow * BigInt(1e18)) / netSold;
+              }
+              
+              const price = Number(formatEther(priceInWei));
+              
+              if (price === 0) return "0 ETH";
               
               // Format very small prices with better readability
               if (price < 1e-15) {
@@ -133,7 +142,7 @@ export function ZCurveSaleProgress({ sale }: ZCurveSaleProgressProps) {
                 return `${(price * 1000).toFixed(4)} mETH`;
               }
               return `${price.toFixed(6)} ETH`;
-            })() : "0 ETH"}
+            })()}
           </p>
         </div>
         <div className="space-y-1">
