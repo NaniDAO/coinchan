@@ -3,7 +3,6 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Badge } from "./ui/badge";
-import { ZCurveBondingChart } from "./ZCurveBondingChart";
 
 // GraphQL query
 const GET_ZCURVE_SALES = `
