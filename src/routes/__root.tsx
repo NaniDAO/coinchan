@@ -39,6 +39,7 @@ export const Route = createRootRoute({
       { to: "/swap", label: t("common.swap") },
       { to: "/farm", label: t("common.farm") },
       { to: "/explore", label: t("common.explore") },
+      { to: "/sales", label: t("common.sales") },
     ];
 
     const navLinkClasses = (path: string) =>
