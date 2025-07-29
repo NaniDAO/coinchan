@@ -495,6 +495,69 @@ export function OneShotLaunchForm() {
             </div>
           </div>
 
+          {/* Info Alert */}
+          {!account && (
+            <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
+              <Info className="h-4 w-4 text-blue-600" />
+              <AlertTitle className="text-blue-800 dark:text-blue-200">
+                {t("common.wallet_required", "Wallet Required")}
+              </AlertTitle>
+              <AlertDescription className="text-blue-700 dark:text-blue-300">
+                {t("common.connect_wallet_to_continue", "Please connect your wallet to continue")}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Gas Estimate */}
+          {gasEstimate && (
+            <div className="rounded-lg border-2 border-border bg-muted/50 p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Info className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">
+                    {t("launch.estimated_gas_cost", "Estimated Gas Cost")}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-semibold">
+                    {gasEstimate.eth} ETH
+                    <span className="text-muted-foreground ml-1">
+                      (${gasEstimate.usd})
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {gasEstimate.gas} gas @ {gasEstimate.gwei} gwei
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Submit Button with Landing Style */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Button
+              type="submit"
+              disabled={isPending || !account || isUploading || !isFormValid}
+              className="flex-1 min-h-[44px] font-bold border-2 hover:shadow-lg transition-all duration-200 relative"
+              size="lg"
+            >
+              {isUploading ? (
+                <>
+                  <span className="animate-pulse">{t("common.uploading", "Uploading...")}</span>
+                </>
+              ) : isPending ? (
+                <>
+                  <span className="animate-pulse">{t("create.launching", "Launching...")}</span>
+                </>
+              ) : (
+                <>
+                  <Rocket className="w-4 h-4 mr-2" />
+                  {t("common.launch", "Launch")}
+                </>
+              )}
+            </Button>
+          </div>
+
           {/* Parameters Display with Landing Page Style */}
           <div className="border-2 border-border bg-background hover:shadow-lg transition-all duration-200 p-3 sm:p-4 rounded-lg relative overflow-hidden group">
             {/* Animated gradient background */}
@@ -577,69 +640,6 @@ export function OneShotLaunchForm() {
               quadCap={ONE_SHOT_PARAMS.quadCap}
               currentSold={BigInt(0)}
             />
-          </div>
-
-          {/* Info Alert */}
-          {!account && (
-            <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
-              <Info className="h-4 w-4 text-blue-600" />
-              <AlertTitle className="text-blue-800 dark:text-blue-200">
-                {t("common.wallet_required", "Wallet Required")}
-              </AlertTitle>
-              <AlertDescription className="text-blue-700 dark:text-blue-300">
-                {t("common.connect_wallet_to_continue", "Please connect your wallet to continue")}
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Gas Estimate */}
-          {gasEstimate && (
-            <div className="rounded-lg border-2 border-border bg-muted/50 p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Info className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">
-                    {t("launch.estimated_gas_cost", "Estimated Gas Cost")}
-                  </span>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm font-semibold">
-                    {gasEstimate.eth} ETH
-                    <span className="text-muted-foreground ml-1">
-                      (${gasEstimate.usd})
-                    </span>
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {gasEstimate.gas} gas @ {gasEstimate.gwei} gwei
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Submit Button with Landing Style */}
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Button
-              type="submit"
-              disabled={isPending || !account || isUploading || !isFormValid}
-              className="flex-1 min-h-[44px] font-bold border-2 hover:shadow-lg transition-all duration-200 relative"
-              size="lg"
-            >
-              {isUploading ? (
-                <>
-                  <span className="animate-pulse">{t("common.uploading", "Uploading...")}</span>
-                </>
-              ) : isPending ? (
-                <>
-                  <span className="animate-pulse">{t("create.launching", "Launching...")}</span>
-                </>
-              ) : (
-                <>
-                  <Rocket className="w-4 h-4 mr-2" />
-                  {t("common.launch", "Launch")}
-                </>
-              )}
-            </Button>
           </div>
 
           {/* Error Display */}
