@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ZCurveTrading } from "@/components/ZCurveTrading";
 import { ZCurveClaim } from "@/components/ZCurveClaim";
 import { BuySellCookbookCoin } from "@/components/BuySellCookbookCoin";
+import { BuyCoinSale } from "@/components/BuyCoinSale";
 import { ZCurveSaleProgress } from "@/components/ZCurveSaleProgress";
 import { ZCurveLiveChart } from "@/components/ZCurveLiveChart";
 import { ZCurveReserves } from "@/components/ZCurveReserves";
@@ -25,6 +26,7 @@ import {
   useZCurveFinalization,
   useZCurveSaleSummary,
 } from "@/hooks/use-zcurve-sale";
+import { useCoinSale } from "@/hooks/use-coin-sale";
 import { getExpectedPoolId } from "@/lib/zCurvePoolId";
 import { useAccount } from "wagmi";
 
@@ -59,14 +61,18 @@ export function UnifiedCoinTrading({
   const { data: finalization } = useZCurveFinalization(coinId);
   const { address } = useAccount();
   const { data: saleSummary } = useZCurveSaleSummary(coinId, address);
+  
+  // Check for ZAMMLaunch sale
+  const { data: zammLaunchSale, isLoading: zammLoading } = useCoinSale({
+    coinId: coinId,
+  });
 
-  console.log("ZCURVESALE:", {
-    sale,
-    saleLoading,
-    saleError,
-    saleSummary,
-    computedPoolId: sale ? getExpectedPoolId(sale) : null,
-    feeOrHook: sale?.feeOrHook,
+  console.log("SALES DEBUG:", {
+    coinId,
+    zCurveSale: sale,
+    zammLaunchSale,
+    isZCurveActive: sale && sale.status === "ACTIVE",
+    isZAMMLaunchActive: zammLaunchSale && zammLaunchSale.status === "ACTIVE",
   });
   // Time formatting utility
   const formatTimeRemaining = useMemo(() => {
@@ -92,6 +98,7 @@ export function UnifiedCoinTrading({
   // Memoize computed values to prevent unnecessary recalculations
   const {
     isZCurveActive,
+    isZAMMLaunchActive,
     isFinalized,
     hasPool,
     computedPoolId,
@@ -100,6 +107,9 @@ export function UnifiedCoinTrading({
   } = useMemo(() => {
     const active = sale && sale.status === "ACTIVE";
     const finalized = sale?.status === "FINALIZED" || !!finalization;
+    
+    // Check if ZAMMLaunch sale is active
+    const zammActive = zammLaunchSale && zammLaunchSale.status === "ACTIVE";
 
     // Calculate expected pool ID from sale parameters
     const expectedPoolId = sale ? getExpectedPoolId(sale) : null;
@@ -112,15 +122,16 @@ export function UnifiedCoinTrading({
 
     return {
       isZCurveActive: active,
+      isZAMMLaunchActive: zammActive,
       isFinalized: finalized,
       hasPool: hasPoolValue,
       computedPoolId: poolIdValue,
       deadline: deadlineDate,
       isExpired: expired,
     };
-  }, [sale, finalization, poolId]);
+  }, [sale, finalization, poolId, zammLaunchSale]);
 
-  if (saleLoading) {
+  if (saleLoading || zammLoading) {
     return (
       <Card>
         <CardContent className="py-8">
@@ -265,6 +276,12 @@ export function UnifiedCoinTrading({
                     coinSymbol={coinSymbol}
                     coinIcon={coinIcon}
                     onPreviewChange={setChartPreview}
+                  />
+                ) : isZAMMLaunchActive ? (
+                  <BuyCoinSale
+                    coinId={BigInt(coinId)}
+                    symbol={coinSymbol}
+                    onPriceImpactChange={() => {}} // ZAMMLaunch doesn't have price impact
                   />
                 ) : hasPool ? (
                   <BuySellCookbookCoin
