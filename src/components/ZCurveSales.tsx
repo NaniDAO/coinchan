@@ -83,6 +83,8 @@ const useZCurveSales = () => {
 
       return data.data.zcurveSales.items;
     },
+    refetchInterval: 10000, // Refetch every 10 seconds
+    staleTime: 5000, // Consider data stale after 5 seconds
   });
 };
 
@@ -258,7 +260,11 @@ export const ZCurveSales = () => {
                               <div className="font-medium">
                                 {(() => {
                               if (sale.status === "FINALIZED") return "100.0";
-                              // Calculate funding percentage from ethEscrow and ethTarget
+                              // Use percentFunded from indexer if available (already calculated correctly)
+                              if (sale.percentFunded !== undefined && sale.percentFunded !== null) {
+                                return (sale.percentFunded / 100).toFixed(1);
+                              }
+                              // Otherwise calculate funding percentage from ethEscrow and ethTarget
                               const ethEscrow = BigInt(sale.ethEscrow);
                               const ethTarget = BigInt(sale.ethTarget);
                               if (ethTarget === 0n) return "0.0";

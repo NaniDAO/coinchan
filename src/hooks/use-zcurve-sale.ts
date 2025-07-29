@@ -156,7 +156,8 @@ export function useZCurveSale(coinId: string | undefined) {
       return data.zcurveSale as ZCurveSale | null;
     },
     enabled: !!coinId,
-    staleTime: 10 * 1000, // 10 seconds
+    staleTime: 5 * 1000, // 5 seconds
+    refetchInterval: 10 * 1000, // refetch every 10 seconds
   });
 }
 
@@ -186,7 +187,8 @@ export function useZCurveBalance(coinId: string | undefined, userAddress: Addres
       return data.zcurveBalance as ZCurveBalance | null;
     },
     enabled: !!coinId && !!userAddress,
-    staleTime: 10 * 1000,
+    staleTime: 5 * 1000, // 5 seconds
+    refetchInterval: 10 * 1000, // refetch every 10 seconds
   });
 }
 
@@ -392,7 +394,8 @@ export function useZCurveSaleSummary(coinId: string | undefined, userAddress: Ad
       };
     },
     enabled: !!coinId && !!publicClient,
-    staleTime: 10 * 1000, // 10 seconds
+    staleTime: 5 * 1000, // 5 seconds
+    refetchInterval: 10 * 1000, // refetch every 10 seconds
   });
 }
 

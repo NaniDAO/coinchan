@@ -56,6 +56,7 @@ export function UnifiedCoinTrading({
   const {
     data: sale,
     isLoading: saleLoading,
+    refetch: refetchSale,
   } = useZCurveSale(coinId);
   const { data: finalization } = useZCurveFinalization(coinId);
   
@@ -294,6 +295,7 @@ export function UnifiedCoinTrading({
                     coinSymbol={coinSymbol}
                     coinIcon={coinIcon}
                     onPreviewChange={setChartPreview}
+                    onTransactionSuccess={refetchSale}
                   />
                 ) : isZAMMLaunchActive ? (
                   <BuyCoinSale

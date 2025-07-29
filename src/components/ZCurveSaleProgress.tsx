@@ -5,6 +5,8 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import type { ZCurveSale } from "@/hooks/use-zcurve-sale";
 import { unpackQuadCap } from "@/lib/zCurveHelpers";
+import { useZCurveSaleSummary } from "@/hooks/use-zcurve-sale";
+import { useAccount } from "wagmi";
 
 interface ZCurveSaleProgressProps {
   sale: ZCurveSale;
@@ -12,13 +14,18 @@ interface ZCurveSaleProgressProps {
 
 export function ZCurveSaleProgress({ sale }: ZCurveSaleProgressProps) {
   const { t } = useTranslation();
-
-  const netSold = BigInt(sale.netSold);
-  const saleCap = BigInt(sale.saleCap);
-  const ethEscrow = BigInt(sale.ethEscrow);
-  const ethTarget = BigInt(sale.ethTarget);
-  const quadCap = unpackQuadCap(BigInt(sale.quadCap));
-  const isFinalized = sale.status === "FINALIZED";
+  const { address } = useAccount();
+  
+  // Get real-time onchain data
+  const { data: onchainData } = useZCurveSaleSummary(sale.coinId, address);
+  
+  // Use onchain data if available, otherwise fall back to indexed data
+  const netSold = onchainData ? BigInt(onchainData.netSold) : BigInt(sale.netSold);
+  const saleCap = onchainData ? BigInt(onchainData.saleCap) : BigInt(sale.saleCap);
+  const ethEscrow = onchainData ? BigInt(onchainData.ethEscrow) : BigInt(sale.ethEscrow);
+  const ethTarget = onchainData ? BigInt(onchainData.ethTarget) : BigInt(sale.ethTarget);
+  const quadCap = unpackQuadCap(onchainData ? BigInt(onchainData.quadCap) : BigInt(sale.quadCap));
+  const isFinalized = onchainData ? onchainData.isFinalized : sale.status === "FINALIZED";
 
   const soldPercentage = saleCap > 0n ? Number((netSold * 100n) / saleCap) : 0;
   // Fix funding percentage calculation

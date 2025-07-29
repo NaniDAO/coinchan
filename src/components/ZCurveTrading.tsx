@@ -32,9 +32,10 @@ interface ZCurveTradingProps {
   coinSymbol?: string;
   coinIcon?: string;
   onPreviewChange?: (preview: ChartPreviewData | null) => void;
+  onTransactionSuccess?: () => void;
 }
 
-export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon, onPreviewChange }: ZCurveTradingProps) {
+export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon, onPreviewChange, onTransactionSuccess }: ZCurveTradingProps) {
   const { t } = useTranslation();
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
@@ -49,9 +50,9 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon, onPrevie
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Fetch data
-  const { data: sale, isLoading: saleLoading } = useZCurveSale(coinId);
-  const { data: saleSummary } = useZCurveSaleSummary(coinId, address);
-  const { data: userBalance } = useZCurveBalance(coinId, address);
+  const { data: sale, isLoading: saleLoading, refetch: refetchSale } = useZCurveSale(coinId);
+  const { data: saleSummary, refetch: refetchSummary } = useZCurveSaleSummary(coinId, address);
+  const { data: userBalance, refetch: refetchBalance } = useZCurveBalance(coinId, address);
   const { data: ethBalance } = useBalance({ address });
 
   // Clear preview on unmount
@@ -416,7 +417,7 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon, onPrevie
     }
   };
 
-  // Clear amounts on success
+  // Clear amounts on success and refetch data
   useEffect(() => {
     if (txSuccess && hash) {
       setSellAmount("");
@@ -434,8 +435,16 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon, onPrevie
           </a>
         </div>,
       );
+      
+      // Refetch all data to update UI
+      setTimeout(() => {
+        refetchSale();
+        refetchSummary();
+        refetchBalance();
+        onTransactionSuccess?.();
+      }, 2000); // Wait 2s for indexer to catch up
     }
-  }, [txSuccess, hash, swapDirection, t]);
+  }, [txSuccess, hash, swapDirection, t, refetchSale, refetchSummary, refetchBalance, onTransactionSuccess]);
 
   const saleExpired = sale && BigInt(sale.deadline) < BigInt(Math.floor(Date.now() / 1000));
   const saleFinalized = sale?.status === "FINALIZED";
