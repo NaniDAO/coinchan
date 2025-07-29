@@ -23,7 +23,6 @@ import { ZCurvePriceChart } from "@/components/ZCurvePriceChart";
 import {
   useZCurveSale,
   useZCurveFinalization,
-  useZCurveBalance,
   useZCurveSaleSummary,
 } from "@/hooks/use-zcurve-sale";
 import { getExpectedPoolId } from "@/lib/zCurvePoolId";
@@ -60,7 +59,6 @@ export function UnifiedCoinTrading({
   const { data: finalization } = useZCurveFinalization(coinId);
   const { address } = useAccount();
   const { data: saleSummary } = useZCurveSaleSummary(coinId, address);
-  const { data: userBalance } = useZCurveBalance(coinId, address);
 
   console.log("ZCURVESALE:", {
     sale,
