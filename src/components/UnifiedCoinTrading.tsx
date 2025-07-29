@@ -24,11 +24,9 @@ import { ZCurvePriceChart } from "@/components/ZCurvePriceChart";
 import {
   useZCurveSale,
   useZCurveFinalization,
-  useZCurveSaleSummary,
 } from "@/hooks/use-zcurve-sale";
 import { useCoinSale } from "@/hooks/use-coin-sale";
 import { getExpectedPoolId } from "@/lib/zCurvePoolId";
-import { useAccount } from "wagmi";
 
 interface ChartPreviewData {
   amount: bigint;
@@ -56,11 +54,8 @@ export function UnifiedCoinTrading({
   const {
     data: sale,
     isLoading: saleLoading,
-    error: saleError,
   } = useZCurveSale(coinId);
   const { data: finalization } = useZCurveFinalization(coinId);
-  const { address } = useAccount();
-  const { data: saleSummary } = useZCurveSaleSummary(coinId, address);
   
   // Check for ZAMMLaunch sale
   const { data: zammLaunchSale, isLoading: zammLoading } = useCoinSale({
