@@ -151,6 +151,11 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon, onPrevie
               args: [BigInt(coinId), ethIn],
             });
             setBuyAmount(formatEther(coinsOut));
+            // Update chart preview
+            onPreviewChange?.({
+              amount: coinsOut,
+              isBuying: true,
+            });
           } else {
             // Selling tokens for ETH - use sellRefund
             const coinsIn = parsedValue;
@@ -161,6 +166,11 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon, onPrevie
               args: [BigInt(coinId), coinsIn],
             });
             setBuyAmount(formatEther(ethOut));
+            // Update chart preview
+            onPreviewChange?.({
+              amount: coinsIn,
+              isBuying: false,
+            });
           }
         } else {
           // User is editing buy amount (exact out)

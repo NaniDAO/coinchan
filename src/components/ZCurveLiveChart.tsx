@@ -313,6 +313,11 @@ export function ZCurveLiveChart({
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium">
             {t("sale.live_price_curve", "Live Price Curve")}
+            {previewAmount && previewAmount > 0n ? (
+              <span className={`ml-2 text-xs ${isBuying ? "text-blue-500" : "text-red-500"}`}>
+                ({isBuying ? t("trade.buy_preview", "Buy Preview") : t("trade.sell_preview", "Sell Preview")})
+              </span>
+            ) : null}
           </h3>
           <div className="flex items-center gap-4 text-xs">
             <div className="flex items-center gap-1">
@@ -365,16 +370,34 @@ export function ZCurveLiveChart({
             </div>
           )}
           {previewAmount && previewAmount > 0n ? (
-            <div className="flex items-center gap-1">
-              <div
-                className={`w-3 h-[2px] ${isBuying ? "bg-blue-500" : "bg-red-500"}`}
-              />
-              <span>
-                {isBuying
-                  ? t("trade.buy_preview", "Buy Preview")
-                  : t("trade.sell_preview", "Sell Preview")}
-              </span>
-            </div>
+            <>
+              <div className="flex items-center gap-1">
+                <div
+                  className={`w-3 h-[2px] ${isBuying ? "bg-blue-500" : "bg-red-500"}`}
+                />
+                <span>
+                  {isBuying
+                    ? t("trade.buy_preview", "Buy Preview")
+                    : t("trade.sell_preview", "Sell Preview")}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-xs font-medium">
+                  {(() => {
+                    const currentCost = calculateCost(netSold + UNIT_SCALE) - calculateCost(netSold);
+                    const endPoint = isBuying ? netSold + previewAmount : netSold - previewAmount;
+                    if (endPoint < 0n || endPoint > saleCap) return null;
+                    const newCost = calculateCost(endPoint + UNIT_SCALE) - calculateCost(endPoint);
+                    const priceImpact = ((Number(formatEther(newCost)) - Number(formatEther(currentCost))) / Number(formatEther(currentCost))) * 100;
+                    return (
+                      <span className={priceImpact >= 0 ? "text-red-500" : "text-green-500"}>
+                        {priceImpact >= 0 ? "+" : ""}{priceImpact.toFixed(2)}% {t("trade.price_impact", "impact")}
+                      </span>
+                    );
+                  })()}
+                </span>
+              </div>
+            </>
           ) : null}
         </div>
         <div className="flex items-center gap-4">
