@@ -77,7 +77,7 @@ const formatEthAmount = (amount: bigint): string => {
 };
 
 export function OneShotLaunchForm() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { address: account } = useAccount();
   const publicClient = usePublicClient();
   const { data: gasPrice } = useGasPrice();
@@ -394,7 +394,7 @@ export function OneShotLaunchForm() {
       <div className="max-w-2xl mx-auto">
         {/* Terminal-style Header */}
         <div className="mb-8 text-center">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold text-foreground leading-tight whitespace-pre-line">
+          <h1 key={i18n.language} className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold text-foreground leading-tight whitespace-pre-line">
             {t("create.oneshot_header")}
           </h1>
         </div>
