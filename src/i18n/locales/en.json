@@ -657,6 +657,7 @@
     "max_raise": "Max Raise",
     "quadratic_phase": "Quadratic Phase",
     "linear_price": "Linear Price",
+    "until_tokens": "Until {{amount}} tokens",
     "price_curve": "Price Curve",
     "eth_target": "ETH Target",
     "linear_phase": "Linear Phase",
@@ -1048,6 +1049,8 @@
     "coins": "coins",
     "gas": "gas",
     "cost": "cost",
+    "load": "load",
+    "governance": "governance",
     "stats": {
       "eth_price": "ETH Price:",
       "gas_price": "Gas Price:",

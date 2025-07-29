@@ -574,6 +574,7 @@
     "max_raise": "最大募集",
     "quadratic_phase": "二次方阶段",
     "linear_price": "线性价格",
+    "until_tokens": "直到 {{amount}} 代币",
     "name_required": "名称是必填项",
     "name_max_length": "名称必须少于100个字符",
     "symbol_required": "符号是必填项",
@@ -1158,6 +1159,8 @@
     "coins": "代币数量",
     "gas": "gas",
     "cost": "费用",
+    "load": "加载",
+    "governance": "治理",
     "stats": {
       "eth_price": "ETH 价格：",
       "gas_price": "Gas 价格：",

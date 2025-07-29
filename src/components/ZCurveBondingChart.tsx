@@ -662,7 +662,9 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
               {t("create.quadratic_phase", "Quadratic Phase")}
             </div>
             <div className="font-medium">
-              Until {Number(formatEther(quadCap)).toLocaleString()} tokens
+              {t("create.until_tokens", "Until {{amount}} tokens", {
+                amount: Number(formatEther(quadCap)).toLocaleString()
+              })}
             </div>
           </div>
           <div className="text-center p-2 bg-muted/30 rounded">

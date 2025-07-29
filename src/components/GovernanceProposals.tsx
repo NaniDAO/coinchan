@@ -1,5 +1,6 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 
 interface SnapshotProposal {
   id: string;
@@ -119,6 +120,7 @@ const truncateTitle = (title: string, maxLength: number = 35): string => {
 };
 
 export const GovernanceProposals: React.FC = () => {
+  const { t } = useTranslation();
   const { data: proposals, isLoading, error } = useSnapshotProposals();
 
   if (isLoading) {
@@ -142,7 +144,7 @@ export const GovernanceProposals: React.FC = () => {
 
   return (
     <div className="mb-6">
-      <div className="text-lg mb-2 font-bold">governance:</div>
+      <div className="text-lg mb-2 font-bold">{t("landing.governance")}:</div>
       <div className="text-xs space-y-1">
         {proposals.map((proposal) => (
           <div

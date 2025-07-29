@@ -79,7 +79,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
     }, 600);
 
     return () => clearInterval(typeInterval);
-  }, []);
+  }, [t]);
 
   const handleEnterApp = () => {
     if (onEnterApp) {
@@ -118,7 +118,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
           <span className="animate-pulse">_</span>
         </div>
         <div className="flex items-center gap-2 text-xs">
-          <span>load:</span>
+          <span>{t("landing.load")}:</span>
           <div className="bg-muted h-1 w-32 border border-border">
             <div
               className="h-full bg-primary transition-all duration-300"
