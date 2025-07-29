@@ -88,17 +88,15 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
     // Check if in active zCurve bonding phase
     if (zcurveSale && zcurveSale.status === "ACTIVE") {
       // During bonding curve phase
-      const ethEscrow = Number(formatEther(BigInt(zcurveSale.ethEscrow)));
-      const netSold = Number(formatEther(BigInt(zcurveSale.netSold)));
       const totalSupply = BigInt(zcurveSale.coin?.totalSupply || "0");
       const totalSupplyNum = Number(formatEther(totalSupply));
       
-      // Calculate implied price based on ETH in escrow vs tokens sold
-      let impliedMarketCapEth = 0;
-      if (netSold > 0) {
-        const impliedPrice = ethEscrow / netSold;
-        impliedMarketCapEth = impliedPrice * totalSupplyNum;
-      }
+      // Use the current price from the bonding curve
+      // The currentPrice is in ETH per token (with 18 decimals)
+      const currentPrice = Number(formatEther(BigInt(zcurveSale.currentPrice || "0")));
+      
+      // Calculate implied market cap based on current bonding curve price
+      const impliedMarketCapEth = currentPrice * totalSupplyNum;
       
       return {
         marketCapEth: impliedMarketCapEth,

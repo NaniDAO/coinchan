@@ -326,7 +326,16 @@ export function ZCurveLiveChart({
                 {t("sale.current", "Current")}:
               </span>
               <span className="font-medium">
-                {formattedPrice.slice(0, 8)} ETH
+                {(() => {
+                  const price = Number(formattedPrice);
+                  if (price === 0) return "0";
+                  if (price < 1e-15) return price.toExponential(2);
+                  if (price < 1e-9) return price.toFixed(12);
+                  if (price < 1e-6) return price.toFixed(9);
+                  if (price < 0.01) return price.toFixed(8);
+                  if (price < 1) return price.toFixed(6);
+                  return price.toFixed(4);
+                })()} ETH
               </span>
             </div>
           </div>

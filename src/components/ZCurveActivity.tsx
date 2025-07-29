@@ -73,6 +73,10 @@ export function ZCurveActivity({ coinId, coinSymbol }: ZCurveActivityProps) {
   // Format price with appropriate precision
   const formatPrice = (price: string) => {
     const priceNum = Number(formatEther(BigInt(price)));
+    // Handle very small numbers
+    if (priceNum === 0) return "0";
+    if (priceNum < 1e-12) return priceNum.toExponential(2);
+    if (priceNum < 1e-9) return priceNum.toFixed(12);
     if (priceNum < 1e-6) return priceNum.toFixed(9);
     if (priceNum < 0.01) return priceNum.toFixed(8);
     if (priceNum < 1) return priceNum.toFixed(6);

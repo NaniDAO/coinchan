@@ -320,21 +320,21 @@ export function UnifiedCoinTrading({
                         •{" "}
                         {t(
                           "trade.zcurve_info_1",
-                          "Tokens are traded on a bonding curve during the sale",
+                          "Tokens are traded on a bonding curve during sale",
                         )}
                       </p>
                       <p>
                         •{" "}
                         {t(
                           "trade.zcurve_info_3",
-                          "You can buy and sell at any time during the sale",
+                          "You can buy and sell at any time during sale",
                         )}
                       </p>
                       <p>
                         •{" "}
                         {t(
                           "trade.zcurve_info_4",
-                          "After finalization, liquidity moves to an AMM pool",
+                          "After finalization, liquidity moves to AMM pool",
                         )}
                       </p>
                     </>
