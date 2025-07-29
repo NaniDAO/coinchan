@@ -128,10 +128,14 @@ export const ZCurveSales = () => {
                     key={sale.coinId}
                     className="border border-card hover:border-border p-3 bg-card text-card-foreground transition-all duration-100 relative overflow-hidden"
                     style={{
-                      background: `linear-gradient(to right, 
-                        rgba(34, 197, 94, 0.05) 0%, 
-                        rgba(34, 197, 94, 0.1) ${Math.min(Number(sale.netSold) / Number(sale.saleCap) * 100, 100)}%, 
-                        transparent ${Math.min(Number(sale.netSold) / Number(sale.saleCap) * 100, 100)}%)`
+                      background: sale.status === "FINALIZED" 
+                        ? `linear-gradient(to right, 
+                            rgba(245, 158, 11, 0.05) 0%, 
+                            rgba(245, 158, 11, 0.1) 100%)`
+                        : `linear-gradient(to right, 
+                            rgba(34, 197, 94, 0.05) 0%, 
+                            rgba(34, 197, 94, 0.1) ${Math.min(Number(sale.netSold) / Number(sale.saleCap) * 100, 100)}%, 
+                            transparent ${Math.min(Number(sale.netSold) / Number(sale.saleCap) * 100, 100)}%)`
                     }}
                   >
                     <div className="flex items-start gap-4">
@@ -160,7 +164,7 @@ export const ZCurveSales = () => {
                         </div>
                         <div className="mt-2 space-y-1 text-xs">
                           <div>
-                            price: {(() => {
+                            {sale.status === "FINALIZED" ? "final" : ""} price: {(() => {
                               // currentPrice is in wei, need to convert to ETH
                               const priceInEth = Number(sale.currentPrice) / 1e18;
                               if (priceInEth === 0) return "0";
@@ -183,6 +187,7 @@ export const ZCurveSales = () => {
                           </div>
                           <div>
                             funded: {(() => {
+                              if (sale.status === "FINALIZED") return "100.0";
                               // Calculate funding percentage from ethEscrow and ethTarget
                               const ethEscrow = BigInt(sale.ethEscrow);
                               const ethTarget = BigInt(sale.ethTarget);
@@ -221,6 +226,8 @@ export const ZCurveSales = () => {
                             "border border-border px-2 py-1",
                             sale.status === "ACTIVE"
                               ? "bg-green-500 text-white"
+                              : sale.status === "FINALIZED"
+                              ? "bg-amber-500 text-white"
                               : "bg-gray-200 text-gray-600",
                           )}
                         >
@@ -235,9 +242,9 @@ export const ZCurveSales = () => {
                     {/* Progress bar at bottom */}
                     <div className="absolute bottom-0 left-0 right-0 h-1 bg-border/20">
                       <div 
-                        className="h-full bg-green-500/50 transition-all duration-300"
+                        className={`h-full transition-all duration-300 ${sale.status === "FINALIZED" ? "bg-amber-500/50" : "bg-green-500/50"}`}
                         style={{ 
-                          width: `${Math.min(Number(sale.netSold) / Number(sale.saleCap) * 100, 100)}%` 
+                          width: sale.status === "FINALIZED" ? '100%' : `${Math.min(Number(sale.netSold) / Number(sale.saleCap) * 100, 100)}%` 
                         }}
                       />
                     </div>

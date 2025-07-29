@@ -9,11 +9,13 @@ interface ZCurveMiniChartProps {
 }
 
 export function ZCurveMiniChart({ sale, className = "" }: ZCurveMiniChartProps) {
+  const isFinalized = sale.status === "FINALIZED";
+  
   const chartData = useMemo(() => {
     const saleCap = BigInt(sale.saleCap);
     const divisor = BigInt(sale.divisor);
     const quadCap = unpackQuadCap(BigInt(sale.quadCap));
-    const netSold = BigInt(sale.netSold);
+    const netSold = isFinalized ? saleCap : BigInt(sale.netSold);
     
     // Calculate cost using the exact contract formula
     const calculateCost = (n: bigint): bigint => {
@@ -115,7 +117,7 @@ export function ZCurveMiniChart({ sale, className = "" }: ZCurveMiniChartProps) 
           fill="none"
           stroke="currentColor"
           strokeWidth="1.5"
-          className="text-green-500"
+          className={isFinalized ? "text-amber-500" : "text-green-500"}
         />
         
         {/* Fill area under curve up to current position */}
@@ -151,7 +153,7 @@ export function ZCurveMiniChart({ sale, className = "" }: ZCurveMiniChartProps) 
               return `${fillPath} L ${currentX} 40 L 0 40 Z`;
             })()}
             fill="currentColor"
-            className="text-green-500 opacity-20"
+            className={isFinalized ? "text-amber-500 opacity-20" : "text-green-500 opacity-20"}
           />
         )}
         
@@ -161,7 +163,7 @@ export function ZCurveMiniChart({ sale, className = "" }: ZCurveMiniChartProps) 
           cy={40 - (currentY / maxY) * 35}
           r="2"
           fill="currentColor"
-          className="text-amber-500"
+          className={isFinalized ? "text-amber-600" : "text-amber-500"}
         />
         
         {/* Progress line */}
@@ -173,13 +175,13 @@ export function ZCurveMiniChart({ sale, className = "" }: ZCurveMiniChartProps) 
           stroke="currentColor"
           strokeWidth="0.5"
           strokeDasharray="2,2"
-          className="text-amber-500 opacity-50"
+          className={isFinalized ? "text-amber-500 opacity-50" : "text-amber-500 opacity-50"}
         />
       </svg>
       
       {/* Progress percentage */}
-      <div className="absolute bottom-0 right-0 text-[10px] font-mono font-bold text-muted-foreground bg-background/80 px-1 rounded-sm">
-        {progress.toFixed(1)}%
+      <div className={`absolute bottom-0 right-0 text-[10px] font-mono font-bold ${isFinalized ? 'text-amber-600' : 'text-muted-foreground'} bg-background/80 px-1 rounded-sm`}>
+        {isFinalized ? '100.0%' : `${progress.toFixed(1)}%`}
       </div>
     </div>
   );
