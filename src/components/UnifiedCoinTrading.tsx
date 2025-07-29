@@ -270,6 +270,7 @@ export function UnifiedCoinTrading({
                   <BuySellCookbookCoin
                     coinId={BigInt(coinId)}
                     symbol={coinSymbol}
+                    hideZAMMLaunchClaim={isFinalized} // Hide for zCurve graduated coins
                   />
                 ) : (
                   <Alert>

@@ -5,7 +5,7 @@ import { useAccount } from "wagmi";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CookbookSwapTile } from "@/components/CookbookSwapTile";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ZCurveClaim } from "@/components/ZCurveClaim";
 import { useETHPrice } from "@/hooks/use-eth-price";
 import { ZCurveAddLiquidity } from "@/components/ZCurveAddLiquidity";
@@ -61,8 +61,10 @@ function FinalizedPoolTradingInner({
     if (providedPoolId) return providedPoolId;
     // Use feeOrHook from sale data, default to 30 bps (0.3% fee) if not available
     const feeOrHook = sale?.feeOrHook ? BigInt(sale.feeOrHook) : 30n;
-    const finalFee = feeOrHook === 0n ? 30n : feeOrHook; // Default to 30 bps if 0
-    return computeZCurvePoolId(BigInt(coinId), finalFee);
+    // Check if feeOrHook is a simple fee (< 10000) or a hook address
+    const finalFee = feeOrHook < 10000n ? feeOrHook : 30n; // Use actual fee or default to 30 bps for hooks
+    const computedPoolId = computeZCurvePoolId(BigInt(coinId), finalFee);
+    return computedPoolId;
   }, [providedPoolId, coinId, sale]);
 
   // Fetch pool reserves
@@ -71,16 +73,6 @@ function FinalizedPoolTradingInner({
     source: "COOKBOOK" as const,
   });
 
-  // Debug logging
-  console.log("FinalizedPoolTrading Debug:", {
-    coinId,
-    sale,
-    feeOrHook: sale?.feeOrHook,
-    poolId,
-    reserves,
-    reserve0: reserves?.reserve0?.toString(),
-    reserve1: reserves?.reserve1?.toString(),
-  });
 
   // Create token metadata objects for ETH and the coin
   const ethToken = useMemo<TokenMeta>(
@@ -146,14 +138,18 @@ function FinalizedPoolTradingInner({
 
   // Calculate market cap and price
   const { coinPrice, coinUsdPrice, marketCapUsd } = useMemo(() => {
-    const price =
-      reserves?.reserve0 &&
-      reserves?.reserve1 &&
-      reserves.reserve0 > 0n &&
-      reserves.reserve1 > 0n
-        ? Number(formatEther(reserves.reserve0)) /
-          Number(formatUnits(reserves.reserve1, 18))
-        : 0;
+    if (!reserves || reserves.reserve0 === 0n || reserves.reserve1 === 0n) {
+      return {
+        coinPrice: 0,
+        coinUsdPrice: 0,
+        marketCapUsd: 0,
+      };
+    }
+
+    // Price = ETH reserve / Token reserve
+    const ethReserve = Number(formatEther(reserves.reserve0));
+    const tokenReserve = Number(formatUnits(reserves.reserve1, 18));
+    const price = ethReserve / tokenReserve;
 
     const usdPrice = price * (ethPrice?.priceUSD || 0);
     // Use 1 billion (1e9) as the total supply for all zCurve launched tokens
@@ -165,25 +161,10 @@ function FinalizedPoolTradingInner({
       coinUsdPrice: usdPrice,
       marketCapUsd: marketCap,
     };
-  }, [reserves, ethPrice?.priceUSD, sale]);
+  }, [reserves, ethPrice?.priceUSD]);
 
   return (
     <div>
-      {/* Claimable Balance Alert */}
-      {hasClaimableBalance && (
-        <Alert className="mb-4 sm:mb-6 border-2 border-primary bg-gradient-to-r from-primary/20 to-primary/10 shadow-xl">
-          <AlertTitle className="text-lg font-bold flex items-center gap-2">
-            <span className="text-2xl animate-bounce">💰</span>
-            {t("claim.alert_title", "You have tokens to claim!")}
-          </AlertTitle>
-          <AlertDescription className="text-base mt-2">
-            {t(
-              "claim.alert_description",
-              "The sale has finalized and you have tokens ready to claim. See below to claim them.",
-            )}
-          </AlertDescription>
-        </Alert>
-      )}
 
       {/* Claim Section */}
       {hasClaimableBalance && (
@@ -280,10 +261,10 @@ function FinalizedPoolTradingInner({
               Price
             </div>
             <div className="font-semibold text-lg">
-              {coinPrice > 0 ? `${coinPrice.toFixed(6)} ETH` : "-"}
+              {coinPrice > 0 ? `${coinPrice.toFixed(8)} ETH` : "0.000000 ETH"}
             </div>
             <div className="text-sm text-muted-foreground">
-              ${coinUsdPrice.toFixed(2)}
+              ${coinUsdPrice > 0 ? coinUsdPrice.toFixed(2) : "0.00"}
             </div>
           </div>
 

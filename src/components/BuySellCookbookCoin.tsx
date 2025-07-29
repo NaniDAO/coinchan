@@ -30,6 +30,7 @@ export const BuySellCookbookCoin = ({
   coinId,
   symbol,
   onPriceImpactChange,
+  hideZAMMLaunchClaim = false,
 }: {
   coinId: bigint;
   symbol: string;
@@ -41,6 +42,7 @@ export const BuySellCookbookCoin = ({
       action: "buy" | "sell";
     } | null,
   ) => void;
+  hideZAMMLaunchClaim?: boolean;
 }) => {
   const { t } = useTranslation();
   const [tab, setTab] = useState<"buy" | "sell">("buy");
@@ -451,8 +453,8 @@ export const BuySellCookbookCoin = ({
         </div>
       )}
 
-      {/* Claim Section - Only show if user can claim */}
-      {canClaim ? (
+      {/* Claim Section - Only show if user can claim and not hidden */}
+      {canClaim && !hideZAMMLaunchClaim ? (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

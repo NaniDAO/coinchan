@@ -87,6 +87,16 @@ export const VotePanel = ({ coinId }: VotePanelProps) => {
         `${Boolean(data.choice) === true ? "Upvoted" : "Downvoted"} with ${Number(formatEther(BigInt(data.weight))).toFixed(2)} ZAMM`,
       );
     } catch (error) {
+      // Handle wallet rejection gracefully - don't show error toast for user rejection
+      if (error instanceof Error && 
+          (error.message.includes("User rejected") || 
+           error.message.includes("User denied") ||
+           error.message.includes("rejected the request") ||
+           error.message.includes("User cancelled"))) {
+        // User rejected the signature request - fail silently
+        return;
+      }
+      
       console.error(error);
       toast.error(error instanceof Error ? error.message || "Failed to submit vote" : "Failed to submit vote");
     }
