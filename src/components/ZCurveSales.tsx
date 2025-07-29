@@ -1,5 +1,8 @@
 import { formatImageURL } from "@/hooks/metadata";
+import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
+import { Badge } from "./ui/badge";
 
 // GraphQL query
 const GET_ZCURVE_SALES = `
@@ -23,6 +26,7 @@ const GET_ZCURVE_SALES = `
         purchases {
           totalCount
         }
+        status
         coin {
           name
           symbol
@@ -74,7 +78,7 @@ export const ZCurveSales = () => {
   if (isLoading) {
     return (
       <div className="p-4">
-        <div className="border-2 border-black bg-white p-4">
+        <div className="border-2 border-border bg-background p-4">
           <div className="font-mono text-sm">&gt; loading sales data...</div>
         </div>
       </div>
@@ -84,8 +88,8 @@ export const ZCurveSales = () => {
   if (error) {
     return (
       <div className="p-4">
-        <div className="border-2 border-black bg-white p-4">
-          <div className="font-mono text-sm text-red-600">
+        <div className="border-2 border-border bg-background p-4">
+          <div className="font-mono text-sm text-destructive">
             &gt; error: {error.message}
           </div>
         </div>
@@ -94,11 +98,11 @@ export const ZCurveSales = () => {
   }
 
   return (
-    <div className="p-4">
-      <div className="border-2 border-black bg-white">
+    <div className="">
+      <div className="">
         {/* Header */}
-        <div className="border-b-2 border-black bg-black text-white p-3">
-          <h2 className="font-mono text-sm font-bold uppercase">
+        <div className="border-border text-foreground p-3">
+          <h2 className="font-mono text-2xl tracking-widest font-bold uppercase">
             ZCURVE SALES ({sales?.length || 0})
           </h2>
         </div>
@@ -106,68 +110,81 @@ export const ZCurveSales = () => {
         {/* Sales List */}
         <div className="p-4">
           {!sales || sales.length === 0 ? (
-            <div className="font-mono text-sm text-gray-600">
+            <div className="font-mono text-sm text-secondary-foreground bg-secondary">
               &gt; no sales found
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="border-l-4 border-border m-0 p-0">
               {sales.map((sale: any) => (
-                <div
-                  key={sale.coinId}
-                  className="bg-secondary p-3 hover:border-black hover:bg-gray-100 transition-all duration-100"
+                <Link
+                  to="/c/$coinId"
+                  params={{
+                    coinId: sale.coinId,
+                  }}
                 >
-                  <div className="flex items-start gap-4">
-                    {/* Coin Image */}
-                    <div className="flex-shrink-0">
-                      {sale.coin.imageUrl ? (
-                        <img
-                          src={formatImageURL(sale.coin.imageUrl)}
-                          alt={sale.coin.name}
-                          className="w-8 h-8 border border-black"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 border border-black bg-gray-200 flex items-center justify-center">
-                          <span className="text-xs font-mono">?</span>
-                        </div>
-                      )}
-                    </div>
+                  <div
+                    key={sale.coinId}
+                    className="border border-card hover:border-border p-3 bg-card text-card-foreground transition-all duration-100"
+                  >
+                    <div className="flex items-start gap-4">
+                      {/* Coin Image */}
+                      <div className="flex-shrink-0">
+                        {sale.coin.imageUrl ? (
+                          <img
+                            src={formatImageURL(sale.coin.imageUrl)}
+                            alt={sale.coin.name}
+                            className="w-8 h-8 border border-black"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 border border-black bg-gray-200 flex items-center justify-center">
+                            <span className="text-xs font-mono">?</span>
+                          </div>
+                        )}
+                      </div>
 
-                    {/* Sale Info */}
-                    <div className="flex-1 font-mono text-sm">
-                      <div className="font-bold">
-                        {sale.coin.name} ({sale.coin.symbol})
-                      </div>
-                      <div className="text-gray-600 mt-1">
-                        {sale.coin.description}
-                      </div>
-                      <div className="mt-2 space-y-1 text-xs">
-                        <div>
-                          price: {parseFloat(sale.currentPrice).toFixed(6)} ETH
+                      {/* Sale Info */}
+                      <div className="flex-1 font-mono text-sm">
+                        <div className="font-bold">
+                          {sale.coin.name} ({sale.coin.symbol})
                         </div>
-                        <div>
-                          funded: {parseFloat(sale.percentFunded).toFixed(1)}%
+                        <div className="text-gray-600 mt-1">
+                          {sale.coin.description}
                         </div>
-                        <div>purchases: {sale.purchases.totalCount}</div>
-                        <div>
-                          creator: {sale.creator.slice(0, 8)}...
-                          {sale.creator.slice(-6)}
+                        <div className="mt-2 space-y-1 text-xs">
+                          <div>
+                            price: {parseFloat(sale.currentPrice).toFixed(6)}{" "}
+                            ETH
+                          </div>
+                          <div>
+                            funded: {parseFloat(sale.percentFunded).toFixed(1)}%
+                          </div>
+                          <div>purchases: {sale.purchases.totalCount}</div>
+                          <div>
+                            creator: {sale.creator.slice(0, 8)}...
+                            {sale.creator.slice(-6)}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Status */}
-                    <div className="text-right font-mono text-xs">
-                      <div className="border border-black px-2 py-1 bg-gray-100">
-                        {parseFloat(sale.percentFunded) >= 100
-                          ? "FUNDED"
-                          : "ACTIVE"}
-                      </div>
-                      <div className="mt-2 text-gray-600">
-                        {new Date(sale.createdAt * 1000).toLocaleDateString()}
+                      {/* Status */}
+                      <div className="text-right font-mono text-xs">
+                        <Badge
+                          className={cn(
+                            "border border-border px-2 py-1",
+                            sale.status === "ACTIVE"
+                              ? "bg-green-500 text-white"
+                              : "bg-gray-200 text-gray-600",
+                          )}
+                        >
+                          {sale.status}
+                        </Badge>
+                        <div className="mt-2 text-gray-600">
+                          {new Date(sale.createdAt * 1000).toLocaleDateString()}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}

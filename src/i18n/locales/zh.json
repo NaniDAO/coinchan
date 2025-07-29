@@ -1,5 +1,6 @@
 {
   "common": {
+    "sales": "曲线销售",
     "enter_amount": "输入数量",
     "loading": "正在同步ZAMM...",
     "calculating": "计算中...",
@@ -574,7 +575,7 @@
     "linear_price": "线性价格",
     "name_required": "名称是必填项",
     "name_max_length": "名称必须少于100个字符",
-    "symbol_required": "符号是必填项", 
+    "symbol_required": "符号是必填项",
     "symbol_max_length": "符号必须少于50个字符",
     "description_max_length": "描述必须少于500个字符",
     "uploading_image": "正在上传图片...",

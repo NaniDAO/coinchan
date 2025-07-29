@@ -1,5 +1,6 @@
 {
   "common": {
+    "sales": "Sales",
     "enter_amount": "Enter amount",
     "loading": "Syncing with ZAMM...",
     "calculating": "Calculating...",
