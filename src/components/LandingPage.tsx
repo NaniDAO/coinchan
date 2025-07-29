@@ -62,10 +62,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
   // Terminal boot animation
   useEffect(() => {
     const lines = [
-      "> initializing zamm protocol...",
-      "> connecting to chains...",
-      "> loading market data...",
-      "> system ready",
+      t("landing.initializing"),
+      t("landing.connecting_chains"),
+      t("landing.loading_data"),
+      t("landing.system_ready"),
     ];
 
     let currentLine = 0;
@@ -138,13 +138,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
           </span>
         </div>
         <div>
-          <span className="text-muted-foreground">gas = </span>
+          <span className="text-muted-foreground">{t("landing.gas")} = </span>
           <span className="font-bold">
             {landingData?.gasPrice || "loading..."}
           </span>
         </div>
         <div>
-          <span className="text-muted-foreground">cost = </span>
+          <span className="text-muted-foreground">{t("landing.cost")} = </span>
           <span className="font-bold">
             {landingData?.launchCost || "loading..."}
           </span>
@@ -153,7 +153,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
 
       {/* Trending Farms Section */}
       <div className="mb-4">
-        <div className="text-lg mb-2 font-bold">trending:</div>
+        <div className="text-lg mb-2 font-bold">{t("landing.trending")}:</div>
         <div className="space-y-0 text-xs">
           <ErrorBoundary fallback={<LoadingLogo />}>
             <TrendingFarm
@@ -180,7 +180,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
       </div>
       {/* Sales Section */}
       <div className="mb-4">
-        <div className="text-lg mb-2 font-bold">sales:</div>
+        <div className="text-lg mb-2 font-bold">{t("landing.sales")}:</div>
         <div className="space-y-0 text-xs">
           <ErrorBoundary fallback={<LoadingLogo />}>
             <SaleBlurb coinId="71" />
@@ -193,22 +193,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
 
       {/* Protocol Stats - Single Column Format */}
       <div className="mb-6">
-        <div className="text-lg mb-2 font-bold">protocol:</div>
+        <div className="text-lg mb-2 font-bold">{t("landing.protocol")}:</div>
         <div className="text-lg space-y-1">
           <div>
-            <span className="text-muted-foreground">eth_swapped = </span>
+            <span className="text-muted-foreground">{t("landing.eth_swapped")} = </span>
             <span className="font-bold">
               {protocolStats?.totalEthSwapped || "-"}
             </span>
           </div>
           <div>
-            <span className="text-muted-foreground">swaps = </span>
+            <span className="text-muted-foreground">{t("landing.swaps")} = </span>
             <span className="font-bold">
               {protocolStats?.totalSwaps || "-"}
             </span>
           </div>
           <div>
-            <span className="text-muted-foreground">coins = </span>
+            <span className="text-muted-foreground">{t("landing.coins")} = </span>
             <span className="font-bold">
               {protocolStats?.totalCoins || "-"}
             </span>
