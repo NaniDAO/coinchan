@@ -1096,7 +1096,21 @@
     "estimate_placeholder": "估算将在此处显示",
     "buy": "买入",
     "sweep_tranche": "清理分期",
-    "sequential_filling_note": "只能购买最便宜的可用分期"
+    "sequential_filling_note": "只能购买最便宜的可用分期",
+    "funding_progress": "资金进度",
+    "target": "目标",
+    "tokens_sold": "已售代币",
+    "current_price": "当前价格",
+    "final_price": "最终价格",
+    "total_raised": "总募集",
+    "pricing_phase": "定价阶段",
+    "quadratic": "二次方",
+    "linear": "线性",
+    "to_linear": "至线性",
+    "of_total_supply": "占总供应量",
+    "cap": "上限",
+    "near_target": "接近目标时将自动完成销售",
+    "finalized_success": "销售成功完成。已在 zAMM 上创建流动池。"
   },
   "about": {
     "title": "关于 ZAMM",

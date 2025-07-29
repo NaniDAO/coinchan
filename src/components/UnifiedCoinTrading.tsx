@@ -20,6 +20,8 @@ import { ZCurveReserves } from "@/components/ZCurveReserves";
 import { FinalizedPoolTrading } from "@/components/FinalizedPoolTrading";
 import { ZCurveActivity } from "@/components/ZCurveActivity";
 import { ZCurvePriceChart } from "@/components/ZCurvePriceChart";
+import { CreatorDisplay } from "@/components/CreatorDisplay";
+import { ZCurveMiniChart } from "@/components/ZCurveMiniChart";
 
 import {
   useZCurveSale,
@@ -162,7 +164,7 @@ export function UnifiedCoinTrading({
         {/* Desktop: Side by side, Mobile: Stacked */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Chart Section - Takes more space on desktop */}
-          {isZCurveActive && sale && (
+          {sale && (
             <div className="lg:col-span-7 flex flex-col gap-8">
               <Card className="border-2 border-border bg-background hover:shadow-lg transition-all duration-200">
                 <CardHeader className="pb-3">
@@ -226,9 +228,30 @@ export function UnifiedCoinTrading({
                       )}
                     </CardDescription>
                   )}
+                  {/* Creator display for zCurve sales */}
+                  {sale?.creator && (
+                    <div className="mt-2">
+                      <CreatorDisplay 
+                        address={sale.creator} 
+                        size="sm"
+                        className="text-xs"
+                        showLabel={true}
+                      />
+                    </div>
+                  )}
+                  
+                  {/* Mini bonding curve preview */}
+                  {sale && (
+                    <div className="mt-3 border border-border rounded-sm p-2 bg-muted/20">
+                      <ZCurveMiniChart 
+                        sale={sale} 
+                        className="h-16 w-full"
+                      />
+                    </div>
+                  )}
                 </CardHeader>
 
-                {isZCurveActive && <ZCurveSaleProgress sale={sale} />}
+                {sale && <ZCurveSaleProgress sale={sale} />}
               </Card>
               <Card className="border-2 border-border bg-background hover:shadow-lg transition-all duration-200 h-fit">
                 <CardContent className="pt-6">
@@ -244,7 +267,7 @@ export function UnifiedCoinTrading({
 
           {/* Trading Section */}
           <div
-            className={`space-y-4 ${(isZCurveActive && sale) || (isFinalized && hasPool) ? "lg:col-span-5" : "lg:col-span-12"}`}
+            className={`space-y-4 ${sale ? "lg:col-span-5" : "lg:col-span-12"}`}
           >
             {/* Trading Interface */}
             <Card className="border-2 border-border bg-background hover:shadow-lg transition-all duration-200">

@@ -18,9 +18,11 @@ export function ZCurveSaleProgress({ sale }: ZCurveSaleProgressProps) {
   const ethEscrow = BigInt(sale.ethEscrow);
   const ethTarget = BigInt(sale.ethTarget);
   const quadCap = unpackQuadCap(BigInt(sale.quadCap));
+  const isFinalized = sale.status === "FINALIZED";
 
   const soldPercentage = saleCap > 0n ? Number((netSold * 100n) / saleCap) : 0;
-  const fundedPercentage = sale.percentFunded / 100;
+  // Fix funding percentage calculation
+  const fundedPercentage = ethTarget > 0n ? Number((ethEscrow * 10000n) / ethTarget) / 100 : 0;
   const quadCapPercentage =
     saleCap > 0n ? Number((quadCap * 100n) / saleCap) : 0;
 
@@ -100,7 +102,7 @@ export function ZCurveSaleProgress({ sale }: ZCurveSaleProgressProps) {
       <div className="grid grid-cols-2 gap-4 pt-2">
         <div className="space-y-1">
           <p className="text-xs text-muted-foreground">
-            {t("sale.current_price", "Current Price")}
+            {isFinalized ? t("sale.final_price", "Final Price") : t("sale.current_price", "Current Price")}
           </p>
           <p className="text-sm font-medium">
             {sale.currentPrice ? (() => {
@@ -136,14 +138,18 @@ export function ZCurveSaleProgress({ sale }: ZCurveSaleProgressProps) {
         </div>
         <div className="space-y-1">
           <p className="text-xs text-muted-foreground">
-            {t("sale.pricing_phase", "Pricing Phase")}
+            {isFinalized ? t("sale.total_raised", "Total Raised") : t("sale.pricing_phase", "Pricing Phase")}
           </p>
           <p className="text-sm font-medium">
-            {netSold < quadCap
-              ? t("sale.quadratic", "Quadratic")
-              : t("sale.linear", "Linear")}
+            {isFinalized ? (
+              `${Number(formatEther(ethEscrow)).toFixed(4)} ETH`
+            ) : (
+              netSold < quadCap
+                ? t("sale.quadratic", "Quadratic")
+                : t("sale.linear", "Linear")
+            )}
           </p>
-          {netSold < quadCap && quadCap > 0n && (
+          {!isFinalized && netSold < quadCap && quadCap > 0n && (
             <p className="text-xs text-muted-foreground">
               {((Number(netSold) / Number(quadCap)) * 100).toFixed(1)}%{" "}
               {t("sale.to_linear", "to linear")}
@@ -152,15 +158,22 @@ export function ZCurveSaleProgress({ sale }: ZCurveSaleProgressProps) {
         </div>
       </div>
 
-      {/* Auto-finalization note */}
-      {fundedPercentage >= 90 && (
+      {/* Auto-finalization note or finalized status */}
+      {isFinalized ? (
+        <div className="text-xs text-green-600 dark:text-green-400 text-center pt-2">
+          {t(
+            "sale.finalized_success",
+            "Sale finalized successfully. Pool created on zAMM.",
+          )}
+        </div>
+      ) : fundedPercentage >= 90 ? (
         <div className="text-xs text-amber-600 dark:text-amber-400 text-center pt-2">
           {t(
             "sale.near_target",
             "Sale will auto-finalize when target is reached",
           )}
         </div>
-      )}
+      ) : null}
     </CardContent>
   );
 }
