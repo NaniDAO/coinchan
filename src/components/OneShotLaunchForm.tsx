@@ -6,7 +6,6 @@ import { useAccount, usePublicClient, useWaitForTransactionReceipt, useWriteCont
 import { z } from "zod";
 import { useETHPrice } from "@/hooks/use-eth-price";
 import { ZCurveBondingChart } from "@/components/ZCurveBondingChart";
-import { AnimatedLogo } from "@/components/ui/animated-logo";
 import "@/components/ui/animations.css";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -116,10 +115,6 @@ export function OneShotLaunchForm() {
   const [imageBuffer, setImageBuffer] = useState<ArrayBuffer | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   
-  // Animation states
-  const [isFormActive, setIsFormActive] = useState(false);
-  const [hasInteracted, setHasInteracted] = useState(false);
-  
   // Redirect countdown state
   const [redirectCountdown, setRedirectCountdown] = useState<number | null>(null);
 
@@ -186,6 +181,19 @@ export function OneShotLaunchForm() {
     return typeof result === 'string' ? result : defaultText;
   }, [t, ready]);
 
+  // Calculate form completion percentage
+  const formCompletionPercentage = useMemo(() => {
+    let completed = 0;
+    const totalFields = 4; // name, symbol, description, image
+    
+    if (formData.metadataName.trim()) completed++;
+    if (formData.metadataSymbol.trim()) completed++;
+    if (formData.metadataDescription && formData.metadataDescription.trim()) completed++;
+    if (imageBuffer) completed++;
+    
+    return (completed / totalFields) * 100;
+  }, [formData, imageBuffer]);
+
   // Handle redirect after successful transaction
   useEffect(() => {
     if (txSuccess && launchId !== null) {
@@ -216,7 +224,6 @@ export function OneShotLaunchForm() {
     const processedValue = name === "metadataSymbol" ? value.toUpperCase() : value;
     
     setFormData((prev) => ({ ...prev, [name]: processedValue }));
-    if (!hasInteracted) setHasInteracted(true);
 
     // Clear error for this field when user starts typing
     if (errors[name]) {
@@ -271,7 +278,6 @@ export function OneShotLaunchForm() {
   };
 
   const handleImageFileChange = async (file: File | File[] | undefined) => {
-    if (!hasInteracted) setHasInteracted(true);
     if (file && !Array.isArray(file)) {
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
@@ -446,22 +452,8 @@ export function OneShotLaunchForm() {
   return (
     <div className="container mx-auto px-4 py-6 sm:py-8">
       <div className="max-w-2xl mx-auto">
-        {/* Terminal-style Header with Animated Logo */}
-        <div className="mb-8 text-center relative">
-          {/* Floating animated logo - subtle and responsive */}
-          <div 
-            className={`absolute -top-4 -right-4 sm:-top-6 sm:-right-6 transition-all duration-700 ease-out ${
-              hasInteracted ? 'opacity-70 float-animation' : 'opacity-0'
-            }`}
-            style={{
-              transform: hasInteracted ? 'scale(1) rotate(0deg)' : 'scale(0.8) rotate(-15deg)'
-            }}>
-            <AnimatedLogo 
-              size="sm" 
-              animated={isFormActive || isPending} 
-              className="hover:opacity-100 transition-opacity duration-300"
-            />
-          </div>
+        {/* Terminal-style Header */}
+        <div className="mb-8 text-center">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold text-foreground leading-tight whitespace-pre-line">
             {headerText}
           </h1>
@@ -469,14 +461,7 @@ export function OneShotLaunchForm() {
 
         <form 
           onSubmit={handleSubmit} 
-          className="space-y-6"
-          onFocus={() => setIsFormActive(true)}
-          onBlur={(e) => {
-            // Only set inactive if focus moved outside the form
-            if (!e.currentTarget.contains(e.relatedTarget)) {
-              setIsFormActive(false);
-            }
-          }}>
+          className="space-y-6">
           {/* Basic Token Information */}
           <div className="space-y-4">
             <div>
@@ -852,13 +837,17 @@ export function OneShotLaunchForm() {
         </div>
       </div>
       
-      {/* Subtle video animation - appears after interaction */}
-      {hasInteracted && (
+      {/* Progressive video animation - always visible, grows with form completion */}
+      <div className="fixed bottom-5 right-5">
         <video
-          className="fixed bottom-5 right-5 w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 opacity-0 animate-fade-in-video"
+          className="transition-all duration-1000 ease-out"
           style={{
             clipPath: "polygon(50% 10%, 75% 50%, 50% 90%, 25% 50%)",
-            animationDelay: "2s",
+            width: `${80 + formCompletionPercentage * 0.8}px`,
+            height: `${80 + formCompletionPercentage * 0.8}px`,
+            opacity: 0.3 + (formCompletionPercentage / 100) * 0.7,
+            filter: `brightness(${0.5 + (formCompletionPercentage / 100) * 0.5}) contrast(${0.8 + (formCompletionPercentage / 100) * 0.4})`,
+            boxShadow: `0 0 ${20 + formCompletionPercentage * 0.3}px rgba(var(--primary-rgb), ${0.2 + (formCompletionPercentage / 100) * 0.3})`,
           }}
           src={theme === "dark" ? "/zammzamm-bw.mp4" : "/zammzamm.mp4"}
           autoPlay
@@ -866,7 +855,7 @@ export function OneShotLaunchForm() {
           muted
           playsInline
         />
-      )}
+      </div>
     </div>
   );
 }
