@@ -1,6 +1,6 @@
 import { zCurveAbi, zCurveAddress } from "@/constants/zCurve";
 import { pinImageToPinata, pinJsonToPinata } from "@/lib/pinata";
-import { type ChangeEvent, useState, useMemo, useCallback } from "react";
+import { type ChangeEvent, useState, useMemo, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useAccount, usePublicClient, useWaitForTransactionReceipt, useWriteContract, useGasPrice } from "wagmi";
 import { z } from "zod";
@@ -22,7 +22,7 @@ import { toast } from "sonner";
 import { formatEther, parseEther } from "viem";
 import { packQuadCap, UNIT_SCALE } from "@/lib/zCurveHelpers";
 
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { AlertCircle, Info, Rocket, CheckCircle2, Sparkles } from "lucide-react";
 
 // Quantize values to unit scale to match contract requirements
@@ -78,7 +78,8 @@ const formatEthAmount = (amount: bigint): string => {
 };
 
 export function OneShotLaunchForm() {
-  const { t, i18n } = useTranslation();
+  const { t, i18n, ready } = useTranslation();
+  const navigate = useNavigate();
   const { address: account } = useAccount();
   const publicClient = usePublicClient();
   const { data: gasPrice } = useGasPrice();
@@ -116,6 +117,9 @@ export function OneShotLaunchForm() {
   // Animation states
   const [isFormActive, setIsFormActive] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
+  
+  // Redirect countdown state
+  const [redirectCountdown, setRedirectCountdown] = useState<number | null>(null);
 
   // Computed values for display
   const displayValues = useMemo(() => {
@@ -161,6 +165,40 @@ export function OneShotLaunchForm() {
       gwei: Number(formatEther(gasPrice * 10n ** 9n)).toFixed(2),
     };
   }, [gasPrice, ethPrice]);
+
+  // Get the current language and header text
+  const currentLang = i18n.language.split('-')[0];
+  const headerText = useMemo(() => {
+    if (!ready) return '';
+    // Force Chinese text if language is Chinese
+    if (currentLang === 'zh') {
+      return "公平发行代币。\n通过交易发现价格。\n然后在 zAMM 中提供流动性。";
+    }
+    return t("create.oneshot_header", "Fair launch a Coin.\nTrade to find its price.\nThen seed liquidity in zAMM.");
+  }, [t, ready, currentLang]);
+
+  // Handle redirect after successful transaction
+  useEffect(() => {
+    if (txSuccess && launchId !== null) {
+      // Start the countdown at 10 seconds
+      setRedirectCountdown(10);
+      
+      const countdownInterval = setInterval(() => {
+        setRedirectCountdown((prev) => {
+          if (prev === null || prev <= 1) {
+            clearInterval(countdownInterval);
+            // Navigate to the coin page
+            navigate({ to: "/c/$coinId", params: { coinId: launchId.toString() } });
+            return null;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      // Cleanup interval on unmount
+      return () => clearInterval(countdownInterval);
+    }
+  }, [txSuccess, launchId, navigate]);
 
   const handleInputChange = useCallback((e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -415,8 +453,8 @@ export function OneShotLaunchForm() {
               className="hover:opacity-100 transition-opacity duration-300"
             />
           </div>
-          <h1 key={i18n.language} className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold text-foreground leading-tight whitespace-pre-line">
-            {t("create.oneshot_header")}
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold text-foreground leading-tight whitespace-pre-line">
+            {headerText}
           </h1>
         </div>
 
@@ -725,6 +763,11 @@ export function OneShotLaunchForm() {
                         ? t("create.launch_successful", "Your coin launch was successful!")
                         : t("create.launch_submitted", "Your oneshot launch has been submitted!")}
                     </p>
+                    {txSuccess && redirectCountdown !== null && (
+                      <p className="text-green-600 dark:text-green-400 text-sm mt-2 font-medium">
+                        {t("create.redirecting_in", "Redirecting to your coin page in {{seconds}} seconds...", { seconds: redirectCountdown })}
+                      </p>
+                    )}
                   </div>
                 </div>
 

@@ -732,6 +732,7 @@
     "eth_per_token": "{{price}} ETH/代币",
     "price_per_token_short": "{{price}}/代币",
     "learn_more_zcurve": "了解更多关于 zCurve",
+    "redirecting_in": "{{seconds}} 秒后将跳转到您的代币页面...",
     "name_invalid_characters": "名称只能包含字母、数字、空格、连字符、下划线和点",
     "symbol_invalid_characters": "符号必须是大写字母和数字",
     "symbol_uppercase_hint": "将自动转换为大写",

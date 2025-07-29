@@ -578,6 +578,7 @@
     "eth_per_token": "{{price}} ETH/token",
     "price_per_token_short": "{{price}}/token",
     "learn_more_zcurve": "Learn more about zCurve",
+    "redirecting_in": "Redirecting to your coin page in {{seconds}} seconds...",
     "per_coin": "per coin",
     "coin_with_pool_title": "Coin with Pool",
     "coin_with_pool_description": "Create token + add your own liquidity",
