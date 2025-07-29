@@ -21,7 +21,7 @@ export const CoinBreadcrumb = ({ coinId }: { coinId: bigint }) => {
       {zcurveSale && (
         <Link 
           to="/sales" 
-          className="flex items-center hover:text-primary transition-colors mr-2"
+          className="flex items-center mr-2 px-2 py-1 -ml-2 rounded-md hover:bg-accent hover:text-accent-foreground active:scale-95 transition-all duration-200 touch-manipulation"
           title={t("navigation.back_to_sales", "Back to Sales")}
         >
           <span className="text-xl font-mono">&lt;</span>

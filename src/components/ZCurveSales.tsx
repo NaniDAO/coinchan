@@ -6,7 +6,8 @@ import { Badge } from "./ui/badge";
 import { CreatorDisplay } from "./CreatorDisplay";
 import { ZCurveMiniChart } from "./ZCurveMiniChart";
 import { CoinImagePopup } from "./CoinImagePopup";
-import { useTheme } from "@/lib/theme-provider";
+import { useTheme } from "@/lib/theme";
+import { useTranslation } from "react-i18next";
 
 // GraphQL query
 const GET_ZCURVE_SALES = `
@@ -88,6 +89,7 @@ const useZCurveSales = () => {
 export const ZCurveSales = () => {
   const { data: sales, isLoading, error } = useZCurveSales();
   const { theme } = useTheme();
+  const { t } = useTranslation();
 
   if (isLoading) {
     return (
@@ -117,7 +119,7 @@ export const ZCurveSales = () => {
         {/* Header */}
         <div className="border-border text-foreground p-3">
           <h2 className="font-mono text-2xl tracking-widest font-bold uppercase">
-            ZCURVE SALES ({sales?.length || 0})
+            ZCURVE {t("common.sales")} ({sales?.length || 0})
           </h2>
         </div>
 
@@ -144,7 +146,7 @@ export const ZCurveSales = () => {
                     }}
                   >
                     <div
-                      className="border border-card hover:border-border p-3 bg-card text-card-foreground transition-all duration-100 relative overflow-hidden"
+                      className="border border-card hover:border-border active:border-primary p-3 bg-card text-card-foreground transition-all duration-100 relative overflow-hidden hover:shadow-md active:scale-[0.99] touch-manipulation"
                       style={{
                         background: sale.status === "FINALIZED" 
                           ? `linear-gradient(to right, 
@@ -180,7 +182,7 @@ export const ZCurveSales = () => {
                           {/* Price and funding info */}
                           <div className="grid grid-cols-2 gap-x-3 text-[11px]">
                             <div>
-                              <span className="text-muted-foreground">{sale.status === "FINALIZED" ? "final price:" : "price:"}</span>
+                              <span className="text-muted-foreground">{sale.status === "FINALIZED" ? t("sale.final_price_label") : t("sale.price_label")}</span>
                               <div className="font-medium">
                                 {(() => {
                               // For finalized sales, if currentPrice is 0, calculate from ethEscrow/netSold
@@ -252,7 +254,7 @@ export const ZCurveSales = () => {
                               </div>
                             </div>
                             <div>
-                              <span className="text-muted-foreground">funded:</span>
+                              <span className="text-muted-foreground">{t("sale.funded_label")}</span>
                               <div className="font-medium">
                                 {(() => {
                               if (sale.status === "FINALIZED") return "100.0";
@@ -270,13 +272,13 @@ export const ZCurveSales = () => {
                           {/* Trading activity */}
                           <div className="border-t border-border/30 pt-1 text-[11px]">
                             <div className="font-medium">
-                              buys: {sale.purchases?.totalCount || 0} | sells: {sale.sells?.totalCount || 0} | wallets: {uniqueWallets.size}
+                              {t("sale.buys_label")} {sale.purchases?.totalCount || 0} | {t("sale.sells_label")} {sale.sells?.totalCount || 0} | {t("sale.wallets_label")} {uniqueWallets.size}
                             </div>
                           </div>
                           
                           {/* Creator */}
                           <div className="flex items-center gap-1 border-t border-border/30 pt-1">
-                            <span>creator:</span>
+                            <span>{t("sale.creator_label")}</span>
                             <CreatorDisplay 
                               address={sale.creator} 
                               size="sm"

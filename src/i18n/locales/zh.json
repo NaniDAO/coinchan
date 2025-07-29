@@ -1111,7 +1111,14 @@
     "of_total_supply": "占总供应量",
     "cap": "上限",
     "near_target": "接近目标时将自动完成销售",
-    "finalized_success": "销售成功完成。已在 zAMM 上创建流动池。"
+    "finalized_success": "销售成功完成。已在 zAMM 上创建流动池。",
+    "price_label": "价格：",
+    "final_price_label": "最终价格：",
+    "funded_label": "已募集：",
+    "buys_label": "买入：",
+    "sells_label": "卖出：",
+    "wallets_label": "钱包数：",
+    "creator_label": "创建者："
   },
   "about": {
     "title": "关于 ZAMM",
