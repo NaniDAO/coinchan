@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Badge } from "./ui/badge";
+import { ZCurveBondingChart } from "./ZCurveBondingChart";
 
 // GraphQL query
 const GET_ZCURVE_SALES = `
@@ -165,6 +166,15 @@ export const ZCurveSales = () => {
                           </div>
                         </div>
                       </div>
+
+                      {/* <ZCurveBondingChart
+                        saleCap={BigInt(sale.saleCap)}
+                        divisor={BigInt(sale.divisor)}
+                        ethTarget={BigInt(sale.ethTarget)}
+                        quadCap={BigInt(sale.quadCap)}
+                        currentSold={BigInt(0)}
+                        showMarginalPrice={true}
+                      /> */}
 
                       {/* Status */}
                       <div className="text-right font-mono text-xs">

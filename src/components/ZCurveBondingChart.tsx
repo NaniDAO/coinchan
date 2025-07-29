@@ -33,14 +33,18 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
   const { t } = useTranslation();
   const cumulativeChartContainerRef = useRef<HTMLDivElement>(null);
   const marginalChartContainerRef = useRef<HTMLDivElement>(null);
-  const cumulativeChartRef = useRef<ReturnType<typeof createChart> | null>(null);
+  const cumulativeChartRef = useRef<ReturnType<typeof createChart> | null>(
+    null,
+  );
   const marginalChartRef = useRef<ReturnType<typeof createChart> | null>(null);
   const cumulativeSeriesRef = useRef<ISeriesApi<"Area"> | null>(null);
   const marginalSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
   const chartTheme = useChartTheme();
   const [hoveredPrice, setHoveredPrice] = useState<string | null>(null);
   const [hoveredAmount, setHoveredAmount] = useState<string | null>(null);
-  const [hoveredMarginalPrice, setHoveredMarginalPrice] = useState<string | null>(null);
+  const [hoveredMarginalPrice, setHoveredMarginalPrice] = useState<
+    string | null
+  >(null);
 
   // Map the theme to what lightweight-charts expects
   const theme = {
@@ -54,11 +58,14 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
   const UNIT_SCALE = BigInt("1000000000000"); // 1e12
 
   // Format very small ETH values with appropriate precision and readability
-  const formatSmallEthValue = (value: bigint, forceReadable: boolean = false): string => {
+  const formatSmallEthValue = (
+    value: bigint,
+    forceReadable: boolean = false,
+  ): string => {
     if (value === 0n) return "0";
-    
+
     const ethValue = Number(formatEther(value));
-    
+
     // For very small values, use more readable format if requested
     if (forceReadable && ethValue < 1e-10) {
       // Convert to more readable units
@@ -76,7 +83,7 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
         return `${nanoETH.toFixed(2)} nanoETH`;
       }
     }
-    
+
     // Standard formatting
     if (ethValue < 1e-15) {
       return ethValue.toExponential(6);
@@ -86,14 +93,18 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
       return ethValue.toExponential(3);
     } else if (ethValue < 0.00001) {
       // For values between 1e-8 and 1e-5, show with enough decimal places
-      return ethValue.toFixed(10).replace(/\.?0+$/, '');
+      return ethValue.toFixed(10).replace(/\.?0+$/, "");
     } else {
-      return ethValue.toFixed(8).replace(/\.?0+$/, '');
+      return ethValue.toFixed(8).replace(/\.?0+$/, "");
     }
   };
 
   // Quadratic-then-linear bonding curve cost function from the zCurve contract
-  const calculateCost = (n: bigint, quadCapValue: bigint | undefined, d: bigint): bigint => {
+  const calculateCost = (
+    n: bigint,
+    quadCapValue: bigint | undefined,
+    d: bigint,
+  ): bigint => {
     // Convert to "tick" count (1 tick = UNIT_SCALE base-units)
     const m = n / UNIT_SCALE;
 
@@ -117,13 +128,15 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
     if (m <= K) {
       // PURE QUADRATIC PHASE
       // sum_{i=0..m-1} i^2 = m*(m-1)*(2m-1)/6
-      const sumSq = (m * (m - BigInt(1)) * (BigInt(2) * m - BigInt(1))) / BigInt(6);
+      const sumSq =
+        (m * (m - BigInt(1)) * (BigInt(2) * m - BigInt(1))) / BigInt(6);
       return (sumSq * oneETH) / denom;
     } else {
       // MIXED PHASE: QUAD TILL K, THEN LINEAR TAIL
       // 1) Quad area for first K ticks:
       //    sum_{i=0..K-1} i^2 = K*(K-1)*(2K-1)/6
-      const sumK = (K * (K - BigInt(1)) * (BigInt(2) * K - BigInt(1))) / BigInt(6);
+      const sumK =
+        (K * (K - BigInt(1)) * (BigInt(2) * K - BigInt(1))) / BigInt(6);
       const quadCost = (sumK * oneETH) / denom;
 
       // 2) Marginal price at tick K (for ticks K→m):
@@ -139,15 +152,19 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
   };
 
   // Calculate marginal price at a given token amount
-  const calculateMarginalPrice = (tokensSold: bigint, quadCapValue: bigint | undefined, d: bigint): bigint => {
+  const calculateMarginalPrice = (
+    tokensSold: bigint,
+    quadCapValue: bigint | undefined,
+    d: bigint,
+  ): bigint => {
     const ticks = tokensSold / UNIT_SCALE;
     const K = quadCapValue ? quadCapValue / UNIT_SCALE : BigInt(0);
-    
+
     if (ticks < BigInt(2)) return BigInt(0);
-    
+
     const denom = BigInt(6) * d;
     const oneETH = parseEther("1");
-    
+
     if (!quadCapValue || ticks <= K) {
       // Quadratic phase: marginal price = (ticks^2 * 1 ETH) / (6 * divisor)
       return (ticks * ticks * oneETH) / denom;
@@ -162,7 +179,8 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
     // Calculate the marginal price at the very beginning (after 2 free ticks)
     // The marginal price formula is: (ticks^2 * 1 ETH) / (6 * divisor) in quadratic phase
     const firstTicks = 3n; // First purchasable tick after 2 free ones
-    const firstTokenPrice = (firstTicks * firstTicks * parseEther("1")) / (6n * divisor);
+    const firstTokenPrice =
+      (firstTicks * firstTicks * parseEther("1")) / (6n * divisor);
 
     // Calculate average price when target is reached
     // We need to find how many tokens would be sold to reach the target
@@ -171,7 +189,8 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
     let targetTokens = saleCap;
 
     // Binary search to find amount of tokens that would raise ethTarget
-    while (high - low > UNIT_SCALE) { // Continue until we're within 1 tick
+    while (high - low > UNIT_SCALE) {
+      // Continue until we're within 1 tick
       const mid = (low + high) / 2n;
       const cost = calculateCost(mid, quadCap, divisor);
       if (cost < ethTarget) {
@@ -180,16 +199,18 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
         high = mid;
       }
     }
-    
+
     // Check which is closer to target
     const lowCost = calculateCost(low, quadCap, divisor);
     const highCost = calculateCost(high, quadCap, divisor);
-    const lowDiff = ethTarget > lowCost ? ethTarget - lowCost : lowCost - ethTarget;
-    const highDiff = ethTarget > highCost ? ethTarget - highCost : highCost - ethTarget;
-    
+    const lowDiff =
+      ethTarget > lowCost ? ethTarget - lowCost : lowCost - ethTarget;
+    const highDiff =
+      ethTarget > highCost ? ethTarget - highCost : highCost - ethTarget;
+
     targetTokens = lowDiff < highDiff ? low : high;
     const actualRaisedAtTarget = lowDiff < highDiff ? lowCost : highCost;
-    
+
     // We'll calculate the average price in the display component
     // to maintain precision
 
@@ -326,15 +347,15 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
       // Since lightweight-charts doesn't support vertical lines well,
       // we'll add a note about the transition in the UI instead
       const quadCapCost = calculateCost(quadCap, quadCap, divisor);
-      
+
       // Could add a price line at the cost level where transition happens
       areaSeries.createPriceLine({
         price: Number(formatEther(quadCapCost)),
-        color: '#ef4444',
+        color: "#ef4444",
         lineWidth: 1,
         lineStyle: 3, // Dotted
         axisLabelVisible: false,
-        title: '',
+        title: "",
       });
     }
 
@@ -422,9 +443,9 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
           } else if (price < 1e-8) {
             return price.toExponential(3) + " ETH/token";
           } else if (price < 0.00001) {
-            return price.toFixed(10).replace(/\.?0+$/, '') + " ETH/token";
+            return price.toFixed(10).replace(/\.?0+$/, "") + " ETH/token";
           }
-          return price.toFixed(8).replace(/\.?0+$/, '') + " ETH/token";
+          return price.toFixed(8).replace(/\.?0+$/, "") + " ETH/token";
         },
       },
     });
@@ -438,8 +459,12 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
     for (let i = 0; i <= numPoints; i++) {
       const tokensSold = (saleCap * BigInt(i)) / BigInt(numPoints);
       if (tokensSold === 0n) continue; // Skip zero to avoid division issues
-      
-      const marginalPrice = calculateMarginalPrice(tokensSold, quadCap, divisor);
+
+      const marginalPrice = calculateMarginalPrice(
+        tokensSold,
+        quadCap,
+        divisor,
+      );
 
       tokenMap.set(i, tokensSold);
       dataPoints.push({
@@ -460,7 +485,11 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
       const timeIndex = param.time as number;
       const tokenAmount = tokenMap.get(timeIndex);
       if (tokenAmount !== undefined && tokenAmount > 0n) {
-        const marginalPrice = calculateMarginalPrice(tokenAmount, quadCap, divisor);
+        const marginalPrice = calculateMarginalPrice(
+          tokenAmount,
+          quadCap,
+          divisor,
+        );
         const priceStr = formatEther(marginalPrice);
         const priceNum = Number(priceStr);
         if (priceNum < 0.00000001) {
@@ -471,15 +500,15 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
       }
     });
 
-    // Add visual indicator for quadCap transition if it exists  
+    // Add visual indicator for quadCap transition if it exists
     if (quadCap && quadCap < saleCap) {
       // Find the marginal price at transition
       const transitionPrice = calculateMarginalPrice(quadCap, quadCap, divisor);
-      
+
       // Add a horizontal reference line at the transition price
       lineSeries.createPriceLine({
         price: Number(formatEther(transitionPrice)),
-        color: '#ef4444',
+        color: "#ef4444",
         lineWidth: 2,
         lineStyle: 2, // Dashed
         axisLabelVisible: true,
@@ -517,7 +546,11 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
           </h3>
           {hoveredAmount && hoveredPrice && (
             <div className="text-xs text-foreground">
-              {t("create.tokens_equals_eth", "{{amount}} tokens = {{price}} ETH", { amount: hoveredAmount, price: hoveredPrice })}
+              {t(
+                "create.tokens_equals_eth",
+                "{{amount}} tokens = {{price}} ETH",
+                { amount: hoveredAmount, price: hoveredPrice },
+              )}
             </div>
           )}
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -551,7 +584,11 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
             </h3>
             {hoveredMarginalPrice && (
               <div className="text-xs text-foreground">
-                {t("create.price_per_token_value", "Price: {{price}} ETH/token", { price: hoveredMarginalPrice })}
+                {t(
+                  "create.price_per_token_value",
+                  "Price: {{price}} ETH/token",
+                  { price: hoveredMarginalPrice },
+                )}
               </div>
             )}
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -562,7 +599,9 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
               {quadCap && quadCap > 0n && quadCap < saleCap ? (
                 <div className="flex items-center gap-1">
                   <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-red-500" />
-                  <span>{t("create.quadcap_transition", "K (Transition)")}</span>
+                  <span>
+                    {t("create.quadcap_transition", "K (Transition)")}
+                  </span>
                 </div>
               ) : null}
             </div>
@@ -576,42 +615,63 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
       {/* Key Metrics */}
       <div className="grid grid-cols-3 gap-2 text-xs">
         <div className="text-center p-2 bg-muted/30 rounded">
-          <div className="text-muted-foreground">{t("create.starting_price", "Starting Price")}</div>
+          <div className="text-muted-foreground">
+            {t("create.starting_price", "Starting Price")}
+          </div>
           <div className="font-medium">
-            {calculatedValues.firstPrice === 0n || Number(formatEther(calculatedValues.firstPrice)) < 1e-18 
-              ? t("create.free_first_tokens", "Free (first 2M tokens)") 
-              : t("create.eth_per_token", "{{price}} ETH/token", { price: formatSmallEthValue(calculatedValues.firstPrice) })}
+            {calculatedValues.firstPrice === 0n ||
+            Number(formatEther(calculatedValues.firstPrice)) < 1e-18
+              ? t("create.free_first_tokens", "Free (first 2M tokens)")
+              : t("create.eth_per_token", "{{price}} ETH/token", {
+                  price: formatSmallEthValue(calculatedValues.firstPrice),
+                })}
           </div>
         </div>
         <div className="text-center p-2 bg-muted/30 rounded">
-          <div className="text-muted-foreground">{t("create.avg_price_at_target", "Avg Price @ Target")}</div>
+          <div className="text-muted-foreground">
+            {t("create.avg_price_at_target", "Avg Price @ Target")}
+          </div>
           <div className="font-medium">
-            {calculatedValues.targetTokens === 0n || calculatedValues.actualRaisedAtTarget === 0n
-              ? t("common.calculating", "Calculating...") 
+            {calculatedValues.targetTokens === 0n ||
+            calculatedValues.actualRaisedAtTarget === 0n
+              ? t("common.calculating", "Calculating...")
               : (() => {
                   // Calculate average price: total ETH / total tokens
-                  const avgPriceWei = calculatedValues.actualRaisedAtTarget * BigInt(1e18) / calculatedValues.targetTokens;
-                  return t("create.price_per_token_short", "{{price}}/token", { 
-                    price: formatSmallEthValue(avgPriceWei, true) 
+                  const avgPriceWei =
+                    (calculatedValues.actualRaisedAtTarget * BigInt(1e18)) /
+                    calculatedValues.targetTokens;
+                  return t("create.price_per_token_short", "{{price}}/token", {
+                    price: formatSmallEthValue(avgPriceWei, true),
                   });
                 })()}
           </div>
         </div>
         <div className="text-center p-2 bg-muted/30 rounded">
-          <div className="text-muted-foreground">{t("create.max_raise", "Max Raise")}</div>
-          <div className="font-medium">{Number(formatEther(calculatedValues.maxRaise)).toFixed(4)} ETH</div>
+          <div className="text-muted-foreground">
+            {t("create.max_raise", "Max Raise")}
+          </div>
+          <div className="font-medium">
+            {Number(formatEther(calculatedValues.maxRaise)).toFixed(4)} ETH
+          </div>
         </div>
       </div>
       {quadCap && quadCap > 0n && quadCap < saleCap ? (
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div className="text-center p-2 bg-muted/30 rounded">
-            <div className="text-muted-foreground">{t("create.quadratic_phase", "Quadratic Phase")}</div>
-            <div className="font-medium">Until {Number(formatEther(quadCap)).toLocaleString()} tokens</div>
+            <div className="text-muted-foreground">
+              {t("create.quadratic_phase", "Quadratic Phase")}
+            </div>
+            <div className="font-medium">
+              Until {Number(formatEther(quadCap)).toLocaleString()} tokens
+            </div>
           </div>
           <div className="text-center p-2 bg-muted/30 rounded">
-            <div className="text-muted-foreground">{t("create.linear_price", "Linear Price")}</div>
+            <div className="text-muted-foreground">
+              {t("create.linear_price", "Linear Price")}
+            </div>
             <div className="font-medium">
-              {formatSmallEthValue(calculatedValues.transitionPrice, true)}/token
+              {formatSmallEthValue(calculatedValues.transitionPrice, true)}
+              /token
             </div>
           </div>
         </div>
