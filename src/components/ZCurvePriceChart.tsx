@@ -313,23 +313,7 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
     };
   }, [priceData, candleData, lineData, volumeData, chartType, theme, timeInterval]);
   
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-[400px]">
-        <LoadingLogo className="h-8 w-8" />
-      </div>
-    );
-  }
-  
-  if (priceData.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-[400px] text-muted-foreground">
-        {t("trade.no_price_data", "No price data available yet")}
-      </div>
-    );
-  }
-  
-  // Calculate summary statistics
+  // Calculate summary statistics - must be called before any returns
   const stats = React.useMemo(() => {
     if (priceData.length === 0) return null;
     
@@ -339,7 +323,7 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
     const highPrice = Math.max(...prices);
     const lowPrice = Math.min(...prices);
     const priceChange = currentPrice - openPrice;
-    const priceChangePercent = (priceChange / openPrice) * 100;
+    const priceChangePercent = openPrice > 0 ? (priceChange / openPrice) * 100 : 0;
     const totalVolume = priceData.reduce((sum, p) => sum + p.volume, 0);
     const buyVolume = priceData.filter(p => p.type === "buy").reduce((sum, p) => sum + p.volume, 0);
     const sellVolume = totalVolume - buyVolume;
@@ -356,6 +340,22 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
       sellVolume,
     };
   }, [priceData]);
+  
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-[400px]">
+        <LoadingLogo className="h-8 w-8" />
+      </div>
+    );
+  }
+  
+  if (priceData.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-[400px] text-muted-foreground">
+        {t("trade.no_price_data", "No price data available yet")}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -399,8 +399,8 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
             <p className="text-xs text-muted-foreground">{t("chart.volume_24h", "24h Volume")}</p>
             <p className="text-sm font-mono">{stats.totalVolume.toFixed(4)} ETH</p>
             <div className="flex gap-2 text-xs">
-              <span className="text-green-600">Buy: {((stats.buyVolume / stats.totalVolume) * 100).toFixed(0)}%</span>
-              <span className="text-red-600">Sell: {((stats.sellVolume / stats.totalVolume) * 100).toFixed(0)}%</span>
+              <span className="text-green-600">Buy: {stats.totalVolume > 0 ? ((stats.buyVolume / stats.totalVolume) * 100).toFixed(0) : 0}%</span>
+              <span className="text-red-600">Sell: {stats.totalVolume > 0 ? ((stats.sellVolume / stats.totalVolume) * 100).toFixed(0) : 0}%</span>
             </div>
           </div>
           <div className="space-y-1">

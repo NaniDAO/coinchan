@@ -125,7 +125,7 @@ const convertToSnippets = async (swaps: any[], t: (key: string) => string, publi
                 <a target="_blank" href={"https://etherscan.io/address/" + trader} rel="noreferrer">
                   {truncAddress(trader)}
                 </a>{" "}
-                {t("swap.bought")} {Number(formatUnits(amount1Out, pool.coin1.decimals)).toFixed(2)}{" "}
+                {t("swap.bought")} {Number(formatUnits(amount1Out, pool.coin1?.decimals || 18)).toFixed(2)}{" "}
                 <Link
                   to={`/c/$coinId`}
                   params={{
@@ -146,7 +146,7 @@ const convertToSnippets = async (swaps: any[], t: (key: string) => string, publi
                 <a target="_blank" href={"https://etherscan.io/address/" + trader} rel="noreferrer">
                   {truncAddress(trader)}
                 </a>{" "}
-                {t("swap.sold")} {Number(formatUnits(amount1In, pool.coin1.decimals)).toFixed(2)}{" "}
+                {t("swap.sold")} {Number(formatUnits(amount1In, pool.coin1?.decimals || 18)).toFixed(2)}{" "}
                 <Link
                   to={`/c/$coinId`}
                   params={{
