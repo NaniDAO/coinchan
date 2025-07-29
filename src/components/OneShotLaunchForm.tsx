@@ -392,6 +392,13 @@ export function OneShotLaunchForm() {
   return (
     <div className="container mx-auto px-4 py-6 sm:py-8">
       <div className="max-w-2xl mx-auto">
+        {/* Terminal-style Header */}
+        <div className="mb-8 text-center">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold text-foreground leading-tight whitespace-pre-line">
+            {t("create.oneshot_header")}
+          </h1>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Token Information */}
           <div className="space-y-4">
@@ -515,7 +522,7 @@ export function OneShotLaunchForm() {
                 <div className="flex items-center gap-2">
                   <Info className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm font-medium">
-                    {t("launch.estimated_gas_cost", "Estimated Gas Cost")}
+                    {t("create.estimated_gas_cost", "Estimated Gas Cost")}
                   </span>
                 </div>
                 <div className="text-right">

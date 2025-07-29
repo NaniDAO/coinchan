@@ -490,6 +490,7 @@
   },
   "create": {
     "title": "Coin It!",
+    "oneshot_header": "Fair launch a Coin.\nTrade to find its price.\nThen seed liquidity in zAMM.",
     "name": "Name",
     "symbol": "Symbol",
     "supply": "Supply",
@@ -649,6 +650,7 @@
     "oneshot_auto_liquidity": "Auto-Finalization: Creates AMM pool on success",
     "oneshot_instant_trading": "{{lpSupply}} tokens + ETH raised → {{fee}}% fee AMM • Instant trading",
     "launch_successful": "Your coin launch was successful!",
+    "estimated_gas_cost": "Estimated Gas Cost",
     "avg_price_at_target": "Avg Price @ Target",
     "max_raise": "Max Raise",
     "quadratic_phase": "Quadratic Phase",
@@ -978,8 +980,6 @@
     "transaction_failed": "Transaction failed",
     "buy_impact": "Buy Impact",
     "sell_impact": "Sell Impact",
-    "price_per_token": "Price per token",
-    "marginal_price": "Marginal price",
     "avg_price_this_trade": "Avg price for this trade",
     "high_impact_warning": "Large trade - consider splitting into smaller amounts"
   },

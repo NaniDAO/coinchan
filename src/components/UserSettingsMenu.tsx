@@ -4,9 +4,6 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useTheme } from "@/lib/theme";
@@ -28,6 +25,16 @@ export function UserSettingsMenu() {
     i18n.changeLanguage(code);
   };
 
+  const toggleLanguage = () => {
+    const newLang = currentLanguage === "en" ? "zh" : "en";
+    changeLanguage(newLang);
+  };
+
+  const getCurrentLanguageLabel = () => {
+    const lang = languages.find(l => l.code === currentLanguage);
+    return lang ? lang.label : "English";
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="!p-2 flex items-center justify-center hover:scale-110 focus:scale-115 focus:outline-none">
@@ -41,22 +48,12 @@ export function UserSettingsMenu() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
 
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger className="!px-2 !py-1 bg-background text-foreground !border !border-foreground">
-            <span>{t("common.language")}</span>
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
-            {languages.map((lang) => (
-              <DropdownMenuItem
-                key={lang.code}
-                className="!px-2 !py-1 bg-background text-foreground !border !border-foreground"
-                onClick={() => changeLanguage(lang.code)}
-              >
-                <span className={currentLanguage === lang.code ? "font-bold" : ""}>{lang.label}</span>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
+        <DropdownMenuItem
+          className="!px-2 !py-1 bg-background text-foreground !border !border-foreground"
+          onClick={toggleLanguage}
+        >
+          {getCurrentLanguageLabel()}
+        </DropdownMenuItem>
 
         <DropdownMenuItem
           className="!px-2 !py-1 bg-background text-foreground !border !border-foreground"
