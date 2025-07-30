@@ -1225,6 +1225,8 @@
     "create": "创建",
     "load": "加载",
     "governance": "治理",
+    "bonding_now": "正在绑定",
+    "graduated": "已毕业",
     "stats": {
       "eth_price": "ETH 价格：",
       "gas_price": "Gas 价格：",

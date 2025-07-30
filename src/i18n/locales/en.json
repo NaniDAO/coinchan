@@ -1116,6 +1116,8 @@
     "create": "create",
     "load": "load",
     "governance": "governance",
+    "bonding_now": "Bonding Now",
+    "graduated": "Graduated",
     "stats": {
       "eth_price": "ETH Price:",
       "gas_price": "Gas Price:",

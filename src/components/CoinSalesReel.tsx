@@ -3,10 +3,12 @@ import { Link } from "@tanstack/react-router";
 import { useZCurveSales } from "@/hooks/use-zcurve-sales";
 import { formatImageURL } from "@/hooks/metadata";
 import { formatEther } from "viem";
+import { useTranslation } from "react-i18next";
 
 export const CoinSalesReel = () => {
   const { data, isLoading } = useZCurveSales();
   const [visibleIndex, setVisibleIndex] = useState(0);
+  const { t } = useTranslation();
 
   // Filter for active and finalized sales with images
   const displaySales = useMemo(() => {
@@ -44,8 +46,6 @@ export const CoinSalesReel = () => {
 
   return (
     <div className="mb-6 w-full flex flex-col items-center">
-      <div className="text-lg mb-3 font-bold text-center">active coins:</div>
-      
       <div className="relative w-32 h-32 group">
         {displaySales.map((sale, index) => (
           <Link
@@ -116,7 +116,7 @@ export const CoinSalesReel = () => {
           {currentSale.coin?.symbol}
         </div>
         <div className="text-xs text-muted-foreground">
-          {currentSale.status === "ACTIVE" ? "Active" : "Graduated"}
+          {currentSale.status === "ACTIVE" ? t("landing.bonding_now") : t("landing.graduated")}
         </div>
       </div>
       
