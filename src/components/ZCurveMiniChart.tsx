@@ -65,12 +65,12 @@ export function ZCurveMiniChartInner({ sale, className = "" }: ZCurveMiniChartPr
 
   // Memoize the basic calculation parameters
   const calculationParams = useMemo(() => {
-    if (!sale || !sale.saleCap || !sale.divisor || !sale.quadCap) {
+    if (!sale || !sale.divisor || !sale.quadCap) {
       return null;
     }
 
-    // Additional validation to prevent division by zero
-    const saleCap = BigInt(sale.saleCap);
+    // For finalized sales, use lpSupply instead of saleCap
+    const saleCap = isFinalized ? BigInt(sale.lpSupply || 0) : BigInt(sale.saleCap || 0);
     const divisor = BigInt(sale.divisor);
     const quadCap = unpackQuadCap(BigInt(sale.quadCap));
     
@@ -83,11 +83,12 @@ export function ZCurveMiniChartInner({ sale, className = "" }: ZCurveMiniChartPr
       saleCap,
       divisor,
       quadCap,
+      // For finalized sales, netSold should be the full saleCap (lpSupply)
       netSold: isFinalized ? saleCap : BigInt(sale.netSold || 0),
       ethEscrow: BigInt(sale.ethEscrow || 0),
       ethTarget: BigInt(sale.ethTarget || 1), // Ensure never zero
     };
-  }, [sale.saleCap, sale.divisor, sale.quadCap, sale.netSold, sale.ethEscrow, sale.ethTarget, isFinalized]);
+  }, [sale.saleCap, sale.lpSupply, sale.divisor, sale.quadCap, sale.netSold, sale.ethEscrow, sale.ethTarget, isFinalized]);
 
   // Memoize chart data generation
   const chartData = useMemo(() => {
@@ -178,8 +179,16 @@ export function ZCurveMiniChartInner({ sale, className = "" }: ZCurveMiniChartPr
     isFinalized ? "100.0%" : `${currentStats.fundedPercentage.toFixed(1)}%`
   , [isFinalized, currentStats.fundedPercentage]);
 
+ 
   // Don't render if no valid data
   if (!calculationParams || chartData.length === 0) {
+    console.log("ZCurveMiniChart data:", {
+      sale,
+      calculationParams,
+      chartData,
+      currentStats,
+      isFinalized,
+    });
     return <div className={cn(`bg-muted/20 animate-pulse rounded`, className)} />;
   }
 
