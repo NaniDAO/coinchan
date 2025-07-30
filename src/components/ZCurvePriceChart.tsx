@@ -1,27 +1,27 @@
-import { useState } from "react";
+// import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Button } from "@/components/ui/button";
-import { LineChart, CandlestickChart } from "lucide-react";
+// import { Button } from "@/components/ui/button";
+// import { LineChart, CandlestickChart } from "lucide-react";
 import { ZCurveLiveChart } from "./ZCurveLiveChart";
-import { ZCurveCandlestickChart } from "./ZCurveCandlestickChart";
+// import { ZCurveCandlestickChart } from "./ZCurveCandlestickChart";
 import type { ZCurveSale } from "@/hooks/use-zcurve-sale";
-import { cn } from "@/lib/utils";
+// import { cn } from "@/lib/utils";
 
 interface ZCurvePriceChartProps {
   sale: ZCurveSale;
   previewAmount?: bigint;
   isBuying?: boolean;
-  defaultView?: "line" | "candlestick";
+  // defaultView?: "line" | "candlestick";
 }
 
 export function ZCurvePriceChart({ 
   sale, 
   previewAmount, 
   isBuying = true,
-  defaultView = "line" 
+  // defaultView = "line" 
 }: ZCurvePriceChartProps) {
   const { t } = useTranslation();
-  const [chartType, setChartType] = useState<"line" | "candlestick">(defaultView);
+  // const [chartType, setChartType] = useState<"line" | "candlestick">(defaultView);
 
   return (
     <div className="space-y-4">
@@ -31,7 +31,8 @@ export function ZCurvePriceChart({
           {t("chart.price_chart", "Price Chart")}
         </h3>
         
-        <div className="flex items-center gap-1 border border-border rounded-md p-1">
+        {/* Candlestick toggle removed - only line chart available */}
+        {/* <div className="flex items-center gap-1 border border-border rounded-md p-1">
           <Button
             variant={chartType === "line" ? "secondary" : "ghost"}
             size="sm"
@@ -50,14 +51,18 @@ export function ZCurvePriceChart({
             <CandlestickChart className="h-4 w-4 mr-1" />
             <span className="text-xs">{t("chart.candles", "Candles")}</span>
           </Button>
-        </div>
+        </div> */}
       </div>
 
       {/* Chart content */}
-      <div className={cn(
-        "transition-all duration-300",
-        chartType === "candlestick" && previewAmount && "opacity-75"
-      )}>
+      <div>
+        {/* Only show line chart - candlestick chart removed */}
+        <ZCurveLiveChart 
+          sale={sale} 
+          previewAmount={previewAmount} 
+          isBuying={isBuying} 
+        />
+        {/* Candlestick chart code removed
         {chartType === "line" ? (
           <ZCurveLiveChart 
             sale={sale} 
@@ -73,7 +78,7 @@ export function ZCurvePriceChart({
               </div>
             )}
           </>
-        )}
+        )} */}
       </div>
     </div>
   );
