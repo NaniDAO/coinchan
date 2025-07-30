@@ -17,7 +17,10 @@ export const CoinSalesReel = () => {
       .filter(sale => 
         (sale.status === "ACTIVE" || sale.status === "FINALIZED") && 
         sale.coin?.imageUrl &&
-        sale.coinId
+        sale.coinId &&
+        // Exclude test demo coins
+        sale.coinId !== "69" && 
+        sale.coinId !== "71"
       )
       .sort((a, b) => {
         // Prioritize active over finalized

@@ -222,6 +222,12 @@ export const Coins = () => {
         return false;
       }
       
+      // Exclude test demo coins
+      const coinIdNum = Number(coin.coinId);
+      if (coinIdNum === 69 || coinIdNum === 71) {
+        return false;
+      }
+      
       // Allow special tokens (ENS has ID 0, CULT has ID 999999)
       const isSpecialToken = 
         coin.symbol === "ENS" || 

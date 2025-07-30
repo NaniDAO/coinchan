@@ -7,7 +7,6 @@ import { TrendingFarm } from "./TrendingFarm";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { LoadingLogo } from "./ui/loading-logo";
 import { GovernanceProposals } from "./GovernanceProposals";
-import { SaleBlurb } from "./SaleBlurb";
 import { useNavigate } from "@tanstack/react-router";
 import { CoinSalesReel } from "./CoinSalesReel";
 
@@ -179,10 +178,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
       <div className="mb-4">
         <div className="text-lg mb-2 font-bold">{t("landing.coins")}:</div>
         <div className="space-y-0 text-xs">
-          <ErrorBoundary fallback={<LoadingLogo />}>
-            <SaleBlurb coinId="71" />
-          </ErrorBoundary>
-          {/* Coin Sales Reel - moved under sales list */}
+          {/* Coin Sales Reel */}
           <ErrorBoundary fallback={null}>
             <CoinSalesReel />
           </ErrorBoundary>
