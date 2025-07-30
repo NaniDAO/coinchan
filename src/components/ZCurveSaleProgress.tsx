@@ -373,7 +373,7 @@ export const ZCurveSaleProgress = memo(({ sale }: ZCurveSaleProgressProps) => {
           )}
           {!saleData.isFinalized && saleData.netSold < saleData.quadCap && saleData.quadCap > 0n && (
             <p className="text-xs text-muted-foreground">
-              {((Number(saleData.netSold) / Number(saleData.quadCap)) * 100).toFixed(1)}%{" "}
+              {(100 - (Number(saleData.netSold) / Number(saleData.quadCap)) * 100).toFixed(1)}%{" "}
               {t("sale.to_linear", "to linear")}
             </p>
           )}

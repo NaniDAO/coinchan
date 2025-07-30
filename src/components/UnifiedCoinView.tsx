@@ -90,47 +90,68 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
     // Check if in active zCurve bonding phase
     if (zcurveSale && zcurveSale.status === "ACTIVE") {
       // During bonding curve phase - use hardcoded 1 billion total supply for zCurve tokens
-      // (1 billion tokens * 10^18 decimals = 1e27 wei)
       const totalSupply = ZCURVE_STANDARD_PARAMS.TOTAL_SUPPLY;
       
-      // Get current price in wei per smallest token unit
-      const currentPriceWei = BigInt(zcurveSale.currentPrice || "0");
-
-      if (currentPriceWei > 0n) {
-        // Calculate implied market cap: totalSupply * currentPrice
-        // Both values are already in smallest units (wei)
-        const marketCapWei = (totalSupply * currentPriceWei) / (10n ** 18n);
-        const impliedMarketCapEth = Number(formatEther(marketCapWei));
-
-
-        return {
-          marketCapEth: impliedMarketCapEth,
-          marketCapUsd: impliedMarketCapEth * ethPriceUsd,
-          effectiveSwapFee: [0n], // 0% during bonding
-          isZCurveBonding: true,
-        };
-      }
-
-      // Fallback: calculate from average price if current price is not available
+      // For market cap calculation during bonding curve, use a more intuitive approach:
+      // Calculate based on what it would cost to buy the remaining supply at current prices
+      
       const ethEscrow = BigInt(zcurveSale.ethEscrow || "0");
       const netSold = BigInt(zcurveSale.netSold || "0");
-
+      const saleCap = BigInt(zcurveSale.saleCap || ZCURVE_STANDARD_PARAMS.SALE_CAP);
+      
+      // First, try using the current marginal price if we have meaningful sales
+      const currentPriceWei = BigInt(zcurveSale.currentPrice || "0");
+      
       if (netSold > 0n && ethEscrow > 0n) {
-        // Average price per token = ethEscrow / netSold
-        // Market cap = totalSupply * average price
+        // Calculate average price paid so far
         const avgPriceWei = (ethEscrow * (10n ** 18n)) / netSold;
-        const marketCapWei = (totalSupply * avgPriceWei) / (10n ** 18n);
-        const impliedMarketCapEth = Number(formatEther(marketCapWei));
-
-
-        return {
-          marketCapEth: impliedMarketCapEth,
-          marketCapUsd: impliedMarketCapEth * ethPriceUsd,
-          effectiveSwapFee: [0n], // 0% during bonding
-          isZCurveBonding: true,
-        };
+        
+        // For very early sales, use the average price as it's more representative
+        // For later sales, we could use the marginal price
+        // A good heuristic: if less than 1% sold, use average price
+        const percentSold = (netSold * 100n) / saleCap;
+        
+        let effectivePriceWei: bigint;
+        if (percentSold < 1n && avgPriceWei > 0n) {
+          // Very early stage - use average price
+          effectivePriceWei = avgPriceWei;
+        } else if (currentPriceWei > 0n) {
+          // Use current marginal price
+          effectivePriceWei = currentPriceWei;
+        } else {
+          // Fallback to average
+          effectivePriceWei = avgPriceWei;
+        }
+        
+        // Calculate market cap using the effective price
+        const marketCapWei = (totalSupply * effectivePriceWei) / (10n ** 18n);
+        
+        if (marketCapWei > 0n) {
+          const impliedMarketCapEth = Number(formatEther(marketCapWei));
+          
+          return {
+            marketCapEth: impliedMarketCapEth,
+            marketCapUsd: impliedMarketCapEth * ethPriceUsd,
+            effectiveSwapFee: [0n], // 0% during bonding
+            isZCurveBonding: true,
+          };
+        }
       }
-
+      
+      // If we have a current price but no sales yet, use it
+      if (currentPriceWei > 0n) {
+        const marketCapWei = (totalSupply * currentPriceWei) / (10n ** 18n);
+        if (marketCapWei > 0n) {
+          const impliedMarketCapEth = Number(formatEther(marketCapWei));
+          
+          return {
+            marketCapEth: impliedMarketCapEth,
+            marketCapUsd: impliedMarketCapEth * ethPriceUsd,
+            effectiveSwapFee: [0n], // 0% during bonding
+            isZCurveBonding: true,
+          };
+        }
+      }
 
       return {
         marketCapEth: 0,

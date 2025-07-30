@@ -12,6 +12,8 @@ import {
 import { useEffect, useRef, useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, parseEther } from "viem";
+import { calculateCost } from "@/lib/zCurveMath";
+import { UNIT_SCALE } from "@/lib/zCurveHelpers";
 
 interface ZCurveBondingChartProps {
   saleCap: bigint; // in wei (e.g., 800M tokens)
@@ -49,9 +51,6 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
     gridColor: chartTheme.lineColor + "20", // Add transparency
     borderColor: chartTheme.lineColor + "40", // Add transparency
   };
-
-  // Constants from zCurve contract
-  const UNIT_SCALE = BigInt("1000000000000"); // 1e12
 
   // Format very small ETH values with appropriate precision and readability
   const formatSmallEthValue = (value: bigint, forceReadable: boolean = false): string => {
@@ -92,69 +91,12 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
     }
   };
 
-  // Quadratic-then-linear bonding curve cost function from the zCurve contract
-  const calculateCost = (n: bigint, quadCapValue: bigint | undefined, d: bigint): bigint => {
-    // Convert to "tick" count (1 tick = UNIT_SCALE base-units)
-    const m = n / UNIT_SCALE;
 
-    // First tick free
-    if (m < BigInt(2)) return BigInt(0);
-
-    // If no quadCap specified, use pure quadratic
-    if (!quadCapValue) {
-      const a = m * (m - BigInt(1));
-      const b = a * (BigInt(2) * m - BigInt(1));
-      return (b * parseEther("1")) / (BigInt(6) * d);
-    }
-
-    // How many ticks do we run pure-quad? Up to the quadCap
-    const K = quadCapValue / UNIT_SCALE;
-
-    // We factor out the common (6*d) denominator and 1 ETH numerator
-    const denom = BigInt(6) * d;
-    const oneETH = parseEther("1");
-
-    if (m <= K) {
-      // PURE QUADRATIC PHASE
-      // sum_{i=0..m-1} i^2 = m*(m-1)*(2m-1)/6
-      const sumSq = (m * (m - BigInt(1)) * (BigInt(2) * m - BigInt(1))) / BigInt(6);
-      return (sumSq * oneETH) / denom;
-    } else {
-      // MIXED PHASE: QUAD TILL K, THEN LINEAR TAIL
-      // 1) Quad area for first K ticks:
-      //    sum_{i=0..K-1} i^2 = K*(K-1)*(2K-1)/6
-      const sumK = (K * (K - BigInt(1)) * (BigInt(2) * K - BigInt(1))) / BigInt(6);
-      const quadCost = (sumK * oneETH) / denom;
-
-      // 2) Marginal price at tick K (for ticks K→m):
-      //    p_K = cost(K+1) - cost(K) = (K^2 * 1 ETH) / (6*d)
-      const pK = (K * K * oneETH) / denom;
-
-      // 3) Linear tail for the remaining (m - K) ticks
-      const tailTicks = m - K;
-      const tailCost = pK * tailTicks;
-
-      return quadCost + tailCost;
-    }
-  };
-
-  // Calculate marginal price at a given token amount
+  // Calculate marginal price at a given token amount using the shared calculateCost function
   const calculateMarginalPrice = (tokensSold: bigint, quadCapValue: bigint | undefined, d: bigint): bigint => {
-    const ticks = tokensSold / UNIT_SCALE;
-    const K = quadCapValue ? quadCapValue / UNIT_SCALE : BigInt(0);
-
-    if (ticks < BigInt(2)) return BigInt(0);
-
-    const denom = BigInt(6) * d;
-    const oneETH = parseEther("1");
-
-    if (!quadCapValue || ticks <= K) {
-      // Quadratic phase: marginal price = (ticks^2 * 1 ETH) / (6 * divisor)
-      return (ticks * ticks * oneETH) / denom;
-    } else {
-      // Linear phase: constant marginal price = (K^2 * 1 ETH) / (6 * divisor)
-      return (K * K * oneETH) / denom;
-    }
+    // Marginal price is the cost of the next UNIT_SCALE tokens
+    const adjustedQuadCap = quadCapValue || tokensSold + UNIT_SCALE * 2n; // If no quadCap, ensure we stay in quadratic
+    return calculateCost(tokensSold + UNIT_SCALE, adjustedQuadCap, d) - calculateCost(tokensSold, adjustedQuadCap, d);
   };
 
   // Calculate important values
@@ -174,7 +116,7 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
     while (high - low > UNIT_SCALE) {
       // Continue until we're within 1 tick
       const mid = (low + high) / 2n;
-      const cost = calculateCost(mid, quadCap, divisor);
+      const cost = calculateCost(mid, quadCap || saleCap, divisor);
       if (cost < ethTarget) {
         low = mid;
       } else {
@@ -183,8 +125,8 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
     }
 
     // Check which is closer to target
-    const lowCost = calculateCost(low, quadCap, divisor);
-    const highCost = calculateCost(high, quadCap, divisor);
+    const lowCost = calculateCost(low, quadCap || saleCap, divisor);
+    const highCost = calculateCost(high, quadCap || saleCap, divisor);
     const lowDiff = ethTarget > lowCost ? ethTarget - lowCost : lowCost - ethTarget;
     const highDiff = ethTarget > highCost ? ethTarget - highCost : highCost - ethTarget;
 
@@ -195,7 +137,7 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
     // to maintain precision
 
     // Max raise is the cost of selling all tokens
-    const maxRaise = calculateCost(saleCap, quadCap, divisor);
+    const maxRaise = calculateCost(saleCap, quadCap || saleCap, divisor);
 
     // Find transition point price for 1 full token if quadCap exists
     let transitionPrice = 0n;
@@ -283,7 +225,7 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
 
     for (let i = 0; i <= numPoints; i++) {
       const tokensSold = (saleCap * BigInt(i)) / BigInt(numPoints);
-      const totalCost = calculateCost(tokensSold, quadCap, divisor);
+      const totalCost = calculateCost(tokensSold, quadCap || saleCap, divisor);
 
       tokenMap.set(i, tokensSold);
       dataPoints.push({
@@ -305,7 +247,7 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
       const timeIndex = param.time as number;
       const tokenAmount = tokenMap.get(timeIndex);
       if (tokenAmount !== undefined) {
-        const cost = calculateCost(tokenAmount, quadCap, divisor);
+        const cost = calculateCost(tokenAmount, quadCap || saleCap, divisor);
         setHoveredAmount(formatEther(tokenAmount).slice(0, 8));
         setHoveredPrice(formatEther(cost).slice(0, 8));
       }

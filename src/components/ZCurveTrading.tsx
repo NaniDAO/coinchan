@@ -734,12 +734,11 @@ export function ZCurveTrading({
       )}
 
       {/* Price Impact */}
-      {((lastEditedField === "sell" && sellAmount && Number.parseFloat(sellAmount) > 0) ||
-        (lastEditedField === "buy" && buyAmount && Number.parseFloat(buyAmount) > 0)) && (
+      {sellAmount && buyAmount && (Number.parseFloat(sellAmount) > 0 || Number.parseFloat(buyAmount) > 0) && (
         <ZCurvePriceImpact
           sale={sale}
-          tradeAmount={swapDirection === "buy" ? sellAmount : sellAmount}
-          tokenAmount={swapDirection === "buy" ? buyAmount : undefined}
+          tradeAmount={sellAmount}
+          tokenAmount={buyAmount}
           isBuying={swapDirection === "buy"}
         />
       )}

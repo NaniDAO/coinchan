@@ -4,6 +4,7 @@ import { formatEther, parseEther } from "viem";
 import { InfoIcon } from "lucide-react";
 import type { ZCurveSale } from "@/hooks/use-zcurve-sale";
 import { UNIT_SCALE, unpackQuadCap } from "@/lib/zCurveHelpers";
+import { calculateCost } from "@/lib/zCurveMath";
 
 interface ZCurvePriceImpactProps {
   sale: ZCurveSale;
@@ -23,35 +24,10 @@ export function ZCurvePriceImpact({
   const { t } = useTranslation();
 
   // Helper function to calculate marginal price at a given netSold amount
-  // This matches the zCurve contract's _cost function
+  // Uses the shared calculateCost function from zCurveMath
   const calculateMarginalPrice = (netSold: bigint, quadCap: bigint, divisor: bigint): bigint => {
-    const oneETH = parseEther("1");
-
-    // Calculate cost of next UNIT_SCALE tokens
-    const cost = (n: bigint): bigint => {
-      const m = n / UNIT_SCALE;
-      if (m < 2n) return 0n; // First tick free
-
-      const K = quadCap / UNIT_SCALE;
-      const denom = 6n * divisor;
-
-      if (m <= K) {
-        // Quadratic phase: sum of squares formula
-        const sumSq = (m * (m - 1n) * (2n * m - 1n)) / 6n;
-        return (sumSq * oneETH) / denom;
-      } else {
-        // Mixed phase
-        const sumK = (K * (K - 1n) * (2n * K - 1n)) / 6n;
-        const quadCost = (sumK * oneETH) / denom;
-        const pK = (K * K * oneETH) / denom;
-        const tailTicks = m - K;
-        const tailCost = pK * tailTicks;
-        return quadCost + tailCost;
-      }
-    };
-
     // Marginal price is the cost of the next UNIT_SCALE tokens
-    return cost(netSold + UNIT_SCALE) - cost(netSold);
+    return calculateCost(netSold + UNIT_SCALE, quadCap, divisor) - calculateCost(netSold, quadCap, divisor);
   };
 
   const priceImpact = useMemo(() => {

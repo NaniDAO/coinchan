@@ -21,45 +21,87 @@ import { useZCurvePurchases, useZCurveSells } from "@/hooks/use-zcurve-sale";
 // Helper function to format price in a readable way
 const formatPrice = (price: number, priceWei?: bigint): string => {
   // If we have the exact wei value, use it for very small prices
-  if (priceWei !== undefined && priceWei < 1000000n) {
-    return `${priceWei.toString()} wei`;
+  if (priceWei !== undefined && priceWei > 0n) {
+    // Use wei value for accurate display
+    if (priceWei < 1000000n) { // Less than 1M wei
+      return `${priceWei.toString()} wei`;
+    }
+    
+    const ethValue = Number(formatEther(priceWei));
+    if (ethValue < 1e-9) {
+      const gwei = ethValue * 1e9;
+      if (gwei < 0.001) {
+        return `${gwei.toFixed(6)} gwei`;
+      } else if (gwei < 1) {
+        return `${gwei.toFixed(4)} gwei`;
+      }
+      return `${gwei.toFixed(2)} gwei`;
+    }
+    if (ethValue < 1e-6) {
+      return `${(ethValue * 1e6).toFixed(3)} μETH`;
+    }
+    if (ethValue < 0.001) {
+      return `${(ethValue * 1000).toFixed(4)} mETH`;
+    }
+    if (ethValue < 0.01) {
+      return `${ethValue.toFixed(6)} ETH`;
+    }
+    return `${ethValue.toFixed(4)} ETH`;
   }
   
-  if (price === 0) return "0";
+  // Fallback to number-based formatting
+  if (price === 0) return "0 ETH";
 
   // For very small prices, show in gwei or wei
   if (price < 1e-15) {
-    const wei = Math.round(price * 1e18);
-    return `${wei} wei`;
+    const wei = price * 1e18;
+    if (wei < 0.001) {
+      return `${wei.toExponential(2)} wei`;
+    }
+    return `${wei.toFixed(3)} wei`;
   }
   if (price < 1e-9) {
     const gwei = price * 1e9;
-    return `${gwei.toFixed(3)} gwei`;
+    if (gwei < 0.001) {
+      return `${gwei.toFixed(6)} gwei`;
+    } else if (gwei < 1) {
+      return `${gwei.toFixed(4)} gwei`;
+    }
+    return `${gwei.toFixed(2)} gwei`;
   }
   if (price < 1e-6) {
     return `${(price * 1e6).toFixed(3)} μETH`;
   }
-  if (price < 0.01) {
-    return `${price.toFixed(8)} ETH`;
+  if (price < 0.001) {
+    return `${(price * 1000).toFixed(4)} mETH`;
   }
-  return `${price.toFixed(6)} ETH`;
+  if (price < 0.01) {
+    return `${price.toFixed(6)} ETH`;
+  }
+  return `${price.toFixed(4)} ETH`;
 };
 
 // Helper function to format tokens per ETH
 const formatTokensPerEth = (priceInEth: number, priceWei?: bigint): string => {
   // If price is very small (or provided in wei), calculate from wei
   if (priceWei !== undefined && priceWei > 0n) {
+    // Use BigInt math to avoid precision loss
     const oneEthInWei = BigInt(1e18);
-    const tokensPerEth = Number(oneEthInWei) / Number(priceWei);
+    // Calculate tokens per ETH: 1 ETH / price per token
+    // Since both are in wei, result is in base units (no decimals)
+    const tokensPerEthBigInt = oneEthInWei / priceWei;
+    const tokensPerEth = Number(tokensPerEthBigInt);
     
-    if (tokensPerEth >= 1e9) {
+    if (tokensPerEth >= 1e12) {
+      return `${(tokensPerEth / 1e12).toFixed(2)}T per ETH`;
+    } else if (tokensPerEth >= 1e9) {
       return `${(tokensPerEth / 1e9).toFixed(2)}B per ETH`;
     } else if (tokensPerEth >= 1e6) {
       return `${(tokensPerEth / 1e6).toFixed(2)}M per ETH`;
     } else if (tokensPerEth >= 1e3) {
       return `${(tokensPerEth / 1e3).toFixed(2)}K per ETH`;
     } else if (tokensPerEth >= 1) {
-      return `${tokensPerEth.toFixed(2)} per ETH`;
+      return `${tokensPerEth.toFixed(0)} per ETH`;
     } else {
       return `${tokensPerEth.toFixed(6)} per ETH`;
     }
@@ -95,6 +137,7 @@ type TimeInterval = "5m" | "1h" | "4h" | "1d";
 interface PricePoint {
   timestamp: number;
   price: number;
+  priceWei: bigint; // Keep the exact wei value
   volume: number;
   type: "buy" | "sell";
 }
@@ -122,10 +165,12 @@ export function ZCurvePriceChart({ coinId, currentBondingPrice, isActiveSale }: 
 
     if (purchases) {
       purchases.forEach((p) => {
-        const price = Number(formatEther(BigInt(p.pricePerToken)));
+        const priceWei = BigInt(p.pricePerToken);
+        const price = Number(formatEther(priceWei));
         points.push({
           timestamp: Number(p.timestamp),
           price,
+          priceWei,
           volume: Number(formatEther(BigInt(p.ethIn))),
           type: "buy",
         });
@@ -134,10 +179,12 @@ export function ZCurvePriceChart({ coinId, currentBondingPrice, isActiveSale }: 
 
     if (sells) {
       sells.forEach((s) => {
-        const price = Number(formatEther(BigInt(s.pricePerToken)));
+        const priceWei = BigInt(s.pricePerToken);
+        const price = Number(formatEther(priceWei));
         points.push({
           timestamp: Number(s.timestamp),
           price,
+          priceWei,
           volume: Number(formatEther(BigInt(s.ethOut))),
           type: "sell",
         });
@@ -392,8 +439,11 @@ export function ZCurvePriceChart({ coinId, currentBondingPrice, isActiveSale }: 
         currentPrice: bondingPriceNum,
         currentPriceWei: bondingPriceWei, // Store wei value for accurate display
         openPrice: bondingPriceNum,
+        openPriceWei: bondingPriceWei,
         highPrice: bondingPriceNum,
+        highPriceWei: bondingPriceWei,
         lowPrice: bondingPriceNum,
+        lowPriceWei: bondingPriceWei,
         priceChange: 0,
         priceChangePercent: 0,
         totalVolume: 0,
@@ -406,9 +456,27 @@ export function ZCurvePriceChart({ coinId, currentBondingPrice, isActiveSale }: 
 
     const prices = priceData.map((p) => p.price);
     const currentPrice = prices[prices.length - 1];
+    const currentPriceWei = priceData[priceData.length - 1].priceWei;
     const openPrice = prices[0];
-    const highPrice = Math.max(...prices);
-    const lowPrice = Math.min(...prices);
+    const openPriceWei = priceData[0].priceWei;
+    
+    // Find high and low with their wei values
+    let highPrice = prices[0];
+    let highPriceWei = priceData[0].priceWei;
+    let lowPrice = prices[0];
+    let lowPriceWei = priceData[0].priceWei;
+    
+    priceData.forEach((p) => {
+      if (p.price > highPrice || (p.price === highPrice && p.priceWei > highPriceWei)) {
+        highPrice = p.price;
+        highPriceWei = p.priceWei;
+      }
+      if (p.price < lowPrice || (p.price === lowPrice && p.priceWei < lowPriceWei)) {
+        lowPrice = p.price;
+        lowPriceWei = p.priceWei;
+      }
+    });
+    
     const priceChange = currentPrice - openPrice;
     const priceChangePercent = openPrice > 0 ? (priceChange / openPrice) * 100 : 0;
     const totalVolume = priceData.reduce((sum, p) => sum + p.volume, 0);
@@ -417,9 +485,13 @@ export function ZCurvePriceChart({ coinId, currentBondingPrice, isActiveSale }: 
 
     return {
       currentPrice,
+      currentPriceWei,
       openPrice,
+      openPriceWei,
       highPrice,
+      highPriceWei,
       lowPrice,
+      lowPriceWei,
       priceChange,
       priceChangePercent,
       totalVolume,
@@ -467,8 +539,8 @@ export function ZCurvePriceChart({ coinId, currentBondingPrice, isActiveSale }: 
           </div>
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">{t("chart.24h_high_low", "24h High/Low")}</p>
-            <p className="text-sm font-mono">{formatPrice(stats.highPrice)}</p>
-            <p className="text-sm font-mono text-muted-foreground">{formatPrice(stats.lowPrice)}</p>
+            <p className="text-sm font-mono">{formatPrice(stats.highPrice, stats.highPriceWei)}</p>
+            <p className="text-sm font-mono text-muted-foreground">{formatPrice(stats.lowPrice, stats.lowPriceWei)}</p>
           </div>
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">{t("chart.volume_24h", "24h Volume")}</p>

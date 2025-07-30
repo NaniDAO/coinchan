@@ -14,6 +14,7 @@ import { useTheme } from "@/lib/theme";
 import type { ZCurveSale } from "@/hooks/use-zcurve-sale";
 import { useZCurveSaleSummary } from "@/hooks/use-zcurve-sale";
 import { UNIT_SCALE, unpackQuadCap } from "@/lib/zCurveHelpers";
+import { calculateCost } from "@/lib/zCurveMath";
 import { useAccount } from "wagmi";
 
 interface ZCurveLiveChartProps {
@@ -48,29 +49,6 @@ export function ZCurveLiveChart({ sale, previewAmount, isBuying = true }: ZCurve
     borderColor: appTheme === "dark" ? "#404040" : "#e5e5e5",
   };
 
-  // Calculate cost using the exact contract formula
-  const calculateCost = (n: bigint): bigint => {
-    const m = n / UNIT_SCALE;
-
-    if (m < 2n) return 0n;
-
-    const K = quadCap / UNIT_SCALE; // quadCap is already unpacked on line 26
-    const denom = 6n * divisor;
-    const oneETH = BigInt(1e18);
-
-    if (m <= K) {
-      // Pure quadratic phase
-      const sumSq = (m * (m - 1n) * (2n * m - 1n)) / 6n;
-      return (sumSq * oneETH) / denom;
-    }
-    // Mixed phase: quadratic then linear
-    const sumK = (K * (K - 1n) * (2n * K - 1n)) / 6n;
-    const quadCost = (sumK * oneETH) / denom;
-    const pK = (K * K * oneETH) / denom;
-    const tailTicks = m - K;
-    const tailCost = pK * tailTicks;
-    return quadCost + tailCost;
-  };
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -133,7 +111,7 @@ export function ZCurveLiveChart({ sale, previewAmount, isBuying = true }: ZCurve
     const step = saleCap / 200n; // 200 points for smooth curve
 
     for (let i = 0n; i <= saleCap; i += step) {
-      const cost = calculateCost(i);
+      const cost = calculateCost(i, quadCap, divisor);
       dataPoints.push({
         time: Number(formatEther(i)) as UTCTimestamp, // Amount of coins as x-axis
         value: Number(formatEther(cost)),
@@ -144,7 +122,7 @@ export function ZCurveLiveChart({ sale, previewAmount, isBuying = true }: ZCurve
 
     // Add current position marker with shadow point
     if (netSold > 0n) {
-      const currentCost = calculateCost(netSold);
+      const currentCost = calculateCost(netSold, quadCap, divisor);
 
       // Create a line series for the current position point
       const currentPositionSeries = chart.addSeries(LineSeries, {
@@ -235,7 +213,7 @@ export function ZCurveLiveChart({ sale, previewAmount, isBuying = true }: ZCurve
 
           // Ensure point is within valid range
           if (point >= 0n && point <= saleCap) {
-            const cost = calculateCost(point);
+            const cost = calculateCost(point, quadCap, divisor);
             previewDataPoints.push({
               time: Number(formatEther(point)) as UTCTimestamp,
               value: Number(formatEther(cost)),
@@ -249,7 +227,7 @@ export function ZCurveLiveChart({ sale, previewAmount, isBuying = true }: ZCurve
         previewAreaSeries.setData(previewDataPoints);
 
         // Add preview end marker
-        const endCost = calculateCost(endPoint);
+        const endCost = calculateCost(endPoint, quadCap, divisor);
         const previewMarkerSeries = chart.addSeries(LineSeries, {
           color: isBuying ? "#3b82f6" : "#ef4444",
           lineWidth: 1,
@@ -282,7 +260,7 @@ export function ZCurveLiveChart({ sale, previewAmount, isBuying = true }: ZCurve
 
     // Add quadratic cap indicator
     if (quadCap < saleCap) {
-      const quadCapCost = calculateCost(quadCap);
+      const quadCapCost = calculateCost(quadCap, quadCap, divisor);
       areaSeries.createPriceLine({
         price: Number(formatEther(quadCapCost)),
         color: "#6366f1",
@@ -297,7 +275,7 @@ export function ZCurveLiveChart({ sale, previewAmount, isBuying = true }: ZCurve
     chart.subscribeCrosshairMove((param) => {
       if (param.point && param.time) {
         const amount = BigInt(Math.round(Number(param.time) * 1e18));
-        const cost = calculateCost(amount);
+        const cost = calculateCost(amount, quadCap, divisor);
         setHoveredAmount(formatEther(amount).slice(0, 8));
         setHoveredPrice(formatEther(cost).slice(0, 8));
       } else {
@@ -323,11 +301,11 @@ export function ZCurveLiveChart({ sale, previewAmount, isBuying = true }: ZCurve
       window.removeEventListener("resize", handleResize);
       chart.remove();
     };
-  }, [sale, previewAmount, isBuying, appTheme, t, calculateCost, quadCap, netSold, saleCap, divisor, theme]);
+  }, [sale, previewAmount, isBuying, appTheme, t, quadCap, netSold, saleCap, divisor, theme]);
 
   // Calculate sale progress
   const saleProgress = Number((netSold * 100n) / saleCap);
-  const currentPrice = calculateCost(netSold + UNIT_SCALE) - calculateCost(netSold);
+  const currentPrice = calculateCost(netSold + UNIT_SCALE, quadCap, divisor) - calculateCost(netSold, quadCap, divisor);
   const formattedPrice = formatEther(currentPrice);
 
   // Format price in readable units (wei, gwei, etc)
@@ -434,10 +412,10 @@ export function ZCurveLiveChart({ sale, previewAmount, isBuying = true }: ZCurve
               <div className="flex items-center gap-1">
                 <span className="text-xs font-medium">
                   {(() => {
-                    const currentCost = calculateCost(netSold + UNIT_SCALE) - calculateCost(netSold);
+                    const currentCost = calculateCost(netSold + UNIT_SCALE, quadCap, divisor) - calculateCost(netSold, quadCap, divisor);
                     const endPoint = isBuying ? netSold + previewAmount : netSold - previewAmount;
                     if (endPoint < 0n || endPoint > saleCap) return null;
-                    const newCost = calculateCost(endPoint + UNIT_SCALE) - calculateCost(endPoint);
+                    const newCost = calculateCost(endPoint + UNIT_SCALE, quadCap, divisor) - calculateCost(endPoint, quadCap, divisor);
                     const priceImpact =
                       ((Number(formatEther(newCost)) - Number(formatEther(currentCost))) /
                         Number(formatEther(currentCost))) *
@@ -460,8 +438,8 @@ export function ZCurveLiveChart({ sale, previewAmount, isBuying = true }: ZCurve
               {t("sale.current_price_label", "Current Price")}: {(() => {
                 // Calculate marginal price at current netSold
                 // For very early sales, use the actual delta between current and next unit
-                const currentCost = calculateCost(netSold);
-                const nextCost = calculateCost(netSold + UNIT_SCALE);
+                const currentCost = calculateCost(netSold, quadCap, divisor);
+                const nextCost = calculateCost(netSold + UNIT_SCALE, quadCap, divisor);
                 const marginalPrice = nextCost - currentCost;
                 const priceInEth = Number(formatEther(marginalPrice));
 
