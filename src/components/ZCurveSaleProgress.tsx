@@ -5,7 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import type { ZCurveSale } from "@/hooks/use-zcurve-sale";
 import { unpackQuadCap } from "@/lib/zCurveHelpers";
-import { useZCurveSaleSummary } from "@/hooks/use-zcurve-sale";
+import { useZCurveSaleSummary, useZCurveFinalization } from "@/hooks/use-zcurve-sale";
 import { useAccount } from "wagmi";
 import { useMemo } from "react";
 import { computeZCurvePoolId } from "@/lib/zCurvePoolId";
@@ -22,6 +22,7 @@ export function ZCurveSaleProgress({ sale }: ZCurveSaleProgressProps) {
   
   // Get real-time onchain data
   const { data: onchainData } = useZCurveSaleSummary(sale.coinId, address);
+  const { data: finalizationData } = useZCurveFinalization(sale.coinId);
   
   // Use onchain data if available, otherwise fall back to indexed data
   const netSold = onchainData ? BigInt(onchainData.netSold) : BigInt(sale.netSold);
@@ -154,14 +155,28 @@ export function ZCurveSaleProgress({ sale }: ZCurveSaleProgressProps) {
       <div className="grid grid-cols-2 gap-4 pt-2">
         <div className="space-y-1">
           <p className="text-xs text-muted-foreground">
-            {isFinalized ? t("sale.market_price", "Market Price") : t("sale.current_price", "Current Price")}
+            {isFinalized ? (
+              marketPriceInWei > 0n ? t("sale.market_price", "Market Price") : t("sale.final_price", "Final Price")
+            ) : (
+              t("sale.current_price", "Current Price")
+            )}
           </p>
           <p className="text-sm font-medium">
             {(() => {
               // Use market price for finalized sales, otherwise use current sale price
               let priceInWei = isFinalized && marketPriceInWei > 0n ? marketPriceInWei : (sale.currentPrice ? BigInt(sale.currentPrice) : 0n);
               
-              // For finalized sales without market data, calculate average sale price
+              // For finalized sales, try to use finalization data for accurate final price
+              if (isFinalized && finalizationData && priceInWei === 0n) {
+                const ethLp = BigInt(finalizationData.ethLp);
+                const coinLp = BigInt(finalizationData.coinLp);
+                if (ethLp > 0n && coinLp > 0n) {
+                  // Final price = ETH used for LP / coins used for LP
+                  priceInWei = (ethLp * BigInt(1e18)) / coinLp;
+                }
+              }
+              
+              // Fallback: calculate average sale price
               if (isFinalized && priceInWei === 0n && netSold > 0n) {
                 // Use ethEscrow if available, otherwise use ethTarget
                 const ethRaised = ethEscrow > 0n ? ethEscrow : ethTarget;
@@ -223,7 +238,17 @@ export function ZCurveSaleProgress({ sale }: ZCurveSaleProgressProps) {
               // Use market price for finalized sales, otherwise use current sale price
               let priceInWei = isFinalized && marketPriceInWei > 0n ? marketPriceInWei : (sale.currentPrice ? BigInt(sale.currentPrice) : 0n);
               
-              // For finalized sales without market data, calculate average sale price
+              // For finalized sales, try to use finalization data for accurate final price
+              if (isFinalized && finalizationData && priceInWei === 0n) {
+                const ethLp = BigInt(finalizationData.ethLp);
+                const coinLp = BigInt(finalizationData.coinLp);
+                if (ethLp > 0n && coinLp > 0n) {
+                  // Final price = ETH used for LP / coins used for LP
+                  priceInWei = (ethLp * BigInt(1e18)) / coinLp;
+                }
+              }
+              
+              // Fallback: calculate average sale price
               if (isFinalized && priceInWei === 0n && netSold > 0n) {
                 const ethRaised = ethEscrow > 0n ? ethEscrow : ethTarget;
                 if (ethRaised > 0n) {
