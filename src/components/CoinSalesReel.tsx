@@ -1,10 +1,12 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
 import { useZCurveSales } from "@/hooks/use-zcurve-sales";
 import { formatImageURL } from "@/hooks/metadata";
+import { formatEther } from "viem";
 
 export const CoinSalesReel = () => {
   const { data, isLoading } = useZCurveSales();
+  const [visibleIndex, setVisibleIndex] = useState(0);
 
   // Filter for active and finalized sales with images
   const displaySales = useMemo(() => {
@@ -22,63 +24,110 @@ export const CoinSalesReel = () => {
         // Then sort by creation date (newest first)
         return Number(b.createdAt ?? 0) - Number(a.createdAt ?? 0);
       })
-      .slice(0, 15); // Limit to 15 coins for the reel
+      .slice(0, 8); // Limit to 8 coins for vertical display
   }, [data]);
+
+  // Cycle through coins with staggered fade-in effect
+  useEffect(() => {
+    if (!displaySales.length) return;
+    
+    const interval = setInterval(() => {
+      setVisibleIndex((prev) => (prev + 1) % displaySales.length);
+    }, 3000); // Change coin every 3 seconds
+
+    return () => clearInterval(interval);
+  }, [displaySales.length]);
 
   if (isLoading || !displaySales.length) return null;
 
+  const currentSale = displaySales[visibleIndex];
+  const percentFunded = currentSale.percentFunded ? Number(currentSale.percentFunded) / 100 : 0;
+
   return (
-    <div className="mb-4 w-full max-w-[600px]">
-      <div className="text-lg mb-2 font-bold">active coins:</div>
-      <div className="relative overflow-hidden bg-muted/20 p-2 border border-border">
-        <div className="flex gap-2 animate-scroll-left whitespace-nowrap">
-          {/* Duplicate the array for seamless scrolling */}
-          {[...displaySales, ...displaySales].map((sale, index) => (
-            <Link
-              key={`${sale.coinId}-${index}`}
-              to="/c/$coinId"
-              params={{ coinId: sale.coinId.toString() }}
-              className="inline-flex flex-col items-center group"
-            >
-              <div className="relative w-10 h-10 overflow-hidden border border-border hover:border-primary transition-all duration-200 transform hover:scale-110 bg-background">
+    <div className="mb-6 w-full flex flex-col items-center">
+      <div className="text-lg mb-3 font-bold text-center">active coins:</div>
+      
+      <div className="relative w-32 h-32 group">
+        {displaySales.map((sale, index) => (
+          <Link
+            key={sale.coinId}
+            to="/c/$coinId"
+            params={{ coinId: sale.coinId.toString() }}
+            className={`absolute inset-0 transition-all duration-1000 ${
+              index === visibleIndex 
+                ? 'opacity-100 scale-100 z-10' 
+                : 'opacity-0 scale-95 z-0'
+            }`}
+          >
+            <div className="relative w-full h-full">
+              {/* Main coin image */}
+              <div className="w-full h-full overflow-hidden border-2 border-border hover:border-primary transition-all duration-300 bg-background transform hover:scale-105 hover:rotate-3">
                 <img
                   src={formatImageURL(sale.coin!.imageUrl!)}
                   alt={sale.coin?.symbol || "Coin"}
                   className="w-full h-full object-cover"
                   loading="lazy"
                 />
+                
+                {/* Status indicator */}
                 {sale.status === "ACTIVE" && (
-                  <div className="absolute inset-0 bg-gradient-to-t from-green-500/30 to-transparent pointer-events-none animate-pulse" />
+                  <div className="absolute top-2 right-2 w-3 h-3 bg-green-500 rounded-full animate-pulse" />
+                )}
+                
+                {/* Progress bar for active sales */}
+                {sale.status === "ACTIVE" && index === visibleIndex && (
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-background/80">
+                    <div 
+                      className="h-full bg-primary transition-all duration-500"
+                      style={{ width: `${percentFunded * 100}%` }}
+                    />
+                  </div>
                 )}
               </div>
-              <div className="text-[10px] text-center mt-0.5 text-muted-foreground group-hover:text-foreground transition-colors max-w-[40px] truncate">
-                {sale.coin?.symbol}
+              
+              {/* Hover overlay with info */}
+              <div className="absolute inset-0 bg-background/90 opacity-0 hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center p-2">
+                <div className="text-lg font-bold">{sale.coin?.symbol}</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  {sale.status === "ACTIVE" ? `${Math.round(percentFunded * 100)}% funded` : "Finalized"}
+                </div>
+                {sale.ethEscrow && (
+                  <div className="text-xs mt-1">
+                    {parseFloat(formatEther(BigInt(sale.ethEscrow))).toFixed(3)} ETH
+                  </div>
+                )}
               </div>
-            </Link>
-          ))}
-        </div>
-        {/* Fade edges */}
-        <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background to-transparent pointer-events-none" />
-        <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent pointer-events-none" />
+            </div>
+          </Link>
+        ))}
+        
+        {/* Decorative elements */}
+        <div className="absolute -inset-4 border border-dashed border-border rounded-lg opacity-20 group-hover:opacity-40 transition-opacity pointer-events-none" />
       </div>
-      <style>{`
-        @keyframes scroll-left {
-          0% {
-            transform: translateX(0);
-          }
-          100% {
-            transform: translateX(-50%);
-          }
-        }
-        .animate-scroll-left {
-          animation: scroll-left 40s linear infinite;
-          display: flex;
-          gap: 0.5rem;
-        }
-        .animate-scroll-left:hover {
-          animation-play-state: paused;
-        }
-      `}</style>
+      
+      {/* Coin info below */}
+      <div className="mt-3 text-center transition-all duration-500">
+        <div className="text-sm font-mono font-bold">
+          {currentSale.coin?.symbol}
+        </div>
+        <div className="text-xs text-muted-foreground">
+          {currentSale.status === "ACTIVE" ? "Trading Now" : "Graduated"}
+        </div>
+      </div>
+      
+      {/* Progress dots */}
+      <div className="flex gap-1 mt-3">
+        {displaySales.map((_, index) => (
+          <div
+            key={index}
+            className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+              index === visibleIndex 
+                ? 'bg-primary w-4' 
+                : 'bg-muted-foreground/30'
+            }`}
+          />
+        ))}
+      </div>
     </div>
   );
 };
