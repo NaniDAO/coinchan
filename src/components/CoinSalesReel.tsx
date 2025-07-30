@@ -4,9 +4,10 @@ import { useZCurveSales } from "@/hooks/use-zcurve-sales";
 import { formatImageURL } from "@/hooks/metadata";
 import { formatEther } from "viem";
 import { useTranslation } from "react-i18next";
+import { calculateFundedPercentage } from "@/lib/zcurve";
 
 export const CoinSalesReel = () => {
-  const { data, isLoading } = useZCurveSales();
+  const { data, isLoading, refetch } = useZCurveSales();
   const [visibleIndex, setVisibleIndex] = useState(0);
   const { t } = useTranslation();
 
@@ -39,6 +40,18 @@ export const CoinSalesReel = () => {
 
     return () => clearInterval(interval);
   }, [displaySales.length]);
+
+  // Refetch data more frequently for active sales
+  useEffect(() => {
+    if (!displaySales.some(sale => sale.status === "ACTIVE")) return;
+    
+    // Refetch every 10 seconds for more up-to-date percentages
+    const refetchInterval = setInterval(() => {
+      refetch();
+    }, 10000);
+
+    return () => clearInterval(refetchInterval);
+  }, [refetch, displaySales]);
 
   if (isLoading || !displaySales.length) return null;
 
@@ -78,7 +91,7 @@ export const CoinSalesReel = () => {
                   <div className="absolute bottom-0 left-0 right-0 h-1 bg-background/80">
                     <div 
                       className="h-full bg-primary transition-all duration-500"
-                      style={{ width: `${sale.percentFunded || 0}%` }}
+                      style={{ width: `${calculateFundedPercentage(sale)}%` }}
                     />
                   </div>
                 )}
@@ -89,7 +102,7 @@ export const CoinSalesReel = () => {
                 <div className="text-base font-bold">{sale.coin?.symbol}</div>
                 <div className="text-xs text-muted-foreground mt-1">
                   {sale.status === "ACTIVE" 
-                    ? `${sale.percentFunded ? Math.round(Number(sale.percentFunded)) : 0}% funded` 
+                    ? `${calculateFundedPercentage(sale).toFixed(1)}% funded` 
                     : "Finalized"}
                 </div>
                 {(sale.status === "ACTIVE" && sale.ethEscrow) ? (
