@@ -54,9 +54,9 @@ export function ZCurveSaleProgress({ sale }: ZCurveSaleProgressProps) {
     saleCap > 0n ? Number((quadCap * 100n) / saleCap) : 0;
   
   // Calculate market price and market cap for finalized sales
-  const { marketPrice, marketPriceInWei, marketCapUsd } = useMemo(() => {
+  const { marketPriceInWei, marketCapUsd } = useMemo(() => {
     if (!isFinalized || !reserves || reserves.reserve0 === 0n || reserves.reserve1 === 0n) {
-      return { marketPrice: 0, marketPriceInWei: 0n, marketCapUsd: 0 };
+      return { marketPriceInWei: 0n, marketCapUsd: 0 };
     }
     
     // Price = ETH reserve / Token reserve
@@ -73,7 +73,6 @@ export function ZCurveSaleProgress({ sale }: ZCurveSaleProgressProps) {
     const marketCap = usdPrice * Number(formatUnits(totalSupply, 18));
     
     return {
-      marketPrice: price,
       marketPriceInWei: priceInWei,
       marketCapUsd: marketCap,
     };
