@@ -642,9 +642,10 @@ export function ZCurveTrading({
         <div className="flex justify-between">
           <span>{t("sale.current_price")}</span>
           <span className="text-right">
-            {sale.currentPrice
+            {(saleSummary?.currentPrice || sale.currentPrice)
               ? (() => {
-                  const price = Number(formatEther(BigInt(sale.currentPrice)));
+                  const currentPriceWei = BigInt(saleSummary?.currentPrice || sale.currentPrice);
+                  const price = Number(formatEther(currentPriceWei));
                   if (price === 0) return "0 ETH";
 
                   let priceStr = "";
@@ -687,12 +688,12 @@ export function ZCurveTrading({
         </div>
         <div className="flex justify-between">
           <span>{t("trade.eth_in_escrow")}</span>
-          <span>{formatEther(BigInt(sale.ethEscrow))} ETH</span>
+          <span>{formatEther(BigInt(saleSummary?.ethEscrow || sale.ethEscrow))} ETH</span>
         </div>
         <div className="flex justify-between">
           <span>{t("sale.tokens_sold")}</span>
           <span>
-            {formatEther(BigInt(sale.netSold))} / {formatEther(BigInt(sale.saleCap))}
+            {formatEther(BigInt(saleSummary?.netSold || sale.netSold))} / {formatEther(BigInt(saleSummary?.saleCap || sale.saleCap))}
           </span>
         </div>
       </div>

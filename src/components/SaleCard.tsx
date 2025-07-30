@@ -40,14 +40,13 @@ function renderTimeInfo(sale: Sale): string {
 /**
  * Helper to format coins per ETH
  */
-const formatCoinsPerEth = (priceInWei: bigint, decimals: number = 18): string => {
+const formatCoinsPerEth = (priceInWei: bigint): string => {
   if (priceInWei === 0n) return "";
 
   const oneEth = BigInt(1e18);
   // priceInWei is the price per whole token in wei
   // To get tokens per ETH: 1 ETH / price per token
-  const tokensPerEthWithDecimals = (oneEth * 10n ** BigInt(decimals)) / priceInWei;
-  const tokensPerEth = Number(tokensPerEthWithDecimals) / 10 ** decimals;
+  const tokensPerEth = Number(oneEth) / Number(priceInWei);
 
   if (tokensPerEth >= 1e9) {
     return `${(tokensPerEth / 1e9).toFixed(2)}B per ETH`;
@@ -68,7 +67,8 @@ const formatCoinsPerEth = (priceInWei: bigint, decimals: number = 18): string =>
  */
 const formatPrice = (sale: Sale): { price: string; perEth: string } => {
   try {
-    let priceWei = BigInt(sale.currentPrice ?? 0);
+    // Handle both string and number types for currentPrice
+    let priceWei = sale.currentPrice ? BigInt(sale.currentPrice) : 0n;
 
     if (sale.status === "FINALIZED" && priceWei === 0n) {
       /* Calculate final price from LP amounts if available */
@@ -76,20 +76,20 @@ const formatPrice = (sale: Sale): { price: string; perEth: string } => {
         const ethLp = BigInt(sale.finalization.ethLp);
         const coinLp = BigInt(sale.finalization.coinLp);
         if (coinLp !== 0n) {
-          // Both ethLp and coinLp are in their smallest units (wei and token units with decimals)
-          // To get price in wei per whole token (not per token unit), we need to account for decimals
-          // Price per token = (ethLp / coinLp) * 10^decimals
-          const decimals = BigInt(sale.coin?.decimals || 18);
-          priceWei = (ethLp * 10n ** decimals) / coinLp;
+          // Both ethLp and coinLp are already in their smallest units (wei and smallest token units)
+          // Price in wei per smallest token unit = ethLp / coinLp
+          // To get price per whole token, we DON'T multiply by decimals since coinLp already includes decimals
+          priceWei = (ethLp * BigInt(1e18)) / coinLp;
         }
       } else {
         /* Fallback to average price from total raised */
         const tokensSold = BigInt(sale.netSold ?? 0);
         const ethRaised = BigInt(sale.ethEscrow ?? 0);
         if (tokensSold !== 0n) {
-          // Same calculation for average price
-          const decimals = BigInt(sale.coin?.decimals || 18);
-          priceWei = (ethRaised * 10n ** decimals) / tokensSold;
+          // tokensSold is already in smallest units (includes decimals)
+          // ethRaised is in wei
+          // Price per whole token in wei = (ethRaised / tokensSold) * 10^18
+          priceWei = (ethRaised * BigInt(1e18)) / tokensSold;
         }
       }
     }
@@ -111,8 +111,7 @@ const formatPrice = (sale: Sale): { price: string; perEth: string } => {
       priceStr = `${eth.toFixed(6)} ETH`;
     }
 
-    const decimals = sale.coin?.decimals || 18;
-    const perEth = formatCoinsPerEth(priceWei, decimals);
+    const perEth = formatCoinsPerEth(priceWei);
     return { price: priceStr, perEth };
   } catch (err) {
     console.error("formatPrice()", err, sale);

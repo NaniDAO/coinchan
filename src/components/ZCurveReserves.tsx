@@ -2,6 +2,8 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther } from "viem";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useZCurveSaleSummary } from "@/hooks/use-zcurve-sale";
+import { useAccount } from "wagmi";
 import type { ZCurveSale } from "@/hooks/use-zcurve-sale";
 
 // Helper function to format large numbers with commas
@@ -19,12 +21,17 @@ interface ZCurveReservesProps {
 
 export function ZCurveReserves({ sale, className = "" }: ZCurveReservesProps) {
   const { t } = useTranslation();
+  const { address } = useAccount();
+  
+  // Get real-time onchain data
+  const { data: onchainData } = useZCurveSaleSummary(sale.coinId, address);
 
   // Calculate virtual reserves for the curve
   const reserves = useMemo(() => {
-    const ethEscrow = BigInt(sale.ethEscrow);
-    const netSold = BigInt(sale.netSold);
-    const saleCap = BigInt(sale.saleCap);
+    // Use onchain data if available, otherwise fall back to indexed data
+    const ethEscrow = BigInt(onchainData?.ethEscrow || sale.ethEscrow);
+    const netSold = BigInt(onchainData?.netSold || sale.netSold);
+    const saleCap = BigInt(onchainData?.saleCap || sale.saleCap);
     const availableTokens = saleCap - netSold;
 
     // For zCurve, the "reserves" are:
@@ -36,7 +43,7 @@ export function ZCurveReserves({ sale, className = "" }: ZCurveReservesProps) {
       // Virtual liquidity = ETH that would be needed to buy all remaining tokens
       virtualLiquidity: ethEscrow,
     };
-  }, [sale]);
+  }, [onchainData, sale]);
 
   return (
     <Card className={className}>
