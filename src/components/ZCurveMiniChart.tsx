@@ -1,17 +1,26 @@
 import { memo, useMemo } from "react";
 import { formatEther } from "viem";
+import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, ReferenceLine, Dot } from "recharts";
 import type { ZCurveSale } from "@/hooks/use-zcurve-sale";
 import { UNIT_SCALE, unpackQuadCap, ZCURVE_STANDARD_PARAMS } from "@/lib/zCurveHelpers";
+import { cn } from "@/lib/utils";
 
 // Calculate cost using the exact contract formula
 const calculateCost = (n: bigint, quadCap: bigint, divisor: bigint): bigint => {
+  // Protect against division by zero
+  if (divisor === 0n || UNIT_SCALE === 0n) return 0n;
+  
   const m = n / UNIT_SCALE;
 
   if (m < 2n) return 0n;
 
   const K = quadCap / UNIT_SCALE;
-  // Optimize for standard divisor
+  // Optimize for standard divisor - protect against zero divisor
   const denom = divisor === ZCURVE_STANDARD_PARAMS.DIVISOR ? ZCURVE_STANDARD_PARAMS.DIVISOR * 6n : 6n * divisor;
+  
+  // Additional safety check for denominator
+  if (denom === 0n) return 0n;
+  
   const oneETH = BigInt(1e18);
 
   if (m <= K) {
@@ -33,195 +42,238 @@ interface ZCurveMiniChartProps {
   className?: string;
 }
 
+// Custom dot component for current position
+const CurrentPositionDot = (props: any) => {
+  const { cx, cy, payload } = props;
+  if (!payload?.isCurrent) return null;
+  
+  return (
+    <Dot 
+      cx={cx} 
+      cy={cy} 
+      r={3} 
+      fill="currentColor" 
+      className="text-amber-500"
+      stroke="white"
+      strokeWidth={1}
+    />
+  );
+};
+
 export function ZCurveMiniChartInner({ sale, className = "" }: ZCurveMiniChartProps) {
   const isFinalized = sale.status === "FINALIZED";
 
-  const chartData = useMemo(() => {
-    try {
-      // Add safety checks for sale data
-      if (!sale || !sale.saleCap || !sale.divisor || !sale.quadCap) {
-        return {
-          points: [],
-          currentX: 0,
-          currentY: 0,
-          maxY: 1,
-          fundedPercentage: 0,
-        };
-      }
-      const saleCap = BigInt(sale.saleCap || 0);
-      const divisor = BigInt(sale.divisor || 1);
-      const quadCap = unpackQuadCap(BigInt(sale.quadCap || 0));
-      const netSold = isFinalized ? saleCap : BigInt(sale.netSold || 0);
-      const ethEscrow = BigInt(sale.ethEscrow || 0);
-      const ethTarget = BigInt(sale.ethTarget || 1);
-
-    // Generate curve points - reduce to 25 points for mini chart performance
-    const points = [];
-    const numPoints = 15; // Further reduced for better performance in card view
-    const step = saleCap / BigInt(numPoints);
-
-    for (let i = 0n; i <= saleCap; i += step) {
-      const cost = calculateCost(i, quadCap, divisor);
-      points.push({
-        x: (Number(i) / Number(saleCap)) * 100, // Convert to percentage
-        y: Number(formatEther(cost)),
-      });
+  // Memoize the basic calculation parameters
+  const calculationParams = useMemo(() => {
+    if (!sale || !sale.saleCap || !sale.divisor || !sale.quadCap) {
+      return null;
     }
 
-    // Add final point if not already at 100%
-    if (points[points.length - 1].x < 100) {
-      const finalCost = calculateCost(saleCap, quadCap, divisor);
-      points.push({
-        x: 100,
-        y: Number(formatEther(finalCost)),
-      });
+    // Additional validation to prevent division by zero
+    const saleCap = BigInt(sale.saleCap);
+    const divisor = BigInt(sale.divisor);
+    const quadCap = unpackQuadCap(BigInt(sale.quadCap));
+    
+    // Ensure no zero values that could cause division errors
+    if (saleCap === 0n || divisor === 0n) {
+      return null;
     }
-
-    // Current position
-    const currentCost = calculateCost(netSold, quadCap, divisor);
-    const currentX = (Number(netSold) / Number(saleCap)) * 100;
-    const currentY = Number(formatEther(currentCost));
-
-    // Max Y for scaling - ensure we have a valid max
-    const maxY = Math.max(...points.map((p) => p.y), 0.001); // Prevent division by zero
-
-    // Calculate funding percentage to match sale summary display
-    const fundedPercentage = ethTarget > 0n ? Number((ethEscrow * 10000n) / ethTarget) / 100 : 0;
 
     return {
-      points,
-      currentX,
-      currentY,
-      maxY,
-      fundedPercentage,
+      saleCap,
+      divisor,
+      quadCap,
+      netSold: isFinalized ? saleCap : BigInt(sale.netSold || 0),
+      ethEscrow: BigInt(sale.ethEscrow || 0),
+      ethTarget: BigInt(sale.ethTarget || 1), // Ensure never zero
     };
-    } catch (error) {
-      console.error('Error calculating chart data:', error);
-      return {
-        points: [],
-        currentX: 0,
-        currentY: 0,
-        maxY: 1,
-        fundedPercentage: 0,
-      };
-    }
-  }, [sale.saleCap, sale.divisor, sale.quadCap, sale.netSold, sale.ethEscrow, sale.ethTarget, sale.status]); // Use specific dependencies
+  }, [sale.saleCap, sale.divisor, sale.quadCap, sale.netSold, sale.ethEscrow, sale.ethTarget, isFinalized]);
 
-  const { points, currentX, currentY, maxY, fundedPercentage } = chartData;
+  // Memoize chart data generation
+  const chartData = useMemo(() => {
+    if (!calculationParams) return [];
 
-  // Create SVG path
-  const pathData = useMemo(() => {
-    if (points.length === 0) return "";
+    const { saleCap, quadCap, divisor, netSold } = calculationParams;
     
-    return points
-      .map((point, index) => {
-        const x = (point.x / 100) * 100; // Scale to viewBox width
-        const y = 40 - (point.y / maxY) * 35; // Scale and invert for SVG
-        return `${index === 0 ? "M" : "L"} ${x} ${y}`;
-      })
-      .join(" ");
-  }, [points, maxY]);
+    // Additional safety check
+    if (saleCap === 0n) return [];
+    
+    const points = [];
+    const numPoints = 50; // More points for smoother curve with Recharts
+    const step = saleCap / BigInt(numPoints);
+    
+    // Ensure step is not zero
+    const safeStep = step === 0n ? 1n : step;
 
-  // Don't render if no data
-  if (points.length === 0) {
-    return <div className={`${className} bg-muted/20 animate-pulse`} />;
+    for (let i = 0n; i <= saleCap; i += safeStep) {
+      const cost = calculateCost(i, quadCap, divisor);
+      const progressPercent = Number((i * 10000n) / saleCap) / 100;
+      const isCurrent = i <= netSold && (i + safeStep > netSold || i === saleCap);
+      
+      points.push({
+        progress: progressPercent,
+        cost: Number(formatEther(cost)),
+        // For finalized sales, fill the entire chart
+        costFilled: (isFinalized || i <= netSold) ? Number(formatEther(cost)) : 0,
+        isCurrent: isFinalized ? (i === saleCap) : isCurrent, // Only show dot at end for finalized
+        tokens: Number(i),
+      });
+      
+      // Break if we've reached saleCap to avoid infinite loop
+      if (i >= saleCap) break;
+    }
+
+    // Ensure we have a final point at 100%
+    if (points.length === 0 || points[points.length - 1].progress < 100) {
+      const finalCost = calculateCost(saleCap, quadCap, divisor);
+      points.push({
+        progress: 100,
+        cost: Number(formatEther(finalCost)),
+        costFilled: Number(formatEther(finalCost)), // Always filled for final point
+        isCurrent: isFinalized || netSold >= saleCap,
+        tokens: Number(saleCap),
+      });
+    }
+
+    return points;
+  }, [calculationParams, isFinalized]);
+
+  // Memoize current position calculations
+  const currentStats = useMemo(() => {
+    if (!calculationParams) {
+      return { currentProgress: 0, fundedPercentage: 0 };
+    }
+
+    const { saleCap, netSold, ethEscrow, ethTarget } = calculationParams;
+    
+    // Protect against division by zero
+    const currentProgress = saleCap > 0n ? Number((netSold * 10000n) / saleCap) / 100 : 0;
+    const fundedPercentage = ethTarget > 0n ? Number((ethEscrow * 10000n) / ethTarget) / 100 : 0;
+
+    return { 
+      currentProgress: isFinalized ? 100 : currentProgress, 
+      fundedPercentage: isFinalized ? 100 : fundedPercentage 
+    };
+  }, [calculationParams, isFinalized]);
+
+  // Memoize styling classes with enhanced golden theme for finalized
+  const strokeColor = useMemo(() => 
+    isFinalized ? "#f59e0b" : "#10b981" // amber-500 : green-500
+  , [isFinalized]);
+
+  const fillColor = useMemo(() => 
+    isFinalized ? "#f59e0b" : "#10b981" // Full golden for finalized
+  , [isFinalized]);
+
+  const progressClass = useMemo(() => 
+    `absolute bottom-1 right-1 text-[10px] font-mono font-bold ${
+      isFinalized 
+        ? "text-amber-900 bg-gradient-to-r from-amber-100 to-yellow-100 border-amber-300" 
+        : "text-muted-foreground bg-background/90 border"
+    } px-1.5 py-0.5 rounded-sm`
+  , [isFinalized]);
+
+  // Memoize percentage display
+  const percentageDisplay = useMemo(() => 
+    isFinalized ? "100.0%" : `${currentStats.fundedPercentage.toFixed(1)}%`
+  , [isFinalized, currentStats.fundedPercentage]);
+
+  // Don't render if no valid data
+  if (!calculationParams || chartData.length === 0) {
+    return <div className={cn(`bg-muted/20 animate-pulse rounded`, className)} />;
   }
 
   return (
-    <div className={`relative ${className}`}>
-      <svg viewBox="0 0 100 40" className="w-full h-full" preserveAspectRatio="none">
-        {/* Background grid */}
-        <defs>
-          <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
-            <path
-              d="M 10 0 L 0 0 0 10"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="0.5"
-              className="text-border opacity-20"
-            />
-          </pattern>
-        </defs>
-        <rect width="100" height="40" fill="url(#grid)" />
-
-        {/* Bonding curve */}
-        <path
-          d={pathData}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          className={isFinalized ? "text-amber-500" : "text-green-500"}
-        />
-
-        {/* Fill area under curve up to current position */}
-        {currentX > 0 && points.length > 0 && (
-          <path
-            d={(() => {
-              try {
-                // Create fill path up to current position
-                const fillPoints = points.filter((p) => p.x <= currentX);
-
-                // Add interpolated point at currentX if needed
-                if (fillPoints.length > 0 && fillPoints[fillPoints.length - 1].x < currentX) {
-                  const lastPoint = fillPoints[fillPoints.length - 1];
-                  const nextPoint = points.find((p) => p.x > currentX);
-
-                  if (nextPoint && nextPoint.x > lastPoint.x) {
-                    // Interpolate Y value at currentX
-                    const t = (currentX - lastPoint.x) / (nextPoint.x - lastPoint.x);
-                    const interpY = lastPoint.y + (nextPoint.y - lastPoint.y) * t;
-                    fillPoints.push({ x: currentX, y: interpY });
-                  }
-                }
-
-                // Build the fill path
-                const fillPath = fillPoints
-                  .map((point, index) => {
-                    const x = Math.max(0, Math.min(100, (point.x / 100) * 100)); // Clamp values
-                    const y = 40 - (point.y / maxY) * 35; // Scale and invert for SVG
-                    return `${index === 0 ? "M" : "L"} ${x} ${y}`;
-                  })
-                  .join(" ");
-
-                // Close the path to create filled area
-                return `${fillPath} L ${currentX} 40 L 0 40 Z`;
-              } catch (e) {
-                console.error("Error generating fill path:", e);
-                return "";
-              }
-            })()}
-            fill="currentColor"
-            className={isFinalized ? "text-amber-500 opacity-20" : "text-green-500 opacity-20"}
+    <div className={cn(
+      `relative border rounded transition-all duration-500`,
+      isFinalized 
+        ? "bg-gradient-to-br from-amber-50 to-yellow-50 border-amber-200 shadow-amber-100 shadow-lg" 
+        : "bg-background",
+      className
+    )}>
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart
+          data={chartData}
+          margin={{ top: 2, right: 2, left: 2, bottom: 2 }}
+        >
+          <defs>
+            <linearGradient id="costGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={strokeColor} stopOpacity={isFinalized ? 0.4 : 0.3}/>
+              <stop offset="95%" stopColor={strokeColor} stopOpacity={isFinalized ? 0.1 : 0.05}/>
+            </linearGradient>
+            <linearGradient id="filledGradient" x1="0" y1="0" x2="0" y2="1">
+              {isFinalized ? (
+                // Golden gradient for finalized state
+                <>
+                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8}/>
+                  <stop offset="50%" stopColor="#fbbf24" stopOpacity={0.6}/>
+                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.4}/>
+                </>
+              ) : (
+                <>
+                  <stop offset="5%" stopColor={strokeColor} stopOpacity={0.6}/>
+                  <stop offset="95%" stopColor={strokeColor} stopOpacity={0.2}/>
+                </>
+              )}
+            </linearGradient>
+          </defs>
+          
+          <XAxis 
+            dataKey="progress" 
+            type="number"
+            scale="linear"
+            domain={[0, 100]}
+            hide
           />
+          <YAxis 
+            dataKey="cost"
+            type="number" 
+            domain={[0, 'dataMax']}
+            hide
+          />
+          
+          {/* Background curve area */}
+          <Area
+            type="monotone"
+            dataKey="cost"
+            stroke={strokeColor}
+            strokeWidth={isFinalized ? 2 : 1.5}
+            fill="url(#costGradient)"
+            fillOpacity={isFinalized ? 0.4 : 0.3}
+            dot={false}
+            activeDot={false}
+          />
+          
+          {/* Filled area up to current position */}
+          <Area
+            type="monotone"
+            dataKey="costFilled"
+            stroke="none"
+            fill="url(#filledGradient)"
+            fillOpacity={1}
+            dot={<CurrentPositionDot />}
+            activeDot={false}
+          />
+          
+          {/* Current progress reference line - hidden for finalized since it's at 100% */}
+          {!isFinalized && (
+            <ReferenceLine
+              x={currentStats.currentProgress}
+              stroke={strokeColor}
+              strokeDasharray="3 3"
+              strokeOpacity={0.6}
+              strokeWidth={1}
+            />
+          )}
+        </AreaChart>
+      </ResponsiveContainer>
+
+      {/* Progress percentage overlay with enhanced styling for finalized */}
+      <div className={progressClass}>
+        {isFinalized && (
+          <span className="mr-1 text-amber-600">✨</span>
         )}
-
-        {/* Current position marker */}
-        <circle
-          cx={currentX}
-          cy={40 - (currentY / maxY) * 35}
-          r="2"
-          fill="currentColor"
-          className={isFinalized ? "text-amber-600" : "text-amber-500"}
-        />
-
-        {/* Progress line */}
-        <line
-          x1={currentX}
-          y1="0"
-          x2={currentX}
-          y2="40"
-          stroke="currentColor"
-          strokeWidth="0.5"
-          strokeDasharray="2,2"
-          className={isFinalized ? "text-amber-500 opacity-50" : "text-amber-500 opacity-50"}
-        />
-      </svg>
-
-      {/* Progress percentage - showing funding percentage to match sale summary */}
-      <div
-        className={`absolute bottom-0 right-0 text-[10px] font-mono font-bold ${isFinalized ? "text-amber-600" : "text-muted-foreground"} bg-background/80 px-1 rounded-sm`}
-      >
-        {isFinalized ? "100.0%" : `${fundedPercentage.toFixed(1)}%`}
+        {percentageDisplay}
       </div>
     </div>
   );

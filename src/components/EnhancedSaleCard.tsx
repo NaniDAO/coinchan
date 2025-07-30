@@ -1,21 +1,19 @@
 import { memo } from "react";
-import { useAccount } from "wagmi";
 import { useZCurveSaleSummary } from "@/hooks/use-zcurve-sale";
 import { Sale } from "@/hooks/use-zcurve-sales";
 import { SaleCard } from "./SaleCard";
+import { zeroAddress } from "viem";
 
 interface EnhancedSaleCardProps {
   sale: Sale;
   fetchOnchainData?: boolean;
 }
 
-export const EnhancedSaleCard = memo(({ sale, fetchOnchainData = false }: EnhancedSaleCardProps) => {
-  const { address } = useAccount();
-  
+export const EnhancedSaleCard = memo(({ sale, fetchOnchainData = false }: EnhancedSaleCardProps) => {  
   // Only fetch onchain data if requested with error handling
   const { data: onchainData, isError } = useZCurveSaleSummary(
     fetchOnchainData ? sale.coinId : undefined,
-    address
+    zeroAddress
   );
 
   // Merge onchain data with indexed data - prioritize onchain data when available and no error
@@ -30,6 +28,11 @@ export const EnhancedSaleCard = memo(({ sale, fetchOnchainData = false }: Enhanc
     percentFunded: onchainData.percentFunded !== undefined ? onchainData.percentFunded : sale.percentFunded,
     isFinalized: onchainData.isFinalized !== undefined ? onchainData.isFinalized : sale.status === "FINALIZED",
   } : sale;
+
+  console.log("SALE:", {
+    enhancedSale,
+    onchainData
+  })
 
   return <SaleCard sale={enhancedSale} />;
 });

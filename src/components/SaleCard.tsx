@@ -7,7 +7,7 @@ import { CreatorDisplay } from "./CreatorDisplay";
 import { ZCurveMiniChart } from "./ZCurveMiniChart";
 import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
-import { calculateFundedPercentage } from "./ZCurveSales";
+import { calculateFundedPercentage } from "@/lib/zcurve";
 import { ZCURVE_STANDARD_PARAMS } from "@/lib/zCurveHelpers";
 import { ApeButton } from "./ApeButton";
 
@@ -185,12 +185,7 @@ export const SaleCard = memo(({ sale }: { sale: Sale }) => {
     sale.quadCap === ZCURVE_STANDARD_PARAMS.QUAD_CAP.toString();
 
   return (
-    <Link 
-      to="/c/$coinId" 
-      params={{ coinId: String(sale.coinId) }}
-      className="block rounded focus:outline-none focus:ring-2 focus:ring-primary/50"
-      aria-label={`View sale of ${sale.coin?.name ?? "coin"}`}
-    >
+   <div>
       <div
           className={cn(
             "relative overflow-hidden border p-3 transition-all",
@@ -199,6 +194,12 @@ export const SaleCard = memo(({ sale }: { sale: Sale }) => {
             sale.status === "FINALIZED" ? "bg-amber-50/5 dark:bg-amber-900/5" : "bg-green-50/5  dark:bg-green-900/5",
           )}
         >
+           <Link 
+      to="/c/$coinId" 
+      params={{ coinId: String(sale.coinId) }}
+      className="block rounded focus:outline-none focus:ring-2 focus:ring-primary/50"
+      aria-label={`View sale of ${sale.coin?.name ?? "coin"}`}
+    >
           {/* funding background tint */}
           <div
             className="pointer-events-none absolute inset-0"
@@ -308,17 +309,6 @@ export const SaleCard = memo(({ sale }: { sale: Sale }) => {
                 <div>{sale.createdAt ? new Date(Number(sale.createdAt) * 1000).toLocaleDateString() : "Unknown"}</div>
                 <div>{renderTimeInfo(sale)}</div>
               </div>
-              
-              {/* Ape button for active sales */}
-              {sale.status === "ACTIVE" && (
-                <div onClick={(e) => e.preventDefault()}>
-                  <ApeButton 
-                    coinId={sale.coinId.toString()} 
-                    coinSymbol={sale.coin?.symbol}
-                    className="w-full"
-                  />
-                </div>
-              )}
             </div>
           </div>
 
@@ -332,8 +322,21 @@ export const SaleCard = memo(({ sale }: { sale: Sale }) => {
               style={{ width: `${Math.min(funded, 100)}%` }}
             />
           </div>
+
+        
+               </Link>
         </div>
-    </Link>
+        {/* Ape button for active sales */}
+              {sale.status === "ACTIVE" && (
+                <div onClick={(e) => e.preventDefault()}>
+                  <ApeButton 
+                    coinId={sale.coinId.toString()} 
+                    coinSymbol={sale.coin?.symbol}
+                    className="w-full"
+                  />
+                </div>
+              )}
+              </div>
   );
 });
 

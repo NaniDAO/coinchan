@@ -1,46 +1,19 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useAccount } from "wagmi";
 
-import { Sale, useZCurveSales } from "@/hooks/use-zcurve-sales";
-import { SaleCard } from "./SaleCard";
+import { useZCurveSales } from "@/hooks/use-zcurve-sales";
 import { EnhancedSaleCard } from "./EnhancedSaleCard";
 import { useTheme } from "@/lib/theme";
+import { calculateFundedPercentage } from "@/lib/zcurve";
 
 /* ------------------------------------------------------------------------- */
 /*                             Helper functions                              */
 /* ------------------------------------------------------------------------- */
 
-/**
- * Returns funding progress in the human range [0, 100]
- */
-export const calculateFundedPercentage = (sale: Sale): number => {
-  try {
-    if (sale.status === "FINALIZED") return 100;
-
-    /* From the indexer: 10 000 = 100 % */
-    const funded =
-      typeof sale.percentFunded === "bigint"
-        ? Number(sale.percentFunded)
-        : (sale.percentFunded ?? 0);
-
-    if (funded) return Math.min(funded / 100, 100);
-
-    const escrow = BigInt(sale.ethEscrow ?? 0);
-    const target = BigInt(sale.ethTarget ?? 0);
-    if (target === 0n) return 0;
-
-    return Number((escrow * 10_000n) / target) / 100;
-  } catch (err) {
-    console.error("calculateFundedPercentage()", err, sale);
-    return 0;
-  }
-};
 
 export const ZCurveSales = () => {
   const { t } = useTranslation();
   const { theme } = useTheme();
-  const { address } = useAccount();
   const { data, isLoading, error, isRefetching } = useZCurveSales();
 
   /* stable, sorted list */
@@ -91,15 +64,8 @@ export const ZCurveSales = () => {
           </div>
         ) : (
           <div className="space-y-2 border-l-4 border-border">
-            {sales.map((s) => {
-              // Only fetch onchain data for user's own active sales to reduce load
-              const isUserSale = address && s.creator?.toLowerCase() === address.toLowerCase() && s.status === "ACTIVE";
-              
-              return isUserSale ? (
-                <EnhancedSaleCard key={s.coinId.toString()} sale={s} fetchOnchainData={true} />
-              ) : (
-                <SaleCard key={s.coinId.toString()} sale={s} />
-              );
+            {sales.map((s) => {               
+              return <EnhancedSaleCard key={s.coinId.toString()} sale={s} fetchOnchainData={true} />
             })}
           </div>
         )}
