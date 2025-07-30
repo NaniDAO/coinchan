@@ -4,9 +4,6 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useTheme } from "@/lib/theme";
@@ -17,15 +14,25 @@ export function UserSettingsMenu() {
   const { toggleTheme } = useTheme();
   const navigate = useNavigate();
   const { i18n, t } = useTranslation();
-  const currentLanguage = i18n.language;
-
-  const languages = [
-    { code: "en", label: "English" },
-    { code: "zh", label: "中文" },
-  ];
+  // Normalize language code to handle cases like "en-US" -> "en"
+  const currentLanguage = i18n.language.split("-")[0];
 
   const changeLanguage = (code: string) => {
     i18n.changeLanguage(code);
+  };
+
+  const toggleLanguage = () => {
+    const newLang = currentLanguage === "en" ? "zh" : "en";
+    changeLanguage(newLang);
+  };
+
+  const getOppositeLanguageLabel = () => {
+    // Always show the opposite language label
+    if (currentLanguage === "en") {
+      return "中文"; // Show Chinese when in English
+    } else {
+      return "English"; // Show English when in Chinese
+    }
   };
 
   return (
@@ -41,22 +48,12 @@ export function UserSettingsMenu() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
 
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger className="!px-2 !py-1 bg-background text-foreground !border !border-foreground">
-            <span>{t("common.language")}</span>
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
-            {languages.map((lang) => (
-              <DropdownMenuItem
-                key={lang.code}
-                className="!px-2 !py-1 bg-background text-foreground !border !border-foreground"
-                onClick={() => changeLanguage(lang.code)}
-              >
-                <span className={currentLanguage === lang.code ? "font-bold" : ""}>{lang.label}</span>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
+        <DropdownMenuItem
+          className="!px-2 !py-1 bg-background text-foreground !border !border-foreground"
+          onClick={toggleLanguage}
+        >
+          {getOppositeLanguageLabel()}
+        </DropdownMenuItem>
 
         <DropdownMenuItem
           className="!px-2 !py-1 bg-background text-foreground !border !border-foreground"

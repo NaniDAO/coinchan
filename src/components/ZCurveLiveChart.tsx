@@ -1,0 +1,470 @@
+import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { formatEther } from "viem";
+import {
+  createChart,
+  type IChartApi,
+  ColorType,
+  PriceScaleMode,
+  AreaSeries,
+  LineSeries,
+  type UTCTimestamp,
+} from "lightweight-charts";
+import { useTheme } from "@/lib/theme";
+import type { ZCurveSale } from "@/hooks/use-zcurve-sale";
+import { useZCurveSaleSummary } from "@/hooks/use-zcurve-sale";
+import { UNIT_SCALE, unpackQuadCap } from "@/lib/zCurveHelpers";
+import { calculateCost } from "@/lib/zCurveMath";
+import { useAccount } from "wagmi";
+
+interface ZCurveLiveChartProps {
+  sale: ZCurveSale;
+  previewAmount?: bigint; // Preview amount in base units
+  isBuying?: boolean; // true for buy, false for sell
+}
+
+export function ZCurveLiveChart({ sale, previewAmount, isBuying = true }: ZCurveLiveChartProps) {
+  const { t } = useTranslation();
+  const { theme: appTheme } = useTheme();
+  const { address } = useAccount();
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<IChartApi | null>(null);
+  const [hoveredPrice, setHoveredPrice] = useState<string | null>(null);
+  const [hoveredAmount, setHoveredAmount] = useState<string | null>(null);
+
+  // Get real-time onchain data
+  const { data: onchainData } = useZCurveSaleSummary(sale.coinId, address);
+
+  // Use onchain data if available, otherwise fall back to indexed data
+  const saleCap = onchainData ? BigInt(onchainData.saleCap) : BigInt(sale.saleCap);
+  const divisor = onchainData ? BigInt(onchainData.divisor) : BigInt(sale.divisor);
+  const quadCap = unpackQuadCap(onchainData ? BigInt(onchainData.quadCap) : BigInt(sale.quadCap));
+  const netSold = onchainData ? BigInt(onchainData.netSold) : BigInt(sale.netSold);
+
+  // Theme configuration
+  const theme = {
+    backgroundColor: appTheme === "dark" ? "#0a0a0a" : "#ffffff",
+    textColor: appTheme === "dark" ? "#e5e5e5" : "#171717",
+    gridColor: appTheme === "dark" ? "#262626" : "#f5f5f5",
+    borderColor: appTheme === "dark" ? "#404040" : "#e5e5e5",
+  };
+
+  useEffect(() => {
+    if (!chartContainerRef.current) return;
+
+    const chart = createChart(chartContainerRef.current, {
+      width: chartContainerRef.current.clientWidth,
+      height: 400,
+      layout: {
+        background: { type: ColorType.Solid, color: theme.backgroundColor },
+        textColor: theme.textColor,
+        attributionLogo: false,
+      },
+      grid: {
+        vertLines: { color: theme.gridColor },
+        horzLines: { color: theme.gridColor },
+      },
+      leftPriceScale: {
+        mode: PriceScaleMode.Normal,
+        borderColor: theme.borderColor,
+        borderVisible: false,
+        scaleMargins: {
+          top: 0.1,
+          bottom: 0.2,
+        },
+      },
+      rightPriceScale: {
+        visible: false,
+      },
+      timeScale: {
+        visible: false,
+        borderVisible: false,
+      },
+      crosshair: {
+        mode: 1, // Magnet mode
+        horzLine: {
+          visible: true,
+          labelBackgroundColor: appTheme === "dark" ? "#262626" : "#e5e5e5",
+        },
+        vertLine: {
+          visible: true,
+          labelBackgroundColor: appTheme === "dark" ? "#262626" : "#e5e5e5",
+        },
+      },
+    });
+
+    chartRef.current = chart;
+
+    // Create area series for the bonding curve
+    const areaSeries = chart.addSeries(AreaSeries, {
+      lineColor: "#10b981",
+      topColor: "rgba(16, 185, 129, 0.4)",
+      bottomColor: "rgba(16, 185, 129, 0.0)",
+      lineWidth: 2,
+      crosshairMarkerVisible: true,
+      crosshairMarkerRadius: 4,
+    });
+
+    // Generate curve data points
+    const dataPoints = [];
+    const step = saleCap / 200n; // 200 points for smooth curve
+
+    for (let i = 0n; i <= saleCap; i += step) {
+      const cost = calculateCost(i, quadCap, divisor);
+      dataPoints.push({
+        time: Number(formatEther(i)) as UTCTimestamp, // Amount of coins as x-axis
+        value: Number(formatEther(cost)),
+      });
+    }
+
+    areaSeries.setData(dataPoints);
+
+    // Add current position marker with shadow point
+    if (netSold > 0n) {
+      const currentCost = calculateCost(netSold, quadCap, divisor);
+
+      // Create a line series for the current position point
+      const currentPositionSeries = chart.addSeries(LineSeries, {
+        color: "#f59e0b", // Amber color for current position
+        lineStyle: 0, // Solid line style
+        crosshairMarkerVisible: true,
+        crosshairMarkerRadius: 8,
+        lastValueVisible: false,
+        lineVisible: false, // Hide the line, show only the marker
+      });
+
+      // Add the current position point
+      currentPositionSeries.setData([
+        {
+          time: Number(formatEther(netSold)) as UTCTimestamp,
+          value: Number(formatEther(currentCost)),
+        },
+      ]);
+
+      // Add a shadow/glow effect using a larger semi-transparent circle
+      const shadowSeries = chart.addSeries(LineSeries, {
+        color: "rgba(245, 158, 11, 0.3)", // Semi-transparent amber
+        lineStyle: 0,
+        crosshairMarkerVisible: true,
+        crosshairMarkerRadius: 16,
+        lastValueVisible: false,
+        lineVisible: false,
+      });
+
+      shadowSeries.setData([
+        {
+          time: Number(formatEther(netSold)) as UTCTimestamp,
+          value: Number(formatEther(currentCost)),
+        },
+      ]);
+
+      // Add a vertical line at current position
+      areaSeries.createPriceLine({
+        price: Number(formatEther(currentCost)),
+        color: "#f59e0b",
+        lineWidth: 1,
+        lineStyle: 2, // Dashed
+        axisLabelVisible: true,
+        title: t("sale.current_price", "Current"),
+      });
+    }
+
+    // Add preview visualization if previewAmount is provided
+    if (previewAmount && previewAmount > 0n) {
+      const startPoint = netSold;
+      let endPoint = isBuying ? netSold + previewAmount : netSold - previewAmount;
+
+      // Clamp endPoint to valid range
+      if (endPoint < 0n) endPoint = 0n;
+      if (endPoint > saleCap) endPoint = saleCap;
+
+      // Only show preview if there's actually a change
+      if (endPoint !== startPoint) {
+        // Add shaded area for the preview range
+        const previewAreaSeries = chart.addSeries(AreaSeries, {
+          topColor: isBuying ? "rgba(59, 130, 246, 0.4)" : "rgba(239, 68, 68, 0.4)",
+          bottomColor: isBuying ? "rgba(59, 130, 246, 0.05)" : "rgba(239, 68, 68, 0.05)",
+          lineColor: isBuying ? "#3b82f6" : "#ef4444",
+          lineWidth: 2,
+          crosshairMarkerVisible: false,
+        });
+
+        // Generate preview area data points that follow the exact curve
+        const previewDataPoints = [];
+        const numPoints = 50; // More points for smoother curve
+
+        // Ensure we're going in the right direction
+        const actualStart = isBuying ? startPoint : endPoint;
+        const actualEnd = isBuying ? endPoint : startPoint;
+
+        // Calculate step size
+        const totalRange = actualEnd > actualStart ? actualEnd - actualStart : actualStart - actualEnd;
+        const stepSize = totalRange / BigInt(numPoints);
+
+        // Generate points along the curve
+        for (let i = 0; i <= numPoints; i++) {
+          let point: bigint;
+          if (actualEnd > actualStart) {
+            point = actualStart + stepSize * BigInt(i);
+          } else {
+            point = actualStart - stepSize * BigInt(i);
+          }
+
+          // Ensure point is within valid range
+          if (point >= 0n && point <= saleCap) {
+            const cost = calculateCost(point, quadCap, divisor);
+            previewDataPoints.push({
+              time: Number(formatEther(point)) as UTCTimestamp,
+              value: Number(formatEther(cost)),
+            });
+          }
+        }
+
+        // Sort points by time to ensure proper rendering
+        previewDataPoints.sort((a, b) => a.time - b.time);
+
+        previewAreaSeries.setData(previewDataPoints);
+
+        // Add preview end marker
+        const endCost = calculateCost(endPoint, quadCap, divisor);
+        const previewMarkerSeries = chart.addSeries(LineSeries, {
+          color: isBuying ? "#3b82f6" : "#ef4444",
+          lineWidth: 1,
+          crosshairMarkerVisible: true,
+          crosshairMarkerRadius: 6,
+          crosshairMarkerBorderColor: isBuying ? "#3b82f6" : "#ef4444",
+          crosshairMarkerBackgroundColor: isBuying ? "#3b82f6" : "#ef4444",
+        });
+
+        previewMarkerSeries.setData([
+          {
+            time: Number(formatEther(endPoint)) as UTCTimestamp,
+            value: Number(formatEther(endCost)),
+          },
+        ]);
+
+        // Add arrow or indicator showing direction
+
+        // Create a price line at the new position
+        previewAreaSeries.createPriceLine({
+          price: Number(formatEther(endCost)),
+          color: isBuying ? "#3b82f6" : "#ef4444",
+          lineWidth: 1,
+          lineStyle: 2, // Dashed
+          axisLabelVisible: true,
+          title: isBuying ? "→ New Price" : "← New Price",
+        });
+      }
+    }
+
+    // Add quadratic cap indicator
+    if (quadCap < saleCap) {
+      const quadCapCost = calculateCost(quadCap, quadCap, divisor);
+      areaSeries.createPriceLine({
+        price: Number(formatEther(quadCapCost)),
+        color: "#6366f1",
+        lineWidth: 1,
+        lineStyle: 3, // Dotted
+        axisLabelVisible: false,
+        title: "",
+      });
+    }
+
+    // Subscribe to crosshair move
+    chart.subscribeCrosshairMove((param) => {
+      if (param.point && param.time) {
+        const amount = BigInt(Math.round(Number(param.time) * 1e18));
+        const cost = calculateCost(amount, quadCap, divisor);
+        setHoveredAmount(formatEther(amount).slice(0, 8));
+        setHoveredPrice(formatEther(cost).slice(0, 8));
+      } else {
+        setHoveredAmount(null);
+        setHoveredPrice(null);
+      }
+    });
+
+    chart.timeScale().fitContent();
+
+    // Handle resize
+    const handleResize = () => {
+      if (chartContainerRef.current && chart) {
+        chart.applyOptions({
+          width: chartContainerRef.current.clientWidth,
+        });
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      chart.remove();
+    };
+  }, [sale, previewAmount, isBuying, appTheme, t, quadCap, netSold, saleCap, divisor, theme]);
+
+  // Calculate sale progress
+  const saleProgress = Number((netSold * 100n) / saleCap);
+  const currentPrice = calculateCost(netSold + UNIT_SCALE, quadCap, divisor) - calculateCost(netSold, quadCap, divisor);
+  const formattedPrice = formatEther(currentPrice);
+
+  // Format price in readable units (wei, gwei, etc)
+  const formatReadablePrice = (price: number): string => {
+    if (price === 0) return "0 ETH";
+
+    // For extremely small values, use gwei or wei
+    if (price < 1e-15) {
+      const wei = price * 1e18;
+      if (wei < 0.001) {
+        return `${wei.toExponential(2)} wei`;
+      }
+      return `${wei.toFixed(3)} wei`;
+    } else if (price < 1e-9) {
+      const gwei = price * 1e9;
+      if (gwei < 0.001) {
+        return `${gwei.toFixed(6)} gwei`;
+      } else if (gwei < 1) {
+        return `${gwei.toFixed(4)} gwei`;
+      }
+      return `${gwei.toFixed(2)} gwei`;
+    } else if (price < 1e-6) {
+      return `${(price * 1e6).toFixed(3)} μETH`;
+    } else if (price < 0.001) {
+      return `${(price * 1000).toFixed(4)} mETH`;
+    } else if (price < 1) {
+      return `${price.toFixed(6)} ETH`;
+    }
+
+    return `${price.toFixed(4)} ETH`;
+  };
+
+  // Format tokens per ETH
+  const formatTokensPerEth = (priceInEth: number): string => {
+    if (priceInEth === 0) return "∞ per ETH";
+
+    const tokensPerEth = 1 / priceInEth;
+
+    if (tokensPerEth >= 1e9) {
+      return `${(tokensPerEth / 1e9).toFixed(2)}B per ETH`;
+    } else if (tokensPerEth >= 1e6) {
+      return `${(tokensPerEth / 1e6).toFixed(2)}M per ETH`;
+    } else if (tokensPerEth >= 1e3) {
+      return `${(tokensPerEth / 1e3).toFixed(2)}K per ETH`;
+    } else if (tokensPerEth >= 1) {
+      return `${tokensPerEth.toFixed(2)} per ETH`;
+    } else {
+      return `${tokensPerEth.toFixed(6)} per ETH`;
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium">
+            {t("sale.live_curve_chart", "Live Curve Chart")}
+            {previewAmount && previewAmount > 0n ? (
+              <span className={`ml-2 text-xs ${isBuying ? "text-blue-500" : "text-red-500"}`}>
+                ({isBuying ? t("trade.buy_preview", "Buy Preview") : t("trade.sell_preview", "Sell Preview")})
+              </span>
+            ) : null}
+          </h3>
+          <div className="flex items-center gap-4 text-xs">
+            <div className="flex items-center gap-1">
+              <span className="text-muted-foreground">{t("sale.progress", "Progress")}:</span>
+              <span className="font-medium">{saleProgress.toFixed(1)}%</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-muted-foreground">{t("sale.current", "Current")}:</span>
+              <span className="font-medium">{formatReadablePrice(Number(formattedPrice))}</span>
+            </div>
+          </div>
+        </div>
+        {hoveredAmount && hoveredPrice && (
+          <div className="text-xs text-muted-foreground text-right">
+            {hoveredAmount} {t("common.tokens", "tokens")} = {hoveredPrice} ETH
+          </div>
+        )}
+      </div>
+
+      <div ref={chartContainerRef} className="w-full h-[400px] bg-background border border-border rounded-lg" />
+
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-green-500 rounded-full" />
+            <span>{t("sale.price_curve", "Price Curve")}</span>
+          </div>
+          {netSold > 0n && (
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 bg-amber-500 rounded-full shadow-lg shadow-amber-500/50" />
+              <span>{t("sale.current_position", "Current Position")}</span>
+            </div>
+          )}
+          {previewAmount && previewAmount > 0n ? (
+            <>
+              <div className="flex items-center gap-1">
+                <div className={`w-3 h-[2px] ${isBuying ? "bg-blue-500" : "bg-red-500"}`} />
+                <span>
+                  {isBuying ? t("trade.buy_preview", "Buy Preview") : t("trade.sell_preview", "Sell Preview")}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-xs font-medium">
+                  {(() => {
+                    // Calculate curve progress impact
+                    const currentProgress = Number((netSold * 100n) / saleCap);
+                    const endPoint = isBuying ? netSold + previewAmount : netSold - previewAmount;
+                    if (endPoint < 0n || endPoint > saleCap) return null;
+                    const newProgress = Number((endPoint * 100n) / saleCap);
+                    const progressDelta = newProgress - currentProgress;
+
+                    // Calculate curve progress only
+
+                    return (
+                      <span className="space-x-2">
+                        <span className={isBuying ? "text-blue-500" : "text-green-500"}>
+                          {progressDelta >= 0 ? "+" : ""}
+                          {Math.abs(progressDelta).toFixed(2)}% {t("trade.curve_movement", "curve movement")}
+                        </span>
+                      </span>
+                    );
+                  })()}
+                </span>
+              </div>
+            </>
+          ) : null}
+        </div>
+        <div className="flex items-center gap-4">
+          {netSold > 0n && (
+            <div>
+              {t("sale.current_price_label", "Current Price")}: {(() => {
+                // Calculate marginal price at current netSold
+                // For very early sales, use the actual delta between current and next unit
+                const currentCost = calculateCost(netSold, quadCap, divisor);
+                const nextCost = calculateCost(netSold + UNIT_SCALE, quadCap, divisor);
+                const marginalPrice = nextCost - currentCost;
+                const priceInEth = Number(formatEther(marginalPrice));
+
+                return (
+                  <>
+                    {formatReadablePrice(priceInEth)}
+                    <span className="text-muted-foreground text-xs ml-2">({formatTokensPerEth(priceInEth)})</span>
+                  </>
+                );
+              })()}
+            </div>
+          )}
+          <div>
+            {t("sale.tokens_sold", "Sold")}: {formatEther(netSold).slice(0, 8)} / {formatEther(saleCap).slice(0, 8)}
+            {saleCap > 0n && (
+              <span className="text-muted-foreground">
+                {" "}
+                ({((Number(netSold) / Number(saleCap)) * 100).toFixed(2)}%)
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

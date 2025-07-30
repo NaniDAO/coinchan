@@ -137,6 +137,7 @@ export const USDT_TOKEN: TokenMeta = {
   symbol: "USDT",
   source: "ZAMM",
   tokenUri: `data:image/svg+xml;base64,${btoa(USDT_SVG)}`,
+  imageUrl: `data:image/svg+xml;base64,${btoa(USDT_SVG)}`,
   reserve0: 1000000000000000000000n, // 1000 ETH (placeholder - will be updated by hook)
   reserve1: 2000000000000n, // 2M USDT (6 decimals, placeholder)
   swapFee: 30n, // 0.3% fee tier (30 bps)
@@ -192,6 +193,7 @@ export const ENS_TOKEN: TokenMeta = {
   symbol: "ENS",
   source: "COOKBOOK", // Use Cookbook for ENS pools
   tokenUri: undefined, // No tokenUri for ENS
+  imageUrl: "/ens.svg", // ENS logo
   reserve0: 1000000000000000000000n, // 1000 ETH (placeholder - will be updated by hook)
   reserve1: 2000000000000000000000000n, // 2M ENS (18 decimals, placeholder)
   swapFee: 30n, // 0.3% fee tier (30 bps)

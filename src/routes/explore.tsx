@@ -11,7 +11,7 @@ function RouteComponent() {
   const { t } = useTranslation();
 
   const handleLaunch = () => {
-    navigate({ to: "/launch" });
+    navigate({ to: "/oneshot" });
   };
 
   const handleSend = () => {

@@ -1,0 +1,105 @@
+/* Shake animation for form errors */
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translateX(-2px);
+  }
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+.shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+/* Smooth fade in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Pulse animation for success states */
+@keyframes pulse-success {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
+}
+
+.pulse-success {
+  animation: pulse-success 2s infinite;
+}
+
+/* Gentle float animation for logos */
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.float-animation {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Subtle entrance animation */
+@keyframes fadeInFloat {
+  from {
+    opacity: 0;
+    transform: scale(0.8) rotate(-15deg);
+  }
+  to {
+    opacity: 0.7;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.fade-in-float {
+  animation: fadeInFloat 0.7s ease-out forwards;
+}
+
+/* Video fade in animation */
+@keyframes fadeInVideo {
+  from {
+    opacity: 0;
+    transform: scale(0.8) translateY(20px);
+  }
+  to {
+    opacity: 0.6;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-fade-in-video {
+  animation: fadeInVideo 1s ease-out forwards;
+  opacity: 0;
+}

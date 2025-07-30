@@ -1,15 +1,14 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  useLandingData,
-  useRandomLoadingText,
-} from "../hooks/use-landing-data";
+import { useLandingData, useRandomLoadingText } from "../hooks/use-landing-data";
 import { useProtocolStats } from "../hooks/use-protocol-stats";
 import { useTheme } from "@/lib/theme";
 import { TrendingFarm } from "./TrendingFarm";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { LoadingLogo } from "./ui/loading-logo";
 import { GovernanceProposals } from "./GovernanceProposals";
+import { useNavigate } from "@tanstack/react-router";
+import { CoinSalesReel } from "./CoinSalesReel";
 
 interface LandingPageProps {
   onEnterApp?: () => void;
@@ -18,9 +17,9 @@ interface LandingPageProps {
 export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
   const { t } = useTranslation();
   const { theme } = useTheme();
+  const navigate = useNavigate();
 
-  const { data: landingData, isLoading: isLoadingLandingData } =
-    useLandingData();
+  const { data: landingData, isLoading: isLoadingLandingData } = useLandingData();
   const { data: protocolStats } = useProtocolStats();
   const getRandomLoadingText = useRandomLoadingText();
   const [progressText, setProgressText] = useState("");
@@ -60,17 +59,26 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
 
   // Terminal boot animation
   useEffect(() => {
+    // Clear any existing lines when the effect runs
+    setTerminalLines([]);
+
     const lines = [
-      "> initializing zamm protocol...",
-      "> connecting to chains...",
-      "> loading market data...",
-      "> system ready",
+      t("landing.initializing"),
+      t("landing.connecting_chains"),
+      t("landing.loading_data"),
+      t("landing.system_ready"),
     ];
 
     let currentLine = 0;
     const typeInterval = setInterval(() => {
       if (currentLine < lines.length) {
-        setTerminalLines((prev) => [...prev, lines[currentLine]]);
+        setTerminalLines((prev) => {
+          // Prevent adding duplicate lines
+          if (!prev.includes(lines[currentLine])) {
+            return [...prev, lines[currentLine]];
+          }
+          return prev;
+        });
         currentLine++;
       } else {
         clearInterval(typeInterval);
@@ -78,7 +86,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
     }, 600);
 
     return () => clearInterval(typeInterval);
-  }, []);
+  }, [t]);
 
   const handleEnterApp = () => {
     if (onEnterApp) {
@@ -89,9 +97,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
   return (
     <div className="bg-background text-foreground font-mono h-full lg:pl-8  p-4">
       {/* Title */}
-      <h1 className="text-4xl tracking-widest font-bold mb-4 text-left">
-        {t("landing.title")}
-      </h1>
+      <h1 className="text-4xl tracking-widest font-bold mb-4 text-left">{t("landing.title")}</h1>
 
       {/* Terminal Boot Lines */}
       <div className="mb-4 min-h-[60px]">
@@ -117,12 +123,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
           <span className="animate-pulse">_</span>
         </div>
         <div className="flex items-center gap-2 text-xs">
-          <span>load:</span>
+          <span>{t("landing.load")}:</span>
           <div className="bg-muted h-1 w-32 border border-border">
-            <div
-              className="h-full bg-primary transition-all duration-300"
-              style={{ width: `${progress}%` }}
-            ></div>
+            <div className="h-full bg-primary transition-all duration-300" style={{ width: `${progress}%` }}></div>
           </div>
           <span>{Math.round(progress)}%</span>
         </div>
@@ -132,27 +135,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
       <div className="mb-4 space-y-1 text-sm">
         <div>
           <span className="text-muted-foreground">eth = </span>
-          <span className="font-bold">
-            {landingData?.ethPrice || "loading..."}
-          </span>
+          <span className="font-bold">{landingData?.ethPrice || "loading..."}</span>
         </div>
         <div>
-          <span className="text-muted-foreground">gas = </span>
-          <span className="font-bold">
-            {landingData?.gasPrice || "loading..."}
-          </span>
+          <span className="text-muted-foreground">{t("landing.gas")} = </span>
+          <span className="font-bold">{landingData?.gasPrice || "loading..."}</span>
         </div>
         <div>
-          <span className="text-muted-foreground">cost = </span>
-          <span className="font-bold">
-            {landingData?.launchCost || "loading..."}
-          </span>
+          <span className="text-muted-foreground">{t("landing.create")} = </span>
+          <span className="font-bold">{landingData?.createCost || "loading..."}</span>
         </div>
       </div>
 
       {/* Trending Farms Section */}
       <div className="mb-4">
-        <div className="text-lg mb-2 font-bold">trending:</div>
+        <div className="text-lg mb-2 font-bold">{t("landing.trending")}:</div>
         <div className="space-y-0 text-xs">
           <ErrorBoundary fallback={<LoadingLogo />}>
             <TrendingFarm
@@ -177,31 +174,35 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
           </ErrorBoundary>
         </div>
       </div>
+      {/* Coins Section */}
+      <div className="mb-4">
+        <div className="text-lg mb-2 font-bold">{t("landing.coins")}:</div>
+        <div className="space-y-0 text-xs">
+          {/* Coin Sales Reel */}
+          <ErrorBoundary fallback={null}>
+            <CoinSalesReel />
+          </ErrorBoundary>
+        </div>
+      </div>
 
       {/* Governance */}
       <GovernanceProposals />
 
       {/* Protocol Stats - Single Column Format */}
       <div className="mb-6">
-        <div className="text-lg mb-2 font-bold">protocol:</div>
+        <div className="text-lg mb-2 font-bold">{t("landing.protocol")}:</div>
         <div className="text-lg space-y-1">
           <div>
-            <span className="text-muted-foreground">eth_swapped = </span>
-            <span className="font-bold">
-              {protocolStats?.totalEthSwapped || "-"}
-            </span>
+            <span className="text-muted-foreground">{t("landing.eth_swapped")} = </span>
+            <span className="font-bold">{protocolStats?.totalEthSwapped || "-"}</span>
           </div>
           <div>
-            <span className="text-muted-foreground">swaps = </span>
-            <span className="font-bold">
-              {protocolStats?.totalSwaps || "-"}
-            </span>
+            <span className="text-muted-foreground">{t("landing.swaps")} = </span>
+            <span className="font-bold">{protocolStats?.totalSwaps || "-"}</span>
           </div>
           <div>
-            <span className="text-muted-foreground">coins = </span>
-            <span className="font-bold">
-              {protocolStats?.totalCoins || "-"}
-            </span>
+            <span className="text-muted-foreground">{t("landing.coins")} = </span>
+            <span className="font-bold">{protocolStats?.totalCoins || "-"}</span>
           </div>
         </div>
       </div>
@@ -227,13 +228,26 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
       </div>
 
       {/* Features */}
-      <div className="text-xs text-muted-foreground">
-        {t("landing.features")}
+      <div className="text-xs text-muted-foreground mb-4">{t("landing.features")}</div>
+
+      {/* Twitter/X Link */}
+      <div className="mb-4">
+        <a
+          href="https://x.com/zamm_defi"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+          </svg>
+          <span className="text-xs">@zamm_defi</span>
+        </a>
       </div>
 
       {/* Video */}
       <video
-        className="fixed bottom-5 right-5 w-40 h-40"
+        className="fixed bottom-5 right-5 w-40 h-40 cursor-pointer hover:opacity-80 transition-opacity"
         style={{
           clipPath: "polygon(50% 10%, 75% 50%, 50% 90%, 25% 50%)",
         }}
@@ -241,6 +255,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
         autoPlay
         loop
         muted
+        onClick={() => navigate({ to: "/oneshot" })}
       />
     </div>
   );

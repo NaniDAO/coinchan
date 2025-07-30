@@ -15,9 +15,9 @@ import {
 import type React from "react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Button } from "./components/ui/button";
 import { useChartTheme } from "./hooks/use-chart-theme";
 import { type CandleData, fetchPoolCandles } from "./lib/indexer";
+import { cn } from "./lib/utils";
 
 const ONE_MONTH = 30 * 24 * 60 * 60;
 const RANGE = 7 * 24 * 60 * 60;
@@ -54,25 +54,25 @@ const PoolCandleChart: React.FC<CandleChartProps> = ({ poolId, interval = "1h" }
 
   return (
     <div className="w-full">
-      <div className="mb-4 flex space-x-2">
-        <Button
-          variant="outline"
+      <div className="flex w-fit border border-border">
+        <button
           onClick={() => handleIntervalChange("1h")}
-          className={`px-3 py-1 rounded ${
-            selectedInterval === "1h" ? "bg-primary text-background" : "bg-secondary text-foreground"
-          }`}
+          className={cn(
+            "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
+            selectedInterval === "1h" && "bg-accent text-accent-foreground",
+          )}
         >
           1h
-        </Button>
-        <Button
-          variant="outline"
+        </button>
+        <button
           onClick={() => handleIntervalChange("1d")}
-          className={`px-3 py-1 rounded ${
-            selectedInterval === "1d" ? "bg-primary text-background" : "bg-secondary text-foreground"
-          }`}
+          className={cn(
+            "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
+            selectedInterval === "1d" && "bg-accent text-accent-foreground",
+          )}
         >
           1d
-        </Button>
+        </button>
       </div>
 
       {isLoading ? (

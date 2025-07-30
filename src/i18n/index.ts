@@ -26,6 +26,9 @@ i18n
     resources,
     fallbackLng: "en",
 
+    // Ensure we use simple language codes
+    load: "languageOnly", // This ensures "en-US" becomes "en"
+
     // common namespace used around the full app
     defaultNS: "translation",
 

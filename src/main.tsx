@@ -15,6 +15,7 @@ import "./index.css";
 import "./i18n";
 import { useTranslation } from "react-i18next";
 import ConnectionErrorHandler from "./lib/ConnectionErrorHandler";
+import "./lib/favicon"; // Initialize favicon manager
 
 // Configure query client with performance optimizations
 const queryClient = new QueryClient({
@@ -22,6 +23,7 @@ const queryClient = new QueryClient({
     queries: {
       // Reduce the frequency of background refetches
       staleTime: 30000, // 30 seconds
+      gcTime: 1000 * 60 * 60 * 24, // 24 hours
       refetchInterval: false,
       refetchOnWindowFocus: false,
       // Retry less aggressively

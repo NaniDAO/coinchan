@@ -12,12 +12,7 @@ interface TrendingFarmProps {
   imgUrl?: string;
 }
 
-export const TrendingFarm: React.FC<TrendingFarmProps> = ({
-  chefId,
-  url,
-  color,
-  imgUrl,
-}) => {
+export const TrendingFarm: React.FC<TrendingFarmProps> = ({ chefId, url, color, imgUrl }) => {
   // fetch details for stream
   const { data } = useIncentiveStream(chefId);
   const { totalApr } = useCombinedApr({
@@ -41,11 +36,7 @@ export const TrendingFarm: React.FC<TrendingFarmProps> = ({
     <div className="w-fit text-lg">
       <Link to={url} className={"flex flex-row items-center hover:underline"}>
         <span className="text-muted-foreground">└── </span>
-        <img
-          src={imageUrl}
-          alt={data?.lpToken?.symbol}
-          className="w-4 h-4 mr-2 bg-white"
-        />
+        <img src={imageUrl} alt={data?.lpToken?.symbol} className="w-4 h-4 mr-2 bg-white" />
         <span className="font-bold" style={{ color: farmColor }}>
           {ticker.toUpperCase()}
         </span>

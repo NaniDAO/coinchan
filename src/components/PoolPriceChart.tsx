@@ -2,13 +2,14 @@ import { Button } from "@/components/ui/button";
 import { LoadingLogo } from "@/components/ui/loading-logo";
 import { useChartTheme } from "@/hooks/use-chart-theme";
 import { type PricePointData, fetchPoolPricePoints } from "@/lib/indexer";
+import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import {
+  BarPrice,
   ColorType,
   type ISeriesApi,
   LineSeries,
   type LineSeriesOptions,
-  type PriceFormatBuiltIn,
   PriceScaleMode,
   type UTCTimestamp,
   createChart,
@@ -28,6 +29,77 @@ interface PriceChartProps {
     action: "buy" | "sell";
   } | null;
 }
+
+// Utility function to format numbers with subscript zeros
+const formatWithSubscriptZeros = (value: BarPrice): string => {
+  if (value === 0) return "0";
+
+  const absValue = Math.abs(value);
+  const sign = value < 0 ? "-" : "";
+
+  // Handle numbers >= 1
+  if (absValue >= 1) {
+    return sign + absValue.toFixed(4).replace(/\.?0+$/, "");
+  }
+
+  // Handle numbers >= 0.01 (show normally for readability)
+  if (absValue >= 0.01) {
+    return sign + absValue.toFixed(6).replace(/\.?0+$/, "");
+  }
+
+  // For very small numbers, use toFixed to avoid exponential notation
+  const fixedStr = absValue.toFixed(20); // Use high precision to capture all digits
+  const decimalIndex = fixedStr.indexOf(".");
+
+  if (decimalIndex === -1) return sign + fixedStr;
+
+  const afterDecimal = fixedStr.substring(decimalIndex + 1);
+  let zeroCount = 0;
+
+  // Count leading zeros after decimal
+  for (let i = 0; i < afterDecimal.length; i++) {
+    if (afterDecimal[i] === "0") {
+      zeroCount++;
+    } else {
+      break;
+    }
+  }
+
+  // If no leading zeros, format normally
+  if (zeroCount === 0) {
+    return sign + absValue.toFixed(6).replace(/\.?0+$/, "");
+  }
+
+  // Get significant digits after the leading zeros
+  const significantDigits = afterDecimal.substring(zeroCount);
+
+  // Take first 4-6 significant digits and remove trailing zeros
+  const trimmedDigits = significantDigits.substring(0, 6).replace(/0+$/, "");
+
+  if (trimmedDigits.length === 0) return "0";
+
+  // Create subscript number - Unicode subscript characters
+  const subscriptMap: { [key: string]: string } = {
+    "0": "₀",
+    "1": "₁",
+    "2": "₂",
+    "3": "₃",
+    "4": "₄",
+    "5": "₅",
+    "6": "₆",
+    "7": "₇",
+    "8": "₈",
+    "9": "₉",
+  };
+
+  const subscriptZeros = zeroCount
+    .toString()
+    .split("")
+    .map((digit) => subscriptMap[digit])
+    .join("");
+
+  return `${sign}0.0${subscriptZeros}${trimmedDigits}`;
+};
 
 const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker, ethUsdPrice, priceImpact }) => {
   const { t } = useTranslation();
@@ -109,50 +181,64 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker, ethUsdPrice
   return (
     <div className="w-full">
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <div className="flex space-x-2">
-          <Button
-            variant={timeRange.activeButton === "24h" ? "default" : "outline"}
-            size="sm"
+        <div className="flex border border-border">
+          <button
             onClick={setLast24Hours}
-            className="text-xs"
+            className={cn(
+              "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
+              timeRange.activeButton === "24hr" && "bg-accent text-accent-foreground",
+            )}
           >
             {t("coin.24h")}
-          </Button>
-          <Button
-            variant={timeRange.activeButton === "1w" ? "default" : "outline"}
-            size="sm"
+          </button>
+          <button
             onClick={setLastWeek}
-            className="text-xs"
+            className={cn(
+              "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
+              timeRange.activeButton === "1w" && "bg-accent text-accent-foreground",
+            )}
           >
             {t("coin.7d")}
-          </Button>
-          <Button
-            variant={timeRange.activeButton === "1m" ? "default" : "outline"}
-            size="sm"
+          </button>
+          <button
             onClick={setLastMonth}
-            className="text-xs"
+            className={cn(
+              "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
+              timeRange.activeButton === "1m" && "bg-accent text-accent-foreground",
+            )}
           >
             {t("coin.30d")}
-          </Button>
-          <Button
-            variant={timeRange.activeButton === "all" ? "default" : "outline"}
-            size="sm"
+          </button>
+          <button
             onClick={setAllTime}
-            className="text-xs"
+            className={cn(
+              "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
+              timeRange.activeButton === "all" && "bg-accent text-accent-foreground",
+            )}
           >
             {t("coin.all")}
-          </Button>
+          </button>
         </div>
         {ethUsdPrice && (
-          <div className="ml-auto">
-            <Button
-              variant={showUsd ? "default" : "outline"}
-              size="sm"
-              onClick={() => setShowUsd(!showUsd)}
-              className="text-xs"
+          <div className="flex flex-row ml-auto">
+            <button
+              onClick={() => setShowUsd(false)}
+              className={cn(
+                "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
+                !showUsd && "bg-accent text-accent-foreground",
+              )}
             >
-              {showUsd ? "USD" : "ETH"}
-            </Button>
+              ETH
+            </button>
+            <button
+              onClick={() => setShowUsd(true)}
+              className={cn(
+                "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
+                showUsd && "bg-accent text-accent-foreground",
+              )}
+            >
+              USD
+            </button>
           </div>
         )}
       </div>
@@ -162,7 +248,7 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker, ethUsdPrice
           <LoadingLogo />
         </div>
       ) : chartError ? (
-        <div className="text-center py-20">
+        <div className="text-center">
           <p className="text-red-400 mb-4">{chartError}</p>
           <Button
             variant="outline"
@@ -170,7 +256,10 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker, ethUsdPrice
             onClick={() => {
               setChartError(null);
               // Trigger refetch by changing time range slightly
-              setTimeRange((prev) => ({ ...prev, endTs: Math.floor(Date.now() / 1000) }));
+              setTimeRange((prev) => ({
+                ...prev,
+                endTs: Math.floor(Date.now() / 1000),
+              }));
             }}
           >
             {t("common.retry")}
@@ -221,8 +310,11 @@ const TVPriceChart: React.FC<{
       if (chartRef.current) {
         try {
           chartRef.current.remove();
-        } catch (e) {
-          console.error("Error removing existing chart:", e);
+        } catch (e: any) {
+          // Chart was already disposed, which is fine
+          if (!e?.message?.includes("disposed")) {
+            console.error("Error removing existing chart:", e);
+          }
         }
         chartRef.current = undefined;
         priceSeriesRef.current = undefined;
@@ -237,7 +329,7 @@ const TVPriceChart: React.FC<{
           attributionLogo: false,
         },
         autoSize: true,
-        height: 400,
+        height: 300,
         rightPriceScale: {
           autoScale: true,
           mode: PriceScaleMode.Logarithmic,
@@ -255,10 +347,10 @@ const TVPriceChart: React.FC<{
         lineWidth: 2,
         title: `ETH / ${ticker}`, // Default title, will be updated dynamically
         priceFormat: {
-          type: "price",
-          precision: 10, // Default precision, will be updated dynamically
+          type: "custom",
+          formatter: formatWithSubscriptZeros, // Use custom formatter
           minMove: 0.000000001,
-        } as PriceFormatBuiltIn,
+        },
       } as LineSeriesOptions);
 
       // Add impact series for projected price (dotted line)
@@ -269,10 +361,10 @@ const TVPriceChart: React.FC<{
         priceLineVisible: false,
         lastValueVisible: true, // Show the last value
         priceFormat: {
-          type: "price",
-          precision: 10,
+          type: "custom",
+          formatter: formatWithSubscriptZeros, // Use custom formatter
           minMove: 0.000000001,
-        } as PriceFormatBuiltIn,
+        },
         crosshairMarkerVisible: true,
         crosshairMarkerRadius: 4,
       } as LineSeriesOptions);
@@ -298,9 +390,17 @@ const TVPriceChart: React.FC<{
         window.removeEventListener("resize", handleResize);
         setIsChartReady(false);
         try {
-          chart.remove();
-        } catch (e) {
-          console.error("Error cleaning up chart:", e);
+          if (chartRef.current) {
+            chartRef.current.remove();
+            chartRef.current = undefined;
+            priceSeriesRef.current = undefined;
+            impactSeriesRef.current = undefined;
+          }
+        } catch (e: any) {
+          // Chart was already disposed, which is fine
+          if (!e?.message?.includes("disposed")) {
+            console.error("Error cleaning up chart:", e);
+          }
         }
       };
     } catch (error) {
@@ -317,10 +417,10 @@ const TVPriceChart: React.FC<{
     priceSeriesRef.current.applyOptions({
       title: showUsd && ethUsdPrice ? `${ticker} / USD` : `ETH / ${ticker}`,
       priceFormat: {
-        type: "price",
-        precision: showUsd ? 8 : 10,
-        minMove: showUsd ? 0.00000001 : 0.000000001,
-      } as PriceFormatBuiltIn,
+        type: "custom",
+        formatter: formatWithSubscriptZeros, // Maintain custom formatter
+        minMove: 0.000000001,
+      },
     } as LineSeriesOptions);
   }, [showUsd, ethUsdPrice, ticker]);
 
@@ -448,7 +548,7 @@ const TVPriceChart: React.FC<{
 
   return (
     <div className="relative">
-      <div ref={containerRef} className="w-full" style={{ height: "400px", position: "relative", zIndex: 1 }} />
+      <div ref={containerRef} className="w-full" style={{ height: "300px", position: "relative", zIndex: 1 }} />
       {!isChartReady && (
         <div className="absolute inset-0 flex items-center justify-center bg-background/80">
           <LoadingLogo size="sm" />
