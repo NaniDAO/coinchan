@@ -119,8 +119,6 @@ export const CoinSalesReel = () => {
           </Link>
         ))}
         
-        {/* Decorative elements */}
-        <div className="absolute -inset-4 border border-dashed border-border rounded-lg opacity-20 group-hover:opacity-40 transition-opacity pointer-events-none" />
       </div>
       
       {/* Coin info below */}
