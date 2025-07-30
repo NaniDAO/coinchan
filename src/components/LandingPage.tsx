@@ -9,6 +9,7 @@ import { LoadingLogo } from "./ui/loading-logo";
 import { GovernanceProposals } from "./GovernanceProposals";
 import { SaleBlurb } from "./SaleBlurb";
 import { useNavigate } from "@tanstack/react-router";
+import { CoinSalesReel } from "./CoinSalesReel";
 
 interface LandingPageProps {
   onEnterApp?: () => void;
@@ -183,6 +184,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
           </ErrorBoundary>
         </div>
       </div>
+
+      {/* Coin Sales Reel */}
+      <ErrorBoundary fallback={null}>
+        <CoinSalesReel />
+      </ErrorBoundary>
 
       {/* Governance */}
       <GovernanceProposals />
