@@ -35,7 +35,13 @@ interface ZCurveTradingProps {
   onTransactionSuccess?: () => void;
 }
 
-export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon, onPreviewChange, onTransactionSuccess }: ZCurveTradingProps) {
+export function ZCurveTrading({
+  coinId,
+  coinSymbol = "TOKEN",
+  coinIcon,
+  onPreviewChange,
+  onTransactionSuccess,
+}: ZCurveTradingProps) {
   const { t } = useTranslation();
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
@@ -92,8 +98,13 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon, onPrevie
       symbol: coinSymbol || coinData?.symbol || sale?.coin?.symbol || "TOKEN",
       name: coinData?.name || sale?.coin?.name || "Token",
       decimals: 18,
-      tokenUri: coinIcon || coinData?.tokenURI || sale?.coin?.tokenURI || coinData?.imageUrl || sale?.coin?.imageUrl || "",
-      balance: saleSummary?.userBalance ? BigInt(saleSummary.userBalance) : userBalance ? BigInt(userBalance.balance) : 0n,
+      tokenUri:
+        coinIcon || coinData?.tokenURI || sale?.coin?.tokenURI || coinData?.imageUrl || sale?.coin?.imageUrl || "",
+      balance: saleSummary?.userBalance
+        ? BigInt(saleSummary.userBalance)
+        : userBalance
+          ? BigInt(userBalance.balance)
+          : 0n,
       reserve0: 0n,
       reserve1: 0n,
       source: "COOKBOOK" as const,
@@ -304,7 +315,7 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon, onPrevie
           });
 
           let minCoins = (expectedCoins * slippageMultiplier) / 10000n;
-          
+
           // Quantize to UNIT_SCALE
           minCoins = quantizeToUnitScale(minCoins);
 
@@ -337,7 +348,7 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon, onPrevie
             return;
           }
           let maxCoins = (sellAmountParsed * slippageMultiplierInverse) / 10000n;
-          
+
           // Quantize to UNIT_SCALE
           maxCoins = quantizeToUnitScale(maxCoins);
 
@@ -347,7 +358,11 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon, onPrevie
           }
 
           // Validate token balance
-          const tokenBalance = saleSummary?.userBalance ? BigInt(saleSummary.userBalance) : userBalance ? BigInt(userBalance.balance) : 0n;
+          const tokenBalance = saleSummary?.userBalance
+            ? BigInt(saleSummary.userBalance)
+            : userBalance
+              ? BigInt(userBalance.balance)
+              : 0n;
           if (tokenBalance < maxCoins) {
             setErrorMessage(t("trade.insufficient_balance"));
             return;
@@ -376,7 +391,11 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon, onPrevie
           }
 
           // Validate token balance
-          const tokenBalance = saleSummary?.userBalance ? BigInt(saleSummary.userBalance) : userBalance ? BigInt(userBalance.balance) : 0n;
+          const tokenBalance = saleSummary?.userBalance
+            ? BigInt(saleSummary.userBalance)
+            : userBalance
+              ? BigInt(userBalance.balance)
+              : 0n;
           if (tokenBalance < coinsIn) {
             setErrorMessage(t("trade.insufficient_balance"));
             return;
@@ -435,7 +454,7 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon, onPrevie
           </a>
         </div>,
       );
-      
+
       // Refetch all data to update UI
       setTimeout(() => {
         refetchSale();
@@ -494,16 +513,23 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon, onPrevie
             calculateOutput(formatted, "sell");
           } else {
             // Max tokens
-            const maxTokens = saleSummary?.userBalance ? BigInt(saleSummary.userBalance) : userBalance ? BigInt(userBalance.balance) : 0n;
+            const maxTokens = saleSummary?.userBalance
+              ? BigInt(saleSummary.userBalance)
+              : userBalance
+                ? BigInt(userBalance.balance)
+                : 0n;
             const formatted = formatEther(maxTokens);
             setSellAmount(formatted);
             calculateOutput(formatted, "sell");
           }
         }}
         showPercentageSlider={
-          lastEditedField === "sell" &&
-          ((swapDirection === "buy" && !!ethBalance && ethBalance.value > 0n) ||
-            (swapDirection === "sell" && ((saleSummary?.userBalance && BigInt(saleSummary.userBalance) > 0n) || (userBalance && BigInt(userBalance.balance) > 0n)))) || false
+          (lastEditedField === "sell" &&
+            ((swapDirection === "buy" && !!ethBalance && ethBalance.value > 0n) ||
+              (swapDirection === "sell" &&
+                ((saleSummary?.userBalance && BigInt(saleSummary.userBalance) > 0n) ||
+                  (userBalance && BigInt(userBalance.balance) > 0n))))) ||
+          false
         }
         disabled={tradingDisabled}
       />
@@ -615,25 +641,29 @@ export function ZCurveTrading({ coinId, coinSymbol = "TOKEN", coinIcon, onPrevie
       <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-muted-foreground">
         <div className="flex justify-between">
           <span>{t("sale.current_price")}</span>
-          <span>{sale.currentPrice ? (() => {
-            const price = Number(formatEther(BigInt(sale.currentPrice)));
-            if (price === 0) return "0 ETH";
-            
-            // Format very small prices with better readability
-            if (price < 1e-15) {
-              const exp = Math.floor(Math.log10(price));
-              const mantissa = (price / Math.pow(10, exp)).toFixed(2);
-              return `${mantissa}×10^${exp} ETH`;
-            }
-            if (price < 1e-9) {
-              const gwei = price * 1e9;
-              return `${gwei.toFixed(3)} gwei`;
-            }
-            if (price < 1e-6) {
-              return price.toFixed(9) + " ETH";
-            }
-            return price.toFixed(8) + " ETH";
-          })() : "0 ETH"}</span>
+          <span>
+            {sale.currentPrice
+              ? (() => {
+                  const price = Number(formatEther(BigInt(sale.currentPrice)));
+                  if (price === 0) return "0 ETH";
+
+                  // Format very small prices with better readability
+                  if (price < 1e-15) {
+                    const exp = Math.floor(Math.log10(price));
+                    const mantissa = (price / Math.pow(10, exp)).toFixed(2);
+                    return `${mantissa}×10^${exp} ETH`;
+                  }
+                  if (price < 1e-9) {
+                    const gwei = price * 1e9;
+                    return `${gwei.toFixed(3)} gwei`;
+                  }
+                  if (price < 1e-6) {
+                    return price.toFixed(9) + " ETH";
+                  }
+                  return price.toFixed(8) + " ETH";
+                })()
+              : "0 ETH"}
+          </span>
         </div>
         <div className="flex justify-between">
           <span>{t("trade.eth_in_escrow")}</span>

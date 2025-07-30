@@ -35,11 +35,15 @@ export function ZCurveClaim({ coinId, coinSymbol = "TOKEN" }: ZCurveClaimProps) 
   });
 
   const handleClaim = async () => {
-    const claimAmount = saleSummary?.userBalance ? BigInt(saleSummary.userBalance) : userBalance ? BigInt(userBalance.balance) : 0n;
+    const claimAmount = saleSummary?.userBalance
+      ? BigInt(saleSummary.userBalance)
+      : userBalance
+        ? BigInt(userBalance.balance)
+        : 0n;
     if (claimAmount === 0n) return;
 
     setLocalError(null);
-    
+
     try {
       writeContract({
         address: zCurveAddress,
@@ -63,7 +67,11 @@ export function ZCurveClaim({ coinId, coinSymbol = "TOKEN" }: ZCurveClaimProps) 
   };
 
   // Get balance from saleSummary or userBalance
-  const balance = saleSummary?.userBalance ? BigInt(saleSummary.userBalance) : userBalance ? BigInt(userBalance.balance) : 0n;
+  const balance = saleSummary?.userBalance
+    ? BigInt(saleSummary.userBalance)
+    : userBalance
+      ? BigInt(userBalance.balance)
+      : 0n;
 
   // Debug logging
   console.log("ZCurveClaim Debug:", {

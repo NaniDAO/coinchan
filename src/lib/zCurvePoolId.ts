@@ -44,7 +44,7 @@ export function computeZCurvePoolId(coinId: bigint, feeOrHook: bigint = DEFAULT_
   const poolIdBigInt = BigInt(poolIdHex);
   console.log("Computed pool ID (hex):", poolIdHex);
   console.log("Computed pool ID (decimal):", poolIdBigInt.toString());
-  
+
   // Return as decimal string to match computePoolId from swap.ts
   return poolIdBigInt.toString();
 }

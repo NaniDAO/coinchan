@@ -362,19 +362,19 @@ export function useZCurveFinalization(coinId: string | undefined) {
 // Fetch sale summary with user balance from contract
 export function useZCurveSaleSummary(coinId: string | undefined, userAddress: Address | undefined) {
   const publicClient = usePublicClient();
-  
+
   return useQuery({
     queryKey: ["zcurve", "saleSummary", coinId, userAddress],
     queryFn: async () => {
       if (!coinId || !publicClient) throw new Error("Missing parameters");
-      
+
       const result = await publicClient.readContract({
         address: zCurveAddress,
         abi: zCurveAbi,
         functionName: "saleSummary",
         args: [BigInt(coinId), userAddress || "0x0000000000000000000000000000000000000000"],
       });
-      
+
       return {
         creator: result[0],
         saleCap: result[1].toString(),

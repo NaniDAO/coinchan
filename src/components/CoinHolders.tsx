@@ -68,15 +68,21 @@ export const CoinHolders = ({
   const { data, isLoading, error } = useCoinHolders(coinId);
 
   if (isLoading || !data) return <div>{t("common.loading")}</div>;
-  if (error) return <div>{t("common.error")}: {error.message}</div>;
+  if (error)
+    return (
+      <div>
+        {t("common.error")}: {error.message}
+      </div>
+    );
 
   // Separate different types of holders
   const zCurveHolder = data.find((holder) => holder.address.toLowerCase() === zCurveAddress.toLowerCase());
   const poolAddresses = [ZAMMAddress.toLowerCase(), CookbookAddress.toLowerCase()];
   const poolHolders = data.filter((holder) => poolAddresses.includes(holder.address.toLowerCase()));
-  const userHolders = data.filter((holder) => 
-    !poolAddresses.includes(holder.address.toLowerCase()) && 
-    holder.address.toLowerCase() !== zCurveAddress.toLowerCase()
+  const userHolders = data.filter(
+    (holder) =>
+      !poolAddresses.includes(holder.address.toLowerCase()) &&
+      holder.address.toLowerCase() !== zCurveAddress.toLowerCase(),
   );
 
   // Calculate total supply and percentages
@@ -84,7 +90,7 @@ export const CoinHolders = ({
   const zCurveBalance = zCurveHolder ? BigInt(zCurveHolder.balance) : 0n;
   const poolBalance = poolHolders.reduce((acc, holder) => acc + BigInt(holder.balance), BigInt(0));
   const userBalance = userHolders.reduce((acc, holder) => acc + BigInt(holder.balance), BigInt(0));
-  
+
   const zCurvePercentage = totalSupply > 0n ? (Number(zCurveBalance) / Number(totalSupply)) * 100 : 0;
   const poolPercentage = totalSupply > 0n ? (Number(poolBalance) / Number(totalSupply)) * 100 : 0;
   const userPercentage = totalSupply > 0n ? (Number(userBalance) / Number(totalSupply)) * 100 : 0;
@@ -123,7 +129,7 @@ export const CoinHolders = ({
           </CardContent>
         </Card>
       )}
-      
+
       {/* Pool Holdings Card */}
       {poolHolders.length > 0 && (
         <Card>
@@ -137,7 +143,9 @@ export const CoinHolders = ({
             <div className="space-y-2">
               {poolHolders.map((holder, index) => {
                 const isZAMM = holder.address.toLowerCase() === ZAMMAddress.toLowerCase();
-                const poolName = isZAMM ? t("holders.zamm_pool", "ZAMM Pool") : t("holders.cookbook_pool", "Cookbook Pool");
+                const poolName = isZAMM
+                  ? t("holders.zamm_pool", "ZAMM Pool")
+                  : t("holders.cookbook_pool", "Cookbook Pool");
                 const balance = formatUnits(BigInt(holder.balance), 18);
                 const percentage = totalSupply > 0n ? (Number(BigInt(holder.balance)) / Number(totalSupply)) * 100 : 0;
 
@@ -198,7 +206,7 @@ export const CoinHolders = ({
           </div>
         </CardContent>
       </Card>
-      
+
       {/* User Holders */}
       <div>
         <h3 className="text-lg font-semibold mb-2">{t("holders.actual_holders", "Actual Token Holders")}</h3>

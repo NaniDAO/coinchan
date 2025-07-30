@@ -40,7 +40,7 @@ export function PoolEvents({
   ticker: string;
 }) {
   console.log("PoolEvents component - poolId:", poolId, "ticker:", ticker);
-  
+
   // Fetch function for react-query infinite query
   const fetchEvents = async ({ pageParam = Math.floor(Date.now() / 1000) }) => {
     const url = `${import.meta.env.VITE_INDEXER_URL}/api/events?poolId=${poolId}&before=${pageParam}&limit=50`;

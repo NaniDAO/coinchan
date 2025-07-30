@@ -76,15 +76,13 @@ export const SaleBlurb: React.FC<SaleBlurbProps> = ({ coinId }) => {
   console.log("SaleBlurb", data);
 
   const [imageUrl, farmColor, ticker, saleData, description] = useMemo(() => {
-    if (!data?.zcurveSale?.coin?.symbol)
-      return [undefined, undefined, undefined, undefined, undefined];
+    if (!data?.zcurveSale?.coin?.symbol) return [undefined, undefined, undefined, undefined, undefined];
 
     const ticker = data.zcurveSale.coin.symbol;
     const farmColor = getRandomDiamondColor(ticker);
     const saleData = data.zcurveSale;
 
-    if (!data?.zcurveSale?.coin?.imageUrl)
-      return [undefined, farmColor, ticker, saleData];
+    if (!data?.zcurveSale?.coin?.imageUrl) return [undefined, farmColor, ticker, saleData];
 
     const imageUrl = formatImageURL(data.zcurveSale.coin.imageUrl);
 
@@ -104,19 +102,12 @@ export const SaleBlurb: React.FC<SaleBlurbProps> = ({ coinId }) => {
         className={"flex flex-row items-center hover:underline"}
       >
         <span className="text-muted-foreground">└── </span>
-        <img
-          src={imageUrl}
-          alt={data?.zcurveSale?.coin?.name || ticker}
-          className="w-4 h-4 mr-2 bg-white"
-        />
+        <img src={imageUrl} alt={data?.zcurveSale?.coin?.name || ticker} className="w-4 h-4 mr-2 bg-white" />
         <span className="font-bold" style={{ color: farmColor }}>
           {ticker.toUpperCase()}
         </span>
         <span className="truncate text-muted-foreground">-{description}</span>
-        <span className="text-muted-foreground">
-          {" "}
-          ({saleData?.percentFunded ? `${saleData.percentFunded}%` : ""})
-        </span>
+        <span className="text-muted-foreground"> ({saleData?.percentFunded ? `${saleData.percentFunded}%` : ""})</span>
       </Link>
     </div>
   );

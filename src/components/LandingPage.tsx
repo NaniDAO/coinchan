@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  useLandingData,
-  useRandomLoadingText,
-} from "../hooks/use-landing-data";
+import { useLandingData, useRandomLoadingText } from "../hooks/use-landing-data";
 import { useProtocolStats } from "../hooks/use-protocol-stats";
 import { useTheme } from "@/lib/theme";
 import { TrendingFarm } from "./TrendingFarm";
@@ -20,8 +17,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
   const { t } = useTranslation();
   const { theme } = useTheme();
 
-  const { data: landingData, isLoading: isLoadingLandingData } =
-    useLandingData();
+  const { data: landingData, isLoading: isLoadingLandingData } = useLandingData();
   const { data: protocolStats } = useProtocolStats();
   const getRandomLoadingText = useRandomLoadingText();
   const [progressText, setProgressText] = useState("");
@@ -63,7 +59,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
   useEffect(() => {
     // Clear any existing lines when the effect runs
     setTerminalLines([]);
-    
+
     const lines = [
       t("landing.initializing"),
       t("landing.connecting_chains"),
@@ -99,9 +95,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
   return (
     <div className="bg-background text-foreground font-mono h-full lg:pl-8  p-4">
       {/* Title */}
-      <h1 className="text-4xl tracking-widest font-bold mb-4 text-left">
-        {t("landing.title")}
-      </h1>
+      <h1 className="text-4xl tracking-widest font-bold mb-4 text-left">{t("landing.title")}</h1>
 
       {/* Terminal Boot Lines */}
       <div className="mb-4 min-h-[60px]">
@@ -129,10 +123,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
         <div className="flex items-center gap-2 text-xs">
           <span>{t("landing.load")}:</span>
           <div className="bg-muted h-1 w-32 border border-border">
-            <div
-              className="h-full bg-primary transition-all duration-300"
-              style={{ width: `${progress}%` }}
-            ></div>
+            <div className="h-full bg-primary transition-all duration-300" style={{ width: `${progress}%` }}></div>
           </div>
           <span>{Math.round(progress)}%</span>
         </div>
@@ -142,21 +133,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
       <div className="mb-4 space-y-1 text-sm">
         <div>
           <span className="text-muted-foreground">eth = </span>
-          <span className="font-bold">
-            {landingData?.ethPrice || "loading..."}
-          </span>
+          <span className="font-bold">{landingData?.ethPrice || "loading..."}</span>
         </div>
         <div>
           <span className="text-muted-foreground">{t("landing.gas")} = </span>
-          <span className="font-bold">
-            {landingData?.gasPrice || "loading..."}
-          </span>
+          <span className="font-bold">{landingData?.gasPrice || "loading..."}</span>
         </div>
         <div>
           <span className="text-muted-foreground">{t("landing.cost")} = </span>
-          <span className="font-bold">
-            {landingData?.launchCost || "loading..."}
-          </span>
+          <span className="font-bold">{landingData?.launchCost || "loading..."}</span>
         </div>
       </div>
 
@@ -206,21 +191,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
         <div className="text-lg space-y-1">
           <div>
             <span className="text-muted-foreground">{t("landing.eth_swapped")} = </span>
-            <span className="font-bold">
-              {protocolStats?.totalEthSwapped || "-"}
-            </span>
+            <span className="font-bold">{protocolStats?.totalEthSwapped || "-"}</span>
           </div>
           <div>
             <span className="text-muted-foreground">{t("landing.swaps")} = </span>
-            <span className="font-bold">
-              {protocolStats?.totalSwaps || "-"}
-            </span>
+            <span className="font-bold">{protocolStats?.totalSwaps || "-"}</span>
           </div>
           <div>
             <span className="text-muted-foreground">{t("landing.coins")} = </span>
-            <span className="font-bold">
-              {protocolStats?.totalCoins || "-"}
-            </span>
+            <span className="font-bold">{protocolStats?.totalCoins || "-"}</span>
           </div>
         </div>
       </div>
@@ -246,9 +225,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
       </div>
 
       {/* Features */}
-      <div className="text-xs text-muted-foreground">
-        {t("landing.features")}
-      </div>
+      <div className="text-xs text-muted-foreground">{t("landing.features")}</div>
 
       {/* Video */}
       <video

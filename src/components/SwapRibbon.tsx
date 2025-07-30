@@ -254,11 +254,7 @@ export function SwapRibbon() {
           <div
             key={`${item.id}-${index}`}
             className="inline-flex items-center"
-            style={
-              item.id === "zcurve-launch"
-                ? { color: "inherit" }
-                : { color: getColor(item.id) }
-            }
+            style={item.id === "zcurve-launch" ? { color: "inherit" } : { color: getColor(item.id) }}
           >
             <span className="text-sm shrink-0 inline-flex items-center">{item.snippet}</span>
             <span

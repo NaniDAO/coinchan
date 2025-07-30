@@ -38,24 +38,24 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
   const { theme: appTheme } = useTheme();
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
-  
+
   const [chartType, setChartType] = useState<ChartType>("line");
   const [timeInterval, setTimeInterval] = useState<TimeInterval>("1h");
   const [hoveredPrice, setHoveredPrice] = useState<string | null>(null);
   const [hoveredTime, setHoveredTime] = useState<string | null>(null);
-  
+
   // Fetch more data for chart
   const { data: purchases, isLoading: purchasesLoading } = useZCurvePurchases(coinId, 100);
   const { data: sells, isLoading: sellsLoading } = useZCurveSells(coinId, 100);
-  
+
   const isLoading = purchasesLoading || sellsLoading;
-  
+
   // Process data into price points
   const priceData = React.useMemo(() => {
     const points: PricePoint[] = [];
-    
+
     if (purchases) {
-      purchases.forEach(p => {
+      purchases.forEach((p) => {
         const price = Number(formatEther(BigInt(p.pricePerToken)));
         points.push({
           timestamp: Number(p.timestamp),
@@ -65,9 +65,9 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
         });
       });
     }
-    
+
     if (sells) {
-      sells.forEach(s => {
+      sells.forEach((s) => {
         const price = Number(formatEther(BigInt(s.pricePerToken)));
         points.push({
           timestamp: Number(s.timestamp),
@@ -77,36 +77,39 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
         });
       });
     }
-    
+
     // Sort by timestamp
     return points.sort((a, b) => a.timestamp - b.timestamp);
   }, [purchases, sells]);
-  
+
   // Aggregate into candles based on interval
   const candleData = React.useMemo(() => {
     if (priceData.length === 0) return [];
-    
+
     const intervalSeconds = {
       "5m": 300,
       "1h": 3600,
       "4h": 14400,
       "1d": 86400,
     }[timeInterval];
-    
-    const candles = new Map<number, {
-      open: number;
-      high: number;
-      low: number;
-      close: number;
-      openTime: number;
-      closeTime: number;
-      prices: { time: number; price: number }[];
-    }>();
-    
+
+    const candles = new Map<
+      number,
+      {
+        open: number;
+        high: number;
+        low: number;
+        close: number;
+        openTime: number;
+        closeTime: number;
+        prices: { time: number; price: number }[];
+      }
+    >();
+
     // Group price points by period
-    priceData.forEach(point => {
+    priceData.forEach((point) => {
       const period = Math.floor(point.timestamp / intervalSeconds) * intervalSeconds;
-      
+
       if (!candles.has(period)) {
         candles.set(period, {
           open: point.price,
@@ -118,12 +121,12 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
           prices: [],
         });
       }
-      
+
       const candle = candles.get(period)!;
       candle.prices.push({ time: point.timestamp, price: point.price });
       candle.high = Math.max(candle.high, point.price);
       candle.low = Math.min(candle.low, point.price);
-      
+
       // Update open/close based on actual timestamps
       if (point.timestamp < candle.openTime) {
         candle.open = point.price;
@@ -134,7 +137,7 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
         candle.closeTime = point.timestamp;
       }
     });
-    
+
     // Convert to array and sort prices within each candle by time
     const candleArray: CandlestickData[] = Array.from(candles.entries())
       .map(([period, data]) => {
@@ -149,18 +152,18 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
         };
       })
       .sort((a, b) => a.time - b.time);
-    
+
     return candleArray;
   }, [priceData, timeInterval]);
-  
+
   // Line chart data
   const lineData = React.useMemo(() => {
-    return priceData.map(point => ({
+    return priceData.map((point) => ({
       time: point.timestamp as UTCTimestamp,
       value: point.price,
     }));
   }, [priceData]);
-  
+
   // Volume data with buy/sell differentiation
   const volumeData = React.useMemo(() => {
     const intervalSeconds = {
@@ -169,32 +172,32 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
       "4h": 14400,
       "1d": 86400,
     }[timeInterval];
-    
+
     const volumes = new Map<number, { buy: number; sell: number; total: number }>();
-    
-    priceData.forEach(point => {
+
+    priceData.forEach((point) => {
       const period = Math.floor(point.timestamp / intervalSeconds) * intervalSeconds;
       const current = volumes.get(period) || { buy: 0, sell: 0, total: 0 };
-      
+
       if (point.type === "buy") {
         current.buy += point.volume;
       } else {
         current.sell += point.volume;
       }
       current.total += point.volume;
-      
+
       volumes.set(period, current);
     });
-    
+
     return Array.from(volumes.entries())
       .map(([time, vol]) => ({
         time: time as UTCTimestamp,
         value: vol.total,
-        color: vol.buy > vol.sell ? '#22c55e' : '#ef4444',
+        color: vol.buy > vol.sell ? "#22c55e" : "#ef4444",
       }))
       .sort((a, b) => a.time - b.time);
   }, [priceData, timeInterval]);
-  
+
   // Theme configuration
   const theme = {
     backgroundColor: appTheme === "dark" ? "#0a0a0a" : "#ffffff",
@@ -203,11 +206,11 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
     upColor: "#22c55e",
     downColor: "#ef4444",
   };
-  
+
   // Create chart
   useEffect(() => {
     if (!chartContainerRef.current || priceData.length === 0) return;
-    
+
     const chart = createChart(chartContainerRef.current, {
       layout: {
         background: { type: ColorType.Solid, color: theme.backgroundColor },
@@ -232,9 +235,9 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
       width: chartContainerRef.current.clientWidth,
       height: 400,
     });
-    
+
     chartRef.current = chart;
-    
+
     // Add main series
     if (chartType === "candle" && candleData.length > 0) {
       const candleSeries = chart.addSeries(CandlestickSeries, {
@@ -248,33 +251,33 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
       candleSeries.setData(candleData);
     } else if (lineData.length > 0) {
       const areaSeries = chart.addSeries(AreaSeries, {
-        topColor: 'rgba(251, 146, 60, 0.4)',
-        bottomColor: 'rgba(251, 146, 60, 0.05)',
-        lineColor: '#fb923c',
+        topColor: "rgba(251, 146, 60, 0.4)",
+        bottomColor: "rgba(251, 146, 60, 0.05)",
+        lineColor: "#fb923c",
         lineWidth: 2,
       });
       areaSeries.setData(lineData);
     }
-    
+
     // Add volume histogram
     if (volumeData.length > 0) {
       const volumeSeries = chart.addSeries(HistogramSeries, {
-        priceScaleId: 'volume',
+        priceScaleId: "volume",
         priceFormat: {
-          type: 'volume',
+          type: "volume",
         },
       });
-      
+
       volumeSeries.setData(volumeData as HistogramData[]);
-      
-      chart.priceScale('volume').applyOptions({
+
+      chart.priceScale("volume").applyOptions({
         scaleMargins: {
           top: 0.8,
           bottom: 0,
         },
       });
     }
-    
+
     // Subscribe to crosshair move
     chart.subscribeCrosshairMove((param) => {
       if (!param.time || !param.point) {
@@ -282,20 +285,18 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
         setHoveredTime(null);
         return;
       }
-      
+
       const date = new Date(Number(param.time) * 1000);
       setHoveredTime(date.toLocaleString());
-      
+
       // Find the price at this time
-      const dataPoint = priceData.find(p => 
-        Math.abs(p.timestamp - Number(param.time)) < 60
-      );
-      
+      const dataPoint = priceData.find((p) => Math.abs(p.timestamp - Number(param.time)) < 60);
+
       if (dataPoint) {
         setHoveredPrice(dataPoint.price.toFixed(8));
       }
     });
-    
+
     // Handle resize
     const handleResize = () => {
       if (chartContainerRef.current) {
@@ -304,20 +305,20 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
         });
       }
     };
-    
+
     window.addEventListener("resize", handleResize);
-    
+
     return () => {
       window.removeEventListener("resize", handleResize);
       chart.remove();
     };
   }, [priceData, candleData, lineData, volumeData, chartType, theme, timeInterval]);
-  
+
   // Calculate summary statistics - must be called before any returns
   const stats = React.useMemo(() => {
     if (priceData.length === 0) return null;
-    
-    const prices = priceData.map(p => p.price);
+
+    const prices = priceData.map((p) => p.price);
     const currentPrice = prices[prices.length - 1];
     const openPrice = prices[0];
     const highPrice = Math.max(...prices);
@@ -325,9 +326,9 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
     const priceChange = currentPrice - openPrice;
     const priceChangePercent = openPrice > 0 ? (priceChange / openPrice) * 100 : 0;
     const totalVolume = priceData.reduce((sum, p) => sum + p.volume, 0);
-    const buyVolume = priceData.filter(p => p.type === "buy").reduce((sum, p) => sum + p.volume, 0);
+    const buyVolume = priceData.filter((p) => p.type === "buy").reduce((sum, p) => sum + p.volume, 0);
     const sellVolume = totalVolume - buyVolume;
-    
+
     return {
       currentPrice,
       openPrice,
@@ -340,7 +341,7 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
       sellVolume,
     };
   }, [priceData]);
-  
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[400px]">
@@ -348,7 +349,7 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
       </div>
     );
   }
-  
+
   if (priceData.length === 0) {
     return (
       <div className="flex items-center justify-center h-[400px] text-muted-foreground">
@@ -364,51 +365,46 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">{t("chart.current_price", "Current Price")}</p>
-            <p className={cn(
-              "text-sm font-mono font-medium",
-              stats.priceChange >= 0 ? "text-green-600" : "text-red-600"
-            )}>
-              {stats.currentPrice < 0.00001 
-                ? stats.currentPrice.toExponential(3)
-                : stats.currentPrice.toFixed(8)
-              } ETH
+            <p
+              className={cn(
+                "text-sm font-mono font-medium",
+                stats.priceChange >= 0 ? "text-green-600" : "text-red-600",
+              )}
+            >
+              {stats.currentPrice < 0.00001 ? stats.currentPrice.toExponential(3) : stats.currentPrice.toFixed(8)} ETH
             </p>
-            <p className={cn(
-              "text-xs",
-              stats.priceChange >= 0 ? "text-green-600" : "text-red-600"
-            )}>
-              {stats.priceChange >= 0 ? "+" : ""}{stats.priceChangePercent.toFixed(2)}%
+            <p className={cn("text-xs", stats.priceChange >= 0 ? "text-green-600" : "text-red-600")}>
+              {stats.priceChange >= 0 ? "+" : ""}
+              {stats.priceChangePercent.toFixed(2)}%
             </p>
           </div>
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">{t("chart.24h_high_low", "24h High/Low")}</p>
             <p className="text-sm font-mono">
-              {stats.highPrice < 0.00001 
-                ? stats.highPrice.toExponential(3)
-                : stats.highPrice.toFixed(8)
-              }
+              {stats.highPrice < 0.00001 ? stats.highPrice.toExponential(3) : stats.highPrice.toFixed(8)}
             </p>
             <p className="text-sm font-mono text-muted-foreground">
-              {stats.lowPrice < 0.00001 
-                ? stats.lowPrice.toExponential(3)
-                : stats.lowPrice.toFixed(8)
-              }
+              {stats.lowPrice < 0.00001 ? stats.lowPrice.toExponential(3) : stats.lowPrice.toFixed(8)}
             </p>
           </div>
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">{t("chart.volume_24h", "24h Volume")}</p>
             <p className="text-sm font-mono">{stats.totalVolume.toFixed(4)} ETH</p>
             <div className="flex gap-2 text-xs">
-              <span className="text-green-600">Buy: {stats.totalVolume > 0 ? ((stats.buyVolume / stats.totalVolume) * 100).toFixed(0) : 0}%</span>
-              <span className="text-red-600">Sell: {stats.totalVolume > 0 ? ((stats.sellVolume / stats.totalVolume) * 100).toFixed(0) : 0}%</span>
+              <span className="text-green-600">
+                Buy: {stats.totalVolume > 0 ? ((stats.buyVolume / stats.totalVolume) * 100).toFixed(0) : 0}%
+              </span>
+              <span className="text-red-600">
+                Sell: {stats.totalVolume > 0 ? ((stats.sellVolume / stats.totalVolume) * 100).toFixed(0) : 0}%
+              </span>
             </div>
           </div>
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">{t("chart.trades", "Trades")}</p>
             <p className="text-sm font-mono">{priceData.length}</p>
             <div className="flex gap-2 text-xs">
-              <span className="text-green-600">Buys: {priceData.filter(p => p.type === "buy").length}</span>
-              <span className="text-red-600">Sells: {priceData.filter(p => p.type === "sell").length}</span>
+              <span className="text-green-600">Buys: {priceData.filter((p) => p.type === "buy").length}</span>
+              <span className="text-red-600">Sells: {priceData.filter((p) => p.type === "sell").length}</span>
             </div>
           </div>
         </div>
@@ -422,9 +418,7 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
               onClick={() => setChartType("line")}
               className={cn(
                 "px-3 py-1 text-sm transition-colors",
-                chartType === "line" 
-                  ? "bg-primary text-primary-foreground" 
-                  : "hover:bg-muted"
+                chartType === "line" ? "bg-primary text-primary-foreground" : "hover:bg-muted",
               )}
             >
               {t("chart.line", "Line")}
@@ -433,25 +427,21 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
               onClick={() => setChartType("candle")}
               className={cn(
                 "px-3 py-1 text-sm transition-colors",
-                chartType === "candle" 
-                  ? "bg-primary text-primary-foreground" 
-                  : "hover:bg-muted"
+                chartType === "candle" ? "bg-primary text-primary-foreground" : "hover:bg-muted",
               )}
             >
               {t("chart.candles", "Candles")}
             </button>
           </div>
-          
+
           <div className="flex border border-border rounded-md">
-            {(["5m", "1h", "4h", "1d"] as TimeInterval[]).map(interval => (
+            {(["5m", "1h", "4h", "1d"] as TimeInterval[]).map((interval) => (
               <button
                 key={interval}
                 onClick={() => setTimeInterval(interval)}
                 className={cn(
                   "px-3 py-1 text-sm transition-colors",
-                  timeInterval === interval 
-                    ? "bg-primary text-primary-foreground" 
-                    : "hover:bg-muted"
+                  timeInterval === interval ? "bg-primary text-primary-foreground" : "hover:bg-muted",
                 )}
               >
                 {interval}
@@ -459,7 +449,7 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
             ))}
           </div>
         </div>
-        
+
         {/* Hover info */}
         {hoveredPrice && (
           <div className="text-sm text-muted-foreground">
@@ -468,13 +458,10 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
           </div>
         )}
       </div>
-      
+
       {/* Chart */}
-      <div 
-        ref={chartContainerRef} 
-        className="w-full h-[400px] border border-border rounded-md"
-      />
-      
+      <div ref={chartContainerRef} className="w-full h-[400px] border border-border rounded-md" />
+
       {/* Legend */}
       <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
         <div className="flex items-center gap-1">

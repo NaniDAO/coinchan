@@ -19,15 +19,15 @@ export const CoinBreadcrumb = ({ coinId }: { coinId: bigint }) => {
     <div className="flex items-center px-6 py-2 gap-2">
       {/* Back button for zCurve sales */}
       {zcurveSale && (
-        <Link 
-          to="/sales" 
+        <Link
+          to="/sales"
           className="flex items-center mr-2 px-2 py-1 -ml-2 rounded-md hover:bg-accent hover:text-accent-foreground active:scale-95 transition-all duration-200 touch-manipulation"
           title={t("navigation.back_to_sales", "Back to Sales")}
         >
           <span className="text-xl font-mono">&lt;</span>
         </Link>
       )}
-      
+
       <Breadcrumb>
         <BreadcrumbList className="flex items-center">
           <BreadcrumbItem>

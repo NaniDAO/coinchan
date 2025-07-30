@@ -15,7 +15,7 @@ export function UserSettingsMenu() {
   const navigate = useNavigate();
   const { i18n, t } = useTranslation();
   // Normalize language code to handle cases like "en-US" -> "en"
-  const currentLanguage = i18n.language.split('-')[0];
+  const currentLanguage = i18n.language.split("-")[0];
 
   const changeLanguage = (code: string) => {
     i18n.changeLanguage(code);

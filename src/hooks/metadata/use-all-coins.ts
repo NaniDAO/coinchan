@@ -1,9 +1,6 @@
 import { CoinchanAbi, CoinchanAddress } from "@/constants/Coinchan";
 import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
-import {
-  CoinsMetadataHelperAbi,
-  CoinsMetadataHelperAddress,
-} from "@/constants/CoinsMetadataHelper";
+import { CoinsMetadataHelperAbi, CoinsMetadataHelperAddress } from "@/constants/CoinsMetadataHelper";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
 import { isCookbookCoin } from "@/lib/coin-utils";
@@ -144,19 +141,13 @@ async function fetchOtherCoins(
             args: [address, m.id],
           })) as bigint;
         } catch (error) {
-          console.error(
-            `Failed to fetch balance for ${m.source} coin ${m.id}:`,
-            error,
-          );
+          console.error(`Failed to fetch balance for ${m.source} coin ${m.id}:`, error);
           return m;
         }
 
         return { ...m, balance: bal };
       } catch (error) {
-        console.error(
-          `Unexpected error fetching balance for ${m.source} coin ${m.id}:`,
-          error,
-        );
+        console.error(`Unexpected error fetching balance for ${m.source} coin ${m.id}:`, error);
         return m;
       }
     }),
@@ -180,9 +171,7 @@ async function fetchOtherCoins(
         address: USDT_ADDRESS,
         abi: [
           {
-            inputs: [
-              { internalType: "address", name: "account", type: "address" },
-            ],
+            inputs: [{ internalType: "address", name: "account", type: "address" }],
             name: "balanceOf",
             outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
             stateMutability: "view",
@@ -214,9 +203,7 @@ async function fetchOtherCoins(
         address: CULT_ADDRESS,
         abi: [
           {
-            inputs: [
-              { internalType: "address", name: "account", type: "address" },
-            ],
+            inputs: [{ internalType: "address", name: "account", type: "address" }],
             name: "balanceOf",
             outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
             stateMutability: "view",
@@ -248,9 +235,7 @@ async function fetchOtherCoins(
         address: ENS_ADDRESS,
         abi: [
           {
-            inputs: [
-              { internalType: "address", name: "account", type: "address" },
-            ],
+            inputs: [{ internalType: "address", name: "account", type: "address" }],
             name: "balanceOf",
             outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
             stateMutability: "view",
@@ -327,14 +312,7 @@ async function originalFetchOtherCoins(
   const coinPromises = allCoinsData.map(async (coin: any) => {
     const [id, uri, r0, r1, pid, liq] = Array.isArray(coin)
       ? coin
-      : [
-          coin.coinId,
-          coin.tokenURI,
-          coin.reserve0,
-          coin.reserve1,
-          coin.poolId,
-          coin.liquidity,
-        ];
+      : [coin.coinId, coin.tokenURI, coin.reserve0, coin.reserve1, coin.poolId, coin.liquidity];
     const coinId = BigInt(id);
     const [symbol, name, lockup] = await Promise.all([
       publicClient
@@ -414,9 +392,7 @@ async function originalFetchOtherCoins(
       address: USDT_ADDRESS,
       abi: [
         {
-          inputs: [
-            { internalType: "address", name: "account", type: "address" },
-          ],
+          inputs: [{ internalType: "address", name: "account", type: "address" }],
           name: "balanceOf",
           outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
           stateMutability: "view",
@@ -447,9 +423,7 @@ async function originalFetchOtherCoins(
         address: CULT_ADDRESS,
         abi: [
           {
-            inputs: [
-              { internalType: "address", name: "account", type: "address" },
-            ],
+            inputs: [{ internalType: "address", name: "account", type: "address" }],
             name: "balanceOf",
             outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
             stateMutability: "view",
@@ -481,9 +455,7 @@ async function originalFetchOtherCoins(
         address: ENS_ADDRESS,
         abi: [
           {
-            inputs: [
-              { internalType: "address", name: "account", type: "address" },
-            ],
+            inputs: [{ internalType: "address", name: "account", type: "address" }],
             name: "balanceOf",
             outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
             stateMutability: "view",
@@ -498,9 +470,7 @@ async function originalFetchOtherCoins(
   }
 
   // Sort coins by ETH reserves descending
-  const sortedCoins = coins.sort((a, b) =>
-    Number((b.reserve0 || 0n) - (a.reserve0 || 0n)),
-  );
+  const sortedCoins = coins.sort((a, b) => Number((b.reserve0 || 0n) - (a.reserve0 || 0n)));
   return [...sortedCoins, usdtToken, cultToken, ensToken];
 }
 

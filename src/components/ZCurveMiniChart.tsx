@@ -12,34 +12,32 @@ interface ZCurveMiniChartProps {
 
 export function ZCurveMiniChart({ sale, className = "" }: ZCurveMiniChartProps) {
   const { address } = useAccount();
-  
+
   // Get real-time onchain data
   const { data: onchainData } = useZCurveSaleSummary(sale.coinId, address);
-  
+
   // Use onchain data if available, otherwise fall back to indexed data
   const isFinalized = onchainData ? onchainData.isFinalized : sale.status === "FINALIZED";
-  
+
   const chartData = useMemo(() => {
     const saleCap = onchainData ? BigInt(onchainData.saleCap) : BigInt(sale.saleCap);
     const divisor = onchainData ? BigInt(onchainData.divisor) : BigInt(sale.divisor);
     const quadCap = unpackQuadCap(onchainData ? BigInt(onchainData.quadCap) : BigInt(sale.quadCap));
-    const netSold = isFinalized ? saleCap : (onchainData ? BigInt(onchainData.netSold) : BigInt(sale.netSold));
+    const netSold = isFinalized ? saleCap : onchainData ? BigInt(onchainData.netSold) : BigInt(sale.netSold);
     const ethEscrow = onchainData ? BigInt(onchainData.ethEscrow) : BigInt(sale.ethEscrow);
     const ethTarget = onchainData ? BigInt(onchainData.ethTarget) : BigInt(sale.ethTarget);
-    
+
     // Calculate cost using the exact contract formula
     const calculateCost = (n: bigint): bigint => {
       const m = n / UNIT_SCALE;
-      
+
       if (m < 2n) return 0n;
-      
+
       const K = quadCap / UNIT_SCALE;
       // Optimize for standard divisor
-      const denom = divisor === ZCURVE_STANDARD_PARAMS.DIVISOR 
-        ? ZCURVE_STANDARD_PARAMS.DIVISOR * 6n 
-        : 6n * divisor;
+      const denom = divisor === ZCURVE_STANDARD_PARAMS.DIVISOR ? ZCURVE_STANDARD_PARAMS.DIVISOR * 6n : 6n * divisor;
       const oneETH = BigInt(1e18);
-      
+
       if (m <= K) {
         // Pure quadratic phase
         const sumSq = (m * (m - 1n) * (2n * m - 1n)) / 6n;
@@ -53,80 +51,76 @@ export function ZCurveMiniChart({ sale, className = "" }: ZCurveMiniChartProps) 
       const tailCost = pK * tailTicks;
       return quadCost + tailCost;
     };
-    
+
     // Generate curve points
     const points = [];
     const step = saleCap / 50n; // 50 points for smooth mini curve
-    
+
     for (let i = 0n; i <= saleCap; i += step) {
       const cost = calculateCost(i);
       points.push({
-        x: Number(i) / Number(saleCap) * 100, // Convert to percentage
-        y: Number(formatEther(cost))
+        x: (Number(i) / Number(saleCap)) * 100, // Convert to percentage
+        y: Number(formatEther(cost)),
       });
     }
-    
+
     // Add final point if not already at 100%
     if (points[points.length - 1].x < 100) {
       const finalCost = calculateCost(saleCap);
       points.push({
         x: 100,
-        y: Number(formatEther(finalCost))
+        y: Number(formatEther(finalCost)),
       });
     }
-    
+
     // Current position
     const currentCost = calculateCost(netSold);
-    const currentX = Number(netSold) / Number(saleCap) * 100;
+    const currentX = (Number(netSold) / Number(saleCap)) * 100;
     const currentY = Number(formatEther(currentCost));
-    
+
     // Max Y for scaling
-    const maxY = Math.max(...points.map(p => p.y));
-    
+    const maxY = Math.max(...points.map((p) => p.y));
+
     // Calculate funding percentage to match sale summary display
     const fundedPercentage = ethTarget > 0n ? Number((ethEscrow * 10000n) / ethTarget) / 100 : 0;
-    
+
     return {
       points,
       currentX,
       currentY,
       maxY,
-      fundedPercentage
+      fundedPercentage,
     };
   }, [sale, onchainData]);
-  
+
   const { points, currentX, currentY, maxY, fundedPercentage } = chartData;
-  
+
   // Create SVG path
   const pathData = points
     .map((point, index) => {
       const x = (point.x / 100) * 100; // Scale to viewBox width
       const y = 40 - (point.y / maxY) * 35; // Scale and invert for SVG
-      return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
+      return `${index === 0 ? "M" : "L"} ${x} ${y}`;
     })
-    .join(' ');
-  
+    .join(" ");
+
   return (
     <div className={`relative ${className}`}>
-      <svg 
-        viewBox="0 0 100 40" 
-        className="w-full h-full"
-        preserveAspectRatio="none"
-      >
+      <svg viewBox="0 0 100 40" className="w-full h-full" preserveAspectRatio="none">
         {/* Background grid */}
         <defs>
           <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
-            <path 
-              d="M 10 0 L 0 0 0 10" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="0.5" 
+            <path
+              d="M 10 0 L 0 0 0 10"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="0.5"
               className="text-border opacity-20"
             />
           </pattern>
         </defs>
         <rect width="100" height="40" fill="url(#grid)" />
-        
+
         {/* Bonding curve */}
         <path
           d={pathData}
@@ -135,19 +129,19 @@ export function ZCurveMiniChart({ sale, className = "" }: ZCurveMiniChartProps) 
           strokeWidth="1.5"
           className={isFinalized ? "text-amber-500" : "text-green-500"}
         />
-        
+
         {/* Fill area under curve up to current position */}
         {currentX > 0 && (
           <path
             d={(() => {
               // Create fill path up to current position
-              const fillPoints = points.filter(p => p.x <= currentX);
-              
+              const fillPoints = points.filter((p) => p.x <= currentX);
+
               // Add interpolated point at currentX if needed
               if (fillPoints.length > 0 && fillPoints[fillPoints.length - 1].x < currentX) {
                 const lastPoint = fillPoints[fillPoints.length - 1];
-                const nextPoint = points.find(p => p.x > currentX);
-                
+                const nextPoint = points.find((p) => p.x > currentX);
+
                 if (nextPoint) {
                   // Interpolate Y value at currentX
                   const t = (currentX - lastPoint.x) / (nextPoint.x - lastPoint.x);
@@ -155,16 +149,16 @@ export function ZCurveMiniChart({ sale, className = "" }: ZCurveMiniChartProps) 
                   fillPoints.push({ x: currentX, y: interpY });
                 }
               }
-              
+
               // Build the fill path
               const fillPath = fillPoints
                 .map((point, index) => {
                   const x = (point.x / 100) * 100; // Scale to viewBox width
                   const y = 40 - (point.y / maxY) * 35; // Scale and invert for SVG
-                  return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
+                  return `${index === 0 ? "M" : "L"} ${x} ${y}`;
                 })
-                .join(' ');
-              
+                .join(" ");
+
               // Close the path to create filled area
               return `${fillPath} L ${currentX} 40 L 0 40 Z`;
             })()}
@@ -172,7 +166,7 @@ export function ZCurveMiniChart({ sale, className = "" }: ZCurveMiniChartProps) 
             className={isFinalized ? "text-amber-500 opacity-20" : "text-green-500 opacity-20"}
           />
         )}
-        
+
         {/* Current position marker */}
         <circle
           cx={currentX}
@@ -181,7 +175,7 @@ export function ZCurveMiniChart({ sale, className = "" }: ZCurveMiniChartProps) 
           fill="currentColor"
           className={isFinalized ? "text-amber-600" : "text-amber-500"}
         />
-        
+
         {/* Progress line */}
         <line
           x1={currentX}
@@ -194,10 +188,12 @@ export function ZCurveMiniChart({ sale, className = "" }: ZCurveMiniChartProps) 
           className={isFinalized ? "text-amber-500 opacity-50" : "text-amber-500 opacity-50"}
         />
       </svg>
-      
+
       {/* Progress percentage - showing funding percentage to match sale summary */}
-      <div className={`absolute bottom-0 right-0 text-[10px] font-mono font-bold ${isFinalized ? 'text-amber-600' : 'text-muted-foreground'} bg-background/80 px-1 rounded-sm`}>
-        {isFinalized ? '100.0%' : `${fundedPercentage.toFixed(1)}%`}
+      <div
+        className={`absolute bottom-0 right-0 text-[10px] font-mono font-bold ${isFinalized ? "text-amber-600" : "text-muted-foreground"} bg-background/80 px-1 rounded-sm`}
+      >
+        {isFinalized ? "100.0%" : `${fundedPercentage.toFixed(1)}%`}
       </div>
     </div>
   );

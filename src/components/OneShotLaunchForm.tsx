@@ -85,18 +85,10 @@ export function OneShotLaunchForm() {
   const publicClient = usePublicClient();
   const { data: gasPrice } = useGasPrice();
   const { data: ethPrice } = useETHPrice();
-  const {
-    writeContract,
-    data: hash,
-    isPending,
-    error,
-  } = useWriteContract();
+  const { writeContract, data: hash, isPending, error } = useWriteContract();
 
   // Wait for transaction
-  const {
-    isLoading: txLoading,
-    isSuccess: txSuccess,
-  } = useWaitForTransactionReceipt({ hash });
+  const { isLoading: txLoading, isSuccess: txSuccess } = useWaitForTransactionReceipt({ hash });
 
   // Store launched coin ID
   const [launchId, setLaunchId] = useState<bigint | null>(null);
@@ -114,7 +106,7 @@ export function OneShotLaunchForm() {
   // Keep track of the image buffer and upload state
   const [imageBuffer, setImageBuffer] = useState<ArrayBuffer | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  
+
   // Redirect countdown state
   const [redirectCountdown, setRedirectCountdown] = useState<number | null>(null);
 
@@ -150,11 +142,11 @@ export function OneShotLaunchForm() {
   // Calculate gas estimates
   const gasEstimate = useMemo(() => {
     if (!gasPrice || !ethPrice) return null;
-    
+
     const gasCostWei = ZCURVE_LAUNCH_GAS * gasPrice;
     const gasCostETH = Number(formatEther(gasCostWei));
     const gasCostUSD = gasCostETH * ethPrice.priceUSD;
-    
+
     return {
       gas: ZCURVE_LAUNCH_GAS.toString(),
       eth: gasCostETH.toFixed(6),
@@ -164,53 +156,56 @@ export function OneShotLaunchForm() {
   }, [gasPrice, ethPrice]);
 
   // Get the current language and header text
-  const currentLang = i18n.language.split('-')[0];
+  const currentLang = i18n.language.split("-")[0];
   const headerText = useMemo(() => {
-    if (!ready) return '';
+    if (!ready) return "";
     // Force Chinese text if language is Chinese
-    if (currentLang === 'zh') {
+    if (currentLang === "zh") {
       return "公平发行代币。\n通过交易发现价格。\n然后在 zAMM 中提供流动性。";
     }
     return t("create.oneshot_header", "Fair launch a Coin.\nTrade to find its price.\nThen seed liquidity in zAMM.");
   }, [t, ready, currentLang]);
 
   // Helper to get translated text with Chinese fallback
-  const getTranslated = useCallback((key: string, defaultText: string, params?: any): string => {
-    if (!ready) return defaultText;
-    
-    // Try to get the translation
-    try {
-      if (params) {
-        // For parameterized translations, pass params correctly
-        const result = t(key, { ...params });
-        if (result && result !== key) {
-          return String(result);
+  const getTranslated = useCallback(
+    (key: string, defaultText: string, params?: any): string => {
+      if (!ready) return defaultText;
+
+      // Try to get the translation
+      try {
+        if (params) {
+          // For parameterized translations, pass params correctly
+          const result = t(key, { ...params });
+          if (result && result !== key) {
+            return String(result);
+          }
+        } else {
+          // For simple translations
+          const result = t(key);
+          if (result && result !== key) {
+            return String(result);
+          }
         }
-      } else {
-        // For simple translations
-        const result = t(key);
-        if (result && result !== key) {
-          return String(result);
-        }
+      } catch (e) {
+        console.warn("Translation error for key:", key, e);
       }
-    } catch (e) {
-      console.warn('Translation error for key:', key, e);
-    }
-    
-    // Fallback to default text
-    return defaultText;
-  }, [t, ready]);
+
+      // Fallback to default text
+      return defaultText;
+    },
+    [t, ready],
+  );
 
   // Calculate form completion percentage
   const formCompletionPercentage = useMemo(() => {
     let completed = 0;
     const totalFields = 4; // name, symbol, description, image
-    
+
     if (formData.metadataName.trim()) completed++;
     if (formData.metadataSymbol.trim()) completed++;
     if (formData.metadataDescription && formData.metadataDescription.trim()) completed++;
     if (imageBuffer) completed++;
-    
+
     return (completed / totalFields) * 100;
   }, [formData, imageBuffer]);
 
@@ -219,7 +214,7 @@ export function OneShotLaunchForm() {
     if (txSuccess && launchId !== null) {
       // Start the countdown at 10 seconds
       setRedirectCountdown(10);
-      
+
       const countdownInterval = setInterval(() => {
         setRedirectCountdown((prev) => {
           if (prev === null || prev <= 1) {
@@ -237,40 +232,46 @@ export function OneShotLaunchForm() {
     }
   }, [txSuccess, launchId, navigate]);
 
-  const handleInputChange = useCallback((e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    
-    // Handle symbol uppercase transformation
-    const processedValue = name === "metadataSymbol" ? value.toUpperCase() : value;
-    
-    setFormData((prev) => ({ ...prev, [name]: processedValue }));
+  const handleInputChange = useCallback(
+    (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      const { name, value } = e.target;
 
-    // Clear error for this field when user starts typing
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
-    }
-  }, [errors]);
+      // Handle symbol uppercase transformation
+      const processedValue = name === "metadataSymbol" ? value.toUpperCase() : value;
 
-  const handleBlur = useCallback((e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name } = e.target;
-    setTouched((prev) => ({ ...prev, [name]: true }));
-    
-    // Validate single field on blur
-    try {
-      const fieldSchema = oneShotFormSchema.shape[name as keyof typeof oneShotFormSchema.shape];
-      if (fieldSchema) {
-        fieldSchema.parse(formData[name as keyof OneShotFormData]);
+      setFormData((prev) => ({ ...prev, [name]: processedValue }));
+
+      // Clear error for this field when user starts typing
+      if (errors[name]) {
         setErrors((prev) => ({ ...prev, [name]: "" }));
       }
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const fieldError = error.errors[0];
-        if (fieldError) {
-          setErrors((prev) => ({ ...prev, [name]: getErrorMessage(name, fieldError) }));
+    },
+    [errors],
+  );
+
+  const handleBlur = useCallback(
+    (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      const { name } = e.target;
+      setTouched((prev) => ({ ...prev, [name]: true }));
+
+      // Validate single field on blur
+      try {
+        const fieldSchema = oneShotFormSchema.shape[name as keyof typeof oneShotFormSchema.shape];
+        if (fieldSchema) {
+          fieldSchema.parse(formData[name as keyof OneShotFormData]);
+          setErrors((prev) => ({ ...prev, [name]: "" }));
+        }
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          const fieldError = error.errors[0];
+          if (fieldError) {
+            setErrors((prev) => ({ ...prev, [name]: getErrorMessage(name, fieldError) }));
+          }
         }
       }
-    }
-  }, [formData]);
+    },
+    [formData],
+  );
 
   const getErrorMessage = (field: string, error: z.ZodIssue): string => {
     if (error.code === "too_small" && error.minimum === 1) {
@@ -289,7 +290,10 @@ export function OneShotLaunchForm() {
       }
     } else if (error.code === "invalid_string" && error.validation === "regex") {
       if (field === "metadataName") {
-        return t("create.name_invalid_characters", "Name can only contain letters, numbers, spaces, hyphens, underscores and dots");
+        return t(
+          "create.name_invalid_characters",
+          "Name can only contain letters, numbers, spaces, hyphens, underscores and dots",
+        );
       } else if (field === "metadataSymbol") {
         return t("create.symbol_invalid_characters", "Symbol must be uppercase letters and numbers only");
       }
@@ -333,7 +337,7 @@ export function OneShotLaunchForm() {
           }
         });
         setErrors(newErrors);
-        
+
         // Mark all fields as touched to show errors
         setTouched({
           metadataName: true,
@@ -468,7 +472,6 @@ export function OneShotLaunchForm() {
     }
   }, [formData]);
 
-
   return (
     <div className="container mx-auto px-4 py-6 sm:py-8">
       <div className="max-w-2xl mx-auto">
@@ -479,9 +482,7 @@ export function OneShotLaunchForm() {
           </h1>
         </div>
 
-        <form 
-          onSubmit={handleSubmit} 
-          className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Token Information */}
           <div className="space-y-4">
             <div>
@@ -547,9 +548,7 @@ export function OneShotLaunchForm() {
             <div>
               <Label htmlFor="metadataDescription" className="mb-2">
                 {t("create.description", "Description")}
-                <span className="text-muted-foreground text-xs ml-2">
-                  {t("common.optional", "optional")}
-                </span>
+                <span className="text-muted-foreground text-xs ml-2">{t("common.optional", "optional")}</span>
               </Label>
               <Textarea
                 id="metadataDescription"
@@ -571,13 +570,9 @@ export function OneShotLaunchForm() {
             <div>
               <Label className="mb-2">
                 {t("create.image", "Image")}
-                <span className="text-muted-foreground text-xs ml-2">
-                  {t("common.optional", "optional")}
-                </span>
+                <span className="text-muted-foreground text-xs ml-2">{t("common.optional", "optional")}</span>
               </Label>
-              <ImageInput 
-                onChange={handleImageFileChange} 
-              />
+              <ImageInput onChange={handleImageFileChange} />
               <p className="text-muted-foreground text-xs mt-1">
                 {t("create.image_requirements", "Max 5MB, PNG/JPG/GIF supported")}
               </p>
@@ -603,16 +598,12 @@ export function OneShotLaunchForm() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Info className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">
-                    {t("create.estimated_gas_cost", "Estimated Gas Cost")}
-                  </span>
+                  <span className="text-sm font-medium">{t("create.estimated_gas_cost", "Estimated Gas Cost")}</span>
                 </div>
                 <div className="text-right">
                   <div className="text-sm font-semibold">
                     {gasEstimate.eth} ETH
-                    <span className="text-muted-foreground ml-1">
-                      (${gasEstimate.usd})
-                    </span>
+                    <span className="text-muted-foreground ml-1">(${gasEstimate.usd})</span>
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {gasEstimate.gas} gas @ {gasEstimate.gwei} gwei
@@ -648,7 +639,10 @@ export function OneShotLaunchForm() {
           </div>
 
           {/* Parameters Display with Landing Page Style */}
-          <div key={`params-${currentLang}`} className="border-2 border-border bg-background hover:shadow-lg transition-all duration-200 p-3 sm:p-4 rounded-lg relative overflow-hidden group">
+          <div
+            key={`params-${currentLang}`}
+            className="border-2 border-border bg-background hover:shadow-lg transition-all duration-200 p-3 sm:p-4 rounded-lg relative overflow-hidden group"
+          >
             {/* Animated gradient background */}
             <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="flex items-center gap-2 mb-2 sm:mb-3 relative z-10">
@@ -696,7 +690,9 @@ export function OneShotLaunchForm() {
                     {
                       target: displayValues.ethTarget,
                       quadCap: displayValues.quadCap,
-                      quadPercent: Math.round((Number(ONE_SHOT_PARAMS.quadCap) / Number(ONE_SHOT_PARAMS.saleCap)) * 100),
+                      quadPercent: Math.round(
+                        (Number(ONE_SHOT_PARAMS.quadCap) / Number(ONE_SHOT_PARAMS.saleCap)) * 100,
+                      ),
                       days: displayValues.days,
                     },
                   )}
@@ -730,9 +726,9 @@ export function OneShotLaunchForm() {
               currentSold={BigInt(0)}
             />
             <div className="mt-3 text-center">
-              <a 
-                href="https://curve.zamm.eth.limo/" 
-                target="_blank" 
+              <a
+                href="https://curve.zamm.eth.limo/"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 underline underline-offset-2"
               >
@@ -770,7 +766,8 @@ export function OneShotLaunchForm() {
                     <AlertTitle className="text-green-800 dark:text-green-200 text-lg font-bold">
                       {txSuccess
                         ? t("create.transaction_confirmed", "Transaction Confirmed")
-                        : t("create.transaction_submitted", "Transaction Submitted")}!
+                        : t("create.transaction_submitted", "Transaction Submitted")}
+                      !
                     </AlertTitle>
                     <p className="text-green-700 dark:text-green-300 text-sm mt-1">
                       {txSuccess
@@ -779,7 +776,9 @@ export function OneShotLaunchForm() {
                     </p>
                     {txSuccess && redirectCountdown !== null && (
                       <p className="text-green-600 dark:text-green-400 text-sm mt-2 font-medium">
-                        {t("create.redirecting_in", "Redirecting to your coin page in {{seconds}} seconds...", { seconds: redirectCountdown })}
+                        {t("create.redirecting_in", "Redirecting to your coin page in {{seconds}} seconds...", {
+                          seconds: redirectCountdown,
+                        })}
                       </p>
                     )}
                   </div>
@@ -790,9 +789,7 @@ export function OneShotLaunchForm() {
                   <p className="text-xs text-green-700 dark:text-green-300 mb-1">
                     {t("common.transaction_hash", "Transaction Hash")}
                   </p>
-                  <p className="font-mono text-xs sm:text-sm text-green-800 dark:text-green-200 break-all">
-                    {hash}
-                  </p>
+                  <p className="font-mono text-xs sm:text-sm text-green-800 dark:text-green-200 break-all">{hash}</p>
                 </div>
 
                 {/* Action Buttons */}
@@ -804,11 +801,16 @@ export function OneShotLaunchForm() {
                     className="flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors duration-200 font-medium text-sm"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                      />
                     </svg>
                     {t("common.view_on_etherscan", "View on Etherscan")}
                   </a>
-                  
+
                   {launchId !== null && (
                     <Link
                       to="/c/$coinId"
@@ -819,13 +821,18 @@ export function OneShotLaunchForm() {
                       {t("create.view_coin_sale", "View Coin Sale")}
                     </Link>
                   )}
-                  
-                  <Link 
-                    to="/explore" 
+
+                  <Link
+                    to="/explore"
                     className="flex items-center justify-center gap-2 px-4 py-2.5 bg-background hover:bg-muted border-2 border-border text-foreground rounded-lg transition-colors duration-200 font-medium text-sm"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
+                      />
                     </svg>
                     {t("create.view_all_coins", "View All Coins")}
                   </Link>
@@ -856,7 +863,7 @@ export function OneShotLaunchForm() {
           </Link>
         </div>
       </div>
-      
+
       {/* Progressive video animation - always visible, grows with form completion */}
       <div className="fixed bottom-5 right-5">
         <video

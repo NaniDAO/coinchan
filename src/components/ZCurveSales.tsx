@@ -1,33 +1,45 @@
-import { formatImageURL } from "@/hooks/metadata";
-import { cn } from "@/lib/utils";
+/* ──────────────────────────────────────────────────────────────────────────
+   ZCurve sales list
+   Shows every live or finished bonding-curve launch, updating in near-real-time
+   ────────────────────────────────────────────────────────────────────────── */
+
+import { memo, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
+
+import { formatImageURL } from "@/hooks/metadata";
+import { cn } from "@/lib/utils";
+import { useTheme } from "@/lib/theme";
+import { ZCURVE_STANDARD_PARAMS } from "@/lib/zCurveHelpers";
+import type { ZCurveSale } from "@/hooks/use-zcurve-sale";
+
 import { Badge } from "./ui/badge";
 import { CreatorDisplay } from "./CreatorDisplay";
 import { ZCurveMiniChart } from "./ZCurveMiniChart";
-import type { ZCurveSale } from "@/hooks/use-zcurve-sale";
-// Removed CoinImagePopup import to avoid nested interactive elements
-import { useTheme } from "@/lib/theme";
-import { useTranslation } from "react-i18next";
-import { memo, useMemo, useCallback } from "react";
-import { ZCURVE_STANDARD_PARAMS } from "@/lib/zCurveHelpers";
 
-// Extend ZCurveSale with GraphQL-specific fields
-interface Sale extends ZCurveSale {
-  purchases?: {
-    totalCount: number;
-    items: { buyer: string }[];
+/* ------------------------------------------------------------------------- */
+/*                               Types / GQL                                 */
+/* ------------------------------------------------------------------------- */
+
+interface GraphQLResponse {
+  data?: {
+    zcurveSales?: {
+      items: Sale[];
+    };
   };
-  sells?: {
-    totalCount: number;
-    items: { seller: string }[];
-  };
+  errors?: { message?: string }[];
 }
 
-// GraphQL query
-const GET_ZCURVE_SALES = `
+interface Sale extends ZCurveSale {
+  // values added by the GraphQL indexer
+  purchases?: { totalCount: number; items: { buyer: string }[] };
+  sells?: { totalCount: number; items: { seller: string }[] };
+}
+
+const GET_ZCURVE_SALES = /* GraphQL */ `
   query GetZCurveSales {
-    zcurveSales(where: {}) {
+    zcurveSales {
       items {
         coinId
         createdAt
@@ -43,19 +55,15 @@ const GET_ZCURVE_SALES = `
         percentFunded
         quadCap
         saleCap
+        status
         purchases {
           totalCount
-          items {
-            buyer
-          }
+          items { buyer }
         }
         sells {
           totalCount
-          items {
-            seller
-          }
+          items { seller }
         }
-        status
         coin {
           name
           symbol
@@ -68,508 +76,387 @@ const GET_ZCURVE_SALES = `
   }
 `;
 
-// Helper function to calculate funded percentage
+/* ------------------------------------------------------------------------- */
+/*                             Helper functions                              */
+/* ------------------------------------------------------------------------- */
+
+/**
+ * Returns funding progress in the human range [0, 100]
+ */
 const calculateFundedPercentage = (sale: Sale): number => {
-  if (sale.status === "FINALIZED") return 100;
-  
-  // Use percentFunded from indexer if available
-  if (sale.percentFunded !== undefined && sale.percentFunded !== null) {
-    return sale.percentFunded / 100;
-  }
-  
-  // Otherwise calculate from ethEscrow and ethTarget
   try {
-    const ethEscrow = BigInt(sale.ethEscrow || "0");
-    const ethTarget = BigInt(sale.ethTarget || "0");
-    if (ethTarget === 0n) return 0;
-    
-    // Optimize for standard target (10 ETH)
-    if (sale.ethTarget === ZCURVE_STANDARD_PARAMS.ETH_TARGET.toString()) {
-      const percentage = Number((ethEscrow * 10000n) / ZCURVE_STANDARD_PARAMS.ETH_TARGET) / 100;
-      return Math.min(percentage, 100);
-    }
-    
-    const percentage = Number((ethEscrow * 10000n) / ethTarget) / 100;
-    return Math.min(percentage, 100);
-  } catch (e) {
-    console.error("Error calculating funded percentage:", e, sale);
+    if (sale.status === "FINALIZED") return 100;
+
+    /* From the indexer: 10 000 = 100 % */
+    const funded = typeof sale.percentFunded === "bigint" ? Number(sale.percentFunded) : (sale.percentFunded ?? 0);
+
+    if (funded) return Math.min(funded / 100, 100);
+
+    const escrow = BigInt(sale.ethEscrow ?? 0);
+    const target = BigInt(sale.ethTarget ?? 0);
+    if (target === 0n) return 0;
+
+    return Number((escrow * 10_000n) / target) / 100;
+  } catch (err) {
+    console.error("calculateFundedPercentage()", err, sale);
     return 0;
   }
 };
 
-// Helper function to format price
-const formatPrice = (sale: Sale): string | JSX.Element => {
+/**
+ * Nicely formats a price given in wei
+ * (uses BigInt internally so we never overflow JS Number)
+ */
+const formatPrice = (sale: Sale): string => {
   try {
-    let priceInWei = Number(sale.currentPrice || 0);
-    
-    if (sale.status === "FINALIZED" && priceInWei === 0) {
-      const tokensSold = BigInt(sale.netSold || "0");
-      const ethRaised = BigInt(sale.ethEscrow || "0");
-      
-      // Only calculate average price if we have meaningful volume
-      if (tokensSold > 0n && ethRaised > 0n) {
-        priceInWei = Number((ethRaised * BigInt(1e18)) / tokensSold);
-      }
+    let priceWei = BigInt(sale.currentPrice ?? 0);
+
+    if (sale.status === "FINALIZED" && priceWei === 0n) {
+      /* average final price */
+      const tokensSold = BigInt(sale.netSold ?? 0);
+      const ethRaised = BigInt(sale.ethEscrow ?? 0);
+      if (tokensSold !== 0n) priceWei = (ethRaised * 10n ** 18n) / tokensSold;
     }
-    
-    const priceInEth = priceInWei / 1e18;
-    
-    if (priceInEth === 0) {
-      return "0";
+
+    if (priceWei === 0n) return "0";
+
+    const exp = 10n ** 18n;
+    const eth = Number(priceWei) / 1e18;
+
+    if (eth < 1e-15) {
+      return `${priceWei.toString()} wei`;
     }
-    
-    // Format based on size
-    if (priceInEth < 1e-15) {
-      const wei = priceInEth * 1e18;
-      if (wei < 1) {
-        return `${(priceInWei / 1e18).toExponential(2)} ETH`;
-      }
-      return `${wei.toFixed(0)} wei`;
+    if (eth < 1e-9) {
+      return `${(eth * 1e9).toFixed(3)} gwei`;
     }
-    if (priceInEth < 1e-9) {
-      const gwei = priceInEth * 1e9;
-      return `${gwei.toFixed(3)} gwei`;
+    if (eth < 1e-6) {
+      return `${(eth * 1e6).toFixed(3)} μETH`;
     }
-    if (priceInEth < 1e-6) {
-      return `${(priceInEth * 1e6).toFixed(3)} μETH`;
+    if (eth < 0.01) {
+      return `${eth.toFixed(12).replace(/\.?0+$/, "")} ETH`;
     }
-    if (priceInEth < 0.01) {
-      const str = priceInEth.toFixed(12).replace(/\.?0+$/, '');
-      const parts = str.split('.');
-      if (parts.length === 2 && parts[1].length > 3) {
-        const leadingZeros = parts[1].match(/^0+/)?.[0].length || 0;
-        if (leadingZeros >= 3) {
-          const significantPart = parts[1].slice(leadingZeros);
-          return (
-            <span className="font-mono">
-              0.{`{${leadingZeros}}`}{significantPart.slice(0, 4)} ETH
-            </span>
-          );
-        }
-      }
-      return `${str} ETH`;
-    }
-    return `${priceInEth.toFixed(6)} ETH`;
-  } catch (e) {
-    console.error("Error formatting price:", e, sale);
-    return "Error";
+    return `${eth.toFixed(6)} ETH`;
+  } catch (err) {
+    console.error("formatPrice()", err, sale);
+    return "—";
   }
 };
 
-// Custom hook for fetching sales
-const useZCurveSales = () => {
-  return useQuery({
+/* ------------------------------------------------------------------------- */
+/*                                 Queries                                   */
+/* ------------------------------------------------------------------------- */
+
+const useZCurveSales = () =>
+  useQuery<Sale[], Error>({
     queryKey: ["zcurveSales"],
     queryFn: async () => {
-      // Ensure we have the indexer URL
-      const indexerUrl = import.meta.env.VITE_INDEXER_URL;
-      if (!indexerUrl) {
-        throw new Error("Indexer URL not configured");
-      }
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
-      
+      const url = import.meta.env.VITE_INDEXER_URL;
+      if (!url) throw new Error("VITE_INDEXER_URL missing");
+
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 30_000);
+
       try {
-        const response = await fetch(
-          indexerUrl + "/graphql",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              query: GET_ZCURVE_SALES,
-            }),
-            signal: controller.signal,
-          },
-        );
+        const res = await fetch(`${url}/graphql`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: GET_ZCURVE_SALES }),
+          signal: ctrl.signal,
+        });
 
-        clearTimeout(timeoutId);
+        clearTimeout(timer);
+        if (!res.ok) throw new Error(res.statusText);
 
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
-        }
-
-        const data = await response.json();
-
-        if (data.errors) {
-          throw new Error(data.errors[0]?.message || "GraphQL error");
-        }
-
-        // Validate the response structure
-        if (!data?.data?.zcurveSales?.items) {
-          console.error("Invalid response structure:", data);
-          return [];
-        }
-        
-        return data.data.zcurveSales.items;
-      } catch (error) {
-        clearTimeout(timeoutId);
-        throw error;
+        const json = (await res.json()) as GraphQLResponse;
+        if (json.errors?.length) throw new Error(json.errors[0]?.message ?? "GraphQL error");
+        return json.data?.zcurveSales?.items ?? [];
+      } finally {
+        clearTimeout(timer);
       }
     },
-    refetchInterval: 30000, // Reduce refetch frequency to 30 seconds
-    staleTime: 20000, // Consider data stale after 20 seconds
+    refetchInterval: 30_000,
+    staleTime: 20_000,
     retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    refetchOnWindowFocus: false, // Prevent aggressive refetching
+    retryDelay: (i) => Math.min(1000 * 2 ** i, 30_000),
+    refetchOnWindowFocus: false,
     refetchOnMount: "always",
   });
-};
 
-// Memoized sale card component to prevent unnecessary re-renders
+/* ------------------------------------------------------------------------- */
+/*                              Sale card                                    */
+/* ------------------------------------------------------------------------- */
+
 const SaleCard = memo(({ sale }: { sale: Sale }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  
-  // Ensure coinId is a string
-  if (!sale?.coinId) {
-    return null;
-  }
-  
-  // Memoize expensive calculations
-  const fundedPercentage = useMemo(() => calculateFundedPercentage(sale), [sale.status, sale.percentFunded, sale.ethEscrow, sale.ethTarget]);
-  const formattedPrice = useMemo(() => formatPrice(sale), [sale.status, sale.currentPrice, sale.netSold, sale.ethEscrow, sale.ethTarget]);
-  const uniqueWalletCount = useMemo(() => {
+
+  /* bail-out if data is incomplete */
+  if (!sale?.coinId) return null;
+
+  /* memoised expensive bits */
+  const funded = useMemo(() => calculateFundedPercentage(sale), [sale]);
+  const price = useMemo(() => formatPrice(sale), [sale]);
+  const wallets = useMemo(() => {
     try {
-      const uniqueBuyers = new Set(sale.purchases?.items?.map((p: { buyer: string }) => p.buyer) || []);
-      const uniqueSellers = new Set(sale.sells?.items?.map((s: { seller: string }) => s.seller) || []);
-      return new Set([...uniqueBuyers, ...uniqueSellers]).size;
-    } catch (e) {
-      console.error("Error calculating wallet count:", e);
+      const buyers = sale.purchases?.items?.map((p) => p.buyer) ?? [];
+      const sellers = sale.sells?.items?.map((s) => s.seller) ?? [];
+      return new Set([...buyers, ...sellers]).size;
+    } catch (err) {
+      console.error("wallet count", err);
       return 0;
     }
-  }, [sale.purchases?.items, sale.sells?.items]);
-  
-  // Check if using standard parameters for optimization
-  const isStandardSale = useMemo(() => {
-    return sale.ethTarget === ZCURVE_STANDARD_PARAMS.ETH_TARGET.toString() &&
-           sale.saleCap === ZCURVE_STANDARD_PARAMS.SALE_CAP.toString() &&
-           sale.quadCap === ZCURVE_STANDARD_PARAMS.QUAD_CAP.toString();
-  }, [sale.ethTarget, sale.saleCap, sale.quadCap]);
-  
-  const handleClick = useCallback(() => {
+  }, [sale]);
+
+  const isStandard =
+    sale.ethTarget === ZCURVE_STANDARD_PARAMS.ETH_TARGET.toString() &&
+    sale.saleCap === ZCURVE_STANDARD_PARAMS.SALE_CAP.toString() &&
+    sale.quadCap === ZCURVE_STANDARD_PARAMS.QUAD_CAP.toString();
+
+  const goToSale = useCallback(() => {
     navigate({ to: "/c/$coinId", params: { coinId: String(sale.coinId) } });
   }, [navigate, sale.coinId]);
-  
+
+  /* --------------------------------------------------------------------- */
+
   return (
     <div
-      onClick={handleClick}
       role="button"
       tabIndex={0}
+      onClick={goToSale}
       onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
+        if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          handleClick();
+          goToSale();
         }
       }}
-      className="block focus:outline-none focus:ring-2 focus:ring-primary/50 rounded cursor-pointer"
-      aria-label={`View ${sale.coin?.name || 'coin'} sale details`}
+      className="block rounded focus:outline-none focus:ring-2 focus:ring-primary/50"
+      aria-label={`View sale of ${sale.coin?.name ?? "coin"}`}
     >
       <div
         className={cn(
-          "border p-3 text-card-foreground transition-all duration-200 relative overflow-hidden cursor-pointer",
-          "border-border hover:border-primary active:border-primary/80",
-          "bg-card hover:bg-accent/5",
-          "hover:shadow-lg active:scale-[0.99]",
-          sale.status === "FINALIZED" ? "bg-amber-50/5 dark:bg-amber-900/5" : "bg-green-50/5 dark:bg-green-900/5"
+          "relative overflow-hidden border p-3 transition-all",
+          "bg-card hover:bg-accent/5 hover:shadow-lg cursor-pointer",
+          "border-border hover:border-primary active:border-primary/80 active:scale-[0.99]",
+          sale.status === "FINALIZED" ? "bg-amber-50/5 dark:bg-amber-900/5" : "bg-green-50/5  dark:bg-green-900/5",
         )}
       >
-      {/* Background gradient for funding progress */}
-      <div 
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: sale.status === "FINALIZED" 
-            ? `linear-gradient(to right, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%)`
-            : `linear-gradient(to right, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.1) ${fundedPercentage}%, transparent ${fundedPercentage}%)`
-        }}
-      />
-      
-      <div className="flex items-start gap-4 group relative z-10">
-        {/* Coin Image */}
-        <div className="flex-shrink-0">
-          <div className="w-8 h-8 rounded-full overflow-hidden border border-border bg-muted">
-            {sale.coin?.imageUrl ? (
-              <img
-                src={formatImageURL(sale.coin.imageUrl)}
-                alt={sale.coin?.name || "Unknown"}
-                className="w-full h-full object-cover"
-                loading="lazy"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                  // Show fallback
-                  const parent = target.parentElement;
-                  if (parent) {
-                    parent.innerHTML = `<div class="w-full h-full flex items-center justify-center text-xs font-bold text-muted-foreground">${(sale.coin?.symbol || "?")[0].toUpperCase()}</div>`;
-                  }
-                }}
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-xs font-bold text-muted-foreground">
-                {(sale.coin?.symbol || "?")[0].toUpperCase()}
-              </div>
-            )}
-          </div>
-        </div>
+        {/* funding background tint */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              sale.status === "FINALIZED"
+                ? "linear-gradient(to right,rgba(245,158,11,.1) 0%,rgba(245,158,11,.05) 100%)"
+                : `linear-gradient(to right,rgba(34,197,94,.1) 0%,rgba(34,197,94,.1) ${funded}%,transparent ${funded}%)`,
+          }}
+        />
 
-        {/* Sale Info */}
-        <div className="flex-1 font-mono text-sm">
-          <div className="font-bold group-hover:text-primary transition-colors">
-            {sale.coin?.name || "Unknown"} ({sale.coin?.symbol || "???"}) 
-          </div>
-          <div className="text-muted-foreground mt-1 line-clamp-2">
-            {sale.coin?.description || "No description available"}
-          </div>
-          <div className="mt-2 space-y-2 text-xs">
-            {/* Price and funding info */}
-            <div className="grid grid-cols-2 gap-x-3 text-[11px]">
-              <div>
-                <span className="text-muted-foreground">
-                  {sale.status === "FINALIZED" ? t("sale.final_price_label", "Final Price") : t("sale.price_label", "Current Price")}
-                </span>
-                <div className="font-medium">
-                  {formattedPrice}
-                </div>
-              </div>
-              <div>
-                <span className="text-muted-foreground">{t("sale.funded_label", "Funded")}</span>
-                <div className="font-medium">
-                  {fundedPercentage.toFixed(1)}%{isStandardSale && " of 10 ETH"}
-                </div>
-              </div>
-            </div>
-            
-            {/* Trading activity */}
-            <div className="border-t border-border/30 pt-1 text-[11px]">
-              <div className="font-medium">
-                {t("sale.buys_label", "Buys")} {sale.purchases?.totalCount || 0} | 
-                {t("sale.sells_label", "Sells")} {sale.sells?.totalCount || 0} | 
-                {t("sale.wallets_label", "Wallets")} {uniqueWalletCount}
-              </div>
-            </div>
-            
-            {/* Creator */}
-            <div className="flex items-center gap-1 border-t border-border/30 pt-1">
-              <span>{t("sale.creator_label", "Creator")}:</span>
-              {sale.creator ? (
-                <CreatorDisplay 
-                  address={sale.creator} 
-                  size="sm"
-                  showLabel={false}
-                  className="text-xs"
+        <div className="relative z-10 flex items-start gap-4">
+          {/* image / fallback */}
+          <div className="flex-shrink-0">
+            <div className="h-8 w-8 overflow-hidden rounded-full border border-border bg-muted">
+              {sale.coin?.imageUrl ? (
+                <img
+                  src={formatImageURL(sale.coin.imageUrl)}
+                  alt={sale.coin?.name ?? "coin"}
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                  onError={(e) => {
+                    const el = e.target as HTMLImageElement;
+                    el.style.display = "none";
+                  }}
                 />
               ) : (
-                <span className="text-muted-foreground">Unknown</span>
+                <div className="flex h-full w-full items-center justify-center text-xs font-bold text-muted-foreground">
+                  {sale.coin?.symbol?.[0]?.toUpperCase() ?? "?"}
+                </div>
               )}
             </div>
           </div>
-        </div>
 
-        {/* Bonding Curve Chart */}
-        <div className="flex-shrink-0 w-32">
-          <div className="border border-border rounded-sm p-1 bg-muted/20">
-            <ZCurveMiniChart 
-              sale={sale as ZCurveSale} 
-              className="h-16 w-full"
-            />
-          </div>
-        </div>
-
-        {/* Status */}
-        <div className="text-right font-mono text-xs">
-          <Badge
-            className={cn(
-              "border border-border px-2 py-1",
-              sale.status === "ACTIVE"
-                ? "bg-green-500 text-white"
-                : sale.status === "FINALIZED"
-                ? "bg-amber-500 text-white"
-                : "bg-gray-200 text-gray-600",
-            )}
-          >
-            {sale.status}
-          </Badge>
-          <div className="mt-2 text-muted-foreground text-[11px]">
-            <div>{sale.createdAt ? new Date(parseInt(sale.createdAt) * 1000).toLocaleDateString() : "Unknown"}</div>
-            <div>
-              {(() => {
-                if (!sale.deadline) return "→ Unknown";
-                
-                const deadline = new Date(Number(sale.deadline) * 1000);
-                const now = new Date();
-                
-                if (sale.status === "ACTIVE" && deadline > now) {
-                  // Show time remaining for active sales
-                  const remaining = deadline.getTime() - now.getTime();
-                  const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
-                  const hours = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                  
-                  if (days > 0) {
-                    return `→ ${days}d ${hours}h left`;
-                  } else if (hours > 0) {
-                    return `→ ${hours}h left`;
-                  } else {
-                    const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
-                    return `→ ${minutes}m left`;
-                  }
-                } else if (sale.createdAt) {
-                  // Show duration for finalized sales
-                  const created = new Date(parseInt(sale.createdAt) * 1000);
-                  const durationMs = deadline.getTime() - created.getTime();
-                  const days = Math.round(durationMs / (1000 * 60 * 60 * 24));
-                  
-                  if (days === 14) {
-                    return "→ 2 week sale";
-                  } else if (days === 7) {
-                    return "→ 1 week sale";
-                  } else {
-                    return `→ ${days} day sale`;
-                  }
-                }
-                return "→ Unknown";
-              })()}
+          {/* text block */}
+          <div className="flex-1 text-sm font-mono">
+            <div className="font-bold transition-colors group-hover:text-primary">
+              {sale.coin?.name ?? "Unknown"} ({sale.coin?.symbol ?? "???"})
             </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Progress bar at bottom */}
-      <div className="absolute bottom-0 left-0 right-0 h-1 bg-border/20">
-        <div 
-          className={cn(
-            "h-full transition-all duration-300",
-            sale.status === "FINALIZED" ? "bg-amber-500/50" : "bg-green-500/50"
-          )}
-          style={{ 
-            width: `${Math.min(fundedPercentage, 100)}%` 
-          }}
-        />
-      </div>
-    </div>
-  </div>
-  );
-});
+            <div className="mt-1 line-clamp-2 text-muted-foreground">
+              {sale.coin?.description ?? t("sale.no_desc", "No description")}
+            </div>
 
-SaleCard.displayName = 'SaleCard';
-
-export const ZCurveSales = () => {
-  const { data: sales, isLoading, error, isRefetching } = useZCurveSales();
-  const { theme } = useTheme();
-  const { t } = useTranslation();
-  
-  // Sort sales by funding percentage and creation date
-  const sortedSales = useMemo(() => {
-    if (!sales) return [];
-    return [...sales].sort((a, b) => {
-      // Active sales first
-      if (a.status !== b.status) {
-        return a.status === "ACTIVE" ? -1 : 1;
-      }
-      // Then by funding percentage
-      const aFunded = calculateFundedPercentage(a);
-      const bFunded = calculateFundedPercentage(b);
-      if (aFunded !== bFunded) {
-        return bFunded - aFunded;
-      }
-      // Finally by creation date (newest first)
-      return (parseInt(b.createdAt) || 0) - (parseInt(a.createdAt) || 0);
-    });
-  }, [sales]);
-
-  if (isLoading) {
-    return (
-      <div className="">
-        <div className="border-border text-foreground p-3">
-          <h2 className="font-mono text-2xl tracking-widest font-bold uppercase">
-            ZCURVE {t("common.sales", "SALES")}
-          </h2>
-        </div>
-        <div className="p-4">
-          <div className="border-l-4 border-border m-0 p-0 space-y-2">
-            {/* Skeleton cards */}
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="border border-border p-3 bg-card animate-pulse">
-                <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 rounded-full bg-muted" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-muted rounded w-1/3" />
-                    <div className="h-3 bg-muted rounded w-2/3" />
-                    <div className="h-3 bg-muted rounded w-1/2" />
-                  </div>
-                  <div className="w-32 h-16 bg-muted rounded" />
-                  <div className="w-16 space-y-2">
-                    <div className="h-6 bg-muted rounded" />
-                    <div className="h-3 bg-muted rounded" />
+            <div className="mt-2 space-y-2 text-[11px]">
+              {/* price / funding */}
+              <div className="grid grid-cols-2 gap-x-3">
+                <div>
+                  <span className="text-muted-foreground">
+                    {sale.status === "FINALIZED"
+                      ? t("sale.final_price_label", "Final Price")
+                      : t("sale.price_label", "Current Price")}
+                  </span>
+                  <div className="font-medium">{price}</div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">{t("sale.funded_label", "Funded")}</span>
+                  <div className="font-medium">
+                    {funded.toFixed(1)}%{isStandard && " of 10 ETH"}
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
 
-  if (error) {
-    return (
-      <div className="">
-        <div className="border-border text-foreground p-3">
-          <h2 className="font-mono text-2xl tracking-widest font-bold uppercase">
-            ZCURVE {t("common.sales", "SALES")}
-          </h2>
-        </div>
-        <div className="p-4">
-          <div className="border border-destructive/50 bg-destructive/10 p-4 rounded">
-            <div className="font-mono text-sm text-destructive">
-              <div className="font-bold mb-1">Error loading sales</div>
-              <div className="text-xs opacity-80">{error.message}</div>
+              {/* trade activity */}
+              <div className="border-t border-border/30 pt-1">
+                <span className="font-medium">
+                  {t("sale.buys_label", "Buys")} {sale.purchases?.totalCount ?? 0} | {t("sale.sells_label", "Sells")}{" "}
+                  {sale.sells?.totalCount ?? 0} | {t("sale.wallets_label", "Wallets")} {wallets}
+                </span>
+              </div>
+
+              {/* creator */}
+              <div className="flex items-center gap-1 border-t border-border/30 pt-1">
+                <span>{t("sale.creator_label", "Creator")}:</span>
+                {sale.creator ? (
+                  <CreatorDisplay address={sale.creator} size="sm" showLabel={false} />
+                ) : (
+                  <span className="text-muted-foreground">{t("common.unknown", "Unknown")}</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* mini-chart */}
+          <div className="w-32 flex-shrink-0">
+            <div className="rounded-sm border border-border bg-muted/20 p-1">
+              <ZCurveMiniChart sale={sale} className="h-16 w-full" />
+            </div>
+          </div>
+
+          {/* status & time info */}
+          <div className="text-right text-xs font-mono">
+            <Badge
+              className={cn(
+                "border border-border px-2 py-1",
+                sale.status === "ACTIVE"
+                  ? "bg-green-500 text-white"
+                  : sale.status === "FINALIZED"
+                    ? "bg-amber-500 text-white"
+                    : "bg-gray-200 text-gray-600",
+              )}
+            >
+              {sale.status}
+            </Badge>
+
+            <div className="mt-2 text-[11px] text-muted-foreground">
+              <div>{sale.createdAt ? new Date(Number(sale.createdAt) * 1000).toLocaleDateString() : "Unknown"}</div>
+              <div>{renderTimeInfo(sale)}</div>
             </div>
           </div>
         </div>
+
+        {/* bottom progress bar */}
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-border/20">
+          <div
+            className={cn(
+              "h-full transition-all duration-300",
+              sale.status === "FINALIZED" ? "bg-amber-500/50" : "bg-green-500/50",
+            )}
+            style={{ width: `${Math.min(funded, 100)}%` }}
+          />
+        </div>
       </div>
-    );
+    </div>
+  );
+});
+
+SaleCard.displayName = "SaleCard";
+
+/* helper for time left / duration */
+function renderTimeInfo(sale: Sale): string {
+  if (!sale.deadline) return "→ Unknown";
+
+  const deadline = new Date(Number(sale.deadline) * 1000);
+  const now = new Date();
+
+  if (sale.status === "ACTIVE" && deadline > now) {
+    const diff = deadline.getTime() - now.getTime();
+    const d = Math.floor(diff / 86_400_000);
+    const h = Math.floor((diff % 86_400_000) / 3_600_000);
+    if (d) return `→ ${d}d ${h}h left`;
+    const m = Math.floor((diff % 3_600_000) / 60_000);
+    return `→ ${h ? `${h}h ` : ""}${m}m left`;
   }
+
+  if (sale.createdAt) {
+    const created = new Date(Number(sale.createdAt) * 1000);
+    const days = Math.round((deadline.getTime() - created.getTime()) / 86_400_000);
+    if (days === 14) return "→ 2-week sale";
+    if (days === 7) return "→ 1-week sale";
+    return `→ ${days}-day sale`;
+  }
+
+  return "→ Unknown";
+}
+
+/* ------------------------------------------------------------------------- */
+/*                            Page component                                 */
+/* ------------------------------------------------------------------------- */
+
+export const ZCurveSales = () => {
+  const { t } = useTranslation();
+  const { theme } = useTheme();
+  const { data, isLoading, error, isRefetching } = useZCurveSales();
+
+  /* stable, sorted list */
+  const sales = useMemo(() => {
+    if (!data) return [];
+    return [...data].sort((a, b) => {
+      if (a.status !== b.status) return a.status === "ACTIVE" ? -1 : 1;
+      const fA = calculateFundedPercentage(a);
+      const fB = calculateFundedPercentage(b);
+      if (fA !== fB) return fB - fA;
+      return Number(b.createdAt ?? 0) - Number(a.createdAt ?? 0);
+    });
+  }, [data]);
+
+  /* --------------------------------------------------------------------- */
+
+  if (isLoading) return <SkeletonHeader />;
+  if (error) return <ErrorBlock err={error} />;
 
   return (
     <div className="relative min-h-screen">
-      {/* Header */}
-      <div className="border-border text-foreground p-3 flex items-center justify-between">
-        <h2 className="font-mono text-2xl tracking-widest font-bold uppercase">
-          ZCURVE {t("common.sales", "SALES")} ({sortedSales.length})
+      {/* header */}
+      <div className="flex items-center justify-between border-border p-3 text-foreground">
+        <h2 className="font-mono text-2xl font-bold uppercase tracking-widest">
+          ZCURVE {t("common.sales", "SALES")} ({sales.length})
         </h2>
-        <div className="font-mono text-xs text-muted-foreground">
-          Standard: 800M cap · 10 ETH target · 69% quad
-        </div>
+
+        <span className="text-xs font-mono text-muted-foreground">Standard: 800 M cap · 10 ETH target · 69 % quad</span>
+
         {isRefetching && (
-          <div className="font-mono text-xs text-muted-foreground animate-pulse">
-            Updating...
-          </div>
+          <span className="animate-pulse text-xs font-mono text-muted-foreground">
+            {t("common.updating", "Updating")}…
+          </span>
         )}
       </div>
 
-      {/* Sales List */}
+      {/* list */}
       <div className="p-4">
-        {!sales || sales.length === 0 ? (
-          <div className="font-mono text-sm text-secondary-foreground bg-secondary p-4 rounded">
-            &gt; no active sales found
+        {sales.length === 0 ? (
+          <div className="rounded bg-secondary p-4 font-mono text-sm text-secondary-foreground">
+            &gt; {t("sale.none", "No active sales")}
           </div>
         ) : (
-          <div className="border-l-4 border-border m-0 p-0 space-y-2">
-            {sortedSales.map((sale: Sale, index: number) => (
-              <SaleCard key={sale.coinId || `sale-${index}`} sale={sale} />
+          <div className="space-y-2 border-l-4 border-border">
+            {sales.map((s) => (
+              <SaleCard key={s.coinId.toString()} sale={s} />
             ))}
           </div>
         )}
       </div>
-      
-      {/* Video */}
+
+      {/* decorative video */}
       <video
-        className="fixed bottom-5 right-5 w-40 h-40"
-        style={{
-          clipPath: "polygon(50% 10%, 75% 50%, 50% 90%, 25% 50%)",
-        }}
+        className="fixed bottom-5 right-5 h-40 w-40"
+        style={{ clipPath: "polygon(50% 10%,75% 50%,50% 90%,25% 50%)" }}
         src={theme === "dark" ? "/zammzamm-bw.mp4" : "/zammzamm.mp4"}
         autoPlay
         loop
@@ -578,3 +465,50 @@ export const ZCurveSales = () => {
     </div>
   );
 };
+
+/* ------------------------------------------------------------------------- */
+/*                               UI helpers                                  */
+/* ------------------------------------------------------------------------- */
+
+const SkeletonHeader = () => (
+  <div>
+    <div className="p-3 text-foreground">
+      <h2 className="font-mono text-2xl font-bold uppercase tracking-widest">ZCURVE SALES</h2>
+    </div>
+    <div className="p-4">
+      <div className="space-y-2 border-l-4 border-border">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="animate-pulse border border-border bg-card p-3">
+            <div className="flex items-start gap-4">
+              <div className="h-8 w-8 rounded-full bg-muted" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 w-1/3 rounded bg-muted" />
+                <div className="h-3 w-2/3 rounded bg-muted" />
+                <div className="h-3 w-1/2 rounded bg-muted" />
+              </div>
+              <div className="h-16 w-32 rounded bg-muted" />
+              <div className="w-16 space-y-2">
+                <div className="h-6 rounded bg-muted" />
+                <div className="h-3 rounded bg-muted" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
+const ErrorBlock = ({ err }: { err: Error }) => (
+  <div>
+    <div className="p-3 text-foreground">
+      <h2 className="font-mono text-2xl font-bold uppercase tracking-widest">ZCURVE SALES</h2>
+    </div>
+    <div className="p-4">
+      <div className="rounded border border-destructive/50 bg-destructive/10 p-4 font-mono text-sm text-destructive">
+        <div className="mb-1 font-bold">{err.name}</div>
+        <div className="opacity-80">{err.message}</div>
+      </div>
+    </div>
+  </div>
+);

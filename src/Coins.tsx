@@ -18,12 +18,12 @@ const shouldShowInLaunchSales = (coin: CoinData): boolean => {
   if (coin.saleStatus !== null && coin.saleStatus !== undefined) {
     return true;
   }
-  
+
   // Also include zCurve coins - they have a specific pattern
   // zCurve coins typically have high coin IDs and may not have traditional sale status
   // For now, we'll need to rely on the backend to properly tag these
   // TODO: Add proper zCurve detection once backend provides the necessary data
-  
+
   return false;
 };
 

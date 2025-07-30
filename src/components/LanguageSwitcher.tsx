@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 export function LanguageSwitcher() {
   const { i18n } = useTranslation();
   // Normalize language code to handle cases like "en-US" -> "en"
-  const currentLanguage = i18n.language.split('-')[0];
+  const currentLanguage = i18n.language.split("-")[0];
 
   // Toggle language handler
   const toggleLanguage = () => {

@@ -32,14 +32,14 @@ interface CookbookSwapTileProps {
   feeOrHook?: string | bigint;
 }
 
-export function CookbookSwapTile({ 
-  coinId, 
-  coinSymbol = "TOKEN", 
+export function CookbookSwapTile({
+  coinId,
+  coinSymbol = "TOKEN",
   coinIcon,
   coinName,
   poolId: providedPoolId,
   userBalance: providedUserBalance,
-  feeOrHook 
+  feeOrHook,
 }: CookbookSwapTileProps) {
   const { t } = useTranslation();
   const { address, isConnected } = useAccount();
@@ -62,7 +62,7 @@ export function CookbookSwapTile({
 
   // Get ETH balance
   const { data: ethBalance } = useBalance({ address });
-  
+
   // Get Cookbook ERC6909 token balance
   const { data: cookbookBalance } = useReadContract({
     address: CookbookAddress,
@@ -88,7 +88,7 @@ export function CookbookSwapTile({
       };
       return { poolId: providedPoolId, poolKey: key };
     }
-    
+
     // Compute both pool key and ID with correct fee
     const fee = feeOrHook ? BigInt(feeOrHook) : 30n;
     const key: CookbookPoolKey = {
@@ -99,7 +99,7 @@ export function CookbookSwapTile({
       feeOrHook: fee,
     };
     const id = computeZCurvePoolId(BigInt(coinId), fee);
-    
+
     return { poolId: id, poolKey: key };
   }, [providedPoolId, coinId, feeOrHook]);
 
@@ -327,7 +327,9 @@ export function CookbookSwapTile({
         showPercentageSlider={
           lastEditedField === "sell" &&
           ((swapDirection === "buy" && !!ethBalance && ethBalance.value > 0n) ||
-            (swapDirection === "sell" && ((providedUserBalance && providedUserBalance > 0n) || (!!cookbookBalance && (cookbookBalance as bigint) > 0n))))
+            (swapDirection === "sell" &&
+              ((providedUserBalance && providedUserBalance > 0n) ||
+                (!!cookbookBalance && (cookbookBalance as bigint) > 0n))))
         }
       />
 

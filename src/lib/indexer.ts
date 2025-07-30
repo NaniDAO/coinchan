@@ -106,7 +106,7 @@ export async function fetchPoolPricePoints(
   desiredPoints?: number,
 ): Promise<PricePointData[]> {
   console.log("fetchPoolPricePoints called with:", { poolId, startTs, endTs, desiredPoints });
-  
+
   const baseUrl = import.meta.env.VITE_INDEXER_URL + "/api/price-chart";
 
   // Build query parameters

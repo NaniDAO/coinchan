@@ -10,12 +10,12 @@ interface CoinImagePopupProps {
   className?: string;
 }
 
-export function CoinImagePopup({ 
-  imageUrl, 
-  coinName, 
+export function CoinImagePopup({
+  imageUrl,
+  coinName,
   coinSymbol = "TOKEN",
   size = "md",
-  className = "" 
+  className = "",
 }: CoinImagePopupProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -23,7 +23,7 @@ export function CoinImagePopup({
   const sizeClasses = {
     sm: "w-8 h-8",
     md: "w-16 h-16 sm:w-20 sm:h-20",
-    lg: "w-24 h-24"
+    lg: "w-24 h-24",
   };
 
   return (
@@ -32,14 +32,16 @@ export function CoinImagePopup({
         onClick={() => imageUrl && !imageError && setIsOpen(true)}
         className={cn(
           "relative overflow-hidden rounded-full transition-all duration-200",
-          imageUrl && !imageError && [
-            "cursor-zoom-in",
-            "hover:scale-105 hover:shadow-lg",
-            "hover:ring-2 hover:ring-primary/50 dark:hover:ring-primary/30",
-            "active:scale-95 touch-manipulation"
-          ].join(" "),
+          imageUrl &&
+            !imageError &&
+            [
+              "cursor-zoom-in",
+              "hover:scale-105 hover:shadow-lg",
+              "hover:ring-2 hover:ring-primary/50 dark:hover:ring-primary/30",
+              "active:scale-95 touch-manipulation",
+            ].join(" "),
           sizeClasses[size],
-          className
+          className,
         )}
         disabled={!imageUrl || imageError}
         aria-label={`View ${coinName} image`}

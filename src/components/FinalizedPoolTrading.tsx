@@ -10,19 +10,12 @@ import { ZCurveClaim } from "@/components/ZCurveClaim";
 import { useETHPrice } from "@/hooks/use-eth-price";
 import { ZCurveAddLiquidity } from "@/components/ZCurveAddLiquidity";
 import { ZCurveRemoveLiquidity } from "@/components/ZCurveRemoveLiquidity";
-import {
-  TokenSelectionProvider,
-  useTokenSelection,
-} from "@/contexts/TokenSelectionContext";
+import { TokenSelectionProvider, useTokenSelection } from "@/contexts/TokenSelectionContext";
 import { useTheme } from "@/lib/theme";
 import { getEthereumIconDataUri } from "@/components/EthereumIcon";
 
 import type { TokenMeta } from "@/lib/coins";
-import {
-  useZCurveSale,
-  useZCurveSaleSummary,
-  useZCurveBalance,
-} from "@/hooks/use-zcurve-sale";
+import { useZCurveSale, useZCurveSaleSummary, useZCurveBalance } from "@/hooks/use-zcurve-sale";
 import { computeZCurvePoolId } from "@/lib/zCurvePoolId";
 import { useReserves } from "@/hooks/use-reserves";
 import { formatNumber } from "@/lib/utils";
@@ -78,7 +71,6 @@ function FinalizedPoolTradingInner({
     source: "COOKBOOK" as const,
   });
 
-
   // Create token metadata objects for ETH and the coin
   const ethToken = useMemo<TokenMeta>(
     () => ({
@@ -131,9 +123,7 @@ function FinalizedPoolTradingInner({
     return (
       <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         <Alert>
-          <AlertDescription>
-            {t("trade.pool_not_found", "Pool not found")}
-          </AlertDescription>
+          <AlertDescription>{t("trade.pool_not_found", "Pool not found")}</AlertDescription>
         </Alert>
       </div>
     );
@@ -170,7 +160,6 @@ function FinalizedPoolTradingInner({
 
   return (
     <div>
-
       {/* Claim Section */}
       {hasClaimableBalance && (
         <div className="mb-4 sm:mb-6">
@@ -181,17 +170,9 @@ function FinalizedPoolTradingInner({
       {/* Trading Interface - Desktop: side by side, Mobile: stacked */}
       <div className="gap-2 grid grid-cols-10">
         {/* Chart Section - Desktop: Left, Mobile: Below swap */}
-        <PoolChart
-          poolId={poolId}
-          coinSymbol={coinSymbol}
-          ethPrice={ethPrice}
-        />
+        <PoolChart poolId={poolId} coinSymbol={coinSymbol} ethPrice={ethPrice} />
 
-        <Tabs
-          className="lg:col-span-3"
-          value={activeTab}
-          onValueChange={(v) => setActiveTab(v as any)}
-        >
+        <Tabs className="lg:col-span-3" value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
           {/* Tabs at the top */}
           <TabsList className="bg-card  rounded-t-lg p-3 w-full lg:p-4">
             <TabsTrigger
@@ -230,22 +211,14 @@ function FinalizedPoolTradingInner({
 
           <TabsContent value="add" className="mt-0">
             <div className="w-full">
-              <ZCurveAddLiquidity
-                coinId={coinId}
-                poolId={poolId}
-                feeOrHook={actualFee}
-              />
+              <ZCurveAddLiquidity coinId={coinId} poolId={poolId} feeOrHook={actualFee} />
             </div>
           </TabsContent>
 
           <TabsContent value="remove" className="mt-0">
             <div className="w-full">
               {/* Remove Liquidity Form */}
-              <ZCurveRemoveLiquidity
-                coinId={coinId}
-                poolId={poolId}
-                feeOrHook={actualFee}
-              />
+              <ZCurveRemoveLiquidity coinId={coinId} poolId={poolId} feeOrHook={actualFee} />
             </div>
           </TabsContent>
         </Tabs>
@@ -262,22 +235,16 @@ function FinalizedPoolTradingInner({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
           {/* Price */}
           <div>
-            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
-              Price
-            </div>
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Price</div>
             <div className="font-semibold text-lg">
               {coinPrice > 0 ? `${coinPrice.toFixed(8)} ETH` : "0.000000 ETH"}
             </div>
-            <div className="text-sm text-muted-foreground">
-              ${coinUsdPrice > 0 ? coinUsdPrice.toFixed(2) : "0.00"}
-            </div>
+            <div className="text-sm text-muted-foreground">${coinUsdPrice > 0 ? coinUsdPrice.toFixed(2) : "0.00"}</div>
           </div>
 
           {/* Market Cap */}
           <div>
-            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
-              Market Cap
-            </div>
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Market Cap</div>
             <div className="font-semibold text-lg">
               $
               {marketCapUsd > 1e9
@@ -286,16 +253,12 @@ function FinalizedPoolTradingInner({
                   ? (marketCapUsd / 1e6).toFixed(2) + "M"
                   : "-"}
             </div>
-            <div className="text-xs text-muted-foreground">
-              {formatNumber(1_000_000_000, 0)} supply
-            </div>
+            <div className="text-xs text-muted-foreground">{formatNumber(1_000_000_000, 0)} supply</div>
           </div>
 
           {/* ETH Liquidity */}
           <div>
-            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
-              ETH Liquidity
-            </div>
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">ETH Liquidity</div>
             <div className="font-semibold text-lg">
               {formatNumber(Number(formatEther(reserves?.reserve0 || 0n)), 4)}
             </div>
@@ -308,10 +271,7 @@ function FinalizedPoolTradingInner({
               {coinSymbol} Liquidity
             </div>
             <div className="font-semibold text-lg">
-              {formatNumber(
-                Number(formatUnits(reserves?.reserve1 || 0n, 18)),
-                0,
-              )}
+              {formatNumber(Number(formatUnits(reserves?.reserve1 || 0n, 18)), 0)}
             </div>
             <div className="text-xs text-muted-foreground flex items-center gap-1">
               {coinSymbol}
@@ -325,9 +285,7 @@ function FinalizedPoolTradingInner({
         {/* Technical Details - Minimalist */}
         <details className="group pt-4">
           <summary className="flex items-center justify-between cursor-pointer py-2 hover:text-primary transition-colors">
-            <span className="text-sm font-medium text-muted-foreground">
-              Technical Details
-            </span>
+            <span className="text-sm font-medium text-muted-foreground">Technical Details</span>
             <ChevronDown className="h-4 w-4 text-muted-foreground group-open:rotate-180 transition-transform" />
           </summary>
           <div className="mt-3 space-y-2 text-sm">

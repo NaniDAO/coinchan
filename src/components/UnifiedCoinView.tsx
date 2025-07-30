@@ -4,10 +4,7 @@ import { mainnet } from "viem/chains";
 import { useReadContract } from "wagmi";
 import { formatEther } from "viem";
 
-import {
-  CheckTheChainAbi,
-  CheckTheChainAddress,
-} from "@/constants/CheckTheChain";
+import { CheckTheChainAbi, CheckTheChainAddress } from "@/constants/CheckTheChain";
 import { CookbookAddress } from "@/constants/Cookbook";
 import { useGetCoin } from "@/hooks/metadata/use-get-coin";
 import { useZCurveSale } from "@/hooks/use-zcurve-sale";
@@ -46,30 +43,29 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
   });
 
   // Extract coin data
-  const [name, symbol, imageUrl, description, tokenURI, poolIds, swapFees] =
-    useMemo(() => {
-      if (!coinData) return ["", "", "", "", "", undefined, [100n]];
-      const pools = coinData.pools.map((pool) => pool.poolId);
-      const fees = coinData.pools.map((pool) => BigInt(pool.swapFee));
-      return [
-        coinData.name || "",
-        coinData.symbol || "",
-        coinData.imageUrl || "",
-        coinData.description || "",
-        coinData.tokenURI || "",
-        pools,
-        fees,
-      ];
-    }, [coinData]);
+  const [name, symbol, imageUrl, description, tokenURI, poolIds, swapFees] = useMemo(() => {
+    if (!coinData) return ["", "", "", "", "", undefined, [100n]];
+    const pools = coinData.pools.map((pool) => pool.poolId);
+    const fees = coinData.pools.map((pool) => BigInt(pool.swapFee));
+    return [
+      coinData.name || "",
+      coinData.symbol || "",
+      coinData.imageUrl || "",
+      coinData.description || "",
+      coinData.tokenURI || "",
+      pools,
+      fees,
+    ];
+  }, [coinData]);
 
   // Calculate market cap based on phase
   const { marketCapEth, marketCapUsd, effectiveSwapFee, isZCurveBonding } = useMemo(() => {
     if (!ethPriceData) {
-      return { 
-        marketCapEth: null, 
-        marketCapUsd: null, 
-        effectiveSwapFee: swapFees, 
-        isZCurveBonding: false 
+      return {
+        marketCapEth: null,
+        marketCapUsd: null,
+        effectiveSwapFee: swapFees,
+        isZCurveBonding: false,
       };
     }
 
@@ -77,11 +73,11 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
     const ethPriceUsd = Number.parseFloat(priceStr);
 
     if (isNaN(ethPriceUsd) || ethPriceUsd === 0) {
-      return { 
-        marketCapEth: null, 
-        marketCapUsd: null, 
-        effectiveSwapFee: swapFees, 
-        isZCurveBonding: false 
+      return {
+        marketCapEth: null,
+        marketCapUsd: null,
+        effectiveSwapFee: swapFees,
+        isZCurveBonding: false,
       };
     }
 
@@ -90,19 +86,19 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
       // During bonding curve phase
       const totalSupply = BigInt(zcurveSale.coin?.totalSupply || "0");
       const totalSupplyNum = Number(formatEther(totalSupply));
-      
+
       // Use the current price from the bonding curve
       // The currentPrice is in ETH per token (with 18 decimals)
       const currentPrice = Number(formatEther(BigInt(zcurveSale.currentPrice || "0")));
-      
+
       // Calculate implied market cap based on current bonding curve price
       const impliedMarketCapEth = currentPrice * totalSupplyNum;
-      
+
       return {
         marketCapEth: impliedMarketCapEth,
         marketCapUsd: impliedMarketCapEth * ethPriceUsd,
         effectiveSwapFee: [0n], // 0% during bonding
-        isZCurveBonding: true
+        isZCurveBonding: true,
       };
     }
 
@@ -119,12 +115,12 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
         actualSwapFee = [30n];
       }
     }
-    
+
     return {
       marketCapEth: coinData?.marketCapEth ?? null,
       marketCapUsd: coinData?.marketCapEth ? coinData.marketCapEth * ethPriceUsd : null,
       effectiveSwapFee: actualSwapFee,
-      isZCurveBonding: false
+      isZCurveBonding: false,
     };
   }, [coinData, ethPriceData, zcurveSale, swapFees]);
 
@@ -132,37 +128,21 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
   // For zCurve sales, always use 30 bps fee
   const poolId = zcurveSale
     ? computeZCurvePoolId(coinId, 30n) // Use hardcoded 30 bps for zCurve pools
-    : poolIds?.[0] ||
-      computePoolId(
-        coinId,
-        swapFees?.[0] ?? SWAP_FEE,
-        CookbookAddress,
-      ).toString();
+    : poolIds?.[0] || computePoolId(coinId, swapFees?.[0] ?? SWAP_FEE, CookbookAddress).toString();
 
   // Ensure poolId is always a string
   const poolIdString = typeof poolId === "bigint" ? poolId.toString() : poolId;
 
   return (
     <div className="w-full max-w-screen mx-auto flex flex-col gap-4 px-2 py-4 pb-16 sm:p-6 sm:pb-16">
-      <CoinPreview
-        coinId={coinId}
-        name={name}
-        symbol={symbol}
-        isLoading={isLoadingCoin}
-      />
+      <CoinPreview coinId={coinId} name={name} symbol={symbol} isLoading={isLoadingCoin} />
 
-      <ErrorBoundary
-        fallback={
-          <ErrorFallback errorMessage="Error rendering Coin Info Card" />
-        }
-      >
+      <ErrorBoundary fallback={<ErrorFallback errorMessage="Error rendering Coin Info Card" />}>
         <CoinInfoCard
           coinId={coinId}
           name={name}
           symbol={symbol}
-          description={
-            description || t("coin.no_description", "No description available")
-          }
+          description={description || t("coin.no_description", "No description available")}
           imageUrl={imageUrl}
           swapFee={effectiveSwapFee}
           isOwner={false}
@@ -179,11 +159,7 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
       </ErrorBoundary>
 
       {/* Unified Trading Interface */}
-      <ErrorBoundary
-        fallback={
-          <ErrorFallback errorMessage="Error rendering trading interface" />
-        }
-      >
+      <ErrorBoundary fallback={<ErrorFallback errorMessage="Error rendering trading interface" />}>
         <UnifiedCoinTrading
           coinId={coinId.toString()}
           coinName={name}
@@ -195,23 +171,14 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
 
       {/* Vote Panel - only show if not in active zCurve sale */}
       {(!zcurveSale || zcurveSale.status !== "ACTIVE") && (
-        <ErrorBoundary
-          fallback={
-            <ErrorFallback errorMessage="Error rendering voting panel" />
-          }
-        >
+        <ErrorBoundary fallback={<ErrorFallback errorMessage="Error rendering voting panel" />}>
           <VotePanel coinId={coinId} />
         </ErrorBoundary>
       )}
 
       {/* Pool Overview - only show if AMM pool exists */}
       {(!zcurveSale || zcurveSale.status === "FINALIZED") && (
-        <PoolOverview
-          coinId={coinId.toString()}
-          poolId={poolIdString}
-          symbol={symbol}
-          priceImpact={null}
-        />
+        <PoolOverview coinId={coinId.toString()} poolId={poolIdString} symbol={symbol} priceImpact={null} />
       )}
     </div>
   );

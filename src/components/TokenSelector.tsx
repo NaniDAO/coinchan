@@ -169,7 +169,7 @@ export const TokenSelector = memo(
                         const symbol = item.getAttribute("data-token-symbol")?.toLowerCase() || "";
                         const name = item.getAttribute("data-token-name")?.toLowerCase() || "";
                         const id = item.getAttribute("data-token-id") || "";
-                        
+
                         // Enhanced search: also match if query is a number and matches start of ID
                         const queryIsNumber = !isNaN(Number(query));
                         const idMatches = queryIsNumber ? id.startsWith(query) : id.toLowerCase().includes(query);
@@ -197,7 +197,7 @@ export const TokenSelector = memo(
                           const symbol = item.getAttribute("data-token-symbol")?.toLowerCase() || "";
                           const name = item.getAttribute("data-token-name")?.toLowerCase() || "";
                           const id = item.getAttribute("data-token-id") || "";
-                          
+
                           // Enhanced search: also match if query is a number and matches start of ID
                           const queryIsNumber = !isNaN(Number(query));
                           const idMatches = queryIsNumber ? id.startsWith(query) : id.toLowerCase().includes(query);

@@ -22,11 +22,7 @@ interface ZCurveLiveChartProps {
   isBuying?: boolean; // true for buy, false for sell
 }
 
-export function ZCurveLiveChart({
-  sale,
-  previewAmount,
-  isBuying = true,
-}: ZCurveLiveChartProps) {
+export function ZCurveLiveChart({ sale, previewAmount, isBuying = true }: ZCurveLiveChartProps) {
   const { t } = useTranslation();
   const { theme: appTheme } = useTheme();
   const { address } = useAccount();
@@ -199,9 +195,7 @@ export function ZCurveLiveChart({
     // Add preview visualization if previewAmount is provided
     if (previewAmount && previewAmount > 0n) {
       const startPoint = netSold;
-      let endPoint = isBuying
-        ? netSold + previewAmount
-        : netSold - previewAmount;
+      let endPoint = isBuying ? netSold + previewAmount : netSold - previewAmount;
 
       // Clamp endPoint to valid range
       if (endPoint < 0n) endPoint = 0n;
@@ -211,9 +205,9 @@ export function ZCurveLiveChart({
       if (endPoint !== startPoint) {
         // Add shaded area for the preview range
         const previewAreaSeries = chart.addSeries(AreaSeries, {
-          topColor: isBuying ? 'rgba(59, 130, 246, 0.4)' : 'rgba(239, 68, 68, 0.4)',
-          bottomColor: isBuying ? 'rgba(59, 130, 246, 0.05)' : 'rgba(239, 68, 68, 0.05)',
-          lineColor: isBuying ? '#3b82f6' : '#ef4444',
+          topColor: isBuying ? "rgba(59, 130, 246, 0.4)" : "rgba(239, 68, 68, 0.4)",
+          bottomColor: isBuying ? "rgba(59, 130, 246, 0.05)" : "rgba(239, 68, 68, 0.05)",
+          lineColor: isBuying ? "#3b82f6" : "#ef4444",
           lineWidth: 2,
           crosshairMarkerVisible: false,
         });
@@ -221,24 +215,24 @@ export function ZCurveLiveChart({
         // Generate preview area data points that follow the exact curve
         const previewDataPoints = [];
         const numPoints = 50; // More points for smoother curve
-        
+
         // Ensure we're going in the right direction
         const actualStart = isBuying ? startPoint : endPoint;
         const actualEnd = isBuying ? endPoint : startPoint;
-        
+
         // Calculate step size
         const totalRange = actualEnd > actualStart ? actualEnd - actualStart : actualStart - actualEnd;
         const stepSize = totalRange / BigInt(numPoints);
-        
+
         // Generate points along the curve
         for (let i = 0; i <= numPoints; i++) {
           let point: bigint;
           if (actualEnd > actualStart) {
-            point = actualStart + (stepSize * BigInt(i));
+            point = actualStart + stepSize * BigInt(i);
           } else {
-            point = actualStart - (stepSize * BigInt(i));
+            point = actualStart - stepSize * BigInt(i);
           }
-          
+
           // Ensure point is within valid range
           if (point >= 0n && point <= saleCap) {
             const cost = calculateCost(point);
@@ -248,38 +242,40 @@ export function ZCurveLiveChart({
             });
           }
         }
-        
+
         // Sort points by time to ensure proper rendering
         previewDataPoints.sort((a, b) => a.time - b.time);
-        
+
         previewAreaSeries.setData(previewDataPoints);
 
         // Add preview end marker
         const endCost = calculateCost(endPoint);
         const previewMarkerSeries = chart.addSeries(LineSeries, {
-          color: isBuying ? '#3b82f6' : '#ef4444',
+          color: isBuying ? "#3b82f6" : "#ef4444",
           lineWidth: 1,
           crosshairMarkerVisible: true,
           crosshairMarkerRadius: 6,
-          crosshairMarkerBorderColor: isBuying ? '#3b82f6' : '#ef4444',
-          crosshairMarkerBackgroundColor: isBuying ? '#3b82f6' : '#ef4444',
+          crosshairMarkerBorderColor: isBuying ? "#3b82f6" : "#ef4444",
+          crosshairMarkerBackgroundColor: isBuying ? "#3b82f6" : "#ef4444",
         });
-        
-        previewMarkerSeries.setData([{
-          time: Number(formatEther(endPoint)) as UTCTimestamp,
-          value: Number(formatEther(endCost)),
-        }]);
+
+        previewMarkerSeries.setData([
+          {
+            time: Number(formatEther(endPoint)) as UTCTimestamp,
+            value: Number(formatEther(endCost)),
+          },
+        ]);
 
         // Add arrow or indicator showing direction
-        
+
         // Create a price line at the new position
         previewAreaSeries.createPriceLine({
           price: Number(formatEther(endCost)),
-          color: isBuying ? '#3b82f6' : '#ef4444',
+          color: isBuying ? "#3b82f6" : "#ef4444",
           lineWidth: 1,
           lineStyle: 2, // Dashed
           axisLabelVisible: true,
-          title: isBuying ? '→ New Price' : '← New Price',
+          title: isBuying ? "→ New Price" : "← New Price",
         });
       }
     }
@@ -331,14 +327,13 @@ export function ZCurveLiveChart({
 
   // Calculate sale progress
   const saleProgress = Number((netSold * 100n) / saleCap);
-  const currentPrice =
-    calculateCost(netSold + UNIT_SCALE) - calculateCost(netSold);
+  const currentPrice = calculateCost(netSold + UNIT_SCALE) - calculateCost(netSold);
   const formattedPrice = formatEther(currentPrice);
-  
+
   // Format price in readable units (wei, gwei, etc)
   const formatReadablePrice = (price: number): string => {
     if (price === 0) return "0 ETH";
-    
+
     // For extremely small values, use gwei or wei
     if (price < 1e-15) {
       const wei = price * 1e18;
@@ -361,7 +356,7 @@ export function ZCurveLiveChart({
     } else if (price < 1) {
       return `${price.toFixed(6)} ETH`;
     }
-    
+
     return `${price.toFixed(4)} ETH`;
   };
 
@@ -379,18 +374,12 @@ export function ZCurveLiveChart({
           </h3>
           <div className="flex items-center gap-4 text-xs">
             <div className="flex items-center gap-1">
-              <span className="text-muted-foreground">
-                {t("sale.progress", "Progress")}:
-              </span>
+              <span className="text-muted-foreground">{t("sale.progress", "Progress")}:</span>
               <span className="font-medium">{saleProgress.toFixed(1)}%</span>
             </div>
             <div className="flex items-center gap-1">
-              <span className="text-muted-foreground">
-                {t("sale.current", "Current")}:
-              </span>
-              <span className="font-medium">
-                {formatReadablePrice(Number(formattedPrice))}
-              </span>
+              <span className="text-muted-foreground">{t("sale.current", "Current")}:</span>
+              <span className="font-medium">{formatReadablePrice(Number(formattedPrice))}</span>
             </div>
           </div>
         </div>
@@ -401,10 +390,7 @@ export function ZCurveLiveChart({
         )}
       </div>
 
-      <div
-        ref={chartContainerRef}
-        className="w-full h-[400px] bg-background border border-border rounded-lg"
-      />
+      <div ref={chartContainerRef} className="w-full h-[400px] bg-background border border-border rounded-lg" />
 
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <div className="flex items-center gap-4">
@@ -421,13 +407,9 @@ export function ZCurveLiveChart({
           {previewAmount && previewAmount > 0n ? (
             <>
               <div className="flex items-center gap-1">
-                <div
-                  className={`w-3 h-[2px] ${isBuying ? "bg-blue-500" : "bg-red-500"}`}
-                />
+                <div className={`w-3 h-[2px] ${isBuying ? "bg-blue-500" : "bg-red-500"}`} />
                 <span>
-                  {isBuying
-                    ? t("trade.buy_preview", "Buy Preview")
-                    : t("trade.sell_preview", "Sell Preview")}
+                  {isBuying ? t("trade.buy_preview", "Buy Preview") : t("trade.sell_preview", "Sell Preview")}
                 </span>
               </div>
               <div className="flex items-center gap-1">
@@ -437,10 +419,14 @@ export function ZCurveLiveChart({
                     const endPoint = isBuying ? netSold + previewAmount : netSold - previewAmount;
                     if (endPoint < 0n || endPoint > saleCap) return null;
                     const newCost = calculateCost(endPoint + UNIT_SCALE) - calculateCost(endPoint);
-                    const priceImpact = ((Number(formatEther(newCost)) - Number(formatEther(currentCost))) / Number(formatEther(currentCost))) * 100;
+                    const priceImpact =
+                      ((Number(formatEther(newCost)) - Number(formatEther(currentCost))) /
+                        Number(formatEther(currentCost))) *
+                      100;
                     return (
                       <span className={priceImpact >= 0 ? "text-red-500" : "text-green-500"}>
-                        {priceImpact >= 0 ? "+" : ""}{priceImpact.toFixed(2)}% {t("trade.price_impact", "impact")}
+                        {priceImpact >= 0 ? "+" : ""}
+                        {priceImpact.toFixed(2)}% {t("trade.price_impact", "impact")}
                       </span>
                     );
                   })()}
@@ -452,24 +438,23 @@ export function ZCurveLiveChart({
         <div className="flex items-center gap-4">
           {netSold > 0n && (
             <div>
-              {t("sale.current_price_label", "Current Price")}:{" "}
-              {(() => {
+              {t("sale.current_price_label", "Current Price")}: {(() => {
                 // Calculate marginal price at current netSold
                 // For very early sales, use the actual delta between current and next unit
                 const currentCost = calculateCost(netSold);
                 const nextCost = calculateCost(netSold + UNIT_SCALE);
                 const marginalPrice = nextCost - currentCost;
-                
+
                 return formatReadablePrice(Number(formatEther(marginalPrice)));
               })()}
             </div>
           )}
           <div>
-            {t("sale.tokens_sold", "Sold")}: {formatEther(netSold).slice(0, 8)}{" "}
-            / {formatEther(saleCap).slice(0, 8)}
+            {t("sale.tokens_sold", "Sold")}: {formatEther(netSold).slice(0, 8)} / {formatEther(saleCap).slice(0, 8)}
             {saleCap > 0n && (
               <span className="text-muted-foreground">
-                {" "}({((Number(netSold) / Number(saleCap)) * 100).toFixed(2)}%)
+                {" "}
+                ({((Number(netSold) / Number(saleCap)) * 100).toFixed(2)}%)
               </span>
             )}
           </div>

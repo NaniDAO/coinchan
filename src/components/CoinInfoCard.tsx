@@ -56,12 +56,7 @@ export const CoinInfoCard = ({
             </div>
           </div>
         ) : (
-          <CoinImagePopup
-            imageUrl={currentImageUrl}
-            coinName={name}
-            coinSymbol={symbol}
-            size="md"
-          />
+          <CoinImagePopup imageUrl={currentImageUrl} coinName={name} coinSymbol={symbol} size="md" />
         )}
       </div>
       <div className="flex flex-col flex-grow overflow-hidden">
@@ -114,11 +109,7 @@ export const CoinInfoCard = ({
         {/* Creator */}
         {creator && (
           <div className="mt-2">
-            <CreatorDisplay 
-              address={creator} 
-              size="sm"
-              className="text-xs"
-            />
+            <CreatorDisplay address={creator} size="sm" className="text-xs" />
           </div>
         )}
 
@@ -138,10 +129,9 @@ export const CoinInfoCard = ({
                         0%
                         <span className="ml-1 text-xs text-muted-foreground cursor-help">ⓘ</span>
                         <span className="absolute left-0 bottom-full mb-2 hidden group-hover:block bg-popover text-popover-foreground text-xs p-2 rounded shadow-lg whitespace-nowrap z-10">
-                          {zcurveFeeOrHook && BigInt(zcurveFeeOrHook) < 10000n ? 
-                            `${(Number(zcurveFeeOrHook) / 100).toFixed(2)}% swap fee will begin once graduated to zAMM` : 
-                            "0.3% swap fee will begin once graduated to zAMM"
-                          }
+                          {zcurveFeeOrHook && BigInt(zcurveFeeOrHook) < 10000n
+                            ? `${(Number(zcurveFeeOrHook) / 100).toFixed(2)}% swap fee will begin once graduated to zAMM`
+                            : "0.3% swap fee will begin once graduated to zAMM"}
                         </span>
                       </span>
                     ) : (

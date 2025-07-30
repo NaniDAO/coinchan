@@ -30,12 +30,7 @@ interface PriceChartProps {
   } | null;
 }
 
-const PoolPriceChart: React.FC<PriceChartProps> = ({
-  poolId,
-  ticker,
-  ethUsdPrice,
-  priceImpact,
-}) => {
+const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker, ethUsdPrice, priceImpact }) => {
   const { t } = useTranslation();
   const [showUsd, setShowUsd] = useState(false);
   const [chartError, setChartError] = useState<string | null>(null);
@@ -54,20 +49,8 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({
   });
 
   const { data, isLoading, error } = useQuery({
-    queryKey: [
-      "poolPricePoints",
-      poolId,
-      timeRange.startTs,
-      timeRange.endTs,
-      timeRange.desiredPoints,
-    ],
-    queryFn: () =>
-      fetchPoolPricePoints(
-        poolId,
-        timeRange.startTs,
-        timeRange.endTs,
-        timeRange.desiredPoints,
-      ),
+    queryKey: ["poolPricePoints", poolId, timeRange.startTs, timeRange.endTs, timeRange.desiredPoints],
+    queryFn: () => fetchPoolPricePoints(poolId, timeRange.startTs, timeRange.endTs, timeRange.desiredPoints),
     staleTime: 60000, // Consider data fresh for 1 minute
     gcTime: 300000, // Keep in cache for 5 minutes (formerly cacheTime)
     retry: 3,
@@ -132,8 +115,7 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({
             onClick={setLast24Hours}
             className={cn(
               "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
-              timeRange.activeButton === "24hr" &&
-                "bg-accent text-accent-foreground",
+              timeRange.activeButton === "24hr" && "bg-accent text-accent-foreground",
             )}
           >
             {t("coin.24h")}
@@ -142,8 +124,7 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({
             onClick={setLastWeek}
             className={cn(
               "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
-              timeRange.activeButton === "1w" &&
-                "bg-accent text-accent-foreground",
+              timeRange.activeButton === "1w" && "bg-accent text-accent-foreground",
             )}
           >
             {t("coin.7d")}
@@ -152,8 +133,7 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({
             onClick={setLastMonth}
             className={cn(
               "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
-              timeRange.activeButton === "1m" &&
-                "bg-accent text-accent-foreground",
+              timeRange.activeButton === "1m" && "bg-accent text-accent-foreground",
             )}
           >
             {t("coin.30d")}
@@ -162,8 +142,7 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({
             onClick={setAllTime}
             className={cn(
               "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
-              timeRange.activeButton === "all" &&
-                "bg-accent text-accent-foreground",
+              timeRange.activeButton === "all" && "bg-accent text-accent-foreground",
             )}
           >
             {t("coin.all")}
@@ -224,9 +203,7 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({
           priceImpact={priceImpact}
         />
       ) : (
-        <div className="text-center py-20 text-muted-foreground">
-          {t("chart.no_data")}
-        </div>
+        <div className="text-center py-20 text-muted-foreground">{t("chart.no_data")}</div>
       )}
     </div>
   );
@@ -251,8 +228,7 @@ const TVPriceChart: React.FC<{
   const impactSeriesRef = useRef<ISeriesApi<"Line">>();
   const chartTheme = useChartTheme();
   const [isChartReady, setIsChartReady] = useState(false);
-  const lastValidDataRef =
-    useRef<Array<{ time: UTCTimestamp; value: number }>>();
+  const lastValidDataRef = useRef<Array<{ time: UTCTimestamp; value: number }>>();
 
   useLayoutEffect(() => {
     const container = containerRef.current;
@@ -368,8 +344,7 @@ const TVPriceChart: React.FC<{
 
   // Simple effect to process and display data with price impact
   useEffect(() => {
-    if (!priceSeriesRef.current || !impactSeriesRef.current || !isChartReady)
-      return;
+    if (!priceSeriesRef.current || !impactSeriesRef.current || !isChartReady) return;
 
     if (!priceData || priceData.length === 0) {
       if (lastValidDataRef.current && lastValidDataRef.current.length > 0) {
@@ -452,8 +427,7 @@ const TVPriceChart: React.FC<{
               ];
 
               // Update impact series color based on buy/sell action
-              const impactColor =
-                priceImpact.action === "buy" ? "#10b981" : "#ef4444"; // green for buy, red for sell
+              const impactColor = priceImpact.action === "buy" ? "#10b981" : "#ef4444"; // green for buy, red for sell
               impactSeriesRef.current.applyOptions({
                 color: impactColor,
               });
@@ -492,11 +466,7 @@ const TVPriceChart: React.FC<{
 
   return (
     <div className="relative">
-      <div
-        ref={containerRef}
-        className="w-full"
-        style={{ height: "400px", position: "relative", zIndex: 1 }}
-      />
+      <div ref={containerRef} className="w-full" style={{ height: "400px", position: "relative", zIndex: 1 }} />
       {!isChartReady && (
         <div className="absolute inset-0 flex items-center justify-center bg-background/80">
           <LoadingLogo size="sm" />

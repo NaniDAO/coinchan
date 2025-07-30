@@ -20,7 +20,7 @@ export const PoolOverview = ({
   } | null;
 }) => {
   const { t } = useTranslation();
-  
+
   return (
     <Tabs defaultValue="activity">
       <TabsList>

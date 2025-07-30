@@ -25,7 +25,7 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
   const { data: saleData } = useCoinSale({
     coinId: coin.coinId.toString(),
   });
-  
+
   // Fetch zCurve sale data
   const { data: zCurveSale } = useZCurveSale(coin.coinId.toString());
 
@@ -141,26 +141,19 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
         <div className="px-2 pb-2">
           <ZCurveSaleBadge coinId={coin.coinId.toString()} />
         </div>
-        
+
         {/* Creator display for zCurve coins */}
         {zCurveSale && zCurveSale.creator && (
           <div className="px-2 pb-2">
-            <CreatorDisplay 
-              address={zCurveSale.creator} 
-              size="sm"
-              className="text-xs justify-center"
-            />
+            <CreatorDisplay address={zCurveSale.creator} size="sm" className="text-xs justify-center" />
           </div>
         )}
-        
+
         {/* Bonding curve preview for zCurve sales */}
         {zCurveSale && (
           <div className="px-2 pb-2 w-full">
             <div className="border border-border rounded-sm p-1 bg-muted/20">
-              <ZCurveMiniChart 
-                sale={zCurveSale} 
-                className="h-12 w-full"
-              />
+              <ZCurveMiniChart sale={zCurveSale} className="h-12 w-full" />
             </div>
           </div>
         )}

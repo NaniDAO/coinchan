@@ -1,13 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
-import {
-  useAccount,
-  useBalance,
-  useReadContract,
-  useWriteContract,
-  useWaitForTransactionReceipt,
-} from "wagmi";
+import { useAccount, useBalance, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { mainnet } from "viem/chains";
 
 import { Button } from "@/components/ui/button";
@@ -18,12 +12,7 @@ import { Loader2 } from "lucide-react";
 
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { nowSec, formatNumber } from "@/lib/utils";
-import {
-  DEADLINE_SEC,
-  SLIPPAGE_BPS,
-  withSlippage,
-  type CookbookPoolKey,
-} from "@/lib/swap";
+import { DEADLINE_SEC, SLIPPAGE_BPS, withSlippage, type CookbookPoolKey } from "@/lib/swap";
 import { handleWalletError } from "@/lib/errors";
 import { useTokenSelection } from "@/contexts/TokenSelectionContext";
 import { useReserves } from "@/hooks/use-reserves";
@@ -56,11 +45,7 @@ interface ZCurveAddLiquidityProps {
   feeOrHook?: bigint;
 }
 
-export function ZCurveAddLiquidity({
-  coinId,
-  poolId: providedPoolId,
-  feeOrHook = 30n,
-}: ZCurveAddLiquidityProps) {
+export function ZCurveAddLiquidity({ coinId, poolId: providedPoolId, feeOrHook = 30n }: ZCurveAddLiquidityProps) {
   const { t } = useTranslation();
   const { address, isConnected } = useAccount();
   const { sellToken, buyToken } = useTokenSelection();
@@ -68,9 +53,7 @@ export function ZCurveAddLiquidity({
   // State
   const [ethAmount, setEthAmount] = useState("");
   const [tokenAmount, setTokenAmount] = useState("");
-  const [lastEditedField, setLastEditedField] = useState<"eth" | "token">(
-    "eth",
-  );
+  const [lastEditedField, setLastEditedField] = useState<"eth" | "token">("eth");
   const [slippageBps, setSlippageBps] = useState<bigint>(SLIPPAGE_BPS);
   const [isCalculating, setIsCalculating] = useState(false);
   const [estimatedLpTokens, setEstimatedLpTokens] = useState<string>("");
@@ -79,9 +62,7 @@ export function ZCurveAddLiquidity({
 
   // Compute pool ID if not provided
   const poolId = useMemo(() => {
-    return BigInt(
-      providedPoolId || computeZCurvePoolId(BigInt(coinId), feeOrHook),
-    );
+    return BigInt(providedPoolId || computeZCurvePoolId(BigInt(coinId), feeOrHook));
   }, [providedPoolId, coinId, feeOrHook]);
 
   // Get ETH balance
@@ -147,8 +128,7 @@ export function ZCurveAddLiquidity({
         if (totalSupply > 0n && reserves?.reserve0 && reserves?.reserve1) {
           const lpFromEth = (ethAmt * totalSupply) / reserves.reserve0;
           const lpFromToken = (tokenAmt * totalSupply) / reserves.reserve1;
-          const lpTokensToMint =
-            lpFromEth < lpFromToken ? lpFromEth : lpFromToken;
+          const lpTokensToMint = lpFromEth < lpFromToken ? lpFromEth : lpFromToken;
 
           setEstimatedLpTokens(formatUnits(lpTokensToMint, 18));
 
@@ -194,14 +174,12 @@ export function ZCurveAddLiquidity({
         if (field === "eth") {
           // Calculate token amount based on ETH input
           const ethIn = parseEther(value);
-          const expectedTokens =
-            (ethIn * reserves.reserve1) / reserves.reserve0;
+          const expectedTokens = (ethIn * reserves.reserve1) / reserves.reserve0;
           setTokenAmount(formatUnits(expectedTokens, 18));
         } else {
           // Calculate ETH amount based on token input
           const tokensIn = parseUnits(value, 18);
-          const expectedEth =
-            (tokensIn * reserves.reserve0) / reserves.reserve1;
+          const expectedEth = (tokensIn * reserves.reserve0) / reserves.reserve1;
           setEthAmount(formatEther(expectedEth));
         }
       } catch (error) {
@@ -277,15 +255,7 @@ export function ZCurveAddLiquidity({
         address: CookbookAddress,
         abi: CookbookAbi,
         functionName: "addLiquidity",
-        args: [
-          poolKey,
-          amount0,
-          amount1,
-          amount0Min,
-          amount1Min,
-          address,
-          deadline,
-        ],
+        args: [poolKey, amount0, amount1, amount0Min, amount1Min, address, deadline],
         value: amount0, // Send ETH
       });
 
@@ -313,10 +283,7 @@ export function ZCurveAddLiquidity({
   return (
     <div className="space-y-4">
       <div className="text-sm text-muted-foreground">
-        {t(
-          "liquidity.add_liquidity_description",
-          "Add liquidity to earn fees from trades",
-        )}
+        {t("liquidity.add_liquidity_description", "Add liquidity to earn fees from trades")}
       </div>
 
       {/* ETH Input - Using SwapPanel correctly */}
@@ -333,9 +300,7 @@ export function ZCurveAddLiquidity({
         isEthBalanceFetching={isPending}
         showMaxButton={true}
         onMax={() => {
-          const maxEth = ethBalance?.value
-            ? formatEther((ethBalance.value * 99n) / 100n)
-            : "0";
+          const maxEth = ethBalance?.value ? formatEther((ethBalance.value * 99n) / 100n) : "0";
           setEthAmount(maxEth);
           setLastEditedField("eth");
         }}
@@ -375,8 +340,7 @@ export function ZCurveAddLiquidity({
           <AlertDescription>
             <div className="space-y-1">
               <div>
-                {t("liquidity.estimated_lp_tokens")}:{" "}
-                {formatNumber(parseFloat(estimatedLpTokens), 6)} LP
+                {t("liquidity.estimated_lp_tokens")}: {formatNumber(parseFloat(estimatedLpTokens), 6)} LP
               </div>
               <div>
                 {t("liquidity.pool_share")}: {estimatedPoolShare}
@@ -411,13 +375,7 @@ export function ZCurveAddLiquidity({
       {/* Add Liquidity Button */}
       <Button
         onClick={handleAddLiquidity}
-        disabled={
-          !isConnected ||
-          isPending ||
-          !ethAmount ||
-          !tokenAmount ||
-          isCalculating
-        }
+        disabled={!isConnected || isPending || !ethAmount || !tokenAmount || isCalculating}
         className="w-full"
         size="lg"
       >

@@ -27,11 +27,7 @@ export const PoolChart = ({ poolId, coinSymbol, ethPrice }: PoolChartProps) => {
         }
       >
         {chartType === "line" ? (
-          <PoolPriceChart
-            poolId={poolId}
-            ticker={coinSymbol}
-            ethUsdPrice={ethPrice?.priceUSD}
-          />
+          <PoolPriceChart poolId={poolId} ticker={coinSymbol} ethUsdPrice={ethPrice?.priceUSD} />
         ) : (
           <PoolCandleChart poolId={poolId} interval="1d" />
         )}
@@ -41,9 +37,7 @@ export const PoolChart = ({ poolId, coinSymbol, ethPrice }: PoolChartProps) => {
           onClick={() => setChartType("candle")}
           className={cn(
             "h-8 p-1 flex items-center justify-center",
-            chartType === "candle"
-              ? "bg-primary !text-primary-foreground"
-              : "bg-transparent",
+            chartType === "candle" ? "bg-primary !text-primary-foreground" : "bg-transparent",
           )}
         >
           <CandlestickChartIcon className="h-4 w-4" />
@@ -52,9 +46,7 @@ export const PoolChart = ({ poolId, coinSymbol, ethPrice }: PoolChartProps) => {
           onClick={() => setChartType("line")}
           className={cn(
             "h-8 p-1 flex items-center justify-center",
-            chartType === "line"
-              ? "bg-primary !text-primary-foreground"
-              : "bg-transparent",
+            chartType === "line" ? "bg-primary !text-primary-foreground" : "bg-transparent",
           )}
         >
           <LineChartIcon className="h-4 w-4" />

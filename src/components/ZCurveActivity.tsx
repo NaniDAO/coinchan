@@ -28,18 +28,18 @@ type ActivityEvent = {
 export function ZCurveActivity({ coinId, coinSymbol }: ZCurveActivityProps) {
   const { t } = useTranslation();
   const [limit, setLimit] = useState(10);
-  
+
   const { data: purchases, isLoading: purchasesLoading } = useZCurvePurchases(coinId, limit);
   const { data: sells, isLoading: sellsLoading } = useZCurveSells(coinId, limit);
-  
+
   const isLoading = purchasesLoading || sellsLoading;
-  
+
   // Combine and sort events by timestamp
   const events = useMemo(() => {
     const allEvents: ActivityEvent[] = [];
-    
+
     if (purchases) {
-      purchases.forEach(purchase => {
+      purchases.forEach((purchase) => {
         allEvents.push({
           type: "BUY",
           timestamp: purchase.timestamp,
@@ -51,9 +51,9 @@ export function ZCurveActivity({ coinId, coinSymbol }: ZCurveActivityProps) {
         });
       });
     }
-    
+
     if (sells) {
-      sells.forEach(sell => {
+      sells.forEach((sell) => {
         allEvents.push({
           type: "SELL",
           timestamp: sell.timestamp,
@@ -65,11 +65,11 @@ export function ZCurveActivity({ coinId, coinSymbol }: ZCurveActivityProps) {
         });
       });
     }
-    
+
     // Sort by timestamp descending (newest first)
     return allEvents.sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
   }, [purchases, sells]);
-  
+
   // Format price with appropriate precision
   const formatPrice = (price: string) => {
     const priceNum = Number(formatEther(BigInt(price)));
@@ -82,7 +82,7 @@ export function ZCurveActivity({ coinId, coinSymbol }: ZCurveActivityProps) {
     if (priceNum < 1) return priceNum.toFixed(6);
     return priceNum.toFixed(4);
   };
-  
+
   // Format amount with appropriate precision
   const formatAmount = (amount: string, decimals = 6) => {
     const num = Number(formatEther(BigInt(amount)));
@@ -91,7 +91,7 @@ export function ZCurveActivity({ coinId, coinSymbol }: ZCurveActivityProps) {
     if (num < 1000) return num.toFixed(4);
     return num.toLocaleString(undefined, { maximumFractionDigits: 2 });
   };
-  
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -99,7 +99,7 @@ export function ZCurveActivity({ coinId, coinSymbol }: ZCurveActivityProps) {
       </div>
     );
   }
-  
+
   return (
     <div className="space-y-4">
       <div className="rounded-md border overflow-hidden">
@@ -125,31 +125,23 @@ export function ZCurveActivity({ coinId, coinSymbol }: ZCurveActivityProps) {
             ) : (
               events.map((event, idx) => (
                 <TableRow key={`${event.txHash}-${idx}`}>
-                  <TableCell className="whitespace-nowrap text-xs">
-                    {formatTimeAgo(Number(event.timestamp))}
-                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-xs">{formatTimeAgo(Number(event.timestamp))}</TableCell>
                   <TableCell>
                     <Badge
                       variant={event.type === "BUY" ? "default" : "destructive"}
                       className={cn(
                         "font-semibold",
-                        event.type === "BUY" 
+                        event.type === "BUY"
                           ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
-                          : "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
+                          : "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400",
                       )}
                     >
                       {event.type}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right font-mono text-sm">
-                    {formatAmount(event.ethAmount)}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-sm">
-                    {formatAmount(event.tokenAmount)}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-sm">
-                    {formatPrice(event.pricePerToken)} ETH
-                  </TableCell>
+                  <TableCell className="text-right font-mono text-sm">{formatAmount(event.ethAmount)}</TableCell>
+                  <TableCell className="text-right font-mono text-sm">{formatAmount(event.tokenAmount)}</TableCell>
+                  <TableCell className="text-right font-mono text-sm">{formatPrice(event.pricePerToken)} ETH</TableCell>
                   <TableCell>
                     <div className="flex items-center justify-center gap-1">
                       <AddressIcon address={event.maker as `0x${string}`} className="h-5 w-5 rounded-full" />
@@ -179,13 +171,10 @@ export function ZCurveActivity({ coinId, coinSymbol }: ZCurveActivityProps) {
           </TableBody>
         </Table>
       </div>
-      
+
       {events.length >= limit && (
         <div className="flex justify-center">
-          <button
-            onClick={() => setLimit(limit + 10)}
-            className="text-sm text-primary hover:underline"
-          >
+          <button onClick={() => setLimit(limit + 10)} className="text-sm text-primary hover:underline">
             {t("common.load_more", "Load more")}
           </button>
         </div>
