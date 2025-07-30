@@ -1052,8 +1052,8 @@
     "total_trades": "Total trades"
   },
   "about": {
-    "title": "About ZAMM",
-    "description": "ZAMM makes it easy to create and trade coins on Ethereum. Create your own coins, sell them directly to others, or set up trading pools to earn fees - all in one simple, low-cost platform. ZAMM works with all token types and lets you customize features like fees and trading rules. Perfect for experimenting with new DeFi ideas without the complexity.",
+    "title": "About zAMM",
+    "description": "zAMM makes it easy to create and trade coins on Ethereum. Create your own coins, sell them directly to others, or set up trading pools to earn fees - all in one simple, low-cost platform. ZAMM works with all token types and lets you customize features like fees and trading rules. Perfect for experimenting with new DeFi ideas without the complexity.",
     "features_title": "FEATURES:",
     "fair_launch": "Fair launch sandbox",
     "community_governance": "Community governance",
