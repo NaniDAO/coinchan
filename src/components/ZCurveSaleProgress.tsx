@@ -255,7 +255,7 @@ export const ZCurveSaleProgress = memo(({ sale }: ZCurveSaleProgressProps) => {
     return getDisplayPrice(
       saleData.isFinalized,
       marketPriceInWei,
-      sale.currentPrice,
+      onchainData?.currentPrice || sale.currentPrice,
       finalizationData,
       saleData.netSold,
       saleData.ethEscrow,
@@ -263,6 +263,7 @@ export const ZCurveSaleProgress = memo(({ sale }: ZCurveSaleProgressProps) => {
   }, [
     saleData.isFinalized,
     marketPriceInWei,
+    onchainData?.currentPrice,
     sale.currentPrice,
     finalizationData,
     saleData.netSold,
