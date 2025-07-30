@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { formatEther } from "viem";
 import { useAccount } from "wagmi";
 import type { ZCurveSale } from "@/hooks/use-zcurve-sale";
-import { UNIT_SCALE, unpackQuadCap } from "@/lib/zCurveHelpers";
+import { UNIT_SCALE, unpackQuadCap, ZCURVE_STANDARD_PARAMS } from "@/lib/zCurveHelpers";
 import { useZCurveSaleSummary } from "@/hooks/use-zcurve-sale";
 
 interface ZCurveMiniChartProps {
@@ -34,7 +34,10 @@ export function ZCurveMiniChart({ sale, className = "" }: ZCurveMiniChartProps) 
       if (m < 2n) return 0n;
       
       const K = quadCap / UNIT_SCALE;
-      const denom = 6n * divisor;
+      // Optimize for standard divisor
+      const denom = divisor === ZCURVE_STANDARD_PARAMS.DIVISOR 
+        ? ZCURVE_STANDARD_PARAMS.DIVISOR * 6n 
+        : 6n * divisor;
       const oneETH = BigInt(1e18);
       
       if (m <= K) {

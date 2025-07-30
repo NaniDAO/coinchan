@@ -77,12 +77,9 @@ const formatPrice = (sale: any): string | JSX.Element => {
   
   if (sale.status === "FINALIZED" && priceInWei === 0) {
     const tokensSold = BigInt(sale.netSold);
-    let ethRaised = BigInt(sale.ethEscrow);
+    const ethRaised = BigInt(sale.ethEscrow);
     
-    if (ethRaised === 0n) {
-      ethRaised = BigInt(sale.ethTarget);
-    }
-    
+    // Only calculate average price if we have meaningful volume
     if (tokensSold > 0n && ethRaised > 0n) {
       priceInWei = Number((ethRaised * BigInt(1e18)) / tokensSold);
     }
@@ -371,22 +368,16 @@ export const ZCurveSales = () => {
         </div>
       </div>
       
-      {/* Animated Logo */}
+      {/* Video */}
       <video
-        className="fixed bottom-5 right-5 w-32 h-32 md:w-40 md:h-40 opacity-80 pointer-events-none"
+        className="fixed bottom-5 right-5 w-40 h-40"
         style={{
           clipPath: "polygon(50% 10%, 75% 50%, 50% 90%, 25% 50%)",
-          zIndex: 10
         }}
         src={theme === "dark" ? "/zammzamm-bw.mp4" : "/zammzamm.mp4"}
         autoPlay
         loop
         muted
-        playsInline
-        onError={(e) => {
-          // Hide video if it fails to load
-          (e.currentTarget as HTMLVideoElement).style.display = 'none';
-        }}
       />
     </div>
   );
