@@ -76,9 +76,9 @@ const formatPrice = (sale: Sale): { price: string; perEth: string } => {
         const ethLp = BigInt(sale.finalization.ethLp);
         const coinLp = BigInt(sale.finalization.coinLp);
         if (coinLp !== 0n) {
-          // Both ethLp and coinLp are already in their smallest units (wei and smallest token units)
-          // Price in wei per smallest token unit = ethLp / coinLp
-          // To get price per whole token, we DON'T multiply by decimals since coinLp already includes decimals
+          // Both ethLp and coinLp are in their smallest units (wei and smallest token units with 18 decimals)
+          // Price per smallest token unit in wei = ethLp / coinLp
+          // To get price per whole token in wei, multiply by 10^18
           priceWei = (ethLp * BigInt(1e18)) / coinLp;
         }
       } else {
@@ -86,7 +86,7 @@ const formatPrice = (sale: Sale): { price: string; perEth: string } => {
         const tokensSold = BigInt(sale.netSold ?? 0);
         const ethRaised = BigInt(sale.ethEscrow ?? 0);
         if (tokensSold !== 0n) {
-          // tokensSold is already in smallest units (includes decimals)
+          // tokensSold is in smallest units (with 18 decimals)
           // ethRaised is in wei
           // Price per whole token in wei = (ethRaised / tokensSold) * 10^18
           priceWei = (ethRaised * BigInt(1e18)) / tokensSold;
@@ -96,19 +96,42 @@ const formatPrice = (sale: Sale): { price: string; perEth: string } => {
 
     if (priceWei === 0n) return { price: "0", perEth: "" };
 
-    const eth = Number(priceWei) / 1e18;
     let priceStr = "";
 
-    if (eth < 1e-15) {
+    // Handle different price ranges with appropriate units
+    if (priceWei < 1000n) {
+      // Less than 1000 wei - show as wei
       priceStr = `${priceWei.toString()} wei`;
-    } else if (eth < 1e-9) {
-      priceStr = `${(eth * 1e9).toFixed(3)} gwei`;
-    } else if (eth < 1e-6) {
-      priceStr = `${(eth * 1e6).toFixed(3)} μETH`;
-    } else if (eth < 0.01) {
-      priceStr = `${eth.toFixed(12).replace(/\.?0+$/, "")} ETH`;
-    } else {
+    } else if (priceWei < 1000000000n) {
+      // Less than 1 gwei - show as thousands of wei or gwei with decimals
+      const gwei = Number(priceWei) / 1e9;
+      if (gwei < 0.001) {
+        priceStr = `${(Number(priceWei) / 1000).toFixed(1)}K wei`;
+      } else {
+        priceStr = `${gwei.toFixed(3)} gwei`;
+      }
+    } else if (priceWei < BigInt(1e15)) {
+      // Less than 0.001 ETH - show as gwei
+      const gwei = Number(priceWei) / 1e9;
+      if (gwei >= 1000000) {
+        priceStr = `${(gwei / 1e6).toFixed(3)}M gwei`;
+      } else if (gwei >= 1000) {
+        priceStr = `${(gwei / 1000).toFixed(3)}K gwei`;
+      } else {
+        priceStr = `${gwei.toFixed(3)} gwei`;
+      }
+    } else if (priceWei < BigInt(1e16)) {
+      // Less than 0.01 ETH - show as μETH
+      const microEth = Number(priceWei) / 1e12;
+      priceStr = `${microEth.toFixed(3)} μETH`;
+    } else if (priceWei < BigInt(1e18)) {
+      // Less than 1 ETH
+      const eth = Number(priceWei) / 1e18;
       priceStr = `${eth.toFixed(6)} ETH`;
+    } else {
+      // 1 ETH or more
+      const eth = Number(priceWei) / 1e18;
+      priceStr = `${eth.toFixed(4)} ETH`;
     }
 
     const perEth = formatCoinsPerEth(priceWei);

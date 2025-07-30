@@ -598,3 +598,50 @@ body {
 ::-webkit-scrollbar-corner {
   background: var(--terminal-gray);
 }
+
+/* Chart stability improvements */
+.tv-lightweight-charts {
+  min-height: 300px;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.tv-lightweight-charts canvas {
+  image-rendering: crisp-edges;
+  image-rendering: -webkit-optimize-contrast;
+}
+
+/* Prevent chart flashing */
+.chart-container {
+  position: relative;
+  min-height: 400px;
+}
+
+.chart-container .loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+/* Price impact visualization */
+.price-impact-line {
+  stroke-dasharray: 5, 5;
+  animation: dash 1s linear infinite;
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: -10;
+  }
+}
+
+/* Smooth transitions for chart updates */
+.chart-update-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}

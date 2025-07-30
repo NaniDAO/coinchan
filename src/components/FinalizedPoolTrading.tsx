@@ -4,7 +4,7 @@ import { formatEther, formatUnits } from "viem";
 import { useAccount } from "wagmi";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CookbookSwapTile } from "@/components/CookbookSwapTile";
+import { EnhancedCookbookSwapTile } from "@/components/EnhancedCookbookSwapTile";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ZCurveClaim } from "@/components/ZCurveClaim";
 import { useETHPrice } from "@/hooks/use-eth-price";
@@ -20,7 +20,7 @@ import { computeZCurvePoolId } from "@/lib/zCurvePoolId";
 import { useReserves } from "@/hooks/use-reserves";
 import { formatNumber } from "@/lib/utils";
 import React from "react";
-import { PoolChart } from "./PoolChart";
+import { EnhancedPoolChart } from "./EnhancedPoolChart";
 import { ChevronDown } from "lucide-react";
 
 interface FinalizedPoolTradingProps {
@@ -43,6 +43,13 @@ function FinalizedPoolTradingInner({
   const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState<"swap" | "add" | "remove">("swap");
   const { setSellToken, setBuyToken } = useTokenSelection();
+  const [priceImpact, setPriceImpact] = useState<{
+    currentPrice: number;
+    projectedPrice: number;
+    impactPercent: number;
+    action: "buy" | "sell";
+  } | null>(null);
+  const [chartRefreshKey, setChartRefreshKey] = useState(0);
 
   // Fetch sale and user data
   const { data: sale } = useZCurveSale(coinId);
@@ -66,7 +73,7 @@ function FinalizedPoolTradingInner({
   }, [providedPoolId, coinId, sale]);
 
   // Fetch pool reserves
-  const { data: reserves } = useReserves({
+  const { data: reserves, refetch: refetchReserves } = useReserves({
     poolId: poolId ? BigInt(poolId) : undefined,
     source: "COOKBOOK" as const,
   });
@@ -132,13 +139,14 @@ function FinalizedPoolTradingInner({
   const { data: ethPrice } = useETHPrice();
 
   // Calculate market cap and price
-  const { coinPrice, coinUsdPrice, marketCapUsd } = useMemo(() => {
+  const { coinPrice, coinUsdPrice, marketCapUsd, marketCapEth } = useMemo(() => {
     if (!reserves || reserves.reserve0 === 0n || reserves.reserve1 === 0n) {
       console.warn("No reserves available for pool:", poolId, reserves);
       return {
         coinPrice: 0,
         coinUsdPrice: 0,
         marketCapUsd: 0,
+        marketCapEth: 0,
       };
     }
 
@@ -152,6 +160,7 @@ function FinalizedPoolTradingInner({
         coinPrice: 0,
         coinUsdPrice: 0,
         marketCapUsd: 0,
+        marketCapEth: 0,
       };
     }
 
@@ -159,8 +168,9 @@ function FinalizedPoolTradingInner({
     const usdPrice = price * (ethPrice?.priceUSD || 0);
 
     // Use 1 billion (1e9) as the total supply for all zCurve launched tokens
-    const totalSupply = 1_000_000_000n * 10n ** 18n; // 1 billion tokens with 18 decimals
-    const marketCap = usdPrice * Number(formatUnits(totalSupply, 18));
+    const totalSupply = 1_000_000_000; // 1 billion tokens
+    const marketCapInEth = price * totalSupply;
+    const marketCap = usdPrice * totalSupply;
 
     console.log("Price calculation:", {
       ethReserve,
@@ -168,6 +178,7 @@ function FinalizedPoolTradingInner({
       price,
       usdPrice,
       marketCap,
+      marketCapInEth,
       ethPriceUSD: ethPrice?.priceUSD,
     });
 
@@ -175,6 +186,7 @@ function FinalizedPoolTradingInner({
       coinPrice: price,
       coinUsdPrice: usdPrice,
       marketCapUsd: marketCap,
+      marketCapEth: marketCapInEth,
     };
   }, [reserves, ethPrice?.priceUSD, poolId]);
 
@@ -191,7 +203,17 @@ function FinalizedPoolTradingInner({
       <div className="flex flex-col lg:grid lg:grid-cols-10 gap-4">
         {/* Mobile: Swap first, Desktop: Chart on left */}
         <div className="order-2 lg:order-1 col-span-1 lg:col-span-7">
-          <PoolChart poolId={poolId} coinSymbol={coinSymbol} ethPrice={ethPrice} />
+          <EnhancedPoolChart 
+            key={chartRefreshKey}
+            poolId={poolId} 
+            coinSymbol={coinSymbol} 
+            ethPrice={ethPrice}
+            priceImpact={priceImpact}
+            onTransactionSuccess={() => {
+              refetchReserves();
+              setChartRefreshKey(prev => prev + 1);
+            }}
+          />
         </div>
 
         <Tabs className="order-1 lg:order-2 col-span-1 lg:col-span-3" value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
@@ -220,13 +242,18 @@ function FinalizedPoolTradingInner({
           <TabsContent value="swap" className="mt-4">
             {/* Swap Section - Desktop: Right, Mobile: Top */}
             <div className="w-full">
-              <CookbookSwapTile
+              <EnhancedCookbookSwapTile
                 coinId={coinId}
                 coinName={sale?.coin?.name || coinName}
                 coinSymbol={sale?.coin?.symbol || coinSymbol}
                 coinIcon={sale?.coin?.imageUrl || coinIcon}
                 poolId={poolId}
                 feeOrHook={actualFee}
+                onPriceImpactChange={setPriceImpact}
+                onTransactionSuccess={() => {
+                  refetchReserves();
+                  setChartRefreshKey(prev => prev + 1);
+                }}
               />
             </div>
           </TabsContent>
@@ -264,13 +291,25 @@ function FinalizedPoolTradingInner({
                   ? `${((reserves.reserve0 * BigInt(1e18)) / reserves.reserve1).toString()} wei`
                   : coinPrice < 1e-9
                     ? `${(coinPrice * 1e9).toFixed(3)} gwei`
-                    : coinPrice < 0.00000001
-                      ? `${coinPrice.toExponential(4)} ETH`
-                      : `${coinPrice.toFixed(8)} ETH`
+                    : coinPrice < 1e-6
+                      ? `${(coinPrice * 1e6).toFixed(3)} μETH`
+                    : coinPrice < 0.001
+                      ? `${(coinPrice * 1000).toFixed(4)} mETH`
+                    : coinPrice < 0.01
+                      ? `${coinPrice.toFixed(6)} ETH`
+                    : coinPrice < 1
+                      ? `${coinPrice.toFixed(4)} ETH`
+                      : `${coinPrice.toFixed(2)} ETH`
                 : "0.00000000 ETH"}
             </div>
             <div className="text-sm text-muted-foreground">
-              {ethPrice?.priceUSD && coinUsdPrice > 0 ? `$${coinUsdPrice.toFixed(2)}` : ethPrice ? "$0.00" : "Loading..."}
+              {ethPrice?.priceUSD && coinUsdPrice > 0 
+                ? coinUsdPrice < 0.01 
+                  ? `$${coinUsdPrice.toFixed(6)}`
+                  : coinUsdPrice < 1 
+                    ? `$${coinUsdPrice.toFixed(4)}`
+                    : `$${coinUsdPrice.toFixed(2)}`
+                : ethPrice ? "$0.00" : "Loading..."}
             </div>
           </div>
 
@@ -278,14 +317,27 @@ function FinalizedPoolTradingInner({
           <div>
             <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1 sm:mb-2">Market Cap</div>
             <div className="font-semibold text-sm sm:text-base lg:text-lg">
-              {ethPrice?.priceUSD ? (
-                marketCapUsd > 1e9
-                  ? `$${(marketCapUsd / 1e9).toFixed(2)}B`
-                  : marketCapUsd > 1e6
-                    ? `$${(marketCapUsd / 1e6).toFixed(2)}M`
-                    : marketCapUsd > 0
-                      ? `$${(marketCapUsd / 1e3).toFixed(2)}K`
-                      : "$0.00M"
+              {reserves && marketCapEth > 0 ? (
+                <>
+                  {marketCapEth < 1
+                    ? `${marketCapEth.toFixed(4)} ETH`
+                    : marketCapEth < 1000
+                      ? `${marketCapEth.toFixed(2)} ETH`
+                      : `${(marketCapEth / 1000).toFixed(2)}K ETH`}
+                  {ethPrice?.priceUSD && marketCapUsd > 0 && (
+                    <span className="text-muted-foreground text-xs ml-1">
+                      (~$
+                      {marketCapUsd > 1e9
+                        ? `${(marketCapUsd / 1e9).toFixed(2)}B`
+                        : marketCapUsd > 1e6
+                          ? `${(marketCapUsd / 1e6).toFixed(2)}M`
+                          : marketCapUsd > 1000
+                            ? `${(marketCapUsd / 1e3).toFixed(2)}K`
+                            : marketCapUsd.toFixed(0)}
+                      )
+                    </span>
+                  )}
+                </>
               ) : (
                 "Loading..."
               )}
