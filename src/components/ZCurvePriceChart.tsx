@@ -14,11 +14,11 @@ interface ZCurvePriceChartProps {
   // defaultView?: "line" | "candlestick";
 }
 
-export function ZCurvePriceChart({ 
-  sale, 
-  previewAmount, 
+export function ZCurvePriceChart({
+  sale,
+  previewAmount,
   isBuying = true,
-  // defaultView = "line" 
+  // defaultView = "line"
 }: ZCurvePriceChartProps) {
   const { t } = useTranslation();
   // const [chartType, setChartType] = useState<"line" | "candlestick">(defaultView);
@@ -27,10 +27,8 @@ export function ZCurvePriceChart({
     <div className="space-y-4">
       {/* Chart type toggle */}
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">
-          {t("chart.curve_chart", "Curve Chart")}
-        </h3>
-        
+        <h3 className="text-lg font-semibold">{t("chart.curve_chart", "Curve Chart")}</h3>
+
         {/* Candlestick toggle removed - only line chart available */}
         {/* <div className="flex items-center gap-1 border border-border rounded-md p-1">
           <Button
@@ -57,11 +55,7 @@ export function ZCurvePriceChart({
       {/* Chart content */}
       <div>
         {/* Only show line chart - candlestick chart removed */}
-        <ZCurveLiveChart 
-          sale={sale} 
-          previewAmount={previewAmount} 
-          isBuying={isBuying} 
-        />
+        <ZCurveLiveChart sale={sale} previewAmount={previewAmount} isBuying={isBuying} />
         {/* Candlestick chart code removed
         {chartType === "line" ? (
           <ZCurveLiveChart 

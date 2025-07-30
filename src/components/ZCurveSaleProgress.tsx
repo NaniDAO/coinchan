@@ -264,23 +264,20 @@ export const ZCurveSaleProgress = memo(({ sale }: ZCurveSaleProgressProps) => {
   ]);
 
   // Format values for display
-  const displayValues = useMemo(
-    () => {
-      const priceInEth = Number(formatEther(displayPriceInWei));
-      const usdPrice = priceInEth * (ethPrice?.priceUSD || 0);
-      
-      return {
-        ethAmount: formatEthAmount(Number(formatEther(saleData.ethEscrow))),
-        netSoldFormatted: formatTokenAmount(Number(formatEther(saleData.netSold))),
-        saleCapFormatted: formatTokenAmount(Number(formatEther(saleData.saleCap))),
-        priceDisplay: formatPriceDisplay(displayPriceInWei, ethPrice?.priceUSD),
-        coinsPerEth: formatCoinsPerEth(displayPriceInWei),
-        usdPrice: usdPrice,
-        showUsdPrice: usdPrice > 0 && priceInEth < 0.001, // Show USD for small prices
-      };
-    },
-    [saleData.ethEscrow, saleData.netSold, saleData.saleCap, displayPriceInWei, ethPrice?.priceUSD],
-  );
+  const displayValues = useMemo(() => {
+    const priceInEth = Number(formatEther(displayPriceInWei));
+    const usdPrice = priceInEth * (ethPrice?.priceUSD || 0);
+
+    return {
+      ethAmount: formatEthAmount(Number(formatEther(saleData.ethEscrow))),
+      netSoldFormatted: formatTokenAmount(Number(formatEther(saleData.netSold))),
+      saleCapFormatted: formatTokenAmount(Number(formatEther(saleData.saleCap))),
+      priceDisplay: formatPriceDisplay(displayPriceInWei, ethPrice?.priceUSD),
+      coinsPerEth: formatCoinsPerEth(displayPriceInWei),
+      usdPrice: usdPrice,
+      showUsdPrice: usdPrice > 0 && priceInEth < 0.001, // Show USD for small prices
+    };
+  }, [saleData.ethEscrow, saleData.netSold, saleData.saleCap, displayPriceInWei, ethPrice?.priceUSD]);
 
   return (
     <CardContent className="space-y-4 h-fit">

@@ -2,11 +2,11 @@
 
 export class FaviconManager {
   private static instance: FaviconManager;
-  private animatedFaviconUrl: string = '/zammzamm.gif';
-  private staticFaviconUrl: string = '/zammzamm.png';
-  private currentFavicon: 'animated' | 'static' = 'static';
+  private animatedFaviconUrl: string = "/zammzamm.gif";
+  private staticFaviconUrl: string = "/zammzamm.png";
+  private currentFavicon: "animated" | "static" = "static";
   private supportsAnimatedFavicon: boolean = true;
-  
+
   private constructor() {
     this.init();
   }
@@ -21,12 +21,12 @@ export class FaviconManager {
   private async init() {
     // Check if browser supports animated favicons
     this.supportsAnimatedFavicon = this.checkAnimatedFaviconSupport();
-    
+
     // Try to load animated favicon
     if (this.supportsAnimatedFavicon) {
       await this.tryLoadAnimatedFavicon();
     }
-    
+
     // Set initial favicon (prefer animated if available)
     if (this.supportsAnimatedFavicon) {
       this.setAnimated();
@@ -39,16 +39,16 @@ export class FaviconManager {
     // Safari on iOS doesn't support animated favicons
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
     if (isIOS) return false;
-    
+
     // Chrome has inconsistent animated favicon support
     // Many Chrome versions show only the first frame of GIFs
     const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
     if (isChrome) return false;
-    
+
     // Firefox and Safari (desktop) generally support animated favicons well
     const isFirefox = /Firefox/.test(navigator.userAgent);
     const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
-    
+
     // Only enable for browsers with known good support
     return isFirefox || isSafari;
   }
@@ -58,11 +58,11 @@ export class FaviconManager {
       // Check if the GIF exists
       const response = await fetch(this.animatedFaviconUrl);
       if (!response.ok) {
-        throw new Error('GIF not found');
+        throw new Error("GIF not found");
       }
       // GIF exists, we can use it (browser support already checked)
     } catch (error) {
-      console.warn('Animated favicon not available, will use static fallback');
+      console.warn("Animated favicon not available, will use static fallback");
       this.supportsAnimatedFavicon = false;
     }
   }
@@ -70,24 +70,24 @@ export class FaviconManager {
   private updateFavicon() {
     const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
     const appleTouchIcon = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement;
-    
+
     if (!favicon) {
       // Create favicon link if it doesn't exist
-      const newFavicon = document.createElement('link');
-      newFavicon.rel = 'icon';
-      newFavicon.type = this.currentFavicon === 'animated' ? 'image/gif' : 'image/png';
-      newFavicon.href = this.currentFavicon === 'animated' ? this.animatedFaviconUrl : this.staticFaviconUrl;
+      const newFavicon = document.createElement("link");
+      newFavicon.rel = "icon";
+      newFavicon.type = this.currentFavicon === "animated" ? "image/gif" : "image/png";
+      newFavicon.href = this.currentFavicon === "animated" ? this.animatedFaviconUrl : this.staticFaviconUrl;
       document.head.appendChild(newFavicon);
     } else {
       // Update existing favicon
-      favicon.type = this.currentFavicon === 'animated' ? 'image/gif' : 'image/png';
-      favicon.href = this.currentFavicon === 'animated' ? this.animatedFaviconUrl : this.staticFaviconUrl;
-      
+      favicon.type = this.currentFavicon === "animated" ? "image/gif" : "image/png";
+      favicon.href = this.currentFavicon === "animated" ? this.animatedFaviconUrl : this.staticFaviconUrl;
+
       // Force refresh by adding a timestamp query parameter
       const timestamp = new Date().getTime();
       favicon.href = `${favicon.href}?v=${timestamp}`;
     }
-    
+
     // Always use static PNG for Apple touch icon (iOS doesn't support animated icons)
     if (appleTouchIcon) {
       appleTouchIcon.href = this.staticFaviconUrl;
@@ -96,18 +96,18 @@ export class FaviconManager {
 
   public setAnimated() {
     if (this.supportsAnimatedFavicon) {
-      this.currentFavicon = 'animated';
+      this.currentFavicon = "animated";
       this.updateFavicon();
     }
   }
 
   public setStatic() {
-    this.currentFavicon = 'static';
+    this.currentFavicon = "static";
     this.updateFavicon();
   }
 
   public toggle() {
-    if (this.currentFavicon === 'static' && this.supportsAnimatedFavicon) {
+    if (this.currentFavicon === "static" && this.supportsAnimatedFavicon) {
       this.setAnimated();
     } else {
       this.setStatic();
@@ -115,15 +115,15 @@ export class FaviconManager {
   }
 
   public isAnimated(): boolean {
-    return this.currentFavicon === 'animated';
+    return this.currentFavicon === "animated";
   }
 }
 
 // Initialize favicon manager after DOM is ready
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
   // Use DOMContentLoaded to ensure the favicon link is accessible
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => {
       FaviconManager.getInstance();
     });
   } else {

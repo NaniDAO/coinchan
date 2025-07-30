@@ -32,7 +32,7 @@ export function ApeButton({ coinId, coinSymbol = "TOKEN", className, onSuccess }
 
   // Transaction state
   const { data: hash, isPending, writeContract } = useWriteContract();
-  const { isSuccess: txSuccess } = useWaitForTransactionReceipt({ 
+  const { isSuccess: txSuccess } = useWaitForTransactionReceipt({
     hash,
     onReplaced: () => {
       toast.success(t("trade.transaction_success", "Trade successful!"));
@@ -59,7 +59,7 @@ export function ApeButton({ coinId, coinSymbol = "TOKEN", className, onSuccess }
     }
 
     setIsCalculating(true);
-    
+
     try {
       // Calculate expected output
       const expectedCoins = await publicClient.readContract({
@@ -116,7 +116,7 @@ export function ApeButton({ coinId, coinSymbol = "TOKEN", className, onSuccess }
         "bg-gradient-to-r from-purple-500/10 to-pink-500/10",
         "hover:from-purple-500/20 hover:to-pink-500/20",
         "border-purple-500/20 hover:border-purple-500/40",
-        className
+        className,
       )}
     >
       <span className="relative z-10 flex items-center gap-1.5">
@@ -125,7 +125,7 @@ export function ApeButton({ coinId, coinSymbol = "TOKEN", className, onSuccess }
           {isPending ? t("trade.buying", "BUYING...") : t("trade.quick_buy", "BUY 0.01Ξ")}
         </span>
       </span>
-      
+
       {/* Animated background */}
       <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 transition-transform duration-300 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
     </Button>

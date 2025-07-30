@@ -8,10 +8,7 @@ export const calculateFundedPercentage = (sale: Sale): number => {
     if (sale.status === "FINALIZED") return 100;
 
     /* From the indexer: 10 000 = 100 % */
-    const funded =
-      typeof sale.percentFunded === "bigint"
-        ? Number(sale.percentFunded)
-        : (sale.percentFunded ?? 0);
+    const funded = typeof sale.percentFunded === "bigint" ? Number(sale.percentFunded) : (sale.percentFunded ?? 0);
 
     if (funded) return Math.min(funded / 100, 100);
 

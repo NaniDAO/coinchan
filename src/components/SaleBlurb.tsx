@@ -115,12 +115,10 @@ export const SaleBlurb: React.FC<SaleBlurbProps> = ({ coinId }) => {
         <span className="text-muted-foreground">└── </span>
         <div className="relative w-4 h-4 mr-2">
           {!imageLoaded && <Skeleton className="w-4 h-4 absolute inset-0" />}
-          <img 
-            src={imageUrl} 
-            alt={data?.zcurveSale?.coin?.name || ticker} 
-            className={`w-4 h-4 bg-white transition-opacity duration-300 ${
-              imageLoaded ? 'opacity-100' : 'opacity-0'
-            }`}
+          <img
+            src={imageUrl}
+            alt={data?.zcurveSale?.coin?.name || ticker}
+            className={`w-4 h-4 bg-white transition-opacity duration-300 ${imageLoaded ? "opacity-100" : "opacity-0"}`}
             onLoad={() => setImageLoaded(true)}
             onError={() => setImageLoaded(true)}
           />

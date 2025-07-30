@@ -158,7 +158,7 @@ export const SaleCard = memo(({ sale }: { sale: Sale }) => {
       return 0;
     }
   }, [sale.percentFunded, sale.ethEscrow, sale.ethTarget, sale.status]);
-  
+
   const priceData = useMemo(() => {
     try {
       return formatPrice(sale);
@@ -167,7 +167,7 @@ export const SaleCard = memo(({ sale }: { sale: Sale }) => {
       return { price: "—", perEth: "" };
     }
   }, [sale.currentPrice, sale.status, sale.finalization, sale.netSold, sale.ethEscrow]);
-  
+
   const wallets = useMemo(() => {
     try {
       const buyers = sale.purchases?.items?.map((p) => p.buyer) ?? [];
@@ -185,21 +185,21 @@ export const SaleCard = memo(({ sale }: { sale: Sale }) => {
     sale.quadCap === ZCURVE_STANDARD_PARAMS.QUAD_CAP.toString();
 
   return (
-   <div>
+    <div>
       <div
-          className={cn(
-            "relative overflow-hidden border p-3 transition-all",
-            "bg-card hover:bg-accent/5 hover:shadow-lg cursor-pointer",
-            "border-border hover:border-primary active:border-primary/80 active:scale-[0.99]",
-            sale.status === "FINALIZED" ? "bg-amber-50/5 dark:bg-amber-900/5" : "bg-green-50/5  dark:bg-green-900/5",
-          )}
+        className={cn(
+          "relative overflow-hidden border p-3 transition-all",
+          "bg-card hover:bg-accent/5 hover:shadow-lg cursor-pointer",
+          "border-border hover:border-primary active:border-primary/80 active:scale-[0.99]",
+          sale.status === "FINALIZED" ? "bg-amber-50/5 dark:bg-amber-900/5" : "bg-green-50/5  dark:bg-green-900/5",
+        )}
+      >
+        <Link
+          to="/c/$coinId"
+          params={{ coinId: String(sale.coinId) }}
+          className="block rounded focus:outline-none focus:ring-2 focus:ring-primary/50"
+          aria-label={`View sale of ${sale.coin?.name ?? "coin"}`}
         >
-           <Link 
-      to="/c/$coinId" 
-      params={{ coinId: String(sale.coinId) }}
-      className="block rounded focus:outline-none focus:ring-2 focus:ring-primary/50"
-      aria-label={`View sale of ${sale.coin?.name ?? "coin"}`}
-    >
           {/* funding background tint */}
           <div
             className="pointer-events-none absolute inset-0"
@@ -322,21 +322,15 @@ export const SaleCard = memo(({ sale }: { sale: Sale }) => {
               style={{ width: `${Math.min(funded, 100)}%` }}
             />
           </div>
-
-        
-               </Link>
+        </Link>
+      </div>
+      {/* Ape button for active sales */}
+      {sale.status === "ACTIVE" && (
+        <div onClick={(e) => e.preventDefault()}>
+          <ApeButton coinId={sale.coinId.toString()} coinSymbol={sale.coin?.symbol} className="w-full" />
         </div>
-        {/* Ape button for active sales */}
-              {sale.status === "ACTIVE" && (
-                <div onClick={(e) => e.preventDefault()}>
-                  <ApeButton 
-                    coinId={sale.coinId.toString()} 
-                    coinSymbol={sale.coin?.symbol}
-                    className="w-full"
-                  />
-                </div>
-              )}
-              </div>
+      )}
+    </div>
   );
 });
 

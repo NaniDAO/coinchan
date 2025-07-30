@@ -601,7 +601,8 @@
     "linear": "线性",
     "to_linear": "距离线性阶段",
     "near_target": "销售将在达到目标时自动结束",
-    "price_curve": "价格曲线"
+    "price_curve": "价格曲线",
+    "none": "暂无活跃销售"
   },
   "create": {
     "bonding_curve": "联合曲线",

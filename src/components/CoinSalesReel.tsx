@@ -12,15 +12,16 @@ export const CoinSalesReel = () => {
   // Filter for active and finalized sales with images
   const displaySales = useMemo(() => {
     if (!data || !Array.isArray(data)) return [];
-    
+
     return data
-      .filter(sale => 
-        (sale.status === "ACTIVE" || sale.status === "FINALIZED") && 
-        sale.coin?.imageUrl &&
-        sale.coinId &&
-        // Exclude test demo coins
-        sale.coinId !== "69" && 
-        sale.coinId !== "71"
+      .filter(
+        (sale) =>
+          (sale.status === "ACTIVE" || sale.status === "FINALIZED") &&
+          sale.coin?.imageUrl &&
+          sale.coinId &&
+          // Exclude test demo coins
+          sale.coinId !== "69" &&
+          sale.coinId !== "71",
       )
       .sort((a, b) => {
         // Prioritize active over finalized
@@ -34,7 +35,7 @@ export const CoinSalesReel = () => {
   // Cycle through coins with staggered fade-in effect
   useEffect(() => {
     if (!displaySales.length) return;
-    
+
     const interval = setInterval(() => {
       setVisibleIndex((prev) => (prev + 1) % displaySales.length);
     }, 3000); // Change coin every 3 seconds
@@ -44,8 +45,8 @@ export const CoinSalesReel = () => {
 
   // Refetch data more frequently for active sales
   useEffect(() => {
-    if (!displaySales.some(sale => sale.status === "ACTIVE")) return;
-    
+    if (!displaySales.some((sale) => sale.status === "ACTIVE")) return;
+
     // Refetch every 10 seconds for more up-to-date percentages
     const refetchInterval = setInterval(() => {
       refetch();
@@ -79,34 +80,25 @@ export const CoinSalesReel = () => {
     <div className="mt-2 mb-4 w-full flex items-start gap-3">
       <div className="relative w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0">
         {displaySales.map((sale, index) => (
-          <CoinSaleReelItem
-            key={sale.coinId}
-            sale={sale}
-            index={index}
-            visibleIndex={visibleIndex}
-          />
+          <CoinSaleReelItem key={sale.coinId} sale={sale} index={index} visibleIndex={visibleIndex} />
         ))}
       </div>
-      
+
       {/* Coin info to the right */}
       <div className="flex-1 min-w-0">
         <div className="transition-all duration-500">
-          <div className="text-xs font-mono font-bold truncate">
-            {currentSale.coin?.symbol}
-          </div>
+          <div className="text-xs font-mono font-bold truncate">{currentSale.coin?.symbol}</div>
           <div className="text-xs text-muted-foreground">
             {currentSale.status === "ACTIVE" ? t("landing.bonding_now") : t("landing.graduated")}
           </div>
-          
+
           {/* Progress dots */}
           <div className="flex gap-1 mt-2">
             {displaySales.map((_, index) => (
               <div
                 key={index}
                 className={`w-1 h-1 rounded-full transition-all duration-300 ${
-                  index === visibleIndex 
-                    ? 'bg-primary w-3' 
-                    : 'bg-muted-foreground/30'
+                  index === visibleIndex ? "bg-primary w-3" : "bg-muted-foreground/30"
                 }`}
               />
             ))}

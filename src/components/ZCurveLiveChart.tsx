@@ -49,7 +49,6 @@ export function ZCurveLiveChart({ sale, previewAmount, isBuying = true }: ZCurve
     borderColor: appTheme === "dark" ? "#404040" : "#e5e5e5",
   };
 
-
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
@@ -418,13 +417,14 @@ export function ZCurveLiveChart({ sale, previewAmount, isBuying = true }: ZCurve
                     if (endPoint < 0n || endPoint > saleCap) return null;
                     const newProgress = Number((endPoint * 100n) / saleCap);
                     const progressDelta = newProgress - currentProgress;
-                    
+
                     // Calculate curve progress only
-                    
+
                     return (
                       <span className="space-x-2">
                         <span className={isBuying ? "text-blue-500" : "text-green-500"}>
-                          {progressDelta >= 0 ? "+" : ""}{Math.abs(progressDelta).toFixed(2)}% {t("trade.curve_movement", "curve movement")}
+                          {progressDelta >= 0 ? "+" : ""}
+                          {Math.abs(progressDelta).toFixed(2)}% {t("trade.curve_movement", "curve movement")}
                         </span>
                       </span>
                     );

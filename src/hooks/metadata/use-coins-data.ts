@@ -5,14 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { http, createPublicClient } from "viem";
 import { mainnet } from "viem/chains";
 import { type CoinData, type RawCoinData, enrichMetadata, hydrateRawCoin } from "./coin-utils";
-import { 
-  CULT_TOKEN, 
-  CULT_POOL_ID, 
-  ENS_TOKEN, 
-  ENS_POOL_ID, 
-  USDT_TOKEN, 
-  USDT_POOL_ID 
-} from "@/lib/coins";
+import { CULT_TOKEN, CULT_POOL_ID, ENS_TOKEN, ENS_POOL_ID, USDT_TOKEN, USDT_POOL_ID } from "@/lib/coins";
 
 const publicClient = createPublicClient({
   chain: mainnet,
@@ -93,9 +86,9 @@ export function useCoinsData() {
               abi: ZAMMAbi,
               functionName: "pools",
               args: [USDT_POOL_ID],
-            })
+            }),
           ]);
-          
+
           ensReserves = { reserve0: ensPool[0], reserve1: ensPool[1] };
           cultReserves = { reserve0: cultPool[0], reserve1: cultPool[1] };
           usdtReserves = { reserve0: usdtPool[0], reserve1: usdtPool[1] };

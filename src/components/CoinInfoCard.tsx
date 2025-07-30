@@ -161,17 +161,15 @@ export const CoinInfoCard = ({
                     {isZCurveBonding ? "Implied Market Cap:" : "Est. Market Cap:"}
                   </span>
                   <span className="market-cap-text">
-                    {marketCapEth !== null && marketCapEth > 0 ? (
-                      marketCapEth < 0.0001 ? 
-                        `<0.0001 ETH` : 
-                        `${formatNumber(marketCapEth, 4)} ETH`
-                    ) : "N/A"}
+                    {marketCapEth !== null && marketCapEth > 0
+                      ? marketCapEth < 0.0001
+                        ? `<0.0001 ETH`
+                        : `${formatNumber(marketCapEth, 4)} ETH`
+                      : "N/A"}
                   </span>
                   {marketCapUsd !== null && marketCapUsd !== 0 ? (
                     <span className="ml-1 market-cap-text">
-                      {marketCapUsd < 1 ? 
-                        `(~$${marketCapUsd.toFixed(2)})` : 
-                        `(~$${formatNumber(marketCapUsd, 0)})`}
+                      {marketCapUsd < 1 ? `(~$${marketCapUsd.toFixed(2)})` : `(~$${formatNumber(marketCapUsd, 0)})`}
                     </span>
                   ) : isEthPriceData ? (
                     <span className="ml-1 market-cap-text">(USD price processing...)</span>

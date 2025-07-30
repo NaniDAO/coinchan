@@ -201,9 +201,13 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
 
         <Link
           to={coin.symbol === "CULT" ? "/cult" : coin.symbol === "ENS" ? "/ens" : `/c/$coinId`}
-          params={coin.symbol === "CULT" || coin.symbol === "ENS" ? undefined : {
-            coinId: coin.coinId.toString(),
-          }}
+          params={
+            coin.symbol === "CULT" || coin.symbol === "ENS"
+              ? undefined
+              : {
+                  coinId: coin.coinId.toString(),
+                }
+          }
           className="flex flex-row items-center justify-between m-0 rounded-t-none rounded-b-sm w-full bg-primary/10 !py-1 !px-3 text-primary-foreground font-extrabold hover:bg-primary/50 transition-all duration-200 text-sm touch-manipulation shadow-sm"
         >
           <span>Trade</span>

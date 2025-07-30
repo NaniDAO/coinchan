@@ -10,7 +10,6 @@ import { calculateFundedPercentage } from "@/lib/zcurve";
 /*                             Helper functions                              */
 /* ------------------------------------------------------------------------- */
 
-
 export const ZCurveSales = () => {
   const { t } = useTranslation();
   const { theme } = useTheme();
@@ -19,16 +18,18 @@ export const ZCurveSales = () => {
   /* stable, sorted list */
   const sales = useMemo(() => {
     if (!data || !Array.isArray(data)) return [];
-    return [...data]
-      // Exclude test demo coins
-      .filter(sale => sale.coinId !== "69" && sale.coinId !== "71")
-      .sort((a, b) => {
-        if (a.status !== b.status) return a.status === "ACTIVE" ? -1 : 1;
-        const fA = calculateFundedPercentage(a);
-        const fB = calculateFundedPercentage(b);
-        if (fA !== fB) return fB - fA;
-        return Number(b.createdAt ?? 0) - Number(a.createdAt ?? 0);
-      });
+    return (
+      [...data]
+        // Exclude test demo coins
+        .filter((sale) => sale.coinId !== "69" && sale.coinId !== "71")
+        .sort((a, b) => {
+          if (a.status !== b.status) return a.status === "ACTIVE" ? -1 : 1;
+          const fA = calculateFundedPercentage(a);
+          const fB = calculateFundedPercentage(b);
+          if (fA !== fB) return fB - fA;
+          return Number(b.createdAt ?? 0) - Number(a.createdAt ?? 0);
+        })
+    );
   }, [data]);
 
   /* --------------------------------------------------------------------- */
@@ -67,8 +68,8 @@ export const ZCurveSales = () => {
           </div>
         ) : (
           <div className="space-y-2 border-l-4 border-border">
-            {sales.map((s) => {               
-              return <EnhancedSaleCard key={s.coinId.toString()} sale={s} fetchOnchainData={true} />
+            {sales.map((s) => {
+              return <EnhancedSaleCard key={s.coinId.toString()} sale={s} fetchOnchainData={true} />;
             })}
           </div>
         )}
@@ -94,17 +95,12 @@ export const ZCurveSales = () => {
 const SkeletonHeader = () => (
   <div>
     <div className="p-3 text-foreground">
-      <h2 className="font-mono text-2xl font-bold uppercase tracking-widest">
-        CURVED COINS
-      </h2>
+      <h2 className="font-mono text-2xl font-bold uppercase tracking-widest">CURVED COINS</h2>
     </div>
     <div className="p-4">
       <div className="space-y-2 border-l-4 border-border">
         {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="animate-pulse border border-border bg-card p-3"
-          >
+          <div key={i} className="animate-pulse border border-border bg-card p-3">
             <div className="flex items-start gap-4">
               <div className="h-8 w-8 rounded-full bg-muted" />
               <div className="flex-1 space-y-2">
@@ -128,9 +124,7 @@ const SkeletonHeader = () => (
 const ErrorBlock = ({ err }: { err: Error }) => (
   <div>
     <div className="p-3 text-foreground">
-      <h2 className="font-mono text-2xl font-bold uppercase tracking-widest">
-        CURVED COINS
-      </h2>
+      <h2 className="font-mono text-2xl font-bold uppercase tracking-widest">CURVED COINS</h2>
     </div>
     <div className="p-4">
       <div className="rounded border border-destructive/50 bg-destructive/10 p-4 font-mono text-sm text-destructive">

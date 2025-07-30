@@ -41,13 +41,14 @@ function HolderRow({ holder, rank, coinSymbol }: { holder: Holder; rank: number;
   return (
     <div className="flex items-center gap-2 sm:gap-3 py-2 px-2 sm:px-3 hover:bg-muted/50 transition-colors">
       {/* Rank */}
-      <div className="w-6 sm:w-8 text-center font-mono text-xs sm:text-sm text-muted-foreground">
-        {rank}
-      </div>
+      <div className="w-6 sm:w-8 text-center font-mono text-xs sm:text-sm text-muted-foreground">{rank}</div>
 
       {/* Address with icon */}
       <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0">
-        <AddressIcon address={holder.address as `0x${string}`} className="h-5 w-5 sm:h-6 sm:w-6 rounded-full flex-shrink-0" />
+        <AddressIcon
+          address={holder.address as `0x${string}`}
+          className="h-5 w-5 sm:h-6 sm:w-6 rounded-full flex-shrink-0"
+        />
         <a
           href={getEtherscanAddressUrl(holder.address)}
           target="_blank"
@@ -66,19 +67,19 @@ function HolderRow({ holder, rank, coinSymbol }: { holder: Holder; rank: number;
           {formatBalance(holder.balance)}
           <span className="hidden sm:inline"> {coinSymbol}</span>
         </div>
-        <div className="text-[10px] sm:text-xs text-muted-foreground">
-          {holder.percentOfSupply.toFixed(1)}%
-        </div>
+        <div className="text-[10px] sm:text-xs text-muted-foreground">{holder.percentOfSupply.toFixed(1)}%</div>
       </div>
 
       {/* Trade counts - more compact on mobile */}
       <div className="flex gap-1 sm:gap-2 text-[10px] sm:text-xs">
         <span className="text-green-600 dark:text-green-400">
-          {holder.buyCount}<span className="hidden sm:inline">B</span>
+          {holder.buyCount}
+          <span className="hidden sm:inline">B</span>
         </span>
         <span className="text-muted-foreground hidden sm:inline">/</span>
         <span className="text-red-600 dark:text-red-400">
-          {holder.sellCount}<span className="hidden sm:inline">S</span>
+          {holder.sellCount}
+          <span className="hidden sm:inline">S</span>
         </span>
       </div>
     </div>
@@ -87,7 +88,7 @@ function HolderRow({ holder, rank, coinSymbol }: { holder: Holder; rank: number;
 
 export function ZCurveHoldersList({ coinId, coinSymbol }: ZCurveHoldersListProps) {
   const { t } = useTranslation();
-  
+
   // Fetch all purchases and sells (increase limit to get all holders)
   const { data: purchases, isLoading: purchasesLoading } = useZCurvePurchases(coinId, 1000);
   const { data: sells, isLoading: sellsLoading } = useZCurveSells(coinId, 1000);
@@ -96,11 +97,14 @@ export function ZCurveHoldersList({ coinId, coinSymbol }: ZCurveHoldersListProps
 
   // Calculate holder balances from buy/sell events
   const holders = useMemo(() => {
-    const balanceMap = new Map<string, { 
-      balance: bigint, 
-      buyCount: number, 
-      sellCount: number 
-    }>();
+    const balanceMap = new Map<
+      string,
+      {
+        balance: bigint;
+        buyCount: number;
+        sellCount: number;
+      }
+    >();
 
     // Process purchases (adds to balance)
     if (purchases) {
@@ -148,9 +152,7 @@ export function ZCurveHoldersList({ coinId, coinSymbol }: ZCurveHoldersListProps
 
     // Second pass: calculate percentage of supply
     holdersArray.forEach((holder) => {
-      holder.percentOfSupply = totalSupply > 0n 
-        ? (Number(holder.balance) / Number(totalSupply)) * 100 
-        : 0;
+      holder.percentOfSupply = totalSupply > 0n ? (Number(holder.balance) / Number(totalSupply)) * 100 : 0;
     });
 
     // Sort by balance descending
@@ -200,12 +202,7 @@ export function ZCurveHoldersList({ coinId, coinSymbol }: ZCurveHoldersListProps
       {/* Holders list */}
       <div className="max-h-[300px] sm:max-h-[400px] overflow-y-auto">
         {holders.map((holder, index) => (
-          <HolderRow
-            key={holder.address}
-            holder={holder}
-            rank={index + 1}
-            coinSymbol={coinSymbol}
-          />
+          <HolderRow key={holder.address} holder={holder} rank={index + 1} coinSymbol={coinSymbol} />
         ))}
       </div>
 
@@ -217,9 +214,7 @@ export function ZCurveHoldersList({ coinId, coinSymbol }: ZCurveHoldersListProps
         </div>
         <div className="flex justify-between mt-1">
           <span>{t("holders.total_trades", "Total trades")}</span>
-          <span className="font-mono">
-            {(purchases?.length || 0) + (sells?.length || 0)}
-          </span>
+          <span className="font-mono">{(purchases?.length || 0) + (sells?.length || 0)}</span>
         </div>
       </div>
     </div>

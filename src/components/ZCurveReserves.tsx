@@ -22,7 +22,7 @@ interface ZCurveReservesProps {
 export function ZCurveReserves({ sale, className = "" }: ZCurveReservesProps) {
   const { t } = useTranslation();
   const { address } = useAccount();
-  
+
   // Get real-time onchain data
   const { data: onchainData } = useZCurveSaleSummary(sale.coinId, address);
 

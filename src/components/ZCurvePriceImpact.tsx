@@ -74,7 +74,7 @@ export function ZCurvePriceImpact({
 
         // Calculate marginal price impact
         if (currentMarginalPrice > 0n) {
-          const priceChangeRatio = (newMarginalPrice - currentMarginalPrice) * 10000n / currentMarginalPrice;
+          const priceChangeRatio = ((newMarginalPrice - currentMarginalPrice) * 10000n) / currentMarginalPrice;
           impact = Number(priceChangeRatio) / 100;
         } else if (newMarginalPrice > 0n) {
           // From zero to positive price
@@ -108,7 +108,7 @@ export function ZCurvePriceImpact({
 
         // Calculate marginal price impact for selling
         if (currentMarginalPrice > 0n && newMarginalPrice >= 0n) {
-          const priceChangeRatio = (newMarginalPrice - currentMarginalPrice) * 10000n / currentMarginalPrice;
+          const priceChangeRatio = ((newMarginalPrice - currentMarginalPrice) * 10000n) / currentMarginalPrice;
           impact = Number(priceChangeRatio) / 100; // Will be negative when price decreases
         } else {
           impact = 0;

@@ -54,11 +54,7 @@ const calculatePriceFromTrade = (ethAmount: string, tokenAmount: string): number
 };
 
 // Helper to aggregate trades into OHLCV candles
-const aggregateTradesToCandles = (
-  trades: TradeEvent[],
-  interval: TimeInterval,
-  startTime?: number
-): OHLCVData[] => {
+const aggregateTradesToCandles = (trades: TradeEvent[], interval: TimeInterval, startTime?: number): OHLCVData[] => {
   if (trades.length === 0) return [];
 
   const intervalMs = {
@@ -79,7 +75,7 @@ const aggregateTradesToCandles = (
 
   // Generate candle buckets
   const candles = new Map<number, OHLCVData>();
-  
+
   // Initialize empty candles from first trade to current time
   for (let time = Math.floor(firstTradeTime / intervalMs) * intervalMs; time <= currentTime; time += intervalMs) {
     const candleTime = Math.floor(time / 1000) as UTCTimestamp;
@@ -99,7 +95,7 @@ const aggregateTradesToCandles = (
   sortedTrades.forEach((trade) => {
     const bucketTime = Math.floor(trade.timestamp / intervalMs) * intervalMs;
     const candle = candles.get(bucketTime);
-    
+
     if (!candle) return;
 
     // Update OHLC
@@ -124,7 +120,7 @@ const aggregateTradesToCandles = (
 
   // Convert to array and fill empty candles with previous close
   const candleArray = Array.from(candles.values()).sort((a, b) => a.time - b.time);
-  
+
   let lastClose = 0;
   candleArray.forEach((candle) => {
     if (candle.open === 0 && lastClose > 0) {
@@ -200,18 +196,18 @@ export function ZCurveCandlestickChart({ sale, onIntervalChange }: ZCurveCandles
     if (ohlcvData.length === 0) return null;
 
     const lastCandle = ohlcvData[ohlcvData.length - 1];
-    
+
     // Find first candle with actual trades
-    const firstNonEmptyCandle = ohlcvData.find(c => c.volume > 0);
+    const firstNonEmptyCandle = ohlcvData.find((c) => c.volume > 0);
     const openPrice = firstNonEmptyCandle?.open || 0;
     const currentPrice = lastCandle.close || lastCandle.open;
-    
+
     const priceChange = openPrice > 0 ? ((currentPrice - openPrice) / openPrice) * 100 : 0;
     const totalVolume = ohlcvData.reduce((sum, candle) => sum + candle.volume, 0);
 
     // 24h stats
     const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-    const last24hCandles = ohlcvData.filter(c => c.time * 1000 >= oneDayAgo);
+    const last24hCandles = ohlcvData.filter((c) => c.time * 1000 >= oneDayAgo);
     const volume24h = last24hCandles.reduce((sum, candle) => sum + candle.volume, 0);
 
     return {
@@ -219,8 +215,8 @@ export function ZCurveCandlestickChart({ sale, onIntervalChange }: ZCurveCandles
       priceChange,
       totalVolume,
       volume24h,
-      high24h: Math.max(...last24hCandles.map(c => c.high).filter(h => h > 0), 0),
-      low24h: Math.min(...last24hCandles.map(c => c.low).filter(l => l > 0), currentPrice),
+      high24h: Math.max(...last24hCandles.map((c) => c.high).filter((h) => h > 0), 0),
+      low24h: Math.min(...last24hCandles.map((c) => c.low).filter((l) => l > 0), currentPrice),
     };
   }, [ohlcvData]);
 
@@ -299,8 +295,8 @@ export function ZCurveCandlestickChart({ sale, onIntervalChange }: ZCurveCandles
 
     // Filter out empty candles for display
     const candleData = ohlcvData
-      .filter(candle => candle.volume > 0 || candle.close > 0)
-      .map(candle => ({
+      .filter((candle) => candle.volume > 0 || candle.close > 0)
+      .map((candle) => ({
         time: candle.time,
         open: candle.open,
         high: candle.high,
@@ -315,7 +311,7 @@ export function ZCurveCandlestickChart({ sale, onIntervalChange }: ZCurveCandles
       priceFormat: {
         type: "volume",
       },
-      priceScaleId: '',
+      priceScaleId: "",
     });
 
     volumeSeries.priceScale().applyOptions({
@@ -325,7 +321,7 @@ export function ZCurveCandlestickChart({ sale, onIntervalChange }: ZCurveCandles
       },
     });
 
-    const volumeData = ohlcvData.map(candle => ({
+    const volumeData = ohlcvData.map((candle) => ({
       time: candle.time,
       value: candle.volume,
       color: candle.close >= candle.open ? theme.volumeUpColor : theme.volumeDownColor,
@@ -362,10 +358,13 @@ export function ZCurveCandlestickChart({ sale, onIntervalChange }: ZCurveCandles
     };
   }, [ohlcvData, appTheme, theme]);
 
-  const handleIntervalChange = useCallback((newInterval: TimeInterval) => {
-    setInterval(newInterval);
-    onIntervalChange?.(newInterval);
-  }, [onIntervalChange]);
+  const handleIntervalChange = useCallback(
+    (newInterval: TimeInterval) => {
+      setInterval(newInterval);
+      onIntervalChange?.(newInterval);
+    },
+    [onIntervalChange],
+  );
 
   const formatPrice = (price: number): string => {
     if (price === 0) return "0";
@@ -390,10 +389,12 @@ export function ZCurveCandlestickChart({ sale, onIntervalChange }: ZCurveCandles
               <div className="text-2xl font-bold">
                 {currentStats ? formatPrice(currentStats.currentPrice) : "—"} ETH
               </div>
-              <div className={cn(
-                "flex items-center gap-1 text-sm",
-                currentStats && currentStats.priceChange >= 0 ? "text-green-500" : "text-red-500"
-              )}>
+              <div
+                className={cn(
+                  "flex items-center gap-1 text-sm",
+                  currentStats && currentStats.priceChange >= 0 ? "text-green-500" : "text-red-500",
+                )}
+              >
                 {currentStats && currentStats.priceChange >= 0 ? (
                   <TrendingUp className="h-4 w-4" />
                 ) : currentStats && currentStats.priceChange < 0 ? (
@@ -402,11 +403,13 @@ export function ZCurveCandlestickChart({ sale, onIntervalChange }: ZCurveCandles
                   <Minus className="h-4 w-4" />
                 )}
                 <span>
-                  {currentStats ? `${currentStats.priceChange >= 0 ? "+" : ""}${currentStats.priceChange.toFixed(2)}%` : "—"}
+                  {currentStats
+                    ? `${currentStats.priceChange >= 0 ? "+" : ""}${currentStats.priceChange.toFixed(2)}%`
+                    : "—"}
                 </span>
               </div>
             </div>
-            
+
             {/* Stats */}
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <div>
@@ -449,24 +452,35 @@ export function ZCurveCandlestickChart({ sale, onIntervalChange }: ZCurveCandles
         {/* Hovered candle info */}
         {hoveredCandle && (
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            <span>O: <span className="text-foreground">{formatPrice(hoveredCandle.open)}</span></span>
-            <span>H: <span className="text-foreground">{formatPrice(hoveredCandle.high)}</span></span>
-            <span>L: <span className="text-foreground">{formatPrice(hoveredCandle.low)}</span></span>
-            <span>C: <span className="text-foreground">{formatPrice(hoveredCandle.close)}</span></span>
-            {ohlcvData.find(c => c.time === hoveredCandle.time) && (
-              <span>V: <span className="text-foreground">
-                {formatVolume(ohlcvData.find(c => c.time === hoveredCandle.time)!.volume)} ETH
-              </span></span>
+            <span>
+              O: <span className="text-foreground">{formatPrice(hoveredCandle.open)}</span>
+            </span>
+            <span>
+              H: <span className="text-foreground">{formatPrice(hoveredCandle.high)}</span>
+            </span>
+            <span>
+              L: <span className="text-foreground">{formatPrice(hoveredCandle.low)}</span>
+            </span>
+            <span>
+              C: <span className="text-foreground">{formatPrice(hoveredCandle.close)}</span>
+            </span>
+            {ohlcvData.find((c) => c.time === hoveredCandle.time) && (
+              <span>
+                V:{" "}
+                <span className="text-foreground">
+                  {formatVolume(ohlcvData.find((c) => c.time === hoveredCandle.time)!.volume)} ETH
+                </span>
+              </span>
             )}
           </div>
         )}
       </div>
 
       {/* Chart */}
-      <div 
-        ref={chartContainerRef} 
+      <div
+        ref={chartContainerRef}
         className="w-full h-[500px] bg-background border border-border rounded-lg"
-        style={{ position: 'relative' }}
+        style={{ position: "relative" }}
       >
         {tradeEvents.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">

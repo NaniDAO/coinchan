@@ -377,22 +377,22 @@ export function useZCurveSaleSummary(coinId: string | undefined, userAddress: Ad
         });
 
         return {
-        creator: result[0],
-        saleCap: result[1].toString(),
-        netSold: result[2].toString(),
-        ethEscrow: result[3].toString(),
-        ethTarget: result[4].toString(),
-        deadline: result[5].toString(),
-        isLive: result[6],
-        isFinalized: result[7],
-        currentPrice: result[8].toString(),
-        percentFunded: Number(result[9]),
-        timeRemaining: result[10].toString(),
-        userBalance: result[11].toString(),
-        feeOrHook: result[12].toString(),
-        divisor: result[13].toString(),
-        quadCap: result[14].toString(),
-      };
+          creator: result[0],
+          saleCap: result[1].toString(),
+          netSold: result[2].toString(),
+          ethEscrow: result[3].toString(),
+          ethTarget: result[4].toString(),
+          deadline: result[5].toString(),
+          isLive: result[6],
+          isFinalized: result[7],
+          currentPrice: result[8].toString(),
+          percentFunded: Number(result[9]),
+          timeRemaining: result[10].toString(),
+          userBalance: result[11].toString(),
+          feeOrHook: result[12].toString(),
+          divisor: result[13].toString(),
+          quadCap: result[14].toString(),
+        };
       } catch (error) {
         console.error("Error fetching sale summary:", error);
         throw error;
