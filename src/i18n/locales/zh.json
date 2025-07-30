@@ -428,7 +428,17 @@
   "claim": {
     "alert_title": "您有代币可以领取！",
     "alert_description": "销售已完成，您有代币可以领取。请查看下方领取。",
-    "section_title": "代币领取"
+    "section_title": "代币领取",
+    "title": "领取您的代币",
+    "description": "销售已完成。您现在可以领取您的代币。",
+    "claimable": "可领取",
+    "already_claimed": "已领取",
+    "claim_tokens": "领取代币",
+    "success_title": "成功！",
+    "success_message": "您的代币已成功领取。",
+    "initiated": "领取交易已发起",
+    "cancelled": "领取已取消",
+    "failed": "领取代币失败"
   },
   "holders": {
     "unclaimed_tokens": "未领取代币",
@@ -535,6 +545,9 @@
     "zcurve_info_2": "随着更多代币售出，价格上升",
     "zcurve_info_3": "您可以在销售期间随时买卖",
     "zcurve_info_4": "最终确定后，流动性转移到 AMM 池",
+    "buy_token": "买入 {{symbol}}",
+    "sell_token": "卖出 {{symbol}}",
+    "processing": "处理中...",
     "buy_impact": "买入影响",
     "sell_impact": "卖出影响",
     "price_per_token": "每代币价格",

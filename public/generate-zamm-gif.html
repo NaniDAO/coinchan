@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate ZAMM Favicon GIF</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        video, canvas {
+            max-width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .preview {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+        }
+        .output {
+            text-align: center;
+            margin: 20px 0;
+        }
+        #status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            background: #f0f0f0;
+            text-align: center;
+        }
+        .favicon-preview {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            border: 1px solid #ddd;
+            margin: 0 5px;
+        }
+        .instructions {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 Generate ZAMM Favicon GIF</h1>
+        
+        <div class="instructions">
+            <h3>Instructions:</h3>
+            <ol>
+                <li>Click "Extract Frames" to capture frames from the ZAMM video</li>
+                <li>Preview the generated GIF</li>
+                <li>Right-click and save the GIF as "zammzamm.gif" in the public folder</li>
+                <li>Or copy the data URL and use it directly in the code</li>
+            </ol>
+        </div>
+
+        <div class="controls">
+            <button id="extractBtn">Extract Frames</button>
+            <button id="downloadBtn" disabled>Download GIF</button>
+        </div>
+
+        <div id="status">Ready to extract frames</div>
+
+        <div class="preview">
+            <div>
+                <h3>Source Video:</h3>
+                <video id="video" width="200" height="200" loop muted>
+                    <source src="/zammzamm.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            <div class="output">
+                <h3>Generated GIF (64x64):</h3>
+                <img id="gifPreview" class="favicon-preview" alt="GIF preview will appear here">
+                <div id="dataUrl" style="margin-top: 10px; word-break: break-all; font-size: 12px; max-width: 300px;"></div>
+            </div>
+        </div>
+
+        <canvas id="canvas" style="display: none;"></canvas>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const extractBtn = document.getElementById('extractBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const status = document.getElementById('status');
+        const gifPreview = document.getElementById('gifPreview');
+        const dataUrlDiv = document.getElementById('dataUrl');
+
+        // Set canvas size for favicon
+        const FAVICON_SIZE = 64;
+        canvas.width = FAVICON_SIZE;
+        canvas.height = FAVICON_SIZE;
+
+        let frames = [];
+
+        extractBtn.addEventListener('click', async () => {
+            extractBtn.disabled = true;
+            downloadBtn.disabled = true;
+            frames = [];
+            
+            try {
+                await video.load();
+                await video.play();
+                
+                // Capture frames from the video
+                const frameCount = 16; // Number of frames to capture
+                const duration = video.duration || 2; // Fallback duration
+                const frameInterval = duration / frameCount;
+                
+                status.textContent = 'Extracting frames...';
+                
+                for (let i = 0; i < frameCount; i++) {
+                    video.currentTime = i * frameInterval;
+                    await new Promise(resolve => {
+                        video.onseeked = resolve;
+                    });
+                    
+                    // Draw and capture frame
+                    ctx.drawImage(video, 0, 0, FAVICON_SIZE, FAVICON_SIZE);
+                    const frameData = canvas.toDataURL('image/png');
+                    frames.push(frameData);
+                    
+                    status.textContent = `Extracted frame ${i + 1}/${frameCount}`;
+                }
+                
+                // For now, just use the first frame as a static image
+                // In a real implementation, you'd use a GIF encoder library
+                if (frames.length > 0) {
+                    gifPreview.src = frames[0];
+                    dataUrlDiv.innerHTML = `<strong>Data URL (first frame):</strong><br><textarea rows="4" style="width: 100%; font-size: 10px;">${frames[0]}</textarea>`;
+                    downloadBtn.disabled = false;
+                    status.textContent = `✅ Extracted ${frames.length} frames. Showing first frame as preview.`;
+                }
+                
+                video.pause();
+                video.currentTime = 0;
+                
+            } catch (error) {
+                console.error('Error extracting frames:', error);
+                status.textContent = '❌ Error: ' + error.message;
+            } finally {
+                extractBtn.disabled = false;
+            }
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            if (frames.length > 0) {
+                // Download the first frame as PNG (since we can't create GIF client-side easily)
+                const link = document.createElement('a');
+                link.download = 'zammzamm-frame.png';
+                link.href = frames[0];
+                link.click();
+                
+                status.textContent = '💡 Tip: Use ffmpeg to create an animated GIF from the video file.';
+            }
+        });
+
+        // Auto-load video
+        video.load();
+    </script>
+</body>
+</html>

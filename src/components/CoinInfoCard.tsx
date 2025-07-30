@@ -155,13 +155,13 @@ export const CoinInfoCard = ({
                 <div className="h-3 bg-muted/40 rounded w-24 skeleton"></div>
               </div>
             ) : (
-              marketCapEth !== null && (
+              (marketCapEth !== null || isZCurveBonding) && (
                 <div className="flex items-center gap-1 transition-opacity duration-300">
                   <span className="font-medium market-cap-text">
                     {isZCurveBonding ? "Implied Market Cap:" : "Est. Market Cap:"}
                   </span>
                   <span className="market-cap-text">
-                    {marketCapEth !== null && marketCapEth !== 0 ? formatNumber(marketCapEth, 2) : "N/A"} ETH
+                    {marketCapEth !== null && marketCapEth > 0 ? formatNumber(marketCapEth, 4) : "N/A"} ETH
                   </span>
                   {marketCapUsd !== null && marketCapUsd !== 0 ? (
                     <span className="ml-1 market-cap-text">(~${formatNumber(marketCapUsd, 0)})</span>

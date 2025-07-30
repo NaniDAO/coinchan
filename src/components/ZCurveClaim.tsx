@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther } from "viem";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
@@ -34,6 +34,22 @@ export function ZCurveClaim({ coinId, coinSymbol = "TOKEN" }: ZCurveClaimProps) 
     },
   });
 
+  // Handle writeContract errors
+  useEffect(() => {
+    if (error) {
+      console.error("Claim error:", error);
+
+      if (isUserRejectionError(error)) {
+        toast.error(t("claim.cancelled", "Claim cancelled"));
+        setLocalError(null); // Clear any previous error
+      } else {
+        const errorMessage = handleWalletError(error, { t });
+        setLocalError(errorMessage || t("claim.failed", "Failed to claim tokens"));
+        toast.error(errorMessage || t("claim.failed", "Failed to claim tokens"));
+      }
+    }
+  }, [error, t]);
+
   const handleClaim = async () => {
     const claimAmount = saleSummary?.userBalance
       ? BigInt(saleSummary.userBalance)
@@ -54,15 +70,8 @@ export function ZCurveClaim({ coinId, coinSymbol = "TOKEN" }: ZCurveClaimProps) 
 
       toast.info(t("claim.initiated", "Claim transaction initiated"));
     } catch (error) {
-      console.error("Claim error:", error);
-
-      if (isUserRejectionError(error)) {
-        toast.error(t("claim.cancelled", "Claim cancelled"));
-      } else {
-        const errorMessage = handleWalletError(error, { t });
-        setLocalError(errorMessage || t("claim.failed", "Failed to claim tokens"));
-        toast.error(errorMessage || t("claim.failed", "Failed to claim tokens"));
-      }
+      // writeContract errors are handled in the useEffect above
+      console.error("Synchronous claim error:", error);
     }
   };
 
@@ -147,9 +156,9 @@ export function ZCurveClaim({ coinId, coinSymbol = "TOKEN" }: ZCurveClaimProps) 
         )}
 
         {/* Error Display */}
-        {(error || localError) && (
+        {localError && (
           <Alert variant="destructive">
-            <AlertDescription>{error?.message || localError}</AlertDescription>
+            <AlertDescription>{localError}</AlertDescription>
           </Alert>
         )}
       </CardContent>

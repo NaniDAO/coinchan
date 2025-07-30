@@ -11,6 +11,7 @@ import { useZCurveSale } from "@/hooks/use-zcurve-sale";
 import { SWAP_FEE, computePoolId } from "@/lib/swap";
 import { computeZCurvePoolId } from "@/lib/zCurvePoolId";
 import { useReserves } from "@/hooks/use-reserves";
+import { ZCURVE_STANDARD_PARAMS } from "@/lib/zCurveHelpers";
 
 import { CoinPreview } from "./CoinPreview";
 import { CoinInfoCard } from "./CoinInfoCard";
@@ -100,17 +101,19 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
 
     // Check if in active zCurve bonding phase
     if (zcurveSale && zcurveSale.status === "ACTIVE") {
-      // During bonding curve phase
-      const totalSupply = BigInt(zcurveSale.coin?.totalSupply || "0");
-
-      // Get current price in wei per token unit (smallest unit)
+      // During bonding curve phase - use hardcoded 1 billion total supply for zCurve tokens
+      // (1 billion tokens * 10^18 decimals = 1e27 wei)
+      const totalSupply = ZCURVE_STANDARD_PARAMS.TOTAL_SUPPLY;
+      
+      // Get current price in wei per smallest token unit
       const currentPriceWei = BigInt(zcurveSale.currentPrice || "0");
 
-      if (totalSupply > 0n && currentPriceWei > 0n) {
-        // Calculate market cap: (totalSupply * currentPrice) / 10^18
-        // totalSupply is already in smallest units, currentPrice is in wei per smallest unit
-        const marketCapWei = (totalSupply * currentPriceWei) / 10n ** 18n;
+      if (currentPriceWei > 0n) {
+        // Calculate implied market cap: totalSupply * currentPrice
+        // Both values are already in smallest units (wei)
+        const marketCapWei = (totalSupply * currentPriceWei) / (10n ** 18n);
         const impliedMarketCapEth = Number(formatEther(marketCapWei));
+
 
         return {
           marketCapEth: impliedMarketCapEth,
@@ -120,15 +123,17 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
         };
       }
 
-      // If we can't calculate from current price, try using escrow and net sold
+      // Fallback: calculate from average price if current price is not available
       const ethEscrow = BigInt(zcurveSale.ethEscrow || "0");
       const netSold = BigInt(zcurveSale.netSold || "0");
 
-      if (netSold > 0n && ethEscrow > 0n && totalSupply > 0n) {
-        // Average price = ethEscrow / netSold
+      if (netSold > 0n && ethEscrow > 0n) {
+        // Average price per token = ethEscrow / netSold
         // Market cap = totalSupply * average price
-        const marketCapWei = (totalSupply * ethEscrow) / netSold;
+        const avgPriceWei = (ethEscrow * (10n ** 18n)) / netSold;
+        const marketCapWei = (totalSupply * avgPriceWei) / (10n ** 18n);
         const impliedMarketCapEth = Number(formatEther(marketCapWei));
+
 
         return {
           marketCapEth: impliedMarketCapEth,
@@ -137,6 +142,7 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
           isZCurveBonding: true,
         };
       }
+
 
       return {
         marketCapEth: 0,

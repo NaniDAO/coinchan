@@ -138,6 +138,28 @@ function FinalizedPoolTradingInner({
 
   const { data: ethPrice } = useETHPrice();
 
+  // Helper function to format very small USD values
+  const formatUsdPrice = (price: number): string => {
+    if (price === 0) return "$0.00";
+    if (price < 0.00000001) {
+      // For extremely small values, use scientific notation
+      return `$${price.toExponential(2)}`;
+    }
+    if (price < 0.000001) {
+      // For very small values, show up to 10 decimal places
+      const formatted = price.toFixed(10);
+      // Remove trailing zeros
+      return `$${formatted.replace(/\.?0+$/, '')}`;
+    }
+    if (price < 0.01) {
+      return `$${price.toFixed(6)}`;
+    }
+    if (price < 1) {
+      return `$${price.toFixed(4)}`;
+    }
+    return `$${price.toFixed(2)}`;
+  };
+
   // Calculate market cap and price
   const { coinPrice, coinUsdPrice, marketCapUsd, marketCapEth } = useMemo(() => {
     if (!reserves || reserves.reserve0 === 0n || reserves.reserve1 === 0n) {
@@ -289,6 +311,8 @@ function FinalizedPoolTradingInner({
               {reserves && coinPrice > 0
                 ? coinPrice < 1e-15
                   ? `${((reserves.reserve0 * BigInt(1e18)) / reserves.reserve1).toString()} wei`
+                  : coinPrice < 1e-12
+                    ? `${(coinPrice * 1e9).toFixed(6)} gwei`
                   : coinPrice < 1e-9
                     ? `${(coinPrice * 1e9).toFixed(3)} gwei`
                     : coinPrice < 1e-6
@@ -303,14 +327,27 @@ function FinalizedPoolTradingInner({
                 : "0.00000000 ETH"}
             </div>
             <div className="text-sm text-muted-foreground">
-              {ethPrice?.priceUSD && coinUsdPrice > 0 
-                ? coinUsdPrice < 0.01 
-                  ? `$${coinUsdPrice.toFixed(6)}`
-                  : coinUsdPrice < 1 
-                    ? `$${coinUsdPrice.toFixed(4)}`
-                    : `$${coinUsdPrice.toFixed(2)}`
-                : ethPrice ? "$0.00" : "Loading..."}
+              {ethPrice?.priceUSD 
+                ? formatUsdPrice(coinUsdPrice)
+                : "Loading..."}
             </div>
+            {/* Tokens per ETH for context */}
+            {reserves && coinPrice > 0 && (
+              <div className="text-xs text-muted-foreground mt-1">
+                {(() => {
+                  const tokensPerEth = 1 / coinPrice;
+                  if (tokensPerEth >= 1e9) {
+                    return `${(tokensPerEth / 1e9).toFixed(2)}B per ETH`;
+                  } else if (tokensPerEth >= 1e6) {
+                    return `${(tokensPerEth / 1e6).toFixed(2)}M per ETH`;
+                  } else if (tokensPerEth >= 1e3) {
+                    return `${(tokensPerEth / 1e3).toFixed(2)}K per ETH`;
+                  } else {
+                    return `${tokensPerEth.toFixed(2)} per ETH`;
+                  }
+                })()}
+              </div>
+            )}
           </div>
 
           {/* Market Cap */}

@@ -417,7 +417,17 @@
   "claim": {
     "alert_title": "You have tokens to claim!",
     "alert_description": "The sale has finalized and you have tokens ready to claim. See below to claim them.",
-    "section_title": "Token Claim"
+    "section_title": "Token Claim",
+    "title": "Claim Your Tokens",
+    "description": "The sale has finalized. You can now claim your tokens.",
+    "claimable": "Claimable",
+    "already_claimed": "Already Claimed",
+    "claim_tokens": "Claim Tokens",
+    "success_title": "Success!",
+    "success_message": "Your tokens have been claimed successfully.",
+    "initiated": "Claim transaction initiated",
+    "cancelled": "Claim cancelled",
+    "failed": "Failed to claim tokens"
   },
   "holders": {
     "unclaimed_tokens": "Unclaimed Tokens",
@@ -1004,7 +1014,15 @@
     "buy_impact": "Buy Impact",
     "sell_impact": "Sell Impact",
     "avg_price_this_trade": "Avg price for this trade",
-    "high_impact_warning": "Large trade - consider splitting into smaller amounts"
+    "high_impact_warning": "Large trade - consider splitting into smaller amounts",
+    "buy_token": "Buy {{symbol}}",
+    "sell_token": "Sell {{symbol}}",
+    "insufficient_liquidity": "Insufficient liquidity",
+    "exact_input": "Exact Input",
+    "exact_output": "Exact Output",
+    "mode": "Mode",
+    "rate": "Rate",
+    "processing": "Processing..."
   },
   "about": {
     "title": "About ZAMM",
