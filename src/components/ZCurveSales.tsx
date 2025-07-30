@@ -10,10 +10,19 @@ import type { ZCurveSale } from "@/hooks/use-zcurve-sale";
 import { useTheme } from "@/lib/theme";
 import { useTranslation } from "react-i18next";
 import { memo, useMemo } from "react";
-import { ZCURVE_STANDARD_PARAMS } from "@/lib/zCurveHelpers";
+// import { ZCURVE_STANDARD_PARAMS } from "@/lib/zCurveHelpers"; // TODO: Use for optimizations
 
-// Use ZCurveSale type from hooks
-type Sale = ZCurveSale;
+// Extend ZCurveSale with GraphQL-specific fields
+interface Sale extends ZCurveSale {
+  purchases?: {
+    totalCount: number;
+    items: { buyer: string }[];
+  };
+  sells?: {
+    totalCount: number;
+    items: { seller: string }[];
+  };
+}
 
 // GraphQL query
 const GET_ZCURVE_SALES = `
@@ -204,8 +213,8 @@ const SaleCard = memo(({ sale }: { sale: Sale }) => {
   const formattedPrice = useMemo(() => formatPrice(sale), [sale.status, sale.currentPrice, sale.netSold, sale.ethEscrow, sale.ethTarget]);
   const uniqueWalletCount = useMemo(() => {
     try {
-      const uniqueBuyers = new Set(sale.purchases?.items?.map((p) => p.buyer) || []);
-      const uniqueSellers = new Set(sale.sells?.items?.map((s) => s.seller) || []);
+      const uniqueBuyers = new Set(sale.purchases?.items?.map((p: { buyer: string }) => p.buyer) || []);
+      const uniqueSellers = new Set(sale.sells?.items?.map((s: { seller: string }) => s.seller) || []);
       return new Set([...uniqueBuyers, ...uniqueSellers]).size;
     } catch (e) {
       console.error("Error calculating wallet count:", e);
@@ -354,7 +363,7 @@ const SaleCard = memo(({ sale }: { sale: Sale }) => {
             {sale.status}
           </Badge>
           <div className="mt-2 text-muted-foreground text-[11px]">
-            <div>{sale.createdAt ? new Date(sale.createdAt * 1000).toLocaleDateString() : "Unknown"}</div>
+            <div>{sale.createdAt ? new Date(parseInt(sale.createdAt) * 1000).toLocaleDateString() : "Unknown"}</div>
             <div>
               {(() => {
                 if (!sale.deadline) return "→ Unknown";
@@ -378,7 +387,7 @@ const SaleCard = memo(({ sale }: { sale: Sale }) => {
                   }
                 } else if (sale.createdAt) {
                   // Show duration for finalized sales
-                  const created = new Date(sale.createdAt * 1000);
+                  const created = new Date(parseInt(sale.createdAt) * 1000);
                   const durationMs = deadline.getTime() - created.getTime();
                   const days = Math.round(durationMs / (1000 * 60 * 60 * 24));
                   
@@ -436,7 +445,7 @@ export const ZCurveSales = () => {
         return bFunded - aFunded;
       }
       // Finally by creation date (newest first)
-      return (b.createdAt || 0) - (a.createdAt || 0);
+      return (parseInt(b.createdAt) || 0) - (parseInt(a.createdAt) || 0);
     });
   }, [sales]);
 
