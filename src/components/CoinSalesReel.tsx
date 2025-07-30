@@ -111,11 +111,11 @@ export const CoinSalesReel = () => {
       </div>
       
       {/* Coin info below */}
-      <div className="mt-3 text-center transition-all duration-500 w-24">
-        <div className="text-sm font-mono font-bold truncate">
+      <div className="mt-3 text-center transition-all duration-500 min-w-[100px]">
+        <div className="text-sm font-mono font-bold">
           {currentSale.coin?.symbol}
         </div>
-        <div className="text-xs text-muted-foreground">
+        <div className="text-xs text-muted-foreground whitespace-nowrap">
           {currentSale.status === "ACTIVE" ? t("landing.bonding_now") : t("landing.graduated")}
         </div>
       </div>
