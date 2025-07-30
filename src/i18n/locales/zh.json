@@ -73,6 +73,7 @@
     "tokens": "代币",
     "target_token": "目标 {{token}}",
     "coins": "币种",
+    "curved_coins": "曲线币种",
     "available": "可用",
     "sorted_by": "排序方式",
     "liquidity": "流动性",
@@ -1239,7 +1240,9 @@
   },
   "navigation": {
     "create": "创建",
-    "back_to_advanced_launch": "返回高级发行"
+    "back_to_advanced_launch": "返回高级发行",
+    "try_other_launches": "尝试其他发行方式",
+    "back_to_coins": "返回币种"
   },
   "cult": {
     "milady_cult_coin": "Milady Cult Coin",

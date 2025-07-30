@@ -9,6 +9,7 @@ import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
 import { calculateFundedPercentage } from "./ZCurveSales";
 import { ZCURVE_STANDARD_PARAMS } from "@/lib/zCurveHelpers";
+import { ApeButton } from "./ApeButton";
 
 /* helper for time left / duration */
 function renderTimeInfo(sale: Sale): string {
@@ -148,9 +149,25 @@ export const SaleCard = memo(({ sale }: { sale: Sale }) => {
   /* bail-out if data is incomplete */
   if (!sale?.coinId) return null;
 
-  /* memoised expensive bits */
-  const funded = useMemo(() => calculateFundedPercentage(sale), [sale]);
-  const priceData = useMemo(() => formatPrice(sale), [sale]);
+  /* memoised expensive bits with error handling */
+  const funded = useMemo(() => {
+    try {
+      return calculateFundedPercentage(sale);
+    } catch (error) {
+      console.error("Error calculating funded percentage:", error);
+      return 0;
+    }
+  }, [sale.percentFunded, sale.ethEscrow, sale.ethTarget, sale.status]);
+  
+  const priceData = useMemo(() => {
+    try {
+      return formatPrice(sale);
+    } catch (error) {
+      console.error("Error formatting price:", error);
+      return { price: "—", perEth: "" };
+    }
+  }, [sale.currentPrice, sale.status, sale.finalization, sale.netSold, sale.ethEscrow]);
+  
   const wallets = useMemo(() => {
     try {
       const buyers = sale.purchases?.items?.map((p) => p.buyer) ?? [];
@@ -160,7 +177,7 @@ export const SaleCard = memo(({ sale }: { sale: Sale }) => {
       console.error("wallet count", err);
       return 0;
     }
-  }, [sale]);
+  }, [sale.purchases, sale.sells]);
 
   const isStandard =
     sale.ethTarget === ZCURVE_STANDARD_PARAMS.ETH_TARGET.toString() &&
@@ -168,14 +185,13 @@ export const SaleCard = memo(({ sale }: { sale: Sale }) => {
     sale.quadCap === ZCURVE_STANDARD_PARAMS.QUAD_CAP.toString();
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
+    <Link 
+      to="/c/$coinId" 
+      params={{ coinId: String(sale.coinId) }}
       className="block rounded focus:outline-none focus:ring-2 focus:ring-primary/50"
       aria-label={`View sale of ${sale.coin?.name ?? "coin"}`}
     >
-      <Link to="/c/$coinId" params={{ coinId: String(sale.coinId) }}>
-        <div
+      <div
           className={cn(
             "relative overflow-hidden border p-3 transition-all",
             "bg-card hover:bg-accent/5 hover:shadow-lg cursor-pointer",
@@ -274,7 +290,7 @@ export const SaleCard = memo(({ sale }: { sale: Sale }) => {
             </div>
 
             {/* status & time info */}
-            <div className="text-right text-xs font-mono">
+            <div className="text-right text-xs font-mono space-y-2">
               <Badge
                 className={cn(
                   "border border-border px-2 py-1",
@@ -288,10 +304,21 @@ export const SaleCard = memo(({ sale }: { sale: Sale }) => {
                 {sale.status}
               </Badge>
 
-              <div className="mt-2 text-[11px] text-muted-foreground">
+              <div className="text-[11px] text-muted-foreground">
                 <div>{sale.createdAt ? new Date(Number(sale.createdAt) * 1000).toLocaleDateString() : "Unknown"}</div>
                 <div>{renderTimeInfo(sale)}</div>
               </div>
+              
+              {/* Ape button for active sales */}
+              {sale.status === "ACTIVE" && (
+                <div onClick={(e) => e.preventDefault()}>
+                  <ApeButton 
+                    coinId={sale.coinId.toString()} 
+                    coinSymbol={sale.coin?.symbol}
+                    className="w-full"
+                  />
+                </div>
+              )}
             </div>
           </div>
 
@@ -306,8 +333,7 @@ export const SaleCard = memo(({ sale }: { sale: Sale }) => {
             />
           </div>
         </div>
-      </Link>
-    </div>
+    </Link>
   );
 });
 

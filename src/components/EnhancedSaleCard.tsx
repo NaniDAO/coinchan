@@ -12,14 +12,14 @@ interface EnhancedSaleCardProps {
 export const EnhancedSaleCard = memo(({ sale, fetchOnchainData = false }: EnhancedSaleCardProps) => {
   const { address } = useAccount();
   
-  // Only fetch onchain data if requested (e.g., for user's own sales or important sales)
-  const { data: onchainData } = useZCurveSaleSummary(
+  // Only fetch onchain data if requested with error handling
+  const { data: onchainData, isError } = useZCurveSaleSummary(
     fetchOnchainData ? sale.coinId : undefined,
     address
   );
 
-  // Merge onchain data with indexed data - prioritize onchain data when available
-  const enhancedSale = onchainData ? {
+  // Merge onchain data with indexed data - prioritize onchain data when available and no error
+  const enhancedSale = onchainData && !isError ? {
     ...sale,
     // Use onchain data if it exists (even if 0), only fall back if undefined/null
     currentPrice: onchainData.currentPrice !== undefined ? onchainData.currentPrice : sale.currentPrice,

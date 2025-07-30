@@ -23,18 +23,22 @@ export function CreatorDisplay({
 }: CreatorDisplayProps) {
   const { t } = useTranslation();
 
-  // ENS resolution
-  const { data: ensName } = useEnsName({
+  // ENS resolution with error handling
+  const { data: ensName, isError } = useEnsName({
     address,
     chainId: mainnet.id,
+    enabled: !!address,
+    staleTime: 300_000, // Cache for 5 minutes
+    retry: false, // Don't retry on failure to prevent blocking
   });
 
   // Format address for display
   const displayName = useMemo(() => {
-    if (ensName) return ensName;
+    if (!address) return "Unknown";
+    if (ensName && !isError) return ensName;
     // Show first 6 and last 4 characters
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
-  }, [address, ensName]);
+  }, [address, ensName, isError]);
 
   const sizeClasses = {
     sm: "text-xs",

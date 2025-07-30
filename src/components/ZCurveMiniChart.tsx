@@ -37,26 +37,27 @@ export function ZCurveMiniChartInner({ sale, className = "" }: ZCurveMiniChartPr
   const isFinalized = sale.status === "FINALIZED";
 
   const chartData = useMemo(() => {
-    // Add safety checks for sale data
-    if (!sale || !sale.saleCap || !sale.divisor || !sale.quadCap) {
-      return {
-        points: [],
-        currentX: 0,
-        currentY: 0,
-        maxY: 1,
-        fundedPercentage: 0,
-      };
-    }
-    const saleCap = BigInt(sale.saleCap);
-    const divisor = BigInt(sale.divisor);
-    const quadCap = unpackQuadCap(BigInt(sale.quadCap));
-    const netSold = isFinalized ? saleCap : BigInt(sale.netSold);
-    const ethEscrow = BigInt(sale.ethEscrow);
-    const ethTarget = BigInt(sale.ethTarget);
+    try {
+      // Add safety checks for sale data
+      if (!sale || !sale.saleCap || !sale.divisor || !sale.quadCap) {
+        return {
+          points: [],
+          currentX: 0,
+          currentY: 0,
+          maxY: 1,
+          fundedPercentage: 0,
+        };
+      }
+      const saleCap = BigInt(sale.saleCap || 0);
+      const divisor = BigInt(sale.divisor || 1);
+      const quadCap = unpackQuadCap(BigInt(sale.quadCap || 0));
+      const netSold = isFinalized ? saleCap : BigInt(sale.netSold || 0);
+      const ethEscrow = BigInt(sale.ethEscrow || 0);
+      const ethTarget = BigInt(sale.ethTarget || 1);
 
     // Generate curve points - reduce to 25 points for mini chart performance
     const points = [];
-    const numPoints = 25; // Reduced from 50 for better performance
+    const numPoints = 15; // Further reduced for better performance in card view
     const step = saleCap / BigInt(numPoints);
 
     for (let i = 0n; i <= saleCap; i += step) {
@@ -94,7 +95,17 @@ export function ZCurveMiniChartInner({ sale, className = "" }: ZCurveMiniChartPr
       maxY,
       fundedPercentage,
     };
-  }, [sale, isFinalized]); // Add isFinalized to dependencies
+    } catch (error) {
+      console.error('Error calculating chart data:', error);
+      return {
+        points: [],
+        currentX: 0,
+        currentY: 0,
+        maxY: 1,
+        fundedPercentage: 0,
+      };
+    }
+  }, [sale.saleCap, sale.divisor, sale.quadCap, sale.netSold, sale.ethEscrow, sale.ethTarget, sale.status]); // Use specific dependencies
 
   const { points, currentX, currentY, maxY, fundedPercentage } = chartData;
 

@@ -67,6 +67,7 @@
     "tokens": "Tokens",
     "target_token": "Target {{token}}",
     "coins": "Coins",
+    "curved_coins": "Curved Coins",
     "available": "Available",
     "sorted_by": "Sorted by",
     "liquidity": "Liquidity",
@@ -1023,7 +1024,12 @@
     "exact_output": "Exact Output",
     "mode": "Mode",
     "rate": "Rate",
-    "processing": "Processing..."
+    "processing": "Processing...",
+    "transaction_success": "Trade successful!",
+    "insufficient_eth_for_quick_buy": "Insufficient ETH balance",
+    "quick_buy_initiated": "Buying {{symbol}} for 0.01 ETH...",
+    "buying": "BUYING...",
+    "quick_buy": "BUY 0.01Ξ"
   },
   "about": {
     "title": "About ZAMM",
@@ -1130,7 +1136,9 @@
   },
   "navigation": {
     "create": "Create",
-    "back_to_advanced_launch": "Back to Advanced Launch"
+    "back_to_advanced_launch": "Back to Advanced Launch",
+    "try_other_launches": "Try other launches",
+    "back_to_coins": "Back to Coins"
   },
   "cult": {
     "milady_cult_coin": "Milady Cult Coin",

@@ -22,7 +22,7 @@ export const CoinBreadcrumb = ({ coinId }: { coinId: bigint }) => {
         <Link
           to="/sales"
           className="flex items-center mr-2 px-2 py-1 -ml-2 rounded-md hover:bg-accent hover:text-accent-foreground active:scale-95 transition-all duration-200 touch-manipulation"
-          title={t("navigation.back_to_sales", "Back to Sales")}
+          title={t("navigation.back_to_coins", "Back to Coins")}
         >
           <span className="text-xl font-mono">&lt;</span>
         </Link>

@@ -88,13 +88,22 @@ export const useZCurveSales = () =>
         });
 
         clearTimeout(timer);
-        if (!res.ok) throw new Error(res.statusText);
+        if (!res.ok) {
+          // Don't throw on network errors, return cached data if available
+          console.error(`Network error fetching sales: ${res.statusText}`);
+          throw new Error(res.statusText);
+        }
 
         const json = (await res.json()) as GraphQLResponse;
-        if (json.errors?.length) throw new Error(json.errors[0]?.message ?? "GraphQL error");
+        if (json.errors?.length) {
+          console.error("GraphQL errors:", json.errors);
+          throw new Error(json.errors[0]?.message ?? "GraphQL error");
+        }
         return json.data?.zcurveSales?.items ?? [];
-      } finally {
+      } catch (error) {
         clearTimeout(timer);
+        // Re-throw to let React Query handle retries
+        throw error;
       }
     },
     refetchInterval: 30_000,
@@ -103,4 +112,6 @@ export const useZCurveSales = () =>
     retryDelay: (i) => Math.min(1000 * 2 ** i, 30_000),
     refetchOnWindowFocus: false,
     refetchOnMount: "always",
+    // Keep previous data while fetching
+    keepPreviousData: true,
   });

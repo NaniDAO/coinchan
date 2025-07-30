@@ -67,18 +67,20 @@ export const ZCurveSales = () => {
       {/* header */}
       <div className="flex items-center justify-between border-border p-3 text-foreground">
         <h2 className="font-mono text-2xl font-bold uppercase tracking-widest">
-          ZCURVE {t("common.sales", "SALES")} ({sales.length})
+          {t("common.curved_coins", "CURVED COINS")} ({sales.length})
         </h2>
 
-        <span className="text-xs font-mono text-muted-foreground">
-          Standard: 800 M cap · 10 ETH target · 69 % quad
-        </span>
-
-        {isRefetching && (
-          <span className="animate-pulse text-xs font-mono text-muted-foreground">
-            {t("common.updating", "Updating")}…
+        <div className="flex items-center gap-4">
+          <span className="text-xs font-mono text-muted-foreground">
+            Standard: 800 M cap · 10 ETH target · 69 % quad
           </span>
-        )}
+
+          {isRefetching && (
+            <span className="animate-pulse text-xs font-mono text-muted-foreground">
+              {t("common.updating", "Updating")}…
+            </span>
+          )}
+        </div>
       </div>
 
       {/* list */}
@@ -90,12 +92,10 @@ export const ZCurveSales = () => {
         ) : (
           <div className="space-y-2 border-l-4 border-border">
             {sales.map((s) => {
-              // ALWAYS use enhanced card with onchain data for active sales to ensure accuracy
-              const isActiveSale = s.status === "ACTIVE";
-              const isUserSale = address && s.creator?.toLowerCase() === address.toLowerCase();
-              const shouldFetchOnchain = isActiveSale || isUserSale;
+              // Only fetch onchain data for user's own active sales to reduce load
+              const isUserSale = address && s.creator?.toLowerCase() === address.toLowerCase() && s.status === "ACTIVE";
               
-              return shouldFetchOnchain ? (
+              return isUserSale ? (
                 <EnhancedSaleCard key={s.coinId.toString()} sale={s} fetchOnchainData={true} />
               ) : (
                 <SaleCard key={s.coinId.toString()} sale={s} />
@@ -126,7 +126,7 @@ const SkeletonHeader = () => (
   <div>
     <div className="p-3 text-foreground">
       <h2 className="font-mono text-2xl font-bold uppercase tracking-widest">
-        ZCURVE SALES
+        CURVED COINS
       </h2>
     </div>
     <div className="p-4">
@@ -160,7 +160,7 @@ const ErrorBlock = ({ err }: { err: Error }) => (
   <div>
     <div className="p-3 text-foreground">
       <h2 className="font-mono text-2xl font-bold uppercase tracking-widest">
-        ZCURVE SALES
+        CURVED COINS
       </h2>
     </div>
     <div className="p-4">

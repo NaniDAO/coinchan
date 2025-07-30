@@ -368,14 +368,15 @@ export function useZCurveSaleSummary(coinId: string | undefined, userAddress: Ad
     queryFn: async () => {
       if (!coinId || !publicClient) throw new Error("Missing parameters");
 
-      const result = await publicClient.readContract({
-        address: zCurveAddress,
-        abi: zCurveAbi,
-        functionName: "saleSummary",
-        args: [BigInt(coinId), userAddress || "0x0000000000000000000000000000000000000000"],
-      });
+      try {
+        const result = await publicClient.readContract({
+          address: zCurveAddress,
+          abi: zCurveAbi,
+          functionName: "saleSummary",
+          args: [BigInt(coinId), userAddress || "0x0000000000000000000000000000000000000000"],
+        });
 
-      return {
+        return {
         creator: result[0],
         saleCap: result[1].toString(),
         netSold: result[2].toString(),
@@ -392,10 +393,16 @@ export function useZCurveSaleSummary(coinId: string | undefined, userAddress: Ad
         divisor: result[13].toString(),
         quadCap: result[14].toString(),
       };
+      } catch (error) {
+        console.error("Error fetching sale summary:", error);
+        throw error;
+      }
     },
     enabled: !!coinId && !!publicClient,
     staleTime: 5 * 1000, // 5 seconds
     refetchInterval: 10 * 1000, // refetch every 10 seconds
+    retry: 1, // Reduce retries to prevent blocking
+    retryDelay: 1000,
   });
 }
 
