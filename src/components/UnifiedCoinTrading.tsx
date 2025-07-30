@@ -262,7 +262,6 @@ export function UnifiedCoinTrading({
                     sale={sale}
                     previewAmount={chartPreview?.amount}
                     isBuying={chartPreview?.isBuying}
-                    defaultView="line"
                   />
                 </CardContent>
               </Card>
