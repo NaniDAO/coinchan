@@ -6,59 +6,14 @@ import { ExplorerGrid, type SortType } from "./ExplorerGrid";
 import { usePagedCoins } from "./hooks/metadata";
 import type { CoinData } from "./hooks/metadata/coin-utils";
 import { useCoinsData } from "./hooks/metadata/use-coins-data";
-import { useLaunchSalesDeadlines } from "./hooks/use-launch-sales-deadlines";
 import { debounce } from "./lib/utils";
 
 // Page size for pagination
 const PAGE_SIZE = 20;
 
-// Helper function to check if a coin should appear in IZOs tab
-const shouldShowInLaunchSales = (coin: CoinData): boolean => {
-  // Show coins that have any sale status (ACTIVE, EXPIRED, FINALIZED)
-  if (coin.saleStatus !== null && coin.saleStatus !== undefined) {
-    return true;
-  }
-
-  // Also include zCurve coins - they have a specific pattern
-  // zCurve coins typically have high coin IDs and may not have traditional sale status
-  // For now, we'll need to rely on the backend to properly tag these
-  // TODO: Add proper zCurve detection once backend provides the necessary data
-
-  return false;
-};
-
 function escapeRegExp(input: string): string {
   return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
-
-// Helper function to check if an ACTIVE sale should be filtered out due to expiration
-const shouldFilterExpiredActiveSale = (coin: CoinData, saleDeadlines: Map<string, number>): boolean => {
-  // Only check ACTIVE sales for deadline expiration
-  if (coin.saleStatus !== "ACTIVE") {
-    return false; // Don't filter non-active sales here
-  }
-
-  // For active sales, check if deadline has expired (implicitly expired)
-  const coinId = coin.coinId.toString();
-  const deadlineLast = saleDeadlines.get(coinId);
-
-  if (deadlineLast) {
-    const now = Math.floor(Date.now() / 1000); // Current time in seconds
-    return deadlineLast <= now; // Filter out if deadline has passed
-  }
-
-  // If no deadline info available for active sale, keep it
-  return false;
-};
-
-// Helper function to get filtered launch sales data for pagination
-const getFilteredLaunchSales = (coins: CoinData[], saleDeadlines: Map<string, number>): CoinData[] => {
-  // First filter to include only coins that should appear in Launch Sales
-  const launchSalesCoins = coins.filter((coin) => shouldShowInLaunchSales(coin));
-
-  // Then filter out expired active sales based on deadlines
-  return launchSalesCoins.filter((coin) => !shouldFilterExpiredActiveSale(coin, saleDeadlines || new Map()));
-};
 
 export const Coins = () => {
   const { t } = useTranslation();
@@ -75,10 +30,6 @@ export const Coins = () => {
    * ------------------------------------------------------------------ */
   const { coins, allCoins, page, goToNextPage, isLoading, setPage } = usePagedCoins(PAGE_SIZE);
 
-  /* ------------------------------------------------------------------
-   *  Launch sales deadline data (for filtering expired sales)
-   * ------------------------------------------------------------------ */
-  const { data: saleDeadlines } = useLaunchSalesDeadlines();
 
   /* ------------------------------------------------------------------
    *  Search handling
@@ -218,19 +169,6 @@ export const Coins = () => {
           }
           return sortOrder === "asc" ? aVotes - bVotes : bVotes - aVotes;
         });
-      } else if (sortType === "launch") {
-        // Use the same filtering logic as pagination for consistency
-        const filteredLaunchSales = getFilteredLaunchSales(coinsCopy, saleDeadlines || new Map());
-
-        // Sort the remaining sales
-        return filteredLaunchSales.sort((a, b) => {
-          const aId = Number(a.coinId);
-          const bId = Number(b.coinId);
-
-          return sortOrder === "asc"
-            ? aId - bId // Ascending (oldest first - assuming lower IDs are older)
-            : bId - aId; // Descending (newest first - assuming higher IDs are newer)
-        });
       } else {
         // For recency sorting, use the createdAt timestamp
         return coinsCopy.sort((a, b) => {
@@ -251,16 +189,29 @@ export const Coins = () => {
         });
       }
     },
-    [sortType, sortOrder, saleDeadlines],
+    [sortType, sortOrder],
   );
 
   /* ------------------------------------------------------------------
-   *  Helper to filter out invalid coins (like Token 0)
+   *  Helper to filter out invalid coins (like Token 0) and expired unsold tranche sales
    * ------------------------------------------------------------------ */
   const filterValidCoins = useCallback((coinsList: CoinData[]): CoinData[] => {
-    return coinsList.filter(
-      (coin) => coin && coin.coinId !== undefined && coin.coinId !== null && Number(coin.coinId) > 0, // Exclude ID 0 and any negative IDs
-    );
+    return coinsList.filter((coin) => {
+      // Basic validation - exclude null, undefined, and ID 0
+      if (!coin || coin.coinId === undefined || coin.coinId === null || Number(coin.coinId) <= 0) {
+        return false;
+      }
+      
+      // Filter out expired and unsold tranche sales
+      // A tranche sale is considered expired and unsold if:
+      // 1. It has EXPIRED status AND
+      // 2. It has no liquidity (meaning it never sold)
+      if (coin.saleStatus === "EXPIRED" && (!coin.liquidity || coin.liquidity === 0n)) {
+        return false;
+      }
+      
+      return true;
+    });
   }, []);
 
   /* ------------------------------------------------------------------
@@ -328,17 +279,13 @@ export const Coins = () => {
         total={
           isSearchActive
             ? filterValidCoins(searchResults || []).length
-            : sortType === "launch"
-              ? getFilteredLaunchSales(filterValidCoins(allCoins || []), saleDeadlines || new Map()).length
-              : filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || []).length
+            : filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || []).length
         }
         canPrev={!isSearchActive && page > 0}
         canNext={
           !isSearchActive &&
           (page + 1) * PAGE_SIZE <
-            (sortType === "launch"
-              ? getFilteredLaunchSales(filterValidCoins(allCoins || []), saleDeadlines || new Map()).length
-              : filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || []).length)
+            filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || []).length
         }
         onPrev={debouncedPrevPage}
         onNext={debouncedNextPage}
@@ -349,9 +296,7 @@ export const Coins = () => {
           Math.ceil(
             (isSearchActive
               ? filterValidCoins(searchResults || []).length
-              : sortType === "launch"
-                ? getFilteredLaunchSales(filterValidCoins(allCoins || []), saleDeadlines || new Map()).length
-                : filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || []).length) / PAGE_SIZE,
+              : filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || []).length) / PAGE_SIZE,
           ),
         )}
         isSearchActive={isSearchActive}

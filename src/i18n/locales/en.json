@@ -1113,7 +1113,7 @@
     "swaps": "swaps",
     "coins": "coins",
     "gas": "gas",
-    "cost": "cost",
+    "create": "create",
     "load": "load",
     "governance": "governance",
     "stats": {

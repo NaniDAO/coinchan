@@ -8,6 +8,7 @@ import { ErrorBoundary } from "./ErrorBoundary";
 import { LoadingLogo } from "./ui/loading-logo";
 import { GovernanceProposals } from "./GovernanceProposals";
 import { SaleBlurb } from "./SaleBlurb";
+import { useNavigate } from "@tanstack/react-router";
 
 interface LandingPageProps {
   onEnterApp?: () => void;
@@ -16,6 +17,7 @@ interface LandingPageProps {
 export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
   const { t } = useTranslation();
   const { theme } = useTheme();
+  const navigate = useNavigate();
 
   const { data: landingData, isLoading: isLoadingLandingData } = useLandingData();
   const { data: protocolStats } = useProtocolStats();
@@ -140,8 +142,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
           <span className="font-bold">{landingData?.gasPrice || "loading..."}</span>
         </div>
         <div>
-          <span className="text-muted-foreground">{t("landing.cost")} = </span>
-          <span className="font-bold">{landingData?.launchCost || "loading..."}</span>
+          <span className="text-muted-foreground">{t("landing.create")} = </span>
+          <span className="font-bold">{landingData?.createCost || "loading..."}</span>
         </div>
       </div>
 
@@ -229,7 +231,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
 
       {/* Video */}
       <video
-        className="fixed bottom-5 right-5 w-40 h-40"
+        className="fixed bottom-5 right-5 w-40 h-40 cursor-pointer hover:opacity-80 transition-opacity"
         style={{
           clipPath: "polygon(50% 10%, 75% 50%, 50% 90%, 25% 50%)",
         }}
@@ -237,6 +239,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
         autoPlay
         loop
         muted
+        onClick={() => navigate({ to: "/oneshot" })}
       />
     </div>
   );

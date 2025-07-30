@@ -1222,7 +1222,7 @@
     "swaps": "交易次数",
     "coins": "代币数量",
     "gas": "gas",
-    "cost": "费用",
+    "create": "创建",
     "load": "加载",
     "governance": "治理",
     "stats": {
