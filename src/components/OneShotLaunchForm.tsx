@@ -2,7 +2,7 @@ import { zCurveAbi, zCurveAddress } from "@/constants/zCurve";
 import { pinImageToPinata, pinJsonToPinata } from "@/lib/pinata";
 import React, { type ChangeEvent, useState, useMemo, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useAccount, usePublicClient, useWaitForTransactionReceipt, useWriteContract, useGasPrice } from "wagmi";
+import { useAccount, useWaitForTransactionReceipt, useWriteContract, useGasPrice } from "wagmi";
 import { z } from "zod";
 import { useETHPrice } from "@/hooks/use-eth-price";
 import { ZCurveBondingChart } from "@/components/ZCurveBondingChart";
@@ -19,7 +19,7 @@ import { handleWalletError, isUserRejectionError } from "@/lib/errors";
 import { toast } from "sonner";
 import { useTheme } from "@/lib/theme";
 
-import { formatEther, parseEther } from "viem";
+import { formatEther, parseEther, decodeEventLog } from "viem";
 import { packQuadCap, UNIT_SCALE } from "@/lib/zCurveHelpers";
 
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -82,16 +82,62 @@ export function OneShotLaunchForm() {
   const navigate = useNavigate();
   const { theme } = useTheme();
   const { address: account } = useAccount();
-  const publicClient = usePublicClient();
   const { data: gasPrice } = useGasPrice();
   const { data: ethPrice } = useETHPrice();
-  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { writeContract, data: hash, isPending, error: writeError } = useWriteContract();
+  
+  // Filter out user rejection errors for display
+  const error = useMemo(() => {
+    if (!writeError) return null;
+    if (isUserRejectionError(writeError)) return null;
+    return writeError;
+  }, [writeError]);
 
-  // Wait for transaction
-  const { isLoading: txLoading, isSuccess: txSuccess } = useWaitForTransactionReceipt({ hash });
+  // Wait for transaction and get receipt
+  const { data: receipt, isLoading: txLoading, isSuccess: txSuccess } = useWaitForTransactionReceipt({ hash });
 
   // Store launched coin ID
   const [launchId, setLaunchId] = useState<bigint | null>(null);
+
+  // Extract coin ID from transaction receipt
+  useEffect(() => {
+    if (receipt) {
+      // Parse logs to find the Launch event and extract coin ID
+      try {
+        const launchLog = receipt.logs.find(log => {
+          try {
+            const decoded = decodeEventLog({
+              abi: zCurveAbi,
+              data: log.data,
+              topics: log.topics,
+            });
+            return decoded.eventName === 'Launch';
+          } catch {
+            return false;
+          }
+        });
+
+        if (launchLog) {
+          const decoded = decodeEventLog({
+            abi: zCurveAbi,
+            data: launchLog.data,
+            topics: launchLog.topics,
+          });
+          // The Launch event has coinId as the second indexed parameter (after creator)
+          // Structure: event Launch(address indexed creator, uint256 indexed coinId, ...)
+          if (decoded.args) {
+            // coinId is in the topics as it's indexed
+            const coinIdTopic = launchLog.topics[2]; // topics[0] is event signature, [1] is creator, [2] is coinId
+            if (coinIdTopic) {
+              setLaunchId(BigInt(coinIdTopic));
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to parse launch event:', error);
+      }
+    }
+  }, [receipt]);
 
   // Form state
   const [formData, setFormData] = useState<OneShotFormData>({
@@ -364,6 +410,9 @@ export function OneShotLaunchForm() {
 
     try {
       setIsUploading(true);
+      
+      // Show single uploading toast
+      toast.info(t("create.preparing_launch", "Preparing your coin launch..."));
 
       // Create metadata
       const metadata: Record<string, unknown> = {
@@ -376,25 +425,32 @@ export function OneShotLaunchForm() {
         metadata.description = formData.metadataDescription.trim();
       }
 
-      // Upload image first if provided
+      // Prepare upload promises
+      const uploadPromises: Promise<any>[] = [];
+      
+      // If image exists, upload it in parallel
       if (imageBuffer) {
-        toast.info(t("create.uploading_image", "Uploading image..."));
-        const imageUri = await pinImageToPinata(imageBuffer, `${formData.metadataName}-logo`, {
+        const imageUploadPromise = pinImageToPinata(imageBuffer, `${formData.metadataName}-logo`, {
           keyvalues: {
             coinName: formData.metadataName,
             coinSymbol: formData.metadataSymbol,
             type: "coin-logo",
           },
+        }).then(imageUri => {
+          metadata.image = imageUri;
         });
-        metadata.image = imageUri;
+        uploadPromises.push(imageUploadPromise);
       }
 
-      // Upload metadata to Pinata
-      toast.info(t("create.uploading_metadata", "Uploading metadata..."));
+      // Wait for image upload if needed
+      if (uploadPromises.length > 0) {
+        await Promise.all(uploadPromises);
+      }
+
+      // Upload metadata
       const metadataUri = await pinJsonToPinata(metadata);
 
       setIsUploading(false);
-      toast.info(t("create.starting_blockchain_transaction", "Starting blockchain transaction..."));
 
       // Pack quadCap with lpUnlock (0 for public sale)
       const quadCapWithFlags = packQuadCap(ONE_SHOT_PARAMS.quadCap, BigInt(0));
@@ -420,26 +476,7 @@ export function OneShotLaunchForm() {
         metadataUri, // uri: IPFS metadata URI
       ] as const;
 
-      // Try to simulate first to get the coin ID
-      if (publicClient) {
-        try {
-          // Simulate the transaction to get the predicted coin ID
-          const { result } = await publicClient.simulateContract({
-            account,
-            address: zCurveAddress,
-            abi: zCurveAbi,
-            functionName: "launch",
-            args: contractArgs,
-          });
-
-          // Set the predicted launch ID (first element of tuple)
-          setLaunchId(result[0]);
-        } catch (simError) {
-          console.warn("Contract simulation failed, proceeding without coin ID prediction:", simError);
-        }
-      }
-
-      // Call launch() with hardcoded zCurve parameters
+      // Call launch() directly without simulation
       writeContract({
         address: zCurveAddress,
         abi: zCurveAbi,
