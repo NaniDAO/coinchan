@@ -20,6 +20,7 @@ import type { TokenMeta } from "@/lib/coins";
 import { useGetCoin } from "@/hooks/metadata/use-get-coin";
 import { CookbookAddress } from "@/constants/Cookbook";
 import { ConnectMenu } from "@/ConnectMenu";
+import { useETHPrice } from "@/hooks/use-eth-price";
 
 interface ChartPreviewData {
   amount: bigint;
@@ -60,6 +61,7 @@ export function ZCurveTrading({
   const { data: saleSummary, refetch: refetchSummary } = useZCurveSaleSummary(coinId, address);
   const { data: userBalance, refetch: refetchBalance } = useZCurveBalance(coinId, address);
   const { data: ethBalance } = useBalance({ address });
+  const { data: ethPrice } = useETHPrice();
 
   // Clear preview on unmount
   useEffect(() => {
@@ -67,7 +69,7 @@ export function ZCurveTrading({
       onPreviewChange?.(null);
     };
   }, [onPreviewChange]);
-  const { data: coinData } = useGetCoin({
+  const { data: coinData, isLoading: coinDataLoading } = useGetCoin({
     coinId,
     token: CookbookAddress,
   });
@@ -93,22 +95,42 @@ export function ZCurveTrading({
   );
 
   const coinToken = useMemo<TokenMeta>(
-    () => ({
-      id: BigInt(coinId),
-      symbol: coinSymbol || coinData?.symbol || sale?.coin?.symbol || "TOKEN",
-      name: coinData?.name || sale?.coin?.name || "Token",
-      decimals: 18,
-      tokenUri:
-        coinIcon || coinData?.tokenURI || sale?.coin?.tokenURI || coinData?.imageUrl || sale?.coin?.imageUrl || "",
-      balance: saleSummary?.userBalance
-        ? BigInt(saleSummary.userBalance)
-        : userBalance
-          ? BigInt(userBalance.balance)
-          : 0n,
-      reserve0: 0n,
-      reserve1: 0n,
-      source: "COOKBOOK" as const,
-    }),
+    () => {
+      // Priority order for tokenUri: 
+      // 1. coinIcon prop (if provided)
+      // 2. coinData.imageUrl (from indexer)
+      // 3. coinData.tokenURI (raw metadata URI)
+      // 4. sale.coin.imageUrl (from sale data)
+      // 5. sale.coin.tokenURI (from sale data)
+      let tokenUri = "";
+      if (coinIcon) {
+        tokenUri = coinIcon;
+      } else if (coinData?.imageUrl) {
+        tokenUri = coinData.imageUrl;
+      } else if (coinData?.tokenURI) {
+        tokenUri = coinData.tokenURI;
+      } else if (sale?.coin?.imageUrl) {
+        tokenUri = sale.coin.imageUrl;
+      } else if (sale?.coin?.tokenURI) {
+        tokenUri = sale.coin.tokenURI;
+      }
+
+      return {
+        id: BigInt(coinId),
+        symbol: coinSymbol || coinData?.symbol || sale?.coin?.symbol || "TOKEN",
+        name: coinData?.name || sale?.coin?.name || "Token",
+        decimals: 18,
+        tokenUri,
+        balance: saleSummary?.userBalance
+          ? BigInt(saleSummary.userBalance)
+          : userBalance
+            ? BigInt(userBalance.balance)
+            : 0n,
+        reserve0: 0n,
+        reserve1: 0n,
+        source: "COOKBOOK" as const,
+      };
+    },
     [coinId, coinSymbol, coinData, coinIcon, userBalance, saleSummary, sale],
   );
 
@@ -124,6 +146,78 @@ export function ZCurveTrading({
   // Quantize token amounts to UNIT_SCALE to match contract requirements
   const quantizeToUnitScale = (value: bigint): bigint => {
     return (value / UNIT_SCALE) * UNIT_SCALE;
+  };
+
+  // Format price for display including very small values
+  const formatPriceDisplay = (priceWei: bigint, ethPriceUSD?: number) => {
+    const price = Number(formatEther(priceWei));
+    
+    if (priceWei === 0n) {
+      return { eth: "0", usd: "$0", tokensPerEth: "∞" };
+    }
+
+    // For very small prices, show in wei
+    let ethDisplay = "";
+    let usdDisplay = "";
+    
+    if (priceWei < 1000000n) { // Less than 1M wei
+      ethDisplay = `${priceWei.toString()} wei`;
+      // Calculate USD price more precisely for small values
+      if (ethPriceUSD) {
+        const usdPrice = (Number(priceWei) / 1e18) * ethPriceUSD;
+        if (usdPrice < 0.000001) {
+          const exp = Math.floor(Math.log10(usdPrice));
+          const mantissa = (usdPrice / Math.pow(10, exp)).toFixed(2);
+          usdDisplay = `$${mantissa}×10^${exp}`;
+        } else if (usdPrice < 0.01) {
+          usdDisplay = `$${usdPrice.toFixed(6)}`;
+        } else {
+          usdDisplay = `$${usdPrice.toFixed(4)}`;
+        }
+      }
+    } else if (price < 1e-9) {
+      const gwei = price * 1e9;
+      ethDisplay = `${gwei.toFixed(3)} gwei`;
+      if (ethPriceUSD) {
+        const usdPrice = price * ethPriceUSD;
+        usdDisplay = usdPrice < 0.01 ? `$${usdPrice.toFixed(6)}` : `$${usdPrice.toFixed(4)}`;
+      }
+    } else if (price < 1e-6) {
+      ethDisplay = `${price.toFixed(9)} ETH`;
+      if (ethPriceUSD) {
+        const usdPrice = price * ethPriceUSD;
+        usdDisplay = `$${usdPrice.toFixed(6)}`;
+      }
+    } else if (price < 0.01) {
+      ethDisplay = `${price.toFixed(6)} ETH`;
+      if (ethPriceUSD) {
+        const usdPrice = price * ethPriceUSD;
+        usdDisplay = `$${usdPrice.toFixed(4)}`;
+      }
+    } else {
+      ethDisplay = `${price.toFixed(4)} ETH`;
+      if (ethPriceUSD) {
+        const usdPrice = price * ethPriceUSD;
+        usdDisplay = `$${usdPrice.toFixed(2)}`;
+      }
+    }
+
+    // Calculate tokens per ETH
+    const tokensPerEth = price > 0 ? 1 / price : 0;
+    let tokensDisplay = "";
+    if (tokensPerEth >= 1e12) {
+      tokensDisplay = `${(tokensPerEth / 1e12).toFixed(2)}T`;
+    } else if (tokensPerEth >= 1e9) {
+      tokensDisplay = `${(tokensPerEth / 1e9).toFixed(2)}B`;
+    } else if (tokensPerEth >= 1e6) {
+      tokensDisplay = `${(tokensPerEth / 1e6).toFixed(2)}M`;
+    } else if (tokensPerEth >= 1e3) {
+      tokensDisplay = `${(tokensPerEth / 1e3).toFixed(2)}K`;
+    } else {
+      tokensDisplay = tokensPerEth.toFixed(2);
+    }
+
+    return { eth: ethDisplay, usd: usdDisplay, tokensPerEth: tokensDisplay };
   };
 
   // Calculate output based on input using view helpers
@@ -469,7 +563,7 @@ export function ZCurveTrading({
   const saleFinalized = sale?.status === "FINALIZED";
   const tradingDisabled = !!(saleFinalized || saleExpired);
 
-  if (saleLoading) {
+  if (saleLoading || (coinDataLoading && !sale?.coin)) {
     return (
       <div className="flex items-center justify-center py-8">
         <LoadingLogo />
@@ -645,41 +739,17 @@ export function ZCurveTrading({
             {(saleSummary?.currentPrice || sale.currentPrice)
               ? (() => {
                   const currentPriceWei = BigInt(saleSummary?.currentPrice || sale.currentPrice);
-                  const price = Number(formatEther(currentPriceWei));
-                  if (price === 0) return "0 ETH";
-
-                  let priceStr = "";
-                  // Format very small prices with better readability
-                  if (price < 1e-15) {
-                    const exp = Math.floor(Math.log10(price));
-                    const mantissa = (price / Math.pow(10, exp)).toFixed(2);
-                    priceStr = `${mantissa}×10^${exp} ETH`;
-                  } else if (price < 1e-9) {
-                    const gwei = price * 1e9;
-                    priceStr = `${gwei.toFixed(3)} gwei`;
-                  } else if (price < 1e-6) {
-                    priceStr = price.toFixed(9) + " ETH";
-                  } else {
-                    priceStr = price.toFixed(8) + " ETH";
-                  }
-
-                  // Calculate tokens per ETH
-                  const tokensPerEth = price > 0 ? 1 / price : 0;
-                  let tokensStr = "";
-                  if (tokensPerEth >= 1e9) {
-                    tokensStr = `${(tokensPerEth / 1e9).toFixed(2)}B per ETH`;
-                  } else if (tokensPerEth >= 1e6) {
-                    tokensStr = `${(tokensPerEth / 1e6).toFixed(2)}M per ETH`;
-                  } else if (tokensPerEth >= 1e3) {
-                    tokensStr = `${(tokensPerEth / 1e3).toFixed(2)}K per ETH`;
-                  } else {
-                    tokensStr = `${tokensPerEth.toFixed(2)} per ETH`;
-                  }
+                  const priceInfo = formatPriceDisplay(currentPriceWei, ethPrice?.priceUSD);
 
                   return (
                     <div className="flex flex-col items-end">
-                      <span>{priceStr}</span>
-                      <span className="text-[10px] text-muted-foreground">{tokensStr}</span>
+                      <span className="font-medium">{priceInfo.eth}</span>
+                      {priceInfo.usd && (
+                        <span className="text-[10px] text-muted-foreground">{priceInfo.usd}</span>
+                      )}
+                      <span className="text-[10px] text-muted-foreground">
+                        {priceInfo.tokensPerEth} per ETH
+                      </span>
                     </div>
                   );
                 })()

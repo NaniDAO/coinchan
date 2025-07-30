@@ -2,12 +2,10 @@
 
 export class FaviconManager {
   private static instance: FaviconManager;
-  private animatedFaviconUrl: string = '/zammzamm.gif'; // We'll need to add this file
+  private animatedFaviconUrl: string = '/zammzamm.gif';
   private staticFaviconUrl: string = '/zammzamm.png';
   private currentFavicon: 'animated' | 'static' = 'static';
   private supportsAnimatedFavicon: boolean = true;
-  private videoElement: HTMLVideoElement | null = null;
-  private canvasElement: HTMLCanvasElement | null = null;
   
   private constructor() {
     this.init();
@@ -48,67 +46,14 @@ export class FaviconManager {
 
   private async tryLoadAnimatedFavicon(): Promise<void> {
     try {
-      // First, check if we have a pre-generated GIF
+      // Check if the GIF exists
       const response = await fetch(this.animatedFaviconUrl);
-      if (response.ok) {
-        // GIF exists, we can use it directly
-        return;
+      if (!response.ok) {
+        throw new Error('GIF not found');
       }
+      // GIF exists, we can use it directly
     } catch (error) {
-      // GIF doesn't exist, try to create frames from video
-      console.log('No GIF found, will extract frames from video');
-    }
-
-    // If no GIF, create animated favicon from video frames
-    await this.createAnimatedFaviconFromVideo();
-  }
-
-  private async createAnimatedFaviconFromVideo(): Promise<void> {
-    try {
-      // Create video element to load the zammzamm video
-      this.videoElement = document.createElement('video');
-      this.canvasElement = document.createElement('canvas');
-      const ctx = this.canvasElement.getContext('2d');
-      
-      if (!ctx) {
-        throw new Error('Canvas context not available');
-      }
-
-      // Set canvas size for favicon (32x32 or 64x64 for retina)
-      const faviconSize = 64;
-      this.canvasElement.width = faviconSize;
-      this.canvasElement.height = faviconSize;
-
-      // Load video
-      this.videoElement.src = '/zammzamm.mp4';
-      this.videoElement.muted = true;
-      this.videoElement.playsInline = true;
-      
-      await new Promise((resolve, reject) => {
-        this.videoElement!.onloadeddata = resolve;
-        this.videoElement!.onerror = reject;
-      });
-
-      // For now, just use a single frame from the video as animated favicon
-      // In a production environment, you'd extract multiple frames and create a GIF server-side
-      this.videoElement.currentTime = 0.5; // Get frame at 0.5 seconds
-      
-      await new Promise(resolve => {
-        this.videoElement!.onseeked = resolve;
-      });
-
-      // Draw video frame to canvas
-      ctx.drawImage(this.videoElement, 0, 0, faviconSize, faviconSize);
-      
-      // Convert to data URL
-      this.animatedFaviconUrl = this.canvasElement.toDataURL('image/png');
-      
-      // Clean up
-      this.videoElement.remove();
-      this.videoElement = null;
-      
-    } catch (error) {
-      console.warn('Failed to create animated favicon from video:', error);
+      console.warn('Animated favicon not available, will use static fallback');
       this.supportsAnimatedFavicon = false;
     }
   }
@@ -126,9 +71,12 @@ export class FaviconManager {
       document.head.appendChild(newFavicon);
     } else {
       // Update existing favicon
-      const isGif = this.animatedFaviconUrl.endsWith('.gif');
-      favicon.type = this.currentFavicon === 'animated' ? (isGif ? 'image/gif' : 'image/png') : 'image/png';
+      favicon.type = this.currentFavicon === 'animated' ? 'image/gif' : 'image/png';
       favicon.href = this.currentFavicon === 'animated' ? this.animatedFaviconUrl : this.staticFaviconUrl;
+      
+      // Force refresh by adding a timestamp query parameter
+      const timestamp = new Date().getTime();
+      favicon.href = `${favicon.href}?v=${timestamp}`;
     }
     
     // Always use static PNG for Apple touch icon (iOS doesn't support animated icons)
@@ -159,18 +107,6 @@ export class FaviconManager {
 
   public isAnimated(): boolean {
     return this.currentFavicon === 'animated';
-  }
-
-  // Clean up resources when no longer needed
-  public destroy() {
-    if (this.videoElement) {
-      this.videoElement.remove();
-      this.videoElement = null;
-    }
-    if (this.canvasElement) {
-      this.canvasElement.remove();
-      this.canvasElement = null;
-    }
   }
 }
 

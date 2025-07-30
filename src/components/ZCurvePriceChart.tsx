@@ -436,7 +436,7 @@ export function ZCurvePriceChart({ coinId, currentBondingPrice, isActiveSale }: 
     );
   }
 
-  if (priceData.length === 0) {
+  if (priceData.length === 0 && (!isActiveSale || !currentBondingPrice)) {
     return (
       <div className="flex items-center justify-center h-[400px] text-muted-foreground">
         {t("trade.no_price_data", "No price data available yet")}
@@ -543,7 +543,16 @@ export function ZCurvePriceChart({ coinId, currentBondingPrice, isActiveSale }: 
       </div>
 
       {/* Chart */}
-      <div ref={chartContainerRef} className="w-full h-[400px] border border-border rounded-md" />
+      {priceData.length > 0 ? (
+        <div ref={chartContainerRef} className="w-full h-[400px] border border-border rounded-md" />
+      ) : (
+        <div className="w-full h-[400px] border border-border rounded-md flex items-center justify-center">
+          <div className="text-center text-muted-foreground">
+            <p className="text-lg mb-2">{t("chart.no_trades_yet", "No trades yet")}</p>
+            <p className="text-sm">{t("chart.showing_bonding_price", "Showing current bonding curve price")}</p>
+          </div>
+        </div>
+      )}
 
       {/* Legend */}
       <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">

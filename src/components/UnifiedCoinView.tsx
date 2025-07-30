@@ -1,10 +1,7 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { mainnet } from "viem/chains";
-import { useReadContract } from "wagmi";
 import { formatEther } from "viem";
 
-import { CheckTheChainAbi, CheckTheChainAddress } from "@/constants/CheckTheChain";
 import { CookbookAddress } from "@/constants/Cookbook";
 import { useGetCoin } from "@/hooks/metadata/use-get-coin";
 import { useZCurveSale } from "@/hooks/use-zcurve-sale";
@@ -12,6 +9,7 @@ import { SWAP_FEE, computePoolId } from "@/lib/swap";
 import { computeZCurvePoolId } from "@/lib/zCurvePoolId";
 import { useReserves } from "@/hooks/use-reserves";
 import { ZCURVE_STANDARD_PARAMS } from "@/lib/zCurveHelpers";
+import { useETHPrice } from "@/hooks/use-eth-price";
 
 import { CoinPreview } from "./CoinPreview";
 import { CoinInfoCard } from "./CoinInfoCard";
@@ -33,16 +31,7 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
   const { data: zcurveSale } = useZCurveSale(coinId.toString());
 
   // Fetch ETH price for market cap calculation
-  const { data: ethPriceData } = useReadContract({
-    address: CheckTheChainAddress,
-    abi: CheckTheChainAbi,
-    functionName: "checkPrice",
-    args: ["WETH"],
-    chainId: mainnet.id,
-    query: {
-      staleTime: 60_000,
-    },
-  });
+  const { data: ethPriceData } = useETHPrice();
 
   // Extract coin data
   const [name, symbol, imageUrl, description, tokenURI, poolIds, swapFees] = useMemo(() => {
@@ -87,8 +76,7 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
       };
     }
 
-    const priceStr = ethPriceData[1];
-    const ethPriceUsd = Number.parseFloat(priceStr);
+    const ethPriceUsd = ethPriceData.priceUSD;
 
     if (isNaN(ethPriceUsd) || ethPriceUsd === 0) {
       return {
