@@ -1,8 +1,18 @@
 import { CoinsMetadataHelperAbi, CoinsMetadataHelperAddress } from "@/constants/CoinsMetadataHelper";
+import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
+import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
 import { useQuery } from "@tanstack/react-query";
 import { http, createPublicClient } from "viem";
 import { mainnet } from "viem/chains";
 import { type CoinData, type RawCoinData, enrichMetadata, hydrateRawCoin } from "./coin-utils";
+import { 
+  CULT_TOKEN, 
+  CULT_POOL_ID, 
+  ENS_TOKEN, 
+  ENS_POOL_ID, 
+  USDT_TOKEN, 
+  USDT_POOL_ID 
+} from "@/lib/coins";
 
 const publicClient = createPublicClient({
   chain: mainnet,
@@ -42,7 +52,7 @@ export function useCoinsData() {
           votes: string;
         }>;
 
-        return raw.map((c) => ({
+        const indexerCoins = raw.map((c) => ({
           coinId: BigInt(c.coinId),
           tokenURI: c.tokenURI,
           reserve0: BigInt(c.reserve0),
@@ -54,11 +64,98 @@ export function useCoinsData() {
           description: c.description,
           imageUrl: c.imageUrl,
           createdAt: Number(c.createdAt),
-          metadata: null, // you said “don’t bother with metadata”
           priceInEth: c.priceInEth,
           votes: BigInt(c.votes),
           saleStatus: c.saleStatus,
         }));
+
+        // Fetch reserves for ENS and CULT
+        let ensReserves = { reserve0: 0n, reserve1: 0n };
+        let cultReserves = { reserve0: 0n, reserve1: 0n };
+        let usdtReserves = { reserve0: 0n, reserve1: 0n };
+
+        try {
+          const [ensPool, cultPool, usdtPool] = await Promise.all([
+            publicClient.readContract({
+              address: CookbookAddress,
+              abi: CookbookAbi,
+              functionName: "pools",
+              args: [ENS_POOL_ID],
+            }),
+            publicClient.readContract({
+              address: CookbookAddress,
+              abi: CookbookAbi,
+              functionName: "pools",
+              args: [CULT_POOL_ID],
+            }),
+            publicClient.readContract({
+              address: ZAMMAddress,
+              abi: ZAMMAbi,
+              functionName: "pools",
+              args: [USDT_POOL_ID],
+            })
+          ]);
+          
+          ensReserves = { reserve0: ensPool[0], reserve1: ensPool[1] };
+          cultReserves = { reserve0: cultPool[0], reserve1: cultPool[1] };
+          usdtReserves = { reserve0: usdtPool[0], reserve1: usdtPool[1] };
+        } catch (err) {
+          console.warn("Failed to fetch ENS/CULT/USDT reserves:", err);
+        }
+
+        // Add ENS, CULT, and USDT as CoinData
+        const ensData: CoinData = {
+          coinId: ENS_TOKEN.id ?? 0n,
+          tokenURI: ENS_TOKEN.tokenUri || "",
+          reserve0: ensReserves.reserve0,
+          reserve1: ensReserves.reserve1,
+          poolId: ENS_POOL_ID,
+          liquidity: 0n,
+          name: ENS_TOKEN.name,
+          symbol: ENS_TOKEN.symbol,
+          description: "Ethereum Name Service governance token",
+          imageUrl: ENS_TOKEN.imageUrl || "/ens.svg",
+          createdAt: 1638316800, // ENS launch date
+          priceInEth: null,
+          votes: 0n,
+          saleStatus: null,
+        };
+
+        const cultData: CoinData = {
+          coinId: CULT_TOKEN.id ?? 999999n,
+          tokenURI: CULT_TOKEN.tokenUri || "",
+          reserve0: cultReserves.reserve0,
+          reserve1: cultReserves.reserve1,
+          poolId: CULT_POOL_ID,
+          liquidity: 0n,
+          name: CULT_TOKEN.name,
+          symbol: CULT_TOKEN.symbol,
+          description: "Milady Cult Coin - powered by CultHook",
+          imageUrl: CULT_TOKEN.imageUrl || "/cult.jpg",
+          createdAt: 1700000000, // Approximate CULT launch
+          priceInEth: null,
+          votes: 0n,
+          saleStatus: null,
+        };
+
+        const usdtData: CoinData = {
+          coinId: USDT_TOKEN.id ?? 9999999n,
+          tokenURI: USDT_TOKEN.tokenUri || "",
+          reserve0: usdtReserves.reserve0,
+          reserve1: usdtReserves.reserve1,
+          poolId: USDT_POOL_ID,
+          liquidity: 0n,
+          name: USDT_TOKEN.name,
+          symbol: USDT_TOKEN.symbol,
+          description: "Tether USD stablecoin",
+          imageUrl: USDT_TOKEN.imageUrl || "",
+          createdAt: 1500000000, // Approximate USDT launch
+          priceInEth: null,
+          votes: 0n,
+          saleStatus: null,
+        };
+
+        return [...indexerCoins, ensData, cultData, usdtData];
       } catch (err) {
         console.warn("Fetch failed, falling back to RPC:", err);
 

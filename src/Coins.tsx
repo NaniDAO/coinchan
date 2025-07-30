@@ -125,10 +125,23 @@ export const Coins = () => {
     (coinsToSort: CoinData[]): CoinData[] => {
       if (!coinsToSort || coinsToSort.length === 0) return [];
 
-      // Filter out invalid coins (with ID 0 or undefined/null IDs)
-      // This prevents the "Token 0" issue by removing problematic entries
+      // Filter out invalid coins (undefined/null IDs)
+      // Allow special tokens like ENS (ID 0) and CULT (ID 999999)
       const validCoins = coinsToSort.filter(
-        (coin) => coin && coin.coinId !== undefined && coin.coinId !== null && Number(coin.coinId) > 0, // Explicitly exclude ID 0
+        (coin) => {
+          if (!coin || coin.coinId === undefined || coin.coinId === null) return false;
+          
+          // Allow special tokens
+          const isSpecialToken = 
+            coin.symbol === "ENS" || 
+            coin.symbol === "CULT" || 
+            coin.symbol === "USDT";
+          
+          // For regular coins, exclude ID 0 or negative
+          if (!isSpecialToken && Number(coin.coinId) <= 0) return false;
+          
+          return true;
+        }
       );
 
       // If all coins were filtered out, return empty array
@@ -197,8 +210,19 @@ export const Coins = () => {
    * ------------------------------------------------------------------ */
   const filterValidCoins = useCallback((coinsList: CoinData[]): CoinData[] => {
     return coinsList.filter((coin) => {
-      // Basic validation - exclude null, undefined, and ID 0
-      if (!coin || coin.coinId === undefined || coin.coinId === null || Number(coin.coinId) <= 0) {
+      // Basic validation - exclude null, undefined
+      if (!coin || coin.coinId === undefined || coin.coinId === null) {
+        return false;
+      }
+      
+      // Allow special tokens (ENS has ID 0, CULT has ID 999999)
+      const isSpecialToken = 
+        coin.symbol === "ENS" || 
+        coin.symbol === "CULT" || 
+        coin.symbol === "USDT";
+      
+      // For regular coins, exclude ID 0 or negative
+      if (!isSpecialToken && Number(coin.coinId) <= 0) {
         return false;
       }
       

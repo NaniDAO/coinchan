@@ -55,8 +55,8 @@ export const CoinSalesReel = () => {
   const currentSale = displaySales[visibleIndex];
 
   return (
-    <div className="mb-6 w-full flex flex-col items-center">
-      <div className="relative w-32 h-32 group">
+    <div className="mt-2 mb-4 w-full flex items-start gap-3">
+      <div className="relative w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0">
         {displaySales.map((sale, index) => (
           <CoinSaleReelItem
             key={sale.coinId}
@@ -67,28 +67,30 @@ export const CoinSalesReel = () => {
         ))}
       </div>
       
-      {/* Coin info below */}
-      <div className="mt-3 text-center transition-all duration-500 min-w-[100px]">
-        <div className="text-sm font-mono font-bold">
-          {currentSale.coin?.symbol}
+      {/* Coin info to the right */}
+      <div className="flex-1 min-w-0">
+        <div className="transition-all duration-500">
+          <div className="text-xs font-mono font-bold truncate">
+            {currentSale.coin?.symbol}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {currentSale.status === "ACTIVE" ? t("landing.bonding_now") : t("landing.graduated")}
+          </div>
+          
+          {/* Progress dots */}
+          <div className="flex gap-1 mt-2">
+            {displaySales.map((_, index) => (
+              <div
+                key={index}
+                className={`w-1 h-1 rounded-full transition-all duration-300 ${
+                  index === visibleIndex 
+                    ? 'bg-primary w-3' 
+                    : 'bg-muted-foreground/30'
+                }`}
+              />
+            ))}
+          </div>
         </div>
-        <div className="text-xs text-muted-foreground whitespace-nowrap">
-          {currentSale.status === "ACTIVE" ? t("landing.bonding_now") : t("landing.graduated")}
-        </div>
-      </div>
-      
-      {/* Progress dots */}
-      <div className="flex gap-1 mt-3">
-        {displaySales.map((_, index) => (
-          <div
-            key={index}
-            className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-              index === visibleIndex 
-                ? 'bg-primary w-4' 
-                : 'bg-muted-foreground/30'
-            }`}
-          />
-        ))}
       </div>
     </div>
   );

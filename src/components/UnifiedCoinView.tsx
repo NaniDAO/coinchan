@@ -16,6 +16,7 @@ import { CoinInfoCard } from "./CoinInfoCard";
 import { UnifiedCoinTrading } from "./UnifiedCoinTrading";
 import { VotePanel } from "./VotePanel";
 import { PoolOverview } from "./PoolOverview";
+import { TopLiquidityCoins } from "./TopLiquidityCoins";
 import ErrorFallback, { ErrorBoundary } from "./ErrorBoundary";
 
 export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
@@ -255,6 +256,13 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
       {/* Pool Overview - only show if AMM pool exists */}
       {(!zcurveSale || zcurveSale.status === "FINALIZED") && (
         <PoolOverview coinId={coinId.toString()} poolId={poolIdString} symbol={symbol} priceImpact={null} />
+      )}
+
+      {/* Top Liquidity Rankings - only show for finalized zCurve coins */}
+      {zcurveSale && zcurveSale.status === "FINALIZED" && (
+        <ErrorBoundary fallback={<ErrorFallback errorMessage="Error rendering top liquidity coins" />}>
+          <TopLiquidityCoins currentCoinId={coinId.toString()} />
+        </ErrorBoundary>
       )}
     </div>
   );
