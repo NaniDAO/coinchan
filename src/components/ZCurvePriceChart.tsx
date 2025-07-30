@@ -19,13 +19,18 @@ import { cn } from "@/lib/utils";
 import { useZCurvePurchases, useZCurveSells } from "@/hooks/use-zcurve-sale";
 
 // Helper function to format price in a readable way
-const formatPrice = (price: number): string => {
+const formatPrice = (price: number, priceWei?: bigint): string => {
+  // If we have the exact wei value, use it for very small prices
+  if (priceWei !== undefined && priceWei < 1000000n) {
+    return `${priceWei.toString()} wei`;
+  }
+  
   if (price === 0) return "0";
 
   // For very small prices, show in gwei or wei
   if (price < 1e-15) {
-    const wei = price * 1e18;
-    return `${wei.toFixed(0)} wei`;
+    const wei = Math.round(price * 1e18);
+    return `${wei} wei`;
   }
   if (price < 1e-9) {
     const gwei = price * 1e9;
@@ -41,8 +46,26 @@ const formatPrice = (price: number): string => {
 };
 
 // Helper function to format tokens per ETH
-const formatTokensPerEth = (priceInEth: number): string => {
-  if (priceInEth === 0) return "∞";
+const formatTokensPerEth = (priceInEth: number, priceWei?: bigint): string => {
+  // If price is very small (or provided in wei), calculate from wei
+  if (priceWei !== undefined && priceWei > 0n) {
+    const oneEthInWei = BigInt(1e18);
+    const tokensPerEth = Number(oneEthInWei) / Number(priceWei);
+    
+    if (tokensPerEth >= 1e9) {
+      return `${(tokensPerEth / 1e9).toFixed(2)}B per ETH`;
+    } else if (tokensPerEth >= 1e6) {
+      return `${(tokensPerEth / 1e6).toFixed(2)}M per ETH`;
+    } else if (tokensPerEth >= 1e3) {
+      return `${(tokensPerEth / 1e3).toFixed(2)}K per ETH`;
+    } else if (tokensPerEth >= 1) {
+      return `${tokensPerEth.toFixed(2)} per ETH`;
+    } else {
+      return `${tokensPerEth.toFixed(6)} per ETH`;
+    }
+  }
+  
+  if (priceInEth === 0 || priceInEth < 1e-18) return "∞ per ETH";
 
   const tokensPerEth = 1 / priceInEth;
 
@@ -361,9 +384,13 @@ export function ZCurvePriceChart({ coinId, currentBondingPrice, isActiveSale }: 
   const stats = React.useMemo(() => {
     // For active sales with no trading data, use bonding curve price
     if (priceData.length === 0 && isActiveSale && currentBondingPrice) {
-      const bondingPriceNum = Number(formatEther(BigInt(currentBondingPrice)));
+      // Keep the price in wei to avoid precision loss
+      const bondingPriceWei = BigInt(currentBondingPrice);
+      const bondingPriceNum = Number(formatEther(bondingPriceWei));
+      
       return {
         currentPrice: bondingPriceNum,
+        currentPriceWei: bondingPriceWei, // Store wei value for accurate display
         openPrice: bondingPriceNum,
         highPrice: bondingPriceNum,
         lowPrice: bondingPriceNum,
@@ -430,9 +457,9 @@ export function ZCurvePriceChart({ coinId, currentBondingPrice, isActiveSale }: 
                 stats.priceChange >= 0 ? "text-green-600" : "text-red-600",
               )}
             >
-              {formatPrice(stats.currentPrice)}
+              {formatPrice(stats.currentPrice, stats.currentPriceWei)}
             </p>
-            <p className="text-xs font-mono text-muted-foreground">{formatTokensPerEth(stats.currentPrice)}</p>
+            <p className="text-xs font-mono text-muted-foreground">{formatTokensPerEth(stats.currentPrice, stats.currentPriceWei)}</p>
             <p className={cn("text-xs", stats.priceChange >= 0 ? "text-green-600" : "text-red-600")}>
               {stats.priceChange >= 0 ? "+" : ""}
               {stats.priceChangePercent.toFixed(2)}%

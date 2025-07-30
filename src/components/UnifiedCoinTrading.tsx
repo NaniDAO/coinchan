@@ -17,9 +17,10 @@ import { ZCurvePriceChart } from "@/components/ZCurvePriceChart";
 import { CreatorDisplay } from "@/components/CreatorDisplay";
 import { CoinImagePopup } from "@/components/CoinImagePopup";
 
-import { useZCurveSale, useZCurveFinalization } from "@/hooks/use-zcurve-sale";
+import { useZCurveSale, useZCurveFinalization, useZCurveSaleSummary } from "@/hooks/use-zcurve-sale";
 import { useCoinSale } from "@/hooks/use-coin-sale";
 import { getExpectedPoolId } from "@/lib/zCurvePoolId";
+import { useAccount } from "wagmi";
 
 interface ChartPreviewData {
   amount: bigint;
@@ -42,10 +43,12 @@ export function UnifiedCoinTrading({
   poolId,
 }: UnifiedCoinTradingProps) {
   const { t } = useTranslation();
+  const { address } = useAccount();
   const [chartPreview, setChartPreview] = useState<ChartPreviewData | null>(null);
 
   const { data: sale, isLoading: saleLoading, refetch: refetchSale } = useZCurveSale(coinId);
   const { data: finalization } = useZCurveFinalization(coinId);
+  const { data: saleSummary } = useZCurveSaleSummary(coinId, address);
 
   // Check for ZAMMLaunch sale
   const { data: zammLaunchSale, isLoading: zammLoading } = useCoinSale({
@@ -311,7 +314,7 @@ export function UnifiedCoinTrading({
                 <ZCurvePriceChart
                   coinId={coinId}
                   coinSymbol={coinSymbol}
-                  currentBondingPrice={sale?.currentPrice}
+                  currentBondingPrice={saleSummary?.currentPrice || sale?.currentPrice}
                   isActiveSale={sale?.status === "ACTIVE"}
                 />
               </CardContent>

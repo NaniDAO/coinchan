@@ -187,35 +187,37 @@ function FinalizedPoolTradingInner({
         </div>
       )}
 
-      {/* Trading Interface - Desktop: side by side, Mobile: stacked */}
-      <div className="gap-4 grid grid-cols-1 lg:grid-cols-10">
-        {/* Chart Section - Desktop: Left, Mobile: Below swap */}
-        <PoolChart poolId={poolId} coinSymbol={coinSymbol} ethPrice={ethPrice} />
+      {/* Trading Interface - Desktop: side by side, Mobile: stacked with swap first */}
+      <div className="flex flex-col lg:grid lg:grid-cols-10 gap-4">
+        {/* Mobile: Swap first, Desktop: Chart on left */}
+        <div className="order-2 lg:order-1 col-span-1 lg:col-span-7">
+          <PoolChart poolId={poolId} coinSymbol={coinSymbol} ethPrice={ethPrice} />
+        </div>
 
-        <Tabs className="col-span-1 lg:col-span-3" value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+        <Tabs className="order-1 lg:order-2 col-span-1 lg:col-span-3" value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
           {/* Tabs at the top */}
-          <TabsList className="bg-card rounded-t-lg p-2 w-full sm:p-3 lg:p-4 grid grid-cols-3 gap-1">
+          <TabsList className="bg-muted/50 rounded-lg p-1 w-full flex justify-between">
             <TabsTrigger
               value="swap"
-              className="px-2 py-1.5 sm:px-4 sm:py-2 lg:px-6 lg:py-3 text-xs sm:text-sm lg:text-base data-[state=active]:bg-accent data-[state=active]:text-accent-foreground data-[state=active]:shadow-sm"
+              className="flex-1 px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
             >
               {t("common.swap")}
             </TabsTrigger>
             <TabsTrigger
               value="add"
-              className="px-2 py-1.5 sm:px-4 sm:py-2 lg:px-6 lg:py-3 text-xs sm:text-sm lg:text-base data-[state=active]:bg-accent data-[state=active]:text-accent-foreground data-[state=active]:shadow-sm"
+              className="flex-1 px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
             >
               {t("common.add")}
             </TabsTrigger>
             <TabsTrigger
               value="remove"
-              className="px-2 py-1.5 sm:px-4 sm:py-2 lg:px-6 lg:py-3 text-xs sm:text-sm lg:text-base data-[state=active]:bg-accent data-[state=active]:text-accent-foreground data-[state=active]:shadow-sm"
+              className="flex-1 px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
             >
               {t("common.remove")}
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="swap" className="mt-0">
+          <TabsContent value="swap" className="mt-4">
             {/* Swap Section - Desktop: Right, Mobile: Top */}
             <div className="w-full">
               <CookbookSwapTile
@@ -229,13 +231,13 @@ function FinalizedPoolTradingInner({
             </div>
           </TabsContent>
 
-          <TabsContent value="add" className="mt-0">
+          <TabsContent value="add" className="mt-4">
             <div className="w-full">
               <ZCurveAddLiquidity coinId={coinId} poolId={poolId} feeOrHook={actualFee} />
             </div>
           </TabsContent>
 
-          <TabsContent value="remove" className="mt-0">
+          <TabsContent value="remove" className="mt-4">
             <div className="w-full">
               {/* Remove Liquidity Form */}
               <ZCurveRemoveLiquidity coinId={coinId} poolId={poolId} feeOrHook={actualFee} />
@@ -257,25 +259,36 @@ function FinalizedPoolTradingInner({
           <div>
             <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1 sm:mb-2">Price</div>
             <div className="font-semibold text-sm sm:text-base lg:text-lg">
-              {coinPrice > 0
-                ? coinPrice < 0.00000001
-                  ? `${coinPrice.toExponential(4)} ETH`
-                  : `${coinPrice.toFixed(8)} ETH`
+              {reserves && coinPrice > 0
+                ? coinPrice < 1e-15
+                  ? `${((reserves.reserve0 * BigInt(1e18)) / reserves.reserve1).toString()} wei`
+                  : coinPrice < 1e-9
+                    ? `${(coinPrice * 1e9).toFixed(3)} gwei`
+                    : coinPrice < 0.00000001
+                      ? `${coinPrice.toExponential(4)} ETH`
+                      : `${coinPrice.toFixed(8)} ETH`
                 : "0.00000000 ETH"}
             </div>
-            <div className="text-sm text-muted-foreground">${coinUsdPrice > 0 ? coinUsdPrice.toFixed(2) : "0.00"}</div>
+            <div className="text-sm text-muted-foreground">
+              {ethPrice?.priceUSD && coinUsdPrice > 0 ? `$${coinUsdPrice.toFixed(2)}` : ethPrice ? "$0.00" : "Loading..."}
+            </div>
           </div>
 
           {/* Market Cap */}
           <div>
             <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1 sm:mb-2">Market Cap</div>
             <div className="font-semibold text-sm sm:text-base lg:text-lg">
-              $
-              {marketCapUsd > 1e9
-                ? (marketCapUsd / 1e9).toFixed(2) + "B"
-                : marketCapUsd > 0
-                  ? (marketCapUsd / 1e6).toFixed(2) + "M"
-                  : "-"}
+              {ethPrice?.priceUSD ? (
+                marketCapUsd > 1e9
+                  ? `$${(marketCapUsd / 1e9).toFixed(2)}B`
+                  : marketCapUsd > 1e6
+                    ? `$${(marketCapUsd / 1e6).toFixed(2)}M`
+                    : marketCapUsd > 0
+                      ? `$${(marketCapUsd / 1e3).toFixed(2)}K`
+                      : "$0.00M"
+              ) : (
+                "Loading..."
+              )}
             </div>
             <div className="text-xs text-muted-foreground">{formatNumber(1_000_000_000, 0)} supply</div>
           </div>
