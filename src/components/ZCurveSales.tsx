@@ -1,7 +1,7 @@
 import { formatImageURL } from "@/hooks/metadata";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Badge } from "./ui/badge";
 import { CreatorDisplay } from "./CreatorDisplay";
 import { ZCurveMiniChart } from "./ZCurveMiniChart";
@@ -9,8 +9,8 @@ import type { ZCurveSale } from "@/hooks/use-zcurve-sale";
 // Removed CoinImagePopup import to avoid nested interactive elements
 import { useTheme } from "@/lib/theme";
 import { useTranslation } from "react-i18next";
-import { memo, useMemo } from "react";
-// import { ZCURVE_STANDARD_PARAMS } from "@/lib/zCurveHelpers"; // TODO: Use for optimizations
+import { memo, useMemo, useCallback } from "react";
+import { ZCURVE_STANDARD_PARAMS } from "@/lib/zCurveHelpers";
 
 // Extend ZCurveSale with GraphQL-specific fields
 interface Sale extends ZCurveSale {
@@ -82,6 +82,13 @@ const calculateFundedPercentage = (sale: Sale): number => {
     const ethEscrow = BigInt(sale.ethEscrow || "0");
     const ethTarget = BigInt(sale.ethTarget || "0");
     if (ethTarget === 0n) return 0;
+    
+    // Optimize for standard target (10 ETH)
+    if (sale.ethTarget === ZCURVE_STANDARD_PARAMS.ETH_TARGET.toString()) {
+      const percentage = Number((ethEscrow * 10000n) / ZCURVE_STANDARD_PARAMS.ETH_TARGET) / 100;
+      return Math.min(percentage, 100);
+    }
+    
     const percentage = Number((ethEscrow * 10000n) / ethTarget) / 100;
     return Math.min(percentage, 100);
   } catch (e) {
@@ -160,48 +167,61 @@ const useZCurveSales = () => {
         throw new Error("Indexer URL not configured");
       }
       
-      const response = await fetch(
-        indexerUrl + "/graphql",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            query: GET_ZCURVE_SALES,
-          }),
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-
-      const data = await response.json();
-
-      if (data.errors) {
-        throw new Error(data.errors[0]?.message || "GraphQL error");
-      }
-
-      // Validate the response structure
-      if (!data?.data?.zcurveSales?.items) {
-        console.error("Invalid response structure:", data);
-        return [];
-      }
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
       
-      return data.data.zcurveSales.items;
+      try {
+        const response = await fetch(
+          indexerUrl + "/graphql",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              query: GET_ZCURVE_SALES,
+            }),
+            signal: controller.signal,
+          },
+        );
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+
+        const data = await response.json();
+
+        if (data.errors) {
+          throw new Error(data.errors[0]?.message || "GraphQL error");
+        }
+
+        // Validate the response structure
+        if (!data?.data?.zcurveSales?.items) {
+          console.error("Invalid response structure:", data);
+          return [];
+        }
+        
+        return data.data.zcurveSales.items;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
+      }
     },
-    refetchInterval: 10000, // Refetch every 10 seconds
-    staleTime: 5000, // Consider data stale after 5 seconds
-    retry: 3,
+    refetchInterval: 30000, // Reduce refetch frequency to 30 seconds
+    staleTime: 20000, // Consider data stale after 20 seconds
+    retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     refetchOnWindowFocus: false, // Prevent aggressive refetching
+    refetchOnMount: "always",
   });
 };
 
 // Memoized sale card component to prevent unnecessary re-renders
 const SaleCard = memo(({ sale }: { sale: Sale }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   
   // Ensure coinId is a string
   if (!sale?.coinId) {
@@ -223,24 +243,33 @@ const SaleCard = memo(({ sale }: { sale: Sale }) => {
   }, [sale.purchases?.items, sale.sells?.items]);
   
   // Check if using standard parameters for optimization
-  // const isStandardSale = useMemo(() => {
-  //   return sale.ethTarget === ZCURVE_STANDARD_PARAMS.ETH_TARGET.toString() &&
-  //          sale.saleCap === ZCURVE_STANDARD_PARAMS.SALE_CAP.toString();
-  // }, [sale.ethTarget, sale.saleCap]);
-  // TODO: Use isStandardSale for optimized rendering of standard parameters
+  const isStandardSale = useMemo(() => {
+    return sale.ethTarget === ZCURVE_STANDARD_PARAMS.ETH_TARGET.toString() &&
+           sale.saleCap === ZCURVE_STANDARD_PARAMS.SALE_CAP.toString() &&
+           sale.quadCap === ZCURVE_STANDARD_PARAMS.QUAD_CAP.toString();
+  }, [sale.ethTarget, sale.saleCap, sale.quadCap]);
+  
+  const handleClick = useCallback(() => {
+    navigate({ to: "/c/$coinId", params: { coinId: String(sale.coinId) } });
+  }, [navigate, sale.coinId]);
   
   return (
-    <Link
-      to="/c/$coinId"
-      params={{
-        coinId: String(sale.coinId),
+    <div
+      onClick={handleClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleClick();
+        }
       }}
-      className="block focus:outline-none focus:ring-2 focus:ring-primary/50 rounded"
+      className="block focus:outline-none focus:ring-2 focus:ring-primary/50 rounded cursor-pointer"
       aria-label={`View ${sale.coin?.name || 'coin'} sale details`}
     >
       <div
         className={cn(
-          "border p-3 text-card-foreground transition-all duration-200 relative overflow-hidden cursor-pointer select-none",
+          "border p-3 text-card-foreground transition-all duration-200 relative overflow-hidden cursor-pointer",
           "border-border hover:border-primary active:border-primary/80",
           "bg-card hover:bg-accent/5",
           "hover:shadow-lg active:scale-[0.99]",
@@ -307,7 +336,7 @@ const SaleCard = memo(({ sale }: { sale: Sale }) => {
               <div>
                 <span className="text-muted-foreground">{t("sale.funded_label", "Funded")}</span>
                 <div className="font-medium">
-                  {fundedPercentage.toFixed(1)}%
+                  {fundedPercentage.toFixed(1)}%{isStandardSale && " of 10 ETH"}
                 </div>
               </div>
             </div>
@@ -419,7 +448,7 @@ const SaleCard = memo(({ sale }: { sale: Sale }) => {
         />
       </div>
     </div>
-  </Link>
+  </div>
   );
 });
 
@@ -504,34 +533,35 @@ export const ZCurveSales = () => {
   }
 
   return (
-    <div className="">
-      <div className="">
-        {/* Header */}
-        <div className="border-border text-foreground p-3 flex items-center justify-between">
-          <h2 className="font-mono text-2xl tracking-widest font-bold uppercase">
-            ZCURVE {t("common.sales", "SALES")} ({sortedSales.length})
-          </h2>
-          {isRefetching && (
-            <div className="font-mono text-xs text-muted-foreground animate-pulse">
-              Updating...
-            </div>
-          )}
+    <div className="relative min-h-screen">
+      {/* Header */}
+      <div className="border-border text-foreground p-3 flex items-center justify-between">
+        <h2 className="font-mono text-2xl tracking-widest font-bold uppercase">
+          ZCURVE {t("common.sales", "SALES")} ({sortedSales.length})
+        </h2>
+        <div className="font-mono text-xs text-muted-foreground">
+          Standard: 800M cap · 10 ETH target · 69% quad
         </div>
+        {isRefetching && (
+          <div className="font-mono text-xs text-muted-foreground animate-pulse">
+            Updating...
+          </div>
+        )}
+      </div>
 
-        {/* Sales List */}
-        <div className="p-4">
-          {!sales || sales.length === 0 ? (
-            <div className="font-mono text-sm text-secondary-foreground bg-secondary p-4 rounded">
-              &gt; no active sales found
-            </div>
-          ) : (
-            <div className="border-l-4 border-border m-0 p-0 space-y-2">
-              {sortedSales.map((sale: Sale, index: number) => (
-                <SaleCard key={sale.coinId || `sale-${index}`} sale={sale} />
-              ))}
-            </div>
-          )}
-        </div>
+      {/* Sales List */}
+      <div className="p-4">
+        {!sales || sales.length === 0 ? (
+          <div className="font-mono text-sm text-secondary-foreground bg-secondary p-4 rounded">
+            &gt; no active sales found
+          </div>
+        ) : (
+          <div className="border-l-4 border-border m-0 p-0 space-y-2">
+            {sortedSales.map((sale: Sale, index: number) => (
+              <SaleCard key={sale.coinId || `sale-${index}`} sale={sale} />
+            ))}
+          </div>
+        )}
       </div>
       
       {/* Video */}
@@ -544,7 +574,6 @@ export const ZCurveSales = () => {
         autoPlay
         loop
         muted
-        aria-hidden="true"
       />
     </div>
   );
