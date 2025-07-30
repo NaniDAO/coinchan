@@ -291,17 +291,17 @@ export function ZCurveRemoveLiquidity({ coinId, poolId: providedPoolId, feeOrHoo
           <AlertDescription>
             <div className="space-y-2">
               <div className="text-sm font-medium">{t("liquidity.you_will_receive")}:</div>
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5">
+              <div className="flex items-center gap-3">
+                <div className="w-5 h-5 flex-shrink-0">
                   <TokenImage token={sellToken} />
                 </div>
-                <span>{formatNumber(parseFloat(estimatedEth), 6)} ETH</span>
+                <span className="ml-1">{formatNumber(parseFloat(estimatedEth), 6)} ETH</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5">
+              <div className="flex items-center gap-3">
+                <div className="w-5 h-5 flex-shrink-0">
                   <TokenImage token={buyToken} />
                 </div>
-                <span>
+                <span className="ml-1">
                   {formatNumber(parseFloat(estimatedTokens), 6)} {buyToken.symbol}
                 </span>
               </div>

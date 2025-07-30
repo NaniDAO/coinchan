@@ -37,6 +37,16 @@ export function ZCurveMiniChartInner({ sale, className = "" }: ZCurveMiniChartPr
   const isFinalized = sale.status === "FINALIZED";
 
   const chartData = useMemo(() => {
+    // Add safety checks for sale data
+    if (!sale || !sale.saleCap || !sale.divisor || !sale.quadCap) {
+      return {
+        points: [],
+        currentX: 0,
+        currentY: 0,
+        maxY: 1,
+        fundedPercentage: 0,
+      };
+    }
     const saleCap = BigInt(sale.saleCap);
     const divisor = BigInt(sale.divisor);
     const quadCap = unpackQuadCap(BigInt(sale.quadCap));
@@ -44,9 +54,10 @@ export function ZCurveMiniChartInner({ sale, className = "" }: ZCurveMiniChartPr
     const ethEscrow = BigInt(sale.ethEscrow);
     const ethTarget = BigInt(sale.ethTarget);
 
-    // Generate curve points
+    // Generate curve points - reduce to 25 points for mini chart performance
     const points = [];
-    const step = saleCap / 50n; // 50 points for smooth mini curve
+    const numPoints = 25; // Reduced from 50 for better performance
+    const step = saleCap / BigInt(numPoints);
 
     for (let i = 0n; i <= saleCap; i += step) {
       const cost = calculateCost(i, quadCap, divisor);
@@ -70,8 +81,8 @@ export function ZCurveMiniChartInner({ sale, className = "" }: ZCurveMiniChartPr
     const currentX = (Number(netSold) / Number(saleCap)) * 100;
     const currentY = Number(formatEther(currentCost));
 
-    // Max Y for scaling
-    const maxY = Math.max(...points.map((p) => p.y));
+    // Max Y for scaling - ensure we have a valid max
+    const maxY = Math.max(...points.map((p) => p.y), 0.001); // Prevent division by zero
 
     // Calculate funding percentage to match sale summary display
     const fundedPercentage = ethTarget > 0n ? Number((ethEscrow * 10000n) / ethTarget) / 100 : 0;
@@ -83,12 +94,14 @@ export function ZCurveMiniChartInner({ sale, className = "" }: ZCurveMiniChartPr
       maxY,
       fundedPercentage,
     };
-  }, [sale]);
+  }, [sale, isFinalized]); // Add isFinalized to dependencies
 
   const { points, currentX, currentY, maxY, fundedPercentage } = chartData;
 
   // Create SVG path
   const pathData = useMemo(() => {
+    if (points.length === 0) return "";
+    
     return points
       .map((point, index) => {
         const x = (point.x / 100) * 100; // Scale to viewBox width
@@ -97,6 +110,11 @@ export function ZCurveMiniChartInner({ sale, className = "" }: ZCurveMiniChartPr
       })
       .join(" ");
   }, [points, maxY]);
+
+  // Don't render if no data
+  if (points.length === 0) {
+    return <div className={`${className} bg-muted/20 animate-pulse`} />;
+  }
 
   return (
     <div className={`relative ${className}`}>
@@ -125,36 +143,41 @@ export function ZCurveMiniChartInner({ sale, className = "" }: ZCurveMiniChartPr
         />
 
         {/* Fill area under curve up to current position */}
-        {currentX > 0 && (
+        {currentX > 0 && points.length > 0 && (
           <path
             d={(() => {
-              // Create fill path up to current position
-              const fillPoints = points.filter((p) => p.x <= currentX);
+              try {
+                // Create fill path up to current position
+                const fillPoints = points.filter((p) => p.x <= currentX);
 
-              // Add interpolated point at currentX if needed
-              if (fillPoints.length > 0 && fillPoints[fillPoints.length - 1].x < currentX) {
-                const lastPoint = fillPoints[fillPoints.length - 1];
-                const nextPoint = points.find((p) => p.x > currentX);
+                // Add interpolated point at currentX if needed
+                if (fillPoints.length > 0 && fillPoints[fillPoints.length - 1].x < currentX) {
+                  const lastPoint = fillPoints[fillPoints.length - 1];
+                  const nextPoint = points.find((p) => p.x > currentX);
 
-                if (nextPoint) {
-                  // Interpolate Y value at currentX
-                  const t = (currentX - lastPoint.x) / (nextPoint.x - lastPoint.x);
-                  const interpY = lastPoint.y + (nextPoint.y - lastPoint.y) * t;
-                  fillPoints.push({ x: currentX, y: interpY });
+                  if (nextPoint && nextPoint.x > lastPoint.x) {
+                    // Interpolate Y value at currentX
+                    const t = (currentX - lastPoint.x) / (nextPoint.x - lastPoint.x);
+                    const interpY = lastPoint.y + (nextPoint.y - lastPoint.y) * t;
+                    fillPoints.push({ x: currentX, y: interpY });
+                  }
                 }
+
+                // Build the fill path
+                const fillPath = fillPoints
+                  .map((point, index) => {
+                    const x = Math.max(0, Math.min(100, (point.x / 100) * 100)); // Clamp values
+                    const y = 40 - (point.y / maxY) * 35; // Scale and invert for SVG
+                    return `${index === 0 ? "M" : "L"} ${x} ${y}`;
+                  })
+                  .join(" ");
+
+                // Close the path to create filled area
+                return `${fillPath} L ${currentX} 40 L 0 40 Z`;
+              } catch (e) {
+                console.error("Error generating fill path:", e);
+                return "";
               }
-
-              // Build the fill path
-              const fillPath = fillPoints
-                .map((point, index) => {
-                  const x = (point.x / 100) * 100; // Scale to viewBox width
-                  const y = 40 - (point.y / maxY) * 35; // Scale and invert for SVG
-                  return `${index === 0 ? "M" : "L"} ${x} ${y}`;
-                })
-                .join(" ");
-
-              // Close the path to create filled area
-              return `${fillPath} L ${currentX} 40 L 0 40 Z`;
             })()}
             fill="currentColor"
             className={isFinalized ? "text-amber-500 opacity-20" : "text-green-500 opacity-20"}

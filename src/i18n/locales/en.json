@@ -412,7 +412,8 @@
     "remove_percentage": "Remove Percentage",
     "add_liquidity_description": "Add liquidity to earn fees from trades",
     "remove_liquidity_description": "Remove liquidity to get back ETH and tokens",
-    "remove_liquidity": "Remove Liquidity"
+    "remove_liquidity": "Remove Liquidity",
+    "you_will_receive": "You will receive"
   },
   "claim": {
     "alert_title": "You have tokens to claim!",

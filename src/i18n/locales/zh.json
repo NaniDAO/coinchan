@@ -423,7 +423,8 @@
     "remove_percentage": "移除百分比",
     "add_liquidity_description": "添加流动性以从交易中赚取手续费",
     "remove_liquidity_description": "移除流动性以取回ETH和代币",
-    "remove_liquidity": "移除流动性"
+    "remove_liquidity": "移除流动性",
+    "you_will_receive": "您将收到"
   },
   "claim": {
     "alert_title": "您有代币可以领取！",

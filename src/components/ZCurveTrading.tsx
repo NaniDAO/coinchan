@@ -165,10 +165,19 @@ export function ZCurveTrading({
       // Calculate USD price more precisely for small values
       if (ethPriceUSD) {
         const usdPrice = (Number(priceWei) / 1e18) * ethPriceUSD;
-        if (usdPrice < 0.000001) {
-          const exp = Math.floor(Math.log10(usdPrice));
-          const mantissa = (usdPrice / Math.pow(10, exp)).toFixed(2);
-          usdDisplay = `$${mantissa}×10^${exp}`;
+        if (usdPrice < 0.00000001) {
+          // For extremely small values, show with leading zeros notation
+          const str = usdPrice.toFixed(20).replace(/\.?0+$/, '');
+          const parts = str.split('.');
+          if (parts.length === 2) {
+            const leadingZeros = parts[1].match(/^0+/)?.[0].length || 0;
+            if (leadingZeros >= 6) {
+              const significantPart = parts[1].slice(leadingZeros);
+              usdDisplay = `$0.0...{${leadingZeros}}${significantPart.slice(0, 4)}`;
+            } else {
+              usdDisplay = `$${usdPrice.toFixed(10)}`;
+            }
+          }
         } else if (usdPrice < 0.01) {
           usdDisplay = `$${usdPrice.toFixed(6)}`;
         } else {
@@ -180,7 +189,21 @@ export function ZCurveTrading({
       ethDisplay = `${gwei.toFixed(3)} gwei`;
       if (ethPriceUSD) {
         const usdPrice = price * ethPriceUSD;
-        usdDisplay = usdPrice < 0.01 ? `$${usdPrice.toFixed(6)}` : `$${usdPrice.toFixed(4)}`;
+        if (usdPrice < 0.00000001) {
+          const str = usdPrice.toFixed(20).replace(/\.?0+$/, '');
+          const parts = str.split('.');
+          if (parts.length === 2) {
+            const leadingZeros = parts[1].match(/^0+/)?.[0].length || 0;
+            if (leadingZeros >= 6) {
+              const significantPart = parts[1].slice(leadingZeros);
+              usdDisplay = `$0.0...{${leadingZeros}}${significantPart.slice(0, 4)}`;
+            } else {
+              usdDisplay = `$${usdPrice.toFixed(10)}`;
+            }
+          }
+        } else {
+          usdDisplay = usdPrice < 0.01 ? `$${usdPrice.toFixed(6)}` : `$${usdPrice.toFixed(4)}`;
+        }
       }
     } else if (price < 1e-6) {
       ethDisplay = `${price.toFixed(9)} ETH`;

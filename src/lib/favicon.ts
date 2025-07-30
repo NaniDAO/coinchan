@@ -36,12 +36,21 @@ export class FaviconManager {
   }
 
   private checkAnimatedFaviconSupport(): boolean {
-    // Most modern browsers support animated favicons (GIF)
-    // Safari on iOS has limited support
+    // Safari on iOS doesn't support animated favicons
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    if (isIOS) return false;
     
-    // For now, disable on iOS to ensure consistent behavior
-    return !isIOS;
+    // Chrome has inconsistent animated favicon support
+    // Many Chrome versions show only the first frame of GIFs
+    const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
+    if (isChrome) return false;
+    
+    // Firefox and Safari (desktop) generally support animated favicons well
+    const isFirefox = /Firefox/.test(navigator.userAgent);
+    const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+    
+    // Only enable for browsers with known good support
+    return isFirefox || isSafari;
   }
 
   private async tryLoadAnimatedFavicon(): Promise<void> {
@@ -51,7 +60,7 @@ export class FaviconManager {
       if (!response.ok) {
         throw new Error('GIF not found');
       }
-      // GIF exists, we can use it directly
+      // GIF exists, we can use it (browser support already checked)
     } catch (error) {
       console.warn('Animated favicon not available, will use static fallback');
       this.supportsAnimatedFavicon = false;
