@@ -59,27 +59,28 @@ const getDisplayPrice = (
 };
 
 // Helper function to format price display
-const formatPriceDisplay = (priceInWei: bigint): string | JSX.Element => {
+const formatPriceDisplay = (priceInWei: bigint, ethPrice?: number): string | JSX.Element => {
   const price = Number(formatEther(priceInWei));
 
   if (price === 0) return "0 ETH";
 
-  // Format very small prices
-  if (price < 1e-15) {
-    const wei = price * 1e18;
-    if (wei < 0.001) {
-      return `${wei.toExponential(2)} wei`;
+  // For very small prices, show USD value if available
+  if (price < 1e-6 && ethPrice) {
+    const usdPrice = price * ethPrice;
+    if (usdPrice < 0.000001) {
+      return `$${usdPrice.toExponential(2)}`;
     }
-    return `${wei.toFixed(3)} wei`;
+    if (usdPrice < 0.01) {
+      // Show with appropriate decimal places
+      const decimals = Math.max(2, -Math.floor(Math.log10(usdPrice)) + 2);
+      return `$${usdPrice.toFixed(decimals)}`;
+    }
+    return `$${usdPrice.toFixed(6)}`;
   }
+
+  // Format very small ETH prices
   if (price < 1e-9) {
-    const gwei = price * 1e9;
-    if (gwei < 0.001) {
-      return `${gwei.toFixed(6)} gwei`;
-    } else if (gwei < 1) {
-      return `${gwei.toFixed(4)} gwei`;
-    }
-    return `${gwei.toFixed(2)} gwei`;
+    return `${price.toExponential(2)} ETH`;
   }
   if (price < 1e-6) {
     return `${(price * 1e6).toFixed(3)} μETH`;
@@ -88,20 +89,7 @@ const formatPriceDisplay = (priceInWei: bigint): string | JSX.Element => {
     return `${(price * 1000).toFixed(4)} mETH`;
   }
   if (price < 0.01) {
-    const str = price.toFixed(12).replace(/\.?0+$/, "");
-    const parts = str.split(".");
-    if (parts.length === 2 && parts[1].length > 3) {
-      const leadingZeros = parts[1].match(/^0+/)?.[0].length || 0;
-      if (leadingZeros >= 3) {
-        const significantPart = parts[1].slice(leadingZeros);
-        return (
-          <span className="font-mono">
-            0.{`{${leadingZeros}}`}
-            {significantPart.slice(0, 4)} ETH
-          </span>
-        );
-      }
-    }
+    return `${price.toFixed(8)} ETH`;
   }
   return `${price.toFixed(6)} ETH`;
 };
@@ -122,12 +110,17 @@ const formatCoinsPerEth = (priceInWei: bigint): string => {
   const coinsPerEth = (oneEth * oneEth) / priceInWei;
   const coinsPerEthNumber = Number(formatEther(coinsPerEth));
 
-  if (coinsPerEthNumber >= 1e9) {
-    return `${(coinsPerEthNumber / 1e9).toFixed(2)}B per ETH`;
+  // Format very large numbers with appropriate suffixes
+  if (coinsPerEthNumber >= 1e15) {
+    return `${(coinsPerEthNumber / 1e15).toFixed(2)}Q per ETH`; // Quadrillion
+  } else if (coinsPerEthNumber >= 1e12) {
+    return `${(coinsPerEthNumber / 1e12).toFixed(2)}T per ETH`; // Trillion
+  } else if (coinsPerEthNumber >= 1e9) {
+    return `${(coinsPerEthNumber / 1e9).toFixed(2)}B per ETH`; // Billion
   } else if (coinsPerEthNumber >= 1e6) {
-    return `${(coinsPerEthNumber / 1e6).toFixed(2)}M per ETH`;
+    return `${(coinsPerEthNumber / 1e6).toFixed(2)}M per ETH`; // Million
   } else if (coinsPerEthNumber >= 1e3) {
-    return `${(coinsPerEthNumber / 1e3).toFixed(2)}K per ETH`;
+    return `${(coinsPerEthNumber / 1e3).toFixed(2)}K per ETH`; // Thousand
   } else if (coinsPerEthNumber >= 1) {
     return `${coinsPerEthNumber.toFixed(0)} per ETH`;
   } else {
@@ -272,14 +265,21 @@ export const ZCurveSaleProgress = memo(({ sale }: ZCurveSaleProgressProps) => {
 
   // Format values for display
   const displayValues = useMemo(
-    () => ({
-      ethAmount: formatEthAmount(Number(formatEther(saleData.ethEscrow))),
-      netSoldFormatted: formatTokenAmount(Number(formatEther(saleData.netSold))),
-      saleCapFormatted: formatTokenAmount(Number(formatEther(saleData.saleCap))),
-      priceDisplay: formatPriceDisplay(displayPriceInWei),
-      coinsPerEth: formatCoinsPerEth(displayPriceInWei),
-    }),
-    [saleData.ethEscrow, saleData.netSold, saleData.saleCap, displayPriceInWei],
+    () => {
+      const priceInEth = Number(formatEther(displayPriceInWei));
+      const usdPrice = priceInEth * (ethPrice?.priceUSD || 0);
+      
+      return {
+        ethAmount: formatEthAmount(Number(formatEther(saleData.ethEscrow))),
+        netSoldFormatted: formatTokenAmount(Number(formatEther(saleData.netSold))),
+        saleCapFormatted: formatTokenAmount(Number(formatEther(saleData.saleCap))),
+        priceDisplay: formatPriceDisplay(displayPriceInWei, ethPrice?.priceUSD),
+        coinsPerEth: formatCoinsPerEth(displayPriceInWei),
+        usdPrice: usdPrice,
+        showUsdPrice: usdPrice > 0 && priceInEth < 0.001, // Show USD for small prices
+      };
+    },
+    [saleData.ethEscrow, saleData.netSold, saleData.saleCap, displayPriceInWei, ethPrice?.priceUSD],
   );
 
   return (
@@ -346,6 +346,12 @@ export const ZCurveSaleProgress = memo(({ sale }: ZCurveSaleProgressProps) => {
               : t("sale.current_price", "Current Price")}
           </p>
           <p className="text-sm font-medium">{displayValues.priceDisplay}</p>
+          {/* Show ETH price in small text if displaying USD */}
+          {displayValues.showUsdPrice && displayPriceInWei > 0n && (
+            <p className="text-xs text-muted-foreground">
+              {Number(formatEther(displayPriceInWei)).toExponential(2)} ETH
+            </p>
+          )}
           {/* Coins per 1 ETH display */}
           <p className="text-xs text-muted-foreground mt-0.5">{displayValues.coinsPerEth}</p>
         </div>
