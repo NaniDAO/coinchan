@@ -2,7 +2,8 @@ import { formatImageURL } from "@/hooks/metadata";
 import { getRandomDiamondColor } from "@/lib/color";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { Skeleton } from "./ui/skeleton";
 
 interface SaleBlurbProps {
   coinId: string;
@@ -70,8 +71,9 @@ const useSale = (coinId: string) => {
 };
 
 export const SaleBlurb: React.FC<SaleBlurbProps> = ({ coinId }) => {
+  const [imageLoaded, setImageLoaded] = useState(false);
   // fetch details for stream
-  const { data } = useSale(coinId);
+  const { data, isLoading } = useSale(coinId);
 
   const [imageUrl, farmColor, ticker, saleData, description] = useMemo(() => {
     if (!data?.zcurveSale?.coin?.symbol) return [undefined, undefined, undefined, undefined, undefined];
@@ -88,6 +90,17 @@ export const SaleBlurb: React.FC<SaleBlurbProps> = ({ coinId }) => {
     return [imageUrl, farmColor, ticker, saleData, description];
   }, [data?.zcurveSale?.coin?.symbol, data?.zcurveSale?.coin?.imageUrl]);
 
+  if (isLoading) {
+    return (
+      <div className="w-fit text-lg flex items-center">
+        <span className="text-muted-foreground">└── </span>
+        <Skeleton className="w-4 h-4 mr-2" />
+        <Skeleton className="w-16 h-4 mr-2" />
+        <Skeleton className="w-32 h-4" />
+      </div>
+    );
+  }
+
   if (!farmColor || !ticker) return null;
 
   return (
@@ -100,7 +113,16 @@ export const SaleBlurb: React.FC<SaleBlurbProps> = ({ coinId }) => {
         className={"flex flex-row items-center hover:underline"}
       >
         <span className="text-muted-foreground">└── </span>
-        <img src={imageUrl} alt={data?.zcurveSale?.coin?.name || ticker} className="w-4 h-4 mr-2 bg-white" />
+        <div className="relative w-4 h-4 mr-2">
+          {!imageLoaded && <Skeleton className="w-4 h-4 absolute inset-0" />}
+          <img
+            src={imageUrl}
+            alt={data?.zcurveSale?.coin?.name || ticker}
+            className={`w-4 h-4 bg-white transition-opacity duration-300 ${imageLoaded ? "opacity-100" : "opacity-0"}`}
+            onLoad={() => setImageLoaded(true)}
+            onError={() => setImageLoaded(true)}
+          />
+        </div>
         <span className="font-bold" style={{ color: farmColor }}>
           {ticker.toUpperCase()}
         </span>

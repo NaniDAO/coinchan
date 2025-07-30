@@ -30,12 +30,14 @@ interface EnhancedCookbookSwapTileProps {
   poolId?: string;
   userBalance?: bigint;
   feeOrHook?: string | bigint;
-  onPriceImpactChange?: (impact: {
-    currentPrice: number;
-    projectedPrice: number;
-    impactPercent: number;
-    action: "buy" | "sell";
-  } | null) => void;
+  onPriceImpactChange?: (
+    impact: {
+      currentPrice: number;
+      projectedPrice: number;
+      impactPercent: number;
+      action: "buy" | "sell";
+    } | null,
+  ) => void;
   onTransactionSuccess?: () => void;
 }
 
@@ -311,7 +313,7 @@ export function EnhancedCookbookSwapTile({
           const expectedEthIn = parseEther(sellAmount);
           // Add slippage tolerance to max input for exact out
           const maxEthIn = expectedEthIn + (expectedEthIn * slippageBps) / 10000n;
-          
+
           // Validate ETH balance
           if (ethBalance && ethBalance.value < maxEthIn) {
             setErrorMessage(t("trade.insufficient_balance"));
@@ -353,7 +355,7 @@ export function EnhancedCookbookSwapTile({
           const expectedTokensIn = parseEther(sellAmount);
           // Add slippage tolerance to max input for exact out
           const maxTokensIn = expectedTokensIn + (expectedTokensIn * slippageBps) / 10000n;
-          
+
           // Validate token balance
           const currentTokenBalance = providedUserBalance || (cookbookBalance as bigint) || 0n;
           if (currentTokenBalance < maxTokensIn) {
@@ -406,7 +408,7 @@ export function EnhancedCookbookSwapTile({
       setSellAmount("");
       setBuyAmount("");
       onPriceImpactChange?.(null);
-      
+
       // Refetch reserves after a short delay
       setTimeout(() => {
         refetchReserves();

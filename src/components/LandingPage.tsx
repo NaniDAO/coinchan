@@ -7,7 +7,8 @@ import { TrendingFarm } from "./TrendingFarm";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { LoadingLogo } from "./ui/loading-logo";
 import { GovernanceProposals } from "./GovernanceProposals";
-import { SaleBlurb } from "./SaleBlurb";
+import { useNavigate } from "@tanstack/react-router";
+import { CoinSalesReel } from "./CoinSalesReel";
 
 interface LandingPageProps {
   onEnterApp?: () => void;
@@ -16,6 +17,7 @@ interface LandingPageProps {
 export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
   const { t } = useTranslation();
   const { theme } = useTheme();
+  const navigate = useNavigate();
 
   const { data: landingData, isLoading: isLoadingLandingData } = useLandingData();
   const { data: protocolStats } = useProtocolStats();
@@ -140,8 +142,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
           <span className="font-bold">{landingData?.gasPrice || "loading..."}</span>
         </div>
         <div>
-          <span className="text-muted-foreground">{t("landing.cost")} = </span>
-          <span className="font-bold">{landingData?.launchCost || "loading..."}</span>
+          <span className="text-muted-foreground">{t("landing.create")} = </span>
+          <span className="font-bold">{landingData?.createCost || "loading..."}</span>
         </div>
       </div>
 
@@ -172,12 +174,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
           </ErrorBoundary>
         </div>
       </div>
-      {/* Sales Section */}
+      {/* Coins Section */}
       <div className="mb-4">
-        <div className="text-lg mb-2 font-bold">{t("landing.sales")}:</div>
+        <div className="text-lg mb-2 font-bold">{t("landing.coins")}:</div>
         <div className="space-y-0 text-xs">
-          <ErrorBoundary fallback={<LoadingLogo />}>
-            <SaleBlurb coinId="71" />
+          {/* Coin Sales Reel */}
+          <ErrorBoundary fallback={null}>
+            <CoinSalesReel />
           </ErrorBoundary>
         </div>
       </div>
@@ -225,11 +228,26 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
       </div>
 
       {/* Features */}
-      <div className="text-xs text-muted-foreground">{t("landing.features")}</div>
+      <div className="text-xs text-muted-foreground mb-4">{t("landing.features")}</div>
+
+      {/* Twitter/X Link */}
+      <div className="mb-4">
+        <a
+          href="https://x.com/zamm_defi"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+          </svg>
+          <span className="text-xs">@zamm_defi</span>
+        </a>
+      </div>
 
       {/* Video */}
       <video
-        className="fixed bottom-5 right-5 w-40 h-40"
+        className="fixed bottom-5 right-5 w-40 h-40 cursor-pointer hover:opacity-80 transition-opacity"
         style={{
           clipPath: "polygon(50% 10%, 75% 50%, 50% 90%, 25% 50%)",
         }}
@@ -237,6 +255,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
         autoPlay
         loop
         muted
+        onClick={() => navigate({ to: "/oneshot" })}
       />
     </div>
   );

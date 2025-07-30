@@ -7,7 +7,7 @@ import { Link, Outlet, createRootRoute, useLocation, useNavigate } from "@tansta
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
-import { Logo } from "@/components/Logo";
+import { AnimatedLogo } from "@/components/AnimatedLogo";
 
 export const Route = createRootRoute({
   component: () => {
@@ -17,7 +17,12 @@ export const Route = createRootRoute({
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const handleLogoClick = () => {
-      navigate({ to: "/" });
+      // If on coins page, navigate to oneshot create form
+      if (location.pathname === "/coins") {
+        navigate({ to: "/oneshot" });
+      } else {
+        navigate({ to: "/" });
+      }
       setIsMobileMenuOpen(false);
     };
 
@@ -30,10 +35,10 @@ export const Route = createRootRoute({
     };
 
     const navLinks = [
+      { to: "/coins", label: t("common.coins") },
       { to: "/swap", label: t("common.swap") },
       { to: "/farm", label: t("common.farm") },
       { to: "/explore", label: t("common.explore") },
-      { to: "/sales", label: t("common.coins") },
     ];
 
     const navLinkClasses = (path: string) =>
@@ -59,9 +64,7 @@ export const Route = createRootRoute({
           >
             {/* Logo */}
             <div className="flex-shrink-0">
-              <button onClick={handleLogoClick}>
-                <Logo className="!m-0 h-10 w-10" />
-              </button>
+              <AnimatedLogo onClick={handleLogoClick} />
             </div>
 
             {/* Desktop Navigation */}

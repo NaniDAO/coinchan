@@ -112,6 +112,4 @@ export const useZCurveSales = () =>
     retryDelay: (i) => Math.min(1000 * 2 ** i, 30_000),
     refetchOnWindowFocus: false,
     refetchOnMount: "always",
-    // Keep previous data while fetching
-    keepPreviousData: true,
   });

@@ -497,6 +497,18 @@
     "recipient_note": "输出将发送到",
     "resolving_ens": "正在解析ENS名称..."
   },
+  "chart": {
+    "price_chart": "价格图表",
+    "line": "折线图",
+    "candles": "K线图",
+    "note": "注意",
+    "preview_not_available": "交易预览仅在折线图模式下可用",
+    "no_trades": "暂无交易",
+    "price_up": "价格上涨",
+    "price_down": "价格下跌",
+    "volume": "成交量",
+    "trades_count": "{{count}} 笔交易"
+  },
   "trade": {
     "you_pay": "您支付",
     "you_receive": "您将收到",
@@ -558,7 +570,19 @@
     "eth_in_escrow": "托管中的 ETH",
     "current_price": "当前价格",
     "exact_input": "精确输入",
-    "exact_output": "精确输出"
+    "exact_output": "精确输出",
+    "transaction_success": "交易成功！",
+    "insufficient_eth_for_quick_buy": "ETH余额不足",
+    "quick_buy_initiated": "正在以0.01 ETH购买{{symbol}}...",
+    "buying": "正在购买...",
+    "quick_buy": "快速买入 0.01Ξ"
+  },
+  "holders": {
+    "title": "持有者",
+    "no_holders": "暂无持有者",
+    "legend": "B=买入, S=卖出",
+    "unique_holders": "独立持有者",
+    "total_trades": "总交易次数"
   },
   "sale": {
     "finalized": "已结束",
@@ -577,7 +601,8 @@
     "linear": "线性",
     "to_linear": "距离线性阶段",
     "near_target": "销售将在达到目标时自动结束",
-    "price_curve": "价格曲线"
+    "price_curve": "价格曲线",
+    "none": "暂无活跃销售"
   },
   "create": {
     "bonding_curve": "联合曲线",
@@ -604,6 +629,7 @@
     "quadcap_transition": "K (转换点)",
     "marginal_price": "边际价格 (每代币 ETH)",
     "instant_coin_sale": "zCurve 联合曲线发行",
+    "graduate_info": "10 ETH 毕业。二次方 69% - 4.2 ETH。",
     "oneshot_supply_breakdown": "{{totalSupply}} 总供应量：{{saleCap}} 联合曲线 + {{lpSupply}} 流动性",
     "oneshot_percentages": "{{salePercent}}% 公开联合曲线 • {{lpPercent}}% 自动流动性",
     "oneshot_sale_price": "联合曲线：二次方 → 线性定价",
@@ -875,6 +901,8 @@
     "circulating_supply": "流通供应量",
     "total_supply": "总供应量",
     "description": "描述",
+    "top_liquidity": "流动性排名",
+    "liquidity": "流动性",
     "buy": "买入",
     "sell": "卖出",
     "chart": "图表",
@@ -1186,20 +1214,22 @@
     "enter_zamm": "进入 ZAMM",
     "enter_app_aria": "进入 ZAMM 应用程序",
     "features": "EVM 布拉格 • 公平发行 • 低廉费用",
-    "initializing": "> 正在初始化 zamm 协议...",
+    "initializing": "> 正在同步 zAMM 单例...",
     "connecting_chains": "> 正在连接链...",
     "loading_data": "> 正在加载市场数据...",
     "system_ready": "> 系统就绪",
     "trending": "热门",
     "sales": "销售",
+    "coins": "币种",
     "protocol": "协议",
     "eth_swapped": "ETH 交易量",
     "swaps": "交易次数",
-    "coins": "代币数量",
     "gas": "gas",
-    "cost": "费用",
+    "create": "创建",
     "load": "加载",
     "governance": "治理",
+    "bonding_now": "正在绑定",
+    "graduated": "已毕业",
     "stats": {
       "eth_price": "ETH 价格：",
       "gas_price": "Gas 价格：",

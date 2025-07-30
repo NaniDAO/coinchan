@@ -27,9 +27,6 @@ export function CreatorDisplay({
   const { data: ensName, isError } = useEnsName({
     address,
     chainId: mainnet.id,
-    enabled: !!address,
-    staleTime: 300_000, // Cache for 5 minutes
-    retry: false, // Don't retry on failure to prevent blocking
   });
 
   // Format address for display

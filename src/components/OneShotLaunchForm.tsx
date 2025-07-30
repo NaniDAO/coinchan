@@ -653,6 +653,9 @@ export function OneShotLaunchForm() {
               <h3 className="font-bold text-foreground text-base sm:text-lg flex items-center gap-2">
                 {getTranslated("create.instant_coin_sale", "Instant Coin Sale")}
                 <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+                <span className="text-sm text-muted-foreground font-normal">
+                  {getTranslated("create.graduate_info", "Graduate at 10 ETH. Quadratic 69% - 4.2 ETH.")}
+                </span>
               </h3>
             </div>
             <div className="grid grid-cols-1 gap-2 sm:gap-3 text-xs sm:text-sm relative z-10">

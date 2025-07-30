@@ -94,45 +94,42 @@ export function ZCurveTrading({
     [ethBalance?.value],
   );
 
-  const coinToken = useMemo<TokenMeta>(
-    () => {
-      // Priority order for tokenUri: 
-      // 1. coinIcon prop (if provided)
-      // 2. coinData.imageUrl (from indexer)
-      // 3. coinData.tokenURI (raw metadata URI)
-      // 4. sale.coin.imageUrl (from sale data)
-      // 5. sale.coin.tokenURI (from sale data)
-      let tokenUri = "";
-      if (coinIcon) {
-        tokenUri = coinIcon;
-      } else if (coinData?.imageUrl) {
-        tokenUri = coinData.imageUrl;
-      } else if (coinData?.tokenURI) {
-        tokenUri = coinData.tokenURI;
-      } else if (sale?.coin?.imageUrl) {
-        tokenUri = sale.coin.imageUrl;
-      } else if (sale?.coin?.tokenURI) {
-        tokenUri = sale.coin.tokenURI;
-      }
+  const coinToken = useMemo<TokenMeta>(() => {
+    // Priority order for tokenUri:
+    // 1. coinIcon prop (if provided)
+    // 2. coinData.imageUrl (from indexer)
+    // 3. coinData.tokenURI (raw metadata URI)
+    // 4. sale.coin.imageUrl (from sale data)
+    // 5. sale.coin.tokenURI (from sale data)
+    let tokenUri = "";
+    if (coinIcon) {
+      tokenUri = coinIcon;
+    } else if (coinData?.imageUrl) {
+      tokenUri = coinData.imageUrl;
+    } else if (coinData?.tokenURI) {
+      tokenUri = coinData.tokenURI;
+    } else if (sale?.coin?.imageUrl) {
+      tokenUri = sale.coin.imageUrl;
+    } else if (sale?.coin?.tokenURI) {
+      tokenUri = sale.coin.tokenURI;
+    }
 
-      return {
-        id: BigInt(coinId),
-        symbol: coinSymbol || coinData?.symbol || sale?.coin?.symbol || "TOKEN",
-        name: coinData?.name || sale?.coin?.name || "Token",
-        decimals: 18,
-        tokenUri,
-        balance: saleSummary?.userBalance
-          ? BigInt(saleSummary.userBalance)
-          : userBalance
-            ? BigInt(userBalance.balance)
-            : 0n,
-        reserve0: 0n,
-        reserve1: 0n,
-        source: "COOKBOOK" as const,
-      };
-    },
-    [coinId, coinSymbol, coinData, coinIcon, userBalance, saleSummary, sale],
-  );
+    return {
+      id: BigInt(coinId),
+      symbol: coinSymbol || coinData?.symbol || sale?.coin?.symbol || "TOKEN",
+      name: coinData?.name || sale?.coin?.name || "Token",
+      decimals: 18,
+      tokenUri,
+      balance: saleSummary?.userBalance
+        ? BigInt(saleSummary.userBalance)
+        : userBalance
+          ? BigInt(userBalance.balance)
+          : 0n,
+      reserve0: 0n,
+      reserve1: 0n,
+      source: "COOKBOOK" as const,
+    };
+  }, [coinId, coinSymbol, coinData, coinIcon, userBalance, saleSummary, sale]);
 
   // Safe parseEther wrapper
   const safeParseEther = (value: string): bigint | null => {
@@ -151,7 +148,7 @@ export function ZCurveTrading({
   // Format price for display including very small values
   const formatPriceDisplay = (priceWei: bigint, ethPriceUSD?: number) => {
     const price = Number(formatEther(priceWei));
-    
+
     if (priceWei === 0n) {
       return { eth: "0", usd: "$0", tokensPerEth: "∞" };
     }
@@ -159,16 +156,17 @@ export function ZCurveTrading({
     // For very small prices, show in wei
     let ethDisplay = "";
     let usdDisplay = "";
-    
-    if (priceWei < 1000000n) { // Less than 1M wei
+
+    if (priceWei < 1000000n) {
+      // Less than 1M wei
       ethDisplay = `${priceWei.toString()} wei`;
       // Calculate USD price more precisely for small values
       if (ethPriceUSD) {
         const usdPrice = (Number(priceWei) / 1e18) * ethPriceUSD;
         if (usdPrice < 0.00000001) {
           // For extremely small values, show with leading zeros notation
-          const str = usdPrice.toFixed(20).replace(/\.?0+$/, '');
-          const parts = str.split('.');
+          const str = usdPrice.toFixed(20).replace(/\.?0+$/, "");
+          const parts = str.split(".");
           if (parts.length === 2) {
             const leadingZeros = parts[1].match(/^0+/)?.[0].length || 0;
             if (leadingZeros >= 6) {
@@ -190,8 +188,8 @@ export function ZCurveTrading({
       if (ethPriceUSD) {
         const usdPrice = price * ethPriceUSD;
         if (usdPrice < 0.00000001) {
-          const str = usdPrice.toFixed(20).replace(/\.?0+$/, '');
-          const parts = str.split('.');
+          const str = usdPrice.toFixed(20).replace(/\.?0+$/, "");
+          const parts = str.split(".");
           if (parts.length === 2) {
             const leadingZeros = parts[1].match(/^0+/)?.[0].length || 0;
             if (leadingZeros >= 6) {
@@ -758,7 +756,7 @@ export function ZCurveTrading({
         <div className="flex justify-between">
           <span>{t("sale.current_price")}</span>
           <span className="text-right">
-            {(saleSummary?.currentPrice || sale.currentPrice)
+            {saleSummary?.currentPrice || sale.currentPrice
               ? (() => {
                   const currentPriceWei = BigInt(saleSummary?.currentPrice || sale.currentPrice);
                   const priceInfo = formatPriceDisplay(currentPriceWei, ethPrice?.priceUSD);
@@ -766,12 +764,8 @@ export function ZCurveTrading({
                   return (
                     <div className="flex flex-col items-end">
                       <span className="font-medium">{priceInfo.eth}</span>
-                      {priceInfo.usd && (
-                        <span className="text-[10px] text-muted-foreground">{priceInfo.usd}</span>
-                      )}
-                      <span className="text-[10px] text-muted-foreground">
-                        {priceInfo.tokensPerEth} per ETH
-                      </span>
+                      {priceInfo.usd && <span className="text-[10px] text-muted-foreground">{priceInfo.usd}</span>}
+                      <span className="text-[10px] text-muted-foreground">{priceInfo.tokensPerEth} per ETH</span>
                     </div>
                   );
                 })()
@@ -785,7 +779,8 @@ export function ZCurveTrading({
         <div className="flex justify-between">
           <span>{t("sale.tokens_sold")}</span>
           <span>
-            {formatEther(BigInt(saleSummary?.netSold || sale.netSold))} / {formatEther(BigInt(saleSummary?.saleCap || sale.saleCap))}
+            {formatEther(BigInt(saleSummary?.netSold || sale.netSold))} /{" "}
+            {formatEther(BigInt(saleSummary?.saleCap || sale.saleCap))}
           </span>
         </div>
       </div>

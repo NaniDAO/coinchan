@@ -91,7 +91,6 @@ export const ZCurveBondingChart: React.FC<ZCurveBondingChartProps> = ({
     }
   };
 
-
   // Calculate marginal price at a given token amount using the shared calculateCost function
   const calculateMarginalPrice = (tokensSold: bigint, quadCapValue: bigint | undefined, d: bigint): bigint => {
     // Marginal price is the cost of the next UNIT_SCALE tokens

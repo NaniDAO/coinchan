@@ -149,7 +149,7 @@ function FinalizedPoolTradingInner({
       // For very small values, show up to 10 decimal places
       const formatted = price.toFixed(10);
       // Remove trailing zeros
-      return `$${formatted.replace(/\.?0+$/, '')}`;
+      return `$${formatted.replace(/\.?0+$/, "")}`;
     }
     if (price < 0.01) {
       return `$${price.toFixed(6)}`;
@@ -225,20 +225,24 @@ function FinalizedPoolTradingInner({
       <div className="flex flex-col lg:grid lg:grid-cols-10 gap-4">
         {/* Mobile: Swap first, Desktop: Chart on left */}
         <div className="order-2 lg:order-1 col-span-1 lg:col-span-7">
-          <EnhancedPoolChart 
+          <EnhancedPoolChart
             key={chartRefreshKey}
-            poolId={poolId} 
-            coinSymbol={coinSymbol} 
+            poolId={poolId}
+            coinSymbol={coinSymbol}
             ethPrice={ethPrice}
             priceImpact={priceImpact}
             onTransactionSuccess={() => {
               refetchReserves();
-              setChartRefreshKey(prev => prev + 1);
+              setChartRefreshKey((prev) => prev + 1);
             }}
           />
         </div>
 
-        <Tabs className="order-1 lg:order-2 col-span-1 lg:col-span-3" value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+        <Tabs
+          className="order-1 lg:order-2 col-span-1 lg:col-span-3"
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as any)}
+        >
           {/* Tabs at the top */}
           <TabsList className="bg-muted/50 rounded-lg p-1 w-full flex justify-between">
             <TabsTrigger
@@ -274,7 +278,7 @@ function FinalizedPoolTradingInner({
                 onPriceImpactChange={setPriceImpact}
                 onTransactionSuccess={() => {
                   refetchReserves();
-                  setChartRefreshKey(prev => prev + 1);
+                  setChartRefreshKey((prev) => prev + 1);
                 }}
               />
             </div>
@@ -313,23 +317,21 @@ function FinalizedPoolTradingInner({
                   ? `${((reserves.reserve0 * BigInt(1e18)) / reserves.reserve1).toString()} wei`
                   : coinPrice < 1e-12
                     ? `${(coinPrice * 1e9).toFixed(6)} gwei`
-                  : coinPrice < 1e-9
-                    ? `${(coinPrice * 1e9).toFixed(3)} gwei`
-                    : coinPrice < 1e-6
-                      ? `${(coinPrice * 1e6).toFixed(3)} μETH`
-                    : coinPrice < 0.001
-                      ? `${(coinPrice * 1000).toFixed(4)} mETH`
-                    : coinPrice < 0.01
-                      ? `${coinPrice.toFixed(6)} ETH`
-                    : coinPrice < 1
-                      ? `${coinPrice.toFixed(4)} ETH`
-                      : `${coinPrice.toFixed(2)} ETH`
+                    : coinPrice < 1e-9
+                      ? `${(coinPrice * 1e9).toFixed(3)} gwei`
+                      : coinPrice < 1e-6
+                        ? `${(coinPrice * 1e6).toFixed(3)} μETH`
+                        : coinPrice < 0.001
+                          ? `${(coinPrice * 1000).toFixed(4)} mETH`
+                          : coinPrice < 0.01
+                            ? `${coinPrice.toFixed(6)} ETH`
+                            : coinPrice < 1
+                              ? `${coinPrice.toFixed(4)} ETH`
+                              : `${coinPrice.toFixed(2)} ETH`
                 : "0.00000000 ETH"}
             </div>
             <div className="text-sm text-muted-foreground">
-              {ethPrice?.priceUSD 
-                ? formatUsdPrice(coinUsdPrice)
-                : "Loading..."}
+              {ethPrice?.priceUSD ? formatUsdPrice(coinUsdPrice) : "Loading..."}
             </div>
             {/* Tokens per ETH for context */}
             {reserves && coinPrice > 0 && (
@@ -352,7 +354,9 @@ function FinalizedPoolTradingInner({
 
           {/* Market Cap */}
           <div>
-            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1 sm:mb-2">Market Cap</div>
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1 sm:mb-2">
+              Market Cap
+            </div>
             <div className="font-semibold text-sm sm:text-base lg:text-lg">
               {reserves && marketCapEth > 0 ? (
                 <>
@@ -384,7 +388,9 @@ function FinalizedPoolTradingInner({
 
           {/* ETH Liquidity */}
           <div>
-            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1 sm:mb-2">ETH Liquidity</div>
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1 sm:mb-2">
+              ETH Liquidity
+            </div>
             <div className="font-semibold text-sm sm:text-base lg:text-lg">
               {formatNumber(Number(formatEther(reserves?.reserve0 || 0n)), 4)}
             </div>

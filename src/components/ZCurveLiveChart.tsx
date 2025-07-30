@@ -49,7 +49,6 @@ export function ZCurveLiveChart({ sale, previewAmount, isBuying = true }: ZCurve
     borderColor: appTheme === "dark" ? "#404040" : "#e5e5e5",
   };
 
-
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
@@ -362,7 +361,7 @@ export function ZCurveLiveChart({ sale, previewAmount, isBuying = true }: ZCurve
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium">
-            {t("sale.live_price_curve", "Live Price Curve")}
+            {t("sale.live_curve_chart", "Live Curve Chart")}
             {previewAmount && previewAmount > 0n ? (
               <span className={`ml-2 text-xs ${isBuying ? "text-blue-500" : "text-red-500"}`}>
                 ({isBuying ? t("trade.buy_preview", "Buy Preview") : t("trade.sell_preview", "Sell Preview")})
@@ -412,18 +411,21 @@ export function ZCurveLiveChart({ sale, previewAmount, isBuying = true }: ZCurve
               <div className="flex items-center gap-1">
                 <span className="text-xs font-medium">
                   {(() => {
-                    const currentCost = calculateCost(netSold + UNIT_SCALE, quadCap, divisor) - calculateCost(netSold, quadCap, divisor);
+                    // Calculate curve progress impact
+                    const currentProgress = Number((netSold * 100n) / saleCap);
                     const endPoint = isBuying ? netSold + previewAmount : netSold - previewAmount;
                     if (endPoint < 0n || endPoint > saleCap) return null;
-                    const newCost = calculateCost(endPoint + UNIT_SCALE, quadCap, divisor) - calculateCost(endPoint, quadCap, divisor);
-                    const priceImpact =
-                      ((Number(formatEther(newCost)) - Number(formatEther(currentCost))) /
-                        Number(formatEther(currentCost))) *
-                      100;
+                    const newProgress = Number((endPoint * 100n) / saleCap);
+                    const progressDelta = newProgress - currentProgress;
+
+                    // Calculate curve progress only
+
                     return (
-                      <span className={priceImpact >= 0 ? "text-red-500" : "text-green-500"}>
-                        {priceImpact >= 0 ? "+" : ""}
-                        {priceImpact.toFixed(2)}% {t("trade.price_impact", "impact")}
+                      <span className="space-x-2">
+                        <span className={isBuying ? "text-blue-500" : "text-green-500"}>
+                          {progressDelta >= 0 ? "+" : ""}
+                          {Math.abs(progressDelta).toFixed(2)}% {t("trade.curve_movement", "curve movement")}
+                        </span>
                       </span>
                     );
                   })()}

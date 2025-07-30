@@ -22,12 +22,12 @@ interface EnhancedPoolChartProps {
   onTransactionSuccess?: () => void;
 }
 
-export const EnhancedPoolChart = ({ 
-  poolId, 
-  coinSymbol, 
+export const EnhancedPoolChart = ({
+  poolId,
+  coinSymbol,
   ethPrice,
   priceImpact,
-  onTransactionSuccess 
+  onTransactionSuccess,
 }: EnhancedPoolChartProps) => {
   const [chartType, setChartType] = useState<"line" | "candle">("line");
   const [chartKey, setChartKey] = useState(0);
@@ -65,7 +65,7 @@ export const EnhancedPoolChart = ({
     // Invalidate pool price points query
     queryClient.invalidateQueries({ queryKey: ["poolPricePoints", poolId] });
     // Force re-render of chart by updating key
-    setChartKey(prev => prev + 1);
+    setChartKey((prev) => prev + 1);
   }, [poolId, queryClient]);
 
   // Handle chart type change with stability
@@ -107,22 +107,19 @@ export const EnhancedPoolChart = ({
         >
           <div key={chartKey} className="chart-wrapper">
             {chartType === "line" ? (
-              <PoolPriceChart 
-                poolId={poolId} 
-                ticker={coinSymbol} 
+              <PoolPriceChart
+                poolId={poolId}
+                ticker={coinSymbol}
                 ethUsdPrice={ethPrice?.priceUSD}
                 priceImpact={priceImpact}
               />
             ) : (
-              <PoolCandleChart 
-                poolId={poolId} 
-                interval="1d" 
-              />
+              <PoolCandleChart poolId={poolId} interval="1d" />
             )}
           </div>
         </Suspense>
       </div>
-      
+
       <div className="w-fit border border-border flex flex-row items-center mt-2">
         <button
           onClick={() => handleChartTypeChange("candle")}
@@ -148,33 +145,33 @@ export const EnhancedPoolChart = ({
 
       {/* Price Impact Indicator */}
       {priceImpact && priceImpact.impactPercent > 0 && (
-        <div className={cn(
-          "mt-3 p-3 rounded-md text-sm",
-          priceImpact.impactPercent > 10 
-            ? "bg-destructive/10 text-destructive" 
-            : priceImpact.impactPercent > 5 
-              ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
-              : "bg-green-500/10 text-green-600 dark:text-green-400"
-        )}>
+        <div
+          className={cn(
+            "mt-3 p-3 rounded-md text-sm",
+            priceImpact.impactPercent > 10
+              ? "bg-destructive/10 text-destructive"
+              : priceImpact.impactPercent > 5
+                ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
+                : "bg-green-500/10 text-green-600 dark:text-green-400",
+          )}
+        >
           <div className="flex items-center justify-between">
-            <span className="font-medium">
-              Price Impact: {priceImpact.impactPercent.toFixed(2)}%
-            </span>
+            <span className="font-medium">Price Impact: {priceImpact.impactPercent.toFixed(2)}%</span>
             <span className="text-xs">
               {priceImpact.action === "buy" ? "Buying" : "Selling"} will move price{" "}
               {priceImpact.action === "buy" ? "up" : "down"}
             </span>
           </div>
           <div className="text-xs mt-1 opacity-80">
-            Current: {priceImpact.currentPrice.toFixed(8)} ETH → 
-            After trade: {priceImpact.projectedPrice.toFixed(8)} ETH
+            Current: {priceImpact.currentPrice.toFixed(8)} ETH → After trade: {priceImpact.projectedPrice.toFixed(8)}{" "}
+            ETH
           </div>
         </div>
       )}
 
       {/* Auto-refresh indicator */}
       {onTransactionSuccess && (
-        <button 
+        <button
           onClick={refreshChartData}
           className="mt-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
