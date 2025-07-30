@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { formatEther } from "viem";
+import { formatEther, formatUnits } from "viem";
 import { CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
@@ -7,6 +7,10 @@ import type { ZCurveSale } from "@/hooks/use-zcurve-sale";
 import { unpackQuadCap } from "@/lib/zCurveHelpers";
 import { useZCurveSaleSummary } from "@/hooks/use-zcurve-sale";
 import { useAccount } from "wagmi";
+import { useMemo } from "react";
+import { computeZCurvePoolId } from "@/lib/zCurvePoolId";
+import { useReserves } from "@/hooks/use-reserves";
+import { useETHPrice } from "@/hooks/use-eth-price";
 
 interface ZCurveSaleProgressProps {
   sale: ZCurveSale;
@@ -26,12 +30,54 @@ export function ZCurveSaleProgress({ sale }: ZCurveSaleProgressProps) {
   const ethTarget = onchainData ? BigInt(onchainData.ethTarget) : BigInt(sale.ethTarget);
   const quadCap = unpackQuadCap(onchainData ? BigInt(onchainData.quadCap) : BigInt(sale.quadCap));
   const isFinalized = onchainData ? onchainData.isFinalized : sale.status === "FINALIZED";
+  const feeOrHook = onchainData ? BigInt(onchainData.feeOrHook) : BigInt(sale.feeOrHook);
+  
+  // Calculate pool ID for finalized sales
+  const poolId = useMemo(() => {
+    if (!isFinalized) return null;
+    // Use feeOrHook from sale data, default to 30 bps (0.3% fee) if not available
+    const finalFee = feeOrHook < 10000n ? feeOrHook : 30n; // Use actual fee or default to 30 bps for hooks
+    return computeZCurvePoolId(BigInt(sale.coinId), finalFee);
+  }, [isFinalized, sale.coinId, feeOrHook]);
+  
+  // Fetch pool reserves and ETH price for finalized sales
+  const { data: reserves } = useReserves({
+    poolId: poolId ? BigInt(poolId) : undefined,
+    source: "COOKBOOK" as const,
+  });
+  const { data: ethPrice } = useETHPrice();
 
   const soldPercentage = saleCap > 0n ? Number((netSold * 100n) / saleCap) : 0;
   // Fix funding percentage calculation
   const fundedPercentage = ethTarget > 0n ? Number((ethEscrow * 10000n) / ethTarget) / 100 : 0;
   const quadCapPercentage =
     saleCap > 0n ? Number((quadCap * 100n) / saleCap) : 0;
+  
+  // Calculate market price and market cap for finalized sales
+  const { marketPrice, marketPriceInWei, marketCapUsd } = useMemo(() => {
+    if (!isFinalized || !reserves || reserves.reserve0 === 0n || reserves.reserve1 === 0n) {
+      return { marketPrice: 0, marketPriceInWei: 0n, marketCapUsd: 0 };
+    }
+    
+    // Price = ETH reserve / Token reserve
+    const ethReserve = Number(formatEther(reserves.reserve0));
+    const tokenReserve = Number(formatUnits(reserves.reserve1, 18));
+    const price = ethReserve / tokenReserve;
+    
+    // Convert to wei for calculations
+    const priceInWei = (reserves.reserve0 * BigInt(1e18)) / reserves.reserve1;
+    
+    const usdPrice = price * (ethPrice?.priceUSD || 0);
+    // Use 1 billion (1e9) as the total supply for all zCurve launched tokens
+    const totalSupply = 1_000_000_000n * 10n ** 18n; // 1 billion tokens with 18 decimals
+    const marketCap = usdPrice * Number(formatUnits(totalSupply, 18));
+    
+    return {
+      marketPrice: price,
+      marketPriceInWei: priceInWei,
+      marketCapUsd: marketCap,
+    };
+  }, [isFinalized, reserves, ethPrice?.priceUSD]);
 
   return (
     <CardContent className="space-y-4 h-fit">
@@ -109,13 +155,14 @@ export function ZCurveSaleProgress({ sale }: ZCurveSaleProgressProps) {
       <div className="grid grid-cols-2 gap-4 pt-2">
         <div className="space-y-1">
           <p className="text-xs text-muted-foreground">
-            {isFinalized ? t("sale.final_price", "Final Price") : t("sale.current_price", "Current Price")}
+            {isFinalized ? t("sale.market_price", "Market Price") : t("sale.current_price", "Current Price")}
           </p>
           <p className="text-sm font-medium">
             {(() => {
-              let priceInWei = sale.currentPrice ? BigInt(sale.currentPrice) : 0n;
+              // Use market price for finalized sales, otherwise use current sale price
+              let priceInWei = isFinalized && marketPriceInWei > 0n ? marketPriceInWei : (sale.currentPrice ? BigInt(sale.currentPrice) : 0n);
               
-              // For finalized sales with 0 currentPrice, calculate average price
+              // For finalized sales without market data, calculate average sale price
               if (isFinalized && priceInWei === 0n && netSold > 0n) {
                 // Use ethEscrow if available, otherwise use ethTarget
                 const ethRaised = ethEscrow > 0n ? ethEscrow : ethTarget;
@@ -171,20 +218,68 @@ export function ZCurveSaleProgress({ sale }: ZCurveSaleProgressProps) {
               return `${price.toFixed(6)} ETH`;
             })()}
           </p>
+          {/* Coins per 1 ETH display */}
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {(() => {
+              // Use market price for finalized sales, otherwise use current sale price
+              let priceInWei = isFinalized && marketPriceInWei > 0n ? marketPriceInWei : (sale.currentPrice ? BigInt(sale.currentPrice) : 0n);
+              
+              // For finalized sales without market data, calculate average sale price
+              if (isFinalized && priceInWei === 0n && netSold > 0n) {
+                const ethRaised = ethEscrow > 0n ? ethEscrow : ethTarget;
+                if (ethRaised > 0n) {
+                  priceInWei = (ethRaised * BigInt(1e18)) / netSold;
+                }
+              }
+              
+              if (priceInWei === 0n) return "";
+              
+              // Calculate coins per 1 ETH
+              const oneEth = BigInt(1e18);
+              const coinsPerEth = (oneEth * oneEth) / priceInWei;
+              const coinsPerEthNumber = Number(formatEther(coinsPerEth));
+              
+              // Format the number nicely
+              if (coinsPerEthNumber >= 1e9) {
+                return `${(coinsPerEthNumber / 1e9).toFixed(2)}B per ETH`;
+              } else if (coinsPerEthNumber >= 1e6) {
+                return `${(coinsPerEthNumber / 1e6).toFixed(2)}M per ETH`;
+              } else if (coinsPerEthNumber >= 1e3) {
+                return `${(coinsPerEthNumber / 1e3).toFixed(2)}K per ETH`;
+              } else if (coinsPerEthNumber >= 1) {
+                return `${coinsPerEthNumber.toFixed(0)} per ETH`;
+              } else {
+                return `${coinsPerEthNumber.toFixed(4)} per ETH`;
+              }
+            })()}
+          </p>
         </div>
         <div className="space-y-1">
           <p className="text-xs text-muted-foreground">
-            {isFinalized ? t("sale.total_raised", "Total Raised") : t("sale.pricing_phase", "Pricing Phase")}
+            {isFinalized ? t("sale.market_cap", "Market Cap") : t("sale.pricing_phase", "Pricing Phase")}
           </p>
           <p className="text-sm font-medium">
             {isFinalized ? (
-              `${Number(formatEther(ethEscrow)).toFixed(4)} ETH`
+              marketCapUsd > 0 ? (
+                marketCapUsd > 1e9
+                  ? `$${(marketCapUsd / 1e9).toFixed(2)}B`
+                  : marketCapUsd > 1e6
+                    ? `$${(marketCapUsd / 1e6).toFixed(2)}M`
+                    : `$${(marketCapUsd / 1e3).toFixed(2)}K`
+              ) : (
+                `${Number(formatEther(ethEscrow)).toFixed(4)} ETH raised`
+              )
             ) : (
               netSold < quadCap
                 ? t("sale.quadratic", "Quadratic")
                 : t("sale.linear", "Linear")
             )}
           </p>
+          {isFinalized && marketCapUsd > 0 && (
+            <p className="text-xs text-muted-foreground">
+              {Number(formatEther(ethEscrow)).toFixed(2)} ETH raised
+            </p>
+          )}
           {!isFinalized && netSold < quadCap && quadCap > 0n && (
             <p className="text-xs text-muted-foreground">
               {((Number(netSold) / Number(quadCap)) * 100).toFixed(1)}%{" "}

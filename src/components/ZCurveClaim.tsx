@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther } from "viem";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
@@ -19,6 +20,7 @@ interface ZCurveClaimProps {
 export function ZCurveClaim({ coinId, coinSymbol = "TOKEN" }: ZCurveClaimProps) {
   const { t } = useTranslation();
   const { address } = useAccount();
+  const [localError, setLocalError] = useState<string | null>(null);
 
   const { data: sale } = useZCurveSale(coinId);
   const { data: saleSummary } = useZCurveSaleSummary(coinId, address);
@@ -36,6 +38,8 @@ export function ZCurveClaim({ coinId, coinSymbol = "TOKEN" }: ZCurveClaimProps) 
     const claimAmount = saleSummary?.userBalance ? BigInt(saleSummary.userBalance) : userBalance ? BigInt(userBalance.balance) : 0n;
     if (claimAmount === 0n) return;
 
+    setLocalError(null);
+    
     try {
       writeContract({
         address: zCurveAddress,
@@ -52,6 +56,7 @@ export function ZCurveClaim({ coinId, coinSymbol = "TOKEN" }: ZCurveClaimProps) 
         toast.error(t("claim.cancelled", "Claim cancelled"));
       } else {
         const errorMessage = handleWalletError(error, { t });
+        setLocalError(errorMessage || t("claim.failed", "Failed to claim tokens"));
         toast.error(errorMessage || t("claim.failed", "Failed to claim tokens"));
       }
     }
@@ -134,9 +139,9 @@ export function ZCurveClaim({ coinId, coinSymbol = "TOKEN" }: ZCurveClaimProps) 
         )}
 
         {/* Error Display */}
-        {error && (
+        {(error || localError) && (
           <Alert variant="destructive">
-            <AlertDescription>{error.message}</AlertDescription>
+            <AlertDescription>{error?.message || localError}</AlertDescription>
           </Alert>
         )}
       </CardContent>

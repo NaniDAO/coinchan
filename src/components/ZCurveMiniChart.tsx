@@ -1,7 +1,9 @@
 import { useMemo } from "react";
 import { formatEther } from "viem";
+import { useAccount } from "wagmi";
 import type { ZCurveSale } from "@/hooks/use-zcurve-sale";
 import { UNIT_SCALE, unpackQuadCap } from "@/lib/zCurveHelpers";
+import { useZCurveSaleSummary } from "@/hooks/use-zcurve-sale";
 
 interface ZCurveMiniChartProps {
   sale: ZCurveSale;
@@ -9,13 +11,21 @@ interface ZCurveMiniChartProps {
 }
 
 export function ZCurveMiniChart({ sale, className = "" }: ZCurveMiniChartProps) {
-  const isFinalized = sale.status === "FINALIZED";
+  const { address } = useAccount();
+  
+  // Get real-time onchain data
+  const { data: onchainData } = useZCurveSaleSummary(sale.coinId, address);
+  
+  // Use onchain data if available, otherwise fall back to indexed data
+  const isFinalized = onchainData ? onchainData.isFinalized : sale.status === "FINALIZED";
   
   const chartData = useMemo(() => {
-    const saleCap = BigInt(sale.saleCap);
-    const divisor = BigInt(sale.divisor);
-    const quadCap = unpackQuadCap(BigInt(sale.quadCap));
-    const netSold = isFinalized ? saleCap : BigInt(sale.netSold);
+    const saleCap = onchainData ? BigInt(onchainData.saleCap) : BigInt(sale.saleCap);
+    const divisor = onchainData ? BigInt(onchainData.divisor) : BigInt(sale.divisor);
+    const quadCap = unpackQuadCap(onchainData ? BigInt(onchainData.quadCap) : BigInt(sale.quadCap));
+    const netSold = isFinalized ? saleCap : (onchainData ? BigInt(onchainData.netSold) : BigInt(sale.netSold));
+    const ethEscrow = onchainData ? BigInt(onchainData.ethEscrow) : BigInt(sale.ethEscrow);
+    const ethTarget = onchainData ? BigInt(onchainData.ethTarget) : BigInt(sale.ethTarget);
     
     // Calculate cost using the exact contract formula
     const calculateCost = (n: bigint): bigint => {
@@ -70,16 +80,19 @@ export function ZCurveMiniChart({ sale, className = "" }: ZCurveMiniChartProps) 
     // Max Y for scaling
     const maxY = Math.max(...points.map(p => p.y));
     
+    // Calculate funding percentage to match sale summary display
+    const fundedPercentage = ethTarget > 0n ? Number((ethEscrow * 10000n) / ethTarget) / 100 : 0;
+    
     return {
       points,
       currentX,
       currentY,
       maxY,
-      progress: (Number(netSold) / Number(saleCap)) * 100
+      fundedPercentage
     };
-  }, [sale]);
+  }, [sale, onchainData]);
   
-  const { points, currentX, currentY, maxY, progress } = chartData;
+  const { points, currentX, currentY, maxY, fundedPercentage } = chartData;
   
   // Create SVG path
   const pathData = points
@@ -179,9 +192,9 @@ export function ZCurveMiniChart({ sale, className = "" }: ZCurveMiniChartProps) 
         />
       </svg>
       
-      {/* Progress percentage */}
+      {/* Progress percentage - showing funding percentage to match sale summary */}
       <div className={`absolute bottom-0 right-0 text-[10px] font-mono font-bold ${isFinalized ? 'text-amber-600' : 'text-muted-foreground'} bg-background/80 px-1 rounded-sm`}>
-        {isFinalized ? '100.0%' : `${progress.toFixed(1)}%`}
+        {isFinalized ? '100.0%' : `${fundedPercentage.toFixed(1)}%`}
       </div>
     </div>
   );

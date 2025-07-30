@@ -56,15 +56,20 @@ function FinalizedPoolTradingInner({
   const { data: saleSummary } = useZCurveSaleSummary(coinId, address);
   const { data: userBalance } = useZCurveBalance(coinId, address);
 
-  // Calculate pool ID - use feeOrHook from sale data if available
-  const poolId = useMemo(() => {
-    if (providedPoolId) return providedPoolId;
+  // Calculate pool ID and fee - use feeOrHook from sale data if available
+  const { poolId, actualFee } = useMemo(() => {
+    if (providedPoolId) {
+      // If poolId is provided, extract fee from sale data
+      const feeOrHook = sale?.feeOrHook ? BigInt(sale.feeOrHook) : 30n;
+      const fee = feeOrHook < 10000n ? feeOrHook : 30n;
+      return { poolId: providedPoolId, actualFee: fee };
+    }
     // Use feeOrHook from sale data, default to 30 bps (0.3% fee) if not available
     const feeOrHook = sale?.feeOrHook ? BigInt(sale.feeOrHook) : 30n;
     // Check if feeOrHook is a simple fee (< 10000) or a hook address
     const finalFee = feeOrHook < 10000n ? feeOrHook : 30n; // Use actual fee or default to 30 bps for hooks
     const computedPoolId = computeZCurvePoolId(BigInt(coinId), finalFee);
-    return computedPoolId;
+    return { poolId: computedPoolId, actualFee: finalFee };
   }, [providedPoolId, coinId, sale]);
 
   // Fetch pool reserves
@@ -218,7 +223,7 @@ function FinalizedPoolTradingInner({
                 coinSymbol={sale?.coin?.symbol || coinSymbol}
                 coinIcon={sale?.coin?.imageUrl || coinIcon}
                 poolId={poolId}
-                feeOrHook={30n}
+                feeOrHook={actualFee}
               />
             </div>
           </TabsContent>
@@ -228,7 +233,7 @@ function FinalizedPoolTradingInner({
               <ZCurveAddLiquidity
                 coinId={coinId}
                 poolId={poolId}
-                feeOrHook={30n}
+                feeOrHook={actualFee}
               />
             </div>
           </TabsContent>
@@ -239,7 +244,7 @@ function FinalizedPoolTradingInner({
               <ZCurveRemoveLiquidity
                 coinId={coinId}
                 poolId={poolId}
-                feeOrHook={30n}
+                feeOrHook={actualFee}
               />
             </div>
           </TabsContent>
@@ -311,7 +316,7 @@ function FinalizedPoolTradingInner({
             <div className="text-xs text-muted-foreground flex items-center gap-1">
               {coinSymbol}
               <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full text-xs font-medium">
-                0.3% Fee
+                {(Number(actualFee) / 100).toFixed(2)}% Fee
               </span>
             </div>
           </div>
