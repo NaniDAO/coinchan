@@ -164,6 +164,11 @@ const useZCurveSales = () => {
 const SaleCard = memo(({ sale }: { sale: any }) => {
   const { t } = useTranslation();
   
+  // Ensure coinId is a string
+  if (!sale?.coinId) {
+    return null;
+  }
+  
   // Memoize expensive calculations
   const fundedPercentage = useMemo(() => calculateFundedPercentage(sale), [sale.status, sale.percentFunded, sale.ethEscrow, sale.ethTarget]);
   const formattedPrice = useMemo(() => formatPrice(sale), [sale.status, sale.currentPrice, sale.netSold, sale.ethEscrow, sale.ethTarget]);
@@ -175,14 +180,21 @@ const SaleCard = memo(({ sale }: { sale: any }) => {
   
   return (
     <Link
-      key={sale.coinId}
       to="/c/$coinId"
       params={{
-        coinId: sale.coinId,
+        coinId: String(sale.coinId),
+      }}
+      className="block"
+      onClick={(e) => {
+        // Prevent navigation if coinId is invalid
+        if (!sale.coinId) {
+          e.preventDefault();
+          console.error("Invalid coinId:", sale);
+        }
       }}
     >
       <div
-        className="border border-card hover:border-border active:border-primary p-3 bg-card text-card-foreground transition-all duration-100 relative overflow-hidden hover:shadow-md active:scale-[0.99] touch-manipulation"
+        className="border border-border hover:border-primary active:border-primary/80 p-3 bg-card text-card-foreground transition-all duration-200 relative overflow-hidden hover:shadow-lg hover:bg-accent/5 active:scale-[0.99] cursor-pointer"
         style={{
           background: sale.status === "FINALIZED" 
             ? `linear-gradient(to right, 
@@ -194,25 +206,25 @@ const SaleCard = memo(({ sale }: { sale: any }) => {
                 transparent ${fundedPercentage}%)`
         }}
       >
-      <div className="flex items-start gap-4">
+      <div className="flex items-start gap-4 group">
         {/* Coin Image */}
         <div className="flex-shrink-0">
           <CoinImagePopup
-            imageUrl={sale.coin.imageUrl ? formatImageURL(sale.coin.imageUrl) : null}
-            coinName={sale.coin.name}
-            coinSymbol={sale.coin.symbol}
+            imageUrl={sale.coin?.imageUrl ? formatImageURL(sale.coin.imageUrl) : null}
+            coinName={sale.coin?.name || "Unknown"}
+            coinSymbol={sale.coin?.symbol || "???"}
             size="sm"
-            className="border border-border"
+            className="border border-border pointer-events-none"
           />
         </div>
 
         {/* Sale Info */}
         <div className="flex-1 font-mono text-sm">
-          <div className="font-bold">
-            {sale.coin.name} ({sale.coin.symbol})
+          <div className="font-bold group-hover:text-primary transition-colors">
+            {sale.coin?.name || "Unknown"} ({sale.coin?.symbol || "???"}) 
           </div>
           <div className="text-gray-600 mt-1">
-            {sale.coin.description}
+            {sale.coin?.description || "No description available"}
           </div>
           <div className="mt-2 space-y-2 text-xs">
             {/* Price and funding info */}
@@ -256,7 +268,7 @@ const SaleCard = memo(({ sale }: { sale: any }) => {
           <div className="border border-border rounded-sm p-1 bg-muted/20">
             <ZCurveMiniChart 
               sale={sale} 
-              className="h-16 w-full"
+              className="h-16 w-full pointer-events-none"
             />
           </div>
         </div>
@@ -370,7 +382,7 @@ export const ZCurveSales = () => {
       
       {/* Video */}
       <video
-        className="fixed bottom-5 right-5 w-40 h-40"
+        className="fixed bottom-5 right-5 w-40 h-40 pointer-events-none z-50"
         style={{
           clipPath: "polygon(50% 10%, 75% 50%, 50% 90%, 25% 50%)",
         }}
@@ -378,6 +390,7 @@ export const ZCurveSales = () => {
         autoPlay
         loop
         muted
+        playsInline
       />
     </div>
   );
