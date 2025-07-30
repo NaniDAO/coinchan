@@ -185,11 +185,18 @@ export const Coins = () => {
       } else {
         // For recency sorting, use the createdAt timestamp
         return coinsCopy.sort((a, b) => {
-          // This check should be redundant due to filtering above,
-          // but keeping it for extra safety
-          if (!a?.coinId || !b?.coinId || Number(a.coinId) === 0 || Number(b.coinId) === 0) {
+          // Basic null checks
+          if (!a?.coinId || !b?.coinId) {
             return 0;
           }
+          
+          // Allow special tokens with ID 0
+          const aIsSpecial = a.symbol === "ENS" || a.symbol === "CULT" || a.symbol === "USDT";
+          const bIsSpecial = b.symbol === "ENS" || b.symbol === "CULT" || b.symbol === "USDT";
+          
+          // For regular coins, skip if ID is 0 or negative
+          if (!aIsSpecial && Number(a.coinId) <= 0) return 0;
+          if (!bIsSpecial && Number(b.coinId) <= 0) return 0;
 
           // Get the created timestamps (unix seconds)
           const aCreatedAt = a.createdAt || 0;
@@ -278,7 +285,21 @@ export const Coins = () => {
     }
 
     // Final safety check to ensure no invalid coins make it to the display
-    return result.filter((coin) => coin && Number(coin.coinId) > 0);
+    return result.filter((coin) => {
+      if (!coin) return false;
+      
+      // Allow special tokens
+      const isSpecialToken = 
+        coin.symbol === "ENS" || 
+        coin.symbol === "CULT" || 
+        coin.symbol === "USDT";
+      
+      // For special tokens, allow ID 0 or specific IDs
+      if (isSpecialToken) return true;
+      
+      // For regular coins, exclude ID 0 or negative
+      return Number(coin.coinId) > 0;
+    });
   }, [
     isSearchActive,
     searchResults,

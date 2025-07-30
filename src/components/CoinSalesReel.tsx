@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect } from "react";
 import { useZCurveSales } from "@/hooks/use-zcurve-sales";
 import { useTranslation } from "react-i18next";
 import { CoinSaleReelItem } from "./CoinSaleReelItem";
+import { Skeleton } from "./ui/skeleton";
 
 export const CoinSalesReel = () => {
   const { data, isLoading, refetch } = useZCurveSales();
@@ -50,7 +51,24 @@ export const CoinSalesReel = () => {
     return () => clearInterval(refetchInterval);
   }, [refetch, displaySales]);
 
-  if (isLoading || !displaySales.length) return null;
+  if (isLoading) {
+    return (
+      <div className="mt-2 mb-4 w-full flex items-start gap-3">
+        <Skeleton className="w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0" />
+        <div className="flex-1 min-w-0">
+          <Skeleton className="h-3 w-16 mb-1" />
+          <Skeleton className="h-3 w-24" />
+          <div className="flex gap-1 mt-2">
+            {[...Array(3)].map((_, i) => (
+              <Skeleton key={i} className="w-1 h-1 rounded-full" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!displaySales.length) return null;
 
   const currentSale = displaySales[visibleIndex];
 

@@ -49,7 +49,11 @@ export const TopLiquidityCoins = ({ currentCoinId }: { currentCoinId: string }) 
         <div className="space-y-2">
           {topCoins.map((coin, index) => {
             const ethLiquidity = Number(formatEther(coin.reserve0 || 0n));
-            const coinPath = coin.symbol === "ENS" || coin.symbol === "CULT" || coin.symbol === "USDT" 
+            const coinPath = coin.symbol === "CULT" 
+              ? "/cult"
+              : coin.symbol === "ENS"
+              ? "/ens"
+              : coin.symbol === "USDT" 
               ? `/swap?to=${coin.coinId}` 
               : `/coin/${coin.coinId}`;
             
