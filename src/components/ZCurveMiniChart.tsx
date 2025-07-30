@@ -161,11 +161,7 @@ export function ZCurveMiniChartInner({ sale, className = "" }: ZCurveMiniChartPr
   const strokeColor = useMemo(() => 
     isFinalized ? "#f59e0b" : "#10b981" // amber-500 : green-500
   , [isFinalized]);
-
-  const fillColor = useMemo(() => 
-    isFinalized ? "#f59e0b" : "#10b981" // Full golden for finalized
-  , [isFinalized]);
-
+  
   const progressClass = useMemo(() => 
     `absolute bottom-1 right-1 text-[10px] font-mono font-bold ${
       isFinalized 
