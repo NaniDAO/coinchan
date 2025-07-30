@@ -641,26 +641,46 @@ export function ZCurveTrading({
       <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-muted-foreground">
         <div className="flex justify-between">
           <span>{t("sale.current_price")}</span>
-          <span>
+          <span className="text-right">
             {sale.currentPrice
               ? (() => {
                   const price = Number(formatEther(BigInt(sale.currentPrice)));
                   if (price === 0) return "0 ETH";
 
+                  let priceStr = "";
                   // Format very small prices with better readability
                   if (price < 1e-15) {
                     const exp = Math.floor(Math.log10(price));
                     const mantissa = (price / Math.pow(10, exp)).toFixed(2);
-                    return `${mantissa}×10^${exp} ETH`;
-                  }
-                  if (price < 1e-9) {
+                    priceStr = `${mantissa}×10^${exp} ETH`;
+                  } else if (price < 1e-9) {
                     const gwei = price * 1e9;
-                    return `${gwei.toFixed(3)} gwei`;
+                    priceStr = `${gwei.toFixed(3)} gwei`;
+                  } else if (price < 1e-6) {
+                    priceStr = price.toFixed(9) + " ETH";
+                  } else {
+                    priceStr = price.toFixed(8) + " ETH";
                   }
-                  if (price < 1e-6) {
-                    return price.toFixed(9) + " ETH";
+
+                  // Calculate tokens per ETH
+                  const tokensPerEth = price > 0 ? 1 / price : 0;
+                  let tokensStr = "";
+                  if (tokensPerEth >= 1e9) {
+                    tokensStr = `${(tokensPerEth / 1e9).toFixed(2)}B per ETH`;
+                  } else if (tokensPerEth >= 1e6) {
+                    tokensStr = `${(tokensPerEth / 1e6).toFixed(2)}M per ETH`;
+                  } else if (tokensPerEth >= 1e3) {
+                    tokensStr = `${(tokensPerEth / 1e3).toFixed(2)}K per ETH`;
+                  } else {
+                    tokensStr = `${tokensPerEth.toFixed(2)} per ETH`;
                   }
-                  return price.toFixed(8) + " ETH";
+
+                  return (
+                    <div className="flex flex-col items-end">
+                      <span>{priceStr}</span>
+                      <span className="text-[10px] text-muted-foreground">{tokensStr}</span>
+                    </div>
+                  );
                 })()
               : "0 ETH"}
           </span>

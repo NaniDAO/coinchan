@@ -18,7 +18,7 @@ export const PoolChart = ({ poolId, coinSymbol, ethPrice }: PoolChartProps) => {
   const [chartType, setChartType] = useState<"line" | "candle">("line");
 
   return (
-    <div className="bg-card py-2 px-1 lg:col-span-7 p-2">
+    <div className="bg-card p-4 rounded-lg col-span-1 lg:col-span-7">
       <Suspense
         fallback={
           <div className="flex items-center justify-center">
@@ -32,11 +32,11 @@ export const PoolChart = ({ poolId, coinSymbol, ethPrice }: PoolChartProps) => {
           <PoolCandleChart poolId={poolId} interval="1d" />
         )}
       </Suspense>
-      <div className="w-fit border border-border flex flex-row items-center">
+      <div className="w-fit border border-border flex flex-row items-center mt-2">
         <button
           onClick={() => setChartType("candle")}
           className={cn(
-            "h-8 p-1 flex items-center justify-center",
+            "h-8 px-2 sm:px-3 flex items-center justify-center",
             chartType === "candle" ? "bg-primary !text-primary-foreground" : "bg-transparent",
           )}
         >
@@ -45,7 +45,7 @@ export const PoolChart = ({ poolId, coinSymbol, ethPrice }: PoolChartProps) => {
         <button
           onClick={() => setChartType("line")}
           className={cn(
-            "h-8 p-1 flex items-center justify-center",
+            "h-8 px-2 sm:px-3 flex items-center justify-center",
             chartType === "line" ? "bg-primary !text-primary-foreground" : "bg-transparent",
           )}
         >

@@ -18,9 +18,52 @@ import { LoadingLogo } from "@/components/ui/loading-logo";
 import { cn } from "@/lib/utils";
 import { useZCurvePurchases, useZCurveSells } from "@/hooks/use-zcurve-sale";
 
+// Helper function to format price in a readable way
+const formatPrice = (price: number): string => {
+  if (price === 0) return "0";
+
+  // For very small prices, show in gwei or wei
+  if (price < 1e-15) {
+    const wei = price * 1e18;
+    return `${wei.toFixed(0)} wei`;
+  }
+  if (price < 1e-9) {
+    const gwei = price * 1e9;
+    return `${gwei.toFixed(3)} gwei`;
+  }
+  if (price < 1e-6) {
+    return `${(price * 1e6).toFixed(3)} μETH`;
+  }
+  if (price < 0.01) {
+    return `${price.toFixed(8)} ETH`;
+  }
+  return `${price.toFixed(6)} ETH`;
+};
+
+// Helper function to format tokens per ETH
+const formatTokensPerEth = (priceInEth: number): string => {
+  if (priceInEth === 0) return "∞";
+
+  const tokensPerEth = 1 / priceInEth;
+
+  if (tokensPerEth >= 1e9) {
+    return `${(tokensPerEth / 1e9).toFixed(2)}B per ETH`;
+  } else if (tokensPerEth >= 1e6) {
+    return `${(tokensPerEth / 1e6).toFixed(2)}M per ETH`;
+  } else if (tokensPerEth >= 1e3) {
+    return `${(tokensPerEth / 1e3).toFixed(2)}K per ETH`;
+  } else if (tokensPerEth >= 1) {
+    return `${tokensPerEth.toFixed(2)} per ETH`;
+  } else {
+    return `${tokensPerEth.toFixed(6)} per ETH`;
+  }
+};
+
 interface ZCurvePriceChartProps {
   coinId: string;
   coinSymbol: string;
+  currentBondingPrice?: string; // Current price from bonding curve
+  isActiveSale?: boolean;
 }
 
 type ChartType = "line" | "candle";
@@ -33,7 +76,7 @@ interface PricePoint {
   type: "buy" | "sell";
 }
 
-export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
+export function ZCurvePriceChart({ coinId, currentBondingPrice, isActiveSale }: ZCurvePriceChartProps) {
   const { t } = useTranslation();
   const { theme: appTheme } = useTheme();
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -316,6 +359,22 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
 
   // Calculate summary statistics - must be called before any returns
   const stats = React.useMemo(() => {
+    // For active sales with no trading data, use bonding curve price
+    if (priceData.length === 0 && isActiveSale && currentBondingPrice) {
+      const bondingPriceNum = Number(formatEther(BigInt(currentBondingPrice)));
+      return {
+        currentPrice: bondingPriceNum,
+        openPrice: bondingPriceNum,
+        highPrice: bondingPriceNum,
+        lowPrice: bondingPriceNum,
+        priceChange: 0,
+        priceChangePercent: 0,
+        totalVolume: 0,
+        buyVolume: 0,
+        sellVolume: 0,
+      };
+    }
+
     if (priceData.length === 0) return null;
 
     const prices = priceData.map((p) => p.price);
@@ -340,7 +399,7 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
       buyVolume,
       sellVolume,
     };
-  }, [priceData]);
+  }, [priceData, isActiveSale, currentBondingPrice]);
 
   if (isLoading) {
     return (
@@ -371,8 +430,9 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
                 stats.priceChange >= 0 ? "text-green-600" : "text-red-600",
               )}
             >
-              {stats.currentPrice < 0.00001 ? stats.currentPrice.toExponential(3) : stats.currentPrice.toFixed(8)} ETH
+              {formatPrice(stats.currentPrice)}
             </p>
+            <p className="text-xs font-mono text-muted-foreground">{formatTokensPerEth(stats.currentPrice)}</p>
             <p className={cn("text-xs", stats.priceChange >= 0 ? "text-green-600" : "text-red-600")}>
               {stats.priceChange >= 0 ? "+" : ""}
               {stats.priceChangePercent.toFixed(2)}%
@@ -380,12 +440,8 @@ export function ZCurvePriceChart({ coinId }: ZCurvePriceChartProps) {
           </div>
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">{t("chart.24h_high_low", "24h High/Low")}</p>
-            <p className="text-sm font-mono">
-              {stats.highPrice < 0.00001 ? stats.highPrice.toExponential(3) : stats.highPrice.toFixed(8)}
-            </p>
-            <p className="text-sm font-mono text-muted-foreground">
-              {stats.lowPrice < 0.00001 ? stats.lowPrice.toExponential(3) : stats.lowPrice.toFixed(8)}
-            </p>
+            <p className="text-sm font-mono">{formatPrice(stats.highPrice)}</p>
+            <p className="text-sm font-mono text-muted-foreground">{formatPrice(stats.lowPrice)}</p>
           </div>
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">{t("chart.volume_24h", "24h Volume")}</p>

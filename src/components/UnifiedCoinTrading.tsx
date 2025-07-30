@@ -308,7 +308,12 @@ export function UnifiedCoinTrading({
                 <CardDescription>{t("trade.price_chart_desc", "Historical price movement and volume")}</CardDescription>
               </CardHeader>
               <CardContent>
-                <ZCurvePriceChart coinId={coinId} coinSymbol={coinSymbol} />
+                <ZCurvePriceChart
+                  coinId={coinId}
+                  coinSymbol={coinSymbol}
+                  currentBondingPrice={sale?.currentPrice}
+                  isActiveSale={sale?.status === "ACTIVE"}
+                />
               </CardContent>
             </Card>
 

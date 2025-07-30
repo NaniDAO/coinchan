@@ -239,8 +239,11 @@ const TVPriceChart: React.FC<{
       if (chartRef.current) {
         try {
           chartRef.current.remove();
-        } catch (e) {
-          console.error("Error removing existing chart:", e);
+        } catch (e: any) {
+          // Chart was already disposed, which is fine
+          if (!e?.message?.includes("disposed")) {
+            console.error("Error removing existing chart:", e);
+          }
         }
         chartRef.current = undefined;
         priceSeriesRef.current = undefined;
@@ -255,7 +258,7 @@ const TVPriceChart: React.FC<{
           attributionLogo: false,
         },
         autoSize: true,
-        height: 400,
+        height: 300,
         rightPriceScale: {
           autoScale: true,
           mode: PriceScaleMode.Logarithmic,
@@ -316,9 +319,17 @@ const TVPriceChart: React.FC<{
         window.removeEventListener("resize", handleResize);
         setIsChartReady(false);
         try {
-          chart.remove();
-        } catch (e) {
-          console.error("Error cleaning up chart:", e);
+          if (chartRef.current) {
+            chartRef.current.remove();
+            chartRef.current = undefined;
+            priceSeriesRef.current = undefined;
+            impactSeriesRef.current = undefined;
+          }
+        } catch (e: any) {
+          // Chart was already disposed, which is fine
+          if (!e?.message?.includes("disposed")) {
+            console.error("Error cleaning up chart:", e);
+          }
         }
       };
     } catch (error) {
@@ -466,7 +477,7 @@ const TVPriceChart: React.FC<{
 
   return (
     <div className="relative">
-      <div ref={containerRef} className="w-full" style={{ height: "400px", position: "relative", zIndex: 1 }} />
+      <div ref={containerRef} className="w-full" style={{ height: "300px", position: "relative", zIndex: 1 }} />
       {!isChartReady && (
         <div className="absolute inset-0 flex items-center justify-center bg-background/80">
           <LoadingLogo size="sm" />

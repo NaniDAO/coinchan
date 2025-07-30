@@ -360,6 +360,25 @@ export function ZCurveLiveChart({ sale, previewAmount, isBuying = true }: ZCurve
     return `${price.toFixed(4)} ETH`;
   };
 
+  // Format tokens per ETH
+  const formatTokensPerEth = (priceInEth: number): string => {
+    if (priceInEth === 0) return "∞ per ETH";
+
+    const tokensPerEth = 1 / priceInEth;
+
+    if (tokensPerEth >= 1e9) {
+      return `${(tokensPerEth / 1e9).toFixed(2)}B per ETH`;
+    } else if (tokensPerEth >= 1e6) {
+      return `${(tokensPerEth / 1e6).toFixed(2)}M per ETH`;
+    } else if (tokensPerEth >= 1e3) {
+      return `${(tokensPerEth / 1e3).toFixed(2)}K per ETH`;
+    } else if (tokensPerEth >= 1) {
+      return `${tokensPerEth.toFixed(2)} per ETH`;
+    } else {
+      return `${tokensPerEth.toFixed(6)} per ETH`;
+    }
+  };
+
   return (
     <div className="space-y-3">
       <div className="space-y-2">
@@ -444,8 +463,14 @@ export function ZCurveLiveChart({ sale, previewAmount, isBuying = true }: ZCurve
                 const currentCost = calculateCost(netSold);
                 const nextCost = calculateCost(netSold + UNIT_SCALE);
                 const marginalPrice = nextCost - currentCost;
+                const priceInEth = Number(formatEther(marginalPrice));
 
-                return formatReadablePrice(Number(formatEther(marginalPrice)));
+                return (
+                  <>
+                    {formatReadablePrice(priceInEth)}
+                    <span className="text-muted-foreground text-xs ml-2">({formatTokensPerEth(priceInEth)})</span>
+                  </>
+                );
               })()}
             </div>
           )}
