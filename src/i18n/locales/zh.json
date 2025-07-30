@@ -497,6 +497,18 @@
     "recipient_note": "输出将发送到",
     "resolving_ens": "正在解析ENS名称..."
   },
+  "chart": {
+    "price_chart": "价格图表",
+    "line": "折线图",
+    "candles": "K线图",
+    "note": "注意",
+    "preview_not_available": "交易预览仅在折线图模式下可用",
+    "no_trades": "暂无交易",
+    "price_up": "价格上涨",
+    "price_down": "价格下跌",
+    "volume": "成交量",
+    "trades_count": "{{count}} 笔交易"
+  },
   "trade": {
     "you_pay": "您支付",
     "you_receive": "您将收到",
@@ -558,7 +570,19 @@
     "eth_in_escrow": "托管中的 ETH",
     "current_price": "当前价格",
     "exact_input": "精确输入",
-    "exact_output": "精确输出"
+    "exact_output": "精确输出",
+    "transaction_success": "交易成功！",
+    "insufficient_eth_for_quick_buy": "ETH余额不足",
+    "quick_buy_initiated": "正在以0.01 ETH购买{{symbol}}...",
+    "buying": "正在购买...",
+    "quick_buy": "快速买入 0.01Ξ"
+  },
+  "holders": {
+    "title": "持有者",
+    "no_holders": "暂无持有者",
+    "legend": "B=买入, S=卖出",
+    "unique_holders": "独立持有者",
+    "total_trades": "总交易次数"
   },
   "sale": {
     "finalized": "已结束",

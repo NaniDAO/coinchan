@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { useZCurvePurchases, useZCurveSells } from "@/hooks/use-zcurve-sale";
 import { AddressIcon } from "./AddressIcon";
 import { LoadingLogo } from "./ui/loading-logo";
+import { ZCurveHoldersList } from "./ZCurveHoldersList";
 import { useMemo, useState } from "react";
 
 interface ZCurveActivityProps {
@@ -179,6 +180,11 @@ export function ZCurveActivity({ coinId, coinSymbol }: ZCurveActivityProps) {
           </button>
         </div>
       )}
+
+      {/* Holders list section */}
+      <div className="mt-6 rounded-md border border-border bg-card">
+        <ZCurveHoldersList coinId={coinId} coinSymbol={coinSymbol} />
+      </div>
     </div>
   );
 }

@@ -997,6 +997,18 @@
     "total_raised": "Total Raised",
     "of_total_supply": "of total supply"
   },
+  "chart": {
+    "price_chart": "Price Chart",
+    "line": "Line",
+    "candles": "Candles",
+    "note": "Note",
+    "preview_not_available": "Trade preview is only available in line chart mode",
+    "no_trades": "No trades yet",
+    "price_up": "Price Up",
+    "price_down": "Price Down",
+    "volume": "Volume",
+    "trades_count": "{{count}} trades"
+  },
   "trade": {
     "eth_in_escrow": "ETH in Escrow",
     "buy": "Buy",
@@ -1030,6 +1042,13 @@
     "quick_buy_initiated": "Buying {{symbol}} for 0.01 ETH...",
     "buying": "BUYING...",
     "quick_buy": "BUY 0.01Ξ"
+  },
+  "holders": {
+    "title": "Holders",
+    "no_holders": "No holders yet",
+    "legend": "B=Buys, S=Sells",
+    "unique_holders": "Unique holders",
+    "total_trades": "Total trades"
   },
   "about": {
     "title": "About ZAMM",

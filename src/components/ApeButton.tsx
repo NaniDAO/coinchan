@@ -94,7 +94,7 @@ export function ApeButton({ coinId, coinSymbol = "TOKEN", className, onSuccess }
     } catch (error) {
       console.error("Quick buy error:", error);
       if (!isUserRejectionError(error)) {
-        toast.error(handleWalletError(error, t));
+        toast.error(handleWalletError(error));
       }
     } finally {
       setIsCalculating(false);

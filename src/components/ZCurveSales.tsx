@@ -45,7 +45,7 @@ export const ZCurveSales = () => {
 
   /* stable, sorted list */
   const sales = useMemo(() => {
-    if (!data) return [];
+    if (!data || !Array.isArray(data)) return [];
     return [...data].sort((a, b) => {
       if (a.status !== b.status) return a.status === "ACTIVE" ? -1 : 1;
       const fA = calculateFundedPercentage(a);

@@ -15,7 +15,7 @@ import { ZCurveClaim } from "@/components/ZCurveClaim";
 import { BuySellCookbookCoin } from "@/components/BuySellCookbookCoin";
 import { BuyCoinSale } from "@/components/BuyCoinSale";
 import { ZCurveSaleProgress } from "@/components/ZCurveSaleProgress";
-import { ZCurveLiveChart } from "@/components/ZCurveLiveChart";
+import { ZCurvePriceChart } from "@/components/ZCurvePriceChart";
 import { ZCurveReserves } from "@/components/ZCurveReserves";
 import { FinalizedPoolTrading } from "@/components/FinalizedPoolTrading";
 import { ZCurveActivity } from "@/components/ZCurveActivity";
@@ -258,10 +258,11 @@ export function UnifiedCoinTrading({
               </Card>
               <Card className="border-2 border-border bg-background hover:shadow-lg transition-all duration-200 h-fit">
                 <CardContent className="pt-6">
-                  <ZCurveLiveChart
+                  <ZCurvePriceChart
                     sale={sale}
                     previewAmount={chartPreview?.amount}
                     isBuying={chartPreview?.isBuying}
+                    defaultView="line"
                   />
                 </CardContent>
               </Card>
