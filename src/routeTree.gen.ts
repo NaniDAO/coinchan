@@ -12,7 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as UserRouteImport } from './routes/user'
 import { Route as SwapRouteImport } from './routes/swap'
 import { Route as SendRouteImport } from './routes/send'
-import { Route as SalesRouteImport } from './routes/sales'
+import { Route as CoinsRouteImport } from './routes/coins'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as OneshotRouteImport } from './routes/oneshot'
 import { Route as LaunchRouteImport } from './routes/launch'
@@ -41,9 +41,9 @@ const SendRoute = SendRouteImport.update({
   path: '/send',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SalesRoute = SalesRouteImport.update({
-  id: '/sales',
-  path: '/sales',
+const CoinsRoute = CoinsRouteImport.update({
+  id: '/coins',
+  path: '/coins',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrdersRoute = OrdersRouteImport.update({
@@ -118,7 +118,7 @@ export interface FileRoutesByFullPath {
   '/launch': typeof LaunchRoute
   '/oneshot': typeof OneshotRoute
   '/orders': typeof OrdersRoute
-  '/sales': typeof SalesRoute
+  '/coins': typeof CoinsRoute
   '/send': typeof SendRoute
   '/swap': typeof SwapRoute
   '/user': typeof UserRoute
@@ -136,7 +136,7 @@ export interface FileRoutesByTo {
   '/launch': typeof LaunchRoute
   '/oneshot': typeof OneshotRoute
   '/orders': typeof OrdersRoute
-  '/sales': typeof SalesRoute
+  '/coins': typeof CoinsRoute
   '/send': typeof SendRoute
   '/swap': typeof SwapRoute
   '/user': typeof UserRoute
@@ -155,7 +155,7 @@ export interface FileRoutesById {
   '/launch': typeof LaunchRoute
   '/oneshot': typeof OneshotRoute
   '/orders': typeof OrdersRoute
-  '/sales': typeof SalesRoute
+  '/coins': typeof CoinsRoute
   '/send': typeof SendRoute
   '/swap': typeof SwapRoute
   '/user': typeof UserRoute
@@ -175,7 +175,7 @@ export interface FileRouteTypes {
     | '/launch'
     | '/oneshot'
     | '/orders'
-    | '/sales'
+    | '/coins'
     | '/send'
     | '/swap'
     | '/user'
@@ -193,7 +193,7 @@ export interface FileRouteTypes {
     | '/launch'
     | '/oneshot'
     | '/orders'
-    | '/sales'
+    | '/coins'
     | '/send'
     | '/swap'
     | '/user'
@@ -211,7 +211,7 @@ export interface FileRouteTypes {
     | '/launch'
     | '/oneshot'
     | '/orders'
-    | '/sales'
+    | '/coins'
     | '/send'
     | '/swap'
     | '/user'
@@ -230,7 +230,7 @@ export interface RootRouteChildren {
   LaunchRoute: typeof LaunchRoute
   OneshotRoute: typeof OneshotRoute
   OrdersRoute: typeof OrdersRoute
-  SalesRoute: typeof SalesRoute
+  CoinsRoute: typeof CoinsRoute
   SendRoute: typeof SendRoute
   SwapRoute: typeof SwapRoute
   UserRoute: typeof UserRoute
@@ -261,11 +261,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SendRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/sales': {
-      id: '/sales'
-      path: '/sales'
-      fullPath: '/sales'
-      preLoaderRoute: typeof SalesRouteImport
+    '/coins': {
+      id: '/coins'
+      path: '/coins'
+      fullPath: '/coins'
+      preLoaderRoute: typeof CoinsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/orders': {
@@ -366,7 +366,7 @@ const rootRouteChildren: RootRouteChildren = {
   LaunchRoute: LaunchRoute,
   OneshotRoute: OneshotRoute,
   OrdersRoute: OrdersRoute,
-  SalesRoute: SalesRoute,
+  CoinsRoute: CoinsRoute,
   SendRoute: SendRoute,
   SwapRoute: SwapRoute,
   UserRoute: UserRoute,
