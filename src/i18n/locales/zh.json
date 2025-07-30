@@ -628,6 +628,7 @@
     "quadcap_transition": "K (转换点)",
     "marginal_price": "边际价格 (每代币 ETH)",
     "instant_coin_sale": "zCurve 联合曲线发行",
+    "graduate_info": "10 ETH 毕业。二次方 69% - 4.2 ETH。",
     "oneshot_supply_breakdown": "{{totalSupply}} 总供应量：{{saleCap}} 联合曲线 + {{lpSupply}} 流动性",
     "oneshot_percentages": "{{salePercent}}% 公开联合曲线 • {{lpPercent}}% 自动流动性",
     "oneshot_sale_price": "联合曲线：二次方 → 线性定价",

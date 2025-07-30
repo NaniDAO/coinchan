@@ -560,6 +560,7 @@
     "tranche_sale_title": "Tranche Sale",
     "tranche_sale_description": "Launch with custom price curve & sale",
     "instant_coin_sale": "Instant Coin Sale",
+    "graduate_info": "Graduate at 10 ETH. Quadratic 69% - 4.2 ETH.",
     "launching": "Launching...",
     "launch_success": "Oneshot launch initiated!",
     "launch_cancelled": "Launch cancelled by user",
