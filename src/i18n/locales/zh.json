@@ -1211,7 +1211,7 @@
     "enter_zamm": "进入 ZAMM",
     "enter_app_aria": "进入 ZAMM 应用程序",
     "features": "EVM 布拉格 • 公平发行 • 低廉费用",
-    "initializing": "> 正在初始化 zamm 协议...",
+    "initializing": "> 正在同步 zAMM 单例...",
     "connecting_chains": "> 正在连接链...",
     "loading_data": "> 正在加载市场数据...",
     "system_ready": "> 系统就绪",
