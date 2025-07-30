@@ -41,7 +41,6 @@ export const CoinSalesReel = () => {
   if (isLoading || !displaySales.length) return null;
 
   const currentSale = displaySales[visibleIndex];
-  const percentFunded = currentSale.percentFunded ? Number(currentSale.percentFunded) / 100 : 0;
 
   return (
     <div className="mb-6 w-full flex flex-col items-center">
@@ -79,23 +78,29 @@ export const CoinSalesReel = () => {
                   <div className="absolute bottom-0 left-0 right-0 h-1 bg-background/80">
                     <div 
                       className="h-full bg-primary transition-all duration-500"
-                      style={{ width: `${percentFunded * 100}%` }}
+                      style={{ width: `${sale.percentFunded || 0}%` }}
                     />
                   </div>
                 )}
               </div>
               
               {/* Hover overlay with info */}
-              <div className="absolute inset-0 bg-background/90 opacity-0 hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center p-2">
-                <div className="text-lg font-bold">{sale.coin?.symbol}</div>
+              <div className="absolute inset-0 bg-background/95 opacity-0 hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center p-2">
+                <div className="text-base font-bold">{sale.coin?.symbol}</div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  {sale.status === "ACTIVE" ? `${Math.round(percentFunded * 100)}% funded` : "Finalized"}
+                  {sale.status === "ACTIVE" 
+                    ? `${sale.percentFunded ? Math.round(Number(sale.percentFunded)) : 0}% funded` 
+                    : "Finalized"}
                 </div>
-                {sale.ethEscrow && (
-                  <div className="text-xs mt-1">
-                    {parseFloat(formatEther(BigInt(sale.ethEscrow))).toFixed(3)} ETH
+                {(sale.status === "ACTIVE" && sale.ethEscrow) ? (
+                  <div className="text-xs mt-1 font-mono">
+                    {parseFloat(formatEther(BigInt(sale.ethEscrow))).toFixed(3)} ETH raised
                   </div>
-                )}
+                ) : sale.status === "FINALIZED" && sale.finalization?.ethLp ? (
+                  <div className="text-xs mt-1 font-mono">
+                    {parseFloat(formatEther(BigInt(sale.finalization.ethLp))).toFixed(3)} ETH liquidity
+                  </div>
+                ) : null}
               </div>
             </div>
           </Link>
@@ -106,12 +111,12 @@ export const CoinSalesReel = () => {
       </div>
       
       {/* Coin info below */}
-      <div className="mt-3 text-center transition-all duration-500">
-        <div className="text-sm font-mono font-bold">
+      <div className="mt-3 text-center transition-all duration-500 w-24">
+        <div className="text-sm font-mono font-bold truncate">
           {currentSale.coin?.symbol}
         </div>
         <div className="text-xs text-muted-foreground">
-          {currentSale.status === "ACTIVE" ? "Trading Now" : "Graduated"}
+          {currentSale.status === "ACTIVE" ? "Active" : "Graduated"}
         </div>
       </div>
       
