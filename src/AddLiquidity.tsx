@@ -708,10 +708,11 @@ export const AddLiquidity = () => {
 
       // Check if the user needs to approve the target AMM contract as operator
       // This is reflexive to the pool source:
-      // - Cookbook pool: Approve CookbookAddress as operator on CoinsAddress
+      // - Cookbook pool: No approval needed - cookbook coins are permissionless
       // - ZAMM pool: Approve ZAMMAddress as operator on CoinsAddress
       // Only needed for ERC6909 coins, not for ERC20s like USDT/CULT/ENS
-      if (!isUsdtPool && !isUsingCult && !isUsingEns && coinId && isOperator === false) {
+      // Skip operator approval for cookbook coins (graduated zCurve coins)
+      if (!isUsdtPool && !isUsingCult && !isUsingEns && coinId && !isCookbook && isOperator === false) {
         try {
           // First, show a notification about the approval step
           setTxError("Waiting for operator approval. Please confirm the transaction...");

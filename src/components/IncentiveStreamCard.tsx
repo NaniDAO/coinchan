@@ -12,6 +12,8 @@ import { useEnsName } from "wagmi";
 import { FarmStakeDialog } from "./FarmStakeDialog";
 import { Button } from "./ui/button";
 import { ENSLogo } from "./icons/ENSLogo";
+import { toast } from "sonner";
+import { CopyIcon } from "lucide-react";
 
 interface IncentiveStreamCardProps {
   stream: IncentiveStream;
@@ -225,13 +227,20 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
             <div className="space-y-2 text-xs font-mono">
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0">
                 <span className="text-muted-foreground">[{t("common.chef_id")}]:</span>
-                <span className="border border-muted px-1 py-0.5 font-bold text-foreground break-all sm:max-w-[60%] text-left sm:text-right">
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(stream.chefId.toString());
+                    toast("Chef ID copied to clipboard");
+                  }}
+                  className="flex flex-row items-center border border-muted px-1 py-0.5 font-bold text-foreground break-all sm:max-w-[60%] text-left sm:text-right"
+                >
+                  <CopyIcon className="w-3 h-3 mr-1" />
                   {(() => {
                     const chefId = stream.chefId.toString();
                     // Chef IDs are always full uint, truncate for UI
                     return chefId.length > 16 ? `${chefId.slice(0, 8)}...${chefId.slice(-8)}` : chefId;
                   })()}
-                </span>
+                </button>
               </div>
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0">
                 <span className="text-muted-foreground">[{t("common.created_by")}]:</span>

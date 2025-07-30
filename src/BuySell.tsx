@@ -285,21 +285,6 @@ export const BuySell = ({
         const currentPriceInEth = Number(currentPrice) / 1e18;
         const newPriceInEth = Number(newPrice) / 1e18;
 
-        // For charting: when buying tokens (adding ETH), price goes up; when selling tokens (removing ETH), price goes down
-        const ethReserveChange = tab === "buy" ? "increase" : "decrease";
-
-        console.log("BuySell price impact calculation:", {
-          action: tab,
-          ethReserveChange,
-          reserve0: formatEther(reserve0),
-          reserve1: formatUnits(reserve1, 18),
-          newReserve0: formatEther(newReserve0),
-          newReserve1: formatUnits(newReserve1, 18),
-          currentPriceInEth,
-          newPriceInEth,
-          priceChange: newPriceInEth > currentPriceInEth ? "up" : "down",
-        });
-
         // Validate calculated prices
         if (!isFinite(currentPriceInEth) || !isFinite(newPriceInEth) || newPriceInEth <= 0) {
           console.error("Invalid price calculation");
@@ -455,7 +440,8 @@ export const BuySell = ({
                   <div className="opacity-90">Pool Value: ${formatNumber(totalPoolValueUsd, 2)} USD</div>
                   <div className="opacity-75">
                     1 ETH = {formatNumber(ethPriceInToken, 6)} {symbol} | 1 {symbol} = {tokenPriceInEth.toFixed(8)} ETH
-                    (${tokenPriceUsd.toFixed(8)} USD)
+                    ($
+                    {tokenPriceUsd.toFixed(8)} USD)
                   </div>
                   <div className="opacity-60 flex items-center gap-1">
                     <span>Fee: {Number(swapFee) / 100}%</span>

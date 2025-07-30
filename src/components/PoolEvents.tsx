@@ -39,14 +39,20 @@ export function PoolEvents({
   poolId: string;
   ticker: string;
 }) {
+  console.log("PoolEvents component - poolId:", poolId, "ticker:", ticker);
+
   // Fetch function for react-query infinite query
   const fetchEvents = async ({ pageParam = Math.floor(Date.now() / 1000) }) => {
     const url = `${import.meta.env.VITE_INDEXER_URL}/api/events?poolId=${poolId}&before=${pageParam}&limit=50`;
+    console.log("Fetching events from:", url);
     const res = await fetch(url);
     if (!res.ok) {
+      console.error("Failed to fetch events:", res.status, res.statusText);
       throw new Error("Network response was not ok");
     }
-    return res.json();
+    const data = await res.json();
+    console.log("Events response:", data);
+    return data;
   };
 
   const { data, error, fetchNextPage, hasNextPage, isFetchingNextPage, status } = useInfiniteQuery({

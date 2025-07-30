@@ -3,7 +3,6 @@ import { CheckTheChainAbi, CheckTheChainAddress } from "@/constants/CheckTheChai
 import { CookbookAddress } from "@/constants/Cookbook";
 import { useGetCoin } from "@/hooks/metadata/use-get-coin";
 import { SWAP_FEE, computePoolId } from "@/lib/swap";
-import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { mainnet } from "viem/chains";
 import { useReadContract } from "wagmi";
@@ -58,9 +57,6 @@ export const CookbookCoinView = ({ coinId }: { coinId: bigint }) => {
 
   return (
     <div className="w-full max-w-screen mx-auto flex flex-col gap-4 px-2 py-4 pb-16 sm:p-6 sm:pb-16">
-      <Link to="/explore" className="text-sm self-start underline py-2 px-1 touch-manipulation">
-        ⬅︎ Back to Explorer
-      </Link>
       <CoinPreview coinId={BigInt(coinId)} name={name} symbol={symbol} isLoading={isLoadingGetCoin} />
       <ErrorBoundary fallback={<ErrorFallback errorMessage="Error rendering Coin Info Card" />}>
         <CoinInfoCard

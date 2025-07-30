@@ -184,7 +184,6 @@ export const RemoveLiquidity = () => {
 
     // Calculate the expected token amounts based on the LP amount to burn
     if (!reserves || !val) {
-      console.log("RemoveLiquidity: Early return - reserves:", !!reserves, "val:", val);
       setSellAmt("");
       setBuyAmt("");
       return;
@@ -217,7 +216,6 @@ export const RemoveLiquidity = () => {
       }
 
       if (!publicClient) {
-        console.log("RemoveLiquidity: No publicClient available");
         return;
       }
 
@@ -235,7 +233,6 @@ export const RemoveLiquidity = () => {
 
       // Ensure we have pool data
       if (!poolInfo) {
-        console.log("RemoveLiquidity: No poolInfo returned for poolId:", poolId.toString());
         return;
       }
 
@@ -243,7 +240,6 @@ export const RemoveLiquidity = () => {
       const totalSupply = poolInfo[6] as bigint; // Pool struct has supply at index 6
 
       if (totalSupply === 0n) {
-        console.log("RemoveLiquidity: totalSupply is 0, cannot calculate preview");
         return;
       }
 
@@ -254,19 +250,6 @@ export const RemoveLiquidity = () => {
       // This is the mulDiv function in ZAMM.sol converted to TypeScript
       const ethAmount = (burnAmount * reserves.reserve0) / totalSupply;
       const tokenAmount = (burnAmount * reserves.reserve1) / totalSupply;
-
-      // Log calculation details for debugging
-      console.log("RemoveLiquidity calculation:", {
-        isUsingCult,
-        isUsingEns,
-        burnAmount: burnAmount.toString(),
-        reserve0: reserves.reserve0.toString(),
-        reserve1: reserves.reserve1.toString(),
-        totalSupply: totalSupply.toString(),
-        ethAmount: ethAmount.toString(),
-        tokenAmount: tokenAmount.toString(),
-        tokenSymbol: isUsingCult ? "CULT" : isUsingEns ? "ENS" : sellToken?.symbol || buyToken?.symbol,
-      });
 
       // Sanity checks
       if (ethAmount > reserves.reserve0 || tokenAmount > reserves.reserve1) {

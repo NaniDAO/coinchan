@@ -41,8 +41,6 @@ export const BrowseFarms = () => {
   // Get real-time farm summary data
   const { totalStaked, uniquePools, streamsWithRealTimeData } = useFarmsSummary(activeOnlyStreams);
 
-  console.log("activeOnlyStreams", activeOnlyStreams);
-
   // Separate active farms and hidden farms (zero staked)
   const { activeFarms, hiddenFarms } = useMemo(() => {
     if (!streamsWithRealTimeData) return { activeFarms: undefined, hiddenFarms: undefined };

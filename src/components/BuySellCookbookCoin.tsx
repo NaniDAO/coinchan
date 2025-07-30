@@ -30,6 +30,7 @@ export const BuySellCookbookCoin = ({
   coinId,
   symbol,
   onPriceImpactChange,
+  hideZAMMLaunchClaim = false,
 }: {
   coinId: bigint;
   symbol: string;
@@ -41,6 +42,7 @@ export const BuySellCookbookCoin = ({
       action: "buy" | "sell";
     } | null,
   ) => void;
+  hideZAMMLaunchClaim?: boolean;
 }) => {
   const { t } = useTranslation();
   const [tab, setTab] = useState<"buy" | "sell">("buy");
@@ -240,17 +242,6 @@ export const BuySellCookbookCoin = ({
 
         const currentPriceInEth = Number(currentPrice) / Number(scaleFactor);
         const newPriceInEth = Number(newPrice) / Number(scaleFactor);
-
-        console.log("BuySellCookbookCoin price impact calculation:", {
-          action: tab,
-          reserve0: formatEther(reserve0),
-          reserve1: formatUnits(reserve1, 18),
-          newReserve0: formatEther(newReserve0),
-          newReserve1: formatUnits(newReserve1, 18),
-          currentPriceInEth,
-          newPriceInEth,
-          expectedChange: tab === "buy" ? "price should increase" : "price should decrease",
-        });
 
         // Validate calculated prices
         if (!isFinite(currentPriceInEth) || !isFinite(newPriceInEth) || newPriceInEth <= 0) {
@@ -462,8 +453,8 @@ export const BuySellCookbookCoin = ({
         </div>
       )}
 
-      {/* Claim Section - Only show if user can claim */}
-      {canClaim ? (
+      {/* Claim Section - Only show if user can claim and not hidden */}
+      {canClaim && !hideZAMMLaunchClaim ? (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

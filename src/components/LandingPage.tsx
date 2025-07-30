@@ -2,9 +2,13 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useLandingData, useRandomLoadingText } from "../hooks/use-landing-data";
 import { useProtocolStats } from "../hooks/use-protocol-stats";
-import { SwapModal } from "./SwapModal";
-import { ZammLogo } from "./ZammLogo";
-import { Card } from "./ui/card";
+import { useTheme } from "@/lib/theme";
+import { TrendingFarm } from "./TrendingFarm";
+import { ErrorBoundary } from "./ErrorBoundary";
+import { LoadingLogo } from "./ui/loading-logo";
+import { GovernanceProposals } from "./GovernanceProposals";
+import { useNavigate } from "@tanstack/react-router";
+import { CoinSalesReel } from "./CoinSalesReel";
 
 interface LandingPageProps {
   onEnterApp?: () => void;
@@ -12,20 +16,24 @@ interface LandingPageProps {
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
   const { t } = useTranslation();
+  const { theme } = useTheme();
+  const navigate = useNavigate();
+
   const { data: landingData, isLoading: isLoadingLandingData } = useLandingData();
   const { data: protocolStats } = useProtocolStats();
   const getRandomLoadingText = useRandomLoadingText();
   const [progressText, setProgressText] = useState("");
   const [progress, setProgress] = useState(0);
   const [enterEnabled, setEnterEnabled] = useState(false);
+  const [terminalLines, setTerminalLines] = useState<string[]>([]);
 
   const isLoading = useMemo(() => {
     if (isLoadingLandingData === false && landingData !== undefined) {
       return false;
     }
-
     return true;
   }, [isLoadingLandingData, landingData]);
+
   useEffect(() => {
     if (isLoading === false) {
       setTimeout(() => {
@@ -49,150 +57,208 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
     }
   }, [isLoading, t]);
 
+  // Terminal boot animation
+  useEffect(() => {
+    // Clear any existing lines when the effect runs
+    setTerminalLines([]);
+
+    const lines = [
+      t("landing.initializing"),
+      t("landing.connecting_chains"),
+      t("landing.loading_data"),
+      t("landing.system_ready"),
+    ];
+
+    let currentLine = 0;
+    const typeInterval = setInterval(() => {
+      if (currentLine < lines.length) {
+        setTerminalLines((prev) => {
+          // Prevent adding duplicate lines
+          if (!prev.includes(lines[currentLine])) {
+            return [...prev, lines[currentLine]];
+          }
+          return prev;
+        });
+        currentLine++;
+      } else {
+        clearInterval(typeInterval);
+      }
+    }, 600);
+
+    return () => clearInterval(typeInterval);
+  }, [t]);
+
   const handleEnterApp = () => {
     if (onEnterApp) {
       onEnterApp();
     }
   };
 
-  const handleLogoClick = () => {
-    // Trigger logo animation - handled by ZammLogo component
-  };
-
   return (
-    <div className="outline-2 outline-offset-2 outline-background !mb-[50px] bg-background !h-full m-0 text-foreground">
-      <ZammLogo size="landing" onClick={handleLogoClick} isLoading={isLoading} autoStartAnimation={true} />
+    <div className="bg-background text-foreground font-mono h-full lg:pl-8  p-4">
+      {/* Title */}
+      <h1 className="text-4xl tracking-widest font-bold mb-4 text-left">{t("landing.title")}</h1>
 
-      <h1 className="m-1 text-center">{t("landing.title")}</h1>
-
-      <div className="ascii-divider">════════════════════════════════════</div>
-
-      <div className="text-center my-[30px]">
-        <p className="mb-5 max-w-[400px] mx-auto break-words" aria-live="polite">
-          {progressText}
-        </p>
-        <div className="h-5 my-2.5 relative bg-background border-2 border-foreground w-[300px] mx-auto">
+      {/* Terminal Boot Lines */}
+      <div className="mb-4 min-h-[60px]">
+        {terminalLines.map((line, index) => (
           <div
-            className="h-full w-0 bg-card-foreground transition-[width] duration-300"
-            style={{ width: `${progress}%` }}
-          ></div>
-        </div>
-        <p>{t("landing.progress_loading", { progress: Math.round(progress) })}</p>
+            key={index}
+            className="text-sm opacity-0 animate-fadeIn"
+            style={{
+              animationDelay: `${index * 0.6}s`,
+              animationFillMode: "forwards",
+            }}
+          >
+            {line}
+          </div>
+        ))}
       </div>
 
-      {/* Stats Cards */}
-      <div className="my-10 text-base">
-        <div className="max-w-[500px] mx-auto">
-          <StatsCard
-            label={t("landing.stats.eth_price")}
-            value={landingData?.ethPrice || t("landing.stats.loading")}
-            color="var(--diamond-blue)"
-          />
-          <StatsCard
-            label={t("landing.stats.gas_price")}
-            value={landingData?.gasPrice || t("landing.stats.loading")}
-            color="var(--diamond-yellow)"
-          />
-          <StatsCard
-            label={t("landing.stats.launch_cost")}
-            value={landingData?.launchCost || t("landing.stats.loading")}
-            color="var(--diamond-pink)"
-          />
+      {/* Status and Progress */}
+      <div className="mb-4">
+        <div className="flex items-center gap-2 text-sm mb-2">
+          <span></span>
+          <span>{progressText}</span>
+          <span className="animate-pulse">_</span>
         </div>
-
-        <div className="ascii-divider">════════════════════════════════════</div>
-
-        {/* Protocol Stats */}
-        <div className="grid grid-cols-3 gap-5 mt-[30px] max-w-[600px] mx-auto">
-          <ProtocolStat
-            label={t("landing.stats.eth_swapped")}
-            primary={protocolStats?.totalEthSwapped || "-"}
-            color="var(--diamond-orange)"
-          />
-          <ProtocolStat
-            label={t("landing.stats.swaps")}
-            primary={protocolStats?.totalSwaps || "-"}
-            color="var(--diamond-purple)"
-          />
-          <ProtocolStat
-            label={t("landing.stats.coins")}
-            primary={protocolStats?.totalCoins || "-"}
-            color="var(--diamond-blue)"
-          />
+        <div className="flex items-center gap-2 text-xs">
+          <span>{t("landing.load")}:</span>
+          <div className="bg-muted h-1 w-32 border border-border">
+            <div className="h-full bg-primary transition-all duration-300" style={{ width: `${progress}%` }}></div>
+          </div>
+          <span>{Math.round(progress)}%</span>
         </div>
       </div>
 
-      <div className="text-center my-10">
-        <button
-          className={`button text-base px-8 py-4 bg-primary text-primary-foreground font-bold rounded-lg transform transition-all duration-200
-            ${enterEnabled ? "opacity-100 hover:scale-105 hover:shadow-lg focus:ring-4 focus:ring-primary/50 focus:outline-none" : "opacity-50 cursor-not-allowed"}
-          `}
-          onClick={handleEnterApp}
-          disabled={!enterEnabled}
-          aria-label={t("landing.enter_app_aria")}
+      {/* Compact Stats - Single Line Each */}
+      <div className="mb-4 space-y-1 text-sm">
+        <div>
+          <span className="text-muted-foreground">eth = </span>
+          <span className="font-bold">{landingData?.ethPrice || "loading..."}</span>
+        </div>
+        <div>
+          <span className="text-muted-foreground">{t("landing.gas")} = </span>
+          <span className="font-bold">{landingData?.gasPrice || "loading..."}</span>
+        </div>
+        <div>
+          <span className="text-muted-foreground">{t("landing.create")} = </span>
+          <span className="font-bold">{landingData?.createCost || "loading..."}</span>
+        </div>
+      </div>
+
+      {/* Trending Farms Section */}
+      <div className="mb-4">
+        <div className="text-lg mb-2 font-bold">{t("landing.trending")}:</div>
+        <div className="space-y-0 text-xs">
+          <ErrorBoundary fallback={<LoadingLogo />}>
+            <TrendingFarm
+              chefId="107452621584058933773078057973488854580628742066235689429927554548147274163352"
+              url="/cult"
+              imgUrl="/cult.jpg"
+            />
+          </ErrorBoundary>
+          <ErrorBoundary fallback={<LoadingLogo />}>
+            <TrendingFarm
+              chefId="9911777932062439318891919186675338016828468353880863972728110112967458165574"
+              url="/ens"
+              imgUrl="/ens.svg"
+              color="var(--diamond-blue)"
+            />
+          </ErrorBoundary>
+          <ErrorBoundary fallback={<LoadingLogo />}>
+            <TrendingFarm
+              chefId="81451133389625739869445444104677551191235868870135185413665230560425375295858"
+              url="/farm"
+            />
+          </ErrorBoundary>
+        </div>
+      </div>
+      {/* Coins Section */}
+      <div className="mb-4">
+        <div className="text-lg mb-2 font-bold">{t("landing.coins")}:</div>
+        <div className="space-y-0 text-xs">
+          {/* Coin Sales Reel */}
+          <ErrorBoundary fallback={null}>
+            <CoinSalesReel />
+          </ErrorBoundary>
+        </div>
+      </div>
+
+      {/* Governance */}
+      <GovernanceProposals />
+
+      {/* Protocol Stats - Single Column Format */}
+      <div className="mb-6">
+        <div className="text-lg mb-2 font-bold">{t("landing.protocol")}:</div>
+        <div className="text-lg space-y-1">
+          <div>
+            <span className="text-muted-foreground">{t("landing.eth_swapped")} = </span>
+            <span className="font-bold">{protocolStats?.totalEthSwapped || "-"}</span>
+          </div>
+          <div>
+            <span className="text-muted-foreground">{t("landing.swaps")} = </span>
+            <span className="font-bold">{protocolStats?.totalSwaps || "-"}</span>
+          </div>
+          <div>
+            <span className="text-muted-foreground">{t("landing.coins")} = </span>
+            <span className="font-bold">{protocolStats?.totalCoins || "-"}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Enter Button */}
+      <div className="mb-4">
+        <div className="flex items-center gap-2">
+          <span></span>
+          <button
+            className={`
+              bg-primary text-primary-foreground px-4 py-1 text-sm font-bold
+              border border-border transition-all duration-200
+              hover:shadow-lg focus:ring-2 focus:ring-primary/50 focus:outline-none
+              ${enterEnabled ? "" : "opacity-50 cursor-not-allowed"}
+            `}
+            onClick={handleEnterApp}
+            disabled={!enterEnabled}
+          >
+            {t("landing.enter_zamm")}
+          </button>
+          {enterEnabled && <span className="animate-pulse">_</span>}
+        </div>
+      </div>
+
+      {/* Features */}
+      <div className="text-xs text-muted-foreground mb-4">{t("landing.features")}</div>
+
+      {/* Twitter/X Link */}
+      <div className="mb-4">
+        <a
+          href="https://x.com/zamm_defi"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
         >
-          {t("landing.enter_zamm")}
-        </button>
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+          </svg>
+          <span className="text-xs">@zamm_defi</span>
+        </a>
       </div>
 
-      <div className="ascii-divider">════════════════════════════════════</div>
-
-      <SwapModal />
-      <p className="text-center my-5 text-xs tracking-wider">{t("landing.features")}</p>
+      {/* Video */}
+      <video
+        className="fixed bottom-5 right-5 w-40 h-40 cursor-pointer hover:opacity-80 transition-opacity"
+        style={{
+          clipPath: "polygon(50% 10%, 75% 50%, 50% 90%, 25% 50%)",
+        }}
+        src={theme === "dark" ? "/zammzamm-bw.mp4" : "/zammzamm.mp4"}
+        autoPlay
+        loop
+        muted
+        onClick={() => navigate({ to: "/oneshot" })}
+      />
     </div>
   );
 };
-
-// Stats Card Component
-const StatsCard: React.FC<{
-  label: string;
-  value: string;
-  color: string;
-}> = React.memo(({ label, value, color }) => (
-  <div className="flex justify-between items-center px-5 py-[15px] border-2 border-border mb-[15px] bg-background hover:shadow-lg transition-all duration-200">
-    <div className="flex items-center gap-[10px]">
-      <div
-        className="w-3 h-3 rounded-full shadow-sm"
-        style={{
-          background: color,
-          boxShadow: `0 0 8px ${color}40`,
-        }}
-      ></div>
-      <span className="font-bold">{label}</span>
-    </div>
-    <span
-      className="font-bold font-body text-lg tracking-wide"
-      style={{
-        // color: color,
-        textShadow: `0 0 12px ${color}60`,
-      }}
-    >
-      {value}
-    </span>
-  </div>
-));
-StatsCard.displayName = "StatsCard";
-
-// Protocol Stats Component
-const ProtocolStat: React.FC<{
-  label: string;
-  primary: string;
-  color?: string;
-}> = React.memo(({ label, primary, color }) => (
-  <Card className="text-center p-5 border-2 border-border bg-background h-2xl py-2 flex flex-col hover:shadow-lg transition-all duration-200 relative">
-    <div className="text-lg text-muted-foreground font-bold tracking-wider">{label}</div>
-    <div
-      className="font-bold text-2xl flex items-center justify-center overflow-hidden mt-2"
-      style={{
-        // color: color || "inherit",
-        textShadow: color ? `0 0 10px ${color}40` : "none",
-      }}
-    >
-      <div className="truncate">{primary}</div>
-    </div>
-  </Card>
-));
-
-ProtocolStat.displayName = "ProtocolStat";
 
 export default LandingPage;

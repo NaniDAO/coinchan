@@ -74,11 +74,6 @@ const fetchCoinData = async (coinId: string, token: Address) => {
     });
 
     const json = await response.json();
-    console.log("COIN:", {
-      coinId,
-      token,
-      response: json,
-    });
 
     const coin = json.data.coin;
 

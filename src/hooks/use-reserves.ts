@@ -14,9 +14,9 @@ export function useReserves({
     address: source === "ZAMM" ? ZAMMAddress : CookbookAddress,
     abi: source === "ZAMM" ? ZAMMAbi : CookbookAbi,
     functionName: "pools",
-    args: poolId ? [poolId] : undefined,
+    args: poolId !== undefined ? [poolId] : undefined,
     query: {
-      enabled: poolId !== undefined,
+      enabled: poolId !== undefined && poolId !== null,
       select: (data) => {
         return {
           reserve0: data[0],

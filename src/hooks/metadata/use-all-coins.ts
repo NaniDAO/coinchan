@@ -494,6 +494,10 @@ export function useAllCoins() {
     staleTime: 30_000,
     refetchInterval: 30_000,
     refetchOnMount: false,
+    gcTime: 1000 * 60 * 60,
+    meta: {
+      persist: true,
+    },
   });
 
   // Other coins + pools via GraphQL → TokenMeta

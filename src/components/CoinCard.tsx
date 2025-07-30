@@ -1,10 +1,14 @@
 import { type CoinData, formatImageURL, getAlternativeImageUrls } from "@/hooks/metadata/coin-utils";
 import { useCoinSale } from "@/hooks/use-coin-sale";
+import { useZCurveSale } from "@/hooks/use-zcurve-sale";
 import { cn, formatDeadline } from "@/lib/utils";
 import { Link } from "@tanstack/react-router";
 import { ArrowRightIcon, Clock } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CoinPriceChangeBadge } from "./CoinPriceChangeBadge";
+import { ZCurveSaleBadge } from "./ZCurveSaleBadge";
+import { CreatorDisplay } from "./CreatorDisplay";
+import { ZCurveMiniChart } from "./ZCurveMiniChart";
 
 interface CoinCardProps {
   coin: any;
@@ -21,6 +25,9 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
   const { data: saleData } = useCoinSale({
     coinId: coin.coinId.toString(),
   });
+
+  // Fetch zCurve sale data
+  const { data: zCurveSale } = useZCurveSale(coin.coinId.toString());
 
   // Reset states when coin changes
   useEffect(() => {
@@ -130,6 +137,27 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
           <CoinPriceChangeBadge coinId={coin.coinId.toString()} />
         </div>
 
+        {/* zCurve sale badge */}
+        <div className="px-2 pb-2">
+          <ZCurveSaleBadge coinId={coin.coinId.toString()} />
+        </div>
+
+        {/* Creator display for zCurve coins */}
+        {zCurveSale && zCurveSale.creator && (
+          <div className="px-2 pb-2">
+            <CreatorDisplay address={zCurveSale.creator} size="sm" className="text-xs justify-center" />
+          </div>
+        )}
+
+        {/* Bonding curve preview for zCurve sales */}
+        {zCurveSale && (
+          <div className="px-2 pb-2 w-full">
+            <div className="border border-border rounded-sm p-1 bg-muted/20">
+              <ZCurveMiniChart sale={zCurveSale} className="h-12 w-full" />
+            </div>
+          </div>
+        )}
+
         {/* Deadline badge for active tranche sales */}
         {deadlineInfo && (
           <div
@@ -172,10 +200,14 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
         </div>
 
         <Link
-          to={`/c/$coinId`}
-          params={{
-            coinId: coin.coinId.toString(),
-          }}
+          to={coin.symbol === "CULT" ? "/cult" : coin.symbol === "ENS" ? "/ens" : `/c/$coinId`}
+          params={
+            coin.symbol === "CULT" || coin.symbol === "ENS"
+              ? undefined
+              : {
+                  coinId: coin.coinId.toString(),
+                }
+          }
           className="flex flex-row items-center justify-between m-0 rounded-t-none rounded-b-sm w-full bg-primary/10 !py-1 !px-3 text-primary-foreground font-extrabold hover:bg-primary/50 transition-all duration-200 text-sm touch-manipulation shadow-sm"
         >
           <span>Trade</span>

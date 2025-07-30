@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { BuySell } from "./BuySell";
 import { ClaimVested } from "./ClaimVested";
 
-import { Link } from "@tanstack/react-router";
 import { mainnet } from "viem/chains";
 import { useReadContract, useWaitForTransactionReceipt } from "wagmi";
 import { SWAP_FEE, computePoolId } from "./lib/swap";
@@ -100,9 +99,6 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
   if (isLoadingGetCoin) {
     return (
       <div className="w-full max-w-screen mx-auto flex flex-col gap-4 px-2 py-4 pb-16 sm:p-6 sm:pb-16">
-        <Link to="/explore" className="text-sm self-start underline py-2 px-1 touch-manipulation">
-          ⬅︎ Back to Explorer
-        </Link>
         <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
           <LoadingLogo size="lg" />
           <p className="text-sm text-muted-foreground">Loading token data...</p>
@@ -111,22 +107,8 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
     );
   }
 
-  console.log("TradeView:", {
-    name,
-    symbol,
-    imageUrl,
-    description,
-    tokenURI,
-    poolIds: _poolIds,
-    swapFees,
-  });
-
   return (
     <div className="w-full mx-auto flex flex-col gap-4 px-2 py-4 pb-16 sm:p-6 sm:pb-16">
-      <Link to="/explore" className="text-sm self-start underline py-2 px-1 touch-manipulation">
-        ⬅︎ Back to Explorer
-      </Link>
-
       <CoinPreview coinId={tokenId} name={name} symbol={symbol} isLoading={isLoadingGetCoin} />
 
       <ErrorBoundary fallback={<ErrorFallback errorMessage="Error rendering Coin Info Card" />}>

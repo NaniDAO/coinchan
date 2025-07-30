@@ -679,14 +679,6 @@ export const CreateFarm = () => {
       return null;
     }
 
-    console.log("[CreateFarm] real data", {
-      poolTvlInEth,
-      rewardPriceEth,
-      coinId: formData?.rewardToken?.id ? formData.rewardToken.id : undefined,
-      coinContract: formData?.rewardToken.token1,
-      rewardToken: formData?.rewardToken,
-    });
-
     const hasRealData = poolTvlInEth && rewardPriceEth;
 
     return (

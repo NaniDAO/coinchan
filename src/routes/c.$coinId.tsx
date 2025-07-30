@@ -1,5 +1,6 @@
 import { TradeView } from "@/TradeView";
-import { CookbookCoinView } from "@/components/CookbookCoinView";
+import { CoinBreadcrumb } from "@/components/CoinBreadcrumb";
+import { UnifiedCoinView } from "@/components/UnifiedCoinView";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { isCookbookCoin } from "@/lib/coin-utils";
 import { createFileRoute } from "@tanstack/react-router";
@@ -13,8 +14,9 @@ function RouteComponent() {
   const { t } = useTranslation();
   const { coinId } = Route.useParams();
 
+  let display;
   if (isNaN(Number(coinId))) {
-    return (
+    display = (
       <Alert className="p-2 max-w-2xl mt-2 ml-2">
         <AlertTitle>Invalid Coin ID</AlertTitle>
       </Alert>
@@ -23,16 +25,23 @@ function RouteComponent() {
 
   const isCookbook = isCookbookCoin(BigInt(coinId ?? "0"));
   if (isCookbook) {
-    return (
+    display = (
       <div>
-        <CookbookCoinView coinId={BigInt(coinId)} />
+        <UnifiedCoinView coinId={BigInt(coinId)} />
+      </div>
+    );
+  } else {
+    display = (
+      <div>
+        <TradeView tokenId={BigInt(coinId)} />
       </div>
     );
   }
 
   return (
     <div aria-label={t("coin.price")}>
-      <TradeView tokenId={BigInt(coinId)} />
+      <CoinBreadcrumb coinId={BigInt(coinId)} />
+      {display}
     </div>
   );
 }

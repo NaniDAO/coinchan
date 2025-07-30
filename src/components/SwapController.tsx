@@ -27,8 +27,7 @@ export const SwapController = ({
   // Sync input with current swap state
   useEffect(() => {
     if (currentSellToken && currentBuyToken && currentSellAmount) {
-      const amount =
-        parseFloat(currentSellAmount) > 0 ? currentSellAmount : "0.01";
+      const amount = parseFloat(currentSellAmount) > 0 ? currentSellAmount : "0.01";
       const newCommand = `swap ${amount} ${currentSellToken.symbol} for ${currentBuyToken.symbol}`;
 
       // Only update if the command would be different to avoid infinite loops
@@ -37,13 +36,7 @@ export const SwapController = ({
         setLastParsedCommand(newCommand);
       }
     }
-  }, [
-    currentSellToken,
-    currentBuyToken,
-    currentSellAmount,
-    input,
-    lastParsedCommand,
-  ]);
+  }, [currentSellToken, currentBuyToken, currentSellAmount, input, lastParsedCommand]);
 
   // Create a map of token symbols to token objects for quick lookup
   // Prefer tokens with highest reserve0 for better accuracy
@@ -150,17 +143,11 @@ export const SwapController = ({
       const { amount, sellTokenSymbol, buyTokenSymbol } = parsed;
 
       // Find tokens in our token map
-      const sellToken =
-        tokenMap.get(sellTokenSymbol.toUpperCase()) ||
-        tokenMap.get(sellTokenSymbol.toLowerCase());
-      const buyToken =
-        tokenMap.get(buyTokenSymbol.toUpperCase()) ||
-        tokenMap.get(buyTokenSymbol.toLowerCase());
+      const sellToken = tokenMap.get(sellTokenSymbol.toUpperCase()) || tokenMap.get(sellTokenSymbol.toLowerCase());
+      const buyToken = tokenMap.get(buyTokenSymbol.toUpperCase()) || tokenMap.get(buyTokenSymbol.toLowerCase());
 
       if (!sellToken || !buyToken) {
-        console.warn(
-          `Tokens not found: ${sellTokenSymbol} or ${buyTokenSymbol}`,
-        );
+        console.warn(`Tokens not found: ${sellTokenSymbol} or ${buyTokenSymbol}`);
         return false;
       }
 
@@ -215,27 +202,18 @@ export const SwapController = ({
 
     // If we have current tokens selected, show a command with them
     if (currentSellToken && currentBuyToken) {
-      const amount =
-        currentSellAmount && parseFloat(currentSellAmount) > 0
-          ? currentSellAmount
-          : "0.01";
+      const amount = currentSellAmount && parseFloat(currentSellAmount) > 0 ? currentSellAmount : "0.01";
 
       return `Try: "swap ${amount} ${currentSellToken.symbol} for ${currentBuyToken.symbol}"`;
     }
 
     // If we only have sell token, suggest completing the command
     if (currentSellToken) {
-      const amount =
-        currentSellAmount && parseFloat(currentSellAmount) > 0
-          ? currentSellAmount
-          : "0.01";
+      const amount = currentSellAmount && parseFloat(currentSellAmount) > 0 ? currentSellAmount : "0.01";
 
       // Find a different token for the example
       const otherToken = tokens.find(
-        (t) =>
-          t.symbol &&
-          t.id !== currentSellToken.id &&
-          t.symbol !== currentSellToken.symbol,
+        (t) => t.symbol && t.id !== currentSellToken.id && t.symbol !== currentSellToken.symbol,
       );
 
       if (otherToken) {
@@ -252,14 +230,7 @@ export const SwapController = ({
       return `Try: "swap 0.01 ${availableTokens[0]} for ${availableTokens[1]}"`;
     }
     return "Enter swap command (e.g., swap 0.01 ZAMM for ETH)";
-  }, [
-    tokenMap,
-    currentSellToken,
-    currentBuyToken,
-    currentSellAmount,
-    tokens,
-    input,
-  ]);
+  }, [tokenMap, currentSellToken, currentBuyToken, currentSellAmount, tokens, input]);
 
   // Generate suggestion text that updates based on current state
   const suggestionText = useMemo(() => {
@@ -287,16 +258,8 @@ export const SwapController = ({
         placeholder={placeholderText}
         className="text-center font-mono text-sm"
       />
-      {suggestionText && (
-        <div className="mt-1 text-xs text-muted-foreground text-center">
-          {suggestionText}
-        </div>
-      )}
-      {errorText && (
-        <div className="mt-1 text-xs text-muted-foreground text-center">
-          {errorText}
-        </div>
-      )}
+      {suggestionText && <div className="mt-1 text-xs text-muted-foreground text-center">{suggestionText}</div>}
+      {errorText && <div className="mt-1 text-xs text-muted-foreground text-center">{errorText}</div>}
     </div>
   );
 };

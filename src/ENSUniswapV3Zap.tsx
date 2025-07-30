@@ -75,7 +75,6 @@ export const ENSUniswapV3Zap = () => {
     setSellAmt("");
   }, []);
 
-
   /* helpers to sync amounts */
   const syncFromSell = async (val: string) => {
     setSellAmt(val);
@@ -251,37 +250,26 @@ export const ENSUniswapV3Zap = () => {
       }
 
       // Calculate minimum amounts with slippage protection
-      
+
       // FIRST LEG: V3 Swap
       // minTokenAmount: Minimum ENS tokens expected from the V3 swap
       const minTokenAmount = withSlippage(estimatedTokens, slippageBps);
-      
+
       // SECOND LEG: Liquidity Addition to Cookbook Pool
       // The contract will add liquidity with whatever ENS it gets from V3
-      
+
       // amount0Min: Minimum ETH for liquidity
       // Apply standard slippage to halfEthAmount
       const amount0Min = withSlippage(halfEthAmount, slippageBps);
-      
+
       // amount1Min: Minimum ENS for liquidity
       // This needs to be lower than minTokenAmount to account for:
       // 1. Potential price differences between V3 and Cookbook
       // 2. The contract optimizing amounts based on pool ratio
       // Use 80% of minTokenAmount to allow some flexibility
       const amount1Min = (minTokenAmount * 80n) / 100n;
-      
-      const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
-      // Debug logging
-      console.log("ENS Zap Parameters:", {
-        ethAmount: formatEther(ethAmount),
-        halfEthAmount: formatEther(halfEthAmount),
-        estimatedTokens: formatUnits(estimatedTokens, 18),
-        minTokenAmount: formatUnits(minTokenAmount, 18),
-        amount0Min: formatEther(amount0Min),
-        amount1Min: formatUnits(amount1Min, 18),
-        slippageBps: slippageBps.toString(),
-      });
+      const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
       // Call addSingleLiqETH with proper parameters
       const hash = await writeContractAsync({

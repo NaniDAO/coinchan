@@ -6,50 +6,14 @@ import { ExplorerGrid, type SortType } from "./ExplorerGrid";
 import { usePagedCoins } from "./hooks/metadata";
 import type { CoinData } from "./hooks/metadata/coin-utils";
 import { useCoinsData } from "./hooks/metadata/use-coins-data";
-import { useLaunchSalesDeadlines } from "./hooks/use-launch-sales-deadlines";
 import { debounce } from "./lib/utils";
 
 // Page size for pagination
 const PAGE_SIZE = 20;
 
-// Helper function to check if a coin should appear in Launch Sales tab
-const shouldShowInLaunchSales = (coin: CoinData): boolean => {
-  // Show coins that have any sale status (ACTIVE, EXPIRED, FINALIZED)
-  return coin.saleStatus !== null && coin.saleStatus !== undefined;
-};
-
 function escapeRegExp(input: string): string {
   return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
-
-// Helper function to check if an ACTIVE sale should be filtered out due to expiration
-const shouldFilterExpiredActiveSale = (coin: CoinData, saleDeadlines: Map<string, number>): boolean => {
-  // Only check ACTIVE sales for deadline expiration
-  if (coin.saleStatus !== "ACTIVE") {
-    return false; // Don't filter non-active sales here
-  }
-
-  // For active sales, check if deadline has expired (implicitly expired)
-  const coinId = coin.coinId.toString();
-  const deadlineLast = saleDeadlines.get(coinId);
-
-  if (deadlineLast) {
-    const now = Math.floor(Date.now() / 1000); // Current time in seconds
-    return deadlineLast <= now; // Filter out if deadline has passed
-  }
-
-  // If no deadline info available for active sale, keep it
-  return false;
-};
-
-// Helper function to get filtered launch sales data for pagination
-const getFilteredLaunchSales = (coins: CoinData[], saleDeadlines: Map<string, number>): CoinData[] => {
-  // First filter to include only coins that should appear in Launch Sales
-  const launchSalesCoins = coins.filter((coin) => shouldShowInLaunchSales(coin));
-
-  // Then filter out expired active sales based on deadlines
-  return launchSalesCoins.filter((coin) => !shouldFilterExpiredActiveSale(coin, saleDeadlines || new Map()));
-};
 
 export const Coins = () => {
   const { t } = useTranslation();
@@ -65,11 +29,6 @@ export const Coins = () => {
    *  Paged & global coin data
    * ------------------------------------------------------------------ */
   const { coins, allCoins, page, goToNextPage, isLoading, setPage } = usePagedCoins(PAGE_SIZE);
-
-  /* ------------------------------------------------------------------
-   *  Launch sales deadline data (for filtering expired sales)
-   * ------------------------------------------------------------------ */
-  const { data: saleDeadlines } = useLaunchSalesDeadlines();
 
   /* ------------------------------------------------------------------
    *  Search handling
@@ -165,11 +124,19 @@ export const Coins = () => {
     (coinsToSort: CoinData[]): CoinData[] => {
       if (!coinsToSort || coinsToSort.length === 0) return [];
 
-      // Filter out invalid coins (with ID 0 or undefined/null IDs)
-      // This prevents the "Token 0" issue by removing problematic entries
-      const validCoins = coinsToSort.filter(
-        (coin) => coin && coin.coinId !== undefined && coin.coinId !== null && Number(coin.coinId) > 0, // Explicitly exclude ID 0
-      );
+      // Filter out invalid coins (undefined/null IDs)
+      // Allow special tokens like ENS (ID 0) and CULT (ID 999999)
+      const validCoins = coinsToSort.filter((coin) => {
+        if (!coin || coin.coinId === undefined || coin.coinId === null) return false;
+
+        // Allow special tokens
+        const isSpecialToken = coin.symbol === "ENS" || coin.symbol === "CULT" || coin.symbol === "USDT";
+
+        // For regular coins, exclude ID 0 or negative
+        if (!isSpecialToken && Number(coin.coinId) <= 0) return false;
+
+        return true;
+      });
 
       // If all coins were filtered out, return empty array
       if (validCoins.length === 0) return [];
@@ -209,27 +176,21 @@ export const Coins = () => {
           }
           return sortOrder === "asc" ? aVotes - bVotes : bVotes - aVotes;
         });
-      } else if (sortType === "launch") {
-        // Use the same filtering logic as pagination for consistency
-        const filteredLaunchSales = getFilteredLaunchSales(coinsCopy, saleDeadlines || new Map());
-
-        // Sort the remaining sales
-        return filteredLaunchSales.sort((a, b) => {
-          const aId = Number(a.coinId);
-          const bId = Number(b.coinId);
-
-          return sortOrder === "asc"
-            ? aId - bId // Ascending (oldest first - assuming lower IDs are older)
-            : bId - aId; // Descending (newest first - assuming higher IDs are newer)
-        });
       } else {
         // For recency sorting, use the createdAt timestamp
         return coinsCopy.sort((a, b) => {
-          // This check should be redundant due to filtering above,
-          // but keeping it for extra safety
-          if (!a?.coinId || !b?.coinId || Number(a.coinId) === 0 || Number(b.coinId) === 0) {
+          // Basic null checks
+          if (!a?.coinId || !b?.coinId) {
             return 0;
           }
+
+          // Allow special tokens with ID 0
+          const aIsSpecial = a.symbol === "ENS" || a.symbol === "CULT" || a.symbol === "USDT";
+          const bIsSpecial = b.symbol === "ENS" || b.symbol === "CULT" || b.symbol === "USDT";
+
+          // For regular coins, skip if ID is 0 or negative
+          if (!aIsSpecial && Number(a.coinId) <= 0) return 0;
+          if (!bIsSpecial && Number(b.coinId) <= 0) return 0;
 
           // Get the created timestamps (unix seconds)
           const aCreatedAt = a.createdAt || 0;
@@ -242,16 +203,43 @@ export const Coins = () => {
         });
       }
     },
-    [sortType, sortOrder, saleDeadlines],
+    [sortType, sortOrder],
   );
 
   /* ------------------------------------------------------------------
-   *  Helper to filter out invalid coins (like Token 0)
+   *  Helper to filter out invalid coins (like Token 0) and expired unsold tranche sales
    * ------------------------------------------------------------------ */
   const filterValidCoins = useCallback((coinsList: CoinData[]): CoinData[] => {
-    return coinsList.filter(
-      (coin) => coin && coin.coinId !== undefined && coin.coinId !== null && Number(coin.coinId) > 0, // Exclude ID 0 and any negative IDs
-    );
+    return coinsList.filter((coin) => {
+      // Basic validation - exclude null, undefined
+      if (!coin || coin.coinId === undefined || coin.coinId === null) {
+        return false;
+      }
+
+      // Exclude test demo coins
+      const coinIdNum = Number(coin.coinId);
+      if (coinIdNum === 69 || coinIdNum === 71) {
+        return false;
+      }
+
+      // Allow special tokens (ENS has ID 0, CULT has ID 999999)
+      const isSpecialToken = coin.symbol === "ENS" || coin.symbol === "CULT" || coin.symbol === "USDT";
+
+      // For regular coins, exclude ID 0 or negative
+      if (!isSpecialToken && Number(coin.coinId) <= 0) {
+        return false;
+      }
+
+      // Filter out expired and unsold tranche sales
+      // A tranche sale is considered expired and unsold if:
+      // 1. It has EXPIRED status AND
+      // 2. It has no liquidity (meaning it never sold)
+      if (coin.saleStatus === "EXPIRED" && (!coin.liquidity || coin.liquidity === 0n)) {
+        return false;
+      }
+
+      return true;
+    });
   }, []);
 
   /* ------------------------------------------------------------------
@@ -294,7 +282,18 @@ export const Coins = () => {
     }
 
     // Final safety check to ensure no invalid coins make it to the display
-    return result.filter((coin) => coin && Number(coin.coinId) > 0);
+    return result.filter((coin) => {
+      if (!coin) return false;
+
+      // Allow special tokens
+      const isSpecialToken = coin.symbol === "ENS" || coin.symbol === "CULT" || coin.symbol === "USDT";
+
+      // For special tokens, allow ID 0 or specific IDs
+      if (isSpecialToken) return true;
+
+      // For regular coins, exclude ID 0 or negative
+      return Number(coin.coinId) > 0;
+    });
   }, [
     isSearchActive,
     searchResults,
@@ -319,17 +318,13 @@ export const Coins = () => {
         total={
           isSearchActive
             ? filterValidCoins(searchResults || []).length
-            : sortType === "launch"
-              ? getFilteredLaunchSales(filterValidCoins(allCoins || []), saleDeadlines || new Map()).length
-              : filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || []).length
+            : filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || []).length
         }
         canPrev={!isSearchActive && page > 0}
         canNext={
           !isSearchActive &&
           (page + 1) * PAGE_SIZE <
-            (sortType === "launch"
-              ? getFilteredLaunchSales(filterValidCoins(allCoins || []), saleDeadlines || new Map()).length
-              : filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || []).length)
+            filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || []).length
         }
         onPrev={debouncedPrevPage}
         onNext={debouncedNextPage}
@@ -340,9 +335,7 @@ export const Coins = () => {
           Math.ceil(
             (isSearchActive
               ? filterValidCoins(searchResults || []).length
-              : sortType === "launch"
-                ? getFilteredLaunchSales(filterValidCoins(allCoins || []), saleDeadlines || new Map()).length
-                : filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || []).length) / PAGE_SIZE,
+              : filterValidCoins(sortType === "recency" ? allCoinsUnpaged || [] : allCoins || []).length) / PAGE_SIZE,
           ),
         )}
         isSearchActive={isSearchActive}

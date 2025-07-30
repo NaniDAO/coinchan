@@ -1,4 +1,4 @@
-import type { TokenMeta } from "@/lib/coins";
+import type { CoinSource, TokenMeta } from "@/lib/coins";
 import { useMemo } from "react";
 import type { IncentiveStream } from "./use-incentive-streams";
 import { useZChefRewardPerSharePerYear } from "./use-zchef-contract";
@@ -12,8 +12,8 @@ import { useCoinPrice } from "./use-coin-price";
 import { parseEther } from "viem";
 
 interface UseCombinedAprParams {
-  stream: IncentiveStream;
-  lpToken: TokenMeta;
+  stream?: IncentiveStream;
+  lpToken?: TokenMeta;
   enabled?: boolean;
 }
 
@@ -45,13 +45,13 @@ export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedA
     address: ZChefAddress,
     abi: ZChefAbi,
     functionName: "pools",
-    args: [stream.chefId],
+    args: stream?.chefId ? [stream.chefId] : undefined,
     chainId: mainnet.id,
   });
 
   const { data: poolTvlInEth } = useGetTVL({
     poolId: lpToken?.poolId ? BigInt(lpToken?.poolId) : undefined,
-    source: lpToken?.source,
+    source: lpToken?.source as CoinSource,
   });
 
   const { data: rewardPriceEth } = useCoinPrice({
@@ -62,7 +62,7 @@ export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedA
 
   // Fetch farm incentive APR
   const { data: rewardPerSharePerYearOnchain, isLoading: isFarmAprLoading } = useZChefRewardPerSharePerYear(
-    enabled ? stream.chefId : undefined,
+    enabled ? stream?.chefId : undefined,
   );
 
   /**
@@ -80,14 +80,16 @@ export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedA
 
     // 2. stream still running but no one staked yet
     const now = BigInt(Math.floor(Date.now() / 1_000)); // current unix ts
-    const streamActive = stream.status === "ACTIVE" && now < stream.endTime;
-    const rewardRate = stream.rewardRate ?? farmInfo?.[4];
+    const streamActive = stream?.status === "ACTIVE" && now < stream?.endTime;
+    const rewardRate = stream?.rewardRate ?? farmInfo?.[4];
     const totalShares =
       stream?.totalShares && stream?.totalShares > 0n
         ? stream?.totalShares
         : farmInfo?.[7] === 0n || !farmInfo?.[7]
           ? parseEther("1")
           : farmInfo?.[7];
+
+    if (!rewardRate || !totalShares) return 0n;
 
     // Ensure totalShares is never 0 before division
     const safeTotalShares = totalShares && totalShares > 0n ? totalShares : parseEther("1");
@@ -98,7 +100,7 @@ export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedA
 
     // 3. ended or not enabled → 0
     return 0n;
-  }, [rewardPerSharePerYearOnchain, farmInfo, stream.status, stream.endTime, stream.totalShares]);
+  }, [rewardPerSharePerYearOnchain, farmInfo, stream?.status, stream?.endTime, stream?.totalShares]);
 
   // Calculate combined APR
   const combinedApr = useMemo(() => {
@@ -110,8 +112,8 @@ export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedA
       farmApr: 0,
       totalApr: 0,
       breakdown: {
-        tradingFees: Number(lpToken.swapFee || 100n),
-        rewardSymbol: stream.rewardCoin?.symbol || "???",
+        tradingFees: Number(lpToken?.swapFee || 100n),
+        rewardSymbol: stream?.rewardCoin?.symbol || "???",
       },
       isLoading,
     };
@@ -148,8 +150,8 @@ export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedA
           farmApr: 0,
           totalApr: baseApr,
           breakdown: {
-            tradingFees: Number(lpToken.swapFee || SWAP_FEE),
-            rewardSymbol: stream.rewardCoin?.symbol || "???",
+            tradingFees: Number(lpToken?.swapFee || SWAP_FEE),
+            rewardSymbol: stream?.rewardCoin?.symbol || "???",
           },
           isLoading: false,
         };
@@ -177,8 +179,8 @@ export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedA
         farmApr: aprPct,
         totalApr,
         breakdown: {
-          tradingFees: Number(lpToken.swapFee || SWAP_FEE),
-          rewardSymbol: stream.rewardCoin?.symbol || "???",
+          tradingFees: Number(lpToken?.swapFee || SWAP_FEE),
+          rewardSymbol: stream?.rewardCoin?.symbol || "???",
         },
         isLoading: false,
       };
@@ -192,8 +194,8 @@ export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedA
     isBaseAprLoading,
     isFarmAprLoading,
     lpToken,
-    stream.rewardCoin,
-    stream.totalShares,
+    stream?.rewardCoin,
+    stream?.totalShares,
     poolTvlInEth,
     rewardPriceEth,
     farmInfo,

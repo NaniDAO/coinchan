@@ -147,23 +147,6 @@ export function useActiveIncentiveStreams() {
   });
 }
 
-export function useIncentiveStream(chefId: bigint | undefined) {
-  return useQuery({
-    queryKey: ["incentiveStream", chefId?.toString()],
-    queryFn: async (): Promise<IncentiveStream | null> => {
-      if (!chefId) return null;
-      const response = await fetch(`${INDEXER_URL}/api/incentive-streams/${chefId}`);
-      if (!response.ok) {
-        if (response.status === 404) return null;
-        throw new Error("Failed to fetch incentive stream");
-      }
-      return response.json();
-    },
-    enabled: !!chefId,
-    staleTime: 30000,
-  });
-}
-
 export function useUserIncentivePositions(userAddress?: `0x${string}`) {
   const { address } = useAccount();
   const targetAddress = userAddress || address;

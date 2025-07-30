@@ -8,7 +8,7 @@ import { usePublicClient } from "wagmi";
 export interface LandingData {
   ethPrice: string;
   gasPrice: string;
-  launchCost: string;
+  createCost: string;
   coinCost: string;
 }
 
@@ -26,7 +26,7 @@ export const useRandomLoadingText = () => {
   return getRandomLoadingText;
 };
 
-const LAUNCH_COST_GAS = 365030n;
+const CREATE_COST_GAS = 179603n; // Gas cost from oneshot form
 const COIN_COST_GAS = 54938n;
 
 export const useLandingData = () => {
@@ -53,14 +53,14 @@ export const useLandingData = () => {
 
       const ethPriceUsd = Number(ethPrice[1]);
 
-      const launchCostUsd = Number(formatUnits(LAUNCH_COST_GAS * gasPrice, 18)) * ethPriceUsd;
+      const createCostUsd = Number(formatUnits(CREATE_COST_GAS * gasPrice, 18)) * ethPriceUsd;
 
       const coinCostUsd = Number(formatUnits(COIN_COST_GAS * gasPrice, 18)) * ethPriceUsd;
 
       return {
         ethPrice: `$${ethPriceUsd.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
         gasPrice: Number(formatUnits(gasPrice, 9)).toFixed(2) + " GWEI",
-        launchCost: `$${launchCostUsd.toFixed(2)}`,
+        createCost: `$${createCostUsd.toFixed(2)}`,
         coinCost: `$${coinCostUsd.toFixed(2)}`,
       };
     },

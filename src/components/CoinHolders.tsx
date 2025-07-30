@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-
+import { useTranslation } from "react-i18next";
 import { ResponsiveContainer, Tooltip, Treemap } from "recharts";
 import { type Address, formatUnits, getAddress } from "viem";
 import { useEnsName } from "wagmi";
@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableRow } from "./ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { ZAMMAddress } from "@/constants/ZAAM";
 import { CookbookAddress } from "@/constants/Cookbook";
+import { zCurveAddress } from "@/constants/zCurve";
 
 interface Holder {
   address: string;
@@ -63,35 +64,88 @@ export const CoinHolders = ({
   coinId: string;
   symbol: string;
 }) => {
+  const { t } = useTranslation();
   const { data, isLoading, error } = useCoinHolders(coinId);
 
-  if (isLoading || !data) return <div>Loading...</div>;
-  if (error) return <div>Error: {error.message}</div>;
+  if (isLoading || !data) return <div>{t("common.loading")}</div>;
+  if (error)
+    return (
+      <div>
+        {t("common.error")}: {error.message}
+      </div>
+    );
 
-  // Separate pool addresses from regular holders
+  // Separate different types of holders
+  const zCurveHolder = data.find((holder) => holder.address.toLowerCase() === zCurveAddress.toLowerCase());
   const poolAddresses = [ZAMMAddress.toLowerCase(), CookbookAddress.toLowerCase()];
   const poolHolders = data.filter((holder) => poolAddresses.includes(holder.address.toLowerCase()));
-  const nonPoolHolders = data.filter((holder) => !poolAddresses.includes(holder.address.toLowerCase()));
+  const userHolders = data.filter(
+    (holder) =>
+      !poolAddresses.includes(holder.address.toLowerCase()) &&
+      holder.address.toLowerCase() !== zCurveAddress.toLowerCase(),
+  );
 
-  // Calculate total supply and pool percentage
+  // Calculate total supply and percentages
   const totalSupply = data.reduce((acc, holder) => acc + BigInt(holder.balance), BigInt(0));
+  const zCurveBalance = zCurveHolder ? BigInt(zCurveHolder.balance) : 0n;
   const poolBalance = poolHolders.reduce((acc, holder) => acc + BigInt(holder.balance), BigInt(0));
+  const userBalance = userHolders.reduce((acc, holder) => acc + BigInt(holder.balance), BigInt(0));
+
+  const zCurvePercentage = totalSupply > 0n ? (Number(zCurveBalance) / Number(totalSupply)) * 100 : 0;
   const poolPercentage = totalSupply > 0n ? (Number(poolBalance) / Number(totalSupply)) * 100 : 0;
+  const userPercentage = totalSupply > 0n ? (Number(userBalance) / Number(totalSupply)) * 100 : 0;
 
   return (
     <div className="space-y-4">
+      {/* Unclaimed Tokens Card */}
+      {zCurveHolder && zCurveBalance > 0n && (
+        <Card className="border-amber-500/50 bg-amber-50/5">
+          <CardHeader>
+            <CardTitle>{t("holders.unclaimed_tokens", "Unclaimed Tokens")}</CardTitle>
+            <CardDescription>
+              {t("holders.unclaimed_description", "Tokens from zCurve sale waiting to be claimed")}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center p-2 rounded bg-amber-500/10">
+                <div>
+                  <div className="font-medium">{t("holders.zcurve_contract", "zCurve Contract")}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {zCurveAddress.slice(0, 6)}...{zCurveAddress.slice(-4)}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="font-medium">
+                    {Number(formatUnits(zCurveBalance, 18)).toFixed(4)} {symbol}
+                  </div>
+                  <div className="text-sm text-muted-foreground">{zCurvePercentage.toFixed(2)}%</div>
+                </div>
+              </div>
+              <div className="text-sm text-muted-foreground italic">
+                {t("holders.unclaimed_note", "These tokens will be distributed as users claim their allocations")}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Pool Holdings Card */}
       {poolHolders.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Pool Holdings</CardTitle>
-            <CardDescription>Liquidity held by ZAMM and Cookbook pools</CardDescription>
+            <CardTitle>{t("holders.pool_holdings", "Pool Holdings")}</CardTitle>
+            <CardDescription>
+              {t("holders.pool_description", "Liquidity held by ZAMM and Cookbook pools")}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               {poolHolders.map((holder, index) => {
                 const isZAMM = holder.address.toLowerCase() === ZAMMAddress.toLowerCase();
-                const poolName = isZAMM ? "ZAMM Pool" : "Cookbook Pool";
+                const poolName = isZAMM
+                  ? t("holders.zamm_pool", "ZAMM Pool")
+                  : t("holders.cookbook_pool", "Cookbook Pool");
                 const balance = formatUnits(BigInt(holder.balance), 18);
                 const percentage = totalSupply > 0n ? (Number(BigInt(holder.balance)) / Number(totalSupply)) * 100 : 0;
 
@@ -115,7 +169,7 @@ export const CoinHolders = ({
               })}
               <div className="pt-2 mt-2 border-t">
                 <div className="flex justify-between items-center font-medium">
-                  <span>Total Pool Holdings</span>
+                  <span>{t("holders.total_pool_holdings", "Total Pool Holdings")}</span>
                   <span>{poolPercentage.toFixed(2)}%</span>
                 </div>
               </div>
@@ -124,11 +178,43 @@ export const CoinHolders = ({
         </Card>
       )}
 
-      {/* Non-Pool Holders */}
+      {/* Circulating Supply Summary */}
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("holders.distribution_summary", "Token Distribution Summary")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span>{t("holders.unclaimed_supply", "Unclaimed (zCurve)")}</span>
+              <span className="font-medium">{zCurvePercentage.toFixed(2)}%</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span>{t("holders.pool_liquidity", "Pool Liquidity")}</span>
+              <span className="font-medium">{poolPercentage.toFixed(2)}%</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span>{t("holders.user_holdings", "User Holdings")}</span>
+              <span className="font-medium">{userPercentage.toFixed(2)}%</span>
+            </div>
+            <div className="border-t pt-2 mt-2">
+              <div className="flex justify-between items-center font-semibold">
+                <span>{t("holders.circulating_supply", "Circulating Supply")}</span>
+                <span>{(poolPercentage + userPercentage).toFixed(2)}%</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* User Holders */}
       <div>
-        <h3 className="text-lg font-semibold mb-2">Token Holders</h3>
-        <CoinHoldersTreemap data={nonPoolHolders} />
-        <CoinHoldersTable data={nonPoolHolders} symbol={symbol} />
+        <h3 className="text-lg font-semibold mb-2">{t("holders.actual_holders", "Actual Token Holders")}</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          {t("holders.actual_holders_description", "Excluding unclaimed tokens and pool liquidity")}
+        </p>
+        <CoinHoldersTreemap data={userHolders} />
+        <CoinHoldersTable data={userHolders} symbol={symbol} />
       </div>
     </div>
   );
@@ -285,15 +371,16 @@ const CoinHoldersTable = ({
   data: Holder[];
   symbol: string;
 }) => {
+  const { t } = useTranslation();
   const totalSupply = data.reduce((acc, holder) => acc + BigInt(holder.balance), BigInt(0));
 
   return (
     <Table>
       <TableHead>
         <TableRow>
-          <TableHead>Address</TableHead>
-          <TableHead>Amount</TableHead>
-          <TableHead>Percentage</TableHead>
+          <TableHead>{t("common.address", "Address")}</TableHead>
+          <TableHead>{t("common.amount", "Amount")}</TableHead>
+          <TableHead>{t("holders.percentage", "Percentage")}</TableHead>
         </TableRow>
       </TableHead>
       <TableBody>

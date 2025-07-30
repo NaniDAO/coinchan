@@ -1,8 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useTranslation } from "react-i18next";
 
 export const RainbowConnectButton = () => {
-  // @TODO internationalization
+  const { t } = useTranslation();
   return (
     <ConnectButton.Custom>
       {({ account, chain, openAccountModal, openChainModal, openConnectModal, authenticationStatus, mounted }) => {
@@ -25,7 +26,7 @@ export const RainbowConnectButton = () => {
               if (!connected) {
                 return (
                   <Button onClick={openConnectModal} type="button" variant="outline" size="sm">
-                    Login
+                    {t("common.login", "Login")}
                   </Button>
                 );
               }
@@ -33,7 +34,7 @@ export const RainbowConnectButton = () => {
               if (chain.unsupported) {
                 return (
                   <Button onClick={openChainModal} size="sm" variant="destructive" className="text-destructive">
-                    Wrong Network
+                    {t("common.wrong_network", "Wrong Network")}
                   </Button>
                 );
               }
