@@ -17,8 +17,8 @@ export const Route = createRootRoute({
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const handleLogoClick = () => {
-      // If on coins/sales page, navigate to oneshot create form
-      if (location.pathname === "/sales") {
+      // If on coins page, navigate to oneshot create form
+      if (location.pathname === "/coins") {
         navigate({ to: "/oneshot" });
       } else {
         navigate({ to: "/" });
@@ -35,7 +35,7 @@ export const Route = createRootRoute({
     };
 
     const navLinks = [
-      { to: "/sales", label: t("common.coins") },
+      { to: "/coins", label: t("common.coins") },
       { to: "/swap", label: t("common.swap") },
       { to: "/farm", label: t("common.farm") },
       { to: "/explore", label: t("common.explore") },

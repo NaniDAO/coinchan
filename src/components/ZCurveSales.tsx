@@ -19,13 +19,16 @@ export const ZCurveSales = () => {
   /* stable, sorted list */
   const sales = useMemo(() => {
     if (!data || !Array.isArray(data)) return [];
-    return [...data].sort((a, b) => {
-      if (a.status !== b.status) return a.status === "ACTIVE" ? -1 : 1;
-      const fA = calculateFundedPercentage(a);
-      const fB = calculateFundedPercentage(b);
-      if (fA !== fB) return fB - fA;
-      return Number(b.createdAt ?? 0) - Number(a.createdAt ?? 0);
-    });
+    return [...data]
+      // Exclude test demo coins
+      .filter(sale => sale.coinId !== "69" && sale.coinId !== "71")
+      .sort((a, b) => {
+        if (a.status !== b.status) return a.status === "ACTIVE" ? -1 : 1;
+        const fA = calculateFundedPercentage(a);
+        const fB = calculateFundedPercentage(b);
+        if (fA !== fB) return fB - fA;
+        return Number(b.createdAt ?? 0) - Number(a.createdAt ?? 0);
+      });
   }, [data]);
 
   /* --------------------------------------------------------------------- */
