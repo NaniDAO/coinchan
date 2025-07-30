@@ -90,7 +90,7 @@ export function ApeButton({ coinId, coinSymbol = "TOKEN", className, onSuccess }
         value: BUY_AMOUNT,
       });
 
-      toast.info(t("trade.quick_buy_initiated", `Buying ${coinSymbol} for 0.01 ETH...`));
+      toast.info(t("trade.quick_buy_initiated", { symbol: coinSymbol }));
     } catch (error) {
       console.error("Quick buy error:", error);
       if (!isUserRejectionError(error)) {
