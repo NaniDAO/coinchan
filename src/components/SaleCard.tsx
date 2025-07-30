@@ -28,9 +28,7 @@ function renderTimeInfo(sale: Sale): string {
 
   if (sale.createdAt) {
     const created = new Date(Number(sale.createdAt) * 1000);
-    const days = Math.round(
-      (deadline.getTime() - created.getTime()) / 86_400_000,
-    );
+    const days = Math.round((deadline.getTime() - created.getTime()) / 86_400_000);
     if (days === 14) return "→ 2-week sale";
     if (days === 7) return "→ 1-week sale";
     return `→ ${days}-day sale`;
@@ -40,40 +38,74 @@ function renderTimeInfo(sale: Sale): string {
 }
 
 /**
+ * Helper to format coins per ETH
+ */
+const formatCoinsPerEth = (priceInWei: bigint): string => {
+  if (priceInWei === 0n) return "";
+
+  const oneEth = BigInt(1e18);
+  const coinsPerEth = (oneEth * oneEth) / priceInWei;
+  const coinsPerEthNumber = Number(coinsPerEth) / 1e18;
+
+  if (coinsPerEthNumber >= 1e9) {
+    return `${(coinsPerEthNumber / 1e9).toFixed(2)}B per ETH`;
+  } else if (coinsPerEthNumber >= 1e6) {
+    return `${(coinsPerEthNumber / 1e6).toFixed(2)}M per ETH`;
+  } else if (coinsPerEthNumber >= 1e3) {
+    return `${(coinsPerEthNumber / 1e3).toFixed(2)}K per ETH`;
+  } else if (coinsPerEthNumber >= 1) {
+    return `${coinsPerEthNumber.toFixed(2)} per ETH`;
+  } else {
+    return `${coinsPerEthNumber.toFixed(6)} per ETH`;
+  }
+};
+
+/**
  * Nicely formats a price given in wei
  * (uses BigInt internally so we never overflow JS Number)
  */
-const formatPrice = (sale: Sale): string => {
+const formatPrice = (sale: Sale): { price: string; perEth: string } => {
   try {
     let priceWei = BigInt(sale.currentPrice ?? 0);
 
     if (sale.status === "FINALIZED" && priceWei === 0n) {
-      /* average final price */
-      const tokensSold = BigInt(sale.netSold ?? 0);
-      const ethRaised = BigInt(sale.ethEscrow ?? 0);
-      if (tokensSold !== 0n) priceWei = (ethRaised * 10n ** 18n) / tokensSold;
+      /* Calculate final price from LP amounts if available */
+      if (sale.finalization?.ethLp && sale.finalization?.coinLp) {
+        const ethLp = BigInt(sale.finalization.ethLp);
+        const coinLp = BigInt(sale.finalization.coinLp);
+        if (coinLp !== 0n) {
+          priceWei = (ethLp * 10n ** 18n) / coinLp;
+        }
+      } else {
+        /* Fallback to average price from total raised */
+        const tokensSold = BigInt(sale.netSold ?? 0);
+        const ethRaised = BigInt(sale.ethEscrow ?? 0);
+        if (tokensSold !== 0n) priceWei = (ethRaised * 10n ** 18n) / tokensSold;
+      }
     }
 
-    if (priceWei === 0n) return "0";
+    if (priceWei === 0n) return { price: "0", perEth: "" };
 
     const eth = Number(priceWei) / 1e18;
+    let priceStr = "";
 
     if (eth < 1e-15) {
-      return `${priceWei.toString()} wei`;
+      priceStr = `${priceWei.toString()} wei`;
+    } else if (eth < 1e-9) {
+      priceStr = `${(eth * 1e9).toFixed(3)} gwei`;
+    } else if (eth < 1e-6) {
+      priceStr = `${(eth * 1e6).toFixed(3)} μETH`;
+    } else if (eth < 0.01) {
+      priceStr = `${eth.toFixed(12).replace(/\.?0+$/, "")} ETH`;
+    } else {
+      priceStr = `${eth.toFixed(6)} ETH`;
     }
-    if (eth < 1e-9) {
-      return `${(eth * 1e9).toFixed(3)} gwei`;
-    }
-    if (eth < 1e-6) {
-      return `${(eth * 1e6).toFixed(3)} μETH`;
-    }
-    if (eth < 0.01) {
-      return `${eth.toFixed(12).replace(/\.?0+$/, "")} ETH`;
-    }
-    return `${eth.toFixed(6)} ETH`;
+
+    const perEth = formatCoinsPerEth(priceWei);
+    return { price: priceStr, perEth };
   } catch (err) {
     console.error("formatPrice()", err, sale);
-    return "—";
+    return { price: "—", perEth: "" };
   }
 };
 
@@ -85,7 +117,7 @@ export const SaleCard = memo(({ sale }: { sale: Sale }) => {
 
   /* memoised expensive bits */
   const funded = useMemo(() => calculateFundedPercentage(sale), [sale]);
-  const price = useMemo(() => formatPrice(sale), [sale]);
+  const priceData = useMemo(() => formatPrice(sale), [sale]);
   const wallets = useMemo(() => {
     try {
       const buyers = sale.purchases?.items?.map((p) => p.buyer) ?? [];
@@ -115,9 +147,7 @@ export const SaleCard = memo(({ sale }: { sale: Sale }) => {
             "relative overflow-hidden border p-3 transition-all",
             "bg-card hover:bg-accent/5 hover:shadow-lg cursor-pointer",
             "border-border hover:border-primary active:border-primary/80 active:scale-[0.99]",
-            sale.status === "FINALIZED"
-              ? "bg-amber-50/5 dark:bg-amber-900/5"
-              : "bg-green-50/5  dark:bg-green-900/5",
+            sale.status === "FINALIZED" ? "bg-amber-50/5 dark:bg-amber-900/5" : "bg-green-50/5  dark:bg-green-900/5",
           )}
         >
           {/* funding background tint */}
@@ -172,12 +202,11 @@ export const SaleCard = memo(({ sale }: { sale: Sale }) => {
                         ? t("sale.final_price_label", "Final Price")
                         : t("sale.price_label", "Current Price")}
                     </span>
-                    <div className="font-medium">{price}</div>
+                    <div className="font-medium">{priceData.price}</div>
+                    {priceData.perEth && <div className="text-[10px] text-muted-foreground">{priceData.perEth}</div>}
                   </div>
                   <div>
-                    <span className="text-muted-foreground">
-                      {t("sale.funded_label", "Funded")}
-                    </span>
+                    <span className="text-muted-foreground">{t("sale.funded_label", "Funded")}</span>
                     <div className="font-medium">
                       {funded.toFixed(1)}%{isStandard && " of 10 ETH"}
                     </div>
@@ -187,11 +216,8 @@ export const SaleCard = memo(({ sale }: { sale: Sale }) => {
                 {/* trade activity */}
                 <div className="border-t border-border/30 pt-1">
                   <span className="font-medium">
-                    {t("sale.buys_label", "Buys")}{" "}
-                    {sale.purchases?.totalCount ?? 0} |{" "}
-                    {t("sale.sells_label", "Sells")}{" "}
-                    {sale.sells?.totalCount ?? 0} |{" "}
-                    {t("sale.wallets_label", "Wallets")} {wallets}
+                    {t("sale.buys_label", "Buys")} {sale.purchases?.totalCount ?? 0} | {t("sale.sells_label", "Sells")}{" "}
+                    {sale.sells?.totalCount ?? 0} | {t("sale.wallets_label", "Wallets")} {wallets}
                   </span>
                 </div>
 
@@ -199,15 +225,9 @@ export const SaleCard = memo(({ sale }: { sale: Sale }) => {
                 <div className="flex items-center gap-1 border-t border-border/30 pt-1">
                   <span>{t("sale.creator_label", "Creator")}:</span>
                   {sale.creator ? (
-                    <CreatorDisplay
-                      address={sale.creator}
-                      size="sm"
-                      showLabel={false}
-                    />
+                    <CreatorDisplay address={sale.creator} size="sm" showLabel={false} />
                   ) : (
-                    <span className="text-muted-foreground">
-                      {t("common.unknown", "Unknown")}
-                    </span>
+                    <span className="text-muted-foreground">{t("common.unknown", "Unknown")}</span>
                   )}
                 </div>
               </div>
@@ -236,13 +256,7 @@ export const SaleCard = memo(({ sale }: { sale: Sale }) => {
               </Badge>
 
               <div className="mt-2 text-[11px] text-muted-foreground">
-                <div>
-                  {sale.createdAt
-                    ? new Date(
-                        Number(sale.createdAt) * 1000,
-                      ).toLocaleDateString()
-                    : "Unknown"}
-                </div>
+                <div>{sale.createdAt ? new Date(Number(sale.createdAt) * 1000).toLocaleDateString() : "Unknown"}</div>
                 <div>{renderTimeInfo(sale)}</div>
               </div>
             </div>
@@ -253,9 +267,7 @@ export const SaleCard = memo(({ sale }: { sale: Sale }) => {
             <div
               className={cn(
                 "h-full transition-all duration-300",
-                sale.status === "FINALIZED"
-                  ? "bg-amber-500/50"
-                  : "bg-green-500/50",
+                sale.status === "FINALIZED" ? "bg-amber-500/50" : "bg-green-500/50",
               )}
               style={{ width: `${Math.min(funded, 100)}%` }}
             />

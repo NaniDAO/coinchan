@@ -1,11 +1,7 @@
 import { memo, useMemo } from "react";
 import { formatEther } from "viem";
 import type { ZCurveSale } from "@/hooks/use-zcurve-sale";
-import {
-  UNIT_SCALE,
-  unpackQuadCap,
-  ZCURVE_STANDARD_PARAMS,
-} from "@/lib/zCurveHelpers";
+import { UNIT_SCALE, unpackQuadCap, ZCURVE_STANDARD_PARAMS } from "@/lib/zCurveHelpers";
 
 // Calculate cost using the exact contract formula
 const calculateCost = (n: bigint, quadCap: bigint, divisor: bigint): bigint => {
@@ -15,10 +11,7 @@ const calculateCost = (n: bigint, quadCap: bigint, divisor: bigint): bigint => {
 
   const K = quadCap / UNIT_SCALE;
   // Optimize for standard divisor
-  const denom =
-    divisor === ZCURVE_STANDARD_PARAMS.DIVISOR
-      ? ZCURVE_STANDARD_PARAMS.DIVISOR * 6n
-      : 6n * divisor;
+  const denom = divisor === ZCURVE_STANDARD_PARAMS.DIVISOR ? ZCURVE_STANDARD_PARAMS.DIVISOR * 6n : 6n * divisor;
   const oneETH = BigInt(1e18);
 
   if (m <= K) {
@@ -40,10 +33,7 @@ interface ZCurveMiniChartProps {
   className?: string;
 }
 
-export function ZCurveMiniChartInner({
-  sale,
-  className = "",
-}: ZCurveMiniChartProps) {
+export function ZCurveMiniChartInner({ sale, className = "" }: ZCurveMiniChartProps) {
   const isFinalized = sale.status === "FINALIZED";
 
   const chartData = useMemo(() => {
@@ -84,8 +74,7 @@ export function ZCurveMiniChartInner({
     const maxY = Math.max(...points.map((p) => p.y));
 
     // Calculate funding percentage to match sale summary display
-    const fundedPercentage =
-      ethTarget > 0n ? Number((ethEscrow * 10000n) / ethTarget) / 100 : 0;
+    const fundedPercentage = ethTarget > 0n ? Number((ethEscrow * 10000n) / ethTarget) / 100 : 0;
 
     return {
       points,
@@ -111,19 +100,10 @@ export function ZCurveMiniChartInner({
 
   return (
     <div className={`relative ${className}`}>
-      <svg
-        viewBox="0 0 100 40"
-        className="w-full h-full"
-        preserveAspectRatio="none"
-      >
+      <svg viewBox="0 0 100 40" className="w-full h-full" preserveAspectRatio="none">
         {/* Background grid */}
         <defs>
-          <pattern
-            id="grid"
-            width="10"
-            height="10"
-            patternUnits="userSpaceOnUse"
-          >
+          <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
             <path
               d="M 10 0 L 0 0 0 10"
               fill="none"
@@ -152,17 +132,13 @@ export function ZCurveMiniChartInner({
               const fillPoints = points.filter((p) => p.x <= currentX);
 
               // Add interpolated point at currentX if needed
-              if (
-                fillPoints.length > 0 &&
-                fillPoints[fillPoints.length - 1].x < currentX
-              ) {
+              if (fillPoints.length > 0 && fillPoints[fillPoints.length - 1].x < currentX) {
                 const lastPoint = fillPoints[fillPoints.length - 1];
                 const nextPoint = points.find((p) => p.x > currentX);
 
                 if (nextPoint) {
                   // Interpolate Y value at currentX
-                  const t =
-                    (currentX - lastPoint.x) / (nextPoint.x - lastPoint.x);
+                  const t = (currentX - lastPoint.x) / (nextPoint.x - lastPoint.x);
                   const interpY = lastPoint.y + (nextPoint.y - lastPoint.y) * t;
                   fillPoints.push({ x: currentX, y: interpY });
                 }
@@ -181,11 +157,7 @@ export function ZCurveMiniChartInner({
               return `${fillPath} L ${currentX} 40 L 0 40 Z`;
             })()}
             fill="currentColor"
-            className={
-              isFinalized
-                ? "text-amber-500 opacity-20"
-                : "text-green-500 opacity-20"
-            }
+            className={isFinalized ? "text-amber-500 opacity-20" : "text-green-500 opacity-20"}
           />
         )}
 
@@ -207,11 +179,7 @@ export function ZCurveMiniChartInner({
           stroke="currentColor"
           strokeWidth="0.5"
           strokeDasharray="2,2"
-          className={
-            isFinalized
-              ? "text-amber-500 opacity-50"
-              : "text-amber-500 opacity-50"
-          }
+          className={isFinalized ? "text-amber-500 opacity-50" : "text-amber-500 opacity-50"}
         />
       </svg>
 

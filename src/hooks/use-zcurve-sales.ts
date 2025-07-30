@@ -20,6 +20,11 @@ const GET_ZCURVE_SALES = /* GraphQL */ `
         quadCap
         saleCap
         status
+        finalization {
+          ethLp
+          coinLp
+          lpMinted
+        }
         purchases {
           totalCount
           items {
@@ -57,6 +62,11 @@ export interface Sale extends ZCurveSale {
   // values added by the GraphQL indexer
   purchases?: { totalCount: number; items: { buyer: string }[] };
   sells?: { totalCount: number; items: { seller: string }[] };
+  finalization?: {
+    ethLp: string;
+    coinLp: string;
+    lpMinted: string;
+  };
 }
 
 export const useZCurveSales = () =>
@@ -81,8 +91,7 @@ export const useZCurveSales = () =>
         if (!res.ok) throw new Error(res.statusText);
 
         const json = (await res.json()) as GraphQLResponse;
-        if (json.errors?.length)
-          throw new Error(json.errors[0]?.message ?? "GraphQL error");
+        if (json.errors?.length) throw new Error(json.errors[0]?.message ?? "GraphQL error");
         return json.data?.zcurveSales?.items ?? [];
       } finally {
         clearTimeout(timer);
