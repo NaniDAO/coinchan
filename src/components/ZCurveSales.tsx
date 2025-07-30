@@ -120,7 +120,6 @@ const formatPrice = (sale: Sale): string => {
 
     if (priceWei === 0n) return "0";
 
-    const exp = 10n ** 18n;
     const eth = Number(priceWei) / 1e18;
 
     if (eth < 1e-15) {
