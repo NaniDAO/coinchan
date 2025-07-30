@@ -5,46 +5,15 @@ import { Link } from "@tanstack/react-router";
 import { Badge } from "./ui/badge";
 import { CreatorDisplay } from "./CreatorDisplay";
 import { ZCurveMiniChart } from "./ZCurveMiniChart";
+import type { ZCurveSale } from "@/hooks/use-zcurve-sale";
 // Removed CoinImagePopup import to avoid nested interactive elements
 import { useTheme } from "@/lib/theme";
 import { useTranslation } from "react-i18next";
-import { memo, useMemo, useCallback } from "react";
+import { memo, useMemo } from "react";
 import { ZCURVE_STANDARD_PARAMS } from "@/lib/zCurveHelpers";
 
-// Types
-interface Sale {
-  coinId: string;
-  createdAt: number;
-  creator: `0x${string}`;
-  currentPrice: string;
-  deadline: string;
-  divisor: string;
-  ethEscrow: string;
-  feeOrHook: string;
-  ethTarget: string;
-  lpSupply: string;
-  netSold: string;
-  percentFunded: number;
-  quadCap: string;
-  saleCap: string;
-  status: "ACTIVE" | "FINALIZED" | "EXPIRED";
-  updatedAt?: string;
-  purchases?: {
-    totalCount: number;
-    items: { buyer: string }[];
-  };
-  sells?: {
-    totalCount: number;
-    items: { seller: string }[];
-  };
-  coin?: {
-    name: string;
-    symbol: string;
-    imageUrl: string;
-    description: string;
-    decimals: number;
-  };
-}
+// Use ZCurveSale type from hooks
+type Sale = ZCurveSale;
 
 // GraphQL query
 const GET_ZCURVE_SALES = `
@@ -245,10 +214,11 @@ const SaleCard = memo(({ sale }: { sale: Sale }) => {
   }, [sale.purchases?.items, sale.sells?.items]);
   
   // Check if using standard parameters for optimization
-  const isStandardSale = useMemo(() => {
-    return sale.ethTarget === ZCURVE_STANDARD_PARAMS.ETH_TARGET.toString() &&
-           sale.saleCap === ZCURVE_STANDARD_PARAMS.SALE_CAP.toString();
-  }, [sale.ethTarget, sale.saleCap]);
+  // const isStandardSale = useMemo(() => {
+  //   return sale.ethTarget === ZCURVE_STANDARD_PARAMS.ETH_TARGET.toString() &&
+  //          sale.saleCap === ZCURVE_STANDARD_PARAMS.SALE_CAP.toString();
+  // }, [sale.ethTarget, sale.saleCap]);
+  // TODO: Use isStandardSale for optimized rendering of standard parameters
   
   return (
     <Link
@@ -363,7 +333,7 @@ const SaleCard = memo(({ sale }: { sale: Sale }) => {
         <div className="flex-shrink-0 w-32">
           <div className="border border-border rounded-sm p-1 bg-muted/20">
             <ZCurveMiniChart 
-              sale={sale} 
+              sale={sale as ZCurveSale} 
               className="h-16 w-full"
             />
           </div>
