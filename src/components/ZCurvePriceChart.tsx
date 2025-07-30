@@ -28,7 +28,7 @@ export function ZCurvePriceChart({
       {/* Chart type toggle */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">
-          {t("chart.price_chart", "Price Chart")}
+          {t("chart.curve_chart", "Curve Chart")}
         </h3>
         
         {/* Candlestick toggle removed - only line chart available */}

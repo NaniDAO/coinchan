@@ -63,40 +63,22 @@ export function ZCurvePriceImpact({
 
         const newMarginalPrice = calculateMarginalPrice(newNetSold, quadCap, divisor);
 
-        // Calculate average price for this trade
+        // Calculate average price for display
         let ethIn: bigint;
         try {
           ethIn = parseEther(tradeAmount);
         } catch {
           return null;
         }
-        // Calculate average price with better precision
-        // avgPrice = ethIn / tokensOut, but we multiply by 1e18 to maintain precision
         const avgPriceForTrade = tokensOut > 0n ? (ethIn * parseEther("1")) / tokensOut : 0n;
 
-        // For buying, impact should be positive (price goes up)
-        // Calculate the actual price change more accurately
-        if (currentMarginalPrice === 0n && newMarginalPrice > 0n) {
-          // Starting from zero, show 100% impact
+        // Calculate marginal price impact
+        if (currentMarginalPrice > 0n) {
+          const priceChangeRatio = (newMarginalPrice - currentMarginalPrice) * 10000n / currentMarginalPrice;
+          impact = Number(priceChangeRatio) / 100;
+        } else if (newMarginalPrice > 0n) {
+          // From zero to positive price
           impact = 100;
-        } else if (currentMarginalPrice > 0n && newMarginalPrice > currentMarginalPrice) {
-          // Normal case: calculate percentage change
-          const priceDiff = newMarginalPrice - currentMarginalPrice;
-          impact = Number((priceDiff * 10000n) / currentMarginalPrice) / 100;
-
-          // For very small impacts, ensure we show at least some change
-          if (impact < 0.001 && tokensOut > UNIT_SCALE) {
-            // Calculate based on average vs marginal price difference
-            const avgDiff = avgPriceForTrade > currentMarginalPrice ? avgPriceForTrade - currentMarginalPrice : 0n;
-            if (avgDiff > 0n) {
-              impact = Math.max(0.01, Number((avgDiff * 10000n) / currentMarginalPrice) / 100);
-            }
-          }
-        } else if (currentMarginalPrice === newMarginalPrice && tokensOut > 0n) {
-          // Prices appear the same due to rounding, but there's still an impact
-          // Use the ratio of trade size to current supply as a proxy
-          const supplyImpact = Number((tokensOut * 1000n) / (netSold + 1n)) / 10;
-          impact = Math.max(0.01, Math.min(supplyImpact, 1)); // Between 0.01% and 1%
         } else {
           impact = 0;
         }
@@ -124,23 +106,12 @@ export function ZCurvePriceImpact({
         // to determine the true price impact
         const newMarginalPrice = calculateMarginalPrice(newNetSold, quadCap, divisor);
 
-        // For selling, impact should be negative (price goes down)
-        if (currentMarginalPrice > 0n && newMarginalPrice > 0n) {
-          // Calculate the percentage difference between prices
-          impact = -Number(((currentMarginalPrice - newMarginalPrice) * 10000n) / currentMarginalPrice) / 100;
-
-          // For very small trades where both prices are nearly identical,
-          // calculate impact based on the average vs marginal price
-          if (Math.abs(impact) < 0.01 && currentMarginalPrice > parseEther("0.000000001")) {
-            // Use a small negative impact to indicate selling pressure
-            impact = -0.5; // 0.5% impact for minimal sells
-          }
-        } else if (currentMarginalPrice === 0n && newMarginalPrice === 0n) {
-          // Both prices at minimum, no real impact
-          impact = 0;
+        // Calculate marginal price impact for selling
+        if (currentMarginalPrice > 0n && newMarginalPrice >= 0n) {
+          const priceChangeRatio = (newMarginalPrice - currentMarginalPrice) * 10000n / currentMarginalPrice;
+          impact = Number(priceChangeRatio) / 100; // Will be negative when price decreases
         } else {
-          // Fallback for edge cases
-          impact = -1; // Show 1% impact
+          impact = 0;
         }
 
         isHighImpact = Math.abs(impact) > 10; // 10% for sells
