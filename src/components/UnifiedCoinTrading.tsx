@@ -114,7 +114,9 @@ export function UnifiedCoinTrading({
     // Calculate expected pool ID from sale parameters
     const expectedPoolId = sale ? getExpectedPoolId(sale) : null;
     const poolIdValue = poolId || expectedPoolId;
-    const hasPoolValue = finalized && poolIdValue && poolIdValue !== "0";
+    // For regular cookbook coins without sales, just check if they have a poolId
+    const hasPoolValue = (finalized && poolIdValue && poolIdValue !== "0") || 
+                        (!sale && !zammActive && poolIdValue && poolIdValue !== "0");
 
     // Calculate sale deadline
     const deadlineDate = sale ? new Date(Number(sale.deadline) * 1000) : null;
@@ -141,8 +143,8 @@ export function UnifiedCoinTrading({
     );
   }
 
-  // For finalized sales with pools, use the clean trading layout
-  if (isFinalized && hasPool) {
+  // For finalized sales with pools OR regular cookbook coins with pools, use the clean trading layout
+  if ((isFinalized && hasPool) || (!sale && !zammLaunchSale && hasPool)) {
     return (
       <FinalizedPoolTrading
         coinId={coinId}
