@@ -23,7 +23,7 @@ import { formatEther, parseEther, decodeEventLog } from "viem";
 import { packQuadCap, UNIT_SCALE } from "@/lib/zCurveHelpers";
 
 import { Link, useNavigate } from "@tanstack/react-router";
-import { AlertCircle, Info, Rocket, CheckCircle2, Sparkles } from "lucide-react";
+import { AlertCircle, Info, Rocket, CheckCircle2, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
 
 // Quantize values to unit scale to match contract requirements
 const quantizeToUnitScale = (value: bigint): bigint => {
@@ -98,6 +98,9 @@ export function OneShotLaunchForm() {
 
   // Store launched coin ID
   const [launchId, setLaunchId] = useState<bigint | null>(null);
+  
+  // State for collapsible advanced details
+  const [showAdvancedDetails, setShowAdvancedDetails] = useState<boolean>(false);
 
   // Extract coin ID from transaction receipt
   useEffect(() => {
@@ -675,8 +678,26 @@ export function OneShotLaunchForm() {
             </Button>
           </div>
 
-          {/* Parameters Display with Landing Page Style */}
-          <div
+          {/* Advanced Details Toggle */}
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setShowAdvancedDetails(!showAdvancedDetails)}
+            className="w-full justify-between text-sm font-medium hover:bg-accent/50 transition-colors"
+          >
+            <span>{t("create.advanced_details", "Advanced Details")}</span>
+            {showAdvancedDetails ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </Button>
+          
+          {/* Collapsible Advanced Details Section */}
+          {showAdvancedDetails && (
+            <div className="space-y-4 animate-fadeIn">
+              {/* Parameters Display with Landing Page Style */}
+              <div
             key={`params-${currentLang}`}
             className="border-2 border-border bg-background hover:shadow-lg transition-all duration-200 p-3 sm:p-4 rounded-lg relative overflow-hidden group"
           >
@@ -776,6 +797,8 @@ export function OneShotLaunchForm() {
               </a>
             </div>
           </div>
+            </div>
+          )}
 
           {/* Error Display */}
           {error && (

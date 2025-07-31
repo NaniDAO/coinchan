@@ -1,4 +1,5 @@
 import { LoadingLogo } from "@/components/ui/loading-logo";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import {
   CandlestickSeries,
@@ -118,8 +119,30 @@ const PoolCandleChart: React.FC<CandleChartProps> = ({
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center h-64">
-          <LoadingLogo />
+        <div className="relative h-[400px]">
+          {/* Skeleton candles */}
+          <div className="absolute inset-0 p-4">
+            <div className="h-full w-full flex items-end justify-around gap-1">
+              {Array.from({ length: 20 }).map((_, i) => (
+                <div key={i} className="flex-1 flex flex-col justify-end">
+                  <Skeleton 
+                    className="w-full opacity-10" 
+                    style={{ 
+                      height: `${Math.random() * 60 + 20}%`,
+                      animationDelay: `${i * 50}ms`
+                    }} 
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Loading indicator overlay */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <LoadingLogo />
+            <p className="text-sm text-muted-foreground animate-pulse mt-3">
+              {t("chart.loading_candle_data", "Loading market data...")}
+            </p>
+          </div>
         </div>
       ) : allCandles.length > 0 ? (
         <TVCandlestick
@@ -174,18 +197,65 @@ const TVCandlestick: React.FC<TVChartProps> = ({
       },
       width: containerRef.current.clientWidth,
       height: 400,
-      crosshair: { mode: CrosshairMode.Normal },
-      rightPriceScale: { scaleMargins: { top: 0.2, bottom: 0.2 } },
-      timeScale: { timeVisible: true, secondsVisible: false },
+      crosshair: { 
+        mode: CrosshairMode.Normal,
+        horzLine: {
+          color: chartTheme.crosshairColor || '#758696',
+          width: 1,
+          style: 2,
+          labelBackgroundColor: chartTheme.background || '#ffffff',
+        },
+        vertLine: {
+          color: chartTheme.crosshairColor || '#758696',
+          width: 1,
+          style: 2,
+          labelBackgroundColor: chartTheme.background || '#ffffff',
+        },
+      },
+      rightPriceScale: { 
+        scaleMargins: { top: 0.2, bottom: 0.2 },
+        borderVisible: false,
+        entireTextOnly: true,
+      },
+      timeScale: { 
+        timeVisible: true, 
+        secondsVisible: false,
+        borderVisible: false,
+        rightOffset: 5,
+        barSpacing: 8,
+      },
+      grid: {
+        vertLines: {
+          color: chartTheme.gridColor || '#f0f0f0',
+          style: 1,
+        },
+        horzLines: {
+          color: chartTheme.gridColor || '#f0f0f0',
+          style: 1,
+        },
+      },
+      handleScroll: {
+        vertTouchDrag: false,
+        horzTouchDrag: true,
+        mouseWheel: true,
+        pressedMouseMove: true,
+      },
+      handleScale: {
+        axisPressedMouseMove: true,
+        mouseWheel: true,
+        pinch: true,
+      },
     });
     chartRef.current = chart;
 
     seriesRef.current = chart.addSeries(CandlestickSeries, {
-      upColor: chartTheme.upColor,
-      downColor: chartTheme.downColor,
-      wickUpColor: chartTheme.wickUpColor,
-      wickDownColor: chartTheme.wickDownColor,
-      borderVisible: false,
+      upColor: chartTheme.upColor || '#10b981',
+      downColor: chartTheme.downColor || '#ef4444',
+      wickUpColor: chartTheme.wickUpColor || '#10b981',
+      wickDownColor: chartTheme.wickDownColor || '#ef4444',
+      borderVisible: true,
+      borderUpColor: chartTheme.upColor || '#10b981',
+      borderDownColor: chartTheme.downColor || '#ef4444',
       wickVisible: true,
       title: showUsd && ethUsdPrice ? `${ticker} / USD` : `ETH / ${ticker}`,
       priceFormat: {
@@ -193,6 +263,11 @@ const TVCandlestick: React.FC<TVChartProps> = ({
         formatter: formatWithSubscriptZeros,
         minMove: 0.000000001,
       },
+      lastValueVisible: true,
+      priceLineVisible: true,
+      priceLineWidth: 1,
+      priceLineColor: chartTheme.textColor || '#333333',
+      priceLineStyle: 2,
     } as CandlestickSeriesOptions);
 
     const handleResize = () => {
