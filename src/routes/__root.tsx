@@ -17,12 +17,8 @@ export const Route = createRootRoute({
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const handleLogoClick = () => {
-      // If on coins page, navigate to oneshot create form
-      if (location.pathname === "/coins") {
-        navigate({ to: "/oneshot" });
-      } else {
-        navigate({ to: "/" });
-      }
+      // Always navigate to landing page
+      navigate({ to: "/" });
       setIsMobileMenuOpen(false);
     };
 

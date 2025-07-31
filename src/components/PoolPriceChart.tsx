@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { LoadingLogo } from "@/components/ui/loading-logo";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useChartTheme } from "@/hooks/use-chart-theme";
 import { formatWithSubscriptZeros } from "@/lib/chart";
 import { type PricePointData, fetchPoolPricePoints } from "@/lib/indexer";
@@ -41,16 +42,18 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({
   const [chartError, setChartError] = useState<string | null>(null);
 
   // Internal state for time controls
+  // Initialize with 24h data
+  const now = Math.floor(Date.now() / 1000);
   const [timeRange, setTimeRange] = useState<{
     startTs: number | undefined;
     endTs: number | undefined;
     desiredPoints: number;
     activeButton: string;
   }>({
-    startTs: undefined,
-    endTs: undefined,
-    desiredPoints: 100, // Default value
-    activeButton: "1w", // Default active button
+    startTs: now - 24 * 60 * 60, // 24 hours ago
+    endTs: now,
+    desiredPoints: 24, // Default to 24 hour points
+    activeButton: "24h", // Default to 24 hour view
   });
 
   const { data, isLoading, error } = useQuery({
@@ -72,6 +75,8 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({
     gcTime: 300000, // Keep in cache for 5 minutes (formerly cacheTime)
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    enabled: !!poolId, // Only fetch when poolId is available
+    refetchOnWindowFocus: false, // Prevent unnecessary refetches
   });
 
   // Time range presets
@@ -132,7 +137,7 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({
             onClick={setLast24Hours}
             className={cn(
               "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
-              timeRange.activeButton === "24hr" &&
+              timeRange.activeButton === "24h" &&
                 "bg-accent text-accent-foreground",
             )}
           >
@@ -194,12 +199,32 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center h-64">
-          <LoadingLogo />
+        <div className="relative h-[300px]">
+          {/* Skeleton chart lines */}
+          <div className="absolute inset-0 p-4">
+            <div className="h-full w-full flex flex-col justify-end space-y-1">
+              <Skeleton className="h-[60%] w-full opacity-10" />
+              <Skeleton className="h-[30%] w-full opacity-10" />
+              <Skeleton className="h-[20%] w-full opacity-10" />
+            </div>
+          </div>
+          {/* Loading indicator overlay */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <LoadingLogo />
+            <p className="text-sm text-muted-foreground animate-pulse mt-3">
+              {t("chart.loading_price_data", "Loading price data...")}
+            </p>
+          </div>
         </div>
       ) : chartError ? (
-        <div className="text-center">
-          <p className="text-red-400 mb-4">{chartError}</p>
+        <div className="flex flex-col items-center justify-center h-[300px] space-y-4">
+          <div className="text-center space-y-2">
+            <svg className="w-12 h-12 mx-auto text-red-500 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-red-500 font-medium">{t("chart.error_title", "Chart data unavailable")}</p>
+            <p className="text-sm text-muted-foreground">{chartError}</p>
+          </div>
           <Button
             variant="outline"
             size="sm"
@@ -211,8 +236,9 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({
                 endTs: Math.floor(Date.now() / 1000),
               }));
             }}
+            className="hover:border-primary"
           >
-            {t("common.retry")}
+            {t("common.retry", "Retry")}
           </Button>
         </div>
       ) : data && data.length > 0 ? (
@@ -287,23 +313,57 @@ const TVPriceChart: React.FC<{
           autoScale: true,
           mode: PriceScaleMode.Logarithmic,
           scaleMargins: { top: 0.1, bottom: 0.2 },
+          borderVisible: false,
         },
-        timeScale: { timeVisible: true },
+        timeScale: { 
+          timeVisible: true,
+          borderVisible: false,
+          rightOffset: 5,
+          barSpacing: 6,
+        },
+        grid: {
+          vertLines: {
+            color: chartTheme.gridColor || '#f0f0f0',
+            style: 1,
+          },
+          horzLines: {
+            color: chartTheme.gridColor || '#f0f0f0',
+            style: 1,
+          },
+        },
         handleScroll: {
           vertTouchDrag: false,
+          horzTouchDrag: true,
+          mouseWheel: true,
+          pressedMouseMove: true,
+        },
+        handleScale: {
+          axisPressedMouseMove: true,
+          mouseWheel: true,
+          pinch: true,
         },
       });
       chartRef.current = chart;
 
       priceSeriesRef.current = chart.addSeries(LineSeries, {
-        color: chartTheme.lineColor,
-        lineWidth: 2,
+        color: chartTheme.lineColor || '#10b981',
+        lineWidth: 2.5,
+        lineStyle: 0, // Solid line
         title: `ETH / ${ticker}`, // Default title, will be updated dynamically
         priceFormat: {
           type: "custom",
           formatter: formatWithSubscriptZeros, // Use custom formatter
           minMove: 0.000000001,
         },
+        crosshairMarkerVisible: true,
+        crosshairMarkerRadius: 5,
+        crosshairMarkerBorderColor: chartTheme.lineColor || '#10b981',
+        crosshairMarkerBackgroundColor: chartTheme.background || '#ffffff',
+        lastValueVisible: true,
+        priceLineVisible: true,
+        priceLineWidth: 1,
+        priceLineColor: chartTheme.lineColor || '#10b981',
+        priceLineStyle: 2, // Dashed
       } as LineSeriesOptions);
 
       // Add impact series for projected price (dotted line)
@@ -502,15 +562,21 @@ const TVPriceChart: React.FC<{
   }, [priceData, showUsd, ethUsdPrice, priceImpact, isChartReady, t]);
 
   return (
-    <div className="relative">
+    <div className="relative transition-opacity duration-300">
       <div
         ref={containerRef}
-        className="w-full"
+        className={cn(
+          "w-full transition-opacity duration-500",
+          isChartReady ? "opacity-100" : "opacity-0"
+        )}
         style={{ height: "300px", position: "relative", zIndex: 1 }}
       />
       {!isChartReady && (
-        <div className="absolute inset-0 flex items-center justify-center bg-background/80">
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm transition-opacity duration-300">
           <LoadingLogo size="sm" />
+          <p className="text-xs text-muted-foreground mt-2">
+            {t("chart.rendering", "Rendering chart...")}
+          </p>
         </div>
       )}
     </div>
