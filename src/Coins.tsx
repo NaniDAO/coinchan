@@ -118,6 +118,42 @@ export const Coins = () => {
   }, []);
 
   /* ------------------------------------------------------------------
+   *  Helper to filter out invalid coins (like Token 0) and expired unsold tranche sales
+   * ------------------------------------------------------------------ */
+  const filterValidCoins = useCallback((coinsList: CoinData[]): CoinData[] => {
+    return coinsList.filter((coin) => {
+      // Basic validation - exclude null, undefined
+      if (!coin || coin.coinId === undefined || coin.coinId === null) {
+        return false;
+      }
+
+      // Exclude test demo coins
+      const coinIdNum = Number(coin.coinId);
+      if (coinIdNum === 69 || coinIdNum === 71) {
+        return false;
+      }
+
+      // Allow special tokens (ENS has ID 0, CULT has ID 999999)
+      const isSpecialToken = coin.symbol === "ENS" || coin.symbol === "CULT" || coin.symbol === "USDT";
+
+      // For regular coins, exclude ID 0 or negative
+      if (!isSpecialToken && Number(coin.coinId) <= 0) {
+        return false;
+      }
+
+      // Filter out expired and unsold tranche sales
+      // A tranche sale is considered expired and unsold if:
+      // 1. It has EXPIRED status AND
+      // 2. It has no reserves (meaning it never sold and no liquidity was added)
+      if (coin.saleStatus === "EXPIRED" && (!coin.reserve0 || coin.reserve0 === 0n) && (!coin.reserve1 || coin.reserve1 === 0n)) {
+        return false;
+      }
+
+      return true;
+    });
+  }, []);
+
+  /* ------------------------------------------------------------------
    *  Apply sorting to coins based on sort type and order
    * ------------------------------------------------------------------ */
   const sortCoins = useCallback(
@@ -181,42 +217,6 @@ export const Coins = () => {
     },
     [sortType, sortOrder, filterValidCoins],
   );
-
-  /* ------------------------------------------------------------------
-   *  Helper to filter out invalid coins (like Token 0) and expired unsold tranche sales
-   * ------------------------------------------------------------------ */
-  const filterValidCoins = useCallback((coinsList: CoinData[]): CoinData[] => {
-    return coinsList.filter((coin) => {
-      // Basic validation - exclude null, undefined
-      if (!coin || coin.coinId === undefined || coin.coinId === null) {
-        return false;
-      }
-
-      // Exclude test demo coins
-      const coinIdNum = Number(coin.coinId);
-      if (coinIdNum === 69 || coinIdNum === 71) {
-        return false;
-      }
-
-      // Allow special tokens (ENS has ID 0, CULT has ID 999999)
-      const isSpecialToken = coin.symbol === "ENS" || coin.symbol === "CULT" || coin.symbol === "USDT";
-
-      // For regular coins, exclude ID 0 or negative
-      if (!isSpecialToken && Number(coin.coinId) <= 0) {
-        return false;
-      }
-
-      // Filter out expired and unsold tranche sales
-      // A tranche sale is considered expired and unsold if:
-      // 1. It has EXPIRED status AND
-      // 2. It has no reserves (meaning it never sold and no liquidity was added)
-      if (coin.saleStatus === "EXPIRED" && (!coin.reserve0 || coin.reserve0 === 0n) && (!coin.reserve1 || coin.reserve1 === 0n)) {
-        return false;
-      }
-
-      return true;
-    });
-  }, []);
 
   /* ------------------------------------------------------------------
    *  Data for ExplorerGrid
