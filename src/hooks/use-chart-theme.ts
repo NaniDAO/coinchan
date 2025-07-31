@@ -8,6 +8,8 @@ interface ChartTheme {
   downColor: string;
   wickUpColor: string;
   wickDownColor: string;
+  gridColor: string;
+  crosshairColor: string;
 }
 
 export function useChartTheme(): ChartTheme {
@@ -23,6 +25,8 @@ export function useChartTheme(): ChartTheme {
       downColor: "#ff3358", // destructive color
       wickUpColor: "#33ff99", // chart-2 color
       wickDownColor: "#ff3358", // destructive color
+      gridColor: "#2a2d3a", // subtle grid for dark theme
+      crosshairColor: "#6b7280", // gray crosshair for dark theme
     };
   }
 
@@ -35,5 +39,7 @@ export function useChartTheme(): ChartTheme {
     downColor: "#f87171", // red for light theme
     wickUpColor: "#34d399",
     wickDownColor: "#f87171",
+    gridColor: "#f0f0f0", // subtle grid for light theme
+    crosshairColor: "#9ca3af", // gray crosshair for light theme
   };
 }

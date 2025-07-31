@@ -200,13 +200,13 @@ const TVCandlestick: React.FC<TVChartProps> = ({
       crosshair: { 
         mode: CrosshairMode.Normal,
         horzLine: {
-          color: chartTheme.crosshairColor || '#758696',
+          color: chartTheme.crosshairColor,
           width: 1,
           style: 2,
           labelBackgroundColor: chartTheme.background || '#ffffff',
         },
         vertLine: {
-          color: chartTheme.crosshairColor || '#758696',
+          color: chartTheme.crosshairColor,
           width: 1,
           style: 2,
           labelBackgroundColor: chartTheme.background || '#ffffff',
@@ -226,11 +226,11 @@ const TVCandlestick: React.FC<TVChartProps> = ({
       },
       grid: {
         vertLines: {
-          color: chartTheme.gridColor || '#f0f0f0',
+          color: chartTheme.gridColor,
           style: 1,
         },
         horzLines: {
-          color: chartTheme.gridColor || '#f0f0f0',
+          color: chartTheme.gridColor,
           style: 1,
         },
       },
