@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, parseEther } from "viem";
 import { InfoIcon } from "lucide-react";
@@ -23,12 +23,15 @@ export function ZCurvePriceImpact({
 }: ZCurvePriceImpactProps) {
   const { t } = useTranslation();
 
-  // Helper function to calculate marginal price at a given netSold amount
+  // Helper function to calculate marginal price at a given netSold amount - memoized
   // Uses the shared calculateCost function from zCurveMath
-  const calculateMarginalPrice = (netSold: bigint, quadCap: bigint, divisor: bigint): bigint => {
-    // Marginal price is the cost of the next UNIT_SCALE tokens
-    return calculateCost(netSold + UNIT_SCALE, quadCap, divisor) - calculateCost(netSold, quadCap, divisor);
-  };
+  const calculateMarginalPrice = useCallback(
+    (netSold: bigint, quadCap: bigint, divisor: bigint): bigint => {
+      // Marginal price is the cost of the next UNIT_SCALE tokens
+      return calculateCost(netSold + UNIT_SCALE, quadCap, divisor) - calculateCost(netSold, quadCap, divisor);
+    },
+    [],
+  );
 
   const priceImpact = useMemo(() => {
     if (!tradeAmount || parseFloat(tradeAmount) === 0) return null;
@@ -145,7 +148,7 @@ export function ZCurvePriceImpact({
       : "border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/20";
 
   // Format the display - always show sign with more precision for small impacts
-  const formatImpact = () => {
+  const formatImpact = useMemo(() => {
     const absImpact = Math.abs(priceImpact.impactPercent);
     const precision = absImpact < 0.01 ? 3 : 2;
     if (isBuying) {
@@ -153,10 +156,10 @@ export function ZCurvePriceImpact({
     } else {
       return `${priceImpact.impactPercent.toFixed(precision)}%`; // Already negative
     }
-  };
+  }, [priceImpact, isBuying]);
 
-  // Format very small prices with appropriate precision
-  const formatPrice = (price: number): string => {
+  // Format very small prices with appropriate precision - memoized
+  const formatPrice = useCallback((price: number): string => {
     if (price === 0) return "0 ETH";
 
     // For extremely small values, use gwei or wei
@@ -183,7 +186,7 @@ export function ZCurvePriceImpact({
     }
 
     return price.toFixed(4) + " ETH";
-  };
+  }, []);
 
   return (
     <div className={`rounded-lg border p-3 ${borderColor} ${className}`}>
@@ -194,7 +197,7 @@ export function ZCurvePriceImpact({
             <span className="text-sm font-medium">
               {isBuying ? t("trade.buy_impact", "Buy Impact") : t("trade.sell_impact", "Sell Impact")}
             </span>
-            <span className={`text-sm font-semibold ${impactColor}`}>{formatImpact()}</span>
+            <span className={`text-sm font-semibold ${impactColor}`}>{formatImpact}</span>
           </div>
           <div className="space-y-1">
             {/* Only show price change if there's a meaningful difference */}
