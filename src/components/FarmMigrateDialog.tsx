@@ -8,6 +8,7 @@ import { useActiveIncentiveStreams } from "@/hooks/use-incentive-streams";
 import { useZChefActions, useZChefPendingReward, useZChefUserBalance } from "@/hooks/use-zchef-contract";
 import { useCombinedApr } from "@/hooks/use-combined-apr";
 import type { TokenMeta } from "@/lib/coins";
+import { CULT_POOL_ID } from "@/lib/coins";
 import { isUserRejectionError } from "@/lib/errors";
 import { cn, formatBalance } from "@/lib/utils";
 import { useState, useMemo, useEffect } from "react";
@@ -240,20 +241,34 @@ export function FarmMigrateDialog({ stream, lpToken, userPosition, trigger, onSu
   // Get all active incentive streams for the same LP token
   const { data: allStreams = [] } = useActiveIncentiveStreams();
 
-  // Filter to get compatible target streams (same lpId, excluding current stream)
+  // Filter to get compatible target streams
   const compatibleStreams = useMemo(() => {
     const filtered = allStreams.filter((s: IncentiveStream) => {
-      const sameLpId = s.lpId.toString() === stream.lpId.toString(); // Compare as strings to handle BigInt
+      // Check if the current stream is for a CULT LP token
+      const isCurrentCultLP = stream.lpId === CULT_POOL_ID || lpToken?.symbol === "CULT";
+      
+      // For CULT LP migration, show all streams that accept CULT LP tokens
+      // For non-CULT pools, match by exact lpId
+      let matchesLP: boolean;
+      
+      if (isCurrentCultLP) {
+        // For CULT LP, show all streams that accept CULT LP (same lpId as CULT_POOL_ID)
+        matchesLP = s.lpId === CULT_POOL_ID;
+      } else {
+        // For other tokens, only show streams with exact same lpId
+        matchesLP = s.lpId.toString() === stream.lpId.toString();
+      }
+        
       const differentChef = s.chefId.toString() !== stream.chefId.toString();
       const isActive = s.status === "ACTIVE";
       const notEnded = Number(s.endTime) > Math.floor(Date.now() / 1000);
 
-      return sameLpId && differentChef && isActive && notEnded;
+      return matchesLP && differentChef && isActive && notEnded;
     });
 
     // Note: We'll sort by APY in a separate component since we need to calculate APY for each stream
     return filtered;
-  }, [allStreams, stream.lpId, stream.chefId]);
+  }, [allStreams, stream.lpId, stream.chefId, lpToken?.symbol]);
 
   // Get the selected target stream
   const targetStream = useMemo(() => {
