@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, parseEther } from "viem";
 import { useAccount, useBalance, usePublicClient, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
@@ -21,6 +21,13 @@ import { useGetCoin } from "@/hooks/metadata/use-get-coin";
 import { CookbookAddress } from "@/constants/Cookbook";
 import { ConnectMenu } from "@/ConnectMenu";
 import { useETHPrice } from "@/hooks/use-eth-price";
+import {
+  calculateCoinsForETH,
+  calculateBuyCost,
+  calculateSellRefund,
+  calculateCoinsToBurnForETH,
+  cachedCalculation,
+} from "@/lib/zCurveClientCalc";
 
 interface ChartPreviewData {
   amount: bigint;
@@ -129,7 +136,21 @@ export function ZCurveTrading({
       reserve1: 0n,
       source: "COOKBOOK" as const,
     };
-  }, [coinId, coinSymbol, coinData, coinIcon, userBalance, saleSummary, sale]);
+  }, [
+    coinId,
+    coinSymbol,
+    coinData?.symbol,
+    coinData?.name,
+    coinData?.imageUrl,
+    coinData?.tokenURI,
+    coinIcon,
+    userBalance?.balance,
+    saleSummary?.userBalance,
+    sale?.coin?.symbol,
+    sale?.coin?.name,
+    sale?.coin?.imageUrl,
+    sale?.coin?.tokenURI,
+  ]);
 
   // Safe parseEther wrapper
   const safeParseEther = (value: string): bigint | null => {
@@ -145,8 +166,9 @@ export function ZCurveTrading({
     return (value / UNIT_SCALE) * UNIT_SCALE;
   };
 
-  // Format price for display including very small values
-  const formatPriceDisplay = (priceWei: bigint, ethPriceUSD?: number) => {
+  // Format price for display including very small values - memoized for performance
+  const formatPriceDisplay = useMemo(
+    () => (priceWei: bigint, ethPriceUSD?: number) => {
     const price = Number(formatEther(priceWei));
 
     if (priceWei === 0n) {
@@ -239,9 +261,11 @@ export function ZCurveTrading({
     }
 
     return { eth: ethDisplay, usd: usdDisplay, tokensPerEth: tokensDisplay };
-  };
+  },
+  [],
+  );
 
-  // Calculate output based on input using view helpers
+  // Calculate output based on input using view helpers with caching
   const calculateOutput = useCallback(
     async (value: string, field: "sell" | "buy") => {
       if (!publicClient || !sale || !value || parseFloat(value) === 0) {
@@ -266,17 +290,72 @@ export function ZCurveTrading({
           return;
         }
 
+        // Helper to get cached or fresh contract data with client-side fallback
+        const getCachedOrFetch = async (
+          key: string,
+          fetchFn: () => Promise<bigint>,
+          clientFallback?: () => bigint,
+        ): Promise<bigint> => {
+          const cached = contractCallCache.current.get(key);
+          const now = Date.now();
+          
+          if (cached && now - cached.timestamp < CACHE_TTL) {
+            return cached.value;
+          }
+          
+          // Try client-side calculation first if available
+          if (clientFallback) {
+            try {
+              const clientValue = clientFallback();
+              contractCallCache.current.set(key, { value: clientValue, timestamp: now });
+              return clientValue;
+            } catch (e) {
+              console.warn("Client-side calculation failed, falling back to contract", e);
+            }
+          }
+          
+          const value = await fetchFn();
+          contractCallCache.current.set(key, { value, timestamp: now });
+          
+          // Clean up old cache entries
+          if (contractCallCache.current.size > 100) {
+            const entries = Array.from(contractCallCache.current.entries());
+            entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
+            entries.slice(0, 50).forEach(([k]) => contractCallCache.current.delete(k));
+          }
+          
+          return value;
+        };
+
         if (field === "sell") {
           // User is editing sell amount
           if (swapDirection === "buy") {
             // Buying tokens with ETH - use coinsForETH
             const ethIn = parsedValue;
-            const coinsOut = await publicClient.readContract({
-              address: zCurveAddress,
-              abi: zCurveAbi,
-              functionName: "coinsForETH",
-              args: [BigInt(coinId), ethIn],
-            });
+            const cacheKey = `coinsForETH-${coinId}-${ethIn.toString()}`;
+            const coinsOut = await getCachedOrFetch(
+              cacheKey,
+              () =>
+                publicClient.readContract({
+                  address: zCurveAddress,
+                  abi: zCurveAbi,
+                  functionName: "coinsForETH",
+                  args: [BigInt(coinId), ethIn],
+                }),
+              // Client-side fallback
+              sale
+                ? () =>
+                    cachedCalculation(
+                      calculateCoinsForETH,
+                      cacheKey,
+                      ethIn,
+                      BigInt(sale.netSold),
+                      BigInt(sale.saleCap),
+                      BigInt(sale.quadCap),
+                      BigInt(sale.divisor),
+                    )
+                : undefined,
+            );
             setBuyAmount(formatEther(coinsOut));
             // Update chart preview
             onPreviewChange?.({
@@ -286,12 +365,29 @@ export function ZCurveTrading({
           } else {
             // Selling tokens for ETH - use sellRefund
             const coinsIn = parsedValue;
-            const ethOut = await publicClient.readContract({
-              address: zCurveAddress,
-              abi: zCurveAbi,
-              functionName: "sellRefund",
-              args: [BigInt(coinId), coinsIn],
-            });
+            const cacheKey = `sellRefund-${coinId}-${coinsIn.toString()}`;
+            const ethOut = await getCachedOrFetch(
+              cacheKey,
+              () =>
+                publicClient.readContract({
+                  address: zCurveAddress,
+                  abi: zCurveAbi,
+                  functionName: "sellRefund",
+                  args: [BigInt(coinId), coinsIn],
+                }),
+              // Client-side fallback
+              sale
+                ? () =>
+                    cachedCalculation(
+                      calculateSellRefund,
+                      cacheKey,
+                      coinsIn,
+                      BigInt(sale.netSold),
+                      BigInt(sale.quadCap),
+                      BigInt(sale.divisor),
+                    )
+                : undefined,
+            );
             setBuyAmount(formatEther(ethOut));
             // Update chart preview
             onPreviewChange?.({
@@ -304,12 +400,30 @@ export function ZCurveTrading({
           if (swapDirection === "buy") {
             // Want exact tokens out, calculate ETH in - use buyCost
             const coinsOut = parsedValue;
-            const ethIn = await publicClient.readContract({
-              address: zCurveAddress,
-              abi: zCurveAbi,
-              functionName: "buyCost",
-              args: [BigInt(coinId), coinsOut],
-            });
+            const cacheKey = `buyCost-${coinId}-${coinsOut.toString()}`;
+            const ethIn = await getCachedOrFetch(
+              cacheKey,
+              () =>
+                publicClient.readContract({
+                  address: zCurveAddress,
+                  abi: zCurveAbi,
+                  functionName: "buyCost",
+                  args: [BigInt(coinId), coinsOut],
+                }),
+              // Client-side fallback
+              sale
+                ? () =>
+                    cachedCalculation(
+                      calculateBuyCost,
+                      cacheKey,
+                      coinsOut,
+                      BigInt(sale.netSold),
+                      BigInt(sale.saleCap),
+                      BigInt(sale.quadCap),
+                      BigInt(sale.divisor),
+                    )
+                : undefined,
+            );
             setSellAmount(formatEther(ethIn));
             // Update chart preview
             onPreviewChange?.({
@@ -319,12 +433,29 @@ export function ZCurveTrading({
           } else {
             // Want exact ETH out, calculate tokens in - use coinsToBurnForETH
             const ethOut = parsedValue;
-            const coinsIn = await publicClient.readContract({
-              address: zCurveAddress,
-              abi: zCurveAbi,
-              functionName: "coinsToBurnForETH",
-              args: [BigInt(coinId), ethOut],
-            });
+            const cacheKey = `coinsToBurnForETH-${coinId}-${ethOut.toString()}`;
+            const coinsIn = await getCachedOrFetch(
+              cacheKey,
+              () =>
+                publicClient.readContract({
+                  address: zCurveAddress,
+                  abi: zCurveAbi,
+                  functionName: "coinsToBurnForETH",
+                  args: [BigInt(coinId), ethOut],
+                }),
+              // Client-side fallback
+              sale
+                ? () =>
+                    cachedCalculation(
+                      calculateCoinsToBurnForETH,
+                      cacheKey,
+                      ethOut,
+                      BigInt(sale.netSold),
+                      BigInt(sale.quadCap),
+                      BigInt(sale.divisor),
+                    )
+                : undefined,
+            );
             setSellAmount(formatEther(coinsIn));
             // Update chart preview
             onPreviewChange?.({
@@ -342,12 +473,16 @@ export function ZCurveTrading({
         setIsCalculating(false);
       }
     },
-    [publicClient, sale, swapDirection, coinId, onPreviewChange],
+    [publicClient, sale, swapDirection, coinId, onPreviewChange, t],
   );
 
-  // Debounced version for user input
+  // Cache for contract call results to avoid redundant RPC calls
+  const contractCallCache = useRef<Map<string, { value: bigint; timestamp: number }>>(new Map());
+  const CACHE_TTL = 5000; // 5 seconds cache TTL
+
+  // Debounced version for user input with increased delay for better performance
   const debouncedCalculateOutput = useMemo(
-    () => debounce((value: string, field: "sell" | "buy") => calculateOutput(value, field), 300),
+    () => debounce((value: string, field: "sell" | "buy") => calculateOutput(value, field), 500),
     [calculateOutput],
   );
 
@@ -759,7 +894,10 @@ export function ZCurveTrading({
             {saleSummary?.currentPrice || sale.currentPrice
               ? (() => {
                   const currentPriceWei = BigInt(saleSummary?.currentPrice || sale.currentPrice);
-                  const priceInfo = formatPriceDisplay(currentPriceWei, ethPrice?.priceUSD);
+                  const priceInfo = useMemo(
+                    () => formatPriceDisplay(currentPriceWei, ethPrice?.priceUSD),
+                    [currentPriceWei, ethPrice?.priceUSD],
+                  );
 
                   return (
                     <div className="flex flex-col items-end">
