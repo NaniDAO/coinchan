@@ -1,11 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { LoadingLogo } from "@/components/ui/loading-logo";
 import { useChartTheme } from "@/hooks/use-chart-theme";
+import { formatWithSubscriptZeros } from "@/lib/chart";
 import { type PricePointData, fetchPoolPricePoints } from "@/lib/indexer";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import {
-  BarPrice,
   ColorType,
   type ISeriesApi,
   LineSeries,
@@ -30,78 +30,12 @@ interface PriceChartProps {
   } | null;
 }
 
-// Utility function to format numbers with subscript zeros
-const formatWithSubscriptZeros = (value: BarPrice): string => {
-  if (value === 0) return "0";
-
-  const absValue = Math.abs(value);
-  const sign = value < 0 ? "-" : "";
-
-  // Handle numbers >= 1
-  if (absValue >= 1) {
-    return sign + absValue.toFixed(4).replace(/\.?0+$/, "");
-  }
-
-  // Handle numbers >= 0.01 (show normally for readability)
-  if (absValue >= 0.01) {
-    return sign + absValue.toFixed(6).replace(/\.?0+$/, "");
-  }
-
-  // For very small numbers, use toFixed to avoid exponential notation
-  const fixedStr = absValue.toFixed(20); // Use high precision to capture all digits
-  const decimalIndex = fixedStr.indexOf(".");
-
-  if (decimalIndex === -1) return sign + fixedStr;
-
-  const afterDecimal = fixedStr.substring(decimalIndex + 1);
-  let zeroCount = 0;
-
-  // Count leading zeros after decimal
-  for (let i = 0; i < afterDecimal.length; i++) {
-    if (afterDecimal[i] === "0") {
-      zeroCount++;
-    } else {
-      break;
-    }
-  }
-
-  // If no leading zeros, format normally
-  if (zeroCount === 0) {
-    return sign + absValue.toFixed(6).replace(/\.?0+$/, "");
-  }
-
-  // Get significant digits after the leading zeros
-  const significantDigits = afterDecimal.substring(zeroCount);
-
-  // Take first 4-6 significant digits and remove trailing zeros
-  const trimmedDigits = significantDigits.substring(0, 6).replace(/0+$/, "");
-
-  if (trimmedDigits.length === 0) return "0";
-
-  // Create subscript number - Unicode subscript characters
-  const subscriptMap: { [key: string]: string } = {
-    "0": "₀",
-    "1": "₁",
-    "2": "₂",
-    "3": "₃",
-    "4": "₄",
-    "5": "₅",
-    "6": "₆",
-    "7": "₇",
-    "8": "₈",
-    "9": "₉",
-  };
-
-  const subscriptZeros = zeroCount
-    .toString()
-    .split("")
-    .map((digit) => subscriptMap[digit])
-    .join("");
-
-  return `${sign}0.0${subscriptZeros}${trimmedDigits}`;
-};
-
-const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker, ethUsdPrice, priceImpact }) => {
+const PoolPriceChart: React.FC<PriceChartProps> = ({
+  poolId,
+  ticker,
+  ethUsdPrice,
+  priceImpact,
+}) => {
   const { t } = useTranslation();
   const [showUsd, setShowUsd] = useState(false);
   const [chartError, setChartError] = useState<string | null>(null);
@@ -120,8 +54,20 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker, ethUsdPrice
   });
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["poolPricePoints", poolId, timeRange.startTs, timeRange.endTs, timeRange.desiredPoints],
-    queryFn: () => fetchPoolPricePoints(poolId, timeRange.startTs, timeRange.endTs, timeRange.desiredPoints),
+    queryKey: [
+      "poolPricePoints",
+      poolId,
+      timeRange.startTs,
+      timeRange.endTs,
+      timeRange.desiredPoints,
+    ],
+    queryFn: () =>
+      fetchPoolPricePoints(
+        poolId,
+        timeRange.startTs,
+        timeRange.endTs,
+        timeRange.desiredPoints,
+      ),
     staleTime: 60000, // Consider data fresh for 1 minute
     gcTime: 300000, // Keep in cache for 5 minutes (formerly cacheTime)
     retry: 3,
@@ -186,7 +132,8 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker, ethUsdPrice
             onClick={setLast24Hours}
             className={cn(
               "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
-              timeRange.activeButton === "24hr" && "bg-accent text-accent-foreground",
+              timeRange.activeButton === "24hr" &&
+                "bg-accent text-accent-foreground",
             )}
           >
             {t("coin.24h")}
@@ -195,7 +142,8 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker, ethUsdPrice
             onClick={setLastWeek}
             className={cn(
               "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
-              timeRange.activeButton === "1w" && "bg-accent text-accent-foreground",
+              timeRange.activeButton === "1w" &&
+                "bg-accent text-accent-foreground",
             )}
           >
             {t("coin.7d")}
@@ -204,7 +152,8 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker, ethUsdPrice
             onClick={setLastMonth}
             className={cn(
               "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
-              timeRange.activeButton === "1m" && "bg-accent text-accent-foreground",
+              timeRange.activeButton === "1m" &&
+                "bg-accent text-accent-foreground",
             )}
           >
             {t("coin.30d")}
@@ -213,7 +162,8 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker, ethUsdPrice
             onClick={setAllTime}
             className={cn(
               "text-xs w-full p-1 hover:bg-muted hover:text-muted-foreground",
-              timeRange.activeButton === "all" && "bg-accent text-accent-foreground",
+              timeRange.activeButton === "all" &&
+                "bg-accent text-accent-foreground",
             )}
           >
             {t("coin.all")}
@@ -274,7 +224,9 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({ poolId, ticker, ethUsdPrice
           priceImpact={priceImpact}
         />
       ) : (
-        <div className="text-center py-20 text-muted-foreground">{t("chart.no_data")}</div>
+        <div className="text-center py-20 text-muted-foreground">
+          {t("chart.no_data")}
+        </div>
       )}
     </div>
   );
@@ -299,7 +251,8 @@ const TVPriceChart: React.FC<{
   const impactSeriesRef = useRef<ISeriesApi<"Line">>();
   const chartTheme = useChartTheme();
   const [isChartReady, setIsChartReady] = useState(false);
-  const lastValidDataRef = useRef<Array<{ time: UTCTimestamp; value: number }>>();
+  const lastValidDataRef =
+    useRef<Array<{ time: UTCTimestamp; value: number }>>();
 
   useLayoutEffect(() => {
     const container = containerRef.current;
@@ -426,7 +379,8 @@ const TVPriceChart: React.FC<{
 
   // Simple effect to process and display data with price impact
   useEffect(() => {
-    if (!priceSeriesRef.current || !impactSeriesRef.current || !isChartReady) return;
+    if (!priceSeriesRef.current || !impactSeriesRef.current || !isChartReady)
+      return;
 
     if (!priceData || priceData.length === 0) {
       if (lastValidDataRef.current && lastValidDataRef.current.length > 0) {
@@ -509,7 +463,8 @@ const TVPriceChart: React.FC<{
               ];
 
               // Update impact series color based on buy/sell action
-              const impactColor = priceImpact.action === "buy" ? "#10b981" : "#ef4444"; // green for buy, red for sell
+              const impactColor =
+                priceImpact.action === "buy" ? "#10b981" : "#ef4444"; // green for buy, red for sell
               impactSeriesRef.current.applyOptions({
                 color: impactColor,
               });
@@ -548,7 +503,11 @@ const TVPriceChart: React.FC<{
 
   return (
     <div className="relative">
-      <div ref={containerRef} className="w-full" style={{ height: "300px", position: "relative", zIndex: 1 }} />
+      <div
+        ref={containerRef}
+        className="w-full"
+        style={{ height: "300px", position: "relative", zIndex: 1 }}
+      />
       {!isChartReady && (
         <div className="absolute inset-0 flex items-center justify-center bg-background/80">
           <LoadingLogo size="sm" />
