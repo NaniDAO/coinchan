@@ -323,11 +323,11 @@ const TVPriceChart: React.FC<{
         },
         grid: {
           vertLines: {
-            color: chartTheme.gridColor || '#f0f0f0',
+            color: chartTheme.gridColor,
             style: 1,
           },
           horzLines: {
-            color: chartTheme.gridColor || '#f0f0f0',
+            color: chartTheme.gridColor,
             style: 1,
           },
         },
@@ -347,7 +347,7 @@ const TVPriceChart: React.FC<{
 
       priceSeriesRef.current = chart.addSeries(LineSeries, {
         color: chartTheme.lineColor || '#10b981',
-        lineWidth: 2.5,
+        lineWidth: 2,
         lineStyle: 0, // Solid line
         title: `ETH / ${ticker}`, // Default title, will be updated dynamically
         priceFormat: {
@@ -357,14 +357,12 @@ const TVPriceChart: React.FC<{
         },
         crosshairMarkerVisible: true,
         crosshairMarkerRadius: 5,
-        crosshairMarkerBorderColor: chartTheme.lineColor || '#10b981',
-        crosshairMarkerBackgroundColor: chartTheme.background || '#ffffff',
         lastValueVisible: true,
         priceLineVisible: true,
         priceLineWidth: 1,
         priceLineColor: chartTheme.lineColor || '#10b981',
         priceLineStyle: 2, // Dashed
-      } as LineSeriesOptions);
+      });
 
       // Add impact series for projected price (dotted line)
       impactSeriesRef.current = chart.addSeries(LineSeries, {
