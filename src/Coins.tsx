@@ -124,19 +124,8 @@ export const Coins = () => {
     (coinsToSort: CoinData[]): CoinData[] => {
       if (!coinsToSort || coinsToSort.length === 0) return [];
 
-      // Filter out invalid coins (undefined/null IDs)
-      // Allow special tokens like ENS (ID 0) and CULT (ID 999999)
-      const validCoins = coinsToSort.filter((coin) => {
-        if (!coin || coin.coinId === undefined || coin.coinId === null) return false;
-
-        // Allow special tokens
-        const isSpecialToken = coin.symbol === "ENS" || coin.symbol === "CULT" || coin.symbol === "USDT";
-
-        // For regular coins, exclude ID 0 or negative
-        if (!isSpecialToken && Number(coin.coinId) <= 0) return false;
-
-        return true;
-      });
+      // Use filterValidCoins to ensure expired sales are excluded
+      const validCoins = filterValidCoins(coinsToSort);
 
       // If all coins were filtered out, return empty array
       if (validCoins.length === 0) return [];
@@ -179,19 +168,6 @@ export const Coins = () => {
       } else {
         // For recency sorting, use the createdAt timestamp
         return coinsCopy.sort((a, b) => {
-          // Basic null checks
-          if (!a?.coinId || !b?.coinId) {
-            return 0;
-          }
-
-          // Allow special tokens with ID 0
-          const aIsSpecial = a.symbol === "ENS" || a.symbol === "CULT" || a.symbol === "USDT";
-          const bIsSpecial = b.symbol === "ENS" || b.symbol === "CULT" || b.symbol === "USDT";
-
-          // For regular coins, skip if ID is 0 or negative
-          if (!aIsSpecial && Number(a.coinId) <= 0) return 0;
-          if (!bIsSpecial && Number(b.coinId) <= 0) return 0;
-
           // Get the created timestamps (unix seconds)
           const aCreatedAt = a.createdAt || 0;
           const bCreatedAt = b.createdAt || 0;
@@ -203,7 +179,7 @@ export const Coins = () => {
         });
       }
     },
-    [sortType, sortOrder],
+    [sortType, sortOrder, filterValidCoins],
   );
 
   /* ------------------------------------------------------------------
@@ -233,8 +209,8 @@ export const Coins = () => {
       // Filter out expired and unsold tranche sales
       // A tranche sale is considered expired and unsold if:
       // 1. It has EXPIRED status AND
-      // 2. It has no liquidity (meaning it never sold)
-      if (coin.saleStatus === "EXPIRED" && (!coin.liquidity || coin.liquidity === 0n)) {
+      // 2. It has no reserves (meaning it never sold and no liquidity was added)
+      if (coin.saleStatus === "EXPIRED" && (!coin.reserve0 || coin.reserve0 === 0n) && (!coin.reserve1 || coin.reserve1 === 0n)) {
         return false;
       }
 

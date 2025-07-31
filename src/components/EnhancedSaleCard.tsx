@@ -7,9 +7,10 @@ import { zeroAddress } from "viem";
 interface EnhancedSaleCardProps {
   sale: Sale;
   fetchOnchainData?: boolean;
+  hasHighMomentum?: boolean;
 }
 
-export const EnhancedSaleCard = memo(({ sale, fetchOnchainData = false }: EnhancedSaleCardProps) => {
+export const EnhancedSaleCard = memo(({ sale, fetchOnchainData = false, hasHighMomentum = false }: EnhancedSaleCardProps) => {
   // Only fetch onchain data if requested with error handling
   const { data: onchainData, isError } = useZCurveSaleSummary(fetchOnchainData ? sale.coinId : undefined, zeroAddress);
 
@@ -34,7 +35,7 @@ export const EnhancedSaleCard = memo(({ sale, fetchOnchainData = false }: Enhanc
     onchainData,
   });
 
-  return <SaleCard sale={enhancedSale} />;
+  return <SaleCard sale={enhancedSale} hasHighMomentum={hasHighMomentum} />;
 });
 
 EnhancedSaleCard.displayName = "EnhancedSaleCard";

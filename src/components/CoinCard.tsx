@@ -1,14 +1,11 @@
 import { type CoinData, formatImageURL, getAlternativeImageUrls } from "@/hooks/metadata/coin-utils";
 import { useCoinSale } from "@/hooks/use-coin-sale";
-import { useZCurveSale } from "@/hooks/use-zcurve-sale";
 import { cn, formatDeadline } from "@/lib/utils";
 import { Link } from "@tanstack/react-router";
 import { ArrowRightIcon, Clock } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CoinPriceChangeBadge } from "./CoinPriceChangeBadge";
-import { ZCurveSaleBadge } from "./ZCurveSaleBadge";
-import { CreatorDisplay } from "./CreatorDisplay";
-import { ZCurveMiniChart } from "./ZCurveMiniChart";
+import { ENSLogo } from "./icons/ENSLogo";
 
 interface CoinCardProps {
   coin: any;
@@ -25,9 +22,6 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
   const { data: saleData } = useCoinSale({
     coinId: coin.coinId.toString(),
   });
-
-  // Fetch zCurve sale data
-  const { data: zCurveSale } = useZCurveSale(coin.coinId.toString());
 
   // Reset states when coin changes
   useEffect(() => {
@@ -137,26 +131,6 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
           <CoinPriceChangeBadge coinId={coin.coinId.toString()} />
         </div>
 
-        {/* zCurve sale badge */}
-        <div className="px-2 pb-2">
-          <ZCurveSaleBadge coinId={coin.coinId.toString()} />
-        </div>
-
-        {/* Creator display for zCurve coins */}
-        {zCurveSale && zCurveSale.creator && (
-          <div className="px-2 pb-2">
-            <CreatorDisplay address={zCurveSale.creator} size="sm" className="text-xs justify-center" />
-          </div>
-        )}
-
-        {/* Bonding curve preview for zCurve sales */}
-        {zCurveSale && (
-          <div className="px-2 pb-2 w-full">
-            <div className="border border-border rounded-sm p-1 bg-muted/20">
-              <ZCurveMiniChart sale={zCurveSale} className="h-12 w-full" />
-            </div>
-          </div>
-        )}
 
         {/* Deadline badge for active tranche sales */}
         {deadlineInfo && (
@@ -178,24 +152,33 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
         )}
 
         <div className="p-1 w-16 h-16 sm:w-20 sm:h-20 relative">
-          {/* Base colored circle (always visible) */}
-          <div
-            className={`absolute inset-0 flex ${getColorForId(coin.coinId)} text-background justify-center items-center rounded-full`}
-          >
-            {displaySymbol?.slice(0, 3)}
-          </div>
+          {/* Special handling for ENS logo */}
+          {coin.symbol === "ENS" ? (
+            <div className="absolute inset-0 flex justify-center items-center rounded-full bg-[#0080BC] dark:bg-[#5BA0CC]">
+              <ENSLogo className="w-10 h-10 sm:w-12 sm:h-12 text-white" />
+            </div>
+          ) : (
+            <>
+              {/* Base colored circle (always visible) */}
+              <div
+                className={`absolute inset-0 flex ${getColorForId(coin.coinId)} text-background justify-center items-center rounded-full`}
+              >
+                {displaySymbol?.slice(0, 3)}
+              </div>
 
-          {/* Image (displayed on top if available and loaded successfully) */}
-          {!imageError && currentImageUrl && (
-            <img
-              src={currentImageUrl}
-              alt={`${displaySymbol} logo`}
-              className={`absolute inset-0 w-full h-full rounded-full object-cover transition-opacity duration-200 ${imageLoaded ? "opacity-100" : "opacity-0"}`}
-              style={{ zIndex: 1 }}
-              onLoad={() => setImageLoaded(true)}
-              onError={handleImageError}
-              loading="lazy"
-            />
+              {/* Image (displayed on top if available and loaded successfully) */}
+              {!imageError && currentImageUrl && (
+                <img
+                  src={currentImageUrl}
+                  alt={`${displaySymbol} logo`}
+                  className={`absolute inset-0 w-full h-full rounded-full object-cover transition-opacity duration-200 ${imageLoaded ? "opacity-100" : "opacity-0"}`}
+                  style={{ zIndex: 1 }}
+                  onLoad={() => setImageLoaded(true)}
+                  onError={handleImageError}
+                  loading="lazy"
+                />
+              )}
+            </>
           )}
         </div>
 

@@ -788,34 +788,33 @@ export function OneShotLaunchForm() {
 
           {/* Transaction Success Display */}
           {hash && (
-            <Alert className="border-2 border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950 fade-in">
-              <div className="space-y-4">
+            <Alert className="border-2 border-green-500 bg-green-50 dark:border-green-600 dark:bg-green-950/50 fade-in shadow-lg md:-mx-8 lg:-mx-16 md:px-8 lg:px-12">
+              <div className="space-y-6">
                 {/* Header with icon and title */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-start gap-4">
                   <div className="flex-shrink-0">
                     {txLoading ? (
-                      <div className="animate-spin rounded-full h-8 w-8 border-4 border-green-600 border-t-transparent" />
+                      <div className="animate-spin rounded-full h-12 w-12 border-4 border-green-600 border-t-transparent" />
                     ) : (
                       <div className="relative">
-                        <CheckCircle2 className="h-8 w-8 text-green-600 pulse-success" />
-                        <div className="absolute inset-0 h-8 w-8 bg-green-600 rounded-full animate-ping opacity-20" />
+                        <CheckCircle2 className="h-12 w-12 text-green-600 pulse-success" />
+                        <div className="absolute inset-0 h-12 w-12 bg-green-600 rounded-full animate-ping opacity-20" />
                       </div>
                     )}
                   </div>
-                  <div className="flex-1">
-                    <AlertTitle className="text-green-800 dark:text-green-200 text-lg font-bold">
+                  <div className="flex-1 space-y-2">
+                    <AlertTitle className="text-green-800 dark:text-green-200 text-2xl font-bold">
                       {txSuccess
                         ? t("create.transaction_confirmed", "Transaction Confirmed")
-                        : t("create.transaction_submitted", "Transaction Submitted")}
-                      !
+                        : t("create.transaction_submitted", "Transaction Submitted")}!
                     </AlertTitle>
-                    <p className="text-green-700 dark:text-green-300 text-sm mt-1">
+                    <p className="text-green-700 dark:text-green-300 text-base">
                       {txSuccess
                         ? t("create.launch_successful", "Your coin launch was successful!")
                         : t("create.launch_submitted", "Your oneshot launch has been submitted!")}
                     </p>
                     {txSuccess && redirectCountdown !== null && (
-                      <p className="text-green-600 dark:text-green-400 text-sm mt-2 font-medium">
+                      <p className="text-green-600 dark:text-green-400 text-base font-medium animate-pulse">
                         {t("create.redirecting_in", "Redirecting to your coin page in {{seconds}} seconds...", {
                           seconds: redirectCountdown,
                         })}
@@ -825,22 +824,24 @@ export function OneShotLaunchForm() {
                 </div>
 
                 {/* Transaction Hash */}
-                <div className="bg-green-100 dark:bg-green-900/50 rounded-lg p-3 border border-green-200 dark:border-green-800">
-                  <p className="text-xs text-green-700 dark:text-green-300 mb-1">
+                <div className="bg-white dark:bg-green-900/30 rounded-lg p-4 sm:p-6 border border-green-300 dark:border-green-700">
+                  <p className="text-sm sm:text-base font-medium text-green-700 dark:text-green-300 mb-3">
                     {t("common.transaction_hash", "Transaction Hash")}
                   </p>
-                  <p className="font-mono text-xs sm:text-sm text-green-800 dark:text-green-200 break-all">{hash}</p>
+                  <div className="bg-green-50 dark:bg-green-900/20 p-3 sm:p-4 rounded-md overflow-x-auto">
+                    <p className="font-mono text-xs sm:text-sm lg:text-base text-green-800 dark:text-green-200 break-all select-all">{hash}</p>
+                  </div>
                 </div>
 
                 {/* Action Buttons */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <a
                     href={`https://etherscan.io/tx/${hash}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors duration-200 font-medium text-sm"
+                    className="flex items-center justify-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all duration-200 font-medium text-base shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -855,18 +856,18 @@ export function OneShotLaunchForm() {
                     <Link
                       to="/c/$coinId"
                       params={{ coinId: launchId.toString() }}
-                      className="flex items-center justify-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors duration-200 font-medium text-sm"
+                      className="flex items-center justify-center gap-2 px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 font-medium text-base shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                     >
-                      <Rocket className="w-4 h-4" />
+                      <Rocket className="w-5 h-5" />
                       {t("create.view_coin_sale", "View Coin Sale")}
                     </Link>
                   )}
 
                   <Link
                     to="/explore"
-                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-background hover:bg-muted border-2 border-border text-foreground rounded-lg transition-colors duration-200 font-medium text-sm"
+                    className="flex items-center justify-center gap-2 px-6 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg transition-all duration-200 font-medium text-base shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -880,9 +881,24 @@ export function OneShotLaunchForm() {
 
                 {/* Loading indicator for transaction confirmation */}
                 {txLoading && (
-                  <div className="flex items-center justify-center gap-2 text-sm text-green-700 dark:text-green-300">
-                    <div className="w-2 h-2 bg-green-600 rounded-full animate-pulse" />
+                  <div className="flex items-center justify-center gap-3 text-base text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/30 rounded-lg p-3">
+                    <div className="w-3 h-3 bg-green-600 rounded-full animate-pulse" />
                     {t("create.waiting_for_confirmation", "Waiting for blockchain confirmation...")}
+                  </div>
+                )}
+
+                {/* Try other launches */}
+                {txSuccess && (
+                  <div className="border-t border-green-300 dark:border-green-700 pt-4">
+                    <Link
+                      to="/launch"
+                      className="inline-flex items-center gap-2 text-green-700 dark:text-green-300 hover:text-green-800 dark:hover:text-green-200 font-medium transition-colors"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      {t("create.try_other_launches", "Try other launches")}
+                    </Link>
                   </div>
                 )}
               </div>
