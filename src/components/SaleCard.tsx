@@ -143,7 +143,7 @@ const formatPrice = (sale: Sale): { price: string; perEth: string } => {
   }
 };
 
-export const SaleCard = memo(({ sale }: { sale: Sale }) => {
+export const SaleCard = memo(({ sale, hasHighMomentum = false }: { sale: Sale; hasHighMomentum?: boolean }) => {
   const { t } = useTranslation();
 
   /* bail-out if data is incomplete */
@@ -292,18 +292,28 @@ export const SaleCard = memo(({ sale }: { sale: Sale }) => {
 
             {/* status & time info */}
             <div className="text-right text-xs font-mono space-y-2">
-              <Badge
-                className={cn(
-                  "border border-border px-2 py-1",
-                  sale.status === "ACTIVE"
-                    ? "bg-green-500 text-white"
-                    : sale.status === "FINALIZED"
-                      ? "bg-amber-500 text-white"
-                      : "bg-gray-200 text-gray-600",
+              <div className="flex flex-col items-end gap-1">
+                <Badge
+                  className={cn(
+                    "border border-border px-2 py-1",
+                    sale.status === "ACTIVE"
+                      ? "bg-green-500 text-white"
+                      : sale.status === "FINALIZED"
+                        ? "bg-amber-500 text-white"
+                        : "bg-gray-200 text-gray-600",
+                  )}
+                >
+                  {sale.status}
+                </Badge>
+                {hasHighMomentum && sale.status === "ACTIVE" && (
+                  <Badge
+                    className="border border-border px-2 py-0.5 bg-blue-500 text-white text-[10px] animate-pulse"
+                    title={t("sale.high_momentum", "High trading momentum")}
+                  >
+                    🚀 HOT
+                  </Badge>
                 )}
-              >
-                {sale.status}
-              </Badge>
+              </div>
 
               <div className="text-[11px] text-muted-foreground">
                 <div>{sale.createdAt ? new Date(Number(sale.createdAt) * 1000).toLocaleDateString() : "Unknown"}</div>

@@ -162,21 +162,29 @@ export function ZCurveMiniChartInner({ sale, className = "" }: ZCurveMiniChartPr
     [isFinalized],
   );
 
-  const progressClass = useMemo(
-    () =>
-      `absolute bottom-1 right-1 text-[10px] font-mono font-bold ${
-        isFinalized
-          ? "text-amber-900 bg-gradient-to-r from-amber-100 to-yellow-100 border-amber-300"
+  const progressClass = useMemo(() => {
+    const isCharging = !isFinalized && currentStats.fundedPercentage < 0.05;
+    
+    return `absolute bottom-1 right-1 text-[10px] font-mono font-bold ${
+      isFinalized
+        ? "text-amber-900 bg-gradient-to-r from-amber-100 to-yellow-100 border-amber-300"
+        : isCharging
+          ? "text-muted-foreground/80 bg-background/90 border"
           : "text-muted-foreground bg-background/90 border"
-      } px-1.5 py-0.5 rounded-sm`,
-    [isFinalized],
-  );
+    } px-1.5 py-0.5 rounded-sm`;
+  }, [isFinalized, currentStats.fundedPercentage]);
 
   // Memoize percentage display
-  const percentageDisplay = useMemo(
-    () => (isFinalized ? "100.0%" : `${currentStats.fundedPercentage.toFixed(1)}%`),
-    [isFinalized, currentStats.fundedPercentage],
-  );
+  const percentageDisplay = useMemo(() => {
+    if (isFinalized) return "100.0%";
+    
+    // Show lightning bolt for very early stages (less than 0.05%)
+    if (currentStats.fundedPercentage < 0.05) {
+      return "⚡ Charging";
+    }
+    
+    return `${currentStats.fundedPercentage.toFixed(1)}%`;
+  }, [isFinalized, currentStats.fundedPercentage]);
 
   // Don't render if no valid data
   if (!calculationParams || chartData.length === 0) {
