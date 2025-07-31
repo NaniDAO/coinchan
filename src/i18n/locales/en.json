@@ -998,7 +998,8 @@
     "near_target": "Sale will auto-finalize when target is reached",
     "final_price": "Final Price",
     "total_raised": "Total Raised",
-    "of_total_supply": "of total supply"
+    "of_total_supply": "of total supply",
+    "charging": "Charging"
   },
   "chart": {
     "price_chart": "Price Chart",

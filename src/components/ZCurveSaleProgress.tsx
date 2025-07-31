@@ -287,7 +287,7 @@ export const ZCurveSaleProgress = memo(({ sale }: ZCurveSaleProgressProps) => {
           <span className="text-muted-foreground">{t("sale.funding_progress", "Funding Progress")}</span>
           <span className="font-medium">
             {percentages.fundedPercentage < 0.05 ? (
-              <span className="text-muted-foreground">⚡ Charging</span>
+              <span className="text-muted-foreground">⚡ {t("sale.charging", "Charging")}</span>
             ) : (
               `${percentages.fundedPercentage.toFixed(1)}%`
             )}

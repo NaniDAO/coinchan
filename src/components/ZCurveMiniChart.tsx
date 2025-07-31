@@ -4,6 +4,7 @@ import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, ReferenceLine, Dot 
 import type { ZCurveSale } from "@/hooks/use-zcurve-sale";
 import { UNIT_SCALE, unpackQuadCap, ZCURVE_STANDARD_PARAMS } from "@/lib/zCurveHelpers";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 // Calculate cost using the exact contract formula
 const calculateCost = (n: bigint, quadCap: bigint, divisor: bigint): bigint => {
@@ -51,6 +52,7 @@ const CurrentPositionDot = (props: any) => {
 };
 
 export function ZCurveMiniChartInner({ sale, className = "" }: ZCurveMiniChartProps) {
+  const { t } = useTranslation();
   const isFinalized = sale.status === "FINALIZED";
 
   // Memoize the basic calculation parameters
@@ -180,11 +182,11 @@ export function ZCurveMiniChartInner({ sale, className = "" }: ZCurveMiniChartPr
     
     // Show lightning bolt for very early stages (less than 0.05%)
     if (currentStats.fundedPercentage < 0.05) {
-      return "⚡ Charging";
+      return `⚡ ${t("sale.charging", "Charging")}`;
     }
     
     return `${currentStats.fundedPercentage.toFixed(1)}%`;
-  }, [isFinalized, currentStats.fundedPercentage]);
+  }, [isFinalized, currentStats.fundedPercentage, t]);
 
   // Don't render if no valid data
   if (!calculationParams || chartData.length === 0) {

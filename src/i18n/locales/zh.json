@@ -1161,7 +1161,8 @@
     "buys_label": "买入：",
     "sells_label": "卖出：",
     "wallets_label": "钱包数：",
-    "creator_label": "创建者："
+    "creator_label": "创建者：",
+    "charging": "充能中"
   },
   "about": {
     "title": "关于 ZAMM",

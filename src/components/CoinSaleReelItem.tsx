@@ -6,6 +6,7 @@ import { useZCurveSaleSummary } from "@/hooks/use-zcurve-sale";
 import { Sale } from "@/hooks/use-zcurve-sales";
 import { zeroAddress } from "viem";
 import { Skeleton } from "./ui/skeleton";
+import { useTranslation } from "react-i18next";
 
 interface CoinSaleReelItemProps {
   sale: Sale;
@@ -14,6 +15,7 @@ interface CoinSaleReelItemProps {
 }
 
 export const CoinSaleReelItem = memo(({ sale, index, visibleIndex }: CoinSaleReelItemProps) => {
+  const { t } = useTranslation();
   const [imageLoaded, setImageLoaded] = useState(false);
 
   // Fetch real-time on-chain data for active sales
@@ -73,7 +75,7 @@ export const CoinSaleReelItem = memo(({ sale, index, visibleIndex }: CoinSaleRee
           <div className="text-xs text-muted-foreground mt-1">
             {sale.status === "ACTIVE" ? (
               fundedPercentage < 0.05 ? (
-                "⚡ Charging"
+                `⚡ ${t("sale.charging", "Charging")}`
               ) : (
                 `${fundedPercentage.toFixed(1)}% funded`
               )
