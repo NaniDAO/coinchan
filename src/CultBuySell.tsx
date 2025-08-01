@@ -566,27 +566,41 @@ const CultSingleEthLiquidity = () => {
 
 const CultHookDescription = () => {
   const { t } = useTranslation();
+  
+  // Split the description to insert links
+  const description = t("cult.culthook_description");
+  const parts = description.split(/(\bMILADY\b|\bJustice DAO\b)/g);
+  
   return (
     <span>
-      CultHook is a demo of ZAMM hooks, which are extensions to pools that enable custom tooling, such as modular buybacks. In this case, CULT, the Milady Coin, has a 0.2% tax per trade: 0.1% goes to market buying{" "}
-      <a
-        href="https://etherscan.io/address/0x227c7DF69D3ed1ae7574A1a7685fDEd90292EB48"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-blue-500 hover:text-blue-400 underline"
-      >
-        MILADY
-      </a>{" "}
-      tokens (which you receive back, so effective tax is 0.1%), and 0.1% supports the defense of Roman Storm via{" "}
-      <a
-        href="https://wewantjusticedao.org/"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-blue-500 hover:text-blue-400 underline"
-      >
-        Justice DAO
-      </a>
-      .
+      {parts.map((part, index) => {
+        if (part === "MILADY") {
+          return (
+            <a
+              key={index}
+              href="https://etherscan.io/address/0x227c7DF69D3ed1ae7574A1a7685fDEd90292EB48"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-500 hover:text-blue-400 underline"
+            >
+              {t("cult.milady_link")}
+            </a>
+          );
+        } else if (part === "Justice DAO") {
+          return (
+            <a
+              key={index}
+              href="https://wewantjusticedao.org/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-500 hover:text-blue-400 underline"
+            >
+              {t("cult.justice_dao_link")}
+            </a>
+          );
+        }
+        return <span key={index}>{part}</span>;
+      })}
     </span>
   );
 };
