@@ -1182,7 +1182,7 @@
     "milady_floor_charge": "Milady Floor Charge",
     "eth_floor_target": "of 2.488 ETH floor",
     "view_milady_collection": "View Milady Collection ↗",
-    "treasury": "Receiver",
+    "treasury": "Treasury",
     "tax_accumulating": "0.2% tax accumulating",
     "culthook_description": "CultHook is a demo of ZAMM hooks, which are extensions to pools that enable custom tooling, such as modular buybacks. In this case, CULT, the Milady Coin, has a 0.2% tax per trade: 0.1% goes to market buying MILADY tokens (which you receive back, so effective tax is 0.1%), and 0.1% supports the defense of Roman Storm via Justice DAO.",
     "milady_link": "MILADY",

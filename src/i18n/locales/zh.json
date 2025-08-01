@@ -1292,7 +1292,7 @@
     "milady_floor_charge": "Milady 地板价充值",
     "eth_floor_target": "目标 2.488 ETH 地板价",
     "view_milady_collection": "查看 Milady 系列 ↗",
-    "treasury": "接收者",
+    "treasury": "国库",
     "tax_accumulating": "0.2% 税费累积中",
     "culthook_description": "CultHook 是 ZAMM hooks 的一个演示，它是池的扩展，可实现自定义工具，例如模块化回购。在这种情况下，CULT（Milady 币）每笔交易有 0.2% 的税费：0.1% 用于市场购买 MILADY 代币（您会收到这些代币，所以实际税费是 0.1%），0.1% 通过 Justice DAO 支持 Roman Storm 的辩护。",
     "milady_link": "MILADY",
