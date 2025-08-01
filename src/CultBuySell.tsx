@@ -564,6 +564,33 @@ const CultSingleEthLiquidity = () => {
   );
 };
 
+const CultHookDescription = () => {
+  const { t } = useTranslation();
+  return (
+    <span>
+      CultHook is a demo of ZAMM hooks, which are extensions to pools that enable custom tooling, such as modular buybacks. In this case, CULT, the Milady Coin, has a 0.2% tax per trade: 0.1% goes to market buying{" "}
+      <a
+        href="https://etherscan.io/address/0x227c7DF69D3ed1ae7574A1a7685fDEd90292EB48"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-blue-500 hover:text-blue-400 underline"
+      >
+        MILADY
+      </a>{" "}
+      tokens (which you receive back, so effective tax is 0.1%), and 0.1% supports the defense of Roman Storm via{" "}
+      <a
+        href="https://wewantjusticedao.org/"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-blue-500 hover:text-blue-400 underline"
+      >
+        Justice DAO
+      </a>
+      .
+    </span>
+  );
+};
+
 export const CultBuySell = () => {
   const { t } = useTranslation();
   const [tab, setTab] = useState<"buy" | "sell" | "add-liquidity" | "remove-liquidity" | "single-eth" | "farm">("buy");
@@ -579,8 +606,6 @@ export const CultBuySell = () => {
   const [cultPrice, setCultPrice] = useState<string>("--.--.--");
   const [cultUsdPrice, setCultUsdPrice] = useState<string>("--");
   const [priceAnimating, setPriceAnimating] = useState(false);
-  const [accumulatedTax, setAccumulatedTax] = useState<string>("0");
-  const [floorProgress, setFloorProgress] = useState<number>(0);
   const [swapSlippageBps, setSwapSlippageBps] = useState<bigint>(1000n); // 10% default slippage for buy/sell
   const [optimisticPriceUpdate, setOptimisticPriceUpdate] = useState<{
     timestamp: number;
@@ -709,29 +734,6 @@ export const CultBuySell = () => {
     swapFee: 30n, // 0.3% fee
   };
 
-  // Fetch accumulated tax from the treasury address
-  useEffect(() => {
-    const fetchAccumulatedTax = async () => {
-      if (!publicClient) return;
-      try {
-        const balance = await publicClient.getBalance({
-          address: "0xf164Af3126e544E6d5aAEcf5Ae10cd0fBD215E02",
-        });
-        const ethAmount = formatEther(balance);
-        setAccumulatedTax(ethAmount);
-
-        // Calculate progress towards 2.488 ETH floor
-        const progress = (parseFloat(ethAmount) / 2.488) * 100;
-        setFloorProgress(Math.min(progress, 100));
-      } catch (error) {
-        console.error("Failed to fetch accumulated tax:", error);
-      }
-    };
-
-    fetchAccumulatedTax();
-    const interval = setInterval(fetchAccumulatedTax, 30000); // Update every 30 seconds
-    return () => clearInterval(interval);
-  }, [publicClient]);
 
   // ETH price is now fetched via useEthUsdPrice hook
 
@@ -1386,7 +1388,7 @@ export const CultBuySell = () => {
                           </span>
                         </HoverCardTrigger>
                         <HoverCardContent className="w-80">
-                          <p className="text-sm">{t("cult.culthook_description")}</p>
+                          <p className="text-sm"><CultHookDescription /></p>
                         </HoverCardContent>
                       </HoverCard>
                     </div>
@@ -1405,69 +1407,10 @@ export const CultBuySell = () => {
               </div>
             </div>
 
-            {/* Milady Floor Charging Bar */}
+            {/* Hook description */}
             <div className="mt-4 p-4 bg-black/30 border border-red-900/20 rounded">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-red-400">{t("cult.milady_floor_charge")}</span>
-                <span className="text-xs text-muted-foreground">
-                  {floorProgress > 0 && floorProgress < 100 ? "✨ " : ""}
-                  {floorProgress.toFixed(4)}%
-                </span>
-              </div>
-
-              <div className="relative h-16 bg-muted/50 dark:bg-black/50 rounded-lg overflow-hidden border border-red-900/20">
-                {/* Background floor image */}
-                <img
-                  src="/floor.png"
-                  alt="Milady Floor"
-                  className="absolute inset-0 w-full h-full object-cover opacity-20"
-                />
-
-                {/* Progress bar */}
-                <div
-                  className="absolute left-0 top-0 h-full bg-red-600/50 transition-all duration-1000 ease-out"
-                  style={{ width: `${floorProgress}%` }}
-                >
-                  <div className="absolute inset-0 bg-red-400/10" />
-                </div>
-
-                {/* ETH amount text overlay */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="text-white font-mono text-sm font-bold drop-shadow-lg">
-                      {parseFloat(accumulatedTax).toFixed(6)} ETH
-                    </div>
-                    <div className="text-xs text-muted-foreground/90 drop-shadow">{t("cult.eth_floor_target")}</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-2 flex justify-between text-xs text-muted-foreground">
-                <a
-                  href="https://etherscan.io/address/0xf164Af3126e544E6d5aAEcf5Ae10cd0fBD215E02"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-red-400 transition-colors"
-                >
-                  {t("cult.treasury")}: 0xf164...5E02
-                </a>
-                <span className="text-red-400">{t("cult.tax_accumulating")}</span>
-              </div>
-
-              <div className="mt-2 text-center">
-                <a
-                  href="https://opensea.io/collection/milady"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-red-400 hover:text-red-300 transition-colors inline-flex items-center gap-1"
-                >
-                  {t("cult.view_milady_collection")}
-                </a>
-              </div>
-
-              {/* Subtle note about hooks */}
-              <div className="mt-3 text-xs text-muted-foreground/80 leading-relaxed">
-                <span className="opacity-70">{t("cult.culthook_description")}</span>
+              <div className="text-xs text-muted-foreground/80 leading-relaxed">
+                <span className="opacity-70"><CultHookDescription /></span>
               </div>
             </div>
           </div>
