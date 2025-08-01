@@ -35,6 +35,9 @@ export const TokenImage = memo(
 
     // Check if this is the ENS token (custom pool with ENS symbol)
     const isEnsToken = token.isCustomPool && token.symbol === "ENS";
+    
+    // Check if this is the CULT token
+    const isCultToken = token.symbol === "CULT" && (token.isCustomPool || token.id === 999999n);
 
     // Cache images in sessionStorage to prevent repeated fetches
     const cacheKey = `token-image-${token.id ?? "eth"}-url`;
@@ -225,6 +228,17 @@ export const TokenImage = memo(
             />
           </svg>
         </div>
+      );
+    }
+    
+    // If this is CULT token, use the CULT image directly
+    if (isCultToken) {
+      return (
+        <img 
+          src="/cult.jpg" 
+          alt="CULT" 
+          className="w-8 h-8 rounded-full object-cover"
+        />
       );
     }
 

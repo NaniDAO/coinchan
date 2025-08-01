@@ -14,11 +14,13 @@ import { ConnectMenu } from "../ConnectMenu";
 import { type TokenMeta, CULT_ADDRESS, CULT_POOL_ID, CULT_POOL_KEY } from "../lib/coins";
 import { CookbookAbi, CookbookAddress } from "../constants/Cookbook";
 import { CheckTheChainAbi, CheckTheChainAddress } from "../constants/CheckTheChain";
-import { getAmountOut, withSlippage, DEADLINE_SEC } from "../lib/swap";
+import { CultHookAbi, CultHookAddress } from "../constants/CultHook";
+import { getAmountOut, getAmountIn, withSlippage, DEADLINE_SEC } from "../lib/swap";
 import { nowSec, formatNumber, debounce } from "../lib/utils";
 import { handleWalletError } from "../lib/errors";
 import { useErc20Allowance } from "../hooks/use-erc20-allowance";
 import { useETHPrice } from "../hooks/use-eth-price";
+import { getCultHookTaxRate, toGross } from "../lib/cult-hook-utils";
 
 interface CultSwapTileProps {
   ethToken: TokenMeta;
@@ -27,6 +29,12 @@ interface CultSwapTileProps {
   ethBalance: bigint;
   cultBalance: bigint;
   onTransactionComplete?: () => void;
+  onPriceImpactChange?: (impact: {
+    currentPrice: number;
+    projectedPrice: number;
+    impactPercent: number;
+    action: "buy" | "sell";
+  } | null) => void;
 }
 
 export const CultSwapTile = ({
@@ -36,6 +44,7 @@ export const CultSwapTile = ({
   ethBalance,
   cultBalance,
   onTransactionComplete,
+  onPriceImpactChange,
 }: CultSwapTileProps) => {
   const { t } = useTranslation();
   const { address, isConnected } = useAccount();
@@ -61,7 +70,7 @@ export const CultSwapTile = ({
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
   const { allowance: cultAllowance } = useErc20Allowance({
     token: CULT_ADDRESS,
-    spender: CookbookAddress,
+    spender: CultHookAddress, // Changed to CultHook for proper tax handling
   });
 
   // Check for arbitrage opportunity
@@ -239,9 +248,14 @@ export const CultSwapTile = ({
     }
   }, [sellAmount, swapDirection, reserves]);
 
-  // Execute swap
+  // Notify parent of price impact changes
+  useEffect(() => {
+    onPriceImpactChange?.(priceImpact);
+  }, [priceImpact, onPriceImpactChange]);
+
+  // Execute swap through CultHook
   const executeSwap = async () => {
-    if (!address || !sellAmount || parseFloat(sellAmount) <= 0 || !reserves) {
+    if (!address || !sellAmount || parseFloat(sellAmount) <= 0 || !reserves || !publicClient) {
       setErrorMessage("Please enter a valid amount");
       return;
     }
@@ -249,6 +263,8 @@ export const CultSwapTile = ({
     setErrorMessage(null);
 
     try {
+      const deadline = nowSec() + BigInt(DEADLINE_SEC);
+      
       if (swapDirection === "buy") {
         // Buy CULT with ETH
         const ethIn = parseEther(sellAmount);
@@ -258,16 +274,20 @@ export const CultSwapTile = ({
           return;
         }
 
+        // Get tax rate and calculate gross amount for ETH
+        const cultTaxRate = await getCultHookTaxRate();
+        const effectiveSlippageBps = slippageBps + cultTaxRate;
+        
         const cultOut = getAmountOut(ethIn, reserves.reserve0, reserves.reserve1, 30n);
-        const minOut = withSlippage(cultOut, slippageBps);
-        const deadline = nowSec() + BigInt(DEADLINE_SEC);
+        const minOutWithTax = withSlippage(cultOut, effectiveSlippageBps);
+        const msgValue = toGross(ethIn, cultTaxRate);
 
         const hash = await writeContractAsync({
-          address: CookbookAddress,
-          abi: CookbookAbi,
+          address: CultHookAddress,
+          abi: CultHookAbi,
           functionName: "swapExactIn",
-          args: [CULT_POOL_KEY as any, ethIn, minOut, true, address, deadline],
-          value: ethIn,
+          args: [CULT_POOL_KEY, ethIn, minOutWithTax, true, address, deadline],
+          value: msgValue,
         });
 
         setTxHash(hash);
@@ -282,13 +302,13 @@ export const CultSwapTile = ({
           return;
         }
 
-        // Check allowance
+        // Check allowance for CultHook
         if (!cultAllowance || cultAllowance < cultIn) {
           const approveHash = await writeContractAsync({
             address: CULT_ADDRESS,
             abi: erc20Abi,
             functionName: "approve",
-            args: [CookbookAddress, maxUint256],
+            args: [CultHookAddress, maxUint256],
           });
 
           try {
@@ -299,15 +319,18 @@ export const CultSwapTile = ({
           }
         }
 
+        // Get tax rate for slippage calculation
+        const cultTaxRate = await getCultHookTaxRate();
+        const effectiveSlippageBps = slippageBps + cultTaxRate;
+        
         const ethOut = getAmountOut(cultIn, reserves.reserve1, reserves.reserve0, 30n);
-        const minOut = withSlippage(ethOut, slippageBps);
-        const deadline = nowSec() + BigInt(DEADLINE_SEC);
+        const minOutWithTax = withSlippage(ethOut, effectiveSlippageBps);
 
         const hash = await writeContractAsync({
-          address: CookbookAddress,
-          abi: CookbookAbi,
+          address: CultHookAddress,
+          abi: CultHookAbi,
           functionName: "swapExactIn",
-          args: [CULT_POOL_KEY as any, cultIn, minOut, false, address, deadline],
+          args: [CULT_POOL_KEY, cultIn, minOutWithTax, false, address, deadline],
         });
 
         setTxHash(hash);
