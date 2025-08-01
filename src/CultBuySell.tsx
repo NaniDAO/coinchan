@@ -621,12 +621,7 @@ export const CultBuySell = () => {
   const [cultUsdPrice, setCultUsdPrice] = useState<string>("--");
   const [priceAnimating, setPriceAnimating] = useState(false);
   // Slippage is now handled in CultSwapTile component
-  const [swapPriceImpact, setSwapPriceImpact] = useState<{
-    currentPrice: number;
-    projectedPrice: number;
-    impactPercent: number;
-    action: "buy" | "sell";
-  } | null>(null);
+  // Price impact is handled in CultSwapTile component
   const [optimisticPriceUpdate, setOptimisticPriceUpdate] = useState<{
     timestamp: number;
     price: number;
@@ -706,12 +701,6 @@ export const CultBuySell = () => {
         functionName: "pools",
         args: [CULT_POOL_ID],
       },
-      {
-        address: CULT_ADDRESS,
-        abi: erc20Abi,
-        functionName: "balanceOf",
-        args: [CULT_ADDRESS], // CULT's balance of itself = treasury
-      },
     ],
     allowFailure: false,
   });
@@ -719,13 +708,7 @@ export const CultBuySell = () => {
   const cultBalance = contractData?.[0];
   const lpBalance = contractData?.[1];
   const poolInfo = contractData?.[2];
-  const treasuryBalance = (contractData?.[3] as bigint) || 0n;
-
-  // CULT total supply is fixed at 100 billion tokens
-  const totalSupply = parseUnits("100000000000", 18); // 100 billion CULT
-
-  // Calculate circulating supply (total - treasury)
-  const circulatingSupply = totalSupply - treasuryBalance;
+  // Treasury balance and total supply removed - not currently used
 
   // Create token metadata objects
   const ethToken: TokenMeta = {
@@ -1125,7 +1108,7 @@ export const CultBuySell = () => {
                     // Refetch balances after swap
                     refetchCultAllowance();
                   }}
-                  onPriceImpactChange={setSwapPriceImpact}
+                  onPriceImpactChange={() => {}}
                 />
               </div>
               

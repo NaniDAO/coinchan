@@ -11,15 +11,13 @@ import { Button } from "./ui/button";
 import { LoadingLogo } from "./ui/loading-logo";
 import { ConnectMenu } from "../ConnectMenu";
 
-import { type TokenMeta, CULT_ADDRESS, CULT_POOL_ID, CULT_POOL_KEY } from "../lib/coins";
-import { CookbookAbi, CookbookAddress } from "../constants/Cookbook";
+import { type TokenMeta, CULT_ADDRESS, CULT_POOL_KEY } from "../lib/coins";
 import { CheckTheChainAbi, CheckTheChainAddress } from "../constants/CheckTheChain";
 import { CultHookAbi, CultHookAddress } from "../constants/CultHook";
-import { getAmountOut, getAmountIn, withSlippage, DEADLINE_SEC } from "../lib/swap";
+import { getAmountOut, withSlippage, DEADLINE_SEC } from "../lib/swap";
 import { nowSec, formatNumber, debounce } from "../lib/utils";
 import { handleWalletError } from "../lib/errors";
 import { useErc20Allowance } from "../hooks/use-erc20-allowance";
-import { useETHPrice } from "../hooks/use-eth-price";
 import { getCultHookTaxRate, toGross } from "../lib/cult-hook-utils";
 
 interface CultSwapTileProps {
@@ -49,7 +47,7 @@ export const CultSwapTile = ({
   const { t } = useTranslation();
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient({ chainId: mainnet.id });
-  const { data: ethPrice } = useETHPrice();
+  // ETH price removed - not used in this component
 
   const [swapDirection, setSwapDirection] = useState<"buy" | "sell">("buy");
   const [sellAmount, setSellAmount] = useState("");
