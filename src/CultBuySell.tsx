@@ -12,7 +12,7 @@ import {
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
-import { ArrowUpDown, Plus, Minus, Zap, Sparkles } from "lucide-react";
+import { ArrowUpDown, Plus, Minus, Zap, Sparkles, TrendingUp, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -36,7 +36,7 @@ import { CultHookAbi, CultHookAddress } from "@/constants/CultHook";
 import { type TokenMeta, CULT_ADDRESS, CULT_POOL_KEY, CULT_POOL_ID } from "@/lib/coins";
 import { getCultHookTaxRate, toGross } from "@/lib/cult-hook-utils";
 import { CheckTheChainAbi, CheckTheChainAddress } from "@/constants/CheckTheChain";
-import { DEADLINE_SEC, withSlippage, getAmountIn } from "@/lib/swap";
+import { DEADLINE_SEC, withSlippage, getAmountIn, getAmountOut } from "@/lib/swap";
 import type { Address, Hex, PublicClient } from "viem";
 import { nowSec, cn, formatNumber } from "./lib/utils";
 import { useReserves } from "./hooks/use-reserves";
@@ -629,6 +629,13 @@ export const CultBuySell = () => {
     action: "buy" | "sell";
     amount: string;
   } | null>(null);
+  const [arbitrageInfo, setArbitrageInfo] = useState<{
+    type: "swap" | "zap"; // Which tab to highlight
+    cultFromUniV3: number;
+    cultFromCookbook: number;
+    percentGain: number;
+    testAmountETH: string; // Amount of ETH used for calculation
+  } | null>(null);
 
   // Price impact is now calculated in CultSwapTile component
 
@@ -783,7 +790,91 @@ export const CultBuySell = () => {
     return () => clearInterval(interval);
   }, [reserves, ethUsdPrice]);
 
-  // This is now handled in the CultSwapTile component
+  // Check for arbitrage opportunities between Uniswap V3 and Cookbook
+  useEffect(() => {
+    if (!reserves || !publicClient || reserves.reserve0 === 0n || reserves.reserve1 === 0n) {
+      setArbitrageInfo(null);
+      return;
+    }
+
+    let cancelled = false;
+    
+    const checkArbitrage = async () => {
+      try {
+        // Test with 0.1 ETH
+        const testAmount = parseEther("0.1");
+        const testAmountString = "0.1";
+        const halfTestAmount = testAmount / 2n;
+
+        // 1. Calculate CULT from direct Cookbook swap
+        const cultFromCookbook = getAmountOut(testAmount, reserves.reserve0, reserves.reserve1, 30n);
+
+        // 2. Calculate CULT from Uniswap V3 price oracle (CheckTheChain)
+        const cultPriceData = await publicClient.readContract({
+          address: CheckTheChainAddress,
+          abi: CheckTheChainAbi,
+          functionName: "checkPriceInETH",
+          args: ["CULT"],
+        });
+
+        if (!cultPriceData || !cultPriceData[0]) {
+          return;
+        }
+
+        const cultPriceInETH = cultPriceData[0] as bigint;
+        if (cultPriceInETH === 0n) return;
+
+        // Calculate how much CULT we'd get from Uniswap V3 for half the ETH
+        const cultFromUniV3Half = (halfTestAmount * 10n ** 18n) / cultPriceInETH;
+        // Double it to compare with full amount swap
+        const cultFromUniV3 = cultFromUniV3Half * 2n;
+
+        // Compare the two
+        if (cultFromCookbook > cultFromUniV3) {
+          // Cookbook gives more CULT - highlight SWAP tab
+          const extraCULT = cultFromCookbook - cultFromUniV3;
+          const percentGain = Number((extraCULT * 10000n) / cultFromUniV3) / 100;
+
+          if (percentGain > 0.5 && !cancelled) {
+            setArbitrageInfo({
+              type: "swap",
+              cultFromUniV3: Number(formatUnits(cultFromUniV3, 18)),
+              cultFromCookbook: Number(formatUnits(cultFromCookbook, 18)),
+              percentGain,
+              testAmountETH: testAmountString,
+            });
+          }
+        } else if (cultFromUniV3 > cultFromCookbook * 102n / 100n) { // Add 2% buffer for fees
+          // Uniswap gives more CULT - highlight ZAP tab
+          const extraCULT = cultFromUniV3 - cultFromCookbook;
+          const percentGain = Number((extraCULT * 10000n) / cultFromCookbook) / 100;
+
+          if (percentGain > 0.5 && !cancelled) {
+            setArbitrageInfo({
+              type: "zap",
+              cultFromUniV3: Number(formatUnits(cultFromUniV3, 18)),
+              cultFromCookbook: Number(formatUnits(cultFromCookbook, 18)),
+              percentGain,
+              testAmountETH: testAmountString,
+            });
+          }
+        } else if (!cancelled) {
+          // No significant difference
+          setArbitrageInfo(null);
+        }
+      } catch (error) {
+        console.error("Failed to check CULT arbitrage:", error);
+      }
+    };
+
+    checkArbitrage();
+    const interval = setInterval(checkArbitrage, 30000); // Check every 30 seconds
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [reserves, publicClient]);
 
   // Calculate optimal liquidity amounts based on pool ratio
   const syncLiquidityAmounts = useCallback(
@@ -1046,15 +1137,70 @@ export const CultBuySell = () => {
             }
             className="relative z-10"
           >
+            {/* Arbitrage notification */}
+            {arbitrageInfo && tab !== arbitrageInfo.type && tab !== "single-eth" && (
+              <div className="mb-2 flex justify-center sm:justify-end">
+                <button
+                  onClick={() => setTab(arbitrageInfo.type === "zap" ? "single-eth" : "swap")}
+                  className="group relative flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full hover:bg-green-200 dark:hover:bg-green-900/50 transition-all animate-pulse hover:animate-none"
+                >
+                  <TrendingUp className="h-3 w-3" />
+                  {arbitrageInfo.type === "swap" ? (
+                    <>
+                      <span className="hidden sm:inline text-muted-foreground">{arbitrageInfo.testAmountETH} ETH</span>
+                      <span className="sm:hidden text-muted-foreground text-[10px]">
+                        {arbitrageInfo.testAmountETH.slice(0, 4)} ETH
+                      </span>
+                      <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                      <span className="flex items-center gap-0.5 sm:gap-1 font-medium">
+                        <span className="hidden sm:inline">{formatNumber(arbitrageInfo.cultFromCookbook, 0)}</span>
+                        <span className="sm:hidden text-[10px]">{formatNumber(arbitrageInfo.cultFromCookbook, 0)}</span>
+                        <span>CULT</span>
+                      </span>
+                      <span className="ml-0.5 sm:ml-1 font-semibold text-green-600 dark:text-green-400 text-[10px] sm:text-xs">
+                        +{arbitrageInfo.percentGain.toFixed(1)}%
+                      </span>
+                    </>
+                  ) : (
+                    <div className="flex items-center gap-1 sm:gap-2">
+                      <Sparkles className="h-3 w-3 flex-shrink-0" />
+                      <span className="flex items-center gap-0.5 sm:gap-1">
+                        <span className="font-medium flex items-center gap-0.5">
+                          <span className="hidden sm:inline">{formatNumber(arbitrageInfo.cultFromUniV3, 0)}</span>
+                          <span className="sm:hidden text-[10px]">{formatNumber(arbitrageInfo.cultFromUniV3, 0)}</span>
+                          <span>CULT</span>
+                        </span>
+                        <span className="font-semibold text-green-600 dark:text-green-400 text-[10px] sm:text-xs">
+                          +{arbitrageInfo.percentGain.toFixed(1)}%
+                        </span>
+                      </span>
+                      <ArrowRight className="h-3 w-3 flex-shrink-0" />
+                      <span className="flex items-center gap-0.5 sm:gap-1">
+                        <Zap className="h-3 w-3 flex-shrink-0" />
+                        <span className="font-medium text-[10px] sm:text-xs">{t("common.single_eth")}</span>
+                      </span>
+                    </div>
+                  )}
+                </button>
+              </div>
+            )}
             <TabsList className="flex flex-wrap sm:grid sm:grid-cols-5 gap-1 bg-red-900/5 dark:bg-red-900/10 p-1 h-auto w-full">
               <TabsTrigger
                 value="swap"
-                className="relative flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-red-900/20 dark:data-[state=active]:bg-red-900/30 data-[state=active]:text-red-400 dark:data-[state=active]:text-white transition-all duration-200"
+                className={`relative flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-red-900/20 dark:data-[state=active]:bg-red-900/30 data-[state=active]:text-red-400 dark:data-[state=active]:text-white transition-all duration-200 ${
+                  arbitrageInfo?.type === "swap" && tab !== "swap" ? "ring-1 ring-green-400/50" : ""
+                }`}
               >
                 <div className="flex items-center gap-1.5">
                   <ArrowUpDown className="h-3 w-3" />
                   <span>{t("common.swap")}</span>
                 </div>
+                {arbitrageInfo?.type === "swap" && tab !== "swap" && (
+                  <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  </span>
+                )}
               </TabsTrigger>
               <TabsTrigger
                 value="add-liquidity"
@@ -1078,12 +1224,20 @@ export const CultBuySell = () => {
               </TabsTrigger>
               <TabsTrigger
                 value="single-eth"
-                className="flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-red-900/20 dark:data-[state=active]:bg-red-900/30 data-[state=active]:text-red-400 dark:data-[state=active]:text-white transition-all duration-200"
+                className={`flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-red-900/20 dark:data-[state=active]:bg-red-900/30 data-[state=active]:text-red-400 dark:data-[state=active]:text-white transition-all duration-200 ${
+                  arbitrageInfo?.type === "zap" && tab !== "single-eth" ? "ring-1 ring-green-400/50" : ""
+                }`}
               >
                 <div className="flex items-center gap-1.5">
                   <Zap className="h-3 w-3" />
                   <span>{t("common.single_eth")}</span>
                 </div>
+                {arbitrageInfo?.type === "zap" && tab !== "single-eth" && (
+                  <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  </span>
+                )}
               </TabsTrigger>
               <TabsTrigger
                 value="farm"
@@ -1109,6 +1263,7 @@ export const CultBuySell = () => {
                     refetchCultAllowance();
                   }}
                   onPriceImpactChange={() => {}}
+                  arbitrageInfo={arbitrageInfo?.type === "swap" ? arbitrageInfo : null}
                 />
               </div>
               

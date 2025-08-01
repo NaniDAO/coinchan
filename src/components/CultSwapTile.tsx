@@ -12,7 +12,6 @@ import { LoadingLogo } from "./ui/loading-logo";
 import { ConnectMenu } from "../ConnectMenu";
 
 import { type TokenMeta, CULT_ADDRESS, CULT_POOL_KEY } from "../lib/coins";
-import { CheckTheChainAbi, CheckTheChainAddress } from "../constants/CheckTheChain";
 import { CultHookAbi, CultHookAddress } from "../constants/CultHook";
 import { getAmountOut, withSlippage, DEADLINE_SEC } from "../lib/swap";
 import { nowSec, formatNumber, debounce } from "../lib/utils";
@@ -33,6 +32,13 @@ interface CultSwapTileProps {
     impactPercent: number;
     action: "buy" | "sell";
   } | null) => void;
+  arbitrageInfo?: {
+    type: "swap" | "zap";
+    cultFromUniV3: number;
+    cultFromCookbook: number;
+    percentGain: number;
+    testAmountETH: string;
+  } | null;
 }
 
 export const CultSwapTile = ({
@@ -43,6 +49,7 @@ export const CultSwapTile = ({
   cultBalance,
   onTransactionComplete,
   onPriceImpactChange,
+  arbitrageInfo,
 }: CultSwapTileProps) => {
   const { t } = useTranslation();
   const { address, isConnected } = useAccount();
@@ -57,13 +64,6 @@ export const CultSwapTile = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [slippageBps, setSlippageBps] = useState<bigint>(1000n); // Default 10%
 
-  const [arbitrageInfo, setArbitrageInfo] = useState<{
-    ensFromUniV3: number;
-    cultFromCookbook: number;
-    percentGain: number;
-    testAmountETH: string;
-  } | null>(null);
-
   const { writeContractAsync, isPending } = useWriteContract();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
   const { allowance: cultAllowance } = useErc20Allowance({
@@ -71,74 +71,7 @@ export const CultSwapTile = ({
     spender: CultHookAddress, // Changed to CultHook for proper tax handling
   });
 
-  // Check for arbitrage opportunity
-  useEffect(() => {
-    let cancelled = false;
-
-    const checkArbitrage = async () => {
-      if (!publicClient || !reserves || !reserves.reserve0 || !reserves.reserve1) return;
-
-      try {
-        // Try to get CULT price from Uniswap V3 oracle
-        let uniV3PriceInETH: bigint | null = null;
-        try {
-          const cultPriceData = await publicClient?.readContract({
-            address: CheckTheChainAddress,
-            abi: CheckTheChainAbi,
-            functionName: "checkPriceInETH",
-            args: ["CULT"],
-          });
-          if (cultPriceData) {
-            uniV3PriceInETH = cultPriceData[0] as bigint;
-          }
-        } catch (error) {
-          // CULT might not be available in the oracle yet
-          console.log("CULT price not available from oracle");
-        }
-
-        if (!uniV3PriceInETH || uniV3PriceInETH === 0n) {
-          // If no UniV3 price, we can't calculate arbitrage
-          setArbitrageInfo(null);
-          return;
-        }
-
-        // Use sensible amount for arbitrage display
-        const onePercentBalance = isConnected && ethBalance > 0n ? ethBalance / 100n : 0n;
-        const minAmount = parseEther("0.01");
-        const testAmount = onePercentBalance > minAmount ? onePercentBalance : minAmount;
-        const testAmountString = formatEther(testAmount);
-
-        // Calculate CULT from both sources
-        const cultFromUniV3 = (testAmount * 10n ** 18n) / uniV3PriceInETH;
-        const cultFromCookbook = getAmountOut(testAmount, reserves.reserve0, reserves.reserve1, 30n);
-
-        // Check if Cookbook gives more CULT (arbitrage opportunity)
-        if (cultFromCookbook > cultFromUniV3 && cultFromUniV3 > 0n) {
-          const extraCULT = cultFromCookbook - cultFromUniV3;
-          const percentGain = Number((extraCULT * 10000n) / cultFromUniV3) / 100;
-
-          if (percentGain > 0.5 && !cancelled) {
-            setArbitrageInfo({
-              ensFromUniV3: Number(formatUnits(cultFromUniV3, 18)),
-              cultFromCookbook: Number(formatUnits(cultFromCookbook, 18)),
-              percentGain,
-              testAmountETH: testAmountString,
-            });
-          }
-        } else if (!cancelled) {
-          setArbitrageInfo(null);
-        }
-      } catch (error) {
-        console.error("Failed to check arbitrage:", error);
-      }
-    };
-
-    checkArbitrage();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [publicClient, reserves, ethBalance, isConnected]);
+  // Arbitrage is now calculated in the parent component
 
   // Calculate output based on input
   const calculateOutput = useCallback(
@@ -366,15 +299,15 @@ export const CultSwapTile = ({
 
   return (
     <div className="space-y-4">
-      {/* Arbitrage notification */}
-      {arbitrageInfo && (
+      {/* Arbitrage notification for swap */}
+      {arbitrageInfo && arbitrageInfo.type === "swap" && (
         <div className="flex justify-center">
           <div className="group relative flex items-center gap-2 px-3 py-1.5 text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full animate-pulse hover:animate-none">
             <TrendingUp className="h-3 w-3" />
             <span className="text-muted-foreground">{arbitrageInfo.testAmountETH} ETH</span>
             <ArrowRight className="h-3 w-3 text-muted-foreground" />
             <span className="font-medium">
-              {formatNumber(arbitrageInfo.cultFromCookbook, 2)} CULT
+              {formatNumber(arbitrageInfo.cultFromCookbook, 0)} CULT
             </span>
             <span className="ml-1 font-semibold text-green-600 dark:text-green-400">
               +{arbitrageInfo.percentGain.toFixed(1)}%
