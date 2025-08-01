@@ -29,6 +29,7 @@ interface PriceChartProps {
     impactPercent: number;
     action: "buy" | "sell";
   } | null;
+  defaultTimeRange?: "24h" | "1w" | "1m" | "all";
 }
 
 const PoolPriceChart: React.FC<PriceChartProps> = ({
@@ -36,25 +37,55 @@ const PoolPriceChart: React.FC<PriceChartProps> = ({
   ticker,
   ethUsdPrice,
   priceImpact,
+  defaultTimeRange = "24h",
 }) => {
   const { t } = useTranslation();
   const [showUsd, setShowUsd] = useState(false);
   const [chartError, setChartError] = useState<string | null>(null);
 
   // Internal state for time controls
-  // Initialize with 24h data
+  // Initialize based on defaultTimeRange prop
   const now = Math.floor(Date.now() / 1000);
+  const getInitialTimeRange = () => {
+    switch (defaultTimeRange) {
+      case "1w":
+        return {
+          startTs: now - 7 * 24 * 60 * 60,
+          endTs: now,
+          desiredPoints: 168,
+          activeButton: "1w",
+        };
+      case "1m":
+        return {
+          startTs: now - 30 * 24 * 60 * 60,
+          endTs: now,
+          desiredPoints: 300,
+          activeButton: "1m",
+        };
+      case "all":
+        return {
+          startTs: undefined,
+          endTs: undefined,
+          desiredPoints: 500,
+          activeButton: "all",
+        };
+      case "24h":
+      default:
+        return {
+          startTs: now - 24 * 60 * 60,
+          endTs: now,
+          desiredPoints: 24,
+          activeButton: "24h",
+        };
+    }
+  };
+  
   const [timeRange, setTimeRange] = useState<{
     startTs: number | undefined;
     endTs: number | undefined;
     desiredPoints: number;
     activeButton: string;
-  }>({
-    startTs: now - 24 * 60 * 60, // 24 hours ago
-    endTs: now,
-    desiredPoints: 24, // Default to 24 hour points
-    activeButton: "24h", // Default to 24 hour view
-  });
+  }>(getInitialTimeRange());
 
   const { data, isLoading, error } = useQuery({
     queryKey: [
