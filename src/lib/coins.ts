@@ -10,7 +10,7 @@ import {
   zeroAddress,
 } from "viem";
 
-export type CoinSource = "ZAMM" | "COOKBOOK";
+export type CoinSource = "ZAMM" | "COOKBOOK" | "ERC20";
 
 export interface TokenMeta {
   id: bigint | null; // null = ETH pseudo-token
@@ -69,7 +69,8 @@ const USDT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2000 2000
 </svg>`;
 
 // USDT address on mainnet (official Tether USD address)
-export const USDT_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7" as `0x${string}`;
+export const USDT_ADDRESS =
+  "0xdAC17F958D2ee523a2206206994597C13D831ec7" as `0x${string}`;
 
 // Create USDT-ETH pool with 30 bps fee
 export const USDT_POOL_KEY: {
@@ -87,13 +88,18 @@ export const USDT_POOL_KEY: {
 };
 
 // CULT token address and constants for CultHook integration
-export const CULT_ADDRESS = "0x0000000000c5dc95539589fbD24BE07c6C14eCa4" as `0x${string}`;
-export const CULT_HOOK_ADDRESS = "0x0000000000C625206C76dFd00bfD8d84A5Bfc948" as `0x${string}`;
-export const CULT_POOL_ID = 96057217671165627097175198549959274650003499289597433381056646234071826883364n;
-export const CULT_FEE_OR_HOOK = 57896044618658097711785492504343953926636021160616296542400437774503196477768n;
+export const CULT_ADDRESS =
+  "0x0000000000c5dc95539589fbD24BE07c6C14eCa4" as `0x${string}`;
+export const CULT_HOOK_ADDRESS =
+  "0x0000000000C625206C76dFd00bfD8d84A5Bfc948" as `0x${string}`;
+export const CULT_POOL_ID =
+  96057217671165627097175198549959274650003499289597433381056646234071826883364n;
+export const CULT_FEE_OR_HOOK =
+  57896044618658097711785492504343953926636021160616296542400437774503196477768n;
 
 // ENS token address
-export const ENS_ADDRESS = "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72" as `0x${string}`;
+export const ENS_ADDRESS =
+  "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72" as `0x${string}`;
 
 // CULT pool configuration for hooked router
 export const CULT_POOL_KEY: {
@@ -111,11 +117,19 @@ export const CULT_POOL_KEY: {
 };
 
 // Function to compute a custom pool ID with specific tokens and fee
-const computeCustomPoolId = (id0: bigint, id1: bigint, token0: `0x${string}`, token1: `0x${string}`, swapFee: bigint) =>
+const computeCustomPoolId = (
+  id0: bigint,
+  id1: bigint,
+  token0: `0x${string}`,
+  token1: `0x${string}`,
+  swapFee: bigint,
+) =>
   BigInt(
     keccak256(
       encodeAbiParameters(
-        parseAbiParameters("uint256 id0, uint256 id1, address token0, address token1, uint96 swapFee"),
+        parseAbiParameters(
+          "uint256 id0, uint256 id1, address token0, address token1, uint96 swapFee",
+        ),
         [id0, id1, token0, token1, swapFee],
       ),
     ),
@@ -184,7 +198,8 @@ export const ENS_POOL_KEY: {
 };
 
 // ENS pool ID (hardcoded for performance and stability)
-export const ENS_POOL_ID = 107895081322979037665933919470752294545033231002190305779392467929211865476585n;
+export const ENS_POOL_ID =
+  107895081322979037665933919470752294545033231002190305779392467929211865476585n;
 
 // Define ENS token
 export const ENS_TOKEN: TokenMeta = {
@@ -206,7 +221,8 @@ export const ENS_TOKEN: TokenMeta = {
   token1: ENS_ADDRESS, // Add token1 for identification
 };
 
-const INIT_CODE_HASH: Hex = "0x6594461b4ce3b23f6cbdcdcf50388d5f444bf59a82f6e868dfd5ef2bfa13f6d4"; // the 0x6594…f6d4 init code hash
+const INIT_CODE_HASH: Hex =
+  "0x6594461b4ce3b23f6cbdcdcf50388d5f444bf59a82f6e868dfd5ef2bfa13f6d4"; // the 0x6594…f6d4 init code hash
 
 /**
  * Predicts the same uint256 ID as your Solidity _predictId function.
@@ -222,7 +238,9 @@ export function computeCoinId(
   address: Address;
 } {
   // salt = keccak256(abi.encodePacked(name, COINS, symbol))
-  const salt = keccak256(encodePacked(["string", "address", "string"], [name, CoinsAddress, symbol]));
+  const salt = keccak256(
+    encodePacked(["string", "address", "string"], [name, CoinsAddress, symbol]),
+  );
 
   // data = abi.encodePacked(0xff, COINS, salt, INIT_CODE_HASH)
   const packed = encodePacked(
