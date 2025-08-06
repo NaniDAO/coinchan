@@ -39,7 +39,6 @@ export const TokenImage = memo(({ token }: { token: TokenMeta }) => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
   const { bg, text } = getColorForSymbol(token.symbol);
-  const tokenKey = getTokenKey(token);
 
   // Hardcoded images
   if (token.id === null && token.symbol === "ETH") {
