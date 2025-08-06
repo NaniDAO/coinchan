@@ -83,8 +83,6 @@ async function loadErc20Tokens(): Promise<TokenMeta[]> {
 
   const tokens = data.tokens;
 
-  console.log("data", data);
-
   return tokens.map((token: any) => {
     return {
       id: 0n,
@@ -142,7 +140,6 @@ async function fetchOtherCoins(
   }
 
   const erc20metas = await loadErc20Tokens();
-  console.log("erc20metas", erc20metas);
   for (const meta of erc20metas) {
     metas.push(meta);
   }
