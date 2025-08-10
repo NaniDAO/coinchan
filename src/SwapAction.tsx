@@ -81,16 +81,34 @@ function toZRouterToken(token?: TokenMeta) {
   // Native ETH
   if (token.id === null) return { address: ADDR.ETH } as const;
 
-  // Special ERC20s by symbol
-  if (token.symbol === "USDT") return { address: ADDR.USDT } as const;
-  if (token.symbol === "CULT") return { address: ADDR.CULT } as const;
-  if (token.symbol === "ENS") return { address: ADDR.ENS } as const;
+  // // Special ERC20s by symbol
+  // if (token.symbol === "USDT") return { address: ADDR.USDT } as const;
+  // if (token.symbol === "CULT") return { address: ADDR.CULT } as const;
+  // if (token.symbol === "ENS") return { address: ADDR.ENS } as const;
 
-  // ERC6909 routing via Cookbook / Coins depending on id range (matches legacy logic)
-  if (token.id < 1000000n) {
-    return { address: CookbookAddress as Address, id: token.id } as const;
+  if (token.source === "ERC20") {
+    if (!token.token1)
+      throw new Error(`Missing token1 for ERC20 token ${token.id}`);
+    return {
+      address: token.token1,
+    };
   }
-  return { address: CoinsAddress as Address, id: token.id } as const;
+
+  if (token.source === "ZAMM") {
+    return {
+      address: CoinsAddress as Address,
+      id: token.id,
+    };
+  }
+
+  if (token.source === "COOKBOOK") {
+    return {
+      address: CookbookAddress as Address,
+      id: token.id,
+    };
+  }
+
+  throw new Error(`Unsupported token source: ${token.source}`);
 }
 
 export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
@@ -264,8 +282,14 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
             amount: amountIn,
             side: "EXACT_IN",
           });
-          console.log("Quote", res);
-          const out = formatUnits(res.amount, buyToken.decimals || 18);
+          console.log("Quote", {
+            tokenIn,
+            tokenOut,
+            amountIn: amountIn,
+            side: "EXACT_IN",
+            result: res,
+          });
+          const out = formatUnits(res.amountOut, buyToken.decimals || 18);
           return { ok: true as const, amountOut: out, amountIn: params.raw };
         } else {
           const amountOutWanted = parseUnits(
@@ -278,7 +302,14 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
             amount: amountOutWanted,
             side: "EXACT_OUT",
           });
-          const inp = formatUnits(res.amount, sellToken.decimals || 18);
+          console.log("Quote", {
+            tokenIn,
+            tokenOut,
+            amountOutWanted,
+            side: "EXACT_OUT",
+            result: res,
+          });
+          const inp = formatUnits(res.amountIn, sellToken.decimals || 18);
           return { ok: true as const, amountOut: params.raw, amountIn: inp };
         }
       } catch (e) {
@@ -711,10 +742,11 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
 
   const handleBuyTokenSelect = useCallback(
     (token: TokenMeta) => {
+      console.log("handleBuyTokenSelect:", token);
       if (txError) setTxError(null);
       setSellAmt("");
       setBuyAmt("");
-      setLastEditedField("sell");
+      setLastEditedField("buy");
       setBuyToken(token);
     },
     [txError],
@@ -722,6 +754,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
 
   const handleSellTokenSelect = useCallback(
     (token: TokenMeta) => {
+      console.log("handleSellTokenSelect:", token);
       if (txError) setTxError(null);
       setSellAmt("");
       setBuyAmt("");

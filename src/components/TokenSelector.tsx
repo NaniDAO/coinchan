@@ -25,6 +25,7 @@ export const TokenSelector = memo(
 
     // Handle selection change
     const handleSelect = (token: TokenMeta) => {
+      console.log("handleSelect:", token);
       onSelect(token);
       setIsOpen(false);
     };
@@ -92,6 +93,8 @@ export const TokenSelector = memo(
 
     // Don't allow dropdown if only one token or no tokens
     const isDropdownDisabled = tokens.length <= 1;
+
+    console.log("TokenSelected:", selectedToken);
 
     return (
       <div className="relative">
