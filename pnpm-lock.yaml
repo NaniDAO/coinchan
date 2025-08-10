@@ -131,6 +131,9 @@ importers:
       zod:
         specifier: 3.25.63
         version: 3.25.63
+      zrouter-sdk:
+        specifier: ^0.0.3
+        version: 0.0.3(viem@2.29.0(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.25.63))
     devDependencies:
       '@biomejs/biome':
         specifier: ^1.8.0
@@ -3587,6 +3590,12 @@ packages:
 
   zod@3.25.63:
     resolution: {integrity: sha512-3ttCkqhtpncYXfP0f6dsyabbYV/nEUW+Xlu89jiXbTBifUfjaSqXOG6JnQPLtqt87n7KAmnMqcjay6c0Wq0Vbw==}
+
+  zrouter-sdk@0.0.3:
+    resolution: {integrity: sha512-an7OU7SfDCdpF8gzZu//sZ5JFDVhuEyo80y+Cl5/DYZVJg0lEeNuzzOOXa3rGiURW6JvBeIXQmQNQgE3ZLGpsQ==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      viem: '>=2.0.0'
 
   zustand@5.0.0:
     resolution: {integrity: sha512-LE+VcmbartOPM+auOjCCLQOsQ05zUTp8RkgwRzefUk+2jISdMMFnxvyTjA4YNWr5ZGXYbVsEMZosttuxUBkojQ==}
@@ -7749,6 +7758,10 @@ snapshots:
   zod@3.22.4: {}
 
   zod@3.25.63: {}
+
+  zrouter-sdk@0.0.3(viem@2.29.0(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.25.63)):
+    dependencies:
+      viem: 2.29.0(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.25.63)
 
   zustand@5.0.0(@types/react@18.3.20)(react@18.3.1)(use-sync-external-store@1.4.0(react@18.3.1)):
     optionalDependencies:
