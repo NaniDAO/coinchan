@@ -58,6 +58,8 @@ import {
   erc20Abi,
   zRouterAbi,
 } from "zrouter-sdk";
+import { SwapModeTab } from "./SwapModeTab";
+import { CustomRecipientInput } from "./CustomRecipientInput";
 
 interface SwapActionProps {
   lockedTokens?: {
@@ -103,7 +105,6 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
   const [sellAmt, setSellAmt] = useState("");
   const [buyAmt, setBuyAmt] = useState("");
   const [customRecipient, setCustomRecipient] = useState<string>("");
-  const [showRecipientInput, setShowRecipientInput] = useState(false);
 
   // Use shared token selection context, but override with locked tokens if provided
   const tokenSelectionContext = useTokenSelection();
@@ -206,7 +207,6 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
     setSellAmt("");
     setBuyAmt("");
     setCustomRecipient("");
-    setShowRecipientInput(false);
 
     // Keep ENS higher slippage default for safety
     if (sellToken?.symbol === "ENS" || buyToken?.symbol === "ENS") {
@@ -236,7 +236,6 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
     setTxHash(undefined);
     setTxError(null);
     setCustomRecipient("");
-    setShowRecipientInput(false);
     setLastEditedField("sell");
   }, [swapMode]);
 
@@ -290,22 +289,6 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
     [publicClient, sellToken, buyToken],
   );
 
-  const syncFromBuy = async (val: string) => {
-    setBuyAmt(val);
-    setLastEditedField("buy");
-    if (swapMode === "limit") return; // instant-only syncing
-    const q = await doQuote({ side: "EXACT_OUT", raw: val || "0" });
-    if (q.ok) setSellAmt(q.amountIn);
-  };
-
-  const syncFromSell = async (val: string) => {
-    setSellAmt(val);
-    setLastEditedField("sell");
-    if (swapMode === "limit") return; // instant-only syncing
-    const q = await doQuote({ side: "EXACT_IN", raw: val || "0" });
-    if (q.ok) setBuyAmt(q.amountOut);
-  };
-
   // Basic, lightweight price impact estimation using current quote deltas
   useEffect(() => {
     let canceled = false;
@@ -342,6 +325,22 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
       clearTimeout(id);
     };
   }, [sellAmt, swapMode, isSellETH, doQuote]);
+
+  const syncFromBuy = async (val: string) => {
+    setBuyAmt(val);
+    setLastEditedField("buy");
+    if (swapMode === "limit") return; // instant-only syncing
+    const q = await doQuote({ side: "EXACT_OUT", raw: val || "0" });
+    if (q.ok) setSellAmt(q.amountIn);
+  };
+
+  const syncFromSell = async (val: string) => {
+    setSellAmt(val);
+    setLastEditedField("sell");
+    if (swapMode === "limit") return; // instant-only syncing
+    const q = await doQuote({ side: "EXACT_IN", raw: val || "0" });
+    if (q.ok) setBuyAmt(q.amountOut);
+  };
 
   const executeSwap = async () => {
     try {
@@ -735,31 +734,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
   return (
     <div className="relative w-full flex flex-col">
       {/* Terminal Mode Toggle */}
-      <div className="flex items-center justify-center mb-4">
-        <div className="inline-flex gap-1 border-2 border-border bg-muted p-0.5">
-          <button
-            onClick={() => setSwapMode("instant")}
-            className={`px-3 py-1.5 text-xs font-bold uppercase cursor-pointer transition-all duration-100 font-body hover:opacity-80 focus:ring-2 focus:ring-primary/50 focus:outline-none ${
-              swapMode === "instant"
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground"
-            }`}
-          >
-            {t("swap.instant")}
-          </button>
-          <button
-            onClick={() => setSwapMode("limit")}
-            className={`px-3 py-1.5 text-xs font-bold uppercase cursor-pointer transition-all duration-100 font-body hover:opacity-80 focus:ring-2 focus:ring-primary/50 focus:outline-none ${
-              swapMode === "limit"
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground"
-            }`}
-          >
-            {t("swap.limit_order")}
-          </button>
-        </div>
-      </div>
-
+      <SwapModeTab swapMode={swapMode} setSwapMode={setSwapMode} />
       {swapMode === "instant" && (
         <SwapController
           onAmountChange={(sellAmount) => {
@@ -835,61 +810,11 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
       </div>
 
       {/* Custom Recipient Input */}
-      <div className="mt-3">
-        <button
-          onClick={() => setShowRecipientInput(!showRecipientInput)}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-        >
-          <span>{showRecipientInput ? "▼" : "▶"}</span>
-          {t("swap.custom_recipient") || "Custom recipient"}
-        </button>
-
-        {showRecipientInput && (
-          <div className="mt-2 space-y-2">
-            <input
-              type="text"
-              placeholder={`${t("swap.recipient_address") || "Recipient address or ENS name"} (${t("common.optional") || "optional"})`}
-              value={customRecipient}
-              onChange={(e) => setCustomRecipient(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-background border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/50"
-            />
-            {customRecipient && (
-              <div className="space-y-1">
-                {ensResolution.isLoading && (
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <LoadingLogo size="sm" className="scale-50" />
-                    {t("swap.resolving_ens") || "Resolving ENS name..."}
-                  </p>
-                )}
-                {ensResolution.error && (
-                  <p className="text-xs text-destructive">
-                    {ensResolution.error}
-                  </p>
-                )}
-                {ensResolution.address && (
-                  <p className="text-xs text-muted-foreground">
-                    {ensResolution.isENS ? (
-                      <>
-                        <span className="text-chart-2">ENS:</span>{" "}
-                        {customRecipient}{" "}
-                        <span className="text-muted-foreground">→</span>{" "}
-                        {ensResolution.address?.slice(0, 6)}...
-                        {ensResolution.address?.slice(-4)}
-                      </>
-                    ) : (
-                      <>
-                        {t("swap.recipient_note") || "Output will be sent to"}:{" "}
-                        {ensResolution.address?.slice(0, 6)}...
-                        {ensResolution.address?.slice(-4)}
-                      </>
-                    )}
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+      <CustomRecipientInput
+        customRecipient={customRecipient}
+        setCustomRecipient={setCustomRecipient}
+        ensResolution={ensResolution}
+      />
 
       {/* Network indicator */}
       <NetworkError message={t("swap.title")} />

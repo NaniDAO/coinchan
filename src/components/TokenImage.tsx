@@ -40,31 +40,6 @@ export const TokenImage = memo(({ token }: { token: TokenMeta }) => {
   const [imageError, setImageError] = useState(false);
   const { bg, text } = getColorForSymbol(token.symbol);
 
-  // Hardcoded images
-  if (token.id === null && token.symbol === "ETH") {
-    return <EthereumIcon className="w-8 h-8 rounded-full" />;
-  }
-
-  if (token.isCustomPool && token.symbol === "ENS") {
-    return (
-      <img
-        src="/ens.svg"
-        alt="ENS"
-        className="w-8 h-8 rounded-full object-cover"
-      />
-    );
-  }
-
-  if (token.symbol === "CULT" && (token.isCustomPool || token.id === 999999n)) {
-    return (
-      <img
-        src="/cult.jpg"
-        alt="CULT"
-        className="w-8 h-8 rounded-full object-cover"
-      />
-    );
-  }
-
   useEffect(() => {
     const loadImage = async () => {
       // If we have imageUrl, use it directly
@@ -117,6 +92,31 @@ export const TokenImage = memo(({ token }: { token: TokenMeta }) => {
 
     loadImage();
   }, [token.imageUrl, token.tokenUri]);
+
+  // Hardcoded images
+  if (token.id === null && token.symbol === "ETH") {
+    return <EthereumIcon className="w-8 h-8 rounded-full" />;
+  }
+
+  if (token.isCustomPool && token.symbol === "ENS") {
+    return (
+      <img
+        src="/ens.svg"
+        alt="ENS"
+        className="w-8 h-8 rounded-full object-cover"
+      />
+    );
+  }
+
+  if (token.symbol === "CULT" && (token.isCustomPool || token.id === 999999n)) {
+    return (
+      <img
+        src="/cult.jpg"
+        alt="CULT"
+        className="w-8 h-8 rounded-full object-cover"
+      />
+    );
+  }
 
   // Fallback to colored initials
   const fallback = (
