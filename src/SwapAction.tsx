@@ -6,7 +6,6 @@ import {
   encodeFunctionData,
   formatEther,
   formatUnits,
-  parseEther,
   parseUnits,
   type Address,
 } from "viem";
@@ -56,6 +55,8 @@ import {
   findRoute,
   quote,
   simulateRoute,
+  erc20Abi,
+  zRouterAbi,
 } from "zrouter-sdk";
 
 interface SwapActionProps {
@@ -144,7 +145,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
   } = useMemo(() => analyzeTokens(sellToken, buyToken), [sellToken, buyToken]);
 
   /* Calculate pool reserves (kept for UI stats only) */
-  const { mainPoolId, targetPoolId } = getPoolIds(sellToken, buyToken, {
+  const { mainPoolId } = getPoolIds(sellToken, buyToken, {
     isCustomPool: isCustomPool,
     isCoinToCoin: isCoinToCoin,
   });
@@ -162,10 +163,6 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
       : sellToken?.id === null
         ? buyToken?.source
         : sellToken.source,
-  });
-  const { data: targetReserves } = useReserves({
-    poolId: targetPoolId,
-    source: buyToken?.source,
   });
 
   const [slippageBps, setSlippageBps] = useState<bigint>(SLIPPAGE_BPS);
@@ -346,7 +343,6 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
     };
   }, [sellAmt, swapMode, isSellETH, doQuote]);
 
-  // === NEW: execute swap via zrouter-sdk ===
   const executeSwap = async () => {
     try {
       if (!isConnected || !address) {
@@ -365,8 +361,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
         setTxError(t("errors.network_error"));
         return;
       }
-      // Validate recipient if provided
-      let finalRecipient: Address | undefined = undefined;
+      let finalRecipient: Address | undefined;
       if (customRecipient && customRecipient.trim() !== "") {
         if (ensResolution.isLoading) {
           setTxError(t("swap.resolving_ens") || "Resolving ENS name...");
@@ -402,29 +397,30 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
           : buyToken.decimals || 18;
       const amount = parseUnits(raw!, decimals);
 
+      // findRoute now returns Promise<RouteStep[]>
       const steps = await findRoute(publicClient, {
         tokenIn,
         tokenOut,
         side,
         amount,
-        deadline: BigInt(Math.floor(Date.now() / 1000) + 60 * 10), // 10 minutes
+        deadline: BigInt(Math.floor(Date.now() / 1000) + 60 * 10),
         owner: address,
       }).catch((e) => {
         console.error(e);
-        return undefined;
+        return [];
       });
 
-      if (!steps || steps.length === 0) {
+      if (!steps.length) {
         setTxError(t("errors.unexpected") || "No route found");
         return;
       }
 
+      // buildRoutePlan now returns Promise<RoutePlan>
       const plan = await buildRoutePlan(publicClient, {
         owner: address,
         router: mainnetConfig.router,
         steps,
         finalTo: (finalRecipient || (address as Address)) as Address,
-        // If your router supports it, you can pass slippage here in the future
       }).catch((e) => {
         console.error(e);
         return undefined;
@@ -435,13 +431,14 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
         return;
       }
 
-      // (Optional) dry-run simulate for UX safety
+      const { calls, value, approvals } = plan;
+
       const sim = await simulateRoute(publicClient, {
         router: mainnetConfig.router,
         account: address,
-        calls: plan.calls,
-        value: plan.value,
-        approvals: plan.approvals,
+        calls,
+        value,
+        approvals,
       }).catch((e) => {
         console.error(e);
         return undefined;
@@ -452,13 +449,27 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
         return;
       }
 
-      // Handle approvals first (ERC20/6909)
-      for (const app of plan.approvals ?? []) {
+      // Handle approvals
+      for (const approval of approvals ?? []) {
         try {
           const hash = await sendTransactionAsync({
-            to: app.to as Address,
-            data: app.data as `0x${string}`,
-            value: app.value,
+            to:
+              approval.kind === "ERC20_APPROVAL"
+                ? approval.token.address
+                : approval.token.address,
+            data:
+              approval.kind === "ERC20_APPROVAL"
+                ? encodeFunctionData({
+                    abi: erc20Abi,
+                    functionName: "approve",
+                    args: [approval.spender, approval.amount],
+                  })
+                : encodeFunctionData({
+                    abi: CoinsAbi,
+                    functionName: "setOperator",
+                    args: [approval.operator, approval.approved],
+                  }),
+            value: 0n,
             chainId: mainnet.id,
             account: address,
           });
@@ -474,48 +485,35 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
         }
       }
 
-      // Execute swap calls
-      if (isBatchingSupported && plan.calls.length > 1) {
-        // Send as a batch using wagmi useSendCalls (if your wallet/connector supports it)
-        sendCalls({
-          calls: plan.calls.map((c) => ({
-            to: c.to as Address,
-            data: c.data as `0x${string}`,
-            value: c.value,
-          })),
+      let hash: `0x${string}`;
+      try {
+        hash = await sendTransactionAsync({
+          to: mainnetConfig.router,
+          data: encodeFunctionData({
+            abi: zRouterAbi,
+            functionName: "multicall",
+            args: [calls],
+          }),
+          value: value,
+          chainId: mainnet.id,
+          account: address,
         });
-      } else {
-        // Sequential
-        for (const call of plan.calls) {
-          let hash: `0x${string}`;
-          try {
-            hash = await sendTransactionAsync({
-              to: call.to as Address,
-              data: call.data as `0x${string}`,
-              value: call.value,
-              chainId: mainnet.id,
-              account: address,
-            });
-          } catch (error: any) {
-            if (error?.message?.includes("getChainId is not a function")) {
-              console.error("Connector compatibility issue:", error);
-              setTxError(t("errors.wallet_connection_refresh"));
-              setTimeout(() => window.location.reload(), 2000);
-              return;
-            }
-            throw error;
-          }
-
-          const receipt = await publicClient.waitForTransactionReceipt({
-            hash,
-          });
-          if (receipt.status !== "success") {
-            throw new Error("Transaction failed");
-          }
-          // Set the last tx hash for receipt UI
-          setTxHash(hash);
+      } catch (error: any) {
+        if (error?.message?.includes("getChainId is not a function")) {
+          console.error("Connector compatibility issue:", error);
+          setTxError(t("errors.wallet_connection_refresh"));
+          setTimeout(() => window.location.reload(), 2000);
+          return;
         }
+        throw error;
       }
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash,
+      });
+      if (receipt.status !== "success") {
+        throw new Error("Transaction failed");
+      }
+      setTxHash(hash);
     } catch (err: unknown) {
       console.error("Swap execution error:", err);
       if (
