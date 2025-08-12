@@ -1,7 +1,10 @@
 import { TradeView } from "@/TradeView";
+import AiMetaCard from "@/components/AiMetaCard";
 import { CoinBreadcrumb } from "@/components/CoinBreadcrumb";
 import { UnifiedCoinView } from "@/components/UnifiedCoinView";
 import { Alert, AlertTitle } from "@/components/ui/alert";
+import { CoinsAddress } from "@/constants/Coins";
+import { CookbookAddress } from "@/constants/Cookbook";
 import { isCookbookCoin } from "@/lib/coin-utils";
 import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
@@ -27,12 +30,14 @@ function RouteComponent() {
   if (isCookbook) {
     display = (
       <div>
+        <AiMetaCard id={coinId} address={CookbookAddress} />
         <UnifiedCoinView coinId={BigInt(coinId)} />
       </div>
     );
   } else {
     display = (
       <div>
+        <AiMetaCard id={coinId} address={CoinsAddress} />
         <TradeView tokenId={BigInt(coinId)} />
       </div>
     );
