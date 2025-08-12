@@ -1,6 +1,5 @@
-import { ChevronRight, Sparkles } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useGetAiMeta } from "@/hooks/use-get-ai-meta";
 
 type AiMetaCardProps = {
@@ -9,7 +8,7 @@ type AiMetaCardProps = {
   title?: string;
 };
 
-export default function AiMetaCard({ address, id, title }: AiMetaCardProps) {
+export default function AiMetaCard({ address, id }: AiMetaCardProps) {
   const { data: ai, isLoading, error } = useGetAiMeta(address, id);
   console.log("useGetAiMeta", {
     ai,
