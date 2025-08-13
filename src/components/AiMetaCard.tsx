@@ -10,11 +10,7 @@ type AiMetaCardProps = {
 
 export default function AiMetaCard({ address, id }: AiMetaCardProps) {
   const { data: ai, isLoading, error } = useGetAiMeta(address, id);
-  console.log("useGetAiMeta", {
-    ai,
-    isLoading,
-    error,
-  });
+
   return (
     <div className="px-5 items-center w-full flex justify-between flex-row">
       {!isLoading && !error && ai && (

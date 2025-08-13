@@ -1,8 +1,20 @@
 import { memo, useMemo } from "react";
 import { formatEther } from "viem";
-import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, ReferenceLine, Dot } from "recharts";
+import {
+  Area,
+  AreaChart,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  ReferenceLine,
+  Dot,
+} from "recharts";
 import type { ZCurveSale } from "@/hooks/use-zcurve-sale";
-import { UNIT_SCALE, unpackQuadCap, ZCURVE_STANDARD_PARAMS } from "@/lib/zCurveHelpers";
+import {
+  UNIT_SCALE,
+  unpackQuadCap,
+  ZCURVE_STANDARD_PARAMS,
+} from "@/lib/zCurveHelpers";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 
@@ -17,7 +29,10 @@ const calculateCost = (n: bigint, quadCap: bigint, divisor: bigint): bigint => {
 
   const K = quadCap / UNIT_SCALE;
   // Optimize for standard divisor - protect against zero divisor
-  const denom = divisor === ZCURVE_STANDARD_PARAMS.DIVISOR ? ZCURVE_STANDARD_PARAMS.DIVISOR * 6n : 6n * divisor;
+  const denom =
+    divisor === ZCURVE_STANDARD_PARAMS.DIVISOR
+      ? ZCURVE_STANDARD_PARAMS.DIVISOR * 6n
+      : 6n * divisor;
 
   // Additional safety check for denominator
   if (denom === 0n) return 0n;
@@ -48,10 +63,23 @@ const CurrentPositionDot = (props: any) => {
   const { cx, cy, payload } = props;
   if (!payload?.isCurrent) return null;
 
-  return <Dot cx={cx} cy={cy} r={3} fill="currentColor" className="text-amber-500" stroke="white" strokeWidth={1} />;
+  return (
+    <Dot
+      cx={cx}
+      cy={cy}
+      r={3}
+      fill="currentColor"
+      className="text-amber-500"
+      stroke="white"
+      strokeWidth={1}
+    />
+  );
 };
 
-export function ZCurveMiniChartInner({ sale, className = "" }: ZCurveMiniChartProps) {
+export function ZCurveMiniChartInner({
+  sale,
+  className = "",
+}: ZCurveMiniChartProps) {
   const { t } = useTranslation();
   const isFinalized = sale.status === "FINALIZED";
 
@@ -62,7 +90,9 @@ export function ZCurveMiniChartInner({ sale, className = "" }: ZCurveMiniChartPr
     }
 
     // For finalized sales, use lpSupply instead of saleCap
-    const saleCap = isFinalized ? BigInt(sale.lpSupply || 0) : BigInt(sale.saleCap || 0);
+    const saleCap = isFinalized
+      ? BigInt(sale.lpSupply || 0)
+      : BigInt(sale.saleCap || 0);
     const divisor = BigInt(sale.divisor);
     const quadCap = unpackQuadCap(BigInt(sale.quadCap));
 
@@ -110,7 +140,8 @@ export function ZCurveMiniChartInner({ sale, className = "" }: ZCurveMiniChartPr
     for (let i = 0n; i <= saleCap; i += safeStep) {
       const cost = calculateCost(i, quadCap, divisor);
       const progressPercent = Number((i * 10000n) / saleCap) / 100;
-      const isCurrent = i <= netSold && (i + safeStep > netSold || i === saleCap);
+      const isCurrent =
+        i <= netSold && (i + safeStep > netSold || i === saleCap);
 
       points.push({
         progress: progressPercent,
@@ -149,8 +180,10 @@ export function ZCurveMiniChartInner({ sale, className = "" }: ZCurveMiniChartPr
     const { saleCap, netSold, ethEscrow, ethTarget } = calculationParams;
 
     // Protect against division by zero
-    const currentProgress = saleCap > 0n ? Number((netSold * 10000n) / saleCap) / 100 : 0;
-    const fundedPercentage = ethTarget > 0n ? Number((ethEscrow * 10000n) / ethTarget) / 100 : 0;
+    const currentProgress =
+      saleCap > 0n ? Number((netSold * 10000n) / saleCap) / 100 : 0;
+    const fundedPercentage =
+      ethTarget > 0n ? Number((ethEscrow * 10000n) / ethTarget) / 100 : 0;
 
     return {
       currentProgress: isFinalized ? 100 : currentProgress,
@@ -166,7 +199,7 @@ export function ZCurveMiniChartInner({ sale, className = "" }: ZCurveMiniChartPr
 
   const progressClass = useMemo(() => {
     const isCharging = !isFinalized && currentStats.fundedPercentage < 0.05;
-    
+
     return `absolute bottom-1 right-1 text-[10px] font-mono font-bold ${
       isFinalized
         ? "text-amber-900 bg-gradient-to-r from-amber-100 to-yellow-100 border-amber-300"
@@ -179,25 +212,20 @@ export function ZCurveMiniChartInner({ sale, className = "" }: ZCurveMiniChartPr
   // Memoize percentage display
   const percentageDisplay = useMemo(() => {
     if (isFinalized) return "100.0%";
-    
+
     // Show lightning bolt for very early stages (less than 0.05%)
     if (currentStats.fundedPercentage < 0.05) {
       return `⚡ ${t("sale.charging", "Charging")}`;
     }
-    
+
     return `${currentStats.fundedPercentage.toFixed(1)}%`;
   }, [isFinalized, currentStats.fundedPercentage, t]);
 
   // Don't render if no valid data
   if (!calculationParams || chartData.length === 0) {
-    console.log("ZCurveMiniChart data:", {
-      sale,
-      calculationParams,
-      chartData,
-      currentStats,
-      isFinalized,
-    });
-    return <div className={cn(`bg-muted/20 animate-pulse rounded`, className)} />;
+    return (
+      <div className={cn(`bg-muted/20 animate-pulse rounded`, className)} />
+    );
   }
 
   return (
@@ -211,11 +239,22 @@ export function ZCurveMiniChartInner({ sale, className = "" }: ZCurveMiniChartPr
       )}
     >
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={chartData} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
+        <AreaChart
+          data={chartData}
+          margin={{ top: 2, right: 2, left: 2, bottom: 2 }}
+        >
           <defs>
             <linearGradient id="costGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={strokeColor} stopOpacity={isFinalized ? 0.4 : 0.3} />
-              <stop offset="95%" stopColor={strokeColor} stopOpacity={isFinalized ? 0.1 : 0.05} />
+              <stop
+                offset="5%"
+                stopColor={strokeColor}
+                stopOpacity={isFinalized ? 0.4 : 0.3}
+              />
+              <stop
+                offset="95%"
+                stopColor={strokeColor}
+                stopOpacity={isFinalized ? 0.1 : 0.05}
+              />
             </linearGradient>
             <linearGradient id="filledGradient" x1="0" y1="0" x2="0" y2="1">
               {isFinalized ? (
@@ -228,13 +267,23 @@ export function ZCurveMiniChartInner({ sale, className = "" }: ZCurveMiniChartPr
               ) : (
                 <>
                   <stop offset="5%" stopColor={strokeColor} stopOpacity={0.6} />
-                  <stop offset="95%" stopColor={strokeColor} stopOpacity={0.2} />
+                  <stop
+                    offset="95%"
+                    stopColor={strokeColor}
+                    stopOpacity={0.2}
+                  />
                 </>
               )}
             </linearGradient>
           </defs>
 
-          <XAxis dataKey="progress" type="number" scale="linear" domain={[0, 100]} hide />
+          <XAxis
+            dataKey="progress"
+            type="number"
+            scale="linear"
+            domain={[0, 100]}
+            hide
+          />
           <YAxis dataKey="cost" type="number" domain={[0, "dataMax"]} hide />
 
           {/* Background curve area */}

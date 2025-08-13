@@ -60,6 +60,8 @@ import {
 } from "zrouter-sdk";
 import { SwapModeTab } from "./SwapModeTab";
 import { CustomRecipientInput } from "./CustomRecipientInput";
+import { _ReturnNull } from "i18next";
+import { formatDexscreenerStyle } from "./lib/math";
 
 interface SwapActionProps {
   lockedTokens?: {
@@ -67,6 +69,9 @@ interface SwapActionProps {
     buyToken: TokenMeta;
   };
 }
+
+// Toggle detailed console logs for impact calc
+const DEBUG_IMPACT = true;
 
 // Known ERC20 token addresses used by the router
 const ADDR: Record<string, Address> = {
@@ -80,11 +85,6 @@ function toZRouterToken(token?: TokenMeta) {
   if (!token) return undefined;
   // Native ETH
   if (token.id === null) return { address: ADDR.ETH } as const;
-
-  // // Special ERC20s by symbol
-  // if (token.symbol === "USDT") return { address: ADDR.USDT } as const;
-  // if (token.symbol === "CULT") return { address: ADDR.CULT } as const;
-  // if (token.symbol === "ENS") return { address: ADDR.ENS } as const;
 
   if (token.source === "ERC20") {
     if (!token.token1)
@@ -155,7 +155,6 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
   const ensResolution = useENSResolution(customRecipient);
 
   const {
-    isSellETH,
     isCustom: isCustomPool,
     isCoinToCoin,
     coinId,
@@ -188,7 +187,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
   const [priceImpact, setPriceImpact] = useState<{
     currentPrice: number;
     projectedPrice: number;
-    impactPercent: number;
+    impactPercent: number; // positive means buyToken price goes UP
     action: "buy" | "sell";
   } | null>(null);
 
@@ -257,7 +256,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
     setLastEditedField("sell");
   }, [swapMode]);
 
-  // === NEW: quoting via zrouter-sdk ===
+  // === quoting via zrouter-sdk ===
   const doQuote = useCallback(
     async (
       params:
@@ -282,14 +281,13 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
             amount: amountIn,
             side: "EXACT_IN",
           });
-          console.log("Quote", {
-            tokenIn,
-            tokenOut,
-            amountIn: amountIn,
-            side: "EXACT_IN",
-            result: res,
-          });
           const out = formatUnits(res.amountOut, buyToken.decimals || 18);
+          if (DEBUG_IMPACT)
+            console.debug("[impact] EXACT_IN quote", {
+              raw: params.raw,
+              amountIn: params.raw,
+              amountOut: out,
+            });
           return { ok: true as const, amountOut: out, amountIn: params.raw };
         } else {
           const amountOutWanted = parseUnits(
@@ -302,14 +300,13 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
             amount: amountOutWanted,
             side: "EXACT_OUT",
           });
-          console.log("Quote", {
-            tokenIn,
-            tokenOut,
-            amountOutWanted,
-            side: "EXACT_OUT",
-            result: res,
-          });
           const inp = formatUnits(res.amountIn, sellToken.decimals || 18);
+          if (DEBUG_IMPACT)
+            console.debug("[impact] EXACT_OUT quote", {
+              raw: params.raw,
+              amountIn: inp,
+              amountOut: params.raw,
+            });
           return { ok: true as const, amountOut: params.raw, amountIn: inp };
         }
       } catch (e) {
@@ -320,42 +317,117 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
     [publicClient, sellToken, buyToken],
   );
 
-  // Basic, lightweight price impact estimation using current quote deltas
+  // === Price impact estimation (side-aware, trader-centric) ===
   useEffect(() => {
     let canceled = false;
+
     const run = async () => {
       try {
-        if (!sellAmt || !Number(sellAmt) || swapMode !== "instant") {
+        if (
+          swapMode !== "instant" ||
+          !sellToken ||
+          !buyToken ||
+          (!sellAmt && !buyAmt)
+        ) {
           if (!canceled) setPriceImpact(null);
           return;
         }
-        const q = await doQuote({ side: "EXACT_IN", raw: sellAmt });
-        if (!q.ok) return;
-        const inN = Number(sellAmt);
-        const outN = Number(q.amountOut || 0);
-        if (!inN || !outN) return;
-        // Very rough estimate: assume linear price around the quote
-        const unitPriceBefore = outN / inN; // buyToken per sellToken
-        const unitPriceAfter = unitPriceBefore * 0.999; // placeholder small slippage visualization
-        const impact =
-          ((unitPriceAfter - unitPriceBefore) / unitPriceBefore) * 100;
-        if (!canceled)
-          setPriceImpact({
-            currentPrice: unitPriceBefore,
-            projectedPrice: unitPriceAfter,
-            impactPercent: impact,
-            action: isSellETH ? "buy" : "sell",
+
+        const epsilon = 0.01;
+
+        // Helper to set result once computed
+        const finish = (p0: number, p1: number, action: "buy" | "sell") => {
+          if (!isFinite(p0) || !isFinite(p1) || p0 <= 0 || p1 <= 0) {
+            if (!canceled) setPriceImpact(null);
+            return;
+          }
+          // Positive = buyToken price goes UP (we measure price of buy token in units of sell token)
+          const impactPercent = (p1 / p0 - 1) * 100;
+          if (!canceled) {
+            setPriceImpact({
+              currentPrice: p0,
+              projectedPrice: p1,
+              impactPercent,
+              action,
+            });
+          }
+        };
+
+        if (lastEditedField === "sell") {
+          // EXACT_IN: user typed the sell amount
+          const in0 = Number(sellAmt || "0");
+          if (!isFinite(in0) || in0 <= 0) {
+            if (!canceled) setPriceImpact(null);
+            return;
+          }
+
+          const base = await doQuote({ side: "EXACT_IN", raw: String(in0) });
+          if (!base.ok) return void (!canceled && setPriceImpact(null));
+
+          const out0 = Number(base.amountOut);
+          if (!isFinite(out0) || out0 <= 0) {
+            if (!canceled) setPriceImpact(null);
+            return;
+          }
+
+          const in1 = in0 * (1 + epsilon);
+          const bumped = await doQuote({ side: "EXACT_IN", raw: String(in1) });
+          if (!bumped.ok) return void (!canceled && setPriceImpact(null));
+          const out1 = Number(bumped.amountOut);
+
+          // Effective price (sell per 1 buy): lower is better for trader
+          const p0 = in0 / out0;
+          const p1 = in1 / out1;
+          finish(p0, p1, "buy");
+        } else {
+          // EXACT_OUT: user typed the buy amount (still buying the buy token)
+          const out0 = Number(buyAmt || "0");
+          if (!isFinite(out0) || out0 <= 0) {
+            if (!canceled) setPriceImpact(null);
+            return;
+          }
+
+          const base = await doQuote({ side: "EXACT_OUT", raw: String(out0) });
+          if (!base.ok) return void (!canceled && setPriceImpact(null));
+          const in0 = Number(base.amountIn);
+          if (!isFinite(in0) || in0 <= 0) {
+            if (!canceled) setPriceImpact(null);
+            return;
+          }
+
+          const out1 = out0 * (1 + epsilon);
+          const bumped = await doQuote({
+            side: "EXACT_OUT",
+            raw: String(out1),
           });
+          if (!bumped.ok) return void (!canceled && setPriceImpact(null));
+          const in1 = Number(bumped.amountIn);
+
+          // Effective price (sell per 1 buy): lower is better for trader
+          const p0 = in0 / out0;
+          const p1 = in1 / out1;
+          finish(p0, p1, "buy");
+        }
       } catch (e) {
+        console.error("[impact] error", e);
         if (!canceled) setPriceImpact(null);
       }
     };
-    const id = setTimeout(run, 400);
+
+    const id = setTimeout(run, 350);
     return () => {
       canceled = true;
       clearTimeout(id);
     };
-  }, [sellAmt, swapMode, isSellETH, doQuote]);
+  }, [
+    swapMode,
+    sellToken,
+    buyToken,
+    sellAmt,
+    buyAmt,
+    lastEditedField,
+    doQuote,
+  ]);
 
   const syncFromBuy = async (val: string) => {
     setBuyAmt(val);
@@ -427,7 +499,6 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
           : buyToken.decimals || 18;
       const amount = parseUnits(raw!, decimals);
 
-      // findRoute now returns Promise<RouteStep[]>
       const steps = await findRoute(publicClient, {
         tokenIn,
         tokenOut,
@@ -445,7 +516,6 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
         return;
       }
 
-      // buildRoutePlan now returns Promise<RoutePlan>
       const plan = await buildRoutePlan(publicClient, {
         owner: address,
         router: mainnetConfig.router,
@@ -742,7 +812,6 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
 
   const handleBuyTokenSelect = useCallback(
     (token: TokenMeta) => {
-      console.log("handleBuyTokenSelect:", token);
       if (txError) setTxError(null);
       setSellAmt("");
       setBuyAmt("");
@@ -754,7 +823,6 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
 
   const handleSellTokenSelect = useCallback(
     (token: TokenMeta) => {
-      console.log("handleSellTokenSelect:", token);
       if (txError) setTxError(null);
       setSellAmt("");
       setBuyAmt("");
@@ -794,7 +862,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
           showMaxButton={
             !!(
               sellToken.balance &&
-              sellToken.balance > 0n &&
+              (sellToken.balance as bigint) > 0n &&
               lastEditedField === "sell"
             )
           }
@@ -817,7 +885,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
           <div
             className={cn(
               "absolute left-1/2 -translate-x-1/2 z-10",
-              !!(sellToken.balance && sellToken.balance > 0n)
+              !!(sellToken.balance && (sellToken.balance as bigint) > 0n)
                 ? "top-[63%]"
                 : "top-[50%]",
             )}
@@ -965,10 +1033,14 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
               </span>
               {priceImpact && (
                 <span
-                  className={`text-xs font-medium ${priceImpact.impactPercent > 0 ? "text-green-600" : "text-red-600"}`}
+                  className={`text-xs font-medium ${
+                    priceImpact.impactPercent > 0
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }`}
                 >
                   {priceImpact.impactPercent > 0 ? "+" : ""}
-                  {priceImpact.impactPercent.toFixed(2)}%
+                  {formatDexscreenerStyle(priceImpact.impactPercent)}%
                 </span>
               )}
             </span>
@@ -1108,7 +1180,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
           buyToken={buyToken}
           sellToken={sellToken}
           prevPair={prevPairRef.current}
-          priceImpact={priceImpact}
+          priceImpact={null}
         />
       </div>
     </div>

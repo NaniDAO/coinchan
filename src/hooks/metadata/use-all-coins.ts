@@ -27,6 +27,14 @@ import { mainnet } from "viem/chains";
 import { useAccount, usePublicClient } from "wagmi";
 
 /**
+ * Local helpers (filtering rules)
+ */
+const BLACKLIST_6909 = new Set(["USDC", "USDT", "DAI", "ENS", "NANI"]);
+const normalizeSymbol = (s?: string | null) => (s ?? "").trim().toUpperCase();
+const is6909Source = (m: TokenMeta) =>
+  m.source === "COOKBOOK" || m.source === "ZAMM";
+
+/**
  * Fetch ETH balance as TokenMeta
  */
 async function fetchEthBalance(
@@ -111,7 +119,6 @@ async function fetchOtherCoins(
     coins = await fetchCoinPoolsViaGraphQL();
   } catch {
     // fallback to your original batching logic
-    // (just paste your old fetchOtherCoins here)
     return originalFetchOtherCoins(publicClient, address);
   }
 
@@ -139,7 +146,23 @@ async function fetchOtherCoins(
     // metas remains [] if mapping fails
   }
 
+  // Load ERC20 list and build symbol set for collision filtering
   const erc20metas = await loadErc20Tokens();
+  const erc20Symbols = new Set(
+    erc20metas.map((t) => normalizeSymbol(t.symbol)),
+  );
+
+  // Filter out 6909 coins that are blacklisted or collide with ERC20 symbols
+  metas = metas.filter((m) => {
+    if (!is6909Source(m)) return true;
+    const sym = normalizeSymbol(m.symbol as string);
+    if (!sym) return true;
+    if (BLACKLIST_6909.has(sym)) return false;
+    if (erc20Symbols.has(sym)) return false;
+    return true;
+  });
+
+  // then append ERC20s
   for (const meta of erc20metas) {
     metas.push(meta);
   }
@@ -149,11 +172,12 @@ async function fetchOtherCoins(
     metas.map(async (m) => {
       if (!address) return m;
       try {
-        // m.id can be null or undefined depending on the filter/map logic, but the filter should prevent null id.
-        // Added a check for id not being undefined as well, though filter should handle null.
+        // Skip ERC20 entries for 6909-style balanceOf
+        if (m.source === "ERC20") {
+          return m;
+        }
+
         if (m.id == null) {
-          // This case should ideally not happen with the filter above
-          // but as a safeguard, skip if coinId is null/undefined
           return m;
         }
 
@@ -425,6 +449,30 @@ async function originalFetchOtherCoins(
   });
   const coins = (await Promise.all(coinPromises)).filter(Boolean);
 
+  // Build ERC20 symbol set from your tokenlist for collision filtering
+  const erc20metas = await loadErc20Tokens();
+  const erc20Symbols = new Set(
+    erc20metas.map((t) => normalizeSymbol(t.symbol)),
+  );
+
+  // Filter out 6909 coins (COOKBOOK/ZAMM) with blacklisted or ERC20-colliding symbols
+  const filteredCoins = coins.filter((m) => {
+    if (!is6909Source(m)) return true;
+    const sym = normalizeSymbol(m.symbol as string);
+    if (!sym) return true;
+    if (BLACKLIST_6909.has(sym)) return false;
+    if (erc20Symbols.has(sym)) return false;
+    return true;
+  });
+
+  // Sort coins by ETH reserves descending
+  const sortedCoins = filteredCoins.sort((a, b) =>
+    Number((b.reserve0 || 0n) - (a.reserve0 || 0n)),
+  );
+
+  // Include ERC20 list here too (parity with GQL path)
+  const withErc20 = [...sortedCoins, ...erc20metas];
+
   // Fetch USDT-ETH pool reserves & balance
   const usdtToken: TokenMeta = { ...USDT_TOKEN };
   try {
@@ -525,11 +573,7 @@ async function originalFetchOtherCoins(
     } catch {}
   }
 
-  // Sort coins by ETH reserves descending
-  const sortedCoins = coins.sort((a, b) =>
-    Number((b.reserve0 || 0n) - (a.reserve0 || 0n)),
-  );
-  return [...sortedCoins, usdtToken, cultToken, ensToken];
+  return [...withErc20, usdtToken, cultToken, ensToken];
 }
 
 /**
