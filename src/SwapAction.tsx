@@ -154,6 +154,12 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
   // ENS resolution for custom recipient
   const ensResolution = useENSResolution(customRecipient);
 
+  // Check if this swap involves external ERC20 tokens (which use external AMMs)
+  const isExternalSwap = useMemo(() => {
+    // If either token is an external ERC20, the swap goes through external AMMs
+    return sellToken?.source === "ERC20" || buyToken?.source === "ERC20";
+  }, [sellToken, buyToken]);
+
   const {
     isCustom: isCustomPool,
     isCoinToCoin,
@@ -193,6 +199,8 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
 
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [txError, setTxError] = useState<string | null>(null);
+  const [isApproving, setIsApproving] = useState(false);
+  const [approvalStep, setApprovalStep] = useState<string | null>(null);
   const {
     sendTransactionAsync,
     isPending,
@@ -550,39 +558,56 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
       }
 
       // Handle approvals
-      for (const approval of approvals ?? []) {
-        try {
-          const hash = await sendTransactionAsync({
-            to:
-              approval.kind === "ERC20_APPROVAL"
-                ? approval.token.address
-                : approval.token.address,
-            data:
-              approval.kind === "ERC20_APPROVAL"
-                ? encodeFunctionData({
-                    abi: erc20Abi,
-                    functionName: "approve",
-                    args: [approval.spender, approval.amount],
-                  })
-                : encodeFunctionData({
-                    abi: CoinsAbi,
-                    functionName: "setOperator",
-                    args: [approval.operator, approval.approved],
-                  }),
-            value: 0n,
-            chainId: mainnet.id,
-            account: address,
-          });
-          await publicClient.waitForTransactionReceipt({ hash });
-        } catch (error: any) {
-          if (error?.message?.includes("getChainId is not a function")) {
-            console.error("Connector compatibility issue:", error);
-            setTxError(t("errors.wallet_connection_refresh"));
-            setTimeout(() => window.location.reload(), 2000);
-            return;
+      if (approvals && approvals.length > 0) {
+        setIsApproving(true);
+        for (let i = 0; i < approvals.length; i++) {
+          const approval = approvals[i];
+          try {
+            // Set approval step message
+            if (approval.kind === "ERC20_APPROVAL") {
+              setApprovalStep(t("swap.approving_token", { token: sellToken.symbol || "token" }));
+            } else {
+              setApprovalStep(t("swap.setting_operator"));
+            }
+            
+            const hash = await sendTransactionAsync({
+              to: approval.token.address,
+              data:
+                approval.kind === "ERC20_APPROVAL"
+                  ? encodeFunctionData({
+                      abi: erc20Abi,
+                      functionName: "approve",
+                      args: [approval.spender, approval.amount],
+                    })
+                  : encodeFunctionData({
+                      abi: CoinsAbi,
+                      functionName: "setOperator",
+                      args: [approval.operator, approval.approved],
+                    }),
+              value: 0n,
+              chainId: mainnet.id,
+              account: address,
+            });
+            
+            setApprovalStep(t("swap.waiting_approval"));
+            await publicClient.waitForTransactionReceipt({ hash });
+          } catch (error: any) {
+            setIsApproving(false);
+            setApprovalStep(null);
+            if (error?.message?.includes("getChainId is not a function")) {
+              console.error("Connector compatibility issue:", error);
+              setTxError(t("errors.wallet_connection_refresh"));
+              setTimeout(() => window.location.reload(), 2000);
+              return;
+            }
+            throw error;
           }
-          throw error;
         }
+        setIsApproving(false);
+        setApprovalStep(t("swap.approval_complete"));
+        // Small delay to show the success message before proceeding
+        await new Promise(resolve => setTimeout(resolve, 500));
+        setApprovalStep(null);
       }
 
       let hash: `0x${string}`;
@@ -910,12 +935,14 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
         )}
       </div>
 
-      {/* Custom Recipient Input */}
-      <CustomRecipientInput
-        customRecipient={customRecipient}
-        setCustomRecipient={setCustomRecipient}
-        ensResolution={ensResolution}
-      />
+      {/* Custom Recipient Input - only for instant swaps */}
+      {swapMode === "instant" && (
+        <CustomRecipientInput
+          customRecipient={customRecipient}
+          setCustomRecipient={setCustomRecipient}
+          ensResolution={ensResolution}
+        />
+      )}
 
       {/* Network indicator */}
       <NetworkError message={t("swap.title")} />
@@ -981,8 +1008,8 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
         />
       )}
 
-      {/* Pool information - kept for UI display */}
-      {swapMode === "instant" && canSwap && reserves && (
+      {/* Pool information - kept for UI display (but not for external swaps) */}
+      {swapMode === "instant" && canSwap && reserves && !isExternalSwap && (
         <div className="text-xs text-foreground px-1 mt-1">
           <div className="flex justify-between">
             {isCoinToCoin &&
@@ -1113,6 +1140,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
           !isConnected ||
           !sellAmt ||
           isPending ||
+          isApproving ||
           (swapMode === "instant" && !canSwap) ||
           (swapMode === "limit" && (!buyAmt || !buyToken))
         }
@@ -1120,26 +1148,50 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
           !isConnected ||
           !sellAmt ||
           isPending ||
+          isApproving ||
           (swapMode === "instant" && !canSwap) ||
           (swapMode === "limit" && (!buyAmt || !buyToken))
             ? "opacity-50 cursor-not-allowed"
             : "opacity-100 hover:scale-105 hover:shadow-lg focus:ring-4 focus:ring-primary/50 focus:outline-none"
         }`}
       >
-        {isPending ? (
+        {isPending || isApproving ? (
           <span className="flex items-center gap-2">
             <LoadingLogo className="m-0 p-0 h-6 w-6" size="sm" />
-            {t("common.loading")}
+            {isApproving && approvalStep ? approvalStep : t("common.loading")}
           </span>
         ) : swapMode === "instant" ? (
-          t("common.swap")
+          customRecipient && ensResolution.address ? (
+            <span className="flex items-center gap-2">
+              {t("common.swap")} 📤
+            </span>
+          ) : (
+            t("common.swap")
+          )
         ) : (
           t("common.create_order")
         )}
       </button>
 
+      {/* Approval progress indicator */}
+      {isApproving && approvalStep && (
+        <div className="text-sm text-primary mt-2 flex items-center bg-primary/10 p-3 rounded-lg border border-primary/20 animate-pulse">
+          <LoadingLogo size="sm" className="mr-2 scale-75" />
+          <span className="font-medium">{approvalStep}</span>
+        </div>
+      )}
+
+      {/* Custom recipient indicator - only for instant swaps */}
+      {swapMode === "instant" && customRecipient && ensResolution.address && !txError && (
+        <div className="text-sm text-chart-2 mt-2 flex items-center bg-chart-2/10 p-2 rounded border border-chart-2/20">
+          <span className="text-xs">
+            📤 {t("swap.recipient_note") || "Output will be sent to"}: {ensResolution.address.slice(0, 6)}...{ensResolution.address.slice(-4)}
+          </span>
+        </div>
+      )}
+
       {/* Status and error messages */}
-      {txError && txError.includes(t("common.waiting")) && (
+      {txError && t("common.waiting") && txError.includes(t("common.waiting")) && (
         <div className="text-sm text-primary mt-2 flex items-center bg-background/50 p-2 rounded border border-primary/20">
           <LoadingLogo size="sm" className="mr-2 scale-75" />
           {txError}
@@ -1147,7 +1199,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
       )}
 
       {((writeError && !isUserRejectionError(writeError)) ||
-        (txError && !txError.includes(t("common.waiting")))) && (
+        (txError && (!t("common.waiting") || !txError.includes(t("common.waiting"))))) && (
         <div className="text-sm text-destructive mt-2 bg-background/50 p-2 rounded border border-destructive/20">
           {writeError && !isUserRejectionError(writeError)
             ? writeError.message

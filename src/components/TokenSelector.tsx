@@ -267,6 +267,9 @@ export const TokenSelector = memo(
                 const formatReserves = (token: TokenMeta) => {
                   if (token.id === null) return "";
 
+                  // Don't show liquidity/fee info for external ERC20 tokens from Uniswap/Sushi
+                  if (token.source === "ERC20") return "";
+
                   const cacheKey = `reserve-format-${token.id}-${token.poolId}`;
 
                   try {
@@ -407,7 +410,7 @@ export const TokenSelector = memo(
                       <div className="flex flex-col">
                         <div className="flex items-center gap-1.5">
                           <span className="font-medium">{token.symbol}</span>
-                          {token.id !== null && (
+                          {token.id !== null && token.source !== "ERC20" && (
                             <span className="text-xs text-muted-foreground">
                               #{token.id.toString()}
                             </span>
