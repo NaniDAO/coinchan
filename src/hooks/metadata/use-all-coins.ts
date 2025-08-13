@@ -25,6 +25,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { Address } from "viem";
 import { mainnet } from "viem/chains";
 import { useAccount, usePublicClient } from "wagmi";
+import { erc20Abi } from "viem";
 
 /**
  * Local helpers (filtering rules)
@@ -100,8 +101,28 @@ async function loadErc20Tokens(): Promise<TokenMeta[]> {
       decimals: token.decimals,
       source: "ERC20",
       imageUrl: token.logoURI,
-    };
+    } as TokenMeta;
   });
+}
+
+/**
+ * Generic comparator:
+ * 1) Balance (non-zero first, then larger balance)
+ * 2) Liquidity (reserve0 desc)
+ * 3) Coin id (newest first)
+ */
+function tokenSort(a: TokenMeta, b: TokenMeta) {
+  const aBal = a?.balance ? Number(a.balance) : 0;
+  const bBal = b?.balance ? Number(b.balance) : 0;
+  if (aBal !== bBal) return bBal - aBal;
+
+  const aLiq = a?.reserve0 ? Number(a.reserve0) : 0;
+  const bLiq = b?.reserve0 ? Number(b.reserve0) : 0;
+  if (aLiq !== bLiq) return bLiq - aLiq;
+
+  const aId = a?.id ? Number(a.id) : 0;
+  const bId = b?.id ? Number(b.id) : 0;
+  return bId - aId;
 }
 
 /**
@@ -122,7 +143,7 @@ async function fetchOtherCoins(
     return originalFetchOtherCoins(publicClient, address);
   }
 
-  let metas: TokenMeta[] = []; // Initialize metas to an empty array
+  let metas: TokenMeta[] = [];
   try {
     // map GraphQL → TokenMeta skeleton
     metas = coins
@@ -137,13 +158,12 @@ async function fetchOtherCoins(
         reserve1: c.reserve1 !== null ? BigInt(c.reserve1) : undefined,
         poolId: c.poolId ? BigInt(c.poolId) : undefined,
         source: isCookbookCoin(BigInt(c.coinId)) ? "COOKBOOK" : "ZAMM",
-        liquidity: 0n, // your subgraph doesn’t track total liquidity?
-        swapFee: c.swapFee !== null ? BigInt(c.swapFee) : SWAP_FEE, // basis points
-        balance: 0n, // to be filled in next step
+        liquidity: 0n,
+        swapFee: c.swapFee !== null ? BigInt(c.swapFee) : SWAP_FEE,
+        balance: 0n,
       }));
   } catch (error) {
     console.error("useAllCoins: [failed to map pools to TokenMeta]", error);
-    // metas remains [] if mapping fails
   }
 
   // Load ERC20 list and build symbol set for collision filtering
@@ -163,50 +183,41 @@ async function fetchOtherCoins(
   });
 
   // then append ERC20s
-  for (const meta of erc20metas) {
-    metas.push(meta);
-  }
+  for (const meta of erc20metas) metas.push(meta);
 
-  // For each coin, get balance from the correct contract based on coin ID
+  // For each token, fetch balance (ERC20 and 6909)
   const withBalances = await Promise.all(
     metas.map(async (m) => {
       if (!address) return m;
       try {
-        // Skip ERC20 entries for 6909-style balanceOf
-        if (m.source === "ERC20") {
-          return m;
-        }
-
-        if (m.id == null) {
-          return m;
-        }
-
         let bal = 0n;
 
-        // Use ID-based source determination - much simpler and more reliable
-        const isBookCoin = m.id < 1000000n;
-        const contractAddress = isBookCoin ? CookbookAddress : CoinsAddress;
-        const contractAbi = isBookCoin ? CookbookAbi : CoinsAbi;
+        if (m.source === "ERC20" && m.token1) {
+          // ERC20
+          bal = (await publicClient.readContract({
+            address: m.token1 as Address,
+            abi: erc20Abi,
+            functionName: "balanceOf",
+            args: [address],
+          })) as bigint;
+        } else if (m.id != null) {
+          // 6909 (COOKBOOK/ZAMM)
+          const isBookCoin = m.id < 1000000n;
+          const contractAddress = isBookCoin ? CookbookAddress : CoinsAddress;
+          const contractAbi = isBookCoin ? CookbookAbi : CoinsAbi;
 
-        try {
           bal = (await publicClient.readContract({
             address: contractAddress,
             abi: contractAbi,
             functionName: "balanceOf",
             args: [address, m.id],
           })) as bigint;
-        } catch (error) {
-          console.error(
-            `Failed to fetch balance for ${m.source} coin ${m.id}:`,
-            error,
-          );
-          return m;
         }
 
         return { ...m, balance: bal };
       } catch (error) {
         console.error(
-          `Unexpected error fetching balance for ${m.source} coin ${m.id}:`,
+          `Failed to fetch balance for ${m.source} token ${m.symbol}`,
           error,
         );
         return m;
@@ -214,7 +225,7 @@ async function fetchOtherCoins(
     }),
   );
 
-  // finally tack on USDT pool as before
+  // USDT pool + balance
   const usdtToken: TokenMeta = { ...USDT_TOKEN };
   try {
     const poolData = await publicClient.readContract({
@@ -230,17 +241,7 @@ async function fetchOtherCoins(
     try {
       const usdtBal = (await publicClient.readContract({
         address: USDT_ADDRESS,
-        abi: [
-          {
-            inputs: [
-              { internalType: "address", name: "account", type: "address" },
-            ],
-            name: "balanceOf",
-            outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-            stateMutability: "view",
-            type: "function",
-          },
-        ],
+        abi: erc20Abi,
         functionName: "balanceOf",
         args: [address],
       })) as bigint;
@@ -248,7 +249,7 @@ async function fetchOtherCoins(
     } catch {}
   }
 
-  // Add CULT token with reserves and balance
+  // CULT pool + balance
   const cultToken = { ...CULT_TOKEN };
   try {
     const poolData = await publicClient.readContract({
@@ -264,17 +265,7 @@ async function fetchOtherCoins(
     try {
       const cultBal = (await publicClient.readContract({
         address: CULT_ADDRESS,
-        abi: [
-          {
-            inputs: [
-              { internalType: "address", name: "account", type: "address" },
-            ],
-            name: "balanceOf",
-            outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-            stateMutability: "view",
-            type: "function",
-          },
-        ],
+        abi: erc20Abi,
         functionName: "balanceOf",
         args: [address],
       })) as bigint;
@@ -282,7 +273,7 @@ async function fetchOtherCoins(
     } catch {}
   }
 
-  // Add ENS token with reserves and balance
+  // ENS pool + balance
   const ensToken = { ...ENS_TOKEN };
   try {
     const poolData = await publicClient.readContract({
@@ -298,17 +289,7 @@ async function fetchOtherCoins(
     try {
       const ensBal = (await publicClient.readContract({
         address: ENS_ADDRESS,
-        abi: [
-          {
-            inputs: [
-              { internalType: "address", name: "account", type: "address" },
-            ],
-            name: "balanceOf",
-            outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-            stateMutability: "view",
-            type: "function",
-          },
-        ],
+        abi: erc20Abi,
         functionName: "balanceOf",
         args: [address],
       })) as bigint;
@@ -316,24 +297,13 @@ async function fetchOtherCoins(
     } catch {}
   }
 
-  return [...withBalances, usdtToken, cultToken, ensToken].sort((a, b) => {
-    // Safely convert to numbers, handling potential null/undefined values
-    const aLiquidity = a?.reserve0 ? Number(a.reserve0) : 0;
-    const bLiquidity = b?.reserve0 ? Number(b.reserve0) : 0;
-
-    // If liquidity values are identical, use coinId as secondary sort
-    if (aLiquidity === bLiquidity) {
-      const aId = Number(a.id);
-      const bId = Number(b.id);
-      return bId - aId; // Secondary sort by coinId (newest first)
-    }
-
-    return bLiquidity - aLiquidity; // Descending (highest liquidity first)
-  });
+  // Sort (balance first), then return
+  return [...withBalances, usdtToken, cultToken, ensToken].sort(tokenSort);
 }
 
 /**
  * Fetch all on-chain coins and USDT (excluding ETH)
+ * (legacy path; now also fetches ERC20 balances and sorts by balance first)
  */
 async function originalFetchOtherCoins(
   publicClient: ReturnType<typeof usePublicClient> | undefined,
@@ -420,7 +390,6 @@ async function originalFetchOtherCoins(
 
     let balance = 0n;
     if (address) {
-      // Use same ID-based logic as GraphQL approach
       const isBookCoin = coinId < 1000000n;
       const contractAddress = isBookCoin ? CookbookAddress : CoinsAddress;
       const contractAbi = isBookCoin ? CookbookAbi : CoinsAbi;
@@ -465,13 +434,33 @@ async function originalFetchOtherCoins(
     return true;
   });
 
-  // Sort coins by ETH reserves descending
-  const sortedCoins = filteredCoins.sort((a, b) =>
-    Number((b.reserve0 || 0n) - (a.reserve0 || 0n)),
-  );
-
   // Include ERC20 list here too (parity with GQL path)
-  const withErc20 = [...sortedCoins, ...erc20metas];
+  const withErc20 = [...filteredCoins, ...erc20metas];
+
+  // Fetch balances for ERC20 entries
+  const withBalances = await Promise.all(
+    withErc20.map(async (m) => {
+      if (!address) return m;
+      try {
+        if (m.source === "ERC20" && m.token1) {
+          const bal = (await publicClient.readContract({
+            address: m.token1 as Address,
+            abi: erc20Abi,
+            functionName: "balanceOf",
+            args: [address],
+          })) as bigint;
+          return { ...m, balance: bal };
+        }
+        return m;
+      } catch (e) {
+        console.error(
+          `Failed to fetch ERC20 balance for ${m.symbol} @ ${m.token1}`,
+          e,
+        );
+        return m;
+      }
+    }),
+  );
 
   // Fetch USDT-ETH pool reserves & balance
   const usdtToken: TokenMeta = { ...USDT_TOKEN };
@@ -486,26 +475,18 @@ async function originalFetchOtherCoins(
     usdtToken.reserve1 = poolData[1];
   } catch {}
   if (address) {
-    const usdtBal = (await publicClient.readContract({
-      address: USDT_ADDRESS,
-      abi: [
-        {
-          inputs: [
-            { internalType: "address", name: "account", type: "address" },
-          ],
-          name: "balanceOf",
-          outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-          stateMutability: "view",
-          type: "function",
-        },
-      ],
-      functionName: "balanceOf",
-      args: [address],
-    })) as bigint;
-    usdtToken.balance = usdtBal;
+    try {
+      const usdtBal = (await publicClient.readContract({
+        address: USDT_ADDRESS,
+        abi: erc20Abi,
+        functionName: "balanceOf",
+        args: [address],
+      })) as bigint;
+      usdtToken.balance = usdtBal;
+    } catch {}
   }
 
-  // Add CULT token with reserves and balance
+  // CULT pool + balance
   const cultToken = { ...CULT_TOKEN };
   try {
     const poolData = await publicClient.readContract({
@@ -521,17 +502,7 @@ async function originalFetchOtherCoins(
     try {
       const cultBal = (await publicClient.readContract({
         address: CULT_ADDRESS,
-        abi: [
-          {
-            inputs: [
-              { internalType: "address", name: "account", type: "address" },
-            ],
-            name: "balanceOf",
-            outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-            stateMutability: "view",
-            type: "function",
-          },
-        ],
+        abi: erc20Abi,
         functionName: "balanceOf",
         args: [address],
       })) as bigint;
@@ -539,7 +510,7 @@ async function originalFetchOtherCoins(
     } catch {}
   }
 
-  // Add ENS token with reserves and balance
+  // ENS pool + balance
   const ensToken = { ...ENS_TOKEN };
   try {
     const poolData = await publicClient.readContract({
@@ -555,17 +526,7 @@ async function originalFetchOtherCoins(
     try {
       const ensBal = (await publicClient.readContract({
         address: ENS_ADDRESS,
-        abi: [
-          {
-            inputs: [
-              { internalType: "address", name: "account", type: "address" },
-            ],
-            name: "balanceOf",
-            outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-            stateMutability: "view",
-            type: "function",
-          },
-        ],
+        abi: erc20Abi,
         functionName: "balanceOf",
         args: [address],
       })) as bigint;
@@ -573,7 +534,8 @@ async function originalFetchOtherCoins(
     } catch {}
   }
 
-  return [...withErc20, usdtToken, cultToken, ensToken];
+  // Sort and return
+  return [...withBalances, usdtToken, cultToken, ensToken].sort(tokenSort);
 }
 
 /**
@@ -597,9 +559,7 @@ export function useAllCoins() {
     refetchInterval: 30_000,
     refetchOnMount: false,
     gcTime: 1000 * 60 * 60,
-    meta: {
-      persist: true,
-    },
+    meta: { persist: true },
   });
 
   // Other coins + pools via GraphQL → TokenMeta
@@ -615,13 +575,15 @@ export function useAllCoins() {
     refetchOnMount: false,
   });
 
-  const tokens = [ethToken || ETH_TOKEN, ...(otherTokens || [])];
+  // Combine & sort again across ETH and others to ensure global ordering
+  const combined = [ethToken || ETH_TOKEN, ...(otherTokens || [])];
+
   const loading = isEthBalanceFetching || isOtherLoading;
   const error = ethError || otherError ? "Failed to load tokens" : null;
 
   return {
-    tokens,
-    tokenCount: tokens.length,
+    tokens: combined,
+    tokenCount: combined.length,
     loading,
     error,
     isEthBalanceFetching,
