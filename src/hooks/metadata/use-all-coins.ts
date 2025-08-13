@@ -1,6 +1,9 @@
 import { CoinchanAbi, CoinchanAddress } from "@/constants/Coinchan";
 import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
-import { CoinsMetadataHelperAbi, CoinsMetadataHelperAddress } from "@/constants/CoinsMetadataHelper";
+import {
+  CoinsMetadataHelperAbi,
+  CoinsMetadataHelperAddress,
+} from "@/constants/CoinsMetadataHelper";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
 import { isCookbookCoin } from "@/lib/coin-utils";
@@ -22,6 +25,14 @@ import { useQuery } from "@tanstack/react-query";
 import type { Address } from "viem";
 import { mainnet } from "viem/chains";
 import { useAccount, usePublicClient } from "wagmi";
+
+/**
+ * Local helpers (filtering rules)
+ */
+const BLACKLIST_6909 = new Set(["USDC", "USDT", "DAI", "ENS", "NANI"]);
+const normalizeSymbol = (s?: string | null) => (s ?? "").trim().toUpperCase();
+const is6909Source = (m: TokenMeta) =>
+  m.source === "COOKBOOK" || m.source === "ZAMM";
 
 /**
  * Fetch ETH balance as TokenMeta
@@ -70,6 +81,29 @@ async function fetchCoinPoolsViaGraphQL(): Promise<CoinData[]> {
   return data as CoinData[];
 }
 
+async function loadErc20Tokens(): Promise<TokenMeta[]> {
+  const res = await fetch("/tokenlist/ethereum.tokenlist.json", {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+  });
+
+  const data = await res.json();
+
+  const tokens = data.tokens;
+
+  return tokens.map((token: any) => {
+    return {
+      id: 0n,
+      token1: token.address,
+      name: token.name,
+      symbol: token.symbol,
+      decimals: token.decimals,
+      source: "ERC20",
+      imageUrl: token.logoURI,
+    };
+  });
+}
+
 /**
  * Fetch all on-chain coins **metadata** via GraphQL + user balances on-chain.
  * Falls back to your old `getAllCoinsData` helper if the GQL request errors.
@@ -85,7 +119,6 @@ async function fetchOtherCoins(
     coins = await fetchCoinPoolsViaGraphQL();
   } catch {
     // fallback to your original batching logic
-    // (just paste your old fetchOtherCoins here)
     return originalFetchOtherCoins(publicClient, address);
   }
 
@@ -113,16 +146,38 @@ async function fetchOtherCoins(
     // metas remains [] if mapping fails
   }
 
+  // Load ERC20 list and build symbol set for collision filtering
+  const erc20metas = await loadErc20Tokens();
+  const erc20Symbols = new Set(
+    erc20metas.map((t) => normalizeSymbol(t.symbol)),
+  );
+
+  // Filter out 6909 coins that are blacklisted or collide with ERC20 symbols
+  metas = metas.filter((m) => {
+    if (!is6909Source(m)) return true;
+    const sym = normalizeSymbol(m.symbol as string);
+    if (!sym) return true;
+    if (BLACKLIST_6909.has(sym)) return false;
+    if (erc20Symbols.has(sym)) return false;
+    return true;
+  });
+
+  // then append ERC20s
+  for (const meta of erc20metas) {
+    metas.push(meta);
+  }
+
   // For each coin, get balance from the correct contract based on coin ID
   const withBalances = await Promise.all(
     metas.map(async (m) => {
       if (!address) return m;
       try {
-        // m.id can be null or undefined depending on the filter/map logic, but the filter should prevent null id.
-        // Added a check for id not being undefined as well, though filter should handle null.
+        // Skip ERC20 entries for 6909-style balanceOf
+        if (m.source === "ERC20") {
+          return m;
+        }
+
         if (m.id == null) {
-          // This case should ideally not happen with the filter above
-          // but as a safeguard, skip if coinId is null/undefined
           return m;
         }
 
@@ -141,13 +196,19 @@ async function fetchOtherCoins(
             args: [address, m.id],
           })) as bigint;
         } catch (error) {
-          console.error(`Failed to fetch balance for ${m.source} coin ${m.id}:`, error);
+          console.error(
+            `Failed to fetch balance for ${m.source} coin ${m.id}:`,
+            error,
+          );
           return m;
         }
 
         return { ...m, balance: bal };
       } catch (error) {
-        console.error(`Unexpected error fetching balance for ${m.source} coin ${m.id}:`, error);
+        console.error(
+          `Unexpected error fetching balance for ${m.source} coin ${m.id}:`,
+          error,
+        );
         return m;
       }
     }),
@@ -171,7 +232,9 @@ async function fetchOtherCoins(
         address: USDT_ADDRESS,
         abi: [
           {
-            inputs: [{ internalType: "address", name: "account", type: "address" }],
+            inputs: [
+              { internalType: "address", name: "account", type: "address" },
+            ],
             name: "balanceOf",
             outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
             stateMutability: "view",
@@ -203,7 +266,9 @@ async function fetchOtherCoins(
         address: CULT_ADDRESS,
         abi: [
           {
-            inputs: [{ internalType: "address", name: "account", type: "address" }],
+            inputs: [
+              { internalType: "address", name: "account", type: "address" },
+            ],
             name: "balanceOf",
             outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
             stateMutability: "view",
@@ -235,7 +300,9 @@ async function fetchOtherCoins(
         address: ENS_ADDRESS,
         abi: [
           {
-            inputs: [{ internalType: "address", name: "account", type: "address" }],
+            inputs: [
+              { internalType: "address", name: "account", type: "address" },
+            ],
             name: "balanceOf",
             outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
             stateMutability: "view",
@@ -312,7 +379,14 @@ async function originalFetchOtherCoins(
   const coinPromises = allCoinsData.map(async (coin: any) => {
     const [id, uri, r0, r1, pid, liq] = Array.isArray(coin)
       ? coin
-      : [coin.coinId, coin.tokenURI, coin.reserve0, coin.reserve1, coin.poolId, coin.liquidity];
+      : [
+          coin.coinId,
+          coin.tokenURI,
+          coin.reserve0,
+          coin.reserve1,
+          coin.poolId,
+          coin.liquidity,
+        ];
     const coinId = BigInt(id);
     const [symbol, name, lockup] = await Promise.all([
       publicClient
@@ -375,6 +449,30 @@ async function originalFetchOtherCoins(
   });
   const coins = (await Promise.all(coinPromises)).filter(Boolean);
 
+  // Build ERC20 symbol set from your tokenlist for collision filtering
+  const erc20metas = await loadErc20Tokens();
+  const erc20Symbols = new Set(
+    erc20metas.map((t) => normalizeSymbol(t.symbol)),
+  );
+
+  // Filter out 6909 coins (COOKBOOK/ZAMM) with blacklisted or ERC20-colliding symbols
+  const filteredCoins = coins.filter((m) => {
+    if (!is6909Source(m)) return true;
+    const sym = normalizeSymbol(m.symbol as string);
+    if (!sym) return true;
+    if (BLACKLIST_6909.has(sym)) return false;
+    if (erc20Symbols.has(sym)) return false;
+    return true;
+  });
+
+  // Sort coins by ETH reserves descending
+  const sortedCoins = filteredCoins.sort((a, b) =>
+    Number((b.reserve0 || 0n) - (a.reserve0 || 0n)),
+  );
+
+  // Include ERC20 list here too (parity with GQL path)
+  const withErc20 = [...sortedCoins, ...erc20metas];
+
   // Fetch USDT-ETH pool reserves & balance
   const usdtToken: TokenMeta = { ...USDT_TOKEN };
   try {
@@ -392,7 +490,9 @@ async function originalFetchOtherCoins(
       address: USDT_ADDRESS,
       abi: [
         {
-          inputs: [{ internalType: "address", name: "account", type: "address" }],
+          inputs: [
+            { internalType: "address", name: "account", type: "address" },
+          ],
           name: "balanceOf",
           outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
           stateMutability: "view",
@@ -423,7 +523,9 @@ async function originalFetchOtherCoins(
         address: CULT_ADDRESS,
         abi: [
           {
-            inputs: [{ internalType: "address", name: "account", type: "address" }],
+            inputs: [
+              { internalType: "address", name: "account", type: "address" },
+            ],
             name: "balanceOf",
             outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
             stateMutability: "view",
@@ -455,7 +557,9 @@ async function originalFetchOtherCoins(
         address: ENS_ADDRESS,
         abi: [
           {
-            inputs: [{ internalType: "address", name: "account", type: "address" }],
+            inputs: [
+              { internalType: "address", name: "account", type: "address" },
+            ],
             name: "balanceOf",
             outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
             stateMutability: "view",
@@ -469,9 +573,7 @@ async function originalFetchOtherCoins(
     } catch {}
   }
 
-  // Sort coins by ETH reserves descending
-  const sortedCoins = coins.sort((a, b) => Number((b.reserve0 || 0n) - (a.reserve0 || 0n)));
-  return [...sortedCoins, usdtToken, cultToken, ensToken];
+  return [...withErc20, usdtToken, cultToken, ensToken];
 }
 
 /**
