@@ -132,8 +132,8 @@ importers:
         specifier: 3.25.63
         version: 3.25.63
       zrouter-sdk:
-        specifier: ^0.0.6
-        version: 0.0.6(viem@2.29.0(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.25.63))
+        specifier: ^0.0.7
+        version: 0.0.7(viem@2.29.0(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.25.63))
     devDependencies:
       '@biomejs/biome':
         specifier: ^1.8.0
@@ -3591,8 +3591,8 @@ packages:
   zod@3.25.63:
     resolution: {integrity: sha512-3ttCkqhtpncYXfP0f6dsyabbYV/nEUW+Xlu89jiXbTBifUfjaSqXOG6JnQPLtqt87n7KAmnMqcjay6c0Wq0Vbw==}
 
-  zrouter-sdk@0.0.6:
-    resolution: {integrity: sha512-f+IA3NjzXvEiFpxfIoHaHzHYRrPBCGN7EdNUrgkUXcgxEfuIxvfZpWQJEaIU3kTY7082wVs9gbTL18mg5Ckehw==}
+  zrouter-sdk@0.0.7:
+    resolution: {integrity: sha512-yYTSO0cczsLrKzeJ38tbHa4Vysto8H8VJNe67hGda5FMxpni2SN6JqnTXS7NB45iurCIscFvrNLViYFLl0XCVg==}
     engines: {node: '>=20'}
     peerDependencies:
       viem: '>=2.0.0'
@@ -7759,7 +7759,7 @@ snapshots:
 
   zod@3.25.63: {}
 
-  zrouter-sdk@0.0.6(viem@2.29.0(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.25.63)):
+  zrouter-sdk@0.0.7(viem@2.29.0(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.25.63)):
     dependencies:
       viem: 2.29.0(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.25.63)
 
