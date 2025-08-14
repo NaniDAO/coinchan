@@ -26,12 +26,14 @@ interface CultSwapTileProps {
   ethBalance: bigint;
   cultBalance: bigint;
   onTransactionComplete?: () => void;
-  onPriceImpactChange?: (impact: {
-    currentPrice: number;
-    projectedPrice: number;
-    impactPercent: number;
-    action: "buy" | "sell";
-  } | null) => void;
+  onPriceImpactChange?: (
+    impact: {
+      currentPrice: number;
+      projectedPrice: number;
+      impactPercent: number;
+      action: "buy" | "sell";
+    } | null,
+  ) => void;
   arbitrageInfo?: {
     type: "swap" | "zap";
     cultFromUniV3: number;
@@ -195,7 +197,7 @@ export const CultSwapTile = ({
 
     try {
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
-      
+
       if (swapDirection === "buy") {
         // Buy CULT with ETH
         const ethIn = parseEther(sellAmount);
@@ -208,7 +210,7 @@ export const CultSwapTile = ({
         // Get tax rate and calculate gross amount for ETH
         const cultTaxRate = await getCultHookTaxRate();
         const effectiveSlippageBps = slippageBps + cultTaxRate;
-        
+
         const cultOut = getAmountOut(ethIn, reserves.reserve0, reserves.reserve1, 30n);
         const minOutWithTax = withSlippage(cultOut, effectiveSlippageBps);
         const msgValue = toGross(ethIn, cultTaxRate);
@@ -253,7 +255,7 @@ export const CultSwapTile = ({
         // Get tax rate for slippage calculation
         const cultTaxRate = await getCultHookTaxRate();
         const effectiveSlippageBps = slippageBps + cultTaxRate;
-        
+
         const ethOut = getAmountOut(cultIn, reserves.reserve1, reserves.reserve0, 30n);
         const minOutWithTax = withSlippage(ethOut, effectiveSlippageBps);
 
@@ -280,15 +282,11 @@ export const CultSwapTile = ({
 
   // Create token objects with balances
   const sellToken = useMemo(() => {
-    return swapDirection === "buy"
-      ? { ...ethToken, balance: ethBalance }
-      : { ...cultToken, balance: cultBalance };
+    return swapDirection === "buy" ? { ...ethToken, balance: ethBalance } : { ...cultToken, balance: cultBalance };
   }, [swapDirection, ethToken, cultToken, ethBalance, cultBalance]);
 
   const buyToken = useMemo(() => {
-    return swapDirection === "buy"
-      ? { ...cultToken, balance: cultBalance }
-      : { ...ethToken, balance: ethBalance };
+    return swapDirection === "buy" ? { ...cultToken, balance: cultBalance } : { ...ethToken, balance: ethBalance };
   }, [swapDirection, ethToken, cultToken, ethBalance, cultBalance]);
 
   useEffect(() => {
@@ -306,9 +304,7 @@ export const CultSwapTile = ({
             <TrendingUp className="h-3 w-3" />
             <span className="text-muted-foreground">{arbitrageInfo.testAmountETH} ETH</span>
             <ArrowRight className="h-3 w-3 text-muted-foreground" />
-            <span className="font-medium">
-              {formatNumber(arbitrageInfo.cultFromCookbook, 0)} CULT
-            </span>
+            <span className="font-medium">{formatNumber(arbitrageInfo.cultFromCookbook, 0)} CULT</span>
             <span className="ml-1 font-semibold text-green-600 dark:text-green-400">
               +{arbitrageInfo.percentGain.toFixed(1)}%
             </span>
@@ -432,9 +428,7 @@ export const CultSwapTile = ({
           <div className="mt-2 p-2 bg-muted/50 rounded-md">
             <div className="text-xs text-muted-foreground flex items-center justify-between">
               <span>{t("swap.price_impact")}:</span>
-              <span
-                className={`font-medium ${priceImpact.impactPercent > 0 ? "text-green-600" : "text-red-600"}`}
-              >
+              <span className={`font-medium ${priceImpact.impactPercent > 0 ? "text-green-600" : "text-red-600"}`}>
                 {priceImpact.impactPercent > 0 ? "+" : ""}
                 {priceImpact.impactPercent.toFixed(2)}%
               </span>

@@ -246,11 +246,11 @@ export function FarmMigrateDialog({ stream, lpToken, userPosition, trigger, onSu
     const filtered = allStreams.filter((s: IncentiveStream) => {
       // Check if the current stream is for a CULT LP token
       const isCurrentCultLP = stream.lpId === CULT_POOL_ID || lpToken?.symbol === "CULT";
-      
+
       // For CULT LP migration, show all streams that accept CULT LP tokens
       // For non-CULT pools, match by exact lpId
       let matchesLP: boolean;
-      
+
       if (isCurrentCultLP) {
         // For CULT LP, show all streams that accept CULT LP (same lpId as CULT_POOL_ID)
         matchesLP = s.lpId === CULT_POOL_ID;
@@ -258,7 +258,7 @@ export function FarmMigrateDialog({ stream, lpToken, userPosition, trigger, onSu
         // For other tokens, only show streams with exact same lpId
         matchesLP = s.lpId.toString() === stream.lpId.toString();
       }
-        
+
       const differentChef = s.chefId.toString() !== stream.chefId.toString();
       const isActive = s.status === "ACTIVE";
       const notEnded = Number(s.endTime) > Math.floor(Date.now() / 1000);

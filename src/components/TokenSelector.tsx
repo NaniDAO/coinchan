@@ -112,22 +112,17 @@ export const TokenSelector = memo(
             <div className="flex items-center gap-1">
               <div
                 className={`text-xs font-medium text-muted-foreground min-w-[50px] h-[14px] ${
-                  (selectedToken.id === null && isEthBalanceFetching) ||
-                  selectedToken.isFetching
+                  (selectedToken.id === null && isEthBalanceFetching) || selectedToken.isFetching
                     ? "animate-pulse px-1 rounded bg-transparent"
                     : ""
                 }`}
               >
                 {formatBalance(selectedToken)}
                 {selectedToken.id === null && isEthBalanceFetching && (
-                  <span className="text-xs text-primary ml-1 inline-block animate-spin">
-                    ⟳
-                  </span>
+                  <span className="text-xs text-primary ml-1 inline-block animate-spin">⟳</span>
                 )}
                 {selectedToken.id !== null && selectedToken.isFetching && (
-                  <span className="text-xs text-primary ml-1 inline-block animate-spin">
-                    ⟳
-                  </span>
+                  <span className="text-xs text-primary ml-1 inline-block animate-spin">⟳</span>
                 )}
               </div>
             </div>
@@ -147,10 +142,7 @@ export const TokenSelector = memo(
                   onChange={(e) => {
                     const query = e.target.value.toLowerCase();
                     const isStableSearch =
-                      query === "usdt" ||
-                      query === "tether" ||
-                      query.includes("stable") ||
-                      query.includes("usd");
+                      query === "usdt" || query === "tether" || query.includes("stable") || query.includes("usd");
 
                     const w = window as any;
                     if (w.searchDebounce) {
@@ -158,49 +150,31 @@ export const TokenSelector = memo(
                     }
 
                     w.searchDebounce = requestAnimationFrame(() => {
-                      const visibleItems = document.querySelectorAll(
-                        "[data-token-symbol]:not(.hidden)",
-                      );
-                      const allItems = document.querySelectorAll(
-                        "[data-token-symbol]",
-                      );
+                      const visibleItems = document.querySelectorAll("[data-token-symbol]:not(.hidden)");
+                      const allItems = document.querySelectorAll("[data-token-symbol]");
 
                       if (isStableSearch) {
-                        const usdtItem = document.querySelector(
-                          "[data-token-symbol='USDT']",
-                        );
+                        const usdtItem = document.querySelector("[data-token-symbol='USDT']");
                         if (usdtItem) {
                           usdtItem.classList.remove("hidden");
                         }
                       }
 
-                      const itemsToSearch =
-                        visibleItems.length > 0 ? visibleItems : allItems;
+                      const itemsToSearch = visibleItems.length > 0 ? visibleItems : allItems;
                       const itemsArray = Array.from(itemsToSearch);
                       let anyVisible = false;
 
                       for (let i = 0; i < itemsArray.length; i++) {
                         const item = itemsArray[i];
-                        const symbol =
-                          item
-                            .getAttribute("data-token-symbol")
-                            ?.toLowerCase() || "";
-                        const name =
-                          item.getAttribute("data-token-name")?.toLowerCase() ||
-                          "";
+                        const symbol = item.getAttribute("data-token-symbol")?.toLowerCase() || "";
+                        const name = item.getAttribute("data-token-name")?.toLowerCase() || "";
                         const id = item.getAttribute("data-token-id") || "";
 
                         // Enhanced search: also match if query is a number and matches start of ID
                         const queryIsNumber = !isNaN(Number(query));
-                        const idMatches = queryIsNumber
-                          ? id.startsWith(query)
-                          : id.toLowerCase().includes(query);
+                        const idMatches = queryIsNumber ? id.startsWith(query) : id.toLowerCase().includes(query);
 
-                        if (
-                          symbol.includes(query) ||
-                          name.includes(query) ||
-                          idMatches
-                        ) {
+                        if (symbol.includes(query) || name.includes(query) || idMatches) {
                           item.classList.remove("hidden");
                           anyVisible = true;
                         } else {
@@ -209,9 +183,7 @@ export const TokenSelector = memo(
                       }
 
                       if (isStableSearch && !anyVisible) {
-                        const usdtItem = document.querySelector(
-                          "[data-token-symbol='USDT']",
-                        );
+                        const usdtItem = document.querySelector("[data-token-symbol='USDT']");
                         if (usdtItem) {
                           usdtItem.classList.remove("hidden");
                           anyVisible = true;
@@ -222,27 +194,15 @@ export const TokenSelector = memo(
                         const allItemsArray = Array.from(allItems);
                         for (let i = 0; i < allItemsArray.length; i++) {
                           const item = allItemsArray[i];
-                          const symbol =
-                            item
-                              .getAttribute("data-token-symbol")
-                              ?.toLowerCase() || "";
-                          const name =
-                            item
-                              .getAttribute("data-token-name")
-                              ?.toLowerCase() || "";
+                          const symbol = item.getAttribute("data-token-symbol")?.toLowerCase() || "";
+                          const name = item.getAttribute("data-token-name")?.toLowerCase() || "";
                           const id = item.getAttribute("data-token-id") || "";
 
                           // Enhanced search: also match if query is a number and matches start of ID
                           const queryIsNumber = !isNaN(Number(query));
-                          const idMatches = queryIsNumber
-                            ? id.startsWith(query)
-                            : id.toLowerCase().includes(query);
+                          const idMatches = queryIsNumber ? id.startsWith(query) : id.toLowerCase().includes(query);
 
-                          if (
-                            symbol.includes(query) ||
-                            name.includes(query) ||
-                            idMatches
-                          ) {
+                          if (symbol.includes(query) || name.includes(query) || idMatches) {
                             item.classList.remove("hidden");
                           } else {
                             item.classList.add("hidden");
@@ -277,9 +237,7 @@ export const TokenSelector = memo(
                     if (cached) return cached;
                   } catch (e) {}
 
-                  const feePercentage = token.swapFee
-                    ? Number(token.swapFee) / 100
-                    : 1;
+                  const feePercentage = token.swapFee ? Number(token.swapFee) / 100 : 1;
 
                   let feeStr;
                   if (feePercentage % 1 === 0) {
@@ -326,12 +284,8 @@ export const TokenSelector = memo(
                   let reserveStr = "";
 
                   if (token.isCustomPool) {
-                    const ethReserveValue = Number(
-                      formatEther(token.reserve0 || 0n),
-                    );
-                    const tokenReserveValue = Number(
-                      formatUnits(token.reserve1 || 0n, tokenDecimals),
-                    );
+                    const ethReserveValue = Number(formatEther(token.reserve0 || 0n));
+                    const tokenReserveValue = Number(formatUnits(token.reserve1 || 0n, tokenDecimals));
 
                     let ethStr = "";
                     if (ethReserveValue >= 10000) {
@@ -359,9 +313,7 @@ export const TokenSelector = memo(
                       reserveStr = `${ethStr} / ${tokenStr}`;
                     }
                   } else {
-                    const ethReserveValue = Number(
-                      formatEther(token.reserve0 || 0n),
-                    );
+                    const ethReserveValue = Number(formatEther(token.reserve0 || 0n));
 
                     if (ethReserveValue >= 10000) {
                       reserveStr = `${Math.floor(ethReserveValue / 1000)}K ETH`;
@@ -411,38 +363,27 @@ export const TokenSelector = memo(
                         <div className="flex items-center gap-1.5">
                           <span className="font-medium">{token.symbol}</span>
                           {token.id !== null && token.source !== "ERC20" && (
-                            <span className="text-xs text-muted-foreground">
-                              #{token.id.toString()}
-                            </span>
+                            <span className="text-xs text-muted-foreground">#{token.id.toString()}</span>
                           )}
                         </div>
-                        {reserves && (
-                          <span className="text-xs text-muted-foreground">
-                            {reserves}
-                          </span>
-                        )}
+                        {reserves && <span className="text-xs text-muted-foreground">{reserves}</span>}
                       </div>
                     </div>
                     <div className="text-right min-w-[60px]">
                       <div
                         className={cn(
                           "text-sm font-medium h-[18px] text-foreground",
-                          (token.id === null && isEthBalanceFetching) ||
-                            token.isFetching
+                          (token.id === null && isEthBalanceFetching) || token.isFetching
                             ? "animate-pulse px-1 bg-transparent"
                             : "",
                         )}
                       >
                         {balance}
                         {token.id === null && isEthBalanceFetching && (
-                          <span className="text-xs text-primary ml-1 inline-block animate-spin">
-                            ⟳
-                          </span>
+                          <span className="text-xs text-primary ml-1 inline-block animate-spin">⟳</span>
                         )}
                         {token.id !== null && token.isFetching && (
-                          <span className="text-xs text-primary ml-1 inline-block animate-spin">
-                            ⟳
-                          </span>
+                          <span className="text-xs text-primary ml-1 inline-block animate-spin">⟳</span>
                         )}
                       </div>
                     </div>

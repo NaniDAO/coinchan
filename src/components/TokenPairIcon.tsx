@@ -56,35 +56,16 @@ export const TokenPairIcon = memo(
 
       if (isCult && !image) {
         // Use local CULT image
-        return (
-          <img
-            src="/cult.jpg"
-            alt="CULT"
-            className={cn(sizeClasses[size], "rounded-full object-cover")}
-          />
-        );
+        return <img src="/cult.jpg" alt="CULT" className={cn(sizeClasses[size], "rounded-full object-cover")} />;
       }
 
       if (image) {
-        return (
-          <img
-            src={image}
-            alt={symbol}
-            className={cn(sizeClasses[size], "rounded-full object-cover")}
-          />
-        );
+        return <img src={image} alt={symbol} className={cn(sizeClasses[size], "rounded-full object-cover")} />;
       }
 
       // Fallback to initials
       return (
-        <div
-          className={cn(
-            sizeClasses[size],
-            bg,
-            text,
-            "rounded-full flex items-center justify-center font-bold"
-          )}
-        >
+        <div className={cn(sizeClasses[size], bg, text, "rounded-full flex items-center justify-center font-bold")}>
           {getInitials(symbol)}
         </div>
       );
@@ -102,15 +83,11 @@ export const TokenPairIcon = memo(
     // Token pair with overlap
     return (
       <div className={cn("flex items-center -space-x-1.5", containerSizeClasses[size], className)}>
-        <div className="relative z-10">
-          {renderTokenIcon(token1Symbol, token1Image)}
-        </div>
-        <div className="relative">
-          {renderTokenIcon(token2Symbol, token2Image)}
-        </div>
+        <div className="relative z-10">{renderTokenIcon(token1Symbol, token1Image)}</div>
+        <div className="relative">{renderTokenIcon(token2Symbol, token2Image)}</div>
       </div>
     );
-  }
+  },
 );
 
 TokenPairIcon.displayName = "TokenPairIcon";

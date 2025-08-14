@@ -15,9 +15,7 @@ export const SwapModeTab = ({ swapMode, setSwapMode }: SwapModeTabProps) => {
         <button
           onClick={() => setSwapMode("instant")}
           className={`px-3 py-1.5 text-xs font-bold uppercase cursor-pointer transition-all duration-100 font-body hover:opacity-80 focus:ring-2 focus:ring-primary/50 focus:outline-none ${
-            swapMode === "instant"
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted text-muted-foreground"
+            swapMode === "instant" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
           }`}
         >
           {t("swap.instant")}
@@ -25,9 +23,7 @@ export const SwapModeTab = ({ swapMode, setSwapMode }: SwapModeTabProps) => {
         <button
           onClick={() => setSwapMode("limit")}
           className={`px-3 py-1.5 text-xs font-bold uppercase cursor-pointer transition-all duration-100 font-body hover:opacity-80 focus:ring-2 focus:ring-primary/50 focus:outline-none ${
-            swapMode === "limit"
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted text-muted-foreground"
+            swapMode === "limit" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
           }`}
         >
           {t("swap.limit_order")}

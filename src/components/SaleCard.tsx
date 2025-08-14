@@ -261,7 +261,9 @@ export const SaleCard = memo(({ sale, hasHighMomentum = false }: { sale: Sale; h
                       {funded < 0.05 ? (
                         <span className="text-muted-foreground">⚡ {t("sale.charging", "Charging")}</span>
                       ) : (
-                        <>{funded.toFixed(1)}%{isStandard && " of 10 ETH"}</>
+                        <>
+                          {funded.toFixed(1)}%{isStandard && " of 10 ETH"}
+                        </>
                       )}
                     </div>
                   </div>

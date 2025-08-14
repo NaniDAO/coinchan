@@ -25,13 +25,10 @@ export function ZCurvePriceImpact({
 
   // Helper function to calculate marginal price at a given netSold amount - memoized
   // Uses the shared calculateCost function from zCurveMath
-  const calculateMarginalPrice = useCallback(
-    (netSold: bigint, quadCap: bigint, divisor: bigint): bigint => {
-      // Marginal price is the cost of the next UNIT_SCALE tokens
-      return calculateCost(netSold + UNIT_SCALE, quadCap, divisor) - calculateCost(netSold, quadCap, divisor);
-    },
-    [],
-  );
+  const calculateMarginalPrice = useCallback((netSold: bigint, quadCap: bigint, divisor: bigint): bigint => {
+    // Marginal price is the cost of the next UNIT_SCALE tokens
+    return calculateCost(netSold + UNIT_SCALE, quadCap, divisor) - calculateCost(netSold, quadCap, divisor);
+  }, []);
 
   const priceImpact = useMemo(() => {
     if (!tradeAmount || parseFloat(tradeAmount) === 0) return null;

@@ -1,9 +1,6 @@
 import { CoinchanAbi, CoinchanAddress } from "@/constants/Coinchan";
 import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
-import {
-  CoinsMetadataHelperAbi,
-  CoinsMetadataHelperAddress,
-} from "@/constants/CoinsMetadataHelper";
+import { CoinsMetadataHelperAbi, CoinsMetadataHelperAddress } from "@/constants/CoinsMetadataHelper";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
 import { isCookbookCoin } from "@/lib/coin-utils";
@@ -32,8 +29,7 @@ import { erc20Abi } from "viem";
  */
 const BLACKLIST_6909 = new Set(["USDC", "USDT", "DAI", "ENS", "NANI"]);
 const normalizeSymbol = (s?: string | null) => (s ?? "").trim().toUpperCase();
-const is6909Source = (m: TokenMeta) =>
-  m.source === "COOKBOOK" || m.source === "ZAMM";
+const is6909Source = (m: TokenMeta) => m.source === "COOKBOOK" || m.source === "ZAMM";
 
 /**
  * Fetch ETH balance as TokenMeta
@@ -106,23 +102,114 @@ async function loadErc20Tokens(): Promise<TokenMeta[]> {
 }
 
 /**
- * Generic comparator:
- * 1) Balance (non-zero first, then larger balance)
- * 2) Liquidity (reserve0 desc)
- * 3) Coin id (newest first)
+ * Intelligent comparator that creates tiers of tokens:
+ * Tier 1: ETH (always first)
+ * Tier 2: 6909 tokens with balance AND good liquidity
+ * Tier 3: Well-known ERC20s with balance (USDT, USDC, DAI, etc)
+ * Tier 4: 6909 tokens with balance but low liquidity
+ * Tier 5: Other ERC20s with balance
+ * Tier 6: 6909 tokens without balance but with liquidity
+ * Tier 7: Everything else
  */
 function tokenSort(a: TokenMeta, b: TokenMeta) {
+  // ETH always comes first
+  if (a.id === null) return -1;
+  if (b.id === null) return 1;
+
   const aBal = a?.balance ? Number(a.balance) : 0;
   const bBal = b?.balance ? Number(b.balance) : 0;
-  if (aBal !== bBal) return bBal - aBal;
-
   const aLiq = a?.reserve0 ? Number(a.reserve0) : 0;
   const bLiq = b?.reserve0 ? Number(b.reserve0) : 0;
-  if (aLiq !== bLiq) return bLiq - aLiq;
 
-  const aId = a?.id ? Number(a.id) : 0;
-  const bId = b?.id ? Number(b.id) : 0;
-  return bId - aId;
+  // Identify token types
+  const aIs6909 = a.source === "COOKBOOK" || a.source === "ZAMM";
+  const bIs6909 = b.source === "COOKBOOK" || b.source === "ZAMM";
+  const aIsERC20 = a.source === "ERC20";
+  const bIsERC20 = b.source === "ERC20";
+
+  // Well-known stablecoins and major tokens (including CULT and ENS which have Cookbook pools)
+  const majorTokens = new Set([
+    "USDT",
+    "USDC",
+    "DAI",
+    "WETH",
+    "WBTC",
+    "LINK",
+    "UNI",
+    "AAVE",
+    "CRV",
+    "MKR",
+    "SNX",
+    "COMP",
+    "CULT",
+    "ENS",
+  ]);
+  const aIsMajor = (aIsERC20 && majorTokens.has(a.symbol as string)) || a.symbol === "CULT" || a.symbol === "ENS"; // Special case for CULT/ENS
+  const bIsMajor = (bIsERC20 && majorTokens.has(b.symbol as string)) || b.symbol === "CULT" || b.symbol === "ENS"; // Special case for CULT/ENS
+
+  // Calculate liquidity scores (using log scale)
+  const aLiqScore = aLiq > 0 ? Math.log10(aLiq + 1) : 0;
+  const bLiqScore = bLiq > 0 ? Math.log10(bLiq + 1) : 0;
+
+  // Define good liquidity threshold (e.g., > 0.1 ETH)
+  const MIN_GOOD_LIQUIDITY = 1e17; // 0.1 ETH in wei
+  const aHasGoodLiquidity = aLiq >= MIN_GOOD_LIQUIDITY;
+  const bHasGoodLiquidity = bLiq >= MIN_GOOD_LIQUIDITY;
+
+  const aHasBalance = aBal > 0;
+  const bHasBalance = bBal > 0;
+
+  // Calculate token tiers
+  function getTier(
+    token: TokenMeta,
+    hasBalance: boolean,
+    is6909: boolean,
+    isERC20: boolean,
+    isMajor: boolean,
+    hasGoodLiq: boolean,
+    liq: number,
+  ): number {
+    if (token.id === null) return 1; // ETH
+    if (is6909 && hasBalance && hasGoodLiq) return 2; // Liquid 6909 with balance
+    if (isMajor && hasBalance) return 3; // Major ERC20 with balance
+    if (is6909 && hasBalance && !hasGoodLiq) return 4; // Low liquidity 6909 with balance
+    if (isERC20 && hasBalance && !isMajor) return 5; // Other ERC20 with balance
+    if (is6909 && !hasBalance && liq > 0) return 6; // 6909 without balance but with liquidity
+    return 7; // Everything else
+  }
+
+  const aTier = getTier(a, aHasBalance, aIs6909, aIsERC20, aIsMajor, aHasGoodLiquidity, aLiq);
+  const bTier = getTier(b, bHasBalance, bIs6909, bIsERC20, bIsMajor, bHasGoodLiquidity, bLiq);
+
+  // Different tiers: lower tier number wins
+  if (aTier !== bTier) return aTier - bTier;
+
+  // Same tier: sort within tier
+  if (aTier === 2 || aTier === 4) {
+    // 6909 tokens with balance: sort by liquidity-weighted value
+    const aBalScore = Math.log10(aBal + 1) / 20;
+    const bBalScore = Math.log10(bBal + 1) / 20;
+    const aScore = aLiqScore * 3 + aBalScore; // Heavily weight liquidity
+    const bScore = bLiqScore * 3 + bBalScore;
+    if (Math.abs(aScore - bScore) > 0.001) return bScore - aScore;
+  } else if (aTier === 3 || aTier === 5) {
+    // ERC20 tokens: sort by balance amount (since no liquidity data)
+    if (aBal !== bBal) return bBal - aBal;
+    // Then alphabetically for consistency
+    return (a.symbol || "").localeCompare(b.symbol || "");
+  } else if (aTier === 6) {
+    // 6909 without balance: sort by liquidity
+    if (aLiq !== bLiq) return bLiq - aLiq;
+  }
+
+  // Final tiebreaker: newer coins first (higher ID) for 6909, alphabetical for ERC20
+  if (aIs6909 && bIs6909) {
+    const aId = a?.id ? Number(a.id) : 0;
+    const bId = b?.id ? Number(b.id) : 0;
+    return bId - aId;
+  }
+
+  return (a.symbol || "").localeCompare(b.symbol || "");
 }
 
 /**
@@ -168,9 +255,7 @@ async function fetchOtherCoins(
 
   // Load ERC20 list and build symbol set for collision filtering
   const erc20metas = await loadErc20Tokens();
-  const erc20Symbols = new Set(
-    erc20metas.map((t) => normalizeSymbol(t.symbol)),
-  );
+  const erc20Symbols = new Set(erc20metas.map((t) => normalizeSymbol(t.symbol)));
 
   // Filter out 6909 coins that are blacklisted or collide with ERC20 symbols
   metas = metas.filter((m) => {
@@ -216,10 +301,7 @@ async function fetchOtherCoins(
 
         return { ...m, balance: bal };
       } catch (error) {
-        console.error(
-          `Failed to fetch balance for ${m.source} token ${m.symbol}`,
-          error,
-        );
+        console.error(`Failed to fetch balance for ${m.source} token ${m.symbol}`, error);
         return m;
       }
     }),
@@ -349,14 +431,7 @@ async function originalFetchOtherCoins(
   const coinPromises = allCoinsData.map(async (coin: any) => {
     const [id, uri, r0, r1, pid, liq] = Array.isArray(coin)
       ? coin
-      : [
-          coin.coinId,
-          coin.tokenURI,
-          coin.reserve0,
-          coin.reserve1,
-          coin.poolId,
-          coin.liquidity,
-        ];
+      : [coin.coinId, coin.tokenURI, coin.reserve0, coin.reserve1, coin.poolId, coin.liquidity];
     const coinId = BigInt(id);
     const [symbol, name, lockup] = await Promise.all([
       publicClient
@@ -420,9 +495,7 @@ async function originalFetchOtherCoins(
 
   // Build ERC20 symbol set from your tokenlist for collision filtering
   const erc20metas = await loadErc20Tokens();
-  const erc20Symbols = new Set(
-    erc20metas.map((t) => normalizeSymbol(t.symbol)),
-  );
+  const erc20Symbols = new Set(erc20metas.map((t) => normalizeSymbol(t.symbol)));
 
   // Filter out 6909 coins (COOKBOOK/ZAMM) with blacklisted or ERC20-colliding symbols
   const filteredCoins = coins.filter((m) => {
@@ -453,10 +526,7 @@ async function originalFetchOtherCoins(
         }
         return m;
       } catch (e) {
-        console.error(
-          `Failed to fetch ERC20 balance for ${m.symbol} @ ${m.token1}`,
-          e,
-        );
+        console.error(`Failed to fetch ERC20 balance for ${m.symbol} @ ${m.token1}`, e);
         return m;
       }
     }),

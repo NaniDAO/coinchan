@@ -73,15 +73,11 @@ export const CoinSaleReelItem = memo(({ sale, index, visibleIndex }: CoinSaleRee
         <div className="absolute inset-0 bg-background/95 opacity-0 hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center p-2">
           <div className="text-base font-bold">{sale.coin?.symbol}</div>
           <div className="text-xs text-muted-foreground mt-1">
-            {sale.status === "ACTIVE" ? (
-              fundedPercentage < 0.05 ? (
-                `⚡ ${t("sale.charging", "Charging")}`
-              ) : (
-                `${fundedPercentage.toFixed(1)}% funded`
-              )
-            ) : (
-              "Finalized"
-            )}
+            {sale.status === "ACTIVE"
+              ? fundedPercentage < 0.05
+                ? `⚡ ${t("sale.charging", "Charging")}`
+                : `${fundedPercentage.toFixed(1)}% funded`
+              : "Finalized"}
           </div>
           {sale.status === "ACTIVE" && ethEscrow > 0n ? (
             <div className="text-xs mt-1 font-mono">{parseFloat(formatEther(ethEscrow)).toFixed(3)} ETH raised</div>

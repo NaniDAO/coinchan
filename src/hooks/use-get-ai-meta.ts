@@ -29,15 +29,9 @@ function normalizeAddress(addr: string) {
   return addr.trim().toLowerCase();
 }
 
-function pickAiMeta(
-  list: TokenList,
-  address: string,
-  id?: string,
-): AiMeta | undefined {
+function pickAiMeta(list: TokenList, address: string, id?: string): AiMeta | undefined {
   const addr = normalizeAddress(address);
-  const matches = list.tokens.filter(
-    (t) => normalizeAddress(t.address) === addr,
-  );
+  const matches = list.tokens.filter((t) => normalizeAddress(t.address) === addr);
   if (!matches.length) return undefined;
   if (id !== undefined) {
     const withId = matches.find((t) => t.extensions?.id === String(id));
@@ -67,11 +61,7 @@ export const useGetAiMeta = (address?: string, id?: string) => {
       } catch (e) {
         console.error(e);
         // Network layer error (CORS, DNS, offline, blocked, etc.)
-        throw new Error(
-          e instanceof Error
-            ? `Network error: ${e.message}`
-            : "Network error fetching token list",
-        );
+        throw new Error(e instanceof Error ? `Network error: ${e.message}` : "Network error fetching token list");
       }
 
       if (!res.ok) {
@@ -88,9 +78,7 @@ export const useGetAiMeta = (address?: string, id?: string) => {
           if (!address) return undefined;
           return pickAiMeta(maybeJson as TokenList, address, id);
         } catch {
-          throw new Error(
-            `Unexpected content-type: "${contentType}". The server may be blocking CORS.`,
-          );
+          throw new Error(`Unexpected content-type: "${contentType}". The server may be blocking CORS.`);
         }
       }
 

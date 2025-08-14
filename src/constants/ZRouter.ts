@@ -1,7 +1,6 @@
 import { Address } from "viem";
 
-export const ZRouterAddress =
-  "0x6061471785DC4c169Fa6F5D00d9632d7EA9f1788" as Address;
+export const ZRouterAddress = "0x6061471785DC4c169Fa6F5D00d9632d7EA9f1788" as Address;
 export const ZRouterAbi = [
   {
     type: "constructor",

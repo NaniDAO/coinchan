@@ -85,7 +85,7 @@ export function OneShotLaunchForm() {
   const { data: gasPrice } = useGasPrice();
   const { data: ethPrice } = useETHPrice();
   const { writeContract, data: hash, isPending, error: writeError } = useWriteContract();
-  
+
   // Filter out user rejection errors for display
   const error = useMemo(() => {
     if (!writeError) return null;
@@ -98,7 +98,7 @@ export function OneShotLaunchForm() {
 
   // Store launched coin ID
   const [launchId, setLaunchId] = useState<bigint | null>(null);
-  
+
   // State for collapsible advanced details
   const [showAdvancedDetails, setShowAdvancedDetails] = useState<boolean>(false);
 
@@ -107,14 +107,14 @@ export function OneShotLaunchForm() {
     if (receipt) {
       // Parse logs to find the Launch event and extract coin ID
       try {
-        const launchLog = receipt.logs.find(log => {
+        const launchLog = receipt.logs.find((log) => {
           try {
             const decoded = decodeEventLog({
               abi: zCurveAbi,
               data: log.data,
               topics: log.topics,
             });
-            return decoded.eventName === 'Launch';
+            return decoded.eventName === "Launch";
           } catch {
             return false;
           }
@@ -137,7 +137,7 @@ export function OneShotLaunchForm() {
           }
         }
       } catch (error) {
-        console.error('Failed to parse launch event:', error);
+        console.error("Failed to parse launch event:", error);
       }
     }
   }, [receipt]);
@@ -413,7 +413,7 @@ export function OneShotLaunchForm() {
 
     try {
       setIsUploading(true);
-      
+
       // Show single uploading toast
       toast.info(t("create.preparing_launch", "Preparing your coin launch..."));
 
@@ -430,7 +430,7 @@ export function OneShotLaunchForm() {
 
       // Prepare upload promises
       const uploadPromises: Promise<any>[] = [];
-      
+
       // If image exists, upload it in parallel
       if (imageBuffer) {
         const imageUploadPromise = pinImageToPinata(imageBuffer, `${formData.metadataName}-logo`, {
@@ -439,7 +439,7 @@ export function OneShotLaunchForm() {
             coinSymbol: formData.metadataSymbol,
             type: "coin-logo",
           },
-        }).then(imageUri => {
+        }).then((imageUri) => {
           metadata.image = imageUri;
         });
         uploadPromises.push(imageUploadPromise);
@@ -686,117 +686,116 @@ export function OneShotLaunchForm() {
             className="w-full justify-between text-sm font-medium hover:bg-accent/50 transition-colors"
           >
             <span>{t("create.advanced_details", "Advanced Details")}</span>
-            {showAdvancedDetails ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
+            {showAdvancedDetails ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </Button>
-          
+
           {/* Collapsible Advanced Details Section */}
           {showAdvancedDetails && (
             <div className="space-y-4 animate-fadeIn">
               {/* Parameters Display with Landing Page Style */}
               <div
-            key={`params-${currentLang}`}
-            className="border-2 border-border bg-background hover:shadow-lg transition-all duration-200 p-3 sm:p-4 rounded-lg relative overflow-hidden group"
-          >
-            {/* Animated gradient background */}
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <div className="flex items-center gap-2 mb-2 sm:mb-3 relative z-10">
-              <div
-                className="w-3 h-3 rounded-full bg-primary shadow-sm animate-pulse"
-                style={{ boxShadow: "0 0 8px var(--primary)" }}
-              />
-              <h3 className="font-bold text-foreground text-base sm:text-lg flex items-center gap-2">
-                {getTranslated("create.instant_coin_sale", "Instant Coin Sale")}
-                <Sparkles className="w-4 h-4 text-primary animate-pulse" />
-                <span className="text-sm text-muted-foreground font-normal">
-                  {getTranslated("create.graduate_info", "Graduate at 10 ETH. Quadratic 69% - 4.2 ETH.")}
-                </span>
-              </h3>
-            </div>
-            <div className="grid grid-cols-1 gap-2 sm:gap-3 text-xs sm:text-sm relative z-10">
-              <div className="border-2 border-border bg-background hover:shadow-md transition-all duration-200 p-2 sm:p-3 rounded-lg">
-                <div className="font-bold text-foreground text-sm sm:text-base">
-                  {getTranslated(
-                    "create.oneshot_supply_breakdown",
-                    "{{totalSupply}} Total: {{saleCap}} bonding curve + {{lpSupply}} liquidity",
-                    {
-                      totalSupply: displayValues.totalSupply,
-                      saleCap: displayValues.saleCap,
-                      lpSupply: displayValues.lpSupply,
-                    },
-                  )}
-                </div>
-                <div className="text-muted-foreground text-xs mt-1">
-                  {getTranslated(
-                    "create.oneshot_percentages",
-                    "{{salePercent}}% public bonding curve • {{lpPercent}}% auto-liquidity",
-                    {
-                      salePercent: displayValues.salePercent,
-                      lpPercent: displayValues.lpPercent,
-                    },
-                  )}
-                </div>
-              </div>
-              <div className="border-2 border-border bg-background hover:shadow-md transition-all duration-200 p-2 sm:p-3 rounded-lg">
-                <div className="font-bold text-foreground text-sm sm:text-base">
-                  {getTranslated("create.oneshot_sale_price", "Bonding Curve: Quadratic → Linear pricing")}
-                </div>
-                <div className="text-muted-foreground text-xs mt-1">
-                  {getTranslated(
-                    "create.oneshot_sale_note",
-                    "Target: {{target}} ETH • Quadratic until {{quadCap}} sold ({{quadPercent}}%) • {{days}} day deadline",
-                    {
-                      target: displayValues.ethTarget,
-                      quadCap: displayValues.quadCap,
-                      quadPercent: Math.round(
-                        (Number(ONE_SHOT_PARAMS.quadCap) / Number(ONE_SHOT_PARAMS.saleCap)) * 100,
-                      ),
-                      days: displayValues.days,
-                    },
-                  )}
-                </div>
-              </div>
-              <div className="border-2 border-border bg-background hover:shadow-md transition-all duration-200 p-2 sm:p-3 rounded-lg">
-                <div className="font-bold text-foreground text-sm sm:text-base">
-                  {getTranslated("create.oneshot_auto_liquidity", "Auto-Finalization: Creates zAMM pool on success")}
-                </div>
-                <div className="text-muted-foreground text-xs mt-1">
-                  {getTranslated(
-                    "create.oneshot_instant_trading",
-                    "{{lpSupply}} tokens + ETH raised → {{fee}}% fee zAMM • Instant trading",
-                    {
-                      lpSupply: displayValues.lpSupply,
-                      fee: displayValues.fee,
-                    },
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Bonding Curve Visualization */}
-          <div className="border-2 border-border rounded-lg p-4 bg-background hover:shadow-md transition-all duration-200">
-            <ZCurveBondingChart
-              saleCap={ONE_SHOT_PARAMS.saleCap}
-              divisor={ONE_SHOT_PARAMS.divisor}
-              ethTarget={ONE_SHOT_PARAMS.ethTarget}
-              quadCap={ONE_SHOT_PARAMS.quadCap}
-              currentSold={BigInt(0)}
-            />
-            <div className="mt-3 text-center">
-              <a
-                href="https://curve.zamm.eth.limo/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 underline underline-offset-2"
+                key={`params-${currentLang}`}
+                className="border-2 border-border bg-background hover:shadow-lg transition-all duration-200 p-3 sm:p-4 rounded-lg relative overflow-hidden group"
               >
-                {t("create.learn_more_zcurve")}
-              </a>
-            </div>
-          </div>
+                {/* Animated gradient background */}
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="flex items-center gap-2 mb-2 sm:mb-3 relative z-10">
+                  <div
+                    className="w-3 h-3 rounded-full bg-primary shadow-sm animate-pulse"
+                    style={{ boxShadow: "0 0 8px var(--primary)" }}
+                  />
+                  <h3 className="font-bold text-foreground text-base sm:text-lg flex items-center gap-2">
+                    {getTranslated("create.instant_coin_sale", "Instant Coin Sale")}
+                    <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+                    <span className="text-sm text-muted-foreground font-normal">
+                      {getTranslated("create.graduate_info", "Graduate at 10 ETH. Quadratic 69% - 4.2 ETH.")}
+                    </span>
+                  </h3>
+                </div>
+                <div className="grid grid-cols-1 gap-2 sm:gap-3 text-xs sm:text-sm relative z-10">
+                  <div className="border-2 border-border bg-background hover:shadow-md transition-all duration-200 p-2 sm:p-3 rounded-lg">
+                    <div className="font-bold text-foreground text-sm sm:text-base">
+                      {getTranslated(
+                        "create.oneshot_supply_breakdown",
+                        "{{totalSupply}} Total: {{saleCap}} bonding curve + {{lpSupply}} liquidity",
+                        {
+                          totalSupply: displayValues.totalSupply,
+                          saleCap: displayValues.saleCap,
+                          lpSupply: displayValues.lpSupply,
+                        },
+                      )}
+                    </div>
+                    <div className="text-muted-foreground text-xs mt-1">
+                      {getTranslated(
+                        "create.oneshot_percentages",
+                        "{{salePercent}}% public bonding curve • {{lpPercent}}% auto-liquidity",
+                        {
+                          salePercent: displayValues.salePercent,
+                          lpPercent: displayValues.lpPercent,
+                        },
+                      )}
+                    </div>
+                  </div>
+                  <div className="border-2 border-border bg-background hover:shadow-md transition-all duration-200 p-2 sm:p-3 rounded-lg">
+                    <div className="font-bold text-foreground text-sm sm:text-base">
+                      {getTranslated("create.oneshot_sale_price", "Bonding Curve: Quadratic → Linear pricing")}
+                    </div>
+                    <div className="text-muted-foreground text-xs mt-1">
+                      {getTranslated(
+                        "create.oneshot_sale_note",
+                        "Target: {{target}} ETH • Quadratic until {{quadCap}} sold ({{quadPercent}}%) • {{days}} day deadline",
+                        {
+                          target: displayValues.ethTarget,
+                          quadCap: displayValues.quadCap,
+                          quadPercent: Math.round(
+                            (Number(ONE_SHOT_PARAMS.quadCap) / Number(ONE_SHOT_PARAMS.saleCap)) * 100,
+                          ),
+                          days: displayValues.days,
+                        },
+                      )}
+                    </div>
+                  </div>
+                  <div className="border-2 border-border bg-background hover:shadow-md transition-all duration-200 p-2 sm:p-3 rounded-lg">
+                    <div className="font-bold text-foreground text-sm sm:text-base">
+                      {getTranslated(
+                        "create.oneshot_auto_liquidity",
+                        "Auto-Finalization: Creates zAMM pool on success",
+                      )}
+                    </div>
+                    <div className="text-muted-foreground text-xs mt-1">
+                      {getTranslated(
+                        "create.oneshot_instant_trading",
+                        "{{lpSupply}} tokens + ETH raised → {{fee}}% fee zAMM • Instant trading",
+                        {
+                          lpSupply: displayValues.lpSupply,
+                          fee: displayValues.fee,
+                        },
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bonding Curve Visualization */}
+              <div className="border-2 border-border rounded-lg p-4 bg-background hover:shadow-md transition-all duration-200">
+                <ZCurveBondingChart
+                  saleCap={ONE_SHOT_PARAMS.saleCap}
+                  divisor={ONE_SHOT_PARAMS.divisor}
+                  ethTarget={ONE_SHOT_PARAMS.ethTarget}
+                  quadCap={ONE_SHOT_PARAMS.quadCap}
+                  currentSold={BigInt(0)}
+                />
+                <div className="mt-3 text-center">
+                  <a
+                    href="https://curve.zamm.eth.limo/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 underline underline-offset-2"
+                  >
+                    {t("create.learn_more_zcurve")}
+                  </a>
+                </div>
+              </div>
             </div>
           )}
 
@@ -829,7 +828,8 @@ export function OneShotLaunchForm() {
                     <AlertTitle className="text-green-800 dark:text-green-200 text-2xl font-bold">
                       {txSuccess
                         ? t("create.transaction_confirmed", "Transaction Confirmed")
-                        : t("create.transaction_submitted", "Transaction Submitted")}!
+                        : t("create.transaction_submitted", "Transaction Submitted")}
+                      !
                     </AlertTitle>
                     <p className="text-green-700 dark:text-green-300 text-base">
                       {txSuccess
@@ -852,7 +852,9 @@ export function OneShotLaunchForm() {
                     {t("common.transaction_hash", "Transaction Hash")}
                   </p>
                   <div className="bg-green-50 dark:bg-green-900/20 p-3 sm:p-4 rounded-md overflow-x-auto">
-                    <p className="font-mono text-xs sm:text-sm lg:text-base text-green-800 dark:text-green-200 break-all select-all">{hash}</p>
+                    <p className="font-mono text-xs sm:text-sm lg:text-base text-green-800 dark:text-green-200 break-all select-all">
+                      {hash}
+                    </p>
                   </div>
                 </div>
 

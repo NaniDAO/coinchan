@@ -145,7 +145,11 @@ export const Coins = () => {
       // A tranche sale is considered expired and unsold if:
       // 1. It has EXPIRED status AND
       // 2. It has no reserves (meaning it never sold and no liquidity was added)
-      if (coin.saleStatus === "EXPIRED" && (!coin.reserve0 || coin.reserve0 === 0n) && (!coin.reserve1 || coin.reserve1 === 0n)) {
+      if (
+        coin.saleStatus === "EXPIRED" &&
+        (!coin.reserve0 || coin.reserve0 === 0n) &&
+        (!coin.reserve1 || coin.reserve1 === 0n)
+      ) {
         return false;
       }
 

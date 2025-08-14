@@ -44,25 +44,18 @@ export const CustomRecipientInput = ({
                   {t("swap.resolving_ens") || "Resolving ENS name..."}
                 </p>
               )}
-              {ensResolution.error && (
-                <p className="text-xs text-destructive">
-                  {ensResolution.error}
-                </p>
-              )}
+              {ensResolution.error && <p className="text-xs text-destructive">{ensResolution.error}</p>}
               {ensResolution.address && (
                 <p className="text-xs text-muted-foreground">
                   {ensResolution.isENS ? (
                     <>
-                      <span className="text-chart-2">ENS:</span>{" "}
-                      {customRecipient}{" "}
-                      <span className="text-muted-foreground">→</span>{" "}
-                      {ensResolution.address?.slice(0, 6)}...
+                      <span className="text-chart-2">ENS:</span> {customRecipient}{" "}
+                      <span className="text-muted-foreground">→</span> {ensResolution.address?.slice(0, 6)}...
                       {ensResolution.address?.slice(-4)}
                     </>
                   ) : (
                     <>
-                      {t("swap.recipient_note") || "Output will be sent to"}:{" "}
-                      {ensResolution.address?.slice(0, 6)}...
+                      {t("swap.recipient_note") || "Output will be sent to"}: {ensResolution.address?.slice(0, 6)}...
                       {ensResolution.address?.slice(-4)}
                     </>
                   )}

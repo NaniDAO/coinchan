@@ -169,100 +169,100 @@ export function ZCurveTrading({
   // Format price for display including very small values - memoized for performance
   const formatPriceDisplay = useMemo(
     () => (priceWei: bigint, ethPriceUSD?: number) => {
-    const price = Number(formatEther(priceWei));
+      const price = Number(formatEther(priceWei));
 
-    if (priceWei === 0n) {
-      return { eth: "0", usd: "$0", tokensPerEth: "∞" };
-    }
+      if (priceWei === 0n) {
+        return { eth: "0", usd: "$0", tokensPerEth: "∞" };
+      }
 
-    // For very small prices, show in wei
-    let ethDisplay = "";
-    let usdDisplay = "";
+      // For very small prices, show in wei
+      let ethDisplay = "";
+      let usdDisplay = "";
 
-    if (priceWei < 1000000n) {
-      // Less than 1M wei
-      ethDisplay = `${priceWei.toString()} wei`;
-      // Calculate USD price more precisely for small values
-      if (ethPriceUSD) {
-        const usdPrice = (Number(priceWei) / 1e18) * ethPriceUSD;
-        if (usdPrice < 0.00000001) {
-          // For extremely small values, show with leading zeros notation
-          const str = usdPrice.toFixed(20).replace(/\.?0+$/, "");
-          const parts = str.split(".");
-          if (parts.length === 2) {
-            const leadingZeros = parts[1].match(/^0+/)?.[0].length || 0;
-            if (leadingZeros >= 6) {
-              const significantPart = parts[1].slice(leadingZeros);
-              usdDisplay = `$0.0...{${leadingZeros}}${significantPart.slice(0, 4)}`;
-            } else {
-              usdDisplay = `$${usdPrice.toFixed(10)}`;
+      if (priceWei < 1000000n) {
+        // Less than 1M wei
+        ethDisplay = `${priceWei.toString()} wei`;
+        // Calculate USD price more precisely for small values
+        if (ethPriceUSD) {
+          const usdPrice = (Number(priceWei) / 1e18) * ethPriceUSD;
+          if (usdPrice < 0.00000001) {
+            // For extremely small values, show with leading zeros notation
+            const str = usdPrice.toFixed(20).replace(/\.?0+$/, "");
+            const parts = str.split(".");
+            if (parts.length === 2) {
+              const leadingZeros = parts[1].match(/^0+/)?.[0].length || 0;
+              if (leadingZeros >= 6) {
+                const significantPart = parts[1].slice(leadingZeros);
+                usdDisplay = `$0.0...{${leadingZeros}}${significantPart.slice(0, 4)}`;
+              } else {
+                usdDisplay = `$${usdPrice.toFixed(10)}`;
+              }
             }
+          } else if (usdPrice < 0.01) {
+            usdDisplay = `$${usdPrice.toFixed(6)}`;
+          } else {
+            usdDisplay = `$${usdPrice.toFixed(4)}`;
           }
-        } else if (usdPrice < 0.01) {
+        }
+      } else if (price < 1e-9) {
+        const gwei = price * 1e9;
+        ethDisplay = `${gwei.toFixed(3)} gwei`;
+        if (ethPriceUSD) {
+          const usdPrice = price * ethPriceUSD;
+          if (usdPrice < 0.00000001) {
+            const str = usdPrice.toFixed(20).replace(/\.?0+$/, "");
+            const parts = str.split(".");
+            if (parts.length === 2) {
+              const leadingZeros = parts[1].match(/^0+/)?.[0].length || 0;
+              if (leadingZeros >= 6) {
+                const significantPart = parts[1].slice(leadingZeros);
+                usdDisplay = `$0.0...{${leadingZeros}}${significantPart.slice(0, 4)}`;
+              } else {
+                usdDisplay = `$${usdPrice.toFixed(10)}`;
+              }
+            }
+          } else {
+            usdDisplay = usdPrice < 0.01 ? `$${usdPrice.toFixed(6)}` : `$${usdPrice.toFixed(4)}`;
+          }
+        }
+      } else if (price < 1e-6) {
+        ethDisplay = `${price.toFixed(9)} ETH`;
+        if (ethPriceUSD) {
+          const usdPrice = price * ethPriceUSD;
           usdDisplay = `$${usdPrice.toFixed(6)}`;
-        } else {
+        }
+      } else if (price < 0.01) {
+        ethDisplay = `${price.toFixed(6)} ETH`;
+        if (ethPriceUSD) {
+          const usdPrice = price * ethPriceUSD;
           usdDisplay = `$${usdPrice.toFixed(4)}`;
         }
-      }
-    } else if (price < 1e-9) {
-      const gwei = price * 1e9;
-      ethDisplay = `${gwei.toFixed(3)} gwei`;
-      if (ethPriceUSD) {
-        const usdPrice = price * ethPriceUSD;
-        if (usdPrice < 0.00000001) {
-          const str = usdPrice.toFixed(20).replace(/\.?0+$/, "");
-          const parts = str.split(".");
-          if (parts.length === 2) {
-            const leadingZeros = parts[1].match(/^0+/)?.[0].length || 0;
-            if (leadingZeros >= 6) {
-              const significantPart = parts[1].slice(leadingZeros);
-              usdDisplay = `$0.0...{${leadingZeros}}${significantPart.slice(0, 4)}`;
-            } else {
-              usdDisplay = `$${usdPrice.toFixed(10)}`;
-            }
-          }
-        } else {
-          usdDisplay = usdPrice < 0.01 ? `$${usdPrice.toFixed(6)}` : `$${usdPrice.toFixed(4)}`;
+      } else {
+        ethDisplay = `${price.toFixed(4)} ETH`;
+        if (ethPriceUSD) {
+          const usdPrice = price * ethPriceUSD;
+          usdDisplay = `$${usdPrice.toFixed(2)}`;
         }
       }
-    } else if (price < 1e-6) {
-      ethDisplay = `${price.toFixed(9)} ETH`;
-      if (ethPriceUSD) {
-        const usdPrice = price * ethPriceUSD;
-        usdDisplay = `$${usdPrice.toFixed(6)}`;
-      }
-    } else if (price < 0.01) {
-      ethDisplay = `${price.toFixed(6)} ETH`;
-      if (ethPriceUSD) {
-        const usdPrice = price * ethPriceUSD;
-        usdDisplay = `$${usdPrice.toFixed(4)}`;
-      }
-    } else {
-      ethDisplay = `${price.toFixed(4)} ETH`;
-      if (ethPriceUSD) {
-        const usdPrice = price * ethPriceUSD;
-        usdDisplay = `$${usdPrice.toFixed(2)}`;
-      }
-    }
 
-    // Calculate tokens per ETH
-    const tokensPerEth = price > 0 ? 1 / price : 0;
-    let tokensDisplay = "";
-    if (tokensPerEth >= 1e12) {
-      tokensDisplay = `${(tokensPerEth / 1e12).toFixed(2)}T`;
-    } else if (tokensPerEth >= 1e9) {
-      tokensDisplay = `${(tokensPerEth / 1e9).toFixed(2)}B`;
-    } else if (tokensPerEth >= 1e6) {
-      tokensDisplay = `${(tokensPerEth / 1e6).toFixed(2)}M`;
-    } else if (tokensPerEth >= 1e3) {
-      tokensDisplay = `${(tokensPerEth / 1e3).toFixed(2)}K`;
-    } else {
-      tokensDisplay = tokensPerEth.toFixed(2);
-    }
+      // Calculate tokens per ETH
+      const tokensPerEth = price > 0 ? 1 / price : 0;
+      let tokensDisplay = "";
+      if (tokensPerEth >= 1e12) {
+        tokensDisplay = `${(tokensPerEth / 1e12).toFixed(2)}T`;
+      } else if (tokensPerEth >= 1e9) {
+        tokensDisplay = `${(tokensPerEth / 1e9).toFixed(2)}B`;
+      } else if (tokensPerEth >= 1e6) {
+        tokensDisplay = `${(tokensPerEth / 1e6).toFixed(2)}M`;
+      } else if (tokensPerEth >= 1e3) {
+        tokensDisplay = `${(tokensPerEth / 1e3).toFixed(2)}K`;
+      } else {
+        tokensDisplay = tokensPerEth.toFixed(2);
+      }
 
-    return { eth: ethDisplay, usd: usdDisplay, tokensPerEth: tokensDisplay };
-  },
-  [],
+      return { eth: ethDisplay, usd: usdDisplay, tokensPerEth: tokensDisplay };
+    },
+    [],
   );
 
   // Calculate output based on input using view helpers with caching
@@ -298,11 +298,11 @@ export function ZCurveTrading({
         ): Promise<bigint> => {
           const cached = contractCallCache.current.get(key);
           const now = Date.now();
-          
+
           if (cached && now - cached.timestamp < CACHE_TTL) {
             return cached.value;
           }
-          
+
           // Try client-side calculation first if available
           if (clientFallback) {
             try {
@@ -313,17 +313,17 @@ export function ZCurveTrading({
               console.warn("Client-side calculation failed, falling back to contract", e);
             }
           }
-          
+
           const value = await fetchFn();
           contractCallCache.current.set(key, { value, timestamp: now });
-          
+
           // Clean up old cache entries
           if (contractCallCache.current.size > 100) {
             const entries = Array.from(contractCallCache.current.entries());
             entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
             entries.slice(0, 50).forEach(([k]) => contractCallCache.current.delete(k));
           }
-          
+
           return value;
         };
 

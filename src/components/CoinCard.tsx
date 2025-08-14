@@ -131,7 +131,6 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
           <CoinPriceChangeBadge coinId={coin.coinId.toString()} />
         </div>
 
-
         {/* Deadline badge for active tranche sales */}
         {deadlineInfo && (
           <div

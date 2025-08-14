@@ -1,9 +1,4 @@
-import {
-  keccak256,
-  encodeAbiParameters,
-  parseAbiParameters,
-  type Address,
-} from "viem";
+import { keccak256, encodeAbiParameters, parseAbiParameters, type Address } from "viem";
 import { CookbookAddress } from "@/constants/Cookbook";
 
 // Default fee in bps (30 = 0.3%)
@@ -21,10 +16,7 @@ export interface PoolKey {
  * Compute the pool ID for a zCurve finalized sale
  * This matches the contract's _computePoolId function
  */
-export function computeZCurvePoolId(
-  coinId: bigint,
-  feeOrHook: bigint = DEFAULT_FEE_BPS,
-): string {
+export function computeZCurvePoolId(coinId: bigint, feeOrHook: bigint = DEFAULT_FEE_BPS): string {
   const poolKey: PoolKey = {
     id0: 0n, // ETH
     id1: coinId, // Coin ID
@@ -36,16 +28,8 @@ export function computeZCurvePoolId(
   // Encode the struct according to Solidity ABI encoding
   // Must match the encoding used in computePoolId from swap.ts
   const encoded = encodeAbiParameters(
-    parseAbiParameters(
-      "uint256 id0, uint256 id1, address token0, address token1, uint256 feeOrHook",
-    ),
-    [
-      poolKey.id0,
-      poolKey.id1,
-      poolKey.token0,
-      poolKey.token1,
-      poolKey.feeOrHook,
-    ],
+    parseAbiParameters("uint256 id0, uint256 id1, address token0, address token1, uint256 feeOrHook"),
+    [poolKey.id0, poolKey.id1, poolKey.token0, poolKey.token1, poolKey.feeOrHook],
   );
 
   const poolIdHex = keccak256(encoded);

@@ -41,10 +41,7 @@ export const ZCurveSales = () => {
 
     // Calculate momentum for all active sales
     const activeSales = data.filter((sale) => sale.status === "ACTIVE");
-    const maxMomentum = Math.max(
-      ...activeSales.map((sale) => calculateMomentum(sale)),
-      1,
-    );
+    const maxMomentum = Math.max(...activeSales.map((sale) => calculateMomentum(sale)), 1);
 
     return (
       [...data]
@@ -57,9 +54,7 @@ export const ZCurveSales = () => {
 
           // A sale has high momentum if it's getting boosted significantly beyond its funding level
           const hasHighMomentum =
-            sale.status === "ACTIVE" &&
-            normalizedMomentum > 20 &&
-            normalizedMomentum > fundedPercentage * 0.5;
+            sale.status === "ACTIVE" && normalizedMomentum > 20 && normalizedMomentum > fundedPercentage * 0.5;
 
           return {
             ...sale,
@@ -100,8 +95,7 @@ export const ZCurveSales = () => {
       {/* header */}
       <div className="flex items-center justify-between border-border p-3 text-foreground">
         <h2 className="font-mono text-2xl font-bold uppercase tracking-widest">
-          {t("common.curved_coins", "CURVED COINS")} ({salesWithMomentum.length}
-          )
+          {t("common.curved_coins", "CURVED COINS")} ({salesWithMomentum.length})
         </h2>
 
         <div className="flex items-center gap-4">
@@ -159,17 +153,12 @@ export const ZCurveSales = () => {
 const SkeletonHeader = () => (
   <div>
     <div className="p-3 text-foreground">
-      <h2 className="font-mono text-2xl font-bold uppercase tracking-widest">
-        CURVED COINS
-      </h2>
+      <h2 className="font-mono text-2xl font-bold uppercase tracking-widest">CURVED COINS</h2>
     </div>
     <div className="p-4">
       <div className="space-y-2 border-l-4 border-border">
         {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="animate-pulse border border-border bg-card p-3"
-          >
+          <div key={i} className="animate-pulse border border-border bg-card p-3">
             <div className="flex items-start gap-4">
               <div className="h-8 w-8 rounded-full bg-muted" />
               <div className="flex-1 space-y-2">
@@ -193,9 +182,7 @@ const SkeletonHeader = () => (
 const ErrorBlock = ({ err }: { err: Error }) => (
   <div>
     <div className="p-3 text-foreground">
-      <h2 className="font-mono text-2xl font-bold uppercase tracking-widest">
-        CURVED COINS
-      </h2>
+      <h2 className="font-mono text-2xl font-bold uppercase tracking-widest">CURVED COINS</h2>
     </div>
     <div className="p-4">
       <div className="rounded border border-destructive/50 bg-destructive/10 p-4 font-mono text-sm text-destructive">

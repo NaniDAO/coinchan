@@ -21,8 +21,7 @@ export const formatDexscreenerStyle = (n: number) => {
   const nextDigit = decPart[1 + zeroCount];
 
   // Convert number to subscript characters
-  const toSubscript = (val: number) =>
-    String(val).replace(/\d/g, (d) => "₀₁₂₃₄₅₆₇₈₉"[+d]);
+  const toSubscript = (val: number) => String(val).replace(/\d/g, (d) => "₀₁₂₃₄₅₆₇₈₉"[+d]);
 
   // Only compress if there are at least 3 zeros after the first decimal digit
   if (zeroCount >= 3 && nextDigit) {

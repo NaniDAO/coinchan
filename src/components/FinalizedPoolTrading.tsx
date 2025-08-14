@@ -10,19 +10,12 @@ import { ZCurveClaim } from "@/components/ZCurveClaim";
 import { useETHPrice } from "@/hooks/use-eth-price";
 import { ZCurveAddLiquidity } from "@/components/ZCurveAddLiquidity";
 import { ZCurveRemoveLiquidity } from "@/components/ZCurveRemoveLiquidity";
-import {
-  TokenSelectionProvider,
-  useTokenSelection,
-} from "@/contexts/TokenSelectionContext";
+import { TokenSelectionProvider, useTokenSelection } from "@/contexts/TokenSelectionContext";
 import { useTheme } from "@/lib/theme";
 import { getEthereumIconDataUri } from "@/components/EthereumIcon";
 
 import type { TokenMeta } from "@/lib/coins";
-import {
-  useZCurveSale,
-  useZCurveSaleSummary,
-  useZCurveBalance,
-} from "@/hooks/use-zcurve-sale";
+import { useZCurveSale, useZCurveSaleSummary, useZCurveBalance } from "@/hooks/use-zcurve-sale";
 import { computeZCurvePoolId } from "@/lib/zCurvePoolId";
 import { useReserves } from "@/hooks/use-reserves";
 import { formatNumber } from "@/lib/utils";
@@ -137,9 +130,7 @@ function FinalizedPoolTradingInner({
     return (
       <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         <Alert>
-          <AlertDescription>
-            {t("trade.pool_not_found", "Pool not found")}
-          </AlertDescription>
+          <AlertDescription>{t("trade.pool_not_found", "Pool not found")}</AlertDescription>
         </Alert>
       </div>
     );
@@ -170,47 +161,46 @@ function FinalizedPoolTradingInner({
   };
 
   // Calculate market cap and price
-  const { coinPrice, coinUsdPrice, marketCapUsd, marketCapEth } =
-    useMemo(() => {
-      if (!reserves || reserves.reserve0 === 0n || reserves.reserve1 === 0n) {
-        console.warn("No reserves available for pool:", poolId, reserves);
-        return {
-          coinPrice: 0,
-          coinUsdPrice: 0,
-          marketCapUsd: 0,
-          marketCapEth: 0,
-        };
-      }
-
-      // Price = ETH reserve / Token reserve (ETH is token0/reserve0)
-      const ethReserve = Number(formatEther(reserves.reserve0));
-      const tokenReserve = Number(formatUnits(reserves.reserve1, 18));
-
-      if (tokenReserve === 0) {
-        console.warn("Token reserve is 0");
-        return {
-          coinPrice: 0,
-          coinUsdPrice: 0,
-          marketCapUsd: 0,
-          marketCapEth: 0,
-        };
-      }
-
-      const price = ethReserve / tokenReserve;
-      const usdPrice = price * (ethPrice?.priceUSD || 0);
-
-      // Use 1 billion (1e9) as the total supply for all zCurve launched tokens
-      const totalSupply = 1_000_000_000; // 1 billion tokens
-      const marketCapInEth = price * totalSupply;
-      const marketCap = usdPrice * totalSupply;
-
+  const { coinPrice, coinUsdPrice, marketCapUsd, marketCapEth } = useMemo(() => {
+    if (!reserves || reserves.reserve0 === 0n || reserves.reserve1 === 0n) {
+      console.warn("No reserves available for pool:", poolId, reserves);
       return {
-        coinPrice: price,
-        coinUsdPrice: usdPrice,
-        marketCapUsd: marketCap,
-        marketCapEth: marketCapInEth,
+        coinPrice: 0,
+        coinUsdPrice: 0,
+        marketCapUsd: 0,
+        marketCapEth: 0,
       };
-    }, [reserves, ethPrice?.priceUSD, poolId]);
+    }
+
+    // Price = ETH reserve / Token reserve (ETH is token0/reserve0)
+    const ethReserve = Number(formatEther(reserves.reserve0));
+    const tokenReserve = Number(formatUnits(reserves.reserve1, 18));
+
+    if (tokenReserve === 0) {
+      console.warn("Token reserve is 0");
+      return {
+        coinPrice: 0,
+        coinUsdPrice: 0,
+        marketCapUsd: 0,
+        marketCapEth: 0,
+      };
+    }
+
+    const price = ethReserve / tokenReserve;
+    const usdPrice = price * (ethPrice?.priceUSD || 0);
+
+    // Use 1 billion (1e9) as the total supply for all zCurve launched tokens
+    const totalSupply = 1_000_000_000; // 1 billion tokens
+    const marketCapInEth = price * totalSupply;
+    const marketCap = usdPrice * totalSupply;
+
+    return {
+      coinPrice: price,
+      coinUsdPrice: usdPrice,
+      marketCapUsd: marketCap,
+      marketCapEth: marketCapInEth,
+    };
+  }, [reserves, ethPrice?.priceUSD, poolId]);
 
   return (
     <div>
@@ -286,22 +276,14 @@ function FinalizedPoolTradingInner({
 
           <TabsContent value="add" className="mt-4">
             <div className="w-full">
-              <ZCurveAddLiquidity
-                coinId={coinId}
-                poolId={poolId}
-                feeOrHook={actualFee}
-              />
+              <ZCurveAddLiquidity coinId={coinId} poolId={poolId} feeOrHook={actualFee} />
             </div>
           </TabsContent>
 
           <TabsContent value="remove" className="mt-4">
             <div className="w-full">
               {/* Remove Liquidity Form */}
-              <ZCurveRemoveLiquidity
-                coinId={coinId}
-                poolId={poolId}
-                feeOrHook={actualFee}
-              />
+              <ZCurveRemoveLiquidity coinId={coinId} poolId={poolId} feeOrHook={actualFee} />
             </div>
           </TabsContent>
         </Tabs>
@@ -318,9 +300,7 @@ function FinalizedPoolTradingInner({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-4 sm:mb-6">
           {/* Price */}
           <div>
-            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1 sm:mb-2">
-              Price
-            </div>
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1 sm:mb-2">Price</div>
             <div className="font-semibold text-sm sm:text-base lg:text-lg">
               {reserves && coinPrice > 0
                 ? coinPrice < 1e-15
@@ -393,9 +373,7 @@ function FinalizedPoolTradingInner({
                 "Loading..."
               )}
             </div>
-            <div className="text-xs text-muted-foreground">
-              {formatNumber(1_000_000_000, 0)} supply
-            </div>
+            <div className="text-xs text-muted-foreground">{formatNumber(1_000_000_000, 0)} supply</div>
           </div>
 
           {/* ETH Liquidity */}
@@ -415,10 +393,7 @@ function FinalizedPoolTradingInner({
               {coinSymbol} Liquidity
             </div>
             <div className="font-semibold text-sm sm:text-base lg:text-lg">
-              {formatNumber(
-                Number(formatUnits(reserves?.reserve1 || 0n, 18)),
-                0,
-              )}
+              {formatNumber(Number(formatUnits(reserves?.reserve1 || 0n, 18)), 0)}
             </div>
             <div className="text-xs text-muted-foreground flex items-center gap-1">
               {coinSymbol}
@@ -432,9 +407,7 @@ function FinalizedPoolTradingInner({
         {/* Technical Details - Minimalist */}
         <details className="group pt-4">
           <summary className="flex items-center justify-between cursor-pointer py-2 hover:text-primary transition-colors">
-            <span className="text-sm font-medium text-muted-foreground">
-              Technical Details
-            </span>
+            <span className="text-sm font-medium text-muted-foreground">Technical Details</span>
             <ChevronDown className="h-4 w-4 text-muted-foreground group-open:rotate-180 transition-transform" />
           </summary>
           <div className="mt-3 space-y-2 text-sm">

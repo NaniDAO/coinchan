@@ -35,17 +35,13 @@ export const PoolActions = () => {
     <div className="w-full !mb-10 mt-5 mx-auto !p-4 bg-background ">
       {/* Header with mode switcher matching HTML design */}
       <div className="flex justify-end items-center mb-5">
-        <h2 className="sr-only m-0 font-display uppercase tracking-widest text-lg">
-          SWAP TERMINAL
-        </h2>
+        <h2 className="sr-only m-0 font-display uppercase tracking-widest text-lg">SWAP TERMINAL</h2>
 
         <div className="flex p-0.5 gap-0">
           <button
             className={cn(
               `!px-2 !py-1 text-xs border-2 transition-colors hover:!text-underline`,
-              mode === "swap"
-                ? "bg-background text-foreground"
-                : "bg-accent text-accent-foreground",
+              mode === "swap" ? "bg-background text-foreground" : "bg-accent text-accent-foreground",
             )}
             onClick={() => setMode("swap")}
           >
@@ -54,9 +50,7 @@ export const PoolActions = () => {
           <button
             className={cn(
               `!px-2 !py-1 text-xs border-2 transition-colors hover:!text-underline`,
-              mode === "liquidity"
-                ? "bg-background text-foreground"
-                : "bg-accent text-accent-foreground",
+              mode === "liquidity" ? "bg-background text-foreground" : "bg-accent text-accent-foreground",
             )}
             onClick={() => setMode("liquidity")}
           >
@@ -87,8 +81,7 @@ export const PoolActions = () => {
           )}
           {/* Info showing token count */}
           <div className="text-xs mt-5 text-center font-mono">
-            {t("common.available_tokens")} {tokenCount}{" "}
-            {t("common.eth_plus_coins", { count: tokenCount - 1 })}
+            {t("common.available_tokens")} {tokenCount} {t("common.eth_plus_coins", { count: tokenCount - 1 })}
           </div>
         </div>
       </div>

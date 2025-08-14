@@ -150,7 +150,7 @@ export function useCoinsData() {
 
         // Filter out any existing ENS, CULT, or USDT entries from the indexer to avoid duplicates
         const filteredIndexerCoins = indexerCoins.filter(
-          (coin) => coin.symbol !== "ENS" && coin.symbol !== "CULT" && coin.symbol !== "USDT"
+          (coin) => coin.symbol !== "ENS" && coin.symbol !== "CULT" && coin.symbol !== "USDT",
         );
 
         return [...filteredIndexerCoins, ensData, cultData, usdtData];

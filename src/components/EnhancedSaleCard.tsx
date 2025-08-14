@@ -11,11 +11,7 @@ interface EnhancedSaleCardProps {
 }
 
 export const EnhancedSaleCard = memo(
-  ({
-    sale,
-    fetchOnchainData = false,
-    hasHighMomentum = false,
-  }: EnhancedSaleCardProps) => {
+  ({ sale, fetchOnchainData = false, hasHighMomentum = false }: EnhancedSaleCardProps) => {
     // Only fetch onchain data if requested with error handling
     const { data: onchainData, isError } = useZCurveSaleSummary(
       fetchOnchainData ? sale.coinId : undefined,
@@ -28,34 +24,13 @@ export const EnhancedSaleCard = memo(
         ? {
             ...sale,
             // Use onchain data if it exists (even if 0), only fall back if undefined/null
-            currentPrice:
-              onchainData.currentPrice !== undefined
-                ? onchainData.currentPrice
-                : sale.currentPrice,
-            ethEscrow:
-              onchainData.ethEscrow !== undefined
-                ? onchainData.ethEscrow
-                : sale.ethEscrow,
-            netSold:
-              onchainData.netSold !== undefined
-                ? onchainData.netSold
-                : sale.netSold,
-            saleCap:
-              onchainData.saleCap !== undefined
-                ? onchainData.saleCap
-                : sale.saleCap,
-            ethTarget:
-              onchainData.ethTarget !== undefined
-                ? onchainData.ethTarget
-                : sale.ethTarget,
-            percentFunded:
-              onchainData.percentFunded !== undefined
-                ? onchainData.percentFunded
-                : sale.percentFunded,
-            isFinalized:
-              onchainData.isFinalized !== undefined
-                ? onchainData.isFinalized
-                : sale.status === "FINALIZED",
+            currentPrice: onchainData.currentPrice !== undefined ? onchainData.currentPrice : sale.currentPrice,
+            ethEscrow: onchainData.ethEscrow !== undefined ? onchainData.ethEscrow : sale.ethEscrow,
+            netSold: onchainData.netSold !== undefined ? onchainData.netSold : sale.netSold,
+            saleCap: onchainData.saleCap !== undefined ? onchainData.saleCap : sale.saleCap,
+            ethTarget: onchainData.ethTarget !== undefined ? onchainData.ethTarget : sale.ethTarget,
+            percentFunded: onchainData.percentFunded !== undefined ? onchainData.percentFunded : sale.percentFunded,
+            isFinalized: onchainData.isFinalized !== undefined ? onchainData.isFinalized : sale.status === "FINALIZED",
           }
         : sale;
 

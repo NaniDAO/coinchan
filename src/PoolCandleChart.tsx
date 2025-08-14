@@ -30,37 +30,23 @@ interface CandleChartProps {
   ethUsdPrice?: number;
 }
 
-const PoolCandleChart: React.FC<CandleChartProps> = ({
-  poolId,
-  interval = "1h",
-  ticker,
-  ethUsdPrice,
-}) => {
+const PoolCandleChart: React.FC<CandleChartProps> = ({ poolId, interval = "1h", ticker, ethUsdPrice }) => {
   const { t } = useTranslation();
-  const [selectedInterval, setSelectedInterval] = useState<"1m" | "1h" | "1d">(
-    interval,
-  );
+  const [selectedInterval, setSelectedInterval] = useState<"1m" | "1h" | "1d">(interval);
   const [showUsd, setShowUsd] = useState(false);
 
-  const { data, isLoading, error, isFetchingNextPage, fetchNextPage } =
-    useInfiniteQuery({
-      queryKey: ["poolCandles", poolId, selectedInterval],
-      initialPageParam: {
-        to: Math.floor(Date.now() / 1000),
-        from: Math.floor(Date.now() / 1000) - ONE_MONTH,
-      },
-      queryFn: ({ pageParam }) =>
-        fetchPoolCandles(
-          poolId,
-          selectedInterval,
-          pageParam.from,
-          pageParam.to,
-        ),
-      getNextPageParam: (lastPage) => {
-        const oldest = lastPage[0]?.date ?? 0;
-        return oldest ? { from: oldest - RANGE, to: oldest } : undefined;
-      },
-    });
+  const { data, isLoading, error, isFetchingNextPage, fetchNextPage } = useInfiniteQuery({
+    queryKey: ["poolCandles", poolId, selectedInterval],
+    initialPageParam: {
+      to: Math.floor(Date.now() / 1000),
+      from: Math.floor(Date.now() / 1000) - ONE_MONTH,
+    },
+    queryFn: ({ pageParam }) => fetchPoolCandles(poolId, selectedInterval, pageParam.from, pageParam.to),
+    getNextPageParam: (lastPage) => {
+      const oldest = lastPage[0]?.date ?? 0;
+      return oldest ? { from: oldest - RANGE, to: oldest } : undefined;
+    },
+  });
 
   if (error) console.error(error);
 
@@ -125,12 +111,12 @@ const PoolCandleChart: React.FC<CandleChartProps> = ({
             <div className="h-full w-full flex items-end justify-around gap-1">
               {Array.from({ length: 20 }).map((_, i) => (
                 <div key={i} className="flex-1 flex flex-col justify-end">
-                  <Skeleton 
-                    className="w-full opacity-10" 
-                    style={{ 
+                  <Skeleton
+                    className="w-full opacity-10"
+                    style={{
                       height: `${Math.random() * 60 + 20}%`,
-                      animationDelay: `${i * 50}ms`
-                    }} 
+                      animationDelay: `${i * 50}ms`,
+                    }}
                   />
                 </div>
               ))}
@@ -157,9 +143,7 @@ const PoolCandleChart: React.FC<CandleChartProps> = ({
           }}
         />
       ) : (
-        <div className="text-center py-20 text-muted-foreground">
-          {t("chart.no_candle_data")}
-        </div>
+        <div className="text-center py-20 text-muted-foreground">{t("chart.no_candle_data")}</div>
       )}
     </div>
   );
@@ -197,28 +181,28 @@ const TVCandlestick: React.FC<TVChartProps> = ({
       },
       width: containerRef.current.clientWidth,
       height: 400,
-      crosshair: { 
+      crosshair: {
         mode: CrosshairMode.Normal,
         horzLine: {
           color: chartTheme.crosshairColor,
           width: 1,
           style: 2,
-          labelBackgroundColor: chartTheme.background || '#ffffff',
+          labelBackgroundColor: chartTheme.background || "#ffffff",
         },
         vertLine: {
           color: chartTheme.crosshairColor,
           width: 1,
           style: 2,
-          labelBackgroundColor: chartTheme.background || '#ffffff',
+          labelBackgroundColor: chartTheme.background || "#ffffff",
         },
       },
-      rightPriceScale: { 
+      rightPriceScale: {
         scaleMargins: { top: 0.2, bottom: 0.2 },
         borderVisible: false,
         entireTextOnly: true,
       },
-      timeScale: { 
-        timeVisible: true, 
+      timeScale: {
+        timeVisible: true,
         secondsVisible: false,
         borderVisible: false,
         rightOffset: 5,
@@ -249,13 +233,13 @@ const TVCandlestick: React.FC<TVChartProps> = ({
     chartRef.current = chart;
 
     seriesRef.current = chart.addSeries(CandlestickSeries, {
-      upColor: chartTheme.upColor || '#10b981',
-      downColor: chartTheme.downColor || '#ef4444',
-      wickUpColor: chartTheme.wickUpColor || '#10b981',
-      wickDownColor: chartTheme.wickDownColor || '#ef4444',
+      upColor: chartTheme.upColor || "#10b981",
+      downColor: chartTheme.downColor || "#ef4444",
+      wickUpColor: chartTheme.wickUpColor || "#10b981",
+      wickDownColor: chartTheme.wickDownColor || "#ef4444",
       borderVisible: true,
-      borderUpColor: chartTheme.upColor || '#10b981',
-      borderDownColor: chartTheme.downColor || '#ef4444',
+      borderUpColor: chartTheme.upColor || "#10b981",
+      borderDownColor: chartTheme.downColor || "#ef4444",
       wickVisible: true,
       title: showUsd && ethUsdPrice ? `${ticker} / USD` : `ETH / ${ticker}`,
       priceFormat: {
@@ -266,7 +250,7 @@ const TVCandlestick: React.FC<TVChartProps> = ({
       lastValueVisible: true,
       priceLineVisible: true,
       priceLineWidth: 1,
-      priceLineColor: chartTheme.textColor || '#333333',
+      priceLineColor: chartTheme.textColor || "#333333",
       priceLineStyle: 2,
     } as CandlestickSeriesOptions);
 
@@ -308,13 +292,10 @@ const TVCandlestick: React.FC<TVChartProps> = ({
   useEffect(() => {
     if (!seriesRef.current) return;
 
-    let filtered = rawData.filter(
-      (d) => !(d.open === d.high && d.high === d.low && d.low === d.close),
-    );
+    let filtered = rawData.filter((d) => !(d.open === d.high && d.high === d.low && d.low === d.close));
 
     const highs = filtered.map((d) => d.high).sort((a, b) => a - b);
-    const cutoff =
-      highs[Math.floor(highs.length * 0.99)] ?? Number.POSITIVE_INFINITY;
+    const cutoff = highs[Math.floor(highs.length * 0.99)] ?? Number.POSITIVE_INFINITY;
     filtered = filtered.filter((d) => d.high <= cutoff);
 
     const tvData: TVCandlestickData[] = filtered
@@ -331,9 +312,7 @@ const TVCandlestick: React.FC<TVChartProps> = ({
         };
       })
       .sort((a, b) => a.time - b.time)
-      .filter(
-        (item, index, arr) => index === 0 || item.time !== arr[index - 1].time,
-      );
+      .filter((item, index, arr) => index === 0 || item.time !== arr[index - 1].time);
 
     seriesRef.current.setData(tvData);
 
@@ -343,12 +322,7 @@ const TVCandlestick: React.FC<TVChartProps> = ({
     }
   }, [rawData, showUsd, ethUsdPrice]);
 
-  return (
-    <div
-      ref={containerRef}
-      style={{ width: "100%", height: "400px", position: "relative" }}
-    />
-  );
+  return <div ref={containerRef} style={{ width: "100%", height: "400px", position: "relative" }} />;
 };
 
 export default PoolCandleChart;
