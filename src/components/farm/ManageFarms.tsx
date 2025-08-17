@@ -1,5 +1,8 @@
 import { useAllCoins } from "@/hooks/metadata/use-all-coins";
-import { useIncentiveStreams, useUserIncentivePositions } from "@/hooks/use-incentive-streams";
+import {
+  useIncentiveStreams,
+  useUserIncentivePositions,
+} from "@/hooks/use-incentive-streams";
 import { useFarmsSummary } from "@/hooks/use-farms-summary";
 import { useZChefActions } from "@/hooks/use-zchef-contract";
 import { isUserRejectionError } from "@/lib/errors";
@@ -11,33 +14,34 @@ import { ErrorBoundary } from "../ErrorBoundary";
 import { FarmGridSkeleton, FarmPositionSkeleton } from "../FarmLoadingStates";
 import { FarmPositionCard } from "./FarmPositionCard";
 
+import { Button } from "../ui/button"; // already imported in FarmPositionCard
+
 export const ManageFarms = () => {
   const { t } = useTranslation();
-
   const { address } = useAccount();
 
   const { tokens } = useAllCoins();
   const { data: allStreams } = useIncentiveStreams();
-  const { data: userPositions, isLoading: isLoadingPositions } = useUserIncentivePositions();
+  const { data: userPositions, isLoading: isLoadingPositions } =
+    useUserIncentivePositions();
   const { harvest } = useZChefActions();
 
-  // Get streams that are relevant for user positions to fetch real-time data
-  // Include expired farms where user has positions
   const relevantStreams = useMemo(() => {
     if (!allStreams || !userPositions) return undefined;
     return allStreams.filter((stream) => {
-      // Always include streams where user has positions, regardless of status
       const hasPosition = userPositions.some(
-        (position) => BigInt(position.chefId) === BigInt(stream.chefId) && BigInt(position.shares) > 0n,
+        (position) =>
+          BigInt(position.chefId) === BigInt(stream.chefId) &&
+          BigInt(position.shares) > 0n,
       );
       return hasPosition;
     });
   }, [allStreams, userPositions]);
 
-  // Get real-time farm data using the same pattern as Browse Farms
   const { streamsWithRealTimeData } = useFarmsSummary(relevantStreams);
 
   const [harvestingId, setHarvestingId] = useState<bigint | null>(null);
+  const [showExpired, setShowExpired] = useState(false);
 
   const handleHarvest = async (chefId: bigint) => {
     try {
@@ -52,8 +56,11 @@ export const ManageFarms = () => {
     }
   };
 
+  const currentTime = BigInt(Math.floor(Date.now() / 1000));
+
   return (
     <div className="space-y-5 sm:space-y-6">
+      {/* Header */}
       <div className="rounded-lg p-4 backdrop-blur-sm mb-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
@@ -66,31 +73,18 @@ export const ManageFarms = () => {
                 userPositions && userPositions.length > 0 && "animate-pulse",
               )}
             >
-              <span className="text-primary font-mono text-sm font-bold">({userPositions?.length || 0})</span>
+              <span className="text-primary font-mono text-sm font-bold">
+                ({userPositions?.length || 0})
+              </span>
             </div>
           </div>
           <div className="flex items-center gap-4">
             {userPositions && userPositions.length > 0 && (
               <div className="hidden sm:flex items-center gap-4">
-                {/* @TODO */}
-                {/* <div className="text-xs font-mono">
-                  <span className="text-muted-foreground">
-                    {t("common.total_rewards")}:
-                  </span>
-                  <span className="text-primary font-bold ml-1">
-                    {formatBalance(
-                      formatEther(
-                        userPositions.reduce(
-                          (acc, p) => acc + (p.pendingRewards || 0n),
-                          0n,
-                        ),
-                      ),
-                      "",
-                    )}
-                  </span>
-                </div> */}
                 <div className="text-xs font-mono">
-                  <span className="text-muted-foreground">{t("common.active_farms")}:</span>
+                  <span className="text-muted-foreground">
+                    {t("common.active_farms")}:
+                  </span>
                   <span className="text-primary font-bold ml-1">
                     {userPositions.filter((p) => p.shares > 0n).length}
                   </span>
@@ -107,40 +101,58 @@ export const ManageFarms = () => {
         <div className="h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent"></div>
       </div>
 
+      {/* Show Expired Toggle */}
+      {userPositions && userPositions.length > 0 && (
+        <div className="flex justify-end">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowExpired((prev) => !prev)}
+            className="font-mono font-bold"
+          >
+            {showExpired ? "[ Hide Expired Farms ]" : "[ Show Expired Farms ]"}
+          </Button>
+        </div>
+      )}
+
+      {/* Content */}
       {!address ? (
         <div className="text-center py-12 sm:py-16">
-          <div className="bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-dashed border-primary/50 rounded-xl p-8 backdrop-blur-sm">
-            <div className="text-foreground space-y-4">
-              <div className="text-4xl sm:text-5xl text-primary opacity-40">☉</div>
-              <p className="text-xl font-bold text-primary">[ {t("common.auth_required")} ]</p>
-              <p className="text-sm mt-3">{t("common.connect_wallet_to_view_positions")}</p>
-            </div>
-          </div>
+          {/* connect wallet box */}
         </div>
       ) : isLoadingPositions ? (
         <FarmGridSkeleton count={3} />
       ) : userPositions && userPositions.length > 0 ? (
         <div className="grid gap-4 sm:gap-5 grid-cols-1 lg:grid-cols-2 will-change-transform">
           {userPositions
-            .filter((position) => BigInt(position.shares) > 0n) // Only show positions with shares
+            .filter((position) => BigInt(position.shares) > 0n)
             .map((position) => {
-              // First try to get real-time data, fallback to stale data
               const stream =
-                streamsWithRealTimeData?.find((s) => BigInt(s.chefId) === BigInt(position.chefId)) ||
-                allStreams?.find((s) => BigInt(s.chefId) === BigInt(position.chefId));
-              const lpToken = tokens.find((t) => {
-                if (!stream) return false;
-                // Direct pool ID match
-                if (t.poolId === BigInt(stream.lpId)) return true;
-                // Special handling for CULT tokens - check if lpId matches CULT_POOL_ID
-                if (t.symbol === "CULT" && BigInt(stream.lpId) === t.poolId) return true;
-                return false;
-              });
+                streamsWithRealTimeData?.find(
+                  (s) => BigInt(s.chefId) === BigInt(position.chefId),
+                ) ||
+                allStreams?.find(
+                  (s) => BigInt(s.chefId) === BigInt(position.chefId),
+                );
 
               if (!stream) return null;
 
+              const isExpired = stream.endTime <= currentTime;
+              if (!showExpired && isExpired) return null;
+
+              const lpToken = tokens.find((t) => {
+                if (!stream) return false;
+                if (t.poolId === BigInt(stream.lpId)) return true;
+                if (t.symbol === "CULT" && BigInt(stream.lpId) === t.poolId)
+                  return true;
+                return false;
+              });
+
               return (
-                <div key={position.chefId.toString()} className="group min-h-[400px] lg:min-h-[450px]">
+                <div
+                  key={position.chefId.toString()}
+                  className="group min-h-[400px] lg:min-h-[450px]"
+                >
                   <ErrorBoundary fallback={<FarmPositionSkeleton />}>
                     <Suspense fallback={<FarmPositionSkeleton />}>
                       <FarmPositionCard
@@ -161,8 +173,12 @@ export const ManageFarms = () => {
           <div className="bg-gradient-to-br from-muted/20 to-muted/5 border-2 border-dashed border-muted/40 rounded-xl p-8 backdrop-blur-sm">
             <div className="text-muted-foreground space-y-4">
               <div className="text-4xl sm:text-5xl opacity-20">○</div>
-              <p className="text-xl font-bold text-muted-foreground">[ {t("common.no_positions_found")} ]</p>
-              <p className="text-sm mt-3">{t("common.no_positions_description")}</p>
+              <p className="text-xl font-bold text-muted-foreground">
+                [ {t("common.no_positions_found")} ]
+              </p>
+              <p className="text-sm mt-3">
+                {t("common.no_positions_description")}
+              </p>
             </div>
           </div>
         </div>
