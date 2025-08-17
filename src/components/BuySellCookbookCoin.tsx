@@ -25,6 +25,8 @@ import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
 import { useAccount, useBalance, useReadContracts, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { useGetCoin } from "@/hooks/metadata/use-get-coin";
+import PoolPriceChart from "@/components/PoolPriceChart";
+import { ChevronDownIcon } from "lucide-react";
 
 export const BuySellCookbookCoin = ({
   coinId,
@@ -50,6 +52,7 @@ export const BuySellCookbookCoin = ({
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [percentage, setPercentage] = useState(0);
+  const [showPriceChart, setShowPriceChart] = useState<boolean>(false);
   const [priceImpact, setPriceImpact] = useState<{
     currentPrice: number;
     projectedPrice: number;
@@ -577,6 +580,30 @@ export const BuySellCookbookCoin = ({
         {errorMessage && <p className="text-destructive text-sm">{errorMessage}</p>}
         {isSuccess && <p className="text-green-600 text-sm">{t("create.transaction_confirmed")}</p>}
       </Tabs>
+
+      {/* Chart Dropdown Section */}
+      <div className="mt-6 border-t border-border pt-4">
+        <button
+          onClick={() => setShowPriceChart((prev) => !prev)}
+          className="text-sm text-muted-foreground flex items-center gap-1 hover:text-primary transition-colors mb-3"
+        >
+          {showPriceChart ? t("coin.hide_chart", "Hide Chart") : t("coin.show_chart", "Show Chart")}
+          <ChevronDownIcon className={`w-4 h-4 transition-transform ${showPriceChart ? "rotate-180" : ""}`} />
+        </button>
+        
+        {showPriceChart && (
+          <div className="transition-all duration-300 rounded-lg border border-border p-4 bg-card">
+            <div className="text-xs text-muted-foreground mb-2">
+              {symbol}/ETH {t("coin.price_history", "Price History")}
+            </div>
+            <PoolPriceChart
+              poolId={poolId.toString()}
+              ticker={symbol}
+              priceImpact={priceImpact}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 };
