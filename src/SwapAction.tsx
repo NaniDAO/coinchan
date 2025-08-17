@@ -554,17 +554,29 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
 
       let hash: `0x${string}`;
       try {
-        hash = await sendTransactionAsync({
-          to: mainnetConfig.router,
-          data: encodeFunctionData({
-            abi: zRouterAbi,
-            functionName: "multicall",
-            args: [calls],
-          }),
-          value: value,
-          chainId: mainnet.id,
-          account: address,
-        });
+        if (calls.length === 1) {
+          // Single call: send directly to the router with the encoded call
+          hash = await sendTransactionAsync({
+            to: mainnetConfig.router,
+            data: calls[0],
+            value: value,
+            chainId: mainnet.id,
+            account: address,
+          });
+        } else {
+          // Multiple calls: use multicall
+          hash = await sendTransactionAsync({
+            to: mainnetConfig.router,
+            data: encodeFunctionData({
+              abi: zRouterAbi,
+              functionName: "multicall",
+              args: [calls],
+            }),
+            value: value,
+            chainId: mainnet.id,
+            account: address,
+          });
+        }
       } catch (error: any) {
         if (error?.message?.includes("getChainId is not a function")) {
           console.error("Connector compatibility issue:", error);
