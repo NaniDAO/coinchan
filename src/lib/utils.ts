@@ -29,6 +29,31 @@ export function formatNumber(value: number, decimals = 2): string {
 }
 
 /**
+ * Format ETH amounts with appropriate precision
+ * For very small amounts, uses exponential notation or high precision
+ * @param value The ETH amount to format
+ * @returns Formatted string with appropriate precision
+ */
+export function formatEthAmount(value: number): string {
+  if (value === 0) return "0";
+
+  // For very small values (less than 0.00000001), use exponential notation
+  if (value < 0.00000001 && value > 0) {
+    return value.toExponential(4);
+  }
+
+  // For small values, show up to 12 decimal places, removing trailing zeros
+  if (value < 0.01) {
+    const formatted = value.toFixed(12);
+    // Remove trailing zeros and unnecessary decimal point
+    return formatted.replace(/\.?0+$/, "");
+  }
+
+  // For normal values, use standard formatting
+  return formatNumber(value, 8);
+}
+
+/**
  * Format a number for display in input fields with comma thousands separators
  * Handles integers without decimals for token amounts
  * @param value The number to format

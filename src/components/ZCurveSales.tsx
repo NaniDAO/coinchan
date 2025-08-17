@@ -45,8 +45,8 @@ export const ZCurveSales = () => {
 
     return (
       [...data]
-        // Exclude test demo coins
-        .filter((sale) => sale.coinId !== "69" && sale.coinId !== "71")
+        // Exclude test demo coins and graduated (finalized) coins
+        .filter((sale) => sale.coinId !== "69" && sale.coinId !== "71" && sale.status !== "FINALIZED")
         .map((sale) => {
           const momentum = calculateMomentum(sale);
           const fundedPercentage = calculateFundedPercentage(sale);

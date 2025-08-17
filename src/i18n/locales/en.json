@@ -839,21 +839,6 @@
     "eth_sent_to": "ETH sent to",
     "dust_refund_note_v3": "Wallet previews may show dust refunds in ETH/ENS - this is normal"
   },
-  "chart": {
-    "price": "Price",
-    "volume": "Volume",
-    "time": "Time",
-    "date": "Date",
-    "no_data": "No data available",
-    "no_candle_data": "No candle data available.",
-    "price_chart": "Price Chart",
-    "trade_history": "Trade History",
-    "liquidity_chart": "Liquidity Chart",
-    "candle_chart": "Candle Chart",
-    "line_chart": "Line Chart",
-    "loading_chart": "Fetching price data from ZAMM...",
-    "no_trades": "No trades yet"
-  },
   "errors": {
     "wallet_connection": "Error connecting wallet",
     "wallet_connection_refresh": "Wallet connection issue. Refreshing page...",
@@ -1017,7 +1002,17 @@
     "price_up": "Price Up",
     "price_down": "Price Down",
     "volume": "Volume",
-    "trades_count": "{{count}} trades"
+    "trades_count": "{{count}} trades",
+    "price": "Price",
+    "time": "Time",
+    "date": "Date",
+    "no_data": "No trading activity yet",
+    "no_candle_data": "No candle data available",
+    "trade_history": "Trade History",
+    "liquidity_chart": "Liquidity Chart",
+    "candle_chart": "Candle Chart",
+    "line_chart": "Line Chart",
+    "loading_chart": "Fetching price data from ZAMM..."
   },
   "trade": {
     "eth_in_escrow": "ETH in Escrow",

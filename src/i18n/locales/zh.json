@@ -512,7 +512,17 @@
     "price_up": "价格上涨",
     "price_down": "价格下跌",
     "volume": "成交量",
-    "trades_count": "{{count}} 笔交易"
+    "trades_count": "{{count}} 笔交易",
+    "price": "价格",
+    "time": "时间",
+    "date": "日期",
+    "no_data": "暂无交易活动",
+    "no_candle_data": "暂无K线数据",
+    "trade_history": "交易历史",
+    "liquidity_chart": "流动性图表",
+    "candle_chart": "K线图",
+    "line_chart": "线图",
+    "loading_chart": "正在从ZAMM获取价格数据..."
   },
   "trade": {
     "you_pay": "您支付",
@@ -999,21 +1009,6 @@
     "zap_lp": "ZAP并提供流动性",
     "eth_sent_to": "ETH发送至",
     "dust_refund_note_v3": "钱包预览可能显示ETH/ENS的微量退款 - 这是正常的"
-  },
-  "chart": {
-    "price": "价格",
-    "volume": "交易量",
-    "time": "时间",
-    "date": "日期",
-    "no_data": "无可用数据",
-    "no_candle_data": "无可用K线数据。",
-    "price_chart": "价格图表",
-    "trade_history": "交易历史",
-    "liquidity_chart": "流动性图表",
-    "candle_chart": "K线图",
-    "line_chart": "线图",
-    "loading_chart": "正在从ZAMM获取价格数据...",
-    "no_trades": "暂无交易"
   },
   "errors": {
     "wallet_connection": "连接钱包错误",

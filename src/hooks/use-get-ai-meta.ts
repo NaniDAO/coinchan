@@ -59,6 +59,10 @@ export const useGetAiMeta = (address?: string, id?: string) => {
           signal,
         });
       } catch (e) {
+        // If the request was aborted (e.g., component unmounted), silently return
+        if (e instanceof Error && e.name === "AbortError") {
+          throw e; // Let React Query handle the abort
+        }
         console.error(e);
         // Network layer error (CORS, DNS, offline, blocked, etc.)
         throw new Error(e instanceof Error ? `Network error: ${e.message}` : "Network error fetching token list");

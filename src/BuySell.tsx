@@ -22,12 +22,15 @@ import { NetworkError } from "./components/NetworkError";
 import { CoinchanAbi, CoinchanAddress } from "./constants/Coinchan";
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
 import { ZAMMAbi, ZAMMAddress } from "./constants/ZAAM";
+import PoolPriceChart from "@/components/PoolPriceChart";
+import { ChevronDownIcon } from "lucide-react";
 import { useReserves } from "./hooks/use-reserves";
 import { useETHPrice } from "./hooks/use-eth-price";
 import { useRequireMainnet } from "./hooks/use-mainnet-check";
 import {
   DEADLINE_SEC,
   SWAP_FEE,
+  SLIPPAGE_BPS,
   type ZAMMPoolKey,
   computePoolId,
   computePoolKey,
@@ -60,6 +63,7 @@ export const BuySell = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [swapFee, setSwapFee] = useState<bigint>(SWAP_FEE);
   const [buyPercentage, setBuyPercentage] = useState(0);
+  const [showPriceChart, setShowPriceChart] = useState<boolean>(false);
   const [priceImpact, setPriceImpact] = useState<{
     currentPrice: number;
     projectedPrice: number;
@@ -148,75 +152,135 @@ export const BuySell = ({
     if (!reserves || !reserves.reserve0 || !reserves.reserve1) return "0";
     try {
       if (tab === "buy") {
-        // Input: ETH amount -> Output: token amount
-        const inWei = parseEther(amount || "0");
-        const rawOut = getAmountOut(inWei, reserves.reserve0, reserves.reserve1, swapFee);
-        const minOut = withSlippage(rawOut);
-        return formatUnits(minOut, 18);
+        if (!amount || parseFloat(amount) === 0) return "0";
+        const ethAmount = parseEther(amount);
+        const output = getAmountOut(ethAmount, reserves.reserve0, reserves.reserve1, swapFee);
+        return formatUnits(output, 18);
       } else {
-        // Input: token amount -> Output: ETH amount
-        const inUnits = parseUnits(amount || "0", 18);
-        const rawOut = getAmountOut(inUnits, reserves.reserve1, reserves.reserve0, swapFee);
-        const minOut = withSlippage(rawOut);
-        return formatEther(minOut);
+        if (!amount || parseFloat(amount) === 0) return "0";
+        const tokenAmount = parseUnits(amount, 18);
+        const output = getAmountOut(tokenAmount, reserves.reserve1, reserves.reserve0, swapFee);
+        return formatEther(output);
       }
-    } catch {
+    } catch (e) {
+      console.error("Estimate calculation error:", e);
       return "0";
     }
-  }, [amount, reserves, tab, swapFee]);
+  }, [amount, reserves, swapFee, tab]);
 
-  // Calculate USD values
   const usdValue = useMemo(() => {
     if (!ethPrice?.priceUSD) return null;
-
-    try {
-      if (tab === "buy") {
-        // When buying, show USD value of ETH input
-        const ethAmount = parseFloat(amount || "0");
-        return formatNumber(ethAmount * ethPrice.priceUSD, 2);
-      } else {
-        // When selling, show USD value of ETH output
-        const ethAmount = parseFloat(estimated || "0");
-        return formatNumber(ethAmount * ethPrice.priceUSD, 2);
-      }
-    } catch {
-      return null;
-    }
+    const ethAmount = tab === "buy" ? parseFloat(amount || "0") : parseFloat(estimated || "0");
+    if (isNaN(ethAmount) || ethAmount === 0) return null;
+    const usdAmount = ethAmount * ethPrice.priceUSD;
+    return usdAmount.toFixed(2);
   }, [amount, estimated, ethPrice, tab]);
 
-  const handleBuyPercentageChange = useCallback(
-    (percentage: number) => {
-      setBuyPercentage(percentage);
-
-      if (!ethBalance?.value) return;
-
-      const adjustedBalance =
-        percentage === 100 ? (ethBalance.value * 99n) / 100n : (ethBalance.value * BigInt(percentage)) / 100n;
-
-      const newAmount = formatEther(adjustedBalance);
-      setAmount(newAmount);
-    },
-    [ethBalance?.value],
-  );
-
-  useEffect(() => {
-    if (tab !== "buy" || !ethBalance?.value || !amount) {
-      setBuyPercentage(0);
+  // Updated onBuy function
+  const onBuy = useCallback(async () => {
+    if (!address || !isReady || !amount) {
+      console.log("onBuy: Missing required data", { address, isReady, amount });
       return;
     }
 
     try {
-      const amountWei = parseEther(amount);
-      if (ethBalance.value > 0n) {
-        const calculatedPercentage = Number((amountWei * 100n) / ethBalance.value);
-        setBuyPercentage(Math.min(100, Math.max(0, calculatedPercentage)));
-      }
-    } catch {
-      setBuyPercentage(0);
-    }
-  }, [amount, ethBalance?.value, tab]);
+      setErrorMessage(null);
+      const ethAmount = parseEther(amount);
+      const minAmountOut = parseEther(estimated);
+      const minAmountOutWithSlippage = withSlippage(minAmountOut, SLIPPAGE_BPS);
 
-  // Calculate price impact
+      console.log("BuySell: Buying", {
+        ethAmount: formatEther(ethAmount),
+        minAmountOut: formatEther(minAmountOut),
+        minAmountOutWithSlippage: formatEther(minAmountOutWithSlippage),
+      });
+
+      const poolKey: ZAMMPoolKey = computePoolKey(tokenId, swapFee, CoinsAddress) as ZAMMPoolKey;
+
+      // For buying tokens with ETH, we swap ETH (token0) for tokens (token1)
+      // zeroForOne = true means we're swapping token0 (ETH) for token1 (tokens)
+      const hash = await writeContractAsync({
+        address: ZAMMAddress,
+        abi: ZAMMAbi,
+        functionName: "swapExactIn",
+        args: [
+          poolKey,
+          ethAmount, // amountIn
+          minAmountOutWithSlippage, // amountOutMin
+          true, // zeroForOne (ETH to tokens)
+          address, // to
+          nowSec() + BigInt(DEADLINE_SEC), // deadline
+        ],
+        value: ethAmount,
+        chainId: mainnet.id,
+      });
+
+      setTxHash(hash);
+      setAmount("");
+    } catch (error) {
+      const message = handleWalletError(error, { defaultMessage: "Buy failed" });
+      setErrorMessage(message);
+    }
+  }, [address, isReady, amount, estimated, writeContractAsync, tokenId, swapFee, t]);
+
+  // Updated onSell function
+  const onSell = useCallback(async () => {
+    if (!address || !isReady || !amount) {
+      console.log("onSell: Missing required data", { address, isReady, amount });
+      return;
+    }
+
+    try {
+      setErrorMessage(null);
+      const tokenAmount = parseEther(amount);
+      const minAmountOut = parseEther(estimated);
+      const minAmountOutWithSlippage = withSlippage(minAmountOut, SLIPPAGE_BPS);
+
+      console.log("BuySell: Selling", {
+        tokenAmount: formatEther(tokenAmount),
+        minAmountOut: formatEther(minAmountOut),
+        minAmountOutWithSlippage: formatEther(minAmountOutWithSlippage),
+      });
+
+      const poolKey: ZAMMPoolKey = computePoolKey(tokenId, swapFee, CoinsAddress) as ZAMMPoolKey;
+
+      // For selling tokens for ETH, we swap tokens (token1) for ETH (token0)
+      // zeroForOne = false means we're swapping token1 (tokens) for token0 (ETH)
+      const hash = await writeContractAsync({
+        address: ZAMMAddress,
+        abi: ZAMMAbi,
+        functionName: "swapExactIn",
+        args: [
+          poolKey,
+          tokenAmount, // amountIn
+          minAmountOutWithSlippage, // amountOutMin
+          false, // zeroForOne (tokens to ETH)
+          address, // to
+          nowSec() + BigInt(DEADLINE_SEC), // deadline
+        ],
+        chainId: mainnet.id,
+      });
+
+      setTxHash(hash);
+      setAmount("");
+    } catch (error) {
+      const message = handleWalletError(error, { defaultMessage: "Sell failed" });
+      setErrorMessage(message);
+    }
+  }, [address, isReady, amount, estimated, writeContractAsync, tokenId, swapFee, t]);
+
+  const handleBuyPercentageChange = useCallback(
+    (percentage: number) => {
+      setBuyPercentage(percentage);
+      if (ethBalance?.value) {
+        const percentageValue = (ethBalance.value * BigInt(percentage)) / 100n;
+        setAmount(formatEther(percentageValue));
+      }
+    },
+    [ethBalance],
+  );
+
+  // Price impact calculation with proper debouncing
   useEffect(() => {
     if (!reserves || !amount || parseFloat(amount) === 0) {
       setPriceImpact(null);
@@ -229,82 +293,38 @@ export const BuySell = ({
         const reserve0 = reserves.reserve0;
         const reserve1 = reserves.reserve1;
 
-        if (reserve0 === 0n || reserve1 === 0n) {
+        if (!reserve0 || !reserve1 || reserve0 === 0n || reserve1 === 0n) {
+          setPriceImpact(null);
           onPriceImpactChange?.(null);
           return;
         }
 
-        let newReserve0: bigint;
-        let newReserve1: bigint;
+        // Current price: ETH per token
+        const currentPriceInEth = Number(formatEther(reserve0)) / Number(formatUnits(reserve1, 18));
+
+        let newReserve0: bigint, newReserve1: bigint;
 
         if (tab === "buy") {
-          // Buying token with ETH
-          try {
-            const swapAmountEth = parseEther(amount || "0");
-            const amountOut = getAmountOut(swapAmountEth, reserve0, reserve1, swapFee);
-
-            if (amountOut >= reserve1) {
-              // Would drain the pool
-              onPriceImpactChange?.(null);
-              return;
-            }
-
-            newReserve0 = reserve0 + swapAmountEth;
-            newReserve1 = reserve1 - amountOut;
-          } catch (e) {
-            console.error("Error calculating buy output:", e);
-            onPriceImpactChange?.(null);
-            return;
-          }
+          const ethAmount = parseEther(amount);
+          const output = getAmountOut(ethAmount, reserve0, reserve1, swapFee);
+          newReserve0 = reserve0 + ethAmount;
+          newReserve1 = reserve1 - output;
         } else {
-          // Selling token for ETH
-          try {
-            const swapAmountToken = parseUnits(amount || "0", 18);
-            const amountOut = getAmountOut(swapAmountToken, reserve1, reserve0, swapFee);
-
-            if (amountOut >= reserve0) {
-              // Would drain the pool
-              onPriceImpactChange?.(null);
-              return;
-            }
-
-            newReserve0 = reserve0 - amountOut;
-            newReserve1 = reserve1 + swapAmountToken;
-          } catch (e) {
-            console.error("Error calculating sell output:", e);
-            onPriceImpactChange?.(null);
-            return;
-          }
+          const tokenAmount = parseUnits(amount, 18);
+          const output = getAmountOut(tokenAmount, reserve1, reserve0, swapFee);
+          newReserve0 = reserve0 - output;
+          newReserve1 = reserve1 + tokenAmount;
         }
 
-        // Calculate prices - ETH per token with higher precision
-        // Use BigInt math for better precision before converting to float
-        const currentPrice = (reserve0 * BigInt(1e18)) / reserve1;
-        const newPrice = (newReserve0 * BigInt(1e18)) / newReserve1;
+        // New price after trade
+        const newPriceInEth = Number(formatEther(newReserve0)) / Number(formatUnits(newReserve1, 18));
 
-        const currentPriceInEth = Number(currentPrice) / 1e18;
-        const newPriceInEth = Number(newPrice) / 1e18;
+        // Calculate price impact percentage
+        let impactPercent = ((newPriceInEth - currentPriceInEth) / currentPriceInEth) * 100;
 
-        // Validate calculated prices
-        if (!isFinite(currentPriceInEth) || !isFinite(newPriceInEth) || newPriceInEth <= 0) {
-          console.error("Invalid price calculation");
-          onPriceImpactChange?.(null);
-          return;
-        }
-
-        const impactPercent = ((newPriceInEth - currentPriceInEth) / currentPriceInEth) * 100;
-
-        // Sanity check for extreme impacts
-        if (Math.abs(impactPercent) > 90) {
-          console.warn(`Extreme price impact detected: ${impactPercent.toFixed(2)}%`);
-          onPriceImpactChange?.(null);
-          return;
-        }
-
-        // For very small trades, ensure the price moves in the correct direction
-        // This handles rounding errors that might show price going up when selling small amounts
-        if (Math.abs(impactPercent) < 0.0001) {
-          // Force the direction to match the action for tiny impacts
+        // For very small impacts, show a minimal value
+        if (Math.abs(impactPercent) < 0.001) {
+          // Instead of showing 0, show a very small value
           const adjustedNewPrice =
             tab === "buy"
               ? currentPriceInEth * 1.00001 // Tiny increase for buys
@@ -314,7 +334,7 @@ export const BuySell = ({
             currentPrice: currentPriceInEth,
             projectedPrice: adjustedNewPrice,
             impactPercent: tab === "buy" ? 0.001 : -0.001,
-            action: tab,
+            action: tab as "buy" | "sell",
           };
           setPriceImpact(impact);
           onPriceImpactChange?.(impact);
@@ -325,7 +345,7 @@ export const BuySell = ({
           currentPrice: currentPriceInEth,
           projectedPrice: newPriceInEth,
           impactPercent,
-          action: tab,
+          action: tab as "buy" | "sell",
         };
         setPriceImpact(impact);
         onPriceImpactChange?.(impact);
@@ -337,114 +357,36 @@ export const BuySell = ({
     }, 500); // 500ms debounce
 
     return () => clearTimeout(timer);
-  }, [amount, tab, reserves, swapFee, onPriceImpactChange]);
+  }, [reserves, amount, swapFee, tab, onPriceImpactChange]);
 
-  const onBuy = async () => {
-    if (!reserves || !address || !isReady) return;
-
-    setErrorMessage(null);
-
-    try {
-      const amountInWei = parseEther(amount || "0");
-      const rawOut = getAmountOut(amountInWei, reserves.reserve0, reserves.reserve1, swapFee);
-      const amountOutMin = withSlippage(rawOut);
-      const deadline = nowSec() + BigInt(DEADLINE_SEC);
-
-      const poolKey = computePoolKey(tokenId, swapFee, CoinsAddress) as ZAMMPoolKey;
-      const hash = await writeContractAsync({
-        address: ZAMMAddress,
-        abi: ZAMMAbi,
-        functionName: "swapExactIn",
-        args: [poolKey, amountInWei, amountOutMin, true, address, deadline],
-        value: amountInWei,
-      });
-      setTxHash(hash);
-    } catch (err) {
-      const errorMsg = handleWalletError(err, {
-        defaultMessage: t("errors.transaction_error"),
-      });
-      if (errorMsg) {
-        setErrorMessage(errorMsg);
-      }
-    }
-  };
-
-  const onSell = async () => {
-    if (!reserves || !address || !isReady) return;
-
-    setErrorMessage(null);
-
-    try {
-      const amountInUnits = parseUnits(amount || "0", 18);
-
-      if (!isOperator) {
-        try {
-          await writeContractAsync({
-            address: CoinsAddress,
-            abi: CoinsAbi,
-            functionName: "setOperator",
-            args: [ZAMMAddress, true],
-          });
-        } catch (approvalErr) {
-          const errorMsg = handleWalletError(approvalErr, {
-            defaultMessage: t("errors.transaction_error"),
-          });
-          if (errorMsg) {
-            setErrorMessage(errorMsg);
-          }
-          return;
-        }
-      }
-
-      const rawOut = getAmountOut(amountInUnits, reserves.reserve1, reserves.reserve0, swapFee);
-      const amountOutMin = withSlippage(rawOut);
-      const deadline = nowSec() + BigInt(DEADLINE_SEC);
-
-      const poolKey = computePoolKey(tokenId, swapFee, CoinsAddress) as ZAMMPoolKey;
-      const hash = await writeContractAsync({
-        address: ZAMMAddress,
-        abi: ZAMMAbi,
-        functionName: "swapExactIn",
-        args: [poolKey, amountInUnits, amountOutMin, false, address, deadline],
-      });
-      setTxHash(hash);
-    } catch (err) {
-      const errorMsg = handleWalletError(err, {
-        defaultMessage: t("errors.transaction_error"),
-      });
-      if (errorMsg) {
-        setErrorMessage(errorMsg);
-      }
-    }
-  };
+  if (!isReady) {
+    return <NetworkError />;
+  }
 
   return (
-    <div>
-      {/* Network warning */}
-      <NetworkError compact />
-
-      {/* Per-unit price information */}
-      {reserves && reserves.reserve0 > 0n && reserves.reserve1 > 0n && ethPrice?.priceUSD && (
-        <div className="mb-3 p-2 bg-muted/30 rounded-lg text-xs text-muted-foreground">
-          <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-6">
+      {/* Trading Stats */}
+      {reserves && (
+        <div className="flex items-center justify-center">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-center">
             {(() => {
-              const ethAmount = parseFloat(formatEther(reserves.reserve0));
-              const tokenAmount = parseFloat(formatUnits(reserves.reserve1, 18));
-              const tokenPriceInEth = ethAmount / tokenAmount;
-              const ethPriceInToken = tokenAmount / ethAmount;
-              const tokenPriceUsd = tokenPriceInEth * ethPrice.priceUSD;
-              const totalPoolValueUsd = ethAmount * ethPrice.priceUSD * 2;
+              const totalLiquidity = reserves.reserve0;
+              const coinReserve = reserves.reserve1;
+              const price = coinReserve > 0n ? (reserves.reserve0 * 10n ** 18n) / coinReserve : 0n;
 
               return (
                 <>
-                  <div className="opacity-90">Pool Value: ${formatNumber(totalPoolValueUsd, 2)} USD</div>
-                  <div className="opacity-75">
-                    1 ETH = {formatNumber(ethPriceInToken, 6)} {symbol} | 1 {symbol} = {tokenPriceInEth.toFixed(8)} ETH
-                    ($
-                    {tokenPriceUsd.toFixed(8)} USD)
+                  <div className="font-mono text-xs">
+                    <span className="text-muted-foreground">{t("common.liquidity")}: </span>
+                    <span className="text-foreground">{formatEther(totalLiquidity).slice(0, 8)} ETH</span>
                   </div>
-                  <div className="opacity-60 flex items-center gap-1">
-                    <span>Fee: {Number(swapFee) / 100}%</span>
+                  <div className="font-mono text-xs">
+                    <span className="text-muted-foreground">{t("common.price")}: </span>
+                    <span className="text-foreground">{formatEther(price).slice(0, 12)} ETH</span>
+                  </div>
+                  <div className="font-mono text-xs">
+                    <span className="text-muted-foreground">{t("common.fee")}: </span>
+                    <span className="text-foreground">{Number(swapFee) / 100}%</span>
                     <HoverCard>
                       <HoverCardTrigger asChild>
                         <span className="text-[10px] opacity-70 cursor-help hover:opacity-100 transition-opacity">
@@ -464,53 +406,76 @@ export const BuySell = ({
       )}
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as "buy" | "sell")}>
-        <TabsList>
-          <TabsTrigger value="buy" className="transition-all duration-300">
-            Buy {name} [{symbol}]
+        <TabsList className="grid grid-cols-2 w-full max-w-md mx-auto">
+          <TabsTrigger value="buy" className="transition-all duration-300 font-semibold">
+            Buy {symbol}
           </TabsTrigger>
-          <TabsTrigger value="sell" className="transition-all duration-300">
-            Sell {name} [{symbol}]
+          <TabsTrigger value="sell" className="transition-all duration-300 font-semibold">
+            Sell {symbol}
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="buy" className="max-w-2xl">
-          <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-green-700">Using ETH</span>
-            <Input
-              type="number"
-              placeholder="Amount ETH"
-              value={amount}
-              min="0"
-              step="any"
-              onChange={(e) => setAmount(e.currentTarget.value)}
-              disabled={false}
-            />
-            {usdValue && amount && <span className="text-xs text-muted-foreground">≈ ${usdValue} USD</span>}
+        <TabsContent value="buy" className="w-full max-w-md mx-auto mt-6">
+          <div className="space-y-4 p-4 bg-card rounded-lg border border-border">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">You Pay</label>
+              <div className="relative">
+                <Input
+                  type="number"
+                  placeholder="0.0"
+                  value={amount}
+                  min="0"
+                  step="any"
+                  onChange={(e) => setAmount(e.currentTarget.value)}
+                  className="pr-16 text-lg font-semibold"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium">ETH</span>
+              </div>
+              {usdValue && parseFloat(amount || "0") > 0 && (
+                <span className="text-xs text-muted-foreground block">≈ ${usdValue} USD</span>
+              )}
+            </div>
 
             {ethBalance?.value && ethBalance.value > 0n && isConnected ? (
-              <div className="mt-2 pt-2 border-t border-primary/20">
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Balance: {formatUnits(ethBalance.value, 18)} ETH</span>
+                </div>
                 <PercentageSlider value={buyPercentage} onChange={handleBuyPercentageChange} />
               </div>
             ) : null}
 
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-green-800">
-                You will receive ~ {formatNumber(parseFloat(estimated), 6)} {symbol}
-              </span>
-              {priceImpact && (
-                <span
-                  className={`text-xs font-medium ${priceImpact.impactPercent > 0 ? "text-green-600" : "text-red-600"}`}
-                >
-                  {priceImpact.impactPercent > 0 ? "+" : ""}
-                  {priceImpact.impactPercent.toFixed(2)}%
+            <div className="p-3 bg-secondary/50 rounded-md space-y-1">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">You Receive</span>
+                <span className="text-lg font-semibold text-green-600">
+                  ~{formatNumber(parseFloat(estimated), 6)} {symbol}
                 </span>
+              </div>
+              {priceImpact && (
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Price Impact</span>
+                  <span
+                    className={`text-xs font-medium ${
+                      priceImpact.impactPercent > 5
+                        ? "text-yellow-600"
+                        : priceImpact.impactPercent > 10
+                          ? "text-red-600"
+                          : "text-green-600"
+                    }`}
+                  >
+                    {priceImpact.impactPercent > 0 ? "+" : ""}
+                    {priceImpact.impactPercent.toFixed(2)}%
+                  </span>
+                </div>
               )}
             </div>
+
             <Button
               onClick={onBuy}
               disabled={!isConnected || !isReady || isPending || !amount}
               variant="default"
-              className={`bg-green-600 hover:bg-green-700 text-white font-bold transition-opacity duration-300`}
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold h-12 text-base"
             >
               {isPending ? (
                 <span className="flex items-center gap-2">
@@ -524,58 +489,73 @@ export const BuySell = ({
           </div>
         </TabsContent>
 
-        <TabsContent value="sell" className="max-w-2xl">
-          <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-accent dark:text-accent">Using {symbol}</span>
-            <div className="relative">
-              <Input
-                type="number"
-                placeholder={`Amount ${symbol}`}
-                value={amount}
-                min="0"
-                step="any"
-                onChange={(e) => setAmount(e.currentTarget.value)}
-                disabled={false}
-              />
+        <TabsContent value="sell" className="w-full max-w-md mx-auto mt-6">
+          <div className="space-y-4 p-4 bg-card rounded-lg border border-border">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">You Sell</label>
+              <div className="relative">
+                <Input
+                  type="number"
+                  placeholder="0.0"
+                  value={amount}
+                  min="0"
+                  step="any"
+                  onChange={(e) => setAmount(e.currentTarget.value)}
+                  className="pr-16 text-lg font-semibold"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium">{symbol}</span>
+              </div>
+              {balance !== undefined && (
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">
+                    Balance: {formatUnits(balance, 18)} {symbol}
+                  </span>
+                  <button
+                    className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                    onClick={() => setAmount(formatUnits(balance, 18))}
+                  >
+                    MAX
+                  </button>
+                </div>
+              )}
             </div>
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">
-                  You will receive ~ {formatNumber(parseFloat(estimated), 6)} ETH
+
+            <div className="p-3 bg-secondary/50 rounded-md space-y-1">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">You Receive</span>
+                <span className="text-lg font-semibold text-blue-600">
+                  ~{formatNumber(parseFloat(estimated), 6)} ETH
                 </span>
-                {priceImpact && (
+              </div>
+              {usdValue && parseFloat(estimated || "0") > 0 && (
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">USD Value</span>
+                  <span className="text-xs text-muted-foreground">≈ ${usdValue}</span>
+                </div>
+              )}
+              {priceImpact && (
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Price Impact</span>
                   <span
                     className={`text-xs font-medium ${
-                      priceImpact.impactPercent > 0 ? "text-green-600" : "text-red-600"
+                      Math.abs(priceImpact.impactPercent) > 10
+                        ? "text-red-600"
+                        : Math.abs(priceImpact.impactPercent) > 5
+                          ? "text-yellow-600"
+                          : "text-blue-600"
                     }`}
                   >
-                    {priceImpact.impactPercent > 0 ? "+" : ""}
                     {priceImpact.impactPercent.toFixed(2)}%
                   </span>
-                )}
-              </div>
-              {usdValue && estimated !== "0" && (
-                <span className="text-xs text-muted-foreground">≈ ${usdValue} USD</span>
-              )}
-              {balance !== undefined ? (
-                <button
-                  className="self-end text-sm font-medium text-chart-2 dark:text-chart-2 hover:text-primary transition-colors"
-                  onClick={() => setAmount(formatUnits(balance, 18))}
-                  disabled={false}
-                >
-                  MAX ({formatUnits(balance, 18)})
-                </button>
-              ) : (
-                <button className="self-end text-sm font-medium text-chart-2 dark:text-chart-2" disabled={!balance}>
-                  MAX
-                </button>
+                </div>
               )}
             </div>
+
             <Button
               onClick={onSell}
-              disabled={!isConnected || !isReady || isPending || !amount}
-              variant="outline"
-              className={`dark:border-accent dark:text-accent dark:hover:bg-accent/10 transition-opacity duration-300 `}
+              disabled={!isConnected || !isReady || isPending || !amount || !isOperator}
+              variant="destructive"
+              className="w-full h-12 text-base font-bold text-white"
             >
               {isPending ? (
                 <span className="flex items-center gap-2">
@@ -589,9 +569,33 @@ export const BuySell = ({
           </div>
         </TabsContent>
 
-        {errorMessage && <p className="text-destructive text-sm">{errorMessage}</p>}
-        {isSuccess && <p className="text-chart-2 text-sm">Tx confirmed!</p>}
+        {errorMessage && <p className="text-destructive text-sm mt-4">{errorMessage}</p>}
+        {isSuccess && <p className="text-chart-2 text-sm mt-4">Transaction confirmed!</p>}
       </Tabs>
+
+      {/* Chart Dropdown Section */}
+      <div className="mt-6 border-t border-border pt-4">
+        <button
+          onClick={() => setShowPriceChart((prev) => !prev)}
+          className="text-sm text-muted-foreground flex items-center gap-1 hover:text-primary transition-colors mb-3"
+        >
+          {showPriceChart ? t("coin.hide_chart", "Hide Chart") : t("coin.show_chart", "Show Chart")}
+          <ChevronDownIcon className={`w-4 h-4 transition-transform ${showPriceChart ? "rotate-180" : ""}`} />
+        </button>
+
+        {showPriceChart && (
+          <div className="transition-all duration-300 rounded-lg border border-border p-4 bg-card">
+            <div className="text-xs text-muted-foreground mb-2">
+              {symbol}/ETH {t("coin.price_history", "Price History")}
+            </div>
+            <PoolPriceChart
+              poolId={computePoolId(tokenId, swapFee, CoinsAddress).toString()}
+              ticker={symbol}
+              priceImpact={priceImpact}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 };
