@@ -33,31 +33,7 @@ export const PoolActions = () => {
   // Main UI
   return (
     <div className="w-full !mb-10 mt-5 mx-auto !p-4 bg-background ">
-      {/* Header with mode switcher matching HTML design */}
-      <div className="flex justify-end items-center mb-5">
-        <h2 className="sr-only m-0 font-display uppercase tracking-widest text-lg">SWAP TERMINAL</h2>
-
-        <div className="flex p-0.5 gap-0">
-          <button
-            className={cn(
-              `!px-2 !py-1 text-xs border-2 transition-colors hover:!text-underline`,
-              mode === "swap" ? "bg-background text-foreground" : "bg-accent text-accent-foreground",
-            )}
-            onClick={() => setMode("swap")}
-          >
-            {t("common.swap").toUpperCase()}
-          </button>
-          <button
-            className={cn(
-              `!px-2 !py-1 text-xs border-2 transition-colors hover:!text-underline`,
-              mode === "liquidity" ? "bg-background text-foreground" : "bg-accent text-accent-foreground",
-            )}
-            onClick={() => setMode("liquidity")}
-          >
-            {t("common.add").toUpperCase()}
-          </button>
-        </div>
-      </div>
+      <h2 className="sr-only m-0 font-display uppercase tracking-widest text-lg">SWAP TERMINAL</h2>
 
       {/* Load error notification */}
       {loadError && (
@@ -69,6 +45,17 @@ export const PoolActions = () => {
       {/* Content based on mode */}
       <div className="w-full flex items-center justify-center">
         <div className="relative flex flex-col !w-xl outline-2 outline-offset-1 border-1 border-foreground outline-foreground p-5">
+          {/* Mode toggle button in the corner of the tile */}
+          <button
+            className={cn(
+              "absolute top-2 right-2 !px-3 !py-1.5 text-xs font-bold border-2 transition-all z-10",
+              "bg-accent text-accent-foreground hover:bg-background hover:text-foreground",
+              "uppercase tracking-wider",
+            )}
+            onClick={() => setMode(mode === "swap" ? "liquidity" : "swap")}
+          >
+            {mode === "swap" ? t("common.add").toUpperCase() : t("common.swap").toUpperCase()}
+          </button>
           {mode === "swap" && (
             <ErrorBoundary fallback={<div>Error</div>}>
               <SwapAction />

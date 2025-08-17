@@ -2,14 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { CheckIcon, ExternalLink } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  encodeFunctionData,
-  formatEther,
-  formatUnits,
-  maxUint256,
-  parseUnits,
-  type Address,
-} from "viem";
+import { encodeFunctionData, formatEther, formatUnits, maxUint256, parseUnits, type Address } from "viem";
 import { mainnet } from "viem/chains";
 import {
   useAccount,
@@ -26,11 +19,7 @@ import { NetworkError } from "./components/NetworkError";
 import { SlippageSettings } from "./components/SlippageSettings";
 import { SwapPanel } from "./components/SwapPanel";
 import { LoadingLogo } from "./components/ui/loading-logo";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "./components/ui/hover-card";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "./components/ui/hover-card";
 import { CoinsAbi, CoinsAddress } from "./constants/Coins";
 import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
 import { useTokenSelection } from "./contexts/TokenSelectionContext";
@@ -41,24 +30,10 @@ import { useENSResolution } from "./hooks/use-ens-resolution";
 import { useETHPrice } from "./hooks/use-eth-price";
 import type { TokenMeta } from "./lib/coins";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
-import {
-  SLIPPAGE_BPS,
-  SWAP_FEE,
-  analyzeTokens,
-  getPoolIds,
-  getSwapFee,
-} from "./lib/swap";
+import { SLIPPAGE_BPS, SWAP_FEE, analyzeTokens, getPoolIds, getSwapFee } from "./lib/swap";
 import { cn, formatNumber } from "./lib/utils";
 import { SwapController } from "./components/SwapController";
-import {
-  buildRoutePlan,
-  mainnetConfig,
-  findRoute,
-  quote,
-  simulateRoute,
-  erc20Abi,
-  zRouterAbi,
-} from "zrouter-sdk";
+import { buildRoutePlan, mainnetConfig, findRoute, quote, simulateRoute, erc20Abi, zRouterAbi } from "zrouter-sdk";
 import { SwapModeTab } from "./SwapModeTab";
 import { CustomRecipientInput } from "./CustomRecipientInput";
 import { _ReturnNull } from "i18next";
@@ -88,8 +63,7 @@ function toZRouterToken(token?: TokenMeta) {
   if (token.id === null) return { address: ADDR.ETH } as const;
 
   if (token.source === "ERC20") {
-    if (!token.token1)
-      throw new Error(`Missing token1 for ERC20 token ${token.id}`);
+    if (!token.token1) throw new Error(`Missing token1 for ERC20 token ${token.id}`);
     return {
       address: token.token1,
     };
@@ -148,9 +122,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
   const [deadline, setDeadline] = useState(2); // days
 
   /* Track which field was last edited to determine swap intent */
-  const [lastEditedField, setLastEditedField] = useState<"sell" | "buy">(
-    "sell",
-  );
+  const [lastEditedField, setLastEditedField] = useState<"sell" | "buy">("sell");
 
   // ENS resolution for custom recipient
   const ensResolution = useENSResolution(customRecipient);
@@ -183,11 +155,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
 
   const { data: reserves } = useReserves({
     poolId: isENSPool ? ensPoolId : mainPoolId,
-    source: isENSPool
-      ? "COOKBOOK"
-      : sellToken?.id === null
-        ? buyToken?.source
-        : sellToken.source,
+    source: isENSPool ? "COOKBOOK" : sellToken?.id === null ? buyToken?.source : sellToken.source,
   });
 
   const [slippageBps, setSlippageBps] = useState<bigint>(SLIPPAGE_BPS);
@@ -202,11 +170,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
   const [txError, setTxError] = useState<string | null>(null);
   const [isApproving, setIsApproving] = useState(false);
   const [approvalStep, setApprovalStep] = useState<string | null>(null);
-  const {
-    sendTransactionAsync,
-    isPending,
-    error: writeError,
-  } = useSendTransaction();
+  const { sendTransactionAsync, isPending, error: writeError } = useSendTransaction();
   const { sendCalls } = useSendCalls();
   const isBatchingSupported = useBatchingSupported();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
@@ -267,15 +231,9 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
 
   // === quoting via zrouter-sdk ===
   const doQuote = useCallback(
-    async (
-      params:
-        | { side: "EXACT_IN"; raw: string }
-        | { side: "EXACT_OUT"; raw: string },
-    ) => {
-      if (!publicClient || !sellToken || !buyToken)
-        return { ok: false as const };
-      if (!params.raw || Number.isNaN(Number(params.raw)))
-        return { ok: false as const };
+    async (params: { side: "EXACT_IN"; raw: string } | { side: "EXACT_OUT"; raw: string }) => {
+      if (!publicClient || !sellToken || !buyToken) return { ok: false as const };
+      if (!params.raw || Number.isNaN(Number(params.raw))) return { ok: false as const };
 
       const tokenIn = toZRouterToken(sellToken);
       const tokenOut = toZRouterToken(buyToken);
@@ -299,10 +257,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
             });
           return { ok: true as const, amountOut: out, amountIn: params.raw };
         } else {
-          const amountOutWanted = parseUnits(
-            params.raw,
-            buyToken.decimals || 18,
-          );
+          const amountOutWanted = parseUnits(params.raw, buyToken.decimals || 18);
           const res = await quote(publicClient, {
             tokenIn,
             tokenOut,
@@ -332,12 +287,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
 
     const run = async () => {
       try {
-        if (
-          swapMode !== "instant" ||
-          !sellToken ||
-          !buyToken ||
-          (!sellAmt && !buyAmt)
-        ) {
+        if (swapMode !== "instant" || !sellToken || !buyToken || (!sellAmt && !buyAmt)) {
           if (!canceled) setPriceImpact(null);
           return;
         }
@@ -428,15 +378,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
       canceled = true;
       clearTimeout(id);
     };
-  }, [
-    swapMode,
-    sellToken,
-    buyToken,
-    sellAmt,
-    buyAmt,
-    lastEditedField,
-    doQuote,
-  ]);
+  }, [swapMode, sellToken, buyToken, sellAmt, buyAmt, lastEditedField, doQuote]);
 
   const syncFromBuy = async (val: string) => {
     setBuyAmt(val);
@@ -483,9 +425,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
           return;
         }
         if (!ensResolution.address) {
-          setTxError(
-            t("errors.invalid_address") || "Invalid recipient address",
-          );
+          setTxError(t("errors.invalid_address") || "Invalid recipient address");
           return;
         }
         finalRecipient = ensResolution.address as Address;
@@ -502,10 +442,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
 
       const side = lastEditedField === "sell" ? "EXACT_IN" : "EXACT_OUT";
       const raw = lastEditedField === "sell" ? sellAmt : buyAmt;
-      const decimals =
-        lastEditedField === "sell"
-          ? sellToken.decimals || 18
-          : buyToken.decimals || 18;
+      const decimals = lastEditedField === "sell" ? sellToken.decimals || 18 : buyToken.decimals || 18;
       const amount = parseUnits(raw!, decimals);
 
       const steps = await findRoute(publicClient, {
@@ -646,18 +583,9 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
       setTxHash(hash);
     } catch (err: unknown) {
       console.error("Swap execution error:", err);
-      if (
-        err &&
-        typeof err === "object" &&
-        "message" in err &&
-        typeof (err as any).message === "string"
-      ) {
+      if (err && typeof err === "object" && "message" in err && typeof (err as any).message === "string") {
         const msg = (err as any).message as string;
-        if (
-          msg.includes("getChainId") ||
-          msg.includes("connector") ||
-          msg.includes("connection")
-        ) {
+        if (msg.includes("getChainId") || msg.includes("connector") || msg.includes("connection")) {
           setTxError(t("errors.wallet_connection_refresh"));
         } else {
           const m = handleWalletError(err);
@@ -681,14 +609,12 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
         setTxError(t("errors.network_error"));
         return;
       }
-      const deadlineSeconds =
-        Math.floor(Date.now() / 1000) + deadline * 24 * 60 * 60;
+      const deadlineSeconds = Math.floor(Date.now() / 1000) + deadline * 24 * 60 * 60;
 
       const CULT_ADDRESS = ADDR.CULT;
       const ENS_ADDRESS = ADDR.ENS;
       const isCULT = (token: TokenMeta) => token.symbol === "CULT";
-      const isENS = (token: TokenMeta) =>
-        token.isCustomPool && token.symbol === "ENS";
+      const isENS = (token: TokenMeta) => token.isCustomPool && token.symbol === "ENS";
 
       const tokenInAddress =
         sellToken.id === null
@@ -711,10 +637,8 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
                 ? (CookbookAddress as Address)
                 : (CoinsAddress as Address);
 
-      const idIn =
-        isCULT(sellToken) || isENS(sellToken) ? 0n : sellToken.id || 0n;
-      const idOut =
-        isCULT(buyToken) || isENS(buyToken) ? 0n : buyToken.id || 0n;
+      const idIn = isCULT(sellToken) || isENS(sellToken) ? 0n : sellToken.id || 0n;
+      const idOut = isCULT(buyToken) || isENS(buyToken) ? 0n : buyToken.id || 0n;
 
       const sellTokenDecimals = sellToken.decimals || 18;
       const buyTokenDecimals = buyToken.decimals || 18;
@@ -728,13 +652,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
         value?: bigint;
       }> = [];
 
-      if (
-        sellToken.id !== null &&
-        sellToken.id >= 1000000n &&
-        !isCULT(sellToken) &&
-        !isENS(sellToken) &&
-        !isOperator
-      ) {
+      if (sellToken.id !== null && sellToken.id >= 1000000n && !isCULT(sellToken) && !isENS(sellToken) && !isOperator) {
         const approvalData = encodeFunctionData({
           abi: CoinsAbi,
           functionName: "setOperator",
@@ -746,16 +664,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
       const makeOrderData = encodeFunctionData({
         abi: CookbookAbi,
         functionName: "makeOrder",
-        args: [
-          tokenInAddress,
-          idIn,
-          amtIn,
-          tokenOutAddress,
-          idOut,
-          amtOut,
-          BigInt(deadlineSeconds),
-          partialFill,
-        ],
+        args: [tokenInAddress, idIn, amtIn, tokenOutAddress, idOut, amtOut, BigInt(deadlineSeconds), partialFill],
       });
 
       calls.push({
@@ -889,13 +798,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
           isEthBalanceFetching={isEthBalanceFetching}
           amount={sellAmt}
           onAmountChange={syncFromSell}
-          showMaxButton={
-            !!(
-              sellToken.balance &&
-              (sellToken.balance as bigint) > 0n &&
-              lastEditedField === "sell"
-            )
-          }
+          showMaxButton={!!(sellToken.balance && (sellToken.balance as bigint) > 0n && lastEditedField === "sell")}
           onMax={() => {
             if (sellToken.id === null) {
               const ethAmount = ((sellToken.balance as bigint) * 99n) / 100n;
@@ -906,10 +809,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
             }
           }}
           showPercentageSlider={
-            lastEditedField === "sell" ||
-            (isExternalSwap &&
-              !!sellToken.balance &&
-              (sellToken.balance as bigint) > 0n)
+            lastEditedField === "sell" || (isExternalSwap && !!sellToken.balance && (sellToken.balance as bigint) > 0n)
           }
           className="pb-4"
           readOnly={!!lockedTokens}
@@ -965,15 +865,11 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
       {swapMode === "limit" && (
         <div className="mt-4 p-3 bg-background/50 rounded-lg border border-primary/20">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-foreground">
-              {t("common.order_settings")}
-            </span>
+            <span className="text-sm font-medium text-foreground">{t("common.order_settings")}</span>
           </div>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-sm text-muted-foreground">
-                {t("common.allow_partial_fill")}
-              </label>
+              <label className="text-sm text-muted-foreground">{t("common.allow_partial_fill")}</label>
               <button
                 onClick={() => setPartialFill(!partialFill)}
                 className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${partialFill ? "bg-primary" : "bg-muted"}`}
@@ -984,9 +880,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
               </button>
             </div>
             <div className="flex items-center justify-between">
-              <label className="text-sm text-muted-foreground dark:text-gray-300">
-                {t("common.expires_in")}
-              </label>
+              <label className="text-sm text-muted-foreground dark:text-gray-300">{t("common.expires_in")}</label>
               <select
                 value={deadline}
                 onChange={(e) => setDeadline(Number(e.target.value))}
@@ -1001,11 +895,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
             {sellAmt && buyAmt && buyToken && (
               <div className="pt-2 border-t border-primary/10">
                 <div className="text-xs text-muted-foreground dark:text-gray-300">
-                  Rate: 1 {sellToken.symbol} ={" "}
-                  {formatNumber(
-                    Number.parseFloat(buyAmt) / Number.parseFloat(sellAmt),
-                    6,
-                  )}{" "}
+                  Rate: 1 {sellToken.symbol} = {formatNumber(Number.parseFloat(buyAmt) / Number.parseFloat(sellAmt), 6)}{" "}
                   {buyToken.symbol}
                 </div>
               </div>
@@ -1015,12 +905,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
       )}
 
       {/* Slippage info (UI only for now) */}
-      {swapMode === "instant" && (
-        <SlippageSettings
-          setSlippageBps={setSlippageBps}
-          slippageBps={slippageBps}
-        />
-      )}
+      {swapMode === "instant" && <SlippageSettings setSlippageBps={setSlippageBps} slippageBps={slippageBps} />}
 
       {/* Pool information - kept for UI display (but not for external swaps) */}
       {swapMode === "instant" && canSwap && reserves && !isExternalSwap && (
@@ -1033,17 +918,12 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
               (buyToken?.id === null && sellToken.symbol === "USDT")
             ) ? (
               <span className="flex items-center">
-                <span className="bg-chart-5/20 text-chart-5 px-1 rounded mr-1">
-                  {t("swap.route")}
-                </span>
-                {sellToken.symbol} {t("common.to")} ETH {t("common.to")}{" "}
-                {buyToken?.symbol}
+                <span className="bg-chart-5/20 text-chart-5 px-1 rounded mr-1">{t("swap.route")}</span>
+                {sellToken.symbol} {t("common.to")} ETH {t("common.to")} {buyToken?.symbol}
               </span>
             ) : (
               <span>
-                {t("pool.title")}:{" "}
-                {formatNumber(parseFloat(formatEther(reserves.reserve0)), 5)}{" "}
-                ETH /{" "}
+                {t("pool.title")}: {formatNumber(parseFloat(formatEther(reserves.reserve0)), 5)} ETH /{" "}
                 {formatNumber(
                   parseFloat(
                     formatUnits(
@@ -1057,9 +937,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
                   ),
                   3,
                 )}{" "}
-                {coinId
-                  ? tokens.find((t) => t.id === coinId)?.symbol || "Token"
-                  : buyToken?.symbol}
+                {coinId ? tokens.find((t) => t.id === coinId)?.symbol || "Token" : buyToken?.symbol}
               </span>
             )}
             <span className="flex items-center gap-2">
@@ -1089,29 +967,20 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
                 const tokenAmount = parseFloat(
                   formatUnits(
                     reserves.reserve1,
-                    isCustomPool
-                      ? sellToken.isCustomPool
-                        ? sellToken.decimals || 18
-                        : buyToken?.decimals || 18
-                      : 18,
+                    isCustomPool ? (sellToken.isCustomPool ? sellToken.decimals || 18 : buyToken?.decimals || 18) : 18,
                   ),
                 );
                 const tokenPriceInEth = ethAmount / tokenAmount;
                 const ethPriceInToken = tokenAmount / ethAmount;
                 const tokenPriceUsd = tokenPriceInEth * ethPrice.priceUSD;
                 const totalPoolValueUsd = ethAmount * ethPrice.priceUSD * 2;
-                const tokenSymbol = coinId
-                  ? tokens.find((t) => t.id === coinId)?.symbol || "Token"
-                  : buyToken?.symbol;
-                const poolToken = coinId
-                  ? tokens.find((t) => t.id === coinId)
-                  : buyToken;
+                const tokenSymbol = coinId ? tokens.find((t) => t.id === coinId)?.symbol || "Token" : buyToken?.symbol;
+                const poolToken = coinId ? tokens.find((t) => t.id === coinId) : buyToken;
                 const actualSwapFee = poolToken?.swapFee ?? SWAP_FEE;
                 return (
                   <>
                     <div className="opacity-75 text-xs">
-                      Total Pool Value: ${formatNumber(totalPoolValueUsd, 2)}{" "}
-                      USD
+                      Total Pool Value: ${formatNumber(totalPoolValueUsd, 2)} USD
                     </div>
                     <div className="opacity-60 text-xs space-y-0.5">
                       <div>
@@ -1172,9 +1041,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
           </span>
         ) : swapMode === "instant" ? (
           customRecipient && ensResolution.address ? (
-            <span className="flex items-center gap-2">
-              {t("common.swap")} 📤
-            </span>
+            <span className="flex items-center gap-2">{t("common.swap")} 📤</span>
           ) : (
             t("common.swap")
           )
@@ -1192,37 +1059,27 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
       )}
 
       {/* Custom recipient indicator - only for instant swaps */}
-      {swapMode === "instant" &&
-        customRecipient &&
-        ensResolution.address &&
-        !txError && (
-          <div className="text-sm text-chart-2 mt-2 flex items-center bg-chart-2/10 p-2 rounded border border-chart-2/20">
-            <span className="text-xs">
-              📤 {t("swap.recipient_note") || "Output will be sent to"}:{" "}
-              {ensResolution.address.slice(0, 6)}...
-              {ensResolution.address.slice(-4)}
-            </span>
-          </div>
-        )}
+      {swapMode === "instant" && customRecipient && ensResolution.address && !txError && (
+        <div className="text-sm text-chart-2 mt-2 flex items-center bg-chart-2/10 p-2 rounded border border-chart-2/20">
+          <span className="text-xs">
+            📤 {t("swap.recipient_note") || "Output will be sent to"}: {ensResolution.address.slice(0, 6)}...
+            {ensResolution.address.slice(-4)}
+          </span>
+        </div>
+      )}
 
       {/* Status and error messages */}
-      {txError &&
-        t("common.waiting") &&
-        txError.includes(t("common.waiting")) && (
-          <div className="text-sm text-primary mt-2 flex items-center bg-background/50 p-2 rounded border border-primary/20">
-            <LoadingLogo size="sm" className="mr-2 scale-75" />
-            {txError}
-          </div>
-        )}
+      {txError && t("common.waiting") && txError.includes(t("common.waiting")) && (
+        <div className="text-sm text-primary mt-2 flex items-center bg-background/50 p-2 rounded border border-primary/20">
+          <LoadingLogo size="sm" className="mr-2 scale-75" />
+          {txError}
+        </div>
+      )}
 
       {((writeError && !isUserRejectionError(writeError)) ||
-        (txError &&
-          (!t("common.waiting") ||
-            !txError.includes(t("common.waiting"))))) && (
+        (txError && (!t("common.waiting") || !txError.includes(t("common.waiting"))))) && (
         <div className="text-sm text-destructive mt-2 bg-background/50 p-2 rounded border border-destructive/20">
-          {writeError && !isUserRejectionError(writeError)
-            ? writeError.message
-            : txError}
+          {writeError && !isUserRejectionError(writeError) ? writeError.message : txError}
         </div>
       )}
 
@@ -1230,9 +1087,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
         <div className="text-sm text-chart-2 mt-2 flex items-center justify-between bg-background/50 p-2 rounded border border-chart-2/20">
           <div className="flex items-center">
             <CheckIcon className="h-3 w-3 mr-2" />
-            {swapMode === "limit"
-              ? t("swap.order_created")
-              : "Transaction confirmed!"}
+            {swapMode === "limit" ? t("swap.order_created") : "Transaction confirmed!"}
           </div>
           {swapMode === "limit" && (
             <Link
@@ -1247,12 +1102,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
       )}
 
       <div className="mt-4 border-t border-primary pt-4">
-        <PoolSwapChart
-          buyToken={buyToken}
-          sellToken={sellToken}
-          prevPair={prevPairRef.current}
-          priceImpact={null}
-        />
+        <PoolSwapChart buyToken={buyToken} sellToken={sellToken} prevPair={prevPairRef.current} priceImpact={null} />
       </div>
     </div>
   );

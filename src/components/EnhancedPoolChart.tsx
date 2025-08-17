@@ -1,7 +1,7 @@
 import { Suspense, useState, useEffect, useRef, lazy, useCallback } from "react";
 import { CandlestickChartIcon, LineChartIcon } from "lucide-react";
 import { LoadingLogo } from "./ui/loading-logo";
-import { cn } from "@/lib/utils";
+import { cn, formatEthAmount } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 
 const PoolPriceChart = lazy(() => import("@/components/PoolPriceChart"));
@@ -148,11 +148,16 @@ export const EnhancedPoolChart = ({
         <div
           className={cn(
             "mt-3 p-3 rounded-md text-sm",
-            priceImpact.impactPercent > 10
-              ? "bg-destructive/10 text-destructive"
-              : priceImpact.impactPercent > 5
-                ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
-                : "bg-green-500/10 text-green-600 dark:text-green-400",
+            // Color based on price movement direction and magnitude
+            // Green for price going up (buying), Red for price going down (selling)
+            // Yellow/Orange for high impact warnings regardless of direction
+            priceImpact.impactPercent > 15
+              ? "bg-orange-500/10 text-orange-600 dark:text-orange-400" // Very high impact warning
+              : priceImpact.impactPercent > 10
+                ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400" // High impact warning
+                : priceImpact.action === "buy"
+                  ? "bg-green-500/10 text-green-600 dark:text-green-400" // Price going up (positive)
+                  : "bg-red-500/10 text-red-600 dark:text-red-400", // Price going down (negative)
           )}
         >
           <div className="flex items-center justify-between">
@@ -163,8 +168,8 @@ export const EnhancedPoolChart = ({
             </span>
           </div>
           <div className="text-xs mt-1 opacity-80">
-            Current: {priceImpact.currentPrice.toFixed(8)} ETH → After trade: {priceImpact.projectedPrice.toFixed(8)}{" "}
-            ETH
+            Current: {formatEthAmount(priceImpact.currentPrice)} ETH → After trade:{" "}
+            {formatEthAmount(priceImpact.projectedPrice)} ETH
           </div>
         </div>
       )}
