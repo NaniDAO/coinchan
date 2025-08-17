@@ -132,7 +132,7 @@ export const TradeView = ({ tokenId }: { tokenId: bigint }) => {
       {/* Wrap BuySell component in an ErrorBoundary to prevent crashes */}
       <ErrorBoundary fallback={<BuySellFallback tokenId={tokenId} name={name} symbol={symbol} />}>
         <div>
-          <BuySell tokenId={tokenId} name={name} symbol={symbol} onPriceImpactChange={setPriceImpact} />
+          <BuySell tokenId={tokenId} symbol={symbol} onPriceImpactChange={setPriceImpact} />
         </div>
       </ErrorBoundary>
       <ErrorBoundary fallback={<ErrorFallback errorMessage="Error rendering voting panel" />}>

@@ -41,12 +41,10 @@ import { nowSec, formatNumber } from "./lib/utils";
 
 export const BuySell = ({
   tokenId,
-  name,
   symbol,
   onPriceImpactChange,
 }: {
   tokenId: bigint;
-  name: string;
   symbol: string;
   onPriceImpactChange?: (
     impact: {
