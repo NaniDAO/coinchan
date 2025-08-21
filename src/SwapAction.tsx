@@ -63,6 +63,7 @@ import { SwapModeTab } from "./SwapModeTab";
 import { CustomRecipientInput } from "./CustomRecipientInput";
 import { _ReturnNull } from "i18next";
 import { formatDexscreenerStyle } from "./lib/math";
+import { SwapEfficiencyNote } from "./components/SwapEfficiencyNote";
 
 interface SwapActionProps {
   lockedTokens?: {
@@ -82,7 +83,7 @@ const ADDR: Record<string, Address> = {
   ETH: "0x0000000000000000000000000000000000000000", // Native ETH sentinel
 };
 
-function toZRouterToken(token?: TokenMeta) {
+export function toZRouterToken(token?: TokenMeta) {
   if (!token) return undefined;
   // Native ETH
   if (token.id === null) return { address: ADDR.ETH } as const;
@@ -961,6 +962,15 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
           />
         )}
       </div>
+
+      <SwapEfficiencyNote
+        publicClient={publicClient}
+        sellToken={sellToken}
+        buyToken={buyToken ?? undefined}
+        lastEditedField={lastEditedField}
+        sellAmt={sellAmt}
+        buyAmt={buyAmt}
+      />
 
       {/* Custom Recipient Input - only for instant swaps */}
       {swapMode === "instant" && (
