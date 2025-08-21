@@ -3,7 +3,6 @@ import { cn } from "@/lib/utils";
 import { toZRouterToken } from "@/SwapAction";
 import { useEffect, useState } from "react";
 import { Address, formatUnits, parseUnits } from "viem";
-import { mainnet } from "viem/chains";
 import { usePublicClient } from "wagmi";
 import { quote } from "zrouter-sdk";
 
@@ -146,21 +145,26 @@ function useZRouterVsUniEfficiency(opts: {
           return;
         }
 
+        // From here on, treat these as non-null (we've validated above)
+        const pc = publicClient!;
+        const sToken = sellToken!;
+        const bToken = buyToken!;
+
         const side: EfficiencySide =
           lastEditedField === "sell" ? "EXACT_IN" : "EXACT_OUT";
-        const inDecimals = sellToken?.decimals ?? 18;
-        const outDecimals = buyToken?.decimals ?? 18;
+        const inDecimals = sToken.decimals ?? 18;
+        const outDecimals = bToken.decimals ?? 18;
 
         // --- zRouter quote
-        const tokenInZ = toZRouterToken(sellToken)!;
-        const tokenOutZ = toZRouterToken(buyToken)!;
+        const tokenInZ = toZRouterToken(sToken)!;
+        const tokenOutZ = toZRouterToken(bToken)!;
 
         let zAmountIn: bigint | undefined;
         let zAmountOut: bigint | undefined;
 
         if (side === "EXACT_IN") {
           const amountIn = parseUnits(sellAmt || "0", inDecimals);
-          const z = await quote(publicClient, {
+          const z = await quote(pc, {
             tokenIn: tokenInZ,
             tokenOut: tokenOutZ,
             amount: amountIn,
@@ -170,7 +174,7 @@ function useZRouterVsUniEfficiency(opts: {
           zAmountOut = z.amountOut;
         } else {
           const amountOut = parseUnits(buyAmt || "0", outDecimals);
-          const z = await quote(publicClient, {
+          const z = await quote(pc, {
             tokenIn: tokenInZ,
             tokenOut: tokenOutZ,
             amount: amountOut,
@@ -192,29 +196,25 @@ function useZRouterVsUniEfficiency(opts: {
         }
 
         // --- Uniswap V3 QuoterV2: try best of [direct 500/3000/10000] and [via WETH with combinations]
-        const tokenIn = toAddressForUni(sellToken)!;
-        const tokenOut = toAddressForUni(buyToken)!;
+        const tokenIn = toAddressForUni(sToken)!;
+        const tokenOut = toAddressForUni(bToken)!;
 
         const FEE_TIERS = [500, 3000, 10000];
 
         async function uniExactInBest(amountIn: bigint): Promise<bigint> {
           let best = 0n;
 
-          if (!publicClient) {
-            return;
-          }
-
           // direct
           for (const fee of FEE_TIERS) {
             const path = buildV3Path([tokenIn, tokenOut], [fee]);
             try {
-              const [amountOut] = await publicClient.readContract({
+              const [amountOut] = await pc.readContract({
                 address: UNISWAP_V3_QUOTER_V2,
                 abi: uniQuoterV2Abi,
                 functionName: "quoteExactInput",
                 args: [path, amountIn],
               });
-              if (amountOut > best) best = amountOut as bigint;
+              if ((amountOut as bigint) > best) best = amountOut as bigint;
             } catch {}
           }
 
@@ -223,7 +223,7 @@ function useZRouterVsUniEfficiency(opts: {
             for (const fB of FEE_TIERS) {
               const path = buildV3Path([tokenIn, WETH9, tokenOut], [fA, fB]);
               try {
-                const [amountOut] = await publicClient.readContract({
+                const [amountOut] = await pc.readContract({
                   address: UNISWAP_V3_QUOTER_V2,
                   abi: uniQuoterV2Abi,
                   functionName: "quoteExactInput",
@@ -243,7 +243,7 @@ function useZRouterVsUniEfficiency(opts: {
           for (const fee of FEE_TIERS) {
             const path = buildV3Path([tokenOut, tokenIn], [fee]); // reverse
             try {
-              const [amountIn] = await publicClient.readContract({
+              const [amountIn] = await pc.readContract({
                 address: UNISWAP_V3_QUOTER_V2,
                 abi: uniQuoterV2Abi,
                 functionName: "quoteExactOutput",
@@ -259,7 +259,7 @@ function useZRouterVsUniEfficiency(opts: {
             for (const fB of FEE_TIERS) {
               const path = buildV3Path([tokenOut, WETH9, tokenIn], [fB, fA]); // reverse order & fees
               try {
-                const [amountIn] = await publicClient.readContract({
+                const [amountIn] = await pc.readContract({
                   address: UNISWAP_V3_QUOTER_V2,
                   abi: uniQuoterV2Abi,
                   functionName: "quoteExactOutput",
@@ -365,6 +365,10 @@ export function SwapEfficiencyNote(props: {
   // Only show for ERC20 <-> ERC20
   if (!isERC20orETH(sellToken) || !isERC20orETH(buyToken)) return null;
 
+  // Promote to non-null for the JSX below (we just validated)
+  const sToken = sellToken!;
+  const bToken = buyToken!;
+
   // Need valid values
   if (error || loading || !side || !zAmount || !uniAmount) {
     // Render a subtle placeholder to avoid layout shift only when typing
@@ -386,7 +390,7 @@ export function SwapEfficiencyNote(props: {
     if (!isFinite(z) || !isFinite(u) || z <= 0 || u <= 0) return null;
     deltaPct = ((z - u) / u) * 100;
     good = deltaPct >= 0;
-    line = `zRouter swap is ${prettyPct(deltaPct)} ${good ? "more efficient" : "less efficient"} (out: ${formatCompact(z)} vs ${formatCompact(u)} ${buyToken.symbol})`;
+    line = `zRouter swap is ${prettyPct(deltaPct)} ${good ? "more efficient" : "less efficient"} (out: ${formatCompact(z)} vs ${formatCompact(u)} ${bToken.symbol})`;
   } else {
     // EXACT_OUT: compare required input amounts (lower is better)
     const z = Number(formatUnits(zAmount, decimals!.in));
@@ -394,7 +398,7 @@ export function SwapEfficiencyNote(props: {
     if (!isFinite(z) || !isFinite(u) || z <= 0 || u <= 0) return null;
     deltaPct = ((u - z) / u) * 100; // “cheaper by X%” vs Uni
     good = deltaPct >= 0;
-    line = `zRouter swap is ${prettyPct(deltaPct)} ${good ? "cheaper" : "more expensive"} (in: ${formatCompact(z)} vs ${formatCompact(u)} ${sellToken.symbol})`;
+    line = `zRouter swap is ${prettyPct(deltaPct)} ${good ? "cheaper" : "more expensive"} (in: ${formatCompact(z)} vs ${formatCompact(u)} ${sToken.symbol})`;
   }
 
   return (
