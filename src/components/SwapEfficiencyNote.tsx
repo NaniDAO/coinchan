@@ -126,6 +126,10 @@ function useZRouterVsUniEfficiency(opts: {
     zRaw?: { amountIn?: bigint; amountOut?: bigint };
     uniRaw?: { amountIn?: bigint; amountOut?: bigint };
     decimals?: { in: number; out: number };
+    gasComparison?: {
+      zRouterGas?: bigint;
+      uniswapGas?: bigint;
+    };
   }>({ loading: false });
 
   useEffect(() => {
@@ -201,20 +205,24 @@ function useZRouterVsUniEfficiency(opts: {
 
         const FEE_TIERS = [500, 3000, 10000];
 
-        async function uniExactInBest(amountIn: bigint): Promise<bigint> {
+        async function uniExactInBest(amountIn: bigint): Promise<{ amountOut: bigint; gasEstimate: bigint }> {
           let best = 0n;
+          let bestGas = 0n;
 
           // direct
           for (const fee of FEE_TIERS) {
             const path = buildV3Path([tokenIn, tokenOut], [fee]);
             try {
-              const [amountOut] = await pc.readContract({
+              const [amountOut, , , gasEstimate] = await pc.readContract({
                 address: UNISWAP_V3_QUOTER_V2,
                 abi: uniQuoterV2Abi,
                 functionName: "quoteExactInput",
                 args: [path, amountIn],
               });
-              if ((amountOut as bigint) > best) best = amountOut as bigint;
+              if ((amountOut as bigint) > best) {
+                best = amountOut as bigint;
+                bestGas = gasEstimate as bigint;
+              }
             } catch {}
           }
 
@@ -223,34 +231,41 @@ function useZRouterVsUniEfficiency(opts: {
             for (const fB of FEE_TIERS) {
               const path = buildV3Path([tokenIn, WETH9, tokenOut], [fA, fB]);
               try {
-                const [amountOut] = await pc.readContract({
+                const [amountOut, , , gasEstimate] = await pc.readContract({
                   address: UNISWAP_V3_QUOTER_V2,
                   abi: uniQuoterV2Abi,
                   functionName: "quoteExactInput",
                   args: [path, amountIn],
                 });
-                if ((amountOut as bigint) > best) best = amountOut as bigint;
+                if ((amountOut as bigint) > best) {
+                  best = amountOut as bigint;
+                  bestGas = gasEstimate as bigint;
+                }
               } catch {}
             }
           }
-          return best;
+          return { amountOut: best, gasEstimate: bestGas };
         }
 
-        async function uniExactOutBest(amountOut: bigint): Promise<bigint> {
+        async function uniExactOutBest(amountOut: bigint): Promise<{ amountIn: bigint; gasEstimate: bigint }> {
           let bestIn: bigint | null = null;
+          let bestGas = 0n;
 
           // direct (path is reversed for exactOutput)
           for (const fee of FEE_TIERS) {
             const path = buildV3Path([tokenOut, tokenIn], [fee]); // reverse
             try {
-              const [amountIn] = await pc.readContract({
+              const [amountIn, , , gasEstimate] = await pc.readContract({
                 address: UNISWAP_V3_QUOTER_V2,
                 abi: uniQuoterV2Abi,
                 functionName: "quoteExactOutput",
                 args: [path, amountOut],
               });
               const ain = amountIn as bigint;
-              if (ain > 0n && (bestIn === null || ain < bestIn)) bestIn = ain;
+              if (ain > 0n && (bestIn === null || ain < bestIn)) {
+                bestIn = ain;
+                bestGas = gasEstimate as bigint;
+              }
             } catch {}
           }
 
@@ -259,35 +274,87 @@ function useZRouterVsUniEfficiency(opts: {
             for (const fB of FEE_TIERS) {
               const path = buildV3Path([tokenOut, WETH9, tokenIn], [fB, fA]); // reverse order & fees
               try {
-                const [amountIn] = await pc.readContract({
+                const [amountIn, , , gasEstimate] = await pc.readContract({
                   address: UNISWAP_V3_QUOTER_V2,
                   abi: uniQuoterV2Abi,
                   functionName: "quoteExactOutput",
                   args: [path, amountOut],
                 });
                 const ain = amountIn as bigint;
-                if (ain > 0n && (bestIn === null || ain < bestIn)) bestIn = ain;
+                if (ain > 0n && (bestIn === null || ain < bestIn)) {
+                  bestIn = ain;
+                  bestGas = gasEstimate as bigint;
+                }
               } catch {}
             }
           }
-          return bestIn ?? 0n;
+          return { amountIn: bestIn ?? 0n, gasEstimate: bestGas };
         }
 
         let uniAmount: bigint;
+        let uniGasEstimate: bigint = 0n;
         if (side === "EXACT_IN") {
-          uniAmount = await uniExactInBest(zAmountIn);
+          const result = await uniExactInBest(zAmountIn);
+          uniAmount = result.amountOut;
+          uniGasEstimate = result.gasEstimate;
           if (uniAmount === 0n) {
             if (!cancelled)
               setState({ loading: false, error: "No UniV3 route" });
             return;
           }
         } else {
-          uniAmount = await uniExactOutBest(zAmountOut);
+          const result = await uniExactOutBest(zAmountOut);
+          uniAmount = result.amountIn;
+          uniGasEstimate = result.gasEstimate;
           if (uniAmount === 0n) {
             if (!cancelled)
               setState({ loading: false, error: "No UniV3 route" });
             return;
           }
+        }
+
+        // Estimate gas for zRouter swap
+        let zRouterGasEstimate: bigint | undefined;
+        try {
+          // Import necessary functions from zrouter-sdk
+          const { buildRoutePlan, findRoute, mainnetConfig } = await import("zrouter-sdk");
+          
+          // Find the route
+          const route = await findRoute(pc, {
+            tokenIn: tokenInZ,
+            tokenOut: tokenOutZ,
+            amount: side === "EXACT_IN" ? zAmountIn : zAmountOut,
+            side: side,
+            deadline: BigInt(Math.floor(Date.now() / 1000) + 60 * 10),
+            owner: "0x0000000000000000000000000000000000000001" as Address,
+            slippageBps: 100, // 1% slippage for gas estimation
+          });
+
+          if (route && route.length > 0) {
+            // Build the plan
+            const plan = await buildRoutePlan(pc, {
+              owner: "0x0000000000000000000000000000000000000001" as Address, // dummy address for simulation
+              router: mainnetConfig.router,
+              steps: route,
+              finalTo: "0x0000000000000000000000000000000000000001" as Address,
+            });
+
+            if (plan) {
+              // Simulate to get gas estimate
+              const simulation = await pc.estimateContractGas({
+                address: mainnetConfig.router,
+                abi: (await import("zrouter-sdk")).zRouterAbi,
+                functionName: "multicall",
+                args: [plan.calls],
+                value: plan.value,
+                account: "0x0000000000000000000000000000000000000001" as Address,
+              }).catch(() => undefined);
+              
+              zRouterGasEstimate = simulation;
+            }
+          }
+        } catch (err) {
+          console.debug("Failed to estimate zRouter gas:", err);
         }
 
         if (cancelled) return;
@@ -304,6 +371,10 @@ function useZRouterVsUniEfficiency(opts: {
               ? { amountOut: uniAmount }
               : { amountIn: uniAmount },
           decimals: { in: inDecimals, out: outDecimals },
+          gasComparison: {
+            zRouterGas: zRouterGasEstimate,
+            uniswapGas: uniGasEstimate,
+          },
         });
       } catch (e: any) {
         if (!cancelled)
@@ -347,7 +418,7 @@ export function SwapEfficiencyNote(props: {
     buyAmt,
   } = props;
 
-  const { loading, error, side, zAmount, uniAmount, decimals } =
+  const { loading, error, side, zAmount, uniAmount, decimals, gasComparison } =
     useZRouterVsUniEfficiency({
       publicClient,
       sellToken,
@@ -381,7 +452,9 @@ export function SwapEfficiencyNote(props: {
 
   let deltaPct: number;
   let line: string;
+  let gasLine: string | undefined;
   let good: boolean;
+  let gasGood: boolean | undefined;
 
   if (side === "EXACT_IN") {
     // Compare output amounts
@@ -390,27 +463,67 @@ export function SwapEfficiencyNote(props: {
     if (!isFinite(z) || !isFinite(u) || z <= 0 || u <= 0) return null;
     deltaPct = ((z - u) / u) * 100;
     good = deltaPct >= 0;
-    line = `zRouter swap is ${prettyPct(deltaPct)} ${good ? "more efficient" : "less efficient"} (out: ${formatCompact(z)} vs ${formatCompact(u)} ${bToken.symbol})`;
+    line = `Output: ${formatCompact(z)} vs ${formatCompact(u)} ${bToken.symbol} (${prettyPct(deltaPct)} ${good ? "better" : "worse"})`;
   } else {
     // EXACT_OUT: compare required input amounts (lower is better)
     const z = Number(formatUnits(zAmount, decimals!.in));
     const u = Number(formatUnits(uniAmount, decimals!.in));
     if (!isFinite(z) || !isFinite(u) || z <= 0 || u <= 0) return null;
-    deltaPct = ((u - z) / u) * 100; // “cheaper by X%” vs Uni
+    deltaPct = ((u - z) / u) * 100; // "cheaper by X%" vs Uni
     good = deltaPct >= 0;
-    line = `zRouter swap is ${prettyPct(deltaPct)} ${good ? "cheaper" : "more expensive"} (in: ${formatCompact(z)} vs ${formatCompact(u)} ${sToken.symbol})`;
+    line = `Input: ${formatCompact(z)} vs ${formatCompact(u)} ${sToken.symbol} (${prettyPct(deltaPct)} ${good ? "cheaper" : "more expensive"})`;
   }
 
+  // Gas comparison if available
+  if (gasComparison?.zRouterGas && gasComparison?.uniswapGas) {
+    const zGas = Number(gasComparison.zRouterGas);
+    const uGas = Number(gasComparison.uniswapGas);
+    if (zGas > 0 && uGas > 0) {
+      const gasDeltaPct = ((uGas - zGas) / uGas) * 100;
+      gasGood = gasDeltaPct >= 0;
+      gasLine = `Gas: ~${(zGas / 1000).toFixed(0)}k vs ~${(uGas / 1000).toFixed(0)}k (${prettyPct(gasDeltaPct)} ${gasGood ? "cheaper" : "more expensive"})`;
+    }
+  }
+
+  const overallGood = good && (gasGood === undefined || gasGood);
+
   return (
-    <div
-      className={cn(
-        "mt-1 text-[11px]",
-        good
-          ? "text-emerald-600 dark:text-emerald-400"
-          : "text-red-600 dark:text-red-400",
+    <div className="mt-1 space-y-0.5">
+      <div className="text-[11px] text-muted-foreground">
+        <span className="font-medium">zRouter vs Uniswap V3:</span>
+      </div>
+      <div
+        className={cn(
+          "text-[11px]",
+          good
+            ? "text-emerald-600 dark:text-emerald-400"
+            : "text-amber-600 dark:text-amber-400",
+        )}
+      >
+        {line}
+      </div>
+      {gasLine && (
+        <div
+          className={cn(
+            "text-[11px]",
+            gasGood
+              ? "text-emerald-600 dark:text-emerald-400"
+              : "text-amber-600 dark:text-amber-400",
+          )}
+        >
+          {gasLine}
+        </div>
       )}
-    >
-      {line}
+      <div
+        className={cn(
+          "text-[10px] font-medium",
+          overallGood
+            ? "text-emerald-600 dark:text-emerald-400"
+            : "text-amber-600 dark:text-amber-400",
+        )}
+      >
+        Overall: zRouter is {overallGood ? "more" : "less"} efficient
+      </div>
     </div>
   );
 }
