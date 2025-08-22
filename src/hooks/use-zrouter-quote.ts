@@ -1,35 +1,10 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { formatUnits, parseUnits, type Address } from "viem";
+import { formatUnits, parseUnits } from "viem";
 import type { PublicClient } from "viem";
 import { quote } from "zrouter-sdk";
 import type { TokenMeta } from "@/lib/coins";
-import { CoinsAddress } from "@/constants/Coins";
-import { CookbookAddress } from "@/constants/Cookbook";
-
-export function toZRouterToken(token?: TokenMeta) {
-  if (!token) return undefined;
-  if (token.id === null)
-    return {
-      address: "0x0000000000000000000000000000000000000000" as Address,
-    } as const;
-  if (token.source === "ERC20") {
-    if (!token.token1)
-      throw new Error(`Missing token1 for ERC20 token ${token.id}`);
-    return { address: token.token1 as Address };
-  }
-  if (token.source === "ZAMM")
-    return {
-      address: CoinsAddress as Address,
-      id: token.id,
-    };
-  if (token.source === "COOKBOOK")
-    return {
-      address: CookbookAddress as Address,
-      id: token.id,
-    };
-  throw new Error(`Unsupported token source: ${token.source}`);
-}
+import { toZRouterToken } from "@/lib/zrouter";
 
 type Side = "EXACT_IN" | "EXACT_OUT";
 
