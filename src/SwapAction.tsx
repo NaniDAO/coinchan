@@ -54,16 +54,15 @@ import {
   buildRoutePlan,
   mainnetConfig,
   findRoute,
-  quote,
   simulateRoute,
   erc20Abi,
   zRouterAbi,
 } from "zrouter-sdk";
 import { SwapModeTab } from "./SwapModeTab";
 import { CustomRecipientInput } from "./CustomRecipientInput";
-import { _ReturnNull } from "i18next";
 import { formatDexscreenerStyle } from "./lib/math";
 import { SwapEfficiencyNote } from "./components/SwapEfficiencyNote";
+import { useZRouterQuote } from "@/hooks/use-zrouter-quote";
 
 interface SwapActionProps {
   lockedTokens?: {
@@ -136,7 +135,6 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
     flipTokens: contextFlipTokens,
   } = tokenSelectionContext;
 
-  // Use locked tokens if provided, otherwise use context
   const sellToken = lockedTokens?.sellToken || contextSellToken;
   const buyToken = lockedTokens?.buyToken || contextBuyToken;
   const setSellToken = lockedTokens ? () => {} : contextSetSellToken;
@@ -158,7 +156,6 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
 
   // Check if this swap involves external ERC20 tokens (which use external AMMs)
   const isExternalSwap = useMemo(() => {
-    // If either token is an external ERC20, the swap goes through external AMMs
     return sellToken?.source === "ERC20" || buyToken?.source === "ERC20";
   }, [sellToken, buyToken]);
 
@@ -235,7 +232,6 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
     setBuyAmt("");
     setCustomRecipient("");
 
-    // Keep ENS higher slippage default for safety
     if (sellToken?.symbol === "ENS" || buyToken?.symbol === "ENS") {
       setSlippageBps(1000n); // 10%
     } else {
@@ -266,193 +262,169 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
     setLastEditedField("sell");
   }, [swapMode]);
 
-  // === quoting via zrouter-sdk ===
-  const doQuote = useCallback(
-    async (
-      params:
-        | { side: "EXACT_IN"; raw: string }
-        | { side: "EXACT_OUT"; raw: string },
-    ) => {
-      if (!publicClient || !sellToken || !buyToken)
-        return { ok: false as const };
-      if (!params.raw || Number.isNaN(Number(params.raw)))
-        return { ok: false as const };
+  /** ------------------------------
+   * Quotes via useZRouterQuote
+   * ------------------------------ */
+  const side = lastEditedField === "sell" ? "EXACT_IN" : "EXACT_OUT";
+  const rawAmount = lastEditedField === "sell" ? sellAmt : buyAmt;
+  const quotingEnabled =
+    swapMode === "instant" &&
+    !!publicClient &&
+    !!sellToken &&
+    !!buyToken &&
+    !!rawAmount &&
+    Number(rawAmount) > 0;
 
-      const tokenIn = toZRouterToken(sellToken);
-      const tokenOut = toZRouterToken(buyToken);
-      if (!tokenIn || !tokenOut) return { ok: false as const };
-
-      try {
-        if (params.side === "EXACT_IN") {
-          const amountIn = parseUnits(params.raw, sellToken.decimals || 18);
-          const res = await quote(publicClient, {
-            tokenIn,
-            tokenOut,
-            amount: amountIn,
-            side: "EXACT_IN",
-          });
-          const out = formatUnits(res.amountOut, buyToken.decimals || 18);
-          if (DEBUG_IMPACT)
-            console.debug("[impact] EXACT_IN quote", {
-              raw: params.raw,
-              amountIn: params.raw,
-              amountOut: out,
-            });
-          return { ok: true as const, amountOut: out, amountIn: params.raw };
-        } else {
-          const amountOutWanted = parseUnits(
-            params.raw,
-            buyToken.decimals || 18,
-          );
-          const res = await quote(publicClient, {
-            tokenIn,
-            tokenOut,
-            amount: amountOutWanted,
-            side: "EXACT_OUT",
-          });
-          const inp = formatUnits(res.amountIn, sellToken.decimals || 18);
-          if (DEBUG_IMPACT)
-            console.debug("[impact] EXACT_OUT quote", {
-              raw: params.raw,
-              amountIn: inp,
-              amountOut: params.raw,
-            });
-          return { ok: true as const, amountOut: params.raw, amountIn: inp };
-        }
-      } catch (e) {
-        console.error("quote() failed", e);
-        return { ok: false as const };
-      }
-    },
-    [publicClient, sellToken, buyToken],
-  );
-
-  // === Price impact estimation (side-aware, trader-centric) ===
-  useEffect(() => {
-    let canceled = false;
-
-    const run = async () => {
-      try {
-        if (
-          swapMode !== "instant" ||
-          !sellToken ||
-          !buyToken ||
-          (!sellAmt && !buyAmt)
-        ) {
-          if (!canceled) setPriceImpact(null);
-          return;
-        }
-
-        const epsilon = 0.01;
-
-        // Helper to set result once computed
-        const finish = (p0: number, p1: number, action: "buy" | "sell") => {
-          if (!isFinite(p0) || !isFinite(p1) || p0 <= 0 || p1 <= 0) {
-            if (!canceled) setPriceImpact(null);
-            return;
-          }
-          // Positive = buyToken price goes UP (we measure price of buy token in units of sell token)
-          const impactPercent = (p1 / p0 - 1) * 100;
-          if (!canceled) {
-            setPriceImpact({
-              currentPrice: p0,
-              projectedPrice: p1,
-              impactPercent,
-              action,
-            });
-          }
-        };
-
-        if (lastEditedField === "sell") {
-          // EXACT_IN: user typed the sell amount
-          const in0 = Number(sellAmt || "0");
-          if (!isFinite(in0) || in0 <= 0) {
-            if (!canceled) setPriceImpact(null);
-            return;
-          }
-
-          const base = await doQuote({ side: "EXACT_IN", raw: String(in0) });
-          if (!base.ok) return void (!canceled && setPriceImpact(null));
-
-          const out0 = Number(base.amountOut);
-          if (!isFinite(out0) || out0 <= 0) {
-            if (!canceled) setPriceImpact(null);
-            return;
-          }
-
-          const in1 = in0 * (1 + epsilon);
-          const bumped = await doQuote({ side: "EXACT_IN", raw: String(in1) });
-          if (!bumped.ok) return void (!canceled && setPriceImpact(null));
-          const out1 = Number(bumped.amountOut);
-
-          // Effective price (sell per 1 buy): lower is better for trader
-          const p0 = in0 / out0;
-          const p1 = in1 / out1;
-          finish(p0, p1, "buy");
-        } else {
-          // EXACT_OUT: user typed the buy amount (still buying the buy token)
-          const out0 = Number(buyAmt || "0");
-          if (!isFinite(out0) || out0 <= 0) {
-            if (!canceled) setPriceImpact(null);
-            return;
-          }
-
-          const base = await doQuote({ side: "EXACT_OUT", raw: String(out0) });
-          if (!base.ok) return void (!canceled && setPriceImpact(null));
-          const in0 = Number(base.amountIn);
-          if (!isFinite(in0) || in0 <= 0) {
-            if (!canceled) setPriceImpact(null);
-            return;
-          }
-
-          const out1 = out0 * (1 + epsilon);
-          const bumped = await doQuote({
-            side: "EXACT_OUT",
-            raw: String(out1),
-          });
-          if (!bumped.ok) return void (!canceled && setPriceImpact(null));
-          const in1 = Number(bumped.amountIn);
-
-          // Effective price (sell per 1 buy): lower is better for trader
-          const p0 = in0 / out0;
-          const p1 = in1 / out1;
-          finish(p0, p1, "buy");
-        }
-      } catch (e) {
-        console.error("[impact] error", e);
-        if (!canceled) setPriceImpact(null);
-      }
-    };
-
-    const id = setTimeout(run, 350);
-    return () => {
-      canceled = true;
-      clearTimeout(id);
-    };
-  }, [
-    swapMode,
+  // Base quote (for the current amount)
+  const { data: quoteBase } = useZRouterQuote({
+    publicClient: publicClient ?? undefined,
     sellToken,
     buyToken,
-    sellAmt,
-    buyAmt,
-    lastEditedField,
-    doQuote,
+    rawAmount,
+    side,
+    enabled: quotingEnabled,
+  });
+
+  // Bumped quote (for price impact est.)
+  const epsilon = 0.01;
+  const bumpedRawAmount =
+    quotingEnabled && Number(rawAmount) > 0
+      ? String(Number(rawAmount) * (1 + epsilon))
+      : "";
+
+  const { data: quoteBumped } = useZRouterQuote({
+    publicClient: publicClient ?? undefined,
+    sellToken,
+    buyToken,
+    rawAmount: bumpedRawAmount,
+    side,
+    enabled: quotingEnabled && !!bumpedRawAmount,
+  });
+
+  // Reflect base quote into the opposite field exactly once per input set
+  useEffect(() => {
+    if (!quotingEnabled || !quoteBase?.ok) return;
+    if (lastEditedField === "sell") {
+      // user typed sell; fill buy
+      if (buyAmt !== quoteBase.amountOut) setBuyAmt(quoteBase.amountOut ?? "");
+    } else {
+      // user typed buy; fill sell
+      if (sellAmt !== quoteBase.amountIn) setSellAmt(quoteBase.amountIn ?? "");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quoteBase, quotingEnabled, lastEditedField]);
+
+  // === Price impact estimation using the two cached quotes ===
+  useEffect(() => {
+    try {
+      if (
+        swapMode !== "instant" ||
+        !sellToken ||
+        !buyToken ||
+        !quotingEnabled ||
+        !quoteBase?.ok ||
+        !quoteBumped?.ok
+      ) {
+        setPriceImpact(null);
+        return;
+      }
+
+      if (side === "EXACT_IN") {
+        const in0 = Number(rawAmount);
+        const out0 = Number(quoteBase.amountOut);
+        const in1 = Number(bumpedRawAmount);
+        const out1 = Number(quoteBumped.amountOut);
+        if (
+          !isFinite(in0) ||
+          !isFinite(out0) ||
+          !isFinite(in1) ||
+          !isFinite(out1) ||
+          out0 <= 0 ||
+          out1 <= 0
+        ) {
+          setPriceImpact(null);
+          return;
+        }
+        const p0 = in0 / out0;
+        const p1 = in1 / out1;
+        const impactPercent = (p1 / p0 - 1) * 100;
+        if (DEBUG_IMPACT)
+          console.debug("[impact] EXACT_IN", {
+            in0,
+            out0,
+            in1,
+            out1,
+            p0,
+            p1,
+            impactPercent,
+          });
+        setPriceImpact({
+          currentPrice: p0,
+          projectedPrice: p1,
+          impactPercent,
+          action: "buy",
+        });
+      } else {
+        const out0 = Number(rawAmount);
+        const in0 = Number(quoteBase.amountIn);
+        const out1 = Number(bumpedRawAmount);
+        const in1 = Number(quoteBumped.amountIn);
+        if (
+          !isFinite(in0) ||
+          !isFinite(out0) ||
+          !isFinite(in1) ||
+          !isFinite(out1) ||
+          out0 <= 0 ||
+          out1 <= 0
+        ) {
+          setPriceImpact(null);
+          return;
+        }
+        const p0 = in0 / out0;
+        const p1 = in1 / out1;
+        const impactPercent = (p1 / p0 - 1) * 100;
+        if (DEBUG_IMPACT)
+          console.debug("[impact] EXACT_OUT", {
+            in0,
+            out0,
+            in1,
+            out1,
+            p0,
+            p1,
+            impactPercent,
+          });
+        setPriceImpact({
+          currentPrice: p0,
+          projectedPrice: p1,
+          impactPercent,
+          action: "buy",
+        });
+      }
+    } catch (e) {
+      console.error("[impact] error", e);
+      setPriceImpact(null);
+    }
+    // We intentionally depend on quoteBase/quoteBumped/side/rawAmount/bumpedRawAmount and token ids
+  }, [
+    quoteBase,
+    quoteBumped,
+    side,
+    rawAmount,
+    bumpedRawAmount,
+    sellToken?.id,
+    buyToken?.id,
+    swapMode,
   ]);
 
-  const syncFromBuy = async (val: string) => {
+  /** Sync handlers now only set state; hook will populate the opposite side */
+  const syncFromBuy = (val: string) => {
     setBuyAmt(val);
     setLastEditedField("buy");
-    if (swapMode === "limit") return; // instant-only syncing
-    const q = await doQuote({ side: "EXACT_OUT", raw: val || "0" });
-    if (q.ok) setSellAmt(q.amountIn);
   };
 
-  const syncFromSell = async (val: string) => {
+  const syncFromSell = (val: string) => {
     setSellAmt(val);
     setLastEditedField("sell");
-    if (swapMode === "limit") return; // instant-only syncing
-    const q = await doQuote({ side: "EXACT_IN", raw: val || "0" });
-    if (q.ok) setBuyAmt(q.amountOut);
   };
 
   const executeSwap = async () => {
@@ -566,7 +538,6 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
         for (let i = 0; i < approvals.length; i++) {
           const approval = approvals[i];
           try {
-            // Set approval step message
             if (approval.kind === "ERC20_APPROVAL") {
               setApprovalStep(
                 t("swap.approving_token", {
@@ -584,7 +555,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
                   ? encodeFunctionData({
                       abi: erc20Abi,
                       functionName: "approve",
-                      args: [approval.spender, maxUint256], // set max approval
+                      args: [approval.spender, maxUint256],
                     })
                   : encodeFunctionData({
                       abi: CoinsAbi,
@@ -612,7 +583,6 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
         }
         setIsApproving(false);
         setApprovalStep(t("swap.approval_complete"));
-        // Small delay to show the success message before proceeding
         await new Promise((resolve) => setTimeout(resolve, 500));
         setApprovalStep(null);
       }
@@ -620,7 +590,6 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
       let hash: `0x${string}`;
       try {
         if (calls.length === 1) {
-          // Single call: send directly to the router with the encoded call
           hash = await sendTransactionAsync({
             to: mainnetConfig.router,
             data: calls[0],
@@ -629,7 +598,6 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
             account: address,
           });
         } else {
-          // Multiple calls: use multicall
           hash = await sendTransactionAsync({
             to: mainnetConfig.router,
             data: encodeFunctionData({
@@ -683,7 +651,6 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
     }
   };
 
-  // Limit orders remain as before (Cookbook.makeOrder)
   const createOrder = async () => {
     try {
       if (!isConnected || !address || !buyToken || !sellAmt || !buyAmt) {
@@ -884,7 +851,7 @@ export const SwapAction = ({ lockedTokens }: SwapActionProps = {}) => {
         <SwapController
           onAmountChange={(sellAmount) => {
             setSellAmt(sellAmount);
-            syncFromSell(sellAmount);
+            setLastEditedField("sell");
           }}
           currentSellToken={sellToken}
           currentBuyToken={buyToken ?? undefined}
