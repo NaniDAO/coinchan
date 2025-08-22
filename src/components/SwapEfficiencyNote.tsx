@@ -2,7 +2,7 @@ import { TokenMeta } from "@/lib/coins";
 import { cn } from "@/lib/utils";
 import { toZRouterToken } from "@/SwapAction";
 import { useEffect, useState } from "react";
-import { Address, formatUnits, parseUnits, formatGwei } from "viem";
+import { Address, formatUnits, parseUnits } from "viem";
 import { usePublicClient } from "wagmi";
 import { quote } from "zrouter-sdk";
 
@@ -317,22 +317,25 @@ function useZRouterVsUniEfficiency(opts: {
         let zRouterGasEstimate: bigint | undefined;
         try {
           // Import necessary functions from zrouter-sdk
-          const { buildRoutePlan, simulateRoute, findRoute, mainnetConfig } = await import("zrouter-sdk");
+          const { buildRoutePlan, findRoute, mainnetConfig } = await import("zrouter-sdk");
           
           // Find the route
           const route = await findRoute(pc, {
             tokenIn: tokenInZ,
             tokenOut: tokenOutZ,
-            amountIn: side === "EXACT_IN" ? zAmountIn : undefined,
-            amountOut: side === "EXACT_OUT" ? zAmountOut : undefined,
+            amount: side === "EXACT_IN" ? zAmountIn : zAmountOut,
+            side: side,
+            deadline: BigInt(Math.floor(Date.now() / 1000) + 60 * 10),
+            owner: "0x0000000000000000000000000000000000000001" as Address,
+            slippageBps: 100, // 1% slippage for gas estimation
           });
 
-          if (route && route.steps?.length > 0) {
+          if (route && route.length > 0) {
             // Build the plan
             const plan = await buildRoutePlan(pc, {
               owner: "0x0000000000000000000000000000000000000001" as Address, // dummy address for simulation
               router: mainnetConfig.router,
-              steps: route.steps,
+              steps: route,
               finalTo: "0x0000000000000000000000000000000000000001" as Address,
             });
 
