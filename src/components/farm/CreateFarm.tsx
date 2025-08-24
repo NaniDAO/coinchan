@@ -8,7 +8,7 @@ import { useOperatorStatus } from "@/hooks/use-operator-status";
 import { useConnectionRecovery } from "@/hooks/use-connection-recovery";
 import { useCoinPrice } from "@/hooks/use-coin-price";
 import { useGetTVL } from "@/hooks/use-get-tvl";
-import { ETH_TOKEN, type TokenMeta } from "@/lib/coins";
+import { CoinSource, ETH_TOKEN, type TokenMeta } from "@/lib/coins";
 import { isUserRejectionError } from "@/lib/errors";
 import { cn } from "@/lib/utils";
 import { type ChangeEvent, useEffect, useMemo, useState } from "react";
@@ -25,12 +25,13 @@ import { useAccount, usePublicClient, useWriteContract } from "wagmi";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { toast } from "sonner";
-import { useAllPools } from "@/hooks/use-all-pools";
+import { PoolPlainRow, useAllPools } from "@/hooks/use-all-pools";
+import { PoolSelector } from "../PoolSelector";
 
 // Duration options will be generated using translations
 
 interface FarmFormData {
-  selectedToken: TokenMeta | null;
+  selectedPool: PoolPlainRow | null;
   rewardToken: TokenMeta;
   rewardAmount: string;
   duration: string;
@@ -184,7 +185,7 @@ export const CreateFarm = () => {
   // Set initial form data after poolTokens and rewardTokens are calculated
   const [formDataInitialized, setFormDataInitialized] = useState(false);
   const [formData, setFormData] = useState<FarmFormData>({
-    selectedToken: null,
+    selectedPool: null,
     rewardToken: tokens?.find((t) => t.symbol !== "ETH") || ETH_TOKEN,
     rewardAmount: "",
     duration: "7",
@@ -217,18 +218,24 @@ export const CreateFarm = () => {
 
   // Get pool TVL if a token is selected
   const { data: poolTvlInEth } = useGetTVL({
-    poolId: formData.selectedToken?.poolId
-      ? BigInt(formData.selectedToken.poolId)
+    poolId: formData.selectedPool?.poolId
+      ? BigInt(formData.selectedPool.poolId)
       : undefined,
-    source: formData.selectedToken?.source ?? "ZAMM",
+    source: (formData.selectedPool?.source ?? "ZAMM") as CoinSource,
   });
 
-  const { poolTokens, isLoading: isPoolsLoading } = useAllPools({
+  const { pools, isLoading: isPoolsLoading } = useAllPools({
     quote: "ETH",
     hasLiquidity: true,
   });
 
-  console.log("poolTokens:", poolTokens);
+  const selectedPoolSymbol = useMemo(() => {
+    if (!formData.selectedPool) return "UNK/UNK";
+    const symbol0 = formData?.selectedPool?.coin0?.symbol ?? "UNK";
+    const symbol1 = formData?.selectedPool?.coin1?.symbol ?? "UNK";
+    return `${symbol0}/${symbol1}`;
+  }, [formData.selectedPool]);
+
   // Filter reward tokens to exclude ETH (not supported by zChef)
   const rewardTokens = useMemo(
     () => (tokens ? tokens.filter((token) => token.symbol !== "ETH") : []),
@@ -239,19 +246,19 @@ export const CreateFarm = () => {
   useEffect(() => {
     if (
       !formDataInitialized &&
-      poolTokens &&
-      poolTokens.length > 0 &&
+      pools &&
+      pools.length > 0 &&
       rewardTokens &&
       rewardTokens.length > 0
     ) {
       setFormData((prev) => ({
         ...prev,
-        selectedToken: poolTokens[0],
+        selectedPool: pools[0],
         rewardToken: rewardTokens[0],
       }));
       setFormDataInitialized(true);
     }
-  }, [poolTokens, rewardTokens, formDataInitialized]);
+  }, [pools, rewardTokens, formDataInitialized]);
 
   // Helper function to convert custom duration to days
   const convertCustomDurationToDays = (
@@ -275,7 +282,7 @@ export const CreateFarm = () => {
 
   // Calculate estimated APR
   const estimatedApr = useMemo(() => {
-    if (!formData.rewardAmount || !formData.selectedToken) {
+    if (!formData.rewardAmount || !formData.selectedPool) {
       return {
         farmApr: 0,
         isValid: false,
@@ -321,7 +328,7 @@ export const CreateFarm = () => {
     });
   }, [
     formData.rewardAmount,
-    formData.selectedToken,
+    formData.selectedPool,
     formData.duration,
     formData.customDuration,
     formData.customDurationUnit,
@@ -376,17 +383,17 @@ export const CreateFarm = () => {
     const newErrors: Record<string, string> = {};
 
     // Validate selected token and pool
-    if (!formData.selectedToken) {
-      newErrors.selectedToken = t("common.please_select_token_with_lp_pool");
+    if (!formData.selectedPool) {
+      newErrors.selectedPool = t("common.please_select_token_with_lp_pool");
     } else {
-      const poolId = formData.selectedToken.poolId;
-      const reserve0 = formData.selectedToken.reserve0;
+      const poolId = BigInt(formData.selectedPool.poolId);
+      const reserve0 = BigInt(formData.selectedPool.reserve0);
 
       if (!poolId || poolId === 0n) {
-        newErrors.selectedToken = t("common.selected_token_no_valid_pool");
+        newErrors.selectedPool = t("common.selected_token_no_valid_pool");
       }
       if (!reserve0 || reserve0 === 0n) {
-        newErrors.selectedToken = t("common.selected_token_no_liquidity");
+        newErrors.selectedPool = t("common.selected_token_no_liquidity");
       }
     }
 
@@ -494,7 +501,7 @@ export const CreateFarm = () => {
         throw new Error(t("common.wallet_not_connected"));
       }
 
-      if (!formData.selectedToken) {
+      if (!formData.selectedPool) {
         throw new Error("No LP token selected");
       }
 
@@ -569,14 +576,14 @@ export const CreateFarm = () => {
 
       // Re-validate that selected token still has a valid pool (race condition check)
       if (
-        !formData.selectedToken?.poolId ||
-        formData.selectedToken.poolId === 0n
+        !formData.selectedPool?.poolId ||
+        BigInt(formData.selectedPool.poolId) === 0n
       ) {
         throw new Error("Selected token no longer has a valid liquidity pool");
       }
       if (
-        !formData.selectedToken?.reserve0 ||
-        formData.selectedToken.reserve0 === 0n
+        !formData.selectedPool?.reserve0 ||
+        BigInt(formData.selectedPool.reserve0) === 0n
       ) {
         throw new Error("Selected token pool no longer has liquidity");
       }
@@ -603,10 +610,10 @@ export const CreateFarm = () => {
 
       // Determine LP token based on token source
       // ENS uses Cookbook despite having a large pool ID
-      const poolId = formData.selectedToken.poolId || 0n;
-      const isCultPool = formData.selectedToken.symbol === "CULT";
-      const isENSPool = formData.selectedToken.symbol === "ENS";
-      const isCookbookToken = formData.selectedToken.source === "COOKBOOK";
+      const poolId = BigInt(formData.selectedPool.poolId || 0n);
+      const isCultPool = formData.selectedPool?.coin1?.symbol === "CULT";
+      const isENSPool = formData.selectedPool?.coin1?.symbol === "ENS";
+      const isCookbookToken = formData.selectedPool?.source === "COOKBOOK";
       // Use Cookbook for CULT, ENS, or any token with COOKBOOK source
       const lpToken =
         isCultPool || isENSPool || isCookbookToken || poolId < 1000000n
@@ -635,7 +642,7 @@ export const CreateFarm = () => {
         encodePacked(
           ["address", "uint256", "uint256", "uint256"],
           [
-            formData.selectedToken.token1 ||
+            formData.selectedPool.token1 ||
               "0x0000000000000000000000000000000000000000",
             BigInt(Date.now()),
             BigInt(Math.floor(Math.random() * 1000000)),
@@ -692,7 +699,7 @@ export const CreateFarm = () => {
         // Reset form on success after delay
         setTimeout(() => {
           setFormData({
-            selectedToken: poolTokens?.[0] || null,
+            selectedPool: pools?.[0] || null,
             rewardToken:
               rewardTokens?.[0] ||
               tokens?.find((t) => t.symbol !== "ETH") ||
@@ -825,18 +832,19 @@ export const CreateFarm = () => {
             {t("common.select_lp_pool")}
           </label>
           <div className="bg-background/50 border border-primary/20 rounded-lg p-3">
-            {poolTokens && poolTokens.length > 0 ? (
-              <TokenSelector
-                selectedToken={formData.selectedToken || poolTokens[0]}
-                tokens={poolTokens}
-                onSelect={(token) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    selectedToken: token,
-                  }))
-                }
-                isEthBalanceFetching={isEthBalanceFetching}
-              />
+            {pools && pools.length > 0 ? (
+              <>
+                <PoolSelector
+                  selectedPool={formData.selectedPool || pools[0]}
+                  pools={pools}
+                  onSelect={(pool) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      selectedPool: pool,
+                    }))
+                  }
+                />
+              </>
             ) : (
               <div className="text-center py-4 text-muted-foreground text-sm font-mono">
                 <div className="mb-2">
@@ -848,14 +856,14 @@ export const CreateFarm = () => {
               </div>
             )}
           </div>
-          {errors.selectedToken && (
+          {errors.selectedPool && (
             <div className="bg-red-500/10 border border-red-500/30 rounded p-2">
               <p className="text-sm text-red-400 font-mono">
-                {errors.selectedToken}
+                {errors.selectedPool}
               </p>
             </div>
           )}
-          {formData.selectedToken && (
+          {formData.selectedPool && (
             <div className="bg-primary/10 border border-primary/20 rounded p-3">
               <div className="text-xs font-mono space-y-1">
                 <div className="space-y-1">
@@ -864,10 +872,7 @@ export const CreateFarm = () => {
                   </span>
                   <div className="text-xs text-muted-foreground/70 font-mono break-all max-w-full overflow-hidden">
                     {(() => {
-                      const poolId = (
-                        formData.selectedToken.poolId ||
-                        formData.selectedToken.id
-                      )?.toString();
+                      const poolId = formData.selectedPool.poolId?.toString();
                       if (!poolId || poolId === "N/A") return "N/A";
                       // Pool IDs are always full uint, truncate for UI
                       return poolId.length > 16
@@ -881,17 +886,17 @@ export const CreateFarm = () => {
                     {t("common.pair")}:
                   </span>
                   <span className="text-primary font-bold">
-                    ETH / {formData.selectedToken.symbol}
+                    {selectedPoolSymbol}
                   </span>
                 </div>
-                {formData.selectedToken.reserve0 &&
-                formData.selectedToken.reserve0 > 0n ? (
+                {formData.selectedPool.reserve0 &&
+                BigInt(formData.selectedPool.reserve0) > 0n ? (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">
                       {t("common.liquidity_label")}:
                     </span>
                     <span className="text-primary font-bold">
-                      {formatEther(formData.selectedToken.reserve0)} ETH
+                      {formatEther(BigInt(formData.selectedPool.reserve0))} ETH
                     </span>
                   </div>
                 ) : null}
@@ -1246,7 +1251,7 @@ export const CreateFarm = () => {
                     {t("common.farm_created_successfully")}
                   </p>
                   <div className="text-xs text-green-300 font-mono space-y-1">
-                    <div>🌾 Pool: {formData.selectedToken?.symbol}</div>
+                    <div>🌾 Pool: {selectedPoolSymbol}</div>
                     <div>
                       💰 Reward: {formData.rewardAmount}{" "}
                       {formData.rewardToken.symbol}

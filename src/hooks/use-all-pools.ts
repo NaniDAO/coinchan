@@ -1,114 +1,104 @@
-import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CoinSource, TokenMeta } from "@/lib/coins";
 
-export interface PoolApiRow {
-  coinId: string;
-  tokenURI?: string;
-  name?: string;
-  symbol: string;
-  description?: string;
-  imageUrl?: string;
-  decimals: number;
-  saleStatus?: string | null;
-  votes?: string;
-
-  poolId: string | null;
-  reserve0: string; // bigints as strings from API
-  reserve1: string;
-  price0?: string | null;
-  price1?: string | null;
-  swapFee: string;
+export interface PoolPlainRow {
+  // pool
+  poolId: string;
   token0: `0x${string}`;
   token1: `0x${string}`;
+  swapFee: string; // bigint as string
+  feeOrHook: string; // bigint as string
+  hookType: string; // e.g. "NONE"
+  hook?: `0x${string}` | null;
+
+  reserve0: string; // bigint as string (ETH-side on this indexer)
+  reserve1: string; // bigint as string
+  price0?: string | null; // reserve1 / reserve0
+  price1?: string | null; // inverse
   source: "ZAMM" | "COOKBOOK" | string;
+  updatedAt?: string | null;
+
+  // coins
+  coin0: {
+    id?: string | null;
+    address?: `0x${string}` | null;
+    name?: string | null;
+    symbol?: string | null;
+    decimals?: number | null;
+    imageUrl?: string | null;
+  };
+  coin1: {
+    id?: string | null;
+    address?: `0x${string}` | null;
+    name?: string | null;
+    symbol?: string | null;
+    decimals?: number | null;
+    imageUrl?: string | null;
+  };
 }
 
 export type PoolsParams = {
-  quote?: string; // e.g. "ETH" (default)
+  quote?: string; // kept for API parity, currently unused by /pools-plain
   hasLiquidity?: boolean; // default true
 };
 
-const fetchPools = async (): Promise<PoolApiRow[]> => {
-  const url = import.meta.env.VITE_INDEXER_URL + `/api/pools`;
+const buildUrl = (params?: PoolsParams) => {
+  const base = import.meta.env.VITE_INDEXER_URL + `/api/pools-plain`;
+  const usp = new URLSearchParams();
+  if (params?.hasLiquidity !== undefined)
+    usp.set("hasLiquidity", String(params.hasLiquidity));
+  const qs = usp.toString();
+  return qs ? `${base}?${qs}` : base;
+};
+
+const fetchPools = async (params?: PoolsParams): Promise<PoolPlainRow[]> => {
+  const url = buildUrl(params);
   const res = await fetch(url, {
     method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
   });
-  console.log("fetch pools res", res);
 
   if (!res.ok) {
-    // surfacing server error helps during integration
     const text = await res.text().catch(() => "");
     throw new Error(text || `Failed to fetch pools (${res.status})`);
   }
 
-  const data = await res.json();
-
-  console.log("pools data func", data);
-
-  return data;
-};
-
-const toBigIntSafe = (v?: string | null) => {
-  try {
-    return v ? BigInt(v) : 0n;
-  } catch {
-    return 0n;
-  }
+  return res.json();
 };
 
 /**
  * Fetch raw pools + a derived `poolTokens` array ready for TokenSelector.
- * You can ignore `poolTokens` and just use `data` if you prefer.
+ * - Uses the non-ETH side coin for display (typically coin1).
+ * - Sorted by highest ETH-side reserves (reserve0) first.
+ * - Each option is uniquely identified by `poolId`.
  */
 export function useAllPools(params?: PoolsParams) {
   const queryKey = [
-    "pools",
+    "pools-plain",
     params?.quote ?? "ETH",
     params?.hasLiquidity ?? true,
   ];
 
   const query = useQuery({
     queryKey,
-    queryFn: () => fetchPools(),
+    queryFn: async () => {
+      const pools = await fetchPools(params);
+
+      // filter out pools with missing coin ids or addresses
+      return pools.filter(
+        (p) =>
+          p.coin0.id != null &&
+          p.coin0.address != null &&
+          p.coin1.id != null &&
+          p.coin1.address != null,
+      );
+    },
     staleTime: 30_000, // 30s fresh window
     gcTime: 5 * 60_000, // 5m cache
     refetchOnWindowFocus: false,
   });
 
-  console.log("pools outside data", {
-    data: query.data,
-  });
-
-  const poolTokens: TokenMeta[] = useMemo(() => {
-    console.log("pools data", {
-      data: query.data,
-    });
-    if (!query.data) return [];
-    const pools = query.data
-      .filter((p) => p.poolId && toBigIntSafe(p.reserve0) > 0n)
-      .map((p) => ({
-        id: toBigIntSafe(p.coinId),
-        name: `${p?.name}`,
-        symbol: p.symbol,
-        decimals: p.decimals ?? 18,
-        poolId: toBigIntSafe(p.poolId),
-        reserve0: toBigIntSafe(p.reserve0),
-        reserve1: toBigIntSafe(p.reserve1),
-        token1: p.token1,
-        source: p.source as CoinSource,
-        imageUrl: p.imageUrl,
-      }));
-
-    return pools;
-  }, [query.data]);
-
   return {
     ...query,
-    pools: query.data ?? [],
-    poolTokens,
+    pools: (query.data ?? []) as PoolPlainRow[],
   };
 }
