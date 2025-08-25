@@ -152,10 +152,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
         <div className="text-lg mb-2 font-bold">{t("landing.trending")}:</div>
         <div className="space-y-0 text-xs">
           <ErrorBoundary fallback={<LoadingLogo />}>
+             <TrendingFarm
+               chefId="92731363809847772566954340054283838186995961250147317653314415206560064686365"
+               url="/cult"
+               imgUrl="/cult.jpg"
+             />
+          </ErrorBoundary>
+          <ErrorBoundary fallback={<LoadingLogo />}>
             <TrendingFarm
-              chefId="107452621584058933773078057973488854580628742066235689429927554548147274163352"
-              url="/cult"
-              imgUrl="/cult.jpg"
+              chefId="81451133389625739869445444104677551191235868870135185413665230560425375295858"
+              url="/farm"
             />
           </ErrorBoundary>
           <ErrorBoundary fallback={<LoadingLogo />}>
@@ -164,12 +170,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
               url="/ens"
               imgUrl="/ens.svg"
               color="var(--diamond-blue)"
-            />
-          </ErrorBoundary>
-          <ErrorBoundary fallback={<LoadingLogo />}>
-            <TrendingFarm
-              chefId="81451133389625739869445444104677551191235868870135185413665230560425375295858"
-              url="/farm"
             />
           </ErrorBoundary>
         </div>

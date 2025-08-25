@@ -23,7 +23,9 @@ import { Route as CoinsRouteImport } from './routes/coins'
 import { Route as CoinpaperRouteImport } from './routes/coinpaper'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as FarmIndexRouteImport } from './routes/farm/index'
 import { Route as UUserIdRouteImport } from './routes/u.$userId'
+import { Route as FarmCreateRouteImport } from './routes/farm/create'
 import { Route as CCoinIdRouteImport } from './routes/c.$coinId'
 
 const UserRoute = UserRouteImport.update({
@@ -96,10 +98,20 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FarmIndexRoute = FarmIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => FarmRoute,
+} as any)
 const UUserIdRoute = UUserIdRouteImport.update({
   id: '/u/$userId',
   path: '/u/$userId',
   getParentRoute: () => rootRouteImport,
+} as any)
+const FarmCreateRoute = FarmCreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => FarmRoute,
 } as any)
 const CCoinIdRoute = CCoinIdRouteImport.update({
   id: '/c/$coinId',
@@ -115,7 +127,7 @@ export interface FileRoutesByFullPath {
   '/cult': typeof CultRoute
   '/ens': typeof EnsRoute
   '/explore': typeof ExploreRoute
-  '/farm': typeof FarmRoute
+  '/farm': typeof FarmRouteWithChildren
   '/launch': typeof LaunchRoute
   '/oneshot': typeof OneshotRoute
   '/orders': typeof OrdersRoute
@@ -123,7 +135,9 @@ export interface FileRoutesByFullPath {
   '/swap': typeof SwapRoute
   '/user': typeof UserRoute
   '/c/$coinId': typeof CCoinIdRoute
+  '/farm/create': typeof FarmCreateRoute
   '/u/$userId': typeof UUserIdRoute
+  '/farm/': typeof FarmIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -133,7 +147,6 @@ export interface FileRoutesByTo {
   '/cult': typeof CultRoute
   '/ens': typeof EnsRoute
   '/explore': typeof ExploreRoute
-  '/farm': typeof FarmRoute
   '/launch': typeof LaunchRoute
   '/oneshot': typeof OneshotRoute
   '/orders': typeof OrdersRoute
@@ -141,7 +154,9 @@ export interface FileRoutesByTo {
   '/swap': typeof SwapRoute
   '/user': typeof UserRoute
   '/c/$coinId': typeof CCoinIdRoute
+  '/farm/create': typeof FarmCreateRoute
   '/u/$userId': typeof UUserIdRoute
+  '/farm': typeof FarmIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -152,7 +167,7 @@ export interface FileRoutesById {
   '/cult': typeof CultRoute
   '/ens': typeof EnsRoute
   '/explore': typeof ExploreRoute
-  '/farm': typeof FarmRoute
+  '/farm': typeof FarmRouteWithChildren
   '/launch': typeof LaunchRoute
   '/oneshot': typeof OneshotRoute
   '/orders': typeof OrdersRoute
@@ -160,7 +175,9 @@ export interface FileRoutesById {
   '/swap': typeof SwapRoute
   '/user': typeof UserRoute
   '/c/$coinId': typeof CCoinIdRoute
+  '/farm/create': typeof FarmCreateRoute
   '/u/$userId': typeof UUserIdRoute
+  '/farm/': typeof FarmIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -180,7 +197,9 @@ export interface FileRouteTypes {
     | '/swap'
     | '/user'
     | '/c/$coinId'
+    | '/farm/create'
     | '/u/$userId'
+    | '/farm/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -190,7 +209,6 @@ export interface FileRouteTypes {
     | '/cult'
     | '/ens'
     | '/explore'
-    | '/farm'
     | '/launch'
     | '/oneshot'
     | '/orders'
@@ -198,7 +216,9 @@ export interface FileRouteTypes {
     | '/swap'
     | '/user'
     | '/c/$coinId'
+    | '/farm/create'
     | '/u/$userId'
+    | '/farm'
   id:
     | '__root__'
     | '/'
@@ -216,7 +236,9 @@ export interface FileRouteTypes {
     | '/swap'
     | '/user'
     | '/c/$coinId'
+    | '/farm/create'
     | '/u/$userId'
+    | '/farm/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -227,7 +249,7 @@ export interface RootRouteChildren {
   CultRoute: typeof CultRoute
   EnsRoute: typeof EnsRoute
   ExploreRoute: typeof ExploreRoute
-  FarmRoute: typeof FarmRoute
+  FarmRoute: typeof FarmRouteWithChildren
   LaunchRoute: typeof LaunchRoute
   OneshotRoute: typeof OneshotRoute
   OrdersRoute: typeof OrdersRoute
@@ -338,12 +360,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/farm/': {
+      id: '/farm/'
+      path: '/'
+      fullPath: '/farm/'
+      preLoaderRoute: typeof FarmIndexRouteImport
+      parentRoute: typeof FarmRoute
+    }
     '/u/$userId': {
       id: '/u/$userId'
       path: '/u/$userId'
       fullPath: '/u/$userId'
       preLoaderRoute: typeof UUserIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/farm/create': {
+      id: '/farm/create'
+      path: '/create'
+      fullPath: '/farm/create'
+      preLoaderRoute: typeof FarmCreateRouteImport
+      parentRoute: typeof FarmRoute
     }
     '/c/$coinId': {
       id: '/c/$coinId'
@@ -355,6 +391,18 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface FarmRouteChildren {
+  FarmCreateRoute: typeof FarmCreateRoute
+  FarmIndexRoute: typeof FarmIndexRoute
+}
+
+const FarmRouteChildren: FarmRouteChildren = {
+  FarmCreateRoute: FarmCreateRoute,
+  FarmIndexRoute: FarmIndexRoute,
+}
+
+const FarmRouteWithChildren = FarmRoute._addFileChildren(FarmRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
@@ -363,7 +411,7 @@ const rootRouteChildren: RootRouteChildren = {
   CultRoute: CultRoute,
   EnsRoute: EnsRoute,
   ExploreRoute: ExploreRoute,
-  FarmRoute: FarmRoute,
+  FarmRoute: FarmRouteWithChildren,
   LaunchRoute: LaunchRoute,
   OneshotRoute: OneshotRoute,
   OrdersRoute: OrdersRoute,
