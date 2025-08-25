@@ -22,8 +22,6 @@ function formatCompact(n: bigint | number, decimals = 6) {
 
 function weiToEthNumber(wei?: bigint) {
   if (!wei || wei <= 0n) return 0;
-  // Use string math to avoid float overflow for very large numbers
-  // But for UI short display, a Number cast is acceptable after division.
   const eth = Number(wei) / 1e18;
   return isFinite(eth) ? eth : 0;
 }
@@ -119,7 +117,7 @@ export function SwapEfficiencyNote(props: {
     line = `zRouter swap is ${prettyPct(deltaPct)} ${good ? "cheaper" : "more expensive"} (in: ${formatCompact(z)} vs ${formatCompact(u)} ${sToken.symbol})`;
   }
 
-  // ----- Gas comparison line -----
+  // ----- Gas comparison line (now constant-based) -----
   const hasGas = (zGas && zGas > 0n) || (uniGas && uniGas > 0n);
   let gasLine: string | null = null;
 
