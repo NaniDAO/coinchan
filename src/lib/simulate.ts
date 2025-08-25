@@ -25,25 +25,13 @@ export async function simulateContractInteraction({
 }): Promise<any> {
   try {
     // Check if wallet is properly connected and initialized
-    if (
-      !config ||
-      !config.state ||
-      !config.state.connections ||
-      config.state.connections.size === 0
-    ) {
+    if (!config || !config.state || !config.state.connections || config.state.connections.size === 0) {
       // Wait briefly to allow wallet connection to initialize
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // If still not connected, throw a more informative error
-      if (
-        !config ||
-        !config.state ||
-        !config.state.connections ||
-        config.state.connections.size === 0
-      ) {
-        throw new Error(
-          "Wallet connection not initialized. Please refresh and try again.",
-        );
+      if (!config || !config.state || !config.state.connections || config.state.connections.size === 0) {
+        throw new Error("Wallet connection not initialized. Please refresh and try again.");
       }
     }
 
@@ -61,9 +49,7 @@ export async function simulateContractInteraction({
   } catch (error) {
     // If the error is about getChainId, it's likely a wallet connection issue
     if (error instanceof Error && error.message.includes("getChainId")) {
-      throw new Error(
-        "Wallet connection not ready. Please refresh the page and try again.",
-      );
+      throw new Error("Wallet connection not ready. Please refresh the page and try again.");
     }
     throw error;
   }
@@ -92,25 +78,13 @@ export async function estimateContractGas({
 }): Promise<bigint> {
   try {
     // Check if wallet is properly connected and initialized
-    if (
-      !config ||
-      !config.state ||
-      !config.state.connections ||
-      config.state.connections.size === 0
-    ) {
+    if (!config || !config.state || !config.state.connections || config.state.connections.size === 0) {
       // Wait briefly to allow wallet connection to initialize
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // If still not connected, throw a more informative error
-      if (
-        !config ||
-        !config.state ||
-        !config.state.connections ||
-        config.state.connections.size === 0
-      ) {
-        throw new Error(
-          "Wallet connection not initialized. Please refresh and try again.",
-        );
+      if (!config || !config.state || !config.state.connections || config.state.connections.size === 0) {
+        throw new Error("Wallet connection not initialized. Please refresh and try again.");
       }
     }
 
@@ -128,18 +102,11 @@ export async function estimateContractGas({
   } catch (error) {
     // If the error is about getChainId, it's likely a wallet connection issue
     if (error instanceof Error && error.message.includes("getChainId")) {
-      throw new Error(
-        "Wallet connection not ready. Please refresh the page and try again.",
-      );
+      throw new Error("Wallet connection not ready. Please refresh the page and try again.");
     }
 
     // Fallback to a safe gas estimate if estimation fails but the basic connection is working
-    if (
-      config &&
-      config.state &&
-      config.state.connections &&
-      config.state.connections.size > 0
-    ) {
+    if (config && config.state && config.state.connections && config.state.connections.size > 0) {
       // Return a conservative gas estimate (500,000 gas units) - this is high but better than failing
       return 500000n;
     }

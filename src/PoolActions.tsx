@@ -33,9 +33,7 @@ export const PoolActions = () => {
   // Main UI
   return (
     <div className="w-full !mb-10 mt-5 mx-auto !p-4 bg-background ">
-      <h2 className="sr-only m-0 font-display uppercase tracking-widest text-lg">
-        SWAP TERMINAL
-      </h2>
+      <h2 className="sr-only m-0 font-display uppercase tracking-widest text-lg">SWAP TERMINAL</h2>
 
       {/* Load error notification */}
       {loadError && (
@@ -56,9 +54,7 @@ export const PoolActions = () => {
             )}
             onClick={() => setMode(mode === "swap" ? "liquidity" : "swap")}
           >
-            {mode === "swap"
-              ? t("common.add").toUpperCase()
-              : t("common.swap").toUpperCase()}
+            {mode === "swap" ? t("common.add").toUpperCase() : t("common.swap").toUpperCase()}
           </button>
           {mode === "swap" && (
             <ErrorBoundary fallback={<div>Error</div>}>
@@ -72,8 +68,7 @@ export const PoolActions = () => {
           )}
           {/* Info showing token count */}
           <div className="text-xs mt-5 text-center font-mono">
-            {t("common.available_tokens")} {tokenCount}{" "}
-            {t("common.eth_plus_coins", { count: tokenCount - 1 })}
+            {t("common.available_tokens")} {tokenCount} {t("common.eth_plus_coins", { count: tokenCount - 1 })}
           </div>
         </div>
       </div>

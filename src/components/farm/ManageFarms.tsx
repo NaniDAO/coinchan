@@ -1,8 +1,5 @@
 import { useAllCoins } from "@/hooks/metadata/use-all-coins";
-import {
-  useIncentiveStreams,
-  useUserIncentivePositions,
-} from "@/hooks/use-incentive-streams";
+import { useIncentiveStreams, useUserIncentivePositions } from "@/hooks/use-incentive-streams";
 import { useFarmsSummary } from "@/hooks/use-farms-summary";
 import { useZChefActions } from "@/hooks/use-zchef-contract";
 import { isUserRejectionError } from "@/lib/errors";
@@ -22,17 +19,14 @@ export const ManageFarms = () => {
 
   const { tokens } = useAllCoins();
   const { data: allStreams } = useIncentiveStreams();
-  const { data: userPositions, isLoading: isLoadingPositions } =
-    useUserIncentivePositions();
+  const { data: userPositions, isLoading: isLoadingPositions } = useUserIncentivePositions();
   const { harvest } = useZChefActions();
 
   const relevantStreams = useMemo(() => {
     if (!allStreams || !userPositions) return undefined;
     return allStreams.filter((stream) => {
       const hasPosition = userPositions.some(
-        (position) =>
-          BigInt(position.chefId) === BigInt(stream.chefId) &&
-          BigInt(position.shares) > 0n,
+        (position) => BigInt(position.chefId) === BigInt(stream.chefId) && BigInt(position.shares) > 0n,
       );
       return hasPosition;
     });
@@ -73,18 +67,14 @@ export const ManageFarms = () => {
                 userPositions && userPositions.length > 0 && "animate-pulse",
               )}
             >
-              <span className="text-primary font-mono text-sm font-bold">
-                ({userPositions?.length || 0})
-              </span>
+              <span className="text-primary font-mono text-sm font-bold">({userPositions?.length || 0})</span>
             </div>
           </div>
           <div className="flex items-center gap-4">
             {userPositions && userPositions.length > 0 && (
               <div className="hidden sm:flex items-center gap-4">
                 <div className="text-xs font-mono">
-                  <span className="text-muted-foreground">
-                    {t("common.active_farms")}:
-                  </span>
+                  <span className="text-muted-foreground">{t("common.active_farms")}:</span>
                   <span className="text-primary font-bold ml-1">
                     {userPositions.filter((p) => p.shares > 0n).length}
                   </span>
@@ -117,9 +107,7 @@ export const ManageFarms = () => {
 
       {/* Content */}
       {!address ? (
-        <div className="text-center py-12 sm:py-16">
-          {/* connect wallet box */}
-        </div>
+        <div className="text-center py-12 sm:py-16">{/* connect wallet box */}</div>
       ) : isLoadingPositions ? (
         <FarmGridSkeleton count={3} />
       ) : userPositions && userPositions.length > 0 ? (
@@ -128,12 +116,8 @@ export const ManageFarms = () => {
             .filter((position) => BigInt(position.shares) > 0n)
             .map((position) => {
               const stream =
-                streamsWithRealTimeData?.find(
-                  (s) => BigInt(s.chefId) === BigInt(position.chefId),
-                ) ||
-                allStreams?.find(
-                  (s) => BigInt(s.chefId) === BigInt(position.chefId),
-                );
+                streamsWithRealTimeData?.find((s) => BigInt(s.chefId) === BigInt(position.chefId)) ||
+                allStreams?.find((s) => BigInt(s.chefId) === BigInt(position.chefId));
 
               if (!stream) return null;
 
@@ -143,16 +127,12 @@ export const ManageFarms = () => {
               const lpToken = tokens.find((t) => {
                 if (!stream) return false;
                 if (t.poolId === BigInt(stream.lpId)) return true;
-                if (t.symbol === "CULT" && BigInt(stream.lpId) === t.poolId)
-                  return true;
+                if (t.symbol === "CULT" && BigInt(stream.lpId) === t.poolId) return true;
                 return false;
               });
 
               return (
-                <div
-                  key={position.chefId.toString()}
-                  className="group min-h-[400px] lg:min-h-[450px]"
-                >
+                <div key={position.chefId.toString()} className="group min-h-[400px] lg:min-h-[450px]">
                   <ErrorBoundary fallback={<FarmPositionSkeleton />}>
                     <Suspense fallback={<FarmPositionSkeleton />}>
                       <FarmPositionCard
@@ -173,12 +153,8 @@ export const ManageFarms = () => {
           <div className="bg-gradient-to-br from-muted/20 to-muted/5 border-2 border-dashed border-muted/40 rounded-xl p-8 backdrop-blur-sm">
             <div className="text-muted-foreground space-y-4">
               <div className="text-4xl sm:text-5xl opacity-20">○</div>
-              <p className="text-xl font-bold text-muted-foreground">
-                [ {t("common.no_positions_found")} ]
-              </p>
-              <p className="text-sm mt-3">
-                {t("common.no_positions_description")}
-              </p>
+              <p className="text-xl font-bold text-muted-foreground">[ {t("common.no_positions_found")} ]</p>
+              <p className="text-sm mt-3">{t("common.no_positions_description")}</p>
             </div>
           </div>
         </div>

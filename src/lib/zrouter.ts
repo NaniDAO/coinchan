@@ -8,14 +8,11 @@ export function toZRouterToken(token?: TokenMeta) {
   if (token.id === null) return { address: HARDCODED_ADDR.ETH } as const;
 
   if (token.source === "ERC20") {
-    if (!token.token1)
-      throw new Error(`Missing token1 for ERC20 token ${token.id}`);
+    if (!token.token1) throw new Error(`Missing token1 for ERC20 token ${token.id}`);
     return { address: token.token1 };
   }
-  if (token.source === "ZAMM")
-    return { address: CoinsAddress as Address, id: token.id };
-  if (token.source === "COOKBOOK")
-    return { address: CookbookAddress as Address, id: token.id };
+  if (token.source === "ZAMM") return { address: CoinsAddress as Address, id: token.id };
+  if (token.source === "COOKBOOK") return { address: CookbookAddress as Address, id: token.id };
 
   throw new Error(`Unsupported token source: ${token.source}`);
 }

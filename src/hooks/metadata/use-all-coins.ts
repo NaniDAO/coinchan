@@ -1,9 +1,6 @@
 import { CoinchanAbi, CoinchanAddress } from "@/constants/Coinchan";
 import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
-import {
-  CoinsMetadataHelperAbi,
-  CoinsMetadataHelperAddress,
-} from "@/constants/CoinsMetadataHelper";
+import { CoinsMetadataHelperAbi, CoinsMetadataHelperAddress } from "@/constants/CoinsMetadataHelper";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
 import { isCookbookCoin } from "@/lib/coin-utils";
@@ -19,6 +16,7 @@ import {
   ENS_TOKEN,
   ENS_ADDRESS,
   ENS_POOL_ID,
+  ENS_ZAMM_LP_TOKEN,
 } from "@/lib/coins";
 import { SWAP_FEE } from "@/lib/swap";
 import { useQuery } from "@tanstack/react-query";
@@ -32,8 +30,7 @@ import { erc20Abi } from "viem";
  */
 const BLACKLIST_6909 = new Set(["USDC", "USDT", "DAI", "ENS", "NANI"]);
 const normalizeSymbol = (s?: string | null) => (s ?? "").trim().toUpperCase();
-const is6909Source = (m: TokenMeta) =>
-  m.source === "COOKBOOK" || m.source === "ZAMM";
+const is6909Source = (m: TokenMeta) => m.source === "COOKBOOK" || m.source === "ZAMM";
 
 /**
  * Fetch ETH balance as TokenMeta
@@ -148,14 +145,8 @@ function tokenSort(a: TokenMeta, b: TokenMeta) {
     "CULT",
     "ENS",
   ]);
-  const aIsMajor =
-    (aIsERC20 && majorTokens.has(a.symbol as string)) ||
-    a.symbol === "CULT" ||
-    a.symbol === "ENS"; // Special case for CULT/ENS
-  const bIsMajor =
-    (bIsERC20 && majorTokens.has(b.symbol as string)) ||
-    b.symbol === "CULT" ||
-    b.symbol === "ENS"; // Special case for CULT/ENS
+  const aIsMajor = (aIsERC20 && majorTokens.has(a.symbol as string)) || a.symbol === "CULT" || a.symbol === "ENS"; // Special case for CULT/ENS
+  const bIsMajor = (bIsERC20 && majorTokens.has(b.symbol as string)) || b.symbol === "CULT" || b.symbol === "ENS"; // Special case for CULT/ENS
 
   // Calculate liquidity scores (using log scale)
   const aLiqScore = aLiq > 0 ? Math.log10(aLiq + 1) : 0;
@@ -188,24 +179,8 @@ function tokenSort(a: TokenMeta, b: TokenMeta) {
     return 7; // Everything else
   }
 
-  const aTier = getTier(
-    a,
-    aHasBalance,
-    aIs6909,
-    aIsERC20,
-    aIsMajor,
-    aHasGoodLiquidity,
-    aLiq,
-  );
-  const bTier = getTier(
-    b,
-    bHasBalance,
-    bIs6909,
-    bIsERC20,
-    bIsMajor,
-    bHasGoodLiquidity,
-    bLiq,
-  );
+  const aTier = getTier(a, aHasBalance, aIs6909, aIsERC20, aIsMajor, aHasGoodLiquidity, aLiq);
+  const bTier = getTier(b, bHasBalance, bIs6909, bIsERC20, bIsMajor, bHasGoodLiquidity, bLiq);
 
   // Different tiers: lower tier number wins
   if (aTier !== bTier) return aTier - bTier;
@@ -281,15 +256,16 @@ async function fetchOtherCoins(
 
   // Load ERC20 list and build symbol set for collision filtering
   const erc20metas = await loadErc20Tokens();
-  const erc20Symbols = new Set(
-    erc20metas.map((t) => normalizeSymbol(t.symbol)),
-  );
+  const erc20Symbols = new Set(erc20metas.map((t) => normalizeSymbol(t.symbol)));
 
   // Filter out 6909 coins that are blacklisted or collide with ERC20 symbols
+  // Exception: Allow the specific legitimate ENS ZAMM pool
   metas = metas.filter((m) => {
     if (!is6909Source(m)) return true;
     const sym = normalizeSymbol(m.symbol as string);
     if (!sym) return true;
+    // Allow the specific legitimate ENS ZAMM pool by checking its pool ID
+    if (sym === "ENS" && m.poolId === ENS_POOL_ID) return true;
     if (BLACKLIST_6909.has(sym)) return false;
     if (erc20Symbols.has(sym)) return false;
     return true;
@@ -329,10 +305,7 @@ async function fetchOtherCoins(
 
         return { ...m, balance: bal };
       } catch (error) {
-        console.error(
-          `Failed to fetch balance for ${m.source} token ${m.symbol}`,
-          error,
-        );
+        console.error(`Failed to fetch balance for ${m.source} token ${m.symbol}`, error);
         return m;
       }
     }),
@@ -439,14 +412,7 @@ async function originalFetchOtherCoins(
   const coinPromises = allCoinsData.map(async (coin: any) => {
     const [id, uri, r0, r1, pid, liq] = Array.isArray(coin)
       ? coin
-      : [
-          coin.coinId,
-          coin.tokenURI,
-          coin.reserve0,
-          coin.reserve1,
-          coin.poolId,
-          coin.liquidity,
-        ];
+      : [coin.coinId, coin.tokenURI, coin.reserve0, coin.reserve1, coin.poolId, coin.liquidity];
     const coinId = BigInt(id);
     const [symbol, name, lockup] = await Promise.all([
       publicClient
@@ -510,15 +476,16 @@ async function originalFetchOtherCoins(
 
   // Build ERC20 symbol set from your tokenlist for collision filtering
   const erc20metas = await loadErc20Tokens();
-  const erc20Symbols = new Set(
-    erc20metas.map((t) => normalizeSymbol(t.symbol)),
-  );
+  const erc20Symbols = new Set(erc20metas.map((t) => normalizeSymbol(t.symbol)));
 
   // Filter out 6909 coins (COOKBOOK/ZAMM) with blacklisted or ERC20-colliding symbols
+  // Exception: Allow the specific legitimate ENS ZAMM pool
   const filteredCoins = coins.filter((m) => {
     if (!is6909Source(m)) return true;
     const sym = normalizeSymbol(m.symbol as string);
     if (!sym) return true;
+    // Allow the specific legitimate ENS ZAMM pool by checking its pool ID
+    if (sym === "ENS" && m.poolId === ENS_POOL_ID) return true;
     if (BLACKLIST_6909.has(sym)) return false;
     if (erc20Symbols.has(sym)) return false;
     return true;
@@ -543,10 +510,7 @@ async function originalFetchOtherCoins(
         }
         return m;
       } catch (e) {
-        console.error(
-          `Failed to fetch ERC20 balance for ${m.symbol} @ ${m.token1}`,
-          e,
-        );
+        console.error(`Failed to fetch ERC20 balance for ${m.symbol} @ ${m.token1}`, e);
         return m;
       }
     }),
@@ -602,6 +566,7 @@ async function originalFetchOtherCoins(
 
   // ENS pool + balance
   const ensToken = { ...ENS_TOKEN };
+  const ensZammLpToken = { ...ENS_ZAMM_LP_TOKEN };
   try {
     const poolData = await publicClient.readContract({
       address: CookbookAddress,
@@ -611,6 +576,9 @@ async function originalFetchOtherCoins(
     });
     ensToken.reserve0 = poolData[0];
     ensToken.reserve1 = poolData[1];
+    // Also update LP token reserves
+    ensZammLpToken.reserve0 = poolData[0];
+    ensZammLpToken.reserve1 = poolData[1];
   } catch {}
   if (address) {
     try {
@@ -622,10 +590,21 @@ async function originalFetchOtherCoins(
       })) as bigint;
       ensToken.balance = ensBal;
     } catch {}
+
+    // Get LP token balance for ENS ZAMM pool
+    try {
+      const lpBal = (await publicClient.readContract({
+        address: CookbookAddress,
+        abi: CookbookAbi,
+        functionName: "balanceOf",
+        args: [address, ENS_POOL_ID],
+      })) as bigint;
+      ensZammLpToken.balance = lpBal;
+    } catch {}
   }
 
-  // Sort and return
-  return [...withBalances, usdtToken, cultToken, ensToken].sort(tokenSort);
+  // Sort and return - include ENS ZAMM LP token for tracking
+  return [...withBalances, usdtToken, cultToken, ensToken, ensZammLpToken].sort(tokenSort);
 }
 
 /**
