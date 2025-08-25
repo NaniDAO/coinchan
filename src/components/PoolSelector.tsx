@@ -60,10 +60,8 @@ export const PoolSelector = memo(
       const getEthReserve = (p: any): bigint => {
         const r0 = toBigIntSafe(p?.reserve0);
         const r1 = toBigIntSafe(p?.reserve1);
-        const isETH0 =
-          BigInt(p?.coin0?.id) === 0n && p?.coin0?.address === zeroAddress;
-        const isETH1 =
-          BigInt(p?.coin1?.id) === 0n && p?.coin1?.address === zeroAddress;
+        const isETH0 = BigInt(p?.coin0?.id) === 0n && p?.coin0?.address === zeroAddress;
+        const isETH1 = BigInt(p?.coin1?.id) === 0n && p?.coin1?.address === zeroAddress;
         if (isETH0) return r0;
         if (isETH1) return r1;
         return 0n; // neither side is ETH
@@ -118,9 +116,7 @@ export const PoolSelector = memo(
           )}
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-1">
-              <span className="font-medium truncate">
-                {selectedPairSymbol || "—"}
-              </span>
+              <span className="font-medium truncate">{selectedPairSymbol || "—"}</span>
             </div>
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <span className="truncate">{selectedEthReserve}</span>
@@ -144,15 +140,11 @@ export const PoolSelector = memo(
                     const query = e.target.value.toLowerCase();
 
                     const w = window as any;
-                    if (w.poolSearchDebounce)
-                      cancelAnimationFrame(w.poolSearchDebounce);
+                    if (w.poolSearchDebounce) cancelAnimationFrame(w.poolSearchDebounce);
 
                     w.poolSearchDebounce = requestAnimationFrame(() => {
-                      const visible = document.querySelectorAll(
-                        "[data-pool-symbol]:not(.hidden)",
-                      );
-                      const all =
-                        document.querySelectorAll("[data-pool-symbol]");
+                      const visible = document.querySelectorAll("[data-pool-symbol]:not(.hidden)");
+                      const all = document.querySelectorAll("[data-pool-symbol]");
 
                       const itemsToSearch = visible.length > 0 ? visible : all;
                       const itemsArray = Array.from(itemsToSearch);
@@ -160,25 +152,14 @@ export const PoolSelector = memo(
 
                       for (let i = 0; i < itemsArray.length; i++) {
                         const item = itemsArray[i] as HTMLElement;
-                        const symbol =
-                          item
-                            .getAttribute("data-pool-symbol")
-                            ?.toLowerCase() || "";
-                        const name =
-                          item.getAttribute("data-pool-name")?.toLowerCase() ||
-                          "";
+                        const symbol = item.getAttribute("data-pool-symbol")?.toLowerCase() || "";
+                        const name = item.getAttribute("data-pool-name")?.toLowerCase() || "";
                         const id = item.getAttribute("data-pool-id") || "";
 
                         const queryIsNumber = !isNaN(Number(query));
-                        const idMatches = queryIsNumber
-                          ? id.startsWith(query)
-                          : id.toLowerCase().includes(query);
+                        const idMatches = queryIsNumber ? id.startsWith(query) : id.toLowerCase().includes(query);
 
-                        if (
-                          symbol.includes(query) ||
-                          name.includes(query) ||
-                          idMatches
-                        ) {
+                        if (symbol.includes(query) || name.includes(query) || idMatches) {
                           item.classList.remove("hidden");
                           anyVisible = true;
                         } else {
@@ -191,26 +172,14 @@ export const PoolSelector = memo(
                         const allItemsArray = Array.from(all);
                         for (let i = 0; i < allItemsArray.length; i++) {
                           const item = allItemsArray[i] as HTMLElement;
-                          const symbol =
-                            item
-                              .getAttribute("data-pool-symbol")
-                              ?.toLowerCase() || "";
-                          const name =
-                            item
-                              .getAttribute("data-pool-name")
-                              ?.toLowerCase() || "";
+                          const symbol = item.getAttribute("data-pool-symbol")?.toLowerCase() || "";
+                          const name = item.getAttribute("data-pool-name")?.toLowerCase() || "";
                           const id = item.getAttribute("data-pool-id") || "";
 
                           const queryIsNumber = !isNaN(Number(query));
-                          const idMatches = queryIsNumber
-                            ? id.startsWith(query)
-                            : id.toLowerCase().includes(query);
+                          const idMatches = queryIsNumber ? id.startsWith(query) : id.toLowerCase().includes(query);
 
-                          if (
-                            symbol.includes(query) ||
-                            name.includes(query) ||
-                            idMatches
-                          ) {
+                          if (symbol.includes(query) || name.includes(query) || idMatches) {
                             item.classList.remove("hidden");
                           } else {
                             item.classList.add("hidden");
@@ -255,9 +224,7 @@ export const PoolSelector = memo(
                       />
                       <div className="flex flex-col min-w-0">
                         <div className="flex items-center gap-1.5 min-w-0">
-                          <span className="font-medium truncate">
-                            {pairSymbol}
-                          </span>
+                          <span className="font-medium truncate">{pairSymbol}</span>
                         </div>
                         <span className="text-xs text-muted-foreground truncate">
                           {ethReserve} • {fee}
@@ -268,9 +235,7 @@ export const PoolSelector = memo(
                 );
               })}
               {sortedPools.length === 0 && (
-                <div className="p-3 text-xs text-muted-foreground">
-                  {t("common.no_lp_pools_available")}
-                </div>
+                <div className="p-3 text-xs text-muted-foreground">{t("common.no_lp_pools_available")}</div>
               )}
             </div>
           </div>
@@ -279,8 +244,7 @@ export const PoolSelector = memo(
     );
   },
   (prev, next) => {
-    const sameSelection =
-      prev.selectedPool?.poolId === next.selectedPool?.poolId;
+    const sameSelection = prev.selectedPool?.poolId === next.selectedPool?.poolId;
     return (
       sameSelection &&
       prev.pools.length === next.pools.length &&

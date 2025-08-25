@@ -2,10 +2,7 @@ import { TokenMeta } from "@/lib/coins";
 import { cn } from "@/lib/utils";
 import { formatUnits } from "viem";
 import { usePublicClient } from "wagmi";
-import {
-  useZRouterVsUniEfficiency,
-  isERC20orETH,
-} from "@/hooks/use-zrouter-vs-uni-efficiency";
+import { useZRouterVsUniEfficiency, isERC20orETH } from "@/hooks/use-zrouter-vs-uni-efficiency";
 import { useETHPrice } from "@/hooks/use-eth-price";
 
 function prettyPct(n: number) {
@@ -16,8 +13,7 @@ function prettyPct(n: number) {
 function formatCompact(n: bigint | number, decimals = 6) {
   const val = typeof n === "bigint" ? Number(n) : n;
   if (!isFinite(val)) return "-";
-  if (Math.abs(val) >= 1)
-    return val.toLocaleString(undefined, { maximumFractionDigits: decimals });
+  if (Math.abs(val) >= 1) return val.toLocaleString(undefined, { maximumFractionDigits: decimals });
   return val.toPrecision(3);
 }
 
@@ -37,27 +33,9 @@ export function SwapEfficiencyNote(props: {
   /** Optional: legacy fallback if ETH price hook is unavailable */
   ethPriceUsd?: number;
 }) {
-  const {
-    publicClient,
-    sellToken,
-    buyToken,
-    lastEditedField,
-    sellAmt,
-    buyAmt,
-    ethPriceUsd: ethPriceUsdProp,
-  } = props;
+  const { publicClient, sellToken, buyToken, lastEditedField, sellAmt, buyAmt, ethPriceUsd: ethPriceUsdProp } = props;
 
-  const {
-    loading,
-    error,
-    side,
-    zAmount,
-    uniAmount,
-    decimals,
-    zGas,
-    uniGas,
-    gasPriceWei,
-  } = useZRouterVsUniEfficiency({
+  const { loading, error, side, zAmount, uniAmount, decimals, zGas, uniGas, gasPriceWei } = useZRouterVsUniEfficiency({
     publicClient,
     sellToken,
     buyToken,
@@ -69,9 +47,7 @@ export function SwapEfficiencyNote(props: {
   // ETH/USD price via on-chain source
   const { data: ethHook } = useETHPrice();
   const ethPriceUsd =
-    (typeof ethHook?.priceUSD === "number" && isFinite(ethHook.priceUSD)
-      ? ethHook.priceUSD
-      : undefined) ??
+    (typeof ethHook?.priceUSD === "number" && isFinite(ethHook.priceUSD) ? ethHook.priceUSD : undefined) ??
     (isFinite(ethPriceUsdProp || NaN) ? ethPriceUsdProp : undefined);
 
   // Only show for ERC20 <-> ERC20 (or ETH sentinel)
@@ -128,8 +104,7 @@ export function SwapEfficiencyNote(props: {
   const uEth = gp ? weiToEthNumber((uniGas || 0n) * gp) : 0;
   const zUsd = ethPriceUsd ? zEth * ethPriceUsd : undefined;
   const uUsd = ethPriceUsd ? uEth * ethPriceUsd : undefined;
-  const diffUsd =
-    zUsd !== undefined && uUsd !== undefined ? zUsd - uUsd : undefined;
+  const diffUsd = zUsd !== undefined && uUsd !== undefined ? zUsd - uUsd : undefined;
 
   const diffBadge =
     diffUsd === undefined
@@ -188,8 +163,7 @@ export function SwapEfficiencyNote(props: {
         <div className="flex items-center gap-2">
           <span className="uppercase">Gas</span>
           <span className="opacity-80">
-            zRouter&nbsp;~&nbsp;{Number(zGas || 0n).toLocaleString()} vs
-            Uni&nbsp;~&nbsp;
+            zRouter&nbsp;~&nbsp;{Number(zGas || 0n).toLocaleString()} vs Uni&nbsp;~&nbsp;
             {Number(uniGas || 0n).toLocaleString()}
           </span>
           {diffBadge}

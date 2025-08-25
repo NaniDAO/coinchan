@@ -40,14 +40,9 @@ function RouteComponent() {
       </div>
 
       <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8 mt-8">
-        <Tabs
-          value={activeTab}
-          onValueChange={(value) => setActiveTab(value as TabViews)}
-        >
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabViews)}>
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="browse">
-              [ {t("common.browse_farms")} ]
-            </TabsTrigger>
+            <TabsTrigger value="browse">[ {t("common.browse_farms")} ]</TabsTrigger>
             <TabsTrigger value="manage">[ {t("common.my_farms")} ]</TabsTrigger>
           </TabsList>
           <TabsContent value="browse" className="space-y-6 sm:space-y-8">
