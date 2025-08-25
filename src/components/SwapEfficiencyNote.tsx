@@ -152,6 +152,8 @@ export function SwapEfficiencyNote(props: {
           );
         })();
 
+  if (!good) return null;
+
   return (
     <div
       className={cn(
