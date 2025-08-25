@@ -1,4 +1,4 @@
-import { SwapAction } from "@/SwapAction";
+import { SwapAction } from "@/components/swap/SwapAction";
 import { TokenSelectionProvider } from "@/contexts/TokenSelectionContext";
 
 export const SwapModal = () => {
