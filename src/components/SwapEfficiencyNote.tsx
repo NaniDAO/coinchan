@@ -6,6 +6,7 @@ import {
   useZRouterVsUniEfficiency,
   isERC20orETH,
 } from "@/hooks/use-zrouter-vs-uni-efficiency";
+import { useETHPrice } from "@/hooks/use-eth-price"; // <-- added
 
 function prettyPct(n: number) {
   const s = n >= 0 ? `+${n.toFixed(2)}` : n.toFixed(2);
@@ -33,7 +34,7 @@ export function SwapEfficiencyNote(props: {
   lastEditedField: "sell" | "buy";
   sellAmt: string;
   buyAmt: string;
-  /** Optional: pass USD price of ETH if you want to show $ gas (not required) */
+  /** Optional: legacy fallback if ETH price hook is unavailable */
   ethPriceUsd?: number;
 }) {
   const {
@@ -43,7 +44,7 @@ export function SwapEfficiencyNote(props: {
     lastEditedField,
     sellAmt,
     buyAmt,
-    ethPriceUsd,
+    ethPriceUsd: ethPriceUsdProp,
   } = props;
 
   const {
@@ -65,17 +66,13 @@ export function SwapEfficiencyNote(props: {
     buyAmt,
   });
 
-  console.log({
-    loading,
-    error,
-    side,
-    zAmount,
-    uniAmount,
-    decimals,
-    zGas,
-    uniGas,
-    gasPriceWei,
-  });
+  // ETH/USD price via on-chain source
+  const { data: ethHook } = useETHPrice();
+  const ethPriceUsd =
+    (typeof ethHook?.priceUSD === "number" && isFinite(ethHook.priceUSD)
+      ? ethHook.priceUSD
+      : undefined) ??
+    (isFinite(ethPriceUsdProp || NaN) ? ethPriceUsdProp : undefined);
 
   // Only show for ERC20 <-> ERC20 (or ETH sentinel)
   if (!isERC20orETH(sellToken) || !isERC20orETH(buyToken)) return null;
@@ -106,7 +103,9 @@ export function SwapEfficiencyNote(props: {
     if (!isFinite(z) || !isFinite(u) || z <= 0 || u <= 0) return null;
     deltaPct = ((z - u) / u) * 100;
     good = deltaPct >= 0;
-    line = `zRouter swap is ${prettyPct(deltaPct)} ${good ? "more efficient" : "less efficient"} (out: ${formatCompact(z)} vs ${formatCompact(u)} ${bToken.symbol})`;
+    line = `zRouter swap is ${prettyPct(deltaPct)} ${
+      good ? "more efficient" : "less efficient"
+    } (out: ${formatCompact(z)} vs ${formatCompact(u)} ${bToken.symbol})`;
   } else {
     // EXACT_OUT: compare required input amounts (lower is better)
     const z = Number(formatUnits(zAmount, decimals!.in));
@@ -114,10 +113,12 @@ export function SwapEfficiencyNote(props: {
     if (!isFinite(z) || !isFinite(u) || z <= 0 || u <= 0) return null;
     deltaPct = ((u - z) / u) * 100; // “cheaper by X%” vs Uni
     good = deltaPct >= 0;
-    line = `zRouter swap is ${prettyPct(deltaPct)} ${good ? "cheaper" : "more expensive"} (in: ${formatCompact(z)} vs ${formatCompact(u)} ${sToken.symbol})`;
+    line = `zRouter swap is ${prettyPct(deltaPct)} ${
+      good ? "cheaper" : "more expensive"
+    } (in: ${formatCompact(z)} vs ${formatCompact(u)} ${sToken.symbol})`;
   }
 
-  // ----- Gas comparison line (now constant-based) -----
+  // ----- Gas comparison line (now constant-based + USD diff via ETH price) -----
   const hasGas = (zGas && zGas > 0n) || (uniGas && uniGas > 0n);
   let gasLine: string | null = null;
 
@@ -125,27 +126,37 @@ export function SwapEfficiencyNote(props: {
     const gp = gasPriceWei && gasPriceWei > 0n ? gasPriceWei : undefined;
 
     // Raw gas units
-    const raw = `gas: zRouter ~ ${Number(zGas || 0n).toLocaleString()} vs Uni ~ ${Number(uniGas || 0n).toLocaleString()}`;
+    const raw = `gas: zRouter ~ ${Number(zGas || 0n).toLocaleString()} vs Uni ~ ${Number(
+      uniGas || 0n,
+    ).toLocaleString()}`;
 
     // ETH cost (optional)
     let ethPart = "";
+    let usdPart = "";
+    let diffPart = "";
+
     if (gp) {
       const zEth = weiToEthNumber((zGas || 0n) * gp);
       const uEth = weiToEthNumber((uniGas || 0n) * gp);
       ethPart = ` (~${zEth.toPrecision(3)} ETH vs ~${uEth.toPrecision(3)} ETH)`;
+
+      if (ethPriceUsd && ethPriceUsd > 0) {
+        const zUsd = zEth * ethPriceUsd;
+        const uUsd = uEth * ethPriceUsd;
+        const diffUsd = zUsd - uUsd; // positive => zRouter more expensive
+        const absDiff = Math.abs(diffUsd);
+        const tag =
+          Math.abs(absDiff) < 0.005
+            ? "≈"
+            : diffUsd < 0
+              ? "cheaper by"
+              : "more by";
+        usdPart = ` (~$${zUsd.toFixed(2)} vs ~$${uUsd.toFixed(2)})`;
+        diffPart = ` | Δ $${absDiff.toFixed(2)} ${tag}`;
+      }
     }
 
-    // USD cost (optional if ethPriceUsd provided)
-    let usdPart = "";
-    if (gp && ethPriceUsd && ethPriceUsd > 0) {
-      const zEth = weiToEthNumber((zGas || 0n) * gp);
-      const uEth = weiToEthNumber((uniGas || 0n) * gp);
-      const zUsd = zEth * ethPriceUsd;
-      const uUsd = uEth * ethPriceUsd;
-      usdPart = ` (~$${zUsd.toFixed(2)} vs ~$${uUsd.toFixed(2)})`;
-    }
-
-    gasLine = raw + ethPart + usdPart;
+    gasLine = raw + ethPart + usdPart + diffPart;
   }
 
   return (
