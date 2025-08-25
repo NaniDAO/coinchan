@@ -362,8 +362,33 @@ async function fetchOtherCoins(
     } catch {}
   }
 
+  // ENS pool + balance
+  const ensToken = { ...ENS_TOKEN };
+  try {
+    const poolData = await publicClient.readContract({
+      address: CookbookAddress,
+      abi: CookbookAbi,
+      functionName: "pools",
+      args: [ENS_POOL_ID],
+    });
+    ensToken.reserve0 = poolData[0];
+    ensToken.reserve1 = poolData[1];
+  } catch {}
+
+  if (address) {
+    try {
+      const ensBalance = (await publicClient.readContract({
+        address: ENS_ADDRESS,
+        abi: erc20Abi,
+        functionName: "balanceOf",
+        args: [address],
+      })) as bigint;
+      ensToken.balance = ensBalance;
+    } catch {}
+  }
+
   // Sort (balance first), then return
-  return [...withBalances, cultToken].sort(tokenSort);
+  return [...withBalances, ensToken, cultToken].sort(tokenSort);
 }
 
 /**
