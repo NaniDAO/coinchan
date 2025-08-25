@@ -1,5 +1,6 @@
 {
   "common": {
+    "loading_tokens": "Loading tokens...",
     "sales": "Sales",
     "enter_amount": "Enter amount",
     "loading": "Syncing with ZAMM...",
