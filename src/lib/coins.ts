@@ -186,10 +186,10 @@ export const ENS_POOL_KEY: {
 // ENS pool ID (hardcoded for performance and stability)
 export const ENS_POOL_ID = 107895081322979037665933919470752294545033231002190305779392467929211865476585n;
 
-// Define ENS token
+// Define ENS token - This is the ERC20 ENS token that can be added to ZAMM pool
 export const ENS_TOKEN: TokenMeta = {
-  id: 0n, // Special ENS token with ID 0 (ERC20)
-  name: "Ethereum Name Service",
+  id: 999998n, // Special ENS token with unique ID to avoid conflicts
+  name: "ENS (ZAMM Pool)",
   symbol: "ENS",
   source: "COOKBOOK", // Use Cookbook for ENS pools
   tokenUri: undefined, // No tokenUri for ENS

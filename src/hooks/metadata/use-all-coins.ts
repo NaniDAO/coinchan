@@ -259,10 +259,13 @@ async function fetchOtherCoins(
   const erc20Symbols = new Set(erc20metas.map((t) => normalizeSymbol(t.symbol)));
 
   // Filter out 6909 coins that are blacklisted or collide with ERC20 symbols
+  // Exception: Allow the specific legitimate ENS ZAMM pool
   metas = metas.filter((m) => {
     if (!is6909Source(m)) return true;
     const sym = normalizeSymbol(m.symbol as string);
     if (!sym) return true;
+    // Allow the specific legitimate ENS ZAMM pool by checking its pool ID
+    if (sym === "ENS" && m.poolId === ENS_POOL_ID) return true;
     if (BLACKLIST_6909.has(sym)) return false;
     if (erc20Symbols.has(sym)) return false;
     return true;
@@ -451,10 +454,13 @@ async function originalFetchOtherCoins(
   const erc20Symbols = new Set(erc20metas.map((t) => normalizeSymbol(t.symbol)));
 
   // Filter out 6909 coins (COOKBOOK/ZAMM) with blacklisted or ERC20-colliding symbols
+  // Exception: Allow the specific legitimate ENS ZAMM pool
   const filteredCoins = coins.filter((m) => {
     if (!is6909Source(m)) return true;
     const sym = normalizeSymbol(m.symbol as string);
     if (!sym) return true;
+    // Allow the specific legitimate ENS ZAMM pool by checking its pool ID
+    if (sym === "ENS" && m.poolId === ENS_POOL_ID) return true;
     if (BLACKLIST_6909.has(sym)) return false;
     if (erc20Symbols.has(sym)) return false;
     return true;
