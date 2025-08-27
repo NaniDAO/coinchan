@@ -1,6 +1,5 @@
 import { SLIPPAGE_OPTIONS } from "@/lib/swap";
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
+import { cn } from "@/lib/utils";
 
 interface SlippageOption {
   label: string;
@@ -20,64 +19,44 @@ export const SlippageSettings = ({
   slippageOptions = SLIPPAGE_OPTIONS,
   className = "",
 }: SlippageSettingsProps) => {
-  const { t } = useTranslation();
-  const [showSlippageSettings, setShowSlippageSettings] = useState(false);
-
   return (
     <div
-      onClick={() => setShowSlippageSettings(!showSlippageSettings)}
-      className={`text-xs mt-1 px-2 py-1 bg-primary/5 border border-primary/20 rounded text-primary cursor-pointer hover:bg-primary/10 transition-colors ${className}`}
-    >
-      <div className="flex justify-between items-center">
-        <span>
-          <strong>{t("common.slippage_tolerance_colon")}</strong> {Number(slippageBps) / 100}%
-        </span>
-        <span className="text-xs text-foreground-secondary">{showSlippageSettings ? "▲" : "▼"}</span>
-      </div>
-
-      {/* Slippage Settings Panel */}
-      {showSlippageSettings && (
-        <div
-          className="mt-2 p-2 bg-primary-background border border-accent rounded-md shadow-sm"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="mb-2">
-            <div className="flex gap-1 flex-wrap">
-              {slippageOptions.map((option) => (
-                <button
-                  key={option.value.toString()}
-                  onClick={() => setSlippageBps(option.value)}
-                  className={`px-2 py-1 text-xs rounded bg-secondary text-secondary-foreground hover:bg-primary`}
-                >
-                  {option.label}
-                </button>
-              ))}
-              {/* Simple custom slippage input */}
-              <div className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-secondary/70 text-foreground">
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min="0.1"
-                  max="50"
-                  step="0.1"
-                  placeholder=""
-                  className="w-12 bg-transparent outline-none text-center"
-                  onChange={(e) => {
-                    const value = Number.parseFloat(e.target.value);
-                    if (isNaN(value) || value < 0.1 || value > 50) return;
-
-                    // Convert percentage to basis points
-                    const bps = BigInt(Math.floor(value * 100));
-
-                    setSlippageBps(bps);
-                  }}
-                />
-                <span>%</span>
-              </div>
-            </div>
-          </div>
-        </div>
+      className={cn(
+        "mt-2 p-2 bg-background border border-border rounded-md shadow-sm space-y-2",
+        className,
       )}
+    >
+      <div className="flex gap-2 flex-wrap">
+        {slippageOptions.map((option) => (
+          <button
+            key={option.value.toString()}
+            onClick={() => setSlippageBps(option.value)}
+            className={`px-2 py-1 text-xs rounded border ${
+              slippageBps === option.value
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-muted text-muted-foreground hover:bg-primary/10"
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+        <div className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-muted border border-border">
+          <input
+            type="number"
+            min="0.1"
+            max="50"
+            step="0.1"
+            className="w-12 bg-transparent outline-none text-center"
+            onChange={(e) => {
+              const value = Number.parseFloat(e.target.value);
+              if (!isNaN(value) && value >= 0.1 && value <= 50) {
+                setSlippageBps(BigInt(Math.floor(value * 100)));
+              }
+            }}
+          />
+          <span>%</span>
+        </div>
+      </div>
     </div>
   );
 };

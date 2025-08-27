@@ -1,5 +1,6 @@
 {
   "common": {
+    "get_started": "Get Started",
     "loading_tokens": "Loading tokens...",
     "sales": "Sales",
     "enter_amount": "Enter amount",
