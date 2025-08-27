@@ -35,7 +35,7 @@ import { useAllCoins } from "@/hooks/metadata/use-all-coins";
 import { useReserves } from "@/hooks/use-reserves";
 import { useENSResolution } from "@/hooks/use-ens-resolution";
 import { useETHPrice } from "@/hooks/use-eth-price";
-import type { TokenMeta } from "@/lib/coins";
+import { getCoinKey, type TokenMeta } from "@/lib/coins";
 import { handleWalletError } from "@/lib/errors";
 import {
   SLIPPAGE_BPS,
@@ -152,7 +152,20 @@ export const InstantSwapAction = ({
   } = useSendTransaction();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
   const prevPairRef = useRef<string | null>(null);
-  const memoizedTokens = useMemo(() => tokens, [tokens]);
+  const memoizedTokens = useMemo(() => {
+    if (!tokens) return [];
+
+    const seen = new Map<string, TokenMeta>();
+
+    for (const token of tokens) {
+      const key = getCoinKey(token);
+      if (!seen.has(key)) {
+        seen.set(key, token);
+      }
+    }
+
+    return Array.from(seen.values());
+  }, [tokens]);
 
   // resets on token changes
   useEffect(() => {
@@ -499,6 +512,11 @@ export const InstantSwapAction = ({
     },
     [txError],
   );
+
+  console.log("TOKENS:", {
+    sellToken,
+    buyToken,
+  });
 
   return (
     <div className="relative w-full flex flex-col">

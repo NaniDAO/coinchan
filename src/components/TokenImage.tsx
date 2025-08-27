@@ -21,20 +21,6 @@ const getColorForSymbol = (symbol: string) => {
   return colorMap[initials] || { bg: "bg-yellow-500", text: "text-white" };
 };
 
-// Generate a unique key for each token to avoid React key collisions
-export const getTokenKey = (token: TokenMeta) => {
-  const parts = [
-    token.id?.toString() ?? "null",
-    token.symbol ?? "unknown",
-    token.name ?? "unknown",
-    token.source ?? "default",
-    token.poolId?.toString() ?? "no-pool",
-    token.tokenUri ?? "no-uri",
-    token.imageUrl ?? "no-image",
-  ];
-  return parts.join("-");
-};
-
 export const TokenImage = memo(({ token }: { token: TokenMeta }) => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
@@ -52,7 +38,10 @@ export const TokenImage = memo(({ token }: { token: TokenMeta }) => {
       if (token.tokenUri) {
         try {
           // Handle direct image URLs
-          if (token.tokenUri.startsWith("data:") || token.tokenUri.match(/\.(jpg|png|gif|webp)$/i)) {
+          if (
+            token.tokenUri.startsWith("data:") ||
+            token.tokenUri.match(/\.(jpg|png|gif|webp)$/i)
+          ) {
             setImageUrl(token.tokenUri);
             return;
           }
@@ -64,9 +53,13 @@ export const TokenImage = memo(({ token }: { token: TokenMeta }) => {
 
           // Try to fetch metadata
           const response = await fetch(uri);
-          if (response.ok && response.headers.get("content-type")?.includes("json")) {
+          if (
+            response.ok &&
+            response.headers.get("content-type")?.includes("json")
+          ) {
             const metadata = await response.json();
-            const extractedImageUrl = metadata.image || metadata.image_url || metadata.imageUrl;
+            const extractedImageUrl =
+              metadata.image || metadata.image_url || metadata.imageUrl;
 
             if (extractedImageUrl) {
               setImageUrl(formatImageURL(extractedImageUrl));
@@ -92,16 +85,30 @@ export const TokenImage = memo(({ token }: { token: TokenMeta }) => {
   }
 
   if (token.isCustomPool && token.symbol === "ENS") {
-    return <img src="/ens.svg" alt="ENS" className="w-8 h-8 rounded-full object-cover" />;
+    return (
+      <img
+        src="/ens.svg"
+        alt="ENS"
+        className="w-8 h-8 rounded-full object-cover"
+      />
+    );
   }
 
   if (token.symbol === "CULT" && (token.isCustomPool || token.id === 999999n)) {
-    return <img src="/cult.jpg" alt="CULT" className="w-8 h-8 rounded-full object-cover" />;
+    return (
+      <img
+        src="/cult.jpg"
+        alt="CULT"
+        className="w-8 h-8 rounded-full object-cover"
+      />
+    );
   }
 
   // Fallback to colored initials
   const fallback = (
-    <div className={`w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full text-xs font-medium`}>
+    <div
+      className={`w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full text-xs font-medium`}
+    >
       {getInitials(token.symbol)}
     </div>
   );

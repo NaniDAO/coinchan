@@ -4,8 +4,8 @@ import { ChevronDownIcon, SearchIcon } from "lucide-react";
 import { formatEther, formatUnits } from "viem";
 
 import { cn } from "@/lib/utils";
-import { type TokenMeta } from "@/lib/coins";
-import { getTokenKey, TokenImage } from "./TokenImage";
+import { getCoinKey, type TokenMeta } from "@/lib/coins";
+import { TokenImage } from "./TokenImage";
 
 // shadcn/ui
 import { Button } from "@/components/ui/button";
@@ -81,7 +81,7 @@ export const TokenSelector = memo(
         tokens.map((t) => ({
           token: t,
           balance: formatBalance(t),
-          key: getTokenKey(t),
+          key: getCoinKey(t),
           isSelected:
             t.id === selectedToken?.id &&
             t.poolId === selectedToken?.poolId &&
