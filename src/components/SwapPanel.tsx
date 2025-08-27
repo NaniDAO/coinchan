@@ -7,6 +7,7 @@ import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
 import { TokenSelector } from "./TokenSelector";
 import { PercentageSlider } from "./ui/percentage-slider";
 import { useETHPrice } from "@/hooks/use-eth-price";
+import { ErrorBoundary } from "./ErrorBoundary";
 
 interface SwapPanelProps {
   title: string;
@@ -65,7 +66,9 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
     try {
       const balance = selectedToken.balance as bigint;
       const amountBigInt =
-        selectedToken.id === null ? parseEther(amount) : parseUnits(amount, selectedToken.decimals || 18);
+        selectedToken.id === null
+          ? parseEther(amount)
+          : parseUnits(amount, selectedToken.decimals || 18);
 
       if (balance > 0n) {
         const calculatedPercentage = Number((amountBigInt * 100n) / balance);
@@ -74,7 +77,13 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
     } catch {
       setPercentage(0);
     }
-  }, [amount, selectedToken.balance, selectedToken.id, selectedToken.decimals, showPercentageSlider]);
+  }, [
+    amount,
+    selectedToken.balance,
+    selectedToken.id,
+    selectedToken.decimals,
+    showPercentageSlider,
+  ]);
 
   const handlePercentageChange = (newPercentage: number) => {
     setPercentage(newPercentage);
@@ -86,12 +95,18 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
 
     if (selectedToken.id === null) {
       // ETH - apply 1% gas discount for 100%
-      const adjustedBalance = newPercentage === 100 ? (balance * 99n) / 100n : (balance * BigInt(newPercentage)) / 100n;
+      const adjustedBalance =
+        newPercentage === 100
+          ? (balance * 99n) / 100n
+          : (balance * BigInt(newPercentage)) / 100n;
       calculatedAmount = formatEther(adjustedBalance);
     } else {
       // Other tokens - use full balance
       const adjustedBalance = (balance * BigInt(newPercentage)) / 100n;
-      calculatedAmount = formatUnits(adjustedBalance, selectedToken.decimals || 18);
+      calculatedAmount = formatUnits(
+        adjustedBalance,
+        selectedToken.decimals || 18,
+      );
     }
 
     onAmountChange(calculatedAmount);
@@ -107,18 +122,25 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
     >
       <div className="flex items-center justify-between">
         <span className="text-sm text-foreground font-medium">{title}</span>
-        <TokenSelector
-          selectedToken={selectedToken}
-          tokens={tokens}
-          onSelect={onSelect}
-          isEthBalanceFetching={isEthBalanceFetching}
-        />
+        <ErrorBoundary fallback={<div>Error in TokenSelector</div>}>
+          <TokenSelector
+            selectedToken={selectedToken}
+            tokens={tokens}
+            onSelect={onSelect}
+            isEthBalanceFetching={isEthBalanceFetching}
+            className="rounded-md"
+          />
+        </ErrorBoundary>
       </div>
       <div className="flex justify-between items-center">
         {readOnly || isLoading ? (
           // Display formatted number when readonly or loading
           <div className="text-lg sm:text-xl font-medium w-full h-10 text-right pr-1 text-foreground font-body flex items-center justify-end">
-            {isLoading ? "..." : amount ? formatNumber(parseFloat(amount), 6) : "0"}
+            {isLoading
+              ? "..."
+              : amount
+                ? formatNumber(parseFloat(amount), 6)
+                : "0"}
           </div>
         ) : (
           // Regular input when editable
@@ -135,7 +157,9 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
           />
         )}
         {previewLabel ? (
-          <span className="ml-1 text-xs text-foreground font-medium">{previewLabel}</span>
+          <span className="ml-1 text-xs text-foreground font-medium">
+            {previewLabel}
+          </span>
         ) : (
           showMaxButton &&
           onMax && (
@@ -150,9 +174,15 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
       </div>
 
       {/* USD Value Display */}
-      <UsdValueDisplay ethPrice={ethPrice} amount={amount} selectedToken={selectedToken} />
+      <UsdValueDisplay
+        ethPrice={ethPrice}
+        amount={amount}
+        selectedToken={selectedToken}
+      />
 
-      {showPercentageSlider && selectedToken.balance && selectedToken.balance > 0n ? (
+      {showPercentageSlider &&
+      selectedToken.balance &&
+      selectedToken.balance > 0n ? (
         <div className="mt-2 pt-2 border-t border-terminal-black dark:border-terminal-white/20">
           <PercentageSlider
             value={percentage}
@@ -177,7 +207,8 @@ const UsdValueDisplay = memo(
     selectedToken: TokenMeta;
   }) => {
     const usdValue = useMemo(() => {
-      if (!ethPrice?.priceUSD || !amount || parseFloat(amount) <= 0) return null;
+      if (!ethPrice?.priceUSD || !amount || parseFloat(amount) <= 0)
+        return null;
 
       const numAmount = parseFloat(amount);
       let value = 0;
@@ -188,7 +219,9 @@ const UsdValueDisplay = memo(
       } else if (selectedToken.reserve0 && selectedToken.reserve1) {
         // Other tokens with reserves
         const ethReserve = parseFloat(formatEther(selectedToken.reserve0));
-        const tokenReserve = parseFloat(formatUnits(selectedToken.reserve1, selectedToken.decimals || 18));
+        const tokenReserve = parseFloat(
+          formatUnits(selectedToken.reserve1, selectedToken.decimals || 18),
+        );
         const tokenPriceInEth = ethReserve / tokenReserve;
         const tokenPriceUsd = tokenPriceInEth * ethPrice.priceUSD;
         value = numAmount * tokenPriceUsd;
@@ -199,6 +232,10 @@ const UsdValueDisplay = memo(
 
     if (!usdValue) return null;
 
-    return <div className="text-xs text-muted-foreground text-right pr-1 -mt-1">≈ ${usdValue} USD</div>;
+    return (
+      <div className="text-xs text-muted-foreground text-right pr-1 -mt-1">
+        ≈ ${usdValue} USD
+      </div>
+    );
   },
 );

@@ -1,5 +1,6 @@
 {
   "common": {
+    "get_started": "开始使用",
     "sales": "曲线销售",
     "enter_amount": "输入数量",
     "loading": "正在同步ZAMM...",

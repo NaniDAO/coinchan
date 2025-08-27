@@ -1,27 +1,17 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+/* ——— Color tokens update ——— */
 @layer base {
   :root {
-    /* Retro macOS Terminal Design System */
     --terminal-black: #000000;
     --terminal-white: #ffffff;
     --terminal-gray: #eaeaea;
     --terminal-dark-gray: #d6d6d6;
-    --terminal-shadow: rgba(0, 0, 0, 0.5);
 
-    /* Optional retro paper white */
-    --terminal-warm-white: #fdfdfd;
+    --border: #111111;
 
-    --border: #000000;
-
-    --font-display: "Chicago", "VT323", "Courier New", Courier, monospace;
-    --font-body: "Courier New", Courier, monospace;
-
-    --font-size-base: 14px;
-    --radius: 0px;
-
-    /* Light Mode - Classic macOS terminal look */
-    --background: var(--terminal-warm-white);
+    /* Light Mode (clean, crisp) */
+    --background: #ffffff;
     --foreground: #111111;
 
     --card: #ffffff;
@@ -30,40 +20,72 @@
     --popover: #ffffff;
     --popover-foreground: #111111;
 
-    --primary: #000000;
+    --primary: #111111;
     --primary-foreground: #ffffff;
 
-    --secondary: var(--terminal-dark-gray);
+    --secondary: #f4f4f4;
     --secondary-foreground: #111111;
 
-    --muted: var(--terminal-gray);
-    --muted-foreground: #555555;
+    --muted: #f5f5f5;
+    --muted-foreground: #595959;
 
-    --accent: #000000;
-    --accent-foreground: #ffffff;
+    /* KEY: neutral hover/tint */
+    --accent: #f2f2f2;
+    --accent-foreground: #111111;
 
-    --destructive: #000000;
+    --destructive: #e5484d;
 
     --input: #ffffff;
-    --ring: #111111;
+    --ring: #222222;
 
-    --sidebar: #f8f8f8;
+    --sidebar: #fafafa;
     --sidebar-foreground: #111111;
-    --sidebar-primary: #000000;
+    --sidebar-primary: #111111;
     --sidebar-primary-foreground: #ffffff;
-    --sidebar-accent: #e6e6e6;
+    --sidebar-accent: #f0f0f0;
     --sidebar-accent-foreground: #111111;
-    --sidebar-border: #000000;
-    --sidebar-ring: #111111;
-
-    /* Diamond Logo Colors */
-    --diamond-pink: #ff6b9d;
-    --diamond-blue: #00d4ff;
-    --diamond-yellow: #ffe066;
-    --diamond-green: #66d9a6;
-    --diamond-orange: #ff9f40;
-    --diamond-purple: #b967db;
+    --sidebar-border: #1e1e1e;
+    --sidebar-ring: #222222;
   }
+}
+
+.dark {
+  --background: #121212;
+  --foreground: #d9d9d9;
+
+  --card: #161616;
+  --card-foreground: #e6e6e6;
+
+  --popover: #161616;
+  --popover-foreground: #e6e6e6;
+
+  --primary: #e6e6e6;
+  --primary-foreground: #111111;
+
+  --secondary: #1f1f1f;
+  --secondary-foreground: #dddddd;
+
+  --muted: #202020;
+  --muted-foreground: #b5b5b5;
+
+  /* KEY: comfy graphite hover */
+  --accent: #242628;
+  --accent-foreground: #e6e6e6;
+
+  --destructive: #ff5a63;
+
+  --border: #2c2c2c;
+  --input: #1b1b1b;
+  --ring: #777777;
+
+  --sidebar: #151515;
+  --sidebar-foreground: #d0d0d0;
+  --sidebar-primary: #e6e6e6;
+  --sidebar-primary-foreground: #111111;
+  --sidebar-accent: #222426;
+  --sidebar-accent-foreground: #e0e0e0;
+  --sidebar-border: #2c2c2c;
+  --sidebar-ring: #777777;
 }
 
 /* Dark Mode - Black & White Inverted Theme */
@@ -237,9 +259,9 @@ body {
 
 .nav-item:hover,
 .nav-item.active {
-  border: 2px solid var(--terminal-black);
-  background: var(--terminal-black);
-  color: var(--terminal-white);
+  border: 2px solid var(--border);
+  background: var(--accent);
+  color: var(--accent-foreground);
 }
 
 .nav-item:disabled {
@@ -290,10 +312,10 @@ body {
 }
 
 .coin-card:hover {
-  background: var(--terminal-black);
-  color: var(--terminal-white);
+  background: var(--accent);
+  color: var(--accent-foreground);
   transform: translate(-2px, -2px);
-  box-shadow: 4px 4px 0 var(--terminal-black);
+  box-shadow: 4px 4px 0 var(--border);
 }
 
 /* Terminal form containers */
@@ -342,7 +364,7 @@ body {
 }
 
 .token-select:hover {
-  background: var(--terminal-dark-gray);
+  background: var(--accent);
 }
 
 /* Modal */
@@ -489,10 +511,10 @@ body {
 }
 
 @theme inline {
-  --radius-sm: 0px;
-  --radius-md: 0px;
-  --radius-lg: 0px;
-  --radius-xl: 0px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 20px;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -551,7 +573,12 @@ body {
 
 .token-loading {
   animation: shimmer 1.5s infinite;
-  background: linear-gradient(90deg, var(--terminal-gray) 0%, var(--terminal-white) 50%, var(--terminal-gray) 100%);
+  background: linear-gradient(
+    90deg,
+    var(--terminal-gray) 0%,
+    var(--terminal-white) 50%,
+    var(--terminal-gray) 100%
+  );
   background-size: 200% 100%;
   border: 1px solid var(--terminal-black);
 }
@@ -606,12 +633,11 @@ body {
 /* Hide scrollbars or style them minimally */
 ::-webkit-scrollbar {
   width: 16px;
-  background: var(--terminal-gray);
+  background: var(--muted);
 }
-
 ::-webkit-scrollbar-thumb {
-  background: var(--terminal-black);
-  border: 2px solid var(--terminal-gray);
+  background: var(--border);
+  border: 2px solid var(--muted);
 }
 
 ::-webkit-scrollbar-corner {

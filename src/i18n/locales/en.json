@@ -1,9 +1,10 @@
 {
   "common": {
+    "get_started": "Get Started",
     "loading_tokens": "Loading tokens...",
     "sales": "Sales",
     "enter_amount": "Enter amount",
-    "loading": "Syncing with ZAMM...",
+    "loading": "ZAMMING...",
     "calculating": "Calculating...",
     "view_on_etherscan": "View on Etherscan",
     "votes": "Votes",
