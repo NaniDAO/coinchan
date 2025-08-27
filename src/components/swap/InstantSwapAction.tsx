@@ -513,11 +513,6 @@ export const InstantSwapAction = ({
     [txError],
   );
 
-  console.log("TOKENS:", {
-    sellToken,
-    buyToken,
-  });
-
   return (
     <div className="relative w-full flex flex-col">
       {/* Optional controller line input */}
