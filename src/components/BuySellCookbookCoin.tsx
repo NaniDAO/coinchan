@@ -590,17 +590,13 @@ export const BuySellCookbookCoin = ({
           {showPriceChart ? t("coin.hide_chart", "Hide Chart") : t("coin.show_chart", "Show Chart")}
           <ChevronDownIcon className={`w-4 h-4 transition-transform ${showPriceChart ? "rotate-180" : ""}`} />
         </button>
-        
+
         {showPriceChart && (
           <div className="transition-all duration-300 rounded-lg border border-border p-4 bg-card">
             <div className="text-xs text-muted-foreground mb-2">
               {symbol}/ETH {t("coin.price_history", "Price History")}
             </div>
-            <PoolPriceChart
-              poolId={poolId.toString()}
-              ticker={symbol}
-              priceImpact={priceImpact}
-            />
+            <PoolPriceChart poolId={poolId.toString()} ticker={symbol} priceImpact={priceImpact} />
           </div>
         )}
       </div>

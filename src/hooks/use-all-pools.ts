@@ -44,8 +44,7 @@ export type PoolsParams = {
 const buildUrl = (params?: PoolsParams) => {
   const base = import.meta.env.VITE_INDEXER_URL + `/api/pools-plain`;
   const usp = new URLSearchParams();
-  if (params?.hasLiquidity !== undefined)
-    usp.set("hasLiquidity", String(params.hasLiquidity));
+  if (params?.hasLiquidity !== undefined) usp.set("hasLiquidity", String(params.hasLiquidity));
   const qs = usp.toString();
   return qs ? `${base}?${qs}` : base;
 };
@@ -72,11 +71,7 @@ const fetchPools = async (params?: PoolsParams): Promise<PoolPlainRow[]> => {
  * - Each option is uniquely identified by `poolId`.
  */
 export function useAllPools(params?: PoolsParams) {
-  const queryKey = [
-    "pools-plain",
-    params?.quote ?? "ETH",
-    params?.hasLiquidity ?? true,
-  ];
+  const queryKey = ["pools-plain", params?.quote ?? "ETH", params?.hasLiquidity ?? true];
 
   const query = useQuery({
     queryKey,
@@ -85,11 +80,7 @@ export function useAllPools(params?: PoolsParams) {
 
       // filter out pools with missing coin ids or addresses
       return pools.filter(
-        (p) =>
-          p.coin0.id != null &&
-          p.coin0.address != null &&
-          p.coin1.id != null &&
-          p.coin1.address != null,
+        (p) => p.coin0.id != null && p.coin0.address != null && p.coin1.id != null && p.coin1.address != null,
       );
     },
     staleTime: 30_000, // 30s fresh window

@@ -2,8 +2,7 @@ import { encodeAbiParameters, encodeFunctionData, type Address } from "viem";
 import type { EfficiencySide } from "@/hooks/use-zrouter-vs-uni-efficiency";
 
 /** Mainnet Universal Router (v2) */
-export const UNIVERSAL_ROUTER_MAINNET: Address =
-  "0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B";
+export const UNIVERSAL_ROUTER_MAINNET: Address = "0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B";
 
 /** Minimal UR ABI – we use the deadline variant for convenience */
 export const universalRouterAbi = [
@@ -44,9 +43,7 @@ export type BuildUniRouterCallResult = {
   value: bigint; // ETH value to send (we keep 0 when using WETH in path)
 };
 
-export type BuildUniRouterCallFn = (
-  args: BuildUniRouterCallArgs,
-) => Promise<BuildUniRouterCallResult>;
+export type BuildUniRouterCallFn = (args: BuildUniRouterCallArgs) => Promise<BuildUniRouterCallResult>;
 
 /**
  * Build Universal Router calldata for a single v3 swap.
@@ -76,16 +73,13 @@ export const buildUniRouterCall: BuildUniRouterCallFn = async ({
   // High bit (0x80) toggles ALLOW_REVERT; low 5 bits are the command id.
   const CMD_V3_SWAP_EXACT_IN = 0x00;
   const CMD_V3_SWAP_EXACT_OUT = 0x01;
-  const baseCmd =
-    side === "EXACT_IN" ? CMD_V3_SWAP_EXACT_IN : CMD_V3_SWAP_EXACT_OUT;
+  const baseCmd = side === "EXACT_IN" ? CMD_V3_SWAP_EXACT_IN : CMD_V3_SWAP_EXACT_OUT;
   const cmdByte = (allowRevert ? 0x80 : 0x00) | baseCmd;
-  const commands =
-    `0x${cmdByte.toString(16).padStart(2, "0")}` as `0x${string}`;
+  const commands = `0x${cmdByte.toString(16).padStart(2, "0")}` as `0x${string}`;
 
   // Choose the min/max guard depending on side
   const MAX_IN_SENTINEL: bigint = (1n << 255n) - 1n; // large cap like SR02’s pattern
-  const outMinOrInMax =
-    amountLimit ?? (side === "EXACT_IN" ? 0n : MAX_IN_SENTINEL);
+  const outMinOrInMax = amountLimit ?? (side === "EXACT_IN" ? 0n : MAX_IN_SENTINEL);
 
   // Encode the single inputs[i] for our command
   // Per docs (UR v2): (address recipient, uint256 amount*, uint256 limit*, bytes path, bool payerIsUser)

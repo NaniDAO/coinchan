@@ -152,11 +152,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
         <div className="text-lg mb-2 font-bold">{t("landing.trending")}:</div>
         <div className="space-y-0 text-xs">
           <ErrorBoundary fallback={<LoadingLogo />}>
-             <TrendingFarm
-               chefId="92731363809847772566954340054283838186995961250147317653314415206560064686365"
-               url="/cult"
-               imgUrl="/cult.jpg"
-             />
+            <TrendingFarm
+              chefId="92731363809847772566954340054283838186995961250147317653314415206560064686365"
+              url="/cult"
+              imgUrl="/cult.jpg"
+            />
           </ErrorBoundary>
           <ErrorBoundary fallback={<LoadingLogo />}>
             <TrendingFarm

@@ -16,8 +16,7 @@ const GAS_ZROUTER_SINGLE = 110_851n;
 
 /* -------------------------- constants & abi -------------------------- */
 
-const UNISWAP_V3_QUOTER_V2: Address =
-  "0x61fFE014bA17989E743c5F6cB21bF9697530B21e";
+const UNISWAP_V3_QUOTER_V2: Address = "0x61fFE014bA17989E743c5F6cB21bF9697530B21e";
 const WETH9: Address = "0xC02aaA39b223FE8D0A0E5C4F27eAD9083C756Cc2";
 
 /** Minimal ABIs: only the QuoterV2 for price discovery */
@@ -73,9 +72,7 @@ function feeToHex(fee: number) {
   return `0x${hex}`;
 }
 function concatHex(...parts: string[]) {
-  return (
-    `0x` + parts.map((p) => p.replace(/^0x/, "")).join("")
-  ).toLowerCase() as `0x${string}`;
+  return (`0x` + parts.map((p) => p.replace(/^0x/, "")).join("")).toLowerCase() as `0x${string}`;
 }
 function buildV3Path(tokens: Address[], fees: number[]): `0x${string}` {
   const pieces: string[] = [];
@@ -121,12 +118,7 @@ function useUniV3BestQuote({
   amount,
   feeTiers = [500, 3000, 10000],
 }: UniBestParams) {
-  const enabled =
-    !!publicClient &&
-    !!tokenIn &&
-    !!tokenOut &&
-    amount > 0n &&
-    tokenIn !== tokenOut;
+  const enabled = !!publicClient && !!tokenIn && !!tokenOut && amount > 0n && tokenIn !== tokenOut;
 
   const chainId = publicClient?.chain?.id ?? 0;
 
@@ -166,18 +158,12 @@ function useUniV3BestQuote({
           side === "EXACT_IN"
             ? {
                 fn: "quoteExactInput" as const,
-                args: [
-                  buildV3Path([tokenIn, WETH9, tokenOut], [fA, fB]),
-                  amount,
-                ] as const,
+                args: [buildV3Path([tokenIn, WETH9, tokenOut], [fA, fB]), amount] as const,
               }
             : {
                 fn: "quoteExactOutput" as const,
                 // reverse path + reverse fees order for ExactOutput
-                args: [
-                  buildV3Path([tokenOut, WETH9, tokenIn], [fB, fA]),
-                  amount,
-                ] as const,
+                args: [buildV3Path([tokenOut, WETH9, tokenIn], [fB, fA]), amount] as const,
               },
         ),
       );
@@ -212,10 +198,7 @@ function useUniV3BestQuote({
           }
         } else {
           // EXACT_OUT: choose smallest required input (minimize amountIn)
-          if (
-            (amount0 as bigint) > 0n &&
-            (bestAmount === 0n || (amount0 as bigint) < bestAmount)
-          ) {
+          if ((amount0 as bigint) > 0n && (bestAmount === 0n || (amount0 as bigint) < bestAmount)) {
             bestAmount = amount0 as bigint;
             bestIdx = i;
           }
@@ -267,17 +250,9 @@ export function useZRouterVsUniEfficiency(opts: {
   sellAmt: string;
   buyAmt: string;
 }) {
-  const {
-    publicClient,
-    sellToken,
-    buyToken,
-    lastEditedField,
-    sellAmt,
-    buyAmt,
-  } = opts;
+  const { publicClient, sellToken, buyToken, lastEditedField, sellAmt, buyAmt } = opts;
 
-  const side: EfficiencySide =
-    lastEditedField === "sell" ? "EXACT_IN" : "EXACT_OUT";
+  const side: EfficiencySide = lastEditedField === "sell" ? "EXACT_IN" : "EXACT_OUT";
 
   const inDecimals = sellToken?.decimals ?? 18;
   const outDecimals = buyToken?.decimals ?? 18;
@@ -296,19 +271,10 @@ export function useZRouterVsUniEfficiency(opts: {
   });
 
   // Basic readiness & guards
-  const readyTokens =
-    isERC20orETH(sellToken || undefined) &&
-    isERC20orETH(buyToken || undefined) &&
-    !!publicClient;
+  const readyTokens = isERC20orETH(sellToken || undefined) && isERC20orETH(buyToken || undefined) && !!publicClient;
 
-  const tokenInAddr = useMemo(
-    () => (sellToken ? toAddressForUni(sellToken) : null),
-    [sellToken],
-  );
-  const tokenOutAddr = useMemo(
-    () => (buyToken ? toAddressForUni(buyToken) : null),
-    [buyToken],
-  );
+  const tokenInAddr = useMemo(() => (sellToken ? toAddressForUni(sellToken) : null), [sellToken]);
+  const tokenOutAddr = useMemo(() => (buyToken ? toAddressForUni(buyToken) : null), [buyToken]);
 
   // Parse *input* amount for Uni depending on side
   const uniAmountParam = useMemo(() => {
@@ -338,14 +304,7 @@ export function useZRouterVsUniEfficiency(opts: {
     } catch {
       return 0n;
     }
-  }, [
-    zQuote.data?.ok,
-    zQuote.data?.amountOut,
-    zQuote.data?.amountIn,
-    side,
-    inDecimals,
-    outDecimals,
-  ]);
+  }, [zQuote.data?.ok, zQuote.data?.amountOut, zQuote.data?.amountIn, side, inDecimals, outDecimals]);
 
   // Uni best quote (multicall) — returns price amount + fixed gas
   const uni = useUniV3BestQuote({
@@ -369,14 +328,10 @@ export function useZRouterVsUniEfficiency(opts: {
   });
 
   // Shape the final state (stable object to reduce renders)
-  const loading =
-    (zQuote.isFetching || uni.isFetching) &&
-    (!!uni.enabled || zQuote.isFetching);
+  const loading = (zQuote.isFetching || uni.isFetching) && (!!uni.enabled || zQuote.isFetching);
 
   const error =
-    (!readyTokens && (debouncedSell || debouncedBuy)
-      ? "Unsupported token(s)"
-      : null) ||
+    (!readyTokens && (debouncedSell || debouncedBuy) ? "Unsupported token(s)" : null) ||
     (uni.enabled && uni.isError ? uni.error : null) ||
     (!zQuote.data?.ok && !zQuote.isFetching ? null : null);
 
@@ -393,9 +348,7 @@ export function useZRouterVsUniEfficiency(opts: {
         };
 
   const uniRaw =
-    side === "EXACT_IN"
-      ? { amountOut: uni.uniAmount || undefined }
-      : { amountIn: uni.uniAmount || undefined };
+    side === "EXACT_IN" ? { amountOut: uni.uniAmount || undefined } : { amountIn: uni.uniAmount || undefined };
 
   return {
     loading,

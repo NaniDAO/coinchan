@@ -25,16 +25,10 @@ export function ZCurvePriceImpact({
 
   // Helper function to calculate marginal price at a given netSold amount - memoized
   // Uses the shared calculateCost function from zCurveMath
-  const calculateMarginalPrice = useCallback(
-    (netSold: bigint, quadCap: bigint, divisor: bigint): bigint => {
-      // Marginal price is the cost of the next UNIT_SCALE tokens
-      return (
-        calculateCost(netSold + UNIT_SCALE, quadCap, divisor) -
-        calculateCost(netSold, quadCap, divisor)
-      );
-    },
-    [],
-  );
+  const calculateMarginalPrice = useCallback((netSold: bigint, quadCap: bigint, divisor: bigint): bigint => {
+    // Marginal price is the cost of the next UNIT_SCALE tokens
+    return calculateCost(netSold + UNIT_SCALE, quadCap, divisor) - calculateCost(netSold, quadCap, divisor);
+  }, []);
 
   const priceImpact = useMemo(() => {
     if (!tradeAmount || parseFloat(tradeAmount) === 0) return null;
@@ -46,11 +40,7 @@ export function ZCurvePriceImpact({
       const saleCap = BigInt(sale.saleCap);
 
       // Calculate current marginal price
-      const currentMarginalPrice = calculateMarginalPrice(
-        netSold,
-        quadCap,
-        divisor,
-      );
+      const currentMarginalPrice = calculateMarginalPrice(netSold, quadCap, divisor);
 
       let newNetSold: bigint;
       let impact: number;
@@ -71,11 +61,7 @@ export function ZCurvePriceImpact({
 
         if (newNetSold > saleCap) return null;
 
-        const newMarginalPrice = calculateMarginalPrice(
-          newNetSold,
-          quadCap,
-          divisor,
-        );
+        const newMarginalPrice = calculateMarginalPrice(newNetSold, quadCap, divisor);
 
         // Calculate average price for display
         let ethIn: bigint;
@@ -84,14 +70,11 @@ export function ZCurvePriceImpact({
         } catch {
           return null;
         }
-        const avgPriceForTrade =
-          tokensOut > 0n ? (ethIn * parseEther("1")) / tokensOut : 0n;
+        const avgPriceForTrade = tokensOut > 0n ? (ethIn * parseEther("1")) / tokensOut : 0n;
 
         // Calculate marginal price impact
         if (currentMarginalPrice > 0n) {
-          const priceChangeRatio =
-            ((newMarginalPrice - currentMarginalPrice) * 10000n) /
-            currentMarginalPrice;
+          const priceChangeRatio = ((newMarginalPrice - currentMarginalPrice) * 10000n) / currentMarginalPrice;
           impact = Number(priceChangeRatio) / 100;
         } else if (newMarginalPrice > 0n) {
           // From zero to positive price
@@ -121,17 +104,11 @@ export function ZCurvePriceImpact({
 
         // For selling, we need to calculate the actual ETH received
         // to determine the true price impact
-        const newMarginalPrice = calculateMarginalPrice(
-          newNetSold,
-          quadCap,
-          divisor,
-        );
+        const newMarginalPrice = calculateMarginalPrice(newNetSold, quadCap, divisor);
 
         // Calculate marginal price impact for selling
         if (currentMarginalPrice > 0n && newMarginalPrice >= 0n) {
-          const priceChangeRatio =
-            ((newMarginalPrice - currentMarginalPrice) * 10000n) /
-            currentMarginalPrice;
+          const priceChangeRatio = ((newMarginalPrice - currentMarginalPrice) * 10000n) / currentMarginalPrice;
           impact = Number(priceChangeRatio) / 100; // Will be negative when price decreases
         } else {
           impact = 0;
@@ -216,43 +193,31 @@ export function ZCurvePriceImpact({
         <div className="flex-1 space-y-1">
           <div className="flex justify-between items-center">
             <span className="text-sm font-medium">
-              {isBuying
-                ? t("trade.buy_impact", "Buy Impact")
-                : t("trade.sell_impact", "Sell Impact")}
+              {isBuying ? t("trade.buy_impact", "Buy Impact") : t("trade.sell_impact", "Sell Impact")}
             </span>
-            <span className={`text-sm font-semibold ${impactColor}`}>
-              {formatImpact}
-            </span>
+            <span className={`text-sm font-semibold ${impactColor}`}>{formatImpact}</span>
           </div>
           <div className="space-y-1">
             {/* Only show price change if there's a meaningful difference */}
-            {Math.abs(priceImpact.newPrice - priceImpact.currentPrice) >
-              priceImpact.currentPrice * 0.0001 && (
+            {Math.abs(priceImpact.newPrice - priceImpact.currentPrice) > priceImpact.currentPrice * 0.0001 && (
               <div className="text-xs text-muted-foreground">
                 <span>
-                  {t("trade.price_change", "Price")}:{" "}
-                  {formatPrice(priceImpact.currentPrice)} →{" "}
+                  {t("trade.price_change", "Price")}: {formatPrice(priceImpact.currentPrice)} →{" "}
                   {formatPrice(priceImpact.newPrice)}
                 </span>
               </div>
             )}
-            {isBuying &&
-              "avgPrice" in priceImpact &&
-              priceImpact.avgPrice !== undefined && (
-                <div className="text-xs text-muted-foreground">
-                  <span>
-                    {t("trade.avg_price_this_trade", "Avg price")}:{" "}
-                    {formatPrice(priceImpact.avgPrice)}
-                  </span>
-                </div>
-              )}
+            {isBuying && "avgPrice" in priceImpact && priceImpact.avgPrice !== undefined && (
+              <div className="text-xs text-muted-foreground">
+                <span>
+                  {t("trade.avg_price_this_trade", "Avg price")}: {formatPrice(priceImpact.avgPrice)}
+                </span>
+              </div>
+            )}
           </div>
           {priceImpact.isHighImpact && (
             <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-              {t(
-                "trade.high_impact_warning",
-                "Large trade - consider splitting into smaller amounts",
-              )}
+              {t("trade.high_impact_warning", "Large trade - consider splitting into smaller amounts")}
             </p>
           )}
         </div>
