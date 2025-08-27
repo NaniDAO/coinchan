@@ -630,7 +630,7 @@ export const InstantSwapAction = ({
               slippageBps={slippageBps}
               setSlippageBps={setSlippageBps}
             />
-            <p className="text-xs text-muted-foreground">Paid to LPs</p>
+            <p className="text-xs text-muted-foreground">Fees paid to LPs</p>
           </HoverCardContent>
         </HoverCard>
       </div>
