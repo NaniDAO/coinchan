@@ -1,7 +1,13 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, parseEther } from "viem";
-import { useAccount, useBalance, usePublicClient, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import {
+  useAccount,
+  useBalance,
+  usePublicClient,
+  useWriteContract,
+  useWaitForTransactionReceipt,
+} from "wagmi";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -12,7 +18,11 @@ import { LoadingLogo } from "@/components/ui/loading-logo";
 import { ZCurvePriceImpact } from "@/components/ZCurvePriceImpact";
 
 import { zCurveAbi, zCurveAddress } from "@/constants/zCurve";
-import { useZCurveSale, useZCurveBalance, useZCurveSaleSummary } from "@/hooks/use-zcurve-sale";
+import {
+  useZCurveSale,
+  useZCurveBalance,
+  useZCurveSaleSummary,
+} from "@/hooks/use-zcurve-sale";
 import { handleWalletError, isUserRejectionError } from "@/lib/errors";
 import { UNIT_SCALE } from "@/lib/zCurveHelpers";
 import { debounce } from "@/lib/utils";
@@ -28,6 +38,7 @@ import {
   calculateCoinsToBurnForETH,
   cachedCalculation,
 } from "@/lib/zCurveClientCalc";
+import { ErrorBoundary } from "./ErrorBoundary";
 
 interface ChartPreviewData {
   amount: bigint;
@@ -58,15 +69,27 @@ export function ZCurveTrading({
   const [swapDirection, setSwapDirection] = useState<"buy" | "sell">("buy"); // buy = ETH->Token, sell = Token->ETH
   const [sellAmount, setSellAmount] = useState("");
   const [buyAmount, setBuyAmount] = useState("");
-  const [lastEditedField, setLastEditedField] = useState<"sell" | "buy">("sell");
+  const [lastEditedField, setLastEditedField] = useState<"sell" | "buy">(
+    "sell",
+  );
   const [slippageBps, setSlippageBps] = useState<bigint>(1000n); // 10% default for zCurve
   const [isCalculating, setIsCalculating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Fetch data
-  const { data: sale, isLoading: saleLoading, refetch: refetchSale } = useZCurveSale(coinId);
-  const { data: saleSummary, refetch: refetchSummary } = useZCurveSaleSummary(coinId, address);
-  const { data: userBalance, refetch: refetchBalance } = useZCurveBalance(coinId, address);
+  const {
+    data: sale,
+    isLoading: saleLoading,
+    refetch: refetchSale,
+  } = useZCurveSale(coinId);
+  const { data: saleSummary, refetch: refetchSummary } = useZCurveSaleSummary(
+    coinId,
+    address,
+  );
+  const { data: userBalance, refetch: refetchBalance } = useZCurveBalance(
+    coinId,
+    address,
+  );
   const { data: ethBalance } = useBalance({ address });
   const { data: ethPrice } = useETHPrice();
 
@@ -222,7 +245,10 @@ export function ZCurveTrading({
               }
             }
           } else {
-            usdDisplay = usdPrice < 0.01 ? `$${usdPrice.toFixed(6)}` : `$${usdPrice.toFixed(4)}`;
+            usdDisplay =
+              usdPrice < 0.01
+                ? `$${usdPrice.toFixed(6)}`
+                : `$${usdPrice.toFixed(4)}`;
           }
         }
       } else if (price < 1e-6) {
@@ -307,10 +333,16 @@ export function ZCurveTrading({
           if (clientFallback) {
             try {
               const clientValue = clientFallback();
-              contractCallCache.current.set(key, { value: clientValue, timestamp: now });
+              contractCallCache.current.set(key, {
+                value: clientValue,
+                timestamp: now,
+              });
               return clientValue;
             } catch (e) {
-              console.warn("Client-side calculation failed, falling back to contract", e);
+              console.warn(
+                "Client-side calculation failed, falling back to contract",
+                e,
+              );
             }
           }
 
@@ -321,7 +353,9 @@ export function ZCurveTrading({
           if (contractCallCache.current.size > 100) {
             const entries = Array.from(contractCallCache.current.entries());
             entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
-            entries.slice(0, 50).forEach(([k]) => contractCallCache.current.delete(k));
+            entries
+              .slice(0, 50)
+              .forEach(([k]) => contractCallCache.current.delete(k));
           }
 
           return value;
@@ -477,12 +511,18 @@ export function ZCurveTrading({
   );
 
   // Cache for contract call results to avoid redundant RPC calls
-  const contractCallCache = useRef<Map<string, { value: bigint; timestamp: number }>>(new Map());
+  const contractCallCache = useRef<
+    Map<string, { value: bigint; timestamp: number }>
+  >(new Map());
   const CACHE_TTL = 5000; // 5 seconds cache TTL
 
   // Debounced version for user input with increased delay for better performance
   const debouncedCalculateOutput = useMemo(
-    () => debounce((value: string, field: "sell" | "buy") => calculateOutput(value, field), 500),
+    () =>
+      debounce(
+        (value: string, field: "sell" | "buy") => calculateOutput(value, field),
+        500,
+      ),
     [calculateOutput],
   );
 
@@ -527,7 +567,8 @@ export function ZCurveTrading({
             setErrorMessage(t("trade.invalid_amount", "Invalid amount"));
             return;
           }
-          const maxEth = (sellAmountParsed * slippageMultiplierInverse) / 10000n;
+          const maxEth =
+            (sellAmountParsed * slippageMultiplierInverse) / 10000n;
 
           // Validate ETH balance with some buffer for gas
           if (ethBalance && ethBalance.value < maxEth) {
@@ -597,7 +638,8 @@ export function ZCurveTrading({
             setErrorMessage(t("trade.invalid_amount", "Invalid amount"));
             return;
           }
-          let maxCoins = (sellAmountParsed * slippageMultiplierInverse) / 10000n;
+          let maxCoins =
+            (sellAmountParsed * slippageMultiplierInverse) / 10000n;
 
           // Quantize to UNIT_SCALE
           maxCoins = quantizeToUnitScale(maxCoins);
@@ -681,7 +723,9 @@ export function ZCurveTrading({
         toast.error(t("trade.transaction_cancelled"));
       } else {
         const errorMsg = handleWalletError(error, { t });
-        setErrorMessage(errorMsg || t("trade.transaction_failed", "Transaction failed"));
+        setErrorMessage(
+          errorMsg || t("trade.transaction_failed", "Transaction failed"),
+        );
       }
     }
   };
@@ -693,7 +737,11 @@ export function ZCurveTrading({
       setBuyAmount("");
       toast.success(
         <div className="flex flex-col gap-1">
-          <span>{swapDirection === "buy" ? t("trade.buy_successful") : t("trade.sell_successful")}</span>
+          <span>
+            {swapDirection === "buy"
+              ? t("trade.buy_successful")
+              : t("trade.sell_successful")}
+          </span>
           <a
             href={`https://etherscan.io/tx/${hash}`}
             target="_blank"
@@ -713,9 +761,19 @@ export function ZCurveTrading({
         onTransactionSuccess?.();
       }, 2000); // Wait 2s for indexer to catch up
     }
-  }, [txSuccess, hash, swapDirection, t, refetchSale, refetchSummary, refetchBalance, onTransactionSuccess]);
+  }, [
+    txSuccess,
+    hash,
+    swapDirection,
+    t,
+    refetchSale,
+    refetchSummary,
+    refetchBalance,
+    onTransactionSuccess,
+  ]);
 
-  const saleExpired = sale && BigInt(sale.deadline) < BigInt(Math.floor(Date.now() / 1000));
+  const saleExpired =
+    sale && BigInt(sale.deadline) < BigInt(Math.floor(Date.now() / 1000));
   const saleFinalized = sale?.status === "FINALIZED";
   const tradingDisabled = !!(saleFinalized || saleExpired);
 
@@ -736,7 +794,11 @@ export function ZCurveTrading({
       {/* Trading disabled alert */}
       {tradingDisabled && (
         <Alert variant="destructive">
-          <AlertDescription>{saleFinalized ? t("trade.sale_finalized") : t("trade.sale_expired")}</AlertDescription>
+          <AlertDescription>
+            {saleFinalized
+              ? t("trade.sale_finalized")
+              : t("trade.sale_expired")}
+          </AlertDescription>
         </Alert>
       )}
 
@@ -775,9 +837,12 @@ export function ZCurveTrading({
         }}
         showPercentageSlider={
           (lastEditedField === "sell" &&
-            ((swapDirection === "buy" && !!ethBalance && ethBalance.value > 0n) ||
+            ((swapDirection === "buy" &&
+              !!ethBalance &&
+              ethBalance.value > 0n) ||
               (swapDirection === "sell" &&
-                ((saleSummary?.userBalance && BigInt(saleSummary.userBalance) > 0n) ||
+                ((saleSummary?.userBalance &&
+                  BigInt(saleSummary.userBalance) > 0n) ||
                   (userBalance && BigInt(userBalance.balance) > 0n))))) ||
           false
         }
@@ -866,15 +931,20 @@ export function ZCurveTrading({
         </Button>
       )}
 
-      {/* Price Impact */}
-      {sellAmount && buyAmount && (Number.parseFloat(sellAmount) > 0 || Number.parseFloat(buyAmount) > 0) && (
-        <ZCurvePriceImpact
-          sale={sale}
-          tradeAmount={sellAmount}
-          tokenAmount={buyAmount}
-          isBuying={swapDirection === "buy"}
-        />
-      )}
+      <ErrorBoundary fallback={<div>Error in ZCurvePriceImpact</div>}>
+        {/* Price Impact */}
+        {sellAmount &&
+          buyAmount &&
+          (Number.parseFloat(sellAmount) > 0 ||
+            Number.parseFloat(buyAmount) > 0) && (
+            <ZCurvePriceImpact
+              sale={sale}
+              tradeAmount={sellAmount}
+              tokenAmount={buyAmount}
+              isBuying={swapDirection === "buy"}
+            />
+          )}
+      </ErrorBoundary>
 
       {/* Error message */}
       {errorMessage && (
@@ -884,7 +954,10 @@ export function ZCurveTrading({
       )}
 
       {/* Slippage settings */}
-      <SlippageSettings slippageBps={slippageBps} setSlippageBps={setSlippageBps} />
+      <SlippageSettings
+        slippageBps={slippageBps}
+        setSlippageBps={setSlippageBps}
+      />
 
       {/* Sale info */}
       <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-muted-foreground">
@@ -893,17 +966,26 @@ export function ZCurveTrading({
           <span className="text-right">
             {saleSummary?.currentPrice || sale.currentPrice
               ? (() => {
-                  const currentPriceWei = BigInt(saleSummary?.currentPrice || sale.currentPrice);
+                  const currentPriceWei = BigInt(
+                    saleSummary?.currentPrice || sale.currentPrice,
+                  );
                   const priceInfo = useMemo(
-                    () => formatPriceDisplay(currentPriceWei, ethPrice?.priceUSD),
+                    () =>
+                      formatPriceDisplay(currentPriceWei, ethPrice?.priceUSD),
                     [currentPriceWei, ethPrice?.priceUSD],
                   );
 
                   return (
                     <div className="flex flex-col items-end">
                       <span className="font-medium">{priceInfo.eth}</span>
-                      {priceInfo.usd && <span className="text-[10px] text-muted-foreground">{priceInfo.usd}</span>}
-                      <span className="text-[10px] text-muted-foreground">{priceInfo.tokensPerEth} per ETH</span>
+                      {priceInfo.usd && (
+                        <span className="text-[10px] text-muted-foreground">
+                          {priceInfo.usd}
+                        </span>
+                      )}
+                      <span className="text-[10px] text-muted-foreground">
+                        {priceInfo.tokensPerEth} per ETH
+                      </span>
                     </div>
                   );
                 })()
@@ -912,7 +994,9 @@ export function ZCurveTrading({
         </div>
         <div className="flex justify-between">
           <span>{t("trade.eth_in_escrow")}</span>
-          <span>{formatEther(BigInt(saleSummary?.ethEscrow || sale.ethEscrow))} ETH</span>
+          <span>
+            {formatEther(BigInt(saleSummary?.ethEscrow || sale.ethEscrow))} ETH
+          </span>
         </div>
         <div className="flex justify-between">
           <span>{t("sale.tokens_sold")}</span>
