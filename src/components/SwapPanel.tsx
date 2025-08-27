@@ -7,6 +7,7 @@ import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
 import { TokenSelector } from "./TokenSelector";
 import { PercentageSlider } from "./ui/percentage-slider";
 import { useETHPrice } from "@/hooks/use-eth-price";
+import { ErrorBoundary } from "./ErrorBoundary";
 
 interface SwapPanelProps {
   title: string;
@@ -121,13 +122,15 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
     >
       <div className="flex items-center justify-between">
         <span className="text-sm text-foreground font-medium">{title}</span>
-        <TokenSelector
-          selectedToken={selectedToken}
-          tokens={tokens}
-          onSelect={onSelect}
-          isEthBalanceFetching={isEthBalanceFetching}
-          className="rounded-md"
-        />
+        <ErrorBoundary fallback={<div>Error in TokenSelector</div>}>
+          <TokenSelector
+            selectedToken={selectedToken}
+            tokens={tokens}
+            onSelect={onSelect}
+            isEthBalanceFetching={isEthBalanceFetching}
+            className="rounded-md"
+          />
+        </ErrorBoundary>
       </div>
       <div className="flex justify-between items-center">
         {readOnly || isLoading ? (
