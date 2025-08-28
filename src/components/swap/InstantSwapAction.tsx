@@ -652,11 +652,13 @@ export const InstantSwapAction = ({
       <button
         onClick={executeSwap}
         disabled={!isConnected || !sellAmt || isPending || !canSwap}
-        className={`mt-2 button text-base px-8 py-4 bg-primary text-primary-foreground font-bold rounded-lg transition ${
-          !isConnected || !sellAmt || isPending || !canSwap
-            ? "opacity-50 cursor-not-allowed"
-            : "hover:scale-105"
-        }`}
+        className={cn(
+          `mt-2 button text-base px-8 py-4 bg-primary! text-primary-foreground! dark:bg-primary! dark:text-primary-foreground! font-bold rounded-lg transition hover:scale-105`,
+          !isConnected ||
+            !sellAmt ||
+            isPending ||
+            (!canSwap && "opacity-50 cursor-not-allowed"),
+        )}
       >
         {isPending ? (
           <span className="flex items-center gap-2">
