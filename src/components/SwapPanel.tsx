@@ -5,7 +5,7 @@ import { useEffect, useState, memo, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
 import { TokenSelector } from "./TokenSelector";
-import { PercentageSlider } from "./ui/percentage-slider";
+import { PercentageBlobs } from "@/components/ui/percentage-blobs";
 import { useETHPrice } from "@/hooks/use-eth-price";
 import { ErrorBoundary } from "./ErrorBoundary";
 
@@ -102,22 +102,41 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
   return (
     <div
       className={cn(
-        `transition-all duration-150 ease-in-out border-2 border-terminal-black bg-terminal-white hover:shadow-[2px_2px_0_var(--terminal-black)] p-2 flex flex-col gap-2`,
+        // group/hover key enables hover-only controls
+        `group relative transition-all duration-150 ease-in-out border-2 border-terminal-black bg-terminal-white hover:shadow-[2px_2px_0_var(--terminal-black)] p-2 flex flex-col gap-2`,
         className,
       )}
     >
+      {/* Right controls: % chips • Max • Token */}
       <div className="flex items-center justify-between">
         <span className="text-sm text-foreground font-medium">{title}</span>
-        <ErrorBoundary fallback={<div>Error in TokenSelector</div>}>
-          <TokenSelector
-            selectedToken={selectedToken}
-            tokens={tokens}
-            onSelect={onSelect}
-            isEthBalanceFetching={isEthBalanceFetching}
-            className="rounded-md"
-          />
-        </ErrorBoundary>
+        <div className="flex items-center gap-1">
+          {showPercentageSlider && (selectedToken?.balance ?? 0n) > 0n && (
+            <div className="hidden group-hover:flex">
+              <PercentageBlobs
+                value={percentage}
+                onChange={handlePercentageChange}
+                disabled={isEthBalanceFetching || readOnly}
+                variant="inline"
+                size="sm"
+                steps={[25, 50, 75]}
+                className="flex"
+              />
+            </div>
+          )}
+
+          <ErrorBoundary fallback={<div>Error in TokenSelector</div>}>
+            <TokenSelector
+              selectedToken={selectedToken}
+              tokens={tokens}
+              onSelect={onSelect}
+              isEthBalanceFetching={isEthBalanceFetching}
+              className="rounded-md relative z-30"
+            />
+          </ErrorBoundary>
+        </div>
       </div>
+
       <div className="flex justify-between items-center">
         {readOnly || isLoading ? (
           // Display formatted number when readonly or loading
@@ -155,16 +174,6 @@ export const SwapPanel: React.FC<SwapPanelProps> = ({
 
       {/* USD Value Display */}
       <UsdValueDisplay ethPrice={ethPrice} amount={amount} selectedToken={selectedToken} />
-
-      {showPercentageSlider && selectedToken.balance && selectedToken.balance > 0n ? (
-        <div className="mt-2 pt-2 border-t border-terminal-black dark:border-terminal-white/20">
-          <PercentageSlider
-            value={percentage}
-            onChange={handlePercentageChange}
-            disabled={isEthBalanceFetching || readOnly}
-          />
-        </div>
-      ) : null}
     </div>
   );
 };

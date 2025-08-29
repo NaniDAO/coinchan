@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PercentageSlider } from "@/components/ui/percentage-slider";
+import { PercentageBlobs } from "@/components/ui/percentage-blobs";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { ZAMMLaunchAbi, ZAMMLaunchAddress } from "@/constants/ZAMMLaunch";
@@ -508,7 +508,7 @@ export const BuySellCookbookCoin = ({
             </div>
             {usdValue && amount && <span className="text-xs text-muted-foreground">≈ ${usdValue} USD</span>}
             {ethBalance && ethBalance.value > 0n && (
-              <PercentageSlider value={percentage} onChange={handlePercentageChange} disabled={!isConnected} />
+              <PercentageBlobs value={percentage} onChange={handlePercentageChange} disabled={!isConnected} />
             )}
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">
@@ -552,7 +552,7 @@ export const BuySellCookbookCoin = ({
               </Button>
             </div>
             {coinBalance !== undefined && coinBalance > 0n && (
-              <PercentageSlider value={percentage} onChange={handlePercentageChange} disabled={!isConnected} />
+              <PercentageBlobs value={percentage} onChange={handlePercentageChange} disabled={!isConnected} />
             )}
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">

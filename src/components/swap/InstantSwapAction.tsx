@@ -473,18 +473,7 @@ export const InstantSwapAction = ({ lockedTokens, hidePriceChart = false }: Prop
         />
 
         {!lockedTokens && (
-          <div
-            className={cn(
-              "absolute left-1/2 -translate-x-1/2 z-10",
-              !!(
-                sellToken.balance &&
-                (sellToken.balance as bigint) > 0n &&
-                (lastEditedField === "sell" || isExternalSwap)
-              )
-                ? "top-[63%]"
-                : "top-[50%]",
-            )}
-          >
+          <div className={cn("absolute left-1/2 -translate-x-1/2 top-[50%] z-10")}>
             <FlipActionButton onClick={handleFlipTokens} />
           </div>
         )}
