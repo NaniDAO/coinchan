@@ -842,6 +842,7 @@
     "dust_refund_note_v3": "Wallet previews may show dust refunds in ETH/ENS - this is normal"
   },
   "errors": {
+    "unexpected": "Unexpected error occurred",
     "wallet_connection": "Error connecting wallet",
     "wallet_connection_refresh": "Wallet connection issue. Refreshing page...",
     "wrong_network_title": "Wrong Network",
@@ -853,7 +854,7 @@
     "invalid_address": "Invalid address",
     "invalid_amount": "Invalid amount",
     "rejected_transaction": "Transaction rejected",
-    "user_denied": "User denied transaction",
+    "user_denied": "User denied transaction.",
     "gas_estimation_failed": "Gas estimation failed",
     "contract_error": "Contract error",
     "price_impact_too_high": "Slippage too high",

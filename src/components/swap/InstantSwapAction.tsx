@@ -691,7 +691,7 @@ export const InstantSwapAction = ({
           message={writeError?.message ?? "Unknown write error occured"}
         />
       )}
-      {txError && <SwapError message={txError ?? "Unknown Tx error occured"} />}
+      {/*{txError && <SwapError message={txError ?? "Unknown Tx error occured"} />}*/}
 
       {/* Success */}
       {isSuccess && (
