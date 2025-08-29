@@ -11,7 +11,6 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PercentageSlider } from "@/components/ui/percentage-slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { handleWalletError } from "@/lib/errors";
 import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
@@ -38,6 +37,7 @@ import {
   withSlippage,
 } from "./lib/swap";
 import { nowSec, formatNumber } from "./lib/utils";
+import { PercentageBlobs } from "./components/ui/percentage-blobs";
 
 export const BuySell = ({
   tokenId,
@@ -435,7 +435,7 @@ export const BuySell = ({
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>Balance: {formatUnits(ethBalance.value, 18)} ETH</span>
                 </div>
-                <PercentageSlider value={buyPercentage} onChange={handleBuyPercentageChange} />
+                <PercentageBlobs value={buyPercentage} onChange={handleBuyPercentageChange} />
               </div>
             ) : null}
 
