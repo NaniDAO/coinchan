@@ -9,21 +9,8 @@ import { TokenImage } from "./TokenImage";
 
 // shadcn/ui
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 export const TokenSelector = memo(
   ({
@@ -83,17 +70,9 @@ export const TokenSelector = memo(
           balance: formatBalance(t),
           key: getCoinKey(t),
           isSelected:
-            t.id === selectedToken?.id &&
-            t.poolId === selectedToken?.poolId &&
-            t?.token1 === selectedToken?.token1,
+            t.id === selectedToken?.id && t.poolId === selectedToken?.poolId && t?.token1 === selectedToken?.token1,
         })),
-      [
-        tokens,
-        selectedToken?.id,
-        selectedToken?.poolId,
-        selectedToken?.token1,
-        isEthBalanceFetching,
-      ],
+      [tokens, selectedToken?.id, selectedToken?.poolId, selectedToken?.token1, isEthBalanceFetching],
     );
 
     const filtered = useMemo(() => {
@@ -104,9 +83,7 @@ export const TokenSelector = memo(
         const name = token.name?.toLowerCase() ?? "";
         const id = token.id?.toString() ?? "eth";
         const queryIsNumber = !isNaN(Number(q));
-        const idMatches = queryIsNumber
-          ? id.startsWith(q)
-          : id.toLowerCase().includes(q);
+        const idMatches = queryIsNumber ? id.startsWith(q) : id.toLowerCase().includes(q);
         return symbol.includes(q) || name.includes(q) || idMatches;
       });
     }, [items, query]);
@@ -125,12 +102,8 @@ export const TokenSelector = memo(
             >
               <span className="flex items-center gap-2">
                 <TokenImage token={selectedToken} />
-                <span className="text-sm font-medium leading-none">
-                  {selectedToken.symbol}
-                </span>
-                <span className="ml-2 text-[11px] text-muted-foreground">
-                  {formatBalance(selectedToken)}
-                </span>
+                <span className="text-sm font-medium leading-none">{selectedToken.symbol}</span>
+                <span className="ml-2 text-[11px] text-muted-foreground">{formatBalance(selectedToken)}</span>
               </span>
               <ChevronDownIcon className="ml-auto h-4 w-4" />
             </Button>
@@ -176,25 +149,18 @@ export const TokenSelector = memo(
                       key={key}
                       value={`${token.symbol} ${token.name} ${token.id ?? "eth"}`}
                       onSelect={() => handleSelect(token)}
-                      className={cn(
-                        "px-3 py-2 rounded-lg mx-2",
-                        isSelected ? "bg-muted" : "hover:bg-accent",
-                      )}
+                      className={cn("px-3 py-2 rounded-lg mx-2", isSelected ? "bg-muted" : "hover:bg-accent")}
                     >
                       <div className="flex w-full items-center justify-between gap-3">
                         <div className="flex items-center gap-3">
                           <TokenImage token={token} />
                           <div className="flex flex-col">
                             <span className="font-medium">{token.symbol}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {token.name}
-                            </span>
+                            <span className="text-xs text-muted-foreground">{token.name}</span>
                           </div>
                         </div>
                         <div className="text-right min-w-[64px]">
-                          <div className="text-sm font-medium h-[18px] tabular-nums">
-                            {balance}
-                          </div>
+                          <div className="text-sm font-medium h-[18px] tabular-nums">{balance}</div>
                         </div>
                       </div>
                     </CommandItem>

@@ -20,12 +20,7 @@ export const SlippageSettings = ({
   className = "",
 }: SlippageSettingsProps) => {
   return (
-    <div
-      className={cn(
-        "mt-2 p-2 bg-background border border-border rounded-md shadow-sm space-y-2",
-        className,
-      )}
-    >
+    <div className={cn("mt-2 p-2 bg-background border border-border rounded-md shadow-sm space-y-2", className)}>
       <div className="flex gap-2 flex-wrap">
         {slippageOptions.map((option) => (
           <button

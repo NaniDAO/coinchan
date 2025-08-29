@@ -8,11 +8,7 @@ interface ActionButtonProps {
   className?: string;
 }
 
-export const FlipActionButton: React.FC<ActionButtonProps> = ({
-  onClick,
-  icon,
-  className,
-}) => {
+export const FlipActionButton: React.FC<ActionButtonProps> = ({ onClick, icon, className }) => {
   const [animating, setAnimating] = React.useState(false);
   const durationMs = 320; // tweak if you want
 

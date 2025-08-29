@@ -42,25 +42,17 @@ export const PoolInfoCard = ({
             </span>
           ) : (
             <>
-              Pool:{" "}
-              {formatNumber(parseFloat(formatEther(reserves.reserve0)), 5)} ETH
-              /{" "}
+              Pool: {formatNumber(parseFloat(formatEther(reserves.reserve0)), 5)} ETH /{" "}
               {formatNumber(
                 parseFloat(
                   formatUnits(
                     reserves.reserve1,
-                    isCustomPool
-                      ? sellToken.isCustomPool
-                        ? sellToken.decimals || 18
-                        : buyToken?.decimals || 18
-                      : 18,
+                    isCustomPool ? (sellToken.isCustomPool ? sellToken.decimals || 18 : buyToken?.decimals || 18) : 18,
                   ),
                 ),
                 3,
               )}{" "}
-              {coinId
-                ? tokens.find((t) => t.id === coinId)?.symbol || "Token"
-                : buyToken?.symbol}
+              {coinId ? tokens.find((t) => t.id === coinId)?.symbol || "Token" : buyToken?.symbol}
             </>
           )}
         </span>
@@ -69,13 +61,7 @@ export const PoolInfoCard = ({
         <span className="flex items-center gap-2">
           <span>Fee: {swapFee}</span>
           {priceImpact && (
-            <span
-              className={`font-medium ${
-                priceImpact.impactPercent > 0
-                  ? "text-green-600"
-                  : "text-red-600"
-              }`}
-            >
+            <span className={`font-medium ${priceImpact.impactPercent > 0 ? "text-green-600" : "text-red-600"}`}>
               {priceImpact.impactPercent > 0 ? "+" : ""}
               {formatDexscreenerStyle(priceImpact.impactPercent)}%
             </span>
@@ -87,18 +73,10 @@ export const PoolInfoCard = ({
       {ethPrice?.priceUSD && !isCoinToCoin && (
         <div className="opacity-70 space-y-1">
           <div>
-            Total Pool Value: $
-            {formatNumber(
-              parseFloat(formatEther(reserves.reserve0)) *
-                ethPrice.priceUSD *
-                2,
-              2,
-            )}{" "}
-            USD
+            Total Pool Value: ${formatNumber(parseFloat(formatEther(reserves.reserve0)) * ethPrice.priceUSD * 2, 2)} USD
           </div>
           <div>
-            1 ETH ≈ {formatNumber(reserves.reserve1 / reserves.reserve0, 6)}{" "}
-            {buyToken?.symbol}
+            1 ETH ≈ {formatNumber(reserves.reserve1 / reserves.reserve0, 6)} {buyToken?.symbol}
           </div>
         </div>
       )}
