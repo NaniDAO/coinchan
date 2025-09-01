@@ -29,10 +29,10 @@ const WlfiFarmTab = lazy(() =>
 );
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
-// WLFI Logo Component - using etherscan image
+// WLFI Logo Component - using local image
 const WLFILogo = ({ className = "h-4 w-4" }: { className?: string }) => (
   <img 
-    src="https://etherscan.io/token/images/worldlibertyfinancial_32.png"
+    src="/wlfi.png"
     alt="WLFI"
     className={className}
   />
