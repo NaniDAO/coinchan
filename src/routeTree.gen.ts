@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WlfiRouteImport } from './routes/wlfi'
 import { Route as UserRouteImport } from './routes/user'
 import { Route as SwapRouteImport } from './routes/swap'
 import { Route as SendRouteImport } from './routes/send'
@@ -28,6 +29,11 @@ import { Route as UUserIdRouteImport } from './routes/u.$userId'
 import { Route as FarmCreateRouteImport } from './routes/farm/create'
 import { Route as CCoinIdRouteImport } from './routes/c.$coinId'
 
+const WlfiRoute = WlfiRouteImport.update({
+  id: '/wlfi',
+  path: '/wlfi',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UserRoute = UserRouteImport.update({
   id: '/user',
   path: '/user',
@@ -134,6 +140,7 @@ export interface FileRoutesByFullPath {
   '/send': typeof SendRoute
   '/swap': typeof SwapRoute
   '/user': typeof UserRoute
+  '/wlfi': typeof WlfiRoute
   '/c/$coinId': typeof CCoinIdRoute
   '/farm/create': typeof FarmCreateRoute
   '/u/$userId': typeof UUserIdRoute
@@ -153,6 +160,7 @@ export interface FileRoutesByTo {
   '/send': typeof SendRoute
   '/swap': typeof SwapRoute
   '/user': typeof UserRoute
+  '/wlfi': typeof WlfiRoute
   '/c/$coinId': typeof CCoinIdRoute
   '/farm/create': typeof FarmCreateRoute
   '/u/$userId': typeof UUserIdRoute
@@ -174,6 +182,7 @@ export interface FileRoutesById {
   '/send': typeof SendRoute
   '/swap': typeof SwapRoute
   '/user': typeof UserRoute
+  '/wlfi': typeof WlfiRoute
   '/c/$coinId': typeof CCoinIdRoute
   '/farm/create': typeof FarmCreateRoute
   '/u/$userId': typeof UUserIdRoute
@@ -196,6 +205,7 @@ export interface FileRouteTypes {
     | '/send'
     | '/swap'
     | '/user'
+    | '/wlfi'
     | '/c/$coinId'
     | '/farm/create'
     | '/u/$userId'
@@ -215,6 +225,7 @@ export interface FileRouteTypes {
     | '/send'
     | '/swap'
     | '/user'
+    | '/wlfi'
     | '/c/$coinId'
     | '/farm/create'
     | '/u/$userId'
@@ -235,6 +246,7 @@ export interface FileRouteTypes {
     | '/send'
     | '/swap'
     | '/user'
+    | '/wlfi'
     | '/c/$coinId'
     | '/farm/create'
     | '/u/$userId'
@@ -256,12 +268,20 @@ export interface RootRouteChildren {
   SendRoute: typeof SendRoute
   SwapRoute: typeof SwapRoute
   UserRoute: typeof UserRoute
+  WlfiRoute: typeof WlfiRoute
   CCoinIdRoute: typeof CCoinIdRoute
   UUserIdRoute: typeof UUserIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/wlfi': {
+      id: '/wlfi'
+      path: '/wlfi'
+      fullPath: '/wlfi'
+      preLoaderRoute: typeof WlfiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/user': {
       id: '/user'
       path: '/user'
@@ -418,6 +438,7 @@ const rootRouteChildren: RootRouteChildren = {
   SendRoute: SendRoute,
   SwapRoute: SwapRoute,
   UserRoute: UserRoute,
+  WlfiRoute: WlfiRoute,
   CCoinIdRoute: CCoinIdRoute,
   UUserIdRoute: UUserIdRoute,
 }
