@@ -102,10 +102,15 @@ export const RemoveLiquidity = () => {
     const fetchLpBalance = async () => {
       // Special handling for custom pools like USDT-ETH which may have ID=0
       const isCustomPool = sellToken?.isCustomPool || buyToken?.isCustomPool;
+      
+      // Check for special tokens that need handling regardless of coinId
+      const isSpecialToken = sellToken?.symbol === "WLFI" || buyToken?.symbol === "WLFI" ||
+                             sellToken?.symbol === "ENS" || buyToken?.symbol === "ENS" ||
+                             sellToken?.symbol === "CULT" || buyToken?.symbol === "CULT";
 
-      // Don't early return for custom pools with ID=0
+      // Don't early return for custom pools with ID=0 or special tokens
       if (!address || !publicClient) return;
-      if (!isCustomPool && (!coinId || coinId === 0n)) return;
+      if (!isCustomPool && !isSpecialToken && (!coinId || coinId === 0n)) return;
 
       try {
         // Calculate the pool ID - different method for custom pools
@@ -130,16 +135,20 @@ export const RemoveLiquidity = () => {
           const customToken = sellToken?.isCustomPool ? sellToken : buyToken;
           poolId = customToken?.poolId || USDT_POOL_ID;
         } else {
+          // For regular pools, use the non-ETH token's ID
+          const tokenId = sellToken?.id === null ? buyToken?.id : sellToken?.id;
+          
           // Determine contract address based on coin ID
-          const isCookbook = isCookbookCoin(coinId);
+          const isCookbook = isCookbookCoin(tokenId ?? null);
           const contractAddress = isCookbook ? CookbookAddress : CoinsAddress;
 
-          // Regular pool ID calculation with correct contract address
-          poolId = computePoolId(coinId, buyToken?.swapFee ?? SWAP_FEE, contractAddress);
+          // Regular pool ID calculation with correct contract address - default to 0n if no tokenId
+          poolId = computePoolId(tokenId ?? 0n, buyToken?.swapFee ?? SWAP_FEE, contractAddress);
         }
 
         // Determine which ZAMM address to use for LP balance lookup
-        const isCookbook = isUsingCult || isUsingEns || isUsingWlfi ? true : isCustomPool ? false : isCookbookCoin(coinId);
+        const tokenIdForCheck = sellToken?.id === null ? buyToken?.id : sellToken?.id;
+        const isCookbook = isUsingCult || isUsingEns || isUsingWlfi ? true : isCustomPool ? false : isCookbookCoin(tokenIdForCheck ?? null);
         const targetZAMMAddress = isCookbook ? CookbookAddress : ZAMMAddress;
         const targetZAMMAbi = isCookbook ? CookbookAbi : ZAMMAbi;
 
@@ -167,6 +176,8 @@ export const RemoveLiquidity = () => {
     buyToken?.isCustomPool,
     sellToken?.poolId,
     buyToken?.poolId,
+    sellToken?.symbol,
+    buyToken?.symbol,
   ]);
 
   // Reset UI state when tokens change
@@ -230,12 +241,15 @@ export const RemoveLiquidity = () => {
         const customToken = sellToken?.isCustomPool ? sellToken : buyToken;
         poolId = customToken?.poolId || USDT_POOL_ID;
       } else {
+        // For regular pools, use the non-ETH token's ID
+        const tokenId = sellToken?.id === null ? buyToken?.id : sellToken?.id;
+        
         // Determine contract address based on coin ID
-        const isCookbook = isCookbookCoin(coinId);
+        const isCookbook = isCookbookCoin(tokenId ?? null);
         const contractAddress = isCookbook ? CookbookAddress : CoinsAddress;
 
-        // Regular pool ID calculation with correct contract address
-        poolId = computePoolId(coinId, buyToken?.swapFee ?? SWAP_FEE, contractAddress);
+        // Regular pool ID calculation with correct contract address - default to 0n if no tokenId
+        poolId = computePoolId(tokenId ?? 0n, buyToken?.swapFee ?? SWAP_FEE, contractAddress);
       }
 
       if (!publicClient) {

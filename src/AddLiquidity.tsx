@@ -40,6 +40,7 @@ import {
   ENS_POOL_KEY,
   WLFI_ADDRESS,
   WLFI_POOL_KEY,
+  WLFI_POOL_ID,
 } from "./lib/coins";
 import { useTokenSelection } from "./contexts/TokenSelectionContext";
 import {
@@ -120,6 +121,14 @@ export const AddLiquidity = () => {
     },
   );
 
+  // Determine helper contract info early for use in allowance hooks
+  // For add liquidity, we need to check the buyToken (non-ETH token) to determine if it's cookbook
+  const { isCookbook } = useMemo(() => {
+    // Use buyToken's id if available (since sellToken is ETH in add liquidity mode)
+    const tokenId = buyToken?.id ?? coinId;
+    return getHelperContractInfo(tokenId);
+  }, [coinId, buyToken?.id]);
+
   // Simple direct handling for CULT, ENS, WLFI and other custom pools
   const { actualPoolId, reserveSource } = useMemo(() => {
     if (sellToken.symbol === "CULT" || buyToken?.symbol === "CULT") {
@@ -137,10 +146,10 @@ export const AddLiquidity = () => {
       };
     }
 
-    // Direct WLFI handling
+    // Direct WLFI handling - use the constant WLFI_POOL_ID
     if (sellToken.symbol === "WLFI" || buyToken?.symbol === "WLFI") {
       return {
-        actualPoolId: sellToken.symbol === "WLFI" ? sellToken.poolId : buyToken?.poolId,
+        actualPoolId: WLFI_POOL_ID,
         reserveSource: "COOKBOOK" as const,
       };
     }
@@ -205,7 +214,7 @@ export const AddLiquidity = () => {
     [sellToken, buyToken],
   );
 
-  // [NEW: ERC20 detection] -----------------------------------------------
+  // ERC20 detection
   const isErc20Pool = useMemo(
     () => sellToken.source === "ERC20" || buyToken?.source === "ERC20",
     [sellToken.source, buyToken?.source],
@@ -217,22 +226,22 @@ export const AddLiquidity = () => {
     return undefined;
   }, [sellToken, buyToken]);
 
-  console.log("ERC20META:", erc20Meta);
-  // [NEW: ERC20 allowance hook (generic)] --------------------------------
+  // ERC20 allowance hook (generic)
   const {
     allowance: genericErc20Allowance,
     refetchAllowance: refetchGenericErc20Allowance,
     approveMax: approveGenericErc20Max,
   } = useErc20Allowance({
     token: erc20Meta?.token1 == undefined ? zeroAddress : erc20Meta.token1,
-    spender: ZAMMAddress, // spender is ZAMM for ERC-20 pools
+    spender: isErc20Pool && isCookbook && erc20Meta ? CookbookAddress : ZAMMAddress, // Use Cookbook for Cookbook pools, ZAMM otherwise
   });
 
   // Operator status (ERC6909 only)
+  // Use buyToken's id for operator status since that's the actual token we're adding liquidity for
   const { data: isOperator, refetch: refetchOperator } = useOperatorStatus({
     address,
     operator: ZAMMAddress, // will only be used for ERC6909 later
-    tokenId: coinId,
+    tokenId: buyToken?.id ?? coinId,
   });
 
   // USDT/CULT/ENS allowances (existing)
@@ -351,30 +360,38 @@ export const AddLiquidity = () => {
      - ERC20 pools => ZAMM + ZAMMHelper
      - Cookbook coins => Cookbook + ZAMMHelperV1
      - ERC6909 ZAMM => ZAMM + ZAMMHelper
+     - WLFI/ENS/CULT => Cookbook + ZAMMHelperV1 (they use Cookbook)
   */
-  const { isCookbook } = useMemo(() => getHelperContractInfo(coinId), [coinId]);
 
-  const targetAMMContract = isErc20Pool
+  // Check if we're dealing with special tokens that use Cookbook
+  const isUsingCult = sellToken.symbol === "CULT" || buyToken?.symbol === "CULT";
+  const isUsingEns = sellToken.symbol === "ENS" || buyToken?.symbol === "ENS";
+  const isUsingWlfi = sellToken.symbol === "WLFI" || buyToken?.symbol === "WLFI";
+  
+  // All special tokens (CULT, ENS, WLFI) use Cookbook
+  const usesCookbook = isUsingCult || isUsingEns || isUsingWlfi || isCookbook;
+
+  const targetAMMContract = isErc20Pool && !isUsingWlfi
     ? ZAMMAddress
-    : isCookbook
+    : usesCookbook
       ? CookbookAddress
       : ZAMMAddress;
 
-  const targetAMMAbi = isErc20Pool
+  const targetAMMAbi = isErc20Pool && !isUsingWlfi
     ? ZAMMAbi
-    : isCookbook
+    : usesCookbook
       ? CookbookAbi
       : ZAMMAbi;
 
-  const helperAddress = isErc20Pool
+  const helperAddress = isErc20Pool && !isUsingWlfi
     ? ZAMMHelperAddress
-    : isCookbook
+    : usesCookbook
       ? ZAMMHelperV1Address
       : ZAMMHelperAddress;
 
-  const helperAbi = isErc20Pool
+  const helperAbi = isErc20Pool && !isUsingWlfi
     ? ZAMMHelperAbi
-    : isCookbook
+    : usesCookbook
       ? ZAMMHelperV1Abi
       : ZAMMHelperAbi;
 
@@ -382,11 +399,6 @@ export const AddLiquidity = () => {
   const syncFromSell = useCallback(
     async (val: string) => {
       setSellAmt(val);
-      console.log("syncFromSell", {
-        val,
-        canSwap,
-        reserves,
-      });
       if (!canSwap || !reserves) return setBuyAmt("");
 
       try {
@@ -447,11 +459,6 @@ export const AddLiquidity = () => {
   const syncFromBuy = useCallback(
     async (val: string) => {
       setBuyAmt(val);
-      console.log("syncFromBuy", {
-        val,
-        canSwap,
-        reserves,
-      });
       if (!canSwap || !reserves) return setSellAmt("");
 
       try {
@@ -519,7 +526,7 @@ export const AddLiquidity = () => {
     [txError],
   );
 
-  const { isCookbook: _ignore } = getHelperContractInfo(coinId); // keep memoization parity
+  // isCookbook already determined earlier for allowance hooks
 
   const executeAddLiquidity = async () => {
     if (!canSwap || !reserves || !address || !publicClient) {
@@ -545,9 +552,6 @@ export const AddLiquidity = () => {
 
       // Check if we're dealing with special tokens
       const isUsdtPool = sellToken.symbol === "USDT" || buyToken?.symbol === "USDT";
-      const isUsingCult = sellToken.symbol === "CULT" || buyToken?.symbol === "CULT";
-      const isUsingEns = sellToken.symbol === "ENS" || buyToken?.symbol === "ENS";
-      const isUsingWlfi = sellToken.symbol === "WLFI" || buyToken?.symbol === "WLFI";
 
       // Enhanced detection of USDT usage for add liquidity
       // We need to make sure we detect all cases where USDT is being used
@@ -613,7 +617,7 @@ export const AddLiquidity = () => {
         const customToken = sellToken.isCustomPool ? sellToken : buyToken!;
         poolKey = customToken.poolKey ?? USDT_POOL_KEY;
       } else if (isErc20Pool) {
-        // [NEW: ERC20 pool key]
+        // ERC20 pool key
         const meta = erc20Meta!;
         poolKey =
           meta.poolKey ??
@@ -625,13 +629,17 @@ export const AddLiquidity = () => {
             swapFee: meta.swapFee ?? SWAP_FEE,
           } as ZAMMPoolKey);
       } else if (isCookbook) {
+        // For cookbook coins, use buyToken's id (since sellToken is ETH)
+        const tokenId = buyToken?.id ?? coinId;
         poolKey = computePoolKey(
-          coinId,
+          tokenId,
           SWAP_FEE,
           CookbookAddress,
         ) as CookbookPoolKey;
       } else {
-        poolKey = computePoolKey(coinId) as ZAMMPoolKey;
+        // For regular ZAMM coins, use buyToken's id (since sellToken is ETH)
+        const tokenId = buyToken?.id ?? coinId;
+        poolKey = computePoolKey(tokenId) as ZAMMPoolKey;
       }
 
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
@@ -643,7 +651,7 @@ export const AddLiquidity = () => {
           ? erc20Meta?.decimals
           : isUsdtPool
             ? 6
-            : isUsingCult || isUsingEns
+            : isUsingCult || isUsingEns || isUsingWlfi
               ? 18
               : buyToken?.decimals) ?? 18;
 
@@ -803,8 +811,8 @@ export const AddLiquidity = () => {
         }
       }
 
-      // [NEW: Generic ERC20 approvals (e.g., WLF)]
-      if (isErc20Pool) {
+      // Generic ERC20 approvals
+      if (isErc20Pool && !isUsingWlfi) {
         const erc20Amount =
           sellToken.source === "ERC20"
             ? parseUnits(sellAmt, erc20Meta?.decimals ?? 18)
@@ -886,7 +894,9 @@ export const AddLiquidity = () => {
       // - ZAMM pool: Approve ZAMMAddress as operator on CoinsAddress
       // Only needed for ERC6909 coins, not for ERC20s like USDT/CULT/ENS/WLFI
       // Skip operator approval for cookbook coins (graduated zCurve coins)
-      if (!isUsdtPool && !isUsingCult && !isUsingEns && !isUsingWlfi && coinId && !isCookbook && isOperator === false) {
+      // Also skip for external ERC20 pools which use allowance instead
+      const tokenId = buyToken?.id ?? coinId;
+      if (!isUsdtPool && !isUsingCult && !isUsingEns && !isUsingWlfi && !isErc20Pool && tokenId && !isCookbook && isOperator === false) {
         try {
           setTxError(
             "Waiting for operator approval. Please confirm the transaction...",
@@ -921,39 +931,71 @@ export const AddLiquidity = () => {
 
       // ---------- Helper quote & addLiquidity ----------
       try {
-        const result = await publicClient.readContract({
-          address: helperAddress,
-          abi: helperAbi,
-          functionName: "calculateRequiredETH",
-          args: [poolKey as any, amount0, amount1],
-        });
+        // Special handling for WLFI, ENS, CULT, and all Cookbook coins - direct call without helper
+        // Cookbook coins don't need the helper contract
+        if (isUsingWlfi || isUsingEns || isUsingCult || (isCookbook && !isErc20Pool)) {
+          const actualAmount0Min = withSlippage(amount0, slippageBps);
+          const actualAmount1Min = withSlippage(amount1, slippageBps);
+          
+          // Determine which pool key to use
+          const specialPoolKey = isUsingWlfi ? WLFI_POOL_KEY : 
+                                isUsingEns ? ENS_POOL_KEY : 
+                                isUsingCult ? CULT_POOL_KEY : 
+                                poolKey; // Use the already computed poolKey for regular cookbook coins
 
-        const [ethAmount, calcAmount0, calcAmount1] = result as [
-          bigint,
-          bigint,
-          bigint,
-        ];
+          const hash = await writeContractAsync({
+            address: CookbookAddress,
+            abi: CookbookAbi,
+            functionName: "addLiquidity",
+            args: [
+              specialPoolKey as any,
+              amount0,
+              amount1,
+              actualAmount0Min,
+              actualAmount1Min,
+              address,
+              deadline,
+            ],
+            value: amount0, // ETH amount
+          });
 
-        const actualAmount0Min = withSlippage(calcAmount0, slippageBps);
-        const actualAmount1Min = withSlippage(calcAmount1, slippageBps);
+          setTxHash(hash);
+        } else {
+          // Standard path with helper calculation for other tokens
+          const result = await publicClient.readContract({
+            address: helperAddress,
+            abi: helperAbi,
+            functionName: "calculateRequiredETH",
+            args: [poolKey as any, amount0, amount1],
+          });
 
-        const hash = await writeContractAsync({
-          address: targetAMMContract,
-          abi: targetAMMAbi,
-          functionName: "addLiquidity",
-          args: [
-            poolKey as any,
-            calcAmount0,
-            calcAmount1,
-            actualAmount0Min,
-            actualAmount1Min,
-            address,
-            deadline,
-          ],
-          value: ethAmount,
-        });
+          const [ethAmount, calcAmount0, calcAmount1] = result as [
+            bigint,
+            bigint,
+            bigint,
+          ];
 
-        setTxHash(hash);
+          const actualAmount0Min = withSlippage(calcAmount0, slippageBps);
+          const actualAmount1Min = withSlippage(calcAmount1, slippageBps);
+
+          const hash = await writeContractAsync({
+            address: targetAMMContract,
+            abi: targetAMMAbi,
+            functionName: "addLiquidity",
+            args: [
+              poolKey as any,
+              calcAmount0,
+              calcAmount1,
+              actualAmount0Min,
+              actualAmount1Min,
+              address,
+              deadline,
+            ],
+            value: ethAmount,
+          });
+
+          setTxHash(hash);
+        }
       } catch (calcErr) {
         const errorMsg = handleWalletError(calcErr, {
           defaultMessage: t("errors.transaction_error"),
