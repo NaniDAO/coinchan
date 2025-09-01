@@ -193,13 +193,14 @@ export const AddLiquidity = () => {
     return undefined;
   }, [sellToken, buyToken]);
 
+  console.log("ERC20META:", erc20Meta);
   // [NEW: ERC20 allowance hook (generic)] --------------------------------
   const {
     allowance: genericErc20Allowance,
     refetchAllowance: refetchGenericErc20Allowance,
     approveMax: approveGenericErc20Max,
   } = useErc20Allowance({
-    token: erc20Meta?.token1 ?? zeroAddress, // token1 is the ERC-20 in your TokenMeta
+    token: erc20Meta?.token1 == undefined ? zeroAddress : erc20Meta.token1,
     spender: ZAMMAddress, // spender is ZAMM for ERC-20 pools
   });
 
