@@ -184,8 +184,6 @@ export const AddLiquidity = () => {
     chainId: mainnet.id,
   });
 
-  const [slippageBps, setSlippageBps] = useState<bigint>(SLIPPAGE_BPS);
-
   // Set 10% slippage for ENS and WLFI pools, default for others
   useEffect(() => {
     if (sellToken?.symbol === "ENS" || buyToken?.symbol === "ENS" || 
@@ -535,7 +533,6 @@ export const AddLiquidity = () => {
       }
 
       // Check if we're dealing with special tokens
-      let poolKey;
       const isUsdtPool = sellToken.symbol === "USDT" || buyToken?.symbol === "USDT";
       const isUsingCult = sellToken.symbol === "CULT" || buyToken?.symbol === "CULT";
       const isUsingEns = sellToken.symbol === "ENS" || buyToken?.symbol === "ENS";
