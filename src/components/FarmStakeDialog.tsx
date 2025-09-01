@@ -4,7 +4,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 // import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ZChefAddress } from "@/constants/zChef";
 import { formatImageURL } from "@/hooks/metadata";
 import { useAllCoins } from "@/hooks/metadata/use-all-coins";
 import type { IncentiveStream } from "@/hooks/use-incentive-streams";
@@ -13,19 +12,15 @@ import { useStreamValidation } from "@/hooks/use-stream-validation";
 import { useZapCalculations } from "@/hooks/use-zap-calculations";
 import { useZapDeposit } from "@/hooks/use-zap-deposit";
 import { useZChefActions, useZChefUserBalance, useZChefPool } from "@/hooks/use-zchef-contract";
-import { ETH_TOKEN, ENS_POOL_ID, type TokenMeta } from "@/lib/coins";
+import { ETH_TOKEN, ENS_POOL_ID, WLFI_POOL_ID, type TokenMeta } from "@/lib/coins";
 import { isUserRejectionError } from "@/lib/errors";
 import { SINGLE_ETH_SLIPPAGE_BPS } from "@/lib/swap";
 import { cn, formatBalance } from "@/lib/utils";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
-import { useAccount, usePublicClient, useWriteContract } from "wagmi";
-import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
-import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
-import { mainnet } from "viem/chains";
+import { usePublicClient } from "wagmi";
 import { APRDisplay } from "./farm/APRDisplay";
-import { useLpOperatorStatus } from "@/hooks/use-lp-operator-status";
 import { ENSLogo } from "./icons/ENSLogo";
 
 interface FarmStakeDialogProps {
@@ -39,9 +34,7 @@ type StakeMode = "lp" | "eth";
 
 export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmStakeDialogProps) {
   const { t } = useTranslation();
-  const { address } = useAccount();
   const publicClient = usePublicClient();
-  const { writeContractAsync } = useWriteContract();
   const { tokens } = useAllCoins();
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
@@ -50,7 +43,6 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
   const [slippageBps] = useState(SINGLE_ETH_SLIPPAGE_BPS);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [txStatus, setTxStatus] = useState<"idle" | "pending" | "confirming" | "success" | "error">("idle");
-  const [currentOperation, setCurrentOperation] = useState<"approval" | "staking" | null>(null);
   const [txError, setTxError] = useState<string | null>(null);
 
   const { deposit } = useZChefActions();
@@ -76,11 +68,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
   // Get ETH token data
   const ethToken = tokens.find((t) => t.id === null) || ETH_TOKEN;
 
-  const { data: isOperatorApproved } = useLpOperatorStatus({
-    owner: address as `0x${string}`,
-    operator: ZChefAddress, // Always approve for zChef contract
-    source: lpToken.source ?? "ZAMM",
-  });
+  // Operator approval not needed for staking LP tokens
 
   const maxAmount =
     stakeMode === "lp"
@@ -148,7 +136,6 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
       setTxHash(null);
       setTxError(null);
       setTxStatus("idle");
-      setCurrentOperation(null);
     }
   }, [open]);
 
@@ -167,39 +154,8 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
       setTxStatus("pending");
       setTxError(null);
 
-      // Check if approval is needed for LP tokens (only for LP mode)
-      if (stakeMode === "lp" && !isOperatorApproved) {
-        setCurrentOperation("approval");
-
-        // Determine which contract to call based on LP token source
-        const isZAMM = lpToken.source === "ZAMM";
-        const contractAddress = isZAMM ? ZAMMAddress : CookbookAddress;
-        const contractAbi = isZAMM ? ZAMMAbi : CookbookAbi;
-
-        const approvalHash = await writeContractAsync({
-          address: contractAddress,
-          abi: contractAbi,
-          functionName: "setOperator",
-          args: [ZChefAddress, true],
-          chainId: mainnet.id,
-        });
-
-        setTxHash(approvalHash);
-        setTxStatus("confirming");
-
-        if (publicClient) {
-          await publicClient.waitForTransactionReceipt({
-            hash: approvalHash,
-          });
-        }
-
-        // Reset for next step
-        setTxStatus("pending");
-        setTxHash(null);
-      }
-
-      // Now proceed with staking
-      setCurrentOperation("staking");
+      // No operator approval needed for staking LP tokens
+      // Proceed directly with staking
       let hash: string;
 
       if (stakeMode === "lp") {
@@ -239,7 +195,6 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
           setOpen(false);
           setTxStatus("idle");
           setTxHash(null);
-          setCurrentOperation(null);
           onSuccess?.();
         }, 3000); // Increased from 2000 to 3000ms
       }
@@ -247,7 +202,6 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
       if (isUserRejectionError(error)) {
         // User rejected - silently reset state
         setTxStatus("idle");
-        setCurrentOperation(null);
       } else {
         console.error("Stake failed:", error);
         setTxStatus("error");
@@ -255,7 +209,6 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
         setTimeout(() => {
           setTxStatus("idle");
           setTxError(null);
-          setCurrentOperation(null);
         }, 5000);
       }
     }
@@ -289,6 +242,15 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                     <ENSLogo className="w-8 h-8" />
                     <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-primary/30 to-transparent opacity-50 blur-sm"></div>
                   </div>
+                ) : BigInt(stream.lpId) === WLFI_POOL_ID ? (
+                  <div className="relative">
+                    <img
+                      src="/wlfi.png"
+                      alt="WLFI"
+                      className="w-8 h-8 rounded-full border-2 border-primary/40"
+                    />
+                    <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-primary/30 to-transparent opacity-50 blur-sm"></div>
+                  </div>
                 ) : lpToken?.imageUrl ? (
                   <div className="relative">
                     <img
@@ -303,6 +265,8 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                   <h3 className="font-mono font-bold text-lg text-primary break-all">
                     {BigInt(stream.lpId) === ENS_POOL_ID
                       ? "ENS"
+                      : BigInt(stream.lpId) === WLFI_POOL_ID
+                      ? "WLFI"
                       : lpToken?.symbol ||
                         (() => {
                           const lpId = stream.lpId?.toString();
@@ -342,12 +306,12 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
               {lpToken && lpToken.reserve1 ? (
                 <div className="bg-background/30 border border-primary/20 rounded p-3">
                   <p className="text-muted-foreground font-mono text-xs">
-                    {BigInt(stream.lpId) === ENS_POOL_ID ? "ENS" : lpToken.symbol} {t("common.reserves")}
+                    {BigInt(stream.lpId) === ENS_POOL_ID ? "ENS" : BigInt(stream.lpId) === WLFI_POOL_ID ? "WLFI" : lpToken.symbol} {t("common.reserves")}
                   </p>
                   <p className="font-mono font-bold text-primary">
                     {formatBalance(
                       formatUnits(lpToken.reserve1, lpToken.decimals || 18),
-                      BigInt(stream.lpId) === ENS_POOL_ID ? "ENS" : lpToken.symbol,
+                      BigInt(stream.lpId) === ENS_POOL_ID ? "ENS" : BigInt(stream.lpId) === WLFI_POOL_ID ? "WLFI" : lpToken.symbol,
                     )}
                   </p>
                 </div>
@@ -508,20 +472,14 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
               className="w-full font-mono font-bold tracking-wide text-lg py-4 hover:scale-105 transition-all duration-200 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary shadow-lg disabled:opacity-50 !text-background dark:!text-background hover:!text-background dark:hover:!text-background"
             >
               {txStatus === "pending" || txStatus === "confirming"
-                ? currentOperation === "approval"
-                  ? txStatus === "pending"
-                    ? `[${t("common.approving")}...]`
-                    : `[${t("common.confirming_approval")}]`
-                  : txStatus === "pending"
-                    ? `[${t("common.submitting")}]`
-                    : `[${t("common.confirming")}]`
+                ? txStatus === "pending"
+                  ? `[${t("common.submitting")}]`
+                  : `[${t("common.confirming")}]`
                 : (stakeMode === "lp" && deposit.isPending) || (stakeMode === "eth" && zapDeposit.isPending)
                   ? `[${t("common.staking")}...]`
                   : stakeMode === "eth"
                     ? `[${t("common.zap_and_stake")}]`
-                    : stakeMode === "lp" && !isOperatorApproved
-                      ? `[${t("common.approve_and_stake")}]`
-                      : `[${t("common.stake")}]`}
+                    : `[${t("common.stake")}]`}
             </Button>
           </div>
 
@@ -591,11 +549,9 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                 {txStatus === "success" && (
                   <div className="text-center">
                     <p className="text-sm text-green-400 font-mono">
-                      {currentOperation === "approval"
-                        ? t("common.approval_successful")
-                        : stakeMode === "eth"
-                          ? t("common.eth_zapped_staked_success")
-                          : t("common.lp_tokens_staked_success")}
+                      {stakeMode === "eth"
+                        ? t("common.eth_zapped_staked_success")
+                        : t("common.lp_tokens_staked_success")}
                     </p>
                   </div>
                 )}

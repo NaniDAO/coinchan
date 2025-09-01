@@ -2,7 +2,7 @@ import { useAllCoins } from "@/hooks/metadata/use-all-coins";
 import { useActiveIncentiveStreams } from "@/hooks/use-incentive-streams";
 import { useFarmsSummary } from "@/hooks/use-farms-summary";
 import { useReserves } from "@/hooks/use-reserves";
-import { ETH_TOKEN, ENS_POOL_ID, type TokenMeta } from "@/lib/coins";
+import { ETH_TOKEN, ENS_POOL_ID, WLFI_POOL_ID, WLFI_TOKEN, type TokenMeta } from "@/lib/coins";
 import { cn, formatBalance } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 import { formatEther } from "viem";
@@ -23,9 +23,14 @@ export const BrowseFarms = () => {
   const { data: activeStreams, isLoading: isLoadingStreams } = useActiveIncentiveStreams();
   const [showHiddenFarms, setShowHiddenFarms] = useState(false);
 
-  // Get fresh reserves for ENS pool
+  // Get fresh reserves for ENS and WLFI pools
   const { data: ensReserves } = useReserves({
     poolId: ENS_POOL_ID,
+    source: "COOKBOOK",
+  });
+
+  const { data: wlfiReserves } = useReserves({
+    poolId: WLFI_POOL_ID,
     source: "COOKBOOK",
   });
 
@@ -148,7 +153,7 @@ export const BrowseFarms = () => {
       ) : sortedStreams && sortedStreams.length > 0 ? (
         <div className="farm-cards-container grid gap-4 sm:gap-5 grid-cols-1 lg:grid-cols-2">
           {sortedStreams?.map((stream) => {
-            // Special handling for ENS farms - always use ENS token with correct poolId and fresh reserves
+            // Special handling for ENS and WLFI farms - always use correct token with poolId and fresh reserves
             const lpToken =
               BigInt(stream.lpId) === ENS_POOL_ID
                 ? ({
@@ -158,6 +163,15 @@ export const BrowseFarms = () => {
                     reserve0: ensReserves?.reserve0 || 0n,
                     reserve1: ensReserves?.reserve1 || 0n,
                     liquidity: ensReserves?.reserve0 || 0n,
+                  } as TokenMeta)
+                : BigInt(stream.lpId) === WLFI_POOL_ID
+                ? ({
+                    ...WLFI_TOKEN,
+                    poolId: WLFI_POOL_ID,
+                    source: "COOKBOOK" as const,
+                    reserve0: wlfiReserves?.reserve0 || 0n,
+                    reserve1: wlfiReserves?.reserve1 || 0n,
+                    liquidity: wlfiReserves?.reserve0 || 0n,
                   } as TokenMeta)
                 : tokens.find((t) => {
                     // Direct pool ID match
