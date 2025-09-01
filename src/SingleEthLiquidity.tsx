@@ -7,6 +7,7 @@ import { useAccount, useChainId, usePublicClient, useWaitForTransactionReceipt, 
 import { NetworkError } from "./components/NetworkError";
 import { SlippageSettings } from "./components/SlippageSettings";
 import { SwapPanel } from "./components/SwapPanel";
+import { WlfiSwapPanel } from "./components/WlfiSwapPanel";
 import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
 import { ZAMMAbi, ZAMMAddress } from "./constants/ZAAM";
 import { ZAMMSingleLiqETHAbi, ZAMMSingleLiqETHAddress } from "./constants/ZAMMSingleLiqETH";
@@ -17,7 +18,7 @@ import { useTokenSelection } from "./contexts/TokenSelectionContext";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { useReserves } from "./hooks/use-reserves";
 import { determineReserveSource, isCookbookCoin } from "./lib/coin-utils";
-import { ETH_TOKEN, type TokenMeta, USDT_POOL_KEY, CULT_POOL_KEY, CULT_POOL_ID } from "./lib/coins";
+import { ETH_TOKEN, type TokenMeta, USDT_POOL_KEY, CULT_POOL_KEY, CULT_POOL_ID, WLFI_ADDRESS } from "./lib/coins";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import {
   DEADLINE_SEC,
@@ -69,6 +70,15 @@ export const SingleEthLiquidity = () => {
     isCustomPool,
     isCoinToCoin,
   });
+
+  // Check if we're in WLFI context
+  const isWLFIPool = useMemo(
+    () =>
+      sellToken?.symbol === "WLFI" ||
+      buyToken?.symbol === "WLFI" ||
+      (buyToken?.token1 === WLFI_ADDRESS),
+    [sellToken, buyToken],
+  );
 
   // Determine source for reserves based on coin type using shared utility
   const reserveSource = determineReserveSource(coinId, isCustomPool);
@@ -136,9 +146,9 @@ export const SingleEthLiquidity = () => {
     setSellAmt("");
     setBuyAmt("");
 
-    // Update slippage for CULT and ENS tokens to 10%
-    if (buyToken?.symbol === "CULT" || buyToken?.symbol === "ENS") {
-      setSingleEthSlippageBps(1000n); // 10% for CULT and ENS
+    // Update slippage for CULT, ENS, and WLFI tokens to 10%
+    if (buyToken?.symbol === "CULT" || buyToken?.symbol === "ENS" || buyToken?.symbol === "WLFI") {
+      setSingleEthSlippageBps(1000n); // 10% for CULT, ENS, and WLFI
     } else {
       setSingleEthSlippageBps(SINGLE_ETH_SLIPPAGE_BPS); // Default 5% for other tokens
     }
@@ -568,49 +578,95 @@ export const SingleEthLiquidity = () => {
     <div>
       {/* SELL + FLIP + BUY (Provide ETH + Target Token) container */}
       <div className="relative flex flex-col">
-        <SwapPanel
-          title={t("common.provide_eth")}
-          selectedToken={{
-            ...ETH_TOKEN,
-            balance: sellToken.balance,
-            id: null,
-            decimals: 18,
-          }}
-          tokens={[
-            {
+        {isWLFIPool ? (
+          <WlfiSwapPanel
+            title={t("common.provide_eth")}
+            selectedToken={{
               ...ETH_TOKEN,
               balance: sellToken.balance,
               id: null,
               decimals: 18,
-            },
-          ]}
-          onSelect={() => {}}
-          isEthBalanceFetching={isEthBalanceFetching}
-          amount={sellAmt}
-          onAmountChange={syncFromSell}
-          showMaxButton={!!(sellToken.balance && sellToken.balance > 0n)}
-          onMax={() => {
-            // leave a bit for gas
-            const ethAmount = ((sellToken.balance as bigint) * 99n) / 100n;
-            syncFromSell(formatEther(ethAmount));
-          }}
-          className="rounded-t-2xl pb-4"
-        />
+            }}
+            tokens={[
+              {
+                ...ETH_TOKEN,
+                balance: sellToken.balance,
+                id: null,
+                decimals: 18,
+              },
+            ]}
+            onSelect={() => {}}
+            isEthBalanceFetching={isEthBalanceFetching}
+            amount={sellAmt}
+            onAmountChange={syncFromSell}
+            showMaxButton={!!(sellToken.balance && sellToken.balance > 0n)}
+            onMax={() => {
+              // leave a bit for gas
+              const ethAmount = ((sellToken.balance as bigint) * 99n) / 100n;
+              syncFromSell(formatEther(ethAmount));
+            }}
+            className="mb-2"
+          />
+        ) : (
+          <SwapPanel
+            title={t("common.provide_eth")}
+            selectedToken={{
+              ...ETH_TOKEN,
+              balance: sellToken.balance,
+              id: null,
+              decimals: 18,
+            }}
+            tokens={[
+              {
+                ...ETH_TOKEN,
+                balance: sellToken.balance,
+                id: null,
+                decimals: 18,
+              },
+            ]}
+            onSelect={() => {}}
+            isEthBalanceFetching={isEthBalanceFetching}
+            amount={sellAmt}
+            onAmountChange={syncFromSell}
+            showMaxButton={!!(sellToken.balance && sellToken.balance > 0n)}
+            onMax={() => {
+              // leave a bit for gas
+              const ethAmount = ((sellToken.balance as bigint) * 99n) / 100n;
+              syncFromSell(formatEther(ethAmount));
+            }}
+            className="rounded-t-2xl pb-4"
+          />
+        )}
 
         {/* ALL BUY/RECEIVE panels */}
         {buyToken && (
-          <SwapPanel
-            title={t("common.target_token", { token: buyToken.symbol })}
-            selectedToken={buyToken}
-            tokens={memoizedNonEthTokens}
-            onSelect={handleBuyTokenSelect}
-            isEthBalanceFetching={isEthBalanceFetching}
-            amount={singleETHEstimatedCoin || "0"}
-            onAmountChange={() => {}}
-            readOnly={true}
-            previewLabel={t("common.estimated")}
-            className="mt-2 rounded-b-2xl pt-3 shadow-[0_0_15px_rgba(0,204,255,0.07)]"
-          />
+          isWLFIPool ? (
+            <WlfiSwapPanel
+              title={t("common.target_token", { token: buyToken.symbol })}
+              selectedToken={buyToken}
+              tokens={memoizedNonEthTokens}
+              onSelect={handleBuyTokenSelect}
+              isEthBalanceFetching={isEthBalanceFetching}
+              amount={singleETHEstimatedCoin || "0"}
+              onAmountChange={() => {}}
+              readOnly={true}
+              previewLabel={t("common.estimated")}
+              className="mt-2"
+            />
+          ) : (
+            <SwapPanel
+              title={t("common.target_token", { token: buyToken.symbol })}
+              selectedToken={buyToken}
+              tokens={memoizedNonEthTokens}
+              onSelect={handleBuyTokenSelect}
+              isEthBalanceFetching={isEthBalanceFetching}
+              amount={singleETHEstimatedCoin || "0"}
+              onAmountChange={() => {}}
+              readOnly={true}
+              previewLabel={t("common.estimated")}
+              className="mt-2 rounded-b-2xl pt-3 shadow-[0_0_15px_rgba(0,204,255,0.07)]"
+            />
+          )
         )}
       </div>
 
@@ -660,7 +716,11 @@ export const SingleEthLiquidity = () => {
           parseFloat(sellAmt) === 0 ||
           (sellToken.balance !== undefined && parseEther(sellAmt || "0") > sellToken.balance)
         }
-        className={`mt-2 w-full button text-base px-8 py-4 bg-primary text-primary-foreground font-bold rounded-lg transform transition-all duration-200
+        className={`mt-2 w-full button text-base px-8 py-4 font-bold rounded-lg transform transition-all duration-200
+          ${isWLFIPool 
+            ? "bg-gradient-to-r from-amber-500 to-amber-600 dark:from-yellow-500 dark:to-yellow-600 hover:from-amber-600 hover:to-amber-700 dark:hover:from-yellow-600 dark:hover:to-yellow-700 text-white dark:text-black shadow-lg shadow-amber-500/30 dark:shadow-yellow-500/30"
+            : "bg-primary text-primary-foreground"
+          }
           ${
             !isConnected ||
             isPending ||

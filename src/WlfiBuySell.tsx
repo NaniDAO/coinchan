@@ -5,7 +5,7 @@ import { mainnet } from "viem/chains";
 import { useAccount, usePublicClient, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 
 import { useETHPrice } from "./hooks/use-eth-price";
-import { SwapPanel } from "./components/SwapPanel";
+import { WlfiSwapPanel } from "./components/WlfiSwapPanel";
 import { SlippageSettings } from "./components/SlippageSettings";
 // Lazy load heavy components
 const PoolPriceChart = lazy(() => import("./components/PoolPriceChart"));
@@ -477,7 +477,7 @@ export const WlfiBuySell = () => {
               {/* Custom simplified swap for WLFI */}
               <div className="relative space-y-1">
                 {/* Sell panel */}
-                <SwapPanel
+                <WlfiSwapPanel
                   title={swapDirection === "buy" ? t("ens.you_pay") : t("ens.you_pay")}
                   selectedToken={swapDirection === "buy" ? ethToken : wlfiToken}
                   tokens={[]} // Empty array prevents token selection
@@ -508,7 +508,6 @@ export const WlfiBuySell = () => {
                     lastEditedField === "sell" &&
                     ((swapDirection === "buy" && ethBalance > 0n) || (swapDirection === "sell" && wlfiBalance > 0n))
                   }
-                  className="pb-2 bg-amber-50 dark:bg-black/50 border-amber-200 dark:border-yellow-500/20"
                 />
 
                 {/* Flip button */}
@@ -537,7 +536,7 @@ export const WlfiBuySell = () => {
                 </div>
 
                 {/* Buy panel */}
-                <SwapPanel
+                <WlfiSwapPanel
                   title={swapDirection === "buy" ? t("ens.you_receive") : t("ens.you_receive")}
                   selectedToken={swapDirection === "buy" ? wlfiToken : ethToken}
                   tokens={[]} // Empty array prevents token selection
@@ -550,7 +549,6 @@ export const WlfiBuySell = () => {
                     debouncedCalculateOutput(val, "buy");
                   }}
                   showPercentageSlider={lastEditedField === "buy"}
-                  className="pt-2 bg-amber-50 dark:bg-black/50 border-amber-200 dark:border-yellow-500/20"
                 />
 
                 {/* Swap button */}
@@ -667,13 +665,13 @@ export const WlfiBuySell = () => {
                 </div>
 
                 <div className="text-center">
-                  <p className="text-yellow-400/60">{t("coin.pool_eth")}</p>
-                  <p className="font-medium text-yellow-400">{formatEther(poolReserves.reserve0)} ETH</p>
+                  <p className="text-amber-600 dark:text-yellow-400/60">{t("coin.pool_eth")}</p>
+                  <p className="font-medium text-amber-700 dark:text-yellow-400">{formatEther(poolReserves.reserve0)} ETH</p>
                 </div>
 
                 <div className="text-center">
-                  <p className="text-yellow-400/60">Pool WLFI</p>
-                  <p className="font-medium text-yellow-400">{Number(formatUnits(poolReserves.reserve1, 18)).toFixed(0)} WLFI</p>
+                  <p className="text-amber-600 dark:text-yellow-400/60">Pool WLFI</p>
+                  <p className="font-medium text-amber-700 dark:text-yellow-400">{Number(formatUnits(poolReserves.reserve1, 18)).toFixed(0)} WLFI</p>
                 </div>
               </div>
             </div>
