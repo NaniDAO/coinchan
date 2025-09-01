@@ -18,7 +18,7 @@ import { useTokenSelection } from "./contexts/TokenSelectionContext";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { useReserves } from "./hooks/use-reserves";
 import { determineReserveSource, isCookbookCoin } from "./lib/coin-utils";
-import { ETH_TOKEN, type TokenMeta, USDT_POOL_KEY, CULT_POOL_KEY, CULT_POOL_ID, WLFI_ADDRESS } from "./lib/coins";
+import { ETH_TOKEN, type TokenMeta, USDT_POOL_KEY, CULT_POOL_KEY, CULT_POOL_ID, WLFI_ADDRESS, WLFI_POOL_KEY, WLFI_POOL_ID, ENS_POOL_KEY, ENS_POOL_ID } from "./lib/coins";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import {
   DEADLINE_SEC,
@@ -176,9 +176,18 @@ export const SingleEthLiquidity = () => {
       let poolId;
       const tokenId = buyToken.id || 0n;
       const isCookbook = isCookbookCoin(tokenId);
+      const isWLFI = buyToken.symbol === "WLFI";
+      const isENS = buyToken.symbol === "ENS";
+      const isCULT = buyToken.symbol === "CULT";
 
-      // Check if this is a custom pool like USDT
-      if (buyToken.isCustomPool && buyToken.poolId) {
+      // Check if this is a custom pool like USDT, WLFI, ENS, CULT
+      if (isWLFI) {
+        poolId = buyToken.poolId || WLFI_POOL_ID;
+      } else if (isENS) {
+        poolId = buyToken.poolId || ENS_POOL_ID;
+      } else if (isCULT) {
+        poolId = buyToken.poolId || CULT_POOL_ID;
+      } else if (buyToken.isCustomPool && buyToken.poolId) {
         poolId = buyToken.poolId;
       } else if (isCookbook) {
         // Cookbook coin pool ID - use CookbookAddress as token1
@@ -194,8 +203,8 @@ export const SingleEthLiquidity = () => {
       if (buyToken.id !== coinId || buyToken.isCustomPool || isCookbook) {
         try {
           // Use appropriate ZAMM address based on coin type
-          const targetAddress = isCookbook ? CookbookAddress : ZAMMAddress;
-          const targetAbi = isCookbook ? CookbookAbi : ZAMMAbi;
+          const targetAddress = (isCookbook || isWLFI || isENS || isCULT) ? CookbookAddress : ZAMMAddress;
+          const targetAbi = (isCookbook || isWLFI || isENS || isCULT) ? CookbookAbi : ZAMMAbi;
 
           const result = await publicClient?.readContract({
             address: targetAddress,
@@ -339,8 +348,11 @@ export const SingleEthLiquidity = () => {
       return;
     }
 
-    // For custom pools like USDT, allow buyToken.id to be 0n
-    if (!buyToken?.isCustomPool && !buyToken?.id) {
+    // For custom pools like USDT, WLFI, ENS, CULT, allow buyToken.id to be 0n
+    // Check if buyToken exists and has proper properties
+    const isSpecialToken = buyToken?.symbol === "WLFI" || buyToken?.symbol === "ENS" || 
+                          buyToken?.symbol === "CULT" || buyToken?.symbol === "USDT";
+    if (!buyToken || (!buyToken?.isCustomPool && !isSpecialToken && buyToken?.id === null)) {
       setTxError("Please select a valid target token");
       return;
     }
@@ -390,8 +402,16 @@ export const SingleEthLiquidity = () => {
       const isCustomPool = buyToken.isCustomPool;
       const isCookbook = isCookbookCoin(targetTokenId);
       const isCULT = buyToken.symbol === "CULT";
+      const isWLFI = buyToken.symbol === "WLFI";
+      const isENS = buyToken.symbol === "ENS";
 
-      if (isCULT) {
+      if (isWLFI) {
+        // Use the WLFI pool key for WLFI-ETH
+        targetPoolKey = buyToken.poolKey || WLFI_POOL_KEY;
+      } else if (isENS) {
+        // Use the ENS pool key for ENS-ETH
+        targetPoolKey = buyToken.poolKey || ENS_POOL_KEY;
+      } else if (isCULT) {
         // Use the CULT pool key for CULT-ETH (already in Cookbook format with feeOrHook)
         targetPoolKey = CULT_POOL_KEY;
       } else if (isCustomPool) {
@@ -411,12 +431,18 @@ export const SingleEthLiquidity = () => {
       let targetReserves = reserves;
 
       // If the target token is different from coinId, fetch the correct reserves
-      if (targetTokenId !== coinId || isCustomPool || isCookbook || isCULT) {
+      if (targetTokenId !== coinId || isCustomPool || isCookbook || isCULT || isWLFI || isENS) {
         try {
           // Get the pool ID for the target token
           let targetPoolId;
 
-          if (isCULT) {
+          if (isWLFI) {
+            // Use the WLFI pool ID
+            targetPoolId = buyToken.poolId || WLFI_POOL_ID;
+          } else if (isENS) {
+            // Use the ENS pool ID
+            targetPoolId = buyToken.poolId || ENS_POOL_ID;
+          } else if (isCULT) {
             // Use the CULT pool ID
             targetPoolId = CULT_POOL_ID;
           } else if (isCustomPool && buyToken.poolId) {
@@ -431,8 +457,8 @@ export const SingleEthLiquidity = () => {
           }
 
           // Use appropriate ZAMM address based on coin type
-          const targetAddress = isCookbook ? CookbookAddress : ZAMMAddress;
-          const targetAbi = isCookbook ? CookbookAbi : ZAMMAbi;
+          const targetAddress = (isCookbook || isWLFI || isENS || isCULT) ? CookbookAddress : ZAMMAddress;
+          const targetAbi = (isCookbook || isWLFI || isENS || isCULT) ? CookbookAbi : ZAMMAbi;
 
           const result = await publicClient?.readContract({
             address: targetAddress,
