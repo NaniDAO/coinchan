@@ -153,6 +153,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
         <div className="space-y-0 text-xs">
           <ErrorBoundary fallback={<LoadingLogo />}>
             <TrendingFarm
+              chefId="4753336069341144815480881976275515062700439895685858969634251725712618967096"
+              url="/wlfi"
+              imgUrl="/wlfi.png"
+              color="var(--diamond-gold)"
+            />
+          </ErrorBoundary>
+          <ErrorBoundary fallback={<LoadingLogo />}>
+            <TrendingFarm
+              chefId="12765013073856762050559588919702526147788652705749016564979941683606005588033"
+              url="/ens"
+              imgUrl="/ens.svg"
+              color="var(--diamond-blue)"
+            />
+          </ErrorBoundary>
+          <ErrorBoundary fallback={<LoadingLogo />}>
+            <TrendingFarm
               chefId="92731363809847772566954340054283838186995961250147317653314415206560064686365"
               url="/cult"
               imgUrl="/cult.jpg"
@@ -162,14 +178,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
             <TrendingFarm
               chefId="81451133389625739869445444104677551191235868870135185413665230560425375295858"
               url="/farm"
-            />
-          </ErrorBoundary>
-          <ErrorBoundary fallback={<LoadingLogo />}>
-            <TrendingFarm
-              chefId="9911777932062439318891919186675338016828468353880863972728110112967458165574"
-              url="/ens"
-              imgUrl="/ens.svg"
-              color="var(--diamond-blue)"
             />
           </ErrorBoundary>
         </div>
