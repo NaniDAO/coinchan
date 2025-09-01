@@ -828,7 +828,7 @@ export const AddLiquidity = () => {
         }
       }
 
-      // Generic ERC20 approvals
+      // Generic ERC20 approvals (skip for WLFI - it has its own dedicated section)
       if (isErc20Pool && !isUsingWlfi) {
         const erc20Amount =
           sellToken.source === "ERC20"
