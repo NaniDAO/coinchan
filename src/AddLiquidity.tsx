@@ -226,13 +226,27 @@ export const AddLiquidity = () => {
     return undefined;
   }, [sellToken, buyToken]);
 
+  // Determine the correct ERC20 token address for approval
+  // For WLFI, always use WLFI_ADDRESS regardless of token1
+  const erc20TokenForApproval = useMemo(() => {
+    if (!erc20Meta) return zeroAddress;
+    
+    // Special handling for WLFI pools
+    if (erc20Meta.symbol === "WLFI" || erc20Meta.token1 === WLFI_ADDRESS) {
+      return WLFI_ADDRESS;
+    }
+    
+    // For other ERC20 tokens, use token1
+    return erc20Meta.token1 ?? zeroAddress;
+  }, [erc20Meta]);
+
   // ERC20 allowance hook (generic)
   const {
     allowance: genericErc20Allowance,
     refetchAllowance: refetchGenericErc20Allowance,
     approveMax: approveGenericErc20Max,
   } = useErc20Allowance({
-    token: erc20Meta?.token1 == undefined ? zeroAddress : erc20Meta.token1,
+    token: erc20TokenForApproval,
     spender: isErc20Pool && isCookbook && erc20Meta ? CookbookAddress : ZAMMAddress, // Use Cookbook for Cookbook pools, ZAMM otherwise
   });
 
@@ -366,7 +380,10 @@ export const AddLiquidity = () => {
   // Check if we're dealing with special tokens that use Cookbook
   const isUsingCult = sellToken.symbol === "CULT" || buyToken?.symbol === "CULT";
   const isUsingEns = sellToken.symbol === "ENS" || buyToken?.symbol === "ENS";
-  const isUsingWlfi = sellToken.symbol === "WLFI" || buyToken?.symbol === "WLFI";
+  // Enhanced WLFI detection - check symbol, token1, or poolId
+  const isUsingWlfi = sellToken.symbol === "WLFI" || buyToken?.symbol === "WLFI" ||
+                      sellToken.token1 === WLFI_ADDRESS || buyToken?.token1 === WLFI_ADDRESS ||
+                      sellToken.poolId === WLFI_POOL_ID || buyToken?.poolId === WLFI_POOL_ID;
   
   // All special tokens (CULT, ENS, WLFI) use Cookbook
   const usesCookbook = isUsingCult || isUsingEns || isUsingWlfi || isCookbook;
@@ -855,8 +872,9 @@ export const AddLiquidity = () => {
 
       // Check for WLFI ERC20 approval if needed
       if (isUsingWlfi) {
-        const wlfiAmount =
-          sellToken.symbol === "WLFI"
+        // For WLFI pools, we always need to approve WLFI tokens (not ETH)
+        // Determine which amount is WLFI based on token selection
+        const wlfiAmount = (sellToken.symbol === "WLFI" || sellToken.token1 === WLFI_ADDRESS)
             ? parseUnits(sellAmt, 18) // WLFI has 18 decimals
             : parseUnits(buyAmt, 18);
 
