@@ -200,8 +200,8 @@ export const AddLiquidity = () => {
     () =>
       sellToken?.symbol === "WLFI" ||
       buyToken?.symbol === "WLFI" ||
-      sellToken?.address === WLFI_ADDRESS ||
-      buyToken?.address === WLFI_ADDRESS,
+      (sellToken?.token1 === WLFI_ADDRESS) ||
+      (buyToken?.token1 === WLFI_ADDRESS),
     [sellToken, buyToken],
   );
 
