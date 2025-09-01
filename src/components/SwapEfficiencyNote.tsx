@@ -44,27 +44,18 @@ export function SwapEfficiencyNote(props: {
     buyAmt,
   });
 
-  // ETH/USD price via on-chain source
   const { data: ethHook } = useETHPrice();
   const ethPriceUsd =
     (typeof ethHook?.priceUSD === "number" && isFinite(ethHook.priceUSD) ? ethHook.priceUSD : undefined) ??
     (isFinite(ethPriceUsdProp || NaN) ? ethPriceUsdProp : undefined);
 
-  // Only show for ERC20 <-> ERC20 (or ETH sentinel)
   if (!isERC20orETH(sellToken) || !isERC20orETH(buyToken)) return null;
 
-  // While typing: keep a tiny placeholder to avoid jumps
   if (loading) {
     return (
-      <div
-        className={cn(
-          // terminal card strip
-          "mt-2 border-2 border-[var(--terminal-black)] bg-[var(--terminal-white)] px-2 py-1",
-          "font-mono text-[11px] tracking-tight",
-        )}
-      >
+      <div className={cn("mt-2 border-2 border-border bg-card px-2 py-1", "font-mono text-[11px] tracking-tight")}>
         <div className="flex items-center justify-between">
-          <span className="uppercase">Route Check</span>
+          <span className="uppercase text-muted-foreground">Route Check</span>
           <span className="opacity-70">…</span>
         </div>
       </div>
@@ -76,7 +67,6 @@ export function SwapEfficiencyNote(props: {
   const sToken = sellToken!;
   const bToken = buyToken!;
 
-  // -------- Price edge ----------
   let deltaPct: number;
   let priceLine: string;
   let good: boolean;
@@ -92,13 +82,11 @@ export function SwapEfficiencyNote(props: {
     const z = Number(formatUnits(zAmount, decimals!.in));
     const u = Number(formatUnits(uniAmount, decimals!.in));
     if (!isFinite(z) || !isFinite(u) || z <= 0 || u <= 0) return null;
-    // cheaper by X%: (u - z)/u
     deltaPct = ((u - z) / u) * 100;
     good = deltaPct >= 0;
     priceLine = `${formatCompact(z)} vs ${formatCompact(u)} ${sToken.symbol}`;
   }
 
-  // -------- Gas (constants) ----------
   const gp = gasPriceWei && gasPriceWei > 0n ? gasPriceWei : undefined;
   const zEth = gp ? weiToEthNumber((zGas || 0n) * gp) : 0;
   const uEth = gp ? weiToEthNumber((uniGas || 0n) * gp) : 0;
@@ -116,9 +104,9 @@ export function SwapEfficiencyNote(props: {
           return (
             <span
               className={cn(
-                "ml-2 inline-flex items-center px-1.5 py-[1px] border border-[var(--terminal-black)]",
+                "ml-2 inline-flex items-center px-1.5 py-[1px] border border-border",
                 "uppercase text-[10px] leading-tight",
-                "bg-[var(--terminal-white)]",
+                "bg-card text-card-foreground",
               )}
               title={cheaper ? "zRouter gas cheaper" : "zRouter gas more"}
             >
@@ -132,10 +120,9 @@ export function SwapEfficiencyNote(props: {
   return (
     <div
       className={cn(
-        "mt-2 border-2 border-[var(--terminal-black)] bg-[var(--terminal-white)]",
+        "mt-2 border-2 border-border bg-card text-card-foreground",
         "px-2 py-1 font-mono text-[11px] tracking-tight select-text",
-        // slight raise on hover for terminal vibe
-        "transition-transform duration-100 hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-[2px_2px_0_var(--terminal-black)]",
+        "transition-transform duration-100 hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-[2px_2px_0_var(--border)]",
       )}
     >
       {/* Row: PRICE EDGE */}
@@ -144,8 +131,8 @@ export function SwapEfficiencyNote(props: {
           <span className="uppercase">Price Edge</span>
           <span
             className={cn(
-              "px-1.5 py-[1px] border border-[var(--terminal-black)] uppercase",
-              "text-[10px] leading-tight",
+              "px-1.5 py-[1px] border border-border uppercase",
+              "text-[10px] leading-tight text-foreground",
               good ? "bg-[var(--diamond-green)]" : "bg-[var(--diamond-orange)]",
             )}
           >
@@ -156,7 +143,7 @@ export function SwapEfficiencyNote(props: {
       </div>
 
       {/* Divider */}
-      <div className="my-1 h-[1px] w-full bg-[var(--terminal-black)] opacity-20" />
+      <div className="my-1 h-px w-full bg-border/20" />
 
       {/* Row: GAS */}
       <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
@@ -175,6 +162,7 @@ export function SwapEfficiencyNote(props: {
               ~{zEth.toPrecision(3)} ETH vs ~{uEth.toPrecision(3)} ETH
               {zUsd !== undefined && uUsd !== undefined ? (
                 <>
+                  {" "}
                   &nbsp;(&nbsp;${zUsd.toFixed(2)} vs ${uUsd.toFixed(2)}&nbsp;)
                 </>
               ) : null}

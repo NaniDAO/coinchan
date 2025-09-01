@@ -8,21 +8,8 @@ import { getCoinKey, type TokenMeta } from "@/lib/coins";
 import { TokenImage } from "./TokenImage";
 
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 /* -----------------------------------------------------------------------------
  * useRecentTokens hook
@@ -30,10 +17,7 @@ import {
 
 const DEFAULT_STORAGE_KEY = "recent_tokens_v1";
 
-function useRecentTokens(
-  tokens: TokenMeta[],
-  storageKey = DEFAULT_STORAGE_KEY,
-) {
+function useRecentTokens(tokens: TokenMeta[], storageKey = DEFAULT_STORAGE_KEY) {
   const [recentKeys, setRecentKeys] = useState<string[]>([]);
 
   const tokenMap = useMemo(() => {
@@ -154,17 +138,9 @@ export const TokenSelector = memo(
           balance: formatBalance(t),
           key: getCoinKey(t),
           isSelected:
-            t.id === selectedToken?.id &&
-            t.poolId === selectedToken?.poolId &&
-            t?.token1 === selectedToken?.token1,
+            t.id === selectedToken?.id && t.poolId === selectedToken?.poolId && t?.token1 === selectedToken?.token1,
         })),
-      [
-        tokens,
-        selectedToken?.id,
-        selectedToken?.poolId,
-        selectedToken?.token1,
-        isEthBalanceFetching,
-      ],
+      [tokens, selectedToken?.id, selectedToken?.poolId, selectedToken?.token1, isEthBalanceFetching],
     );
 
     const filtered = useMemo(() => {
@@ -175,9 +151,7 @@ export const TokenSelector = memo(
         const name = token.name?.toLowerCase() ?? "";
         const id = token.id?.toString() ?? "eth";
         const queryIsNumber = !isNaN(Number(q));
-        const idMatches = queryIsNumber
-          ? id.startsWith(q)
-          : id.toLowerCase().includes(q);
+        const idMatches = queryIsNumber ? id.startsWith(q) : id.toLowerCase().includes(q);
         return symbol.includes(q) || name.includes(q) || idMatches;
       });
     }, [items, query]);
@@ -201,18 +175,13 @@ export const TokenSelector = memo(
             >
               <span className="flex items-center gap-2 truncate">
                 <TokenImage token={selectedToken} />
-                <span className="text-sm font-medium leading-none truncate">
-                  {selectedToken.symbol}
-                </span>
+                <span className="text-sm font-medium leading-none truncate">{selectedToken.symbol}</span>
                 <span className="ml-2 text-[11px] text-muted-foreground tabular-nums">
                   {formatBalance(selectedToken)}
                 </span>
               </span>
               <ChevronDownIcon
-                className={cn(
-                  "ml-auto h-4 w-4 transition-transform duration-200",
-                  open && "rotate-180",
-                )}
+                className={cn("ml-auto h-4 w-4 transition-transform duration-200", open && "rotate-180")}
               />
             </Button>
           </DialogTrigger>
@@ -267,9 +236,7 @@ export const TokenSelector = memo(
                             aria-label={`Select ${tkn.symbol}`}
                           >
                             <TokenImage token={tkn} />
-                            <span className="text-xs font-medium">
-                              {tkn.symbol}
-                            </span>
+                            <span className="text-xs font-medium">{tkn.symbol}</span>
                           </button>
                         ))}
                       </div>
@@ -302,26 +269,15 @@ export const TokenSelector = memo(
                         <div className="flex items-center gap-3 min-w-0">
                           <TokenImage token={token} />
                           <div className="flex flex-col min-w-0">
-                            <span className="font-medium truncate">
-                              {token.symbol}
-                            </span>
-                            <span className="text-xs text-muted-foreground truncate">
-                              {token.name}
-                            </span>
+                            <span className="font-medium truncate">{token.symbol}</span>
+                            <span className="text-xs text-muted-foreground truncate">{token.name}</span>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="text-right min-w-[72px]">
-                            <div className="text-sm font-medium h-[18px] tabular-nums">
-                              {balance}
-                            </div>
+                            <div className="text-sm font-medium h-[18px] tabular-nums">{balance}</div>
                           </div>
-                          {isSelected && (
-                            <Check
-                              className="h-4 w-4 text-primary"
-                              aria-hidden
-                            />
-                          )}
+                          {isSelected && <Check className="h-4 w-4 text-primary" aria-hidden />}
                         </div>
                       </div>
                     </CommandItem>
