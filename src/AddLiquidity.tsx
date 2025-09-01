@@ -38,6 +38,8 @@ import {
   CULT_POOL_KEY,
   ENS_ADDRESS,
   ENS_POOL_KEY,
+  WLFI_ADDRESS,
+  WLFI_POOL_KEY,
 } from "./lib/coins";
 import { useTokenSelection } from "./contexts/TokenSelectionContext";
 import {
@@ -117,7 +119,7 @@ export const AddLiquidity = () => {
     },
   );
 
-  // Simple direct handling for CULT, ENS and other custom pools (USDT handled as ZAMM)
+  // Simple direct handling for CULT, ENS, WLFI and other custom pools
   const { actualPoolId, reserveSource } = useMemo(() => {
     if (sellToken.symbol === "CULT" || buyToken?.symbol === "CULT") {
       return {
@@ -133,6 +135,16 @@ export const AddLiquidity = () => {
         reserveSource: "COOKBOOK" as const,
       };
     }
+
+    // Direct WLFI handling
+    if (sellToken.symbol === "WLFI" || buyToken?.symbol === "WLFI") {
+      return {
+        actualPoolId: sellToken.symbol === "WLFI" ? sellToken.poolId : buyToken?.poolId,
+        reserveSource: "COOKBOOK" as const,
+      };
+    }
+
+    // USDT handling
     if (sellToken.symbol === "USDT" || buyToken?.symbol === "USDT") {
       return {
         actualPoolId:
@@ -172,10 +184,11 @@ export const AddLiquidity = () => {
     chainId: mainnet.id,
   });
 
-  // Set 10% slippage for ENS pools, default for others
+  // Set 10% slippage for ENS and WLFI pools, default for others
   useEffect(() => {
-    if (sellToken?.symbol === "ENS" || buyToken?.symbol === "ENS") {
-      setSlippageBps(1000n);
+    if (sellToken?.symbol === "ENS" || buyToken?.symbol === "ENS" || 
+        sellToken?.symbol === "WLFI" || buyToken?.symbol === "WLFI") {
+      setSlippageBps(1000n); // 10%
     } else {
       setSlippageBps(SLIPPAGE_BPS);
     }
@@ -228,7 +241,18 @@ export const AddLiquidity = () => {
     allowance: ensAllowance,
     refetchAllowance: refetchEnsAllowance,
     approveMax: approveEnsMax,
-  } = useErc20Allowance({ token: ENS_ADDRESS, spender: CookbookAddress });
+  } = useErc20Allowance({
+    token: ENS_ADDRESS,
+    spender: CookbookAddress, // ENS uses Cookbook for liquidity
+  });
+  const {
+    allowance: wlfiAllowance,
+    refetchAllowance: refetchWlfiAllowance,
+    approveMax: approveWlfiMax,
+  } = useErc20Allowance({
+    token: WLFI_ADDRESS,
+    spender: CookbookAddress, // WLFI uses Cookbook for liquidity
+  });
 
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [txError, setTxError] = useState<string | null>(null);
@@ -508,13 +532,62 @@ export const AddLiquidity = () => {
         return;
       }
 
-      const isUsdtPool =
-        sellToken.symbol === "USDT" || buyToken?.symbol === "USDT";
-      const isUsingCult =
-        sellToken.symbol === "CULT" || buyToken?.symbol === "CULT";
-      const isUsingEns =
-        sellToken.symbol === "ENS" || buyToken?.symbol === "ENS";
+      // Check if we're dealing with special tokens
+      const isUsdtPool = sellToken.symbol === "USDT" || buyToken?.symbol === "USDT";
+      const isUsingCult = sellToken.symbol === "CULT" || buyToken?.symbol === "CULT";
+      const isUsingEns = sellToken.symbol === "ENS" || buyToken?.symbol === "ENS";
+      const isUsingWlfi = sellToken.symbol === "WLFI" || buyToken?.symbol === "WLFI";
 
+      // Enhanced detection of USDT usage for add liquidity
+      // We need to make sure we detect all cases where USDT is being used
+      const isUsingUsdt =
+        // Standard checks for USDT token address
+        (sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS) ||
+        (buyToken?.isCustomPool && buyToken?.token1 === USDT_ADDRESS) ||
+        // Additional checks by symbol and ID for redundancy
+        sellToken.symbol === "USDT" ||
+        buyToken?.symbol === "USDT" ||
+        // Check for custom pool with ID=0 (USDT pool)
+        (sellToken.isCustomPool && sellToken.id === 0n) ||
+        (buyToken?.isCustomPool && buyToken?.id === 0n);
+
+      // Get the amount of USDT being used
+      let usdtAmount = 0n;
+      if (isUsingUsdt) {
+        // Determine which token is USDT and get its amount
+        if ((sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS) || sellToken.symbol === "USDT") {
+          usdtAmount = parseUnits(sellAmt, 6); // USDT has 6 decimals
+        } else if ((buyToken?.isCustomPool && buyToken?.token1 === USDT_ADDRESS) || buyToken?.symbol === "USDT") {
+          usdtAmount = parseUnits(buyAmt, 6); // USDT has 6 decimals
+        }
+
+        // Check if we need to verify USDT allowance first
+        if (usdtAllowance === undefined) {
+          await refetchUsdtAllowance();
+        }
+
+        // If USDT amount is greater than allowance, request approval
+        if (usdtAllowance === undefined || usdtAllowance === 0n || usdtAmount > usdtAllowance) {
+          // Maintain consistent UX with operator approval flow
+          setTxError("Waiting for USDT approval. Please confirm the transaction...");
+          const approved = await approveUsdtMax();
+          if (approved === undefined) {
+            return; // Stop if approval failed or was rejected
+          } else {
+            const receipt = await publicClient.waitForTransactionReceipt({
+              hash: approved,
+            });
+
+            // Check if the transaction was successful
+            if (receipt.status === "success") {
+              await refetchUsdtAllowance();
+            }
+
+            return;
+          }
+        }
+      }
+        
       // ---------- poolKey selection ----------
       let poolKey: ZAMMPoolKey | CookbookPoolKey;
 
@@ -522,6 +595,9 @@ export const AddLiquidity = () => {
         poolKey = CULT_POOL_KEY;
       } else if (isUsingEns) {
         poolKey = ENS_POOL_KEY;
+      } else if (isUsingWlfi) {
+        // Use the specific WLFI pool key with correct id1=0n and feeOrHook
+        poolKey = WLFI_POOL_KEY;
       } else if (isUsdtPool) {
         const customToken = sellToken.isCustomPool ? sellToken : buyToken!;
         poolKey = customToken.poolKey ?? USDT_POOL_KEY;
@@ -592,15 +668,9 @@ export const AddLiquidity = () => {
             ? sellToken.balance || 0n
             : buyToken?.balance || 0n;
       } else if (isUsingEns) {
-        tokenAvailable =
-          sellToken.symbol === "ENS"
-            ? sellToken.balance || 0n
-            : buyToken?.balance || 0n;
-      } else if (isErc20Pool) {
-        tokenAvailable =
-          (sellToken.source === "ERC20"
-            ? sellToken.balance
-            : buyToken?.balance) ?? 0n;
+        tokenAvailable = sellToken.symbol === "ENS" ? sellToken.balance || 0n : buyToken?.balance || 0n;
+      } else if (isUsingWlfi) {
+        tokenAvailable = sellToken.symbol === "WLFI" ? sellToken.balance || 0n : buyToken?.balance || 0n;
       } else {
         tokenAvailable = isSellETH
           ? buyToken?.balance || 0n
@@ -613,11 +683,11 @@ export const AddLiquidity = () => {
             ? "CULT"
             : isUsingEns
               ? "ENS"
-              : isErc20Pool
-                ? (erc20Meta?.symbol ?? "TOKEN")
-                : isSellETH
-                  ? buyToken?.symbol
-                  : sellToken.symbol;
+              : isUsingWlfi
+                ? "WLFI"
+              : isSellETH
+                ? buyToken?.symbol
+                : sellToken.symbol;
         setTxError(`Insufficient ${tokenSymbol} balance`);
         return;
       }
@@ -764,17 +834,48 @@ export const AddLiquidity = () => {
         }
       }
 
-      // [Guard] ERC6909 operator approval — skip for ERC20 & ERC20-like
-      const needsOperatorApproval =
-        !isUsdtPool &&
-        !isUsingCult &&
-        !isUsingEns &&
-        !isErc20Pool &&
-        coinId &&
-        !isCookbook &&
-        isOperator === false;
+      // Check for WLFI ERC20 approval if needed
+      if (isUsingWlfi) {
+        const wlfiAmount =
+          sellToken.symbol === "WLFI"
+            ? parseUnits(sellAmt, 18) // WLFI has 18 decimals
+            : parseUnits(buyAmt, 18);
 
-      if (needsOperatorApproval) {
+        if (wlfiAllowance === undefined || wlfiAmount > wlfiAllowance) {
+          try {
+            setTxError("Waiting for WLFI approval. Please confirm the transaction...");
+            const approved = await approveWlfiMax();
+            if (!approved) return;
+
+            setTxError("WLFI approval submitted. Waiting for confirmation...");
+            const receipt = await publicClient.waitForTransactionReceipt({ hash: approved });
+
+            if (receipt.status === "success") {
+              await refetchWlfiAllowance();
+              setTxError(null);
+            } else {
+              setTxError("WLFI approval failed. Please try again.");
+              return;
+            }
+          } catch (err) {
+            const errorMsg = handleWalletError(err, {
+              defaultMessage: t("errors.transaction_error"),
+            });
+            if (errorMsg) {
+              setTxError(errorMsg);
+            }
+            return;
+          }
+        }
+      }
+
+      // Check if the user needs to approve the target AMM contract as operator
+      // This is reflexive to the pool source:
+      // - Cookbook pool: No approval needed - cookbook coins are permissionless
+      // - ZAMM pool: Approve ZAMMAddress as operator on CoinsAddress
+      // Only needed for ERC6909 coins, not for ERC20s like USDT/CULT/ENS/WLFI
+      // Skip operator approval for cookbook coins (graduated zCurve coins)
+      if (!isUsdtPool && !isUsingCult && !isUsingEns && !isUsingWlfi && coinId && !isCookbook && isOperator === false) {
         try {
           setTxError(
             "Waiting for operator approval. Please confirm the transaction...",
