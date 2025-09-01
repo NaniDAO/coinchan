@@ -85,6 +85,10 @@ export const TokenImage = memo(({ token }: { token: TokenMeta }) => {
     return <img src="/cult.jpg" alt="CULT" className="w-8 h-8 rounded-full object-cover" />;
   }
 
+  if (token.symbol === "WLFI" && token.isCustomPool) {
+    return <img src="https://etherscan.io/token/images/worldlibertyfinancial_32.png" alt="WLFI" className="w-8 h-8 rounded-full object-cover" />;
+  }
+
   // Fallback to colored initials
   const fallback = (
     <div className={`w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full text-xs font-medium`}>
