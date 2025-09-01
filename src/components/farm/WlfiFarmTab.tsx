@@ -55,9 +55,9 @@ export const WlfiFarmTab = () => {
   if (isLoadingStreams) {
     return (
       <div className="space-y-4">
-        <div className="bg-gradient-to-r from-yellow-500/10 to-yellow-600/10 border-2 border-yellow-500/30 rounded-lg p-6 animate-pulse">
-          <div className="h-6 bg-yellow-500/20 rounded w-1/3 mb-3"></div>
-          <div className="h-4 bg-yellow-500/20 rounded w-2/3"></div>
+        <div className="bg-gradient-to-r from-amber-100 to-yellow-100 dark:from-yellow-500/10 dark:to-yellow-600/10 border-2 border-amber-300 dark:border-yellow-500/30 rounded-lg p-6 animate-pulse">
+          <div className="h-6 bg-amber-200 dark:bg-yellow-500/20 rounded w-1/3 mb-3"></div>
+          <div className="h-4 bg-amber-200 dark:bg-yellow-500/20 rounded w-2/3"></div>
         </div>
       </div>
     );
@@ -67,25 +67,25 @@ export const WlfiFarmTab = () => {
     <div className="space-y-4">
       {/* WLFI Pool Stats */}
       {wlfiReserves && (
-        <div className="bg-gradient-to-r from-yellow-500/10 to-yellow-600/10 border-2 border-yellow-500/30 rounded-lg p-4">
-          <h3 className="font-mono font-bold text-yellow-400 mb-3">{t("common.pool_overview")}</h3>
+        <div className="bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-yellow-500/10 dark:to-yellow-600/10 border-2 border-amber-300 dark:border-yellow-500/30 rounded-lg p-4">
+          <h3 className="font-mono font-bold text-amber-700 dark:text-yellow-400 mb-3">{t("common.pool_overview")}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="bg-black/30 border border-yellow-500/20 rounded p-3">
-              <p className="text-xs text-yellow-400/60 font-mono">{t("common.eth_liquidity")}</p>
-              <p className="font-mono font-bold text-yellow-400">
+            <div className="bg-amber-100/50 dark:bg-black/30 border border-amber-300 dark:border-yellow-500/20 rounded p-3">
+              <p className="text-xs text-amber-600 dark:text-yellow-400/60 font-mono">{t("common.eth_liquidity")}</p>
+              <p className="font-mono font-bold text-amber-700 dark:text-yellow-400">
                 {formatBalance(formatEther(wlfiReserves.reserve0), "ETH")}
               </p>
             </div>
-            <div className="bg-black/30 border border-yellow-500/20 rounded p-3">
-              <p className="text-xs text-yellow-400/60 font-mono">{t("common.wlfi_reserves")}</p>
-              <p className="font-mono font-bold text-yellow-400">
+            <div className="bg-amber-100/50 dark:bg-black/30 border border-amber-300 dark:border-yellow-500/20 rounded p-3">
+              <p className="text-xs text-amber-600 dark:text-yellow-400/60 font-mono">{t("common.wlfi_reserves")}</p>
+              <p className="font-mono font-bold text-amber-700 dark:text-yellow-400">
                 {formatBalance(formatEther(wlfiReserves.reserve1), "WLFI")}
               </p>
             </div>
             {totalStaked > 0n && (
-              <div className="bg-black/30 border border-yellow-500/20 rounded p-3">
-                <p className="text-xs text-yellow-400/60 font-mono">{t("common.total_staked")}</p>
-                <p className="font-mono font-bold text-yellow-400">
+              <div className="bg-amber-100/50 dark:bg-black/30 border border-amber-300 dark:border-yellow-500/20 rounded p-3">
+                <p className="text-xs text-amber-600 dark:text-yellow-400/60 font-mono">{t("common.total_staked")}</p>
+                <p className="font-mono font-bold text-amber-700 dark:text-yellow-400">
                   {formatBalance(formatEther(totalStaked), "LP")}
                 </p>
               </div>
@@ -97,7 +97,7 @@ export const WlfiFarmTab = () => {
       {/* Active WLFI Farms */}
       {wlfiFarms.length > 0 ? (
         <div className="space-y-4">
-          <h3 className="font-mono font-bold text-yellow-400 text-sm uppercase tracking-wider">
+          <h3 className="font-mono font-bold text-amber-700 dark:text-yellow-400 text-sm uppercase tracking-wider">
             {t("common.active_farms")} ({wlfiFarms.length})
           </h3>
           <div className="space-y-4">
@@ -109,9 +109,9 @@ export const WlfiFarmTab = () => {
           </div>
         </div>
       ) : (
-        <Alert className="bg-gradient-to-r from-yellow-500/10 to-yellow-600/10 border-yellow-500/30">
-          <Info className="h-4 w-4 text-yellow-400" />
-          <AlertDescription className="text-yellow-400/80">
+        <Alert className="bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-yellow-500/10 dark:to-yellow-600/10 border-amber-300 dark:border-yellow-500/30">
+          <Info className="h-4 w-4 text-amber-600 dark:text-yellow-400" />
+          <AlertDescription className="text-amber-600 dark:text-yellow-400/80">
             {t("common.no_active_farms_for_token", { token: "WLFI" })}
           </AlertDescription>
         </Alert>

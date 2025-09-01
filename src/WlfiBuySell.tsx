@@ -419,54 +419,54 @@ export const WlfiBuySell = () => {
   };
 
   return (
-    <div className="container mx-auto max-w-2xl px-2 sm:px-4 py-4 sm:py-8" style={{ background: 'linear-gradient(to bottom, #000000, #1a1a1a)' }}>
-      {/* Header with WLFI black and gold theme */}
+    <div className="container mx-auto max-w-2xl px-2 sm:px-4 py-4 sm:py-8">
+      {/* Header with WLFI theme - amber for light, gold for dark */}
       <div className="mb-4 sm:mb-8 text-center">
         <div className="flex items-center justify-center gap-3">
           <div className="relative">
             <WLFILogo className="w-12 h-12 sm:w-16 sm:h-16" />
-            <div className="absolute -inset-1 bg-gradient-to-br from-yellow-400 via-yellow-500 to-yellow-600 rounded-full blur-md opacity-30"></div>
+            <div className="absolute -inset-1 bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 dark:from-yellow-400 dark:via-yellow-500 dark:to-yellow-600 rounded-full blur-md opacity-30"></div>
           </div>
           <div className="text-left">
-            <h1 className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent">
+            <h1 className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-amber-600 via-amber-700 to-amber-800 dark:from-yellow-400 dark:via-yellow-500 dark:to-yellow-600 bg-clip-text text-transparent">
               WLFI
             </h1>
-            <p className="text-xs sm:text-sm text-yellow-400/80">World Liberty Financial</p>
+            <p className="text-xs sm:text-sm text-amber-600 dark:text-yellow-400/80">World Liberty Financial</p>
           </div>
         </div>
       </div>
 
-      {/* Trading Interface with black and gold theme */}
-      <div className="bg-black/90 border border-yellow-500/30 backdrop-blur-xl rounded-lg p-2 sm:p-4 md:p-6 mb-4 sm:mb-6 md:mb-8 shadow-2xl shadow-yellow-500/20">
+      {/* Trading Interface */}
+      <div className="bg-white dark:bg-black/90 border border-amber-300 dark:border-yellow-500/30 backdrop-blur-xl rounded-lg p-2 sm:p-4 md:p-6 mb-4 sm:mb-6 md:mb-8 shadow-xl shadow-amber-200/50 dark:shadow-yellow-500/20">
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-          <TabsList className="flex flex-wrap sm:grid sm:grid-cols-5 gap-1 bg-yellow-500/10 backdrop-blur-sm p-1 h-auto w-full border border-yellow-500/20">
+          <TabsList className="flex flex-wrap sm:grid sm:grid-cols-5 gap-1 bg-amber-100 dark:bg-yellow-500/10 backdrop-blur-sm p-1 h-auto w-full border border-amber-300 dark:border-yellow-500/20">
             <TabsTrigger
               value="swap"
-              className="relative flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm text-yellow-400/80 data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-500/30 data-[state=active]:to-yellow-600/30 data-[state=active]:text-yellow-400 data-[state=active]:border data-[state=active]:border-yellow-500/50"
+              className="relative flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm text-amber-700 dark:text-yellow-400/80 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-200 data-[state=active]:to-amber-300 dark:data-[state=active]:from-yellow-500/30 dark:data-[state=active]:to-yellow-600/30 data-[state=active]:text-amber-800 dark:data-[state=active]:text-yellow-400 data-[state=active]:border data-[state=active]:border-amber-400 dark:data-[state=active]:border-yellow-500/50"
             >
               {t("common.swap")}
             </TabsTrigger>
             <TabsTrigger
               value="add"
-              className="flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm text-yellow-400/80 data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-500/30 data-[state=active]:to-yellow-600/30 data-[state=active]:text-yellow-400 data-[state=active]:border data-[state=active]:border-yellow-500/50"
+              className="flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm text-amber-700 dark:text-yellow-400/80 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-200 data-[state=active]:to-amber-300 dark:data-[state=active]:from-yellow-500/30 dark:data-[state=active]:to-yellow-600/30 data-[state=active]:text-amber-800 dark:data-[state=active]:text-yellow-400 data-[state=active]:border data-[state=active]:border-amber-400 dark:data-[state=active]:border-yellow-500/50"
             >
               {t("common.add")}
             </TabsTrigger>
             <TabsTrigger
               value="remove"
-              className="flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm text-yellow-400/80 data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-500/30 data-[state=active]:to-yellow-600/30 data-[state=active]:text-yellow-400 data-[state=active]:border data-[state=active]:border-yellow-500/50"
+              className="flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm text-amber-700 dark:text-yellow-400/80 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-200 data-[state=active]:to-amber-300 dark:data-[state=active]:from-yellow-500/30 dark:data-[state=active]:to-yellow-600/30 data-[state=active]:text-amber-800 dark:data-[state=active]:text-yellow-400 data-[state=active]:border data-[state=active]:border-amber-400 dark:data-[state=active]:border-yellow-500/50"
             >
               {t("common.remove")}
             </TabsTrigger>
             <TabsTrigger
               value="zap"
-              className="relative flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm text-yellow-400/80 data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-500/30 data-[state=active]:to-yellow-600/30 data-[state=active]:text-yellow-400 data-[state=active]:border data-[state=active]:border-yellow-500/50"
+              className="relative flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm text-amber-700 dark:text-yellow-400/80 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-200 data-[state=active]:to-amber-300 dark:data-[state=active]:from-yellow-500/30 dark:data-[state=active]:to-yellow-600/30 data-[state=active]:text-amber-800 dark:data-[state=active]:text-yellow-400 data-[state=active]:border data-[state=active]:border-amber-400 dark:data-[state=active]:border-yellow-500/50"
             >
               {t("common.zap")}
             </TabsTrigger>
             <TabsTrigger
               value="farm"
-              className="flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm text-yellow-400/80 data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-500/30 data-[state=active]:to-yellow-600/30 data-[state=active]:text-yellow-400 data-[state=active]:border data-[state=active]:border-yellow-500/50"
+              className="flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm text-amber-700 dark:text-yellow-400/80 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-200 data-[state=active]:to-amber-300 dark:data-[state=active]:from-yellow-500/30 dark:data-[state=active]:to-yellow-600/30 data-[state=active]:text-amber-800 dark:data-[state=active]:text-yellow-400 data-[state=active]:border data-[state=active]:border-amber-400 dark:data-[state=active]:border-yellow-500/50"
             >
               {t("common.farm")}
             </TabsTrigger>
@@ -508,7 +508,7 @@ export const WlfiBuySell = () => {
                     lastEditedField === "sell" &&
                     ((swapDirection === "buy" && ethBalance > 0n) || (swapDirection === "sell" && wlfiBalance > 0n))
                   }
-                  className="pb-2 bg-black/50 border-yellow-500/20"
+                  className="pb-2 bg-amber-50 dark:bg-black/50 border-amber-200 dark:border-yellow-500/20"
                 />
 
                 {/* Flip button */}
@@ -520,7 +520,7 @@ export const WlfiBuySell = () => {
                         setSellAmount("");
                         setBuyAmount("");
                       }}
-                      className="bg-black border-2 border-yellow-500/40 rounded-full p-2 hover:border-yellow-500/60 transition-all hover:rotate-180 duration-300 hover:bg-yellow-500/10"
+                      className="bg-white dark:bg-black border-2 border-amber-400 dark:border-yellow-500/40 rounded-full p-2 hover:border-amber-500 dark:hover:border-yellow-500/60 transition-all hover:rotate-180 duration-300 hover:bg-amber-100 dark:hover:bg-yellow-500/10"
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path
@@ -529,7 +529,7 @@ export const WlfiBuySell = () => {
                           strokeWidth="2"
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          className="text-yellow-400"
+                          className="text-amber-600 dark:text-yellow-400"
                         />
                       </svg>
                     </button>
@@ -550,7 +550,7 @@ export const WlfiBuySell = () => {
                     debouncedCalculateOutput(val, "buy");
                   }}
                   showPercentageSlider={lastEditedField === "buy"}
-                  className="pt-2 bg-black/50 border-yellow-500/20"
+                  className="pt-2 bg-amber-50 dark:bg-black/50 border-amber-200 dark:border-yellow-500/20"
                 />
 
                 {/* Swap button */}
@@ -566,7 +566,7 @@ export const WlfiBuySell = () => {
                       (swapDirection === "buy" && ethBalance > 0n && parseEther(sellAmount || "0") > ethBalance) ||
                       (swapDirection === "sell" && wlfiBalance > 0n && parseUnits(sellAmount || "0", 18) > wlfiBalance)
                     }
-                    className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-bold shadow-lg shadow-yellow-500/30"
+                    className="w-full bg-gradient-to-r from-amber-500 to-amber-600 dark:from-yellow-500 dark:to-yellow-600 hover:from-amber-600 hover:to-amber-700 dark:hover:from-yellow-600 dark:hover:to-yellow-700 text-white dark:text-black font-bold shadow-lg shadow-amber-500/30 dark:shadow-yellow-500/30"
                   >
                     {isPending ? (
                       <span className="flex items-center gap-2">
@@ -591,8 +591,8 @@ export const WlfiBuySell = () => {
 
                 {/* Price impact display */}
                 {priceImpact && (
-                  <div className="mt-2 p-2 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
-                    <div className="text-xs text-yellow-400/80 flex items-center justify-between">
+                  <div className="mt-2 p-2 bg-amber-100 dark:bg-yellow-500/10 border border-amber-300 dark:border-yellow-500/20 rounded-md">
+                    <div className="text-xs text-amber-700 dark:text-yellow-400/80 flex items-center justify-between">
                       <span>{t("swap.price_impact")}:</span>
                       <span
                         className={`font-medium ${priceImpact.impactPercent > 0 ? "text-green-500" : "text-red-500"}`}
@@ -606,12 +606,12 @@ export const WlfiBuySell = () => {
               </div>
 
               {/* Chart */}
-              <div className="mt-4 border-t border-yellow-500/20 pt-4">
+              <div className="mt-4 border-t border-amber-300 dark:border-yellow-500/20 pt-4">
                 <div className="relative flex flex-col">
                   <div className="flex items-center justify-between mb-2">
                     <button
                       onClick={() => setShowPriceChart((prev) => !prev)}
-                      className="text-xs text-yellow-400/60 flex items-center gap-1 hover:text-yellow-400"
+                      className="text-xs text-amber-600 dark:text-yellow-400/60 flex items-center gap-1 hover:text-amber-700 dark:hover:text-yellow-400"
                     >
                       {showPriceChart ? t("coin.hide_chart") : t("coin.show_chart")}
                       <ChevronDownIcon
@@ -619,7 +619,7 @@ export const WlfiBuySell = () => {
                       />
                     </button>
                     {showPriceChart && (
-                      <div className="text-xs text-yellow-400/60">WLFI/ETH {t("coin.price_history")}</div>
+                      <div className="text-xs text-amber-600 dark:text-yellow-400/60">WLFI/ETH {t("coin.price_history")}</div>
                     )}
                   </div>
 
@@ -644,19 +644,19 @@ export const WlfiBuySell = () => {
                 </div>
               </div>
 
-              <div className="text-xs text-yellow-400/60 text-center">{t("coin.pool_fee")}: 0.3%</div>
+              <div className="text-xs text-amber-600 dark:text-yellow-400/60 text-center">{t("coin.pool_fee")}: 0.3%</div>
 
               {/* Market Stats - subtle below chart */}
               <div className="mt-4 sm:mt-6 grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 text-xs">
                 <div className="text-center">
-                  <p className="text-yellow-400/60">{t("coin.price")}</p>
-                  <p className="font-medium text-yellow-400">{wlfiPrice > 0 ? `${wlfiPrice.toFixed(8)} ETH` : "-"}</p>
-                  <p className="text-yellow-400/40">${wlfiUsdPrice.toFixed(6)}</p>
+                  <p className="text-amber-600 dark:text-yellow-400/60">{t("coin.price")}</p>
+                  <p className="font-medium text-amber-700 dark:text-yellow-400">{wlfiPrice > 0 ? `${wlfiPrice.toFixed(8)} ETH` : "-"}</p>
+                  <p className="text-amber-500 dark:text-yellow-400/40">${wlfiUsdPrice.toFixed(6)}</p>
                 </div>
 
                 <div className="text-center">
-                  <p className="text-yellow-400/60">{t("coin.market_cap")}</p>
-                  <p className="font-medium text-yellow-400">
+                  <p className="text-amber-600 dark:text-yellow-400/60">{t("coin.market_cap")}</p>
+                  <p className="font-medium text-amber-700 dark:text-yellow-400">
                     $
                     {marketCapUsd > 1e9
                       ? (marketCapUsd / 1e9).toFixed(2) + "B"
