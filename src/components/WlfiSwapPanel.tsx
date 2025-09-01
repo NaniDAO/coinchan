@@ -5,7 +5,6 @@ import { useEffect, useState, memo, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
 import { TokenSelector } from "./TokenSelector";
-import { PercentageBlobs } from "@/components/ui/percentage-blobs";
 import { useETHPrice } from "@/hooks/use-eth-price";
 import { ErrorBoundary } from "./ErrorBoundary";
 

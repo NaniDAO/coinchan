@@ -7,6 +7,8 @@ import { useAccount, useChainId, usePublicClient, useWaitForTransactionReceipt, 
 import { SlippageSettings } from "./components/SlippageSettings";
 import { SuccessMessage } from "./components/SuccessMessage";
 import { SwapPanel } from "./components/SwapPanel";
+import { WlfiSwapPanel } from "./components/WlfiSwapPanel";
+import { WLFI_ADDRESS } from "./lib/coins";
 import { CoinsAddress } from "./constants/Coins";
 import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
 import { ZAMMAbi, ZAMMAddress } from "./constants/ZAAM";
@@ -46,6 +48,16 @@ export const RemoveLiquidity = () => {
     isCustomPool: isCustomPool,
     isCoinToCoin: isCoinToCoin,
   });
+
+  // Check if we're in WLFI context
+  const isWLFIPool = useMemo(
+    () =>
+      sellToken?.symbol === "WLFI" ||
+      buyToken?.symbol === "WLFI" ||
+      (sellToken?.token1 === WLFI_ADDRESS) ||
+      (buyToken?.token1 === WLFI_ADDRESS),
+    [sellToken, buyToken],
+  );
 
   // Override for ENS and WLFI
   const isENS = sellToken?.symbol === "ENS" || buyToken?.symbol === "ENS";
@@ -443,39 +455,75 @@ export const RemoveLiquidity = () => {
           placeholder="0.0"
           value={lpBurnAmount}
           onChange={(e) => syncFromSell(e.target.value)}
-          className="text-lg sm:text-xl font-medium w-full bg-secondary/50 focus:outline-none h-10 text-right pr-1"
+          className={`text-lg sm:text-xl font-medium w-full focus:outline-none h-10 text-right pr-1 rounded px-2
+            ${isWLFIPool 
+              ? "bg-white dark:bg-black/30 text-amber-800 dark:text-yellow-400 placeholder-amber-400 dark:placeholder-yellow-400/40 border border-amber-200 dark:border-yellow-500/10 hover:border-amber-300 dark:hover:border-yellow-500/20 focus:border-amber-500 dark:focus:border-yellow-500 focus:ring-2 focus:ring-amber-500/30 dark:focus:ring-yellow-500/30"
+              : "bg-secondary/50"
+            }`}
         />
         <div className="text-xs text-muted-foreground mt-1">{t("pool.lp_burn_help")}</div>
       </div>
       <div className="relative flex flex-col">
         {/* SELL/PROVIDE panel */}
-        <SwapPanel
-          title={t("common.you_will_receive_eth")}
-          selectedToken={sellToken}
-          tokens={memoizedTokens}
-          onSelect={handleSellTokenSelect}
-          isEthBalanceFetching={isEthBalanceFetching}
-          amount={sellAmt}
-          onAmountChange={() => {}} // Read-only, no changes allowed
-          readOnly={true}
-          previewLabel={t("common.preview")}
-          className="mt-2 rounded-md p-2 pb-4 focus-within:ring-2 focus-within:ring-primary/60"
-        />
-        {buyToken && (
-          <SwapPanel
-            title={t("common.you_will_receive_token", {
-              token: buyToken.symbol,
-            })}
-            selectedToken={buyToken}
+        {isWLFIPool ? (
+          <WlfiSwapPanel
+            title={t("common.you_will_receive_eth")}
+            selectedToken={sellToken}
             tokens={memoizedTokens}
-            onSelect={handleBuyTokenSelect}
+            onSelect={handleSellTokenSelect}
             isEthBalanceFetching={isEthBalanceFetching}
-            amount={buyAmt}
+            amount={sellAmt}
             onAmountChange={() => {}} // Read-only, no changes allowed
             readOnly={true}
             previewLabel={t("common.preview")}
-            className="mt-2 rounded-b-2xl pt-3 shadow-[0_0_15px_rgba(0,204,255,0.07)]"
+            className="mt-2"
           />
+        ) : (
+          <SwapPanel
+            title={t("common.you_will_receive_eth")}
+            selectedToken={sellToken}
+            tokens={memoizedTokens}
+            onSelect={handleSellTokenSelect}
+            isEthBalanceFetching={isEthBalanceFetching}
+            amount={sellAmt}
+            onAmountChange={() => {}} // Read-only, no changes allowed
+            readOnly={true}
+            previewLabel={t("common.preview")}
+            className="mt-2 rounded-md p-2 pb-4 focus-within:ring-2 focus-within:ring-primary/60"
+          />
+        )}
+        {buyToken && (
+          isWLFIPool ? (
+            <WlfiSwapPanel
+              title={t("common.you_will_receive_token", {
+                token: buyToken.symbol,
+              })}
+              selectedToken={buyToken}
+              tokens={memoizedTokens}
+              onSelect={handleBuyTokenSelect}
+              isEthBalanceFetching={isEthBalanceFetching}
+              amount={buyAmt}
+              onAmountChange={() => {}} // Read-only, no changes allowed
+              readOnly={true}
+              previewLabel={t("common.preview")}
+              className="mt-2"
+            />
+          ) : (
+            <SwapPanel
+              title={t("common.you_will_receive_token", {
+                token: buyToken.symbol,
+              })}
+              selectedToken={buyToken}
+              tokens={memoizedTokens}
+              onSelect={handleBuyTokenSelect}
+              isEthBalanceFetching={isEthBalanceFetching}
+              amount={buyAmt}
+              onAmountChange={() => {}} // Read-only, no changes allowed
+              readOnly={true}
+              previewLabel={t("common.preview")}
+              className="mt-2 rounded-b-2xl pt-3 shadow-[0_0_15px_rgba(0,204,255,0.07)]"
+            />
+          )
         )}
 
         {/* Slippage information - clickable to show settings */}
@@ -502,7 +550,11 @@ export const RemoveLiquidity = () => {
         <button
           onClick={executeRemoveLiquidity}
           disabled={!isConnected || !lpBurnAmount || Number.parseFloat(lpBurnAmount) <= 0 || isPending}
-          className={`mt-2 button text-base px-8 py-4 bg-primary text-primary-foreground font-bold rounded-lg transform transition-all duration-200
+          className={`mt-2 button text-base px-8 py-4 font-bold rounded-lg transform transition-all duration-200
+            ${isWLFIPool 
+              ? "bg-gradient-to-r from-amber-500 to-amber-600 dark:from-yellow-500 dark:to-yellow-600 hover:from-amber-600 hover:to-amber-700 dark:hover:from-yellow-600 dark:hover:to-yellow-700 text-white dark:text-black shadow-lg shadow-amber-500/30 dark:shadow-yellow-500/30"
+              : "bg-primary text-primary-foreground"
+            }
             ${
               !isConnected || !lpBurnAmount || Number.parseFloat(lpBurnAmount) <= 0 || isPending
                 ? "opacity-50 cursor-not-allowed"

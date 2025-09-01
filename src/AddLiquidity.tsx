@@ -56,6 +56,7 @@ import { CookbookAddress, CookbookAbi } from "./constants/Cookbook";
 import { nowSec, formatNumber } from "./lib/utils";
 import { mainnet } from "viem/chains";
 import { SwapPanel } from "./components/SwapPanel";
+import { WlfiSwapPanel } from "./components/WlfiSwapPanel";
 import { useReserves } from "./hooks/use-reserves";
 import { useErc20Allowance } from "./hooks/use-erc20-allowance";
 import { SuccessMessage } from "./components/SuccessMessage";
@@ -193,6 +194,16 @@ export const AddLiquidity = () => {
       setSlippageBps(SLIPPAGE_BPS);
     }
   }, [sellToken?.symbol, buyToken?.symbol]);
+
+  // Check if we're in WLFI context
+  const isWLFIPool = useMemo(
+    () =>
+      sellToken?.symbol === "WLFI" ||
+      buyToken?.symbol === "WLFI" ||
+      sellToken?.address === WLFI_ADDRESS ||
+      buyToken?.address === WLFI_ADDRESS,
+    [sellToken, buyToken],
+  );
 
   // [NEW: ERC20 detection] -----------------------------------------------
   const isErc20Pool = useMemo(
@@ -994,52 +1005,102 @@ export const AddLiquidity = () => {
         className="mb-2"
       />
 
-      <SwapPanel
-        title={t("common.provide")}
-        selectedToken={sellToken}
-        tokens={memoizedTokens}
-        onSelect={handleSellTokenSelect}
-        isEthBalanceFetching={isEthBalanceFetching}
-        amount={sellAmt}
-        onAmountChange={syncFromSell}
-        showMaxButton={
-          !!(sellToken.balance !== undefined && sellToken.balance > 0n)
-        }
-        onMax={() => {
-          if (sellToken.id === null) {
-            const ethAmount = ((sellToken.balance as bigint) * 99n) / 100n;
-            syncFromSell(formatEther(ethAmount));
-          } else {
-            const decimals = sellToken.decimals || 18;
-            syncFromSell(formatUnits(sellToken.balance as bigint, decimals));
-          }
-        }}
-        className="rounded-t-2xl pb-4"
-      />
-
-      {buyToken && (
-        <SwapPanel
-          title={t("common.and")}
-          selectedToken={buyToken}
+      {isWLFIPool ? (
+        <WlfiSwapPanel
+          title={t("common.provide")}
+          selectedToken={sellToken}
           tokens={memoizedTokens}
-          onSelect={handleBuyTokenSelect}
+          onSelect={handleSellTokenSelect}
           isEthBalanceFetching={isEthBalanceFetching}
-          amount={buyAmt}
-          onAmountChange={syncFromBuy}
+          amount={sellAmt}
+          onAmountChange={syncFromSell}
           showMaxButton={
-            !!(buyToken.balance !== undefined && buyToken.balance > 0n)
+            !!(sellToken.balance !== undefined && sellToken.balance > 0n)
           }
           onMax={() => {
-            if (buyToken.id === null) {
-              const ethAmount = ((buyToken.balance as bigint) * 99n) / 100n;
-              syncFromBuy(formatEther(ethAmount));
+            if (sellToken.id === null) {
+              const ethAmount = ((sellToken.balance as bigint) * 99n) / 100n;
+              syncFromSell(formatEther(ethAmount));
             } else {
-              const decimals = buyToken.decimals || 18;
-              syncFromBuy(formatUnits(buyToken.balance as bigint, decimals));
+              const decimals = sellToken.decimals || 18;
+              syncFromSell(formatUnits(sellToken.balance as bigint, decimals));
             }
           }}
-          className="mt-2 rounded-b-2xl pt-3 shadow-[0_0_15px_rgba(0,204,255,0.07)]"
+          className="mb-2"
         />
+      ) : (
+        <SwapPanel
+          title={t("common.provide")}
+          selectedToken={sellToken}
+          tokens={memoizedTokens}
+          onSelect={handleSellTokenSelect}
+          isEthBalanceFetching={isEthBalanceFetching}
+          amount={sellAmt}
+          onAmountChange={syncFromSell}
+          showMaxButton={
+            !!(sellToken.balance !== undefined && sellToken.balance > 0n)
+          }
+          onMax={() => {
+            if (sellToken.id === null) {
+              const ethAmount = ((sellToken.balance as bigint) * 99n) / 100n;
+              syncFromSell(formatEther(ethAmount));
+            } else {
+              const decimals = sellToken.decimals || 18;
+              syncFromSell(formatUnits(sellToken.balance as bigint, decimals));
+            }
+          }}
+          className="rounded-t-2xl pb-4"
+        />
+      )}
+
+      {buyToken && (
+        isWLFIPool ? (
+          <WlfiSwapPanel
+            title={t("common.and")}
+            selectedToken={buyToken}
+            tokens={memoizedTokens}
+            onSelect={handleBuyTokenSelect}
+            isEthBalanceFetching={isEthBalanceFetching}
+            amount={buyAmt}
+            onAmountChange={syncFromBuy}
+            showMaxButton={
+              !!(buyToken.balance !== undefined && buyToken.balance > 0n)
+            }
+            onMax={() => {
+              if (buyToken.id === null) {
+                const ethAmount = ((buyToken.balance as bigint) * 99n) / 100n;
+                syncFromBuy(formatEther(ethAmount));
+              } else {
+                const decimals = buyToken.decimals || 18;
+                syncFromBuy(formatUnits(buyToken.balance as bigint, decimals));
+              }
+            }}
+            className="mt-2"
+          />
+        ) : (
+          <SwapPanel
+            title={t("common.and")}
+            selectedToken={buyToken}
+            tokens={memoizedTokens}
+            onSelect={handleBuyTokenSelect}
+            isEthBalanceFetching={isEthBalanceFetching}
+            amount={buyAmt}
+            onAmountChange={syncFromBuy}
+            showMaxButton={
+              !!(buyToken.balance !== undefined && buyToken.balance > 0n)
+            }
+            onMax={() => {
+              if (buyToken.id === null) {
+                const ethAmount = ((buyToken.balance as bigint) * 99n) / 100n;
+                syncFromBuy(formatEther(ethAmount));
+              } else {
+                const decimals = buyToken.decimals || 18;
+                syncFromBuy(formatUnits(buyToken.balance as bigint, decimals));
+              }
+            }}
+            className="mt-2 rounded-b-2xl pt-3 shadow-[0_0_15px_rgba(0,204,255,0.07)]"
+          />
+        )
       )}
 
       <NetworkError message="manage liquidity" />
@@ -1090,7 +1151,11 @@ export const AddLiquidity = () => {
           parseFloat(sellAmt) === 0 ||
           parseFloat(buyAmt) === 0
         }
-        className={`mt-2 button text-base px-8 py-4 bg-primary text-primary-foreground font-bold rounded-lg transform transition-all duration-200
+        className={`mt-2 button text-base px-8 py-4 font-bold rounded-lg transform transition-all duration-200
+          ${isWLFIPool 
+            ? "bg-gradient-to-r from-amber-500 to-amber-600 dark:from-yellow-500 dark:to-yellow-600 hover:from-amber-600 hover:to-amber-700 dark:hover:from-yellow-600 dark:hover:to-yellow-700 text-white dark:text-black shadow-lg shadow-amber-500/30 dark:shadow-yellow-500/30"
+            : "bg-primary text-primary-foreground"
+          }
           ${
             !isConnected ||
             isPending ||
