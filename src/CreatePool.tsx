@@ -1,8 +1,19 @@
 import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { formatEther, formatUnits, parseEther, parseUnits, zeroAddress } from "viem";
+import {
+  formatEther,
+  formatUnits,
+  parseEther,
+  parseUnits,
+  zeroAddress,
+} from "viem";
 import { mainnet } from "viem/chains";
-import { useAccount, useChainId, usePublicClient, useWriteContract } from "wagmi";
+import {
+  useAccount,
+  useChainId,
+  usePublicClient,
+  useWriteContract,
+} from "wagmi";
 import { useWaitForTransactionReceipt } from "wagmi";
 import { NetworkError } from "./components/NetworkError";
 import { SuccessMessage } from "./components/SuccessMessage";
@@ -12,7 +23,7 @@ import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { useErc20Allowance } from "./hooks/use-erc20-allowance";
 import { useOperatorStatus } from "./hooks/use-operator-status";
-import { ETH_TOKEN, type TokenMeta, USDT_ADDRESS } from "./lib/coins";
+import { ETH_TOKEN, type TokenMeta } from "./lib/coins";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import type { CookbookPoolKey } from "./lib/swap";
 import { nowSec } from "./lib/utils";
@@ -31,7 +42,11 @@ interface FeeSettingsProps {
   className?: string;
 }
 
-const FeeSettings = ({ feeBps, setFeeBps, className = "" }: FeeSettingsProps) => {
+const FeeSettings = ({
+  feeBps,
+  setFeeBps,
+  className = "",
+}: FeeSettingsProps) => {
   const [showFeeSettings, setShowFeeSettings] = useState(false);
 
   return (
@@ -43,7 +58,9 @@ const FeeSettings = ({ feeBps, setFeeBps, className = "" }: FeeSettingsProps) =>
         <span>
           <strong>Pool Fee:</strong> {Number(feeBps) / 100}%
         </span>
-        <span className="text-xs text-foreground-secondary">{showFeeSettings ? "▲" : "▼"}</span>
+        <span className="text-xs text-foreground-secondary">
+          {showFeeSettings ? "▲" : "▼"}
+        </span>
       </div>
 
       {showFeeSettings && (
@@ -92,12 +109,16 @@ const FeeSettings = ({ feeBps, setFeeBps, className = "" }: FeeSettingsProps) =>
   );
 };
 
-// Helper function to create pool key for Cookbook pools
-const createCookbookPoolKey = (tokenA: TokenMeta, tokenB: TokenMeta, feeBps: bigint): CookbookPoolKey => {
-  // Handle ETH-Token pairs (the common case for pool creation)
+// Helper: pool key for Cookbook pools
+const createCookbookPoolKey = (
+  tokenA: TokenMeta,
+  tokenB: TokenMeta,
+  feeBps: bigint,
+): CookbookPoolKey => {
+  // Handle ETH-Token pairs
   if (tokenA.id === null) {
-    // tokenA is ETH, tokenB is the other token
-    const tokenAddress = tokenB.source === "ZAMM" ? CoinsAddress : CookbookAddress;
+    const tokenAddress =
+      tokenB.source === "ZAMM" ? CoinsAddress : CookbookAddress;
     return {
       id0: 0n,
       id1: BigInt(tokenB.id || 0),
@@ -106,8 +127,8 @@ const createCookbookPoolKey = (tokenA: TokenMeta, tokenB: TokenMeta, feeBps: big
       feeOrHook: feeBps,
     };
   } else if (tokenB.id === null) {
-    // tokenB is ETH, tokenA is the other token
-    const tokenAddress = tokenA.source === "ZAMM" ? CoinsAddress : CookbookAddress;
+    const tokenAddress =
+      tokenA.source === "ZAMM" ? CoinsAddress : CookbookAddress;
     return {
       id0: 0n,
       id1: BigInt(tokenA.id || 0),
@@ -116,11 +137,13 @@ const createCookbookPoolKey = (tokenA: TokenMeta, tokenB: TokenMeta, feeBps: big
       feeOrHook: feeBps,
     };
   } else {
-    // For token-token pairs, determine the appropriate addresses based on source
-    // Sort by coin ID to ensure deterministic ordering
-    const [token0, token1] = tokenA.id! < tokenB.id! ? [tokenA, tokenB] : [tokenB, tokenA];
-    const token0Address = token0.source === "ZAMM" ? CoinsAddress : CookbookAddress;
-    const token1Address = token1.source === "ZAMM" ? CoinsAddress : CookbookAddress;
+    // Token-token pair
+    const [token0, token1] =
+      tokenA.id! < tokenB.id! ? [tokenA, tokenB] : [tokenB, tokenA];
+    const token0Address =
+      token0.source === "ZAMM" ? CoinsAddress : CookbookAddress;
+    const token1Address =
+      token1.source === "ZAMM" ? CoinsAddress : CookbookAddress;
 
     return {
       id0: BigInt(token0.id || 0),
@@ -132,11 +155,23 @@ const createCookbookPoolKey = (tokenA: TokenMeta, tokenB: TokenMeta, feeBps: big
   }
 };
 
-// Helper function to check if token needs operator approval
-const needsOperatorApproval = (token: TokenMeta): boolean => {
-  // Only ZAMM coins (external coins) need operator approval
-  // Cookbook coins don't need operator approval since they're internal
-  return token.source === "ZAMM";
+// Helper: which tokens need operator approval
+const needsOperatorApproval = (token: TokenMeta): boolean =>
+  token.source === "ZAMM";
+
+// Helper: is ERC20 (externally standard ERC-20 that uses approve/allowance)
+const isErc20 = (t?: TokenMeta | null): t is TokenMeta =>
+  !!t && t.source === "ERC20";
+
+// Helper: extract an address for an ERC-20 TokenMeta
+// Prefer token1 (commonly the ERC-20 side in custom pools), fallback to token0 if non-zero.
+const getErc20Address = (t?: TokenMeta | null): `0x${string}` | undefined => {
+  if (!isErc20(t)) return undefined;
+  const a1 = t.token1;
+  const a0 = t.token0;
+  if (a1 && a1 !== zeroAddress) return a1;
+  if (a0 && a0 !== zeroAddress) return a0;
+  return undefined;
 };
 
 export const CreatePool = () => {
@@ -154,22 +189,38 @@ export const CreatePool = () => {
 
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [txError, setTxError] = useState<string | null>(null);
-  const { writeContractAsync, isPending, error: writeError } = useWriteContract();
+  const {
+    writeContractAsync,
+    isPending,
+    error: writeError,
+  } = useWriteContract();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
-  // Check operator status for coins contract
+  // Check operator status for ZAMM (Coins) contract
   const { data: isOperator, refetch: refetchOperator } = useOperatorStatus({
     address,
     operator: CookbookAddress,
   });
 
-  // USDT allowance for USDT pools
+  // ----- Generic ERC-20 allowances (one per side) -----
+  const token0Address = getErc20Address(token0);
+  const token1Address = getErc20Address(token1 || undefined);
+
   const {
-    allowance: usdtAllowance,
-    refetchAllowance: refetchUsdtAllowance,
-    approveMax: approveUsdtMax,
+    allowance: allowance0,
+    refetchAllowance: refetch0,
+    approveMax: approve0,
   } = useErc20Allowance({
-    token: USDT_ADDRESS,
+    token: token0Address ?? zeroAddress,
+    spender: CookbookAddress,
+  });
+
+  const {
+    allowance: allowance1,
+    refetchAllowance: refetch1,
+    approveMax: approve1,
+  } = useErc20Allowance({
+    token: token1Address ?? zeroAddress,
     spender: CookbookAddress,
   });
 
@@ -217,34 +268,81 @@ export const CreatePool = () => {
       // Create pool key for Cookbook
       const poolKey = createCookbookPoolKey(token0, token1, feeBps);
 
-      // Determine amounts based on pool key ordering
-      const amount0Desired = token0.id === null ? parseEther(amount0) : parseUnits(amount0, token0.decimals || 18);
+      // Determine amounts based on pool key ordering / token decimals
+      const amount0Desired =
+        token0.id === null
+          ? parseEther(amount0)
+          : parseUnits(amount0, token0.decimals || 18);
+
       const amount1Desired = parseUnits(amount1, token1.decimals || 18);
 
-      // Check for USDT approval if needed
-      const isUsingUsdt = token0.token1 === USDT_ADDRESS || token1.token1 === USDT_ADDRESS;
-      if (isUsingUsdt) {
-        const usdtAmount = token0.token1 === USDT_ADDRESS ? amount0Desired : amount1Desired;
+      // ---------- NEW: Generic ERC-20 allowance checks (for both sides) ----------
+      const ensureAllowance = async (
+        token: TokenMeta,
+        desired: bigint,
+        allowance: bigint | undefined,
+        approveMax: () => Promise<`0x${string}` | false>,
+        refetch: () => Promise<any>,
+        label: string,
+      ) => {
+        if (!isErc20(token)) return; // Not a standard ERC-20 -> skip (ETH or ZAMM/COOKBOOK internal)
+        // If hook wasn’t initialized due to missing address, skip (defensive)
+        const hasHook =
+          typeof allowance !== "undefined" && typeof approveMax === "function";
+        if (!hasHook) return;
 
-        if (usdtAllowance === undefined || usdtAmount > usdtAllowance) {
-          setTxError("Waiting for USDT approval. Please confirm the transaction...");
-          const approved = await approveUsdtMax();
-          if (!approved) return;
-
-          const receipt = await publicClient.waitForTransactionReceipt({ hash: approved });
-          if (receipt.status === "success") {
-            await refetchUsdtAllowance();
+        if (allowance === undefined || desired > allowance) {
+          setTxError(
+            `Waiting for ${token.symbol ?? label} approval. Please confirm the transaction...`,
+          );
+          const tx = await approveMax();
+          if (!tx) return; // user rejected or hook returned false
+          const rcpt = await publicClient.waitForTransactionReceipt({
+            hash: tx,
+          });
+          if (rcpt.status === "success") {
+            await refetch();
+            setTxError(null);
+          } else {
+            setTxError(
+              `${token.symbol ?? label} approval failed. Please try again.`,
+            );
+            return;
           }
-          return;
         }
-      }
+      };
 
-      // Check operator approval for non-cookbook coins
-      const needsToken0Approval = token0.id !== null && needsOperatorApproval(token0);
-      const needsToken1Approval = needsOperatorApproval(token1);
+      // Run allowance checks sequentially to keep UX/status messaging simple
+      await ensureAllowance(
+        token0,
+        amount0Desired,
+        allowance0,
+        approve0,
+        refetch0,
+        "FIRST",
+      );
+      await ensureAllowance(
+        token1,
+        amount1Desired,
+        allowance1,
+        approve1,
+        refetch1,
+        "SECOND",
+      );
 
-      if ((needsToken0Approval || needsToken1Approval) && isOperator === false) {
-        setTxError("Waiting for operator approval. Please confirm the transaction...");
+      // ---------- Existing ZAMM operator approval ----------
+      // If either side is a ZAMM coin and user hasn't set operator -> set it.
+      const needsToken0Operator =
+        token0.id !== null && needsOperatorApproval(token0);
+      const needsToken1Operator = needsOperatorApproval(token1);
+
+      if (
+        (needsToken0Operator || needsToken1Operator) &&
+        isOperator === false
+      ) {
+        setTxError(
+          "Waiting for operator approval. Please confirm the transaction...",
+        );
 
         const approvalHash = await writeContractAsync({
           address: CoinsAddress,
@@ -254,7 +352,9 @@ export const CreatePool = () => {
         });
 
         setTxError("Operator approval submitted. Waiting for confirmation...");
-        const receipt = await publicClient.waitForTransactionReceipt({ hash: approvalHash });
+        const receipt = await publicClient.waitForTransactionReceipt({
+          hash: approvalHash,
+        });
 
         if (receipt.status === "success") {
           await refetchOperator();
@@ -265,8 +365,8 @@ export const CreatePool = () => {
         }
       }
 
-      // Create the pool by calling addLiquidity
-      const deadline = nowSec() + 1200n; // 20 minute deadline
+      // ---------- Create the pool by calling addLiquidity ----------
+      const deadline = nowSec() + 1200n; // 20 minutes
 
       const hash = await writeContractAsync({
         address: CookbookAddress,
@@ -359,7 +459,9 @@ export const CreatePool = () => {
           isEthBalanceFetching={isEthBalanceFetching}
           amount={amount1}
           onAmountChange={setAmount1}
-          showMaxButton={!!(token1.balance !== undefined && token1.balance > 0n)}
+          showMaxButton={
+            !!(token1.balance !== undefined && token1.balance > 0n)
+          }
           onMax={() => {
             if (token1.id === null) {
               const ethAmount = ((token1.balance as bigint) * 99n) / 100n;
@@ -417,9 +519,12 @@ export const CreatePool = () => {
         </div>
       )}
 
-      {((writeError && !isUserRejectionError(writeError)) || (txError && !txError.includes("Waiting for"))) && (
+      {((writeError && !isUserRejectionError(writeError)) ||
+        (txError && !txError.includes("Waiting for"))) && (
         <div className="text-sm text-destructive mt-2 bg-background/50 p-2 rounded border border-destructive/20">
-          {writeError && !isUserRejectionError(writeError) ? writeError.message : txError}
+          {writeError && !isUserRejectionError(writeError)
+            ? writeError.message
+            : txError}
         </div>
       )}
 
