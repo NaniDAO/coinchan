@@ -86,7 +86,7 @@ export const TokenImage = memo(({ token }: { token: TokenMeta }) => {
   }
 
   if (token.symbol === "WLFI" && token.isCustomPool) {
-    return <img src="https://etherscan.io/token/images/worldlibertyfinancial_32.png" alt="WLFI" className="w-8 h-8 rounded-full object-cover" />;
+    return <img src="/wlfi.png" alt="WLFI" className="w-8 h-8 rounded-full object-cover" />;
   }
 
   // Fallback to colored initials

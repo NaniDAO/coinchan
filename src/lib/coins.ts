@@ -234,7 +234,7 @@ export const WLFI_TOKEN: TokenMeta = {
   symbol: "WLFI",
   source: "COOKBOOK", // Use Cookbook for WLFI pools
   tokenUri: undefined, // No tokenUri for WLFI
-  imageUrl: "https://etherscan.io/token/images/worldlibertyfinancial_32.png", // Official WLFI logo from Etherscan
+  imageUrl: "/wlfi.png", // Local WLFI logo
   reserve0: 1000000000000000000000n, // 1000 ETH (placeholder - will be updated by hook)
   reserve1: 2000000000000000000000000n, // 2M WLFI (18 decimals, placeholder)
   swapFee: 30n, // 0.3% fee tier (30 bps)
