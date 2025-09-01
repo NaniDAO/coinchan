@@ -54,6 +54,17 @@
     },
     {
       "chainId": 1,
+      "address": "0xda5e1988097297dcdc1f90d4dfe7909e847cbef6",
+      "name": "World Liberty Financial",
+      "symbol": "WLFI",
+      "decimals": 18,
+      "logoURI": "https://assets.coingecko.com/coins/images/50767/standard/wlfi.png?1727872989",
+      "extensions": {
+        "bridgeInfo": {}
+      }
+    },
+    {
+      "chainId": 1,
       "address": "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9",
       "name": "Aave",
       "symbol": "AAVE",
@@ -6267,11 +6278,7 @@
       }
     }
   ],
-  "keywords": [
-    "ethereum",
-    "mainnet",
-    "tokens"
-  ],
+  "keywords": ["ethereum", "mainnet", "tokens"],
   "tags": {},
   "logoURI": "ipfs://QmNa8mQkrNKp1WEEeGjFezDmDeodkWRevGFN8JCV7b4Xir"
 }
