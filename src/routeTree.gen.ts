@@ -15,6 +15,7 @@ import { Route as SwapRouteImport } from './routes/swap'
 import { Route as SendRouteImport } from './routes/send'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as OneshotRouteImport } from './routes/oneshot'
+import { Route as LimitRouteImport } from './routes/limit'
 import { Route as LaunchRouteImport } from './routes/launch'
 import { Route as FarmRouteImport } from './routes/farm'
 import { Route as ExploreRouteImport } from './routes/explore'
@@ -24,8 +25,10 @@ import { Route as CoinsRouteImport } from './routes/coins'
 import { Route as CoinpaperRouteImport } from './routes/coinpaper'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PositionsIndexRouteImport } from './routes/positions/index'
 import { Route as FarmIndexRouteImport } from './routes/farm/index'
 import { Route as UUserIdRouteImport } from './routes/u.$userId'
+import { Route as PositionsCreateRouteImport } from './routes/positions/create'
 import { Route as FarmCreateRouteImport } from './routes/farm/create'
 import { Route as CCoinIdRouteImport } from './routes/c.$coinId'
 
@@ -57,6 +60,11 @@ const OrdersRoute = OrdersRouteImport.update({
 const OneshotRoute = OneshotRouteImport.update({
   id: '/oneshot',
   path: '/oneshot',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LimitRoute = LimitRouteImport.update({
+  id: '/limit',
+  path: '/limit',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LaunchRoute = LaunchRouteImport.update({
@@ -104,6 +112,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PositionsIndexRoute = PositionsIndexRouteImport.update({
+  id: '/positions/',
+  path: '/positions/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FarmIndexRoute = FarmIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -112,6 +125,11 @@ const FarmIndexRoute = FarmIndexRouteImport.update({
 const UUserIdRoute = UUserIdRouteImport.update({
   id: '/u/$userId',
   path: '/u/$userId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PositionsCreateRoute = PositionsCreateRouteImport.update({
+  id: '/positions/create',
+  path: '/positions/create',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FarmCreateRoute = FarmCreateRouteImport.update({
@@ -135,6 +153,7 @@ export interface FileRoutesByFullPath {
   '/explore': typeof ExploreRoute
   '/farm': typeof FarmRouteWithChildren
   '/launch': typeof LaunchRoute
+  '/limit': typeof LimitRoute
   '/oneshot': typeof OneshotRoute
   '/orders': typeof OrdersRoute
   '/send': typeof SendRoute
@@ -143,8 +162,10 @@ export interface FileRoutesByFullPath {
   '/wlfi': typeof WlfiRoute
   '/c/$coinId': typeof CCoinIdRoute
   '/farm/create': typeof FarmCreateRoute
+  '/positions/create': typeof PositionsCreateRoute
   '/u/$userId': typeof UUserIdRoute
   '/farm/': typeof FarmIndexRoute
+  '/positions': typeof PositionsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -155,6 +176,7 @@ export interface FileRoutesByTo {
   '/ens': typeof EnsRoute
   '/explore': typeof ExploreRoute
   '/launch': typeof LaunchRoute
+  '/limit': typeof LimitRoute
   '/oneshot': typeof OneshotRoute
   '/orders': typeof OrdersRoute
   '/send': typeof SendRoute
@@ -163,8 +185,10 @@ export interface FileRoutesByTo {
   '/wlfi': typeof WlfiRoute
   '/c/$coinId': typeof CCoinIdRoute
   '/farm/create': typeof FarmCreateRoute
+  '/positions/create': typeof PositionsCreateRoute
   '/u/$userId': typeof UUserIdRoute
   '/farm': typeof FarmIndexRoute
+  '/positions': typeof PositionsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -177,6 +201,7 @@ export interface FileRoutesById {
   '/explore': typeof ExploreRoute
   '/farm': typeof FarmRouteWithChildren
   '/launch': typeof LaunchRoute
+  '/limit': typeof LimitRoute
   '/oneshot': typeof OneshotRoute
   '/orders': typeof OrdersRoute
   '/send': typeof SendRoute
@@ -185,8 +210,10 @@ export interface FileRoutesById {
   '/wlfi': typeof WlfiRoute
   '/c/$coinId': typeof CCoinIdRoute
   '/farm/create': typeof FarmCreateRoute
+  '/positions/create': typeof PositionsCreateRoute
   '/u/$userId': typeof UUserIdRoute
   '/farm/': typeof FarmIndexRoute
+  '/positions/': typeof PositionsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -200,6 +227,7 @@ export interface FileRouteTypes {
     | '/explore'
     | '/farm'
     | '/launch'
+    | '/limit'
     | '/oneshot'
     | '/orders'
     | '/send'
@@ -208,8 +236,10 @@ export interface FileRouteTypes {
     | '/wlfi'
     | '/c/$coinId'
     | '/farm/create'
+    | '/positions/create'
     | '/u/$userId'
     | '/farm/'
+    | '/positions'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -220,6 +250,7 @@ export interface FileRouteTypes {
     | '/ens'
     | '/explore'
     | '/launch'
+    | '/limit'
     | '/oneshot'
     | '/orders'
     | '/send'
@@ -228,8 +259,10 @@ export interface FileRouteTypes {
     | '/wlfi'
     | '/c/$coinId'
     | '/farm/create'
+    | '/positions/create'
     | '/u/$userId'
     | '/farm'
+    | '/positions'
   id:
     | '__root__'
     | '/'
@@ -241,6 +274,7 @@ export interface FileRouteTypes {
     | '/explore'
     | '/farm'
     | '/launch'
+    | '/limit'
     | '/oneshot'
     | '/orders'
     | '/send'
@@ -249,8 +283,10 @@ export interface FileRouteTypes {
     | '/wlfi'
     | '/c/$coinId'
     | '/farm/create'
+    | '/positions/create'
     | '/u/$userId'
     | '/farm/'
+    | '/positions/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -263,6 +299,7 @@ export interface RootRouteChildren {
   ExploreRoute: typeof ExploreRoute
   FarmRoute: typeof FarmRouteWithChildren
   LaunchRoute: typeof LaunchRoute
+  LimitRoute: typeof LimitRoute
   OneshotRoute: typeof OneshotRoute
   OrdersRoute: typeof OrdersRoute
   SendRoute: typeof SendRoute
@@ -270,7 +307,9 @@ export interface RootRouteChildren {
   UserRoute: typeof UserRoute
   WlfiRoute: typeof WlfiRoute
   CCoinIdRoute: typeof CCoinIdRoute
+  PositionsCreateRoute: typeof PositionsCreateRoute
   UUserIdRoute: typeof UUserIdRoute
+  PositionsIndexRoute: typeof PositionsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -315,6 +354,13 @@ declare module '@tanstack/react-router' {
       path: '/oneshot'
       fullPath: '/oneshot'
       preLoaderRoute: typeof OneshotRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/limit': {
+      id: '/limit'
+      path: '/limit'
+      fullPath: '/limit'
+      preLoaderRoute: typeof LimitRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/launch': {
@@ -380,6 +426,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/positions/': {
+      id: '/positions/'
+      path: '/positions'
+      fullPath: '/positions'
+      preLoaderRoute: typeof PositionsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/farm/': {
       id: '/farm/'
       path: '/'
@@ -392,6 +445,13 @@ declare module '@tanstack/react-router' {
       path: '/u/$userId'
       fullPath: '/u/$userId'
       preLoaderRoute: typeof UUserIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/positions/create': {
+      id: '/positions/create'
+      path: '/positions/create'
+      fullPath: '/positions/create'
+      preLoaderRoute: typeof PositionsCreateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/farm/create': {
@@ -433,6 +493,7 @@ const rootRouteChildren: RootRouteChildren = {
   ExploreRoute: ExploreRoute,
   FarmRoute: FarmRouteWithChildren,
   LaunchRoute: LaunchRoute,
+  LimitRoute: LimitRoute,
   OneshotRoute: OneshotRoute,
   OrdersRoute: OrdersRoute,
   SendRoute: SendRoute,
@@ -440,7 +501,9 @@ const rootRouteChildren: RootRouteChildren = {
   UserRoute: UserRoute,
   WlfiRoute: WlfiRoute,
   CCoinIdRoute: CCoinIdRoute,
+  PositionsCreateRoute: PositionsCreateRoute,
   UUserIdRoute: UUserIdRoute,
+  PositionsIndexRoute: PositionsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
