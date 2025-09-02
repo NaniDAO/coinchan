@@ -112,6 +112,7 @@ html {
   font-size: var(--font-size-base);
   -webkit-text-size-adjust: 100%;
   overflow-x: hidden;
+  scrollbar-gutter: stable both-edges;
 }
 
 body {
@@ -527,7 +528,12 @@ body {
 
 .token-loading {
   animation: shimmer 1.5s infinite;
-  background: linear-gradient(90deg, var(--terminal-gray) 0%, var(--terminal-white) 50%, var(--terminal-gray) 100%);
+  background: linear-gradient(
+    90deg,
+    var(--terminal-gray) 0%,
+    var(--terminal-white) 50%,
+    var(--terminal-gray) 100%
+  );
   background-size: 200% 100%;
   border: 1px solid var(--terminal-black);
 }

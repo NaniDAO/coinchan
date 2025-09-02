@@ -13,6 +13,12 @@ import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 
 export const Route = createRootRoute({
   component: () => {
@@ -20,6 +26,7 @@ export const Route = createRootRoute({
     const navigate = useNavigate();
     const { t } = useTranslation();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isTradeOpen, setIsTradeOpen] = useState(false);
 
     const handleLogoClick = () => {
       // Always navigate to landing page
@@ -35,14 +42,6 @@ export const Route = createRootRoute({
       setIsMobileMenuOpen(false);
     };
 
-    const navLinks = [
-      { to: "/swap", label: t("common.swap") },
-      { to: "/explore", label: t("common.explore") },
-      { to: "/positions", label: t("common.positions") },
-      { to: "/coins", label: t("common.coins") },
-      { to: "/farm", label: `🌾 ${t("common.farm")}` },
-    ];
-
     const navLinkClasses = (path: string) =>
       cn(
         "cursor-pointer border-2 border-transparent transition-all duration-100 font-extrabold font-body no-underline text-foreground flex-1 text-center flex items-center justify-center min-w-fit uppercase tracking-widest hover:bg-accent hover:text-accent-foreground",
@@ -54,11 +53,11 @@ export const Route = createRootRoute({
 
     return (
       <>
-        <main className="flex flex-col items-center justify-center !space-y-0 bg-foreground">
+        <main className="flex flex-col items-center justify-center !space-y-0 bg-foreground overflow-x-hidden">
           {/* Header */}
           <div
             className={cn(
-              "!p-2 w-screen bg-background justify-between text-foreground flex flex-row items-center outline-2 outline-offset-2 outline-background relative",
+              "!p-2 w-full max-w-[100vw] bg-background justify-between text-foreground flex flex-row items-center relative",
             )}
           >
             {/* Logo */}
@@ -67,8 +66,50 @@ export const Route = createRootRoute({
             </div>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex md:flex-row md:space-x-3 ml-2">
-              {navLinks.map((link) => (
+            <nav className="hidden md:flex md:flex-row items-stretch gap-3">
+              <div className="flex-1 min-w-0 relative">
+                <DropdownMenu open={isTradeOpen} onOpenChange={setIsTradeOpen}>
+                  <DropdownMenuTrigger asChild>
+                    <Link
+                      to="/swap"
+                      className={cn(
+                        navLinkClasses("/swap"),
+                        "w-full inline-flex",
+                      )}
+                      onMouseEnter={() => setIsTradeOpen(true)}
+                      onMouseLeave={() => setIsTradeOpen(false)}
+                    >
+                      {t("common.trade")}
+                    </Link>
+                  </DropdownMenuTrigger>
+
+                  <DropdownMenuContent
+                    align="start"
+                    sideOffset={8}
+                    className="min-w-[160px]"
+                    onMouseEnter={() => setIsTradeOpen(true)}
+                    onMouseLeave={() => setIsTradeOpen(false)}
+                  >
+                    <DropdownMenuItem asChild>
+                      <Link to="/swap" className="w-full">
+                        Swap
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/limit" className="w-full">
+                        Limit
+                      </Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
+              {[
+                { to: "/explore", label: t("common.explore") },
+                { to: "/positions", label: t("common.positions") },
+                { to: "/coins", label: t("common.coins") },
+                { to: "/farm", label: `🌾 ${t("common.farm")}` },
+              ].map((link) => (
                 <Link
                   key={link.to}
                   to={link.to}
@@ -112,14 +153,19 @@ export const Route = createRootRoute({
               </button>
             </div>
           </div>
-
           {/* Mobile Dropdown Menu */}
           {isMobileMenuOpen && (
             <div className="md:hidden w-screen bg-background border-b-2 border-border shadow-lg z-50">
               <div className="flex flex-col space-y-3 p-4">
                 {/* Mobile Navigation Links */}
                 <nav className="flex flex-col space-y-2">
-                  {navLinks.map((link) => (
+                  {[
+                    { to: "/swap", label: t("common.trade") },
+                    { to: "/explore", label: t("common.explore") },
+                    { to: "/positions", label: t("common.positions") },
+                    { to: "/coins", label: t("common.coins") },
+                    { to: "/farm", label: `🌾 ${t("common.farm")}` },
+                  ].map((link) => (
                     <Link
                       key={link.to}
                       to={link.to}
@@ -138,9 +184,8 @@ export const Route = createRootRoute({
               </div>
             </div>
           )}
-
           {/* Main Content */}
-          <div className="min-h-screen w-screen bg-background border-t-4 border-border relative z-0">
+          <div className="min-h-screen w-full max-w-[100vw] bg-background z-0 overflow-x-hidden">
             <Outlet />
           </div>
         </main>
