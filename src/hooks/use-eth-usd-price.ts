@@ -1,14 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { usePublicClient } from "wagmi";
 import { mainnet } from "viem/chains";
-import { CheckTheChainAbi, CheckTheChainAddress } from "@/constants/CheckTheChain";
+import {
+  CheckTheChainAbi,
+  CheckTheChainAddress,
+} from "@/constants/CheckTheChain";
 
 export function useEthUsdPrice() {
   const publicClient = usePublicClient({ chainId: mainnet.id });
 
   return useQuery({
     queryKey: ["ethUsdPrice"],
-    queryFn: async () => {
+    queryFn: async (): Promise<number> => {
       if (!publicClient) return 0;
 
       try {

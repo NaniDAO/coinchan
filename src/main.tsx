@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
 import React from "react";
 import ReactDOM from "react-dom/client";
@@ -8,7 +8,12 @@ import { ThemeProvider, useTheme } from "./lib/theme";
 import { routeTree } from "./routeTree.gen";
 import { config } from "./wagmi.ts";
 import "@rainbow-me/rainbowkit/styles.css";
-import { type Locale, RainbowKitProvider, darkTheme, lightTheme } from "@rainbow-me/rainbowkit";
+import {
+  type Locale,
+  RainbowKitProvider,
+  darkTheme,
+  lightTheme,
+} from "@rainbow-me/rainbowkit";
 import { WagmiProvider } from "wagmi";
 
 import "./index.css";
@@ -16,20 +21,27 @@ import "./i18n";
 import { useTranslation } from "react-i18next";
 import ConnectionErrorHandler from "./lib/ConnectionErrorHandler";
 import "./lib/favicon"; // Initialize favicon manager
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
+
+const persister = createSyncStoragePersister({
+  storage: window.localStorage,
+  key: "zamm-cache-v1", // bump this to bust cache on schema changes
+  throttleTime: 1000,
+});
 
 // Configure query client with performance optimizations
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
+      networkMode: "offlineFirst", // keep old data when offline/down
       // Reduce the frequency of background refetches
-      staleTime: 30000, // 30 seconds
-      gcTime: 1000 * 60 * 60 * 24, // 24 hours
+      staleTime: 60_000, // 60 seconds
+      gcTime: 7 * 24 * 60 * 60 * 1000, // 24 hours
       refetchInterval: false,
       refetchOnWindowFocus: false,
       // Retry less aggressively
-      retry: 1,
-      // Set a reasonable timeout
-      networkMode: "online",
+      retry: 2,
     },
   },
 });
@@ -65,7 +77,18 @@ export const WalletProviders = ({
   const { i18n } = useTranslation();
   return (
     <WagmiProvider config={config} reconnectOnMount={true}>
-      <QueryClientProvider client={queryClient}>
+      <PersistQueryClientProvider
+        client={queryClient}
+        persistOptions={{
+          persister,
+          maxAge: 24 * 60 * 60 * 1000, // drop persisted data older than 24h
+          dehydrateOptions: {
+            // Persist only the queries you want (saves space)
+            shouldDehydrateQuery: (q) =>
+              String(q.queryKey[0]).startsWith("coins-table"),
+          },
+        }}
+      >
         <RainbowKitProvider
           coolMode
           locale={(i18n.language as Locale) ?? "en-US"}
@@ -90,7 +113,7 @@ export const WalletProviders = ({
           <ConnectionErrorHandler />
           {children}
         </RainbowKitProvider>
-      </QueryClientProvider>
+      </PersistQueryClientProvider>
     </WagmiProvider>
   );
 };

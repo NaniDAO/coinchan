@@ -27,6 +27,7 @@ export const Route = createRootRoute({
     const { t } = useTranslation();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isTradeOpen, setIsTradeOpen] = useState(false);
+    const [isPoolOpen, setIsPoolOpen] = useState(false); // NEW
 
     const handleLogoClick = () => {
       // Always navigate to landing page
@@ -67,6 +68,7 @@ export const Route = createRootRoute({
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex md:flex-row items-stretch gap-3">
+              {/* Trade */}
               <div className="flex-1 min-w-0 relative">
                 <DropdownMenu open={isTradeOpen} onOpenChange={setIsTradeOpen}>
                   <DropdownMenuTrigger asChild>
@@ -104,20 +106,58 @@ export const Route = createRootRoute({
                 </DropdownMenu>
               </div>
 
-              {[
-                { to: "/explore", label: t("common.explore") },
-                { to: "/positions", label: t("common.positions") },
-                { to: "/coins", label: t("common.coins") },
-                { to: "/farm", label: `🌾 ${t("common.farm")}` },
-              ].map((link) => (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  className={navLinkClasses(link.to)}
-                >
-                  {link.label}
-                </Link>
-              ))}
+              {/* Explore */}
+              <Link to="/explore" className={navLinkClasses("/explore")}>
+                {t("common.explore")}
+              </Link>
+
+              {/* Pool (dropdown) */}
+              <div className="flex-1 min-w-0 relative">
+                <DropdownMenu open={isPoolOpen} onOpenChange={setIsPoolOpen}>
+                  <DropdownMenuTrigger asChild>
+                    <Link
+                      to="/positions" // default click goes to /positions
+                      className={cn(
+                        navLinkClasses("/positions"),
+                        "w-full inline-flex",
+                      )}
+                      onMouseEnter={() => setIsPoolOpen(true)}
+                      onMouseLeave={() => setIsPoolOpen(false)}
+                    >
+                      {t("common.pool")}
+                    </Link>
+                  </DropdownMenuTrigger>
+
+                  <DropdownMenuContent
+                    align="start"
+                    sideOffset={8}
+                    className="min-w-[160px]"
+                    onMouseEnter={() => setIsPoolOpen(true)}
+                    onMouseLeave={() => setIsPoolOpen(false)}
+                  >
+                    <DropdownMenuItem asChild>
+                      <Link to="/positions" className="w-full">
+                        {t("common.pool")}
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/positions/create" className="w-full">
+                        {t("navigation.create", "Create")}
+                      </Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
+              {/* Coins */}
+              <Link to="/coins" className={navLinkClasses("/coins")}>
+                {t("common.coins")}
+              </Link>
+
+              {/* Farm */}
+              <Link to="/farm" className={navLinkClasses("/farm")}>
+                {`🌾 ${t("common.farm")}`}
+              </Link>
             </nav>
 
             {/* Desktop Right Side */}
@@ -153,6 +193,7 @@ export const Route = createRootRoute({
               </button>
             </div>
           </div>
+
           {/* Mobile Dropdown Menu */}
           {isMobileMenuOpen && (
             <div className="md:hidden w-screen bg-background border-b-2 border-border shadow-lg z-50">
@@ -184,6 +225,7 @@ export const Route = createRootRoute({
               </div>
             </div>
           )}
+
           {/* Main Content */}
           <div className="min-h-screen w-full max-w-[100vw] bg-background z-0 overflow-x-hidden">
             <Outlet />
