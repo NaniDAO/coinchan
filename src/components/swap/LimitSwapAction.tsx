@@ -465,7 +465,7 @@ export const LimitSwapAction = ({ lockedTokens }: Props) => {
             {t("swap.order_created")}
           </div>
           <Link
-            to="/orders"
+            to="/explore/orders"
             className="flex items-center gap-1 text-chart-2 hover:text-chart-2/80 transition-colors text-xs"
           >
             {t("swap.view_orders")}

@@ -13,7 +13,6 @@ import { Route as WlfiRouteImport } from './routes/wlfi'
 import { Route as UserRouteImport } from './routes/user'
 import { Route as SwapRouteImport } from './routes/swap'
 import { Route as SendRouteImport } from './routes/send'
-import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as OneshotRouteImport } from './routes/oneshot'
 import { Route as LimitRouteImport } from './routes/limit'
 import { Route as LaunchRouteImport } from './routes/launch'
@@ -21,7 +20,6 @@ import { Route as FarmRouteImport } from './routes/farm'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as EnsRouteImport } from './routes/ens'
 import { Route as CultRouteImport } from './routes/cult'
-import { Route as CoinsRouteImport } from './routes/coins'
 import { Route as CoinpaperRouteImport } from './routes/coinpaper'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
@@ -30,6 +28,10 @@ import { Route as FarmIndexRouteImport } from './routes/farm/index'
 import { Route as UUserIdRouteImport } from './routes/u.$userId'
 import { Route as PositionsCreateRouteImport } from './routes/positions/create'
 import { Route as FarmCreateRouteImport } from './routes/farm/create'
+import { Route as ExploreTokensRouteImport } from './routes/explore/tokens'
+import { Route as ExplorePoolsRouteImport } from './routes/explore/pools'
+import { Route as ExploreOrdersRouteImport } from './routes/explore/orders'
+import { Route as ExploreBondedCoinsRouteImport } from './routes/explore/bonded-coins'
 import { Route as CCoinIdRouteImport } from './routes/c.$coinId'
 
 const WlfiRoute = WlfiRouteImport.update({
@@ -50,11 +52,6 @@ const SwapRoute = SwapRouteImport.update({
 const SendRoute = SendRouteImport.update({
   id: '/send',
   path: '/send',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OrdersRoute = OrdersRouteImport.update({
-  id: '/orders',
-  path: '/orders',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OneshotRoute = OneshotRouteImport.update({
@@ -90,11 +87,6 @@ const EnsRoute = EnsRouteImport.update({
 const CultRoute = CultRouteImport.update({
   id: '/cult',
   path: '/cult',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CoinsRoute = CoinsRouteImport.update({
-  id: '/coins',
-  path: '/coins',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CoinpaperRoute = CoinpaperRouteImport.update({
@@ -137,6 +129,26 @@ const FarmCreateRoute = FarmCreateRouteImport.update({
   path: '/create',
   getParentRoute: () => FarmRoute,
 } as any)
+const ExploreTokensRoute = ExploreTokensRouteImport.update({
+  id: '/tokens',
+  path: '/tokens',
+  getParentRoute: () => ExploreRoute,
+} as any)
+const ExplorePoolsRoute = ExplorePoolsRouteImport.update({
+  id: '/pools',
+  path: '/pools',
+  getParentRoute: () => ExploreRoute,
+} as any)
+const ExploreOrdersRoute = ExploreOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => ExploreRoute,
+} as any)
+const ExploreBondedCoinsRoute = ExploreBondedCoinsRouteImport.update({
+  id: '/bonded-coins',
+  path: '/bonded-coins',
+  getParentRoute: () => ExploreRoute,
+} as any)
 const CCoinIdRoute = CCoinIdRouteImport.update({
   id: '/c/$coinId',
   path: '/c/$coinId',
@@ -147,20 +159,22 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/coinpaper': typeof CoinpaperRoute
-  '/coins': typeof CoinsRoute
   '/cult': typeof CultRoute
   '/ens': typeof EnsRoute
-  '/explore': typeof ExploreRoute
+  '/explore': typeof ExploreRouteWithChildren
   '/farm': typeof FarmRouteWithChildren
   '/launch': typeof LaunchRoute
   '/limit': typeof LimitRoute
   '/oneshot': typeof OneshotRoute
-  '/orders': typeof OrdersRoute
   '/send': typeof SendRoute
   '/swap': typeof SwapRoute
   '/user': typeof UserRoute
   '/wlfi': typeof WlfiRoute
   '/c/$coinId': typeof CCoinIdRoute
+  '/explore/bonded-coins': typeof ExploreBondedCoinsRoute
+  '/explore/orders': typeof ExploreOrdersRoute
+  '/explore/pools': typeof ExplorePoolsRoute
+  '/explore/tokens': typeof ExploreTokensRoute
   '/farm/create': typeof FarmCreateRoute
   '/positions/create': typeof PositionsCreateRoute
   '/u/$userId': typeof UUserIdRoute
@@ -171,19 +185,21 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/coinpaper': typeof CoinpaperRoute
-  '/coins': typeof CoinsRoute
   '/cult': typeof CultRoute
   '/ens': typeof EnsRoute
-  '/explore': typeof ExploreRoute
+  '/explore': typeof ExploreRouteWithChildren
   '/launch': typeof LaunchRoute
   '/limit': typeof LimitRoute
   '/oneshot': typeof OneshotRoute
-  '/orders': typeof OrdersRoute
   '/send': typeof SendRoute
   '/swap': typeof SwapRoute
   '/user': typeof UserRoute
   '/wlfi': typeof WlfiRoute
   '/c/$coinId': typeof CCoinIdRoute
+  '/explore/bonded-coins': typeof ExploreBondedCoinsRoute
+  '/explore/orders': typeof ExploreOrdersRoute
+  '/explore/pools': typeof ExplorePoolsRoute
+  '/explore/tokens': typeof ExploreTokensRoute
   '/farm/create': typeof FarmCreateRoute
   '/positions/create': typeof PositionsCreateRoute
   '/u/$userId': typeof UUserIdRoute
@@ -195,20 +211,22 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/coinpaper': typeof CoinpaperRoute
-  '/coins': typeof CoinsRoute
   '/cult': typeof CultRoute
   '/ens': typeof EnsRoute
-  '/explore': typeof ExploreRoute
+  '/explore': typeof ExploreRouteWithChildren
   '/farm': typeof FarmRouteWithChildren
   '/launch': typeof LaunchRoute
   '/limit': typeof LimitRoute
   '/oneshot': typeof OneshotRoute
-  '/orders': typeof OrdersRoute
   '/send': typeof SendRoute
   '/swap': typeof SwapRoute
   '/user': typeof UserRoute
   '/wlfi': typeof WlfiRoute
   '/c/$coinId': typeof CCoinIdRoute
+  '/explore/bonded-coins': typeof ExploreBondedCoinsRoute
+  '/explore/orders': typeof ExploreOrdersRoute
+  '/explore/pools': typeof ExplorePoolsRoute
+  '/explore/tokens': typeof ExploreTokensRoute
   '/farm/create': typeof FarmCreateRoute
   '/positions/create': typeof PositionsCreateRoute
   '/u/$userId': typeof UUserIdRoute
@@ -221,7 +239,6 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/coinpaper'
-    | '/coins'
     | '/cult'
     | '/ens'
     | '/explore'
@@ -229,12 +246,15 @@ export interface FileRouteTypes {
     | '/launch'
     | '/limit'
     | '/oneshot'
-    | '/orders'
     | '/send'
     | '/swap'
     | '/user'
     | '/wlfi'
     | '/c/$coinId'
+    | '/explore/bonded-coins'
+    | '/explore/orders'
+    | '/explore/pools'
+    | '/explore/tokens'
     | '/farm/create'
     | '/positions/create'
     | '/u/$userId'
@@ -245,19 +265,21 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/coinpaper'
-    | '/coins'
     | '/cult'
     | '/ens'
     | '/explore'
     | '/launch'
     | '/limit'
     | '/oneshot'
-    | '/orders'
     | '/send'
     | '/swap'
     | '/user'
     | '/wlfi'
     | '/c/$coinId'
+    | '/explore/bonded-coins'
+    | '/explore/orders'
+    | '/explore/pools'
+    | '/explore/tokens'
     | '/farm/create'
     | '/positions/create'
     | '/u/$userId'
@@ -268,7 +290,6 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/coinpaper'
-    | '/coins'
     | '/cult'
     | '/ens'
     | '/explore'
@@ -276,12 +297,15 @@ export interface FileRouteTypes {
     | '/launch'
     | '/limit'
     | '/oneshot'
-    | '/orders'
     | '/send'
     | '/swap'
     | '/user'
     | '/wlfi'
     | '/c/$coinId'
+    | '/explore/bonded-coins'
+    | '/explore/orders'
+    | '/explore/pools'
+    | '/explore/tokens'
     | '/farm/create'
     | '/positions/create'
     | '/u/$userId'
@@ -293,15 +317,13 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   CoinpaperRoute: typeof CoinpaperRoute
-  CoinsRoute: typeof CoinsRoute
   CultRoute: typeof CultRoute
   EnsRoute: typeof EnsRoute
-  ExploreRoute: typeof ExploreRoute
+  ExploreRoute: typeof ExploreRouteWithChildren
   FarmRoute: typeof FarmRouteWithChildren
   LaunchRoute: typeof LaunchRoute
   LimitRoute: typeof LimitRoute
   OneshotRoute: typeof OneshotRoute
-  OrdersRoute: typeof OrdersRoute
   SendRoute: typeof SendRoute
   SwapRoute: typeof SwapRoute
   UserRoute: typeof UserRoute
@@ -340,13 +362,6 @@ declare module '@tanstack/react-router' {
       path: '/send'
       fullPath: '/send'
       preLoaderRoute: typeof SendRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/orders': {
-      id: '/orders'
-      path: '/orders'
-      fullPath: '/orders'
-      preLoaderRoute: typeof OrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/oneshot': {
@@ -396,13 +411,6 @@ declare module '@tanstack/react-router' {
       path: '/cult'
       fullPath: '/cult'
       preLoaderRoute: typeof CultRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/coins': {
-      id: '/coins'
-      path: '/coins'
-      fullPath: '/coins'
-      preLoaderRoute: typeof CoinsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/coinpaper': {
@@ -461,6 +469,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FarmCreateRouteImport
       parentRoute: typeof FarmRoute
     }
+    '/explore/tokens': {
+      id: '/explore/tokens'
+      path: '/tokens'
+      fullPath: '/explore/tokens'
+      preLoaderRoute: typeof ExploreTokensRouteImport
+      parentRoute: typeof ExploreRoute
+    }
+    '/explore/pools': {
+      id: '/explore/pools'
+      path: '/pools'
+      fullPath: '/explore/pools'
+      preLoaderRoute: typeof ExplorePoolsRouteImport
+      parentRoute: typeof ExploreRoute
+    }
+    '/explore/orders': {
+      id: '/explore/orders'
+      path: '/orders'
+      fullPath: '/explore/orders'
+      preLoaderRoute: typeof ExploreOrdersRouteImport
+      parentRoute: typeof ExploreRoute
+    }
+    '/explore/bonded-coins': {
+      id: '/explore/bonded-coins'
+      path: '/bonded-coins'
+      fullPath: '/explore/bonded-coins'
+      preLoaderRoute: typeof ExploreBondedCoinsRouteImport
+      parentRoute: typeof ExploreRoute
+    }
     '/c/$coinId': {
       id: '/c/$coinId'
       path: '/c/$coinId'
@@ -470,6 +506,23 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface ExploreRouteChildren {
+  ExploreBondedCoinsRoute: typeof ExploreBondedCoinsRoute
+  ExploreOrdersRoute: typeof ExploreOrdersRoute
+  ExplorePoolsRoute: typeof ExplorePoolsRoute
+  ExploreTokensRoute: typeof ExploreTokensRoute
+}
+
+const ExploreRouteChildren: ExploreRouteChildren = {
+  ExploreBondedCoinsRoute: ExploreBondedCoinsRoute,
+  ExploreOrdersRoute: ExploreOrdersRoute,
+  ExplorePoolsRoute: ExplorePoolsRoute,
+  ExploreTokensRoute: ExploreTokensRoute,
+}
+
+const ExploreRouteWithChildren =
+  ExploreRoute._addFileChildren(ExploreRouteChildren)
 
 interface FarmRouteChildren {
   FarmCreateRoute: typeof FarmCreateRoute
@@ -487,15 +540,13 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   CoinpaperRoute: CoinpaperRoute,
-  CoinsRoute: CoinsRoute,
   CultRoute: CultRoute,
   EnsRoute: EnsRoute,
-  ExploreRoute: ExploreRoute,
+  ExploreRoute: ExploreRouteWithChildren,
   FarmRoute: FarmRouteWithChildren,
   LaunchRoute: LaunchRoute,
   LimitRoute: LimitRoute,
   OneshotRoute: OneshotRoute,
-  OrdersRoute: OrdersRoute,
   SendRoute: SendRoute,
   SwapRoute: SwapRoute,
   UserRoute: UserRoute,

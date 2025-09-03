@@ -11,7 +11,19 @@ import {
 } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import {
+  Menu,
+  X,
+  ArrowLeftRight,
+  Clock,
+  Send as SendIcon,
+  Layers,
+  PlusCircle,
+  Rocket,
+  Coins as CoinsIcon,
+  Waves,
+  Logs,
+} from "lucide-react";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
 import {
   DropdownMenu,
@@ -27,7 +39,9 @@ export const Route = createRootRoute({
     const { t } = useTranslation();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isTradeOpen, setIsTradeOpen] = useState(false);
-    const [isPoolOpen, setIsPoolOpen] = useState(false); // NEW
+    const [isPoolOpen, setIsPoolOpen] = useState(false);
+    const [isExploreOpen, setIsExploreOpen] = useState(false);
+    const [isFarmOpen, setIsFarmOpen] = useState(false); // NEW
 
     const handleLogoClick = () => {
       // Always navigate to landing page
@@ -52,6 +66,8 @@ export const Route = createRootRoute({
           : "",
       );
 
+    const itemClasses = "w-full flex items-center gap-2 py-2 px-2 rounded-md";
+
     return (
       <>
         <main className="flex flex-col items-center justify-center !space-y-0 bg-foreground overflow-x-hidden">
@@ -67,7 +83,8 @@ export const Route = createRootRoute({
             </div>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex md:flex-row items-stretch gap-3">
+            {/* Make nav flex-1 so children with flex-1 share space evenly; keeps equal gaps */}
+            <nav className="hidden md:flex md:flex-row items-stretch gap-3 flex-1 mx-4">
               {/* Trade */}
               <div className="flex-1 min-w-0 relative">
                 <DropdownMenu open={isTradeOpen} onOpenChange={setIsTradeOpen}>
@@ -88,28 +105,87 @@ export const Route = createRootRoute({
                   <DropdownMenuContent
                     align="start"
                     sideOffset={8}
-                    className="min-w-[160px]"
+                    className="min-w-[200px]"
                     onMouseEnter={() => setIsTradeOpen(true)}
                     onMouseLeave={() => setIsTradeOpen(false)}
                   >
                     <DropdownMenuItem asChild>
-                      <Link to="/swap" className="w-full">
-                        Swap
+                      <Link to="/swap" className={itemClasses}>
+                        <ArrowLeftRight className="h-4 w-4" />
+                        <span>Swap</span>
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link to="/limit" className="w-full">
-                        Limit
+                      <Link to="/limit" className={itemClasses}>
+                        <Clock className="h-4 w-4" />
+                        <span>Limit</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    {/* NEW: Send */}
+                    <DropdownMenuItem asChild>
+                      <Link to="/send" className={itemClasses}>
+                        <SendIcon className="h-4 w-4" />
+                        <span>Send</span>
                       </Link>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
 
-              {/* Explore */}
-              <Link to="/explore" className={navLinkClasses("/explore")}>
-                {t("common.explore")}
-              </Link>
+              {/* Explore (dropdown) */}
+              <div className="flex-1 min-w-0 relative">
+                <DropdownMenu
+                  open={isExploreOpen}
+                  onOpenChange={setIsExploreOpen}
+                >
+                  <DropdownMenuTrigger asChild>
+                    <Link
+                      to="/explore/tokens"
+                      className={cn(
+                        navLinkClasses("/explore"),
+                        "w-full inline-flex",
+                      )}
+                      onMouseEnter={() => setIsExploreOpen(true)}
+                      onMouseLeave={() => setIsExploreOpen(false)}
+                    >
+                      {t("common.explore")}
+                    </Link>
+                  </DropdownMenuTrigger>
+
+                  <DropdownMenuContent
+                    align="start"
+                    sideOffset={8}
+                    className="min-w-[220px]"
+                    onMouseEnter={() => setIsExploreOpen(true)}
+                    onMouseLeave={() => setIsExploreOpen(false)}
+                  >
+                    <DropdownMenuItem asChild>
+                      <Link to="/explore/tokens" className={itemClasses}>
+                        <CoinsIcon className="h-4 w-4" />
+                        <span>Tokens</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/explore/pools" className={itemClasses}>
+                        <Layers className="h-4 w-4" />
+                        <span>Pools</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/explore/bonded-coins" className={itemClasses}>
+                        <Waves className="h-4 w-4" />
+                        <span>Bonded Coins</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/explore/orders" className={itemClasses}>
+                        <Logs className="h-4 w-4" />
+                        <span>Orders</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
 
               {/* Pool (dropdown) */}
               <div className="flex-1 min-w-0 relative">
@@ -131,37 +207,69 @@ export const Route = createRootRoute({
                   <DropdownMenuContent
                     align="start"
                     sideOffset={8}
-                    className="min-w-[160px]"
+                    className="min-w-[200px]"
                     onMouseEnter={() => setIsPoolOpen(true)}
                     onMouseLeave={() => setIsPoolOpen(false)}
                   >
                     <DropdownMenuItem asChild>
-                      <Link to="/positions" className="w-full">
-                        {t("common.pool")}
+                      <Link to="/positions" className={itemClasses}>
+                        <Layers className="h-4 w-4" />
+                        <span>{t("common.pool")}</span>
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link to="/positions/create" className="w-full">
-                        {t("navigation.create", "Create")}
+                      <Link to="/positions/create" className={itemClasses}>
+                        <PlusCircle className="h-4 w-4" />
+                        <span>{t("navigation.create", "Create")}</span>
                       </Link>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
 
-              {/* Coins */}
-              <Link to="/coins" className={navLinkClasses("/coins")}>
-                {t("common.coins")}
-              </Link>
+              {/* Farm (dropdown) - UPDATED */}
+              <div className="flex-1 min-w-0 relative">
+                <DropdownMenu open={isFarmOpen} onOpenChange={setIsFarmOpen}>
+                  <DropdownMenuTrigger asChild>
+                    <Link
+                      to="/farm" // default click goes to /farm
+                      className={cn(
+                        navLinkClasses("/farm"),
+                        "w-full inline-flex",
+                      )}
+                      onMouseEnter={() => setIsFarmOpen(true)}
+                      onMouseLeave={() => setIsFarmOpen(false)}
+                    >
+                      {t("common.farm")}
+                    </Link>
+                  </DropdownMenuTrigger>
 
-              {/* Farm */}
-              <Link to="/farm" className={navLinkClasses("/farm")}>
-                {`🌾 ${t("common.farm")}`}
-              </Link>
+                  <DropdownMenuContent
+                    align="start"
+                    sideOffset={8}
+                    className="min-w-[200px]"
+                    onMouseEnter={() => setIsFarmOpen(true)}
+                    onMouseLeave={() => setIsFarmOpen(false)}
+                  >
+                    <DropdownMenuItem asChild>
+                      <Link to="/farm" className={itemClasses}>
+                        <Layers className="h-4 w-4" />
+                        <span>{t("common.farm")}</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/farm/create" className={itemClasses}>
+                        <Rocket className="h-4 w-4" />
+                        <span>{t("navigation.create", "Create")}</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </nav>
 
             {/* Desktop Right Side */}
-            <div className="hidden md:flex items-center gap-2.5 mr-10 flex-shrink-0">
+            <div className="hidden md:flex items-center gap-2.5 flex-shrink-0">
               <Link to="/oneshot">
                 <Button variant="outline" size="sm">
                   {t("navigation.create", "Create")}
@@ -201,11 +309,21 @@ export const Route = createRootRoute({
                 {/* Mobile Navigation Links */}
                 <nav className="flex flex-col space-y-2">
                   {[
-                    { to: "/swap", label: t("common.trade") },
+                    { to: "/swap", label: `${t("common.trade")} — Swap` },
+                    { to: "/limit", label: `${t("common.trade")} — Limit` },
+                    { to: "/send", label: `${t("common.trade")} — Send` },
                     { to: "/explore", label: t("common.explore") },
+                    { to: "/explore/launches", label: "Launches" },
+                    { to: "/explore/tokens", label: "Tokens" },
+                    { to: "/explore/pools", label: "Pools" },
+                    { to: "/explore/curve_coins", label: "Curve Coins" },
                     { to: "/positions", label: t("common.positions") },
                     { to: "/coins", label: t("common.coins") },
                     { to: "/farm", label: `🌾 ${t("common.farm")}` },
+                    {
+                      to: "/farm/create",
+                      label: `🌾 ${t("common.farm")} — ${t("navigation.create", "Create")}`,
+                    }, // NEW
                   ].map((link) => (
                     <Link
                       key={link.to}

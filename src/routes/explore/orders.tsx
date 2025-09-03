@@ -2,7 +2,7 @@ import { OrdersPage } from "@/components/OrdersPage";
 import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
-export const Route = createFileRoute("/orders")({
+export const Route = createFileRoute("/explore/orders")({
   component: RouteComponent,
 });
 

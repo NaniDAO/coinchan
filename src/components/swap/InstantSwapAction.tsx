@@ -2,16 +2,33 @@ import { Link } from "@tanstack/react-router";
 import { CheckIcon, InfoIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { encodeFunctionData, formatEther, formatUnits, maxUint256, parseUnits, type Address } from "viem";
+import {
+  encodeFunctionData,
+  formatEther,
+  formatUnits,
+  maxUint256,
+  parseUnits,
+  type Address,
+} from "viem";
 import { mainnet } from "viem/chains";
-import { useAccount, useChainId, usePublicClient, useSendTransaction, useWaitForTransactionReceipt } from "wagmi";
+import {
+  useAccount,
+  useChainId,
+  usePublicClient,
+  useSendTransaction,
+  useWaitForTransactionReceipt,
+} from "wagmi";
 import { PoolSwapChart } from "@/PoolSwapChart";
 import { FlipActionButton } from "@/components/FlipActionButton";
 import { NetworkError } from "@/components/NetworkError";
 import { SlippageSettings } from "@/components/SlippageSettings";
 import { SwapPanel } from "@/components/SwapPanel";
 import { LoadingLogo } from "@/components/ui/loading-logo";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 import { CoinsAbi } from "@/constants/Coins";
 import { useTokenSelection } from "@/contexts/TokenSelectionContext";
 import { useAllCoins } from "@/hooks/metadata/use-all-coins";
@@ -20,10 +37,22 @@ import { useENSResolution } from "@/hooks/use-ens-resolution";
 import { useETHPrice } from "@/hooks/use-eth-price";
 import { getCoinKey, type TokenMeta } from "@/lib/coins";
 import { handleWalletError } from "@/lib/errors";
-import { SLIPPAGE_BPS, analyzeTokens, getPoolIds, getSwapFee } from "@/lib/swap";
+import {
+  SLIPPAGE_BPS,
+  analyzeTokens,
+  getPoolIds,
+  getSwapFee,
+} from "@/lib/swap";
 import { cn } from "@/lib/utils";
 import { SwapController } from "@/components/SwapController";
-import { buildRoutePlan, mainnetConfig, findRoute, simulateRoute, erc20Abi, zRouterAbi } from "zrouter-sdk";
+import {
+  buildRoutePlan,
+  mainnetConfig,
+  findRoute,
+  simulateRoute,
+  erc20Abi,
+  zRouterAbi,
+} from "zrouter-sdk";
 import { CustomRecipientInput } from "@/CustomRecipientInput";
 import { SwapEfficiencyNote } from "@/components/SwapEfficiencyNote";
 import { useZRouterQuote } from "@/hooks/use-zrouter-quote";
@@ -41,7 +70,10 @@ interface Props {
 
 const DEBUG_IMPACT = true;
 
-export const InstantSwapAction = ({ lockedTokens, hidePriceChart = false }: Props) => {
+export const InstantSwapAction = ({
+  lockedTokens,
+  hidePriceChart = false,
+}: Props) => {
   const { t } = useTranslation();
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
@@ -70,7 +102,9 @@ export const InstantSwapAction = ({ lockedTokens, hidePriceChart = false }: Prop
   const setBuyToken = lockedTokens ? () => {} : contextSetBuyToken;
   const flipTokens = lockedTokens ? () => {} : contextFlipTokens;
 
-  const [lastEditedField, setLastEditedField] = useState<"sell" | "buy">("sell");
+  const [lastEditedField, setLastEditedField] = useState<"sell" | "buy">(
+    "sell",
+  );
   const ensResolution = useENSResolution(customRecipient);
 
   const isExternalSwap = useMemo(
@@ -111,7 +145,11 @@ export const InstantSwapAction = ({ lockedTokens, hidePriceChart = false }: Prop
 
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [txError, setTxError] = useState<string | null>(null);
-  const { sendTransactionAsync, isPending, error: writeError } = useSendTransaction();
+  const {
+    sendTransactionAsync,
+    isPending,
+    error: writeError,
+  } = useSendTransaction();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
   const prevPairRef = useRef<string | null>(null);
   const memoizedTokens = useMemo(() => {
@@ -136,7 +174,8 @@ export const InstantSwapAction = ({ lockedTokens, hidePriceChart = false }: Prop
     setSellAmt("");
     setBuyAmt("");
     setCustomRecipient("");
-    if (sellToken?.symbol === "ENS" || buyToken?.symbol === "ENS") setSlippageBps(1000n);
+    if (sellToken?.symbol === "ENS" || buyToken?.symbol === "ENS")
+      setSlippageBps(1000n);
     else setSlippageBps(SLIPPAGE_BPS);
   }, [sellToken.id, buyToken?.id, sellToken?.symbol, buyToken?.symbol]);
 
@@ -156,7 +195,12 @@ export const InstantSwapAction = ({ lockedTokens, hidePriceChart = false }: Prop
    * ------------------------------ */
   const side = lastEditedField === "sell" ? "EXACT_IN" : "EXACT_OUT";
   const rawAmount = lastEditedField === "sell" ? sellAmt : buyAmt;
-  const quotingEnabled = !!publicClient && !!sellToken && !!buyToken && !!rawAmount && Number(rawAmount) > 0;
+  const quotingEnabled =
+    !!publicClient &&
+    !!sellToken &&
+    !!buyToken &&
+    !!rawAmount &&
+    Number(rawAmount) > 0;
 
   const { data: quoteBase } = useZRouterQuote({
     publicClient: publicClient ?? undefined,
@@ -168,7 +212,10 @@ export const InstantSwapAction = ({ lockedTokens, hidePriceChart = false }: Prop
   });
 
   const epsilon = 0.01;
-  const bumpedRawAmount = quotingEnabled && Number(rawAmount) > 0 ? String(Number(rawAmount) * (1 + epsilon)) : "";
+  const bumpedRawAmount =
+    quotingEnabled && Number(rawAmount) > 0
+      ? String(Number(rawAmount) * (1 + epsilon))
+      : "";
 
   const { data: quoteBumped } = useZRouterQuote({
     publicClient: publicClient ?? undefined,
@@ -193,7 +240,13 @@ export const InstantSwapAction = ({ lockedTokens, hidePriceChart = false }: Prop
   // price impact estimation
   useEffect(() => {
     try {
-      if (!sellToken || !buyToken || !quotingEnabled || !quoteBase?.ok || !quoteBumped?.ok) {
+      if (
+        !sellToken ||
+        !buyToken ||
+        !quotingEnabled ||
+        !quoteBase?.ok ||
+        !quoteBumped?.ok
+      ) {
         setPriceImpact(null);
         return;
       }
@@ -202,14 +255,22 @@ export const InstantSwapAction = ({ lockedTokens, hidePriceChart = false }: Prop
         const out0 = Number(quoteBase.amountOut);
         const in1 = Number(bumpedRawAmount);
         const out1 = Number(quoteBumped.amountOut);
-        if (!isFinite(in0) || !isFinite(out0) || !isFinite(in1) || !isFinite(out1) || out0 <= 0 || out1 <= 0) {
+        if (
+          !isFinite(in0) ||
+          !isFinite(out0) ||
+          !isFinite(in1) ||
+          !isFinite(out1) ||
+          out0 <= 0 ||
+          out1 <= 0
+        ) {
           setPriceImpact(null);
           return;
         }
         const p0 = in0 / out0;
         const p1 = in1 / out1;
         const impactPercent = (p1 / p0 - 1) * 100;
-        if (DEBUG_IMPACT) console.debug("[impact] EXACT_IN", { p0, p1, impactPercent });
+        if (DEBUG_IMPACT)
+          console.debug("[impact] EXACT_IN", { p0, p1, impactPercent });
         setPriceImpact({
           currentPrice: p0,
           projectedPrice: p1,
@@ -221,14 +282,22 @@ export const InstantSwapAction = ({ lockedTokens, hidePriceChart = false }: Prop
         const in0 = Number(quoteBase.amountIn);
         const out1 = Number(bumpedRawAmount);
         const in1 = Number(quoteBumped.amountIn);
-        if (!isFinite(in0) || !isFinite(out0) || !isFinite(in1) || !isFinite(out1) || out0 <= 0 || out1 <= 0) {
+        if (
+          !isFinite(in0) ||
+          !isFinite(out0) ||
+          !isFinite(in1) ||
+          !isFinite(out1) ||
+          out0 <= 0 ||
+          out1 <= 0
+        ) {
           setPriceImpact(null);
           return;
         }
         const p0 = in0 / out0;
         const p1 = in1 / out1;
         const impactPercent = (p1 / p0 - 1) * 100;
-        if (DEBUG_IMPACT) console.debug("[impact] EXACT_OUT", { p0, p1, impactPercent });
+        if (DEBUG_IMPACT)
+          console.debug("[impact] EXACT_OUT", { p0, p1, impactPercent });
         setPriceImpact({
           currentPrice: p0,
           projectedPrice: p1,
@@ -239,7 +308,15 @@ export const InstantSwapAction = ({ lockedTokens, hidePriceChart = false }: Prop
     } catch {
       setPriceImpact(null);
     }
-  }, [quoteBase, quoteBumped, side, rawAmount, bumpedRawAmount, sellToken?.id, buyToken?.id]);
+  }, [
+    quoteBase,
+    quoteBumped,
+    side,
+    rawAmount,
+    bumpedRawAmount,
+    sellToken?.id,
+    buyToken?.id,
+  ]);
 
   // input handlers
   const syncFromBuy = (val: string) => {
@@ -283,7 +360,9 @@ export const InstantSwapAction = ({ lockedTokens, hidePriceChart = false }: Prop
           return;
         }
         if (!ensResolution.address) {
-          setTxError(t("errors.invalid_address") || "Invalid recipient address");
+          setTxError(
+            t("errors.invalid_address") || "Invalid recipient address",
+          );
           return;
         }
         finalRecipient = ensResolution.address as Address;
@@ -295,7 +374,10 @@ export const InstantSwapAction = ({ lockedTokens, hidePriceChart = false }: Prop
       const tokenOut = toZRouterToken(buyToken);
       const side = lastEditedField === "sell" ? "EXACT_IN" : "EXACT_OUT";
       const raw = lastEditedField === "sell" ? sellAmt : buyAmt;
-      const decimals = lastEditedField === "sell" ? sellToken.decimals || 18 : buyToken.decimals || 18;
+      const decimals =
+        lastEditedField === "sell"
+          ? sellToken.decimals || 18
+          : buyToken.decimals || 18;
       const amount = parseUnits(raw!, decimals);
 
       const steps = await findRoute(publicClient, {
@@ -455,7 +537,13 @@ export const InstantSwapAction = ({ lockedTokens, hidePriceChart = false }: Prop
           isEthBalanceFetching={isEthBalanceFetching}
           amount={sellAmt}
           onAmountChange={syncFromSell}
-          showMaxButton={!!(sellToken.balance && (sellToken.balance as bigint) > 0n && lastEditedField === "sell")}
+          showMaxButton={
+            !!(
+              sellToken.balance &&
+              (sellToken.balance as bigint) > 0n &&
+              lastEditedField === "sell"
+            )
+          }
           onMax={() => {
             if (sellToken.id === null) {
               const ethAmount = ((sellToken.balance as bigint) * 99n) / 100n;
@@ -466,14 +554,19 @@ export const InstantSwapAction = ({ lockedTokens, hidePriceChart = false }: Prop
             }
           }}
           showPercentageSlider={
-            lastEditedField === "sell" || (isExternalSwap && !!sellToken.balance && (sellToken.balance as bigint) > 0n)
+            lastEditedField === "sell" ||
+            (isExternalSwap &&
+              !!sellToken.balance &&
+              (sellToken.balance as bigint) > 0n)
           }
           className="pb-4 rounded-t-2xl"
           readOnly={!!lockedTokens}
         />
 
         {!lockedTokens && (
-          <div className={cn("absolute left-1/2 -translate-x-1/2 top-[50%] z-10")}>
+          <div
+            className={cn("absolute left-1/2 -translate-x-1/2 top-[50%] z-10")}
+          >
             <FlipActionButton onClick={handleFlipTokens} />
           </div>
         )}
@@ -537,7 +630,10 @@ export const InstantSwapAction = ({ lockedTokens, hidePriceChart = false }: Prop
               />
             )}
 
-            <SlippageSettings slippageBps={slippageBps} setSlippageBps={setSlippageBps} />
+            <SlippageSettings
+              slippageBps={slippageBps}
+              setSlippageBps={setSlippageBps}
+            />
             <p className="text-xs text-muted-foreground">Fees paid to LPs</p>
           </HoverCardContent>
         </HoverCard>
@@ -549,7 +645,10 @@ export const InstantSwapAction = ({ lockedTokens, hidePriceChart = false }: Prop
         disabled={!isConnected || !sellAmt || isPending || !canSwap}
         className={cn(
           `mt-2 button text-base px-8 py-4 bg-primary! text-primary-foreground! dark:bg-primary! dark:text-primary-foreground! font-bold rounded-lg transition hover:scale-105`,
-          !isConnected || !sellAmt || isPending || (!canSwap && "opacity-50 cursor-not-allowed"),
+          !isConnected ||
+            !sellAmt ||
+            isPending ||
+            (!canSwap && "opacity-50 cursor-not-allowed"),
         )}
       >
         {isPending ? (
@@ -570,14 +669,19 @@ export const InstantSwapAction = ({ lockedTokens, hidePriceChart = false }: Prop
       {customRecipient && ensResolution.address && !txError && (
         <div className="text-sm text-chart-2 mt-2 flex items-center bg-chart-2/10 p-2 rounded border border-chart-2/20">
           <span className="text-xs">
-            📤 {t("swap.recipient_note") || "Output will be sent to"}: {ensResolution.address.slice(0, 6)}...
+            📤 {t("swap.recipient_note") || "Output will be sent to"}:{" "}
+            {ensResolution.address.slice(0, 6)}...
             {ensResolution.address.slice(-4)}
           </span>
         </div>
       )}
 
       {/* Errors */}
-      {writeError && <SwapError message={writeError?.message ?? "Unknown write error occured"} />}
+      {writeError && (
+        <SwapError
+          message={writeError?.message ?? "Unknown write error occured"}
+        />
+      )}
       {/*{txError && <SwapError message={txError ?? "Unknown Tx error occured"} />}*/}
 
       {/* Success */}
@@ -587,13 +691,18 @@ export const InstantSwapAction = ({ lockedTokens, hidePriceChart = false }: Prop
             <CheckIcon className="h-3 w-3 mr-2" />
             Transaction confirmed!
           </div>
-          <Link to="/orders" className="hidden" />
+          <Link to="/explore/orders" className="hidden" />
         </div>
       )}
 
       {!hidePriceChart && (
         <div className="mt-4 border-t border-primary pt-4">
-          <PoolSwapChart buyToken={buyToken} sellToken={sellToken} prevPair={prevPairRef.current} priceImpact={null} />
+          <PoolSwapChart
+            buyToken={buyToken}
+            sellToken={sellToken}
+            prevPair={prevPairRef.current}
+            priceImpact={null}
+          />
         </div>
       )}
     </div>
