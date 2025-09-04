@@ -8,19 +8,25 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import type { CoinsTableItem, SortBy } from "@/types/coins";
-import { useCoinsTable } from "@/hooks/use-coins-table";
+import type { PoolTableItem, PoolSortBy } from "@/hooks/use-pools-table";
+import { usePoolsTable } from "@/hooks/use-pools-table";
 import { Search as SearchIcon } from "lucide-react";
 import { useEthUsdPrice } from "@/hooks/use-eth-usd-price";
+import { PoolTokenImage } from "../PoolTokenImage";
+import { buttonVariants } from "../ui/button";
+import { Link } from "@tanstack/react-router";
+import { cn } from "@/lib/utils";
 import { Input } from "../ui/input";
 
-// ---------- formatting helpers ----------
+/* ---------------------- formatting helpers ---------------------- */
 const fmt0 = (n?: number | null) =>
   n == null ? "—" : Intl.NumberFormat().format(n);
+
 const fmt2 = (n?: number | null) =>
   n == null
     ? "—"
     : Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(n);
+
 const fmt6 = (n?: number | null) =>
   n == null
     ? "—"
@@ -38,22 +44,40 @@ const fmtUSD = (n?: number | null, maxFrac: number = 2) =>
 const fromEpoch = (s?: number | null) =>
   !s ? "—" : new Date(s * 1000).toLocaleString();
 
-// ---------- sorting map (table column -> api sortBy) ----------
-function mapSortingToApi(s: SortingState): SortBy {
+const shortAddr = (a?: string | null, n = 6) =>
+  !a ? "—" : `${a.slice(0, n)}…${a.slice(-4)}`;
+
+const ipfs = (u?: string | null) =>
+  !u
+    ? null
+    : u.startsWith("ipfs://")
+      ? u.replace("ipfs://", "https://ipfs.io/ipfs/")
+      : u;
+
+const bpsToPct = (bps?: string | number | null) => {
+  const n = Number(bps ?? 0);
+  if (!Number.isFinite(n)) return "—";
+  // bps → percent (e.g. 30 → 0.30%, 3000 → 30.00%)
+  return (
+    (n / 100).toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }) + "%"
+  );
+};
+
+/* ----------- map table sorting -> API sortBy key (single sort) ----------- */
+function mapSortingToApi(s: SortingState): PoolSortBy {
   const id = s[0]?.id;
   switch (id) {
     case "liquidityEth":
       return "liquidity";
-    case "createdAt":
+    case "updatedAt":
       return "recency";
-    case "votes":
-      return "votes";
+    case "swapFee":
+      return "fee";
     case "priceInEth":
       return "price";
-    case "fdvEth":
-      return "fdv";
-    case "holders":
-      return "holders";
     case "incentives":
       return "incentives";
     default:
@@ -62,18 +86,19 @@ function mapSortingToApi(s: SortingState): SortBy {
 }
 
 type Props = {
-  defaultPageSize?: number; // affects fetch limit per page
+  defaultPageSize?: number;
   rowHeight?: number;
+  defaultHasLiquidity?: boolean;
 };
 
-export default function CoinsTable({
+export default function PoolsTable({
   defaultPageSize = 100,
   rowHeight = 56,
+  defaultHasLiquidity = true,
 }: Props) {
   const { data: ethUsdPrice } = useEthUsdPrice();
 
-  // ---------- unit toggle ----------
-  // "ETH" | "USD"
+  /* ---------------------------- unit toggle ---------------------------- */
   const [unit, setUnit] = useState<"ETH" | "USD">("ETH");
   const ethUsdRate = useMemo(() => {
     if (!ethUsdPrice) return null;
@@ -84,6 +109,10 @@ export default function CoinsTable({
   const toUSD = (eth?: number | null): number | null =>
     eth == null || ethUsdRate == null ? null : eth * ethUsdRate;
 
+  /* ------------------------------ filters ------------------------------ */
+  const [hasLiquidity, setHasLiquidity] =
+    useState<boolean>(defaultHasLiquidity);
+
   // search (debounced)
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
@@ -92,21 +121,23 @@ export default function CoinsTable({
     return () => clearTimeout(t);
   }, [query]);
 
-  // sorting (1 column at a time, to align with API cursor)
+  // single-column sorting to align with keyset pagination
   const [sorting, setSorting] = useState<SortingState>([
     { id: "liquidityEth", desc: true },
   ]);
 
   const params = useMemo(() => {
     const sortBy = mapSortingToApi(sorting);
-    const sortDir: "asc" | "desc" = sorting[0]?.desc ? "desc" : "asc"; // <— ensure union literal
+    const sortDir: "asc" | "desc" = sorting[0]?.desc ? "desc" : "asc";
     return {
       q: debounced || undefined,
       limit: defaultPageSize,
       sortBy,
       sortDir,
+      hasLiquidity,
+      quote: "ETH" as const,
     };
-  }, [debounced, sorting, defaultPageSize]);
+  }, [debounced, sorting, defaultPageSize, hasLiquidity]);
 
   const {
     data,
@@ -116,15 +147,15 @@ export default function CoinsTable({
     isFetchingNextPage,
     refetch,
     status,
-  } = useCoinsTable(params);
+  } = usePoolsTable(params);
 
-  // Flatten pages
-  const rowsData: CoinsTableItem[] = useMemo(
+  // flatten pages
+  const rowsData: PoolTableItem[] = useMemo(
     () => (data?.pages ?? []).flatMap((p) => p.data),
     [data],
   );
 
-  // Virtualizer
+  /* --------------------------- virtualization -------------------------- */
   const parentRef = useRef<HTMLDivElement | null>(null);
   const rowVirtualizer = useVirtualizer({
     count: rowsData.length,
@@ -133,7 +164,6 @@ export default function CoinsTable({
     overscan: 12,
   });
 
-  // Infinite trigger when we near the end
   useEffect(() => {
     const items = rowVirtualizer.getVirtualItems();
     if (!items.length || !hasNextPage || isFetchingNextPage) return;
@@ -142,81 +172,82 @@ export default function CoinsTable({
       fetchNextPage();
     }
   }, [
-    rowVirtualizer, // calling methods inside effect; depend on instance
+    rowVirtualizer,
     rowsData.length,
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
   ]);
 
-  // Columns (headers + cells switch based on unit)
-  const columns = useMemo<ColumnDef<CoinsTableItem>[]>(
+  /* ------------------------------- columns ----------------------------- */
+  const columns = useMemo<ColumnDef<PoolTableItem>[]>(
     () => [
       {
-        id: "token",
-        header: "Token",
+        id: "pair",
+        header: "Pair",
         cell: ({ row }) => {
           const r = row.original;
+          const img1 = ipfs(r.coin1.imageUrl);
+          const img0 = ipfs(r.coin0.imageUrl);
+          const sym1 = r.coin1.symbol ?? shortAddr(r.coin1.address);
+          const sym0 = r.coin0.symbol ?? shortAddr(r.coin0.address);
           return (
             <div className="flex items-center gap-3 min-w-0">
-              {r.imageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={r.imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/")}
-                  alt={r.symbol ?? ""}
-                  className="w-7 h-7 rounded-full object-cover border"
-                />
-              ) : (
-                <div className="w-7 h-7 rounded-full bg-muted border" />
-              )}
+              <div className="relative w-9 h-7">
+                <PoolTokenImage imageUrl0={img0} imageUrl1={img1} />
+              </div>
               <div className="min-w-0">
                 <div className="text-sm font-medium truncate">
-                  {r.name ?? r.symbol ?? r.coinId}
+                  {sym1}/{sym0}
                 </div>
                 <div className="text-xs text-muted-foreground truncate">
-                  {r.symbol ?? "—"} · #{r.coinId.slice(0, 6)}… ·{" "}
-                  {r.token.slice(0, 6)}…{r.token.slice(-4)}
+                  #{r.poolId} · {shortAddr(r.token1)} / {shortAddr(r.token0)}
                 </div>
               </div>
             </div>
           );
         },
         size: 320,
+        enableSorting: false,
       },
       {
-        id: "status",
-        header: "Status",
-        cell: ({ row }) => {
-          const s = row.original.status;
-          const tone =
-            s === "ACTIVE"
-              ? "text-green-600"
-              : s === "FINALIZED"
-                ? "text-blue-600"
-                : s === "EXPIRED"
-                  ? "text-red-600"
-                  : "text-muted-foreground";
+        id: "swapFee",
+        header: "Fee",
+        accessorKey: "swapFee",
+        cell: ({ getValue }) => {
+          const bps = String(getValue<string | number | null>() ?? "0");
           return (
-            <span className={`text-xs font-medium ${tone}`}>{s ?? "—"}</span>
+            <span className="tabular-nums text-xs px-2 py-1 rounded bg-muted">
+              {Number(bps).toLocaleString()} bps · {bpsToPct(bps)}
+            </span>
           );
         },
-        enableSorting: false,
-        size: 90,
+        size: 150,
       },
       {
         id: "priceInEth",
-        header: unit === "ETH" ? "Price (Ξ)" : "Price ($)",
+        header:
+          unit === "ETH" ? "Price (Ξ, base→quote)" : "Price ($, base→quote)",
         accessorKey: "priceInEth",
-        cell: ({ getValue }) => {
+        cell: ({ getValue, row }) => {
+          // price of token1 in ETH; USD converts with ETHUSD
           const eth = getValue<number | null>();
+          const base = row.original.coin1.symbol ?? "BASE";
           if (unit === "ETH") {
-            return <span className="tabular-nums">Ξ{fmt6(eth)}</span>;
+            return (
+              <span className="tabular-nums">
+                1 {base} = Ξ{fmt6(eth)}
+              </span>
+            );
           }
           const usd = toUSD(eth);
-          // price often needs more precision; keep up to 6
-          return <span className="tabular-nums">{fmtUSD(usd, 6)}</span>;
+          return (
+            <span className="tabular-nums">
+              1 {base} = {fmtUSD(usd, 6)}
+            </span>
+          );
         },
-        size: 160,
+        size: 220,
       },
       {
         id: "liquidityEth",
@@ -233,70 +264,96 @@ export default function CoinsTable({
         size: 170,
       },
       {
-        id: "fdvEth",
-        header: unit === "ETH" ? "FDV (Ξ)" : "FDV ($)",
-        accessorKey: "fdvEth",
-        cell: ({ row }) => {
-          const eth = row.original.fdvEth;
-          return unit === "ETH" ? (
-            <span className="tabular-nums">{fmt2(eth)}</span>
-          ) : (
-            <span className="tabular-nums">{fmtUSD(toUSD(eth), 2)}</span>
-          );
-        },
-        size: 180,
-      },
-      {
-        id: "holders",
-        header: "Holders",
-        accessorKey: "holders",
-        cell: ({ getValue }) => (
-          <span className="tabular-nums">{fmt0(getValue<number>())}</span>
-        ),
-        size: 110,
-      },
-      {
         id: "incentives",
         header: "Incentives",
         accessorKey: "incentives",
         cell: ({ getValue }) => (
-          <span className="text-xs px-2 py-1 bg-muted rounded">
-            {getValue<number>()}
+          <span className="text-xs px-2 py-1 bg-muted rounded tabular-nums">
+            {fmt0(getValue<number>())}
           </span>
         ),
         size: 120,
       },
       {
-        id: "createdAt",
-        header: "Created",
-        accessorKey: "createdAt",
+        id: "source",
+        header: "Source",
+        accessorKey: "source",
+        cell: ({ getValue }) => {
+          const s = String(getValue() ?? "ZAMM");
+          const tone =
+            s === "ZAMM"
+              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+              : s === "COOKBOOK"
+                ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                : "bg-slate-50 text-slate-700 border-slate-200";
+          return (
+            <span
+              className={`text-xs px-2 py-1 rounded border ${tone}`}
+              title="Contract source"
+            >
+              {s}
+            </span>
+          );
+        },
+        enableSorting: false,
+        size: 110,
+      },
+      {
+        id: "hookType",
+        header: "Hook",
+        accessorKey: "hookType",
+        cell: ({ row }) => {
+          const ht = row.original.hookType;
+          const label = ht === "PRE" ? "Pre" : ht === "POST" ? "Post" : "—";
+          const tone =
+            ht === "PRE"
+              ? "bg-amber-50 text-amber-700 border-amber-200"
+              : ht === "POST"
+                ? "bg-purple-50 text-purple-700 border-purple-200"
+                : "bg-muted text-muted-foreground border-transparent";
+          return (
+            <span className={`text-xs px-2 py-1 rounded border ${tone}`}>
+              {label}
+            </span>
+          );
+        },
+        enableSorting: false,
+        size: 90,
+      },
+      {
+        id: "updatedAt",
+        header: "Updated",
+        accessorKey: "updatedAt",
         cell: ({ getValue }) => (
           <span className="tabular-nums">{fromEpoch(getValue<number>())}</span>
         ),
         size: 180,
       },
     ],
-    [unit, ethUsdRate], // re-render headers/cells when unit or rate changes
+    [unit, ethUsdRate],
   );
 
+  /* ------------------------------- table ------------------------------- */
   const table = useReactTable({
     data: rowsData,
     columns,
     state: { sorting },
     onSortingChange: (updater) => {
       const next = typeof updater === "function" ? updater(sorting) : updater;
-      // enforce single-sort (aligns with keyset pagination)
+      // enforce single-sort (aligns with API keyset pagination)
       setSorting(next.length ? [next[0]] : []);
     },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    manualSorting: true, // we sort server-side
+    manualSorting: true,
   });
 
+  /* -------------------------------- UI -------------------------------- */
   return (
     <div className="flex flex-col gap-3">
-      {/* Top bar: toggle + search */}
+      {/* Top bar: toggles + search */}
       <div className="flex items-center gap-3 w-full">
+        {/* unit toggle */}
         <div className="inline-flex rounded-md border overflow-hidden">
           <button
             className={`px-3 py-1 text-sm ${
@@ -323,15 +380,39 @@ export default function CoinsTable({
           </button>
         </div>
 
+        {/* hasLiquidity filter */}
+        <label className="flex items-center gap-2 text-sm select-none">
+          <input
+            type="checkbox"
+            checked={hasLiquidity}
+            onChange={(e) => setHasLiquidity(e.target.checked)}
+          />
+          Only pools with liquidity
+        </label>
+
+        {/* search */}
         <div className="relative w-full max-w-xl">
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search name / symbol / token / id"
+            placeholder="Search pool id / token / name / symbol"
             className="w-full pl-9 pr-3"
           />
           <SearchIcon className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         </div>
+
+        <Link
+          to="/positions/create"
+          className={cn(
+            buttonVariants({
+              variant: "outline",
+              size: "sm",
+            }),
+            "ml-auto",
+          )}
+        >
+          Add Liquidity
+        </Link>
       </div>
 
       {/* Table */}
@@ -358,7 +439,6 @@ export default function CoinsTable({
                     header.column.columnDef.header,
                     header.getContext(),
                   )}
-                  {/* safe indicator: don't index with `false` */}
                   {(() => {
                     const dir = header.column.getIsSorted();
                     return dir ? ({ asc: "↑", desc: "↓" } as const)[dir] : null;
@@ -382,7 +462,7 @@ export default function CoinsTable({
               return (
                 <div
                   key={row.id}
-                  className={`grid items-center border-b`}
+                  className="grid items-center border-b"
                   style={{
                     position: "absolute",
                     transform: `translateY(${vi.start}px)`,

@@ -1,9 +1,10 @@
-import { createFileRoute } from '@tanstack/react-router'
+import PoolsTable from "@/components/explorer/pools-table";
+import { createFileRoute } from "@tanstack/react-router";
 
-export const Route = createFileRoute('/explore/pools')({
+export const Route = createFileRoute("/explore/pools")({
   component: RouteComponent,
-})
+});
 
 function RouteComponent() {
-  return <div>Hello "/explore/pools"!</div>
+  return <PoolsTable />;
 }
