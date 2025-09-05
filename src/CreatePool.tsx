@@ -28,14 +28,6 @@ import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import type { CookbookPoolKey } from "./lib/swap";
 import { nowSec } from "./lib/utils";
 
-// Fee tier options for pool creation
-const FEE_OPTIONS = [
-  { label: "0.05%", value: 5n }, // Ultra low fee
-  { label: "0.3%", value: 30n }, // Default (Uniswap V2 style)
-  { label: "1%", value: 100n }, // Current cookbook standard
-  { label: "3%", value: 300n }, // High fee for exotic pairs
-];
-
 interface FeeSettingsProps {
   feeBps: bigint;
   setFeeBps: (value: bigint) => void;
