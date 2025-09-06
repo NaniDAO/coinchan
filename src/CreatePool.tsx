@@ -27,6 +27,7 @@ import { ETH_TOKEN, type TokenMeta } from "./lib/coins";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import type { CookbookPoolKey } from "./lib/swap";
 import { nowSec } from "./lib/utils";
+import { FEE_OPTIONS } from "./lib/pools";
 
 interface FeeSettingsProps {
   feeBps: bigint;

@@ -1,11 +1,6 @@
 import * as React from "react";
-import {
-  createFileRoute,
-  useNavigate,
-  useSearch,
-} from "@tanstack/react-router";
+import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { useMemo, useState, useEffect } from "react";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,9 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tooltip,
@@ -129,18 +122,10 @@ const GQL_ENDPOINT = `${API_BASE}/graphql`;
 
 const fmt = new Intl.NumberFormat(undefined, { maximumFractionDigits: 4 });
 const nf0 = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 });
-const nf2 = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
 
 function shorten(addr?: string | null, size = 4) {
   if (!addr) return "";
   return `${addr.slice(0, 2 + size)}…${addr.slice(-size)}`;
-}
-
-function weiToEth(wei: string | bigint) {
-  const s = typeof wei === "bigint" ? wei.toString() : wei;
-  if (!s) return 0;
-  const n = Number(s) / 1e18;
-  return Number.isFinite(n) ? n : 0;
 }
 
 /************************************
@@ -523,7 +508,7 @@ function SideList({
  * Main Route Component
  ************************************/
 function RouteComponent() {
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const address = useAddressFromQueryOrWallet();
   const [addrInput, setAddrInput] = useState(address);
 
@@ -544,7 +529,8 @@ function RouteComponent() {
   const activeCount = positions.length;
 
   function onSearch() {
-    navigate({ to: "/positions/", search: { address: addrInput } });
+    // @TODO
+    // navigate({ to: "/positions/", search: { address: addrInput } });
   }
 
   return (

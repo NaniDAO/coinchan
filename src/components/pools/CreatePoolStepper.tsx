@@ -1,5 +1,4 @@
 import { cn } from "@/lib/utils";
-import { Card } from "../ui/card";
 
 export type CreatePoolStep = { title: string; description?: string };
 

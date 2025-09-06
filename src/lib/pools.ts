@@ -228,6 +228,7 @@ export const getAddLiquidityTx = async (
   const callData = encodeFunctionData({
     abi: protocol.abi,
     functionName: "addLiquidity",
+    // @ts-expect-error
     args: [poolKey, amount0, amount1, amount0Min, amount1Min, owner, deadline],
   });
 

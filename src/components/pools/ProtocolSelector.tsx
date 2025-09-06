@@ -20,7 +20,10 @@ export function ProtocolSelector({
   className,
 }: ProtocolSelectorProps) {
   return (
-    <Select value={protocolId} onValueChange={setProtocolId}>
+    <Select
+      value={protocolId}
+      onValueChange={(val) => setProtocolId(val as ProtocolId)}
+    >
       <SelectTrigger className={className} aria-label="Select protocol">
         <SelectValue placeholder="Select protocol" />
       </SelectTrigger>
