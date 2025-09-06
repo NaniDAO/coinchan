@@ -8,10 +8,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { FEE_OPTIONS } from "@/lib/pools";
 import { Check, Minus, Plus } from "lucide-react";
@@ -29,10 +26,14 @@ export type FeeSelectorProps = {
   onChange: (bps: bigint) => void;
   /** Optionally show extra tiers provided by the parent. */
   fees?: ExtraFeeTier[];
-  /** Optional protocol label for TVL line, e.g. "Arbitrum". */
+  /** Optional protocol label for the liquidity line, e.g. "Arbitrum". */
   protocol?: string;
-  /** Optional TVL per fee (keyed by bps). */
-  liquidityByFee?: Record<string, number>;
+  /**
+   * Optional liquidity per fee (keyed by bps as string).
+   * - If number: treated as an amount (e.g. TVL) and compact-formatted.
+   * - If string: rendered verbatim (e.g. "12.3 WETH / 24.6 USDC").
+   */
+  liquidityByFee?: Record<string, number | string>;
   className?: string;
 };
 
@@ -68,13 +69,13 @@ function formatCompact(n: number) {
 function PresetCard({
   label,
   description,
-  tvlText,
+  liquidityText,
   selected,
   onClick,
 }: {
   label: string;
   description?: string;
-  tvlText?: string;
+  liquidityText?: string;
   selected?: boolean;
   onClick?: () => void;
 }) {
@@ -99,8 +100,10 @@ function PresetCard({
       {description ? (
         <p className="mt-2 text-xs text-muted-foreground">{description}</p>
       ) : null}
-      {tvlText ? (
-        <p className="mt-2 text-[11px] text-muted-foreground">{tvlText}</p>
+      {liquidityText ? (
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          {liquidityText}
+        </p>
       ) : null}
     </button>
   );
@@ -146,13 +149,27 @@ export function FeeSelector({
   const customSelected =
     fee !== undefined && fee !== 0n && !isPreset(fee, presets);
 
-  // TVL line helper
-  const tvlTextFor = (bps: bigint) => {
+  // Liquidity line helper (accepts number or string)
+  const liquidityTextFor = (bps: bigint) => {
     const key = String(bps);
-    const tvl = liquidityByFee?.[key];
-    if (tvl === undefined) return undefined;
-    const base = `${formatCompact(Number(tvl))} TVL`;
-    return protocol ? `${base} on ${protocol}` : base;
+    const liq = liquidityByFee?.[key];
+
+    if (liq === undefined) return undefined;
+
+    // String provided by parent (e.g., "1.2 WETH / 2.4 USDC")
+    if (typeof liq === "string" && liq.trim().length > 0) {
+      return liq;
+    }
+
+    // Numeric amount provided by parent (e.g., TVL or units)
+    if (typeof liq === "number") {
+      if (!Number.isFinite(liq)) return undefined;
+      if (liq <= 0) return "No liquidity";
+      const base = `${formatCompact(liq)} liquidity`;
+      return protocol ? `${base} on ${protocol}` : base;
+    }
+
+    return undefined;
   };
 
   return (
@@ -174,9 +191,8 @@ export function FeeSelector({
         </Button>
       </div>
 
-      {/* Collapsed: only the selected tier */}
+      {/* Expanded: full grid of presets and (if selected) a custom tile */}
       {showMore && (
-        // Expanded: full grid of presets and (if selected) a custom tile
         <>
           <div
             role="radiogroup"
@@ -188,7 +204,7 @@ export function FeeSelector({
                 label={opt.label!}
                 description={opt.description}
                 selected={fee === opt.value}
-                tvlText={tvlTextFor(opt.value)}
+                liquidityText={liquidityTextFor(opt.value)}
                 onClick={() => onChange(opt.value)}
               />
             ))}
@@ -198,7 +214,7 @@ export function FeeSelector({
                 label={`Custom: ${bpsToPercentString(fee)}`}
                 description="Click to edit"
                 selected
-                tvlText={tvlTextFor(fee)}
+                liquidityText={liquidityTextFor(fee)}
                 onClick={() => setOpen(true)}
               />
             )}

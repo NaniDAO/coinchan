@@ -23,10 +23,17 @@ import { cn } from "@/lib/utils";
 import { createFileRoute } from "@tanstack/react-router";
 import { RotateCcwIcon, SettingsIcon } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
+import { formatUnits } from "viem";
 
 export const Route = createFileRoute("/positions/create")({
   component: RouteComponent,
 });
+
+// Common fee tiers (Uniswap-style; 1e4 = 1%)
+const FEE_TIERS: readonly bigint[] = [100n, 500n, 3000n, 10000n];
+
+// Protocols where creating *new* pools is disallowed
+const CREATION_BLOCKED_PROTOCOLS = new Set<ProtocolId>(["ZAMMV0"]);
 
 function RouteComponent() {
   const { data: tokens } = useGetTokens();
@@ -38,9 +45,16 @@ function RouteComponent() {
   const [tokenA, setTokenA] = useState<TokenMetadata>(ETH_TOKEN);
   const [tokenB, setTokenB] = useState<TokenMetadata>(ZAMM_TOKEN);
 
-  // --- NEW: local deposit amounts (text to keep user’s formatting)
+  // Local deposit amounts (text to keep user’s formatting)
   const [amountA, setAmountA] = useState<string>("");
   const [amountB, setAmountB] = useState<string>("");
+
+  const reservesSource = protocolId === "ZAMMV0" ? "ZAMM" : "COOKBOOK";
+
+  const creationAllowed = useMemo(
+    () => !CREATION_BLOCKED_PROTOCOLS.has(protocolId),
+    [protocolId],
+  );
 
   const selectedPoolId = useMemo(() => {
     if (!tokenA || !tokenB || !fee) return undefined;
@@ -54,10 +68,68 @@ function RouteComponent() {
 
   const { data: selectedReserves } = useReserves({
     poolId: selectedPoolId,
-    source: protocolId === "ZAMMV1" ? "ZAMM" : "COOKBOOK",
+    source: reservesSource,
   });
 
-  // Helper to compare tokens by {address,id}
+  // ---- Fee-tier liquidity: compute poolIds and fetch reserves for each known tier ----
+  const poolId100 = useMemo(() => {
+    if (!tokenA || !tokenB) return undefined;
+    return computePoolId(
+      { address: tokenA.address, id: tokenA.id },
+      { address: tokenB.address, id: tokenB.id },
+      100n,
+      protocolId,
+    );
+  }, [tokenA, tokenB, protocolId]);
+
+  const poolId500 = useMemo(() => {
+    if (!tokenA || !tokenB) return undefined;
+    return computePoolId(
+      { address: tokenA.address, id: tokenA.id },
+      { address: tokenB.address, id: tokenB.id },
+      500n,
+      protocolId,
+    );
+  }, [tokenA, tokenB, protocolId]);
+
+  const poolId3000 = useMemo(() => {
+    if (!tokenA || !tokenB) return undefined;
+    return computePoolId(
+      { address: tokenA.address, id: tokenA.id },
+      { address: tokenB.address, id: tokenB.id },
+      3000n,
+      protocolId,
+    );
+  }, [tokenA, tokenB, protocolId]);
+
+  const poolId10000 = useMemo(() => {
+    if (!tokenA || !tokenB) return undefined;
+    return computePoolId(
+      { address: tokenA.address, id: tokenA.id },
+      { address: tokenB.address, id: tokenB.id },
+      10000n,
+      protocolId,
+    );
+  }, [tokenA, tokenB, protocolId]);
+
+  const { data: reserves100 } = useReserves({
+    poolId: poolId100,
+    source: reservesSource,
+  });
+  const { data: reserves500 } = useReserves({
+    poolId: poolId500,
+    source: reservesSource,
+  });
+  const { data: reserves3000 } = useReserves({
+    poolId: poolId3000,
+    source: reservesSource,
+  });
+  const { data: reserves10000 } = useReserves({
+    poolId: poolId10000,
+    source: reservesSource,
+  });
+
+  // Helper: compare tokens by {address,id}
   const sameToken = useCallback(
     (x?: TokenMetadata | null, y?: TokenMetadata | null) =>
       !!x &&
@@ -81,25 +153,10 @@ function RouteComponent() {
   );
   const samePair = sameToken(tokenA, tokenB);
 
-  const steps: CreatePoolStep[] = [
-    { title: "Select token pair and fees" },
-    { title: "Enter deposit amounts" },
-  ];
-
-  const resetAll = () => {
-    setProtocolId(protocols[0].id);
-    setCurrentStep(1);
-    setTokenA(ETH_TOKEN);
-    setTokenB(ZAMM_TOKEN);
-    setAmountA(0);
-    setAmountB(0);
-  };
-
-  // --- NEW: detect if pool exists using reserves shape loosely
+  // Detect if pool exists using reserves shape loosely
   const poolExists = useMemo(() => {
     const r: any = selectedReserves;
     if (!r) return false;
-    // tolerate different shapes from the hook
     const ra = r.reserveA ?? r.reserve0 ?? r[0];
     const rb = r.reserveB ?? r.reserve1 ?? r[1];
     const liq = r.liquidity ?? r.totalLiquidity;
@@ -108,7 +165,22 @@ function RouteComponent() {
     return ra != null && rb != null;
   }, [selectedReserves]);
 
-  // --- NEW: price (tokenB per 1 tokenA), with safe fallbacks
+  // Explicit "not initialized" signal: we know there is zero liquidity
+  const poolUninitialized = useMemo(() => {
+    const r: any = selectedReserves;
+    if (!r) return false; // unknown, don't warn
+    const liq = r.liquidity ?? r.totalLiquidity;
+    const ra = r.reserveA ?? r.reserve0 ?? r[0];
+    const rb = r.reserveB ?? r.reserve1 ?? r[1];
+    const isZero = (v: any) =>
+      typeof v === "bigint" ? v === 0n : Number(v) === 0;
+
+    if (liq != null) return isZero(liq);
+    if (ra != null && rb != null) return isZero(ra) && isZero(rb);
+    return false;
+  }, [selectedReserves]);
+
+  // price (tokenB per 1 tokenA), with safe fallbacks
   const marketPrice = useMemo(() => {
     try {
       const r: any = selectedReserves;
@@ -127,7 +199,7 @@ function RouteComponent() {
     }
   }, [selectedReserves, tokenA?.decimals, tokenB?.decimals]);
 
-  // --- NEW: keep amounts in pool ratio if user edits either side
+  // keep amounts in pool ratio if user edits either side
   const onChangeAmountA = (v: string) => {
     setAmountA(v);
     const x = parseFloat(v);
@@ -145,7 +217,7 @@ function RouteComponent() {
     }
   };
 
-  // --- NEW: fee percent label (assumes Uniswap-style 1e4 = 1%)
+  // fee percent label (assumes Uniswap-style 1e4 = 1%)
   const feeLabel = useMemo(() => {
     try {
       return `${(Number(fee) / 1e4).toFixed(2)}%`;
@@ -153,6 +225,95 @@ function RouteComponent() {
       return "—";
     }
   }, [fee]);
+
+  // ----- Formatting helpers for liquidity labels on fee cards -----
+  const fmtNumber = (n: number) =>
+    Number.isFinite(n)
+      ? n >= 1e6
+        ? n.toExponential(2)
+        : n.toLocaleString(undefined, { maximumFractionDigits: 4 })
+      : "—";
+
+  const toNum = (v: any) => {
+    if (typeof v === "bigint") {
+      // best-effort; may overflow for extremely large values but fine for UI hinting
+      return Number(v);
+    }
+    return Number(v);
+  };
+
+  const makeLiquidityLabel = (r: any | undefined) => {
+    if (!r) return "—";
+    const liq = r.liquidity ?? r.totalLiquidity;
+    if (typeof liq === "bigint" || typeof liq === "number") {
+      const n = toNum(liq);
+      return n > 0 ? `Liquidity: ${fmtNumber(n)}` : "No liquidity";
+    }
+    const ra = r.reserveA ?? r.reserve0 ?? r[0];
+    const rb = r.reserveB ?? r.reserve1 ?? r[1];
+    if (ra != null && rb != null) {
+      const a = Number(formatUnits(ra, tokenA?.decimals ?? 18)).toFixed(2);
+      const b = Number(formatUnits(rb, tokenB?.decimals ?? 18)).toFixed(2);
+      return `${a} ${tokenA?.symbol ?? "A"} / ${b} ${tokenB?.symbol ?? "B"}`;
+    }
+    return "—";
+  };
+
+  const liquidityByFee = useMemo(
+    () => ({
+      "100": makeLiquidityLabel(reserves100),
+      "500": makeLiquidityLabel(reserves500),
+      "3000": makeLiquidityLabel(reserves3000),
+      "10000": makeLiquidityLabel(reserves10000),
+    }),
+    [
+      reserves100,
+      reserves500,
+      reserves3000,
+      reserves10000,
+      tokenA?.decimals,
+      tokenB?.decimals,
+      tokenA?.symbol,
+      tokenB?.symbol,
+    ],
+  );
+
+  // Dynamic steps: show "Create new pool & seed" when relevant
+  const steps: CreatePoolStep[] = useMemo(() => {
+    const creatingNewPool = !poolExists && creationAllowed;
+    return [
+      { title: "Select token pair and fees" },
+      {
+        title: creatingNewPool
+          ? "Create new pool & seed"
+          : "Enter deposit amounts",
+      },
+      { title: "Review & confirm" },
+    ];
+  }, [poolExists, creationAllowed]);
+
+  const resetAll = () => {
+    setProtocolId(protocols[0].id);
+    setCurrentStep(1);
+    setTokenA(ETH_TOKEN);
+    setTokenB(ZAMM_TOKEN);
+    setAmountA("");
+    setAmountB("");
+  };
+
+  // Only allow backwards navigation via Stepper. Forwards must come from explicit buttons.
+  const handleStepChange = useCallback(
+    (next: number) => {
+      if (next < currentStep) {
+        setCurrentStep(next);
+      }
+    },
+    [currentStep],
+  );
+
+  // UI helpers
+  const creatingNewPool = !poolExists && creationAllowed;
+  const creationBlocked = !poolExists && !creationAllowed;
 
   return (
     <div className="p-2">
@@ -219,19 +380,16 @@ function RouteComponent() {
           <Stepper
             steps={steps}
             currentStep={currentStep}
-            onStepChange={setCurrentStep}
+            onStepChange={handleStepChange}
           />
         </div>
 
         {/* RIGHT: content */}
         <div className="col-span-3 border-border border-2 p-4 rounded-lg">
           {/* ---------- STEP 1: pair + fee ---------- */}
-          {!(currentStep === 2 && poolExists) && (
+          {currentStep === 1 && (
             <>
-              <div
-                onFocus={() => setCurrentStep(1)}
-                onMouseEnter={() => setCurrentStep(1)}
-              >
+              <div>
                 <h3 className="text-lg font-semibold">Select pair</h3>
                 <p className="text-base text-muted-foreground">
                   Choose a pair of tokens to create a new position.
@@ -257,46 +415,239 @@ function RouteComponent() {
                 )}
               </div>
 
-              <div
-                className="mt-6"
-                onFocus={() => setCurrentStep(1)}
-                onMouseEnter={() => setCurrentStep(1)}
-              >
+              <div className="mt-6">
                 <h3 className="text-lg font-semibold">Fee tier</h3>
                 <p className="text-base text-muted-foreground">
                   This is the amount of fees charged for a trade against this
                   position.
                 </p>
-                <FeeSelector fee={fee} onChange={setFee} />
+
+                {/* FeeSelector now receives liquidity labels per fee tier */}
+                <FeeSelector
+                  fee={fee}
+                  onChange={setFee}
+                  liquidityByFee={liquidityByFee}
+                />
+
                 <Button
                   variant="default"
                   className="w-full rounded-lg text-xl py-6 mt-4"
-                  disabled={!ready || samePair}
-                  // --- NEW: advance to Step 2
+                  disabled={
+                    !ready || samePair || (!poolExists && !creationAllowed) // block forward when creation is disallowed for this protocol
+                  }
                   onClick={() => setCurrentStep(2)}
                 >
                   Continue
                 </Button>
-              </div>
 
-              <div
-                className="mt-10 pt-6 border-t"
-                onFocus={() => setCurrentStep(2)}
-                onMouseEnter={() => setCurrentStep(2)}
-              >
-                <h3 className="text-lg font-semibold">Deposit amounts</h3>
-                <p className="text-base text-muted-foreground">
-                  When this section is active, the step indicator highlights
-                  Step 2.
-                </p>
+                {/* Not-initialized warning (zero liquidity) */}
+                {ready && !samePair && poolUninitialized && (
+                  <div className="mt-2 rounded-md border border-amber-500 bg-amber-50 px-3 py-2 text-amber-800 text-sm">
+                    This pool is not initialized — no liquidity exists yet for{" "}
+                    <span className="font-medium">
+                      {tokenA?.symbol ?? "TokenA"}/{tokenB?.symbol ?? "TokenB"}
+                    </span>{" "}
+                    at <span className="font-medium">{feeLabel}</span>. You’ll
+                    be the first to add liquidity.
+                  </div>
+                )}
+
+                {/* Creation-blocked notice for ZAMMV0 */}
+                {ready && !samePair && creationBlocked && (
+                  <div className="mt-2 rounded-md border border-red-500 bg-red-50 px-3 py-2 text-red-700 text-sm">
+                    Creating new pools is not allowed for{" "}
+                    <span className="font-medium">ZAMMV0</span>. Select a
+                    different protocol or choose a fee tier with an existing
+                    pool to add liquidity.
+                  </div>
+                )}
               </div>
             </>
           )}
 
-          {/* ---------- STEP 2 + POOL EXISTS: summary + deposit card ---------- */}
-          {currentStep === 2 && poolExists && (
+          {/* ---------- STEP 2: deposit OR create-&-seed ---------- */}
+          {currentStep === 2 && (
             <div className="space-y-4">
-              {/* Pool summary header */}
+              {/* Branch: pool exists → add liquidity */}
+              {poolExists && (
+                <>
+                  {/* Pool summary header */}
+                  <div className="rounded-lg border-2 p-4 bg-background">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="text-base font-medium">
+                          {tokenA?.symbol ?? "TokenA"} /{" "}
+                          {tokenB?.symbol ?? "TokenB"}
+                        </div>
+                        <span className="text-xs border px-2 py-0.5 rounded-sm">
+                          v2
+                        </span>
+                        <span className="text-xs border px-2 py-0.5 rounded-sm">
+                          {feeLabel}
+                        </span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {protocols.find((p) => p.id === protocolId)?.name ??
+                          protocolId}
+                      </div>
+                    </div>
+                    <div className="mt-1 text-sm text-muted-foreground">
+                      Market price:&nbsp;
+                      {marketPrice
+                        ? `${marketPrice.toPrecision(6)} ${
+                            tokenB?.symbol ?? "TokenB"
+                          } = 1 ${tokenA?.symbol ?? "TokenA"}`
+                        : "—"}
+                    </div>
+                  </div>
+
+                  {/* Deposit card */}
+                  <div>
+                    <div className="mb-4">
+                      <h3 className="text-lg font-semibold tracking-wide">
+                        Deposit tokens
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        Specify the token amount of your liquidity contribution.
+                      </p>
+                    </div>
+
+                    <TokenAmountInput
+                      amount={amountA}
+                      onAmountChange={onChangeAmountA}
+                      token={tokenA}
+                      className="mb-1"
+                    />
+
+                    <TokenAmountInput
+                      amount={amountB}
+                      onAmountChange={onChangeAmountB}
+                      token={tokenB}
+                    />
+
+                    <Button
+                      variant="default"
+                      className="w-full rounded-lg text-xl py-6 mt-4"
+                      onClick={() => setCurrentStep(3)}
+                      disabled={
+                        !amountA ||
+                        !amountB ||
+                        Number.isNaN(parseFloat(amountA)) ||
+                        Number.isNaN(parseFloat(amountB)) ||
+                        parseFloat(amountA) <= 0 ||
+                        parseFloat(amountB) <= 0
+                      }
+                    >
+                      Review
+                    </Button>
+                  </div>
+                </>
+              )}
+
+              {/* Branch: pool DOES NOT exist & creation BLOCKED (ZAMMV0) */}
+              {creationBlocked && (
+                <div className="rounded-lg border-2 p-4 bg-background space-y-3">
+                  <div className="text-base">
+                    <span className="font-semibold">Pool unavailable.</span>{" "}
+                    Creating new pools is disabled for{" "}
+                    <span className="font-semibold">ZAMMV0</span>.
+                  </div>
+                  <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
+                    <li>Try a different protocol (e.g., ZAMMV1).</li>
+                    <li>
+                      Or pick a fee tier where a pool already exists (see
+                      liquidity hints on the fee cards).
+                    </li>
+                  </ul>
+                  <div className="flex gap-2 mt-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => setCurrentStep(1)}
+                    >
+                      Back
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Branch: pool DOES NOT exist & creation ALLOWED → Create & Seed */}
+              {creatingNewPool && (
+                <div className="">
+                  <div className="rounded-lg border-2 p-4 bg-background mb-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="text-base font-medium">
+                          {tokenA?.symbol ?? "TokenA"} /{" "}
+                          {tokenB?.symbol ?? "TokenB"}
+                        </div>
+                        <span className="text-xs border px-2 py-0.5 rounded-sm">
+                          v2
+                        </span>
+                        <span className="text-xs border px-2 py-0.5 rounded-sm">
+                          {feeLabel}
+                        </span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {protocols.find((p) => p.id === protocolId)?.name ??
+                          protocolId}
+                      </div>
+                    </div>
+                    <div className="mt-2 rounded-md border border-amber-500 bg-amber-50 px-3 py-2 text-amber-800 text-sm">
+                      No pool exists at this fee tier. We’ll{" "}
+                      <span className="font-medium">
+                        create a new pool and seed it
+                      </span>{" "}
+                      with your deposit.
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold tracking-wide">
+                      Seed the new pool
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      Enter the initial token amounts. The deposit ratio sets
+                      the initial price.
+                    </p>
+                  </div>
+
+                  <TokenAmountInput
+                    amount={amountA}
+                    onAmountChange={onChangeAmountA}
+                    token={tokenA}
+                    className="mb-1"
+                  />
+
+                  <TokenAmountInput
+                    amount={amountB}
+                    onAmountChange={onChangeAmountB}
+                    token={tokenB}
+                  />
+
+                  <Button
+                    variant="default"
+                    className="w-full rounded-lg text-xl py-6 mt-4"
+                    onClick={() => setCurrentStep(3)}
+                    disabled={
+                      !amountA ||
+                      !amountB ||
+                      Number.isNaN(parseFloat(amountA)) ||
+                      Number.isNaN(parseFloat(amountB)) ||
+                      parseFloat(amountA) <= 0 ||
+                      parseFloat(amountB) <= 0
+                    }
+                  >
+                    Review
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ---------- STEP 3: explicit review ---------- */}
+          {currentStep === 3 && (
+            <div className="space-y-4">
               <div className="rounded-lg border-2 p-4 bg-background">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -316,66 +667,64 @@ function RouteComponent() {
                       protocolId}
                   </div>
                 </div>
-                <div className="mt-1 text-sm text-muted-foreground">
-                  Market price:&nbsp;
-                  {marketPrice
-                    ? `${marketPrice.toPrecision(6)} ${
-                        tokenB?.symbol ?? "TokenB"
-                      } = 1 ${tokenA?.symbol ?? "TokenA"}`
-                    : "—"}
+                <div className="mt-2 text-sm">
+                  <div>
+                    Amount {tokenA?.symbol}:{" "}
+                    <span className="font-medium">{amountA || "—"}</span>
+                  </div>
+                  <div>
+                    Amount {tokenB?.symbol}:{" "}
+                    <span className="font-medium">{amountB || "—"}</span>
+                  </div>
+                  <div className="text-muted-foreground mt-1">
+                    {poolExists
+                      ? "Action: Add liquidity to existing pool."
+                      : creationAllowed
+                        ? "Action: Create new pool and seed with your deposit."
+                        : "Action unavailable: creation is blocked for this protocol."}
+                  </div>
                 </div>
               </div>
-
-              {/* Deposit card */}
-              <div className="">
-                <div className="mb-4">
-                  <h3 className="text-lg font-semibold tracking-wide">
-                    Deposit tokens
-                  </h3>
-                  <p className="text-xs text-muted-foreground">
-                    Specify the token amount of your liquidity contribution.
-                  </p>
-                </div>
-
-                <TokenAmountInput
-                  amount={amountA}
-                  onAmountChange={onChangeAmountA}
-                  token={tokenA}
-                  className="mb-1"
-                />
-
-                <TokenAmountInput
-                  amount={amountB}
-                  onAmountChange={onChangeAmountB}
-                  token={tokenB}
-                />
-
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setCurrentStep(2)}
+                >
+                  Back
+                </Button>
                 <Button
                   variant="default"
-                  className="w-full rounded-lg text-xl py-6 mt-4"
+                  className="flex-1"
+                  disabled={creationBlocked}
                   onClick={() => {
-                    // TODO: navigate to review or trigger mutation
-                    // router.navigate({ to: "/positions/create/review", /* state */ })
-                    console.debug("Review deposit", {
-                      tokenA,
-                      tokenB,
-                      amountA,
-                      amountB,
-                      fee,
-                      protocolId,
-                      selectedPoolId,
-                    });
+                    // TODO: wire up actual transaction submission.
+                    // - If poolExists: add liquidity
+                    // - Else if creationAllowed: create pool + add liquidity
+                    // - Else (creationBlocked): should never fire due to disabled button
+                    console.debug(
+                      poolExists
+                        ? "Confirm: Add liquidity"
+                        : creationAllowed
+                          ? "Confirm: Create pool + seed"
+                          : "Blocked: Creation disabled for protocol",
+                      {
+                        tokenA,
+                        tokenB,
+                        amountA,
+                        amountB,
+                        fee,
+                        protocolId,
+                        selectedPoolId,
+                      },
+                    );
                   }}
-                  disabled={
-                    !amountA ||
-                    !amountB ||
-                    Number.isNaN(parseFloat(amountA)) ||
-                    Number.isNaN(parseFloat(amountB)) ||
-                    parseFloat(amountA) <= 0 ||
-                    parseFloat(amountB) <= 0
-                  }
                 >
-                  Review
+                  {poolExists
+                    ? "Confirm"
+                    : creationAllowed
+                      ? "Create & Confirm"
+                      : "Unavailable"}
                 </Button>
               </div>
             </div>

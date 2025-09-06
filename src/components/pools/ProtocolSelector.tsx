@@ -8,8 +8,8 @@ import {
 import type { Dispatch, SetStateAction } from "react";
 
 export const protocols = [
+  { id: "ZAMMV0", label: "zamm V0 position" },
   { id: "ZAMMV1", label: "zamm V1 position" },
-  { id: "ZAMMV2", label: "zamm V2 position" },
 ] as const;
 
 export type ProtocolOption = (typeof protocols)[number];

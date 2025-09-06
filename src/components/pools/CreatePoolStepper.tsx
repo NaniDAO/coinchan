@@ -1,7 +1,5 @@
 import { cn } from "@/lib/utils";
 import { Card } from "../ui/card";
-import { Button } from "../ui/button";
-import { Pencil } from "lucide-react";
 
 export type CreatePoolStep = { title: string; description?: string };
 
@@ -30,13 +28,21 @@ export function Stepper({
   };
 
   return (
-    <Card
+    <div
       className={cn(
-        "rounded-2xl p-4 md:p-6 bg-background border-2 border-border",
+        "rounded-2xl p-4 md:p-6 bg-background border-2 border-sidebar-border",
         className,
       )}
     >
-      <ol className="relative ml-2" role="list" aria-label="Progress">
+      <ol
+        className={cn(
+          "relative ml-2",
+          // continuous vertical connector behind all items
+          "before:content-[''] before:absolute before:left-[1.25rem] before:top-5 before:bottom-5 before:w-px before:bg-muted-foreground/40",
+        )}
+        role="list"
+        aria-label="Progress"
+      >
         {steps.map((step, i) => {
           const n = i + 1;
           const isActive = n === currentStep;
@@ -59,14 +65,6 @@ export function Stepper({
               )}
               onClick={handleGo}
             >
-              {/* connector line */}
-              {i !== steps.length - 1 && (
-                <span
-                  aria-hidden
-                  className="absolute left-[1.25rem] top-10 h-[calc(100%-5.5rem)] w-[2px] bg-muted-foreground/40"
-                />
-              )}
-
               {/* number bubble */}
               <button
                 type="button"
@@ -84,9 +82,10 @@ export function Stepper({
                   "relative z-10 flex h-10 w-10 items-center justify-center rounded-full border text-base font-semibold transition-colors",
                   isDone &&
                     "bg-primary text-primary-foreground border-primary group-hover:opacity-90",
+                  // Opaque active bubble + subtle ring keeps line from bleeding through
                   isActive &&
                     !isDone &&
-                    "bg-primary/10 text-primary border-primary",
+                    "bg-background text-primary border-primary ring-2 ring-primary/30",
                   !isActive &&
                     !isDone &&
                     "bg-muted text-muted-foreground border-muted-foreground/30",
@@ -117,6 +116,6 @@ export function Stepper({
           );
         })}
       </ol>
-    </Card>
+    </div>
   );
 }

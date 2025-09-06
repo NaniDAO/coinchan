@@ -333,6 +333,9 @@ export const TokenSelector = memo(
                   ))}
                 </CommandGroup>
               </CommandList>
+              <div className="p-6 text-muted-foreground text-xs text-center">
+                <p>{selectedToken.description}</p>
+              </div>
             </Command>
           </DialogContent>
         </Dialog>
