@@ -1,4 +1,12 @@
-import { Address, erc20Abi, PublicClient, zeroAddress } from "viem";
+import {
+  Address,
+  encodeFunctionData,
+  erc20Abi,
+  Hex,
+  maxUint256,
+  PublicClient,
+  zeroAddress,
+} from "viem";
 import { Token } from "./pools";
 import { erc6909Abi } from "zrouter-sdk";
 
@@ -8,6 +16,7 @@ export type ERC20ApprovalNeed = {
   spender: Address;
   required: bigint;
   has: bigint;
+  callData: Hex;
 };
 
 export type OperatorApprovalNeed = {
@@ -15,6 +24,7 @@ export type OperatorApprovalNeed = {
   operator: Address;
   on: Address;
   enabled: boolean;
+  callData: Hex;
 };
 
 export type ApprovalNeed = ERC20ApprovalNeed | OperatorApprovalNeed;
@@ -44,12 +54,19 @@ export const getApprovalOrOperator = async (
     });
 
     if (approvalRequired < required) {
+      const callData = encodeFunctionData({
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [spender, maxUint256],
+      });
+
       return {
         kind: "erc20",
         token: token.address,
         spender,
         required,
         has: approvalRequired,
+        callData,
       };
     }
 
@@ -72,5 +89,10 @@ export const getApprovalOrOperator = async (
     operator: spender,
     on: token.address,
     enabled: false,
+    callData: encodeFunctionData({
+      abi: erc6909Abi,
+      functionName: "setOperator",
+      args: [spender, true],
+    }),
   };
 };

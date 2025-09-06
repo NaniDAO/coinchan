@@ -19,14 +19,22 @@ import {
   ETH_TOKEN,
   TokenMetadata,
   ZAMM_TOKEN,
+  getAddLiquidityTx,
+  orderTokens,
 } from "@/lib/pools";
 import { cn } from "@/lib/utils";
 
 import { createFileRoute } from "@tanstack/react-router";
-import { RotateCcwIcon, SettingsIcon } from "lucide-react";
+import {
+  RotateCcwIcon,
+  SettingsIcon,
+  Loader2Icon,
+  CheckCircle2Icon,
+  AlertCircleIcon,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { formatUnits } from "viem";
-import { useAccount } from "wagmi";
+import { formatUnits, parseUnits } from "viem";
+import { useAccount, usePublicClient, useWalletClient } from "wagmi";
 
 export const Route = createFileRoute("/positions/create")({
   component: RouteComponent,
@@ -35,8 +43,20 @@ export const Route = createFileRoute("/positions/create")({
 // Protocols where creating *new* pools is disallowed
 const CREATION_BLOCKED_PROTOCOLS = new Set<ProtocolId>(["ZAMMV0"]);
 
+type TxStatus = "idle" | "pending" | "confirmed" | "error";
+type TxVisualStep = {
+  kind: "approve" | "addLiquidity";
+  label: string;
+  status: TxStatus;
+  hash?: `0x${string}`;
+  error?: string;
+};
+
 function RouteComponent() {
   const { address: owner } = useAccount();
+  const publicClient = usePublicClient();
+  const { data: walletClient } = useWalletClient();
+
   const { data: tokens } = useGetTokens(owner);
   const [protocolId, setProtocolId] = useState<ProtocolId>(protocols[0].id);
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -55,6 +75,11 @@ function RouteComponent() {
   // Local deposit amounts (text to keep user’s formatting)
   const [amountA, setAmountA] = useState<string>("");
   const [amountB, setAmountB] = useState<string>("");
+
+  // Submission states
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [execError, setExecError] = useState<string | null>(null);
+  const [txSteps, setTxSteps] = useState<TxVisualStep[]>([]);
 
   const reservesSource = protocolId === "ZAMMV0" ? "ZAMM" : "COOKBOOK";
 
@@ -335,7 +360,7 @@ function RouteComponent() {
     ],
   );
 
-  // Dynamic steps: show "Create new pool & seed" when relevant
+  // Dynamic steps: show "Create new pool & seed" when relevant (Review step removed)
   const steps: CreatePoolStep[] = useMemo(() => {
     const creatingNewPool = !poolExists && creationAllowed;
     return [
@@ -345,7 +370,6 @@ function RouteComponent() {
           ? "Create new pool & seed"
           : "Enter deposit amounts",
       },
-      { title: "Review & confirm" },
     ];
   }, [poolExists, creationAllowed]);
 
@@ -356,6 +380,9 @@ function RouteComponent() {
     setTokenB(ZAMM_TOKEN);
     setAmountA("");
     setAmountB("");
+    setExecError(null);
+    setTxSteps([]);
+    setIsSubmitting(false);
   };
 
   // Only allow backwards navigation via Stepper. Forwards must come from explicit buttons.
@@ -371,6 +398,181 @@ function RouteComponent() {
   // UI helpers
   const creatingNewPool = !poolExists && creationAllowed;
   const creationBlocked = !poolExists && !creationAllowed;
+
+  const executeAddLiquidity = useCallback(async () => {
+    try {
+      setExecError(null);
+      setIsSubmitting(true);
+      setTxSteps([]);
+
+      if (!owner) throw new Error("Connect a wallet first.");
+      if (!publicClient) throw new Error("Public client unavailable.");
+      if (!walletClient) throw new Error("Wallet client unavailable.");
+      if (!tokenA || !tokenB) throw new Error("Select both tokens.");
+
+      // Parse user amounts → raw units
+      const amountARaw = parseUnits(
+        (amountA || "0").trim(),
+        tokenA.decimals ?? 18,
+      );
+      const amountBRaw = parseUnits(
+        (amountB || "0").trim(),
+        tokenB.decimals ?? 18,
+      );
+      if (amountARaw <= 0n || amountBRaw <= 0n) {
+        throw new Error("Enter valid, positive deposit amounts.");
+      }
+
+      // Sort tokens into pool order & map amounts accordingly
+      const [sorted0, sorted1] = orderTokens(
+        { address: tokenA.address, id: tokenA.id },
+        { address: tokenB.address, id: tokenB.id },
+      );
+      const tokenAIs0 =
+        tokenA.id === sorted0.id &&
+        String(tokenA.address).toLowerCase() ===
+          String(sorted0.address).toLowerCase();
+      const amount0 = tokenAIs0 ? amountARaw : amountBRaw;
+      const amount1 = tokenAIs0 ? amountBRaw : amountARaw;
+
+      // Settings → bps & deadline
+      const slippageBps = BigInt(Math.round((settings.slippagePct ?? 0) * 100));
+      const deadline = BigInt(
+        Math.floor(Date.now() / 1000) +
+          Math.max(1, settings.deadlineMin ?? 0) * 60,
+      );
+
+      // Ask helper for approvals + addLiquidity tx
+      const { approvals, tx } = await getAddLiquidityTx(publicClient, {
+        owner,
+        token0: sorted0,
+        token1: sorted1,
+        amount0,
+        amount1,
+        deadline,
+        feeBps: fee,
+        slippageBps,
+        protocolId,
+      });
+
+      // Build visual plan with labels from the approval objects
+      const approvalSteps: TxVisualStep[] = (approvals ?? []).map((a: any) => {
+        let label = "Approve";
+        if (a?.kind === "erc20") {
+          const isA =
+            String(a.token).toLowerCase() ===
+            String(tokenA.address).toLowerCase();
+          const isB =
+            String(a.token).toLowerCase() ===
+            String(tokenB.address).toLowerCase();
+          label = `Approve ${isA ? (tokenA.symbol ?? "TokenA") : isB ? (tokenB.symbol ?? "TokenB") : "token"}`;
+        } else if (a?.kind === "erc6909") {
+          const isA =
+            String(a.on).toLowerCase() === String(tokenA.address).toLowerCase();
+          const isB =
+            String(a.on).toLowerCase() === String(tokenB.address).toLowerCase();
+          label = `Enable operator for ${isA ? (tokenA.symbol ?? "TokenA") : isB ? (tokenB.symbol ?? "TokenB") : "token"}`;
+        }
+        return { kind: "approve", label, status: "idle" } as TxVisualStep;
+      });
+
+      const plan: TxVisualStep[] = [
+        ...approvalSteps,
+        {
+          kind: "addLiquidity",
+          label: creatingNewPool
+            ? "Create pool & add liquidity"
+            : "Add liquidity",
+          status: "idle",
+        },
+      ];
+      setTxSteps(plan);
+
+      // Helper to update a single step by index
+      const setStep = (i: number, patch: Partial<TxVisualStep>) => {
+        setTxSteps((prev) => {
+          const next = [...prev];
+          next[i] = { ...next[i], ...patch };
+          return next;
+        });
+      };
+
+      let sentIdx = 0;
+
+      // 1) Approvals (sequential): route 'to' and 'data' from the ApprovalNeed shape
+      for (let i = 0; i < (approvals?.length ?? 0); i++) {
+        const a: any = approvals![i];
+        const to =
+          a?.kind === "erc20"
+            ? (a.token as `0x${string}`)
+            : a?.kind === "erc6909"
+              ? (a.on as `0x${string}`)
+              : undefined;
+        const data = a?.callData as `0x${string}`;
+        if (!to || !data) throw new Error("Malformed approval step.");
+
+        setStep(sentIdx, { status: "pending" });
+        const hash = await walletClient.sendTransaction({
+          account: owner,
+          to,
+          data,
+          value: 0n,
+        });
+        setStep(sentIdx, { hash });
+        await publicClient.waitForTransactionReceipt({ hash });
+        setStep(sentIdx, { status: "confirmed" });
+        sentIdx += 1;
+      }
+
+      // 2) Main addLiquidity tx
+      setStep(sentIdx, { status: "pending" });
+      const mainHash = await walletClient.sendTransaction({
+        account: owner,
+        to: tx.to as `0x${string}`,
+        data: tx.data as `0x${string}`,
+        value: (tx as any).value ?? 0n,
+      });
+      setStep(sentIdx, { hash: mainHash });
+      await publicClient.waitForTransactionReceipt({ hash: mainHash });
+      setStep(sentIdx, { status: "confirmed" });
+
+      // Optionally reset input amounts after success
+      // setAmountA(""); setAmountB("");
+    } catch (err: any) {
+      const msg = err?.shortMessage ?? err?.message ?? String(err);
+      setExecError(msg);
+      // Mark the first pending/idle step (if any) as error
+      setTxSteps((prev) => {
+        const idx = prev.findIndex(
+          (s) => s.status === "pending" || s.status === "idle",
+        );
+        if (idx >= 0) {
+          const next = [...prev];
+          next[idx] = { ...next[idx], status: "error", error: msg };
+          return next;
+        }
+        return prev.length
+          ? [{ ...prev[prev.length - 1], status: "error", error: msg }]
+          : [];
+      });
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [
+    owner,
+    publicClient,
+    walletClient,
+    tokenA,
+    tokenB,
+    amountA,
+    amountB,
+    settings.slippagePct,
+    settings.deadlineMin,
+    fee,
+    protocolId,
+    creatingNewPool,
+  ]);
 
   return (
     <div className="p-2">
@@ -535,7 +737,7 @@ function RouteComponent() {
             </>
           )}
 
-          {/* ---------- STEP 2: deposit OR create-&-seed ---------- */}
+          {/* ---------- STEP 2: deposit OR create-&-seed (direct execution) ---------- */}
           {currentStep === 2 && (
             <div className="space-y-4">
               {/* Hard guard: V0 with zero reserves cannot proceed */}
@@ -608,8 +810,9 @@ function RouteComponent() {
                         <Button
                           variant="default"
                           className="w-full rounded-lg text-xl py-6 mt-4"
-                          onClick={() => setCurrentStep(3)}
+                          onClick={executeAddLiquidity}
                           disabled={
+                            isSubmitting ||
                             !amountA ||
                             !amountB ||
                             Number.isNaN(parseFloat(amountA)) ||
@@ -618,7 +821,7 @@ function RouteComponent() {
                             parseFloat(amountB) <= 0
                           }
                         >
-                          Review
+                          {isSubmitting ? "Submitting..." : "Confirm"}
                         </Button>
                       </div>
                     </>
@@ -708,8 +911,9 @@ function RouteComponent() {
                       <Button
                         variant="default"
                         className="w-full rounded-lg text-xl py-6 mt-4"
-                        onClick={() => setCurrentStep(3)}
+                        onClick={executeAddLiquidity}
                         disabled={
+                          isSubmitting ||
                           !amountA ||
                           !amountB ||
                           Number.isNaN(parseFloat(amountA)) ||
@@ -718,97 +922,73 @@ function RouteComponent() {
                           parseFloat(amountB) <= 0
                         }
                       >
-                        Review
+                        {isSubmitting ? "Submitting..." : "Create & Confirm"}
                       </Button>
                     </div>
                   )}
                 </>
               )}
-            </div>
-          )}
 
-          {/* ---------- STEP 3: explicit review ---------- */}
-          {currentStep === 3 && (
-            <div className="space-y-4">
-              <div className="rounded-lg border-2 p-4 bg-background">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="text-base font-medium">
-                      {tokenA?.symbol ?? "TokenA"} /{" "}
-                      {tokenB?.symbol ?? "TokenB"}
+              {/* ---- Live TX progress (approvals + addLiquidity) ---- */}
+              {(execError || txSteps.length > 0) && (
+                <div className="rounded-md border mt-3 px-3 py-2">
+                  <div className="text-sm font-medium mb-1">
+                    Transaction progress
+                  </div>
+                  {txSteps.length === 0 && execError && (
+                    <div className="flex items-center gap-2 text-red-600 text-sm">
+                      <AlertCircleIcon className="w-4 h-4" />
+                      {execError}
                     </div>
-                    <span className="text-xs border px-2 py-0.5 rounded-sm">
-                      v2
-                    </span>
-                    <span className="text-xs border px-2 py-0.5 rounded-sm">
-                      {feeLabel}
-                    </span>
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {protocols.find((p) => p.id === protocolId)?.label ??
-                      protocolId}
-                  </div>
+                  )}
+                  <ul className="space-y-2">
+                    {txSteps.map((s, idx) => (
+                      <li
+                        key={idx}
+                        className={cn(
+                          "flex items-start justify-between gap-3 rounded-md border px-3 py-2",
+                          s.status === "confirmed"
+                            ? "border-emerald-300 bg-emerald-50"
+                            : s.status === "error"
+                              ? "border-red-300 bg-red-50"
+                              : "border-border bg-card",
+                        )}
+                      >
+                        <div className="flex items-center gap-2">
+                          {s.status === "pending" && (
+                            <Loader2Icon className="w-4 h-4 animate-spin" />
+                          )}
+                          {s.status === "confirmed" && (
+                            <CheckCircle2Icon className="w-4 h-4 text-emerald-600" />
+                          )}
+                          {s.status === "error" && (
+                            <AlertCircleIcon className="w-4 h-4 text-red-600" />
+                          )}
+                          {s.status === "idle" && (
+                            <SettingsIcon className="w-4 h-4 text-muted-foreground" />
+                          )}
+                          <div className="text-sm">
+                            <div className="font-medium">{s.label}</div>
+                            {s.hash && (
+                              <div className="text-xs text-muted-foreground break-all">
+                                {s.hash}
+                              </div>
+                            )}
+                            {s.error && (
+                              <div className="text-xs text-red-600">
+                                {s.error}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-xs text-muted-foreground capitalize">
+                          {s.status}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <div className="mt-2 text-sm">
-                  <div>
-                    Amount {tokenA?.symbol}:{" "}
-                    <span className="font-medium">{amountA || "—"}</span>
-                  </div>
-                  <div>
-                    Amount {tokenB?.symbol}:{" "}
-                    <span className="font-medium">{amountB || "—"}</span>
-                  </div>
-                  <div className="text-muted-foreground mt-1">
-                    {poolExists
-                      ? "Action: Add liquidity to existing pool."
-                      : creationAllowed
-                        ? "Action: Create new pool and seed with your deposit."
-                        : "Action unavailable: creation is blocked for this protocol."}
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => setCurrentStep(2)}
-                >
-                  Back
-                </Button>
-                <Button
-                  variant="default"
-                  className="flex-1"
-                  disabled={creationBlocked}
-                  onClick={() => {
-                    // TODO: wire up actual transaction submission.
-                    // - If poolExists: add liquidity
-                    // - Else if creationAllowed: create pool + add liquidity
-                    // - Else (creationBlocked): should never fire due to disabled button
-                    console.debug(
-                      poolExists
-                        ? "Confirm: Add liquidity"
-                        : creationAllowed
-                          ? "Confirm: Create pool + seed"
-                          : "Blocked: Creation disabled for protocol",
-                      {
-                        tokenA,
-                        tokenB,
-                        amountA,
-                        amountB,
-                        fee,
-                        protocolId,
-                        selectedPoolId,
-                      },
-                    );
-                  }}
-                >
-                  {poolExists
-                    ? "Confirm"
-                    : creationAllowed
-                      ? "Create & Confirm"
-                      : "Unavailable"}
-                </Button>
-              </div>
+              )}
             </div>
           )}
         </div>
