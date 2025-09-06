@@ -35,6 +35,7 @@
     "@radix-ui/react-scroll-area": "^1.2.6",
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.0",
+    "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tabs": "^1.1.9",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@rainbow-me/rainbowkit": "^2.2.8",

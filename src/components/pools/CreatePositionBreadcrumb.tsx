@@ -14,7 +14,7 @@ export const CreatePositionBreadcrumb = () => {
     <Breadcrumb>
       <BreadcrumbList>
         <BreadcrumbItem>
-          <BreadcrumbLink>
+          <BreadcrumbLink asChild>
             <Link to="/positions">Your positions</Link>
           </BreadcrumbLink>
         </BreadcrumbItem>

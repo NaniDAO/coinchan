@@ -5,15 +5,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ProtocolId, protocols } from "@/lib/protocol";
 import type { Dispatch, SetStateAction } from "react";
-
-export const protocols = [
-  { id: "ZAMMV0", label: "zamm V0 position" },
-  { id: "ZAMMV1", label: "zamm V1 position" },
-] as const;
-
-export type ProtocolOption = (typeof protocols)[number];
-export type ProtocolId = ProtocolOption["id"];
 
 export interface ProtocolSelectorProps {
   protocolId: ProtocolId;

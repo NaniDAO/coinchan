@@ -21,7 +21,8 @@ export const formatDexscreenerStyle = (n: number) => {
   const nextDigit = decPart[1 + zeroCount];
 
   // Convert number to subscript characters
-  const toSubscript = (val: number) => String(val).replace(/\d/g, (d) => "₀₁₂₃₄₅₆₇₈₉"[+d]);
+  const toSubscript = (val: number) =>
+    String(val).replace(/\d/g, (d) => "₀₁₂₃₄₅₆₇₈₉"[+d]);
 
   // Only compress if there are at least 3 zeros after the first decimal digit
   if (zeroCount >= 3 && nextDigit) {
@@ -31,3 +32,18 @@ export const formatDexscreenerStyle = (n: number) => {
   // Otherwise just show with 3 decimal places
   return `${sign}${num.toFixed(3)}`;
 };
+
+export function formatPrice(n?: number) {
+  if (n == null || !isFinite(n)) return "-";
+  const abs = Math.abs(n);
+
+  // Choose decimals based on magnitude
+  if (abs >= 1)
+    return n.toLocaleString(undefined, { maximumFractionDigits: 6 });
+  if (abs >= 1e-6)
+    return n.toLocaleString(undefined, { maximumFractionDigits: 8 });
+  if (abs >= 1e-12)
+    return n.toLocaleString(undefined, { maximumFractionDigits: 12 });
+
+  return n.toExponential(2);
+}

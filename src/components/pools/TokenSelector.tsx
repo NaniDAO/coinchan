@@ -1,7 +1,7 @@
 import { memo, useMemo, useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronDownIcon, SearchIcon, Clock4, Check } from "lucide-react";
-import { formatUnits, type Address } from "viem";
+import { formatUnits } from "viem";
 
 import { cn } from "@/lib/utils";
 import { TokenImage } from "@/components/TokenImage";
@@ -130,7 +130,7 @@ export const TokenSelector = memo(
     const formatBalance = (token: TokenMetadata) => {
       try {
         if (token.balance === 0n) return "0";
-        const val = Number(formatUnits(token.balance, token.decimals));
+        const val = Number(formatUnits(token?.balance ?? 0n, token.decimals));
         if (val === 0) return "0";
         if (val >= 1000) return `${Math.floor(val).toLocaleString()}`;
         if (val >= 1) return val.toFixed(3);
