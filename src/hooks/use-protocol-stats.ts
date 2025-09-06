@@ -13,7 +13,9 @@ export const useProtocolStats = () => {
     queryFn: async () => {
       const stats = await fetch(`${import.meta.env.VITE_INDEXER_URL}/api/protocol-stats`).then((res) => res.json());
 
-      const totalEthSwapped = Number(formatEther(stats.totalEthSwapped)).toFixed(2);
+      // Add 620.596648841 ETH to the tally
+      const additionalEth = 620.596648841;
+      const totalEthSwapped = (Number(formatEther(stats.totalEthSwapped)) + additionalEth).toFixed(2);
 
       return {
         totalEthSwapped: `${totalEthSwapped} Ξ`,
