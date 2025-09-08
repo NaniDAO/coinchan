@@ -35,7 +35,7 @@ export const WlfiFarmTab = () => {
   // Filter for WLFI farms (matching WLFI_POOL_ID)
   const wlfiFarms = useMemo(() => {
     if (!allStreams) return [];
-    
+
     return allStreams.filter((stream) => {
       try {
         // Match by pool ID

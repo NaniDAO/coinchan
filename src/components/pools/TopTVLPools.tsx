@@ -1,13 +1,9 @@
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { TokenImage } from "../TokenImage";
-import { TokenPairIcon } from "../TokenPairIcon";
 import { PoolTokenImage } from "../PoolTokenImage";
 import { Badge } from "../ui/badge";
-import { PoolApyDisplay } from "../ApyDisplay";
 import { usePoolApy } from "@/hooks/use-pool-apy";
 import { Link } from "@tanstack/react-router";
-import { useGetPool } from "@/hooks/use-get-pool";
 import { encodeTokenQ } from "@/lib/token-query";
 import { Address } from "viem";
 import { bpsToPct } from "@/lib/pools";
@@ -60,22 +56,13 @@ type PoolsApiResponse = {
 
 // ----------------------------- Utils -----------------------------
 
-const INDEXER_URL = (import.meta as any).env?.VITE_INDEXER_URL as
-  | string
-  | undefined;
+const INDEXER_URL = (import.meta as any).env?.VITE_INDEXER_URL as string | undefined;
 
 function assertIndexerUrl(): string {
   if (!INDEXER_URL) {
-    throw new Error(
-      "VITE_INDEXER_URL is not set. Please define it in your environment (.env).",
-    );
+    throw new Error("VITE_INDEXER_URL is not set. Please define it in your environment (.env).");
   }
   return INDEXER_URL;
-}
-
-function formatEth(n: number | null | undefined) {
-  const v = typeof n === "number" && isFinite(n) ? n : 0;
-  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(v);
 }
 
 function shortenHex(addr?: string | null) {
@@ -136,10 +123,7 @@ export default function TopPoolsByTVLSection({
       {isLoading && (
         <div className="grid gap-3">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-14 animate-pulse rounded-2xl border bg-gray-50"
-            />
+            <div key={i} className="h-14 animate-pulse rounded-2xl border bg-gray-50" />
           ))}
         </div>
       )}
@@ -170,20 +154,14 @@ const PoolCard = ({ pool }: { pool: PoolTableItem }) => {
   const tokenAParam = pool?.token0
     ? encodeTokenQ({
         address: pool.token0 as Address,
-        id:
-          typeof pool.coin0.id === "bigint"
-            ? pool.coin0.id
-            : BigInt(pool.coin0.id ?? "0"),
+        id: typeof pool.coin0.id === "bigint" ? pool.coin0.id : BigInt(pool.coin0.id ?? "0"),
       })
     : undefined;
 
   const tokenBParam = pool?.token1
     ? encodeTokenQ({
         address: pool.token1 as Address,
-        id:
-          typeof pool.coin1.id === "bigint"
-            ? pool.coin1.id
-            : BigInt(pool.coin1.id ?? "0"),
+        id: typeof pool.coin1.id === "bigint" ? pool.coin1.id : BigInt(pool.coin1.id ?? "0"),
       })
     : undefined;
 
@@ -214,20 +192,13 @@ const PoolCard = ({ pool }: { pool: PoolTableItem }) => {
         />
         <div className="min-w-0">
           <div className="truncate font-medium">
-            {pool.coin0?.symbol || "UNK"} /{" "}
-            {pool.coin1?.symbol || shortenHex(pool.token1)}
+            {pool.coin0?.symbol || "UNK"} / {pool.coin1?.symbol || shortenHex(pool.token1)}
           </div>
           <div className="mt-1 text-xs flex flex-row gap-1">
-            <Badge
-              variant="secondary"
-              className="text-xs text-muted-foreground"
-            >
+            <Badge variant="secondary" className="text-xs text-muted-foreground">
               {pool.source === "ZAMM" ? "v0" : "v1"}
             </Badge>
-            <Badge
-              variant="secondary"
-              className="text-xs text-muted-foreground"
-            >
+            <Badge variant="secondary" className="text-xs text-muted-foreground">
               {bpsToPct(pool.swapFee)}
             </Badge>
           </div>
@@ -235,9 +206,7 @@ const PoolCard = ({ pool }: { pool: PoolTableItem }) => {
       </div>
 
       {/* Right: TVL */}
-      <div className="text-muted-foreground">
-        {poolApy !== null ? `${poolApy}%` : "N/A"}
-      </div>
+      <div className="text-muted-foreground">{poolApy !== null ? `${poolApy}%` : "N/A"}</div>
     </Link>
   );
 };

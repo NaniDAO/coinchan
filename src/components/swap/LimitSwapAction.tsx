@@ -2,13 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { CheckIcon, ExternalLink } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  encodeFunctionData,
-  formatEther,
-  formatUnits,
-  parseUnits,
-  type Address,
-} from "viem";
+import { encodeFunctionData, formatEther, formatUnits, parseUnits, type Address } from "viem";
 import { mainnet } from "viem/chains";
 import {
   useAccount,
@@ -51,9 +45,7 @@ export const LimitSwapAction = ({ lockedTokens }: Props) => {
   // amounts
   const [sellAmt, setSellAmt] = useState("");
   const [buyAmt, setBuyAmt] = useState("");
-  const [lastEditedField, setLastEditedField] = useState<"sell" | "buy">(
-    "sell",
-  );
+  const [lastEditedField, setLastEditedField] = useState<"sell" | "buy">("sell");
 
   // selection (context unless locked)
   const tokenSelectionContext = useTokenSelection();
@@ -77,11 +69,7 @@ export const LimitSwapAction = ({ lockedTokens }: Props) => {
 
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [txError, setTxError] = useState<string | null>(null);
-  const {
-    sendTransactionAsync,
-    isPending,
-    error: writeError,
-  } = useSendTransaction();
+  const { sendTransactionAsync, isPending, error: writeError } = useSendTransaction();
   const { sendCalls } = useSendCalls();
   const isBatchingSupported = useBatchingSupported();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
@@ -140,14 +128,12 @@ export const LimitSwapAction = ({ lockedTokens }: Props) => {
         setTxError(t("errors.network_error"));
         return;
       }
-      const deadlineSeconds =
-        Math.floor(Date.now() / 1000) + deadline * 24 * 60 * 60;
+      const deadlineSeconds = Math.floor(Date.now() / 1000) + deadline * 24 * 60 * 60;
 
       const CULT_ADDRESS = HARDCODED_ADDR.CULT;
       const ENS_ADDRESS = HARDCODED_ADDR.ENS;
       const isCULT = (token: TokenMeta) => token.symbol === "CULT";
-      const isENS = (token: TokenMeta) =>
-        token.isCustomPool && token.symbol === "ENS";
+      const isENS = (token: TokenMeta) => token.isCustomPool && token.symbol === "ENS";
 
       const tokenInAddress =
         sellToken.id === null
@@ -171,10 +157,8 @@ export const LimitSwapAction = ({ lockedTokens }: Props) => {
                 ? (CookbookAddress as Address)
                 : (CoinsAddress as Address);
 
-      const idIn =
-        isCULT(sellToken) || isENS(sellToken) ? 0n : sellToken.id || 0n;
-      const idOut =
-        isCULT(buyToken) || isENS(buyToken) ? 0n : buyToken.id || 0n;
+      const idIn = isCULT(sellToken) || isENS(sellToken) ? 0n : sellToken.id || 0n;
+      const idOut = isCULT(buyToken) || isENS(buyToken) ? 0n : buyToken.id || 0n;
 
       const sellTokenDecimals = sellToken.decimals || 18;
       const buyTokenDecimals = buyToken.decimals || 18;
@@ -188,13 +172,7 @@ export const LimitSwapAction = ({ lockedTokens }: Props) => {
         value?: bigint;
       }> = [];
 
-      if (
-        sellToken.id !== null &&
-        sellToken.id >= 1000000n &&
-        !isCULT(sellToken) &&
-        !isENS(sellToken) &&
-        !isOperator
-      ) {
+      if (sellToken.id !== null && sellToken.id >= 1000000n && !isCULT(sellToken) && !isENS(sellToken) && !isOperator) {
         const approvalData = encodeFunctionData({
           abi: CoinsAbi,
           functionName: "setOperator",
@@ -206,16 +184,7 @@ export const LimitSwapAction = ({ lockedTokens }: Props) => {
       const makeOrderData = encodeFunctionData({
         abi: CookbookAbi,
         functionName: "makeOrder",
-        args: [
-          tokenInAddress,
-          idIn,
-          amtIn,
-          tokenOutAddress,
-          idOut,
-          amtOut,
-          BigInt(deadlineSeconds),
-          partialFill,
-        ],
+        args: [tokenInAddress, idIn, amtIn, tokenOutAddress, idOut, amtOut, BigInt(deadlineSeconds), partialFill],
       });
 
       calls.push({
@@ -328,13 +297,7 @@ export const LimitSwapAction = ({ lockedTokens }: Props) => {
           isEthBalanceFetching={isEthBalanceFetching}
           amount={sellAmt}
           onAmountChange={syncFromSell}
-          showMaxButton={
-            !!(
-              sellToken.balance &&
-              (sellToken.balance as bigint) > 0n &&
-              lastEditedField === "sell"
-            )
-          }
+          showMaxButton={!!(sellToken.balance && (sellToken.balance as bigint) > 0n && lastEditedField === "sell")}
           onMax={() => {
             if (sellToken.id === null) {
               const ethAmount = ((sellToken.balance as bigint) * 99n) / 100n;
@@ -345,17 +308,14 @@ export const LimitSwapAction = ({ lockedTokens }: Props) => {
             }
           }}
           showPercentageSlider={
-            lastEditedField === "sell" ||
-            (!!sellToken.balance && (sellToken.balance as bigint) > 0n)
+            lastEditedField === "sell" || (!!sellToken.balance && (sellToken.balance as bigint) > 0n)
           }
           className="pb-4 rounded-t-2xl"
           readOnly={!!lockedTokens}
         />
 
         {!lockedTokens && (
-          <div
-            className={cn("absolute left-1/2 -translate-x-1/2 top-[50%] z-10")}
-          >
+          <div className={cn("absolute left-1/2 -translate-x-1/2 top-[50%] z-10")}>
             <FlipActionButton onClick={handleFlipTokens} />
           </div>
         )}
@@ -378,15 +338,11 @@ export const LimitSwapAction = ({ lockedTokens }: Props) => {
       {/* Limit settings */}
       <div className="mt-4 p-3 bg-background/50 rounded-lg border border-primary/20">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-sm font-medium text-foreground">
-            {t("common.order_settings")}
-          </span>
+          <span className="text-sm font-medium text-foreground">{t("common.order_settings")}</span>
         </div>
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-sm text-muted-foreground">
-              {t("common.allow_partial_fill")}
-            </label>
+            <label className="text-sm text-muted-foreground">{t("common.allow_partial_fill")}</label>
             <button
               onClick={() => setPartialFill(!partialFill)}
               className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${partialFill ? "bg-primary" : "bg-muted"}`}
@@ -397,9 +353,7 @@ export const LimitSwapAction = ({ lockedTokens }: Props) => {
             </button>
           </div>
           <div className="flex items-center justify-between">
-            <label className="text-sm text-muted-foreground">
-              {t("common.expires_in")}
-            </label>
+            <label className="text-sm text-muted-foreground">{t("common.expires_in")}</label>
             <select
               value={deadline}
               onChange={(e) => setDeadline(Number(e.target.value))}
@@ -414,11 +368,7 @@ export const LimitSwapAction = ({ lockedTokens }: Props) => {
           {sellAmt && buyAmt && buyToken && (
             <div className="pt-2 border-t border-primary/10">
               <div className="text-xs text-muted-foreground">
-                Rate: 1 {sellToken.symbol} ={" "}
-                {formatNumber(
-                  Number.parseFloat(buyAmt) / Number.parseFloat(sellAmt),
-                  6,
-                )}{" "}
+                Rate: 1 {sellToken.symbol} = {formatNumber(Number.parseFloat(buyAmt) / Number.parseFloat(sellAmt), 6)}{" "}
                 {buyToken.symbol}
               </div>
             </div>
@@ -451,9 +401,7 @@ export const LimitSwapAction = ({ lockedTokens }: Props) => {
       {/* Errors */}
       {((writeError && !isUserRejectionError(writeError)) || txError) && (
         <div className="text-sm text-destructive mt-2 bg-background/50 p-2 rounded border border-destructive/20">
-          {writeError && !isUserRejectionError(writeError)
-            ? writeError.message
-            : txError}
+          {writeError && !isUserRejectionError(writeError) ? writeError.message : txError}
         </div>
       )}
 
@@ -475,12 +423,7 @@ export const LimitSwapAction = ({ lockedTokens }: Props) => {
       )}
 
       <div className="mt-4 border-t border-primary pt-4">
-        <PoolSwapChart
-          buyToken={buyToken}
-          sellToken={sellToken}
-          prevPair={prevPairRef.current}
-          priceImpact={null}
-        />
+        <PoolSwapChart buyToken={buyToken} sellToken={sellToken} prevPair={prevPairRef.current} priceImpact={null} />
       </div>
     </div>
   );

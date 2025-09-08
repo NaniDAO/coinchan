@@ -26,24 +26,19 @@ export const buttonVariants = cva(
     variants: {
       variant: {
         // solid primary button with better defaults
-        default:
-          "bg-primary text-primary-foreground border-primary hover:bg-primary/90",
+        default: "bg-primary text-primary-foreground border-primary hover:bg-primary/90",
 
         // destructive preserves theme tokens and motion
-        destructive:
-          "bg-destructive text-destructive-foreground border-destructive hover:bg-destructive/90",
+        destructive: "bg-destructive text-destructive-foreground border-destructive hover:bg-destructive/90",
 
         // outline now uses accent on hover for clearer affordance
-        outline:
-          "bg-background text-foreground border-border hover:bg-accent hover:text-accent-foreground",
+        outline: "bg-background text-foreground border-border hover:bg-accent hover:text-accent-foreground",
 
         // secondary uses secondary tokens (instead of muted) for stronger contrast
-        secondary:
-          "bg-secondary text-secondary-foreground border-secondary hover:bg-secondary/90",
+        secondary: "bg-secondary text-secondary-foreground border-secondary hover:bg-secondary/90",
 
         // ghost is subtle but still gets a nice hover surface
-        ghost:
-          "bg-transparent text-foreground border-transparent hover:bg-accent hover:text-accent-foreground",
+        ghost: "bg-transparent text-foreground border-transparent hover:bg-accent hover:text-accent-foreground",
 
         // link acts like a real link: no border/shadow/offset movement
         link: "bg-transparent border-0 text-primary underline-offset-4 hover:underline shadow-none active:translate-x-0 active:translate-y-0",
@@ -80,12 +75,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
     return (
-      <Comp
-        ref={ref}
-        data-slot="button"
-        className={cn(buttonVariants({ variant, size, className }))}
-        {...props}
-      />
+      <Comp ref={ref} data-slot="button" className={cn(buttonVariants({ variant, size, className }))} {...props} />
     );
   },
 );

@@ -1,18 +1,11 @@
-import {
-  erc20Abi,
-  isAddressEqual,
-  zeroAddress,
-  type Address,
-  type PublicClient,
-} from "viem";
+import { erc20Abi, isAddressEqual, zeroAddress, type Address, type PublicClient } from "viem";
 import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import type { Token, TokenMetadata } from "@/lib/pools";
 
 type WithId = Token | TokenMetadata;
 
-const keyOf = (t: WithId) =>
-  `${(t.address as Address).toLowerCase()}:${t.id.toString()}`;
+const keyOf = (t: WithId) => `${(t.address as Address).toLowerCase()}:${t.id.toString()}`;
 
 const chunk = <T>(arr: T[], size: number) => {
   const out: T[][] = [];
@@ -95,19 +88,12 @@ export async function getTokenBalances(opts: {
       });
       resp.forEach((r, i) => {
         const tok = batch[i].token;
-        results.set(
-          keyOf(tok),
-          r.status === "success" ? (r.result as bigint) : 0n,
-        );
+        results.set(keyOf(tok), r.status === "success" ? (r.result as bigint) : 0n);
       });
     }
   };
 
-  await Promise.all([
-    runGroup(erc20Calls),
-    runGroup(coinsCalls),
-    runGroup(cookbookCalls),
-  ]);
+  await Promise.all([runGroup(erc20Calls), runGroup(coinsCalls), runGroup(cookbookCalls)]);
 
   if (hasEth) {
     const balance = await publicClient.getBalance({ address: owner });

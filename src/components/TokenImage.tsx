@@ -60,16 +60,8 @@ export const TokenImage = memo(({ symbol, imageUrl }: TokenImageProps) => {
 
   return (
     <Avatar className="w-8 h-8">
-      {resolvedImageUrl && (
-        <AvatarImage
-          src={resolvedImageUrl}
-          alt={`${symbol} logo`}
-          loading="lazy"
-        />
-      )}
-      <AvatarFallback className={`${bg} ${text} text-xs font-medium`}>
-        {getInitials(symbol)}
-      </AvatarFallback>
+      {resolvedImageUrl && <AvatarImage src={resolvedImageUrl} alt={`${symbol} logo`} loading="lazy" />}
+      <AvatarFallback className={`${bg} ${text} text-xs font-medium`}>{getInitials(symbol)}</AvatarFallback>
     </Avatar>
   );
 });

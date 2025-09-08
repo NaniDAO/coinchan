@@ -24,11 +24,9 @@ export const DEFAULT_FEE_TIER = 100n;
 export const ETH_TOKEN: TokenMetadata = {
   address: zeroAddress,
   decimals: 18,
-  description:
-    "Ethereum is a decentralized platform that enables smart contracts and decentralized applications.",
+  description: "Ethereum is a decentralized platform that enables smart contracts and decentralized applications.",
   id: 0n,
-  imageUrl:
-    "https://assets.coingecko.com/coins/images/279/standard/ethereum.png?1727872989",
+  imageUrl: "https://assets.coingecko.com/coins/images/279/standard/ethereum.png?1727872989",
   name: "Ethereum",
   standard: "ERC6909",
   symbol: "ETH",
@@ -109,10 +107,7 @@ export const computePoolId = (
   protocol: ProtocolId,
 ): bigint => {
   // disallow identical token on both sides
-  if (
-    tokenA.address.toLowerCase() === tokenB.address.toLowerCase() &&
-    tokenA.id === tokenB.id
-  ) {
+  if (tokenA.address.toLowerCase() === tokenB.address.toLowerCase() && tokenA.id === tokenB.id) {
     return 0n;
   }
 
@@ -122,9 +117,7 @@ export const computePoolId = (
     return BigInt(
       keccak256(
         encodeAbiParameters(
-          parseAbiParameters(
-            "uint256 id0, uint256 id1, address token0, address token1, uint96 swapFee",
-          ),
+          parseAbiParameters("uint256 id0, uint256 id1, address token0, address token1, uint96 swapFee"),
           [token0.id, token1.id, token0.address, token1.address, feeOrHook],
         ),
       ),
@@ -134,9 +127,7 @@ export const computePoolId = (
   return BigInt(
     keccak256(
       encodeAbiParameters(
-        parseAbiParameters(
-          "uint256 id0, uint256 id1, address token0, address token1, uint256 feeOrHook",
-        ),
+        parseAbiParameters("uint256 id0, uint256 id1, address token0, address token1, uint256 feeOrHook"),
         [token0.id, token1.id, token0.address, token1.address, feeOrHook],
       ),
     ),
@@ -186,17 +177,7 @@ type AddLiquidityArgs = {
 
 export const getAddLiquidityTx = async (
   publicClient: PublicClient,
-  {
-    owner,
-    token0,
-    token1,
-    amount0,
-    amount1,
-    deadline,
-    feeBps,
-    slippageBps,
-    protocolId,
-  }: AddLiquidityArgs,
+  { owner, token0, token1, amount0, amount1, deadline, feeBps, slippageBps, protocolId }: AddLiquidityArgs,
 ) => {
   const protocol = getProtocol(protocolId);
 
@@ -313,17 +294,9 @@ export const getRemoveLiquidityTx = async (
   });
 
   // Resolve min amounts (prefer explicit mins; else derive from preview; else 0n)
-  const amount0Min =
-    minAmount0 ??
-    (expectedAmount0 !== undefined
-      ? withSlippage(expectedAmount0, slippageBps)
-      : 0n);
+  const amount0Min = minAmount0 ?? (expectedAmount0 !== undefined ? withSlippage(expectedAmount0, slippageBps) : 0n);
 
-  const amount1Min =
-    minAmount1 ??
-    (expectedAmount1 !== undefined
-      ? withSlippage(expectedAmount1, slippageBps)
-      : 0n);
+  const amount1Min = minAmount1 ?? (expectedAmount1 !== undefined ? withSlippage(expectedAmount1, slippageBps) : 0n);
 
   const callData = encodeFunctionData({
     abi: protocol.abi,

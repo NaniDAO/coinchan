@@ -118,9 +118,7 @@ export const OptimizedTokenSelector = memo(
             }
           } else {
             // Token formatting
-            const tokenValue = Number(
-              formatUnits(token.balance, token.decimals || 18),
-            );
+            const tokenValue = Number(formatUnits(token.balance, token.decimals || 18));
             if (tokenValue >= 1000) {
               result = `${Math.floor(tokenValue).toLocaleString()}`;
             } else if (tokenValue >= 1) {
@@ -162,20 +160,14 @@ export const OptimizedTokenSelector = memo(
           onClick={() => setIsOpen(!isOpen)}
         >
           <div className="flex items-center space-x-3">
-            <TokenImage
-              imageUrl={selectedToken.imageUrl}
-              symbol={selectedToken.symbol}
-            />
+            <TokenImage imageUrl={selectedToken.imageUrl} symbol={selectedToken.symbol} />
             <div className="text-left">
               <div className="font-medium">{selectedToken.symbol}</div>
               <div className="text-sm text-gray-500">{selectedToken.name}</div>
             </div>
           </div>
           <ChevronDownIcon
-            className={cn(
-              "h-5 w-5 text-gray-400 transition-transform duration-200",
-              isOpen && "rotate-180",
-            )}
+            className={cn("h-5 w-5 text-gray-400 transition-transform duration-200", isOpen && "rotate-180")}
           />
         </button>
 
@@ -210,17 +202,10 @@ export const OptimizedTokenSelector = memo(
                       onClick={() => handleSelect(token)}
                     >
                       <div className="flex items-center space-x-3 flex-1 min-w-0">
-                        <TokenImage
-                          imageUrl={token.imageUrl}
-                          symbol={token.symbol}
-                        />
+                        <TokenImage imageUrl={token.imageUrl} symbol={token.symbol} />
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm truncate">
-                            {token.symbol}
-                          </div>
-                          <div className="text-xs text-gray-500 truncate">
-                            {token.name}
-                          </div>
+                          <div className="font-medium text-sm truncate">{token.symbol}</div>
+                          <div className="text-xs text-gray-500 truncate">{token.name}</div>
                         </div>
                       </div>
                       <div className="text-right flex-shrink-0">
@@ -234,14 +219,11 @@ export const OptimizedTokenSelector = memo(
                   );
                 })
               ) : (
-                <div className="p-4 text-center text-gray-500">
-                  {t("common.no_results")}
-                </div>
+                <div className="p-4 text-center text-gray-500">{t("common.no_results")}</div>
               )}
               {filteredTokens.length > 50 && (
                 <div className="p-3 text-center text-sm text-gray-500 bg-gray-50 dark:bg-gray-700">
-                  {t("common.showing")} 50 {t("common.of")}{" "}
-                  {filteredTokens.length} {t("common.results")}
+                  {t("common.showing")} 50 {t("common.of")} {filteredTokens.length} {t("common.results")}
                 </div>
               )}
             </div>
@@ -249,12 +231,7 @@ export const OptimizedTokenSelector = memo(
         )}
 
         {/* Backdrop to close dropdown */}
-        {isOpen && (
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => setIsOpen(false)}
-          />
-        )}
+        {isOpen && <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />}
       </div>
     );
   },

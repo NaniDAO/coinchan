@@ -1,11 +1,6 @@
 import { useMemo, useState, useEffect, useCallback } from "react";
-import { Address, formatUnits } from "viem";
-import {
-  useAccount,
-  usePublicClient,
-  useWalletClient,
-  useReadContract,
-} from "wagmi";
+import { Address, formatUnits, parseUnits } from "viem";
+import { useAccount, usePublicClient, useWalletClient, useReadContract } from "wagmi";
 import {
   Dialog,
   DialogContent,
@@ -19,18 +14,9 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 import { getProtocol, ProtocolId } from "@/lib/protocol";
-import { bpsToPct, getRemoveLiquidityTx } from "@/lib/pools"; // the helper we just created
-import {
-  TokenMetadata,
-  orderTokens,
-  computePoolId,
-  computePoolKey,
-  DEFAULT_FEE_TIER,
-} from "@/lib/pools";
-import {
-  SettingsDropdown,
-  TradeSettings,
-} from "@/components/pools/SettingsDropdown";
+import { getRemoveLiquidityTx } from "@/lib/pools";
+import { TokenMetadata, orderTokens, computePoolId, DEFAULT_FEE_TIER } from "@/lib/pools";
+import { SettingsDropdown, TradeSettings } from "@/components/pools/SettingsDropdown";
 import { CheckCircle2Icon, Loader2Icon, AlertCircleIcon } from "lucide-react";
 import { protocols } from "@/lib/protocol";
 
@@ -83,11 +69,6 @@ export function RemoveLpDialog({
         { address: tokenB.address as Address, id: tokenB.id },
       ),
     [tokenA.address, tokenA.id, tokenB.address, tokenB.id],
-  );
-
-  const poolKey = useMemo(
-    () => computePoolKey(token0, token1, BigInt(feeOrHook), protocolId),
-    [token0, token1, feeOrHook, protocolId],
   );
 
   const poolId = useMemo(
@@ -147,14 +128,11 @@ export function RemoveLpDialog({
       if (!proto?.address) throw new Error("Protocol not found.");
       if (!poolId) throw new Error("Invalid pool.");
 
-      const liquidity = parseUnits((amountLp || "0").trim(), 18);
+      const liquidity = parseUnits(amountLp || "0", 18);
       if (liquidity <= 0n) throw new Error("Enter a positive LP amount.");
 
       const slippageBps = BigInt(Math.round((settings.slippagePct ?? 0) * 100));
-      const deadline = BigInt(
-        Math.floor(Date.now() / 1000) +
-          Math.max(1, settings.deadlineMin ?? 0) * 60,
-      );
+      const deadline = BigInt(Math.floor(Date.now() / 1000) + Math.max(1, settings.deadlineMin ?? 0) * 60);
 
       // Build tx (we’re not passing expected amounts, so mins default to 0n unless you add a preview)
       const { approvals, tx } = await getRemoveLiquidityTx(publicClient, {
@@ -238,17 +216,13 @@ export function RemoveLpDialog({
       const msg = err?.shortMessage ?? err?.message ?? String(err);
       setExecError(msg);
       setTxSteps((prev) => {
-        const i = prev.findIndex(
-          (s) => s.status === "pending" || s.status === "idle",
-        );
+        const i = prev.findIndex((s) => s.status === "pending" || s.status === "idle");
         if (i >= 0) {
           const next = [...prev];
           next[i] = { ...next[i], status: "error", error: msg };
           return next;
         }
-        return prev.length
-          ? [{ ...prev[prev.length - 1], status: "error", error: msg }]
-          : [];
+        return prev.length ? [{ ...prev[prev.length - 1], status: "error", error: msg }] : [];
       });
       console.error(err);
     } finally {
@@ -271,19 +245,12 @@ export function RemoveLpDialog({
   ]);
 
   const AmountCard = (
-    <div
-      className={cn(
-        "border-2 border-border rounded-lg p-3",
-        "bg-input shadow-[2px_2px_0_var(--color-border)]",
-      )}
-    >
+    <div className={cn("border-2 border-border rounded-lg p-3", "bg-input shadow-[2px_2px_0_var(--color-border)]")}>
       <div className="flex items-center justify-between mb-2">
         <div className="text-sm text-muted-foreground">
           LP to burn ({tokenA.symbol}/{tokenB.symbol})
         </div>
-        <div className="text-xs text-muted-foreground">
-          Balance: {isLpLoading ? "…" : lpBalanceFmt}
-        </div>
+        <div className="text-xs text-muted-foreground">Balance: {isLpLoading ? "…" : lpBalanceFmt}</div>
       </div>
 
       <div className="flex gap-2">
@@ -327,8 +294,7 @@ export function RemoveLpDialog({
         <DialogHeader>
           <DialogTitle>Remove liquidity</DialogTitle>
           <DialogDescription>
-            Burn LP tokens for{" "}
-            <span className="font-medium">{tokenA.symbol}</span> /{" "}
+            Burn LP tokens for <span className="font-medium">{tokenA.symbol}</span> /{" "}
             <span className="font-medium">{tokenB.symbol}</span> at{" "}
             <span className="text-muted-foreground">
               {protocols.find((p) => p.id === protocolId)?.label ?? protocolId}
@@ -339,9 +305,7 @@ export function RemoveLpDialog({
         {AmountCard}
 
         <div className="flex items-center justify-between mt-3">
-          <div className="text-xs text-muted-foreground">
-            Slippage &amp; deadline
-          </div>
+          <div className="text-xs text-muted-foreground">Slippage &amp; deadline</div>
           <SettingsDropdown value={settings} onChange={setSettings} />
         </div>
 
@@ -368,30 +332,16 @@ export function RemoveLpDialog({
                   )}
                 >
                   <div className="flex items-center gap-2">
-                    {s.status === "pending" && (
-                      <Loader2Icon className="w-4 h-4 animate-spin" />
-                    )}
-                    {s.status === "confirmed" && (
-                      <CheckCircle2Icon className="w-4 h-4 text-emerald-600" />
-                    )}
-                    {s.status === "error" && (
-                      <AlertCircleIcon className="w-4 h-4 text-red-600" />
-                    )}
+                    {s.status === "pending" && <Loader2Icon className="w-4 h-4 animate-spin" />}
+                    {s.status === "confirmed" && <CheckCircle2Icon className="w-4 h-4 text-emerald-600" />}
+                    {s.status === "error" && <AlertCircleIcon className="w-4 h-4 text-red-600" />}
                     <div className="text-sm">
                       <div className="font-medium">{s.label}</div>
-                      {s.hash && (
-                        <div className="text-xs text-muted-foreground break-all">
-                          {s.hash}
-                        </div>
-                      )}
-                      {s.error && (
-                        <div className="text-xs text-red-600">{s.error}</div>
-                      )}
+                      {s.hash && <div className="text-xs text-muted-foreground break-all">{s.hash}</div>}
+                      {s.error && <div className="text-xs text-red-600">{s.error}</div>}
                     </div>
                   </div>
-                  <div className="text-xs text-muted-foreground capitalize">
-                    {s.status}
-                  </div>
+                  <div className="text-xs text-muted-foreground capitalize">{s.status}</div>
                 </li>
               ))}
             </ul>
@@ -399,22 +349,13 @@ export function RemoveLpDialog({
         )}
 
         <DialogFooter className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isSubmitting}
-          >
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
             Cancel
           </Button>
           <Button
             className="min-w-[140px]"
             onClick={executeRemove}
-            disabled={
-              isSubmitting ||
-              !amountLp ||
-              Number.isNaN(parseFloat(amountLp)) ||
-              parseFloat(amountLp) <= 0
-            }
+            disabled={isSubmitting || !amountLp || Number.isNaN(parseFloat(amountLp)) || parseFloat(amountLp) <= 0}
           >
             {isSubmitting ? (
               <span className="inline-flex items-center gap-2">

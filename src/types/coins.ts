@@ -1,11 +1,4 @@
-export type SortBy =
-  | "liquidity"
-  | "recency"
-  | "votes"
-  | "price"
-  | "fdv"
-  | "holders"
-  | "incentives";
+export type SortBy = "liquidity" | "recency" | "votes" | "price" | "fdv" | "holders" | "incentives";
 
 export type SortDir = "asc" | "desc";
 

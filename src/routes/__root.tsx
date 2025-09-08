@@ -2,13 +2,7 @@ import { RainbowConnectButton } from "@/components/RainbowConnectButton";
 import UserSettingsMenu from "@/components/UserSettingsMenu";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import {
-  Link,
-  Outlet,
-  createRootRoute,
-  useLocation,
-  useNavigate,
-} from "@tanstack/react-router";
+import { Link, Outlet, createRootRoute, useLocation, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import {
@@ -61,9 +55,7 @@ export const Route = createRootRoute({
       cn(
         "cursor-pointer border-2 border-transparent transition-all duration-100 font-extrabold font-body no-underline text-foreground flex-1 text-center flex items-center justify-center min-w-fit uppercase tracking-widest hover:bg-accent hover:text-accent-foreground",
         "md:text-lg text-base px-3 py-2 md:py-0",
-        location.pathname === path
-          ? "active bg-accent text-accent-foreground"
-          : "",
+        location.pathname === path ? "active bg-accent text-accent-foreground" : "",
       );
 
     const itemClasses = "w-full flex items-center gap-2 py-2 px-2 rounded-md";
@@ -91,10 +83,7 @@ export const Route = createRootRoute({
                   <DropdownMenuTrigger asChild>
                     <Link
                       to="/swap"
-                      className={cn(
-                        navLinkClasses("/swap"),
-                        "w-full inline-flex",
-                      )}
+                      className={cn(navLinkClasses("/swap"), "w-full inline-flex")}
                       onMouseEnter={() => setIsTradeOpen(true)}
                       onMouseLeave={() => setIsTradeOpen(false)}
                     >
@@ -134,17 +123,11 @@ export const Route = createRootRoute({
 
               {/* Explore (dropdown) */}
               <div className="flex-1 min-w-0 relative">
-                <DropdownMenu
-                  open={isExploreOpen}
-                  onOpenChange={setIsExploreOpen}
-                >
+                <DropdownMenu open={isExploreOpen} onOpenChange={setIsExploreOpen}>
                   <DropdownMenuTrigger asChild>
                     <Link
                       to="/explore/tokens"
-                      className={cn(
-                        navLinkClasses("/explore"),
-                        "w-full inline-flex",
-                      )}
+                      className={cn(navLinkClasses("/explore"), "w-full inline-flex")}
                       onMouseEnter={() => setIsExploreOpen(true)}
                       onMouseLeave={() => setIsExploreOpen(false)}
                     >
@@ -193,10 +176,7 @@ export const Route = createRootRoute({
                   <DropdownMenuTrigger asChild>
                     <Link
                       to="/positions" // default click goes to /positions
-                      className={cn(
-                        navLinkClasses("/positions"),
-                        "w-full inline-flex",
-                      )}
+                      className={cn(navLinkClasses("/positions"), "w-full inline-flex")}
                       onMouseEnter={() => setIsPoolOpen(true)}
                       onMouseLeave={() => setIsPoolOpen(false)}
                     >
@@ -233,10 +213,7 @@ export const Route = createRootRoute({
                   <DropdownMenuTrigger asChild>
                     <Link
                       to="/farm" // default click goes to /farm
-                      className={cn(
-                        navLinkClasses("/farm"),
-                        "w-full inline-flex",
-                      )}
+                      className={cn(navLinkClasses("/farm"), "w-full inline-flex")}
                       onMouseEnter={() => setIsFarmOpen(true)}
                       onMouseLeave={() => setIsFarmOpen(false)}
                     >
@@ -293,11 +270,7 @@ export const Route = createRootRoute({
                 className="p-2 hover:bg-accent hover:text-accent-foreground rounded-md transition-colors"
                 aria-label="Toggle menu"
               >
-                {isMobileMenuOpen ? (
-                  <X className="h-5 w-5" />
-                ) : (
-                  <Menu className="h-5 w-5" />
-                )}
+                {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </button>
             </div>
           </div>
@@ -331,9 +304,7 @@ export const Route = createRootRoute({
                       onClick={handleNavClick}
                       className={cn(
                         "cursor-pointer border-2 border-transparent transition-all duration-100 font-extrabold font-body no-underline text-foreground text-center flex items-center justify-center uppercase tracking-widest text-lg hover:bg-accent hover:text-accent-foreground rounded-md py-3",
-                        location.pathname === link.to
-                          ? "active bg-accent text-accent-foreground"
-                          : "",
+                        location.pathname === link.to ? "active bg-accent text-accent-foreground" : "",
                       )}
                     >
                       {link.label}

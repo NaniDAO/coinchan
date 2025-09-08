@@ -1,12 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseUnits } from "viem";
-import {
-  useAccount,
-  useReadContract,
-  useWriteContract,
-  useWaitForTransactionReceipt,
-} from "wagmi";
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { mainnet } from "viem/chains";
 
 import { Button } from "@/components/ui/button";
@@ -20,12 +15,7 @@ import { Loader2 } from "lucide-react";
 
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { nowSec, formatNumber } from "@/lib/utils";
-import {
-  DEADLINE_SEC,
-  SLIPPAGE_BPS,
-  withSlippage,
-  type CookbookPoolKey,
-} from "@/lib/swap";
+import { DEADLINE_SEC, SLIPPAGE_BPS, withSlippage, type CookbookPoolKey } from "@/lib/swap";
 import { handleWalletError } from "@/lib/errors";
 import { useTokenSelection } from "@/contexts/TokenSelectionContext";
 import { useReserves } from "@/hooks/use-reserves";
@@ -37,11 +27,7 @@ interface ZCurveRemoveLiquidityProps {
   feeOrHook?: bigint;
 }
 
-export function ZCurveRemoveLiquidity({
-  coinId,
-  poolId: providedPoolId,
-  feeOrHook = 30n,
-}: ZCurveRemoveLiquidityProps) {
+export function ZCurveRemoveLiquidity({ coinId, poolId: providedPoolId, feeOrHook = 30n }: ZCurveRemoveLiquidityProps) {
   const { t } = useTranslation();
   const { address, isConnected } = useAccount();
   const { sellToken, buyToken } = useTokenSelection();
@@ -56,9 +42,7 @@ export function ZCurveRemoveLiquidity({
 
   // Compute pool ID if not provided
   const poolId = useMemo(() => {
-    return BigInt(
-      providedPoolId || computeZCurvePoolId(BigInt(coinId), feeOrHook),
-    );
+    return BigInt(providedPoolId || computeZCurvePoolId(BigInt(coinId), feeOrHook));
   }, [providedPoolId, coinId, feeOrHook]);
 
   // Get LP token balance
@@ -180,14 +164,8 @@ export function ZCurveRemoveLiquidity({
 
       // Calculate minimum amounts with slippage
       const totalSupply = poolInfo?.[6] as bigint;
-      const amount0 =
-        totalSupply > 0n
-          ? (lpTokens * (reserves?.reserve0 || 0n)) / totalSupply
-          : 0n;
-      const amount1 =
-        totalSupply > 0n
-          ? (lpTokens * (reserves?.reserve1 || 0n)) / totalSupply
-          : 0n;
+      const amount0 = totalSupply > 0n ? (lpTokens * (reserves?.reserve0 || 0n)) / totalSupply : 0n;
+      const amount1 = totalSupply > 0n ? (lpTokens * (reserves?.reserve1 || 0n)) / totalSupply : 0n;
 
       const amount0Min = withSlippage(amount0, slippageBps);
       const amount1Min = withSlippage(amount1, slippageBps);
@@ -242,10 +220,7 @@ export function ZCurveRemoveLiquidity({
   return (
     <div className="space-y-4">
       <div className="text-sm text-muted-foreground">
-        {t(
-          "liquidity.remove_liquidity_description",
-          "Remove liquidity to get back ETH and tokens",
-        )}
+        {t("liquidity.remove_liquidity_description", "Remove liquidity to get back ETH and tokens")}
       </div>
 
       {/* LP Token Input */}
@@ -259,12 +234,7 @@ export function ZCurveRemoveLiquidity({
             onChange={(e) => handleLpAmountChange(e.target.value)}
             disabled={isPending}
           />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleMax}
-            disabled={!lpBalance || lpBalance === 0n}
-          >
+          <Button variant="outline" size="sm" onClick={handleMax} disabled={!lpBalance || lpBalance === 0n}>
             {t("common.max")}
           </Button>
         </div>
@@ -320,30 +290,19 @@ export function ZCurveRemoveLiquidity({
         <Alert>
           <AlertDescription>
             <div className="space-y-2">
-              <div className="text-sm font-medium">
-                {t("liquidity.you_will_receive")}:
+              <div className="text-sm font-medium">{t("liquidity.you_will_receive")}:</div>
+              <div className="flex items-center gap-3">
+                <div className="w-5 h-5 flex-shrink-0">
+                  <TokenImage imageUrl={sellToken.imageUrl} symbol={sellToken.symbol} />
+                </div>
+                <span className="ml-1">{formatNumber(parseFloat(estimatedEth), 6)} ETH</span>
               </div>
               <div className="flex items-center gap-3">
                 <div className="w-5 h-5 flex-shrink-0">
-                  <TokenImage
-                    imageUrl={sellToken.imageUrl}
-                    symbol={sellToken.symbol}
-                  />
+                  <TokenImage imageUrl={buyToken.imageUrl} symbol={buyToken.symbol} />
                 </div>
                 <span className="ml-1">
-                  {formatNumber(parseFloat(estimatedEth), 6)} ETH
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-5 h-5 flex-shrink-0">
-                  <TokenImage
-                    imageUrl={buyToken.imageUrl}
-                    symbol={buyToken.symbol}
-                  />
-                </div>
-                <span className="ml-1">
-                  {formatNumber(parseFloat(estimatedTokens), 6)}{" "}
-                  {buyToken.symbol}
+                  {formatNumber(parseFloat(estimatedTokens), 6)} {buyToken.symbol}
                 </span>
               </div>
             </div>
@@ -376,9 +335,7 @@ export function ZCurveRemoveLiquidity({
       {/* Remove Liquidity Button */}
       <Button
         onClick={handleRemoveLiquidity}
-        disabled={
-          !isConnected || isPending || !lpAmount || parseFloat(lpAmount) === 0
-        }
+        disabled={!isConnected || isPending || !lpAmount || parseFloat(lpAmount) === 0}
         className="w-full"
         size="lg"
         variant="destructive"

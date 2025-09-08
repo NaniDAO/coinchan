@@ -131,8 +131,7 @@ export const fetchUserLpPositions = async (
     throw new Error(`Failed to fetch LP positions (${response.status})`);
   }
 
-  const json: GQLResponse<{ lpUserPositions: LpUserPositions }> =
-    await response.json();
+  const json: GQLResponse<{ lpUserPositions: LpUserPositions }> = await response.json();
 
   if (json.errors?.length) {
     throw new Error(json.errors[0].message || "GraphQL error");

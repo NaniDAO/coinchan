@@ -165,21 +165,21 @@ export const BrowseFarms = () => {
                     liquidity: ensReserves?.reserve0 || 0n,
                   } as TokenMeta)
                 : BigInt(stream.lpId) === WLFI_POOL_ID
-                ? ({
-                    ...WLFI_TOKEN,
-                    poolId: WLFI_POOL_ID,
-                    source: "COOKBOOK" as const,
-                    reserve0: wlfiReserves?.reserve0 || 0n,
-                    reserve1: wlfiReserves?.reserve1 || 0n,
-                    liquidity: wlfiReserves?.reserve0 || 0n,
-                  } as TokenMeta)
-                : tokens.find((t) => {
-                    // Direct pool ID match
-                    if (t.poolId === BigInt(stream.lpId)) return true;
-                    // Special handling for CULT tokens - check if lpId matches CULT_POOL_ID
-                    if (t.symbol === "CULT" && BigInt(stream.lpId) === t.poolId) return true;
-                    return false;
-                  });
+                  ? ({
+                      ...WLFI_TOKEN,
+                      poolId: WLFI_POOL_ID,
+                      source: "COOKBOOK" as const,
+                      reserve0: wlfiReserves?.reserve0 || 0n,
+                      reserve1: wlfiReserves?.reserve1 || 0n,
+                      liquidity: wlfiReserves?.reserve0 || 0n,
+                    } as TokenMeta)
+                  : tokens.find((t) => {
+                      // Direct pool ID match
+                      if (t.poolId === BigInt(stream.lpId)) return true;
+                      // Special handling for CULT tokens - check if lpId matches CULT_POOL_ID
+                      if (t.symbol === "CULT" && BigInt(stream.lpId) === t.poolId) return true;
+                      return false;
+                    });
 
             // If lpToken is not found and tokens are not loading, show error
             // Otherwise, use ETH_TOKEN as fallback during loading

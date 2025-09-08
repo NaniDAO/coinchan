@@ -3,8 +3,7 @@ import type { Address } from "viem";
 import type { Token, TokenMetadata } from "@/lib/pools";
 
 /** Canonical encoder: "0xabc...:123" */
-export const encodeTokenQ = (t?: Token | TokenMetadata | null) =>
-  t ? `${t.address}:${t.id.toString()}` : undefined;
+export const encodeTokenQ = (t?: Token | TokenMetadata | null) => (t ? `${t.address}:${t.id.toString()}` : undefined);
 
 type Parsed =
   | { kind: "addrid"; address: Address; id: bigint }
@@ -65,11 +64,7 @@ export const findTokenExact = (
 ): TokenMetadata | undefined =>
   !list || !ref
     ? undefined
-    : list.find(
-        (t) =>
-          t.id === ref.id &&
-          String(t.address).toLowerCase() === String(ref.address).toLowerCase(),
-      );
+    : list.find((t) => t.id === ref.id && String(t.address).toLowerCase() === String(ref.address).toLowerCase());
 
 /** Flexible finder with sensible preferences:
  *  1) address+id exact
@@ -90,11 +85,7 @@ export const findTokenFlexible = (
       return findTokenExact(list, parsed);
 
     case "addr": {
-      const matches = list.filter(
-        (t) =>
-          String(t.address).toLowerCase() ===
-          String(parsed.address).toLowerCase(),
-      );
+      const matches = list.filter((t) => String(t.address).toLowerCase() === String(parsed.address).toLowerCase());
       if (!matches.length) return undefined;
       const id0 = matches.find((t) => t.id === 0n);
       return id0 ?? matches[0];
@@ -106,9 +97,7 @@ export const findTokenFlexible = (
     }
 
     case "symbol": {
-      const matches = list.filter(
-        (t) => (t.symbol ?? "").toUpperCase() === parsed.symbol,
-      );
+      const matches = list.filter((t) => (t.symbol ?? "").toUpperCase() === parsed.symbol);
       if (!matches.length) return undefined;
       const id0 = matches.find((t) => t.id === 0n);
       return id0 ?? matches[0];

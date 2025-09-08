@@ -17,8 +17,7 @@ type TokenListItem = {
   };
 };
 
-const keyOf = (t: Pick<TokenMetadata, "address" | "id">) =>
-  `${t.address.toLowerCase()}:${t.id.toString()}`;
+const keyOf = (t: Pick<TokenMetadata, "address" | "id">) => `${t.address.toLowerCase()}:${t.id.toString()}`;
 
 export const useGetTokens = (owner?: Address) => {
   const publicClient = usePublicClient();
@@ -26,46 +25,41 @@ export const useGetTokens = (owner?: Address) => {
   return useQuery({
     queryKey: ["token-list-with-balances", owner],
     queryFn: async (): Promise<TokenMetadata[]> => {
-      const response = await fetch(
-        "https://assets.zamm.finance/tokenlist.json",
-      );
+      const response = await fetch("https://assets.zamm.finance/tokenlist.json");
       const data = await response.json();
 
-      const tokens: TokenMetadata[] = (data.tokens as TokenListItem[]).map(
-        (token) => {
-          if (token.extensions.standard === "ERC20") {
-            return {
-              address: token.address,
-              id: 0n,
-              standard: "ERC20",
-              name: token.name,
-              symbol: token.symbol,
-              decimals: token.decimals,
-              description: token.extensions?.ai?.description,
-              tags: token.extensions?.ai?.tags || [],
-              imageUrl: token.logoURI,
-            };
-          } else {
-            let logoUri = token.logoURI;
-            const idBig = BigInt(token.extensions.id ?? 0);
-            if (token.address === zeroAddress && idBig === 0n) {
-              logoUri =
-                "https://assets.coingecko.com/coins/images/279/standard/ethereum.png?1727872989";
-            }
-            return {
-              address: token.address,
-              id: idBig,
-              standard: "ERC6909",
-              name: token.name,
-              symbol: token.symbol,
-              decimals: token.decimals,
-              description: token.extensions?.ai?.description,
-              tags: token.extensions?.ai?.tags || [],
-              imageUrl: logoUri,
-            };
+      const tokens: TokenMetadata[] = (data.tokens as TokenListItem[]).map((token) => {
+        if (token.extensions.standard === "ERC20") {
+          return {
+            address: token.address,
+            id: 0n,
+            standard: "ERC20",
+            name: token.name,
+            symbol: token.symbol,
+            decimals: token.decimals,
+            description: token.extensions?.ai?.description,
+            tags: token.extensions?.ai?.tags || [],
+            imageUrl: token.logoURI,
+          };
+        } else {
+          let logoUri = token.logoURI;
+          const idBig = BigInt(token.extensions.id ?? 0);
+          if (token.address === zeroAddress && idBig === 0n) {
+            logoUri = "https://assets.coingecko.com/coins/images/279/standard/ethereum.png?1727872989";
           }
-        },
-      );
+          return {
+            address: token.address,
+            id: idBig,
+            standard: "ERC6909",
+            name: token.name,
+            symbol: token.symbol,
+            decimals: token.decimals,
+            description: token.extensions?.ai?.description,
+            tags: token.extensions?.ai?.tags || [],
+            imageUrl: logoUri,
+          };
+        }
+      });
 
       // ✅ Uniq by address:id (first occurrence wins; stable order)
       const seen = new Set<string>();

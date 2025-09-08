@@ -7,8 +7,6 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { useTranslation } from "react-i18next";
-import { Logo } from "@/components/Logo";
-import { Link } from "@tanstack/react-router";
 
 export const PoolBreadcrumb = ({ poolId }: { poolId: bigint }) => {
   const { t } = useTranslation();
@@ -18,17 +16,13 @@ export const PoolBreadcrumb = ({ poolId }: { poolId: bigint }) => {
       <Breadcrumb>
         <BreadcrumbList className="flex items-center">
           <BreadcrumbItem>
-            <BreadcrumbLink href="/explore/tokens">
-              {t("common.explore")}
-            </BreadcrumbLink>
+            <BreadcrumbLink href="/explore/tokens">{t("common.explore")}</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator>
             <span className="text-muted-foreground">&gt;</span>
           </BreadcrumbSeparator>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/explore/pools">
-              {t("common.pool")}
-            </BreadcrumbLink>
+            <BreadcrumbLink href="/explore/pools">{t("common.pool")}</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator>
             <span className="text-muted-foreground">&gt;</span>

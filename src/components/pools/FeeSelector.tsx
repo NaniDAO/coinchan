@@ -88,8 +88,7 @@ function PresetCard({
         "shadow-[2px_2px_0_var(--color-border)]",
         "hover:bg-accent hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[4px_4px_0_var(--color-border)]",
         "active:translate-x-0 active:translate-y-0 active:shadow-[2px_2px_0_var(--color-border)]",
-        selected &&
-          "bg-accent/60 outline-none ring-2 ring-ring ring-offset-2 ring-offset-background",
+        selected && "bg-accent/60 outline-none ring-2 ring-ring ring-offset-2 ring-offset-background",
       )}
       aria-pressed={selected}
     >
@@ -97,26 +96,13 @@ function PresetCard({
         <div className="text-lg font-medium leading-none">{label}</div>
         {selected && <Check className="size-4" />}
       </div>
-      {description ? (
-        <p className="mt-2 text-xs text-muted-foreground">{description}</p>
-      ) : null}
-      {liquidityText ? (
-        <p className="mt-2 text-[11px] text-muted-foreground">
-          {liquidityText}
-        </p>
-      ) : null}
+      {description ? <p className="mt-2 text-xs text-muted-foreground">{description}</p> : null}
+      {liquidityText ? <p className="mt-2 text-[11px] text-muted-foreground">{liquidityText}</p> : null}
     </button>
   );
 }
 
-export function FeeSelector({
-  fee,
-  onChange,
-  className,
-  fees: extraFees,
-  protocol,
-  liquidityByFee,
-}: FeeSelectorProps) {
+export function FeeSelector({ fee, onChange, className, fees: extraFees, protocol, liquidityByFee }: FeeSelectorProps) {
   const [open, setOpen] = useState(false);
   const [showMore, setShowMore] = useState(false);
   const [draft, setDraft] = useState<bigint>(fee ?? 0n);
@@ -146,8 +132,7 @@ export function FeeSelector({
     setOpen(false);
   };
 
-  const customSelected =
-    fee !== undefined && fee !== 0n && !isPreset(fee, presets);
+  const customSelected = fee !== undefined && fee !== 0n && !isPreset(fee, presets);
 
   // Liquidity line helper (accepts number or string)
   const liquidityTextFor = (bps: bigint) => {
@@ -178,15 +163,9 @@ export function FeeSelector({
       <div className="flex items-center justify-between rounded-md border bg-muted/20 p-3">
         <div>
           <div className="text-sm font-medium">{selectedLabel} fee tier</div>
-          <div className="text-xs text-muted-foreground">
-            The % you will earn in fees
-          </div>
+          <div className="text-xs text-muted-foreground">The % you will earn in fees</div>
         </div>
-        <Button
-          variant="link"
-          className="h-auto px-0 text-sm"
-          onClick={() => setShowMore((s) => !s)}
-        >
+        <Button variant="link" className="h-auto px-0 text-sm" onClick={() => setShowMore((s) => !s)}>
           {showMore ? "Less" : "More"}
         </Button>
       </div>
@@ -194,10 +173,7 @@ export function FeeSelector({
       {/* Expanded: full grid of presets and (if selected) a custom tile */}
       {showMore && (
         <>
-          <div
-            role="radiogroup"
-            className="grid grid-cols-2 gap-3 sm:grid-cols-4"
-          >
+          <div role="radiogroup" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {presets.map((opt) => (
               <PresetCard
                 key={opt.value.toString()}
@@ -241,9 +217,7 @@ export function FeeSelector({
         <DialogContent className="sm:max-w-[520px]">
           <DialogHeader>
             <DialogTitle>Create fee tier</DialogTitle>
-            <DialogDescription>
-              Creating a new tier will initialize a new pool.
-            </DialogDescription>
+            <DialogDescription>Creating a new tier will initialize a new pool.</DialogDescription>
           </DialogHeader>
 
           {/* Stepper */}
@@ -302,9 +276,7 @@ function InlinePercentEditor({
   onChangeBps: (bps: bigint) => void;
   className?: string;
 }) {
-  const [text, setText] = React.useState<string>(
-    (Number(valueBps) / 100).toFixed(2),
-  );
+  const [text, setText] = React.useState<string>((Number(valueBps) / 100).toFixed(2));
   const [focused, setFocused] = React.useState(false);
 
   // Keep field in sync if external buttons change it
@@ -334,12 +306,7 @@ function InlinePercentEditor({
   };
 
   return (
-    <div
-      className={cn(
-        "relative inline-flex items-center justify-center",
-        className,
-      )}
-    >
+    <div className={cn("relative inline-flex items-center justify-center", className)}>
       <input
         aria-label="Fee percentage"
         inputMode="decimal"

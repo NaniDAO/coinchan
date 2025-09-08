@@ -50,8 +50,7 @@ export const TokenAmountInput: React.FC<TokenAmountInputProps> = ({
   }, [balance]);
 
   const hasFetched = !isLoading && !isFetching;
-  const hasBalance =
-    hasFetched && formattedBalance && Number(formattedBalance) > 0;
+  const hasBalance = hasFetched && formattedBalance && Number(formattedBalance) > 0;
 
   // Display helpers
   const formatForDisplay = (value?: string) => {
@@ -94,20 +93,13 @@ export const TokenAmountInput: React.FC<TokenAmountInputProps> = ({
   });
 
   return (
-    <div
-      className={cn(
-        "group relative rounded-2xl border-2 bg-muted p-4 sm:p-5",
-        className,
-      )}
-    >
+    <div className={cn("group relative rounded-2xl border-2 bg-muted p-4 sm:p-5", className)}>
       {/* Top-right token badge */}
       <div className="pointer-events-none absolute right-4 top-4 flex items-center gap-2 sm:right-5 sm:top-5">
         <div className="h-8 w-8 overflow-hidden rounded-full sm:h-9 sm:w-9">
           <TokenImage imageUrl={token.imageUrl} symbol={token.symbol} />
         </div>
-        <span className="text-lg font-semibold sm:text-xl">
-          {token.symbol ?? "Token"}
-        </span>
+        <span className="text-lg font-semibold sm:text-xl">{token.symbol ?? "Token"}</span>
       </div>
 
       {/* Big amount input */}
@@ -150,22 +142,8 @@ export const TokenAmountInput: React.FC<TokenAmountInputProps> = ({
           ) : (
             <span className="inline-flex items-center gap-2">
               <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24">
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  fill="none"
-                  opacity=".25"
-                />
-                <path
-                  d="M22 12a10 10 0 0 1-10 10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  opacity=".75"
-                  fill="none"
-                />
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" opacity=".25" />
+                <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="4" opacity=".75" fill="none" />
               </svg>
               Fetching balance…
             </span>

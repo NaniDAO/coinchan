@@ -14,13 +14,7 @@ interface PoolHeaderCardProps {
   feeLabel: string;
 }
 
-export const PoolHeaderCard = ({
-  tokenA,
-  tokenB,
-  protocolId,
-  marketPrice,
-  feeLabel,
-}: PoolHeaderCardProps) => {
+export const PoolHeaderCard = ({ tokenA, tokenB, protocolId, marketPrice, feeLabel }: PoolHeaderCardProps) => {
   const { data: ethUsdPrice } = useEthUsdPrice();
 
   const usdMarketPrice = useMemo(() => {
@@ -40,9 +34,7 @@ export const PoolHeaderCard = ({
           </div>
           <Badge variant="fees">{feeLabel}</Badge>
         </div>
-        <Badge variant="secondary">
-          {protocols.find((p) => p.id === protocolId)?.label ?? protocolId}
-        </Badge>
+        <Badge variant="secondary">{protocols.find((p) => p.id === protocolId)?.label ?? protocolId}</Badge>
       </div>
       <div className="mt-1 text-sm text-muted-foreground">
         Market price:&nbsp;

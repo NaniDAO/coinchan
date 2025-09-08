@@ -31,11 +31,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 
 // WLFI Logo Component - using local image
 const WLFILogo = ({ className = "h-4 w-4" }: { className?: string }) => (
-  <img 
-    src="/wlfi.png"
-    alt="WLFI"
-    className={className}
-  />
+  <img src="/wlfi.png" alt="WLFI" className={className} />
 );
 
 export const WlfiBuySell = () => {
@@ -154,7 +150,12 @@ export const WlfiBuySell = () => {
             reserve0: poolData[0] as bigint, // ETH
             reserve1: poolData[1] as bigint, // WLFI
           };
-          console.log("WLFI Pool Reserves - ETH:", formatEther(newReserves.reserve0), "WLFI:", formatUnits(newReserves.reserve1, 18));
+          console.log(
+            "WLFI Pool Reserves - ETH:",
+            formatEther(newReserves.reserve0),
+            "WLFI:",
+            formatUnits(newReserves.reserve1, 18),
+          );
           setPoolReserves(newReserves);
         }
 
@@ -206,7 +207,7 @@ export const WlfiBuySell = () => {
         else setSellAmount("");
         return;
       }
-      
+
       // Check if pool reserves are loaded (they can be 0n for new pools)
       if (poolReserves.reserve0 === undefined || poolReserves.reserve1 === undefined) {
         console.log("Pool reserves not loaded yet");
@@ -224,7 +225,7 @@ export const WlfiBuySell = () => {
         else setSellAmount("");
         return;
       }
-      
+
       // Clear any previous error messages
       setErrorMessage(null);
 
@@ -617,7 +618,9 @@ export const WlfiBuySell = () => {
                       />
                     </button>
                     {showPriceChart && (
-                      <div className="text-xs text-amber-600 dark:text-yellow-400/60">WLFI/ETH {t("coin.price_history")}</div>
+                      <div className="text-xs text-amber-600 dark:text-yellow-400/60">
+                        WLFI/ETH {t("coin.price_history")}
+                      </div>
                     )}
                   </div>
 
@@ -642,13 +645,17 @@ export const WlfiBuySell = () => {
                 </div>
               </div>
 
-              <div className="text-xs text-amber-600 dark:text-yellow-400/60 text-center">{t("coin.pool_fee")}: 0.3%</div>
+              <div className="text-xs text-amber-600 dark:text-yellow-400/60 text-center">
+                {t("coin.pool_fee")}: 0.3%
+              </div>
 
               {/* Market Stats - subtle below chart */}
               <div className="mt-4 sm:mt-6 grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 text-xs">
                 <div className="text-center">
                   <p className="text-amber-600 dark:text-yellow-400/60">{t("coin.price")}</p>
-                  <p className="font-medium text-amber-700 dark:text-yellow-400">{wlfiPrice > 0 ? `${wlfiPrice.toFixed(8)} ETH` : "-"}</p>
+                  <p className="font-medium text-amber-700 dark:text-yellow-400">
+                    {wlfiPrice > 0 ? `${wlfiPrice.toFixed(8)} ETH` : "-"}
+                  </p>
                   <p className="text-amber-500 dark:text-yellow-400/40">${wlfiUsdPrice.toFixed(6)}</p>
                 </div>
 
@@ -666,12 +673,16 @@ export const WlfiBuySell = () => {
 
                 <div className="text-center">
                   <p className="text-amber-600 dark:text-yellow-400/60">{t("coin.pool_eth")}</p>
-                  <p className="font-medium text-amber-700 dark:text-yellow-400">{formatEther(poolReserves.reserve0)} ETH</p>
+                  <p className="font-medium text-amber-700 dark:text-yellow-400">
+                    {formatEther(poolReserves.reserve0)} ETH
+                  </p>
                 </div>
 
                 <div className="text-center">
                   <p className="text-amber-600 dark:text-yellow-400/60">Pool WLFI</p>
-                  <p className="font-medium text-amber-700 dark:text-yellow-400">{Number(formatUnits(poolReserves.reserve1, 18)).toFixed(0)} WLFI</p>
+                  <p className="font-medium text-amber-700 dark:text-yellow-400">
+                    {Number(formatUnits(poolReserves.reserve1, 18)).toFixed(0)} WLFI
+                  </p>
                 </div>
               </div>
             </div>
@@ -722,7 +733,8 @@ export const WlfiBuySell = () => {
           About World Liberty Financial
         </h2>
         <p className="text-yellow-400/70 mb-4">
-          World Liberty Financial (WLFI) is a decentralized finance platform focused on financial freedom and accessibility.
+          World Liberty Financial (WLFI) is a decentralized finance platform focused on financial freedom and
+          accessibility.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 text-sm">
           <div>

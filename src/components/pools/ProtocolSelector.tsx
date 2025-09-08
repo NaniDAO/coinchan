@@ -1,10 +1,4 @@
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ProtocolId, protocols } from "@/lib/protocol";
 import type { Dispatch, SetStateAction } from "react";
 
@@ -14,16 +8,9 @@ export interface ProtocolSelectorProps {
   className?: string;
 }
 
-export function ProtocolSelector({
-  protocolId,
-  setProtocolId,
-  className,
-}: ProtocolSelectorProps) {
+export function ProtocolSelector({ protocolId, setProtocolId, className }: ProtocolSelectorProps) {
   return (
-    <Select
-      value={protocolId}
-      onValueChange={(val) => setProtocolId(val as ProtocolId)}
-    >
+    <Select value={protocolId} onValueChange={(val) => setProtocolId(val as ProtocolId)}>
       <SelectTrigger className={className} aria-label="Select protocol">
         <SelectValue placeholder="Select protocol" />
       </SelectTrigger>

@@ -32,8 +32,7 @@ export const SLIPPAGE_OPTIONS = [
  * Generate a deadline timestamp in seconds
  * @returns BigInt of current time + deadline window
  */
-const deadlineTimestamp = () =>
-  BigInt(Math.floor(Date.now() / 1000) + DEADLINE_SEC);
+const deadlineTimestamp = () => BigInt(Math.floor(Date.now() / 1000) + DEADLINE_SEC);
 
 export type PoolKey = ZAMMPoolKey | CookbookPoolKey;
 
@@ -88,18 +87,12 @@ export const computePoolKey = (
  * @param coinId The coin ID
  * @returns Pool ID
  */
-export const computePoolId = (
-  coinId: bigint,
-  swapFee: bigint = SWAP_FEE,
-  token1: Address = CoinsAddress,
-) => {
+export const computePoolId = (coinId: bigint, swapFee: bigint = SWAP_FEE, token1: Address = CoinsAddress) => {
   if (isAddressEqual(token1, CoinsAddress)) {
     return BigInt(
       keccak256(
         encodeAbiParameters(
-          parseAbiParameters(
-            "uint256 id0, uint256 id1, address token0, address token1, uint96 swapFee",
-          ),
+          parseAbiParameters("uint256 id0, uint256 id1, address token0, address token1, uint96 swapFee"),
           [0n, coinId, zeroAddress, token1, swapFee],
         ),
       ),
@@ -109,9 +102,7 @@ export const computePoolId = (
   return BigInt(
     keccak256(
       encodeAbiParameters(
-        parseAbiParameters(
-          "uint256 id0, uint256 id1, address token0, address token1, uint256 feeOrHook",
-        ),
+        parseAbiParameters("uint256 id0, uint256 id1, address token0, address token1, uint256 feeOrHook"),
         [0n, coinId, zeroAddress, token1, swapFee],
       ),
     ),
@@ -153,11 +144,9 @@ export function createCoinSwapMulticall(
 
   // Check if we're dealing with USDT
   const isSourceUSDT =
-    customSourcePoolKey &&
-    customSourcePoolKey.token1 === "0xdAC17F958D2ee523a2206206994597C13D831ec7";
+    customSourcePoolKey && customSourcePoolKey.token1 === "0xdAC17F958D2ee523a2206206994597C13D831ec7";
   const isTargetUSDT =
-    customTargetPoolKey &&
-    customTargetPoolKey.token1 === "0xdAC17F958D2ee523a2206206994597C13D831ec7";
+    customTargetPoolKey && customTargetPoolKey.token1 === "0xdAC17F958D2ee523a2206206994597C13D831ec7";
 
   // Create the multicall array with functions to call
   const multicallData: `0x${string}`[] = [
@@ -291,12 +280,7 @@ const PRICE_CACHE_TTL = 2000; // 2 seconds TTL for price calculations
 const amountOutCache = new Map<string, { value: bigint; timestamp: number }>();
 
 // x*y=k AMM with fee — forward (amountIn → amountOut)
-export const getAmountOut = (
-  amountIn: bigint,
-  reserveIn: bigint,
-  reserveOut: bigint,
-  swapFee: bigint,
-) => {
+export const getAmountOut = (amountIn: bigint, reserveIn: bigint, reserveOut: bigint, swapFee: bigint) => {
   // Fast path for zero values
   if (amountIn === 0n || reserveIn === 0n || reserveOut === 0n) return 0n;
 
@@ -344,20 +328,9 @@ export const getAmountOut = (
 const amountInCache = new Map<string, { value: bigint; timestamp: number }>();
 
 // inverse — desired amountOut → required amountIn
-export const getAmountIn = (
-  amountOut: bigint,
-  reserveIn: bigint,
-  reserveOut: bigint,
-  swapFee: bigint,
-) => {
+export const getAmountIn = (amountOut: bigint, reserveIn: bigint, reserveOut: bigint, swapFee: bigint) => {
   // Fast path for impossible scenarios
-  if (
-    amountOut === 0n ||
-    reserveIn === 0n ||
-    reserveOut === 0n ||
-    amountOut >= reserveOut
-  )
-    return 0n;
+  if (amountOut === 0n || reserveIn === 0n || reserveOut === 0n || amountOut >= reserveOut) return 0n;
 
   // Create cache key from all inputs
   const cacheKey = `${amountOut.toString()}-${reserveIn.toString()}-${reserveOut.toString()}-${swapFee.toString()}`;
@@ -404,10 +377,8 @@ export const getAmountIn = (
  * @param amount Raw amount
  * @returns Amount with slippage applied
  */
-export const withSlippage = (
-  amount: bigint,
-  slippageBps: bigint = SLIPPAGE_BPS,
-) => (amount * (10000n - slippageBps)) / 10000n;
+export const withSlippage = (amount: bigint, slippageBps: bigint = SLIPPAGE_BPS) =>
+  (amount * (10000n - slippageBps)) / 10000n;
 
 export function analyzeTokens(
   sell: TokenMeta,
@@ -443,11 +414,7 @@ export function analyzeTokens(
 
   const isCustom = sell.isCustomPool || Boolean(buy?.isCustomPool);
 
-  const isCoinToCoin =
-    !isDirectCustomEth &&
-    sell.id !== null &&
-    buy?.id !== null &&
-    sell.id !== buy?.id;
+  const isCoinToCoin = !isDirectCustomEth && sell.id !== null && buy?.id !== null && sell.id !== buy?.id;
 
   // coinId logic as before…
   let coinId: bigint;
@@ -458,8 +425,7 @@ export function analyzeTokens(
   }
 
   // canSwap covers all the cases where we actually want the “Go” button enabled:
-  const canSwap =
-    Boolean(buy) && (isCustom || isSellETH || isBuyETH || isCoinToCoin);
+  const canSwap = Boolean(buy) && (isCustom || isSellETH || isBuyETH || isCoinToCoin);
 
   return {
     isSellETH,
@@ -547,21 +513,12 @@ export function getPoolIds(
   return { mainPoolId, targetPoolId };
 }
 
-export function getSwapFee({
-  isCustomPool,
-  sellToken,
-  buyToken,
-  isCoinToCoin,
-}: any): string {
+export function getSwapFee({ isCustomPool, sellToken, buyToken, isCoinToCoin }: any): string {
   // USDT‐direct swaps on a custom pool always show 0.3%
   const isUsdtDirectSwap =
     isCustomPool &&
-    ((sellToken.id === null &&
-      buyToken?.isCustomPool &&
-      buyToken.token1 === USDT_ADDRESS) ||
-      (buyToken?.id === null &&
-        sellToken.isCustomPool &&
-        sellToken.token1 === USDT_ADDRESS) ||
+    ((sellToken.id === null && buyToken?.isCustomPool && buyToken.token1 === USDT_ADDRESS) ||
+      (buyToken?.id === null && sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS) ||
       // other direct USDT swaps (non‐coin‐to‐coin)
       !isCoinToCoin);
 

@@ -65,7 +65,7 @@ export function useZapCalculations() {
       const isWLFI = lpToken.symbol === "WLFI" || BigInt(stream.lpId) === WLFI_POOL_ID;
 
       // For ENS and WLFI, we should use the stream's lpId directly
-      const poolIdToUse = (isENS || isWLFI) ? BigInt(stream.lpId) : lpToken?.poolId;
+      const poolIdToUse = isENS || isWLFI ? BigInt(stream.lpId) : lpToken?.poolId;
 
       if (!poolIdToUse) {
         throw new Error("LP token pool ID not defined");

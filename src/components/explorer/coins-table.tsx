@@ -15,16 +15,11 @@ import { useEthUsdPrice } from "@/hooks/use-eth-usd-price";
 import { Input } from "../ui/input";
 
 // ---------- formatting helpers ----------
-const fmt0 = (n?: number | null) =>
-  n == null ? "—" : Intl.NumberFormat().format(n);
+const fmt0 = (n?: number | null) => (n == null ? "—" : Intl.NumberFormat().format(n));
 const fmt2 = (n?: number | null) =>
-  n == null
-    ? "—"
-    : Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(n);
+  n == null ? "—" : Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(n);
 const fmt6 = (n?: number | null) =>
-  n == null
-    ? "—"
-    : Intl.NumberFormat(undefined, { maximumFractionDigits: 6 }).format(n);
+  n == null ? "—" : Intl.NumberFormat(undefined, { maximumFractionDigits: 6 }).format(n);
 
 const fmtUSD = (n?: number | null, maxFrac: number = 2) =>
   n == null
@@ -35,8 +30,7 @@ const fmtUSD = (n?: number | null, maxFrac: number = 2) =>
         maximumFractionDigits: maxFrac,
       }).format(n);
 
-const fromEpoch = (s?: number | null) =>
-  !s ? "—" : new Date(s * 1000).toLocaleString();
+const fromEpoch = (s?: number | null) => (!s ? "—" : new Date(s * 1000).toLocaleString());
 
 // ---------- sorting map (table column -> api sortBy) ----------
 function mapSortingToApi(s: SortingState): SortBy {
@@ -66,10 +60,7 @@ type Props = {
   rowHeight?: number;
 };
 
-export default function CoinsTable({
-  defaultPageSize = 100,
-  rowHeight = 56,
-}: Props) {
+export default function CoinsTable({ defaultPageSize = 100, rowHeight = 56 }: Props) {
   const { data: ethUsdPrice } = useEthUsdPrice();
 
   // ---------- unit toggle ----------
@@ -81,8 +72,7 @@ export default function CoinsTable({
     return Number.isFinite(n) && n > 0 ? n : null;
   }, [ethUsdPrice]);
 
-  const toUSD = (eth?: number | null): number | null =>
-    eth == null || ethUsdRate == null ? null : eth * ethUsdRate;
+  const toUSD = (eth?: number | null): number | null => (eth == null || ethUsdRate == null ? null : eth * ethUsdRate);
 
   // search (debounced)
   const [query, setQuery] = useState("");
@@ -93,9 +83,7 @@ export default function CoinsTable({
   }, [query]);
 
   // sorting (1 column at a time, to align with API cursor)
-  const [sorting, setSorting] = useState<SortingState>([
-    { id: "liquidityEth", desc: true },
-  ]);
+  const [sorting, setSorting] = useState<SortingState>([{ id: "liquidityEth", desc: true }]);
 
   const params = useMemo(() => {
     const sortBy = mapSortingToApi(sorting);
@@ -108,21 +96,10 @@ export default function CoinsTable({
     };
   }, [debounced, sorting, defaultPageSize]);
 
-  const {
-    data,
-    hasNextPage,
-    fetchNextPage,
-    isFetching,
-    isFetchingNextPage,
-    refetch,
-    status,
-  } = useCoinsTable(params);
+  const { data, hasNextPage, fetchNextPage, isFetching, isFetchingNextPage, refetch, status } = useCoinsTable(params);
 
   // Flatten pages
-  const rowsData: CoinsTableItem[] = useMemo(
-    () => (data?.pages ?? []).flatMap((p) => p.data),
-    [data],
-  );
+  const rowsData: CoinsTableItem[] = useMemo(() => (data?.pages ?? []).flatMap((p) => p.data), [data]);
 
   // Virtualizer
   const parentRef = useRef<HTMLDivElement | null>(null);
@@ -170,12 +147,9 @@ export default function CoinsTable({
                 <div className="w-7 h-7 rounded-full bg-muted border" />
               )}
               <div className="min-w-0">
-                <div className="text-sm font-medium truncate">
-                  {r.name ?? r.symbol ?? r.coinId}
-                </div>
+                <div className="text-sm font-medium truncate">{r.name ?? r.symbol ?? r.coinId}</div>
                 <div className="text-xs text-muted-foreground truncate">
-                  {r.symbol ?? "—"} · #{r.coinId.slice(0, 6)}… ·{" "}
-                  {r.token.slice(0, 6)}…{r.token.slice(-4)}
+                  {r.symbol ?? "—"} · #{r.coinId.slice(0, 6)}… · {r.token.slice(0, 6)}…{r.token.slice(-4)}
                 </div>
               </div>
             </div>
@@ -196,9 +170,7 @@ export default function CoinsTable({
                 : s === "EXPIRED"
                   ? "text-red-600"
                   : "text-muted-foreground";
-          return (
-            <span className={`text-xs font-medium ${tone}`}>{s ?? "—"}</span>
-          );
+          return <span className={`text-xs font-medium ${tone}`}>{s ?? "—"}</span>;
         },
         enableSorting: false,
         size: 90,
@@ -250,29 +222,21 @@ export default function CoinsTable({
         id: "holders",
         header: "Holders",
         accessorKey: "holders",
-        cell: ({ getValue }) => (
-          <span className="tabular-nums">{fmt0(getValue<number>())}</span>
-        ),
+        cell: ({ getValue }) => <span className="tabular-nums">{fmt0(getValue<number>())}</span>,
         size: 110,
       },
       {
         id: "incentives",
         header: "Incentives",
         accessorKey: "incentives",
-        cell: ({ getValue }) => (
-          <span className="text-xs px-2 py-1 bg-muted rounded">
-            {getValue<number>()}
-          </span>
-        ),
+        cell: ({ getValue }) => <span className="text-xs px-2 py-1 bg-muted rounded">{getValue<number>()}</span>,
         size: 120,
       },
       {
         id: "createdAt",
         header: "Created",
         accessorKey: "createdAt",
-        cell: ({ getValue }) => (
-          <span className="tabular-nums">{fromEpoch(getValue<number>())}</span>
-        ),
+        cell: ({ getValue }) => <span className="tabular-nums">{fromEpoch(getValue<number>())}</span>,
         size: 180,
       },
     ],
@@ -299,25 +263,17 @@ export default function CoinsTable({
       <div className="flex items-center gap-3 w-full">
         <div className="inline-flex rounded-md border overflow-hidden">
           <button
-            className={`px-3 py-1 text-sm ${
-              unit === "ETH" ? "bg-muted/60 font-medium" : "bg-background"
-            }`}
+            className={`px-3 py-1 text-sm ${unit === "ETH" ? "bg-muted/60 font-medium" : "bg-background"}`}
             onClick={() => setUnit("ETH")}
             aria-pressed={unit === "ETH"}
           >
             ETH
           </button>
           <button
-            className={`px-3 py-1 text-sm ${
-              unit === "USD" ? "bg-muted/60 font-medium" : "bg-background"
-            }`}
+            className={`px-3 py-1 text-sm ${unit === "USD" ? "bg-muted/60 font-medium" : "bg-background"}`}
             onClick={() => setUnit("USD")}
             aria-pressed={unit === "USD"}
-            title={
-              ethUsdRate == null
-                ? "ETH→USD rate not loaded yet"
-                : `Using ${fmtUSD(ethUsdRate, 2)} per ETH`
-            }
+            title={ethUsdRate == null ? "ETH→USD rate not loaded yet" : `Using ${fmtUSD(ethUsdRate, 2)} per ETH`}
           >
             USD
           </button>
@@ -354,10 +310,7 @@ export default function CoinsTable({
                 onClick={header.column.getToggleSortingHandler()}
               >
                 <div className="flex items-center gap-1">
-                  {flexRender(
-                    header.column.columnDef.header,
-                    header.getContext(),
-                  )}
+                  {flexRender(header.column.columnDef.header, header.getContext())}
                   {/* safe indicator: don't index with `false` */}
                   {(() => {
                     const dir = header.column.getIsSorted();
@@ -396,10 +349,7 @@ export default function CoinsTable({
                 >
                   {row.getVisibleCells().map((cell) => (
                     <div key={cell.id} className="px-3 py-2 text-sm">
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
-                      )}
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </div>
                   ))}
                 </div>
@@ -414,17 +364,8 @@ export default function CoinsTable({
             {status === "pending" ? "Loading…" : `${rowsData.length} rows`}
             {isFetching ? " • refreshing…" : ""}
           </div>
-          <div>
-            {hasNextPage
-              ? isFetchingNextPage
-                ? "Loading more…"
-                : "Scroll to load more"
-              : "End of list"}
-          </div>
-          <button
-            className="px-2 py-1 border rounded"
-            onClick={() => refetch()}
-          >
+          <div>{hasNextPage ? (isFetchingNextPage ? "Loading more…" : "Scroll to load more") : "End of list"}</div>
+          <button className="px-2 py-1 border rounded" onClick={() => refetch()}>
             Refresh
           </button>
         </div>

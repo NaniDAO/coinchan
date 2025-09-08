@@ -171,7 +171,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
         try {
           setTxHash(null); // Clear any previous tx hash
           setTxMessage(t("common.approving_operator"));
-          
+
           const approvalHash = await setOperatorApproval.mutateAsync({
             source: lpToken?.source || "COOKBOOK",
             operator: ZChefAddress,
@@ -181,20 +181,20 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
           setTxHash(approvalHash);
           setTxStatus("confirming");
           setTxMessage(t("common.waiting_for_operator_approval"));
-          
+
           if (publicClient) {
-            await publicClient.waitForTransactionReceipt({ 
-              hash: approvalHash as `0x${string}` 
+            await publicClient.waitForTransactionReceipt({
+              hash: approvalHash as `0x${string}`,
             });
           }
-          
+
           // Clear the approval message and continue with staking
           setTxStatus("pending");
           setTxMessage(t("common.operator_approved_proceeding"));
           setTxHash(null); // Clear approval hash before staking
-          
+
           // Small delay to let the UI update
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await new Promise((resolve) => setTimeout(resolve, 500));
         } catch (approvalError: any) {
           if (isUserRejectionError(approvalError)) {
             setTxStatus("idle");
@@ -301,11 +301,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                   </div>
                 ) : BigInt(stream.lpId) === WLFI_POOL_ID ? (
                   <div className="relative">
-                    <img
-                      src="/wlfi.png"
-                      alt="WLFI"
-                      className="w-8 h-8 rounded-full border-2 border-primary/40"
-                    />
+                    <img src="/wlfi.png" alt="WLFI" className="w-8 h-8 rounded-full border-2 border-primary/40" />
                     <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-primary/30 to-transparent opacity-50 blur-sm"></div>
                   </div>
                 ) : lpToken?.imageUrl ? (
@@ -323,15 +319,15 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                     {BigInt(stream.lpId) === ENS_POOL_ID
                       ? "ENS"
                       : BigInt(stream.lpId) === WLFI_POOL_ID
-                      ? "WLFI"
-                      : lpToken?.symbol ||
-                        (() => {
-                          const lpId = stream.lpId?.toString();
-                          // LP IDs are always full uint, truncate for UI
-                          return lpId && lpId.length > 12
-                            ? `Pool ${lpId.slice(0, 6)}...${lpId.slice(-6)}`
-                            : `Pool ${lpId}`;
-                        })()}
+                        ? "WLFI"
+                        : lpToken?.symbol ||
+                          (() => {
+                            const lpId = stream.lpId?.toString();
+                            // LP IDs are always full uint, truncate for UI
+                            return lpId && lpId.length > 12
+                              ? `Pool ${lpId.slice(0, 6)}...${lpId.slice(-6)}`
+                              : `Pool ${lpId}`;
+                          })()}
                   </h3>
                   <p className="text-xs text-muted-foreground font-mono">{t("common.lp_token_pool")}</p>
                 </div>
@@ -363,12 +359,21 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
               {lpToken && lpToken.reserve1 ? (
                 <div className="bg-background/30 border border-primary/20 rounded p-3">
                   <p className="text-muted-foreground font-mono text-xs">
-                    {BigInt(stream.lpId) === ENS_POOL_ID ? "ENS" : BigInt(stream.lpId) === WLFI_POOL_ID ? "WLFI" : lpToken.symbol} {t("common.reserves")}
+                    {BigInt(stream.lpId) === ENS_POOL_ID
+                      ? "ENS"
+                      : BigInt(stream.lpId) === WLFI_POOL_ID
+                        ? "WLFI"
+                        : lpToken.symbol}{" "}
+                    {t("common.reserves")}
                   </p>
                   <p className="font-mono font-bold text-primary">
                     {formatBalance(
                       formatUnits(lpToken.reserve1, lpToken.decimals || 18),
-                      BigInt(stream.lpId) === ENS_POOL_ID ? "ENS" : BigInt(stream.lpId) === WLFI_POOL_ID ? "WLFI" : lpToken.symbol,
+                      BigInt(stream.lpId) === ENS_POOL_ID
+                        ? "ENS"
+                        : BigInt(stream.lpId) === WLFI_POOL_ID
+                          ? "WLFI"
+                          : lpToken.symbol,
                     )}
                   </p>
                 </div>
@@ -546,9 +551,9 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                   ? `[${t("common.staking")}...]`
                   : stakeMode === "lp" && !isOperatorApproved
                     ? `[${t("common.approve_and_stake")}]`
-                  : stakeMode === "eth"
-                    ? `[${t("common.zap_and_stake")}]`
-                    : `[${t("common.stake")}]`}
+                    : stakeMode === "eth"
+                      ? `[${t("common.zap_and_stake")}]`
+                      : `[${t("common.stake")}]`}
             </Button>
           </div>
 

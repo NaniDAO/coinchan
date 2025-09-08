@@ -8,12 +8,7 @@ import { ThemeProvider, useTheme } from "./lib/theme";
 import { routeTree } from "./routeTree.gen";
 import { config } from "./wagmi.ts";
 import "@rainbow-me/rainbowkit/styles.css";
-import {
-  type Locale,
-  RainbowKitProvider,
-  darkTheme,
-  lightTheme,
-} from "@rainbow-me/rainbowkit";
+import { type Locale, RainbowKitProvider, darkTheme, lightTheme } from "@rainbow-me/rainbowkit";
 import { WagmiProvider } from "wagmi";
 
 import "./index.css";
@@ -84,8 +79,7 @@ export const WalletProviders = ({
           maxAge: 24 * 60 * 60 * 1000, // drop persisted data older than 24h
           dehydrateOptions: {
             // Persist only the queries you want (saves space)
-            shouldDehydrateQuery: (q) =>
-              String(q.queryKey[0]).startsWith("coins-table"),
+            shouldDehydrateQuery: (q) => String(q.queryKey[0]).startsWith("coins-table"),
           },
         }}
       >

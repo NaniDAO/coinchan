@@ -11,28 +11,15 @@ type Props = {
   canStepTo?: (fromStep: number, toStep: number) => boolean;
 };
 
-export function Stepper({
-  steps,
-  currentStep,
-  onStepChange,
-  className,
-  canStepTo,
-}: Props) {
+export function Stepper({ steps, currentStep, onStepChange, className, canStepTo }: Props) {
   const canGoTo = (to: number) => {
     // Only allow going to previous steps by default
     const defaultAllowed = to < currentStep;
-    return canStepTo
-      ? canStepTo(currentStep, to) && defaultAllowed
-      : defaultAllowed;
+    return canStepTo ? canStepTo(currentStep, to) && defaultAllowed : defaultAllowed;
   };
 
   return (
-    <div
-      className={cn(
-        "rounded-2xl p-4 md:p-6 bg-background border-2 border-sidebar-border",
-        className,
-      )}
-    >
+    <div className={cn("rounded-2xl p-4 md:p-6 bg-background border-2 border-sidebar-border", className)}>
       <ol
         className={cn(
           "relative ml-2",
@@ -59,8 +46,7 @@ export function Stepper({
               className={cn(
                 "flex items-start gap-4 group rounded-xl",
                 i !== steps.length - 1 && "pb-8",
-                isClickable &&
-                  "hover:bg-accent/40 transition-colors cursor-pointer",
+                isClickable && "hover:bg-accent/40 transition-colors cursor-pointer",
               )}
               onClick={handleGo}
             >
@@ -71,23 +57,16 @@ export function Stepper({
                   e.stopPropagation();
                   handleGo();
                 }}
-                aria-label={
-                  isClickable ? `Go back to step ${n} to edit` : `Step ${n}`
-                }
+                aria-label={isClickable ? `Go back to step ${n} to edit` : `Step ${n}`}
                 aria-current={isActive ? "step" : undefined}
                 aria-disabled={!isClickable && !isActive}
                 tabIndex={isClickable || isActive ? 0 : -1}
                 className={cn(
                   "relative z-10 flex h-10 w-10 items-center justify-center rounded-full border text-base font-semibold transition-colors",
-                  isDone &&
-                    "bg-primary text-primary-foreground border-primary group-hover:opacity-90",
+                  isDone && "bg-primary text-primary-foreground border-primary group-hover:opacity-90",
                   // Opaque active bubble + subtle ring keeps line from bleeding through
-                  isActive &&
-                    !isDone &&
-                    "bg-background text-primary border-primary ring-2 ring-primary/30",
-                  !isActive &&
-                    !isDone &&
-                    "bg-muted text-muted-foreground border-muted-foreground/30",
+                  isActive && !isDone && "bg-background text-primary border-primary ring-2 ring-primary/30",
+                  !isActive && !isDone && "bg-muted text-muted-foreground border-muted-foreground/30",
                   !isClickable && !isActive && "cursor-not-allowed",
                 )}
               >
@@ -105,11 +84,7 @@ export function Stepper({
                 >
                   {step.title}
                 </div>
-                {step.description ? (
-                  <p className="text-sm text-muted-foreground">
-                    {step.description}
-                  </p>
-                ) : null}
+                {step.description ? <p className="text-sm text-muted-foreground">{step.description}</p> : null}
               </div>
             </li>
           );

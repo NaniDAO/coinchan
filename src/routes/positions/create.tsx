@@ -192,8 +192,6 @@ function RouteComponent() {
   useEffect(() => {
     if (!tokens?.length) return;
 
-    let updated = false;
-
     // A) Resolve from flexible query (addr:id | addr | symbol | id)
     const matchA = findTokenFlexible(tokens as any, search.tokenA);
     const matchB = findTokenFlexible(tokens as any, search.tokenB);
@@ -222,7 +220,6 @@ function RouteComponent() {
     const needsFill = !search.tokenA || !search.tokenB;
 
     if (needsCanonA || needsCanonB || needsFill) {
-      updated = true;
       navigate({
         to: "/positions/create",
         replace: true,

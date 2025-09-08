@@ -11,11 +11,7 @@ export const ProtocolFeeBadges = ({
 }) => {
   return (
     <div>
-      {protocolId !== null && (
-        <Badge variant="secondary">
-          {protocolId === "ZAMMV0" ? "v0" : "v1"}
-        </Badge>
-      )}
+      {protocolId !== null && <Badge variant="secondary">{protocolId === "ZAMMV0" ? "v0" : "v1"}</Badge>}
       {fee !== null && <Badge variant="secondary">{bpsToPct(fee)}</Badge>}
     </div>
   );

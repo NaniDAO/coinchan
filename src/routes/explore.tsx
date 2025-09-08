@@ -1,10 +1,5 @@
 import { cn } from "@/lib/utils";
-import {
-  createFileRoute,
-  Link,
-  Outlet,
-  useLocation,
-} from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/explore")({
   component: ExploreLayout,

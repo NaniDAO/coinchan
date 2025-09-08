@@ -5,11 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 
 export type TradeSettings = {
   autoSlippage: boolean; // if true, ignore slippagePct and show “Auto”
@@ -30,12 +26,7 @@ type Props = {
   buttonClassName?: string;
 };
 
-export function SettingsDropdown({
-  value,
-  onChange,
-  className,
-  buttonClassName,
-}: Props) {
+export function SettingsDropdown({ value, onChange, className, buttonClassName }: Props) {
   const [open, setOpen] = React.useState(false);
   const [local, setLocal] = React.useState<TradeSettings>(value ?? DEFAULTS);
 
@@ -55,8 +46,7 @@ export function SettingsDropdown({
     onChange?.(DEFAULTS);
   };
 
-  const clamp = (n: number, min: number, max: number) =>
-    Math.min(max, Math.max(min, Number.isFinite(n) ? n : min));
+  const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, Number.isFinite(n) ? n : min));
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -96,9 +86,7 @@ export function SettingsDropdown({
           {/* Max slippage */}
           <div className="flex items-center justify-between">
             <Label className="text-sm font-medium">Max slippage</Label>
-            <div className="text-xs text-muted-foreground">
-              {local.autoSlippage ? "Auto" : `${local.slippagePct}%`}
-            </div>
+            <div className="text-xs text-muted-foreground">{local.autoSlippage ? "Auto" : `${local.slippagePct}%`}</div>
           </div>
 
           <div className="mt-2 flex bg-accent p-1 rounded-2xl items-center w-fit gap-3">
@@ -127,10 +115,7 @@ export function SettingsDropdown({
                     slippagePct: clamp(parseFloat(e.target.value), 0, 50),
                   })
                 }
-                className={cn(
-                  "pr-8 text-right rounded-3xl border-accent",
-                  local.autoSlippage && "opacity-60",
-                )}
+                className={cn("pr-8 text-right rounded-3xl border-accent", local.autoSlippage && "opacity-60")}
               />
               <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                 %
@@ -141,9 +126,7 @@ export function SettingsDropdown({
           {/* Tx Deadline */}
           <div className="mt-5 flex items-center justify-between">
             <Label className="text-sm font-medium">Tx. deadline</Label>
-            <div className="text-xs text-muted-foreground">
-              {local.deadlineMin} minutes
-            </div>
+            <div className="text-xs text-muted-foreground">{local.deadlineMin} minutes</div>
           </div>
 
           <div className="mt-2 flex items-center gap-2">
