@@ -118,7 +118,7 @@ export const computePoolId = (
 
   const [token0, token1] = orderTokens(tokenA, tokenB);
 
-  if (protocol === "ZAMMV1") {
+  if (protocol === "ZAMMV0") {
     return BigInt(
       keccak256(
         encodeAbiParameters(
@@ -237,6 +237,106 @@ export const getAddLiquidityTx = async (
     tx: {
       to: protocol.address,
       value: isETH ? amount0 : 0n,
+      data: callData,
+    },
+  };
+};
+
+type RemoveLiquidityArgs = {
+  owner: Address;
+
+  // Same tokens you used when adding liquidity
+  token0: Token;
+  token1: Token;
+
+  // Amount of LP tokens to burn (18 decimals, typically)
+  liquidity: bigint;
+
+  // Fee tier / hook encoded just like add-liquidity
+  feeBps: bigint;
+
+  // Deadline and slippage policy
+  deadline: bigint;
+  slippageBps: bigint;
+
+  protocolId: ProtocolId;
+
+  /**
+   * One of the following strategies to set mins:
+   *  - Provide explicit mins: minAmount0/minAmount1
+   *  - Provide preview/expected amounts + slippageBps: expectedAmount0/expectedAmount1
+   *  - Omit all -> default to 0n (no slippage protection)
+   */
+  minAmount0?: bigint;
+  minAmount1?: bigint;
+  expectedAmount0?: bigint;
+  expectedAmount1?: bigint;
+};
+
+export const getRemoveLiquidityTx = async (
+  publicClient: PublicClient,
+  {
+    owner,
+    token0,
+    token1,
+    liquidity,
+    deadline,
+    feeBps,
+    slippageBps,
+    protocolId,
+    minAmount0,
+    minAmount1,
+    expectedAmount0,
+    expectedAmount1,
+  }: RemoveLiquidityArgs,
+) => {
+  const protocol = getProtocol(protocolId);
+  if (!protocol) {
+    throw new Error(`Protocol ${protocolId} not found`);
+  }
+
+  // Derive the poolKey (matches how add-liquidity does it)
+  const poolKey: PoolKey = computePoolKey(token0, token1, feeBps, protocolId);
+
+  // LP token is the pool itself (ERC-6909 style): address = protocol.address, id = poolId
+  const poolId = computePoolId(token0, token1, feeBps, protocolId);
+  if (poolId === 0n) {
+    throw new Error("Invalid pool (identical tokens?)");
+  }
+
+  // Approve protocol to pull/burn the LP tokens on behalf of the owner
+  const lpApproval = await getApprovalOrOperator(publicClient, {
+    token: { address: protocol.address as Address, id: poolId },
+    owner,
+    spender: protocol.address as Address,
+    required: liquidity,
+  });
+
+  // Resolve min amounts (prefer explicit mins; else derive from preview; else 0n)
+  const amount0Min =
+    minAmount0 ??
+    (expectedAmount0 !== undefined
+      ? withSlippage(expectedAmount0, slippageBps)
+      : 0n);
+
+  const amount1Min =
+    minAmount1 ??
+    (expectedAmount1 !== undefined
+      ? withSlippage(expectedAmount1, slippageBps)
+      : 0n);
+
+  const callData = encodeFunctionData({
+    abi: protocol.abi,
+    functionName: "removeLiquidity",
+    // @ts-expect-error typed at runtime to either ZAMMV1 or other
+    args: [poolKey, liquidity, amount0Min, amount1Min, owner, deadline],
+  });
+
+  return {
+    approvals: [lpApproval].filter((a) => a !== null),
+    tx: {
+      to: protocol.address as Address,
+      value: 0n, // no ETH needed for remove
       data: callData,
     },
   };

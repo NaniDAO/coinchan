@@ -116,9 +116,17 @@ function RouteComponent() {
             </PopoverContent>
           </Popover>
         </div>
-        <UserLpPositions
-          address={"0x1C0Aa8cCD568d90d61659F060D1bFb1e6f855A20"}
-        />
+        {userAddress ? (
+          <UserLpPositions address={userAddress} />
+        ) : (
+          <div>
+            <div className="flex flex-col items-center justify-center h-full">
+              <p className="text-center">
+                Connect your wallet to view your positions
+              </p>
+            </div>
+          </div>
+        )}
       </section>
       <div className="col-span-2">
         <TopPoolsByTVLSection />
