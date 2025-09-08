@@ -24,7 +24,11 @@ import {
 } from "@/lib/pools";
 import { cn } from "@/lib/utils";
 
-import { createFileRoute } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  useNavigate,
+  useSearch,
+} from "@tanstack/react-router";
 import {
   RotateCcwIcon,
   SettingsIcon,
@@ -35,9 +39,20 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatUnits, parseUnits } from "viem";
 import { useAccount, usePublicClient, useWalletClient } from "wagmi";
+import {
+  encodeTokenQ,
+  findTokenFlexible,
+  isCanonicalTokenQ,
+} from "@/lib/token-query";
 
 export const Route = createFileRoute("/positions/create")({
   component: RouteComponent,
+  validateSearch: (search: {
+    tokenA?: string;
+    tokenB?: string;
+    fee?: string;
+    protocol?: ProtocolId;
+  }) => search,
 });
 
 // Protocols where creating *new* pools is disallowed
@@ -53,6 +68,9 @@ type TxVisualStep = {
 };
 
 function RouteComponent() {
+  const navigate = useNavigate();
+  const search = useSearch({ from: "/positions/create" });
+
   const { address: owner } = useAccount();
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
@@ -171,6 +189,90 @@ function RouteComponent() {
     [],
   );
 
+  useEffect(() => {
+    if (!tokens?.length) return;
+
+    let updated = false;
+
+    // A) Resolve from flexible query (addr:id | addr | symbol | id)
+    const matchA = findTokenFlexible(tokens as any, search.tokenA);
+    const matchB = findTokenFlexible(tokens as any, search.tokenB);
+
+    if (matchA) {
+      setTokenA((prev) =>
+        prev && prev.id === matchA.id && prev.address === matchA.address
+          ? prev
+          : matchA,
+      );
+    }
+    if (matchB) {
+      setTokenB((prev) =>
+        prev && prev.id === matchB.id && prev.address === matchB.address
+          ? prev
+          : matchB,
+      );
+    }
+
+    // B) If either query was missing or non-canonical, rewrite to canonical once
+    const canonA = matchA ? encodeTokenQ(matchA) : encodeTokenQ(tokenA);
+    const canonB = matchB ? encodeTokenQ(matchB) : encodeTokenQ(tokenB);
+
+    const needsCanonA = !isCanonicalTokenQ(search.tokenA) && !!canonA;
+    const needsCanonB = !isCanonicalTokenQ(search.tokenB) && !!canonB;
+    const needsFill = !search.tokenA || !search.tokenB;
+
+    if (needsCanonA || needsCanonB || needsFill) {
+      updated = true;
+      navigate({
+        to: "/positions/create",
+        replace: true,
+        search: (s: any) => ({
+          ...s,
+          tokenA: canonA,
+          tokenB: canonB,
+          // keep any existing fee/protocol in place
+        }),
+      });
+    }
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tokens]);
+
+  useEffect(() => {
+    if (!tokens?.length) return;
+
+    if (search.fee) {
+      try {
+        setFee(BigInt(search.fee as any));
+      } catch {
+        /* ignore bad fee */
+      }
+    }
+    if (search.protocol) {
+      const exists = protocols.some((p) => p.id === search.protocol);
+      if (exists) setProtocolId(search.protocol as ProtocolId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tokens]);
+
+  // --- whenever these change, reflect canonical values in URL ---
+  useEffect(() => {
+    // only proceed when we *have* tokens picked
+    if (!tokenA || !tokenB) return;
+
+    navigate({
+      to: "/positions/create",
+      replace: true,
+      search: (s: any) => ({
+        ...s,
+        tokenA: encodeTokenQ(tokenA),
+        tokenB: encodeTokenQ(tokenB),
+        fee: fee?.toString(),
+        protocol: protocolId,
+      }),
+    });
+  }, [tokenA, tokenB, fee, protocolId, navigate]);
+
   // When wallet tokens arrive/update, hydrate the currently selected tokens with balances
   useEffect(() => {
     if (!tokens?.length) return;
@@ -207,13 +309,29 @@ function RouteComponent() {
     });
   }, [tokens, sameToken, setTokenA, setTokenB]);
 
-  const onSelectTokenA = useCallback((next: TokenMetadata) => {
-    setTokenA(next);
-  }, []);
+  const onSelectTokenA = useCallback(
+    (next: TokenMetadata) => {
+      setTokenA(next);
+      navigate({
+        to: "/positions/create",
+        replace: true,
+        search: (s: any) => ({ ...s, tokenA: encodeTokenQ(next) }),
+      });
+    },
+    [navigate],
+  );
 
-  const onSelectTokenB = useCallback((next: TokenMetadata) => {
-    setTokenB(next);
-  }, []);
+  const onSelectTokenB = useCallback(
+    (next: TokenMetadata) => {
+      setTokenB(next);
+      navigate({
+        to: "/positions/create",
+        replace: true,
+        search: (s: any) => ({ ...s, tokenB: encodeTokenQ(next) }),
+      });
+    },
+    [navigate],
+  );
 
   const ready = useMemo(
     () => Boolean(tokens?.length && tokenA && tokenB),

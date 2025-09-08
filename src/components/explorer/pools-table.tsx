@@ -17,6 +17,7 @@ import { buttonVariants } from "../ui/button";
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { Input } from "../ui/input";
+import { bpsToPct } from "@/lib/pools";
 
 /* ---------------------- formatting helpers ---------------------- */
 const fmt0 = (n?: number | null) =>
@@ -53,18 +54,6 @@ const ipfs = (u?: string | null) =>
     : u.startsWith("ipfs://")
       ? u.replace("ipfs://", "https://ipfs.io/ipfs/")
       : u;
-
-const bpsToPct = (bps?: string | number | null) => {
-  const n = Number(bps ?? 0);
-  if (!Number.isFinite(n)) return "—";
-  // bps → percent (e.g. 30 → 0.30%, 3000 → 30.00%)
-  return (
-    (n / 100).toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }) + "%"
-  );
-};
 
 /* ----------- map table sorting -> API sortBy key (single sort) ----------- */
 function mapSortingToApi(s: SortingState): PoolSortBy {

@@ -241,3 +241,15 @@ export const getAddLiquidityTx = async (
     },
   };
 };
+
+export const bpsToPct = (bps?: string | number | null) => {
+  const n = Number(bps ?? 0);
+  if (!Number.isFinite(n)) return "—";
+  // bps → percent (e.g. 30 → 0.30%, 3000 → 30.00%)
+  return (
+    (n / 100).toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }) + "%"
+  );
+};

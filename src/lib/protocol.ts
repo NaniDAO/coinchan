@@ -1,5 +1,6 @@
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
+import { CoinSource } from "./coins";
 
 export const protocols = [
   { id: "ZAMMV0", label: "zamm V0 position" },
@@ -22,5 +23,14 @@ export const getProtocol = (id: ProtocolId) => {
     };
   }
 
+  return null;
+};
+
+export const getProtocolIdBySource = (source?: CoinSource) => {
+  if (source === "ZAMM") {
+    return "ZAMMV0";
+  } else if (source === "COOKBOOK") {
+    return "ZAMMV1";
+  }
   return null;
 };
