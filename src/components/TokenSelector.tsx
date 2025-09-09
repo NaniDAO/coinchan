@@ -174,7 +174,7 @@ export const TokenSelector = memo(
               disabled={isDisabled}
             >
               <span className="flex items-center gap-2 truncate">
-                <TokenImage token={selectedToken} />
+                <TokenImage imageUrl={selectedToken.imageUrl} symbol={selectedToken.symbol} />
                 <span className="text-sm font-medium leading-none truncate">{selectedToken.symbol}</span>
                 <span className="ml-2 text-[11px] text-muted-foreground tabular-nums">
                   {formatBalance(selectedToken)}
@@ -235,7 +235,7 @@ export const TokenSelector = memo(
                             )}
                             aria-label={`Select ${tkn.symbol}`}
                           >
-                            <TokenImage token={tkn} />
+                            <TokenImage imageUrl={tkn.imageUrl} symbol={tkn.symbol} />
                             <span className="text-xs font-medium">{tkn.symbol}</span>
                           </button>
                         ))}
@@ -267,7 +267,7 @@ export const TokenSelector = memo(
                     >
                       <div className="flex w-full items-center justify-between gap-3">
                         <div className="flex items-center gap-3 min-w-0">
-                          <TokenImage token={token} />
+                          <TokenImage imageUrl={token.imageUrl} symbol={token.symbol} />
                           <div className="flex flex-col min-w-0">
                             <span className="font-medium truncate">{token.symbol}</span>
                             <span className="text-xs text-muted-foreground truncate">{token.name}</span>

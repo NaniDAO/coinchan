@@ -1,7 +1,9 @@
 {
   "common": {
     "get_started": "开始使用",
+    "positions": "仓位",
     "sales": "曲线销售",
+    "swap": "兑换",
     "enter_amount": "输入数量",
     "loading": "正在同步ZAMM...",
     "calculating": "计算中...",
@@ -32,7 +34,7 @@
     "send": "发送",
     "buy": "买入",
     "sell": "卖出",
-    "swap": "兑换",
+    "trade": "兑换",
     "create": "创建",
     "explore": "探索",
     "orders": "订单",
@@ -89,6 +91,7 @@
     "paid_to_lps": "支付给流动性提供者",
     "multi_hop": "多跳",
     "pool": "资金池",
+    "pools": "资金池",
     "single_eth": "LP-ZAP",
     "change": "更改",
     "chart": "图表",

@@ -587,7 +587,7 @@ export const InstantSwapAction = ({ lockedTokens, hidePriceChart = false }: Prop
             <CheckIcon className="h-3 w-3 mr-2" />
             Transaction confirmed!
           </div>
-          <Link to="/orders" className="hidden" />
+          <Link to="/explore/orders" className="hidden" />
         </div>
       )}
 

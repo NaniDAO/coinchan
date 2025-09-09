@@ -14,19 +14,8 @@ import { PoolApyDisplay } from "./components/ApyDisplay";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useOperatorStatus } from "./hooks/use-operator-status";
-import {
-  useAccount,
-  useChainId,
-  usePublicClient,
-  useWriteContract,
-} from "wagmi";
-import {
-  formatEther,
-  formatUnits,
-  parseEther,
-  parseUnits,
-  zeroAddress,
-} from "viem";
+import { useAccount, useChainId, usePublicClient, useWriteContract } from "wagmi";
+import { formatEther, formatUnits, parseEther, parseUnits, zeroAddress } from "viem";
 import { ZAMMAbi, ZAMMAddress } from "./constants/ZAAM";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import { useWaitForTransactionReceipt } from "wagmi";
@@ -43,10 +32,7 @@ import {
   WLFI_POOL_ID,
 } from "./lib/coins";
 import { useTokenSelection } from "./contexts/TokenSelectionContext";
-import {
-  determineReserveSource,
-  getHelperContractInfo,
-} from "./lib/coin-utils";
+import { determineReserveSource, getHelperContractInfo } from "./lib/coin-utils";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { SlippageSettings } from "./components/SlippageSettings";
 import { NetworkError } from "./components/NetworkError";
@@ -100,8 +86,7 @@ export const AddLiquidity = () => {
   const [estimatedPoolShare, setEstimatedPoolShare] = useState<string>("");
 
   // Use shared token selection context
-  const { sellToken, buyToken, setSellToken, setBuyToken } =
-    useTokenSelection();
+  const { sellToken, buyToken, setSellToken, setBuyToken } = useTokenSelection();
   const { isSellETH, isCustom, isCoinToCoin, coinId, canSwap } = useMemo(
     () => analyzeTokens(sellToken, buyToken),
     [sellToken, buyToken],
@@ -150,15 +135,13 @@ export const AddLiquidity = () => {
   const { actualPoolId, reserveSource } = useMemo(() => {
     if (sellToken.symbol === "CULT" || buyToken?.symbol === "CULT") {
       return {
-        actualPoolId:
-          sellToken.symbol === "CULT" ? sellToken.poolId : buyToken?.poolId,
+        actualPoolId: sellToken.symbol === "CULT" ? sellToken.poolId : buyToken?.poolId,
         reserveSource: "COOKBOOK" as const,
       };
     }
     if (sellToken.symbol === "ENS" || buyToken?.symbol === "ENS") {
       return {
-        actualPoolId:
-          sellToken.symbol === "ENS" ? sellToken.poolId : buyToken?.poolId,
+        actualPoolId: sellToken.symbol === "ENS" ? sellToken.poolId : buyToken?.poolId,
         reserveSource: "COOKBOOK" as const,
       };
     }
@@ -174,8 +157,7 @@ export const AddLiquidity = () => {
     // USDT handling
     if (sellToken.symbol === "USDT" || buyToken?.symbol === "USDT") {
       return {
-        actualPoolId:
-          sellToken.symbol === "USDT" ? sellToken.poolId : buyToken?.poolId,
+        actualPoolId: sellToken.symbol === "USDT" ? sellToken.poolId : buyToken?.poolId,
         reserveSource: "ZAMM" as const,
       };
     }
@@ -183,15 +165,7 @@ export const AddLiquidity = () => {
     // Fallback to existing heuristic for ERC6909/ZAMM/COOKBOOK
     const source = determineReserveSource(coinId, isCustom);
     return { actualPoolId: mainPoolId, reserveSource: source };
-  }, [
-    sellToken.symbol,
-    buyToken?.symbol,
-    sellToken.poolId,
-    buyToken?.poolId,
-    coinId,
-    isCustom,
-    mainPoolId,
-  ]);
+  }, [sellToken.symbol, buyToken?.symbol, sellToken.poolId, buyToken?.poolId, coinId, isCustom, mainPoolId]);
 
   const { data: reserves } = useReserves({
     poolId: actualPoolId,
@@ -199,8 +173,7 @@ export const AddLiquidity = () => {
   });
 
   // Pool info for LP supply calculation
-  const poolContract =
-    reserveSource === "COOKBOOK" ? CookbookAddress : ZAMMAddress;
+  const poolContract = reserveSource === "COOKBOOK" ? CookbookAddress : ZAMMAddress;
   const poolAbi = reserveSource === "COOKBOOK" ? CookbookAbi : ZAMMAbi;
 
   const { data: poolInfo } = useReadContract({
@@ -312,11 +285,7 @@ export const AddLiquidity = () => {
 
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [txError, setTxError] = useState<string | null>(null);
-  const {
-    writeContractAsync,
-    isPending,
-    error: writeError,
-  } = useWriteContract();
+  const { writeContractAsync, isPending, error: writeError } = useWriteContract();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
   const memoizedTokens = useMemo(() => tokens, [tokens]);
@@ -370,8 +339,7 @@ export const AddLiquidity = () => {
         if (totalSupply > 0n && reserves?.reserve0 && reserves?.reserve1) {
           const lpFromEth = (ethAmount * totalSupply) / reserves.reserve0;
           const lpFromToken = (tokenAmount * totalSupply) / reserves.reserve1;
-          const lpTokensToMint =
-            lpFromEth < lpFromToken ? lpFromEth : lpFromToken;
+          const lpTokensToMint = lpFromEth < lpFromToken ? lpFromEth : lpFromToken;
 
           setEstimatedLpTokens(formatUnits(lpTokensToMint, 18));
 
@@ -415,33 +383,14 @@ export const AddLiquidity = () => {
   // All special tokens (CULT, ENS, WLFI) use Cookbook
   const usesCookbook = isUsingCult || isUsingEns || isUsingWlfi || isCookbook;
 
-  const targetAMMContract =
-    isErc20Pool && !isUsingWlfi
-      ? ZAMMAddress
-      : usesCookbook
-        ? CookbookAddress
-        : ZAMMAddress;
+  const targetAMMContract = isErc20Pool && !isUsingWlfi ? ZAMMAddress : usesCookbook ? CookbookAddress : ZAMMAddress;
 
-  const targetAMMAbi =
-    isErc20Pool && !isUsingWlfi
-      ? ZAMMAbi
-      : usesCookbook
-        ? CookbookAbi
-        : ZAMMAbi;
+  const targetAMMAbi = isErc20Pool && !isUsingWlfi ? ZAMMAbi : usesCookbook ? CookbookAbi : ZAMMAbi;
 
   const helperAddress =
-    isErc20Pool && !isUsingWlfi
-      ? ZAMMHelperAddress
-      : usesCookbook
-        ? ZAMMHelperV1Address
-        : ZAMMHelperAddress;
+    isErc20Pool && !isUsingWlfi ? ZAMMHelperAddress : usesCookbook ? ZAMMHelperV1Address : ZAMMHelperAddress;
 
-  const helperAbi =
-    isErc20Pool && !isUsingWlfi
-      ? ZAMMHelperAbi
-      : usesCookbook
-        ? ZAMMHelperV1Abi
-        : ZAMMHelperAbi;
+  const helperAbi = isErc20Pool && !isUsingWlfi ? ZAMMHelperAbi : usesCookbook ? ZAMMHelperV1Abi : ZAMMHelperAbi;
 
   /* helpers to sync amounts */
   const syncFromSell = useCallback(
@@ -456,13 +405,9 @@ export const AddLiquidity = () => {
             setBuyAmt("");
             return;
           }
-          const optimalTokenAmount =
-            (ethAmount * reserves.reserve1) / reserves.reserve0;
+          const optimalTokenAmount = (ethAmount * reserves.reserve1) / reserves.reserve0;
           const buyTokenDecimals = buyToken?.decimals || 18;
-          const formattedAmount = formatUnits(
-            optimalTokenAmount,
-            buyTokenDecimals,
-          );
+          const formattedAmount = formatUnits(optimalTokenAmount, buyTokenDecimals);
           setBuyAmt(optimalTokenAmount === 0n ? "" : formattedAmount);
 
           if (ethAmount > 0n && optimalTokenAmount > 0n) {
@@ -475,11 +420,8 @@ export const AddLiquidity = () => {
             setBuyAmt("");
             return;
           }
-          const optimalEthAmount =
-            (tokenAmount * reserves.reserve0) / reserves.reserve1;
-          setBuyAmt(
-            optimalEthAmount === 0n ? "" : formatEther(optimalEthAmount),
-          );
+          const optimalEthAmount = (tokenAmount * reserves.reserve0) / reserves.reserve1;
+          setBuyAmt(optimalEthAmount === 0n ? "" : formatEther(optimalEthAmount));
 
           if (tokenAmount > 0n && optimalEthAmount > 0n) {
             calculateLpTokens(optimalEthAmount, tokenAmount);
@@ -493,15 +435,7 @@ export const AddLiquidity = () => {
         setBuyAmt("");
       }
     },
-    [
-      canSwap,
-      reserves,
-      isSellETH,
-      buyToken,
-      sellToken,
-      calculateLpTokens,
-      isCoinToCoin,
-    ],
+    [canSwap, reserves, isSellETH, buyToken, sellToken, calculateLpTokens, isCoinToCoin],
   );
 
   const syncFromBuy = useCallback(
@@ -517,11 +451,8 @@ export const AddLiquidity = () => {
             setSellAmt("");
             return;
           }
-          const optimalEthAmount =
-            (tokenAmount * reserves.reserve0) / reserves.reserve1;
-          setSellAmt(
-            optimalEthAmount === 0n ? "" : formatEther(optimalEthAmount),
-          );
+          const optimalEthAmount = (tokenAmount * reserves.reserve0) / reserves.reserve1;
+          setSellAmt(optimalEthAmount === 0n ? "" : formatEther(optimalEthAmount));
 
           if (optimalEthAmount > 0n && tokenAmount > 0n) {
             calculateLpTokens(optimalEthAmount, tokenAmount);
@@ -532,14 +463,9 @@ export const AddLiquidity = () => {
             setSellAmt("");
             return;
           }
-          const optimalTokenAmount =
-            (ethAmount * reserves.reserve1) / reserves.reserve0;
+          const optimalTokenAmount = (ethAmount * reserves.reserve1) / reserves.reserve0;
           const sellTokenDecimals = sellToken?.decimals || 18;
-          setSellAmt(
-            optimalTokenAmount === 0n
-              ? ""
-              : formatUnits(optimalTokenAmount, sellTokenDecimals),
-          );
+          setSellAmt(optimalTokenAmount === 0n ? "" : formatUnits(optimalTokenAmount, sellTokenDecimals));
 
           if (ethAmount > 0n && optimalTokenAmount > 0n) {
             calculateLpTokens(ethAmount, optimalTokenAmount);
@@ -553,15 +479,7 @@ export const AddLiquidity = () => {
         setSellAmt("");
       }
     },
-    [
-      canSwap,
-      reserves,
-      isSellETH,
-      buyToken,
-      sellToken,
-      calculateLpTokens,
-      isCoinToCoin,
-    ],
+    [canSwap, reserves, isSellETH, buyToken, sellToken, calculateLpTokens, isCoinToCoin],
   );
 
   // isCookbook already determined earlier for allowance hooks
@@ -682,6 +600,7 @@ export const AddLiquidity = () => {
       } else if (isCookbook) {
         // For cookbook coins, use buyToken's id (since sellToken is ETH)
         const tokenId = buyToken?.id ?? coinId;
+
         poolKey = computePoolKey(
           tokenId,
           swapFee ?? DEFAULT_SWAP_FEE,
@@ -710,9 +629,7 @@ export const AddLiquidity = () => {
               ? 18
               : buyToken?.decimals) ?? 18;
 
-      const amount1 = isSellETH
-        ? parseUnits(buyAmt, token1Decimals)
-        : parseUnits(sellAmt, token1Decimals);
+      const amount1 = isSellETH ? parseUnits(buyAmt, token1Decimals) : parseUnits(sellAmt, token1Decimals);
 
       if (amount0 === 0n || amount1 === 0n) {
         setTxError("Invalid liquidity amounts");
@@ -721,10 +638,7 @@ export const AddLiquidity = () => {
 
       // Balance checks
       const ethRequired = amount0;
-      const ethAvailable =
-        sellToken.id === null
-          ? sellToken.balance || 0n
-          : buyToken?.balance || 0n;
+      const ethAvailable = sellToken.id === null ? sellToken.balance || 0n : buyToken?.balance || 0n;
       if (ethAvailable < ethRequired) {
         setTxError("Insufficient ETH balance");
         return;
@@ -733,14 +647,9 @@ export const AddLiquidity = () => {
       // token1 balance
       let tokenAvailable = 0n;
       if (isUsdtPool) {
-        tokenAvailable = isSellETH
-          ? buyToken?.balance || 0n
-          : sellToken.balance || 0n;
+        tokenAvailable = isSellETH ? buyToken?.balance || 0n : sellToken.balance || 0n;
       } else if (isUsingCult) {
-        tokenAvailable =
-          sellToken.symbol === "CULT"
-            ? sellToken.balance || 0n
-            : buyToken?.balance || 0n;
+        tokenAvailable = sellToken.symbol === "CULT" ? sellToken.balance || 0n : buyToken?.balance || 0n;
       } else if (isUsingEns) {
         tokenAvailable =
           sellToken.symbol === "ENS"
@@ -752,9 +661,7 @@ export const AddLiquidity = () => {
             ? sellToken.balance || 0n
             : buyToken?.balance || 0n;
       } else {
-        tokenAvailable = isSellETH
-          ? buyToken?.balance || 0n
-          : sellToken.balance || 0n;
+        tokenAvailable = isSellETH ? buyToken?.balance || 0n : sellToken.balance || 0n;
       }
       if (tokenAvailable < amount1) {
         const tokenSymbol = isUsdtPool
@@ -776,17 +683,14 @@ export const AddLiquidity = () => {
       // USDT
       if (isUsdtPool) {
         const usdtAmount =
-          sellToken.symbol === "USDT" ||
-          (sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS)
+          sellToken.symbol === "USDT" || (sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS)
             ? parseUnits(sellAmt, 6)
             : parseUnits(buyAmt, 6);
 
         if (usdtAllowance === undefined) await refetchUsdtAllowance();
         if (usdtAllowance === undefined || usdtAllowance < usdtAmount) {
           try {
-            setTxError(
-              "Waiting for USDT approval. Please confirm the transaction...",
-            );
+            setTxError("Waiting for USDT approval. Please confirm the transaction...");
             const hash = await approveUsdtMax();
             if (!hash) return;
             setTxError("USDT approval submitted. Waiting for confirmation...");
@@ -810,15 +714,10 @@ export const AddLiquidity = () => {
 
       // CULT
       if (isUsingCult) {
-        const cultAmount =
-          sellToken.symbol === "CULT"
-            ? parseUnits(sellAmt, 18)
-            : parseUnits(buyAmt, 18);
+        const cultAmount = sellToken.symbol === "CULT" ? parseUnits(sellAmt, 18) : parseUnits(buyAmt, 18);
         if (cultAllowance === undefined || cultAllowance < cultAmount) {
           try {
-            setTxError(
-              "Waiting for CULT approval. Please confirm the transaction...",
-            );
+            setTxError("Waiting for CULT approval. Please confirm the transaction...");
             const hash = await approveCultMax();
             if (!hash) return;
             setTxError("CULT approval submitted. Waiting for confirmation...");
@@ -842,15 +741,10 @@ export const AddLiquidity = () => {
 
       // ENS
       if (isUsingEns) {
-        const ensAmount =
-          sellToken.symbol === "ENS"
-            ? parseUnits(sellAmt, 18)
-            : parseUnits(buyAmt, 18);
+        const ensAmount = sellToken.symbol === "ENS" ? parseUnits(sellAmt, 18) : parseUnits(buyAmt, 18);
         if (ensAllowance === undefined || ensAllowance < ensAmount) {
           try {
-            setTxError(
-              "Waiting for ENS approval. Please confirm the transaction...",
-            );
+            setTxError("Waiting for ENS approval. Please confirm the transaction...");
             const hash = await approveEnsMax();
             if (!hash) return;
             setTxError("ENS approval submitted. Waiting for confirmation...");
@@ -882,20 +776,13 @@ export const AddLiquidity = () => {
         if (genericErc20Allowance === undefined) {
           await refetchGenericErc20Allowance();
         }
-        if (
-          genericErc20Allowance === undefined ||
-          genericErc20Allowance < erc20Amount
-        ) {
+        if (genericErc20Allowance === undefined || genericErc20Allowance < erc20Amount) {
           try {
-            setTxError(
-              "Waiting for ERC-20 approval. Please confirm the transaction...",
-            );
+            setTxError("Waiting for ERC-20 approval. Please confirm the transaction...");
             const hash = await approveGenericErc20Max();
             if (!hash) return;
 
-            setTxError(
-              "ERC-20 approval submitted. Waiting for confirmation...",
-            );
+            setTxError("ERC-20 approval submitted. Waiting for confirmation...");
             const r = await publicClient.waitForTransactionReceipt({ hash });
             if (r.status === "success") {
               await refetchGenericErc20Allowance();
@@ -969,18 +856,14 @@ export const AddLiquidity = () => {
         isOperator === false
       ) {
         try {
-          setTxError(
-            "Waiting for operator approval. Please confirm the transaction...",
-          );
+          setTxError("Waiting for operator approval. Please confirm the transaction...");
           const approvalHash = await writeContractAsync({
             address: CoinsAddress,
             abi: CoinsAbi,
             functionName: "setOperator",
             args: [targetAMMContract, true],
           });
-          setTxError(
-            "Operator approval submitted. Waiting for confirmation...",
-          );
+          setTxError("Operator approval submitted. Waiting for confirmation...");
           const r = await publicClient.waitForTransactionReceipt({
             hash: approvalHash,
           });
@@ -1026,15 +909,7 @@ export const AddLiquidity = () => {
             address: CookbookAddress,
             abi: CookbookAbi,
             functionName: "addLiquidity",
-            args: [
-              specialPoolKey as any,
-              amount0,
-              amount1,
-              actualAmount0Min,
-              actualAmount1Min,
-              address,
-              deadline,
-            ],
+            args: [specialPoolKey as any, amount0, amount1, actualAmount0Min, actualAmount1Min, address, deadline],
             value: amount0, // ETH amount
           });
 
@@ -1048,11 +923,7 @@ export const AddLiquidity = () => {
             args: [poolKey as any, amount0, amount1],
           });
 
-          const [ethAmount, calcAmount0, calcAmount1] = result as [
-            bigint,
-            bigint,
-            bigint,
-          ];
+          const [ethAmount, calcAmount0, calcAmount1] = result as [bigint, bigint, bigint];
 
           const actualAmount0Min = withSlippage(calcAmount0, slippageBps);
           const actualAmount1Min = withSlippage(calcAmount1, slippageBps);
@@ -1061,15 +932,7 @@ export const AddLiquidity = () => {
             address: targetAMMContract,
             abi: targetAMMAbi,
             functionName: "addLiquidity",
-            args: [
-              poolKey as any,
-              calcAmount0,
-              calcAmount1,
-              actualAmount0Min,
-              actualAmount1Min,
-              address,
-              deadline,
-            ],
+            args: [poolKey as any, calcAmount0, calcAmount1, actualAmount0Min, actualAmount1Min, address, deadline],
             value: ethAmount,
           });
 
@@ -1089,14 +952,10 @@ export const AddLiquidity = () => {
       if (errorMsg) {
         if (err instanceof Error) {
           if (err.message.includes("insufficient funds")) {
-            setTxError(
-              t("errors.insufficient_funds") ||
-                "Insufficient funds for this transaction",
-            );
+            setTxError(t("errors.insufficient_funds") || "Insufficient funds for this transaction");
           } else if (err.message.includes("InvalidMsgVal")) {
             setTxError(
-              t("errors.contract_error") ||
-                "Contract rejected ETH value. Please try again with different amounts.",
+              t("errors.contract_error") || "Contract rejected ETH value. Please try again with different amounts.",
             );
           } else {
             setTxError(errorMsg);
@@ -1121,10 +980,7 @@ export const AddLiquidity = () => {
 
   return (
     <div className="relative flex flex-col">
-      <PoolApyDisplay
-        poolId={mainPoolId ? mainPoolId.toString() : undefined}
-        className="mb-2"
-      />
+      <PoolApyDisplay poolId={mainPoolId ? mainPoolId.toString() : undefined} className="mb-2" />
 
       {isWLFIPool ? (
         <WlfiSwapPanel
@@ -1135,9 +991,7 @@ export const AddLiquidity = () => {
           isEthBalanceFetching={isEthBalanceFetching}
           amount={sellAmt}
           onAmountChange={syncFromSell}
-          showMaxButton={
-            !!(sellToken.balance !== undefined && sellToken.balance > 0n)
-          }
+          showMaxButton={!!(sellToken.balance !== undefined && sellToken.balance > 0n)}
           onMax={() => {
             if (sellToken.id === null) {
               const ethAmount = ((sellToken.balance as bigint) * 99n) / 100n;
@@ -1158,9 +1012,7 @@ export const AddLiquidity = () => {
           isEthBalanceFetching={isEthBalanceFetching}
           amount={sellAmt}
           onAmountChange={syncFromSell}
-          showMaxButton={
-            !!(sellToken.balance !== undefined && sellToken.balance > 0n)
-          }
+          showMaxButton={!!(sellToken.balance !== undefined && sellToken.balance > 0n)}
           onMax={() => {
             if (sellToken.id === null) {
               const ethAmount = ((sellToken.balance as bigint) * 99n) / 100n;
@@ -1189,9 +1041,7 @@ export const AddLiquidity = () => {
             isEthBalanceFetching={isEthBalanceFetching}
             amount={buyAmt}
             onAmountChange={syncFromBuy}
-            showMaxButton={
-              !!(buyToken.balance !== undefined && buyToken.balance > 0n)
-            }
+            showMaxButton={!!(buyToken.balance !== undefined && buyToken.balance > 0n)}
             onMax={() => {
               if (buyToken.id === null) {
                 const ethAmount = ((buyToken.balance as bigint) * 99n) / 100n;
@@ -1217,9 +1067,7 @@ export const AddLiquidity = () => {
             isEthBalanceFetching={isEthBalanceFetching}
             amount={buyAmt}
             onAmountChange={syncFromBuy}
-            showMaxButton={
-              !!(buyToken.balance !== undefined && buyToken.balance > 0n)
-            }
+            showMaxButton={!!(buyToken.balance !== undefined && buyToken.balance > 0n)}
             onMax={() => {
               if (buyToken.id === null) {
                 const ethAmount = ((buyToken.balance as bigint) * 99n) / 100n;
@@ -1234,34 +1082,23 @@ export const AddLiquidity = () => {
         ))}
 
       <NetworkError message="manage liquidity" />
-      <SlippageSettings
-        slippageBps={slippageBps}
-        setSlippageBps={setSlippageBps}
-      />
+      <SlippageSettings slippageBps={slippageBps} setSlippageBps={setSlippageBps} />
 
       {estimatedLpTokens && estimatedPoolShare && (
         <div className="mt-2 p-3 bg-muted/30 border border-primary/20 rounded-lg">
           <div className="flex justify-between items-center mb-1">
-            <span className="text-sm text-muted-foreground">
-              {t("common.estimated_lp_tokens")}:
-            </span>
-            <span className="font-mono text-sm">
-              {formatNumber(parseFloat(estimatedLpTokens), 6)} LP
-            </span>
+            <span className="text-sm text-muted-foreground">{t("common.estimated_lp_tokens")}:</span>
+            <span className="font-mono text-sm">{formatNumber(parseFloat(estimatedLpTokens), 6)} LP</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">
-              {t("cult.pool_share")}:
-            </span>
+            <span className="text-sm text-muted-foreground">{t("cult.pool_share")}:</span>
             <span className="font-mono text-sm">{estimatedPoolShare}</span>
           </div>
         </div>
       )}
 
       <div className="text-xs bg-muted/50 border border-primary/30 rounded p-2 mt-2 text-muted-foreground dark:text-gray-300">
-        <p className="font-medium mb-1">
-          {t("pool.adding_liquidity_provides")}
-        </p>
+        <p className="font-medium mb-1">{t("pool.adding_liquidity_provides")}</p>
         <ul className="list-disc pl-4 space-y-0.5">
           <li>{t("pool.lp_tokens_proof")}</li>
           <li>
@@ -1276,12 +1113,7 @@ export const AddLiquidity = () => {
       <button
         onClick={executeAddLiquidity}
         disabled={
-          !isConnected ||
-          isPending ||
-          !sellAmt ||
-          !buyAmt ||
-          parseFloat(sellAmt) === 0 ||
-          parseFloat(buyAmt) === 0
+          !isConnected || isPending || !sellAmt || !buyAmt || parseFloat(sellAmt) === 0 || parseFloat(buyAmt) === 0
         }
         className={`mt-2 button text-base px-8 py-4 font-bold rounded-lg transform transition-all duration-200
           ${
@@ -1290,12 +1122,7 @@ export const AddLiquidity = () => {
               : "bg-primary text-primary-foreground"
           }
           ${
-            !isConnected ||
-            isPending ||
-            !sellAmt ||
-            !buyAmt ||
-            parseFloat(sellAmt) === 0 ||
-            parseFloat(buyAmt) === 0
+            !isConnected || isPending || !sellAmt || !buyAmt || parseFloat(sellAmt) === 0 || parseFloat(buyAmt) === 0
               ? "opacity-50 cursor-not-allowed"
               : "opacity-100 hover:scale-105 hover:shadow-lg focus:ring-4 focus:ring-primary/50 focus:outline-none"
           }`}
@@ -1317,12 +1144,9 @@ export const AddLiquidity = () => {
         </div>
       )}
 
-      {((writeError && !isUserRejectionError(writeError)) ||
-        (txError && !txError.includes("Waiting for"))) && (
+      {((writeError && !isUserRejectionError(writeError)) || (txError && !txError.includes("Waiting for"))) && (
         <div className="text-sm text-destructive mt-2 bg-background/50 p-2 rounded border border-destructive/20">
-          {writeError && !isUserRejectionError(writeError)
-            ? writeError.message
-            : txError}
+          {writeError && !isUserRejectionError(writeError) ? writeError.message : txError}
         </div>
       )}
 

@@ -8,7 +8,7 @@ export function useEthUsdPrice() {
 
   return useQuery({
     queryKey: ["ethUsdPrice"],
-    queryFn: async () => {
+    queryFn: async (): Promise<number> => {
       if (!publicClient) return 0;
 
       try {

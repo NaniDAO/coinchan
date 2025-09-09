@@ -1,19 +1,8 @@
 import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  formatEther,
-  formatUnits,
-  parseEther,
-  parseUnits,
-  zeroAddress,
-} from "viem";
+import { formatEther, formatUnits, parseEther, parseUnits, zeroAddress } from "viem";
 import { mainnet } from "viem/chains";
-import {
-  useAccount,
-  useChainId,
-  usePublicClient,
-  useWriteContract,
-} from "wagmi";
+import { useAccount, useChainId, usePublicClient, useWriteContract } from "wagmi";
 import { useWaitForTransactionReceipt } from "wagmi";
 import { NetworkError } from "./components/NetworkError";
 import { SuccessMessage } from "./components/SuccessMessage";
@@ -27,14 +16,7 @@ import { ETH_TOKEN, type TokenMeta } from "./lib/coins";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import type { CookbookPoolKey } from "./lib/swap";
 import { nowSec } from "./lib/utils";
-
-// Fee tier options for pool creation
-const FEE_OPTIONS = [
-  { label: "0.05%", value: 5n }, // Ultra low fee
-  { label: "0.3%", value: 30n }, // Default (Uniswap V2 style)
-  { label: "1%", value: 100n }, // Current cookbook standard
-  { label: "3%", value: 300n }, // High fee for exotic pairs
-];
+import { FEE_OPTIONS } from "./lib/pools";
 
 interface FeeSettingsProps {
   feeBps: bigint;
@@ -42,11 +24,7 @@ interface FeeSettingsProps {
   className?: string;
 }
 
-const FeeSettings = ({
-  feeBps,
-  setFeeBps,
-  className = "",
-}: FeeSettingsProps) => {
+const FeeSettings = ({ feeBps, setFeeBps, className = "" }: FeeSettingsProps) => {
   const [showFeeSettings, setShowFeeSettings] = useState(false);
 
   return (
@@ -58,9 +36,7 @@ const FeeSettings = ({
         <span>
           <strong>Pool Fee:</strong> {Number(feeBps) / 100}%
         </span>
-        <span className="text-xs text-foreground-secondary">
-          {showFeeSettings ? "▲" : "▼"}
-        </span>
+        <span className="text-xs text-foreground-secondary">{showFeeSettings ? "▲" : "▼"}</span>
       </div>
 
       {showFeeSettings && (
@@ -110,15 +86,10 @@ const FeeSettings = ({
 };
 
 // Helper: pool key for Cookbook pools
-const createCookbookPoolKey = (
-  tokenA: TokenMeta,
-  tokenB: TokenMeta,
-  feeBps: bigint,
-): CookbookPoolKey => {
+const createCookbookPoolKey = (tokenA: TokenMeta, tokenB: TokenMeta, feeBps: bigint): CookbookPoolKey => {
   // Handle ETH-Token pairs
   if (tokenA.id === null) {
-    const tokenAddress =
-      tokenB.source === "ZAMM" ? CoinsAddress : CookbookAddress;
+    const tokenAddress = tokenB.source === "ZAMM" ? CoinsAddress : CookbookAddress;
     return {
       id0: 0n,
       id1: BigInt(tokenB.id || 0),
@@ -127,8 +98,7 @@ const createCookbookPoolKey = (
       feeOrHook: feeBps,
     };
   } else if (tokenB.id === null) {
-    const tokenAddress =
-      tokenA.source === "ZAMM" ? CoinsAddress : CookbookAddress;
+    const tokenAddress = tokenA.source === "ZAMM" ? CoinsAddress : CookbookAddress;
     return {
       id0: 0n,
       id1: BigInt(tokenA.id || 0),
@@ -138,12 +108,9 @@ const createCookbookPoolKey = (
     };
   } else {
     // Token-token pair
-    const [token0, token1] =
-      tokenA.id! < tokenB.id! ? [tokenA, tokenB] : [tokenB, tokenA];
-    const token0Address =
-      token0.source === "ZAMM" ? CoinsAddress : CookbookAddress;
-    const token1Address =
-      token1.source === "ZAMM" ? CoinsAddress : CookbookAddress;
+    const [token0, token1] = tokenA.id! < tokenB.id! ? [tokenA, tokenB] : [tokenB, tokenA];
+    const token0Address = token0.source === "ZAMM" ? CoinsAddress : CookbookAddress;
+    const token1Address = token1.source === "ZAMM" ? CoinsAddress : CookbookAddress;
 
     return {
       id0: BigInt(token0.id || 0),
@@ -156,12 +123,10 @@ const createCookbookPoolKey = (
 };
 
 // Helper: which tokens need operator approval
-const needsOperatorApproval = (token: TokenMeta): boolean =>
-  token.source === "ZAMM";
+const needsOperatorApproval = (token: TokenMeta): boolean => token.source === "ZAMM";
 
 // Helper: is ERC20 (externally standard ERC-20 that uses approve/allowance)
-const isErc20 = (t?: TokenMeta | null): t is TokenMeta =>
-  !!t && t.source === "ERC20";
+const isErc20 = (t?: TokenMeta | null): t is TokenMeta => !!t && t.source === "ERC20";
 
 // Helper: extract an address for an ERC-20 TokenMeta
 // Prefer token1 (commonly the ERC-20 side in custom pools), fallback to token0 if non-zero.
@@ -189,11 +154,7 @@ export const CreatePool = () => {
 
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [txError, setTxError] = useState<string | null>(null);
-  const {
-    writeContractAsync,
-    isPending,
-    error: writeError,
-  } = useWriteContract();
+  const { writeContractAsync, isPending, error: writeError } = useWriteContract();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
   // Check operator status for ZAMM (Coins) contract
@@ -269,10 +230,7 @@ export const CreatePool = () => {
       const poolKey = createCookbookPoolKey(token0, token1, feeBps);
 
       // Determine amounts based on pool key ordering / token decimals
-      const amount0Desired =
-        token0.id === null
-          ? parseEther(amount0)
-          : parseUnits(amount0, token0.decimals || 18);
+      const amount0Desired = token0.id === null ? parseEther(amount0) : parseUnits(amount0, token0.decimals || 18);
 
       const amount1Desired = parseUnits(amount1, token1.decimals || 18);
 
@@ -287,14 +245,11 @@ export const CreatePool = () => {
       ) => {
         if (!isErc20(token)) return; // Not a standard ERC-20 -> skip (ETH or ZAMM/COOKBOOK internal)
         // If hook wasn’t initialized due to missing address, skip (defensive)
-        const hasHook =
-          typeof allowance !== "undefined" && typeof approveMax === "function";
+        const hasHook = typeof allowance !== "undefined" && typeof approveMax === "function";
         if (!hasHook) return;
 
         if (allowance === undefined || desired > allowance) {
-          setTxError(
-            `Waiting for ${token.symbol ?? label} approval. Please confirm the transaction...`,
-          );
+          setTxError(`Waiting for ${token.symbol ?? label} approval. Please confirm the transaction...`);
           const tx = await approveMax();
           if (!tx) return; // user rejected or hook returned false
           const rcpt = await publicClient.waitForTransactionReceipt({
@@ -304,45 +259,23 @@ export const CreatePool = () => {
             await refetch();
             setTxError(null);
           } else {
-            setTxError(
-              `${token.symbol ?? label} approval failed. Please try again.`,
-            );
+            setTxError(`${token.symbol ?? label} approval failed. Please try again.`);
             return;
           }
         }
       };
 
       // Run allowance checks sequentially to keep UX/status messaging simple
-      await ensureAllowance(
-        token0,
-        amount0Desired,
-        allowance0,
-        approve0,
-        refetch0,
-        "FIRST",
-      );
-      await ensureAllowance(
-        token1,
-        amount1Desired,
-        allowance1,
-        approve1,
-        refetch1,
-        "SECOND",
-      );
+      await ensureAllowance(token0, amount0Desired, allowance0, approve0, refetch0, "FIRST");
+      await ensureAllowance(token1, amount1Desired, allowance1, approve1, refetch1, "SECOND");
 
       // ---------- Existing ZAMM operator approval ----------
       // If either side is a ZAMM coin and user hasn't set operator -> set it.
-      const needsToken0Operator =
-        token0.id !== null && needsOperatorApproval(token0);
+      const needsToken0Operator = token0.id !== null && needsOperatorApproval(token0);
       const needsToken1Operator = needsOperatorApproval(token1);
 
-      if (
-        (needsToken0Operator || needsToken1Operator) &&
-        isOperator === false
-      ) {
-        setTxError(
-          "Waiting for operator approval. Please confirm the transaction...",
-        );
+      if ((needsToken0Operator || needsToken1Operator) && isOperator === false) {
+        setTxError("Waiting for operator approval. Please confirm the transaction...");
 
         const approvalHash = await writeContractAsync({
           address: CoinsAddress,
@@ -459,9 +392,7 @@ export const CreatePool = () => {
           isEthBalanceFetching={isEthBalanceFetching}
           amount={amount1}
           onAmountChange={setAmount1}
-          showMaxButton={
-            !!(token1.balance !== undefined && token1.balance > 0n)
-          }
+          showMaxButton={!!(token1.balance !== undefined && token1.balance > 0n)}
           onMax={() => {
             if (token1.id === null) {
               const ethAmount = ((token1.balance as bigint) * 99n) / 100n;
@@ -519,12 +450,9 @@ export const CreatePool = () => {
         </div>
       )}
 
-      {((writeError && !isUserRejectionError(writeError)) ||
-        (txError && !txError.includes("Waiting for"))) && (
+      {((writeError && !isUserRejectionError(writeError)) || (txError && !txError.includes("Waiting for"))) && (
         <div className="text-sm text-destructive mt-2 bg-background/50 p-2 rounded border border-destructive/20">
-          {writeError && !isUserRejectionError(writeError)
-            ? writeError.message
-            : txError}
+          {writeError && !isUserRejectionError(writeError) ? writeError.message : txError}
         </div>
       )}
 

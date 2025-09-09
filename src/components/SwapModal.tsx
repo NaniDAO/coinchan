@@ -6,7 +6,7 @@ export const SwapModal = () => {
     <div className="flex items-center justify-center w-full">
       <div className="w-xl outline-2 outline-double outline-border p-3 overflow-visible">
         <TokenSelectionProvider>
-          <SwapAction />
+          <SwapAction action="instant" />
         </TokenSelectionProvider>
       </div>
     </div>

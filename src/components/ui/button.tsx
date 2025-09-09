@@ -5,29 +5,60 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 export const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-bold transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none border-2 border-border font-mono shadow-[4px_4px_0_var(--border)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none",
+  [
+    // layout
+    "inline-flex items-center justify-center gap-2 shrink-0 whitespace-nowrap",
+    // visual baseline
+    "rounded-xl border-2 font-mono font-semibold",
+    "shadow-[4px_4px_0_var(--border)]",
+    // transitions & interaction
+    "transition-colors duration-200 ease-out",
+    "active:translate-x-[2px] active:translate-y-[2px] active:shadow-none",
+    // focus visibility
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+    "focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+    // disabled
+    "disabled:pointer-events-none disabled:opacity-60",
+    // icons
+    "[&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0",
+  ].join(" "),
   {
     variants: {
       variant: {
-        default:
-          "bg-background !text-foreground hover:bg-foreground hover:!text-background dark:!text-foreground dark:hover:!text-background",
-        destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90 dark:bg-destructive dark:text-destructive-foreground dark:hover:bg-destructive/90",
-        outline:
-          "border-2 border-border bg-background !text-foreground hover:bg-foreground hover:!text-background dark:!text-foreground dark:hover:!text-background",
-        secondary:
-          "bg-muted text-muted-foreground hover:bg-foreground hover:text-background dark:text-muted-foreground dark:hover:text-background",
-        ghost:
-          "border-transparent bg-transparent text-foreground hover:bg-foreground hover:text-background hover:border-border dark:text-foreground dark:hover:text-background",
-        link: "border-transparent bg-transparent text-foreground underline-offset-4 hover:underline dark:text-foreground",
+        // solid primary button with better defaults
+        default: "bg-primary text-primary-foreground border-primary hover:bg-primary/90",
+
+        // destructive preserves theme tokens and motion
+        destructive: "bg-destructive text-destructive-foreground border-destructive hover:bg-destructive/90",
+
+        // outline now uses accent on hover for clearer affordance
+        outline: "bg-background text-foreground border-border hover:bg-accent hover:text-accent-foreground",
+
+        // secondary uses secondary tokens (instead of muted) for stronger contrast
+        secondary: "bg-secondary text-secondary-foreground border-secondary hover:bg-secondary/90",
+
+        // ghost is subtle but still gets a nice hover surface
+        ghost: "bg-transparent text-foreground border-transparent hover:bg-accent hover:text-accent-foreground",
+
+        // link acts like a real link: no border/shadow/offset movement
+        link: "bg-transparent border-0 text-primary underline-offset-4 hover:underline shadow-none active:translate-x-0 active:translate-y-0",
       },
       size: {
-        default: "h-9 px-4 py-2",
-        sm: "h-8 px-3 py-1",
-        lg: "h-12 px-6 py-3",
-        icon: "size-9 p-2",
+        default: "h-9 px-4 text-sm",
+        sm: "h-8 px-3 text-xs",
+        lg: "h-11 px-6 text-base",
+        icon: "size-9 p-0",
       },
     },
+    compoundVariants: [
+      // keep link minimal in all sizes
+      { variant: "link", size: "sm", class: "text-sm" },
+      { variant: "link", size: "default", class: "text-sm" },
+      { variant: "link", size: "lg", class: "text-base" },
+      // icon buttons still get a visible border for the brutalist pop
+      { size: "icon", variant: "ghost", class: "border-border" },
+      { size: "icon", variant: "outline", class: "px-0" },
+    ],
     defaultVariants: {
       variant: "default",
       size: "default",

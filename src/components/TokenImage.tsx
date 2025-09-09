@@ -1,113 +1,58 @@
-import type { TokenMeta } from "@/lib/coins";
-import { memo, useEffect, useState } from "react";
+import { memo, useMemo } from "react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { EthereumIcon } from "./EthereumIcon";
 import { formatImageURL } from "@/hooks/metadata";
+import { getColorForSymbol, getInitials, specialLogos } from "@/lib/images";
+import { cn } from "@/lib/utils";
 
-const getInitials = (symbol: string) => {
-  return symbol?.slice(0, 2).toUpperCase() ?? "";
+type TokenImageProps = {
+  symbol: string;
+  imageUrl?: string | null;
+  className?: string;
 };
 
-const getColorForSymbol = (symbol: string) => {
-  const symbolKey = symbol?.toLowerCase() ?? "";
-  const colorMap: Record<string, { bg: string; text: string }> = {
-    eth: { bg: "bg-black", text: "text-white" },
-    za: { bg: "bg-red-500", text: "text-white" },
-    pe: { bg: "bg-green-700", text: "text-white" },
-    ro: { bg: "bg-red-700", text: "text-white" },
-    "..": { bg: "bg-gray-800", text: "text-white" },
-  };
-
-  const initials = symbolKey.slice(0, 2);
-  return colorMap[initials] || { bg: "bg-yellow-500", text: "text-white" };
-};
-
-export const TokenImage = memo(({ token }: { token: TokenMeta }) => {
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [imageError, setImageError] = useState(false);
-  const { bg, text } = getColorForSymbol(token.symbol);
-
-  useEffect(() => {
-    const loadImage = async () => {
-      // If we have imageUrl, use it directly
-      if (token.imageUrl) {
-        setImageUrl(formatImageURL(token.imageUrl));
-        return;
+export const TokenImage = memo(
+  ({ symbol, imageUrl, className }: TokenImageProps) => {
+    const { bg, text } = getColorForSymbol(symbol);
+    const resolvedImageUrl = useMemo(() => {
+      if (imageUrl) {
+        return formatImageURL(imageUrl);
       }
+      return null;
+    }, [imageUrl]);
 
-      // If no imageUrl but we have tokenUri, try to extract image from metadata
-      if (token.tokenUri) {
-        try {
-          // Handle direct image URLs
-          if (token.tokenUri.startsWith("data:") || token.tokenUri.match(/\.(jpg|png|gif|webp)$/i)) {
-            setImageUrl(token.tokenUri);
-            return;
-          }
+    // Ethereum has a custom SVG component
+    if (symbol === "ETH") {
+      return (
+        <Avatar className={cn("w-8 h-8", className)}>
+          <EthereumIcon className="w-full h-full rounded-full" />
+        </Avatar>
+      );
+    }
 
-          // Handle IPFS URIs - convert to gateway URL
-          const uri = token.tokenUri.startsWith("ipfs://")
-            ? `https://content.wrappr.wtf/ipfs/${token.tokenUri.slice(7)}`
-            : token.tokenUri;
+    // Special token logos from local assets
+    if (specialLogos[symbol]) {
+      return (
+        <Avatar className={cn("w-8 h-8", className)}>
+          <AvatarImage src={specialLogos[symbol]} alt={`${symbol} logo`} />
+          <AvatarFallback>{getInitials(symbol)}</AvatarFallback>
+        </Avatar>
+      );
+    }
 
-          // Try to fetch metadata
-          const response = await fetch(uri);
-          if (response.ok && response.headers.get("content-type")?.includes("json")) {
-            const metadata = await response.json();
-            const extractedImageUrl = metadata.image || metadata.image_url || metadata.imageUrl;
-
-            if (extractedImageUrl) {
-              setImageUrl(formatImageURL(extractedImageUrl));
-              return;
-            }
-          }
-
-          // If metadata fetch fails or no image found, use URI directly
-          setImageUrl(formatImageURL(uri));
-        } catch {
-          // If everything fails, we'll show the fallback
-          setImageError(true);
-        }
-      }
-    };
-
-    loadImage();
-  }, [token.imageUrl, token.tokenUri]);
-
-  // Hardcoded images
-  if (token.id === null && token.symbol === "ETH") {
-    return <EthereumIcon className="w-8 h-8 rounded-full" />;
-  }
-
-  if (token.isCustomPool && token.symbol === "ENS") {
-    return <img src="/ens.svg" alt="ENS" className="w-8 h-8 rounded-full object-cover" />;
-  }
-
-  if (token.symbol === "CULT" && (token.isCustomPool || token.id === 999999n)) {
-    return <img src="/cult.jpg" alt="CULT" className="w-8 h-8 rounded-full object-cover" />;
-  }
-
-  if (token.symbol === "WLFI" && token.isCustomPool) {
-    return <img src="/wlfi.png" alt="WLFI" className="w-8 h-8 rounded-full object-cover" />;
-  }
-
-  // Fallback to colored initials
-  const fallback = (
-    <div className={`w-8 h-8 flex ${bg} ${text} justify-center items-center rounded-full text-xs font-medium`}>
-      {getInitials(token.symbol)}
-    </div>
-  );
-
-  // If no image URL or error, show fallback
-  if (!imageUrl || imageError) {
-    return fallback;
-  }
-
-  return (
-    <img
-      src={imageUrl}
-      alt={`${token.symbol} logo`}
-      className="w-8 h-8 object-cover rounded-full"
-      onError={() => setImageError(true)}
-      loading="lazy"
-    />
-  );
-});
+    return (
+      <Avatar className={cn("w-8 h-8", className)}>
+        {resolvedImageUrl && (
+          <AvatarImage
+            src={resolvedImageUrl}
+            alt={`${symbol} logo`}
+            loading="lazy"
+          />
+        )}
+        <AvatarFallback className={`${bg} ${text} text-xs font-medium`}>
+          {getInitials(symbol)}
+        </AvatarFallback>
+      </Avatar>
+    );
+  },
+);

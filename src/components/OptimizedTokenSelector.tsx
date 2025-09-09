@@ -160,7 +160,7 @@ export const OptimizedTokenSelector = memo(
           onClick={() => setIsOpen(!isOpen)}
         >
           <div className="flex items-center space-x-3">
-            <TokenImage token={selectedToken} />
+            <TokenImage imageUrl={selectedToken.imageUrl} symbol={selectedToken.symbol} />
             <div className="text-left">
               <div className="font-medium">{selectedToken.symbol}</div>
               <div className="text-sm text-gray-500">{selectedToken.name}</div>
@@ -202,7 +202,7 @@ export const OptimizedTokenSelector = memo(
                       onClick={() => handleSelect(token)}
                     >
                       <div className="flex items-center space-x-3 flex-1 min-w-0">
-                        <TokenImage token={token} />
+                        <TokenImage imageUrl={token.imageUrl} symbol={token.symbol} />
                         <div className="flex-1 min-w-0">
                           <div className="font-medium text-sm truncate">{token.symbol}</div>
                           <div className="text-xs text-gray-500 truncate">{token.name}</div>

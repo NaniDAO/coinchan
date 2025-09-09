@@ -1,8 +1,10 @@
 {
   "common": {
     "get_started": "Get Started",
+    "positions": "Positions",
     "loading_tokens": "Loading tokens...",
     "sales": "Sales",
+    "swap": "Swap",
     "enter_amount": "Enter amount",
     "loading": "ZAMMING...",
     "calculating": "Calculating...",
@@ -28,7 +30,7 @@
     "send": "Send",
     "buy": "Buy",
     "sell": "Sell",
-    "swap": "Trade",
+    "trade": "Trade",
     "create": "Create",
     "explore": "Explore",
     "orders": "Orders",
@@ -84,6 +86,7 @@
     "paid_to_lps": "Paid to LPs",
     "multi_hop": "Multi-hop",
     "pool": "Pool",
+    "pools": "Pools",
     "single_eth": "LP-ZAP",
     "change": "Change",
     "chart": "Chart",

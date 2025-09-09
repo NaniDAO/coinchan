@@ -18,7 +18,18 @@ import { useTokenSelection } from "./contexts/TokenSelectionContext";
 import { useAllCoins } from "./hooks/metadata/use-all-coins";
 import { useReserves } from "./hooks/use-reserves";
 import { determineReserveSource, isCookbookCoin } from "./lib/coin-utils";
-import { ETH_TOKEN, type TokenMeta, USDT_POOL_KEY, CULT_POOL_KEY, CULT_POOL_ID, WLFI_ADDRESS, WLFI_POOL_KEY, WLFI_POOL_ID, ENS_POOL_KEY, ENS_POOL_ID } from "./lib/coins";
+import {
+  ETH_TOKEN,
+  type TokenMeta,
+  USDT_POOL_KEY,
+  CULT_POOL_KEY,
+  CULT_POOL_ID,
+  WLFI_ADDRESS,
+  WLFI_POOL_KEY,
+  WLFI_POOL_ID,
+  ENS_POOL_KEY,
+  ENS_POOL_ID,
+} from "./lib/coins";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import {
   DEADLINE_SEC,
@@ -73,10 +84,7 @@ export const SingleEthLiquidity = () => {
 
   // Check if we're in WLFI context
   const isWLFIPool = useMemo(
-    () =>
-      sellToken?.symbol === "WLFI" ||
-      buyToken?.symbol === "WLFI" ||
-      (buyToken?.token1 === WLFI_ADDRESS),
+    () => sellToken?.symbol === "WLFI" || buyToken?.symbol === "WLFI" || buyToken?.token1 === WLFI_ADDRESS,
     [sellToken, buyToken],
   );
 
@@ -203,8 +211,8 @@ export const SingleEthLiquidity = () => {
       if (buyToken.id !== coinId || buyToken.isCustomPool || isCookbook) {
         try {
           // Use appropriate ZAMM address based on coin type
-          const targetAddress = (isCookbook || isWLFI || isENS || isCULT) ? CookbookAddress : ZAMMAddress;
-          const targetAbi = (isCookbook || isWLFI || isENS || isCULT) ? CookbookAbi : ZAMMAbi;
+          const targetAddress = isCookbook || isWLFI || isENS || isCULT ? CookbookAddress : ZAMMAddress;
+          const targetAbi = isCookbook || isWLFI || isENS || isCULT ? CookbookAbi : ZAMMAbi;
 
           const result = await publicClient?.readContract({
             address: targetAddress,
@@ -350,8 +358,11 @@ export const SingleEthLiquidity = () => {
 
     // For custom pools like USDT, WLFI, ENS, CULT, allow buyToken.id to be 0n
     // Check if buyToken exists and has proper properties
-    const isSpecialToken = buyToken?.symbol === "WLFI" || buyToken?.symbol === "ENS" || 
-                          buyToken?.symbol === "CULT" || buyToken?.symbol === "USDT";
+    const isSpecialToken =
+      buyToken?.symbol === "WLFI" ||
+      buyToken?.symbol === "ENS" ||
+      buyToken?.symbol === "CULT" ||
+      buyToken?.symbol === "USDT";
     if (!buyToken || (!buyToken?.isCustomPool && !isSpecialToken && buyToken?.id === null)) {
       setTxError("Please select a valid target token");
       return;
@@ -457,8 +468,8 @@ export const SingleEthLiquidity = () => {
           }
 
           // Use appropriate ZAMM address based on coin type
-          const targetAddress = (isCookbook || isWLFI || isENS || isCULT) ? CookbookAddress : ZAMMAddress;
-          const targetAbi = (isCookbook || isWLFI || isENS || isCULT) ? CookbookAbi : ZAMMAbi;
+          const targetAddress = isCookbook || isWLFI || isENS || isCULT ? CookbookAddress : ZAMMAddress;
+          const targetAbi = isCookbook || isWLFI || isENS || isCULT ? CookbookAbi : ZAMMAbi;
 
           const result = await publicClient?.readContract({
             address: targetAddress,
@@ -665,8 +676,8 @@ export const SingleEthLiquidity = () => {
         )}
 
         {/* ALL BUY/RECEIVE panels */}
-        {buyToken && (
-          isWLFIPool ? (
+        {buyToken &&
+          (isWLFIPool ? (
             <WlfiSwapPanel
               title={t("common.target_token", { token: buyToken.symbol })}
               selectedToken={buyToken}
@@ -692,8 +703,7 @@ export const SingleEthLiquidity = () => {
               previewLabel={t("common.estimated")}
               className="mt-2 rounded-b-2xl pt-3 shadow-[0_0_15px_rgba(0,204,255,0.07)]"
             />
-          )
-        )}
+          ))}
       </div>
 
       <NetworkError message="manage liquidity" />
@@ -743,9 +753,10 @@ export const SingleEthLiquidity = () => {
           (sellToken.balance !== undefined && parseEther(sellAmt || "0") > sellToken.balance)
         }
         className={`mt-2 w-full button text-base px-8 py-4 font-bold rounded-lg transform transition-all duration-200
-          ${isWLFIPool 
-            ? "bg-gradient-to-r from-amber-500 to-amber-600 dark:from-yellow-500 dark:to-yellow-600 hover:from-amber-600 hover:to-amber-700 dark:hover:from-yellow-600 dark:hover:to-yellow-700 text-white dark:text-black shadow-lg shadow-amber-500/30 dark:shadow-yellow-500/30"
-            : "bg-primary text-primary-foreground"
+          ${
+            isWLFIPool
+              ? "bg-gradient-to-r from-amber-500 to-amber-600 dark:from-yellow-500 dark:to-yellow-600 hover:from-amber-600 hover:to-amber-700 dark:hover:from-yellow-600 dark:hover:to-yellow-700 text-white dark:text-black shadow-lg shadow-amber-500/30 dark:shadow-yellow-500/30"
+              : "bg-primary text-primary-foreground"
           }
           ${
             !isConnected ||

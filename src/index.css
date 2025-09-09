@@ -8,7 +8,7 @@
     --terminal-gray: #eaeaea;
     --terminal-dark-gray: #d6d6d6;
 
-    --border: #111111;
+    --border: #2d3131;
 
     /* Light Mode (clean, crisp) */
     --background: #ffffff;
@@ -112,6 +112,7 @@ html {
   font-size: var(--font-size-base);
   -webkit-text-size-adjust: 100%;
   overflow-x: hidden;
+  scrollbar-gutter: stable both-edges;
 }
 
 body {
@@ -170,17 +171,6 @@ body {
   opacity: 0;
 }
 
-/* Navigation - Exact match to Redesign.html */
-.nav-bar {
-  border-top: 2px solid var(--terminal-black);
-  border-bottom: 2px solid var(--terminal-black);
-  padding: 10px;
-  margin: 20px 0;
-  display: flex;
-  justify-content: space-around;
-  gap: 0;
-}
-
 /* Filter Navigation Bar - Matches main nav styling */
 .filter-nav-bar {
   border-top: 2px solid var(--terminal-black);
@@ -188,39 +178,6 @@ body {
   padding: 10px;
   margin: 20px 0;
   background: var(--terminal-white);
-}
-
-.nav-item {
-  cursor: pointer;
-  padding: 5px 10px;
-  border: 2px solid transparent;
-  transition: all 0.1s;
-  font-weight: normal;
-  font-family: var(--font-body);
-  text-decoration: none;
-  color: var(--terminal-black);
-  flex: 1;
-  text-align: center;
-  background: transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: fit-content;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-size: 12px;
-}
-
-.nav-item:hover,
-.nav-item.active {
-  border: 2px solid var(--border);
-  background: var(--accent);
-  color: var(--accent-foreground);
-}
-
-.nav-item:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 /* ASCII Dividers */

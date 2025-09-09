@@ -208,15 +208,7 @@ export function UserPage() {
                       className="flex items-center justify-between p-3 border border-border rounded bg-card"
                     >
                       <div className="flex items-center gap-3">
-                        <TokenImage
-                          token={{
-                            id: BigInt(balance.coin_id),
-                            symbol: balance.coin_symbol,
-                            name: balance.coin_name,
-                            decimals: balance.coin_decimals,
-                            source: "COOKBOOK" as const,
-                          }}
-                        />
+                        <TokenImage imageUrl={null} symbol={balance.coin_symbol} />
                         <div>
                           <div className="font-bold">
                             {balance.coin_symbol && balance.coin_name && balance.coin_symbol !== balance.coin_name
@@ -438,7 +430,7 @@ function LockupItem({
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-3">
           <div className="flex-shrink-0">
-            <TokenImage token={lockupToTokenMeta(lockup)} />
+            <TokenImage imageUrl={lockupToTokenMeta(lockup).imageUrl} symbol={lockupToTokenMeta(lockup).symbol} />
           </div>
           <div>
             <div className="font-bold text-sm">{formatLockupAsset(lockup)}</div>

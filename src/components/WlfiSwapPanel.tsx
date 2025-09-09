@@ -120,7 +120,7 @@ export const WlfiSwapPanel: React.FC<WlfiSwapPanelProps> = ({
                     "px-2 py-1 text-xs font-semibold rounded transition-all",
                     percentage === pct
                       ? "bg-amber-500 dark:bg-yellow-500 text-white dark:text-black"
-                      : "bg-amber-200 dark:bg-yellow-500/20 text-amber-700 dark:text-yellow-400 hover:bg-amber-300 dark:hover:bg-yellow-500/30"
+                      : "bg-amber-200 dark:bg-yellow-500/20 text-amber-700 dark:text-yellow-400 hover:bg-amber-300 dark:hover:bg-yellow-500/30",
                   )}
                   disabled={isEthBalanceFetching || readOnly}
                 >
@@ -191,11 +191,13 @@ export const WlfiSwapPanel: React.FC<WlfiSwapPanelProps> = ({
       {/* Balance and USD Value Display */}
       <div className="flex justify-between items-center text-xs">
         <div className="text-amber-600 dark:text-yellow-400/60">
-          Balance: {selectedToken.balance ? (
-            selectedToken.id === null 
+          Balance:{" "}
+          {selectedToken.balance
+            ? selectedToken.id === null
               ? formatNumber(parseFloat(formatEther(selectedToken.balance as bigint)), 6)
               : formatNumber(parseFloat(formatUnits(selectedToken.balance as bigint, selectedToken.decimals || 18)), 6)
-          ) : "0"} {selectedToken.symbol}
+            : "0"}{" "}
+          {selectedToken.symbol}
         </div>
         <UsdValueDisplay ethPrice={ethPrice} amount={amount} selectedToken={selectedToken} />
       </div>

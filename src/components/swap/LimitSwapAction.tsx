@@ -284,6 +284,7 @@ export const LimitSwapAction = ({ lockedTokens }: Props) => {
         currentSellToken={sellToken}
         currentBuyToken={buyToken ?? undefined}
         currentSellAmount={sellAmt}
+        className="rounded-md"
       />
 
       {/* SELL / FLIP / BUY */}
@@ -309,17 +310,12 @@ export const LimitSwapAction = ({ lockedTokens }: Props) => {
           showPercentageSlider={
             lastEditedField === "sell" || (!!sellToken.balance && (sellToken.balance as bigint) > 0n)
           }
-          className="pb-4"
+          className="pb-4 rounded-t-2xl"
           readOnly={!!lockedTokens}
         />
 
         {!lockedTokens && (
-          <div
-            className={cn(
-              "absolute left-1/2 -translate-x-1/2 z-10",
-              !!(sellToken.balance && (sellToken.balance as bigint) > 0n) ? "top-[63%]" : "top-[50%]",
-            )}
-          >
+          <div className={cn("absolute left-1/2 -translate-x-1/2 top-[50%] z-10")}>
             <FlipActionButton onClick={handleFlipTokens} />
           </div>
         )}
@@ -333,8 +329,8 @@ export const LimitSwapAction = ({ lockedTokens }: Props) => {
             isEthBalanceFetching={isEthBalanceFetching}
             amount={buyAmt}
             onAmountChange={syncFromBuy}
-            className="pt-4"
             readOnly={!!lockedTokens}
+            className="pt-4 rounded-b-2xl"
           />
         )}
       </div>
@@ -417,7 +413,7 @@ export const LimitSwapAction = ({ lockedTokens }: Props) => {
             {t("swap.order_created")}
           </div>
           <Link
-            to="/orders"
+            to="/explore/orders"
             className="flex items-center gap-1 text-chart-2 hover:text-chart-2/80 transition-colors text-xs"
           >
             {t("swap.view_orders")}
