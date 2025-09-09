@@ -15,7 +15,7 @@ export const getColorForSymbol = (symbol?: string) => {
 };
 
 export const specialLogos: Record<string, string> = {
-  ZAMM: "/zamm.gif",
+  ZAMM: "/zammzamm.gif",
   ENS: "/ens.svg",
   CULT: "/cult.jpg",
   WLFI: "/wlfi.png",
