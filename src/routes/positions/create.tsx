@@ -35,6 +35,7 @@ import {
   Loader2Icon,
   CheckCircle2Icon,
   AlertCircleIcon,
+  InfoIcon,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatUnits, parseUnits } from "viem";
@@ -44,19 +45,25 @@ import {
   findTokenFlexible,
   isCanonicalTokenQ,
 } from "@/lib/token-query";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/positions/create")({
   component: RouteComponent,
   validateSearch: (search: {
     tokenA?: string;
     tokenB?: string;
-    fee?: string;
+    fee?: string; // feeBps OR hook uint256 (big)
+    hook?: string; // optional alias for hook value
     protocol?: ProtocolId;
   }) => search,
 });
 
 // Protocols where creating *new* pools is disallowed
 const CREATION_BLOCKED_PROTOCOLS = new Set<ProtocolId>(["ZAMMV0"]);
+
+// Any feeOrHook strictly greater than this is considered a hook
+const HOOK_THRESHOLD = 10000n;
 
 type TxStatus = "idle" | "pending" | "confirmed" | "error";
 type TxVisualStep = {
@@ -65,6 +72,13 @@ type TxVisualStep = {
   status: TxStatus;
   hash?: `0x${string}`;
   error?: string;
+};
+
+// small helper for nicer long uints
+const shortenUint = (v: bigint, { max = 18 } = {}) => {
+  const s = v.toString();
+  if (s.length <= max) return s;
+  return `${s.slice(0, 8)}…${s.slice(-6)}`;
 };
 
 function RouteComponent() {
@@ -78,7 +92,7 @@ function RouteComponent() {
   const { data: tokens } = useGetTokens(owner);
   const [protocolId, setProtocolId] = useState<ProtocolId>(protocols[0].id);
   const [currentStep, setCurrentStep] = useState<number>(1);
-  const [fee, setFee] = useState<bigint>(DEFAULT_FEE_TIER);
+  const [fee, setFee] = useState<bigint>(DEFAULT_FEE_TIER); // this is feeBps OR hook uint256
 
   const [settings, setSettings] = useState<TradeSettings>({
     autoSlippage: true,
@@ -99,6 +113,14 @@ function RouteComponent() {
   const [execError, setExecError] = useState<string | null>(null);
   const [txSteps, setTxSteps] = useState<TxVisualStep[]>([]);
 
+  const isHook = useMemo(() => {
+    try {
+      return fee > HOOK_THRESHOLD;
+    } catch {
+      return false;
+    }
+  }, [fee]);
+
   const reservesSource = protocolId === "ZAMMV0" ? "ZAMM" : "COOKBOOK";
 
   const creationAllowed = useMemo(
@@ -107,11 +129,11 @@ function RouteComponent() {
   );
 
   const selectedPoolId = useMemo(() => {
-    if (!tokenA || !tokenB || !fee) return undefined;
+    if (!tokenA || !tokenB || fee == null) return undefined;
     return computePoolId(
       { address: tokenA.address, id: tokenA.id },
       { address: tokenB.address, id: tokenB.id },
-      fee,
+      fee, // fee or hook
       protocolId,
     );
   }, [tokenA, tokenB, fee, protocolId]);
@@ -122,6 +144,7 @@ function RouteComponent() {
   });
 
   // ---- Fee-tier liquidity: compute poolIds and fetch reserves for each known tier ----
+  // (These remain as helpful presets; if a hook is active we won't render FeeSelector)
   const poolId100 = useMemo(() => {
     if (!tokenA || !tokenB) return undefined;
     return computePoolId(
@@ -227,7 +250,7 @@ function RouteComponent() {
           ...s,
           tokenA: canonA,
           tokenB: canonB,
-          // keep any existing fee/protocol in place
+          // keep any existing fee/protocol/hook in place
         }),
       });
     }
@@ -238,13 +261,25 @@ function RouteComponent() {
   useEffect(() => {
     if (!tokens?.length) return;
 
-    if (search.fee) {
+    // Accept either ?hook=<uint256> or ?fee=<string> (used as feeBps or hook)
+    const tryParseBig = (v?: string) => {
+      if (!v) return undefined;
       try {
-        setFee(BigInt(search.fee as any));
+        return BigInt(v);
       } catch {
-        /* ignore bad fee */
+        return undefined;
       }
+    };
+
+    const hookParam = tryParseBig(search.hook as any);
+    const feeParam = tryParseBig(search.fee as any);
+
+    if (hookParam !== undefined) {
+      setFee(hookParam);
+    } else if (feeParam !== undefined) {
+      setFee(feeParam);
     }
+
     if (search.protocol) {
       const exists = protocols.some((p) => p.id === search.protocol);
       if (exists) setProtocolId(search.protocol as ProtocolId);
@@ -254,9 +289,9 @@ function RouteComponent() {
 
   // --- whenever these change, reflect canonical values in URL ---
   useEffect(() => {
-    // only proceed when we *have* tokens picked
     if (!tokenA || !tokenB) return;
 
+    // When in hook mode, also mirror to ?hook= for clarity; otherwise omit it.
     navigate({
       to: "/positions/create",
       replace: true,
@@ -265,10 +300,11 @@ function RouteComponent() {
         tokenA: encodeTokenQ(tokenA),
         tokenB: encodeTokenQ(tokenB),
         fee: fee?.toString(),
+        hook: isHook ? fee?.toString() : undefined,
         protocol: protocolId,
       }),
     });
-  }, [tokenA, tokenB, fee, protocolId, navigate]);
+  }, [tokenA, tokenB, fee, isHook, protocolId, navigate]);
 
   // When wallet tokens arrive/update, hydrate the currently selected tokens with balances
   useEffect(() => {
@@ -414,14 +450,17 @@ function RouteComponent() {
     }
   };
 
-  // fee percent label (assumes Uniswap-style 1e4 = 1%)
+  // fee/hook label
   const feeLabel = useMemo(() => {
+    if (isHook) {
+      return `Hook • ${shortenUint(fee)} (${fee.toString().length} digits)`;
+    }
     try {
       return `${(Number(fee) / 1e4).toFixed(2)}%`;
     } catch {
       return "—";
     }
-  }, [fee]);
+  }, [fee, isHook]);
 
   // ----- Formatting helpers for liquidity labels on fee cards -----
   const fmtNumber = (n: number) =>
@@ -479,7 +518,7 @@ function RouteComponent() {
   const steps: CreatePoolStep[] = useMemo(() => {
     const creatingNewPool = !poolExists && creationAllowed;
     return [
-      { title: "Select token pair and fees" },
+      { title: "Select token pair and fee/hook" },
       {
         title: creatingNewPool
           ? "Create new pool & seed"
@@ -498,6 +537,7 @@ function RouteComponent() {
     setExecError(null);
     setTxSteps([]);
     setIsSubmitting(false);
+    setFee(DEFAULT_FEE_TIER);
   };
 
   // Only allow backwards navigation via Stepper. Forwards must come from explicit buttons.
@@ -565,7 +605,7 @@ function RouteComponent() {
         amount0,
         amount1,
         deadline,
-        feeBps: fee,
+        feeBps: fee, // NOTE: this is fee or hook; contracts accept it
         slippageBps,
         protocolId,
       });
@@ -614,7 +654,7 @@ function RouteComponent() {
 
       let sentIdx = 0;
 
-      // 1) Approvals (sequential): route 'to' and 'data' from the ApprovalNeed shape
+      // 1) Approvals
       for (let i = 0; i < (approvals?.length ?? 0); i++) {
         const a: any = approvals![i];
         const to =
@@ -740,7 +780,7 @@ function RouteComponent() {
 
         {/* RIGHT: content */}
         <div className="col-span-3 border-border border-2 p-4 rounded-lg">
-          {/* ---------- STEP 1: pair + fee ---------- */}
+          {/* ---------- STEP 1: pair + fee/hook ---------- */}
           {currentStep === 1 && (
             <>
               <div>
@@ -769,19 +809,71 @@ function RouteComponent() {
                 )}
               </div>
 
+              <details className="mt-2">
+                <summary className="text-sm font-medium">
+                  Set a Hook(Advanced)
+                </summary>
+                <div className="max-w-xl p-2 border-border bg-muted">
+                  <Label htmlFor="hookId" className="mb-1">
+                    Hook ID (address of hook encoded as a uint)
+                  </Label>
+                  <Input
+                    id="hookId"
+                    placeholder="Enter hook ID"
+                    value={fee.toString()}
+                    onChange={(e) => setFee(BigInt(e.target.value))}
+                  />
+                </div>
+              </details>
+
               <div className="mt-6">
-                <h3 className="text-lg font-semibold">Fee tier</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-semibold">
+                    {isHook ? "Hook" : "Fee tier"}
+                  </h3>
+                  {isHook && (
+                    <span className="text-[10px] rounded-sm border px-1.5 py-0.5">
+                      hook active
+                    </span>
+                  )}
+                </div>
                 <p className="text-base text-muted-foreground">
-                  This is the amount of fees charged for a trade against this
-                  position.
+                  {isHook
+                    ? "A hook is selected for this pool. The hook ID replaces the fee tier."
+                    : "This is the amount of fees charged for a trade against this position."}
                 </p>
 
-                {/* FeeSelector now receives liquidity labels per fee tier */}
-                <FeeSelector
-                  fee={fee}
-                  onChange={setFee}
-                  liquidityByFee={liquidityByFee}
-                />
+                {/* If a hook is active, show a clear readout; otherwise render FeeSelector */}
+                {isHook ? (
+                  <div className="mt-3 rounded-md border bg-card p-3">
+                    <div className="flex items-start gap-2">
+                      <InfoIcon className="w-4 h-4 mt-0.5 text-muted-foreground" />
+                      <div className="text-sm">
+                        <div className="font-medium">
+                          Hook (uint256): {shortenUint(fee)}
+                        </div>
+                        <div className="text-xs text-muted-foreground break-all">
+                          Full value: {fee.toString()}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-2 flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setFee(DEFAULT_FEE_TIER)}
+                      >
+                        Clear hook (use fee tiers)
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <FeeSelector
+                    fee={fee}
+                    onChange={setFee}
+                    liquidityByFee={liquidityByFee}
+                  />
+                )}
 
                 <Button
                   variant="default"
@@ -817,8 +909,11 @@ function RouteComponent() {
                         {tokenA?.symbol ?? "TokenA"}/
                         {tokenB?.symbol ?? "TokenB"}
                       </span>{" "}
-                      at <span className="font-medium">{feeLabel}</span>. You’ll
-                      be the first to add liquidity.
+                      at{" "}
+                      <span className="font-medium">
+                        {isHook ? "Hook" : feeLabel}
+                      </span>
+                      . You’ll be the first to add liquidity.
                     </div>
                   ))}
 
@@ -904,8 +999,9 @@ function RouteComponent() {
                             Deposit tokens
                           </h3>
                           <p className="text-xs text-muted-foreground">
-                            Specify the token amount of your liquidity
-                            contribution.
+                            {isHook
+                              ? "You’re adding liquidity to a hook-enabled pool."
+                              : "Specify the token amount of your liquidity contribution."}
                           </p>
                         </div>
 
@@ -953,8 +1049,9 @@ function RouteComponent() {
                       <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
                         <li>Try a different protocol (e.g., ZAMMV1).</li>
                         <li>
-                          Or pick a fee tier where a pool already exists (see
-                          liquidity hints on the fee cards).
+                          Or pick a {isHook ? "different hook or a" : ""} fee
+                          tier where a pool already exists (see liquidity hints
+                          on the fee cards).
                         </li>
                       </ul>
                       <div className="flex gap-2 mt-2">
@@ -983,7 +1080,7 @@ function RouteComponent() {
                               v2
                             </span>
                             <span className="text-xs border px-2 py-0.5 rounded-sm">
-                              {feeLabel}
+                              {isHook ? "Hook" : feeLabel}
                             </span>
                           </div>
                           <div className="text-xs text-muted-foreground">
@@ -992,7 +1089,8 @@ function RouteComponent() {
                           </div>
                         </div>
                         <div className="mt-2 rounded-md border border-amber-500 bg-amber-50 px-3 py-2 text-amber-800 text-sm">
-                          No pool exists at this fee tier. We’ll{" "}
+                          No pool exists at this {isHook ? "hook" : "fee"}.
+                          We’ll{" "}
                           <span className="font-medium">
                             create a new pool and seed it
                           </span>{" "}
