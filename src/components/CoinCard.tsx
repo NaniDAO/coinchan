@@ -150,7 +150,17 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
           </div>
         )}
 
-        <div className="p-1 w-16 h-16 sm:w-20 sm:h-20 relative">
+        <Link
+          to={coin.symbol === "CULT" ? "/cult" : coin.symbol === "ENS" ? "/ens" : `/c/$coinId`}
+          params={
+            coin.symbol === "CULT" || coin.symbol === "ENS"
+              ? undefined
+              : {
+                  coinId: coin.coinId.toString(),
+                }
+          }
+          className="p-1 w-16 h-16 sm:w-20 sm:h-20 relative block cursor-pointer hover:scale-105 transition-transform duration-200"
+        >
           {/* Special handling for ENS logo */}
           {coin.symbol === "ENS" ? (
             <div className="absolute inset-0 flex justify-center items-center rounded-full bg-[#0080BC] dark:bg-[#5BA0CC]">
@@ -179,7 +189,7 @@ export const CoinCard = ({ coin }: CoinCardProps) => {
               )}
             </>
           )}
-        </div>
+        </Link>
 
         <Link
           to={coin.symbol === "CULT" ? "/cult" : coin.symbol === "ENS" ? "/ens" : `/c/$coinId`}
