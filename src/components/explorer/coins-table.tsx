@@ -19,23 +19,79 @@ import { Link } from "@tanstack/react-router";
 // ---------- formatting helpers ----------
 const fmt0 = (n?: number | null) =>
   n == null ? "—" : Intl.NumberFormat().format(n);
-const fmt2 = (n?: number | null) =>
-  n == null
-    ? "—"
-    : Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(n);
-const fmt6 = (n?: number | null) =>
-  n == null
-    ? "—"
-    : Intl.NumberFormat(undefined, { maximumFractionDigits: 6 }).format(n);
+const fmt2 = (n?: number | null) => {
+  if (n == null) return "—";
+  if (n === 0) return "0";
+  
+  // For small liquidity values, show more decimals
+  if (n < 1) {
+    const decimals = Math.max(2, -Math.floor(Math.log10(n)) + 1);
+    return Intl.NumberFormat(undefined, { 
+      maximumFractionDigits: Math.min(decimals, 6),
+      minimumFractionDigits: 0
+    }).format(n);
+  }
+  
+  return Intl.NumberFormat(undefined, { 
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 0
+  }).format(n);
+};
+const fmt6 = (n?: number | null) => {
+  if (n == null) return "—";
+  if (n === 0) return "0";
+  
+  // For very small numbers, show with appropriate precision
+  if (n < 0.000001) {
+    // Convert to string with enough precision
+    const str = n.toFixed(12).replace(/\.?0+$/, '');
+    
+    // If still very small, show at least the significant digits
+    if (n < 0.000000001) {
+      // For extremely small numbers (< 1 nano), show in a readable format
+      const exp = Math.floor(Math.log10(n));
+      const mantissa = (n / Math.pow(10, exp)).toFixed(2);
+      return `${mantissa}e${exp}`;
+    }
+    
+    return str;
+  }
+  
+  return Intl.NumberFormat(undefined, { 
+    maximumFractionDigits: 6,
+    minimumFractionDigits: 0 
+  }).format(n);
+};
 
-const fmtUSD = (n?: number | null, maxFrac: number = 2) =>
-  n == null
-    ? "—"
-    : Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-        maximumFractionDigits: maxFrac,
-      }).format(n);
+const fmtUSD = (n?: number | null, maxFrac: number = 2) => {
+  if (n == null) return "—";
+  if (n === 0) return "$0";
+  
+  // For very small USD values
+  if (n < 0.01) {
+    // For extremely small values, show with sufficient precision
+    if (n < 0.00000001) {
+      const str = n.toFixed(12).replace(/\.?0+$/, '');
+      return "$" + str;
+    }
+    
+    // For small values, use appropriate decimals
+    const decimals = Math.max(2, -Math.floor(Math.log10(n)) + 2);
+    return Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: Math.min(decimals, 10),
+      minimumFractionDigits: 0,
+    }).format(n);
+  }
+  
+  return Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: maxFrac,
+    minimumFractionDigits: 0,
+  }).format(n);
+};
 
 const fromEpoch = (s?: number | null) =>
   !s ? "—" : new Date(s * 1000).toLocaleString();
