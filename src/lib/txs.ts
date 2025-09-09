@@ -1,4 +1,13 @@
-import { Address, encodeFunctionData, erc20Abi, Hex, maxUint256, PublicClient, zeroAddress } from "viem";
+import {
+  Address,
+  encodeFunctionData,
+  erc20Abi,
+  Hex,
+  isAddressEqual,
+  maxUint256,
+  PublicClient,
+  zeroAddress,
+} from "viem";
 import { Token } from "./pools";
 import { erc6909Abi } from "zrouter-sdk";
 
@@ -23,7 +32,12 @@ export type ApprovalNeed = ERC20ApprovalNeed | OperatorApprovalNeed;
 
 export const getApprovalOrOperator = async (
   publicClient: PublicClient,
-  { token, owner, spender, required }: { token: Token; owner: Address; spender: Address; required: bigint },
+  {
+    token,
+    owner,
+    spender,
+    required,
+  }: { token: Token; owner: Address; spender: Address; required: bigint },
 ): Promise<ApprovalNeed | null> => {
   const isETH = token.address === zeroAddress && token.id === 0n;
   if (isETH) {
@@ -57,6 +71,10 @@ export const getApprovalOrOperator = async (
       };
     }
 
+    return null;
+  }
+
+  if (isAddressEqual(token.address, spender)) {
     return null;
   }
 

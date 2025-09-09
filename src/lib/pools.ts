@@ -274,7 +274,7 @@ type RemoveLiquidityArgs = {
 };
 
 export const getRemoveLiquidityTx = async (
-  publicClient: PublicClient,
+  _publicClient: PublicClient,
   {
     owner,
     token0,
