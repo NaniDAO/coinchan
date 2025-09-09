@@ -9,7 +9,11 @@ import { mainnet } from "viem/chains";
 import { SWAP_FEE } from "@/lib/swap";
 import { useGetTVL } from "./use-get-tvl";
 import { useCoinPrice } from "./use-coin-price";
-import { parseEther } from "viem";
+import { parseEther, formatEther } from "viem";
+import { useReserves } from "./use-reserves";
+
+// Hardcoded ZAMM pool ID for price calculations (ETH/ZAMM pool on original ZAMM AMM)
+const ZAMM_POOL_ID = 22979666169544372205220120853398704213623237650449182409187385558845249460832n;
 
 interface UseCombinedAprParams {
   stream?: IncentiveStream;
@@ -54,11 +58,34 @@ export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedA
     source: lpToken?.source as CoinSource,
   });
 
-  const { data: rewardPriceEth } = useCoinPrice({
-    coinId: farmInfo?.[3],
-    coinContract: farmInfo?.[2],
+  // Check if reward token is veZAMM (ID 87) - treat as 1:1 with ZAMM
+  const isVeZAMM = farmInfo?.[3] === 87n || stream?.rewardId === 87n;
+  
+  // Get ZAMM reserves if reward token is veZAMM (for 1:1 pricing)
+  const { data: zammReserves } = useReserves({
+    poolId: isVeZAMM ? ZAMM_POOL_ID : undefined,
+    source: "ZAMM",
+  });
+
+  // Calculate ZAMM price from reserves
+  const zammPriceEth = useMemo(() => {
+    if (!isVeZAMM || !zammReserves) return undefined;
+    const reserve0 = zammReserves.reserve0;
+    const reserve1 = zammReserves.reserve1;
+    if (!reserve0 || !reserve1 || reserve1 === 0n) return 0;
+    // Price = ETH reserves / ZAMM reserves
+    return Number(formatEther(reserve0)) / Number(formatEther(reserve1));
+  }, [isVeZAMM, zammReserves]);
+
+  // Get normal reward token price for non-veZAMM tokens
+  const { data: normalRewardPriceEth } = useCoinPrice({
+    coinId: !isVeZAMM ? farmInfo?.[3] : undefined,
+    coinContract: !isVeZAMM ? farmInfo?.[2] : undefined,
     contractSource: undefined,
   });
+  
+  // Use ZAMM price for veZAMM, otherwise use normal price
+  const rewardPriceEth = isVeZAMM ? zammPriceEth : normalRewardPriceEth;
 
   // Fetch farm incentive APR
   const { data: rewardPerSharePerYearOnchain, isLoading: isFarmAprLoading } = useZChefRewardPerSharePerYear(
@@ -113,7 +140,7 @@ export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedA
       totalApr: 0,
       breakdown: {
         tradingFees: Number(lpToken?.swapFee || 100n),
-        rewardSymbol: stream?.rewardCoin?.symbol || "???",
+        rewardSymbol: isVeZAMM ? "veZAMM (1:1 ZAMM)" : (stream?.rewardCoin?.symbol || "???"),
       },
       isLoading,
     };
@@ -151,7 +178,7 @@ export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedA
           totalApr: baseApr,
           breakdown: {
             tradingFees: Number(lpToken?.swapFee || SWAP_FEE),
-            rewardSymbol: stream?.rewardCoin?.symbol || "???",
+            rewardSymbol: isVeZAMM ? "veZAMM (1:1 ZAMM)" : (stream?.rewardCoin?.symbol || "???"),
           },
           isLoading: false,
         };
@@ -180,7 +207,7 @@ export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedA
         totalApr,
         breakdown: {
           tradingFees: Number(lpToken?.swapFee || SWAP_FEE),
-          rewardSymbol: stream?.rewardCoin?.symbol || "???",
+          rewardSymbol: isVeZAMM ? "veZAMM (1:1 ZAMM)" : (stream?.rewardCoin?.symbol || "???"),
         },
         isLoading: false,
       };
@@ -196,8 +223,10 @@ export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedA
     lpToken,
     stream?.rewardCoin,
     stream?.totalShares,
+    stream?.rewardId,
     poolTvlInEth,
     rewardPriceEth,
+    isVeZAMM,
     farmInfo,
   ]);
 

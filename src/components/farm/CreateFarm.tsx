@@ -21,8 +21,12 @@ import { Input } from "../ui/input";
 import { toast } from "sonner";
 import { PoolPlainRow, useAllPools } from "@/hooks/use-all-pools";
 import { PoolSelector } from "../PoolSelector";
+import { useReserves } from "@/hooks/use-reserves";
 
 // Duration options will be generated using translations
+
+// Hardcoded ZAMM pool ID for price calculations (ETH/ZAMM pool on original ZAMM AMM)
+const ZAMM_POOL_ID = 22979666169544372205220120853398704213623237650449182409187385558845249460832n;
 
 interface FarmFormData {
   selectedPool: PoolPlainRow | null;
@@ -190,12 +194,34 @@ export const CreateFarm = () => {
     tokenId: formData.rewardToken.id || undefined,
   });
 
-  // Get reward token price
-  const { data: rewardPriceEth } = useCoinPrice({
-    coinId: formData?.rewardToken?.id ? formData.rewardToken.id : undefined,
-    coinContract: formData?.rewardToken.token1,
-    contractSource: formData?.rewardToken.source,
+  // Check if reward token is veZAMM (ID 87) - treat as 1:1 with ZAMM
+  const isVeZAMM = formData.rewardToken.id === 87n;
+  
+  // Get ZAMM reserves if reward token is veZAMM (for 1:1 pricing)
+  const { data: zammReserves } = useReserves({
+    poolId: isVeZAMM ? ZAMM_POOL_ID : undefined,
+    source: "ZAMM",
   });
+
+  // Calculate ZAMM price from reserves
+  const zammPriceEth = useMemo(() => {
+    if (!isVeZAMM || !zammReserves) return undefined;
+    const reserve0 = zammReserves.reserve0;
+    const reserve1 = zammReserves.reserve1;
+    if (!reserve0 || !reserve1 || reserve1 === 0n) return 0;
+    // Price = ETH reserves / ZAMM reserves
+    return Number(formatEther(reserve0)) / Number(formatEther(reserve1));
+  }, [isVeZAMM, zammReserves]);
+
+  // Get reward token price (use ZAMM price for veZAMM, otherwise use normal pricing)
+  const { data: normalRewardPriceEth } = useCoinPrice({
+    coinId: !isVeZAMM && formData?.rewardToken?.id ? formData.rewardToken.id : undefined,
+    coinContract: !isVeZAMM ? formData?.rewardToken.token1 : undefined,
+    contractSource: !isVeZAMM ? formData?.rewardToken.source : undefined,
+  });
+  
+  // Use ZAMM price for veZAMM, otherwise use normal price
+  const rewardPriceEth = isVeZAMM ? zammPriceEth : normalRewardPriceEth;
 
   // Get pool TVL if a token is selected
   const { data: poolTvlInEth } = useGetTVL({
@@ -694,6 +720,11 @@ export const CreateFarm = () => {
             <span className="font-mono text-sm font-bold text-green-400">Farm APR:</span>
             <span className="font-mono text-lg font-bold text-green-400">{estimatedApr.farmApr.toFixed(2)}%</span>
           </div>
+          {isVeZAMM && (
+            <div className="text-xs font-mono text-center text-blue-400 bg-blue-500/10 px-2 py-1 rounded">
+              veZAMM currently valued at 1:1 with ZAMM (ETH/ZAMM pool)
+            </div>
+          )}
           <div className="text-xs font-mono text-center mt-2">
             {hasRealData ? (
               <span className="text-green-300">✅ Calculated with real market data</span>

@@ -207,6 +207,22 @@ export const WLFI_POOL_KEY: {
 // WLFI pool ID (provided by user)
 export const WLFI_POOL_ID = 109150706156886812195108904483484593967435659529679008546360713268243188304041n;
 
+// veZAMM token - Special ERC6909 cookbook coin for farm rewards
+export const VEZAMM_TOKEN: TokenMeta = {
+  id: 87n, // ERC6909 cookbook coin ID 87
+  name: "veZAMM",
+  symbol: "veZAMM",
+  source: "COOKBOOK", // Cookbook ERC6909 token
+  tokenUri: "/veZAMM.png",
+  imageUrl: "/veZAMM.png", // Using the veZAMM.png file
+  reserve0: 0n, // No liquidity pool needed for reward token
+  reserve1: 0n,
+  swapFee: 0n,
+  balance: 0n, // Will be updated with actual balance
+  decimals: 18, // Standard 18 decimals
+  isCustomPool: false, // Not a pool token
+};
+
 // Define ENS token
 export const ENS_TOKEN: TokenMeta = {
   id: 0n, // Special ENS token with ID 0 (ERC20)

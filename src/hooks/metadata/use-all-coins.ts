@@ -16,6 +16,7 @@ import {
   ENS_TOKEN,
   ENS_ADDRESS,
   ENS_POOL_ID,
+  VEZAMM_TOKEN,
 } from "@/lib/coins";
 import { SWAP_FEE } from "@/lib/swap";
 import { useQuery } from "@tanstack/react-query";
@@ -356,8 +357,22 @@ async function fetchOtherCoins(
     } catch {}
   }
 
+  // veZAMM token balance (ERC6909 cookbook coin with ID 87)
+  const veZammToken = { ...VEZAMM_TOKEN };
+  if (address) {
+    try {
+      const veZammBalance = (await publicClient.readContract({
+        address: CookbookAddress,
+        abi: CookbookAbi,
+        functionName: "balanceOf",
+        args: [address, 87n],
+      })) as bigint;
+      veZammToken.balance = veZammBalance;
+    } catch {}
+  }
+
   // Sort (balance first), then return
-  return [...withBalances, ensToken, cultToken].sort(tokenSort);
+  return [...withBalances, ensToken, cultToken, veZammToken].sort(tokenSort);
 }
 
 /**
