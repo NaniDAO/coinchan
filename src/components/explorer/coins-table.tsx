@@ -14,6 +14,7 @@ import { Search as SearchIcon } from "lucide-react";
 import { useEthUsdPrice } from "@/hooks/use-eth-usd-price";
 import { Input } from "../ui/input";
 import { TokenImage } from "../TokenImage";
+import { Link } from "@tanstack/react-router";
 
 // ---------- formatting helpers ----------
 const fmt0 = (n?: number | null) =>
@@ -159,7 +160,11 @@ export default function CoinsTable({
         cell: ({ row }) => {
           const r = row.original;
           return (
-            <div className="flex items-center gap-3 min-w-0">
+            <Link
+              to="/c/$coinId"
+              params={{ coinId: r.coinId }}
+              className="flex items-center gap-3 min-w-0 hover:opacity-80 transition-opacity"
+            >
               {r.imageUrl ? (
                 <TokenImage
                   imageUrl={r.imageUrl}
@@ -178,7 +183,7 @@ export default function CoinsTable({
                   {r.token.slice(0, 6)}…{r.token.slice(-4)}
                 </div>
               </div>
-            </div>
+            </Link>
           );
         },
         size: 320,
