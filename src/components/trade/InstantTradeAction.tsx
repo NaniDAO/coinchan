@@ -35,6 +35,13 @@ import { CoinsAbi } from "@/constants/Coins";
 import { toZRouterToken } from "@/lib/zrouter";
 import { SLIPPAGE_BPS } from "@/lib/swap";
 import { handleWalletError } from "@/lib/errors";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "../ui/hover-card";
+import { InfoIcon } from "lucide-react";
+import { SlippageSettings } from "../SlippageSettings";
 
 interface InstantTradeActionProps {
   locked?: boolean;
@@ -386,6 +393,24 @@ export const InstantTradeAction = ({
           className="pt-4 rounded-b-2xl"
           readOnly={locked}
         />
+      </div>
+
+      {/* Settings */}
+      <div className="flex items-center p-1 justify-end flex-row">
+        <HoverCard>
+          <HoverCardTrigger asChild>
+            <InfoIcon className="h-6 w-6 opacity-70 cursor-help hover:opacity-100 transition-opacity" />
+          </HoverCardTrigger>
+          <HoverCardContent className="w-[320px] space-y-3">
+            <SlippageSettings
+              slippageBps={slippageBps}
+              setSlippageBps={setSlippageBps}
+            />
+            <p className="text-xs text-muted-foreground">
+              Fees are paid to LPs
+            </p>
+          </HoverCardContent>
+        </HoverCard>
       </div>
 
       {/* Action button */}
