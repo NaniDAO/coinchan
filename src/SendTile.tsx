@@ -1,16 +1,30 @@
 import { handleWalletError, isUserRejectionError } from "@/lib/errors";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { erc20Abi, formatEther, formatUnits, parseEther, parseUnits } from "viem";
+import {
+  erc20Abi,
+  formatEther,
+  formatUnits,
+  parseEther,
+  parseUnits,
+} from "viem";
 import { mainnet } from "viem/chains";
-import { useAccount, usePublicClient, useSendTransaction, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
-import { TokenSelector } from "./components/TokenSelector";
-import { LoadingLogo } from "./components/ui/loading-logo";
-import { CoinsAbi, CoinsAddress } from "./constants/Coins";
-import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
-import { useAllCoins } from "./hooks/metadata/use-all-coins";
-import { useENSResolution } from "./hooks/use-ens-resolution";
-import { ETH_TOKEN, type TokenMeta, USDT_ADDRESS } from "./lib/coins";
+import {
+  useAccount,
+  usePublicClient,
+  useSendTransaction,
+  useWaitForTransactionReceipt,
+  useWriteContract,
+} from "wagmi";
+import { TokenSelector } from "@/components/pools/TokenSelector";
+import { LoadingLogo } from "@/components/ui/loading-logo";
+import { CoinsAbi, CoinsAddress } from "@/constants/Coins";
+import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
+import { useAllCoins } from "@/hooks/metadata/use-all-coins";
+import { useENSResolution } from "@/hooks/use-ens-resolution";
+import { ETH_TOKEN, type TokenMeta, USDT_ADDRESS } from "@/lib/coins";
+import { useGetTokens } from "./hooks/use-get-tokens";
+import { TokenMetadata } from "./lib/pools";
 
 // Helper function to format token balance with appropriate precision
 export const formatTokenBalance = (token: TokenMeta): string => {
@@ -71,8 +85,11 @@ const safeStr = (val: any): string => {
 
 const SendTileComponent = () => {
   const { t } = useTranslation();
-  const { tokens, error: loadError, isEthBalanceFetching, refetchEthBalance } = useAllCoins();
-  const [selectedToken, setSelectedToken] = useState<TokenMeta>(ETH_TOKEN);
+
+  const { address: owner, isConnected } = useAccount();
+
+  const { data: tokens, error: loadError } = useGetTokens(owner);
+  const [selectedToken, setSelectedToken] = useState<TokenMetadata>();
   const [recipientAddress, setRecipientAddress] = useState("");
   const [amount, setAmount] = useState("");
   const [parsedAmount, setParsedAmount] = useState<bigint>(0n);
@@ -84,14 +101,13 @@ const SendTileComponent = () => {
   const [isLockupMode, setIsLockupMode] = useState(false);
   const [unlockTime, setUnlockTime] = useState("");
 
-  const { address, isConnected } = useAccount();
   const publicClient = usePublicClient({ chainId: mainnet.id });
   const { writeContractAsync, isPending } = useWriteContract();
   const { sendTransactionAsync } = useSendTransaction();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
   const handleTokenSelect = useCallback(
-    (token: TokenMeta) => {
+    (token: TokenMetadata) => {
       if (txError) setTxError(null);
       setAmount("");
       setSelectedToken(token);
@@ -106,7 +122,10 @@ const SendTileComponent = () => {
       try {
         if (selectedToken.id === null) {
           setParsedAmount(value ? parseEther(value) : 0n);
-        } else if (selectedToken.isCustomPool && selectedToken.symbol === "USDT") {
+        } else if (
+          selectedToken.isCustomPool &&
+          selectedToken.symbol === "USDT"
+        ) {
           setParsedAmount(value ? parseUnits(value, 6) : 0n);
         } else {
           setParsedAmount(value ? parseEther(value) : 0n);
@@ -149,11 +168,21 @@ const SendTileComponent = () => {
   };
 
   const canSend = useMemo(() => {
-    if (!recipientAddress || ensResolution.isLoading || ensResolution.error || !ensResolution.address) {
+    if (
+      !recipientAddress ||
+      ensResolution.isLoading ||
+      ensResolution.error ||
+      !ensResolution.address
+    ) {
       return false;
     }
 
-    if (!parsedAmount || parsedAmount <= 0n || !selectedToken.balance || parsedAmount > selectedToken.balance) {
+    if (
+      !parsedAmount ||
+      parsedAmount <= 0n ||
+      !selectedToken.balance ||
+      parsedAmount > selectedToken.balance
+    ) {
       return false;
     }
 
@@ -177,7 +206,7 @@ const SendTileComponent = () => {
   ]);
 
   const handleSend = async () => {
-    if (!address || !isConnected || !publicClient || !canSend) return;
+    if (!owner || !isConnected || !publicClient || !canSend) return;
 
     setTxHash(undefined);
     setTxError(null);
@@ -185,7 +214,9 @@ const SendTileComponent = () => {
     try {
       // Handle lockup mode
       if (isLockupMode) {
-        const unlockTimestamp = Math.floor(new Date(unlockTime).getTime() / 1000);
+        const unlockTimestamp = Math.floor(
+          new Date(unlockTime).getTime() / 1000,
+        );
 
         if (selectedToken.id === null) {
           // ETH lockup: use address(0) as token, id as 0, and send ETH as msg.value
@@ -226,7 +257,13 @@ const SendTileComponent = () => {
             address: CookbookAddress,
             abi: CookbookAbi,
             functionName: "lockup",
-            args: [tokenAddress, ensResolution.address!, selectedToken.id!, parsedAmount, BigInt(unlockTimestamp)],
+            args: [
+              tokenAddress,
+              ensResolution.address!,
+              selectedToken.id!,
+              parsedAmount,
+              BigInt(unlockTimestamp),
+            ],
           });
 
           setTxHash(hash);
@@ -242,7 +279,10 @@ const SendTileComponent = () => {
         });
 
         setTxHash(hash);
-      } else if (selectedToken.isCustomPool && selectedToken.symbol === "USDT") {
+      } else if (
+        selectedToken.isCustomPool &&
+        selectedToken.symbol === "USDT"
+      ) {
         const hash = await writeContractAsync({
           account: address,
           chainId: mainnet.id,
@@ -255,9 +295,12 @@ const SendTileComponent = () => {
         setTxHash(hash);
       } else {
         const hash = await writeContractAsync({
-          account: address,
+          account: owner,
           chainId: mainnet.id,
-          address: selectedToken?.source === "COOKBOOK" ? CookbookAddress : CoinsAddress,
+          address:
+            selectedToken?.source === "COOKBOOK"
+              ? CookbookAddress
+              : CoinsAddress,
           abi: selectedToken?.source === "COOKBOOK" ? CookbookAbi : CoinsAbi,
           functionName: "transfer",
           args: [ensResolution.address!, selectedToken.id!, parsedAmount],
@@ -293,7 +336,8 @@ const SendTileComponent = () => {
   }, [isSuccess, txHash, refetchEthBalance]);
 
   const percentOfBalance = useMemo((): number => {
-    if (!selectedToken.balance || selectedToken.balance === 0n || !parsedAmount) return 0;
+    if (!selectedToken.balance || selectedToken.balance === 0n || !parsedAmount)
+      return 0;
 
     const percent = Number((parsedAmount * 100n) / selectedToken.balance);
     return Number.isFinite(percent) ? percent : 0;
@@ -321,18 +365,25 @@ const SendTileComponent = () => {
                   {t("swap.resolving_ens") || "Resolving ENS name..."}
                 </p>
               )}
-              {ensResolution.error && <p className="text-sm text-destructive font-bold">⚠ {ensResolution.error}</p>}
+              {ensResolution.error && (
+                <p className="text-sm text-destructive font-bold">
+                  ⚠ {ensResolution.error}
+                </p>
+              )}
               {ensResolution.address && (
                 <p className="text-sm text-muted-foreground">
                   {ensResolution.isENS ? (
                     <>
-                      <span className="text-chart-2 font-bold">ENS:</span> {recipientAddress}{" "}
-                      <span className="text-muted-foreground">→</span> {ensResolution.address?.slice(0, 6)}...
+                      <span className="text-chart-2 font-bold">ENS:</span>{" "}
+                      {recipientAddress}{" "}
+                      <span className="text-muted-foreground">→</span>{" "}
+                      {ensResolution.address?.slice(0, 6)}...
                       {ensResolution.address?.slice(-4)}
                     </>
                   ) : (
                     <>
-                      ✓ Valid address: {ensResolution.address?.slice(0, 6)}...{ensResolution.address?.slice(-4)}
+                      ✓ Valid address: {ensResolution.address?.slice(0, 6)}...
+                      {ensResolution.address?.slice(-4)}
                     </>
                   )}
                 </p>
@@ -342,13 +393,14 @@ const SendTileComponent = () => {
         </div>
 
         <div className="mb-5">
-          <label className="block text-sm font-bold mb-2 font-body">{t("create.asset_to_send").toUpperCase()}:</label>
+          <label className="block text-sm font-bold mb-2 font-body">
+            {t("create.asset_to_send").toUpperCase()}:
+          </label>
           <TokenSelector
             selectedToken={selectedToken}
-            tokens={tokens.length > 0 ? tokens : [ETH_TOKEN]}
+            tokens={tokens ?? []}
             onSelect={handleTokenSelect}
-            isEthBalanceFetching={isEthBalanceFetching}
-            className="w-full"
+            className="will"
           />
         </div>
 
@@ -361,12 +413,16 @@ const SendTileComponent = () => {
                 onChange={(e) => setIsLockupMode(e.target.checked)}
                 className="w-4 h-4 rounded border-border focus:ring-accent"
               />
-              <span className="text-sm font-bold font-body">{t("lockup.mode").toUpperCase()}</span>
+              <span className="text-sm font-bold font-body">
+                {t("lockup.mode").toUpperCase()}
+              </span>
             </label>
           </div>
           {isLockupMode && (
             <div className="mt-3">
-              <label className="block text-sm font-bold mb-2 font-body">{t("lockup.unlock_time").toUpperCase()}:</label>
+              <label className="block text-sm font-bold mb-2 font-body">
+                {t("lockup.unlock_time").toUpperCase()}:
+              </label>
               <input
                 type="datetime-local"
                 value={unlockTime}
@@ -387,7 +443,9 @@ const SendTileComponent = () => {
 
         <div className="mb-5">
           <div className="flex justify-between items-center mb-2">
-            <label className="block text-sm font-bold font-body">{t("create.amount").toUpperCase()}:</label>
+            <label className="block text-sm font-bold font-body">
+              {t("create.amount").toUpperCase()}:
+            </label>
             <button
               onClick={handleMaxClick}
               className="px-2 py-1 text-xs uppercase bg-secondary hover:bg-secondary/80 rounded disabled:opacity-50"
@@ -409,7 +467,9 @@ const SendTileComponent = () => {
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2 font-bold text-sm font-body">
               {safeStr(selectedToken.symbol)}
               {selectedToken.isFetching && (
-                <span className="text-xs ml-1 inline-block text-accent animate-spin">⟳</span>
+                <span className="text-xs ml-1 inline-block text-accent animate-spin">
+                  ⟳
+                </span>
               )}
             </div>
           </div>
@@ -418,14 +478,19 @@ const SendTileComponent = () => {
             <div className="mt-2 text-xs font-bold font-body flex justify-between">
               <span>
                 {percentOfBalance > 100 ? (
-                  <span className="text-destructive">⚠ {t("create.insufficient_balance").toUpperCase()}</span>
+                  <span className="text-destructive">
+                    ⚠ {t("create.insufficient_balance").toUpperCase()}
+                  </span>
                 ) : (
                   `${percentOfBalance.toFixed(0)}${t("create.percent_of_balance")}`
                 )}
               </span>
               <span>
-                {t("create.balance").toUpperCase()}: {formatTokenBalance(selectedToken)}{" "}
-                {selectedToken.symbol !== undefined ? safeStr(selectedToken.symbol) : ""}
+                {t("create.balance").toUpperCase()}:{" "}
+                {formatTokenBalance(selectedToken)}{" "}
+                {selectedToken.symbol !== undefined
+                  ? safeStr(selectedToken.symbol)
+                  : ""}
               </span>
             </div>
           )}
@@ -439,12 +504,22 @@ const SendTileComponent = () => {
           {isPending ? (
             <>
               <LoadingLogo size="sm" />
-              <span>{isLockupMode ? t("lockup.locking_up").toUpperCase() : t("create.sending").toUpperCase()}</span>
+              <span>
+                {isLockupMode
+                  ? t("lockup.locking_up").toUpperCase()
+                  : t("create.sending").toUpperCase()}
+              </span>
             </>
           ) : (
             <>
-              <span>{isLockupMode ? t("lockup.lockup").toUpperCase() : t("create.send").toUpperCase()}</span>
-              <span className="text-primary-foreground/80">{isLockupMode ? "🔒" : "🪁"}</span>
+              <span>
+                {isLockupMode
+                  ? t("lockup.lockup").toUpperCase()
+                  : t("create.send").toUpperCase()}
+              </span>
+              <span className="text-primary-foreground/80">
+                {isLockupMode ? "🔒" : "🪁"}
+              </span>
             </>
           )}
         </button>
@@ -485,7 +560,8 @@ const SendTileComponent = () => {
         {loadError && (
           <div className="mt-4 p-3 border-2 border-destructive bg-card font-body">
             <p className="text-sm font-bold text-destructive">
-              ⚠ {t("create.loading_error").toUpperCase()}: {loadError.toUpperCase()}
+              ⚠ {t("create.loading_error").toUpperCase()}:{" "}
+              {loadError.toUpperCase()}
             </p>
           </div>
         )}
