@@ -73,19 +73,30 @@ export const InstantTradeAction = ({
   } = useSendTransaction();
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
-  const [txError, setTxError] = useState<string | null>(null);
 
-  // Reset amounts when pair changes
+  // Local UI error + suppression
+  const [txError, setTxError] = useState<string | null>(null);
+  const [suppressErrors, setSuppressErrors] = useState(false);
+
+  const clearErrorsOnUserEdit = () => {
+    // Hide any previous errors once the user edits inputs/tokens
+    setTxError(null);
+    setSuppressErrors(true);
+  };
+
+  // Reset amounts when pair changes (and clear errors)
   useEffect(() => {
     setSellAmount("");
     setBuyAmount("");
     setLastEditedField("sell");
+    clearErrorsOnUserEdit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sellToken?.id, buyToken?.id]);
 
   // ------------------------------
   // Quotes via useZRouterQuote
   // ------------------------------
-  const side = (lastEditedField === "sell" ? "EXACT_IN" : "EXACT_OUT") as const;
+  const side = lastEditedField === "sell" ? "EXACT_IN" : "EXACT_OUT";
   const rawAmount = lastEditedField === "sell" ? sellAmount : buyAmount;
 
   const quotingEnabled =
@@ -119,17 +130,20 @@ export const InstantTradeAction = ({
   // Input + selection handlers
   // ------------------------------
   const syncFromSell = (val: string) => {
+    clearErrorsOnUserEdit();
     setSellAmount(val);
     setLastEditedField("sell");
   };
 
   const syncFromBuy = (val: string) => {
+    clearErrorsOnUserEdit();
     setBuyAmount(val);
     setLastEditedField("buy");
   };
 
   const handleSellTokenSelect = (token: TokenMetadata) => {
     if (locked) return;
+    clearErrorsOnUserEdit();
     setSellToken(token);
     setSellAmount("");
     setBuyAmount("");
@@ -138,6 +152,7 @@ export const InstantTradeAction = ({
 
   const handleBuyTokenSelect = (token: TokenMetadata) => {
     if (locked) return;
+    clearErrorsOnUserEdit();
     setBuyToken(token);
     setSellAmount("");
     setBuyAmount("");
@@ -146,6 +161,7 @@ export const InstantTradeAction = ({
 
   const handleFlip = () => {
     if (locked) return;
+    clearErrorsOnUserEdit();
     flip();
     setSellAmount("");
     setBuyAmount("");
@@ -160,6 +176,9 @@ export const InstantTradeAction = ({
   // Execute swap (approvals + multicall)
   // ------------------------------
   const executeSwap = async () => {
+    // We are attempting a new swap; show future errors again
+    setSuppressErrors(false);
+
     try {
       if (!isConnected || !address) {
         setTxError("Connect your wallet to proceed");
@@ -298,15 +317,33 @@ export const InstantTradeAction = ({
       {/* Optional controller-style single line input */}
       <TradeController
         onAmountChange={(val) => {
+          clearErrorsOnUserEdit();
           setSellAmount(val);
           setLastEditedField("sell");
         }}
         currentSellToken={sellToken}
-        setSellToken={locked ? undefined : setSellToken}
+        setSellToken={
+          locked
+            ? undefined
+            : (t) => {
+                clearErrorsOnUserEdit();
+                setSellToken(t);
+              }
+        }
         currentBuyToken={buyToken}
-        setBuyToken={locked ? undefined : setBuyToken}
+        setBuyToken={
+          locked
+            ? undefined
+            : (t) => {
+                clearErrorsOnUserEdit();
+                setBuyToken(t);
+              }
+        }
         currentSellAmount={sellAmount}
-        setSellAmount={setSellAmount}
+        setSellAmount={(v) => {
+          clearErrorsOnUserEdit();
+          setSellAmount(v);
+        }}
         className="rounded-md"
         ariaLabel="Trade Controller"
       />
@@ -323,6 +360,7 @@ export const InstantTradeAction = ({
           showMaxButton={hasSellBalance && lastEditedField === "sell"}
           onMax={() => {
             if (!sellToken?.balance) return;
+            clearErrorsOnUserEdit();
             const decimals = sellToken.decimals ?? 18;
             // If you need native-reserve logic, add a flag on TokenMetadata.
             syncFromSell(formatUnits(sellToken.balance as bigint, decimals));
@@ -364,12 +402,14 @@ export const InstantTradeAction = ({
       </button>
 
       {/* Errors / Success */}
-      {writeError && (
+      {writeError && !suppressErrors && (
         <div className="mt-2 text-sm text-red-500">
           Write error: {writeError.message}
         </div>
       )}
-      {txError && <div className="mt-2 text-sm text-red-500">{txError}</div>}
+      {txError && !suppressErrors && (
+        <div className="mt-2 text-sm text-red-500">{txError}</div>
+      )}
       {isSuccess && (
         <div className="mt-2 text-sm text-green-500">
           Transaction confirmed! Hash: {txHash}

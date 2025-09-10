@@ -216,7 +216,7 @@ const UsdValueDisplay = memo(function UsdValueDisplay({
   ethPriceUSD?: number;
   tokenUsdPrice?: number; // if provided, we use this directly
   amount: string;
-  selectedToken: TokenMetadata;
+  selectedToken?: TokenMetadata;
 }) {
   const usdText = useMemo(() => {
     const qty = parseFloat(amount || "0");
