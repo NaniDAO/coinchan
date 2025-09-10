@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { useTokenPair } from "@/hooks/use-token-pair";
 import { TradeController } from "./TradeController";
@@ -7,50 +7,304 @@ import { useGetTokens } from "@/hooks/use-get-tokens";
 import { cn } from "@/lib/utils";
 import { FlipActionButton } from "../FlipActionButton";
 import { ETH_TOKEN, TokenMetadata, ZAMM_TOKEN } from "@/lib/pools";
+import {
+  encodeFunctionData,
+  formatUnits,
+  maxUint256,
+  parseUnits,
+  type Address,
+} from "viem";
+import { mainnet } from "viem/chains";
+import {
+  useAccount,
+  useChainId,
+  usePublicClient,
+  useSendTransaction,
+  useWaitForTransactionReceipt,
+} from "wagmi";
+import { useZRouterQuote } from "@/hooks/use-zrouter-quote";
+import {
+  buildRoutePlan,
+  mainnetConfig,
+  findRoute,
+  simulateRoute,
+  erc20Abi,
+  zRouterAbi,
+} from "zrouter-sdk";
+import { CoinsAbi } from "@/constants/Coins";
+import { toZRouterToken } from "@/lib/zrouter";
+import { SLIPPAGE_BPS } from "@/lib/swap";
+import { handleWalletError } from "@/lib/errors";
 
 interface InstantTradeActionProps {
   locked?: boolean;
 }
 
+/**
+ * InstantTradeAction (TokenMetadata version)
+ * - Uses the new token selector (TradePanel) and TokenMetadata type
+ * - Live estimates via useZRouterQuote, reflecting the opposite field
+ * - Full send flow: approvals, route plan, simulate, and execute
+ */
 export const InstantTradeAction = ({
   locked = false,
 }: InstantTradeActionProps) => {
   const { sellToken, setSellToken, buyToken, setBuyToken, flip } = useTokenPair(
     {
-      initial: {
-        sellToken: ETH_TOKEN,
-        buyToken: ZAMM_TOKEN,
-      },
+      initial: { sellToken: ETH_TOKEN, buyToken: ZAMM_TOKEN },
     },
   );
+
   const [sellAmount, setSellAmount] = useState("");
   const [buyAmount, setBuyAmount] = useState("");
   const [lastEditedField, setLastEditedField] = useState<"sell" | "buy">(
     "sell",
   );
+  const [slippageBps, setSlippageBps] = useState<bigint>(SLIPPAGE_BPS);
 
-  const { data: tokens } = useGetTokens();
+  const { data: tokens = [] } = useGetTokens();
+  const publicClient = usePublicClient();
+  const { address, isConnected } = useAccount();
+  const chainId = useChainId();
+  const {
+    sendTransactionAsync,
+    isPending,
+    error: writeError,
+  } = useSendTransaction();
+  const [txHash, setTxHash] = useState<`0x${string}`>();
+  const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
+  const [txError, setTxError] = useState<string | null>(null);
 
-  const syncFromSell = () => {};
-  const handleSellTokenSelect = (token: TokenMetadata) => {};
-  const syncFromBuy = () => {};
-  const handleBuyTokenSelect = (token: TokenMetadata) => {};
+  // Reset amounts when pair changes
+  useEffect(() => {
+    setSellAmount("");
+    setBuyAmount("");
+    setLastEditedField("sell");
+  }, [sellToken?.id, buyToken?.id]);
 
-  console.log("Sell Token, BuyToken:", {
+  // ------------------------------
+  // Quotes via useZRouterQuote
+  // ------------------------------
+  const side = (lastEditedField === "sell" ? "EXACT_IN" : "EXACT_OUT") as const;
+  const rawAmount = lastEditedField === "sell" ? sellAmount : buyAmount;
+
+  const quotingEnabled =
+    !!publicClient &&
+    !!sellToken &&
+    !!buyToken &&
+    !!rawAmount &&
+    Number(rawAmount) > 0;
+
+  const { data: quote } = useZRouterQuote({
+    publicClient: publicClient ?? undefined,
     sellToken,
     buyToken,
+    rawAmount,
+    side,
+    enabled: quotingEnabled,
   });
+
+  // Reflect quote into the opposite field
+  useEffect(() => {
+    if (!quotingEnabled || !quote?.ok) return;
+    if (lastEditedField === "sell") {
+      if (buyAmount !== quote.amountOut) setBuyAmount(quote.amountOut ?? "");
+    } else {
+      if (sellAmount !== quote.amountIn) setSellAmount(quote.amountIn ?? "");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quote, quotingEnabled, lastEditedField]);
+
+  // ------------------------------
+  // Input + selection handlers
+  // ------------------------------
+  const syncFromSell = (val: string) => {
+    setSellAmount(val);
+    setLastEditedField("sell");
+  };
+
+  const syncFromBuy = (val: string) => {
+    setBuyAmount(val);
+    setLastEditedField("buy");
+  };
+
+  const handleSellTokenSelect = (token: TokenMetadata) => {
+    if (locked) return;
+    setSellToken(token);
+    setSellAmount("");
+    setBuyAmount("");
+    setLastEditedField("sell");
+  };
+
+  const handleBuyTokenSelect = (token: TokenMetadata) => {
+    if (locked) return;
+    setBuyToken(token);
+    setSellAmount("");
+    setBuyAmount("");
+    setLastEditedField("buy");
+  };
+
+  const handleFlip = () => {
+    if (locked) return;
+    flip();
+    setSellAmount("");
+    setBuyAmount("");
+    setLastEditedField("sell");
+  };
+
+  const hasSellBalance = !!(
+    sellToken?.balance && BigInt(sellToken.balance) > 0n
+  );
+
+  // ------------------------------
+  // Execute swap (approvals + multicall)
+  // ------------------------------
+  const executeSwap = async () => {
+    try {
+      if (!isConnected || !address) {
+        setTxError("Connect your wallet to proceed");
+        return;
+      }
+      if (!sellToken || !buyToken || !publicClient) {
+        setTxError("Select tokens and enter an amount");
+        return;
+      }
+      if (!rawAmount || Number(rawAmount) <= 0) {
+        setTxError("Enter an amount to swap");
+        return;
+      }
+      if (chainId !== mainnet.id) {
+        setTxError("Wrong network: switch to Ethereum Mainnet");
+        return;
+      }
+
+      setTxError(null);
+
+      const tokenIn = toZRouterToken(sellToken);
+      const tokenOut = toZRouterToken(buyToken);
+      const decimals =
+        lastEditedField === "sell"
+          ? (sellToken.decimals ?? 18)
+          : (buyToken.decimals ?? 18);
+      const amount = parseUnits(rawAmount, decimals);
+      const routeSide = lastEditedField === "sell" ? "EXACT_IN" : "EXACT_OUT";
+
+      // Find a route (deadline 10 minutes)
+      const steps = await findRoute(publicClient, {
+        tokenIn,
+        tokenOut,
+        side: routeSide,
+        amount,
+        deadline: BigInt(Math.floor(Date.now() / 1000) + 60 * 10),
+        owner: address,
+        slippageBps: Number(slippageBps),
+      }).catch(() => []);
+
+      if (!steps.length) {
+        setTxError("No route found for this pair/amount");
+        return;
+      }
+
+      const plan = await buildRoutePlan(publicClient, {
+        owner: address,
+        router: mainnetConfig.router,
+        steps,
+        finalTo: address as Address,
+      }).catch(() => undefined);
+
+      if (!plan) {
+        setTxError("Failed to build route plan");
+        return;
+      }
+
+      const { calls, value, approvals } = plan;
+
+      // Best-effort approvals (ERC20 + Coins operator)
+      if (approvals && approvals.length > 0) {
+        for (const approval of approvals) {
+          const hash = await sendTransactionAsync({
+            to:
+              approval.kind === "ERC20_APPROVAL"
+                ? approval.token.address
+                : approval.operator,
+            data:
+              approval.kind === "ERC20_APPROVAL"
+                ? encodeFunctionData({
+                    abi: erc20Abi,
+                    functionName: "approve",
+                    args: [approval.spender, maxUint256],
+                  })
+                : encodeFunctionData({
+                    abi: CoinsAbi,
+                    functionName: "setOperator",
+                    args: [approval.operator, approval.approved],
+                  }),
+            value: 0n,
+            chainId: mainnet.id,
+            account: address,
+          });
+          await publicClient.waitForTransactionReceipt({ hash });
+        }
+      }
+
+      // Simulate route execution
+      const sim = await simulateRoute(publicClient, {
+        router: mainnetConfig.router,
+        account: address,
+        calls,
+        value,
+        approvals,
+      }).catch(() => undefined);
+
+      if (!sim) {
+        setTxError("Failed to simulate route");
+        return;
+      }
+
+      // Execute (single call vs multicall)
+      const hash = await sendTransactionAsync(
+        calls.length === 1
+          ? {
+              to: mainnetConfig.router,
+              data: calls[0],
+              value,
+              chainId: mainnet.id,
+              account: address,
+            }
+          : {
+              to: mainnetConfig.router,
+              data: encodeFunctionData({
+                abi: zRouterAbi,
+                functionName: "multicall",
+                args: [calls],
+              }),
+              value,
+              chainId: mainnet.id,
+              account: address,
+            },
+      );
+
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      if (receipt.status !== "success") throw new Error("Transaction failed");
+      setTxHash(hash);
+    } catch (err) {
+      const msg = handleWalletError(err);
+      setTxError(msg || "Unexpected error while swapping");
+    }
+  };
+
   return (
     <div>
+      {/* Optional controller-style single line input */}
       <TradeController
-        onAmountChange={(sellAmount) => {
-          setSellAmount(sellAmount);
+        onAmountChange={(val) => {
+          setSellAmount(val);
           setLastEditedField("sell");
         }}
         currentSellToken={sellToken}
-        setSellToken={setSellToken}
+        setSellToken={locked ? undefined : setSellToken}
         currentBuyToken={buyToken}
-        setBuyToken={setBuyToken}
+        setBuyToken={locked ? undefined : setBuyToken}
         currentSellAmount={sellAmount}
         setSellAmount={setSellAmount}
         className="rounded-md"
@@ -62,41 +316,32 @@ export const InstantTradeAction = ({
         <TradePanel
           title={"Sell"}
           selectedToken={sellToken}
-          tokens={tokens ?? []}
+          tokens={tokens}
           onSelect={handleSellTokenSelect}
           amount={sellAmount}
           onAmountChange={syncFromSell}
-          showMaxButton={
-            sellToken && sellToken.balance && BigInt(sellToken.balance) > 0n
-              ? true
-              : false
-          }
+          showMaxButton={hasSellBalance && lastEditedField === "sell"}
           onMax={() => {
-            // if (sellToken.id === null) {
-            //   const ethAmount = ((sellToken.balance as bigint) * 99n) / 100n;
-            //   syncFromSell(formatEther(ethAmount));
-            // } else {
-            //   const decimals = sellToken.decimals || 18;
-            //   syncFromSell(formatUnits(sellToken.balance as bigint, decimals));
-            // }
+            if (!sellToken?.balance) return;
+            const decimals = sellToken.decimals ?? 18;
+            // If you need native-reserve logic, add a flag on TokenMetadata.
+            syncFromSell(formatUnits(sellToken.balance as bigint, decimals));
           }}
-          showPercentageSlider={
-            sellToken &&
-            !!sellToken.balance &&
-            (sellToken.balance as bigint) > 0n
-          }
+          showPercentageSlider={hasSellBalance}
           className="pb-4 rounded-t-2xl"
           readOnly={locked}
         />
+
         <div
           className={cn("absolute left-1/2 -translate-x-1/2 top-[50%] z-10")}
         >
-          <FlipActionButton onClick={flip} />
+          <FlipActionButton onClick={handleFlip} />
         </div>
+
         <TradePanel
           title={"Buy"}
           selectedToken={buyToken ?? undefined}
-          tokens={tokens ?? []}
+          tokens={tokens}
           onSelect={handleBuyTokenSelect}
           amount={buyAmount}
           onAmountChange={syncFromBuy}
@@ -104,6 +349,32 @@ export const InstantTradeAction = ({
           readOnly={locked}
         />
       </div>
+
+      {/* Action button */}
+      <button
+        onClick={executeSwap}
+        disabled={!isConnected || !sellAmount || isPending}
+        className={cn(
+          `w-full mt-3 button text-base px-8 py-4 bg-primary! text-primary-foreground! dark:bg-primary! dark:text-primary-foreground! font-bold rounded-lg transition hover:scale-105`,
+          (!isConnected || !sellAmount || isPending) &&
+            "opacity-50 cursor-not-allowed",
+        )}
+      >
+        {isPending ? "Processing…" : !sellAmount ? "Get Started" : "Swap"}
+      </button>
+
+      {/* Errors / Success */}
+      {writeError && (
+        <div className="mt-2 text-sm text-red-500">
+          Write error: {writeError.message}
+        </div>
+      )}
+      {txError && <div className="mt-2 text-sm text-red-500">{txError}</div>}
+      {isSuccess && (
+        <div className="mt-2 text-sm text-green-500">
+          Transaction confirmed! Hash: {txHash}
+        </div>
+      )}
     </div>
   );
 };
