@@ -5,13 +5,14 @@ import type { PublicClient } from "viem";
 import { quote } from "zrouter-sdk";
 import type { TokenMeta } from "@/lib/coins";
 import { toZRouterToken } from "@/lib/zrouter";
+import { TokenMetadata } from "@/lib/pools";
 
 type Side = "EXACT_IN" | "EXACT_OUT";
 
 export interface UseZRouterQuoteArgs {
   publicClient?: PublicClient | null;
-  sellToken?: TokenMeta | null;
-  buyToken?: TokenMeta | null;
+  sellToken?: TokenMeta | TokenMetadata | null;
+  buyToken?: TokenMeta | TokenMetadata | null;
   /** raw user input as a string (e.g. "1.25") */
   rawAmount?: string;
   /** which side the user edited */
@@ -38,10 +39,23 @@ function isValidNumberLike(v?: string) {
  * - No refetch on window focus/reconnect.
  * - Stays "fresh" forever for the same key (staleTime: Infinity).
  */
-export function useZRouterQuote({ publicClient, sellToken, buyToken, rawAmount, side, enabled }: UseZRouterQuoteArgs) {
+export function useZRouterQuote({
+  publicClient,
+  sellToken,
+  buyToken,
+  rawAmount,
+  side,
+  enabled,
+}: UseZRouterQuoteArgs) {
   // Resolve tokens & decimals once
-  const tokenIn = useMemo(() => toZRouterToken(sellToken || undefined), [sellToken]);
-  const tokenOut = useMemo(() => toZRouterToken(buyToken || undefined), [buyToken]);
+  const tokenIn = useMemo(
+    () => toZRouterToken(sellToken || undefined),
+    [sellToken],
+  );
+  const tokenOut = useMemo(
+    () => toZRouterToken(buyToken || undefined),
+    [buyToken],
+  );
   const sellDecimals = sellToken?.decimals ?? 18;
   const buyDecimals = buyToken?.decimals ?? 18;
 
@@ -75,7 +89,8 @@ export function useZRouterQuote({ publicClient, sellToken, buyToken, rawAmount, 
     [side, tokenIn, tokenOut, parsedAmount, sellDecimals, buyDecimals],
   );
 
-  const autoEnabled = !!publicClient && !!tokenIn && !!tokenOut && !!parsedAmount;
+  const autoEnabled =
+    !!publicClient && !!tokenIn && !!tokenOut && !!parsedAmount;
 
   return useQuery<ZRouterQuoteResult>({
     queryKey,
@@ -89,7 +104,8 @@ export function useZRouterQuote({ publicClient, sellToken, buyToken, rawAmount, 
     gcTime: 15 * 60 * 1000, // keep for 15 mins; adjust if you want longer caching
     queryFn: async () => {
       // Safety guards (also protect against TS narrowing)
-      if (!publicClient || !tokenIn || !tokenOut || !parsedAmount) return { ok: false };
+      if (!publicClient || !tokenIn || !tokenOut || !parsedAmount)
+        return { ok: false };
 
       // Ask zrouter for a quote
       const res = await quote(publicClient, {
@@ -97,6 +113,14 @@ export function useZRouterQuote({ publicClient, sellToken, buyToken, rawAmount, 
         tokenOut,
         amount: parsedAmount,
         side,
+      });
+
+      console.log("QUOTE", {
+        tokenIn,
+        tokenOut,
+        amount: parsedAmount,
+        side,
+        quote: res,
       });
 
       if (side === "EXACT_IN") {
