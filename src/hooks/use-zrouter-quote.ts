@@ -115,6 +115,14 @@ export function useZRouterQuote({
         side,
       });
 
+      console.log("QUOTE", {
+        tokenIn,
+        tokenOut,
+        amount: parsedAmount,
+        side,
+        quote: res,
+      });
+
       if (side === "EXACT_IN") {
         const out = formatUnits(res.amountOut, buyDecimals);
         return { ok: true, amountIn: rawAmount, amountOut: out };

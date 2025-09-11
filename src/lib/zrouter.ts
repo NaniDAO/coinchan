@@ -11,7 +11,10 @@ export function toZRouterToken(token?: TokenMeta | TokenMetadata) {
     // TokenMetadata type
     return {
       address: (token as TokenMetadata).address,
-      id: (token as TokenMetadata).id,
+      id:
+        (token as TokenMetadata).id === 0n
+          ? undefined
+          : (token as TokenMetadata).id,
     };
   }
 

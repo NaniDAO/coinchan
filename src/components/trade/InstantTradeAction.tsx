@@ -319,6 +319,14 @@ export const InstantTradeAction = ({
     }
   };
 
+  // console.log("TradeAction:", {
+  //   sellToken,
+  //   buyToken,
+  //   sellAmount,
+  //   buyAmount,
+  //   quote,
+  // });
+
   return (
     <div>
       {/* Optional controller-style single line input */}
