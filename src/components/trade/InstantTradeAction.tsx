@@ -291,6 +291,8 @@ export const InstantTradeAction = ({
 
       const { calls, value, approvals } = plan;
 
+      console.log("Approvals:", approvals);
+
       // Best-effort approvals (ERC20 + Coins operator)
       if (approvals && approvals.length > 0) {
         for (const approval of approvals) {
