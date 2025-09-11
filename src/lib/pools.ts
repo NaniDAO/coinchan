@@ -348,3 +348,9 @@ export const bpsToPct = (bps?: string | number | null) => {
     }) + "%"
   );
 };
+
+export const sameToken = (x?: TokenMetadata | null, y?: TokenMetadata | null) =>
+  !!x &&
+  !!y &&
+  x.id === y.id &&
+  String(x.address).toLowerCase() === String(y.address).toLowerCase();

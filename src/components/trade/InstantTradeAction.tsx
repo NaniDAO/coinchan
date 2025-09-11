@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 import { useTokenPair } from "@/hooks/use-token-pair";
 import { TradeController } from "./TradeController";
@@ -6,7 +6,7 @@ import { TradePanel } from "./TradePanel";
 import { useGetTokens } from "@/hooks/use-get-tokens";
 import { cn } from "@/lib/utils";
 import { FlipActionButton } from "../FlipActionButton";
-import { ETH_TOKEN, TokenMetadata, ZAMM_TOKEN } from "@/lib/pools";
+import { ETH_TOKEN, sameToken, TokenMetadata, ZAMM_TOKEN } from "@/lib/pools";
 import {
   encodeFunctionData,
   formatUnits,
@@ -86,6 +86,8 @@ export const InstantTradeAction = ({
   const [txError, setTxError] = useState<string | null>(null);
   const [suppressErrors, setSuppressErrors] = useState(false);
 
+  const userChangedPairRef = useRef(false);
+
   const clearErrorsOnUserEdit = () => {
     // Hide any previous errors once the user edits inputs/tokens
     setTxError(null);
@@ -98,8 +100,48 @@ export const InstantTradeAction = ({
     setBuyAmount("");
     setLastEditedField("sell");
     clearErrorsOnUserEdit();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sellToken?.id, buyToken?.id]);
+
+  useEffect(() => {
+    if (!tokens?.length) return;
+
+    // Only auto-hydrate while the pair is still the initial one (or untouched)
+    const stillDefaultPair =
+      sameToken(sellToken, ETH_TOKEN) && sameToken(buyToken, ZAMM_TOKEN);
+
+    if (!stillDefaultPair || userChangedPairRef.current) return;
+
+    const BALANCE_KEYS = ["balance", "rawBalance", "formattedBalance"] as const;
+
+    const mergeBalances = <T extends Record<string, any>>(
+      prev: T,
+      match: any,
+    ): T => {
+      let changed = false;
+      const next: any = { ...prev };
+      for (const k of BALANCE_KEYS) {
+        if (match?.[k] !== undefined && match?.[k] !== prev?.[k]) {
+          next[k] = match[k];
+          changed = true;
+        }
+      }
+      return changed ? (next as T) : prev;
+    };
+
+    // Hydrate sell token
+    setSellToken((prev) => {
+      if (!prev) return prev;
+      const match = tokens.find((t) => sameToken(t as any, prev));
+      return match ? mergeBalances(prev, match) : prev;
+    });
+
+    // Hydrate buy token
+    setBuyToken((prev) => {
+      if (!prev) return prev;
+      const match = tokens.find((t) => sameToken(t as any, prev));
+      return match ? mergeBalances(prev, match) : prev;
+    });
+  }, [tokens, sellToken?.id, buyToken?.id]);
 
   // ------------------------------
   // Quotes via useZRouterQuote
@@ -152,6 +194,7 @@ export const InstantTradeAction = ({
   const handleSellTokenSelect = (token: TokenMetadata) => {
     if (locked) return;
     clearErrorsOnUserEdit();
+    userChangedPairRef.current = true;
     setSellToken(token);
     setSellAmount("");
     setBuyAmount("");
@@ -161,6 +204,7 @@ export const InstantTradeAction = ({
   const handleBuyTokenSelect = (token: TokenMetadata) => {
     if (locked) return;
     clearErrorsOnUserEdit();
+    userChangedPairRef.current = true;
     setBuyToken(token);
     setSellAmount("");
     setBuyAmount("");
@@ -170,6 +214,7 @@ export const InstantTradeAction = ({
   const handleFlip = () => {
     if (locked) return;
     clearErrorsOnUserEdit();
+    userChangedPairRef.current = true;
     flip();
     setSellAmount("");
     setBuyAmount("");

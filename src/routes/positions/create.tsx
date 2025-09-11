@@ -21,6 +21,7 @@ import {
   ZAMM_TOKEN,
   getAddLiquidityTx,
   orderTokens,
+  sameToken,
 } from "@/lib/pools";
 import { cn } from "@/lib/utils";
 
@@ -202,16 +203,6 @@ function RouteComponent() {
     source: reservesSource,
   });
 
-  // Helper: compare tokens by {address,id}
-  const sameToken = useCallback(
-    (x?: TokenMetadata | null, y?: TokenMetadata | null) =>
-      !!x &&
-      !!y &&
-      x.id === y.id &&
-      String(x.address).toLowerCase() === String(y.address).toLowerCase(),
-    [],
-  );
-
   useEffect(() => {
     if (!tokens?.length) return;
 
@@ -340,7 +331,7 @@ function RouteComponent() {
       const match = tokens.find((t) => sameToken(t as any, prev));
       return match ? mergeBalances(prev, match) : prev;
     });
-  }, [tokens, sameToken, setTokenA, setTokenB]);
+  }, [tokens, setTokenA, setTokenB]);
 
   const onSelectTokenA = useCallback(
     (next: TokenMetadata) => {
