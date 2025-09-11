@@ -297,10 +297,7 @@ export const InstantTradeAction = ({
       if (approvals && approvals.length > 0) {
         for (const approval of approvals) {
           const hash = await sendTransactionAsync({
-            to:
-              approval.kind === "ERC20_APPROVAL"
-                ? approval.token.address
-                : approval.operator,
+            to: approval.token.address,
             data:
               approval.kind === "ERC20_APPROVAL"
                 ? encodeFunctionData({
@@ -334,6 +331,8 @@ export const InstantTradeAction = ({
         setTxError("Failed to simulate route");
         return;
       }
+
+      console.log("Simulation:", sim);
 
       // Execute (single call vs multicall)
       const hash = await sendTransactionAsync(
