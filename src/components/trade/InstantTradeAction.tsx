@@ -69,9 +69,10 @@ export const InstantTradeAction = ({
   );
   const [slippageBps, setSlippageBps] = useState<bigint>(SLIPPAGE_BPS);
 
-  const { data: tokens = [] } = useGetTokens();
+  const { address: owner, isConnected } = useAccount();
+  const { data: tokens = [] } = useGetTokens(owner);
   const publicClient = usePublicClient();
-  const { address, isConnected } = useAccount();
+
   const chainId = useChainId();
   const {
     sendTransactionAsync,
@@ -187,7 +188,7 @@ export const InstantTradeAction = ({
     setSuppressErrors(false);
 
     try {
-      if (!isConnected || !address) {
+      if (!isConnected || !owner) {
         setTxError("Connect your wallet to proceed");
         return;
       }
@@ -222,7 +223,7 @@ export const InstantTradeAction = ({
         side: routeSide,
         amount,
         deadline: BigInt(Math.floor(Date.now() / 1000) + 60 * 10),
-        owner: address,
+        owner,
         slippageBps: Number(slippageBps),
       }).catch(() => []);
 
@@ -232,10 +233,10 @@ export const InstantTradeAction = ({
       }
 
       const plan = await buildRoutePlan(publicClient, {
-        owner: address,
+        owner,
         router: mainnetConfig.router,
         steps,
-        finalTo: address as Address,
+        finalTo: owner as Address,
       }).catch(() => undefined);
 
       if (!plan) {
@@ -267,7 +268,7 @@ export const InstantTradeAction = ({
                   }),
             value: 0n,
             chainId: mainnet.id,
-            account: address,
+            account: owner,
           });
           await publicClient.waitForTransactionReceipt({ hash });
         }
@@ -276,7 +277,7 @@ export const InstantTradeAction = ({
       // Simulate route execution
       const sim = await simulateRoute(publicClient, {
         router: mainnetConfig.router,
-        account: address,
+        account: owner,
         calls,
         value,
         approvals,
@@ -295,7 +296,7 @@ export const InstantTradeAction = ({
               data: calls[0],
               value,
               chainId: mainnet.id,
-              account: address,
+              account: owner,
             }
           : {
               to: mainnetConfig.router,
@@ -306,7 +307,7 @@ export const InstantTradeAction = ({
               }),
               value,
               chainId: mainnet.id,
-              account: address,
+              account: owner,
             },
       );
 
