@@ -209,7 +209,7 @@ export const CreateCoinWizard: React.FC = () => {
                   onChange={(e) =>
                     setForm((p) => ({ ...p, name: e.target.value }))
                   }
-                  placeholder="e.g. Wizard Coin"
+                  placeholder="e.g. ZAMM"
                 />
                 <p className="text-xs text-muted-foreground">
                   Human-readable name shown in wallets and explorers.
@@ -227,7 +227,7 @@ export const CreateCoinWizard: React.FC = () => {
                   onChange={(e) =>
                     setForm((p) => ({ ...p, symbol: e.target.value }))
                   }
-                  placeholder="e.g. WZRD"
+                  placeholder="e.g. ZAMM"
                   maxLength={12}
                 />
                 <p className="text-xs text-muted-foreground">
@@ -247,7 +247,7 @@ export const CreateCoinWizard: React.FC = () => {
                   onChange={(e) =>
                     setForm((p) => ({ ...p, description: e.target.value }))
                   }
-                  placeholder="Optional — what’s the purpose or vibe?"
+                  placeholder="optional — what’s this coin for?"
                 />
                 <p className="text-xs text-muted-foreground">
                   Shown in marketplaces and explorers (optional).

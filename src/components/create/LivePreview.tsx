@@ -64,16 +64,25 @@ export const LivePreview = ({
               {form.description || "yap about ye coin here"}
             </p>
             <div className="w-full mt-4">
-              <Heading level={4}>Mechanics</Heading>
-              <div className="mt-2 bg-accent text-accent-foreground p-2 border border-border w-full flex flex-row items-center justify-between">
-                <p>Total Supply</p>
-                <div>
-                  <p>
-                    {form.supply || "0"} {form.symbol || "SYMBOL"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {amountInWords(form?.supply || 0)}
-                  </p>
+              <Heading level={4} className="font-bold">
+                Mechanics
+              </Heading>
+              <div className="mt-2 bg-accent text-accent-foreground p-2 border border-border w-full">
+                <div className="grid grid-cols-[max-content,1fr] gap-x-4 items-start w-full">
+                  <p className="whitespace-nowrap">Total Supply</p>
+
+                  {/* value column */}
+                  <div className="min-w-0 max-w-full">
+                    {/* number + symbol: keep on one line if possible */}
+                    <p className="truncate">
+                      {form.supply || "0"} {form.symbol || "SYMBOL"}
+                    </p>
+
+                    {/* words: wrap and grow vertically, never widen the container */}
+                    <p className="text-xs text-muted-foreground whitespace-normal break-words md:break-words break-all leading-snug">
+                      {amountInWords(form?.supply || 0)}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
