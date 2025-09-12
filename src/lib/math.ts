@@ -21,7 +21,8 @@ export const formatDexscreenerStyle = (n: number) => {
   const nextDigit = decPart[1 + zeroCount];
 
   // Convert number to subscript characters
-  const toSubscript = (val: number) => String(val).replace(/\d/g, (d) => "₀₁₂₃₄₅₆₇₈₉"[+d]);
+  const toSubscript = (val: number) =>
+    String(val).replace(/\d/g, (d) => "₀₁₂₃₄₅₆₇₈₉"[+d]);
 
   // Only compress if there are at least 3 zeros after the first decimal digit
   if (zeroCount >= 3 && nextDigit) {
@@ -37,9 +38,124 @@ export function formatPrice(n?: number) {
   const abs = Math.abs(n);
 
   // Choose decimals based on magnitude
-  if (abs >= 1) return n.toLocaleString(undefined, { maximumFractionDigits: 6 });
-  if (abs >= 1e-6) return n.toLocaleString(undefined, { maximumFractionDigits: 8 });
-  if (abs >= 1e-12) return n.toLocaleString(undefined, { maximumFractionDigits: 12 });
+  if (abs >= 1)
+    return n.toLocaleString(undefined, { maximumFractionDigits: 6 });
+  if (abs >= 1e-6)
+    return n.toLocaleString(undefined, { maximumFractionDigits: 8 });
+  if (abs >= 1e-12)
+    return n.toLocaleString(undefined, { maximumFractionDigits: 12 });
 
   return n.toExponential(2);
 }
+
+export const amountInWords = (amount?: number): string => {
+  if (amount === undefined || amount === null || Number.isNaN(amount))
+    return "";
+  if (!Number.isFinite(amount)) return "";
+
+  // Handle negatives
+  if (amount < 0) return `negative ${amountInWords(Math.abs(amount))}`;
+
+  // Only integer words per your examples
+  const n = Math.trunc(amount);
+  if (n === 0) return "zero";
+
+  const ones = [
+    "",
+    "one",
+    "two",
+    "three",
+    "four",
+    "five",
+    "six",
+    "seven",
+    "eight",
+    "nine",
+  ];
+
+  const teens = [
+    "ten",
+    "eleven",
+    "twelve",
+    "thirteen",
+    "fourteen",
+    "fifteen",
+    "sixteen",
+    "seventeen",
+    "eighteen",
+    "nineteen",
+  ];
+
+  const tens = [
+    "",
+    "",
+    "twenty",
+    "thirty",
+    "forty",
+    "fifty",
+    "sixty",
+    "seventy",
+    "eighty",
+    "ninety",
+  ];
+
+  const scales = [
+    "",
+    "thousand",
+    "million",
+    "billion",
+    "trillion",
+    // add more if you need: "quadrillion", "quintillion", ...
+  ];
+
+  // Convert 0..999 to words
+  const chunkToWords = (num: number): string => {
+    const parts: string[] = [];
+    const hundred = Math.floor(num / 100);
+    const rem = num % 100;
+
+    if (hundred > 0) {
+      parts.push(`${ones[hundred]} hundred`);
+    }
+
+    if (rem > 0) {
+      if (rem < 10) {
+        parts.push(ones[rem]);
+      } else if (rem < 20) {
+        parts.push(teens[rem - 10]);
+      } else {
+        const t = Math.floor(rem / 10);
+        const o = rem % 10;
+        if (o > 0) {
+          // Hyphenate 21-99 non-multiples of ten
+          parts.push(`${tens[t]}-${ones[o]}`);
+        } else {
+          parts.push(tens[t]);
+        }
+      }
+    }
+
+    return parts.join(" ");
+  };
+
+  // Break number into 3-digit chunks
+  const chunks: number[] = [];
+  let remaining = n;
+
+  while (remaining > 0) {
+    chunks.push(remaining % 1000);
+    remaining = Math.floor(remaining / 1000);
+  }
+
+  const words: string[] = [];
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i];
+    if (chunk === 0) continue;
+
+    const chunkWords = chunkToWords(chunk);
+    const scale = scales[i];
+    words.unshift(scale ? `${chunkWords} ${scale}` : chunkWords);
+  }
+
+  return words.join(" ");
+};
