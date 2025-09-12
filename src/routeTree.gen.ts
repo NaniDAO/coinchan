@@ -14,9 +14,7 @@ import { Route as UserRouteImport } from './routes/user'
 import { Route as SwapRouteImport } from './routes/swap'
 import { Route as SendRouteImport } from './routes/send'
 import { Route as PositionsRouteImport } from './routes/positions'
-import { Route as OneshotRouteImport } from './routes/oneshot'
 import { Route as LimitRouteImport } from './routes/limit'
-import { Route as LaunchRouteImport } from './routes/launch'
 import { Route as FarmRouteImport } from './routes/farm'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as EnsRouteImport } from './routes/ens'
@@ -61,19 +59,9 @@ const PositionsRoute = PositionsRouteImport.update({
   path: '/positions',
   getParentRoute: () => rootRouteImport,
 } as any)
-const OneshotRoute = OneshotRouteImport.update({
-  id: '/oneshot',
-  path: '/oneshot',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LimitRoute = LimitRouteImport.update({
   id: '/limit',
   path: '/limit',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LaunchRoute = LaunchRouteImport.update({
-  id: '/launch',
-  path: '/launch',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FarmRoute = FarmRouteImport.update({
@@ -176,9 +164,7 @@ export interface FileRoutesByFullPath {
   '/ens': typeof EnsRoute
   '/explore': typeof ExploreRouteWithChildren
   '/farm': typeof FarmRouteWithChildren
-  '/launch': typeof LaunchRoute
   '/limit': typeof LimitRoute
-  '/oneshot': typeof OneshotRoute
   '/positions': typeof PositionsRouteWithChildren
   '/send': typeof SendRoute
   '/swap': typeof SwapRoute
@@ -203,9 +189,7 @@ export interface FileRoutesByTo {
   '/cult': typeof CultRoute
   '/ens': typeof EnsRoute
   '/explore': typeof ExploreRouteWithChildren
-  '/launch': typeof LaunchRoute
   '/limit': typeof LimitRoute
-  '/oneshot': typeof OneshotRoute
   '/send': typeof SendRoute
   '/swap': typeof SwapRoute
   '/user': typeof UserRoute
@@ -231,9 +215,7 @@ export interface FileRoutesById {
   '/ens': typeof EnsRoute
   '/explore': typeof ExploreRouteWithChildren
   '/farm': typeof FarmRouteWithChildren
-  '/launch': typeof LaunchRoute
   '/limit': typeof LimitRoute
-  '/oneshot': typeof OneshotRoute
   '/positions': typeof PositionsRouteWithChildren
   '/send': typeof SendRoute
   '/swap': typeof SwapRoute
@@ -261,9 +243,7 @@ export interface FileRouteTypes {
     | '/ens'
     | '/explore'
     | '/farm'
-    | '/launch'
     | '/limit'
-    | '/oneshot'
     | '/positions'
     | '/send'
     | '/swap'
@@ -288,9 +268,7 @@ export interface FileRouteTypes {
     | '/cult'
     | '/ens'
     | '/explore'
-    | '/launch'
     | '/limit'
-    | '/oneshot'
     | '/send'
     | '/swap'
     | '/user'
@@ -315,9 +293,7 @@ export interface FileRouteTypes {
     | '/ens'
     | '/explore'
     | '/farm'
-    | '/launch'
     | '/limit'
-    | '/oneshot'
     | '/positions'
     | '/send'
     | '/swap'
@@ -344,9 +320,7 @@ export interface RootRouteChildren {
   EnsRoute: typeof EnsRoute
   ExploreRoute: typeof ExploreRouteWithChildren
   FarmRoute: typeof FarmRouteWithChildren
-  LaunchRoute: typeof LaunchRoute
   LimitRoute: typeof LimitRoute
-  OneshotRoute: typeof OneshotRoute
   PositionsRoute: typeof PositionsRouteWithChildren
   SendRoute: typeof SendRoute
   SwapRoute: typeof SwapRoute
@@ -393,25 +367,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PositionsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/oneshot': {
-      id: '/oneshot'
-      path: '/oneshot'
-      fullPath: '/oneshot'
-      preLoaderRoute: typeof OneshotRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/limit': {
       id: '/limit'
       path: '/limit'
       fullPath: '/limit'
       preLoaderRoute: typeof LimitRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/launch': {
-      id: '/launch'
-      path: '/launch'
-      fullPath: '/launch'
-      preLoaderRoute: typeof LaunchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/farm': {
@@ -595,9 +555,7 @@ const rootRouteChildren: RootRouteChildren = {
   EnsRoute: EnsRoute,
   ExploreRoute: ExploreRouteWithChildren,
   FarmRoute: FarmRouteWithChildren,
-  LaunchRoute: LaunchRoute,
   LimitRoute: LimitRoute,
-  OneshotRoute: OneshotRoute,
   PositionsRoute: PositionsRouteWithChildren,
   SendRoute: SendRoute,
   SwapRoute: SwapRoute,
