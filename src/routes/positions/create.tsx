@@ -91,7 +91,7 @@ function RouteComponent() {
   const { data: walletClient } = useWalletClient();
 
   const { data: tokens } = useGetTokens(owner);
-  const [protocolId, setProtocolId] = useState<ProtocolId>(protocols[0].id);
+  const [protocolId, setProtocolId] = useState<ProtocolId>(protocols[1].id);
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [fee, setFee] = useState<bigint>(DEFAULT_FEE_TIER); // this is feeBps OR hook uint256
 
