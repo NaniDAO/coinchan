@@ -1,6 +1,5 @@
 import { CreatePoolStep, Stepper } from "@/components/pools/CreatePoolStepper";
 import { CreatePositionBreadcrumb } from "@/components/pools/CreatePositionBreadcrumb";
-import FeeSelector from "@/components/pools/FeeSelector";
 import { PoolHeaderCard } from "@/components/pools/PoolHeaderCard";
 import { ProtocolId, protocols } from "@/lib/protocol";
 import { ProtocolSelector } from "@/components/pools/ProtocolSelector";
@@ -22,6 +21,7 @@ import {
   getAddLiquidityTx,
   orderTokens,
   sameToken,
+  isFeeOrHook,
 } from "@/lib/pools";
 import { cn } from "@/lib/utils";
 
@@ -36,7 +36,6 @@ import {
   Loader2Icon,
   CheckCircle2Icon,
   AlertCircleIcon,
-  InfoIcon,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatUnits, parseUnits } from "viem";
@@ -46,8 +45,8 @@ import {
   findTokenFlexible,
   isCanonicalTokenQ,
 } from "@/lib/token-query";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FeeOrHookSelector } from "@/components/pools/FeeOrHookSelector";
+import { shortenUint } from "@/lib/math";
 
 export const Route = createFileRoute("/positions/create")({
   component: RouteComponent,
@@ -63,9 +62,6 @@ export const Route = createFileRoute("/positions/create")({
 // Protocols where creating *new* pools is disallowed
 const CREATION_BLOCKED_PROTOCOLS = new Set<ProtocolId>(["ZAMMV0"]);
 
-// Any feeOrHook strictly greater than this is considered a hook
-const HOOK_THRESHOLD = 10000n;
-
 type TxStatus = "idle" | "pending" | "confirmed" | "error";
 type TxVisualStep = {
   kind: "approve" | "addLiquidity";
@@ -73,13 +69,6 @@ type TxVisualStep = {
   status: TxStatus;
   hash?: `0x${string}`;
   error?: string;
-};
-
-// small helper for nicer long uints
-const shortenUint = (v: bigint, { max = 18 } = {}) => {
-  const s = v.toString();
-  if (s.length <= max) return s;
-  return `${s.slice(0, 8)}…${s.slice(-6)}`;
 };
 
 function RouteComponent() {
@@ -115,11 +104,7 @@ function RouteComponent() {
   const [txSteps, setTxSteps] = useState<TxVisualStep[]>([]);
 
   const isHook = useMemo(() => {
-    try {
-      return fee > HOOK_THRESHOLD;
-    } catch {
-      return false;
-    }
+    return isFeeOrHook(fee);
   }, [fee]);
 
   const reservesSource = protocolId === "ZAMMV0" ? "ZAMM" : "COOKBOOK";
@@ -486,7 +471,7 @@ function RouteComponent() {
     return "—";
   };
 
-  const liquidityByFee = useMemo(
+  const liquidityByFee: Record<string, string> = useMemo(
     () => ({
       "100": makeLiquidityLabel(reserves100),
       "500": makeLiquidityLabel(reserves500),
@@ -800,141 +785,81 @@ function RouteComponent() {
                 )}
               </div>
 
-              <details className="mt-2">
-                <summary className="text-sm font-medium">
-                  Set a Hook(Advanced)
-                </summary>
-                <div className="max-w-xl p-2 border-border bg-muted">
-                  <Label htmlFor="hookId" className="mb-1">
-                    Hook ID (address of hook encoded as a uint)
-                  </Label>
-                  <Input
-                    id="hookId"
-                    placeholder="Enter hook ID"
-                    value={fee.toString()}
-                    onChange={(e) => setFee(BigInt(e.target.value))}
-                  />
-                </div>
-              </details>
+              <FeeOrHookSelector
+                feeOrHook={fee}
+                setFeeOrHook={setFee}
+                isHook={isHook}
+                liquidityByFee={liquidityByFee}
+                className="flex-1 min-w-0"
+              />
 
-              <div className="mt-6">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-lg font-semibold">
-                    {isHook ? "Hook" : "Fee tier"}
-                  </h3>
-                  {isHook && (
-                    <span className="text-[10px] rounded-sm border px-1.5 py-0.5">
-                      hook active
-                    </span>
-                  )}
-                </div>
-                <p className="text-base text-muted-foreground">
-                  {isHook
-                    ? "A hook is selected for this pool. The hook ID replaces the fee tier."
-                    : "This is the amount of fees charged for a trade against this position."}
-                </p>
+              <Button
+                variant="default"
+                className="w-full rounded-lg text-xl py-6 mt-4"
+                disabled={
+                  !ready ||
+                  samePair ||
+                  (!poolExists && !creationAllowed) ||
+                  v0UninitBlocked ||
+                  !hasBothBalances
+                }
+                onClick={() => setCurrentStep(2)}
+              >
+                Continue
+              </Button>
 
-                {/* If a hook is active, show a clear readout; otherwise render FeeSelector */}
-                {isHook ? (
-                  <div className="mt-3 rounded-md border bg-card p-3">
-                    <div className="flex items-start gap-2">
-                      <InfoIcon className="w-4 h-4 mt-0.5 text-muted-foreground" />
-                      <div className="text-sm">
-                        <div className="font-medium">
-                          Hook (uint256): {shortenUint(fee)}
-                        </div>
-                        <div className="text-xs text-muted-foreground break-all">
-                          Full value: {fee.toString()}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-2 flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setFee(DEFAULT_FEE_TIER)}
-                      >
-                        Clear hook (use fee tiers)
-                      </Button>
-                    </div>
+              {/* Not-initialized warning (zero liquidity) */}
+              {ready &&
+                !samePair &&
+                poolUninitialized &&
+                (protocolId === "ZAMMV0" ? (
+                  <div className="mt-2 rounded-md border border-red-500 bg-red-50 px-3 py-2 text-red-700 text-sm">
+                    This pool has zero reserves and{" "}
+                    <span className="font-medium">ZAMMV0</span> pools cannot be
+                    initialised. Add liquidity to an existing V0 pool, or switch
+                    to <span className="font-medium">ZAMMV1</span> to create a
+                    new pool.
                   </div>
                 ) : (
-                  <FeeSelector
-                    fee={fee}
-                    onChange={setFee}
-                    liquidityByFee={liquidityByFee}
-                  />
-                )}
-
-                <Button
-                  variant="default"
-                  className="w-full rounded-lg text-xl py-6 mt-4"
-                  disabled={
-                    !ready ||
-                    samePair ||
-                    (!poolExists && !creationAllowed) ||
-                    v0UninitBlocked ||
-                    !hasBothBalances
-                  }
-                  onClick={() => setCurrentStep(2)}
-                >
-                  Continue
-                </Button>
-
-                {/* Not-initialized warning (zero liquidity) */}
-                {ready &&
-                  !samePair &&
-                  poolUninitialized &&
-                  (protocolId === "ZAMMV0" ? (
-                    <div className="mt-2 rounded-md border border-red-500 bg-red-50 px-3 py-2 text-red-700 text-sm">
-                      This pool has zero reserves and{" "}
-                      <span className="font-medium">ZAMMV0</span> pools cannot
-                      be initialised. Add liquidity to an existing V0 pool, or
-                      switch to <span className="font-medium">ZAMMV1</span> to
-                      create a new pool.
-                    </div>
-                  ) : (
-                    <div className="mt-2 rounded-md border border-amber-500 bg-amber-50 px-3 py-2 text-amber-800 text-sm">
-                      This pool is not initialised — no liquidity exists yet for{" "}
-                      <span className="font-medium">
-                        {tokenA?.symbol ?? "TokenA"}/
-                        {tokenB?.symbol ?? "TokenB"}
-                      </span>{" "}
-                      at{" "}
-                      <span className="font-medium">
-                        {isHook ? "Hook" : feeLabel}
-                      </span>
-                      . You’ll be the first to add liquidity.
-                    </div>
-                  ))}
-
-                {/* Creation-blocked notice for ZAMMV0 */}
-                {ready && !samePair && creationBlocked && (
-                  <div className="mt-2 rounded-md border border-red-500 bg-red-50 px-3 py-2 text-red-700 text-sm">
-                    Creating new pools is not allowed for{" "}
-                    <span className="font-medium">ZAMMV0</span>. Add liquidity
-                    to an existing V0 pool, or switch to{" "}
-                    <span className="font-medium">ZAMMV1</span> to create a new
-                    pool.
-                  </div>
-                )}
-
-                {ready && !samePair && !hasBothBalances && (
-                  <div className="mt-2 rounded-md border border-red-500 bg-red-50 px-3 py-2 text-red-700 text-sm">
-                    You don’t have balance for{" "}
+                  <div className="mt-2 rounded-md border border-amber-500 bg-amber-50 px-3 py-2 text-amber-800 text-sm">
+                    This pool is not initialised — no liquidity exists yet for{" "}
                     <span className="font-medium">
-                      {[
-                        !hasBalanceA ? (tokenA?.symbol ?? "TokenA") : null,
-                        !hasBalanceB ? (tokenB?.symbol ?? "TokenB") : null,
-                      ]
-                        .filter(Boolean)
-                        .join(" and ")}
+                      {tokenA?.symbol ?? "TokenA"}/{tokenB?.symbol ?? "TokenB"}
+                    </span>{" "}
+                    at{" "}
+                    <span className="font-medium">
+                      {isHook ? "Hook" : feeLabel}
                     </span>
-                    , so you can’t provide liquidity for this pair. Please
-                    choose tokens you hold.
+                    . You’ll be the first to add liquidity.
                   </div>
-                )}
-              </div>
+                ))}
+
+              {/* Creation-blocked notice for ZAMMV0 */}
+              {ready && !samePair && creationBlocked && (
+                <div className="mt-2 rounded-md border border-red-500 bg-red-50 px-3 py-2 text-red-700 text-sm">
+                  Creating new pools is not allowed for{" "}
+                  <span className="font-medium">ZAMMV0</span>. Add liquidity to
+                  an existing V0 pool, or switch to{" "}
+                  <span className="font-medium">ZAMMV1</span> to create a new
+                  pool.
+                </div>
+              )}
+
+              {ready && !samePair && !hasBothBalances && (
+                <div className="mt-2 rounded-md border border-red-500 bg-red-50 px-3 py-2 text-red-700 text-sm">
+                  You don’t have balance for{" "}
+                  <span className="font-medium">
+                    {[
+                      !hasBalanceA ? (tokenA?.symbol ?? "TokenA") : null,
+                      !hasBalanceB ? (tokenB?.symbol ?? "TokenB") : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" and ")}
+                  </span>
+                  , so you can’t provide liquidity for this pair. Please choose
+                  tokens you hold.
+                </div>
+              )}
             </>
           )}
 
@@ -999,14 +924,18 @@ function RouteComponent() {
                         <TokenAmountInput
                           amount={amountA}
                           onAmountChange={onChangeAmountA}
+                          onTokenSelect={() => {}}
                           token={tokenA}
                           className="mb-1"
+                          locked={true}
                         />
 
                         <TokenAmountInput
                           amount={amountB}
                           onAmountChange={onChangeAmountB}
+                          onTokenSelect={() => {}}
                           token={tokenB}
+                          locked={true}
                         />
 
                         <Button
@@ -1102,14 +1031,18 @@ function RouteComponent() {
                       <TokenAmountInput
                         amount={amountA}
                         onAmountChange={onChangeAmountA}
+                        onTokenSelect={() => {}}
                         token={tokenA}
                         className="mb-1"
+                        locked={true}
                       />
 
                       <TokenAmountInput
                         amount={amountB}
                         onAmountChange={onChangeAmountB}
+                        onTokenSelect={() => {}}
                         token={tokenB}
+                        locked={true}
                       />
 
                       <Button

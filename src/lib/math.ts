@@ -159,3 +159,9 @@ export const amountInWords = (amount?: number): string => {
 
   return words.join(" ");
 };
+
+export const shortenUint = (v: bigint, { max = 18 } = {}) => {
+  const s = v.toString();
+  if (s.length <= max) return s;
+  return `${s.slice(0, 8)}…${s.slice(-6)}`;
+};

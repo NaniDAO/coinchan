@@ -106,11 +106,13 @@ export const TokenSelector = memo(
     selectedToken,
     tokens,
     onSelect,
+    locked = false,
     className,
   }: {
     selectedToken?: TokenMetadata;
     tokens: TokenMetadata[];
     onSelect: (token: TokenMetadata) => void;
+    locked?: boolean;
     className?: string;
   }) => {
     const { t } = useTranslation();
@@ -119,7 +121,7 @@ export const TokenSelector = memo(
 
     const { recentTokens, addRecent } = useRecentTokens(tokens);
 
-    const isDisabled = tokens.length <= 1;
+    const isDisabled = tokens.length <= 1 || locked;
 
     const handleSelect = (token: TokenMetadata) => {
       onSelect(token);
@@ -181,8 +183,14 @@ export const TokenSelector = memo(
 
     return (
       <div className={cn("relative", className)}>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
+        <Dialog
+          open={open}
+          onOpenChange={(val) => {
+            if (locked) return;
+            setOpen(val);
+          }}
+        >
+          <DialogTrigger disabled={locked} asChild>
             <Button
               variant="outline"
               aria-haspopup="listbox"
@@ -347,6 +355,10 @@ export const TokenSelector = memo(
     prev.selectedToken?.id === next.selectedToken?.id &&
     String(prev.selectedToken?.address).toLowerCase() ===
       String(next?.selectedToken?.address).toLowerCase() &&
+    prev.selectedToken?.name === next.selectedToken?.name &&
+    prev.selectedToken?.symbol === next.selectedToken?.symbol &&
+    prev.selectedToken?.description === next.selectedToken?.description &&
+    prev.selectedToken?.imageUrl === next.selectedToken?.imageUrl &&
     prev.selectedToken?.balance === next.selectedToken?.balance &&
     prev.tokens.length === next.tokens.length,
 );

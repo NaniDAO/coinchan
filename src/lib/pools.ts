@@ -354,3 +354,14 @@ export const sameToken = (x?: TokenMetadata | null, y?: TokenMetadata | null) =>
   !!y &&
   x.id === y.id &&
   String(x.address).toLowerCase() === String(y.address).toLowerCase();
+
+// Any feeOrHook strictly greater than this is considered a hook
+const HOOK_THRESHOLD = 10000n;
+
+export const isFeeOrHook = (fee: bigint) => {
+  try {
+    return fee > HOOK_THRESHOLD;
+  } catch {
+    return false;
+  }
+};
