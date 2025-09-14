@@ -1,12 +1,13 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import {
   useAccount,
   usePublicClient,
   useWriteContract,
   useWaitForTransactionReceipt,
+  useWalletClient,
 } from "wagmi";
-import { parseEther } from "viem";
+import { erc20Abi, parseEther, parseUnits, zeroAddress } from "viem";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -17,11 +18,80 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ImageInput } from "@/components/ui/image-input";
 
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
+import { zICOAbi, zICOAddress } from "@/constants/zICO";
 import { pinImageToPinata, pinJsonToPinata } from "@/lib/pinata";
 import { LivePreview } from "./LivePreview";
 import { Heading } from "../ui/typography";
 import { useLiveCoinId } from "@/hooks/use-live-coin-id";
 import { Link } from "@tanstack/react-router";
+import { AddPoolForm } from "./AddPoolForm";
+import { ETH_TOKEN, isFeeOrHook, TokenMetadata } from "@/lib/pools";
+import { SWAP_FEE } from "@/lib/swap";
+import { erc6909Abi } from "zrouter-sdk";
+import { TokenMeta } from "@/lib/coins";
+
+// -------- Minimal ABIs for approvals & metadata --------
+const ERC20_ABI = [
+  {
+    type: "function",
+    stateMutability: "view",
+    name: "decimals",
+    inputs: [],
+    outputs: [{ name: "", type: "uint8" }],
+  },
+  {
+    type: "function",
+    stateMutability: "view",
+    name: "symbol",
+    inputs: [],
+    outputs: [{ name: "", type: "string" }],
+  },
+  {
+    type: "function",
+    stateMutability: "view",
+    name: "allowance",
+    inputs: [
+      { name: "owner", type: "address" },
+      { name: "spender", type: "address" },
+    ],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    stateMutability: "nonpayable",
+    name: "approve",
+    inputs: [
+      { name: "spender", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+  },
+] as const;
+
+const ERC6909_ABI = [
+  {
+    type: "function",
+    stateMutability: "view",
+    name: "allowance",
+    inputs: [
+      { name: "owner", type: "address" },
+      { name: "spender", type: "address" },
+      { name: "id", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    stateMutability: "nonpayable",
+    name: "approve",
+    inputs: [
+      { name: "spender", type: "address" },
+      { name: "id", type: "uint256" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [],
+  },
+] as const;
 
 export type SimpleForm = {
   name: string;
@@ -49,8 +119,10 @@ const schema = z.object({
 export const CreateCoinWizard: React.FC = () => {
   const { address: account } = useAccount();
   const publicClient = usePublicClient();
+  const { data: walletClient } = useWalletClient();
+
   const {
-    writeContract,
+    writeContractAsync,
     data: hash,
     isPending,
     error: writeError,
@@ -70,6 +142,52 @@ export const CreateCoinWizard: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [coinId, setCoinId] = useState<bigint | null>(null);
   const { data: liveCoinId } = useLiveCoinId();
+
+  // ---------- "Add a pool" (optional) ----------
+  const [addPoolOpen, setAddPoolOpen] = useState(false);
+  const [tokenIn, setTokenIn] = useState<TokenMetadata>(ETH_TOKEN);
+  const [amountInText, setAmountInText] = useState<string>("1"); // deposit amount
+  const [feeOrHook, setFeeOrHook] = useState<bigint>(SWAP_FEE);
+  const [poolPct, setPoolPct] = useState<number>(50); // % of minted supply sent to pool
+
+  const poolSupplyTokens = useMemo(() => {
+    const pct = Math.max(0, Math.min(100, Math.floor(poolPct)));
+    return Math.floor((form.supply * pct) / 100);
+  }, [form.supply, poolPct]);
+
+  const creatorSupplyTokens = useMemo(
+    () => Math.max(0, form.supply - poolSupplyTokens),
+    [form.supply, poolSupplyTokens],
+  );
+
+  const isHook = useMemo(() => {
+    return isFeeOrHook(feeOrHook);
+  }, [feeOrHook]);
+
+  const userToken: TokenMetadata = useMemo(() => {
+    const balance = BigInt(
+      Math.max(0, form.supply - poolSupplyTokens - creatorSupplyTokens),
+    );
+    return {
+      address: CookbookAddress,
+      id: liveCoinId ? liveCoinId : 0n,
+      name: form.name,
+      symbol: form.symbol,
+      description: form.description,
+      decimals: 18,
+      imageUrl: imagePreviewUrl,
+      standard: "ERC6909",
+      balance,
+    };
+  }, [
+    liveCoinId,
+    form.name,
+    form.symbol,
+    form.description,
+    form.supply,
+    imagePreviewUrl,
+    poolPct,
+  ]);
 
   const handleNumber = (raw: string) => {
     const value = raw.replace(/,/g, "");
@@ -113,8 +231,62 @@ export const CreateCoinWizard: React.FC = () => {
     }
   };
 
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // ---------- Helpers for approvals ----------
+  const ensureApprovalIfNeeded = async (amountIn: bigint) => {
+    if (!publicClient || !walletClient || !account) return;
+
+    if (tokenIn.address === zeroAddress && tokenIn.id === 0n) return; // no approval for native
+
+    if (tokenIn.standard === "ERC20") {
+      const allowance = (await publicClient.readContract({
+        abi: erc20Abi,
+        address: tokenIn.address as `0x${string}`,
+        functionName: "allowance",
+        args: [account, zICOAddress as `0x${string}`],
+      })) as bigint;
+
+      if (allowance >= amountIn) return;
+
+      toast.info(`Approving ${tokenIn.symbol}…`);
+      const approveHash = await walletClient.writeContract({
+        abi: erc20Abi,
+        address: tokenIn.address as `0x${string}`,
+        functionName: "approve",
+        args: [zICOAddress as `0x${string}`, amountIn],
+        account,
+      });
+      await publicClient.waitForTransactionReceipt({ hash: approveHash });
+      toast.success("Approval confirmed");
+      return;
+    }
+
+    if (tokenIn.standard === "ERC6909") {
+      const id = BigInt(tokenIn.id || "0");
+      const isOperator = (await publicClient.readContract({
+        abi: erc6909Abi,
+        address: tokenIn.address as `0x${string}`,
+        functionName: "isOperator",
+        args: [account, zICOAddress],
+      })) as boolean;
+
+      if (isOperator) return;
+
+      toast.info(`Approving ID ${id.toString()}…`);
+      const approveHash = await walletClient.writeContract({
+        abi: erc6909Abi,
+        address: tokenIn.address as `0x${string}`,
+        functionName: "setOperator",
+        args: [zICOAddress, true],
+        account,
+      });
+      await publicClient.waitForTransactionReceipt({ hash: approveHash });
+      toast.success("Approval confirmed");
+      return;
+    }
+  };
+
+  // ---------- Submit ----------
+  const onSubmit = async () => {
     if (!publicClient) return;
     const parsed = validate();
     if (!parsed) {
@@ -134,7 +306,7 @@ export const CreateCoinWizard: React.FC = () => {
       setSubmitting(true);
       toast.info("Preparing your token…");
 
-      // 1) Pin image first (we only show local preview until now)
+      // 1) Pin image
       const imgUri = await pinImageToPinata(
         imageBuffer,
         `${parsed.name}-logo`,
@@ -147,31 +319,111 @@ export const CreateCoinWizard: React.FC = () => {
         },
       );
 
-      // 2) Pin metadata JSON with the pinned image URI
+      // 2) Pin metadata JSON
       const metadata = {
         name: parsed.name,
         symbol: parsed.symbol,
         description: parsed.description || undefined,
-        image: imgUri, // <-- IPFS/Pinata URL from step 1
+        image: imgUri,
       };
       const tokenUri = await pinJsonToPinata(metadata);
 
-      // 3) (Optional) simulate to get the new coinId for UX
-      const sim = await publicClient.simulateContract({
-        abi: CookbookAbi,
-        address: CookbookAddress,
-        functionName: "coin",
-        args: [account, parseEther(parsed.supply.toString()), tokenUri],
-      });
-      const predictedCoinId = sim.result as unknown as bigint; // depends on your ABI return
-      setCoinId(predictedCoinId);
+      // Branch: simple coin OR coin with pool
+      if (!addPoolOpen) {
+        const sim = await publicClient.simulateContract({
+          abi: CookbookAbi as any,
+          address: CookbookAddress as `0x${string}`,
+          functionName: "coin",
+          args: [account, parseEther(parsed.supply.toString()), tokenUri],
+          account,
+        });
+        const predictedCoinId = sim.result as unknown as bigint;
+        setCoinId(predictedCoinId);
 
-      // 4) Fire the transaction
-      writeContract({
-        abi: CookbookAbi,
-        address: CookbookAddress,
-        functionName: "coin",
-        args: [account, parseEther(parsed.supply.toString()), tokenUri],
+        writeContractAsync({
+          abi: CookbookAbi as any,
+          address: CookbookAddress as `0x${string}`,
+          functionName: "coin",
+          args: [account, parseEther(parsed.supply.toString()), tokenUri],
+        });
+
+        toast.success("Transaction submitted");
+        return;
+      }
+
+      if (feeOrHook <= 0n) {
+        toast.error("Enter a valid fee (bps) or hook ID");
+        setSubmitting(false);
+        return;
+      }
+
+      // Pool & creator allocations (18 decimals)
+      const poolSupply = parseEther(poolSupplyTokens.toString());
+      const creatorSupply = parseEther(creatorSupplyTokens.toString());
+
+      // amountIn parsing
+      let amountIn: bigint = parseUnits(
+        (amountInText || "0").trim(),
+        tokenIn.decimals,
+      );
+
+      if (amountIn <= 0n) {
+        toast.error("Enter a valid positive deposit amount");
+        setSubmitting(false);
+        return;
+      }
+
+      const isETH = tokenIn.address === zeroAddress && tokenIn.id === 0n;
+
+      if (!isETH) {
+        // Ensure approvals if needed
+        await ensureApprovalIfNeeded(amountIn);
+      }
+
+      // (Optional) simulate for UX (coinId, lp)
+      try {
+        const sim = await publicClient.simulateContract({
+          abi: zICOAbi as any,
+          address: zICOAddress as `0x${string}`,
+          functionName: "createCoinWithPoolSimple",
+          args: [
+            tokenIn.address ?? zeroAddress,
+            tokenIn.id ?? 0n,
+            amountIn,
+            feeOrHook,
+            poolSupply,
+            creatorSupply,
+            tokenUri,
+          ],
+          account,
+          value: isETH ? amountIn : 0n,
+        });
+        // viem packs return tuple; accept either [coinId, lp] or object
+        const res: any = sim.result as any;
+        const predictedCoinId: bigint =
+          Array.isArray(res) && res.length >= 1
+            ? (res[0] as bigint)
+            : (res?.coinId as bigint);
+        if (predictedCoinId) setCoinId(predictedCoinId);
+      } catch {
+        // simulate might revert if external state required — continue anyway
+      }
+
+      // Send tx
+      await writeContractAsync({
+        abi: zICOAbi as any,
+        address: zICOAddress as `0x${string}`,
+        functionName: "createCoinWithPoolSimple",
+        args: [
+          tokenIn.address ?? zeroAddress,
+          tokenIn.id ?? 0n,
+          amountIn,
+          feeOrHook,
+          poolSupply,
+          creatorSupply,
+          tokenUri,
+        ],
+        value: isETH ? amountIn : undefined,
       });
 
       toast.success("Transaction submitted");
@@ -182,15 +434,35 @@ export const CreateCoinWizard: React.FC = () => {
     }
   };
 
+  const onSelectTokenA = useCallback((token: TokenMetadata) => {
+    setTokenIn(token);
+  }, []);
+
+  const buttonLabel =
+    addPoolOpen && !submitting && !isPending
+      ? "Create Token with Pool"
+      : submitting || isPending
+        ? "Creating…"
+        : "Create Token";
+
   return (
     <div className="mx-auto max-w-6xl p-4">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         {/* Big Live Preview */}
         <LivePreview
           coinId={liveCoinId?.toString()}
           form={form}
           imagePreviewUrl={imagePreviewUrl}
+          addPoolOpen={addPoolOpen}
+          poolPct={poolPct}
+          poolSupplyTokens={poolSupplyTokens}
+          creatorSupplyTokens={creatorSupplyTokens}
+          tokenIn={tokenIn}
+          amountInText={amountInText}
+          feeOrHook={feeOrHook}
+          isHook={isHook}
         />
+
         {/* Form */}
         <div>
           <div className="mb-4">
@@ -199,8 +471,10 @@ export const CreateCoinWizard: React.FC = () => {
               Set your token details, then deploy.
             </p>
           </div>
+
           <div>
-            <form onSubmit={onSubmit} className="space-y-4">
+            <div className="space-y-4">
+              {/* -------- Base token details -------- */}
               <div className="grid gap-2">
                 <Label htmlFor="name">Token name</Label>
                 <Input
@@ -283,6 +557,34 @@ export const CreateCoinWizard: React.FC = () => {
                 </p>
               </div>
 
+              {/* -------- Optional: Add a Pool -------- */}
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => setAddPoolOpen((v) => !v)}
+                  className="text-sm underline text-primary"
+                >
+                  {addPoolOpen ? "Remove pool" : "Add a pool"}
+                </button>
+              </div>
+
+              {addPoolOpen && (
+                <AddPoolForm
+                  tokenA={tokenIn}
+                  onSelectTokenA={onSelectTokenA}
+                  tokenB={userToken}
+                  poolPct={poolPct}
+                  setPoolPct={setPoolPct}
+                  poolSupplyTokens={poolSupplyTokens}
+                  creatorSupplyTokens={creatorSupplyTokens}
+                  amountIn={amountInText}
+                  setAmountIn={setAmountInText}
+                  feeOrHook={feeOrHook}
+                  setFeeOrHook={setFeeOrHook}
+                  isHook={isHook}
+                />
+              )}
+
               {!account && (
                 <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
                   <AlertTitle className="text-blue-800 dark:text-blue-200">
@@ -304,11 +606,11 @@ export const CreateCoinWizard: React.FC = () => {
               )}
 
               <Button
-                type="submit"
                 disabled={submitting || isPending || !account}
                 className="w-full"
+                onClick={onSubmit}
               >
-                {submitting || isPending ? "Creating…" : "Create Token"}
+                {buttonLabel}
               </Button>
 
               {hash && (
@@ -351,7 +653,7 @@ export const CreateCoinWizard: React.FC = () => {
                   </AlertDescription>
                 </Alert>
               )}
-            </form>
+            </div>
           </div>
         </div>
       </div>

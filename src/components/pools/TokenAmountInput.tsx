@@ -6,11 +6,15 @@ import { useTokenBalance } from "@/hooks/use-token-balance";
 import type { TokenMetadata } from "@/lib/pools";
 import { PercentageBlobs } from "@/components/ui/percentage-blobs";
 import { formatUnits } from "viem";
+import { TokenSelector } from "./TokenSelector";
 
 interface TokenAmountInputProps {
   token: TokenMetadata;
+  tokens?: TokenMetadata[];
+  locked?: boolean;
   amount: string;
   onAmountChange: (amount: string) => void;
+  onTokenSelect: (token: TokenMetadata) => void;
   className?: string;
   /** optional: hide the percentage pills even if balance is fetched */
   hidePercBlobs?: boolean;
@@ -26,8 +30,11 @@ interface TokenAmountInputProps {
  */
 export const TokenAmountInput: React.FC<TokenAmountInputProps> = ({
   token,
+  tokens = [],
+  locked = false,
   amount,
   onAmountChange,
+  onTokenSelect,
   className,
   hidePercBlobs,
   placeholder = "0",
@@ -50,7 +57,8 @@ export const TokenAmountInput: React.FC<TokenAmountInputProps> = ({
   }, [balance]);
 
   const hasFetched = !isLoading && !isFetching;
-  const hasBalance = hasFetched && formattedBalance && Number(formattedBalance) > 0;
+  const hasBalance =
+    hasFetched && formattedBalance && Number(formattedBalance) > 0;
 
   // Display helpers
   const formatForDisplay = (value?: string) => {
@@ -93,14 +101,33 @@ export const TokenAmountInput: React.FC<TokenAmountInputProps> = ({
   });
 
   return (
-    <div className={cn("group relative rounded-2xl border-2 bg-muted p-4 sm:p-5", className)}>
+    <div
+      className={cn(
+        "group relative rounded-2xl border-2 bg-muted p-4 sm:p-5",
+        className,
+      )}
+    >
       {/* Top-right token badge */}
-      <div className="pointer-events-none absolute right-4 top-4 flex items-center gap-2 sm:right-5 sm:top-5">
-        <div className="h-8 w-8 overflow-hidden rounded-full sm:h-9 sm:w-9">
-          <TokenImage imageUrl={token.imageUrl} symbol={token.symbol} />
+      {locked ? (
+        <div className="pointer-events-none absolute right-4 top-4 flex items-center gap-2 sm:right-5 sm:top-5">
+          <div className="h-8 w-8 overflow-hidden rounded-full sm:h-9 sm:w-9">
+            <TokenImage imageUrl={token.imageUrl} symbol={token.symbol} />
+          </div>
+          <span className="text-lg font-semibold sm:text-xl">
+            {token.symbol ?? "Token"}
+          </span>
         </div>
-        <span className="text-lg font-semibold sm:text-xl">{token.symbol ?? "Token"}</span>
-      </div>
+      ) : (
+        <div className="max-w-fit absolute right-4 top-4 flex items-center gap-2 sm:right-5 sm:top-5">
+          <TokenSelector
+            selectedToken={token}
+            tokens={tokens}
+            onSelect={onTokenSelect}
+            locked={locked}
+            className=""
+          />
+        </div>
+      )}
 
       {/* Big amount input */}
       <input
@@ -114,7 +141,7 @@ export const TokenAmountInput: React.FC<TokenAmountInputProps> = ({
       />
 
       {/* Bottom row: percentage pills on the left (hover), balance on the right */}
-      <div className="mt-4 flex items-center justify-between gap-3">
+      <div className="mt-8 flex items-center justify-between gap-3">
         {!hidePercBlobs && (
           <div
             className={cn(
@@ -140,13 +167,7 @@ export const TokenAmountInput: React.FC<TokenAmountInputProps> = ({
               {formatForDisplay(formattedBalance)} {token.symbol}
             </span>
           ) : (
-            <span className="inline-flex items-center gap-2">
-              <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" opacity=".25" />
-                <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="4" opacity=".75" fill="none" />
-              </svg>
-              Fetching balance…
-            </span>
+            <span className="inline-flex items-center gap-2">...</span>
           )}
         </div>
       </div>

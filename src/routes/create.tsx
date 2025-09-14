@@ -1,4 +1,4 @@
-import { CreateCoinWizard } from "@/components/create";
+import CreateCoinWizard from "@/components/create";
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/create")({
