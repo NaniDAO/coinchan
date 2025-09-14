@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { z } from "zod";
 import {
   useAccount,
@@ -28,70 +28,6 @@ import { AddPoolForm } from "./AddPoolForm";
 import { ETH_TOKEN, isFeeOrHook, TokenMetadata } from "@/lib/pools";
 import { SWAP_FEE } from "@/lib/swap";
 import { erc6909Abi } from "zrouter-sdk";
-import { TokenMeta } from "@/lib/coins";
-
-// -------- Minimal ABIs for approvals & metadata --------
-const ERC20_ABI = [
-  {
-    type: "function",
-    stateMutability: "view",
-    name: "decimals",
-    inputs: [],
-    outputs: [{ name: "", type: "uint8" }],
-  },
-  {
-    type: "function",
-    stateMutability: "view",
-    name: "symbol",
-    inputs: [],
-    outputs: [{ name: "", type: "string" }],
-  },
-  {
-    type: "function",
-    stateMutability: "view",
-    name: "allowance",
-    inputs: [
-      { name: "owner", type: "address" },
-      { name: "spender", type: "address" },
-    ],
-    outputs: [{ name: "", type: "uint256" }],
-  },
-  {
-    type: "function",
-    stateMutability: "nonpayable",
-    name: "approve",
-    inputs: [
-      { name: "spender", type: "address" },
-      { name: "amount", type: "uint256" },
-    ],
-    outputs: [{ name: "", type: "bool" }],
-  },
-] as const;
-
-const ERC6909_ABI = [
-  {
-    type: "function",
-    stateMutability: "view",
-    name: "allowance",
-    inputs: [
-      { name: "owner", type: "address" },
-      { name: "spender", type: "address" },
-      { name: "id", type: "uint256" },
-    ],
-    outputs: [{ name: "", type: "uint256" }],
-  },
-  {
-    type: "function",
-    stateMutability: "nonpayable",
-    name: "approve",
-    inputs: [
-      { name: "spender", type: "address" },
-      { name: "id", type: "uint256" },
-      { name: "amount", type: "uint256" },
-    ],
-    outputs: [],
-  },
-] as const;
 
 export type SimpleForm = {
   name: string;

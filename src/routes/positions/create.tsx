@@ -1,6 +1,5 @@
 import { CreatePoolStep, Stepper } from "@/components/pools/CreatePoolStepper";
 import { CreatePositionBreadcrumb } from "@/components/pools/CreatePositionBreadcrumb";
-import FeeSelector from "@/components/pools/FeeSelector";
 import { PoolHeaderCard } from "@/components/pools/PoolHeaderCard";
 import { ProtocolId, protocols } from "@/lib/protocol";
 import { ProtocolSelector } from "@/components/pools/ProtocolSelector";
@@ -37,7 +36,6 @@ import {
   Loader2Icon,
   CheckCircle2Icon,
   AlertCircleIcon,
-  InfoIcon,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatUnits, parseUnits } from "viem";
@@ -47,8 +45,6 @@ import {
   findTokenFlexible,
   isCanonicalTokenQ,
 } from "@/lib/token-query";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { FeeOrHookSelector } from "@/components/pools/FeeOrHookSelector";
 import { shortenUint } from "@/lib/math";
 
@@ -928,14 +924,18 @@ function RouteComponent() {
                         <TokenAmountInput
                           amount={amountA}
                           onAmountChange={onChangeAmountA}
+                          onTokenSelect={() => {}}
                           token={tokenA}
                           className="mb-1"
+                          locked={true}
                         />
 
                         <TokenAmountInput
                           amount={amountB}
                           onAmountChange={onChangeAmountB}
+                          onTokenSelect={() => {}}
                           token={tokenB}
+                          locked={true}
                         />
 
                         <Button
@@ -1031,14 +1031,18 @@ function RouteComponent() {
                       <TokenAmountInput
                         amount={amountA}
                         onAmountChange={onChangeAmountA}
+                        onTokenSelect={() => {}}
                         token={tokenA}
                         className="mb-1"
+                        locked={true}
                       />
 
                       <TokenAmountInput
                         amount={amountB}
                         onAmountChange={onChangeAmountB}
+                        onTokenSelect={() => {}}
                         token={tokenB}
+                        locked={true}
                       />
 
                       <Button

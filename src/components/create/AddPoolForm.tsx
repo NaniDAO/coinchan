@@ -1,11 +1,9 @@
 import { TokenMetadata } from "@/lib/pools";
-import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { useGetTokens } from "@/hooks/use-get-tokens";
 import { useAccount } from "wagmi";
 import { FeeOrHookSelector } from "../pools/FeeOrHookSelector";
-import { TokenSelector } from "../pools/TokenSelector";
-import { memo, useMemo } from "react";
+import { useMemo } from "react";
 import { TokenAmountInput } from "../pools/TokenAmountInput";
 import { Slider } from "../ui/slider";
 
