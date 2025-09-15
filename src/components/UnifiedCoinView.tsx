@@ -27,6 +27,8 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
     token: CookbookAddress,
   });
 
+  console.log("CoinData:", coinData);
+
   // Check for zCurve sale
   const { data: zcurveSale } = useZCurveSale(coinId.toString());
 

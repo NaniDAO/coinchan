@@ -45,14 +45,21 @@ import { SlippageSettings } from "../SlippageSettings";
 
 interface InstantTradeActionProps {
   locked?: boolean;
+  initialSellToken?: TokenMetadata;
+  initialBuyToken?: TokenMetadata;
 }
 
 export const InstantTradeAction = ({
   locked = false,
+  initialSellToken,
+  initialBuyToken,
 }: InstantTradeActionProps) => {
   const { sellToken, setSellToken, buyToken, setBuyToken, flip } = useTokenPair(
     {
-      initial: { sellToken: ETH_TOKEN, buyToken: ZAMM_TOKEN },
+      initial: {
+        sellToken: initialSellToken ?? ETH_TOKEN,
+        buyToken: initialBuyToken ?? ZAMM_TOKEN,
+      },
     },
   );
 
@@ -185,8 +192,8 @@ export const InstantTradeAction = ({
     setLastEditedField("buy");
   };
 
+  // SELL token can be changed even when locked
   const handleSellTokenSelect = (token: TokenMetadata) => {
-    if (locked) return;
     clearErrorsOnUserEdit();
     userChangedPairRef.current = true;
     setSellToken(token);
@@ -195,6 +202,7 @@ export const InstantTradeAction = ({
     setLastEditedField("sell");
   };
 
+  // BUY token cannot be changed when locked
   const handleBuyTokenSelect = (token: TokenMetadata) => {
     if (locked) return;
     clearErrorsOnUserEdit();
@@ -205,8 +213,8 @@ export const InstantTradeAction = ({
     setLastEditedField("buy");
   };
 
+  // Flipping is allowed even when locked
   const handleFlip = () => {
-    if (locked) return;
     clearErrorsOnUserEdit();
     userChangedPairRef.current = true;
     flip();
@@ -319,7 +327,13 @@ export const InstantTradeAction = ({
         calls,
         value,
         approvals,
-      }).catch(() => undefined);
+      });
+
+      console.log("Simulation result:", {
+        sim,
+        calls,
+        value,
+      });
 
       if (!sim) {
         setTxError("Failed to simulate route");
@@ -353,18 +367,11 @@ export const InstantTradeAction = ({
       if (receipt.status !== "success") throw new Error("Transaction failed");
       setTxHash(hash);
     } catch (err) {
+      console.error("Caught error:", err);
       const msg = handleWalletError(err);
       setTxError(msg || "Unexpected error while swapping");
     }
   };
-
-  // console.log("TradeAction:", {
-  //   sellToken,
-  //   buyToken,
-  //   sellAmount,
-  //   buyAmount,
-  //   quote,
-  // });
 
   return (
     <div>
@@ -376,15 +383,13 @@ export const InstantTradeAction = ({
           setLastEditedField("sell");
         }}
         currentSellToken={sellToken}
-        setSellToken={
-          locked
-            ? undefined
-            : (t) => {
-                clearErrorsOnUserEdit();
-                setSellToken(t);
-              }
-        }
+        // SELL token can always be changed
+        setSellToken={(t) => {
+          clearErrorsOnUserEdit();
+          setSellToken(t);
+        }}
         currentBuyToken={buyToken}
+        // BUY token setter disabled only when locked
         setBuyToken={
           locked
             ? undefined
@@ -416,12 +421,10 @@ export const InstantTradeAction = ({
             if (!sellToken?.balance) return;
             clearErrorsOnUserEdit();
             const decimals = sellToken.decimals ?? 18;
-            // If you need native-reserve logic, add a flag on TokenMetadata.
             syncFromSell(formatUnits(sellToken.balance as bigint, decimals));
           }}
           showPercentageSlider={hasSellBalance}
           className="pb-4 rounded-t-2xl"
-          readOnly={locked}
         />
 
         <div
@@ -434,11 +437,10 @@ export const InstantTradeAction = ({
           title={"Buy"}
           selectedToken={buyToken ?? undefined}
           tokens={tokens}
-          onSelect={handleBuyTokenSelect}
+          onSelect={locked ? () => {} : handleBuyTokenSelect} // lock only buy token selection
           amount={buyAmount}
           onAmountChange={syncFromBuy}
           className="pt-4 rounded-b-2xl"
-          readOnly={locked}
         />
       </div>
 

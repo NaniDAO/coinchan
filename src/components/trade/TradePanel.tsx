@@ -40,6 +40,7 @@ type TradePanelProps = {
 
   /** Disable input interaction */
   disabled?: boolean;
+  locked?: boolean;
 
   /** Loading state for the amount field */
   isLoading?: boolean;
@@ -70,6 +71,7 @@ export const TradePanel: React.FC<TradePanelProps> = ({
   isLoading = false,
   tokenUsdPrice,
   ariaLabel,
+  locked = false,
 }) => {
   const [percentage, setPercentage] = useState(0);
   const { data: ethPrice } = useETHPrice();
@@ -150,6 +152,7 @@ export const TradePanel: React.FC<TradePanelProps> = ({
             tokens={tokens}
             onSelect={onSelect}
             className="rounded-md relative z-30"
+            locked={locked}
           />
         </div>
       </div>

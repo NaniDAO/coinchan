@@ -123,6 +123,10 @@ export const TokenSelector = memo(
 
     const isDisabled = tokens.length <= 1 || locked;
 
+    useEffect(() => {
+      if (locked && open) setOpen(false);
+    }, [locked, open]);
+
     const handleSelect = (token: TokenMetadata) => {
       onSelect(token);
       addRecent(token);
@@ -181,10 +185,17 @@ export const TokenSelector = memo(
       });
     }, [items, query]);
 
+    console.log("TokenSelector:", {
+      selectedToken,
+      tokens,
+      locked,
+      isDisabled,
+    });
+
     return (
       <div className={cn("relative", className)}>
         <Dialog
-          open={open}
+          open={open && !locked}
           onOpenChange={(val) => {
             if (locked) return;
             setOpen(val);
