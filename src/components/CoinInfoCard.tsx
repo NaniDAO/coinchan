@@ -7,17 +7,17 @@ import { bpsToPct } from "@/lib/pools";
 
 interface CoinInfoCardProps {
   coinId: bigint;
-  name: string;
-  symbol: string;
+  name?: string;
+  symbol?: string;
   description: string;
-  imageUrl: string;
+  imageUrl?: string;
   swapFee: bigint[];
   isOwner: boolean;
   type: CoinSource;
   marketCapEth: number;
   marketCapUsd: number;
   isEthPriceData: boolean;
-  tokenURI: string;
+  tokenURI?: string;
   isLoading: boolean;
   isZCurveBonding?: boolean;
   zcurveFeeOrHook?: string;

@@ -11,7 +11,7 @@ import { ExternalLink } from "lucide-react";
 
 interface ZCurveHoldersListProps {
   coinId: string;
-  coinSymbol: string;
+  coinSymbol?: string;
 }
 
 interface Holder {
@@ -23,7 +23,15 @@ interface Holder {
 }
 
 // Component to display a single holder with ENS resolution
-function HolderRow({ holder, rank, coinSymbol }: { holder: Holder; rank: number; coinSymbol: string }) {
+function HolderRow({
+  holder,
+  rank,
+  coinSymbol,
+}: {
+  holder: Holder;
+  rank: number;
+  coinSymbol?: string;
+}) {
   const { data: ensName } = useEnsName({
     address: holder.address as `0x${string}`,
     chainId: mainnet.id,
@@ -41,7 +49,9 @@ function HolderRow({ holder, rank, coinSymbol }: { holder: Holder; rank: number;
   return (
     <div className="flex items-center gap-2 sm:gap-3 py-2 px-2 sm:px-3 hover:bg-muted/50 transition-colors">
       {/* Rank */}
-      <div className="w-6 sm:w-8 text-center font-mono text-xs sm:text-sm text-muted-foreground">{rank}</div>
+      <div className="w-6 sm:w-8 text-center font-mono text-xs sm:text-sm text-muted-foreground">
+        {rank}
+      </div>
 
       {/* Address with icon */}
       <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0">
@@ -56,7 +66,10 @@ function HolderRow({ holder, rank, coinSymbol }: { holder: Holder; rank: number;
           className="text-xs sm:text-sm font-mono hover:underline text-foreground truncate flex items-center gap-1 group"
           title="View on Etherscan"
         >
-          <span className="truncate">{ensName || `${holder.address.slice(0, 4)}...${holder.address.slice(-3)}`}</span>
+          <span className="truncate">
+            {ensName ||
+              `${holder.address.slice(0, 4)}...${holder.address.slice(-3)}`}
+          </span>
           <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 hidden sm:inline" />
         </a>
       </div>
@@ -67,7 +80,9 @@ function HolderRow({ holder, rank, coinSymbol }: { holder: Holder; rank: number;
           {formatBalance(holder.balance)}
           <span className="hidden sm:inline"> {coinSymbol}</span>
         </div>
-        <div className="text-[10px] sm:text-xs text-muted-foreground">{holder.percentOfSupply.toFixed(1)}%</div>
+        <div className="text-[10px] sm:text-xs text-muted-foreground">
+          {holder.percentOfSupply.toFixed(1)}%
+        </div>
       </div>
 
       {/* Trade counts - more compact on mobile */}
@@ -86,11 +101,17 @@ function HolderRow({ holder, rank, coinSymbol }: { holder: Holder; rank: number;
   );
 }
 
-export function ZCurveHoldersList({ coinId, coinSymbol }: ZCurveHoldersListProps) {
+export function ZCurveHoldersList({
+  coinId,
+  coinSymbol,
+}: ZCurveHoldersListProps) {
   const { t } = useTranslation();
 
   // Fetch all purchases and sells (increase limit to get all holders)
-  const { data: purchases, isLoading: purchasesLoading } = useZCurvePurchases(coinId, 1000);
+  const { data: purchases, isLoading: purchasesLoading } = useZCurvePurchases(
+    coinId,
+    1000,
+  );
   const { data: sells, isLoading: sellsLoading } = useZCurveSells(coinId, 1000);
 
   const isLoading = purchasesLoading || sellsLoading;
@@ -110,7 +131,11 @@ export function ZCurveHoldersList({ coinId, coinSymbol }: ZCurveHoldersListProps
     if (purchases) {
       purchases.forEach((purchase) => {
         const buyer = purchase.buyer.toLowerCase();
-        const current = balanceMap.get(buyer) || { balance: 0n, buyCount: 0, sellCount: 0 };
+        const current = balanceMap.get(buyer) || {
+          balance: 0n,
+          buyCount: 0,
+          sellCount: 0,
+        };
         balanceMap.set(buyer, {
           balance: current.balance + BigInt(purchase.coinsOut),
           buyCount: current.buyCount + 1,
@@ -123,7 +148,11 @@ export function ZCurveHoldersList({ coinId, coinSymbol }: ZCurveHoldersListProps
     if (sells) {
       sells.forEach((sell) => {
         const seller = sell.seller.toLowerCase();
-        const current = balanceMap.get(seller) || { balance: 0n, buyCount: 0, sellCount: 0 };
+        const current = balanceMap.get(seller) || {
+          balance: 0n,
+          buyCount: 0,
+          sellCount: 0,
+        };
         balanceMap.set(seller, {
           balance: current.balance - BigInt(sell.coinsIn),
           buyCount: current.buyCount,
@@ -152,7 +181,10 @@ export function ZCurveHoldersList({ coinId, coinSymbol }: ZCurveHoldersListProps
 
     // Second pass: calculate percentage of supply
     holdersArray.forEach((holder) => {
-      holder.percentOfSupply = totalSupply > 0n ? (Number(holder.balance) / Number(totalSupply)) * 100 : 0;
+      holder.percentOfSupply =
+        totalSupply > 0n
+          ? (Number(holder.balance) / Number(totalSupply)) * 100
+          : 0;
     });
 
     // Sort by balance descending
@@ -202,7 +234,12 @@ export function ZCurveHoldersList({ coinId, coinSymbol }: ZCurveHoldersListProps
       {/* Holders list */}
       <div className="max-h-[300px] sm:max-h-[400px] overflow-y-auto">
         {holders.map((holder, index) => (
-          <HolderRow key={holder.address} holder={holder} rank={index + 1} coinSymbol={coinSymbol} />
+          <HolderRow
+            key={holder.address}
+            holder={holder}
+            rank={index + 1}
+            coinSymbol={coinSymbol}
+          />
         ))}
       </div>
 
@@ -214,7 +251,9 @@ export function ZCurveHoldersList({ coinId, coinSymbol }: ZCurveHoldersListProps
         </div>
         <div className="flex justify-between mt-1">
           <span>{t("holders.total_trades", "Total trades")}</span>
-          <span className="font-mono">{(purchases?.length || 0) + (sells?.length || 0)}</span>
+          <span className="font-mono">
+            {(purchases?.length || 0) + (sells?.length || 0)}
+          </span>
         </div>
       </div>
     </div>

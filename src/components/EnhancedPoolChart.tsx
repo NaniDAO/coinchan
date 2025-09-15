@@ -1,4 +1,11 @@
-import { Suspense, useState, useEffect, useRef, lazy, useCallback } from "react";
+import {
+  Suspense,
+  useState,
+  useEffect,
+  useRef,
+  lazy,
+  useCallback,
+} from "react";
 import { CandlestickChartIcon, LineChartIcon } from "lucide-react";
 import { LoadingLogo } from "./ui/loading-logo";
 import { cn, formatEthAmount } from "@/lib/utils";
@@ -9,7 +16,7 @@ const PoolCandleChart = lazy(() => import("@/PoolCandleChart"));
 
 interface EnhancedPoolChartProps {
   poolId: string;
-  coinSymbol: string;
+  coinSymbol?: string;
   ethPrice?: {
     priceUSD: number;
   };
@@ -87,7 +94,10 @@ export const EnhancedPoolChart = ({
 
   if (!isStable) {
     return (
-      <div className="bg-card p-4 rounded-lg col-span-1 lg:col-span-7" style={chartContainerStyle}>
+      <div
+        className="bg-card p-4 rounded-lg col-span-1 lg:col-span-7"
+        style={chartContainerStyle}
+      >
         <div className="flex items-center justify-center h-[400px]">
           <LoadingLogo />
         </div>
@@ -96,7 +106,10 @@ export const EnhancedPoolChart = ({
   }
 
   return (
-    <div className="bg-card p-4 rounded-lg col-span-1 lg:col-span-7" ref={chartRef}>
+    <div
+      className="bg-card p-4 rounded-lg col-span-1 lg:col-span-7"
+      ref={chartRef}
+    >
       <div style={chartContainerStyle}>
         <Suspense
           fallback={
@@ -114,7 +127,12 @@ export const EnhancedPoolChart = ({
                 priceImpact={priceImpact}
               />
             ) : (
-              <PoolCandleChart poolId={poolId} interval="1d" ticker={coinSymbol} ethUsdPrice={ethPrice?.priceUSD} />
+              <PoolCandleChart
+                poolId={poolId}
+                interval="1d"
+                ticker={coinSymbol}
+                ethUsdPrice={ethPrice?.priceUSD}
+              />
             )}
           </div>
         </Suspense>
@@ -125,7 +143,9 @@ export const EnhancedPoolChart = ({
           onClick={() => handleChartTypeChange("candle")}
           className={cn(
             "h-8 px-2 sm:px-3 flex items-center justify-center transition-all",
-            chartType === "candle" ? "bg-primary !text-primary-foreground" : "bg-transparent hover:bg-muted",
+            chartType === "candle"
+              ? "bg-primary !text-primary-foreground"
+              : "bg-transparent hover:bg-muted",
           )}
           disabled={!isStable}
         >
@@ -135,7 +155,9 @@ export const EnhancedPoolChart = ({
           onClick={() => handleChartTypeChange("line")}
           className={cn(
             "h-8 px-2 sm:px-3 flex items-center justify-center transition-all",
-            chartType === "line" ? "bg-primary !text-primary-foreground" : "bg-transparent hover:bg-muted",
+            chartType === "line"
+              ? "bg-primary !text-primary-foreground"
+              : "bg-transparent hover:bg-muted",
           )}
           disabled={!isStable}
         >
@@ -161,15 +183,17 @@ export const EnhancedPoolChart = ({
           )}
         >
           <div className="flex items-center justify-between">
-            <span className="font-medium">Price Impact: {priceImpact.impactPercent.toFixed(2)}%</span>
+            <span className="font-medium">
+              Price Impact: {priceImpact.impactPercent.toFixed(2)}%
+            </span>
             <span className="text-xs">
-              {priceImpact.action === "buy" ? "Buying" : "Selling"} will move price{" "}
-              {priceImpact.action === "buy" ? "up" : "down"}
+              {priceImpact.action === "buy" ? "Buying" : "Selling"} will move
+              price {priceImpact.action === "buy" ? "up" : "down"}
             </span>
           </div>
           <div className="text-xs mt-1 opacity-80">
-            Current: {formatEthAmount(priceImpact.currentPrice)} ETH → After trade:{" "}
-            {formatEthAmount(priceImpact.projectedPrice)} ETH
+            Current: {formatEthAmount(priceImpact.currentPrice)} ETH → After
+            trade: {formatEthAmount(priceImpact.projectedPrice)} ETH
           </div>
         </div>
       )}

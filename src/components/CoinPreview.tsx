@@ -4,8 +4,8 @@ export const CoinPreview = ({
   coinId,
   isLoading,
 }: {
-  name: string;
-  symbol: string;
+  name?: string;
+  symbol?: string;
   coinId: bigint;
   isLoading: boolean;
 }) => {

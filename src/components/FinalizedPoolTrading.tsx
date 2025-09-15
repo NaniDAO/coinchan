@@ -43,8 +43,8 @@ interface FinalizedPoolTradingProps {
 
 function FinalizedPoolTradingInner({
   coinId,
-  coinName = "Token",
-  coinSymbol = "TOKEN",
+  coinName,
+  coinSymbol,
   coinIcon,
   poolId: providedPoolId,
 }: FinalizedPoolTradingProps) {
@@ -124,30 +124,43 @@ function FinalizedPoolTradingInner({
   });
 
   const token = useMemo<TokenMetadata | undefined>(() => {
-    if (coinSymbol === undefined && sale?.coin?.symbol === undefined) {
-      console.log("coin symbol loading");
+    const symbol = coinSymbol ?? sale?.coin?.symbol;
+    const name = coinName ?? sale?.coin?.name;
+    const imageUrl = coinIcon ?? sale?.coin?.imageUrl ?? "";
+
+    // Strictly bail if any required token fields aren't loaded yet
+    if (symbol === undefined || name === undefined || imageUrl === undefined)
       return undefined;
-    }
-    if (coinName === undefined && sale?.coin?.name === undefined) {
-      console.log("coin name loading");
-      return undefined;
-    }
-    if (coinIcon === undefined && sale?.coin?.imageUrl === undefined) {
-      console.log("coin icon loading");
+
+    // Safely parse id
+    if (coinId == null) return undefined;
+    let id: bigint;
+    try {
+      id = BigInt(coinId);
+    } catch {
       return undefined;
     }
 
     return {
-      id: BigInt(coinId),
+      id,
       address: CookbookAddress,
-      symbol: coinSymbol || sale?.coin?.symbol || "TOKEN",
-      name: coinName || sale?.coin?.name || "Token",
+      symbol,
+      name,
       decimals: 18,
-      imageUrl: coinIcon || sale?.coin?.imageUrl || "",
-      balance: userTokenBalance || 0n,
+      imageUrl,
+      balance: userTokenBalance ?? 0n,
       standard: "ERC6909",
     };
-  }, [coinId, coinSymbol, coinName, coinIcon, userTokenBalance]);
+  }, [
+    coinId,
+    coinSymbol,
+    coinName,
+    coinIcon,
+    sale?.coin?.symbol,
+    sale?.coin?.name,
+    sale?.coin?.imageUrl,
+    userTokenBalance,
+  ]);
 
   // Set tokens in context when tab changes
   React.useEffect(() => {

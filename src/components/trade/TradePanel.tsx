@@ -126,6 +126,10 @@ export const TradePanel: React.FC<TradePanelProps> = ({
     onPercentageChange?.(newPct);
   };
 
+  console.log("TradePanel", {
+    selectedToken,
+  });
+
   return (
     <div className={panelClass} aria-label={ariaLabel}>
       {/* Top row: title • % chips • token selector */}

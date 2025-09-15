@@ -5,7 +5,7 @@ import { formatImageURL } from "@/hooks/metadata";
 
 interface CoinImagePopupProps {
   imageUrl: string | null;
-  coinName: string;
+  coinName?: string;
   coinSymbol?: string;
   size?: "sm" | "md" | "lg";
   className?: string;

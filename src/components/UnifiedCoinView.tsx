@@ -38,15 +38,24 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
   // Extract coin data
   const [name, symbol, imageUrl, description, tokenURI, poolIds, swapFees] =
     useMemo(() => {
-      if (!coinData) return ["", "", "", "", "", undefined, [100n]];
+      if (!coinData)
+        return [
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          [100n],
+        ];
       const pools = coinData.pools.map((pool) => pool.poolId);
       const fees = coinData.pools.map((pool) => BigInt(pool.swapFee));
       return [
-        coinData.name || "",
-        coinData.symbol || "",
-        coinData.imageUrl || "",
-        coinData.description || "",
-        coinData.tokenURI || "",
+        coinData?.name,
+        coinData?.symbol,
+        coinData?.imageUrl,
+        coinData?.description,
+        coinData?.tokenURI,
         pools,
         fees,
       ];
