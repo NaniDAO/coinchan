@@ -568,7 +568,7 @@ export const CreateCoinWizard: React.FC = () => {
                           params={{
                             coinId: coinId.toString(),
                           }}
-                          className="font-mono hover:underline text-primary-foreground"
+                          className="font-mono hover:underline text-primary"
                         >
                           Coin {coinId.toString()} minted. View here.
                         </Link>
