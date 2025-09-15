@@ -95,13 +95,6 @@ export function useZRouterQuote({
   return useQuery<ZRouterQuoteResult>({
     queryKey,
     enabled: enabled ?? autoEnabled,
-    // run once, and don't try again automatically
-    retry: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    // don't mark as stale; same inputs -> never recompute until something changes
-    staleTime: Infinity,
-    gcTime: 15 * 60 * 1000, // keep for 15 mins; adjust if you want longer caching
     queryFn: async () => {
       // Safety guards (also protect against TS narrowing)
       if (!publicClient || !tokenIn || !tokenOut || !parsedAmount)

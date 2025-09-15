@@ -47,12 +47,6 @@ interface InstantTradeActionProps {
   locked?: boolean;
 }
 
-/**
- * InstantTradeAction (TokenMetadata version)
- * - Uses the new token selector (TradePanel) and TokenMetadata type
- * - Live estimates via useZRouterQuote, reflecting the opposite field
- * - Full send flow: approvals, route plan, simulate, and execute
- */
 export const InstantTradeAction = ({
   locked = false,
 }: InstantTradeActionProps) => {
@@ -331,8 +325,6 @@ export const InstantTradeAction = ({
         setTxError("Failed to simulate route");
         return;
       }
-
-      console.log("Simulation:", sim);
 
       // Execute (single call vs multicall)
       const hash = await sendTransactionAsync(

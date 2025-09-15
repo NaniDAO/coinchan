@@ -1,6 +1,6 @@
 import { CoinsAddress } from "@/constants/Coins";
 import { CookbookAddress } from "@/constants/Cookbook";
-import { Address } from "viem";
+import { Address, zeroAddress } from "viem";
 import { HARDCODED_ADDR, TokenMeta } from "./coins";
 import { TokenMetadata } from "./pools";
 
@@ -9,10 +9,14 @@ export function toZRouterToken(token?: TokenMeta | TokenMetadata) {
   if (!token) return undefined as any;
   if ((token as TokenMetadata)?.standard !== undefined) {
     // TokenMetadata type
+    const isETH =
+      (token as TokenMetadata).address === zeroAddress && token.id === 0n;
+
     return {
       address: (token as TokenMetadata).address,
-      id:
-        (token as TokenMetadata).id === 0n
+      id: isETH
+        ? 0n
+        : (token as TokenMetadata).id === 0n
           ? undefined
           : (token as TokenMetadata).id,
     };

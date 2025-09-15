@@ -389,7 +389,6 @@ export const CreateCoinWizard: React.FC = () => {
           coinId={liveCoinId?.toString()}
           form={form}
           imagePreviewUrl={imagePreviewUrl}
-          addPoolOpen={addPoolOpen}
           poolPct={poolPct}
           poolSupplyTokens={poolSupplyTokens}
           creatorSupplyTokens={creatorSupplyTokens}

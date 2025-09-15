@@ -82,7 +82,7 @@ export const AddPoolForm = ({
           className="mb-1 w-full"
         />
         <TokenAmountInput
-          amount={creatorSupplyTokens.toString()}
+          amount={poolSupplyTokens.toString()}
           onAmountChange={() => {}}
           onTokenSelect={() => {}}
           token={tokenB}
