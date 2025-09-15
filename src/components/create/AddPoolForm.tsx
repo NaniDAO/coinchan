@@ -48,8 +48,7 @@ export const AddPoolForm = ({
       <div>
         <div className="text-sm font-medium">Pool settings</div>
         <p className="text-xs text-muted-foreground">
-          We’ll mint your token, then create and seed a pool via{" "}
-          <span className="font-mono">zICO.createCoinWithPoolSimple</span>.
+          We’ll mint your token, then create and seed a pool.
         </p>
       </div>
 

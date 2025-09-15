@@ -1,6 +1,7 @@
 export const zICOAbi = [
   { inputs: [], stateMutability: "payable", type: "constructor" },
   { inputs: [], name: "BadLPBps", type: "error" },
+  { inputs: [], name: "Max96", type: "error" },
   { inputs: [], name: "NoStake", type: "error" },
   { inputs: [], name: "NotZ", type: "error" },
   { inputs: [], name: "Reentrancy", type: "error" },
@@ -8,6 +9,52 @@ export const zICOAbi = [
   { inputs: [], name: "StakeLocked", type: "error" },
   { inputs: [], name: "ZeroId", type: "error" },
   { inputs: [], name: "ZeroOut", type: "error" },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: false, internalType: "uint256", name: "id0", type: "uint256" },
+      { indexed: false, internalType: "uint256", name: "id1", type: "uint256" },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "token0",
+        type: "address",
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "token1",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "feeOrHook",
+        type: "uint256",
+      },
+    ],
+    name: "CreatePool",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "uint256",
+        name: "coinId",
+        type: "uint256",
+      },
+      {
+        indexed: false,
+        internalType: "bytes32",
+        name: "orderHash",
+        type: "bytes32",
+      },
+    ],
+    name: "MakeOrder",
+    type: "event",
+  },
   {
     anonymous: false,
     inputs: [
@@ -25,9 +72,9 @@ export const zICOAbi = [
       },
       {
         indexed: true,
-        internalType: "uint80",
+        internalType: "uint96",
         name: "ethRate",
-        type: "uint80",
+        type: "uint96",
       },
       {
         indexed: false,
@@ -59,7 +106,7 @@ export const zICOAbi = [
   {
     inputs: [
       { internalType: "address", name: "creator", type: "address" },
-      { internalType: "uint80", name: "ethRate", type: "uint80" },
+      { internalType: "uint96", name: "ethRate", type: "uint96" },
       { internalType: "uint16", name: "lpBps", type: "uint16" },
       { internalType: "uint256", name: "otcSupply", type: "uint256" },
       { internalType: "uint256", name: "creatorSupply", type: "uint256" },
@@ -77,7 +124,7 @@ export const zICOAbi = [
   {
     inputs: [
       { internalType: "address", name: "creator", type: "address" },
-      { internalType: "uint80", name: "ethRate", type: "uint80" },
+      { internalType: "uint96", name: "ethRate", type: "uint96" },
       { internalType: "uint16", name: "lpBps", type: "uint16" },
       { internalType: "uint256", name: "otcSupply", type: "uint256" },
       { internalType: "uint256", name: "feeOrHook", type: "uint256" },
@@ -167,7 +214,7 @@ export const zICOAbi = [
       {
         components: [
           { internalType: "address", name: "creator", type: "address" },
-          { internalType: "uint80", name: "ethRate", type: "uint80" },
+          { internalType: "uint96", name: "ethRate", type: "uint96" },
           { internalType: "uint16", name: "lpBps", type: "uint16" },
           { internalType: "uint256", name: "chefId", type: "uint256" },
           { internalType: "uint256", name: "feeOrHook", type: "uint256" },
@@ -191,7 +238,7 @@ export const zICOAbi = [
     name: "otcs",
     outputs: [
       { internalType: "address", name: "creator", type: "address" },
-      { internalType: "uint80", name: "ethRate", type: "uint80" },
+      { internalType: "uint96", name: "ethRate", type: "uint96" },
       { internalType: "uint16", name: "lpBps", type: "uint16" },
       { internalType: "uint256", name: "chefId", type: "uint256" },
       { internalType: "uint256", name: "feeOrHook", type: "uint256" },
@@ -222,4 +269,4 @@ export const zICOAbi = [
   { stateMutability: "payable", type: "receive" },
 ] as const;
 
-export const zICOAddress = "0x0000000000130864eb507738846ac97a2e657b0f";
+export const zICOAddress = "0x000000000069aa14fb673a86952eb0785f38911c";
