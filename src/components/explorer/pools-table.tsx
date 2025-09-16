@@ -21,13 +21,13 @@ import { Input } from "../ui/input";
 import { bpsToPct } from "@/lib/pools";
 import { encodeTokenQ } from "@/lib/token-query";
 import { Address } from "viem";
+import { formatDexscreenerStyle } from "@/lib/math";
 
 /* ---------------------- formatting helpers ---------------------- */
 const fmt2 = (n?: number | null) =>
-  n == null ? "—" : Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(n);
-
-const fmt6 = (n?: number | null) =>
-  n == null ? "—" : Intl.NumberFormat(undefined, { maximumFractionDigits: 6 }).format(n);
+  n == null
+    ? "—"
+    : Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(n);
 
 const fmtUSD = (n?: number | null, maxFrac: number = 2) =>
   n == null
@@ -38,12 +38,18 @@ const fmtUSD = (n?: number | null, maxFrac: number = 2) =>
         maximumFractionDigits: maxFrac,
       }).format(n);
 
-const fromEpoch = (s?: number | null) => (!s ? "—" : new Date(s * 1000).toLocaleString());
+const fromEpoch = (s?: number | null) =>
+  !s ? "—" : new Date(s * 1000).toLocaleString();
 
-const shortAddr = (a?: string | null, n = 6) => (!a ? "—" : `${a.slice(0, n)}…${a.slice(-4)}`);
+const shortAddr = (a?: string | null, n = 6) =>
+  !a ? "—" : `${a.slice(0, n)}…${a.slice(-4)}`;
 
 const ipfs = (u?: string | null) =>
-  !u ? null : u.startsWith("ipfs://") ? u.replace("ipfs://", "https://ipfs.io/ipfs/") : u;
+  !u
+    ? null
+    : u.startsWith("ipfs://")
+      ? u.replace("ipfs://", "https://ipfs.io/ipfs/")
+      : u;
 
 /* ----------- map table sorting -> API sortBy key (single sort) ----------- */
 function mapSortingToApi(s: SortingState): PoolSortBy {
@@ -70,7 +76,11 @@ type Props = {
   defaultHasLiquidity?: boolean;
 };
 
-export default function PoolsTable({ defaultPageSize = 100, rowHeight = 56, defaultHasLiquidity = true }: Props) {
+export default function PoolsTable({
+  defaultPageSize = 100,
+  rowHeight = 56,
+  defaultHasLiquidity = true,
+}: Props) {
   const navigate = useNavigate();
   const { data: ethUsdPrice } = useEthUsdPrice();
   const { data: activeIncentiveStreams } = useActiveIncentiveStreams();
@@ -83,7 +93,8 @@ export default function PoolsTable({ defaultPageSize = 100, rowHeight = 56, defa
     return Number.isFinite(n) && n > 0 ? n : null;
   }, [ethUsdPrice]);
 
-  const toUSD = (eth?: number | null): number | null => (eth == null || ethUsdRate == null ? null : eth * ethUsdRate);
+  const toUSD = (eth?: number | null): number | null =>
+    eth == null || ethUsdRate == null ? null : eth * ethUsdRate;
 
   // Create a map of poolId to active incentive count
   const activeIncentivesMap = useMemo(() => {
@@ -111,7 +122,8 @@ export default function PoolsTable({ defaultPageSize = 100, rowHeight = 56, defa
   }, [activeIncentiveStreams]);
 
   /* ------------------------------ filters ------------------------------ */
-  const [hasLiquidity, setHasLiquidity] = useState<boolean>(defaultHasLiquidity);
+  const [hasLiquidity, setHasLiquidity] =
+    useState<boolean>(defaultHasLiquidity);
 
   // search (debounced)
   const [query, setQuery] = useState("");
@@ -122,7 +134,9 @@ export default function PoolsTable({ defaultPageSize = 100, rowHeight = 56, defa
   }, [query]);
 
   // single-column sorting to align with keyset pagination
-  const [sorting, setSorting] = useState<SortingState>([{ id: "liquidityEth", desc: true }]);
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "liquidityEth", desc: true },
+  ]);
 
   const params = useMemo(() => {
     const sortBy = mapSortingToApi(sorting);
@@ -137,10 +151,21 @@ export default function PoolsTable({ defaultPageSize = 100, rowHeight = 56, defa
     };
   }, [debounced, sorting, defaultPageSize, hasLiquidity]);
 
-  const { data, hasNextPage, fetchNextPage, isFetching, isFetchingNextPage, refetch, status } = usePoolsTable(params);
+  const {
+    data,
+    hasNextPage,
+    fetchNextPage,
+    isFetching,
+    isFetchingNextPage,
+    refetch,
+    status,
+  } = usePoolsTable(params);
 
   // flatten pages
-  const rowsData: PoolTableItem[] = useMemo(() => (data?.pages ?? []).flatMap((p) => p.data), [data]);
+  const rowsData: PoolTableItem[] = useMemo(
+    () => (data?.pages ?? []).flatMap((p) => p.data),
+    [data],
+  );
 
   /* --------------------------- virtualization -------------------------- */
   const parentRef = useRef<HTMLDivElement | null>(null);
@@ -158,7 +183,13 @@ export default function PoolsTable({ defaultPageSize = 100, rowHeight = 56, defa
     if (last.index >= rowsData.length - 20) {
       fetchNextPage();
     }
-  }, [rowVirtualizer, rowsData.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [
+    rowVirtualizer,
+    rowsData.length,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  ]);
 
   /* ------------------------------- columns ----------------------------- */
   const columns = useMemo<ColumnDef<PoolTableItem>[]>(
@@ -207,7 +238,8 @@ export default function PoolsTable({ defaultPageSize = 100, rowHeight = 56, defa
       },
       {
         id: "priceInEth",
-        header: unit === "ETH" ? "Price (Ξ, base→quote)" : "Price ($, base→quote)",
+        header:
+          unit === "ETH" ? "Price (Ξ, base→quote)" : "Price ($, base→quote)",
         accessorKey: "priceInEth",
         cell: ({ getValue, row }) => {
           // price of token1 in ETH; USD converts with ETHUSD
@@ -216,14 +248,14 @@ export default function PoolsTable({ defaultPageSize = 100, rowHeight = 56, defa
           if (unit === "ETH") {
             return (
               <span className="tabular-nums">
-                1 {base} = Ξ{fmt6(eth)}
+                1 {base} = Ξ{formatDexscreenerStyle(eth ?? 0)}
               </span>
             );
           }
           const usd = toUSD(eth);
           return (
             <span className="tabular-nums">
-              1 {base} = {fmtUSD(usd, 6)}
+              1 {base} = {formatDexscreenerStyle(usd ?? 0)}
             </span>
           );
         },
@@ -251,7 +283,7 @@ export default function PoolsTable({ defaultPageSize = 100, rowHeight = 56, defa
           const poolId = row.original.poolId;
 
           // Use the active incentives count from our map, fallback to 0
-          const activeCount = poolId ? (activeIncentivesMap.get(poolId) || 0) : 0;
+          const activeCount = poolId ? activeIncentivesMap.get(poolId) || 0 : 0;
 
           if (activeCount === 0) {
             return <span className="text-xs text-muted-foreground">—</span>;
@@ -280,9 +312,13 @@ export default function PoolsTable({ defaultPageSize = 100, rowHeight = 56, defa
                 ? "bg-indigo-50 text-indigo-700 border-indigo-200"
                 : "bg-slate-50 text-slate-700 border-slate-200";
           // Display V0 for ZAMM, V1 for COOKBOOK
-          const displayLabel = s === "ZAMM" ? "V0" : s === "COOKBOOK" ? "V1" : s;
+          const displayLabel =
+            s === "ZAMM" ? "V0" : s === "COOKBOOK" ? "V1" : s;
           return (
-            <span className={`text-xs px-2 py-1 rounded border ${tone}`} title={`Contract source: ${s}`}>
+            <span
+              className={`text-xs px-2 py-1 rounded border ${tone}`}
+              title={`Contract source: ${s}`}
+            >
               {displayLabel}
             </span>
           );
@@ -303,7 +339,11 @@ export default function PoolsTable({ defaultPageSize = 100, rowHeight = 56, defa
               : ht === "POST"
                 ? "bg-purple-50 text-purple-700 border-purple-200"
                 : "bg-muted text-muted-foreground border-transparent";
-          return <span className={`text-xs px-2 py-1 rounded border ${tone}`}>{label}</span>;
+          return (
+            <span className={`text-xs px-2 py-1 rounded border ${tone}`}>
+              {label}
+            </span>
+          );
         },
         enableSorting: false,
         size: 90,
@@ -312,7 +352,9 @@ export default function PoolsTable({ defaultPageSize = 100, rowHeight = 56, defa
         id: "updatedAt",
         header: "Updated",
         accessorKey: "updatedAt",
-        cell: ({ getValue }) => <span className="tabular-nums">{fromEpoch(getValue<number>())}</span>,
+        cell: ({ getValue }) => (
+          <span className="tabular-nums">{fromEpoch(getValue<number>())}</span>
+        ),
         size: 180,
       },
     ],
@@ -352,7 +394,11 @@ export default function PoolsTable({ defaultPageSize = 100, rowHeight = 56, defa
             className={`px-3 py-1 text-sm ${unit === "USD" ? "bg-muted/60 font-medium" : "bg-background"}`}
             onClick={() => setUnit("USD")}
             aria-pressed={unit === "USD"}
-            title={ethUsdRate == null ? "ETH→USD rate not loaded yet" : `Using ${fmtUSD(ethUsdRate, 2)} per ETH`}
+            title={
+              ethUsdRate == null
+                ? "ETH→USD rate not loaded yet"
+                : `Using ${fmtUSD(ethUsdRate, 2)} per ETH`
+            }
           >
             USD
           </button>
@@ -360,7 +406,11 @@ export default function PoolsTable({ defaultPageSize = 100, rowHeight = 56, defa
 
         {/* hasLiquidity filter */}
         <label className="flex items-center gap-2 text-sm select-none">
-          <input type="checkbox" checked={hasLiquidity} onChange={(e) => setHasLiquidity(e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={hasLiquidity}
+            onChange={(e) => setHasLiquidity(e.target.checked)}
+          />
           Only pools with liquidity
         </label>
 
@@ -409,7 +459,10 @@ export default function PoolsTable({ defaultPageSize = 100, rowHeight = 56, defa
                 onClick={header.column.getToggleSortingHandler()}
               >
                 <div className="flex items-center gap-1">
-                  {flexRender(header.column.columnDef.header, header.getContext())}
+                  {flexRender(
+                    header.column.columnDef.header,
+                    header.getContext(),
+                  )}
                   {(() => {
                     const dir = header.column.getIsSorted();
                     return dir ? ({ asc: "↑", desc: "↓" } as const)[dir] : null;
@@ -436,22 +489,30 @@ export default function PoolsTable({ defaultPageSize = 100, rowHeight = 56, defa
               const tokenAParam = pool?.token0
                 ? encodeTokenQ({
                     address: pool.token0 as Address,
-                    id: typeof pool.coin0.id === "bigint" ? pool.coin0.id : BigInt(pool.coin0.id ?? "0"),
+                    id:
+                      typeof pool.coin0.id === "bigint"
+                        ? pool.coin0.id
+                        : BigInt(pool.coin0.id ?? "0"),
                   })
                 : undefined;
 
               const tokenBParam = pool?.token1
                 ? encodeTokenQ({
                     address: pool.token1 as Address,
-                    id: typeof pool.coin1.id === "bigint" ? pool.coin1.id : BigInt(pool.coin1.id ?? "0"),
+                    id:
+                      typeof pool.coin1.id === "bigint"
+                        ? pool.coin1.id
+                        : BigInt(pool.coin1.id ?? "0"),
                   })
                 : undefined;
 
               // v0 pools use swapFee, v1 pools use feeOrHook
-              const feeParam = pool?.source === "ZAMM"
-                ? String(pool.swapFee)
-                : String(pool.feeOrHook || pool.swapFee);
-              const protocolParam = pool?.source === "ZAMM" ? "ZAMMV0" : "ZAMMV1";
+              const feeParam =
+                pool?.source === "ZAMM"
+                  ? String(pool.swapFee)
+                  : String(pool.feeOrHook || pool.swapFee);
+              const protocolParam =
+                pool?.source === "ZAMM" ? "ZAMMV0" : "ZAMMV1";
 
               return (
                 <div
@@ -481,7 +542,10 @@ export default function PoolsTable({ defaultPageSize = 100, rowHeight = 56, defa
                 >
                   {row.getVisibleCells().map((cell) => (
                     <div key={cell.id} className="px-3 py-2 text-sm">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
                     </div>
                   ))}
                 </div>
@@ -496,8 +560,17 @@ export default function PoolsTable({ defaultPageSize = 100, rowHeight = 56, defa
             {status === "pending" ? "Loading…" : `${rowsData.length} rows`}
             {isFetching ? " • refreshing…" : ""}
           </div>
-          <div>{hasNextPage ? (isFetchingNextPage ? "Loading more…" : "Scroll to load more") : "End of list"}</div>
-          <button className="px-2 py-1 border rounded" onClick={() => refetch()}>
+          <div>
+            {hasNextPage
+              ? isFetchingNextPage
+                ? "Loading more…"
+                : "Scroll to load more"
+              : "End of list"}
+          </div>
+          <button
+            className="px-2 py-1 border rounded"
+            onClick={() => refetch()}
+          >
             Refresh
           </button>
         </div>
