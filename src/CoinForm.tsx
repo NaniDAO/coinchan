@@ -5,7 +5,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Textarea } from "@/components/ui/textarea";
 import { handleWalletError, isUserRejectionError } from "@/lib/errors";
 import { pinImageToPinata, pinJsonToPinata } from "@/lib/pinata";
-import { Link } from "@tanstack/react-router";
 import confetti from "canvas-confetti";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
