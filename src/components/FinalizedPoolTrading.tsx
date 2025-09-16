@@ -10,12 +10,19 @@ import { ZCurveClaim } from "@/components/ZCurveClaim";
 import { useETHPrice } from "@/hooks/use-eth-price";
 import { ZCurveAddLiquidity } from "@/components/ZCurveAddLiquidity";
 import { ZCurveRemoveLiquidity } from "@/components/ZCurveRemoveLiquidity";
-import { TokenSelectionProvider, useTokenSelection } from "@/contexts/TokenSelectionContext";
+import {
+  TokenSelectionProvider,
+  useTokenSelection,
+} from "@/contexts/TokenSelectionContext";
 import { useTheme } from "@/lib/theme";
 import { getEthereumIconDataUri } from "@/components/EthereumIcon";
 
 import type { TokenMeta } from "@/lib/coins";
-import { useZCurveSale, useZCurveSaleSummary, useZCurveBalance } from "@/hooks/use-zcurve-sale";
+import {
+  useZCurveSale,
+  useZCurveSaleSummary,
+  useZCurveBalance,
+} from "@/hooks/use-zcurve-sale";
 import { computeZCurvePoolId } from "@/lib/zCurvePoolId";
 import { useReserves } from "@/hooks/use-reserves";
 import { formatNumber } from "@/lib/utils";
@@ -43,7 +50,6 @@ const useCoinTotalSupply = (coinId: string, reserves?: any) => {
     queryKey: ["coinTotalSupply", coinId, reserves?.reserve1?.toString()],
     queryFn: async () => {
       try {
-
         // Fetch ALL holder balances (no limit to ensure we get all)
         let allHolders: any[] = [];
         let offset = 0;
@@ -52,7 +58,7 @@ const useCoinTotalSupply = (coinId: string, reserves?: any) => {
 
         while (hasMore) {
           const response = await fetch(
-            `${import.meta.env.VITE_INDEXER_URL}/api/holders?coinId=${coinId}&limit=${limit}&offset=${offset}`
+            `${import.meta.env.VITE_INDEXER_URL}/api/holders?coinId=${coinId}&limit=${limit}&offset=${offset}`,
           );
 
           if (!response.ok) {
@@ -72,7 +78,6 @@ const useCoinTotalSupply = (coinId: string, reserves?: any) => {
           }
         }
 
-
         // Sum all holder balances
         let totalFromHolders = 0n;
         for (const holder of allHolders) {
@@ -81,7 +86,7 @@ const useCoinTotalSupply = (coinId: string, reserves?: any) => {
 
         // For cookbook coins, add pool reserves if not already counted
         const cookbookHolder = allHolders.find(
-          (h: any) => h.address.toLowerCase() === CookbookAddress.toLowerCase()
+          (h: any) => h.address.toLowerCase() === CookbookAddress.toLowerCase(),
         );
 
         if (reserves?.reserve1) {
@@ -155,7 +160,6 @@ function FinalizedPoolTradingInner({
 
   // Calculate total supply - using the same reliable method
   const actualTotalSupply = useMemo(() => {
-
     // If totalSupply is provided as a prop, use it
     if (totalSupply && totalSupply > 0n) {
       return totalSupply;
@@ -223,7 +227,8 @@ function FinalizedPoolTradingInner({
     const imageUrl = coinIcon ?? sale?.coin?.imageUrl ?? "";
 
     // Strictly bail if any required token fields aren't loaded yet
-    if (symbol === undefined || name === undefined || imageUrl === undefined) return undefined;
+    if (symbol === undefined || name === undefined || imageUrl === undefined)
+      return undefined;
 
     // Safely parse id
     if (coinId == null) return undefined;
@@ -234,6 +239,8 @@ function FinalizedPoolTradingInner({
       return undefined;
     }
 
+    if (!userTokenBalance) return undefined;
+
     return {
       id,
       address: CookbookAddress,
@@ -241,7 +248,7 @@ function FinalizedPoolTradingInner({
       name,
       decimals: 18,
       imageUrl,
-      balance: userTokenBalance ?? 0n,
+      balance: userTokenBalance,
       standard: "ERC6909",
     };
   }, [
@@ -275,7 +282,9 @@ function FinalizedPoolTradingInner({
     return (
       <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         <Alert>
-          <AlertDescription>{t("trade.pool_not_found", "Pool not found")}</AlertDescription>
+          <AlertDescription>
+            {t("trade.pool_not_found", "Pool not found")}
+          </AlertDescription>
         </Alert>
       </div>
     );
@@ -306,47 +315,50 @@ function FinalizedPoolTradingInner({
   };
 
   // Calculate market cap and price
-  const { coinPrice, coinUsdPrice, marketCapUsd, marketCapEth } = useMemo(() => {
-    if (!reserves || reserves.reserve0 === 0n || reserves.reserve1 === 0n) {
-      console.warn("No reserves available for pool:", poolId, reserves);
+  const { coinPrice, coinUsdPrice, marketCapUsd, marketCapEth } =
+    useMemo(() => {
+      if (!reserves || reserves.reserve0 === 0n || reserves.reserve1 === 0n) {
+        console.warn("No reserves available for pool:", poolId, reserves);
+        return {
+          coinPrice: 0,
+          coinUsdPrice: 0,
+          marketCapUsd: 0,
+          marketCapEth: 0,
+        };
+      }
+
+      // Price = ETH reserve / Token reserve (ETH is token0/reserve0)
+      const ethReserve = Number(formatEther(reserves.reserve0));
+      const tokenReserve = Number(formatUnits(reserves.reserve1, 18));
+
+      if (tokenReserve === 0) {
+        console.warn("Token reserve is 0");
+        return {
+          coinPrice: 0,
+          coinUsdPrice: 0,
+          marketCapUsd: 0,
+          marketCapEth: 0,
+        };
+      }
+
+      const price = ethReserve / tokenReserve;
+      const usdPrice = price * (ethPrice?.priceUSD || 0);
+
+      // Use actual total supply from the indexer (in wei, so format it)
+      // Never fall back to a hardcoded value - show N/A if not available
+      const supply = actualTotalSupply
+        ? Number(formatEther(actualTotalSupply))
+        : null;
+      const marketCapInEth = supply ? price * supply : 0;
+      const marketCap = supply ? usdPrice * supply : 0;
+
       return {
-        coinPrice: 0,
-        coinUsdPrice: 0,
-        marketCapUsd: 0,
-        marketCapEth: 0,
+        coinPrice: price,
+        coinUsdPrice: usdPrice,
+        marketCapUsd: marketCap,
+        marketCapEth: marketCapInEth,
       };
-    }
-
-    // Price = ETH reserve / Token reserve (ETH is token0/reserve0)
-    const ethReserve = Number(formatEther(reserves.reserve0));
-    const tokenReserve = Number(formatUnits(reserves.reserve1, 18));
-
-    if (tokenReserve === 0) {
-      console.warn("Token reserve is 0");
-      return {
-        coinPrice: 0,
-        coinUsdPrice: 0,
-        marketCapUsd: 0,
-        marketCapEth: 0,
-      };
-    }
-
-    const price = ethReserve / tokenReserve;
-    const usdPrice = price * (ethPrice?.priceUSD || 0);
-
-    // Use actual total supply from the indexer (in wei, so format it)
-    // Never fall back to a hardcoded value - show N/A if not available
-    const supply = actualTotalSupply ? Number(formatEther(actualTotalSupply)) : null;
-    const marketCapInEth = supply ? price * supply : 0;
-    const marketCap = supply ? usdPrice * supply : 0;
-
-    return {
-      coinPrice: price,
-      coinUsdPrice: usdPrice,
-      marketCapUsd: marketCap,
-      marketCapEth: marketCapInEth,
-    };
-  }, [reserves, ethPrice?.priceUSD, poolId, actualTotalSupply]);
+    }, [reserves, ethPrice?.priceUSD, poolId, actualTotalSupply]);
 
   return (
     <div>
@@ -403,17 +415,27 @@ function FinalizedPoolTradingInner({
 
           <TabsContent value="swap" className="mt-4">
             {/* Swap Section - Desktop: Right, Mobile: Top */}
-            <div className="w-full">{token ? <LockedSwapTile token={token} /> : <div>loading...</div>}</div>
+            <div className="w-full">
+              {token ? <LockedSwapTile token={token} /> : <div>loading...</div>}
+            </div>
           </TabsContent>
           <TabsContent value="add" className="mt-4">
             <div className="w-full">
-              <ZCurveAddLiquidity coinId={coinId} poolId={poolId} feeOrHook={actualFee} />
+              <ZCurveAddLiquidity
+                coinId={coinId}
+                poolId={poolId}
+                feeOrHook={actualFee}
+              />
             </div>
           </TabsContent>
           <TabsContent value="remove" className="mt-4">
             <div className="w-full">
               {/* Remove Liquidity Form */}
-              <ZCurveRemoveLiquidity coinId={coinId} poolId={poolId} feeOrHook={actualFee} />
+              <ZCurveRemoveLiquidity
+                coinId={coinId}
+                poolId={poolId}
+                feeOrHook={actualFee}
+              />
             </div>
           </TabsContent>
         </Tabs>
@@ -430,7 +452,9 @@ function FinalizedPoolTradingInner({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-4 sm:mb-6">
           {/* Price */}
           <div>
-            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1 sm:mb-2">Price</div>
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1 sm:mb-2">
+              Price
+            </div>
             <div className="font-semibold text-sm sm:text-base lg:text-lg">
               {reserves && coinPrice > 0
                 ? coinPrice < 1e-15
@@ -504,7 +528,9 @@ function FinalizedPoolTradingInner({
               )}
             </div>
             <div className="text-xs text-muted-foreground">
-              {actualTotalSupply ? `${formatNumber(Number(formatEther(actualTotalSupply)), 0)} supply` : "Supply data loading..."}
+              {actualTotalSupply
+                ? `${formatNumber(Number(formatEther(actualTotalSupply)), 0)} supply`
+                : "Supply data loading..."}
             </div>
           </div>
 
@@ -525,7 +551,10 @@ function FinalizedPoolTradingInner({
               {coinSymbol} Liquidity
             </div>
             <div className="font-semibold text-sm sm:text-base lg:text-lg">
-              {formatNumber(Number(formatUnits(reserves?.reserve1 || 0n, 18)), 0)}
+              {formatNumber(
+                Number(formatUnits(reserves?.reserve1 || 0n, 18)),
+                0,
+              )}
             </div>
             <div className="text-xs text-muted-foreground flex items-center gap-1">
               {coinSymbol}
@@ -539,7 +568,9 @@ function FinalizedPoolTradingInner({
         {/* Technical Details - Minimalist */}
         <details className="group pt-4">
           <summary className="flex items-center justify-between cursor-pointer py-2 hover:text-primary transition-colors">
-            <span className="text-sm font-medium text-muted-foreground">Technical Details</span>
+            <span className="text-sm font-medium text-muted-foreground">
+              Technical Details
+            </span>
             <ChevronDown className="h-4 w-4 text-muted-foreground group-open:rotate-180 transition-transform" />
           </summary>
           <div className="mt-3 space-y-2 text-sm">

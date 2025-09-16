@@ -22,6 +22,7 @@ import { bpsToPct } from "@/lib/pools";
 import { encodeTokenQ } from "@/lib/token-query";
 import { Address } from "viem";
 import { formatDexscreenerStyle } from "@/lib/math";
+import { formatImageURL } from "@/hooks/metadata";
 
 /* ---------------------- formatting helpers ---------------------- */
 const fmt2 = (n?: number | null) =>
@@ -43,13 +44,6 @@ const fromEpoch = (s?: number | null) =>
 
 const shortAddr = (a?: string | null, n = 6) =>
   !a ? "—" : `${a.slice(0, n)}…${a.slice(-4)}`;
-
-const ipfs = (u?: string | null) =>
-  !u
-    ? null
-    : u.startsWith("ipfs://")
-      ? u.replace("ipfs://", "https://ipfs.io/ipfs/")
-      : u;
 
 /* ----------- map table sorting -> API sortBy key (single sort) ----------- */
 function mapSortingToApi(s: SortingState): PoolSortBy {
@@ -199,10 +193,17 @@ export default function PoolsTable({
         header: "Pair",
         cell: ({ row }) => {
           const r = row.original;
-          const img1 = ipfs(r.coin1.imageUrl);
-          const img0 = ipfs(r.coin0.imageUrl);
+          const img1 = formatImageURL(r.coin1.imageUrl);
+          const img0 = formatImageURL(r.coin0.imageUrl);
           const sym1 = r.coin1.symbol ?? shortAddr(r.coin1.address);
           const sym0 = r.coin0.symbol ?? shortAddr(r.coin0.address);
+
+          if ((!img1 || !sym1) && row.original.source === "COOKBOOK") {
+            console.log("MISSING METADATA:", {
+              r,
+            });
+          }
+
           return (
             <div className="flex items-center gap-3 min-w-0">
               <div className="relative w-9 h-7">
