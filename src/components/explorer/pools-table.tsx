@@ -15,10 +15,12 @@ import { useEthUsdPrice } from "@/hooks/use-eth-usd-price";
 import { useActiveIncentiveStreams } from "@/hooks/use-incentive-streams";
 import { PoolTokenImage } from "../PoolTokenImage";
 import { buttonVariants } from "../ui/button";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { Input } from "../ui/input";
 import { bpsToPct } from "@/lib/pools";
+import { encodeTokenQ } from "@/lib/token-query";
+import { Address } from "viem";
 
 /* ---------------------- formatting helpers ---------------------- */
 const fmt2 = (n?: number | null) =>
@@ -69,6 +71,7 @@ type Props = {
 };
 
 export default function PoolsTable({ defaultPageSize = 100, rowHeight = 56, defaultHasLiquidity = true }: Props) {
+  const navigate = useNavigate();
   const { data: ethUsdPrice } = useEthUsdPrice();
   const { data: activeIncentiveStreams } = useActiveIncentiveStreams();
 
@@ -427,10 +430,33 @@ export default function PoolsTable({ defaultPageSize = 100, rowHeight = 56, defa
           >
             {rowVirtualizer.getVirtualItems().map((vi) => {
               const row = table.getRowModel().rows[vi.index];
+              const pool = row.original;
+
+              // Build navigation params for this pool
+              const tokenAParam = pool?.token0
+                ? encodeTokenQ({
+                    address: pool.token0 as Address,
+                    id: typeof pool.coin0.id === "bigint" ? pool.coin0.id : BigInt(pool.coin0.id ?? "0"),
+                  })
+                : undefined;
+
+              const tokenBParam = pool?.token1
+                ? encodeTokenQ({
+                    address: pool.token1 as Address,
+                    id: typeof pool.coin1.id === "bigint" ? pool.coin1.id : BigInt(pool.coin1.id ?? "0"),
+                  })
+                : undefined;
+
+              // v0 pools use swapFee, v1 pools use feeOrHook
+              const feeParam = pool?.source === "ZAMM"
+                ? String(pool.swapFee)
+                : String(pool.feeOrHook || pool.swapFee);
+              const protocolParam = pool?.source === "ZAMM" ? "ZAMMV0" : "ZAMMV1";
+
               return (
                 <div
                   key={row.id}
-                  className="grid items-center border-b"
+                  className="grid items-center border-b hover:bg-muted/50 cursor-pointer transition-colors"
                   style={{
                     position: "absolute",
                     transform: `translateY(${vi.start}px)`,
@@ -440,6 +466,17 @@ export default function PoolsTable({ defaultPageSize = 100, rowHeight = 56, defa
                       .getFlatHeaders()
                       .map((h) => `${h.getSize()}px`)
                       .join(" "),
+                  }}
+                  onClick={() => {
+                    navigate({
+                      to: "/positions/create",
+                      search: {
+                        tokenA: tokenAParam,
+                        tokenB: tokenBParam,
+                        ...(feeParam ? { fee: feeParam } : {}),
+                        ...(protocolParam ? { protocol: protocolParam } : {}),
+                      },
+                    });
                   }}
                 >
                   {row.getVisibleCells().map((cell) => (
