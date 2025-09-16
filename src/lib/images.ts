@@ -1,5 +1,4 @@
-export const getInitials = (symbol?: string) =>
-  symbol?.slice(0, 2).toUpperCase() ?? "";
+export const getInitials = (symbol?: string) => symbol?.slice(0, 2).toUpperCase() ?? "";
 
 export const getColorForSymbol = (symbol?: string) => {
   const symbolKey = symbol?.toLowerCase() ?? "";

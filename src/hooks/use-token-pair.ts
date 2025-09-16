@@ -17,13 +17,9 @@ export function useTokenPair(opts: UseTokenPairOptions = {}) {
   // keep original initial stable
   const initialRef = useRef(initial);
 
-  const [sellToken, setSellToken] = useState<TokenMetadata | undefined>(
-    initial?.sellToken,
-  );
+  const [sellToken, setSellToken] = useState<TokenMetadata | undefined>(initial?.sellToken);
 
-  const [buyToken, setBuyToken] = useState<TokenMetadata | null | undefined>(
-    initial?.buyToken ?? null,
-  );
+  const [buyToken, setBuyToken] = useState<TokenMetadata | null | undefined>(initial?.buyToken ?? null);
 
   // Notify external listeners
   useEffect(() => {

@@ -4,11 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PercentageBlobs } from "@/components/ui/percentage-blobs";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { ZAMMLaunchAbi, ZAMMLaunchAddress } from "@/constants/ZAMMLaunch";
 import { useReserves } from "@/hooks/use-reserves";
@@ -27,18 +23,17 @@ import { nowSec, formatNumber } from "@/lib/utils";
 import { useMemo, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
-import {
-  useAccount,
-  useBalance,
-  useReadContracts,
-  useWaitForTransactionReceipt,
-  useWriteContract,
-} from "wagmi";
+import { useAccount, useBalance, useReadContracts, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { useGetCoin } from "@/hooks/metadata/use-get-coin";
 import PoolPriceChart from "@/components/PoolPriceChart";
-import { ChevronDownIcon } from "lucide-react";
+import { ChevronDownIcon, Plus, Minus, Zap } from "lucide-react";
+import { AddLiquidity } from "@/AddLiquidity";
+import { RemoveLiquidity } from "@/RemoveLiquidity";
+import { SingleEthLiquidity } from "@/SingleEthLiquidity";
+import { TokenSelectionProvider, useTokenSelection } from "@/contexts/TokenSelectionContext";
+import { ETH_TOKEN, type TokenMeta } from "@/lib/coins";
 
-export const BuySellCookbookCoin = ({
+const BuySellCookbookCoinInner = ({
   coinId,
   symbol,
   onPriceImpactChange,
@@ -57,7 +52,8 @@ export const BuySellCookbookCoin = ({
   hideZAMMLaunchClaim?: boolean;
 }) => {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<"buy" | "sell">("buy");
+  const [tab, setTab] = useState<"buy" | "sell" | "add" | "remove">("buy");
+  const [liquiditySubTab, setLiquiditySubTab] = useState<"dual" | "zap">("dual");
   const [amount, setAmount] = useState("");
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -88,10 +84,7 @@ export const BuySellCookbookCoin = ({
     return SWAP_FEE;
   }, [coinData]);
 
-  const poolId = useMemo(
-    () => computePoolId(coinId, actualSwapFee, CookbookAddress),
-    [coinId, actualSwapFee],
-  );
+  const poolId = useMemo(() => computePoolId(coinId, actualSwapFee, CookbookAddress), [coinId, actualSwapFee]);
 
   const { address, isConnected } = useAccount();
   const { writeContractAsync, isPending } = useWriteContract();
@@ -104,6 +97,9 @@ export const BuySellCookbookCoin = ({
   const { data: ethBalance } = useBalance({
     address: address,
   });
+
+  // Token selection for liquidity operations
+  const { setSellToken, setBuyToken } = useTokenSelection();
 
   // Batch multiple contract reads for better performance
   const { data: contractData } = useReadContracts({
@@ -137,18 +133,49 @@ export const BuySellCookbookCoin = ({
   // Check if claim is available (sale finalized on-chain and user has balance)
   const canClaim = useMemo(() => {
     // Sale is finalized when creator is address(0) in contract
-    const isFinalized =
-      saleData && saleData[0] === "0x0000000000000000000000000000000000000000";
-    return (
-      isFinalized &&
-      launchpadBalance &&
-      BigInt(launchpadBalance.toString()) > 0n
-    );
+    const isFinalized = saleData && saleData[0] === "0x0000000000000000000000000000000000000000";
+    return isFinalized && launchpadBalance && BigInt(launchpadBalance.toString()) > 0n;
   }, [saleData, launchpadBalance]);
 
-  const claimableAmount = launchpadBalance
-    ? formatUnits(BigInt(launchpadBalance.toString()), 18)
-    : "0";
+  const claimableAmount = launchpadBalance ? formatUnits(BigInt(launchpadBalance.toString()), 18) : "0";
+
+  // Create token metadata for liquidity operations
+  const ethToken = useMemo<TokenMeta>(
+    () => ({
+      ...ETH_TOKEN,
+      balance: ethBalance?.value || 0n,
+      reserve0: reserves?.reserve0 || 0n,
+      reserve1: reserves?.reserve1 || 0n,
+    }),
+    [ethBalance, reserves],
+  );
+
+  const cookbookToken = useMemo<TokenMeta>(
+    () => ({
+      id: coinId,
+      name: coinData?.name || symbol || "Unknown",
+      symbol: symbol || "?",
+      decimals: 18,
+      balance: coinBalance || 0n,
+      reserve0: reserves?.reserve0 || 0n,
+      reserve1: reserves?.reserve1 || 0n,
+      poolId: poolId,
+      poolKey: computePoolKey(coinId, actualSwapFee, CookbookAddress) as any,
+      swapFee: actualSwapFee,
+      token0: "0x0000000000000000000000000000000000000000" as `0x${string}`,
+      token1: CookbookAddress,
+      source: "COOKBOOK" as const,
+    }),
+    [coinId, coinData, symbol, coinBalance, reserves, poolId, actualSwapFee],
+  );
+
+  // Set tokens when switching to liquidity tabs
+  useEffect(() => {
+    if (tab === "add" || tab === "remove") {
+      setSellToken(ethToken);
+      setBuyToken(cookbookToken);
+    }
+  }, [tab, ethToken, cookbookToken, setSellToken, setBuyToken]);
 
   const estimated = useMemo(() => {
     if (!reserves || !reserves.reserve0 || !reserves.reserve1) return "0";
@@ -156,23 +183,13 @@ export const BuySellCookbookCoin = ({
       if (tab === "buy") {
         // Input: ETH amount -> Output: token amount
         const inWei = parseEther(amount || "0");
-        const rawOut = getAmountOut(
-          inWei,
-          reserves.reserve0,
-          reserves.reserve1,
-          actualSwapFee,
-        );
+        const rawOut = getAmountOut(inWei, reserves.reserve0, reserves.reserve1, actualSwapFee);
         const minOut = withSlippage(rawOut);
         return formatUnits(minOut, 18);
       } else {
         // Input: token amount -> Output: ETH amount
         const inUnits = parseUnits(amount || "0", 18);
-        const rawOut = getAmountOut(
-          inUnits,
-          reserves.reserve1,
-          reserves.reserve0,
-          actualSwapFee,
-        );
+        const rawOut = getAmountOut(inUnits, reserves.reserve1, reserves.reserve0, actualSwapFee);
         const minOut = withSlippage(rawOut);
         return formatEther(minOut);
       }
@@ -192,17 +209,13 @@ export const BuySellCookbookCoin = ({
       if (tab === "buy" && ethBalance) {
         const amountBigInt = parseEther(amount);
         if (ethBalance.value > 0n) {
-          const calculatedPercentage = Number(
-            (amountBigInt * 100n) / ethBalance.value,
-          );
+          const calculatedPercentage = Number((amountBigInt * 100n) / ethBalance.value);
           setPercentage(Math.min(100, Math.max(0, calculatedPercentage)));
         }
       } else if (tab === "sell" && coinBalance) {
         const amountBigInt = parseUnits(amount, 18);
         if (coinBalance > 0n) {
-          const calculatedPercentage = Number(
-            (amountBigInt * 100n) / coinBalance,
-          );
+          const calculatedPercentage = Number((amountBigInt * 100n) / coinBalance);
           setPercentage(Math.min(100, Math.max(0, calculatedPercentage)));
         }
       }
@@ -213,6 +226,13 @@ export const BuySellCookbookCoin = ({
 
   // Calculate price impact
   useEffect(() => {
+    // Only calculate price impact for buy/sell tabs
+    if (tab !== "buy" && tab !== "sell") {
+      setPriceImpact(null);
+      onPriceImpactChange?.(null);
+      return;
+    }
+
     if (!reserves || !amount || parseFloat(amount) === 0) {
       setPriceImpact(null);
       onPriceImpactChange?.(null);
@@ -236,12 +256,7 @@ export const BuySellCookbookCoin = ({
           // Buying token with ETH
           try {
             const swapAmountEth = parseEther(amount || "0");
-            const amountOut = getAmountOut(
-              swapAmountEth,
-              reserve0,
-              reserve1,
-              actualSwapFee,
-            );
+            const amountOut = getAmountOut(swapAmountEth, reserve0, reserve1, actualSwapFee);
 
             if (amountOut >= reserve1) {
               // Would drain the pool
@@ -260,12 +275,7 @@ export const BuySellCookbookCoin = ({
           // Selling token for ETH
           try {
             const swapAmountToken = parseUnits(amount || "0", 18);
-            const amountOut = getAmountOut(
-              swapAmountToken,
-              reserve1,
-              reserve0,
-              actualSwapFee,
-            );
+            const amountOut = getAmountOut(swapAmountToken, reserve1, reserve0, actualSwapFee);
 
             if (amountOut >= reserve0) {
               // Would drain the pool
@@ -291,40 +301,30 @@ export const BuySellCookbookCoin = ({
         const newPriceInEth = Number(newPrice) / Number(scaleFactor);
 
         // Validate calculated prices
-        if (
-          !isFinite(currentPriceInEth) ||
-          !isFinite(newPriceInEth) ||
-          newPriceInEth <= 0
-        ) {
+        if (!isFinite(currentPriceInEth) || !isFinite(newPriceInEth) || newPriceInEth <= 0) {
           console.error("Invalid price calculation");
           onPriceImpactChange?.(null);
           return;
         }
 
-        const impactPercent =
-          ((newPriceInEth - currentPriceInEth) / currentPriceInEth) * 100;
+        const impactPercent = ((newPriceInEth - currentPriceInEth) / currentPriceInEth) * 100;
 
         // Sanity check for extreme impacts
         if (Math.abs(impactPercent) > 90) {
-          console.warn(
-            `Extreme price impact detected: ${impactPercent.toFixed(2)}%`,
-          );
+          console.warn(`Extreme price impact detected: ${impactPercent.toFixed(2)}%`);
           onPriceImpactChange?.(null);
           return;
         }
 
         // For very small trades, ensure the price moves in the correct direction
         if (Math.abs(impactPercent) < 0.0001) {
-          const adjustedNewPrice =
-            tab === "buy"
-              ? currentPriceInEth * 1.00001
-              : currentPriceInEth * 0.99999;
+          const adjustedNewPrice = tab === "buy" ? currentPriceInEth * 1.00001 : currentPriceInEth * 0.99999;
 
           const impact = {
             currentPrice: currentPriceInEth,
             projectedPrice: adjustedNewPrice,
             impactPercent: tab === "buy" ? 0.001 : -0.001,
-            action: tab,
+            action: tab as "buy" | "sell",
           };
           setPriceImpact(impact);
           onPriceImpactChange?.(impact);
@@ -335,7 +335,7 @@ export const BuySellCookbookCoin = ({
           currentPrice: currentPriceInEth,
           projectedPrice: newPriceInEth,
           impactPercent,
-          action: tab,
+          action: tab as "buy" | "sell",
         };
         setPriceImpact(impact);
         onPriceImpactChange?.(impact);
@@ -378,14 +378,9 @@ export const BuySellCookbookCoin = ({
         throw new Error("Reserves not loaded");
       }
 
-      const poolKey = computePoolKey(
-        coinId,
-        actualSwapFee,
-        CookbookAddress,
-      ) as CookbookPoolKey;
+      const poolKey = computePoolKey(coinId, actualSwapFee, CookbookAddress) as CookbookPoolKey;
 
-      const amountIn =
-        type === "buy" ? parseEther(amount) : parseUnits(amount, 18);
+      const amountIn = type === "buy" ? parseEther(amount) : parseUnits(amount, 18);
       const amountOutMin = withSlippage(
         getAmountOut(
           amountIn,
@@ -476,51 +471,44 @@ export const BuySellCookbookCoin = ({
   return (
     <div className="space-y-4">
       {/* Per-unit price information */}
-      {reserves &&
-        reserves.reserve0 > 0n &&
-        reserves.reserve1 > 0n &&
-        ethPrice?.priceUSD && (
-          <div className="p-2 bg-muted/30 rounded-lg text-xs text-muted-foreground">
-            <div className="flex flex-col gap-1">
-              {(() => {
-                const ethAmount = parseFloat(formatEther(reserves.reserve0));
-                const tokenAmount = parseFloat(
-                  formatUnits(reserves.reserve1, 18),
-                );
-                const tokenPriceInEth = ethAmount / tokenAmount;
-                const ethPriceInToken = tokenAmount / ethAmount;
-                const tokenPriceUsd = tokenPriceInEth * ethPrice.priceUSD;
-                const totalPoolValueUsd = ethAmount * ethPrice.priceUSD * 2;
+      {reserves && reserves.reserve0 > 0n && reserves.reserve1 > 0n && ethPrice?.priceUSD && (
+        <div className="p-2 bg-muted/30 rounded-lg text-xs text-muted-foreground">
+          <div className="flex flex-col gap-1">
+            {(() => {
+              const ethAmount = parseFloat(formatEther(reserves.reserve0));
+              const tokenAmount = parseFloat(formatUnits(reserves.reserve1, 18));
+              const tokenPriceInEth = ethAmount / tokenAmount;
+              const ethPriceInToken = tokenAmount / ethAmount;
+              const tokenPriceUsd = tokenPriceInEth * ethPrice.priceUSD;
+              const totalPoolValueUsd = ethAmount * ethPrice.priceUSD * 2;
 
-                return (
-                  <>
-                    <div className="opacity-90">
-                      Pool Value: ${formatNumber(totalPoolValueUsd, 2)} USD
-                    </div>
-                    <div className="opacity-75">
-                      1 ETH = {formatNumber(ethPriceInToken, 6)} {symbol} | 1{" "}
-                      {symbol} = {tokenPriceInEth.toFixed(8)} ETH ($
-                      {formatNumber(tokenPriceUsd, 8)} USD)
-                    </div>
-                    <div className="opacity-60 flex items-center gap-1">
-                      <span>Fee: {Number(actualSwapFee) / 100}%</span>
-                      <HoverCard>
-                        <HoverCardTrigger asChild>
-                          <span className="text-[10px] opacity-70 cursor-help hover:opacity-100 transition-opacity">
-                            ⓘ
-                          </span>
-                        </HoverCardTrigger>
-                        <HoverCardContent className="w-auto">
-                          <p className="text-sm">{t("common.paid_to_lps")}</p>
-                        </HoverCardContent>
-                      </HoverCard>
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
+              return (
+                <>
+                  <div className="opacity-90">Pool Value: ${formatNumber(totalPoolValueUsd, 2)} USD</div>
+                  <div className="opacity-75">
+                    1 ETH = {formatNumber(ethPriceInToken, 6)} {symbol} | 1 {symbol} = {tokenPriceInEth.toFixed(8)} ETH
+                    ($
+                    {formatNumber(tokenPriceUsd, 8)} USD)
+                  </div>
+                  <div className="opacity-60 flex items-center gap-1">
+                    <span>Fee: {Number(actualSwapFee) / 100}%</span>
+                    <HoverCard>
+                      <HoverCardTrigger asChild>
+                        <span className="text-[10px] opacity-70 cursor-help hover:opacity-100 transition-opacity">
+                          ⓘ
+                        </span>
+                      </HoverCardTrigger>
+                      <HoverCardContent className="w-auto">
+                        <p className="text-sm">{t("common.paid_to_lps")}</p>
+                      </HoverCardContent>
+                    </HoverCard>
+                  </div>
+                </>
+              );
+            })()}
           </div>
-        )}
+        </div>
+      )}
 
       {/* Claim Section - Only show if user can claim and not hidden */}
       {canClaim && !hideZAMMLaunchClaim ? (
@@ -528,55 +516,45 @@ export const BuySellCookbookCoin = ({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               {t("claim.title", "Claim Tokens")}
-              <Badge variant="default">
-                {t("claim.available", "Available")}
-              </Badge>
+              <Badge variant="default">{t("claim.available", "Available")}</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">
-                  {t("claim.claimable_balance", "Claimable Balance")}:
-                </span>
+                <span className="text-sm font-medium">{t("claim.claimable_balance", "Claimable Balance")}:</span>
                 <span className="text-sm font-mono font-bold">
                   {claimableAmount} {symbol}
                 </span>
               </div>
-              <Button
-                onClick={handleClaim}
-                disabled={!isConnected || isPending}
-                className="w-full"
-                size="lg"
-              >
-                {isPending
-                  ? t("claim.claiming", "Claiming...")
-                  : t("claim.claim_all", "Claim All Tokens")}
+              <Button onClick={handleClaim} disabled={!isConnected || isPending} className="w-full" size="lg">
+                {isPending ? t("claim.claiming", "Claiming...") : t("claim.claim_all", "Claim All Tokens")}
               </Button>
             </div>
           </CardContent>
         </Card>
       ) : null}
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as "buy" | "sell")}>
-        <TabsList>
-          <TabsTrigger value="buy">
-            {t("create.buy_token", { token: symbol })}
+      <Tabs value={tab} onValueChange={(v) => setTab(v as "buy" | "sell" | "add" | "remove")}>
+        <TabsList className="grid grid-cols-4 gap-1">
+          <TabsTrigger value="buy">{t("create.buy_token", { token: symbol })}</TabsTrigger>
+          <TabsTrigger value="sell">{t("create.sell_token", { token: symbol })}</TabsTrigger>
+          <TabsTrigger value="add" className="flex items-center gap-1">
+            <Plus className="h-3 w-3" />
+            {t("common.add")}
           </TabsTrigger>
-          <TabsTrigger value="sell">
-            {t("create.sell_token", { token: symbol })}
+          <TabsTrigger value="remove" className="flex items-center gap-1">
+            <Minus className="h-3 w-3" />
+            {t("common.remove")}
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="buy">
           <div className="flex flex-col gap-2">
             <div className="flex justify-between items-center">
-              <span className="text-sm font-medium">
-                {t("create.using_token", { token: "ETH" })}
-              </span>
+              <span className="text-sm font-medium">{t("create.using_token", { token: "ETH" })}</span>
               <span className="text-sm text-gray-500">
-                {t("create.balance")}:{" "}
-                {ethBalance ? formatEther(ethBalance.value) : "0"} ETH
+                {t("create.balance")}: {ethBalance ? formatEther(ethBalance.value) : "0"} ETH
               </span>
             </div>
             <div className="flex gap-2">
@@ -586,25 +564,13 @@ export const BuySellCookbookCoin = ({
                 value={amount}
                 onChange={(e) => setAmount(e.currentTarget.value)}
               />
-              <Button
-                variant="outline"
-                onClick={handleMax}
-                className="whitespace-nowrap"
-              >
+              <Button variant="outline" onClick={handleMax} className="whitespace-nowrap">
                 Max
               </Button>
             </div>
-            {usdValue && amount && (
-              <span className="text-xs text-muted-foreground">
-                ≈ ${usdValue} USD
-              </span>
-            )}
+            {usdValue && amount && <span className="text-xs text-muted-foreground">≈ ${usdValue} USD</span>}
             {ethBalance && ethBalance.value > 0n && (
-              <PercentageBlobs
-                value={percentage}
-                onChange={handlePercentageChange}
-                disabled={!isConnected}
-              />
+              <PercentageBlobs value={percentage} onChange={handlePercentageChange} disabled={!isConnected} />
             )}
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">
@@ -622,13 +588,8 @@ export const BuySellCookbookCoin = ({
                 </span>
               )}
             </div>
-            <Button
-              onClick={() => handleSwap("buy")}
-              disabled={!isConnected || isPending || !amount}
-            >
-              {isPending
-                ? t("swap.swapping")
-                : t("create.buy_token", { token: symbol })}
+            <Button onClick={() => handleSwap("buy")} disabled={!isConnected || isPending || !amount}>
+              {isPending ? t("swap.swapping") : t("create.buy_token", { token: symbol })}
             </Button>
           </div>
         </TabsContent>
@@ -636,12 +597,9 @@ export const BuySellCookbookCoin = ({
         <TabsContent value="sell">
           <div className="flex flex-col gap-2">
             <div className="flex justify-between items-center">
-              <span className="text-sm font-medium">
-                {t("create.using_token", { token: symbol })}
-              </span>
+              <span className="text-sm font-medium">{t("create.using_token", { token: symbol })}</span>
               <span className="text-sm text-gray-500">
-                {t("create.balance")}:{" "}
-                {coinBalance ? formatUnits(coinBalance, 18) : "0"} {symbol}
+                {t("create.balance")}: {coinBalance ? formatUnits(coinBalance, 18) : "0"} {symbol}
               </span>
             </div>
             <div className="flex gap-2">
@@ -651,20 +609,12 @@ export const BuySellCookbookCoin = ({
                 value={amount}
                 onChange={(e) => setAmount(e.currentTarget.value)}
               />
-              <Button
-                variant="outline"
-                onClick={handleMax}
-                className="whitespace-nowrap"
-              >
+              <Button variant="outline" onClick={handleMax} className="whitespace-nowrap">
                 Max
               </Button>
             </div>
             {coinBalance !== undefined && coinBalance > 0n && (
-              <PercentageBlobs
-                value={percentage}
-                onChange={handlePercentageChange}
-                disabled={!isConnected}
-              />
+              <PercentageBlobs value={percentage} onChange={handlePercentageChange} disabled={!isConnected} />
             )}
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">
@@ -682,30 +632,42 @@ export const BuySellCookbookCoin = ({
                 </span>
               )}
             </div>
-            {usdValue && estimated !== "0" && (
-              <span className="text-xs text-muted-foreground">
-                ≈ ${usdValue} USD
-              </span>
-            )}
-            <Button
-              onClick={() => handleSwap("sell")}
-              disabled={!isConnected || isPending || !amount}
-            >
-              {isPending
-                ? t("swap.swapping")
-                : t("create.sell_token", { token: symbol })}
+            {usdValue && estimated !== "0" && <span className="text-xs text-muted-foreground">≈ ${usdValue} USD</span>}
+            <Button onClick={() => handleSwap("sell")} disabled={!isConnected || isPending || !amount}>
+              {isPending ? t("swap.swapping") : t("create.sell_token", { token: symbol })}
             </Button>
           </div>
         </TabsContent>
 
-        {errorMessage && (
-          <p className="text-destructive text-sm">{errorMessage}</p>
-        )}
-        {isSuccess && (
-          <p className="text-green-600 text-sm">
-            {t("create.transaction_confirmed")}
-          </p>
-        )}
+        <TabsContent value="add">
+          <div className="space-y-4">
+            {/* Sub-tabs for dual-sided vs single-sided liquidity */}
+            <Tabs value={liquiditySubTab} onValueChange={(v) => setLiquiditySubTab(v as "dual" | "zap")}>
+              <TabsList className="grid grid-cols-2 gap-1">
+                <TabsTrigger value="dual">{t("common.dual_sided")}</TabsTrigger>
+                <TabsTrigger value="zap" className="flex items-center gap-1">
+                  <Zap className="h-3 w-3" />
+                  {t("common.zap")}
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="dual">
+                <AddLiquidity />
+              </TabsContent>
+
+              <TabsContent value="zap">
+                <SingleEthLiquidity />
+              </TabsContent>
+            </Tabs>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="remove">
+          <RemoveLiquidity />
+        </TabsContent>
+
+        {errorMessage && <p className="text-destructive text-sm">{errorMessage}</p>}
+        {isSuccess && <p className="text-green-600 text-sm">{t("create.transaction_confirmed")}</p>}
       </Tabs>
 
       {/* Chart Dropdown Section */}
@@ -714,12 +676,8 @@ export const BuySellCookbookCoin = ({
           onClick={() => setShowPriceChart((prev) => !prev)}
           className="text-sm text-muted-foreground flex items-center gap-1 hover:text-primary transition-colors mb-3"
         >
-          {showPriceChart
-            ? t("coin.hide_chart", "Hide Chart")
-            : t("coin.show_chart", "Show Chart")}
-          <ChevronDownIcon
-            className={`w-4 h-4 transition-transform ${showPriceChart ? "rotate-180" : ""}`}
-          />
+          {showPriceChart ? t("coin.hide_chart", "Hide Chart") : t("coin.show_chart", "Show Chart")}
+          <ChevronDownIcon className={`w-4 h-4 transition-transform ${showPriceChart ? "rotate-180" : ""}`} />
         </button>
 
         {showPriceChart && (
@@ -727,14 +685,30 @@ export const BuySellCookbookCoin = ({
             <div className="text-xs text-muted-foreground mb-2">
               {symbol}/ETH {t("coin.price_history", "Price History")}
             </div>
-            <PoolPriceChart
-              poolId={poolId.toString()}
-              ticker={symbol}
-              priceImpact={priceImpact}
-            />
+            <PoolPriceChart poolId={poolId.toString()} ticker={symbol} priceImpact={priceImpact} />
           </div>
         )}
       </div>
     </div>
+  );
+};
+
+export const BuySellCookbookCoin = (props: {
+  coinId: bigint;
+  symbol?: string;
+  onPriceImpactChange?: (
+    impact: {
+      currentPrice: number;
+      projectedPrice: number;
+      impactPercent: number;
+      action: "buy" | "sell";
+    } | null,
+  ) => void;
+  hideZAMMLaunchClaim?: boolean;
+}) => {
+  return (
+    <TokenSelectionProvider>
+      <BuySellCookbookCoinInner {...props} />
+    </TokenSelectionProvider>
   );
 };

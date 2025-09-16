@@ -32,12 +32,7 @@ export type ApprovalNeed = ERC20ApprovalNeed | OperatorApprovalNeed;
 
 export const getApprovalOrOperator = async (
   publicClient: PublicClient,
-  {
-    token,
-    owner,
-    spender,
-    required,
-  }: { token: Token; owner: Address; spender: Address; required: bigint },
+  { token, owner, spender, required }: { token: Token; owner: Address; spender: Address; required: bigint },
 ): Promise<ApprovalNeed | null> => {
   const isETH = token.address === zeroAddress && token.id === 0n;
   if (isETH) {

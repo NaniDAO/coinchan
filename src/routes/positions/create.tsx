@@ -3,10 +3,7 @@ import { CreatePositionBreadcrumb } from "@/components/pools/CreatePositionBread
 import { PoolHeaderCard } from "@/components/pools/PoolHeaderCard";
 import { ProtocolId, protocols } from "@/lib/protocol";
 import { ProtocolSelector } from "@/components/pools/ProtocolSelector";
-import {
-  SettingsDropdown,
-  TradeSettings,
-} from "@/components/pools/SettingsDropdown";
+import { SettingsDropdown, TradeSettings } from "@/components/pools/SettingsDropdown";
 import { TokenAmountInput } from "@/components/pools/TokenAmountInput";
 import { TokenSelector } from "@/components/pools/TokenSelector";
 import { Button } from "@/components/ui/button";
@@ -25,26 +22,12 @@ import {
 } from "@/lib/pools";
 import { cn } from "@/lib/utils";
 
-import {
-  createFileRoute,
-  useNavigate,
-  useSearch,
-} from "@tanstack/react-router";
-import {
-  RotateCcwIcon,
-  SettingsIcon,
-  Loader2Icon,
-  CheckCircle2Icon,
-  AlertCircleIcon,
-} from "lucide-react";
+import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
+import { RotateCcwIcon, SettingsIcon, Loader2Icon, CheckCircle2Icon, AlertCircleIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatUnits, parseUnits } from "viem";
 import { useAccount, usePublicClient, useWalletClient } from "wagmi";
-import {
-  encodeTokenQ,
-  findTokenFlexible,
-  isCanonicalTokenQ,
-} from "@/lib/token-query";
+import { encodeTokenQ, findTokenFlexible, isCanonicalTokenQ } from "@/lib/token-query";
 import { FeeOrHookSelector } from "@/components/pools/FeeOrHookSelector";
 import { shortenUint } from "@/lib/math";
 
@@ -109,10 +92,7 @@ function RouteComponent() {
 
   const reservesSource = protocolId === "ZAMMV0" ? "ZAMM" : "COOKBOOK";
 
-  const creationAllowed = useMemo(
-    () => !CREATION_BLOCKED_PROTOCOLS.has(protocolId),
-    [protocolId],
-  );
+  const creationAllowed = useMemo(() => !CREATION_BLOCKED_PROTOCOLS.has(protocolId), [protocolId]);
 
   const selectedPoolId = useMemo(() => {
     if (!tokenA || !tokenB || fee == null) return undefined;
@@ -196,18 +176,10 @@ function RouteComponent() {
     const matchB = findTokenFlexible(tokens as any, search.tokenB);
 
     if (matchA) {
-      setTokenA((prev) =>
-        prev && prev.id === matchA.id && prev.address === matchA.address
-          ? prev
-          : matchA,
-      );
+      setTokenA((prev) => (prev && prev.id === matchA.id && prev.address === matchA.address ? prev : matchA));
     }
     if (matchB) {
-      setTokenB((prev) =>
-        prev && prev.id === matchB.id && prev.address === matchB.address
-          ? prev
-          : matchB,
-      );
+      setTokenB((prev) => (prev && prev.id === matchB.id && prev.address === matchB.address ? prev : matchB));
     }
 
     // B) If either query was missing or non-canonical, rewrite to canonical once
@@ -288,10 +260,7 @@ function RouteComponent() {
 
     const BALANCE_KEYS = ["balance", "rawBalance", "formattedBalance"] as const;
 
-    const mergeBalances = <T extends Record<string, any>>(
-      prev: T,
-      match: any,
-    ): T => {
+    const mergeBalances = <T extends Record<string, any>>(prev: T, match: any): T => {
       let changed = false;
       const next: any = { ...prev };
       for (const k of BALANCE_KEYS) {
@@ -342,10 +311,7 @@ function RouteComponent() {
     [navigate],
   );
 
-  const ready = useMemo(
-    () => Boolean(tokens?.length && tokenA && tokenB),
-    [tokens, tokenA, tokenB],
-  );
+  const ready = useMemo(() => Boolean(tokens?.length && tokenA && tokenB), [tokens, tokenA, tokenB]);
 
   const [samePair, hasBalanceA, hasBalanceB, hasBothBalances] = useMemo(() => {
     const samePair = sameToken(tokenA, tokenB);
@@ -374,8 +340,7 @@ function RouteComponent() {
     const liq = r.liquidity ?? r.totalLiquidity;
     const ra = r.reserveA ?? r.reserve0 ?? r[0];
     const rb = r.reserveB ?? r.reserve1 ?? r[1];
-    const isZero = (v: any) =>
-      typeof v === "bigint" ? v === 0n : Number(v) === 0;
+    const isZero = (v: any) => (typeof v === "bigint" ? v === 0n : Number(v) === 0);
 
     if (liq != null) return isZero(liq);
     if (ra != null && rb != null) return isZero(ra) && isZero(rb);
@@ -432,7 +397,7 @@ function RouteComponent() {
       return `Hook • ${shortenUint(fee)} (${fee.toString().length} digits)`;
     }
     try {
-      return `${(Number(fee) / 1e4).toFixed(2)}%`;
+      return `${(Number(fee) / 100).toFixed(2)}%`;
     } catch {
       return "—";
     }
@@ -496,9 +461,7 @@ function RouteComponent() {
     return [
       { title: "Select token pair and fee/hook" },
       {
-        title: creatingNewPool
-          ? "Create new pool & seed"
-          : "Enter deposit amounts",
+        title: creatingNewPool ? "Create new pool & seed" : "Enter deposit amounts",
       },
     ];
   }, [poolExists, creationAllowed]);
@@ -542,14 +505,8 @@ function RouteComponent() {
       if (!tokenA || !tokenB) throw new Error("Select both tokens.");
 
       // Parse user amounts → raw units
-      const amountARaw = parseUnits(
-        (amountA || "0").trim(),
-        tokenA.decimals ?? 18,
-      );
-      const amountBRaw = parseUnits(
-        (amountB || "0").trim(),
-        tokenB.decimals ?? 18,
-      );
+      const amountARaw = parseUnits((amountA || "0").trim(), tokenA.decimals ?? 18);
+      const amountBRaw = parseUnits((amountB || "0").trim(), tokenB.decimals ?? 18);
       if (amountARaw <= 0n || amountBRaw <= 0n) {
         throw new Error("Enter valid, positive deposit amounts.");
       }
@@ -560,18 +517,13 @@ function RouteComponent() {
         { address: tokenB.address, id: tokenB.id },
       );
       const tokenAIs0 =
-        tokenA.id === sorted0.id &&
-        String(tokenA.address).toLowerCase() ===
-          String(sorted0.address).toLowerCase();
+        tokenA.id === sorted0.id && String(tokenA.address).toLowerCase() === String(sorted0.address).toLowerCase();
       const amount0 = tokenAIs0 ? amountARaw : amountBRaw;
       const amount1 = tokenAIs0 ? amountBRaw : amountARaw;
 
       // Settings → bps & deadline
       const slippageBps = BigInt(Math.round((settings.slippagePct ?? 0) * 100));
-      const deadline = BigInt(
-        Math.floor(Date.now() / 1000) +
-          Math.max(1, settings.deadlineMin ?? 0) * 60,
-      );
+      const deadline = BigInt(Math.floor(Date.now() / 1000) + Math.max(1, settings.deadlineMin ?? 0) * 60);
 
       // Ask helper for approvals + addLiquidity tx
       const { approvals, tx } = await getAddLiquidityTx(publicClient, {
@@ -590,18 +542,12 @@ function RouteComponent() {
       const approvalSteps: TxVisualStep[] = (approvals ?? []).map((a: any) => {
         let label = "Approve";
         if (a?.kind === "erc20") {
-          const isA =
-            String(a.token).toLowerCase() ===
-            String(tokenA.address).toLowerCase();
-          const isB =
-            String(a.token).toLowerCase() ===
-            String(tokenB.address).toLowerCase();
+          const isA = String(a.token).toLowerCase() === String(tokenA.address).toLowerCase();
+          const isB = String(a.token).toLowerCase() === String(tokenB.address).toLowerCase();
           label = `Approve ${isA ? (tokenA.symbol ?? "TokenA") : isB ? (tokenB.symbol ?? "TokenB") : "token"}`;
         } else if (a?.kind === "erc6909") {
-          const isA =
-            String(a.on).toLowerCase() === String(tokenA.address).toLowerCase();
-          const isB =
-            String(a.on).toLowerCase() === String(tokenB.address).toLowerCase();
+          const isA = String(a.on).toLowerCase() === String(tokenA.address).toLowerCase();
+          const isB = String(a.on).toLowerCase() === String(tokenB.address).toLowerCase();
           label = `Enable operator for ${isA ? (tokenA.symbol ?? "TokenA") : isB ? (tokenB.symbol ?? "TokenB") : "token"}`;
         }
         return { kind: "approve", label, status: "idle" } as TxVisualStep;
@@ -611,9 +557,7 @@ function RouteComponent() {
         ...approvalSteps,
         {
           kind: "addLiquidity",
-          label: creatingNewPool
-            ? "Create pool & add liquidity"
-            : "Add liquidity",
+          label: creatingNewPool ? "Create pool & add liquidity" : "Add liquidity",
           status: "idle",
         },
       ];
@@ -674,17 +618,13 @@ function RouteComponent() {
       setExecError(msg);
       // Mark the first pending/idle step (if any) as error
       setTxSteps((prev) => {
-        const idx = prev.findIndex(
-          (s) => s.status === "pending" || s.status === "idle",
-        );
+        const idx = prev.findIndex((s) => s.status === "pending" || s.status === "idle");
         if (idx >= 0) {
           const next = [...prev];
           next[idx] = { ...next[idx], status: "error", error: msg };
           return next;
         }
-        return prev.length
-          ? [{ ...prev[prev.length - 1], status: "error", error: msg }]
-          : [];
+        return prev.length ? [{ ...prev[prev.length - 1], status: "error", error: msg }] : [];
       });
       console.error(err);
     } finally {
@@ -734,11 +674,7 @@ function RouteComponent() {
             <span className="font-light">Reset</span>
           </button>
 
-          <ProtocolSelector
-            className="h-8 font-light"
-            protocolId={protocolId}
-            setProtocolId={setProtocolId}
-          />
+          <ProtocolSelector className="h-8 font-light" protocolId={protocolId} setProtocolId={setProtocolId} />
 
           <SettingsDropdown value={settings} onChange={setSettings} />
         </div>
@@ -747,11 +683,7 @@ function RouteComponent() {
       <div className="grid grid-cols-5 gap-2 pr-8 mt-4">
         {/* LEFT: steps */}
         <div className="col-span-2">
-          <Stepper
-            steps={steps}
-            currentStep={currentStep}
-            onStepChange={handleStepChange}
-          />
+          <Stepper steps={steps} currentStep={currentStep} onStepChange={handleStepChange} />
         </div>
 
         {/* RIGHT: content */}
@@ -761,9 +693,7 @@ function RouteComponent() {
             <>
               <div>
                 <h3 className="text-lg font-semibold">Select pair</h3>
-                <p className="text-base text-muted-foreground">
-                  Choose a pair of tokens to create a new position.
-                </p>
+                <p className="text-base text-muted-foreground">Choose a pair of tokens to create a new position.</p>
                 <div className="flex items-center gap-3">
                   <TokenSelector
                     selectedToken={tokenA}
@@ -778,11 +708,7 @@ function RouteComponent() {
                     className="flex-1 min-w-0"
                   />
                 </div>
-                {samePair && (
-                  <p className="mt-2 text-xs text-red-500">
-                    Please select two different tokens.
-                  </p>
-                )}
+                {samePair && <p className="mt-2 text-xs text-red-500">Please select two different tokens.</p>}
               </div>
 
               <FeeOrHookSelector
@@ -797,11 +723,7 @@ function RouteComponent() {
                 variant="default"
                 className="w-full rounded-lg text-xl py-6 mt-4"
                 disabled={
-                  !ready ||
-                  samePair ||
-                  (!poolExists && !creationAllowed) ||
-                  v0UninitBlocked ||
-                  !hasBothBalances
+                  !ready || samePair || (!poolExists && !creationAllowed) || v0UninitBlocked || !hasBothBalances
                 }
                 onClick={() => setCurrentStep(2)}
               >
@@ -814,11 +736,9 @@ function RouteComponent() {
                 poolUninitialized &&
                 (protocolId === "ZAMMV0" ? (
                   <div className="mt-2 rounded-md border border-red-500 bg-red-50 px-3 py-2 text-red-700 text-sm">
-                    This pool has zero reserves and{" "}
-                    <span className="font-medium">ZAMMV0</span> pools cannot be
-                    initialised. Add liquidity to an existing V0 pool, or switch
-                    to <span className="font-medium">ZAMMV1</span> to create a
-                    new pool.
+                    This pool has zero reserves and <span className="font-medium">ZAMMV0</span> pools cannot be
+                    initialised. Add liquidity to an existing V0 pool, or switch to{" "}
+                    <span className="font-medium">ZAMMV1</span> to create a new pool.
                   </div>
                 ) : (
                   <div className="mt-2 rounded-md border border-amber-500 bg-amber-50 px-3 py-2 text-amber-800 text-sm">
@@ -826,22 +746,16 @@ function RouteComponent() {
                     <span className="font-medium">
                       {tokenA?.symbol ?? "TokenA"}/{tokenB?.symbol ?? "TokenB"}
                     </span>{" "}
-                    at{" "}
-                    <span className="font-medium">
-                      {isHook ? "Hook" : feeLabel}
-                    </span>
-                    . You’ll be the first to add liquidity.
+                    at <span className="font-medium">{isHook ? "Hook" : feeLabel}</span>. You’ll be the first to add
+                    liquidity.
                   </div>
                 ))}
 
               {/* Creation-blocked notice for ZAMMV0 */}
               {ready && !samePair && creationBlocked && (
                 <div className="mt-2 rounded-md border border-red-500 bg-red-50 px-3 py-2 text-red-700 text-sm">
-                  Creating new pools is not allowed for{" "}
-                  <span className="font-medium">ZAMMV0</span>. Add liquidity to
-                  an existing V0 pool, or switch to{" "}
-                  <span className="font-medium">ZAMMV1</span> to create a new
-                  pool.
+                  Creating new pools is not allowed for <span className="font-medium">ZAMMV0</span>. Add liquidity to an
+                  existing V0 pool, or switch to <span className="font-medium">ZAMMV1</span> to create a new pool.
                 </div>
               )}
 
@@ -856,8 +770,7 @@ function RouteComponent() {
                       .filter(Boolean)
                       .join(" and ")}
                   </span>
-                  , so you can’t provide liquidity for this pair. Please choose
-                  tokens you hold.
+                  , so you can’t provide liquidity for this pair. Please choose tokens you hold.
                 </div>
               )}
             </>
@@ -871,24 +784,16 @@ function RouteComponent() {
                 <div className="rounded-lg border-2 p-4 bg-background space-y-3">
                   <div className="text-base">
                     <span className="font-semibold">Action unavailable.</span>{" "}
-                    <span className="font-semibold">ZAMMV0</span> pools with
-                    zero reserves cannot be initialised.
+                    <span className="font-semibold">ZAMMV0</span> pools with zero reserves cannot be initialised.
                   </div>
                   <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
+                    <li>Add liquidity to an existing V0 pool (non-zero reserves).</li>
                     <li>
-                      Add liquidity to an existing V0 pool (non-zero reserves).
-                    </li>
-                    <li>
-                      Or switch to <span className="font-medium">ZAMMV1</span>{" "}
-                      to create a new pool.
+                      Or switch to <span className="font-medium">ZAMMV1</span> to create a new pool.
                     </li>
                   </ul>
                   <div className="flex gap-2 mt-2">
-                    <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => setCurrentStep(1)}
-                    >
+                    <Button variant="outline" className="flex-1" onClick={() => setCurrentStep(1)}>
                       Back
                     </Button>
                   </div>
@@ -911,9 +816,7 @@ function RouteComponent() {
                       {/* Deposit card */}
                       <div>
                         <div className="mb-4">
-                          <h3 className="text-lg font-semibold tracking-wide">
-                            Deposit tokens
-                          </h3>
+                          <h3 className="text-lg font-semibold tracking-wide">Deposit tokens</h3>
                           <p className="text-xs text-muted-foreground">
                             {isHook
                               ? "You’re adding liquidity to a hook-enabled pool."
@@ -962,24 +865,18 @@ function RouteComponent() {
                   {creationBlocked && (
                     <div className="rounded-lg border-2 p-4 bg-background space-y-3">
                       <div className="text-base">
-                        <span className="font-semibold">Pool unavailable.</span>{" "}
-                        Creating new pools is disabled for{" "}
+                        <span className="font-semibold">Pool unavailable.</span> Creating new pools is disabled for{" "}
                         <span className="font-semibold">ZAMMV0</span>.
                       </div>
                       <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
                         <li>Try a different protocol (e.g., ZAMMV1).</li>
                         <li>
-                          Or pick a {isHook ? "different hook or a" : ""} fee
-                          tier where a pool already exists (see liquidity hints
-                          on the fee cards).
+                          Or pick a {isHook ? "different hook or a" : ""} fee tier where a pool already exists (see
+                          liquidity hints on the fee cards).
                         </li>
                       </ul>
                       <div className="flex gap-2 mt-2">
-                        <Button
-                          variant="outline"
-                          className="flex-1"
-                          onClick={() => setCurrentStep(1)}
-                        >
+                        <Button variant="outline" className="flex-1" onClick={() => setCurrentStep(1)}>
                           Back
                         </Button>
                       </div>
@@ -993,38 +890,25 @@ function RouteComponent() {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <div className="text-base font-medium">
-                              {tokenA?.symbol ?? "TokenA"} /{" "}
-                              {tokenB?.symbol ?? "TokenB"}
+                              {tokenA?.symbol ?? "TokenA"} / {tokenB?.symbol ?? "TokenB"}
                             </div>
-                            <span className="text-xs border px-2 py-0.5 rounded-sm">
-                              v2
-                            </span>
-                            <span className="text-xs border px-2 py-0.5 rounded-sm">
-                              {isHook ? "Hook" : feeLabel}
-                            </span>
+                            <span className="text-xs border px-2 py-0.5 rounded-sm">v2</span>
+                            <span className="text-xs border px-2 py-0.5 rounded-sm">{isHook ? "Hook" : feeLabel}</span>
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            {protocols.find((p) => p.id === protocolId)
-                              ?.label ?? protocolId}
+                            {protocols.find((p) => p.id === protocolId)?.label ?? protocolId}
                           </div>
                         </div>
                         <div className="mt-2 rounded-md border border-amber-500 bg-amber-50 px-3 py-2 text-amber-800 text-sm">
-                          No pool exists at this {isHook ? "hook" : "fee"}.
-                          We’ll{" "}
-                          <span className="font-medium">
-                            create a new pool and seed it
-                          </span>{" "}
-                          with your deposit.
+                          No pool exists at this {isHook ? "hook" : "fee"}. We’ll{" "}
+                          <span className="font-medium">create a new pool and seed it</span> with your deposit.
                         </div>
                       </div>
 
                       <div className="mb-4">
-                        <h3 className="text-lg font-semibold tracking-wide">
-                          Seed the new pool
-                        </h3>
+                        <h3 className="text-lg font-semibold tracking-wide">Seed the new pool</h3>
                         <p className="text-xs text-muted-foreground">
-                          Enter the initial token amounts. The deposit ratio
-                          sets the initial price.
+                          Enter the initial token amounts. The deposit ratio sets the initial price.
                         </p>
                       </div>
 
@@ -1069,9 +953,7 @@ function RouteComponent() {
               {/* ---- Live TX progress (approvals + addLiquidity) ---- */}
               {(execError || txSteps.length > 0) && (
                 <div className="rounded-md border mt-3 px-3 py-2">
-                  <div className="text-sm font-medium mb-1">
-                    Transaction progress
-                  </div>
+                  <div className="text-sm font-medium mb-1">Transaction progress</div>
                   {txSteps.length === 0 && execError && (
                     <div className="flex items-center gap-2 text-red-600 text-sm">
                       <AlertCircleIcon className="w-4 h-4" />
@@ -1092,35 +974,17 @@ function RouteComponent() {
                         )}
                       >
                         <div className="flex items-center gap-2">
-                          {s.status === "pending" && (
-                            <Loader2Icon className="w-4 h-4 animate-spin" />
-                          )}
-                          {s.status === "confirmed" && (
-                            <CheckCircle2Icon className="w-4 h-4 text-emerald-600" />
-                          )}
-                          {s.status === "error" && (
-                            <AlertCircleIcon className="w-4 h-4 text-red-600" />
-                          )}
-                          {s.status === "idle" && (
-                            <SettingsIcon className="w-4 h-4 text-muted-foreground" />
-                          )}
+                          {s.status === "pending" && <Loader2Icon className="w-4 h-4 animate-spin" />}
+                          {s.status === "confirmed" && <CheckCircle2Icon className="w-4 h-4 text-emerald-600" />}
+                          {s.status === "error" && <AlertCircleIcon className="w-4 h-4 text-red-600" />}
+                          {s.status === "idle" && <SettingsIcon className="w-4 h-4 text-muted-foreground" />}
                           <div className="text-sm">
                             <div className="font-medium">{s.label}</div>
-                            {s.hash && (
-                              <div className="text-xs text-muted-foreground break-all">
-                                {s.hash}
-                              </div>
-                            )}
-                            {s.error && (
-                              <div className="text-xs text-red-600">
-                                {s.error}
-                              </div>
-                            )}
+                            {s.hash && <div className="text-xs text-muted-foreground break-all">{s.hash}</div>}
+                            {s.error && <div className="text-xs text-red-600">{s.error}</div>}
                           </div>
                         </div>
-                        <div className="text-xs text-muted-foreground capitalize">
-                          {s.status}
-                        </div>
+                        <div className="text-xs text-muted-foreground capitalize">{s.status}</div>
                       </li>
                     ))}
                   </ul>

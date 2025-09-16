@@ -268,12 +268,7 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
         </div>
         {/* Check if reward token is veZAMM (ID 87) */}
         {stream.rewardId === 87n ? (
-          <a
-            href="https://www.zamm.finance/orders"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block"
-          >
+          <a href="https://www.zamm.finance/orders" target="_blank" rel="noopener noreferrer" className="block">
             <Button
               variant="outline"
               className="w-full border-muted font-mono text-sm sm:text-base uppercase tracking-wider py-2 sm:py-3"

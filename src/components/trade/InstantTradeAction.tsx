@@ -7,39 +7,16 @@ import { useGetTokens } from "@/hooks/use-get-tokens";
 import { cn } from "@/lib/utils";
 import { FlipActionButton } from "../FlipActionButton";
 import { ETH_TOKEN, sameToken, TokenMetadata, ZAMM_TOKEN } from "@/lib/pools";
-import {
-  encodeFunctionData,
-  formatUnits,
-  maxUint256,
-  parseUnits,
-  type Address,
-} from "viem";
+import { encodeFunctionData, formatUnits, maxUint256, parseUnits, type Address } from "viem";
 import { mainnet } from "viem/chains";
-import {
-  useAccount,
-  useChainId,
-  usePublicClient,
-  useSendTransaction,
-  useWaitForTransactionReceipt,
-} from "wagmi";
+import { useAccount, useChainId, usePublicClient, useSendTransaction, useWaitForTransactionReceipt } from "wagmi";
 import { useZRouterQuote } from "@/hooks/use-zrouter-quote";
-import {
-  buildRoutePlan,
-  mainnetConfig,
-  findRoute,
-  simulateRoute,
-  erc20Abi,
-  zRouterAbi,
-} from "zrouter-sdk";
+import { buildRoutePlan, mainnetConfig, findRoute, simulateRoute, erc20Abi, zRouterAbi } from "zrouter-sdk";
 import { CoinsAbi } from "@/constants/Coins";
 import { toZRouterToken } from "@/lib/zrouter";
 import { SLIPPAGE_BPS } from "@/lib/swap";
 import { handleWalletError, isUserRejectionError } from "@/lib/errors";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "../ui/hover-card";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "../ui/hover-card";
 import { InfoIcon } from "lucide-react";
 import { SlippageSettings } from "../SlippageSettings";
 
@@ -49,25 +26,17 @@ interface InstantTradeActionProps {
   initialBuyToken?: TokenMetadata;
 }
 
-export const InstantTradeAction = ({
-  locked = false,
-  initialSellToken,
-  initialBuyToken,
-}: InstantTradeActionProps) => {
-  const { sellToken, setSellToken, buyToken, setBuyToken, flip } = useTokenPair(
-    {
-      initial: {
-        sellToken: initialSellToken ?? ETH_TOKEN,
-        buyToken: initialBuyToken ?? ZAMM_TOKEN,
-      },
+export const InstantTradeAction = ({ locked = false, initialSellToken, initialBuyToken }: InstantTradeActionProps) => {
+  const { sellToken, setSellToken, buyToken, setBuyToken, flip } = useTokenPair({
+    initial: {
+      sellToken: initialSellToken ?? ETH_TOKEN,
+      buyToken: initialBuyToken ?? ZAMM_TOKEN,
     },
-  );
+  });
 
   const [sellAmount, setSellAmount] = useState("");
   const [buyAmount, setBuyAmount] = useState("");
-  const [lastEditedField, setLastEditedField] = useState<"sell" | "buy">(
-    "sell",
-  );
+  const [lastEditedField, setLastEditedField] = useState<"sell" | "buy">("sell");
   const [slippageBps, setSlippageBps] = useState<bigint>(SLIPPAGE_BPS);
 
   const { address: owner, isConnected } = useAccount();
@@ -75,11 +44,7 @@ export const InstantTradeAction = ({
   const publicClient = usePublicClient();
 
   const chainId = useChainId();
-  const {
-    sendTransactionAsync,
-    isPending,
-    error: writeError,
-  } = useSendTransaction();
+  const { sendTransactionAsync, isPending, error: writeError } = useSendTransaction();
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
@@ -107,17 +72,13 @@ export const InstantTradeAction = ({
     if (!tokens?.length) return;
 
     // Only auto-hydrate while the pair is still the initial one (or untouched)
-    const stillDefaultPair =
-      sameToken(sellToken, ETH_TOKEN) && sameToken(buyToken, ZAMM_TOKEN);
+    const stillDefaultPair = sameToken(sellToken, ETH_TOKEN) && sameToken(buyToken, ZAMM_TOKEN);
 
     if (!stillDefaultPair || userChangedPairRef.current) return;
 
     const BALANCE_KEYS = ["balance", "rawBalance", "formattedBalance"] as const;
 
-    const mergeBalances = <T extends Record<string, any>>(
-      prev: T,
-      match: any,
-    ): T => {
+    const mergeBalances = <T extends Record<string, any>>(prev: T, match: any): T => {
       let changed = false;
       const next: any = { ...prev };
       for (const k of BALANCE_KEYS) {
@@ -150,12 +111,7 @@ export const InstantTradeAction = ({
   const side = lastEditedField === "sell" ? "EXACT_IN" : "EXACT_OUT";
   const rawAmount = lastEditedField === "sell" ? sellAmount : buyAmount;
 
-  const quotingEnabled =
-    !!publicClient &&
-    !!sellToken &&
-    !!buyToken &&
-    !!rawAmount &&
-    Number(rawAmount) > 0;
+  const quotingEnabled = !!publicClient && !!sellToken && !!buyToken && !!rawAmount && Number(rawAmount) > 0;
 
   const { data: quote } = useZRouterQuote({
     publicClient: publicClient ?? undefined,
@@ -223,9 +179,7 @@ export const InstantTradeAction = ({
     setLastEditedField("sell");
   };
 
-  const hasSellBalance = !!(
-    sellToken?.balance && BigInt(sellToken.balance) > 0n
-  );
+  const hasSellBalance = !!(sellToken?.balance && BigInt(sellToken.balance) > 0n);
 
   // ------------------------------
   // Execute swap (approvals + multicall)
@@ -256,10 +210,7 @@ export const InstantTradeAction = ({
 
       const tokenIn = toZRouterToken(sellToken);
       const tokenOut = toZRouterToken(buyToken);
-      const decimals =
-        lastEditedField === "sell"
-          ? (sellToken.decimals ?? 18)
-          : (buyToken.decimals ?? 18);
+      const decimals = lastEditedField === "sell" ? (sellToken.decimals ?? 18) : (buyToken.decimals ?? 18);
       const amount = parseUnits(rawAmount, decimals);
       const routeSide = lastEditedField === "sell" ? "EXACT_IN" : "EXACT_OUT";
 
@@ -430,9 +381,7 @@ export const InstantTradeAction = ({
           className="pb-4 rounded-t-2xl"
         />
 
-        <div
-          className={cn("absolute left-1/2 -translate-x-1/2 top-[50%] z-10")}
-        >
+        <div className={cn("absolute left-1/2 -translate-x-1/2 top-[50%] z-10")}>
           <FlipActionButton onClick={handleFlip} />
         </div>
 
@@ -454,13 +403,8 @@ export const InstantTradeAction = ({
             <InfoIcon className="h-6 w-6 opacity-70 cursor-help hover:opacity-100 transition-opacity" />
           </HoverCardTrigger>
           <HoverCardContent className="w-[320px] space-y-3">
-            <SlippageSettings
-              slippageBps={slippageBps}
-              setSlippageBps={setSlippageBps}
-            />
-            <p className="text-xs text-muted-foreground">
-              Fees are paid to LPs
-            </p>
+            <SlippageSettings slippageBps={slippageBps} setSlippageBps={setSlippageBps} />
+            <p className="text-xs text-muted-foreground">Fees are paid to LPs</p>
           </HoverCardContent>
         </HoverCard>
       </div>
@@ -471,8 +415,7 @@ export const InstantTradeAction = ({
         disabled={!isConnected || !sellAmount || isPending}
         className={cn(
           `w-full mt-3 button text-base px-8 py-4 bg-primary! text-primary-foreground! dark:bg-primary! dark:text-primary-foreground! font-bold rounded-lg transition hover:scale-105`,
-          (!isConnected || !sellAmount || isPending) &&
-            "opacity-50 cursor-not-allowed",
+          (!isConnected || !sellAmount || isPending) && "opacity-50 cursor-not-allowed",
         )}
       >
         {isPending ? "Processing…" : !sellAmount ? "Get Started" : "Swap"}
@@ -480,18 +423,10 @@ export const InstantTradeAction = ({
 
       {/* Errors / Success */}
       {writeError && !suppressErrors && !isUserRejectionError(writeError) && (
-        <div className="mt-2 text-sm text-red-500">
-          {handleWalletError(writeError) || "Transaction failed"}
-        </div>
+        <div className="mt-2 text-sm text-red-500">{handleWalletError(writeError) || "Transaction failed"}</div>
       )}
-      {txError && !suppressErrors && (
-        <div className="mt-2 text-sm text-red-500">{txError}</div>
-      )}
-      {isSuccess && (
-        <div className="mt-2 text-sm text-green-500">
-          Transaction confirmed! Hash: {txHash}
-        </div>
-      )}
+      {txError && !suppressErrors && <div className="mt-2 text-sm text-red-500">{txError}</div>}
+      {isSuccess && <div className="mt-2 text-sm text-green-500">Transaction confirmed! Hash: {txHash}</div>}
     </div>
   );
 };

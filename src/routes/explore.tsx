@@ -45,7 +45,6 @@ function ExploreLayout() {
 const tabs = [
   { to: "/explore/tokens", label: "Tokens" },
   { to: "/explore/pools", label: "Pools" },
-  { to: "/explore/bonded-coins", label: "Bonded Coins" },
   { to: "/explore/orders", label: "Orders" },
 ];
 

@@ -18,9 +18,7 @@ type TradeControllerProps = {
 
 /** Heuristics to treat a token as native (ETH) */
 const isNative = (t: TokenMetadata | undefined) =>
-  !!t &&
-  t.address?.toLowerCase?.() === "0x0000000000000000000000000000000000000000" &&
-  t.id === 0n;
+  !!t && t.address?.toLowerCase?.() === "0x0000000000000000000000000000000000000000" && t.id === 0n;
 
 export const TradeController = ({
   onAmountChange,
@@ -40,8 +38,7 @@ export const TradeController = ({
   // Sync input with current trade state
   useEffect(() => {
     if (currentSellToken && currentBuyToken && currentSellAmount) {
-      const amount =
-        parseFloat(currentSellAmount) > 0 ? currentSellAmount : "0.01";
+      const amount = parseFloat(currentSellAmount) > 0 ? currentSellAmount : "0.01";
       const newCommand = `swap ${amount} ${currentSellToken.symbol} for ${currentBuyToken.symbol}`;
 
       if (newCommand !== input && newCommand !== lastParsedCommand) {
@@ -49,13 +46,7 @@ export const TradeController = ({
         setLastParsedCommand(newCommand);
       }
     }
-  }, [
-    currentSellToken,
-    currentBuyToken,
-    currentSellAmount,
-    input,
-    lastParsedCommand,
-  ]);
+  }, [currentSellToken, currentBuyToken, currentSellAmount, input, lastParsedCommand]);
 
   // Build a quick symbol→token map.
   // Preference: token with a non-zero balance; otherwise first seen.
@@ -127,17 +118,11 @@ export const TradeController = ({
 
       const { amount, sellTokenSymbol, buyTokenSymbol } = parsed;
 
-      const sellToken =
-        tokenMap.get(sellTokenSymbol.toUpperCase()) ||
-        tokenMap.get(sellTokenSymbol.toLowerCase());
-      const buyToken =
-        tokenMap.get(buyTokenSymbol.toUpperCase()) ||
-        tokenMap.get(buyTokenSymbol.toLowerCase());
+      const sellToken = tokenMap.get(sellTokenSymbol.toUpperCase()) || tokenMap.get(sellTokenSymbol.toLowerCase());
+      const buyToken = tokenMap.get(buyTokenSymbol.toUpperCase()) || tokenMap.get(buyTokenSymbol.toLowerCase());
 
       if (!sellToken || !buyToken) {
-        console.warn(
-          `Tokens not found: ${sellTokenSymbol} or ${buyTokenSymbol}`,
-        );
+        console.warn(`Tokens not found: ${sellTokenSymbol} or ${buyTokenSymbol}`);
         return false;
       }
 
@@ -149,8 +134,7 @@ export const TradeController = ({
     [tokenMap, setSellToken, setBuyToken, onAmountChange, parseSwapCommand],
   );
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) =>
-    setInput(e.target.value);
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value);
 
   const commitIfNeeded = () => {
     const command = input.trim();
@@ -175,43 +159,25 @@ export const TradeController = ({
     if (input?.trim()) return "Enter swap command";
 
     if (currentSellToken && currentBuyToken) {
-      const amount =
-        currentSellAmount && parseFloat(currentSellAmount) > 0
-          ? currentSellAmount
-          : "0.01";
+      const amount = currentSellAmount && parseFloat(currentSellAmount) > 0 ? currentSellAmount : "0.01";
       return `Try: "swap ${amount} ${currentSellToken.symbol} for ${currentBuyToken.symbol}"`;
     }
 
     if (currentSellToken) {
-      const amount =
-        currentSellAmount && parseFloat(currentSellAmount) > 0
-          ? currentSellAmount
-          : "0.01";
+      const amount = currentSellAmount && parseFloat(currentSellAmount) > 0 ? currentSellAmount : "0.01";
       const other = tokens.find(
-        (t) =>
-          t.symbol &&
-          t.address !== currentSellToken.address &&
-          t.symbol !== currentSellToken.symbol,
+        (t) => t.symbol && t.address !== currentSellToken.address && t.symbol !== currentSellToken.symbol,
       );
-      if (other)
-        return `Try: "swap ${amount} ${currentSellToken.symbol} for ${other.symbol}"`;
+      if (other) return `Try: "swap ${amount} ${currentSellToken.symbol} for ${other.symbol}"`;
     }
 
     const available = Array.from(tokenMap.keys())
       .filter((s) => s === s.toUpperCase())
       .slice(0, 3);
 
-    if (available.length >= 2)
-      return `Try: "swap 0.01 ${available[0]} for ${available[1]}"`;
+    if (available.length >= 2) return `Try: "swap 0.01 ${available[0]} for ${available[1]}"`;
     return "Enter swap command (e.g., swap 0.01 ZAMM for ETH)";
-  }, [
-    tokenMap,
-    currentSellToken,
-    currentBuyToken,
-    currentSellAmount,
-    tokens,
-    input,
-  ]);
+  }, [tokenMap, currentSellToken, currentBuyToken, currentSellAmount, tokens, input]);
 
   const suggestionText = useMemo(() => {
     if (!input || !parseSwapCommand(input)) return null;
@@ -234,16 +200,8 @@ export const TradeController = ({
         placeholder={placeholderText}
         className={cn("text-center font-mono text-sm", className)}
       />
-      {suggestionText && (
-        <div className="mt-1 text-xs text-muted-foreground text-center">
-          {suggestionText}
-        </div>
-      )}
-      {errorText && (
-        <div className="mt-1 text-xs text-muted-foreground text-center">
-          {errorText}
-        </div>
-      )}
+      {suggestionText && <div className="mt-1 text-xs text-muted-foreground text-center">{suggestionText}</div>}
+      {errorText && <div className="mt-1 text-xs text-muted-foreground text-center">{errorText}</div>}
     </div>
   );
 };

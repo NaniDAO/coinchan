@@ -13,9 +13,7 @@ const isNative = (t: TokenMetadata | undefined) =>
   !!t &&
   // Prefer a real enum/flag if you have it; fall back to zero address check.
   // @ts-ignore - tolerate unknown TokenStandard values without importing it here
-  (t.standard === "NATIVE" ||
-    t.address?.toLowerCase?.() ===
-      "0x0000000000000000000000000000000000000000");
+  (t.standard === "NATIVE" || t.address?.toLowerCase?.() === "0x0000000000000000000000000000000000000000");
 
 type TradePanelProps = {
   title: string;
@@ -90,9 +88,7 @@ export const TradePanel: React.FC<TradePanelProps> = ({
     }
     try {
       const balance = selectedToken.balance as bigint;
-      const amountBI = isNative(selectedToken)
-        ? parseEther(amount)
-        : parseUnits(amount, selectedToken.decimals || 18);
+      const amountBI = isNative(selectedToken) ? parseEther(amount) : parseUnits(amount, selectedToken.decimals || 18);
 
       if (balance > 0n) {
         const pct = Number((amountBI * 100n) / balance);
@@ -112,10 +108,7 @@ export const TradePanel: React.FC<TradePanelProps> = ({
 
     if (isNative(selectedToken)) {
       // ETH: apply 1% headroom at 100% for gas safety
-      const adjusted =
-        newPct === 100
-          ? (balance * 99n) / 100n
-          : (balance * BigInt(newPct)) / 100n;
+      const adjusted = newPct === 100 ? (balance * 99n) / 100n : (balance * BigInt(newPct)) / 100n;
       calculatedAmount = formatEther(adjusted);
     } else {
       const adjusted = (balance * BigInt(newPct)) / 100n;
@@ -165,11 +158,7 @@ export const TradePanel: React.FC<TradePanelProps> = ({
       <div className="flex justify-between items-center">
         {readOnly || isLoading ? (
           <div className="text-lg sm:text-xl font-medium w-full h-10 text-right pr-1 text-foreground font-body flex items-center justify-end">
-            {isLoading
-              ? "..."
-              : amount
-                ? formatNumber(parseFloat(amount), 6)
-                : "0"}
+            {isLoading ? "..." : amount ? formatNumber(parseFloat(amount), 6) : "0"}
           </div>
         ) : (
           <input
@@ -186,9 +175,7 @@ export const TradePanel: React.FC<TradePanelProps> = ({
         )}
 
         {previewLabel ? (
-          <span className="ml-1 text-xs text-foreground font-medium">
-            {previewLabel}
-          </span>
+          <span className="ml-1 text-xs text-foreground font-medium">{previewLabel}</span>
         ) : (
           showMaxButton &&
           onMax && (
@@ -230,11 +217,7 @@ const UsdValueDisplay = memo(function UsdValueDisplay({
     if (!qty || qty <= 0) return null;
 
     // Prefer an explicit per-token USD price if passed in
-    if (
-      typeof tokenUsdPrice === "number" &&
-      isFinite(tokenUsdPrice) &&
-      tokenUsdPrice > 0
-    ) {
+    if (typeof tokenUsdPrice === "number" && isFinite(tokenUsdPrice) && tokenUsdPrice > 0) {
       return formatNumber(qty * tokenUsdPrice, 2);
     }
 
@@ -248,9 +231,5 @@ const UsdValueDisplay = memo(function UsdValueDisplay({
   }, [amount, tokenUsdPrice, ethPriceUSD, selectedToken]);
 
   if (!usdText) return null;
-  return (
-    <div className="text-xs text-muted-foreground text-right pr-1 -mt-1">
-      ≈ ${usdText} USD
-    </div>
-  );
+  return <div className="text-xs text-muted-foreground text-right pr-1 -mt-1">≈ ${usdText} USD</div>;
 });

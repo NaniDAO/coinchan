@@ -60,7 +60,7 @@ export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedA
 
   // Check if reward token is veZAMM (ID 87) - treat as 1:1 with ZAMM
   const isVeZAMM = farmInfo?.[3] === 87n || stream?.rewardId === 87n;
-  
+
   // Get ZAMM reserves if reward token is veZAMM (for 1:1 pricing)
   const { data: zammReserves } = useReserves({
     poolId: isVeZAMM ? ZAMM_POOL_ID : undefined,
@@ -83,7 +83,7 @@ export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedA
     coinContract: !isVeZAMM ? farmInfo?.[2] : undefined,
     contractSource: undefined,
   });
-  
+
   // Use ZAMM price for veZAMM, otherwise use normal price
   const rewardPriceEth = isVeZAMM ? zammPriceEth : normalRewardPriceEth;
 
@@ -140,7 +140,7 @@ export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedA
       totalApr: 0,
       breakdown: {
         tradingFees: Number(lpToken?.swapFee || 100n),
-        rewardSymbol: isVeZAMM ? "veZAMM (1:1 ZAMM)" : (stream?.rewardCoin?.symbol || "???"),
+        rewardSymbol: isVeZAMM ? "veZAMM (1:1 ZAMM)" : stream?.rewardCoin?.symbol || "???",
       },
       isLoading,
     };
@@ -178,7 +178,7 @@ export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedA
           totalApr: baseApr,
           breakdown: {
             tradingFees: Number(lpToken?.swapFee || SWAP_FEE),
-            rewardSymbol: isVeZAMM ? "veZAMM (1:1 ZAMM)" : (stream?.rewardCoin?.symbol || "???"),
+            rewardSymbol: isVeZAMM ? "veZAMM (1:1 ZAMM)" : stream?.rewardCoin?.symbol || "???",
           },
           isLoading: false,
         };
@@ -207,7 +207,7 @@ export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedA
         totalApr,
         breakdown: {
           tradingFees: Number(lpToken?.swapFee || SWAP_FEE),
-          rewardSymbol: isVeZAMM ? "veZAMM (1:1 ZAMM)" : (stream?.rewardCoin?.symbol || "???"),
+          rewardSymbol: isVeZAMM ? "veZAMM (1:1 ZAMM)" : stream?.rewardCoin?.symbol || "???",
         },
         isLoading: false,
       };

@@ -196,7 +196,7 @@ export const CreateFarm = () => {
 
   // Check if reward token is veZAMM (ID 87) - treat as 1:1 with ZAMM
   const isVeZAMM = formData.rewardToken.id === 87n;
-  
+
   // Get ZAMM reserves if reward token is veZAMM (for 1:1 pricing)
   const { data: zammReserves } = useReserves({
     poolId: isVeZAMM ? ZAMM_POOL_ID : undefined,
@@ -219,7 +219,7 @@ export const CreateFarm = () => {
     coinContract: !isVeZAMM ? formData?.rewardToken.token1 : undefined,
     contractSource: !isVeZAMM ? formData?.rewardToken.source : undefined,
   });
-  
+
   // Use ZAMM price for veZAMM, otherwise use normal price
   const rewardPriceEth = isVeZAMM ? zammPriceEth : normalRewardPriceEth;
 

@@ -1,15 +1,7 @@
 import React from "react";
 import { Address, formatUnits } from "viem";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -163,14 +155,7 @@ export const CoinPoolsList: React.FC<{
   ticker: string; // e.g. "USDC"
   className?: string;
 }> = ({ coinId, token, ticker, className }) => {
-  const {
-    data: pools,
-    isLoading,
-    isError,
-    error,
-    refetch,
-    isFetching,
-  } = usePools(coinId, token);
+  const { data: pools, isLoading, isError, error, refetch, isFetching } = usePools(coinId, token);
 
   return (
     <Card className={cn("w-full", className)}>
@@ -196,9 +181,7 @@ export const CoinPoolsList: React.FC<{
             ))}
           </div>
         ) : isError ? (
-          <div className="text-sm text-red-600">
-            {(error as Error)?.message}
-          </div>
+          <div className="text-sm text-red-600">{(error as Error)?.message}</div>
         ) : !pools || pools.length === 0 ? (
           <div className="text-sm text-muted-foreground">No pools found.</div>
         ) : (
@@ -223,10 +206,7 @@ export const CoinPoolsList: React.FC<{
               {pools.map((p) => (
                 <TableRow key={p.id} className="hover:bg-muted/40">
                   <TableCell>
-                    <PoolTokenImage
-                      imageUrl0={p.coin0?.imageUrl ?? null}
-                      imageUrl1={p.coin1?.imageUrl ?? null}
-                    />
+                    <PoolTokenImage imageUrl0={p.coin0?.imageUrl ?? null} imageUrl1={p.coin1?.imageUrl ?? null} />
                   </TableCell>
                   <TableCell className="font-medium">
                     {p.coin0?.symbol || "?"}/{p.coin1?.symbol || "?"}
@@ -246,18 +226,10 @@ export const CoinPoolsList: React.FC<{
                   <TableCell className="text-right">
                     {formatNumber(p.reserve1).toFixed(2)} {p.coin1?.symbol}
                   </TableCell>
-                  <TableCell className="text-right">
-                    {formatPrice(formatNumber(p.price0, 18))}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {formatPrice(formatNumber(p.price1, 18))}
-                  </TableCell>
-                  <TableCell>
-                    {bpsToPct(p.swapFee) ?? p.feeOrHook ?? p.hookType ?? "–"}
-                  </TableCell>
-                  <TableCell>
-                    {formatTimeAgo(Number(p?.updatedAt ?? 0))}
-                  </TableCell>
+                  <TableCell className="text-right">{formatPrice(formatNumber(p.price0, 18))}</TableCell>
+                  <TableCell className="text-right">{formatPrice(formatNumber(p.price1, 18))}</TableCell>
+                  <TableCell>{bpsToPct(p.swapFee) ?? p.feeOrHook ?? p.hookType ?? "–"}</TableCell>
+                  <TableCell>{formatTimeAgo(Number(p?.updatedAt ?? 0))}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

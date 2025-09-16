@@ -7,7 +7,11 @@ import { Table, TableBody, TableCell, TableHead, TableRow } from "./ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { ZAMMAddress } from "@/constants/ZAAM";
 import { CookbookAddress } from "@/constants/Cookbook";
-import { zCurveAddress } from "@/constants/zCurve";
+import { useReserves } from "@/hooks/use-reserves";
+import { computePoolId, SWAP_FEE } from "@/lib/swap";
+import { isCookbookCoin } from "@/lib/coin-utils";
+import { useMemo } from "react";
+import { useGetCoin } from "@/hooks/metadata/use-get-coin";
 
 interface Holder {
   address: string;
@@ -67,6 +71,40 @@ export const CoinHolders = ({
   const { t } = useTranslation();
   const { data, isLoading, error } = useCoinHolders(coinId);
 
+  // Check if this is a cookbook coin
+  const isCookbook = useMemo(() => {
+    return isCookbookCoin(BigInt(coinId));
+  }, [coinId]);
+
+  // Fetch coin metadata to get the actual swap fee
+  const { data: coinData } = useGetCoin({
+    coinId: coinId,
+    token: isCookbook ? CookbookAddress : ZAMMAddress,
+  });
+
+  // Get the actual swap fee from the coin's pools, defaulting to SWAP_FEE if not found
+  const actualSwapFee = useMemo(() => {
+    if (coinData?.pools && coinData.pools.length > 0) {
+      // Find the pool with coin0Id = 0 (ETH pool)
+      const ethPool = coinData.pools.find((pool: any) => pool.coin0Id === 0n);
+      if (ethPool?.swapFee) {
+        return ethPool.swapFee;
+      }
+    }
+    return SWAP_FEE;
+  }, [coinData]);
+
+  // For cookbook coins, fetch pool reserves
+  const poolId = useMemo(() => {
+    if (!isCookbook) return undefined;
+    return computePoolId(BigInt(coinId), actualSwapFee, CookbookAddress);
+  }, [coinId, isCookbook, actualSwapFee]);
+
+  const { data: reserves } = useReserves({
+    poolId,
+    source: isCookbook ? "COOKBOOK" : "ZAMM",
+  });
+
   if (isLoading || !data) return <div>{t("common.loading")}</div>;
   if (error)
     return (
@@ -76,62 +114,45 @@ export const CoinHolders = ({
     );
 
   // Separate different types of holders
-  const zCurveHolder = data.find((holder) => holder.address.toLowerCase() === zCurveAddress.toLowerCase());
   const poolAddresses = [ZAMMAddress.toLowerCase(), CookbookAddress.toLowerCase()];
   const poolHolders = data.filter((holder) => poolAddresses.includes(holder.address.toLowerCase()));
   const userHolders = data.filter(
-    (holder) =>
-      !poolAddresses.includes(holder.address.toLowerCase()) &&
-      holder.address.toLowerCase() !== zCurveAddress.toLowerCase(),
+    (holder) => !poolAddresses.includes(holder.address.toLowerCase()),
   );
 
-  // Calculate total supply and percentages
-  const totalSupply = data.reduce((acc, holder) => acc + BigInt(holder.balance), BigInt(0));
-  const zCurveBalance = zCurveHolder ? BigInt(zCurveHolder.balance) : 0n;
-  const poolBalance = poolHolders.reduce((acc, holder) => acc + BigInt(holder.balance), BigInt(0));
+  // For cookbook coins, get pool balance from reserves, otherwise from holders
+  const poolBalance = useMemo(() => {
+    if (isCookbook && reserves?.reserve1) {
+      // For cookbook coins, the pool balance is in the reserves (reserve1 is the token)
+      return reserves.reserve1;
+    }
+    // For ZAMM pools, use the holder balance
+    return poolHolders.reduce((acc, holder) => acc + BigInt(holder.balance), BigInt(0));
+  }, [isCookbook, reserves, poolHolders]);
+
   const userBalance = userHolders.reduce((acc, holder) => acc + BigInt(holder.balance), BigInt(0));
 
-  const zCurvePercentage = totalSupply > 0n ? (Number(zCurveBalance) / Number(totalSupply)) * 100 : 0;
+  // Calculate total supply - for cookbook coins, add pool reserves to holder totals
+  const totalSupply = useMemo(() => {
+    const holderTotal = data.reduce((acc, holder) => acc + BigInt(holder.balance), BigInt(0));
+    if (isCookbook && reserves?.reserve1) {
+      // For cookbook coins, add the pool reserves to the total
+      // But don't double-count if the Cookbook address is already in the holders list
+      const cookbookHolding = data.find(h => h.address.toLowerCase() === CookbookAddress.toLowerCase());
+      if (!cookbookHolding || BigInt(cookbookHolding.balance) === 0n) {
+        return holderTotal + reserves.reserve1;
+      }
+    }
+    return holderTotal;
+  }, [data, isCookbook, reserves]);
+
   const poolPercentage = totalSupply > 0n ? (Number(poolBalance) / Number(totalSupply)) * 100 : 0;
   const userPercentage = totalSupply > 0n ? (Number(userBalance) / Number(totalSupply)) * 100 : 0;
 
   return (
     <div className="space-y-4">
-      {/* Unclaimed Tokens Card */}
-      {zCurveHolder && zCurveBalance > 0n && (
-        <Card className="border-amber-500/50 bg-amber-50/5">
-          <CardHeader>
-            <CardTitle>{t("holders.unclaimed_tokens", "Unclaimed Tokens")}</CardTitle>
-            <CardDescription>
-              {t("holders.unclaimed_description", "Tokens from zCurve sale waiting to be claimed")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex justify-between items-center p-2 rounded bg-amber-500/10">
-                <div>
-                  <div className="font-medium">{t("holders.zcurve_contract", "zCurve Contract")}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {zCurveAddress.slice(0, 6)}...{zCurveAddress.slice(-4)}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="font-medium">
-                    {Number(formatUnits(zCurveBalance, 18)).toFixed(4)} {symbol}
-                  </div>
-                  <div className="text-sm text-muted-foreground">{zCurvePercentage.toFixed(2)}%</div>
-                </div>
-              </div>
-              <div className="text-sm text-muted-foreground italic">
-                {t("holders.unclaimed_note", "These tokens will be distributed as users claim their allocations")}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Pool Holdings Card */}
-      {poolHolders.length > 0 && (
+      {(poolHolders.length > 0 || (isCookbook && poolBalance > 0n)) && (
         <Card>
           <CardHeader>
             <CardTitle>{t("holders.pool_holdings", "Pool Holdings")}</CardTitle>
@@ -141,32 +162,52 @@ export const CoinHolders = ({
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {poolHolders.map((holder, index) => {
-                const isZAMM = holder.address.toLowerCase() === ZAMMAddress.toLowerCase();
-                const poolName = isZAMM
-                  ? t("holders.zamm_pool", "ZAMM Pool")
-                  : t("holders.cookbook_pool", "Cookbook Pool");
-                const balance = formatUnits(BigInt(holder.balance), 18);
-                const percentage = totalSupply > 0n ? (Number(BigInt(holder.balance)) / Number(totalSupply)) * 100 : 0;
-
-                return (
-                  <div key={index} className="flex justify-between items-center p-2 rounded bg-muted/50">
-                    <div>
-                      <div className="font-medium">{poolName}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {holder.address.slice(0, 6)}...
-                        {holder.address.slice(-4)}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-medium">
-                        {Number(balance).toFixed(4)} {symbol}
-                      </div>
-                      <div className="text-sm text-muted-foreground">{percentage.toFixed(2)}%</div>
+              {isCookbook && poolBalance > 0n ? (
+                // For cookbook coins, show the pool reserves
+                <div className="flex justify-between items-center p-2 rounded bg-muted/50">
+                  <div>
+                    <div className="font-medium">{t("holders.cookbook_pool", "Cookbook Pool")}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {CookbookAddress.slice(0, 6)}...
+                      {CookbookAddress.slice(-4)}
                     </div>
                   </div>
-                );
-              })}
+                  <div className="text-right">
+                    <div className="font-medium">
+                      {Number(formatUnits(poolBalance, 18)).toFixed(4)} {symbol}
+                    </div>
+                    <div className="text-sm text-muted-foreground">{poolPercentage.toFixed(2)}%</div>
+                  </div>
+                </div>
+              ) : (
+                // For ZAMM pools, show holder-based pool holdings
+                poolHolders.map((holder, index) => {
+                  const isZAMM = holder.address.toLowerCase() === ZAMMAddress.toLowerCase();
+                  const poolName = isZAMM
+                    ? t("holders.zamm_pool", "ZAMM Pool")
+                    : t("holders.cookbook_pool", "Cookbook Pool");
+                  const balance = formatUnits(BigInt(holder.balance), 18);
+                  const percentage = totalSupply > 0n ? (Number(BigInt(holder.balance)) / Number(totalSupply)) * 100 : 0;
+
+                  return (
+                    <div key={index} className="flex justify-between items-center p-2 rounded bg-muted/50">
+                      <div>
+                        <div className="font-medium">{poolName}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {holder.address.slice(0, 6)}...
+                          {holder.address.slice(-4)}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-medium">
+                          {Number(balance).toFixed(4)} {symbol}
+                        </div>
+                        <div className="text-sm text-muted-foreground">{percentage.toFixed(2)}%</div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
               <div className="pt-2 mt-2 border-t">
                 <div className="flex justify-between items-center font-medium">
                   <span>{t("holders.total_pool_holdings", "Total Pool Holdings")}</span>
@@ -186,10 +227,6 @@ export const CoinHolders = ({
         <CardContent>
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <span>{t("holders.unclaimed_supply", "Unclaimed (zCurve)")}</span>
-              <span className="font-medium">{zCurvePercentage.toFixed(2)}%</span>
-            </div>
-            <div className="flex justify-between items-center">
               <span>{t("holders.pool_liquidity", "Pool Liquidity")}</span>
               <span className="font-medium">{poolPercentage.toFixed(2)}%</span>
             </div>
@@ -199,7 +236,7 @@ export const CoinHolders = ({
             </div>
             <div className="border-t pt-2 mt-2">
               <div className="flex justify-between items-center font-semibold">
-                <span>{t("holders.circulating_supply", "Circulating Supply")}</span>
+                <span>{t("holders.total_supply", "Total Supply")}</span>
                 <span>{(poolPercentage + userPercentage).toFixed(2)}%</span>
               </div>
             </div>
@@ -211,7 +248,7 @@ export const CoinHolders = ({
       <div>
         <h3 className="text-lg font-semibold mb-2">{t("holders.actual_holders", "Actual Token Holders")}</h3>
         <p className="text-sm text-muted-foreground mb-4">
-          {t("holders.actual_holders_description", "Excluding unclaimed tokens and pool liquidity")}
+          {t("holders.actual_holders_description", "Excluding pool liquidity")}
         </p>
         <CoinHoldersTreemap data={userHolders} />
         <CoinHoldersTable data={userHolders} symbol={symbol} />

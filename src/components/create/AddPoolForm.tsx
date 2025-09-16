@@ -47,9 +47,7 @@ export const AddPoolForm = ({
     <div className="rounded-md border p-3 space-y-3">
       <div>
         <div className="text-sm font-medium">Pool settings</div>
-        <p className="text-xs text-muted-foreground">
-          We’ll mint your token, then create and seed a pool.
-        </p>
+        <p className="text-xs text-muted-foreground">We’ll mint your token, then create and seed a pool.</p>
       </div>
 
       <div className="grid md:grid-cols-2 gap-3">
@@ -66,8 +64,7 @@ export const AddPoolForm = ({
           />
 
           <p className="text-xs text-muted-foreground">
-            {poolSupplyTokens.toLocaleString()} to pool •{" "}
-            {creatorSupplyTokens.toLocaleString()} to creator
+            {poolSupplyTokens.toLocaleString()} to pool • {creatorSupplyTokens.toLocaleString()} to creator
           </p>
         </div>
       </div>
@@ -91,11 +88,7 @@ export const AddPoolForm = ({
           className="mb-1 w-full"
         />
       </div>
-      <FeeOrHookSelector
-        feeOrHook={feeOrHook}
-        setFeeOrHook={setFeeOrHook}
-        isHook={isHook}
-      />
+      <FeeOrHookSelector feeOrHook={feeOrHook} setFeeOrHook={setFeeOrHook} isHook={isHook} />
     </div>
   );
 };

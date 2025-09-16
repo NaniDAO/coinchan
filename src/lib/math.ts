@@ -21,8 +21,7 @@ export const formatDexscreenerStyle = (n: number) => {
   const nextDigit = decPart[1 + zeroCount];
 
   // Convert number to subscript characters
-  const toSubscript = (val: number) =>
-    String(val).replace(/\d/g, (d) => "₀₁₂₃₄₅₆₇₈₉"[+d]);
+  const toSubscript = (val: number) => String(val).replace(/\d/g, (d) => "₀₁₂₃₄₅₆₇₈₉"[+d]);
 
   // Only compress if there are at least 3 zeros after the first decimal digit
   if (zeroCount >= 3 && nextDigit) {
@@ -38,19 +37,15 @@ export function formatPrice(n?: number) {
   const abs = Math.abs(n);
 
   // Choose decimals based on magnitude
-  if (abs >= 1)
-    return n.toLocaleString(undefined, { maximumFractionDigits: 6 });
-  if (abs >= 1e-6)
-    return n.toLocaleString(undefined, { maximumFractionDigits: 8 });
-  if (abs >= 1e-12)
-    return n.toLocaleString(undefined, { maximumFractionDigits: 12 });
+  if (abs >= 1) return n.toLocaleString(undefined, { maximumFractionDigits: 6 });
+  if (abs >= 1e-6) return n.toLocaleString(undefined, { maximumFractionDigits: 8 });
+  if (abs >= 1e-12) return n.toLocaleString(undefined, { maximumFractionDigits: 12 });
 
   return n.toExponential(2);
 }
 
 export const amountInWords = (amount?: number): string => {
-  if (amount === undefined || amount === null || Number.isNaN(amount))
-    return "";
+  if (amount === undefined || amount === null || Number.isNaN(amount)) return "";
   if (!Number.isFinite(amount)) return "";
 
   // Handle negatives
@@ -60,18 +55,7 @@ export const amountInWords = (amount?: number): string => {
   const n = Math.trunc(amount);
   if (n === 0) return "zero";
 
-  const ones = [
-    "",
-    "one",
-    "two",
-    "three",
-    "four",
-    "five",
-    "six",
-    "seven",
-    "eight",
-    "nine",
-  ];
+  const ones = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
 
   const teens = [
     "ten",
@@ -86,18 +70,7 @@ export const amountInWords = (amount?: number): string => {
     "nineteen",
   ];
 
-  const tens = [
-    "",
-    "",
-    "twenty",
-    "thirty",
-    "forty",
-    "fifty",
-    "sixty",
-    "seventy",
-    "eighty",
-    "ninety",
-  ];
+  const tens = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
 
   const scales = [
     "",

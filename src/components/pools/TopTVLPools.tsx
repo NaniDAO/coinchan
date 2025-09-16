@@ -56,15 +56,11 @@ type PoolsApiResponse = {
 
 // ----------------------------- Utils -----------------------------
 
-const INDEXER_URL = (import.meta as any).env?.VITE_INDEXER_URL as
-  | string
-  | undefined;
+const INDEXER_URL = (import.meta as any).env?.VITE_INDEXER_URL as string | undefined;
 
 function assertIndexerUrl(): string {
   if (!INDEXER_URL) {
-    throw new Error(
-      "VITE_INDEXER_URL is not set. Please define it in your environment (.env).",
-    );
+    throw new Error("VITE_INDEXER_URL is not set. Please define it in your environment (.env).");
   }
   return INDEXER_URL;
 }
@@ -127,10 +123,7 @@ export default function TopPoolsByTVLSection({
       {isLoading && (
         <div className="grid gap-3">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-14 animate-pulse rounded-2xl border bg-gray-50"
-            />
+            <div key={i} className="h-14 animate-pulse rounded-2xl border bg-gray-50" />
           ))}
         </div>
       )}
@@ -161,28 +154,18 @@ const PoolCard = ({ pool }: { pool: PoolTableItem }) => {
   const tokenAParam = pool?.token0
     ? encodeTokenQ({
         address: pool.token0 as Address,
-        id:
-          typeof pool.coin0.id === "bigint"
-            ? pool.coin0.id
-            : BigInt(pool.coin0.id ?? "0"),
+        id: typeof pool.coin0.id === "bigint" ? pool.coin0.id : BigInt(pool.coin0.id ?? "0"),
       })
     : undefined;
 
   const tokenBParam = pool?.token1
     ? encodeTokenQ({
         address: pool.token1 as Address,
-        id:
-          typeof pool.coin1.id === "bigint"
-            ? pool.coin1.id
-            : BigInt(pool.coin1.id ?? "0"),
+        id: typeof pool.coin1.id === "bigint" ? pool.coin1.id : BigInt(pool.coin1.id ?? "0"),
       })
     : undefined;
 
-  const feeParam = pool?.feeOrHook
-    ? String(pool.feeOrHook)
-    : pool?.swapFee
-      ? String(pool.swapFee)
-      : undefined;
+  const feeParam = pool?.feeOrHook ? String(pool.feeOrHook) : pool?.swapFee ? String(pool.swapFee) : undefined;
   const protocolParam = pool?.source === "ZAMM" ? "ZAMMV0" : "ZAMMV1";
 
   const poolApy = useMemo(() => {
@@ -209,32 +192,21 @@ const PoolCard = ({ pool }: { pool: PoolTableItem }) => {
         />
         <div className="min-w-0">
           <div className="truncate font-medium">
-            {pool.coin0?.symbol || "UNK"} /{" "}
-            {pool.coin1?.symbol || shortenHex(pool.token1)}
+            {pool.coin0?.symbol || "UNK"} / {pool.coin1?.symbol || shortenHex(pool.token1)}
           </div>
           <div className="mt-1 text-xs flex flex-row gap-1">
-            <Badge
-              variant="secondary"
-              className="text-xs text-muted-foreground"
-            >
+            <Badge variant="secondary" className="text-xs text-muted-foreground">
               {pool.source === "ZAMM" ? "v0" : "v1"}
             </Badge>
-            <Badge
-              variant="secondary"
-              className="text-xs text-muted-foreground"
-            >
-              {BigInt(pool.feeOrHook) > 1000n
-                ? `${pool.hookType} Hook`
-                : bpsToPct(pool.swapFee)}
+            <Badge variant="secondary" className="text-xs text-muted-foreground">
+              {BigInt(pool.feeOrHook) > 1000n ? `${pool.hookType} Hook` : bpsToPct(pool.swapFee)}
             </Badge>
           </div>
         </div>
       </div>
 
       {/* Right: TVL */}
-      <div className="text-muted-foreground">
-        {poolApy === null || poolApy === 0 ? "N/A" : `${poolApy}%`}
-      </div>
+      <div className="text-muted-foreground">{poolApy === null || poolApy === 0 ? "N/A" : `${poolApy}%`}</div>
     </Link>
   );
 };

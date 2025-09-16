@@ -30,7 +30,6 @@ import { Route as FarmCreateRouteImport } from './routes/farm/create'
 import { Route as ExploreTokensRouteImport } from './routes/explore/tokens'
 import { Route as ExplorePoolsRouteImport } from './routes/explore/pools'
 import { Route as ExploreOrdersRouteImport } from './routes/explore/orders'
-import { Route as ExploreBondedCoinsRouteImport } from './routes/explore/bonded-coins'
 import { Route as CCoinIdRouteImport } from './routes/c.$coinId'
 
 const WlfiRoute = WlfiRouteImport.update({
@@ -138,11 +137,6 @@ const ExploreOrdersRoute = ExploreOrdersRouteImport.update({
   path: '/orders',
   getParentRoute: () => ExploreRoute,
 } as any)
-const ExploreBondedCoinsRoute = ExploreBondedCoinsRouteImport.update({
-  id: '/bonded-coins',
-  path: '/bonded-coins',
-  getParentRoute: () => ExploreRoute,
-} as any)
 const CCoinIdRoute = CCoinIdRouteImport.update({
   id: '/c/$coinId',
   path: '/c/$coinId',
@@ -164,7 +158,6 @@ export interface FileRoutesByFullPath {
   '/user': typeof UserRoute
   '/wlfi': typeof WlfiRoute
   '/c/$coinId': typeof CCoinIdRoute
-  '/explore/bonded-coins': typeof ExploreBondedCoinsRoute
   '/explore/orders': typeof ExploreOrdersRoute
   '/explore/pools': typeof ExplorePoolsRoute
   '/explore/tokens': typeof ExploreTokensRoute
@@ -187,7 +180,6 @@ export interface FileRoutesByTo {
   '/user': typeof UserRoute
   '/wlfi': typeof WlfiRoute
   '/c/$coinId': typeof CCoinIdRoute
-  '/explore/bonded-coins': typeof ExploreBondedCoinsRoute
   '/explore/orders': typeof ExploreOrdersRoute
   '/explore/pools': typeof ExplorePoolsRoute
   '/explore/tokens': typeof ExploreTokensRoute
@@ -213,7 +205,6 @@ export interface FileRoutesById {
   '/user': typeof UserRoute
   '/wlfi': typeof WlfiRoute
   '/c/$coinId': typeof CCoinIdRoute
-  '/explore/bonded-coins': typeof ExploreBondedCoinsRoute
   '/explore/orders': typeof ExploreOrdersRoute
   '/explore/pools': typeof ExplorePoolsRoute
   '/explore/tokens': typeof ExploreTokensRoute
@@ -240,7 +231,6 @@ export interface FileRouteTypes {
     | '/user'
     | '/wlfi'
     | '/c/$coinId'
-    | '/explore/bonded-coins'
     | '/explore/orders'
     | '/explore/pools'
     | '/explore/tokens'
@@ -263,7 +253,6 @@ export interface FileRouteTypes {
     | '/user'
     | '/wlfi'
     | '/c/$coinId'
-    | '/explore/bonded-coins'
     | '/explore/orders'
     | '/explore/pools'
     | '/explore/tokens'
@@ -288,7 +277,6 @@ export interface FileRouteTypes {
     | '/user'
     | '/wlfi'
     | '/c/$coinId'
-    | '/explore/bonded-coins'
     | '/explore/orders'
     | '/explore/pools'
     | '/explore/tokens'
@@ -466,13 +454,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExploreOrdersRouteImport
       parentRoute: typeof ExploreRoute
     }
-    '/explore/bonded-coins': {
-      id: '/explore/bonded-coins'
-      path: '/bonded-coins'
-      fullPath: '/explore/bonded-coins'
-      preLoaderRoute: typeof ExploreBondedCoinsRouteImport
-      parentRoute: typeof ExploreRoute
-    }
     '/c/$coinId': {
       id: '/c/$coinId'
       path: '/c/$coinId'
@@ -484,14 +465,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface ExploreRouteChildren {
-  ExploreBondedCoinsRoute: typeof ExploreBondedCoinsRoute
   ExploreOrdersRoute: typeof ExploreOrdersRoute
   ExplorePoolsRoute: typeof ExplorePoolsRoute
   ExploreTokensRoute: typeof ExploreTokensRoute
 }
 
 const ExploreRouteChildren: ExploreRouteChildren = {
-  ExploreBondedCoinsRoute: ExploreBondedCoinsRoute,
   ExploreOrdersRoute: ExploreOrdersRoute,
   ExplorePoolsRoute: ExplorePoolsRoute,
   ExploreTokensRoute: ExploreTokensRoute,

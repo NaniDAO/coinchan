@@ -20,8 +20,7 @@ interface LivePreviewProps {
   isHook?: boolean;
 }
 
-const shortAddr = (addr?: string) =>
-  addr ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : "";
+const shortAddr = (addr?: string) => (addr ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : "");
 
 export const LivePreview = ({
   coinId,
@@ -39,15 +38,10 @@ export const LivePreview = ({
   const poolPctClamped = Math.max(0, Math.min(100, Math.floor(poolPct)));
   const creatorPct = 100 - poolPctClamped;
 
-  const feeBps =
-    !isHook && typeof feeOrHook !== "undefined"
-      ? Number(feeOrHook.toString())
-      : undefined;
+  const feeBps = !isHook && typeof feeOrHook !== "undefined" ? Number(feeOrHook.toString()) : undefined;
 
   return (
-    <div
-      className={`lg:sticky lg:top-4 lg:self-start max-h-fit overflow-y-auto pb-6 bg-muted mb-2 p-2`}
-    >
+    <div className={`lg:sticky lg:top-4 lg:self-start max-h-fit overflow-y-auto pb-6 bg-muted mb-2 p-2`}>
       <div>
         <Heading level={2}>Preview</Heading>
         <p className="mt-1 text-muted-foreground">Live preview of your coin.</p>
@@ -64,8 +58,7 @@ export const LivePreview = ({
                   src={imagePreviewUrl || "/zammzamm.png"}
                   alt={form.name || "Coin image"}
                   onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src =
-                      "https://placehold.co/800x800/png?text=Image+not+found";
+                    (e.currentTarget as HTMLImageElement).src = "https://placehold.co/800x800/png?text=Image+not+found";
                   }}
                 />
               </Avatar>
@@ -78,19 +71,12 @@ export const LivePreview = ({
           {/* Meta & Stats */}
           <div className="w-full flex flex-col items-start justify-start px-4 mt-8">
             <div className="flex flex-row gap-2">
-              {coinId && (
-                <p className="border-border border p-1 text-4xl">{coinId}</p>
-              )}
+              {coinId && <p className="border-border border p-1 text-4xl">{coinId}</p>}
               <div className="flex flex-row items-center gap-4">
-                <Heading
-                  level={4}
-                  className="text-4xl font-bold tracking-tight"
-                >
+                <Heading level={4} className="text-4xl font-bold tracking-tight">
                   {form.name || "Your Coin Name"}
                 </Heading>
-                <span className="text-md text-muted-foreground">
-                  [{form.symbol ? `${form.symbol}` : "SYMBOL"}]
-                </span>
+                <span className="text-md text-muted-foreground">[{form.symbol ? `${form.symbol}` : "SYMBOL"}]</span>
               </div>
             </div>
 
@@ -112,8 +98,7 @@ export const LivePreview = ({
                   {/* value column */}
                   <div className="min-w-0 max-w-full">
                     <p className="truncate">
-                      {form.supply?.toLocaleString() || "0"}{" "}
-                      {form.symbol || "SYMBOL"}
+                      {form.supply?.toLocaleString() || "0"} {form.symbol || "SYMBOL"}
                     </p>
                     <p className="text-xs text-muted-foreground whitespace-normal break-words md:break-words break-all leading-snug">
                       {amountInWords(form?.supply || 0)}
@@ -134,39 +119,28 @@ export const LivePreview = ({
                     <p>Pool Allocation</p>
                     <div className="min-w-0 max-w-full">
                       <p className="truncate">
-                        {poolSupplyTokens.toLocaleString()}{" "}
-                        {form.symbol || "SYMBOL"}
+                        {poolSupplyTokens.toLocaleString()} {form.symbol || "SYMBOL"}
                       </p>
-                      <p className="text-xs text-muted-foreground leading-snug">
-                        {amountInWords(poolSupplyTokens)}
-                      </p>
+                      <p className="text-xs text-muted-foreground leading-snug">{amountInWords(poolSupplyTokens)}</p>
                     </div>
 
                     <p>Creator Allocation</p>
                     <div className="min-w-0 max-w-full">
                       <p className="truncate">
-                        {creatorSupplyTokens.toLocaleString()}{" "}
-                        {form.symbol || "SYMBOL"}
+                        {creatorSupplyTokens.toLocaleString()} {form.symbol || "SYMBOL"}
                       </p>
-                      <p className="text-xs text-muted-foreground leading-snug">
-                        {amountInWords(creatorSupplyTokens)}
-                      </p>
+                      <p className="text-xs text-muted-foreground leading-snug">{amountInWords(creatorSupplyTokens)}</p>
                     </div>
 
                     <p>Deposit (Token A)</p>
                     <div className="min-w-0 max-w-full">
                       <p className="truncate">
-                        {amountInText && amountInText.trim() !== ""
-                          ? amountInText
-                          : "—"}{" "}
+                        {amountInText && amountInText.trim() !== "" ? amountInText : "—"}{" "}
                         {tokenIn?.symbol || tokenIn?.name || "ETH"}
                       </p>
                       <p className="text-xs text-muted-foreground leading-snug">
-                        {tokenIn?.address
-                          ? `from ${shortAddr(tokenIn.address)}`
-                          : "native deposit"}
-                        {tokenIn?.standard === "ERC6909" &&
-                        typeof tokenIn?.id !== "undefined"
+                        {tokenIn?.address ? `from ${shortAddr(tokenIn.address)}` : "native deposit"}
+                        {tokenIn?.standard === "ERC6909" && typeof tokenIn?.id !== "undefined"
                           ? ` • id ${tokenIn.id.toString()}`
                           : ""}
                       </p>
@@ -175,14 +149,10 @@ export const LivePreview = ({
                     <p>{isHook ? "Hook" : "Swap Fee"}</p>
                     <div className="min-w-0 max-w-full">
                       {isHook ? (
-                        <p className="truncate">
-                          Hook ID #{feeOrHook?.toString() || "—"}
-                        </p>
+                        <p className="truncate">Hook ID #{feeOrHook?.toString() || "—"}</p>
                       ) : (
                         <p className="truncate">
-                          {typeof feeBps === "number"
-                            ? `${feeBps} bps (${(feeBps / 100).toFixed(2)}%)`
-                            : "—"}
+                          {typeof feeBps === "number" ? `${feeBps} bps (${(feeBps / 100).toFixed(2)}%)` : "—"}
                         </p>
                       )}
                     </div>

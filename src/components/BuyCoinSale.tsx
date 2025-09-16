@@ -29,29 +29,17 @@ import {
   YAxis,
 } from "recharts";
 import { formatEther, parseEther } from "viem";
-import {
-  useAccount,
-  useBalance,
-  usePublicClient,
-  useWriteContract,
-} from "wagmi";
+import { useAccount, useBalance, usePublicClient, useWriteContract } from "wagmi";
 import { BuySellCookbookCoin } from "./BuySellCookbookCoin";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "./ui/card";
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
 import { PillIndicator } from "./ui/pill";
 
 /* ───────── helpers ───────── */
 
-const statusToPillVariant = (s: string) =>
-  s === "ACTIVE" ? "success" : s === "FINALIZED" ? "info" : "error";
+const statusToPillVariant = (s: string) => (s === "ACTIVE" ? "success" : s === "FINALIZED" ? "info" : "error");
 
 /* ───────── types ───────── */
 
@@ -104,8 +92,7 @@ export const BuyCoinSale = ({
   const cheapestAvailableTranche = useMemo(() => {
     if (!sale) return null;
     const active = sale.tranches.items.filter(
-      (t: Tranche) =>
-        BigInt(t.remaining) > 0n && Number(t.deadline) * 1000 > Date.now(),
+      (t: Tranche) => BigInt(t.remaining) > 0n && Number(t.deadline) * 1000 > Date.now(),
     );
     if (!active.length) return null;
 
@@ -123,17 +110,14 @@ export const BuyCoinSale = ({
   }, [cheapestAvailableTranche]);
 
   const tranche: Tranche | undefined = useMemo(
-    () =>
-      sale?.tranches.items.find((t: Tranche) => t.trancheIndex === selected),
+    () => sale?.tranches.items.find((t: Tranche) => t.trancheIndex === selected),
     [sale, selected],
   );
 
   /* check if a tranche is selectable (only cheapest available can be selected) */
   const isTrancheSelectable = useCallback(
     (trancheToCheck: Tranche) => {
-      return (
-        cheapestAvailableTranche?.trancheIndex === trancheToCheck.trancheIndex
-      );
+      return cheapestAvailableTranche?.trancheIndex === trancheToCheck.trancheIndex;
     },
     [cheapestAvailableTranche],
   );
@@ -243,9 +227,7 @@ export const BuyCoinSale = ({
     } else {
       // TOKEN mode - exact coins
       try {
-        const desiredCoins = tokenInput.trim()
-          ? parseEther(tokenInput.trim())
-          : 0n;
+        const desiredCoins = tokenInput.trim() ? parseEther(tokenInput.trim()) : 0n;
         if (desiredCoins === 0n)
           return {
             validEthAmount: 0n,
@@ -326,19 +308,10 @@ export const BuyCoinSale = ({
   if (isLoading) return <div>{t("sale.loading")}</div>;
   if (!sale) return <div>{t("sale.not_found")}</div>;
   if (sale.status === "FINALIZED")
-    return (
-      <BuySellCookbookCoin
-        coinId={coinId}
-        symbol={symbol}
-        onPriceImpactChange={onPriceImpactChange}
-      />
-    );
+    return <BuySellCookbookCoin coinId={coinId} symbol={symbol} onPriceImpactChange={onPriceImpactChange} />;
 
   const activeTranches = sale.tranches.items
-    .filter(
-      (t: Tranche) =>
-        BigInt(t.remaining) > 0n && Number(t.deadline) * 1000 > Date.now(),
-    )
+    .filter((t: Tranche) => BigInt(t.remaining) > 0n && Number(t.deadline) * 1000 > Date.now())
     .sort((a: Tranche, b: Tranche) => {
       // Sort by price ascending for consistent ordering
       const priceA = BigInt(a.price);
@@ -364,9 +337,7 @@ export const BuyCoinSale = ({
   /* ─────────────────────────── JSX ─────────────────────────── */
 
   // Get the overall tranche sale deadline (deadlineLast)
-  const saleDeadlineInfo = sale.deadlineLast
-    ? formatDeadline(Number(sale.deadlineLast))
-    : null;
+  const saleDeadlineInfo = sale.deadlineLast ? formatDeadline(Number(sale.deadlineLast)) : null;
 
   return (
     <Card className="w-full">
@@ -385,8 +356,7 @@ export const BuyCoinSale = ({
         <div
           className={cn(
             "mx-6 mb-4 p-3 border-2 font-mono text-sm font-bold flex items-center gap-2 shadow-[4px_4px_0_var(--border)] bg-card",
-            saleDeadlineInfo.urgency === "expired" &&
-              "border-destructive text-destructive bg-destructive/10",
+            saleDeadlineInfo.urgency === "expired" && "border-destructive text-destructive bg-destructive/10",
             saleDeadlineInfo.urgency === "urgent" &&
               "border-orange-500 text-orange-700 dark:text-orange-300 bg-orange-500/10 animate-pulse",
             saleDeadlineInfo.urgency === "warning" &&
@@ -407,74 +377,29 @@ export const BuyCoinSale = ({
           {t("sale.supply")} {formatEther(BigInt(sale.saleSupply))} {symbol}
         </div>
 
-        <h3 className="font-mono text-lg font-bold mb-4">
-          {t("sale.tranches")}
-        </h3>
+        <h3 className="font-mono text-lg font-bold mb-4">{t("sale.tranches")}</h3>
         <Card className="p-4 mb-6">
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart
-                data={chartData}
-                margin={{ top: 10, right: 20, bottom: 10, left: 10 }}
-              >
+              <ComposedChart data={chartData} margin={{ top: 10, right: 20, bottom: 10, left: 10 }}>
                 {/* … same svg gradients, axes, tooltip, bars & line as previous version … */}
                 <defs>
                   <linearGradient id="soldGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop
-                      offset="0%"
-                      stopColor={chartTheme.downColor}
-                      stopOpacity={0.8}
-                    />
-                    <stop
-                      offset="100%"
-                      stopColor={chartTheme.downColor}
-                      stopOpacity={0.2}
-                    />
+                    <stop offset="0%" stopColor={chartTheme.downColor} stopOpacity={0.8} />
+                    <stop offset="100%" stopColor={chartTheme.downColor} stopOpacity={0.2} />
                   </linearGradient>
 
-                  <linearGradient
-                    id="remainingGradient"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop
-                      offset="0%"
-                      stopColor={chartTheme.upColor}
-                      stopOpacity={0.8}
-                    />
-                    <stop
-                      offset="100%"
-                      stopColor={chartTheme.upColor}
-                      stopOpacity={0.2}
-                    />
+                  <linearGradient id="remainingGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={chartTheme.upColor} stopOpacity={0.8} />
+                    <stop offset="100%" stopColor={chartTheme.upColor} stopOpacity={0.2} />
                   </linearGradient>
-                  <linearGradient
-                    id="priceGradient"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop
-                      offset="0%"
-                      stopColor={chartTheme.lineColor}
-                      stopOpacity={0.8}
-                    />
-                    <stop
-                      offset="100%"
-                      stopColor={chartTheme.lineColor}
-                      stopOpacity={0.2}
-                    />
+                  <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={chartTheme.lineColor} stopOpacity={0.8} />
+                    <stop offset="100%" stopColor={chartTheme.lineColor} stopOpacity={0.2} />
                   </linearGradient>
                   <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
                     <stop offset="0%" stopColor={chartTheme.lineColor} />
-                    <stop
-                      offset="100%"
-                      stopColor={chartTheme.lineColor}
-                      stopOpacity={0.7}
-                    />
+                    <stop offset="100%" stopColor={chartTheme.lineColor} stopOpacity={0.7} />
                   </linearGradient>
                 </defs>
 
@@ -548,15 +473,12 @@ export const BuyCoinSale = ({
                     const d = payload[0].payload;
                     return (
                       <div className="bg-card border-2 border-border p-3 shadow-[4px_4px_0_var(--border)] font-mono text-xs">
-                        <div className="text-muted-foreground mb-2 font-bold">
-                          {label}
-                        </div>
+                        <div className="text-muted-foreground mb-2 font-bold">{label}</div>
                         <div className="font-bold text-destructive mb-1">
                           {t("sale.sold_colon")} {d.sold.toFixed(4)} {symbol}
                         </div>
                         <div className="font-bold text-warning mb-1">
-                          {t("sale.remaining_colon")} {d.remaining.toFixed(4)}{" "}
-                          {symbol}
+                          {t("sale.remaining_colon")} {d.remaining.toFixed(4)} {symbol}
                         </div>
                         <div className="font-bold text-primary mb-1">
                           {t("sale.price_colon")} {d.price.toFixed(4)} ETH
@@ -618,11 +540,7 @@ export const BuyCoinSale = ({
 
         {/* spend/buy toggle */}
         <div className="flex gap-2 mb-6">
-          <Button
-            variant={mode === "ETH" ? "default" : "outline"}
-            onClick={() => setMode("ETH")}
-            className="flex-1"
-          >
+          <Button variant={mode === "ETH" ? "default" : "outline"} onClick={() => setMode("ETH")} className="flex-1">
             {t("sale.spend_eth")}
           </Button>
           <Button
@@ -635,14 +553,9 @@ export const BuyCoinSale = ({
         </div>
 
         {/* tranche selector */}
-        <h3 className="font-mono text-lg font-bold mb-2">
-          {t("sale.choose_tranche")}
-        </h3>
+        <h3 className="font-mono text-lg font-bold mb-2">{t("sale.choose_tranche")}</h3>
         <p className="font-mono text-sm text-muted-foreground mb-4">
-          {t(
-            "sale.sequential_filling_note",
-            "Only the cheapest available tranche can be purchased",
-          )}
+          {t("sale.sequential_filling_note", "Only the cheapest available tranche can be purchased")}
         </p>
         <div className="grid sm:grid-cols-2 gap-4 mb-6">
           {activeTranches.map((tranche: Tranche) => {
@@ -653,9 +566,7 @@ export const BuyCoinSale = ({
             return (
               <button
                 key={tranche.trancheIndex}
-                onClick={() =>
-                  isSelectable && setSelected(tranche.trancheIndex)
-                }
+                onClick={() => isSelectable && setSelected(tranche.trancheIndex)}
                 disabled={isDisabled}
                 className={cn(
                   "p-4 border-2 font-mono text-left transition-all shadow-[4px_4px_0_var(--border)]",
@@ -674,14 +585,10 @@ export const BuyCoinSale = ({
                     {t("sale.tranche")} {tranche.trancheIndex}
                   </div>
                   {isSelectable && (
-                    <div className="text-xs bg-green-500 text-white px-2 py-1 rounded font-bold">
-                      AVAILABLE
-                    </div>
+                    <div className="text-xs bg-green-500 text-white px-2 py-1 rounded font-bold">AVAILABLE</div>
                   )}
                   {isDisabled && (
-                    <div className="text-xs bg-gray-400 text-white px-2 py-1 rounded font-bold">
-                      LOCKED
-                    </div>
+                    <div className="text-xs bg-gray-400 text-white px-2 py-1 rounded font-bold">LOCKED</div>
                   )}
                 </div>
                 <div className="text-sm mb-1">
@@ -689,15 +596,11 @@ export const BuyCoinSale = ({
                 </div>
                 <div className="text-sm mb-1">
                   {t("sale.remaining_colon")}{" "}
-                  {remainderCoins !== null
-                    ? formatEther(remainderCoins)
-                    : formatEther(BigInt(tranche.remaining))}{" "}
+                  {remainderCoins !== null ? formatEther(remainderCoins) : formatEther(BigInt(tranche.remaining))}{" "}
                   {symbol}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  ETH needed:{" "}
-                  {remainderWei !== null ? formatEther(remainderWei) : "..."}{" "}
-                  ETH
+                  ETH needed: {remainderWei !== null ? formatEther(remainderWei) : "..."} ETH
                 </div>
               </button>
             );
@@ -722,11 +625,7 @@ export const BuyCoinSale = ({
                 step={mode === "ETH" ? "0.0001" : "1"}
                 placeholder="0.0"
                 value={mode === "ETH" ? ethInput : tokenInput}
-                onChange={(e) =>
-                  mode === "ETH"
-                    ? setEthInput(e.target.value)
-                    : setTokenInput(e.target.value)
-                }
+                onChange={(e) => (mode === "ETH" ? setEthInput(e.target.value) : setTokenInput(e.target.value))}
                 className="flex-1"
               />
               <Button onClick={handleMax} size="sm" variant="outline">
@@ -740,30 +639,21 @@ export const BuyCoinSale = ({
                 estimateTokens ? (
                   <div>
                     ≈{" "}
-                    <span className="font-bold text-primary">
-                      {Number.parseFloat(estimateTokens).toLocaleString()}
-                    </span>{" "}
+                    <span className="font-bold text-primary">{Number.parseFloat(estimateTokens).toLocaleString()}</span>{" "}
                     {symbol}
                     {/* Show if amount was rounded */}
-                    {ethInput &&
-                      parseEther(ethInput.trim() || "0") !==
-                        purchaseCalculations.validEthAmount && (
-                        <div className="text-xs text-orange-600 mt-1">
-                          Amount rounded to{" "}
-                          {formatEther(purchaseCalculations.validEthAmount)} ETH
-                          for exact ratio
-                        </div>
-                      )}
+                    {ethInput && parseEther(ethInput.trim() || "0") !== purchaseCalculations.validEthAmount && (
+                      <div className="text-xs text-orange-600 mt-1">
+                        Amount rounded to {formatEther(purchaseCalculations.validEthAmount)} ETH for exact ratio
+                      </div>
+                    )}
                   </div>
                 ) : (
                   t("sale.estimate_placeholder")
                 )
               ) : estimateEth ? (
                 <div>
-                  ≈{" "}
-                  <span className="font-bold text-primary">
-                    {Number.parseFloat(estimateEth).toLocaleString()}
-                  </span>{" "}
+                  ≈ <span className="font-bold text-primary">{Number.parseFloat(estimateEth).toLocaleString()}</span>{" "}
                   ETH
                   {!purchaseCalculations.canPurchase && (
                     <div className="text-xs text-red-600 mt-1">
@@ -806,11 +696,7 @@ export const BuyCoinSale = ({
                     address: ZAMMLaunchAddress,
                     abi: ZAMMLaunchAbi,
                     functionName: "buyExactCoins",
-                    args: [
-                      coinId,
-                      BigInt(tranche.trancheIndex),
-                      purchaseCalculations.validCoinAmount,
-                    ],
+                    args: [coinId, BigInt(tranche.trancheIndex), purchaseCalculations.validCoinAmount],
                     value: purchaseCalculations.ethCost,
                   });
                 }
