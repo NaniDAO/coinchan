@@ -165,7 +165,10 @@ const PoolCard = ({ pool }: { pool: PoolTableItem }) => {
       })
     : undefined;
 
-  const feeParam = pool?.feeOrHook ? String(pool.feeOrHook) : pool?.swapFee ? String(pool.swapFee) : undefined;
+  // v0 pools use swapFee (uint96), v1 pools use feeOrHook (uint256)
+  const feeParam = pool?.source === "ZAMM"
+    ? String(pool.swapFee)
+    : String(pool.feeOrHook || pool.swapFee);
   const protocolParam = pool?.source === "ZAMM" ? "ZAMMV0" : "ZAMMV1";
 
   const poolApy = useMemo(() => {

@@ -397,7 +397,10 @@ export const UserLpPositionCard = ({ p }: { p: LpUserPosition }) => {
     standard: p?.pool?.coin1?.source === "ERC20" ? "ERC20" : "ERC6909",
   };
 
-  const feeParam = p?.pool?.swapFee ? String(p.pool.swapFee) : undefined;
+  // v0 pools use swapFee (uint96), v1 pools use feeOrHook (uint256)
+  const feeParam = p?.pool?.source === "ZAMM"
+    ? String(p.pool?.swapFee ?? SWAP_FEE)
+    : String(p.pool?.feeOrHook || p.pool?.swapFee || SWAP_FEE);
   const feeOrHook = p?.pool?.feeOrHook ? String(p.pool.feeOrHook) : String(p?.pool?.swapFee ?? SWAP_FEE);
   const protocolParam = p?.pool?.source === "ZAMM" ? "ZAMMV0" : "ZAMMV1";
 
