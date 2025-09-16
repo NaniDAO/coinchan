@@ -21,8 +21,6 @@ import { Input } from "../ui/input";
 import { bpsToPct } from "@/lib/pools";
 
 /* ---------------------- formatting helpers ---------------------- */
-const fmt0 = (n?: number | null) => (n == null ? "—" : Intl.NumberFormat().format(n));
-
 const fmt2 = (n?: number | null) =>
   n == null ? "—" : Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(n);
 
