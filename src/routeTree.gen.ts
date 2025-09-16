@@ -20,7 +20,6 @@ import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as EnsRouteImport } from './routes/ens'
 import { Route as CultRouteImport } from './routes/cult'
 import { Route as CreateRouteImport } from './routes/create'
-import { Route as CoinpaperRouteImport } from './routes/coinpaper'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PositionsIndexRouteImport } from './routes/positions/index'
@@ -89,11 +88,6 @@ const CreateRoute = CreateRouteImport.update({
   path: '/create',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CoinpaperRoute = CoinpaperRouteImport.update({
-  id: '/coinpaper',
-  path: '/coinpaper',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
   path: '/about',
@@ -158,7 +152,6 @@ const CCoinIdRoute = CCoinIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/coinpaper': typeof CoinpaperRoute
   '/create': typeof CreateRoute
   '/cult': typeof CultRoute
   '/ens': typeof EnsRoute
@@ -184,7 +177,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/coinpaper': typeof CoinpaperRoute
   '/create': typeof CreateRoute
   '/cult': typeof CultRoute
   '/ens': typeof EnsRoute
@@ -209,7 +201,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/coinpaper': typeof CoinpaperRoute
   '/create': typeof CreateRoute
   '/cult': typeof CultRoute
   '/ens': typeof EnsRoute
@@ -237,7 +228,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
-    | '/coinpaper'
     | '/create'
     | '/cult'
     | '/ens'
@@ -263,7 +253,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
-    | '/coinpaper'
     | '/create'
     | '/cult'
     | '/ens'
@@ -287,7 +276,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/about'
-    | '/coinpaper'
     | '/create'
     | '/cult'
     | '/ens'
@@ -314,7 +302,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
-  CoinpaperRoute: typeof CoinpaperRoute
   CreateRoute: typeof CreateRoute
   CultRoute: typeof CultRoute
   EnsRoute: typeof EnsRoute
@@ -407,13 +394,6 @@ declare module '@tanstack/react-router' {
       path: '/create'
       fullPath: '/create'
       preLoaderRoute: typeof CreateRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/coinpaper': {
-      id: '/coinpaper'
-      path: '/coinpaper'
-      fullPath: '/coinpaper'
-      preLoaderRoute: typeof CoinpaperRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -549,7 +529,6 @@ const PositionsRouteWithChildren = PositionsRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
-  CoinpaperRoute: CoinpaperRoute,
   CreateRoute: CreateRoute,
   CultRoute: CultRoute,
   EnsRoute: EnsRoute,
