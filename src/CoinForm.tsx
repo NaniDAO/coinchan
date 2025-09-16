@@ -556,12 +556,6 @@ export function CoinForm() {
               {t("create.success")} {JSON.stringify(data)}
             </div>
           )}
-          <p>
-            {t("coinpaper.view")}{" "}
-            <Link to="/coinpaper" className="[&.active]:font-bold">
-              {t("common.coinpaper")}
-            </Link>
-          </p>
         </div>
       </div>
     </form>
