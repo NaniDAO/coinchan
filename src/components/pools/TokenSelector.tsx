@@ -7,21 +7,38 @@ import { cn } from "@/lib/utils";
 import { TokenImage } from "@/components/TokenImage";
 
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { TokenMetadata } from "@/lib/pools";
 
 /* -----------------------------------------------------------------------------
  * Helpers
  * ---------------------------------------------------------------------------*/
-export const getTokenKey = (t: TokenMetadata) => `${String(t.address).toLowerCase()}:${t.id.toString()}`;
+export const getTokenKey = (t: TokenMetadata) =>
+  `${String(t.address).toLowerCase()}:${t.id.toString()}`;
 
 /* -----------------------------------------------------------------------------
  * useRecentTokens hook
  * ---------------------------------------------------------------------------*/
 const DEFAULT_STORAGE_KEY = "recent_tokens_v2";
 
-function useRecentTokens(tokens: TokenMetadata[], storageKey = DEFAULT_STORAGE_KEY) {
+function useRecentTokens(
+  tokens: TokenMetadata[],
+  storageKey = DEFAULT_STORAGE_KEY,
+) {
   const [recentKeys, setRecentKeys] = useState<string[]>([]);
 
   const tokenMap = useMemo(() => {
@@ -141,7 +158,8 @@ export const TokenSelector = memo(
           key: getTokenKey(t),
           isSelected:
             t.id === selectedToken?.id &&
-            String(t.address).toLowerCase() === String(selectedToken?.address).toLowerCase(),
+            String(t.address).toLowerCase() ===
+              String(selectedToken?.address).toLowerCase(),
         })),
       [tokens, selectedToken?.id, selectedToken?.address],
     );
@@ -155,17 +173,17 @@ export const TokenSelector = memo(
         const idStr = token.id?.toString() ?? "";
         const addr = String(token.address).toLowerCase();
         const queryIsNumber = !Number.isNaN(Number(q));
-        const idMatches = queryIsNumber ? idStr.startsWith(q) : idStr.includes(q);
-        return symbol.includes(q) || name.includes(q) || idMatches || addr.includes(q);
+        const idMatches = queryIsNumber
+          ? idStr.startsWith(q)
+          : idStr.includes(q);
+        return (
+          symbol.includes(q) ||
+          name.includes(q) ||
+          idMatches ||
+          addr.includes(q)
+        );
       });
     }, [items, query]);
-
-    console.log("TokenSelector:", {
-      selectedToken,
-      tokens,
-      locked,
-      isDisabled,
-    });
 
     return (
       <div className={cn("relative", className)}>
@@ -191,14 +209,22 @@ export const TokenSelector = memo(
               disabled={isDisabled}
             >
               <span className="flex items-center gap-2 truncate">
-                <TokenImage imageUrl={selectedToken?.imageUrl} symbol={selectedToken?.symbol ?? "UNKNOWN"} />
-                <span className="text-sm font-medium leading-none truncate">{selectedToken?.symbol}</span>
+                <TokenImage
+                  imageUrl={selectedToken?.imageUrl}
+                  symbol={selectedToken?.symbol ?? "UNKNOWN"}
+                />
+                <span className="text-sm font-medium leading-none truncate">
+                  {selectedToken?.symbol}
+                </span>
                 <span className="ml-2 text-[11px] text-muted-foreground tabular-nums">
                   {formatBalance(selectedToken)}
                 </span>
               </span>
               <ChevronDownIcon
-                className={cn("ml-auto h-4 w-4 transition-transform duration-200", open && "rotate-180")}
+                className={cn(
+                  "ml-auto h-4 w-4 transition-transform duration-200",
+                  open && "rotate-180",
+                )}
               />
             </Button>
           </DialogTrigger>
@@ -252,8 +278,13 @@ export const TokenSelector = memo(
                             )}
                             aria-label={`Select ${tkn.symbol}`}
                           >
-                            <TokenImage imageUrl={tkn.imageUrl} symbol={tkn.symbol} />
-                            <span className="text-xs font-medium">{tkn.symbol}</span>
+                            <TokenImage
+                              imageUrl={tkn.imageUrl}
+                              symbol={tkn.symbol}
+                            />
+                            <span className="text-xs font-medium">
+                              {tkn.symbol}
+                            </span>
                           </button>
                         ))}
                       </div>
@@ -284,17 +315,31 @@ export const TokenSelector = memo(
                     >
                       <div className="flex w-full items-center justify-between gap-3">
                         <div className="flex items-center gap-3 min-w-0">
-                          <TokenImage imageUrl={token.imageUrl} symbol={token.symbol} />
+                          <TokenImage
+                            imageUrl={token.imageUrl}
+                            symbol={token.symbol}
+                          />
                           <div className="flex flex-col min-w-0">
-                            <span className="font-medium truncate">{token.symbol}</span>
-                            <span className="text-xs text-muted-foreground truncate">{token.name}</span>
+                            <span className="font-medium truncate">
+                              {token.symbol}
+                            </span>
+                            <span className="text-xs text-muted-foreground truncate">
+                              {token.name}
+                            </span>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="text-right min-w-[72px]">
-                            <div className="text-sm font-medium h-[18px] tabular-nums">{balance}</div>
+                            <div className="text-sm font-medium h-[18px] tabular-nums">
+                              {balance}
+                            </div>
                           </div>
-                          {isSelected && <Check className="h-4 w-4 text-primary" aria-hidden />}
+                          {isSelected && (
+                            <Check
+                              className="h-4 w-4 text-primary"
+                              aria-hidden
+                            />
+                          )}
                         </div>
                       </div>
                     </CommandItem>
@@ -312,7 +357,8 @@ export const TokenSelector = memo(
   },
   (prev, next) =>
     prev.selectedToken?.id === next.selectedToken?.id &&
-    String(prev.selectedToken?.address).toLowerCase() === String(next?.selectedToken?.address).toLowerCase() &&
+    String(prev.selectedToken?.address).toLowerCase() ===
+      String(next?.selectedToken?.address).toLowerCase() &&
     prev.selectedToken?.name === next.selectedToken?.name &&
     prev.selectedToken?.symbol === next.selectedToken?.symbol &&
     prev.selectedToken?.description === next.selectedToken?.description &&

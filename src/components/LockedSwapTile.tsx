@@ -1,9 +1,14 @@
 import { ETH_TOKEN, TokenMetadata } from "@/lib/pools";
 import { InstantTradeAction } from "@/components/trade/InstantTradeAction";
-import { useBalance } from "wagmi";
+import { useAccount, useBalance } from "wagmi";
+import { mainnet } from "viem/chains";
 
 export function LockedSwapTile({ token }: { token: TokenMetadata }) {
-  const { data: userEthBalance } = useBalance();
+  const { address } = useAccount();
+  const { data: userEthBalance } = useBalance({
+    address,
+    chainId: mainnet.id,
+  });
 
   if (!userEthBalance) return null;
 

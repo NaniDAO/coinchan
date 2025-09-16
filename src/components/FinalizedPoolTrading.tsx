@@ -239,7 +239,7 @@ function FinalizedPoolTradingInner({
       return undefined;
     }
 
-    if (!userTokenBalance) return undefined;
+    if (userTokenBalance === undefined) return undefined;
 
     return {
       id,

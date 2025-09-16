@@ -27,7 +27,9 @@ export const useTokenBalance = ({ address, token }: UseTokenBalanceProps) => {
         tokens: [token],
       });
 
-      return balances.get(keyOf(token)) ?? 0n;
+      const balance = balances.get(keyOf(token));
+
+      return balance !== 0n ? balance : 0n;
     },
   });
 };
