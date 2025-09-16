@@ -91,6 +91,7 @@ function FinalizedPoolTradingInner({
       name: "Ethereum",
       decimals: 18,
       image: getEthereumIconDataUri(theme),
+      imageUrl: getEthereumIconDataUri(theme),
       balance: 0n, // Will be fetched by components
       reserve0: reserves?.reserve0 || 0n,
       reserve1: reserves?.reserve1 || 0n,
@@ -106,6 +107,7 @@ function FinalizedPoolTradingInner({
       name: coinName || sale?.coin?.name || "Token",
       decimals: 18,
       image: coinIcon || sale?.coin?.imageUrl || "",
+      imageUrl: coinIcon || sale?.coin?.imageUrl || "",
       tokenUri: coinIcon || sale?.coin?.imageUrl || "",
       balance: 0n, // Will be fetched by components
       reserve0: reserves?.reserve0 || 0n,

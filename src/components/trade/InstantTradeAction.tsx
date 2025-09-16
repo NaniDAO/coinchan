@@ -34,7 +34,7 @@ import {
 import { CoinsAbi } from "@/constants/Coins";
 import { toZRouterToken } from "@/lib/zrouter";
 import { SLIPPAGE_BPS } from "@/lib/swap";
-import { handleWalletError } from "@/lib/errors";
+import { handleWalletError, isUserRejectionError } from "@/lib/errors";
 import {
   HoverCard,
   HoverCardContent,
@@ -369,7 +369,10 @@ export const InstantTradeAction = ({
     } catch (err) {
       console.error("Caught error:", err);
       const msg = handleWalletError(err);
-      setTxError(msg || "Unexpected error while swapping");
+      // Only set error if it's not a user rejection (handleWalletError returns null for rejections)
+      if (msg !== null) {
+        setTxError(msg);
+      }
     }
   };
 
@@ -476,9 +479,9 @@ export const InstantTradeAction = ({
       </button>
 
       {/* Errors / Success */}
-      {writeError && !suppressErrors && (
+      {writeError && !suppressErrors && !isUserRejectionError(writeError) && (
         <div className="mt-2 text-sm text-red-500">
-          Write error: {writeError.message}
+          {handleWalletError(writeError) || "Transaction failed"}
         </div>
       )}
       {txError && !suppressErrors && (
