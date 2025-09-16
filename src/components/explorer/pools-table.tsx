@@ -12,6 +12,7 @@ import type { PoolTableItem, PoolSortBy } from "@/hooks/use-pools-table";
 import { usePoolsTable } from "@/hooks/use-pools-table";
 import { Search as SearchIcon } from "lucide-react";
 import { useEthUsdPrice } from "@/hooks/use-eth-usd-price";
+import { useActiveIncentiveStreams } from "@/hooks/use-incentive-streams";
 import { PoolTokenImage } from "../PoolTokenImage";
 import { buttonVariants } from "../ui/button";
 import { Link } from "@tanstack/react-router";
@@ -71,6 +72,7 @@ type Props = {
 
 export default function PoolsTable({ defaultPageSize = 100, rowHeight = 56, defaultHasLiquidity = true }: Props) {
   const { data: ethUsdPrice } = useEthUsdPrice();
+  const { data: activeIncentiveStreams } = useActiveIncentiveStreams();
 
   /* ---------------------------- unit toggle ---------------------------- */
   const [unit, setUnit] = useState<"ETH" | "USD">("ETH");
@@ -81,6 +83,31 @@ export default function PoolsTable({ defaultPageSize = 100, rowHeight = 56, defa
   }, [ethUsdPrice]);
 
   const toUSD = (eth?: number | null): number | null => (eth == null || ethUsdRate == null ? null : eth * ethUsdRate);
+
+  // Create a map of poolId to active incentive count
+  const activeIncentivesMap = useMemo(() => {
+    const map = new Map<string, number>();
+    if (activeIncentiveStreams) {
+      const now = BigInt(Math.floor(Date.now() / 1000)); // Current timestamp in seconds
+
+      activeIncentiveStreams.forEach((stream) => {
+        // Double-check that the incentive is truly active:
+        // 1. Status should be ACTIVE
+        // 2. Current time should be between startTime and endTime
+        const isActive =
+          stream.status === "ACTIVE" &&
+          stream.startTime <= now &&
+          stream.endTime > now;
+
+        if (isActive) {
+          // For Cookbook pools, lpId (LP token ID) equals poolId
+          const poolId = stream.lpId.toString();
+          map.set(poolId, (map.get(poolId) || 0) + 1);
+        }
+      });
+    }
+    return map;
+  }, [activeIncentiveStreams]);
 
   /* ------------------------------ filters ------------------------------ */
   const [hasLiquidity, setHasLiquidity] = useState<boolean>(defaultHasLiquidity);
@@ -217,12 +244,27 @@ export default function PoolsTable({ defaultPageSize = 100, rowHeight = 56, defa
       },
       {
         id: "incentives",
-        header: "Incentives",
+        header: "Active Incentives",
         accessorKey: "incentives",
-        cell: ({ getValue }) => (
-          <span className="text-xs px-2 py-1 bg-muted rounded tabular-nums">{fmt0(getValue<number>())}</span>
-        ),
-        size: 120,
+        cell: ({ row }) => {
+          const poolId = row.original.poolId;
+
+          // Use the active incentives count from our map, fallback to 0
+          const activeCount = poolId ? (activeIncentivesMap.get(poolId) || 0) : 0;
+
+          if (activeCount === 0) {
+            return <span className="text-xs text-muted-foreground">—</span>;
+          }
+          return (
+            <Link
+              to="/farm"
+              className="text-xs px-2 py-1 bg-green-500/10 text-green-600 dark:text-green-400 rounded font-medium hover:bg-green-500/20 transition-colors inline-block"
+            >
+              {activeCount}
+            </Link>
+          );
+        },
+        size: 130,
       },
       {
         id: "source",
@@ -236,9 +278,11 @@ export default function PoolsTable({ defaultPageSize = 100, rowHeight = 56, defa
               : s === "COOKBOOK"
                 ? "bg-indigo-50 text-indigo-700 border-indigo-200"
                 : "bg-slate-50 text-slate-700 border-slate-200";
+          // Display V0 for ZAMM, V1 for COOKBOOK
+          const displayLabel = s === "ZAMM" ? "V0" : s === "COOKBOOK" ? "V1" : s;
           return (
-            <span className={`text-xs px-2 py-1 rounded border ${tone}`} title="Contract source">
-              {s}
+            <span className={`text-xs px-2 py-1 rounded border ${tone}`} title={`Contract source: ${s}`}>
+              {displayLabel}
             </span>
           );
         },
@@ -271,7 +315,7 @@ export default function PoolsTable({ defaultPageSize = 100, rowHeight = 56, defa
         size: 180,
       },
     ],
-    [unit, ethUsdRate],
+    [unit, ethUsdRate, activeIncentivesMap],
   );
 
   /* ------------------------------- table ------------------------------- */

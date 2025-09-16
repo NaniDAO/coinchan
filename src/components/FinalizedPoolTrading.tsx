@@ -25,6 +25,8 @@ import { ChevronDown } from "lucide-react";
 import { TokenMetadata } from "@/lib/pools";
 import { CookbookAddress } from "@/constants/Cookbook";
 import { useTokenBalance } from "@/hooks/use-token-balance";
+import { useGetCoin } from "@/hooks/metadata/use-get-coin";
+import { useQuery } from "@tanstack/react-query";
 
 interface FinalizedPoolTradingProps {
   coinId: string;
@@ -32,7 +34,72 @@ interface FinalizedPoolTradingProps {
   coinSymbol?: string;
   coinIcon?: string;
   poolId?: string;
+  totalSupply?: bigint;
 }
+
+// Hook to fetch total supply from holder balances
+const useCoinTotalSupply = (coinId: string, reserves?: any) => {
+  return useQuery({
+    queryKey: ["coinTotalSupply", coinId, reserves?.reserve1?.toString()],
+    queryFn: async () => {
+      try {
+
+        // Fetch ALL holder balances (no limit to ensure we get all)
+        let allHolders: any[] = [];
+        let offset = 0;
+        const limit = 100;
+        let hasMore = true;
+
+        while (hasMore) {
+          const response = await fetch(
+            `${import.meta.env.VITE_INDEXER_URL}/api/holders?coinId=${coinId}&limit=${limit}&offset=${offset}`
+          );
+
+          if (!response.ok) {
+            throw new Error(`Failed to fetch holders: ${response.status}`);
+          }
+
+          const data = await response.json();
+          allHolders.push(...(data.data || []));
+
+          hasMore = data.hasMore;
+          offset += limit;
+
+          // Safety break
+          if (offset > 10000) {
+            console.warn("Reached maximum offset limit");
+            break;
+          }
+        }
+
+
+        // Sum all holder balances
+        let totalFromHolders = 0n;
+        for (const holder of allHolders) {
+          totalFromHolders += BigInt(holder.balance);
+        }
+
+        // For cookbook coins, add pool reserves if not already counted
+        const cookbookHolder = allHolders.find(
+          (h: any) => h.address.toLowerCase() === CookbookAddress.toLowerCase()
+        );
+
+        if (reserves?.reserve1) {
+          if (!cookbookHolder || BigInt(cookbookHolder.balance) === 0n) {
+            totalFromHolders += reserves.reserve1;
+          }
+        }
+
+        return totalFromHolders;
+      } catch (error) {
+        console.error("Error fetching total supply from holders:", error);
+        return null;
+      }
+    },
+    enabled: !!coinId,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+};
 
 function FinalizedPoolTradingInner({
   coinId,
@@ -40,6 +107,7 @@ function FinalizedPoolTradingInner({
   coinSymbol,
   coinIcon,
   poolId: providedPoolId,
+  totalSupply,
 }: FinalizedPoolTradingProps) {
   const { t } = useTranslation();
   const { address } = useAccount();
@@ -53,6 +121,12 @@ function FinalizedPoolTradingInner({
   const { data: sale } = useZCurveSale(coinId);
   const { data: saleSummary } = useZCurveSaleSummary(coinId, address);
   const { data: userBalance } = useZCurveBalance(coinId, address);
+
+  // Fetch coin data to get totalSupply if not provided
+  const { data: coinData } = useGetCoin({
+    coinId: coinId,
+    token: CookbookAddress,
+  });
 
   // Calculate pool ID and fee - use feeOrHook from sale data if available
   const { poolId, actualFee } = useMemo(() => {
@@ -75,6 +149,31 @@ function FinalizedPoolTradingInner({
     poolId: poolId ? BigInt(poolId) : undefined,
     source: "COOKBOOK" as const,
   });
+
+  // Fetch total supply from holder balances as a fallback
+  const { data: holdersTotalSupply } = useCoinTotalSupply(coinId, reserves);
+
+  // Calculate total supply - using the same reliable method
+  const actualTotalSupply = useMemo(() => {
+
+    // If totalSupply is provided as a prop, use it
+    if (totalSupply && totalSupply > 0n) {
+      return totalSupply;
+    }
+
+    // Try to get it from coinData (but check it's not 0)
+    if (coinData?.totalSupply && coinData.totalSupply > 0n) {
+      return coinData.totalSupply;
+    }
+
+    // Use the total calculated from holders as a fallback
+    if (holdersTotalSupply && holdersTotalSupply > 0n) {
+      return holdersTotalSupply;
+    }
+
+    // As a last resort, return null
+    return null;
+  }, [totalSupply, coinData, holdersTotalSupply]);
 
   // Create token metadata objects for ETH and the coin
   const ethToken = useMemo<TokenMeta>(
@@ -235,10 +334,11 @@ function FinalizedPoolTradingInner({
     const price = ethReserve / tokenReserve;
     const usdPrice = price * (ethPrice?.priceUSD || 0);
 
-    // Use 1 billion (1e9) as the total supply for all zCurve launched tokens
-    const totalSupply = 1_000_000_000; // 1 billion tokens
-    const marketCapInEth = price * totalSupply;
-    const marketCap = usdPrice * totalSupply;
+    // Use actual total supply from the indexer (in wei, so format it)
+    // Never fall back to a hardcoded value - show N/A if not available
+    const supply = actualTotalSupply ? Number(formatEther(actualTotalSupply)) : null;
+    const marketCapInEth = supply ? price * supply : 0;
+    const marketCap = supply ? usdPrice * supply : 0;
 
     return {
       coinPrice: price,
@@ -246,7 +346,7 @@ function FinalizedPoolTradingInner({
       marketCapUsd: marketCap,
       marketCapEth: marketCapInEth,
     };
-  }, [reserves, ethPrice?.priceUSD, poolId]);
+  }, [reserves, ethPrice?.priceUSD, poolId, actualTotalSupply]);
 
   return (
     <div>
@@ -403,7 +503,9 @@ function FinalizedPoolTradingInner({
                 "Loading..."
               )}
             </div>
-            <div className="text-xs text-muted-foreground">{formatNumber(1_000_000_000, 0)} supply</div>
+            <div className="text-xs text-muted-foreground">
+              {actualTotalSupply ? `${formatNumber(Number(formatEther(actualTotalSupply)), 0)} supply` : "Supply data loading..."}
+            </div>
           </div>
 
           {/* ETH Liquidity */}

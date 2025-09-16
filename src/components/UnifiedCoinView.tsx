@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther } from "viem";
+import { useQuery } from "@tanstack/react-query";
 
 import { CookbookAddress } from "@/constants/Cookbook";
 import { useGetCoin } from "@/hooks/metadata/use-get-coin";
@@ -17,6 +18,68 @@ import { UnifiedCoinTrading } from "./UnifiedCoinTrading";
 import { VotePanel } from "./VotePanel";
 import { PoolOverview } from "./PoolOverview";
 import ErrorFallback, { ErrorBoundary } from "./ErrorBoundary";
+
+// Hook to fetch total supply from holder balances (same as in FinalizedPoolTrading)
+const useCoinTotalSupply = (coinId: string, reserves?: any) => {
+  return useQuery({
+    queryKey: ["coinTotalSupply", coinId, reserves?.reserve1?.toString()],
+    queryFn: async () => {
+      try {
+        // Fetch ALL holder balances
+        let allHolders: any[] = [];
+        let offset = 0;
+        const limit = 100;
+        let hasMore = true;
+
+        while (hasMore) {
+          const response = await fetch(
+            `${import.meta.env.VITE_INDEXER_URL}/api/holders?coinId=${coinId}&limit=${limit}&offset=${offset}`
+          );
+
+          if (!response.ok) {
+            throw new Error(`Failed to fetch holders: ${response.status}`);
+          }
+
+          const data = await response.json();
+          allHolders.push(...(data.data || []));
+
+          hasMore = data.hasMore;
+          offset += limit;
+
+          // Safety break
+          if (offset > 10000) {
+            console.warn("Reached maximum offset limit");
+            break;
+          }
+        }
+
+        // Sum all holder balances
+        let totalFromHolders = 0n;
+        for (const holder of allHolders) {
+          totalFromHolders += BigInt(holder.balance);
+        }
+
+        // For cookbook coins, add pool reserves if not already counted
+        const cookbookHolder = allHolders.find(
+          (h: any) => h.address.toLowerCase() === CookbookAddress.toLowerCase()
+        );
+
+        if (reserves?.reserve1) {
+          if (!cookbookHolder || BigInt(cookbookHolder.balance) === 0n) {
+            totalFromHolders += reserves.reserve1;
+          }
+        }
+
+        return totalFromHolders;
+      } catch (error) {
+        console.error("Error fetching total supply from holders:", error);
+        return null;
+      }
+    },
+    enabled: !!coinId,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+};
 
 export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
   const { t } = useTranslation();
@@ -36,8 +99,8 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
   const { data: ethPriceData } = useETHPrice();
 
   // Extract coin data
-  const [name, symbol, imageUrl, description, tokenURI, poolIds, swapFees] = useMemo(() => {
-    if (!coinData) return [undefined, undefined, undefined, undefined, undefined, undefined, [100n]];
+  const [name, symbol, imageUrl, description, tokenURI, poolIds, swapFees, totalSupply] = useMemo(() => {
+    if (!coinData) return [undefined, undefined, undefined, undefined, undefined, undefined, [100n], undefined];
     const pools = coinData.pools.map((pool) => pool.poolId);
     const fees = coinData.pools.map((pool) => BigInt(pool.swapFee));
     return [
@@ -48,6 +111,7 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
       coinData?.tokenURI,
       pools,
       fees,
+      coinData?.totalSupply,
     ];
   }, [coinData]);
 
@@ -61,11 +125,29 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
     return poolIds?.[0] || computePoolId(coinId, swapFees?.[0] ?? SWAP_FEE, CookbookAddress).toString();
   }, [zcurveSale, coinId, poolIds, swapFees]);
 
-  // Fetch pool reserves for finalized zCurve sales
+  // Fetch pool reserves for finalized zCurve sales OR regular Cookbook coins
   const { data: reserves } = useReserves({
-    poolId: zcurveSale && zcurveSale.status === "FINALIZED" && poolId ? BigInt(poolId) : undefined,
+    poolId: poolId ? BigInt(poolId) : undefined,
     source: "COOKBOOK" as const,
   });
+
+  // Fetch total supply from holder balances as a fallback
+  const { data: holdersTotalSupply } = useCoinTotalSupply(coinId.toString(), reserves);
+
+  // Get the most accurate total supply
+  const actualTotalSupply = useMemo(() => {
+    // If totalSupply from coinData is valid, use it
+    if (totalSupply && totalSupply > 0n) {
+      return totalSupply;
+    }
+
+    // Otherwise use holder-calculated supply
+    if (holdersTotalSupply && holdersTotalSupply > 0n) {
+      return holdersTotalSupply;
+    }
+
+    return null;
+  }, [totalSupply, holdersTotalSupply]);
 
   // Calculate market cap based on phase
   const { marketCapEth, marketCapUsd, effectiveSwapFee, isZCurveBonding } = useMemo(() => {
@@ -188,9 +270,28 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
       const ethReserve = Number(formatEther(reserves.reserve0));
       const tokenReserve = Number(formatEther(reserves.reserve1));
       const price = ethReserve / tokenReserve;
-      const totalSupply = 1_000_000_000; // 1 billion tokens
-      const marketCapEth = price * totalSupply;
-      const marketCapUsd = marketCapEth * ethPriceUsd;
+      // Use actual total supply from the indexer or holders (in wei, so format it)
+      const supply = actualTotalSupply ? Number(formatEther(actualTotalSupply)) : null;
+      const marketCapEth = supply ? price * supply : null;
+      const marketCapUsd = marketCapEth ? marketCapEth * ethPriceUsd : null;
+
+      return {
+        marketCapEth: marketCapEth,
+        marketCapUsd: marketCapUsd,
+        effectiveSwapFee: actualSwapFee,
+        isZCurveBonding: false,
+      };
+    }
+
+    // For regular Cookbook coins, calculate market cap from reserves if available
+    if (reserves && reserves.reserve0 > 0n && reserves.reserve1 > 0n) {
+      const ethReserve = Number(formatEther(reserves.reserve0));
+      const tokenReserve = Number(formatEther(reserves.reserve1));
+      const price = ethReserve / tokenReserve;
+      // Use actual total supply from the indexer or holders (in wei, so format it)
+      const supply = actualTotalSupply ? Number(formatEther(actualTotalSupply)) : null;
+      const marketCapEth = supply ? price * supply : null;
+      const marketCapUsd = marketCapEth ? marketCapEth * ethPriceUsd : null;
 
       return {
         marketCapEth: marketCapEth,
@@ -206,7 +307,7 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
       effectiveSwapFee: actualSwapFee,
       isZCurveBonding: false,
     };
-  }, [coinData, ethPriceData, zcurveSale, swapFees, reserves]);
+  }, [coinData, ethPriceData, zcurveSale, swapFees, reserves, actualTotalSupply]);
 
   // Ensure poolId is always a string
   const poolIdString = typeof poolId === "bigint" ? poolId.toString() : poolId;
@@ -244,6 +345,7 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
           coinSymbol={symbol}
           coinIcon={imageUrl}
           poolId={poolIdString}
+          totalSupply={actualTotalSupply || undefined}
         />
       </ErrorBoundary>
 

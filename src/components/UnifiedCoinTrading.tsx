@@ -34,12 +34,13 @@ interface UnifiedCoinTradingProps {
   coinSymbol?: string;
   coinIcon?: string;
   poolId?: string; // For AMM trading after finalization
+  totalSupply?: bigint;
 }
 
 const PoolPriceChart = lazy(() => import("@/components/PoolPriceChart"));
 const PoolCandleChart = lazy(() => import("@/PoolCandleChart"));
 
-export function UnifiedCoinTrading({ coinId, coinName, coinSymbol, coinIcon, poolId }: UnifiedCoinTradingProps) {
+export function UnifiedCoinTrading({ coinId, coinName, coinSymbol, coinIcon, poolId, totalSupply }: UnifiedCoinTradingProps) {
   const { t } = useTranslation();
   const [chartPreview, setChartPreview] = useState<ChartPreviewData | null>(null);
   const { data: ethPrice } = useETHPrice();
@@ -128,6 +129,7 @@ export function UnifiedCoinTrading({ coinId, coinName, coinSymbol, coinIcon, poo
         coinSymbol={coinSymbol}
         coinIcon={coinIcon}
         poolId={computedPoolId || undefined}
+        totalSupply={totalSupply}
       />
     );
   }

@@ -12,6 +12,7 @@ import type { CoinsTableItem, SortBy } from "@/types/coins";
 import { useCoinsTable } from "@/hooks/use-coins-table";
 import { Search as SearchIcon } from "lucide-react";
 import { useEthUsdPrice } from "@/hooks/use-eth-usd-price";
+import { useActiveIncentiveStreams } from "@/hooks/use-incentive-streams";
 import { Input } from "../ui/input";
 import { TokenImage } from "../TokenImage";
 import { Link } from "@tanstack/react-router";
@@ -124,6 +125,7 @@ type Props = {
 
 export default function CoinsTable({ defaultPageSize = 100, rowHeight = 56 }: Props) {
   const { data: ethUsdPrice } = useEthUsdPrice();
+  const { data: activeIncentiveStreams } = useActiveIncentiveStreams();
 
   // ---------- unit toggle ----------
   // "ETH" | "USD"
@@ -135,6 +137,49 @@ export default function CoinsTable({ defaultPageSize = 100, rowHeight = 56 }: Pr
   }, [ethUsdPrice]);
 
   const toUSD = (eth?: number | null): number | null => (eth == null || ethUsdRate == null ? null : eth * ethUsdRate);
+
+  // Create a map of poolId to active incentive count
+  // Note: lpId in incentives is the LP token ID, which equals the poolId for Cookbook pools
+  const activeIncentivesMap = useMemo(() => {
+    const map = new Map<string, number>();
+    if (activeIncentiveStreams) {
+      const now = BigInt(Math.floor(Date.now() / 1000)); // Current timestamp in seconds
+
+      activeIncentiveStreams.forEach((stream) => {
+        // Double-check that the incentive is truly active:
+        // 1. Status should be ACTIVE
+        // 2. Current time should be between startTime and endTime
+        const isActive =
+          stream.status === "ACTIVE" &&
+          stream.startTime <= now &&
+          stream.endTime > now;
+
+        if (isActive) {
+          // For Cookbook pools, lpId (LP token ID) equals poolId
+          const poolId = stream.lpId.toString();
+          map.set(poolId, (map.get(poolId) || 0) + 1);
+        }
+      });
+
+      // Debug logging
+      console.log('Active incentives map by poolId:', map);
+      console.log('Total fetched streams:', activeIncentiveStreams.length);
+      console.log('Truly active streams (not expired):', Array.from(map.values()).reduce((a, b) => a + b, 0));
+
+      // Log some sample streams for debugging
+      if (activeIncentiveStreams.length > 0) {
+        const sample = activeIncentiveStreams[0];
+        console.log('Sample stream:', {
+          lpId: sample.lpId.toString(),
+          status: sample.status,
+          endTime: sample.endTime.toString(),
+          now: now.toString(),
+          isExpired: sample.endTime <= now
+        });
+      }
+    }
+    return map;
+  }, [activeIncentiveStreams]);
 
   // search (debounced)
   const [query, setQuery] = useState("");
@@ -219,24 +264,6 @@ export default function CoinsTable({ defaultPageSize = 100, rowHeight = 56 }: Pr
         size: 320,
       },
       {
-        id: "status",
-        header: "Status",
-        cell: ({ row }) => {
-          const s = row.original.status;
-          const tone =
-            s === "ACTIVE"
-              ? "text-green-600"
-              : s === "FINALIZED"
-                ? "text-blue-600"
-                : s === "EXPIRED"
-                  ? "text-red-600"
-                  : "text-muted-foreground";
-          return <span className={`text-xs font-medium ${tone}`}>{s ?? "—"}</span>;
-        },
-        enableSorting: false,
-        size: 90,
-      },
-      {
         id: "priceInEth",
         header: unit === "ETH" ? "Price (Ξ)" : "Price ($)",
         accessorKey: "priceInEth",
@@ -288,10 +315,33 @@ export default function CoinsTable({ defaultPageSize = 100, rowHeight = 56 }: Pr
       },
       {
         id: "incentives",
-        header: "Incentives",
+        header: "Active Incentives",
         accessorKey: "incentives",
-        cell: ({ getValue }) => <span className="text-xs px-2 py-1 bg-muted rounded">{getValue<number>()}</span>,
-        size: 120,
+        cell: ({ row }) => {
+          const poolId = row.original.poolId;
+          const backendCount = row.original.incentives; // Original count from backend
+
+          // Use the active incentives count from our map, fallback to 0
+          const activeCount = poolId ? (activeIncentivesMap.get(poolId) || 0) : 0;
+
+          // Log discrepancies for debugging
+          if (backendCount > 0 && activeCount !== backendCount) {
+            console.log(`Pool ${poolId}: Backend shows ${backendCount}, Active shows ${activeCount}`);
+          }
+
+          if (activeCount === 0) {
+            return <span className="text-xs text-muted-foreground">—</span>;
+          }
+          return (
+            <Link
+              to="/farm"
+              className="text-xs px-2 py-1 bg-green-500/10 text-green-600 dark:text-green-400 rounded font-medium hover:bg-green-500/20 transition-colors inline-block"
+            >
+              {activeCount}
+            </Link>
+          );
+        },
+        size: 130,
       },
       {
         id: "createdAt",
@@ -301,7 +351,7 @@ export default function CoinsTable({ defaultPageSize = 100, rowHeight = 56 }: Pr
         size: 180,
       },
     ],
-    [unit, ethUsdRate], // re-render headers/cells when unit or rate changes
+    [unit, ethUsdRate, activeIncentivesMap], // re-render headers/cells when unit, rate, or active incentives change
   );
 
   const table = useReactTable({
