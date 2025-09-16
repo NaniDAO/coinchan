@@ -15,6 +15,7 @@ import { Route as SwapRouteImport } from './routes/swap'
 import { Route as SendRouteImport } from './routes/send'
 import { Route as PositionsRouteImport } from './routes/positions'
 import { Route as LimitRouteImport } from './routes/limit'
+import { Route as IcoRouteImport } from './routes/ico'
 import { Route as FarmRouteImport } from './routes/farm'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as EnsRouteImport } from './routes/ens'
@@ -60,6 +61,11 @@ const PositionsRoute = PositionsRouteImport.update({
 const LimitRoute = LimitRouteImport.update({
   id: '/limit',
   path: '/limit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IcoRoute = IcoRouteImport.update({
+  id: '/ico',
+  path: '/ico',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FarmRoute = FarmRouteImport.update({
@@ -151,6 +157,7 @@ export interface FileRoutesByFullPath {
   '/ens': typeof EnsRoute
   '/explore': typeof ExploreRouteWithChildren
   '/farm': typeof FarmRouteWithChildren
+  '/ico': typeof IcoRoute
   '/limit': typeof LimitRoute
   '/positions': typeof PositionsRouteWithChildren
   '/send': typeof SendRoute
@@ -174,6 +181,7 @@ export interface FileRoutesByTo {
   '/cult': typeof CultRoute
   '/ens': typeof EnsRoute
   '/explore': typeof ExploreRouteWithChildren
+  '/ico': typeof IcoRoute
   '/limit': typeof LimitRoute
   '/send': typeof SendRoute
   '/swap': typeof SwapRoute
@@ -198,6 +206,7 @@ export interface FileRoutesById {
   '/ens': typeof EnsRoute
   '/explore': typeof ExploreRouteWithChildren
   '/farm': typeof FarmRouteWithChildren
+  '/ico': typeof IcoRoute
   '/limit': typeof LimitRoute
   '/positions': typeof PositionsRouteWithChildren
   '/send': typeof SendRoute
@@ -224,6 +233,7 @@ export interface FileRouteTypes {
     | '/ens'
     | '/explore'
     | '/farm'
+    | '/ico'
     | '/limit'
     | '/positions'
     | '/send'
@@ -247,6 +257,7 @@ export interface FileRouteTypes {
     | '/cult'
     | '/ens'
     | '/explore'
+    | '/ico'
     | '/limit'
     | '/send'
     | '/swap'
@@ -270,6 +281,7 @@ export interface FileRouteTypes {
     | '/ens'
     | '/explore'
     | '/farm'
+    | '/ico'
     | '/limit'
     | '/positions'
     | '/send'
@@ -295,6 +307,7 @@ export interface RootRouteChildren {
   EnsRoute: typeof EnsRoute
   ExploreRoute: typeof ExploreRouteWithChildren
   FarmRoute: typeof FarmRouteWithChildren
+  IcoRoute: typeof IcoRoute
   LimitRoute: typeof LimitRoute
   PositionsRoute: typeof PositionsRouteWithChildren
   SendRoute: typeof SendRoute
@@ -347,6 +360,13 @@ declare module '@tanstack/react-router' {
       path: '/limit'
       fullPath: '/limit'
       preLoaderRoute: typeof LimitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ico': {
+      id: '/ico'
+      path: '/ico'
+      fullPath: '/ico'
+      preLoaderRoute: typeof IcoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/farm': {
@@ -513,6 +533,7 @@ const rootRouteChildren: RootRouteChildren = {
   EnsRoute: EnsRoute,
   ExploreRoute: ExploreRouteWithChildren,
   FarmRoute: FarmRouteWithChildren,
+  IcoRoute: IcoRoute,
   LimitRoute: LimitRoute,
   PositionsRoute: PositionsRouteWithChildren,
   SendRoute: SendRoute,
