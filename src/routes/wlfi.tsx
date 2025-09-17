@@ -1,6 +1,4 @@
-import { sdk } from "@farcaster/frame-sdk";
 import "../index.css";
-import { useEffect } from "react";
 
 import { WlfiBuySell } from "../WlfiBuySell";
 import { TokenSelectionProvider } from "../contexts/TokenSelectionContext";
@@ -12,10 +10,6 @@ export const Route = createFileRoute("/wlfi")({
 });
 
 function RouteComponent() {
-  useEffect(() => {
-    sdk.actions.ready(); // @TODO farcaster integration
-  }, []);
-
   return (
     <TokenSelectionProvider>
       <WlfiBuySell />
