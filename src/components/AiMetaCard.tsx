@@ -14,8 +14,6 @@ export default function AiMetaCard({ address, id }: AiMetaCardProps) {
   const { data: ai, isLoading, error } = useGetAiMeta(address, id);
   const { data: metadata } = useGetMetadata(address, id);
 
-  console.log("Metadata:", metadata);
-
   return (
     <div className="px-5 items-center w-full flex justify-between flex-row">
       {!isLoading && !error && ai && (
