@@ -2,6 +2,7 @@ import { Checkbox } from "@/components/ui/checkbox"; // Import from prompt path
 // New imports for pills
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"; // Import from prompt path
 import { ZAMMLaunchAddress } from "@/constants/ZAMMLaunch";
+import { zICOAddress } from "@/constants/zICO";
 import { INDEXER_URL } from "@/lib/indexer";
 import { useQuery } from "@tanstack/react-query";
 import { RefreshCcw, X } from "lucide-react"; // Keep existing and add X explicitely
@@ -309,6 +310,10 @@ export const OrdersPage = () => {
         // Exclude launchpad orders completely (where maker is ZAMMLaunch contract)
         const isLaunchpadOrder = order.maker.toLowerCase() === ZAMMLaunchAddress.toLowerCase();
         if (isLaunchpadOrder) return false;
+
+        // Exclude zICO orders (where maker is zICO contract)
+        const isZICOOrder = order.maker.toLowerCase() === zICOAddress.toLowerCase();
+        if (isZICOOrder) return false;
 
         // Status filter: Include if status list is empty or order status is in the list
         const statusMatch = currentFilters.status.length === 0 || currentFilters.status.includes(order.status);

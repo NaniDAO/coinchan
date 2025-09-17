@@ -39,14 +39,10 @@ export const ZDropsTable = ({
     <div className="p-2">
       <div>
         <Heading level={2}>Your zDrops</Heading>
-        <p className="mt-2 text-sm text-muted-foreground">
-          You need to hold <span className="font-medium">veZAMM</span> to claim
-          airdrops.
-        </p>
         {!eligible && (
           <Link
             to="/farm"
-            className="text-sm text-destructive-foreground mt-1 hover:underline visited:text-primary"
+            className="text-sm text-destructive-foreground mt-2 block hover:underline visited:text-primary"
           >
             veZAMM holders are eligible to claim airdrops. Get veZAMM by farming
             ZAMM.
