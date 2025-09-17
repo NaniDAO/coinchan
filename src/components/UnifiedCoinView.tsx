@@ -33,7 +33,7 @@ const useCoinTotalSupply = (coinId: string, reserves?: any) => {
 
         while (hasMore) {
           const response = await fetch(
-            `${import.meta.env.VITE_INDEXER_URL}/api/holders?coinId=${coinId}&limit=${limit}&offset=${offset}`
+            `${import.meta.env.VITE_INDEXER_URL}/api/holders?coinId=${coinId}&limit=${limit}&offset=${offset}`,
           );
 
           if (!response.ok) {
@@ -61,7 +61,7 @@ const useCoinTotalSupply = (coinId: string, reserves?: any) => {
 
         // For cookbook coins, add pool reserves if not already counted
         const cookbookHolder = allHolders.find(
-          (h: any) => h.address.toLowerCase() === CookbookAddress.toLowerCase()
+          (h: any) => h.address.toLowerCase() === CookbookAddress.toLowerCase(),
         );
 
         if (reserves?.reserve1) {
@@ -90,8 +90,6 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
     token: CookbookAddress,
   });
 
-  console.log("CoinData:", coinData);
-
   // Check for zCurve sale
   const { data: zcurveSale } = useZCurveSale(coinId.toString());
 
@@ -99,8 +97,27 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
   const { data: ethPriceData } = useETHPrice();
 
   // Extract coin data
-  const [name, symbol, imageUrl, description, tokenURI, poolIds, swapFees, totalSupply] = useMemo(() => {
-    if (!coinData) return [undefined, undefined, undefined, undefined, undefined, undefined, [100n], undefined];
+  const [
+    name,
+    symbol,
+    imageUrl,
+    description,
+    tokenURI,
+    poolIds,
+    swapFees,
+    totalSupply,
+  ] = useMemo(() => {
+    if (!coinData)
+      return [
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        [100n],
+        undefined,
+      ];
     const pools = coinData.pools.map((pool) => pool.poolId);
     const fees = coinData.pools.map((pool) => BigInt(pool.swapFee));
     return [
@@ -122,7 +139,14 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
       const actualFee = feeOrHook < 10000n ? feeOrHook : 30n;
       return computeZCurvePoolId(coinId, actualFee);
     }
-    return poolIds?.[0] || computePoolId(coinId, swapFees?.[0] ?? SWAP_FEE, CookbookAddress).toString();
+    return (
+      poolIds?.[0] ||
+      computePoolId(
+        coinId,
+        swapFees?.[0] ?? SWAP_FEE,
+        CookbookAddress,
+      ).toString()
+    );
   }, [zcurveSale, coinId, poolIds, swapFees]);
 
   // Fetch pool reserves for finalized zCurve sales OR regular Cookbook coins
@@ -132,7 +156,10 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
   });
 
   // Fetch total supply from holder balances as a fallback
-  const { data: holdersTotalSupply } = useCoinTotalSupply(coinId.toString(), reserves);
+  const { data: holdersTotalSupply } = useCoinTotalSupply(
+    coinId.toString(),
+    reserves,
+  );
 
   // Get the most accurate total supply
   const actualTotalSupply = useMemo(() => {
@@ -150,178 +177,205 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
   }, [totalSupply, holdersTotalSupply]);
 
   // Calculate market cap based on phase
-  const { marketCapEth, marketCapUsd, effectiveSwapFee, isZCurveBonding } = useMemo(() => {
-    if (!ethPriceData) {
-      return {
-        marketCapEth: null,
-        marketCapUsd: null,
-        effectiveSwapFee: swapFees,
-        isZCurveBonding: false,
-      };
-    }
+  const { marketCapEth, marketCapUsd, effectiveSwapFee, isZCurveBonding } =
+    useMemo(() => {
+      if (!ethPriceData) {
+        return {
+          marketCapEth: null,
+          marketCapUsd: null,
+          effectiveSwapFee: swapFees,
+          isZCurveBonding: false,
+        };
+      }
 
-    const ethPriceUsd = ethPriceData.priceUSD;
+      const ethPriceUsd = ethPriceData.priceUSD;
 
-    if (isNaN(ethPriceUsd) || ethPriceUsd === 0) {
-      return {
-        marketCapEth: null,
-        marketCapUsd: null,
-        effectiveSwapFee: swapFees,
-        isZCurveBonding: false,
-      };
-    }
+      if (isNaN(ethPriceUsd) || ethPriceUsd === 0) {
+        return {
+          marketCapEth: null,
+          marketCapUsd: null,
+          effectiveSwapFee: swapFees,
+          isZCurveBonding: false,
+        };
+      }
 
-    // Check if in active zCurve bonding phase
-    if (zcurveSale && zcurveSale.status === "ACTIVE") {
-      // During bonding curve phase - use hardcoded 1 billion total supply for zCurve tokens
-      const totalSupply = ZCURVE_STANDARD_PARAMS.TOTAL_SUPPLY;
+      // Check if in active zCurve bonding phase
+      if (zcurveSale && zcurveSale.status === "ACTIVE") {
+        // During bonding curve phase - use hardcoded 1 billion total supply for zCurve tokens
+        const totalSupply = ZCURVE_STANDARD_PARAMS.TOTAL_SUPPLY;
 
-      // For market cap calculation during bonding curve, use a more intuitive approach:
-      // Calculate based on what it would cost to buy the remaining supply at current prices
+        // For market cap calculation during bonding curve, use a more intuitive approach:
+        // Calculate based on what it would cost to buy the remaining supply at current prices
 
-      const ethEscrow = BigInt(zcurveSale.ethEscrow || "0");
-      const netSold = BigInt(zcurveSale.netSold || "0");
-      const saleCap = BigInt(zcurveSale.saleCap || ZCURVE_STANDARD_PARAMS.SALE_CAP);
+        const ethEscrow = BigInt(zcurveSale.ethEscrow || "0");
+        const netSold = BigInt(zcurveSale.netSold || "0");
+        const saleCap = BigInt(
+          zcurveSale.saleCap || ZCURVE_STANDARD_PARAMS.SALE_CAP,
+        );
 
-      // First, try using the current marginal price if we have meaningful sales
-      const currentPriceWei = BigInt(zcurveSale.currentPrice || "0");
+        // First, try using the current marginal price if we have meaningful sales
+        const currentPriceWei = BigInt(zcurveSale.currentPrice || "0");
 
-      if (netSold > 0n && ethEscrow > 0n) {
-        // Calculate average price paid so far
-        const avgPriceWei = (ethEscrow * 10n ** 18n) / netSold;
+        if (netSold > 0n && ethEscrow > 0n) {
+          // Calculate average price paid so far
+          const avgPriceWei = (ethEscrow * 10n ** 18n) / netSold;
 
-        // For very early sales, use the average price as it's more representative
-        // For later sales, we could use the marginal price
-        // A good heuristic: if less than 1% sold, use average price
-        const percentSold = (netSold * 100n) / saleCap;
+          // For very early sales, use the average price as it's more representative
+          // For later sales, we could use the marginal price
+          // A good heuristic: if less than 1% sold, use average price
+          const percentSold = (netSold * 100n) / saleCap;
 
-        let effectivePriceWei: bigint;
-        if (percentSold < 1n && avgPriceWei > 0n) {
-          // Very early stage - use average price
-          effectivePriceWei = avgPriceWei;
-        } else if (currentPriceWei > 0n) {
-          // Use current marginal price
-          effectivePriceWei = currentPriceWei;
+          let effectivePriceWei: bigint;
+          if (percentSold < 1n && avgPriceWei > 0n) {
+            // Very early stage - use average price
+            effectivePriceWei = avgPriceWei;
+          } else if (currentPriceWei > 0n) {
+            // Use current marginal price
+            effectivePriceWei = currentPriceWei;
+          } else {
+            // Fallback to average
+            effectivePriceWei = avgPriceWei;
+          }
+
+          // Calculate market cap using the effective price
+          const marketCapWei = (totalSupply * effectivePriceWei) / 10n ** 18n;
+
+          if (marketCapWei > 0n) {
+            const impliedMarketCapEth = Number(formatEther(marketCapWei));
+
+            return {
+              marketCapEth: impliedMarketCapEth,
+              marketCapUsd: impliedMarketCapEth * ethPriceUsd,
+              effectiveSwapFee: [0n], // 0% during bonding
+              isZCurveBonding: true,
+            };
+          }
+        }
+
+        // If we have a current price but no sales yet, use it
+        if (currentPriceWei > 0n) {
+          const marketCapWei = (totalSupply * currentPriceWei) / 10n ** 18n;
+          if (marketCapWei > 0n) {
+            const impliedMarketCapEth = Number(formatEther(marketCapWei));
+
+            return {
+              marketCapEth: impliedMarketCapEth,
+              marketCapUsd: impliedMarketCapEth * ethPriceUsd,
+              effectiveSwapFee: [0n], // 0% during bonding
+              isZCurveBonding: true,
+            };
+          }
+        }
+
+        return {
+          marketCapEth: 0,
+          marketCapUsd: 0,
+          effectiveSwapFee: [0n], // 0% during bonding
+          isZCurveBonding: true,
+        };
+      }
+
+      // For finalized AMM pools (including graduated zCurve)
+      let actualSwapFee = swapFees;
+      if (zcurveSale && zcurveSale.status === "FINALIZED") {
+        // Extract the actual fee from feeOrHook (it's stored as basis points)
+        const feeOrHook = BigInt(zcurveSale.feeOrHook);
+        // Check if it's a simple fee (not a hook address)
+        if (feeOrHook < 10000n) {
+          actualSwapFee = [feeOrHook];
         } else {
-          // Fallback to average
-          effectivePriceWei = avgPriceWei;
-        }
-
-        // Calculate market cap using the effective price
-        const marketCapWei = (totalSupply * effectivePriceWei) / 10n ** 18n;
-
-        if (marketCapWei > 0n) {
-          const impliedMarketCapEth = Number(formatEther(marketCapWei));
-
-          return {
-            marketCapEth: impliedMarketCapEth,
-            marketCapUsd: impliedMarketCapEth * ethPriceUsd,
-            effectiveSwapFee: [0n], // 0% during bonding
-            isZCurveBonding: true,
-          };
+          // Default to 30 bps if it's a hook
+          actualSwapFee = [30n];
         }
       }
 
-      // If we have a current price but no sales yet, use it
-      if (currentPriceWei > 0n) {
-        const marketCapWei = (totalSupply * currentPriceWei) / 10n ** 18n;
-        if (marketCapWei > 0n) {
-          const impliedMarketCapEth = Number(formatEther(marketCapWei));
+      // Calculate market cap from reserves if available (for finalized zCurve sales)
+      if (
+        zcurveSale &&
+        zcurveSale.status === "FINALIZED" &&
+        reserves &&
+        reserves.reserve0 > 0n &&
+        reserves.reserve1 > 0n
+      ) {
+        const ethReserve = Number(formatEther(reserves.reserve0));
+        const tokenReserve = Number(formatEther(reserves.reserve1));
+        const price = ethReserve / tokenReserve;
+        // Use actual total supply from the indexer or holders (in wei, so format it)
+        const supply = actualTotalSupply
+          ? Number(formatEther(actualTotalSupply))
+          : null;
+        const marketCapEth = supply ? price * supply : null;
+        const marketCapUsd = marketCapEth ? marketCapEth * ethPriceUsd : null;
 
-          return {
-            marketCapEth: impliedMarketCapEth,
-            marketCapUsd: impliedMarketCapEth * ethPriceUsd,
-            effectiveSwapFee: [0n], // 0% during bonding
-            isZCurveBonding: true,
-          };
-        }
+        return {
+          marketCapEth: marketCapEth,
+          marketCapUsd: marketCapUsd,
+          effectiveSwapFee: actualSwapFee,
+          isZCurveBonding: false,
+        };
+      }
+
+      // For regular Cookbook coins, calculate market cap from reserves if available
+      if (reserves && reserves.reserve0 > 0n && reserves.reserve1 > 0n) {
+        const ethReserve = Number(formatEther(reserves.reserve0));
+        const tokenReserve = Number(formatEther(reserves.reserve1));
+        const price = ethReserve / tokenReserve;
+        // Use actual total supply from the indexer or holders (in wei, so format it)
+        const supply = actualTotalSupply
+          ? Number(formatEther(actualTotalSupply))
+          : null;
+        const marketCapEth = supply ? price * supply : null;
+        const marketCapUsd = marketCapEth ? marketCapEth * ethPriceUsd : null;
+
+        return {
+          marketCapEth: marketCapEth,
+          marketCapUsd: marketCapUsd,
+          effectiveSwapFee: actualSwapFee,
+          isZCurveBonding: false,
+        };
       }
 
       return {
-        marketCapEth: 0,
-        marketCapUsd: 0,
-        effectiveSwapFee: [0n], // 0% during bonding
-        isZCurveBonding: true,
-      };
-    }
-
-    // For finalized AMM pools (including graduated zCurve)
-    let actualSwapFee = swapFees;
-    if (zcurveSale && zcurveSale.status === "FINALIZED") {
-      // Extract the actual fee from feeOrHook (it's stored as basis points)
-      const feeOrHook = BigInt(zcurveSale.feeOrHook);
-      // Check if it's a simple fee (not a hook address)
-      if (feeOrHook < 10000n) {
-        actualSwapFee = [feeOrHook];
-      } else {
-        // Default to 30 bps if it's a hook
-        actualSwapFee = [30n];
-      }
-    }
-
-    // Calculate market cap from reserves if available (for finalized zCurve sales)
-    if (
-      zcurveSale &&
-      zcurveSale.status === "FINALIZED" &&
-      reserves &&
-      reserves.reserve0 > 0n &&
-      reserves.reserve1 > 0n
-    ) {
-      const ethReserve = Number(formatEther(reserves.reserve0));
-      const tokenReserve = Number(formatEther(reserves.reserve1));
-      const price = ethReserve / tokenReserve;
-      // Use actual total supply from the indexer or holders (in wei, so format it)
-      const supply = actualTotalSupply ? Number(formatEther(actualTotalSupply)) : null;
-      const marketCapEth = supply ? price * supply : null;
-      const marketCapUsd = marketCapEth ? marketCapEth * ethPriceUsd : null;
-
-      return {
-        marketCapEth: marketCapEth,
-        marketCapUsd: marketCapUsd,
+        marketCapEth: coinData?.marketCapEth ?? null,
+        marketCapUsd: coinData?.marketCapEth
+          ? coinData.marketCapEth * ethPriceUsd
+          : null,
         effectiveSwapFee: actualSwapFee,
         isZCurveBonding: false,
       };
-    }
-
-    // For regular Cookbook coins, calculate market cap from reserves if available
-    if (reserves && reserves.reserve0 > 0n && reserves.reserve1 > 0n) {
-      const ethReserve = Number(formatEther(reserves.reserve0));
-      const tokenReserve = Number(formatEther(reserves.reserve1));
-      const price = ethReserve / tokenReserve;
-      // Use actual total supply from the indexer or holders (in wei, so format it)
-      const supply = actualTotalSupply ? Number(formatEther(actualTotalSupply)) : null;
-      const marketCapEth = supply ? price * supply : null;
-      const marketCapUsd = marketCapEth ? marketCapEth * ethPriceUsd : null;
-
-      return {
-        marketCapEth: marketCapEth,
-        marketCapUsd: marketCapUsd,
-        effectiveSwapFee: actualSwapFee,
-        isZCurveBonding: false,
-      };
-    }
-
-    return {
-      marketCapEth: coinData?.marketCapEth ?? null,
-      marketCapUsd: coinData?.marketCapEth ? coinData.marketCapEth * ethPriceUsd : null,
-      effectiveSwapFee: actualSwapFee,
-      isZCurveBonding: false,
-    };
-  }, [coinData, ethPriceData, zcurveSale, swapFees, reserves, actualTotalSupply]);
+    }, [
+      coinData,
+      ethPriceData,
+      zcurveSale,
+      swapFees,
+      reserves,
+      actualTotalSupply,
+    ]);
 
   // Ensure poolId is always a string
   const poolIdString = typeof poolId === "bigint" ? poolId.toString() : poolId;
 
   return (
     <div className="w-full max-w-screen mx-auto flex flex-col gap-4 px-2 py-4 pb-16 sm:p-6 sm:pb-16">
-      <CoinPreview coinId={coinId} name={name} symbol={symbol} isLoading={isLoadingCoin} />
+      <CoinPreview
+        coinId={coinId}
+        name={name}
+        symbol={symbol}
+        isLoading={isLoadingCoin}
+      />
 
-      <ErrorBoundary fallback={<ErrorFallback errorMessage="Error rendering Coin Info Card" />}>
+      <ErrorBoundary
+        fallback={
+          <ErrorFallback errorMessage="Error rendering Coin Info Card" />
+        }
+      >
         <CoinInfoCard
           coinId={coinId}
           name={name}
           symbol={symbol}
-          description={description || t("coin.no_description", "No description available")}
+          description={
+            description || t("coin.no_description", "No description available")
+          }
           imageUrl={imageUrl}
           swapFee={effectiveSwapFee}
           isOwner={false}
@@ -338,7 +392,11 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
       </ErrorBoundary>
 
       {/* Unified Trading Interface */}
-      <ErrorBoundary fallback={<ErrorFallback errorMessage="Error rendering trading interface" />}>
+      <ErrorBoundary
+        fallback={
+          <ErrorFallback errorMessage="Error rendering trading interface" />
+        }
+      >
         <UnifiedCoinTrading
           coinId={coinId.toString()}
           coinName={name}
@@ -351,7 +409,11 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
 
       {/* Vote Panel - only show if not in active zCurve sale */}
       {(!zcurveSale || zcurveSale.status !== "ACTIVE") && (
-        <ErrorBoundary fallback={<ErrorFallback errorMessage="Error rendering voting panel" />}>
+        <ErrorBoundary
+          fallback={
+            <ErrorFallback errorMessage="Error rendering voting panel" />
+          }
+        >
           <VotePanel coinId={coinId} />
         </ErrorBoundary>
       )}

@@ -34,6 +34,8 @@ import { CookbookAddress } from "@/constants/Cookbook";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { useGetCoin } from "@/hooks/metadata/use-get-coin";
 import { useQuery } from "@tanstack/react-query";
+import { ZDropsTable } from "./ZDropsTable";
+import { useGetZDrops } from "@/hooks/use-get-z-drops";
 
 interface FinalizedPoolTradingProps {
   coinId: string;
@@ -119,6 +121,13 @@ function FinalizedPoolTradingInner({
   const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState<"swap" | "add" | "remove">("swap");
   const { setSellToken, setBuyToken } = useTokenSelection();
+  const { data: zDrops } = useGetZDrops({
+    address,
+    tokenIn: {
+      address: CookbookAddress,
+      id: BigInt(coinId),
+    },
+  });
 
   const [chartRefreshKey, setChartRefreshKey] = useState(0);
 
@@ -411,6 +420,12 @@ function FinalizedPoolTradingInner({
             >
               {t("common.remove")}
             </TabsTrigger>
+            <TabsTrigger
+              value="airdrop"
+              className="flex-1 px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+            >
+              {t("common.airdrop")}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="swap" className="mt-4">
@@ -437,6 +452,15 @@ function FinalizedPoolTradingInner({
                 feeOrHook={actualFee}
               />
             </div>
+          </TabsContent>
+          <TabsContent value="airdrop" className="mt-4">
+            {zDrops ? (
+              <ZDropsTable zDrops={zDrops} />
+            ) : (
+              <div className="text-center text-muted-foreground">
+                {t("coin.no_airdrops", "No Airdrops Available")}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>

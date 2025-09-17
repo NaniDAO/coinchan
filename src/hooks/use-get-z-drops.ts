@@ -1,5 +1,5 @@
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
-import { VEZAMM_TOKEN } from "@/lib/pools";
+import { Token, VEZAMM_TOKEN } from "@/lib/pools";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
 import { usePublicClient } from "wagmi";
@@ -7,6 +7,15 @@ import { usePublicClient } from "wagmi";
 // --------------------
 // Types
 // --------------------
+export type ZDropCoin = {
+  token: string;
+  id: string;
+  name: string;
+  symbol: string;
+  imageUrl: string | null;
+  decimals: number;
+};
+
 export type ZDrop = {
   amtIn: string;
   amtOut: string;
@@ -26,6 +35,10 @@ export type ZDrop = {
   tokenOut: string;
   txHash: string;
   updatedAt: string;
+
+  // NEW:
+  coinIn: ZDropCoin;
+  coinOut: ZDropCoin;
 };
 
 export type ZDropsResponse = {
@@ -40,7 +53,7 @@ const getZDrops = async (): Promise<ZDropsResponse> => {
   const query = `
     query GetZDrops {
       orders(
-        where: {maker: "0x000000000069aa14fb673a86952eb0785f38911c", status: ACTIVE}
+        where: { maker: "0x000000000069aa14fb673a86952eb0785f38911c", status: ACTIVE }
         limit: 1000
       ) {
         items {
@@ -62,6 +75,22 @@ const getZDrops = async (): Promise<ZDropsResponse> => {
           tokenOut
           txHash
           updatedAt
+          coinIn {
+            token
+            id
+            name
+            symbol
+            imageUrl
+            decimals
+          }
+          coinOut {
+            token
+            id
+            name
+            symbol
+            imageUrl
+            decimals
+          }
         }
         totalCount
       }
@@ -70,9 +99,7 @@ const getZDrops = async (): Promise<ZDropsResponse> => {
 
   const res = await fetch(import.meta.env.VITE_INDEXER_URL + "/graphql", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ query }),
   });
 
@@ -88,10 +115,16 @@ const getZDrops = async (): Promise<ZDropsResponse> => {
 // --------------------
 // Hook
 // --------------------
-export const useGetZDrops = ({ address }: { address?: Address }) => {
+export const useGetZDrops = ({
+  address,
+  tokenIn,
+}: {
+  address?: Address;
+  tokenIn?: Token;
+}) => {
   const publicClient = usePublicClient();
   return useQuery({
-    queryKey: ["zDrops", address],
+    queryKey: ["zDrops", address, tokenIn?.address, tokenIn?.id?.toString()],
     queryFn: async (): Promise<{
       eligible: boolean;
       drops: ZDropsResponse;
@@ -106,15 +139,31 @@ export const useGetZDrops = ({ address }: { address?: Address }) => {
           functionName: "balanceOf",
           args: [address, VEZAMM_TOKEN.id],
         });
-        console.log("Checking veZAMM balance...", balance);
+
         if (balance > 0n) {
           eligible = true;
         }
       }
 
-      const drops = await getZDrops();
+      let drops = await getZDrops();
 
       console.log("Checking veZAMM drops...", drops);
+
+      if (tokenIn) {
+        const dropItems = drops.items.filter(
+          (drop) =>
+            drop.tokenIn.toLowerCase() === tokenIn.address.toLowerCase() &&
+            drop.idIn.toString() === tokenIn.id.toString(),
+        );
+
+        return {
+          eligible,
+          drops: {
+            items: dropItems,
+            totalCount: dropItems.length,
+          },
+        };
+      }
 
       return {
         eligible,

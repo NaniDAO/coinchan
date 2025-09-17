@@ -9,7 +9,8 @@ interface UseTokenBalanceProps {
   token: Token;
 }
 
-const keyOf = (t: Token) => `${t.address.toLowerCase()}:${t.id.toString()}`;
+export const keyOf = (t: Token) =>
+  `${t.address.toLowerCase()}:${t.id.toString()}`;
 
 export const useTokenBalance = ({ address, token }: UseTokenBalanceProps) => {
   const publicClient = usePublicClient();
