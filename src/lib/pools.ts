@@ -11,6 +11,7 @@ import {
 import { PoolKey, SWAP_FEE, withSlippage } from "./swap";
 import { getProtocol } from "./protocol";
 import { getApprovalOrOperator } from "./txs";
+import { CookbookAddress } from "@/constants/Cookbook";
 
 export const FEE_OPTIONS = [
   { label: "0.05%", value: 5n, description: "Ultra low fee" }, // Ultra low fee
@@ -24,9 +25,11 @@ export const DEFAULT_FEE_TIER = 100n;
 export const ETH_TOKEN: TokenMetadata = {
   address: zeroAddress,
   decimals: 18,
-  description: "Ethereum is a decentralized platform that enables smart contracts and decentralized applications.",
+  description:
+    "Ethereum is a decentralized platform that enables smart contracts and decentralized applications.",
   id: 0n,
-  imageUrl: "https://assets.coingecko.com/coins/images/279/standard/ethereum.png?1727872989",
+  imageUrl:
+    "https://assets.coingecko.com/coins/images/279/standard/ethereum.png?1727872989",
   name: "Ethereum",
   standard: "ERC6909",
   symbol: "ETH",
@@ -44,6 +47,18 @@ export const ZAMM_TOKEN: TokenMetadata = {
   standard: "ERC6909",
   symbol: "ZAMM",
   tags: ["zamm", "crypto", "token"],
+};
+
+// veZAMM token - Special ERC6909 cookbook coin for farm rewards
+export const VEZAMM_TOKEN: TokenMetadata = {
+  address: CookbookAddress,
+  id: 87n, // ERC6909 cookbook coin ID 87
+  name: "veZAMM",
+  symbol: "veZAMM",
+  standard: "ERC6909",
+  imageUrl: "/veZAMM.png", // Using the veZAMM.png file
+  balance: 0n, // Will be updated with actual balance
+  decimals: 18, // Standard 18 decimals
 };
 
 export type TokenStandard = "ERC20" | "ERC6909";
@@ -107,7 +122,10 @@ export const computePoolId = (
   protocol: ProtocolId,
 ): bigint => {
   // disallow identical token on both sides
-  if (tokenA.address.toLowerCase() === tokenB.address.toLowerCase() && tokenA.id === tokenB.id) {
+  if (
+    tokenA.address.toLowerCase() === tokenB.address.toLowerCase() &&
+    tokenA.id === tokenB.id
+  ) {
     return 0n;
   }
 
@@ -117,7 +135,9 @@ export const computePoolId = (
     return BigInt(
       keccak256(
         encodeAbiParameters(
-          parseAbiParameters("uint256 id0, uint256 id1, address token0, address token1, uint96 swapFee"),
+          parseAbiParameters(
+            "uint256 id0, uint256 id1, address token0, address token1, uint96 swapFee",
+          ),
           [token0.id, token1.id, token0.address, token1.address, feeOrHook],
         ),
       ),
@@ -127,7 +147,9 @@ export const computePoolId = (
   return BigInt(
     keccak256(
       encodeAbiParameters(
-        parseAbiParameters("uint256 id0, uint256 id1, address token0, address token1, uint256 feeOrHook"),
+        parseAbiParameters(
+          "uint256 id0, uint256 id1, address token0, address token1, uint256 feeOrHook",
+        ),
         [token0.id, token1.id, token0.address, token1.address, feeOrHook],
       ),
     ),
@@ -177,7 +199,17 @@ type AddLiquidityArgs = {
 
 export const getAddLiquidityTx = async (
   publicClient: PublicClient,
-  { owner, token0, token1, amount0, amount1, deadline, feeBps, slippageBps, protocolId }: AddLiquidityArgs,
+  {
+    owner,
+    token0,
+    token1,
+    amount0,
+    amount1,
+    deadline,
+    feeBps,
+    slippageBps,
+    protocolId,
+  }: AddLiquidityArgs,
 ) => {
   const protocol = getProtocol(protocolId);
 
@@ -289,9 +321,17 @@ export const getRemoveLiquidityTx = async (
   const lpApproval = null;
 
   // Resolve min amounts (prefer explicit mins; else derive from preview; else 0n)
-  const amount0Min = minAmount0 ?? (expectedAmount0 !== undefined ? withSlippage(expectedAmount0, slippageBps) : 0n);
+  const amount0Min =
+    minAmount0 ??
+    (expectedAmount0 !== undefined
+      ? withSlippage(expectedAmount0, slippageBps)
+      : 0n);
 
-  const amount1Min = minAmount1 ?? (expectedAmount1 !== undefined ? withSlippage(expectedAmount1, slippageBps) : 0n);
+  const amount1Min =
+    minAmount1 ??
+    (expectedAmount1 !== undefined
+      ? withSlippage(expectedAmount1, slippageBps)
+      : 0n);
 
   const callData = encodeFunctionData({
     abi: protocol.abi,
@@ -323,7 +363,10 @@ export const bpsToPct = (bps?: string | number | null) => {
 };
 
 export const sameToken = (x?: TokenMetadata | null, y?: TokenMetadata | null) =>
-  !!x && !!y && x.id === y.id && String(x.address).toLowerCase() === String(y.address).toLowerCase();
+  !!x &&
+  !!y &&
+  x.id === y.id &&
+  String(x.address).toLowerCase() === String(y.address).toLowerCase();
 
 // Any feeOrHook strictly greater than this is considered a hook
 const HOOK_THRESHOLD = 10000n;

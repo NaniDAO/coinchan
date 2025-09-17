@@ -25,7 +25,6 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PositionsIndexRouteImport } from './routes/positions/index'
 import { Route as FarmIndexRouteImport } from './routes/farm/index'
-import { Route as UUserIdRouteImport } from './routes/u.$userId'
 import { Route as PositionsCreateRouteImport } from './routes/positions/create'
 import { Route as FarmCreateRouteImport } from './routes/farm/create'
 import { Route as ExploreTokensRouteImport } from './routes/explore/tokens'
@@ -113,11 +112,6 @@ const FarmIndexRoute = FarmIndexRouteImport.update({
   path: '/',
   getParentRoute: () => FarmRoute,
 } as any)
-const UUserIdRoute = UUserIdRouteImport.update({
-  id: '/u/$userId',
-  path: '/u/$userId',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const PositionsCreateRoute = PositionsCreateRouteImport.update({
   id: '/create',
   path: '/create',
@@ -170,7 +164,6 @@ export interface FileRoutesByFullPath {
   '/explore/tokens': typeof ExploreTokensRoute
   '/farm/create': typeof FarmCreateRoute
   '/positions/create': typeof PositionsCreateRoute
-  '/u/$userId': typeof UUserIdRoute
   '/farm/': typeof FarmIndexRoute
   '/positions/': typeof PositionsIndexRoute
 }
@@ -193,7 +186,6 @@ export interface FileRoutesByTo {
   '/explore/tokens': typeof ExploreTokensRoute
   '/farm/create': typeof FarmCreateRoute
   '/positions/create': typeof PositionsCreateRoute
-  '/u/$userId': typeof UUserIdRoute
   '/farm': typeof FarmIndexRoute
   '/positions': typeof PositionsIndexRoute
 }
@@ -219,7 +211,6 @@ export interface FileRoutesById {
   '/explore/tokens': typeof ExploreTokensRoute
   '/farm/create': typeof FarmCreateRoute
   '/positions/create': typeof PositionsCreateRoute
-  '/u/$userId': typeof UUserIdRoute
   '/farm/': typeof FarmIndexRoute
   '/positions/': typeof PositionsIndexRoute
 }
@@ -246,7 +237,6 @@ export interface FileRouteTypes {
     | '/explore/tokens'
     | '/farm/create'
     | '/positions/create'
-    | '/u/$userId'
     | '/farm/'
     | '/positions/'
   fileRoutesByTo: FileRoutesByTo
@@ -269,7 +259,6 @@ export interface FileRouteTypes {
     | '/explore/tokens'
     | '/farm/create'
     | '/positions/create'
-    | '/u/$userId'
     | '/farm'
     | '/positions'
   id:
@@ -294,7 +283,6 @@ export interface FileRouteTypes {
     | '/explore/tokens'
     | '/farm/create'
     | '/positions/create'
-    | '/u/$userId'
     | '/farm/'
     | '/positions/'
   fileRoutesById: FileRoutesById
@@ -315,7 +303,6 @@ export interface RootRouteChildren {
   UserRoute: typeof UserRoute
   WlfiRoute: typeof WlfiRoute
   CCoinIdRoute: typeof CCoinIdRoute
-  UUserIdRoute: typeof UUserIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -432,13 +419,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FarmIndexRouteImport
       parentRoute: typeof FarmRoute
     }
-    '/u/$userId': {
-      id: '/u/$userId'
-      path: '/u/$userId'
-      fullPath: '/u/$userId'
-      preLoaderRoute: typeof UUserIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/positions/create': {
       id: '/positions/create'
       path: '/create'
@@ -541,7 +521,6 @@ const rootRouteChildren: RootRouteChildren = {
   UserRoute: UserRoute,
   WlfiRoute: WlfiRoute,
   CCoinIdRoute: CCoinIdRoute,
-  UUserIdRoute: UUserIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
