@@ -18,7 +18,6 @@ import { Button } from "./ui/button";
 import { ENSLogo } from "./icons/ENSLogo";
 import { toast } from "sonner";
 import { CopyIcon } from "lucide-react";
-import { Link } from "@tanstack/react-router";
 
 interface IncentiveStreamCardProps {
   stream: IncentiveStream;
@@ -352,30 +351,18 @@ export function IncentiveStreamCard({
             </div>
           </div>
         </div>
-        {/* Check if reward token is veZAMM (ID 87) */}
-        {stream.rewardId === 87n ? (
-          <Link to="/user" className="block">
+        <FarmStakeDialog
+          stream={stream}
+          lpToken={lpToken}
+          trigger={
             <Button
               variant="outline"
               className="w-full border-muted font-mono text-sm sm:text-base uppercase tracking-wider py-2 sm:py-3"
             >
-              [REDEEM veZAMM]
+              [{t("common.stake")}]
             </Button>
-          </Link>
-        ) : (
-          <FarmStakeDialog
-            stream={stream}
-            lpToken={lpToken}
-            trigger={
-              <Button
-                variant="outline"
-                className="w-full border-muted font-mono text-sm sm:text-base uppercase tracking-wider py-2 sm:py-3"
-              >
-                [{t("common.stake")}]
-              </Button>
-            }
-          />
-        )}
+          }
+        />
       </div>
     </div>
   );

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as WlfiRouteImport } from './routes/wlfi'
 import { Route as UserRouteImport } from './routes/user'
 import { Route as SwapRouteImport } from './routes/swap'
+import { Route as StakeRouteImport } from './routes/stake'
 import { Route as SendRouteImport } from './routes/send'
 import { Route as PositionsRouteImport } from './routes/positions'
 import { Route as LimitRouteImport } from './routes/limit'
@@ -45,6 +46,11 @@ const UserRoute = UserRouteImport.update({
 const SwapRoute = SwapRouteImport.update({
   id: '/swap',
   path: '/swap',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StakeRoute = StakeRouteImport.update({
+  id: '/stake',
+  path: '/stake',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SendRoute = SendRouteImport.update({
@@ -155,6 +161,7 @@ export interface FileRoutesByFullPath {
   '/limit': typeof LimitRoute
   '/positions': typeof PositionsRouteWithChildren
   '/send': typeof SendRoute
+  '/stake': typeof StakeRoute
   '/swap': typeof SwapRoute
   '/user': typeof UserRoute
   '/wlfi': typeof WlfiRoute
@@ -177,6 +184,7 @@ export interface FileRoutesByTo {
   '/ico': typeof IcoRoute
   '/limit': typeof LimitRoute
   '/send': typeof SendRoute
+  '/stake': typeof StakeRoute
   '/swap': typeof SwapRoute
   '/user': typeof UserRoute
   '/wlfi': typeof WlfiRoute
@@ -202,6 +210,7 @@ export interface FileRoutesById {
   '/limit': typeof LimitRoute
   '/positions': typeof PositionsRouteWithChildren
   '/send': typeof SendRoute
+  '/stake': typeof StakeRoute
   '/swap': typeof SwapRoute
   '/user': typeof UserRoute
   '/wlfi': typeof WlfiRoute
@@ -228,6 +237,7 @@ export interface FileRouteTypes {
     | '/limit'
     | '/positions'
     | '/send'
+    | '/stake'
     | '/swap'
     | '/user'
     | '/wlfi'
@@ -250,6 +260,7 @@ export interface FileRouteTypes {
     | '/ico'
     | '/limit'
     | '/send'
+    | '/stake'
     | '/swap'
     | '/user'
     | '/wlfi'
@@ -274,6 +285,7 @@ export interface FileRouteTypes {
     | '/limit'
     | '/positions'
     | '/send'
+    | '/stake'
     | '/swap'
     | '/user'
     | '/wlfi'
@@ -299,6 +311,7 @@ export interface RootRouteChildren {
   LimitRoute: typeof LimitRoute
   PositionsRoute: typeof PositionsRouteWithChildren
   SendRoute: typeof SendRoute
+  StakeRoute: typeof StakeRoute
   SwapRoute: typeof SwapRoute
   UserRoute: typeof UserRoute
   WlfiRoute: typeof WlfiRoute
@@ -326,6 +339,13 @@ declare module '@tanstack/react-router' {
       path: '/swap'
       fullPath: '/swap'
       preLoaderRoute: typeof SwapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/stake': {
+      id: '/stake'
+      path: '/stake'
+      fullPath: '/stake'
+      preLoaderRoute: typeof StakeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/send': {
@@ -517,6 +537,7 @@ const rootRouteChildren: RootRouteChildren = {
   LimitRoute: LimitRoute,
   PositionsRoute: PositionsRouteWithChildren,
   SendRoute: SendRoute,
+  StakeRoute: StakeRoute,
   SwapRoute: SwapRoute,
   UserRoute: UserRoute,
   WlfiRoute: WlfiRoute,

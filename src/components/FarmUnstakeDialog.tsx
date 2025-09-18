@@ -118,7 +118,7 @@ export function FarmUnstakeDialog({ stream, lpToken, userPosition, trigger, onSu
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-xl w-[95vw] max-h-[90vh] overflow-y-auto bg-card text-card-foreground border-2 border-border shadow-[4px_4px_0_var(--border)]">
+      <DialogContent className="sm:max-w-xl w-[90vw] sm:w-full max-h-[85vh] overflow-y-auto bg-card text-card-foreground border-2 border-border shadow-[2px_2px_0_var(--border)] sm:shadow-[4px_4px_0_var(--border)]">
         <DialogHeader className="sr-only">
           <DialogTitle>Unstake</DialogTitle>
         </DialogHeader>

@@ -7,7 +7,6 @@ import { type TokenMeta, CULT_POOL_KEY, ENS_POOL_KEY, WLFI_POOL_KEY, WLFI_POOL_I
 import {
   SINGLE_ETH_SLIPPAGE_BPS,
   SWAP_FEE,
-  computePoolId,
   computePoolKey,
   getAmountOut,
   withSlippage,
@@ -15,6 +14,18 @@ import {
 import { useCallback } from "react";
 import { formatEther, formatUnits, parseEther } from "viem";
 import { usePublicClient } from "wagmi";
+
+// Babylonian method for sqrt (same as Uniswap V2)
+function sqrt(value: bigint): bigint {
+  if (value === 0n) return 0n;
+  let z = value;
+  let x = value / 2n + 1n;
+  while (x < z) {
+    z = x;
+    x = (value / x + x) / 2n;
+  }
+  return z;
+}
 
 export interface ZapCalculation {
   estimatedTokens: bigint;
@@ -84,7 +95,9 @@ export function useZapCalculations() {
       const halfEthAmount = ethAmountBigInt / 2n;
 
       // Determine if this is a Cookbook coin, CULT, ENS, or WLFI
-      const tokenId = lpToken.id || 0n;
+      // For ZAMM pools, lpToken.id is the pool ID, not the coin ID
+      // We need to use the coin ID from the poolKey
+      const tokenId = lpToken.poolKey?.id1 || lpToken.id || 0n;
       const isCookbook = isCookbookCoin(tokenId);
       const isCULT = lpToken.symbol === "CULT";
       const isENS = lpToken.symbol === "ENS";
@@ -150,16 +163,32 @@ export function useZapCalculations() {
           feeOrHook: feeOrHook, // Use feeOrHook instead of swapFee for Cookbook
         };
       } else {
-        const basePoolKey = computePoolKey(tokenId, swapFee);
-        // Transform ZAMM pool key to match zChef's expected structure
-        poolKey = {
-          id0: basePoolKey.id0,
-          id1: basePoolKey.id1,
-          token0: basePoolKey.token0,
-          token1: basePoolKey.token1,
-          feeOrHook: (basePoolKey as any).swapFee, // Convert swapFee to feeOrHook for zChef
-        };
-        poolId = computePoolId(tokenId, swapFee);
+        // For ZAMM pools, use the stream's lpId which is the correct pool ID
+        // The lpToken.poolId should already be set correctly from the GraphQL data
+        poolId = BigInt(stream.lpId); // Use stream.lpId directly for ZAMM pools
+
+        // For ZAMM pools, use the poolKey from lpToken if available
+        if (lpToken.poolKey) {
+          // Use the existing poolKey from lpToken, just transform swapFee to feeOrHook
+          poolKey = {
+            id0: lpToken.poolKey.id0,
+            id1: lpToken.poolKey.id1,
+            token0: lpToken.poolKey.token0,
+            token1: lpToken.poolKey.token1,
+            feeOrHook: lpToken.poolKey.swapFee, // Convert swapFee to feeOrHook for zChef
+          };
+        } else {
+          // Fallback to computing pool key if not provided
+          const basePoolKey = computePoolKey(tokenId, swapFee);
+          // Transform ZAMM pool key to match zChef's expected structure
+          poolKey = {
+            id0: basePoolKey.id0,
+            id1: basePoolKey.id1,
+            token0: basePoolKey.token0,
+            token1: basePoolKey.token1,
+            feeOrHook: (basePoolKey as any).swapFee, // Convert swapFee to feeOrHook for zChef
+          };
+        }
       }
 
       // Fetch current reserves
@@ -256,10 +285,37 @@ export function useZapCalculations() {
       const amount0Min = withSlippage(halfEthAmount, slippageBps);
       const amount1Min = withSlippage(estimatedTokens, slippageBps);
 
-      // Estimate LP tokens (simplified - actual amount depends on pool state after swap)
-      // For estimation, assume we get proportional LP tokens
-      const totalSupply = reserves.reserve0 + reserves.reserve1; // Simplified
-      const estimatedLiquidity = totalSupply > 0n ? (halfEthAmount * totalSupply) / reserves.reserve0 : halfEthAmount;
+      // Fetch LP token total supply for accurate calculation
+      // Pool struct index 6 is the LP token supply
+      let lpTotalSupply = 0n;
+      try {
+        const poolSupplyData = await publicClient.readContract({
+          address: lpSrc,
+          abi: lpAbi,
+          functionName: "pools",
+          args: [poolId],
+        });
+        const supplyResult = poolSupplyData as unknown as readonly bigint[];
+        lpTotalSupply = supplyResult[6] || 0n;
+      } catch (e) {
+        console.warn("Could not fetch LP supply, using fallback calculation");
+      }
+
+      // Calculate LP tokens using proper Uniswap V2 formula
+      // After zap: we're adding halfEthAmount ETH and estimatedTokens of token1
+      let estimatedLiquidity = 0n;
+
+      if (lpTotalSupply === 0n) {
+        // First liquidity provider - gets sqrt(amount0 * amount1)
+        // This is a rough estimate since we don't know exact post-swap reserves
+        estimatedLiquidity = sqrt(halfEthAmount * estimatedTokens);
+      } else {
+        // Existing liquidity - LP tokens are proportional to the smaller ratio
+        // lpTokens = min(amount0 * totalSupply / reserve0, amount1 * totalSupply / reserve1)
+        const lpFromEth = (halfEthAmount * lpTotalSupply) / reserves.reserve0;
+        const lpFromTokens = (estimatedTokens * lpTotalSupply) / reserves.reserve1;
+        estimatedLiquidity = lpFromEth < lpFromTokens ? lpFromEth : lpFromTokens;
+      }
 
       return {
         estimatedTokens,

@@ -22,6 +22,7 @@ export interface TokenMeta {
   reserve0?: bigint; // ETH reserves in the pool
   reserve1?: bigint; // Token reserves in the pool
   liquidity?: bigint; // Total liquidity in the pool
+  supply?: bigint; // Total supply of LP tokens for this pool
   swapFee?: bigint; // Custom swap fee for the pool (default is 100n - 1%)
   balance?: bigint; // User's balance of this token
   isFetching?: boolean; // Whether the balance is currently being fetched
