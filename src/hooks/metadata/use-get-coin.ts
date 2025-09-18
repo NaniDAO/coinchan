@@ -91,16 +91,24 @@ const fetchCoinData = async (coinId: string, token: Address) => {
         swapFee: BigInt(pool.swapFee ?? SWAP_FEE),
         marketCapEth,
         coin0Id: BigInt(pool.coin0Id),
+        price1: price1,
       };
     });
 
-    const combinedMarketCapEth = pools.reduce((sum: number, pool: any) => {
-      // @TODO convert coin-to-coin pools to eth
-      if (BigInt(pool.coin0Id) === 0n) {
-        return sum + pool.marketCapEth;
-      }
-      return sum;
-    }, 0);
+    // Calculate market cap using the pool with the highest liquidity (highest price typically indicates more liquidity)
+    // Only consider ETH pools (coin0Id === 0n)
+    const ethPools = pools.filter((pool: any) => BigInt(pool.coin0Id) === 0n);
+
+    let combinedMarketCapEth = 0;
+    if (ethPools.length > 0) {
+      // Use the pool with the highest price as it typically has the most liquidity
+      // Alternatively, we could fetch actual reserves to determine liquidity
+      const primaryPool = ethPools.reduce((max: any, pool: any) => {
+        return pool.price1 > max.price1 ? pool : max;
+      }, ethPools[0]);
+
+      combinedMarketCapEth = primaryPool.marketCapEth;
+    }
 
     return {
       id: BigInt(coin.id),
