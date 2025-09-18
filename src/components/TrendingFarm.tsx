@@ -55,7 +55,7 @@ export const TrendingFarm: React.FC<TrendingFarmProps> = ({
           {ticker.toUpperCase()}
         </span>
         <span className="text-muted-foreground">
-          ({combinedAprData.totalApr}%)
+          ({combinedAprData.totalApr.toFixed(3)}%)
         </span>
       </Link>
     </div>
