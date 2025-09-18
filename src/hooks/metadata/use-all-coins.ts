@@ -40,6 +40,7 @@ async function fetchEthBalance(
   address: Address | undefined,
 ): Promise<TokenMeta> {
   if (!publicClient) throw new Error("Public client not available");
+
   if (address) {
     const balanceData = await publicClient.getBalance({
       address,
@@ -604,7 +605,7 @@ async function originalFetchOtherCoins(
  * Hook leveraging React Query with separate ETH balance query
  */
 export function useAllCoins() {
-  const publicClient = usePublicClient({ chainId: mainnet.id });
+  const publicClient = usePublicClient();
   const { address } = useAccount();
 
   // ETH balance
@@ -619,7 +620,8 @@ export function useAllCoins() {
     enabled: !!publicClient,
     staleTime: 30_000,
     refetchInterval: 30_000,
-    refetchOnMount: false,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
     gcTime: 1000 * 60 * 60,
     meta: { persist: true },
   });
@@ -634,11 +636,12 @@ export function useAllCoins() {
     queryFn: () => fetchOtherCoins(publicClient, address),
     enabled: !!publicClient,
     staleTime: 60_000,
-    refetchOnMount: false,
+    refetchOnMount: true,
   });
 
   // Combine & sort again across ETH and others to ensure global ordering
-  const combined = [ethToken || ETH_TOKEN, ...(otherTokens || [])];
+  const ethWithBalance = ethToken || ETH_TOKEN;
+  const combined = [ethWithBalance, ...(otherTokens || [])];
 
   const loading = isEthBalanceFetching || isOtherLoading;
   const error = ethError || otherError ? "Failed to load tokens" : null;

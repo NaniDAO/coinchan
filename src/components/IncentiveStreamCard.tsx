@@ -20,6 +20,32 @@ interface IncentiveStreamCardProps {
   lpToken: TokenMeta;
 }
 
+// Format liquidity amounts for compact display
+const formatCompactLiquidity = (value: number): string => {
+  if (value === 0) return "0";
+
+  // For very small values, use shortened format
+  if (value < 0.0001) {
+    return "<0.0001";
+  }
+
+  // For small values, show 4 decimals
+  if (value < 1) {
+    return value.toFixed(4);
+  }
+
+  // For medium values, show 2 decimals
+  if (value < 1000) {
+    return value.toFixed(2);
+  }
+
+  // For large values, use compact notation
+  return new Intl.NumberFormat("en-US", {
+    notation: "compact",
+    maximumFractionDigits: 2,
+  }).format(value);
+};
+
 export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProps) {
   const { t } = useTranslation();
   const { calculateTimeRemaining } = useZChefUtilities();
@@ -212,7 +238,7 @@ export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProp
             <div className="border border-muted p-2 sm:p-3">
               <p className="text-muted-foreground font-mono text-xs">[{t("pool.liquidity")}]</p>
               <p className="font-mono font-bold text-sm text-foreground mt-1">
-                {formatBalance(formatEther(lpToken.reserve0 || lpToken.liquidity || 0n), "ETH")}
+                {formatCompactLiquidity(Number(formatEther(lpToken.reserve0 || lpToken.liquidity || 0n)))} ETH
               </p>
             </div>
           )}

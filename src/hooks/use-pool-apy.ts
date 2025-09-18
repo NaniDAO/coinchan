@@ -23,7 +23,7 @@ export const usePoolApy = (poolId?: string, source?: CoinSource) => {
           body: JSON.stringify({
             query: `
               query GetSwapAmounts {
-                pool(id: "${poolId}", source: "${source}") {
+                pool(id: "${poolId}", source: "${source || 'COOKBOOK'}") {
                   reserve0,
                   reserve1,
                   price0,
@@ -32,7 +32,7 @@ export const usePoolApy = (poolId?: string, source?: CoinSource) => {
                   token1
                 }
                 swaps(
-                  where: {poolId: "${poolId}", source: ${source}, timestamp_gte: "${timestamp_gte}"},
+                  where: {poolId: "${poolId}", source: ${source || 'COOKBOOK'}, timestamp_gte: "${timestamp_gte}"},
                   limit: 1000
                 ) {
                   items {
@@ -60,7 +60,6 @@ export const usePoolApy = (poolId?: string, source?: CoinSource) => {
 
       let grossFeeEth = 0;
       for (const r of swaps.items) {
-        console.log("r", r);
         const in0 = BigInt(r.amount0In ?? 0n);
         const in1 = BigInt(r.amount1In ?? 0n);
 

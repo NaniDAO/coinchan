@@ -302,11 +302,48 @@ export function useIncentiveStreamsByLpPool(lpId: bigint | undefined) {
     queryKey: ["incentiveStreamsByLpPool", lpId?.toString()],
     queryFn: async (): Promise<IncentiveStream[]> => {
       if (!lpId) return [];
-      const response = await fetch(`${INDEXER_URL}/api/incentive-streams?lpId=${lpId}`);
+      const url = `${INDEXER_URL}/api/incentive-streams?poolId=${lpId}`;
+
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error("Failed to fetch incentive streams by LP pool");
       }
-      return response.json();
+
+      const data = await response.json();
+
+      // Transform the raw data to match IncentiveStream interface
+      return data.map((stream: any): IncentiveStream => {
+        const transformed = {
+          chefId: BigInt(stream.chef_id || stream.chefId || "0"),
+          creator: stream.creator,
+          lpToken: stream.lp_token || stream.lpToken,
+          lpId: BigInt(stream.lp_id || stream.lpId || "0"),
+          rewardToken: stream.reward_token || stream.rewardToken,
+          rewardId: BigInt(stream.reward_id || stream.rewardId || "0"),
+          rewardAmount: BigInt(stream.reward_amount || stream.rewardAmount || "0"),
+          rewardRate: BigInt(stream.reward_rate || stream.rewardRate || "0"),
+          duration: BigInt(stream.duration || "0"),
+          startTime: BigInt(stream.start_time || stream.startTime || "0"),
+          endTime: BigInt(stream.end_time || stream.endTime || "0"),
+          lastUpdate: BigInt(stream.last_update || stream.lastUpdate || "0"),
+          totalShares: BigInt(stream.total_shares || stream.totalShares || "0"),
+          accRewardPerShare: BigInt(stream.acc_reward_per_share || stream.accRewardPerShare || "0"),
+          status: stream.status || "ACTIVE",
+          createdAt: stream.created_at || stream.createdAt,
+          updatedAt: stream.updated_at || stream.updatedAt,
+          txHash: stream.tx_hash || stream.txHash,
+          blockNumber: BigInt(stream.block_number || stream.blockNumber || "0"),
+          rewardCoin: stream.rewardCoin || {
+            id: BigInt(stream.reward_id || stream.rewardId || "0"),
+            name: stream.reward_token_name || stream.rewardTokenName || "",
+            symbol: stream.reward_token_symbol || stream.rewardTokenSymbol || "",
+            imageUrl: stream.reward_token_image_url || stream.rewardTokenImageUrl || "",
+            decimals: stream.reward_token_decimals || stream.rewardTokenDecimals || 18,
+          },
+        };
+
+        return transformed;
+      });
     },
     enabled: !!lpId,
     staleTime: 30000,

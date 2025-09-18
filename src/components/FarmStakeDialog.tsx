@@ -10,20 +10,21 @@ import type { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { useLpBalance } from "@/hooks/use-lp-balance";
 import { useLpOperatorStatus } from "@/hooks/use-lp-operator-status";
 import { useStreamValidation } from "@/hooks/use-stream-validation";
-import { useZapCalculations } from "@/hooks/use-zap-calculations";
+import { useZapCalculations, calculateMaxEthForZap } from "@/hooks/use-zap-calculations";
 import { useZapDeposit } from "@/hooks/use-zap-deposit";
 import { useZChefActions, useZChefUserBalance, useZChefPool, useSetOperatorApproval } from "@/hooks/use-zchef-contract";
 import { ZChefAddress } from "@/constants/zChef";
 import { ETH_TOKEN, ENS_POOL_ID, WLFI_POOL_ID, type TokenMeta } from "@/lib/coins";
 import { isUserRejectionError } from "@/lib/errors";
-import { SINGLE_ETH_SLIPPAGE_BPS } from "@/lib/swap";
+// Remove SINGLE_ETH_SLIPPAGE_BPS as we're using custom slippage now
 import { cn, formatBalance } from "@/lib/utils";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
 import { useAccount, usePublicClient } from "wagmi";
 import { APRDisplay } from "./farm/APRDisplay";
 import { ENSLogo } from "./icons/ENSLogo";
+import { Settings } from "lucide-react";
 
 interface FarmStakeDialogProps {
   stream: IncentiveStream;
@@ -34,16 +35,44 @@ interface FarmStakeDialogProps {
 
 type StakeMode = "lp" | "eth";
 
+// Format liquidity amounts for compact display
+const formatCompactLiquidity = (value: number): string => {
+  if (value === 0) return "0";
+
+  // For very small values, use shortened format
+  if (value < 0.0001) {
+    return "<0.0001";
+  }
+
+  // For small values, show 4 decimals
+  if (value < 1) {
+    return value.toFixed(4);
+  }
+
+  // For medium values, show 2 decimals
+  if (value < 1000) {
+    return value.toFixed(2);
+  }
+
+  // For large values, use compact notation
+  return new Intl.NumberFormat("en-US", {
+    notation: "compact",
+    maximumFractionDigits: 2,
+  }).format(value);
+};
+
 export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmStakeDialogProps) {
   const { t } = useTranslation();
   const publicClient = usePublicClient();
   const { address } = useAccount();
-  const { tokens } = useAllCoins();
+  const { tokens, isEthBalanceFetching, refetchEthBalance } = useAllCoins();
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [stakeMode, setStakeMode] = useState<StakeMode>("lp");
   const [zapCalculation, setZapCalculation] = useState<any>(null);
-  const [slippageBps] = useState(SINGLE_ETH_SLIPPAGE_BPS);
+  const [slippageBps, setSlippageBps] = useState(1000n); // Default to 10% slippage for low liquidity pools
+  const [showSlippageSettings, setShowSlippageSettings] = useState(false);
+  const [customSlippage, setCustomSlippage] = useState("10"); // Display value in percentage
   const [txHash, setTxHash] = useState<string | null>(null);
   const [txStatus, setTxStatus] = useState<"idle" | "pending" | "confirming" | "success" | "error">("idle");
   const [txError, setTxError] = useState<string | null>(null);
@@ -73,6 +102,17 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
   // Get ETH token data
   const ethToken = tokens.find((t) => t.id === null) || ETH_TOKEN;
 
+  // Debug: Log ETH balance status
+  useEffect(() => {
+    console.log("[FarmStakeDialog] ETH Balance Debug:", {
+      hasTokens: tokens.length > 0,
+      ethTokenBalance: ethToken?.balance,
+      isEthBalanceFetching,
+      address,
+      firstToken: tokens[0],
+    });
+  }, [tokens, ethToken, isEthBalanceFetching, address]);
+
   // Check operator approval for Cookbook LP tokens to zChef (ERC6909)
   const { data: isOperatorApproved } = useLpOperatorStatus({
     owner: address,
@@ -80,13 +120,29 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
     source: lpToken?.source || "COOKBOOK",
   });
 
+  // Calculate maximum amounts considering liquidity
+  const maxEthForZap = useMemo(() => {
+    if (!lpToken || !lpToken.reserve0 || !lpToken.reserve1 || lpToken.reserve0 === 0n || lpToken.reserve1 === 0n) {
+      return 0n;
+    }
+    try {
+      return calculateMaxEthForZap(lpToken.reserve0, lpToken.reserve1, slippageBps);
+    } catch (error) {
+      // Silent fail - reserves might not be loaded yet
+      return 0n;
+    }
+  }, [lpToken, lpToken?.reserve0, lpToken?.reserve1, slippageBps]);
+
   const maxAmount =
     stakeMode === "lp"
       ? lpTokenBalance > 0n
         ? formatUnits(lpTokenBalance, 18) // LP tokens are always 18 decimals
         : "0"
       : ethToken.balance
-        ? formatEther(ethToken.balance)
+        ? // For ETH mode, use the minimum of user balance and max allowed by liquidity
+          formatEther(
+            ethToken.balance < maxEthForZap ? ethToken.balance : maxEthForZap
+          )
         : "0";
 
   // Debounced zap calculation with proper cleanup
@@ -137,6 +193,16 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
     }
   }, [lpToken?.symbol, stakeMode]);
 
+  // Handle slippage changes
+  const handleSlippageChange = (value: string) => {
+    const numValue = parseFloat(value);
+    if (!isNaN(numValue) && numValue >= 0.1 && numValue <= 50) {
+      setCustomSlippage(value);
+      // Convert percentage to basis points (1% = 100 bps)
+      setSlippageBps(BigInt(Math.floor(numValue * 100)));
+    }
+  };
+
   // Reset state when modal opens or closes to prevent sizing issues
   useEffect(() => {
     if (!open) {
@@ -147,6 +213,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
       setTxError(null);
       setTxMessage(null);
       setTxStatus("idle");
+      setShowSlippageSettings(false);
     }
   }, [open]);
 
@@ -352,7 +419,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                 <div className="bg-background/30 border border-primary/20 rounded p-3">
                   <p className="text-muted-foreground font-mono text-xs">{t("pool.liquidity")}</p>
                   <p className="font-mono font-bold text-primary">
-                    {formatBalance(formatEther(lpToken.reserve0 || lpToken.liquidity || 0n), "ETH")}
+                    {formatCompactLiquidity(Number(formatEther(lpToken.reserve0 || lpToken.liquidity || 0n)))} ETH
                   </p>
                 </div>
               )}
@@ -471,16 +538,100 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
               <div className="space-y-2 text-sm font-mono">
                 <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                   <span className="text-muted-foreground">{t("common.available")}:</span>
-                  <span className="text-primary font-bold break-all text-left sm:text-right">
+                  <span className="text-primary font-bold break-all text-left sm:text-right flex items-center gap-2">
                     {stakeMode === "lp" && isLpBalanceLoading ? (
                       <span className="animate-pulse">{t("common.loading_balance")}</span>
+                    ) : stakeMode === "eth" && isEthBalanceFetching ? (
+                      <span className="animate-pulse">Loading ETH...</span>
                     ) : (
-                      formatBalance(maxAmount, stakeMode === "lp" ? "LP" : "ETH")
+                      <>
+                        {formatBalance(maxAmount, stakeMode === "lp" ? "LP" : "ETH")}
+                        {stakeMode === "eth" && !ethToken.balance && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => refetchEthBalance()}
+                            className="text-xs p-1 h-auto"
+                          >
+                            Refetch
+                          </Button>
+                        )}
+                      </>
                     )}
                   </span>
                 </div>
               </div>
             </div>
+
+            {/* Slippage Settings for ETH Zap */}
+            {stakeMode === "eth" && (
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <Label className="font-mono font-bold text-primary uppercase tracking-wide">
+                    <span className="text-muted-foreground">&gt;</span> Slippage Tolerance
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowSlippageSettings(!showSlippageSettings)}
+                    className="font-mono text-xs"
+                  >
+                    {customSlippage}% {showSlippageSettings ? "▲" : "▼"}
+                  </Button>
+                </div>
+
+                {showSlippageSettings && (
+                  <div className="bg-background/30 border border-primary/20 rounded p-3 space-y-3">
+                    <div className="grid grid-cols-4 gap-2">
+                      {["1", "5", "10", "15"].map((value) => (
+                        <Button
+                          key={value}
+                          type="button"
+                          variant={customSlippage === value ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handleSlippageChange(value)}
+                          className="font-mono text-xs"
+                        >
+                          {value}%
+                        </Button>
+                      ))}
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <Input
+                        type="number"
+                        value={customSlippage}
+                        onChange={(e) => handleSlippageChange(e.target.value)}
+                        className="font-mono text-sm"
+                        placeholder="Custom"
+                        min="0.1"
+                        max="50"
+                        step="0.1"
+                      />
+                      <span className="text-xs font-mono text-muted-foreground">%</span>
+                    </div>
+                    {parseFloat(customSlippage) > 15 && (
+                      <p className="text-xs text-yellow-500 font-mono">
+                        ⚠ High slippage may result in unfavorable rates
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Low Liquidity Warning */}
+                {lpToken?.reserve0 && lpToken.reserve0 < parseEther("0.01") && (
+                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded p-3">
+                    <p className="text-xs font-mono text-yellow-500">
+                      ⚠ Low liquidity pool - limited ETH capacity
+                    </p>
+                    <p className="text-xs font-mono text-muted-foreground mt-1">
+                      Max ETH for {customSlippage}% slippage: {formatEther(maxEthForZap)} ETH
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Operator Approval Notice */}
             {stakeMode === "lp" && !isOperatorApproved && (

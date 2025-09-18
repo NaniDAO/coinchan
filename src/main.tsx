@@ -15,6 +15,13 @@ import "./index.css";
 import "./i18n";
 import { useTranslation } from "react-i18next";
 import ConnectionErrorHandler from "./lib/ConnectionErrorHandler";
+import { useConnectionRecovery } from "./hooks/use-connection-recovery";
+
+// Component to activate connection recovery at the app level
+function ConnectionRecoveryManager() {
+  useConnectionRecovery();
+  return null;
+}
 import "./lib/favicon"; // Initialize favicon manager
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
@@ -70,6 +77,7 @@ export const WalletProviders = ({
 }) => {
   const { theme } = useTheme();
   const { i18n } = useTranslation();
+
   return (
     <WagmiProvider config={config} reconnectOnMount={true}>
       <PersistQueryClientProvider
@@ -105,6 +113,7 @@ export const WalletProviders = ({
           }
         >
           <ConnectionErrorHandler />
+          <ConnectionRecoveryManager />
           {children}
         </RainbowKitProvider>
       </PersistQueryClientProvider>

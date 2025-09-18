@@ -36,6 +36,7 @@ import { useGetCoin } from "@/hooks/metadata/use-get-coin";
 import { useQuery } from "@tanstack/react-query";
 import { ZDropsTable } from "./ZDropsTable";
 import { useGetZDrops } from "@/hooks/use-get-z-drops";
+import { CookbookFarmTab } from "./farm/CookbookFarmTab";
 
 interface FinalizedPoolTradingProps {
   coinId: string;
@@ -119,7 +120,7 @@ function FinalizedPoolTradingInner({
   const { t } = useTranslation();
   const { address } = useAccount();
   const { theme } = useTheme();
-  const [activeTab, setActiveTab] = useState<"swap" | "add" | "remove">("swap");
+  const [activeTab, setActiveTab] = useState<"swap" | "add" | "remove" | "airdrop" | "farm">("swap");
   const { setSellToken, setBuyToken } = useTokenSelection();
   const { data: zDrops } = useGetZDrops({
     address,
@@ -404,27 +405,33 @@ function FinalizedPoolTradingInner({
           <TabsList className="bg-muted/50 rounded-lg p-1 w-full flex justify-between">
             <TabsTrigger
               value="swap"
-              className="flex-1 px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              className="flex-1 px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
             >
               {t("common.swap")}
             </TabsTrigger>
             <TabsTrigger
               value="add"
-              className="flex-1 px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              className="flex-1 px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
             >
               {t("common.add")}
             </TabsTrigger>
             <TabsTrigger
               value="remove"
-              className="flex-1 px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              className="flex-1 px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
             >
               {t("common.remove")}
             </TabsTrigger>
             <TabsTrigger
               value="airdrop"
-              className="flex-1 px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              className="flex-1 px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
             >
               {t("common.airdrop")}
+            </TabsTrigger>
+            <TabsTrigger
+              value="farm"
+              className="flex-1 px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+            >
+              {t("common.farm", "Farm")}
             </TabsTrigger>
           </TabsList>
 
@@ -461,6 +468,14 @@ function FinalizedPoolTradingInner({
                 {t("coin.no_airdrops", "No Airdrops Available")}
               </div>
             )}
+          </TabsContent>
+          <TabsContent value="farm" className="mt-4">
+            <CookbookFarmTab
+              poolId={poolId}
+              coinId={coinId}
+              coinSymbol={coinSymbol || coinToken.symbol}
+              swapFee={actualFee}
+            />
           </TabsContent>
         </Tabs>
       </div>
