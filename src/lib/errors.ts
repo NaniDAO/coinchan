@@ -70,7 +70,10 @@ export const handleWalletError = (
     const errorMessage = String(error).toLowerCase();
 
     // Check for insufficient funds
-    if (errorMessage.includes("insufficient") && errorMessage.includes("funds")) {
+    if (
+      errorMessage.includes("insufficient") &&
+      errorMessage.includes("funds")
+    ) {
       return t("errors.insufficient_funds");
     }
 
@@ -80,7 +83,10 @@ export const handleWalletError = (
     }
 
     // Check for network errors
-    if (errorMessage.includes("network") || errorMessage.includes("connection")) {
+    if (
+      errorMessage.includes("network") ||
+      errorMessage.includes("connection")
+    ) {
       return t("errors.network_error");
     }
 
@@ -92,3 +98,17 @@ export const handleWalletError = (
   // Use provided default message or generic English fallback
   return defaultMessage || "Transaction failed. Please try again.";
 };
+
+export interface ZammErrorConstructorProps {
+  name?: string;
+  message: string;
+}
+
+export class ZAMMError extends Error {
+  constructor({ name, message }: ZammErrorConstructorProps) {
+    super(message);
+    this.name = name ?? "ZAMMError";
+
+    Object.setPrototypeOf(this, ZAMMError.prototype);
+  }
+}

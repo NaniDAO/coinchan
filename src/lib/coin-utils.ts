@@ -4,15 +4,25 @@ import type { CoinSource } from "./coins";
  * Determines if a coin is a cookbook coin based on its ID
  * Cookbook coins have ID < 1000000n
  */
-export const isCookbookCoin = (coinId: bigint | null): boolean => {
-  return coinId !== null && coinId < 1000000n;
+export const isCookbookCoin = (
+  coinId: string | bigint | null,
+): boolean | null => {
+  try {
+    return coinId !== null && BigInt(coinId) < 1000000n;
+  } catch (error) {
+    console.error("Error checking if coin is cookbook:", error);
+    return null;
+  }
 };
 
 /**
  * Determines the correct reserve source based on coin type
  * Custom pools (like USDT) use ZAMM, cookbook coins use COOKBOOK
  */
-export const determineReserveSource = (coinId: bigint | null, isCustomPool: boolean): CoinSource => {
+export const determineReserveSource = (
+  coinId: bigint | null,
+  isCustomPool: boolean,
+): CoinSource => {
   const isCookbook = isCookbookCoin(coinId);
   return isCookbook && !isCustomPool ? "COOKBOOK" : "ZAMM";
 };
