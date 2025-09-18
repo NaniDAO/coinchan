@@ -29,6 +29,32 @@ export interface ZapCalculation {
   error?: string;
 }
 
+/**
+ * Calculate the maximum ETH that can be zapped based on pool liquidity and slippage tolerance
+ * For low liquidity pools, this prevents transactions from reverting due to excessive price impact
+ */
+export function calculateMaxEthForZap(
+  ethReserve: bigint,
+  tokenReserve: bigint,
+  slippageBps: bigint = SINGLE_ETH_SLIPPAGE_BPS
+): bigint {
+  if (!ethReserve || !tokenReserve || ethReserve === 0n || tokenReserve === 0n) {
+    return 0n;
+  }
+
+  // For zap, we swap half the ETH, so we need to consider price impact on half
+  // A rough estimate: don't let the swap move the price by more than slippage %
+  // This is simplified - actual calculation would need to consider the AMM curve
+
+  // Conservative approach: limit to a percentage of current liquidity
+  // For 1% slippage, allow up to 2% of pool liquidity (since we only swap half)
+  // For 10% slippage, allow up to 20% of pool liquidity
+  const maxPercentage = (slippageBps * 2n) / 100n; // Convert bps to percentage and double it
+  const maxEth = (ethReserve * maxPercentage) / 10000n;
+
+  return maxEth;
+}
+
 export function useZapCalculations() {
   const publicClient = usePublicClient();
 
@@ -105,9 +131,24 @@ export function useZapCalculations() {
         poolKey = WLFI_POOL_KEY;
         poolId = WLFI_POOL_ID; // Always use the correct WLFI pool ID
       } else if (isCookbook) {
-        const basePoolKey = computePoolKey(tokenId, swapFee, CookbookAddress);
-        poolKey = basePoolKey; // Cookbook already has feeOrHook
-        poolId = computePoolId(tokenId, swapFee, CookbookAddress);
+        // For cookbook coins, use the pool ID from lpToken which is already correct
+        // Don't compute it from tokenId as that's the coin ID, not pool parameters
+        if (!lpToken.poolId) {
+          throw new Error("Pool ID not defined for cookbook token");
+        }
+        poolId = BigInt(lpToken.poolId);
+
+        // For Cookbook pools, we need to construct the pool key with feeOrHook
+        // The feeOrHook could be a simple fee (< 10000) or a hook address
+        const feeOrHook = lpToken.swapFee || swapFee || 30n; // Default to 30 bps if not specified
+
+        poolKey = {
+          id0: 0n, // ETH is always token0
+          id1: tokenId, // The coin ID
+          token0: "0x0000000000000000000000000000000000000000" as `0x${string}`, // ETH
+          token1: CookbookAddress, // Cookbook contract
+          feeOrHook: feeOrHook, // Use feeOrHook instead of swapFee for Cookbook
+        };
       } else {
         const basePoolKey = computePoolKey(tokenId, swapFee);
         // Transform ZAMM pool key to match zChef's expected structure

@@ -43,7 +43,7 @@ const EIGHTEEN_DECIMALS = 1_000_000_000_000_000_000n; // 1e18 (ZAMM & ETH)
  */
 export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedAprParams): CombinedAprData {
   // Fetch base APR from trading fees
-  const { data: baseAprData, isLoading: isBaseAprLoading } = usePoolApy(lpToken?.poolId?.toString());
+  const { data: baseAprData, isLoading: isBaseAprLoading } = usePoolApy(lpToken?.poolId?.toString(), lpToken?.source);
 
   const { data: farmInfo, isLoading: isFarmInfoLoading } = useReadContract({
     address: ZChefAddress,
@@ -77,15 +77,36 @@ export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedA
     return Number(formatEther(reserve0)) / Number(formatEther(reserve1));
   }, [isVeZAMM, zammReserves]);
 
-  // Get normal reward token price for non-veZAMM tokens
+  // Check if the reward token is the same as the LP pool's token (cookbook coin)
+  // For cookbook coins, the lpToken.id is the poolId, but stream.rewardId is the coinId
+  // We need to check if the stream's reward coin matches the pool's coin
+  const isCookbookCoin = lpToken?.source === "COOKBOOK" && stream?.rewardId !== undefined;
+
+  // Get pool reserves for price calculation if it's a cookbook coin
+  const { data: poolReserves } = useReserves({
+    poolId: isCookbookCoin && lpToken?.poolId ? BigInt(lpToken.poolId) : undefined,
+    source: "COOKBOOK",
+  });
+
+  // Calculate cookbook coin price from pool reserves
+  const cookbookCoinPriceEth = useMemo(() => {
+    if (!isCookbookCoin || !poolReserves) return undefined;
+    const ethReserve = poolReserves.reserve0; // ETH is always token0
+    const coinReserve = poolReserves.reserve1; // Coin is always token1
+    if (!ethReserve || !coinReserve || coinReserve === 0n) return 0;
+    // Price = ETH reserves / Coin reserves
+    return Number(formatEther(ethReserve)) / Number(formatEther(coinReserve));
+  }, [isCookbookCoin, poolReserves]);
+
+  // Get normal reward token price for non-veZAMM and non-cookbook tokens
   const { data: normalRewardPriceEth } = useCoinPrice({
-    coinId: !isVeZAMM ? farmInfo?.[3] : undefined,
-    coinContract: !isVeZAMM ? farmInfo?.[2] : undefined,
+    coinId: !isVeZAMM && !isCookbookCoin ? farmInfo?.[3] : undefined,
+    coinContract: !isVeZAMM && !isCookbookCoin ? farmInfo?.[2] : undefined,
     contractSource: undefined,
   });
 
-  // Use ZAMM price for veZAMM, otherwise use normal price
-  const rewardPriceEth = isVeZAMM ? zammPriceEth : normalRewardPriceEth;
+  // Use appropriate price based on token type
+  const rewardPriceEth = isVeZAMM ? zammPriceEth : (isCookbookCoin ? cookbookCoinPriceEth : normalRewardPriceEth);
 
   // Fetch farm incentive APR
   const { data: rewardPerSharePerYearOnchain, isLoading: isFarmAprLoading } = useZChefRewardPerSharePerYear(
@@ -122,12 +143,13 @@ export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedA
     const safeTotalShares = totalShares && totalShares > 0n ? totalShares : parseEther("1");
 
     if (streamActive && safeTotalShares !== 0n) {
-      return (BigInt(rewardRate) * SECONDS_IN_YEAR) / BigInt(safeTotalShares); // still ×1e12
+      // Include ACC_PRECISION in the calculation since rewardPerSharePerYear needs to be scaled
+      return (BigInt(rewardRate) * SECONDS_IN_YEAR * ACC_PRECISION) / BigInt(safeTotalShares);
     }
 
     // 3. ended or not enabled → 0
     return 0n;
-  }, [rewardPerSharePerYearOnchain, farmInfo, stream?.status, stream?.endTime, stream?.totalShares]);
+  }, [rewardPerSharePerYearOnchain, farmInfo, stream?.status, stream?.endTime, stream?.totalShares, stream?.rewardRate]);
 
   // Calculate combined APR
   const combinedApr = useMemo(() => {
@@ -146,7 +168,8 @@ export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedA
     };
 
     try {
-      if (isLoading || !poolTvlInEth || !rewardPriceEth || poolTvlInEth === 0 || rewardPriceEth === 0) {
+      // Allow very small prices (don't check rewardPriceEth === 0 too strictly)
+      if (isLoading || !poolTvlInEth || poolTvlInEth === 0 || rewardPriceEth === undefined || rewardPriceEth === null) {
         return defaultResult;
       }
 
@@ -187,7 +210,10 @@ export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedA
       const rewardPerSharePerYearWei = rewardPerSharePerYear / ACC_PRECISION;
       const tokensPerSharePerYear = Number(rewardPerSharePerYearWei) / eighteenDecimalsNum;
       const yearlyReward = tokensPerSharePerYear * shareNum;
-      const yearlyRewardEthValue = yearlyReward * rewardPriceEth;
+
+      // Use a default small price if rewardPriceEth is 0 to avoid division issues
+      const effectiveRewardPrice = rewardPriceEth || 0;
+      const yearlyRewardEthValue = yearlyReward * effectiveRewardPrice;
       const stakeEth = (shareNum / totalSharesNum) * poolTvlInEth;
 
       // Prevent division by zero and ensure all values are valid numbers
@@ -227,6 +253,7 @@ export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedA
     poolTvlInEth,
     rewardPriceEth,
     isVeZAMM,
+    isCookbookCoin,
     farmInfo,
   ]);
 
