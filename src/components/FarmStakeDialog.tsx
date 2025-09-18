@@ -1,30 +1,46 @@
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-// import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatImageURL } from "@/hooks/metadata";
-import { useAllCoins } from "@/hooks/metadata/use-all-coins";
 import type { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { useLpBalance } from "@/hooks/use-lp-balance";
 import { useLpOperatorStatus } from "@/hooks/use-lp-operator-status";
 import { useStreamValidation } from "@/hooks/use-stream-validation";
-import { useZapCalculations, calculateMaxEthForZap } from "@/hooks/use-zap-calculations";
+import {
+  useZapCalculations,
+  calculateMaxEthForZap,
+} from "@/hooks/use-zap-calculations";
 import { useZapDeposit } from "@/hooks/use-zap-deposit";
-import { useZChefActions, useZChefUserBalance, useZChefPool, useSetOperatorApproval } from "@/hooks/use-zchef-contract";
+import {
+  useZChefActions,
+  useZChefUserBalance,
+  useZChefPool,
+  useSetOperatorApproval,
+} from "@/hooks/use-zchef-contract";
 import { ZChefAddress } from "@/constants/zChef";
-import { ETH_TOKEN, ENS_POOL_ID, WLFI_POOL_ID, type TokenMeta } from "@/lib/coins";
+import {
+  ETH_TOKEN,
+  ENS_POOL_ID,
+  WLFI_POOL_ID,
+  type TokenMeta,
+} from "@/lib/coins";
 import { isUserRejectionError } from "@/lib/errors";
-// Remove SINGLE_ETH_SLIPPAGE_BPS as we're using custom slippage now
 import { cn, formatBalance } from "@/lib/utils";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
-import { useAccount, usePublicClient } from "wagmi";
+import { useAccount, useBalance, usePublicClient } from "wagmi";
 import { APRDisplay } from "./farm/APRDisplay";
 import { ENSLogo } from "./icons/ENSLogo";
-import { Settings } from "lucide-react";
+import { LpTokensTab } from "./farm/LpTokensTab";
+import { EthZapTab } from "./farm/EthZapTab";
+import { useAllCoins } from "@/hooks/metadata/use-all-coins";
 
 interface FarmStakeDialogProps {
   stream: IncentiveStream;
@@ -33,48 +49,43 @@ interface FarmStakeDialogProps {
   onSuccess?: () => void;
 }
 
-type StakeMode = "lp" | "eth";
+export type StakeMode = "lp" | "eth";
 
 // Format liquidity amounts for compact display
 const formatCompactLiquidity = (value: number): string => {
   if (value === 0) return "0";
-
-  // For very small values, use shortened format
-  if (value < 0.0001) {
-    return "<0.0001";
-  }
-
-  // For small values, show 4 decimals
-  if (value < 1) {
-    return value.toFixed(4);
-  }
-
-  // For medium values, show 2 decimals
-  if (value < 1000) {
-    return value.toFixed(2);
-  }
-
-  // For large values, use compact notation
+  if (value < 0.0001) return "<0.0001";
+  if (value < 1) return value.toFixed(4);
+  if (value < 1000) return value.toFixed(2);
   return new Intl.NumberFormat("en-US", {
     notation: "compact",
     maximumFractionDigits: 2,
   }).format(value);
 };
 
-export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmStakeDialogProps) {
+export function FarmStakeDialog({
+  stream,
+  lpToken,
+  trigger,
+  onSuccess,
+}: FarmStakeDialogProps) {
   const { t } = useTranslation();
   const publicClient = usePublicClient();
   const { address } = useAccount();
-  const { tokens, isEthBalanceFetching, refetchEthBalance } = useAllCoins();
+  const { data: ethBalance } = useBalance({ address });
+
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [stakeMode, setStakeMode] = useState<StakeMode>("lp");
   const [zapCalculation, setZapCalculation] = useState<any>(null);
-  const [slippageBps, setSlippageBps] = useState(1000n); // Default to 10% slippage for low liquidity pools
+  const [slippageBps, setSlippageBps] = useState(1000n); // 10%
+  const [customSlippage, setCustomSlippage] = useState("10");
   const [showSlippageSettings, setShowSlippageSettings] = useState(false);
-  const [customSlippage, setCustomSlippage] = useState("10"); // Display value in percentage
+
   const [txHash, setTxHash] = useState<string | null>(null);
-  const [txStatus, setTxStatus] = useState<"idle" | "pending" | "confirming" | "success" | "error">("idle");
+  const [txStatus, setTxStatus] = useState<
+    "idle" | "pending" | "confirming" | "success" | "error"
+  >("idle");
   const [txError, setTxError] = useState<string | null>(null);
   const [txMessage, setTxMessage] = useState<string | null>(null);
 
@@ -83,52 +94,50 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
   const zapDeposit = useZapDeposit();
   const { validateStreamBeforeAction } = useStreamValidation();
   const setOperatorApproval = useSetOperatorApproval();
-  // Note: rewardPerSharePerYear is now handled in useCombinedApy hook
 
-  // Get user's staked balance in this farm
+  // User staked balance
   const { data: userStakedBalance } = useZChefUserBalance(stream.chefId);
 
-  // Get real-time pool data including total staked
+  // Pool data
   const { data: poolData } = useZChefPool(stream.chefId);
   const totalStaked = poolData?.[7] ?? stream.totalShares ?? 0n;
 
-  // Get actual LP token balance for this pool using the stream's LP ID
-  const { balance: lpTokenBalance, isLoading: isLpBalanceLoading } = useLpBalance({
-    lpToken,
-    poolId: stream.lpId,
-    enabled: stakeMode === "lp",
-  });
+  // LP balance
+  const { balance: lpTokenBalance, isLoading: isLpBalanceLoading } =
+    useLpBalance({ lpToken, poolId: stream.lpId, enabled: stakeMode === "lp" });
 
-  // Get ETH token data
-  const ethToken = tokens.find((t) => t.id === null) || ETH_TOKEN;
+  // ETH token
+  const ethToken = useMemo(() => {
+    return {
+      ...ETH_TOKEN,
+      balance: ethBalance === undefined ? 0n : ethBalance.value,
+    };
+  }, [ethBalance]);
 
-  // Debug: Log ETH balance status
-  useEffect(() => {
-    console.log("[FarmStakeDialog] ETH Balance Debug:", {
-      hasTokens: tokens.length > 0,
-      ethTokenBalance: ethToken?.balance,
-      isEthBalanceFetching,
-      address,
-      firstToken: tokens[0],
-    });
-  }, [tokens, ethToken, isEthBalanceFetching, address]);
-
-  // Check operator approval for Cookbook LP tokens to zChef (ERC6909)
+  // Operator status (ERC6909)
   const { data: isOperatorApproved } = useLpOperatorStatus({
     owner: address,
     operator: ZChefAddress,
     source: lpToken?.source || "COOKBOOK",
   });
 
-  // Calculate maximum amounts considering liquidity
+  // Max ETH for zap by liquidity
   const maxEthForZap = useMemo(() => {
-    if (!lpToken || !lpToken.reserve0 || !lpToken.reserve1 || lpToken.reserve0 === 0n || lpToken.reserve1 === 0n) {
+    if (
+      !lpToken ||
+      !lpToken.reserve0 ||
+      !lpToken.reserve1 ||
+      lpToken.reserve0 === 0n ||
+      lpToken.reserve1 === 0n
+    )
       return 0n;
-    }
     try {
-      return calculateMaxEthForZap(lpToken.reserve0, lpToken.reserve1, slippageBps);
-    } catch (error) {
-      // Silent fail - reserves might not be loaded yet
+      return calculateMaxEthForZap(
+        lpToken.reserve0,
+        lpToken.reserve1,
+        slippageBps,
+      );
+    } catch {
       return 0n;
     }
   }, [lpToken, lpToken?.reserve0, lpToken?.reserve1, slippageBps]);
@@ -136,77 +145,57 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
   const maxAmount =
     stakeMode === "lp"
       ? lpTokenBalance > 0n
-        ? formatUnits(lpTokenBalance, 18) // LP tokens are always 18 decimals
+        ? formatUnits(lpTokenBalance, 18)
         : "0"
       : ethToken.balance
-        ? // For ETH mode, use the minimum of user balance and max allowed by liquidity
-          formatEther(
-            ethToken.balance < maxEthForZap ? ethToken.balance : maxEthForZap
+        ? formatEther(
+            ethToken.balance < maxEthForZap ? ethToken.balance : maxEthForZap,
           )
         : "0";
 
-  // Debounced zap calculation with proper cleanup
+  // Debounced zap calculation
   const debounceTimerRef = useRef<NodeJS.Timeout>();
-
   const debouncedZapCalculation = useCallback(
     (ethAmount: string) => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
       debounceTimerRef.current = setTimeout(async () => {
         try {
-          const result = await calculateZapAmounts(ethAmount, stream, lpToken, slippageBps);
+          const result = await calculateZapAmounts(
+            ethAmount,
+            stream,
+            lpToken,
+            slippageBps,
+          );
           setZapCalculation(result);
-        } catch (error) {
-          console.error("Zap calculation failed:", error);
+        } catch (e) {
+          console.error("Zap calculation failed:", e);
           setZapCalculation(null);
         }
-      }, 500); // 500ms debounce
+      }, 500);
     },
     [calculateZapAmounts, stream, lpToken, slippageBps],
   );
 
-  // Calculate zap amounts when in ETH mode with debouncing
   useEffect(() => {
     if (stakeMode === "eth" && amount && Number.parseFloat(amount) > 0) {
       debouncedZapCalculation(amount);
     } else {
       setZapCalculation(null);
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     }
-
-    // Cleanup on unmount
     return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     };
   }, [amount, stakeMode, debouncedZapCalculation]);
 
-  // Force LP mode for CULT pools
+  // Force LP for CULT
   useEffect(() => {
-    if (lpToken?.symbol === "CULT" && stakeMode === "eth") {
-      setStakeMode("lp");
-    }
+    if (lpToken?.symbol === "CULT" && stakeMode === "eth") setStakeMode("lp");
   }, [lpToken?.symbol, stakeMode]);
 
-  // Handle slippage changes
-  const handleSlippageChange = (value: string) => {
-    const numValue = parseFloat(value);
-    if (!isNaN(numValue) && numValue >= 0.1 && numValue <= 50) {
-      setCustomSlippage(value);
-      // Convert percentage to basis points (1% = 100 bps)
-      setSlippageBps(BigInt(Math.floor(numValue * 100)));
-    }
-  };
-
-  // Reset state when modal opens or closes to prevent sizing issues
+  // Reset on close
   useEffect(() => {
     if (!open) {
-      // Reset all state when modal closes
       setAmount("");
       setZapCalculation(null);
       setTxHash(null);
@@ -220,7 +209,6 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
   const handleStake = async () => {
     if (!amount || Number.parseFloat(amount) <= 0) return;
 
-    // Validate stream before proceeding
     const validation = validateStreamBeforeAction(stream, "stake");
     if (!validation.canProceed) {
       setTxStatus("error");
@@ -232,36 +220,28 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
       setTxStatus("pending");
       setTxError(null);
 
-      // Check operator approval for LP tokens (ERC6909)
+      // Need operator approval for LP flow
       if (stakeMode === "lp" && !isOperatorApproved) {
-        // Need to approve zChef as operator for Cookbook LP tokens
         try {
-          setTxHash(null); // Clear any previous tx hash
+          setTxHash(null);
           setTxMessage(t("common.approving_operator"));
-
           const approvalHash = await setOperatorApproval.mutateAsync({
             source: lpToken?.source || "COOKBOOK",
             operator: ZChefAddress,
             approved: true,
           });
-
           setTxHash(approvalHash);
           setTxStatus("confirming");
           setTxMessage(t("common.waiting_for_operator_approval"));
-
           if (publicClient) {
             await publicClient.waitForTransactionReceipt({
               hash: approvalHash as `0x${string}`,
             });
           }
-
-          // Clear the approval message and continue with staking
           setTxStatus("pending");
           setTxMessage(t("common.operator_approved_proceeding"));
-          setTxHash(null); // Clear approval hash before staking
-
-          // Small delay to let the UI update
-          await new Promise((resolve) => setTimeout(resolve, 500));
+          setTxHash(null);
+          await new Promise((r) => setTimeout(r, 500));
         } catch (approvalError: any) {
           if (isUserRejectionError(approvalError)) {
             setTxStatus("idle");
@@ -275,9 +255,8 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
         }
       }
 
-      // Proceed with staking
+      // Stake
       let hash: string;
-
       if (stakeMode === "lp") {
         const amountBigInt = parseUnits(amount, lpToken.decimals || 18);
         hash = await deposit.mutateAsync({
@@ -285,11 +264,8 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
           amount: amountBigInt,
         });
       } else {
-        // ETH zap mode
-        if (!zapCalculation || !zapCalculation.isValid) {
+        if (!zapCalculation || !zapCalculation.isValid)
           throw new Error(t("common.invalid_zap_calculation"));
-        }
-
         const ethAmountBigInt = parseEther(amount);
         hash = await zapDeposit.mutateAsync({
           chefId: stream.chefId,
@@ -300,17 +276,12 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
 
       setTxHash(hash);
       setTxStatus("confirming");
-      setTxMessage(null); // Clear any operator approval messages
-
-      // Wait for confirmation
+      setTxMessage(null);
       if (publicClient) {
         await publicClient.waitForTransactionReceipt({
           hash: hash as `0x${string}`,
         });
         setTxStatus("success");
-
-        // Show success notification
-        // Reset form and close after success
         setTimeout(() => {
           setAmount("");
           setOpen(false);
@@ -318,11 +289,10 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
           setTxHash(null);
           setTxMessage(null);
           onSuccess?.();
-        }, 3000); // Increased from 2000 to 3000ms
+        }, 3000);
       }
     } catch (error: any) {
       if (isUserRejectionError(error)) {
-        // User rejected - silently reset state
         setTxStatus("idle");
         setTxMessage(null);
       } else {
@@ -339,12 +309,14 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
   };
 
   const handleMaxClick = () => {
-    if (stakeMode === "eth") {
-      // Leave some ETH for gas
-      const ethAmount = ((ethToken.balance as bigint) * 99n) / 100n;
-      setAmount(formatEther(ethAmount));
-    } else {
-      setAmount(maxAmount);
+    setAmount(maxAmount);
+  };
+
+  const handleSlippageChange = (value: string) => {
+    const numValue = parseFloat(value);
+    if (!isNaN(numValue) && numValue >= 0.1 && numValue <= 50) {
+      setCustomSlippage(value);
+      setSlippageBps(BigInt(Math.floor(numValue * 100)));
     }
   };
 
@@ -368,7 +340,11 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                   </div>
                 ) : BigInt(stream.lpId) === WLFI_POOL_ID ? (
                   <div className="relative">
-                    <img src="/wlfi.png" alt="WLFI" className="w-8 h-8 rounded-full border-2 border-primary/40" />
+                    <img
+                      src="/wlfi.png"
+                      alt="WLFI"
+                      className="w-8 h-8 rounded-full border-2 border-primary/40"
+                    />
                     <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-primary/30 to-transparent opacity-50 blur-sm"></div>
                   </div>
                 ) : lpToken?.imageUrl ? (
@@ -390,13 +366,14 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                         : lpToken?.symbol ||
                           (() => {
                             const lpId = stream.lpId?.toString();
-                            // LP IDs are always full uint, truncate for UI
                             return lpId && lpId.length > 12
                               ? `Pool ${lpId.slice(0, 6)}...${lpId.slice(-6)}`
                               : `Pool ${lpId}`;
                           })()}
                   </h3>
-                  <p className="text-xs text-muted-foreground font-mono">{t("common.lp_token_pool")}</p>
+                  <p className="text-xs text-muted-foreground font-mono">
+                    {t("common.lp_token_pool")}
+                  </p>
                 </div>
               </div>
               <div
@@ -412,14 +389,27 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div className="bg-background/30 border border-primary/20 rounded p-3">
-                <p className="text-muted-foreground font-mono text-xs">{t("common.reward_token")}</p>
-                <p className="font-mono font-bold text-primary">{stream.rewardCoin?.symbol}</p>
+                <p className="text-muted-foreground font-mono text-xs">
+                  {t("common.reward_token")}
+                </p>
+                <p className="font-mono font-bold text-primary">
+                  {stream.rewardCoin?.symbol}
+                </p>
               </div>
               {lpToken && (
                 <div className="bg-background/30 border border-primary/20 rounded p-3">
-                  <p className="text-muted-foreground font-mono text-xs">{t("pool.liquidity")}</p>
+                  <p className="text-muted-foreground font-mono text-xs">
+                    {t("pool.liquidity")}
+                  </p>
                   <p className="font-mono font-bold text-primary">
-                    {formatCompactLiquidity(Number(formatEther(lpToken.reserve0 || lpToken.liquidity || 0n)))} ETH
+                    {formatCompactLiquidity(
+                      Number(
+                        formatEther(
+                          lpToken.reserve0 || lpToken.liquidity || 0n,
+                        ),
+                      ),
+                    )}{" "}
+                    ETH
                   </p>
                 </div>
               )}
@@ -446,35 +436,43 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                 </div>
               ) : null}
               <div className="bg-background/30 border border-primary/20 rounded p-3">
-                <p className="text-muted-foreground font-mono text-xs">{t("common.total_staked")}</p>
-                <p className="font-mono font-bold text-primary">{formatBalance(formatEther(totalStaked), "LP")}</p>
+                <p className="text-muted-foreground font-mono text-xs">
+                  {t("common.total_staked")}
+                </p>
+                <p className="font-mono font-bold text-primary">
+                  {formatBalance(formatEther(totalStaked), "LP")}
+                </p>
               </div>
             </div>
           </div>
 
           <APRDisplay stream={stream} lpToken={lpToken} shortView={false} />
 
-          {/* User Position */}
+          {/* User position */}
           {userStakedBalance && userStakedBalance > 0n && (
             <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-muted-foreground font-mono uppercase">{t("common.your_stake")}</p>
+                  <p className="text-xs text-muted-foreground font-mono uppercase">
+                    {t("common.your_stake")}
+                  </p>
                   <p className="font-mono font-bold text-green-500 text-lg mt-1">
                     {formatBalance(formatEther(userStakedBalance), "LP")}
                   </p>
                 </div>
-                <div className="text-xs text-green-500/80 font-mono">[{t("common.staked")}]</div>
+                <div className="text-xs text-green-500/80 font-mono">
+                  [{t("common.staked")}]
+                </div>
               </div>
             </div>
           )}
 
-          {/* Stake Mode Selection */}
-          {/* Disable ETH zap for CULT pools */}
+          {/* Stake mode */}
           {lpToken?.symbol === "CULT" ? (
             <div className="space-y-3">
               <Label className="font-mono font-bold text-primary uppercase tracking-wide">
-                <span className="text-muted-foreground">&gt;</span> {t("common.stake_mode")}
+                <span className="text-muted-foreground">&gt;</span>{" "}
+                {t("common.stake_mode")}
               </Label>
               <div className="font-mono text-sm text-muted-foreground">
                 [{t("common.lp_tokens")}] - ETH zap not available for CULT pools
@@ -483,21 +481,28 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
           ) : (
             <div className="space-y-3">
               <Label className="font-mono font-bold text-primary uppercase tracking-wide">
-                <span className="text-muted-foreground">&gt;</span> {t("common.stake_mode")}
+                <span className="text-muted-foreground">&gt;</span>{" "}
+                {t("common.stake_mode")}
               </Label>
               <Tabs
                 value={stakeMode}
                 onValueChange={(value) => {
                   setStakeMode(value as StakeMode);
-                  setAmount(""); // Clear amount when switching modes
-                  setZapCalculation(null); // Clear zap calculation when switching modes
+                  setAmount("");
+                  setZapCalculation(null);
                 }}
               >
                 <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="lp" className="font-mono font-bold tracking-wide">
+                  <TabsTrigger
+                    value="lp"
+                    className="font-mono font-bold tracking-wide"
+                  >
                     [{t("common.lp_tokens")}]
                   </TabsTrigger>
-                  <TabsTrigger value="eth" className="font-mono font-bold tracking-wide">
+                  <TabsTrigger
+                    value="eth"
+                    className="font-mono font-bold tracking-wide"
+                  >
                     [{t("common.eth_zap")}]
                   </TabsTrigger>
                 </TabsList>
@@ -505,208 +510,51 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
             </div>
           )}
 
-          {/* Amount Input */}
-          <div className="space-y-3">
-            <Label htmlFor="amount" className="font-mono font-bold text-primary uppercase tracking-wide">
-              <span className="text-muted-foreground">&gt;</span>{" "}
-              {stakeMode === "lp" ? t("common.amount_to_stake") : t("common.eth_amount")}
-            </Label>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Input
-                id="amount"
-                type="number"
-                placeholder="0.0"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="font-mono text-lg bg-background/50 border-primary/30 focus:border-primary/60 backdrop-blur-sm flex-1"
-                step="0.000001"
-                min="0"
-                max={maxAmount}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleMaxClick}
-                disabled={Number.parseFloat(maxAmount) === 0}
-                className="font-mono font-bold tracking-wide border-primary/40 hover:border-primary hover:bg-primary/20 px-4 sm:px-6 py-2 sm:py-1 !text-foreground dark:!text-foreground hover:!text-foreground dark:hover:!text-foreground"
-              >
-                {t("common.max")}
-              </Button>
-            </div>
-            <div className="bg-background/30 border border-primary/20 rounded p-3">
-              <div className="space-y-2 text-sm font-mono">
-                <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
-                  <span className="text-muted-foreground">{t("common.available")}:</span>
-                  <span className="text-primary font-bold break-all text-left sm:text-right flex items-center gap-2">
-                    {stakeMode === "lp" && isLpBalanceLoading ? (
-                      <span className="animate-pulse">{t("common.loading_balance")}</span>
-                    ) : stakeMode === "eth" && isEthBalanceFetching ? (
-                      <span className="animate-pulse">Loading ETH...</span>
-                    ) : (
-                      <>
-                        {formatBalance(maxAmount, stakeMode === "lp" ? "LP" : "ETH")}
-                        {stakeMode === "eth" && !ethToken.balance && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => refetchEthBalance()}
-                            className="text-xs p-1 h-auto"
-                          >
-                            Refetch
-                          </Button>
-                        )}
-                      </>
-                    )}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Slippage Settings for ETH Zap */}
-            {stakeMode === "eth" && (
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <Label className="font-mono font-bold text-primary uppercase tracking-wide">
-                    <span className="text-muted-foreground">&gt;</span> Slippage Tolerance
-                  </Label>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowSlippageSettings(!showSlippageSettings)}
-                    className="font-mono text-xs"
-                  >
-                    {customSlippage}% {showSlippageSettings ? "▲" : "▼"}
-                  </Button>
-                </div>
-
-                {showSlippageSettings && (
-                  <div className="bg-background/30 border border-primary/20 rounded p-3 space-y-3">
-                    <div className="grid grid-cols-4 gap-2">
-                      {["1", "5", "10", "15"].map((value) => (
-                        <Button
-                          key={value}
-                          type="button"
-                          variant={customSlippage === value ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => handleSlippageChange(value)}
-                          className="font-mono text-xs"
-                        >
-                          {value}%
-                        </Button>
-                      ))}
-                    </div>
-                    <div className="flex gap-2 items-center">
-                      <Input
-                        type="number"
-                        value={customSlippage}
-                        onChange={(e) => handleSlippageChange(e.target.value)}
-                        className="font-mono text-sm"
-                        placeholder="Custom"
-                        min="0.1"
-                        max="50"
-                        step="0.1"
-                      />
-                      <span className="text-xs font-mono text-muted-foreground">%</span>
-                    </div>
-                    {parseFloat(customSlippage) > 15 && (
-                      <p className="text-xs text-yellow-500 font-mono">
-                        ⚠ High slippage may result in unfavorable rates
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Low Liquidity Warning */}
-                {lpToken?.reserve0 && lpToken.reserve0 < parseEther("0.01") && (
-                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded p-3">
-                    <p className="text-xs font-mono text-yellow-500">
-                      ⚠ Low liquidity pool - limited ETH capacity
-                    </p>
-                    <p className="text-xs font-mono text-muted-foreground mt-1">
-                      Max ETH for {customSlippage}% slippage: {formatEther(maxEthForZap)} ETH
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Operator Approval Notice */}
-            {stakeMode === "lp" && !isOperatorApproved && (
-              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
-                <p className="font-mono font-bold mb-2 text-yellow-500 text-sm">[{t("common.approval_required")}]</p>
-                <p className="text-sm font-mono text-yellow-500/80">
-                  {t("common.operator_approval_needed_for_lp_staking")}
-                </p>
-              </div>
-            )}
-
-            {/* ETH Zap Explanation */}
-            {stakeMode === "eth" && (
-              <div className="bg-gradient-to-r from-primary/15 via-primary/10 to-primary/5 border border-primary/30 rounded-lg p-4">
-                <p className="font-mono font-bold mb-3 text-primary text-sm">[{t("common.eth_zap_info")}]</p>
-                <ul className="space-y-2 text-sm font-mono text-muted-foreground">
-                  <li className="flex items-start gap-2">
-                    <span className="text-primary font-bold">•</span>
-                    <span>{t("common.half_eth_swapped")}</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-primary font-bold">•</span>
-                    <span>{t("common.remaining_eth_paired")}</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-primary font-bold">•</span>
-                    <span>{t("common.lp_tokens_staked_automatically")}</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-primary font-bold">•</span>
-                    <span className="text-xs opacity-75">{t("common.dust_refund_note")}</span>
-                  </li>
-                </ul>
-              </div>
-            )}
-          </div>
-
-          {/* ETH Zap Error Display */}
-          {stakeMode === "eth" && zapCalculation && !zapCalculation.isValid && (
-            <div className="bg-red-500/10 border border-red-500/30 rounded p-2">
-              <div className="text-sm text-red-400 font-mono">
-                [ERROR]: {zapCalculation.error || t("common.zap_calculation_failed")}
-              </div>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="space-y-4">
-            <div className="h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent"></div>
-
-            <Button
-              onClick={handleStake}
-              disabled={
+          {/* Tab bodies */}
+          {stakeMode === "lp" ? (
+            <LpTokensTab
+              t={t}
+              amount={amount}
+              setAmount={setAmount}
+              maxAmount={maxAmount}
+              isOperatorApproved={!!isOperatorApproved}
+              isLpBalanceLoading={isLpBalanceLoading}
+              onMaxClick={handleMaxClick}
+              onStakeClick={handleStake}
+              stakeDisabled={
                 !amount ||
                 Number.parseFloat(amount) <= 0 ||
                 Number.parseFloat(amount) > Number.parseFloat(maxAmount) ||
                 txStatus !== "idle" ||
-                (stakeMode === "lp" && deposit.isPending) ||
-                (stakeMode === "eth" && (zapDeposit.isPending || !zapCalculation?.isValid))
+                deposit.isPending
               }
-              className="w-full font-mono font-bold tracking-wide text-lg py-4 hover:scale-105 transition-all duration-200 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary shadow-lg disabled:opacity-50 !text-background dark:!text-background hover:!text-background dark:hover:!text-background"
-            >
-              {txStatus === "pending" || txStatus === "confirming"
-                ? txStatus === "pending"
-                  ? `[${t("common.submitting")}]`
-                  : `[${t("common.confirming")}]`
-                : (stakeMode === "lp" && deposit.isPending) || (stakeMode === "eth" && zapDeposit.isPending)
-                  ? `[${t("common.staking")}...]`
-                  : stakeMode === "lp" && !isOperatorApproved
-                    ? `[${t("common.approve_and_stake")}]`
-                    : stakeMode === "eth"
-                      ? `[${t("common.zap_and_stake")}]`
-                      : `[${t("common.stake")}]`}
-            </Button>
-          </div>
+            />
+          ) : (
+            <EthZapTab
+              t={t}
+              amount={amount}
+              setAmount={setAmount}
+              maxAmount={maxAmount}
+              onMaxClick={handleMaxClick}
+              onStakeClick={handleStake}
+              stakeDisabled={
+                !amount ||
+                Number.parseFloat(amount) <= 0 ||
+                Number.parseFloat(amount) > Number.parseFloat(maxAmount) ||
+                txStatus !== "idle" ||
+                zapDeposit.isPending ||
+                !zapCalculation?.isValid
+              }
+              customSlippage={customSlippage}
+              setCustomSlippage={handleSlippageChange}
+              showSlippageSettings={showSlippageSettings}
+              setShowSlippageSettings={setShowSlippageSettings}
+              zapCalculation={zapCalculation}
+              slippageBps={slippageBps}
+              lpToken={lpToken}
+              maxEthForZap={maxEthForZap}
+            />
+          )}
 
           {/* Transaction Monitoring */}
           {txStatus !== "idle" && (
@@ -725,25 +573,33 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                   {txStatus === "pending" && (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent"></div>
-                      <span className="font-mono font-bold text-primary">[{t("common.status_pending")}]</span>
+                      <span className="font-mono font-bold text-primary">
+                        [{t("common.status_pending")}]
+                      </span>
                     </>
                   )}
                   {txStatus === "confirming" && (
                     <>
                       <div className="animate-pulse h-4 w-4 bg-yellow-500 rounded-full"></div>
-                      <span className="font-mono font-bold text-yellow-500">[{t("common.status_confirming")}]</span>
+                      <span className="font-mono font-bold text-yellow-500">
+                        [{t("common.status_confirming")}]
+                      </span>
                     </>
                   )}
                   {txStatus === "success" && (
                     <>
                       <div className="h-4 w-4 bg-green-500 rounded-full"></div>
-                      <span className="font-mono font-bold text-green-500">[{t("common.status_success")}]</span>
+                      <span className="font-mono font-bold text-green-500">
+                        [{t("common.status_success")}]
+                      </span>
                     </>
                   )}
                   {txStatus === "error" && (
                     <>
                       <div className="h-4 w-4 bg-red-500 rounded-full"></div>
-                      <span className="font-mono font-bold text-red-500">[{t("common.status_error")}]</span>
+                      <span className="font-mono font-bold text-red-500">
+                        [{t("common.status_error")}]
+                      </span>
                     </>
                   )}
                 </div>
@@ -756,27 +612,33 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 px-3 py-1.5 bg-background/50 border border-primary/20 rounded font-mono text-xs hover:bg-primary/10 transition-colors duration-200"
                     >
-                      <span className="text-muted-foreground">{t("common.tx_label")}:</span>
+                      <span className="text-muted-foreground">
+                        {t("common.tx_label")}:
+                      </span>
                       <span className="text-primary font-bold">
                         {txHash.slice(0, 6)}...{txHash.slice(-4)}
                       </span>
-                      <span className="text-muted-foreground">{t("common.external_link")}</span>
+                      <span className="text-muted-foreground">
+                        {t("common.external_link")}
+                      </span>
                     </a>
                   </div>
                 )}
 
                 {txMessage && !txError && (
                   <div className="text-center">
-                    <p className="text-sm text-primary font-mono break-words">{txMessage}</p>
+                    <p className="text-sm text-primary font-mono break-words">
+                      {txMessage}
+                    </p>
                   </div>
                 )}
-
                 {txError && (
                   <div className="text-center">
-                    <p className="text-sm text-red-400 font-mono break-words">{txError}</p>
+                    <p className="text-sm text-red-400 font-mono break-words">
+                      {txError}
+                    </p>
                   </div>
                 )}
-
                 {txStatus === "success" && (
                   <div className="text-center">
                     <p className="text-sm text-green-400 font-mono">
