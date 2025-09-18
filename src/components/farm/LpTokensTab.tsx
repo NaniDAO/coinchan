@@ -2,7 +2,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn, formatBalance } from "@/lib/utils";
-import React from "react";
+import React, { useMemo } from "react";
+import { parseUnits, formatUnits } from "viem";
+import type { IncentiveStream } from "@/hooks/use-incentive-streams";
 
 interface LpTokensTabProps {
   t: (k: string) => string;
@@ -14,6 +16,8 @@ interface LpTokensTabProps {
   onMaxClick: () => void;
   onStakeClick: () => void;
   stakeDisabled: boolean;
+  stream?: IncentiveStream;
+  totalStaked?: bigint;
 }
 
 export const LpTokensTab: React.FC<LpTokensTabProps> = ({
@@ -26,7 +30,52 @@ export const LpTokensTab: React.FC<LpTokensTabProps> = ({
   onMaxClick,
   onStakeClick,
   stakeDisabled,
+  stream,
+  totalStaked,
 }) => {
+  // Calculate staking pool percentage and daily rewards estimate
+  const estimations = useMemo(() => {
+    if (!amount || parseFloat(amount) <= 0) {
+      return null;
+    }
+
+    try {
+      const lpTokensToStake = parseUnits(amount, 18);
+      const currentTotalStaked = totalStaked || 0n;
+      const newTotalStaked = currentTotalStaked + lpTokensToStake;
+
+      // Calculate share of staking pool (not AMM pool)
+      // This shows what percentage of the pool the user will own AFTER staking
+      let stakingPoolPercentage = 0;
+      if (currentTotalStaked === 0n) {
+        // First staker gets 100%
+        stakingPoolPercentage = 100;
+      } else {
+        // User's share after staking = userTokens / (existingTotal + userTokens)
+        // Use BigInt math to avoid precision loss, then convert to percentage
+        const shareRatio = (lpTokensToStake * 10000n) / newTotalStaked; // Multiply by 10000 for 2 decimal places
+        stakingPoolPercentage = Number(shareRatio) / 100; // Divide by 100 to get percentage with 2 decimals
+      }
+
+      // Calculate daily rewards using zChef formula
+      // rewardRate is scaled by 1e12 in the contract (tokens * 1e12 per second)
+      // Formula: (userShares * rewardRate * seconds) / totalShares / 1e12
+      let dailyRewards = null;
+      if (stream && stream.rewardRate && newTotalStaked > 0n) {
+        const secondsPerDay = 86400n;
+        const ACC_PRECISION = 1000000000000n; // 1e12
+        const userDailyRewards = (lpTokensToStake * stream.rewardRate * secondsPerDay) / newTotalStaked / ACC_PRECISION;
+        dailyRewards = formatUnits(userDailyRewards, stream.rewardCoin?.decimals || 18);
+      }
+
+      return {
+        stakingPoolPercentage: stakingPoolPercentage.toFixed(2),
+        dailyRewards,
+      };
+    } catch {
+      return null;
+    }
+  }, [amount, totalStaked, stream]);
   return (
     <div className="space-y-4">
       {/* Amount */}
@@ -80,6 +129,31 @@ export const LpTokensTab: React.FC<LpTokensTabProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Preview Section */}
+      {estimations && (
+        <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+          <p className="font-mono font-bold mb-3 text-green-500 text-sm">
+            [{t("common.preview")}]
+          </p>
+          <div className="space-y-2 text-sm font-mono">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">{t("common.staking_pool_share")}:</span>
+              <span className="text-green-500 font-bold">
+                {estimations.stakingPoolPercentage}%
+              </span>
+            </div>
+            {estimations.dailyRewards && stream?.rewardCoin && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">{t("common.estimated_daily_rewards")}:</span>
+                <span className="text-green-500 font-bold">
+                  {formatBalance(estimations.dailyRewards, stream.rewardCoin.symbol)}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Operator approval notice */}
       {!isOperatorApproved && (
