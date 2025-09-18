@@ -40,7 +40,6 @@ import { APRDisplay } from "./farm/APRDisplay";
 import { ENSLogo } from "./icons/ENSLogo";
 import { LpTokensTab } from "./farm/LpTokensTab";
 import { EthZapTab } from "./farm/EthZapTab";
-import { useAllCoins } from "@/hooks/metadata/use-all-coins";
 
 interface FarmStakeDialogProps {
   stream: IncentiveStream;
@@ -449,7 +448,7 @@ export function FarmStakeDialog({
           <APRDisplay stream={stream} lpToken={lpToken} shortView={false} />
 
           {/* User position */}
-          {userStakedBalance && userStakedBalance > 0n && (
+          {!!userStakedBalance && userStakedBalance > 0n && (
             <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <div>
