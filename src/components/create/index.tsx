@@ -3,6 +3,7 @@ import { z } from "zod";
 import { useAccount, usePublicClient, useWriteContract, useWaitForTransactionReceipt, useWalletClient } from "wagmi";
 import { erc20Abi, parseEther, parseUnits, zeroAddress } from "viem";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +48,7 @@ const schema = z.object({
 });
 
 export const CreateCoinWizard: React.FC = () => {
+  const { t } = useTranslation();
   const { address: account } = useAccount();
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
@@ -472,9 +474,9 @@ export const CreateCoinWizard: React.FC = () => {
 
               {!account && (
                 <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
-                  <AlertTitle className="text-blue-800 dark:text-blue-200">Wallet required</AlertTitle>
+                  <AlertTitle className="text-blue-800 dark:text-blue-200">{t("common.wallet_required")}</AlertTitle>
                   <AlertDescription className="text-blue-700 dark:text-blue-300">
-                    Connect your wallet to continue.
+                    {t("common.connect_wallet_to_continue")}
                   </AlertDescription>
                 </Alert>
               )}

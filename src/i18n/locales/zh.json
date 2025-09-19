@@ -129,7 +129,7 @@
     "holders": "持有者",
     "activity": "活动",
     "farm": "农场",
-    "farm_alpha": "农场 (Alpha)",
+    "farm_alpha": "农场",
     "farm_description": "质押 LP 代币来获得激励农场的奖励",
     "auth_required": "需要认证",
     "no_farms_description": "目前没有可用的农场",

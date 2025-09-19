@@ -26,7 +26,7 @@ export const ICOLivePreview = ({
   const creatorAllocation = 0; // Fair launch
 
   const feeBps = form.feeOrHook;
-  const feePercent = feeBps / 100;
+  const feePercent = Number(feeBps) / 100;
 
   return (
     <div className="lg:sticky lg:top-4 lg:self-start max-h-fit overflow-y-auto pb-6 bg-muted mb-2 p-2">
@@ -144,7 +144,7 @@ export const ICOLivePreview = ({
                   <p className="text-accent-foreground">1 ETH = 1,000,000,000 {form.symbol || "SYMBOL"}</p>
 
                   <p className="font-semibold text-foreground">{t("ico.swap_fee")}</p>
-                  <p className="text-accent-foreground">{feeBps} bps ({feePercent.toFixed(2)}%)</p>
+                  <p className="text-accent-foreground">{feeBps.toString()} bps ({feePercent.toFixed(2)}%)</p>
 
                   <p className="font-semibold text-foreground">{t("ico.pool_type")}</p>
                   <p className="text-accent-foreground">zAMM ETH/{form.symbol || "SYMBOL"}</p>
