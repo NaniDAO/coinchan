@@ -2,10 +2,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import FeeSelector from "@/components/pools/FeeSelector";
 import { DEFAULT_FEE_TIER, FEE_OPTIONS } from "@/lib/pools";
 import { InfoIcon, Percent, Code2 } from "lucide-react";
-import { shortenUint } from "@/lib/math";
 import { cn } from "@/lib/utils";
 import { maxUint256 } from "viem";
 import { useState } from "react";
@@ -14,7 +12,6 @@ interface FeeOrHookSelectorProps {
   feeOrHook: bigint;
   setFeeOrHook: (feeOrHook: bigint) => void;
   isHook: boolean;
-  liquidityByFee?: Record<string, string>;
   className?: string;
 }
 
@@ -22,7 +19,6 @@ export const FeeOrHookSelector = ({
   feeOrHook,
   setFeeOrHook,
   isHook,
-  liquidityByFee,
   className,
 }: FeeOrHookSelectorProps) => {
   const [activeTab, setActiveTab] = useState<"fee" | "hook">(isHook ? "hook" : "fee");
