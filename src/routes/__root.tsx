@@ -100,20 +100,20 @@ export const Route = createRootRoute({
                     <DropdownMenuItem asChild>
                       <Link to="/swap" className={itemClasses}>
                         <ArrowLeftRight className="h-4 w-4" />
-                        <span>Swap</span>
+                        <span>{t("common.swap")}</span>
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link to="/limit" className={itemClasses}>
                         <Clock className="h-4 w-4" />
-                        <span>Limit</span>
+                        <span>{t("common.limit")}</span>
                       </Link>
                     </DropdownMenuItem>
                     {/* NEW: Send */}
                     <DropdownMenuItem asChild>
                       <Link to="/send" className={itemClasses}>
                         <SendIcon className="h-4 w-4" />
-                        <span>Send</span>
+                        <span>{t("common.send")}</span>
                       </Link>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -144,19 +144,19 @@ export const Route = createRootRoute({
                     <DropdownMenuItem asChild>
                       <Link to="/explore/tokens" className={itemClasses}>
                         <CoinsIcon className="h-4 w-4" />
-                        <span>Tokens</span>
+                        <span>{t("common.tokens")}</span>
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link to="/explore/pools" className={itemClasses}>
                         <Layers className="h-4 w-4" />
-                        <span>Pools</span>
+                        <span>{t("common.pools")}</span>
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link to="/explore/orders" className={itemClasses}>
                         <Logs className="h-4 w-4" />
-                        <span>Orders</span>
+                        <span>{t("common.orders")}</span>
                       </Link>
                     </DropdownMenuItem>
                   </DropdownMenuContent>

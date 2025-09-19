@@ -120,7 +120,9 @@ function FinalizedPoolTradingInner({
   const { t } = useTranslation();
   const { address } = useAccount();
   const { theme } = useTheme();
-  const [activeTab, setActiveTab] = useState<"swap" | "add" | "remove" | "airdrop" | "farm">("swap");
+  const [activeTab, setActiveTab] = useState<
+    "swap" | "add" | "remove" | "airdrop" | "farm"
+  >("swap");
   const { setSellToken, setBuyToken } = useTokenSelection();
   const { data: zDrops } = useGetZDrops({
     address,
@@ -248,8 +250,6 @@ function FinalizedPoolTradingInner({
     } catch {
       return undefined;
     }
-
-    if (userTokenBalance === undefined) return undefined;
 
     return {
       id,

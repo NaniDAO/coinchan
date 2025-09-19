@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/explore")({
   component: ExploreLayout,
@@ -7,6 +8,7 @@ export const Route = createFileRoute("/explore")({
 
 function ExploreLayout() {
   const location = useLocation();
+  const { t } = useTranslation();
 
   return (
     <div className="min-h-screen w-screen bg-background text-foreground">
@@ -20,12 +22,12 @@ function ExploreLayout() {
             role="tablist"
             className="no-scrollbar flex items-stretch justify-center gap-2 sm:gap-3 overflow-x-auto py-2"
           >
-            {tabs.map((t) => {
-              const isActive = location.pathname === t.to;
+            {tabs.map((tab) => {
+              const isActive = location.pathname === tab.to;
               return (
-                <li key={t.to} className="flex-1 min-w-[9rem] sm:flex-none">
-                  <NavLink to={t.to} isActive={isActive}>
-                    {t.label}
+                <li key={tab.to} className="flex-1 min-w-[9rem] sm:flex-none">
+                  <NavLink to={tab.to} isActive={isActive}>
+                    {t(tab.labelKey)}
                   </NavLink>
                 </li>
               );
@@ -43,9 +45,9 @@ function ExploreLayout() {
 }
 
 const tabs = [
-  { to: "/explore/tokens", label: "Tokens" },
-  { to: "/explore/pools", label: "Pools" },
-  { to: "/explore/orders", label: "Orders" },
+  { to: "/explore/tokens", labelKey: "common.tokens" },
+  { to: "/explore/pools", labelKey: "common.pools" },
+  { to: "/explore/orders", labelKey: "common.orders" },
 ];
 
 function NavLink({

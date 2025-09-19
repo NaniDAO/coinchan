@@ -10,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatImageURL } from "@/hooks/metadata";
 import type { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { useLpBalance } from "@/hooks/use-lp-balance";
+import { useLpSupply } from "@/hooks/use-lp-supply";
 import { useLpOperatorStatus } from "@/hooks/use-lp-operator-status";
 import { useStreamValidation } from "@/hooks/use-stream-validation";
 import {
@@ -104,6 +105,13 @@ export function FarmStakeDialog({
   // LP balance
   const { balance: lpTokenBalance, isLoading: isLpBalanceLoading } =
     useLpBalance({ lpToken, poolId: stream.lpId, enabled: stakeMode === "lp" });
+
+  // LP token total supply
+  const { supply: lpSupply } = useLpSupply({
+    lpToken,
+    poolId: stream.lpId,
+    enabled: true
+  });
 
   // ETH token
   const ethToken = useMemo(() => {
@@ -527,6 +535,8 @@ export function FarmStakeDialog({
                 txStatus !== "idle" ||
                 deposit.isPending
               }
+              stream={stream}
+              totalStaked={totalStaked}
             />
           ) : (
             <EthZapTab
@@ -551,7 +561,10 @@ export function FarmStakeDialog({
               zapCalculation={zapCalculation}
               slippageBps={slippageBps}
               lpToken={lpToken}
+              lpSupply={lpSupply}
               maxEthForZap={maxEthForZap}
+              stream={stream}
+              totalStaked={totalStaked}
             />
           )}
 

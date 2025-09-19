@@ -12,7 +12,11 @@ interface APRDisplayProps {
   shortView?: boolean;
 }
 
-export function APRDisplay({ stream, lpToken, shortView = true }: APRDisplayProps) {
+export function APRDisplay({
+  stream,
+  lpToken,
+  shortView = true,
+}: APRDisplayProps) {
   const { t } = useTranslation();
   const [showFarmApr, setShowFarmApr] = useState(false);
 
@@ -32,7 +36,9 @@ export function APRDisplay({ stream, lpToken, shortView = true }: APRDisplayProp
 
   // For uninitialized farms, show only base APR unless user clicks to reveal
   const shouldHideFarmApr = isUninitializedFarm && !showFarmApr;
-  const displayTotalApr = shouldHideFarmApr ? combinedAprData.baseApr : combinedAprData.totalApr;
+  const displayTotalApr = shouldHideFarmApr
+    ? combinedAprData.baseApr
+    : combinedAprData.totalApr;
 
   if (combinedAprData.isLoading === true) {
     return (
@@ -56,7 +62,9 @@ export function APRDisplay({ stream, lpToken, shortView = true }: APRDisplayProp
           [{shouldHideFarmApr ? t("common.base_apr") : t("common.total_apr")}]
         </p>
         <div className="flex items-center gap-2">
-          <p className="font-mono font-bold text-sm text-green-600 mt-1">{displayTotalApr.toFixed(2)}%</p>
+          <p className="font-mono font-bold text-sm text-green-600 mt-1">
+            {displayTotalApr.toFixed(2)}%
+          </p>
           {shouldHideFarmApr && (
             <button
               onClick={() => setShowFarmApr(true)}
@@ -85,7 +93,9 @@ export function APRDisplay({ stream, lpToken, shortView = true }: APRDisplayProp
             {shouldHideFarmApr ? t("common.base_apr") : t("common.total_apr")}:
           </p>
           <div className="flex items-center justify-center gap-2">
-            <p className="font-mono font-bold text-green-600 text-lg">{displayTotalApr.toFixed(2)}%</p>
+            <p className="font-mono font-bold text-green-600 text-lg">
+              {displayTotalApr.toFixed(2)}%
+            </p>
             {shouldHideFarmApr && (
               <button
                 onClick={() => setShowFarmApr(true)}
@@ -100,12 +110,16 @@ export function APRDisplay({ stream, lpToken, shortView = true }: APRDisplayProp
       </div>
 
       {/* APR Breakdown */}
-      <div className={`grid gap-2 mb-3 ${shouldHideFarmApr ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2"}`}>
+      <div
+        className={`grid gap-2 mb-3 ${shouldHideFarmApr ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2"}`}
+      >
         <div className="border border-muted p-2">
           <p className="text-muted-foreground font-mono text-xs">
             {t("common.base_apr")} ({t("common.trading_fees")}):
           </p>
-          <p className="font-mono font-bold text-foreground text-sm">{combinedAprData.baseApr.toFixed(2)}%</p>
+          <p className="font-mono font-bold text-foreground text-sm">
+            {combinedAprData.baseApr.toFixed(2)}%
+          </p>
           <p className="text-xs text-muted-foreground font-mono mt-1">
             {combinedAprData.breakdown.tradingFees / 100}% fee
           </p>
@@ -122,14 +136,18 @@ export function APRDisplay({ stream, lpToken, shortView = true }: APRDisplayProp
             >
               Click to show
             </button>
-            <p className="text-xs text-muted-foreground font-mono mt-1">Hidden for uninitialized farms</p>
+            <p className="text-xs text-muted-foreground font-mono mt-1">
+              Hidden for uninitialized farms
+            </p>
           </div>
         ) : (
           <div className="border border-muted p-2">
             <p className="text-muted-foreground font-mono text-xs">
               {t("common.farm_apr")} ({t("common.incentives")}):
             </p>
-            <p className="font-mono font-bold text-foreground text-sm">{combinedAprData.farmApr.toFixed(2)}%</p>
+            <p className="font-mono font-bold text-foreground text-sm">
+              {combinedAprData.farmApr.toFixed(2)}%
+            </p>
             <p className="text-xs text-muted-foreground font-mono mt-1">
               {combinedAprData.breakdown.rewardSymbol} rewards
             </p>

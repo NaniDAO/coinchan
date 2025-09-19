@@ -142,13 +142,15 @@ async function fetchUserLpPositionsInfinite(
 ): Promise<LpPositionsConnection> {
   const query = /* GraphQL */ `
     query GetUserLpPosition($user: String!, $after: String, $limit: Int) {
-      lpUserPositions(where: { user: $user }, after: $after, limit: $limit) {
+      lpUserPositions(where: { userId: $user }, after: $after, limit: $limit) {
         totalCount
         items {
           user {
             address
           }
+          userId
           liquidity
+          source
           poolId
           updatedAt
           pool {
@@ -203,6 +205,7 @@ async function fetchUserLpPositionsInfinite(
 
   if (!res.ok) throw new Error("Network error");
   const json = await res.json();
+  console.log("JSON, ", json);
   if (json.errors) throw new Error(json.errors[0].message as string);
 
   const conn = json.data.lpUserPositions as LpPositionsConnection;
@@ -231,11 +234,14 @@ export function UserLpPositions({
 }) {
   const publicClient = usePublicClient();
 
-  const { data, isError, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery<
-    LpPositionsConnection,
-    Error,
-    LpUserPosition[]
-  >({
+  const {
+    data,
+    isError,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery<LpPositionsConnection, Error, LpUserPosition[]>({
     queryKey: ["user-lp-positions", address, limit],
     queryFn: ({ pageParam }) => {
       if (!publicClient) throw new Error("No public client");
@@ -248,10 +254,14 @@ export function UserLpPositions({
     },
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) =>
-      lastPage.pageInfo?.hasNextPage ? (lastPage.pageInfo.endCursor ?? undefined) : undefined,
+      lastPage.pageInfo?.hasNextPage
+        ? (lastPage.pageInfo.endCursor ?? undefined)
+        : undefined,
     enabled: !!address && !!publicClient,
     select: (d) => d.pages.flatMap((p) => p.items),
   });
+
+  console.log("UserPositions:", data);
 
   const sentinelRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -299,7 +309,11 @@ export function UserLpPositions({
   }, [data, statuses, protocols]);
 
   if (!address) {
-    return <p className="text-muted-foreground">Provide an address to view LP positions.</p>;
+    return (
+      <p className="text-muted-foreground">
+        Provide an address to view LP positions.
+      </p>
+    );
   }
 
   if (isError) return <p className="text-red-600">Error loading positions.</p>;
@@ -324,7 +338,11 @@ export function UserLpPositions({
   }
 
   if (allPositions.length === 0) {
-    return <p className="p-2 mt-2 text-muted-foreground">No LP positions match your filters.</p>;
+    return (
+      <p className="p-2 mt-2 text-muted-foreground">
+        No LP positions match your filters.
+      </p>
+    );
   }
 
   return (
@@ -341,7 +359,10 @@ export function UserLpPositions({
       </div>
 
       <div className="mt-6 py-6">
-        <button className="w-fit bg-secondary text-muted-foreground rounded-2xl py-1 px-2" onClick={revealHidden}>
+        <button
+          className="w-fit bg-secondary text-muted-foreground rounded-2xl py-1 px-2"
+          onClick={revealHidden}
+        >
           Hidden
         </button>
       </div>
@@ -398,10 +419,13 @@ export const UserLpPositionCard = ({ p }: { p: LpUserPosition }) => {
   };
 
   // v0 pools use swapFee (uint96), v1 pools use feeOrHook (uint256)
-  const feeParam = p?.pool?.source === "ZAMM"
-    ? String(p.pool?.swapFee ?? SWAP_FEE)
-    : String(p.pool?.feeOrHook || p.pool?.swapFee || SWAP_FEE);
-  const feeOrHook = p?.pool?.feeOrHook ? String(p.pool.feeOrHook) : String(p?.pool?.swapFee ?? SWAP_FEE);
+  const feeParam =
+    p?.pool?.source === "ZAMM"
+      ? String(p.pool?.swapFee ?? SWAP_FEE)
+      : String(p.pool?.feeOrHook || p.pool?.swapFee || SWAP_FEE);
+  const feeOrHook = p?.pool?.feeOrHook
+    ? String(p.pool.feeOrHook)
+    : String(p?.pool?.swapFee ?? SWAP_FEE);
   const protocolParam = p?.pool?.source === "ZAMM" ? "ZAMMV0" : "ZAMMV1";
 
   return (
@@ -415,10 +439,16 @@ export const UserLpPositionCard = ({ p }: { p: LpUserPosition }) => {
         <div className="flex flex-row space-x-2">
           <div className="flex flex-col space-y-1">
             <p className="font-medium">
-              {p.pool?.coin0?.symbol ?? p.pool?.coin0?.name} / {p.pool?.coin1?.symbol ?? p.pool?.coin1?.name}
+              {p.pool?.coin0?.symbol ?? p.pool?.coin0?.name} /{" "}
+              {p.pool?.coin1?.symbol ?? p.pool?.coin1?.name}
             </p>
             <Badge
-              className={cn("w-fit", status === "active" ? "bg-green-100 text-green-700" : "bg-gray-200 text-gray-600")}
+              className={cn(
+                "w-fit",
+                status === "active"
+                  ? "bg-green-100 text-green-700"
+                  : "bg-gray-200 text-gray-600",
+              )}
             >
               {status ?? "—"}
             </Badge>
@@ -458,7 +488,8 @@ export const UserLpPositionCard = ({ p }: { p: LpUserPosition }) => {
               `w-full py-3 rounded-br-2xl font-medium transition
                hover:bg-destructive/10 focus-visible:ring-2
                focus-visible:ring-offset-2 focus-visible:ring-destructive`,
-              status !== "active" && "opacity-50 cursor-not-allowed hover:bg-transparent",
+              status !== "active" &&
+                "opacity-50 cursor-not-allowed hover:bg-transparent",
             )}
             onClick={() => status === "active" && setOpen(true)}
             aria-haspopup="dialog"

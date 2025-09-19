@@ -1,6 +1,7 @@
 import { formatImageURL } from "@/hooks/metadata";
 import { useCombinedApr } from "@/hooks/use-combined-apr";
 import { useIncentiveStream } from "@/hooks/use-incentive-stream";
+import { useZChefPool } from "@/hooks/use-zchef-contract";
 import { getRandomDiamondColor } from "@/lib/color";
 import { Link } from "@tanstack/react-router";
 import { useMemo } from "react";
@@ -12,13 +13,23 @@ interface TrendingFarmProps {
   imgUrl?: string;
 }
 
-export const TrendingFarm: React.FC<TrendingFarmProps> = ({ chefId, url, color, imgUrl }) => {
+export const TrendingFarm: React.FC<TrendingFarmProps> = ({
+  chefId,
+  url,
+  color,
+  imgUrl,
+}) => {
   // fetch details for stream
   const { data } = useIncentiveStream(chefId);
-  const { totalApr } = useCombinedApr({
-    stream: data?.stream,
+  const { data: poolData } = useZChefPool(BigInt(chefId));
+
+  const combinedAprData = useCombinedApr({
+    stream:
+      data?.stream && poolData?.[7]
+        ? { ...data?.stream, totalShares: poolData?.[7] }
+        : data?.stream,
     lpToken: data?.lpToken,
-    enabled: false,
+    enabled: true,
   });
 
   const [imageUrl, farmColor, ticker] = useMemo(() => {
@@ -30,17 +41,22 @@ export const TrendingFarm: React.FC<TrendingFarmProps> = ({ chefId, url, color, 
     return [imageUrl, farmColor, ticker];
   }, [data?.lpToken?.symbol, data?.lpToken?.imageUrl]);
 
-  if (!farmColor || !ticker || !totalApr) return null;
-
+  if (!farmColor || !ticker || !combinedAprData) return null;
   return (
     <div className="w-fit text-lg">
       <Link to={url} className={"flex flex-row items-center hover:underline"}>
         <span className="text-muted-foreground">└── </span>
-        <img src={imageUrl} alt={data?.lpToken?.symbol} className="w-4 h-4 mr-2 bg-white" />
+        <img
+          src={imageUrl}
+          alt={data?.lpToken?.symbol}
+          className="w-4 h-4 mr-2 bg-white"
+        />
         <span className="font-bold" style={{ color: farmColor }}>
           {ticker.toUpperCase()}
         </span>
-        <span className="text-muted-foreground"> ({totalApr.toFixed(2)}%)</span>
+        <span className="text-muted-foreground">
+          ({combinedAprData.totalApr.toFixed(3)}%)
+        </span>
       </Link>
     </div>
   );

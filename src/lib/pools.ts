@@ -185,6 +185,92 @@ export const computePoolKey = (
   };
 };
 
+async function getPoolReserves(
+  publicClient: PublicClient,
+  {
+    poolId,
+    protocolId,
+  }: {
+    poolId: bigint;
+    protocolId: ProtocolId;
+  },
+): Promise<{ reserve0: bigint; reserve1: bigint; supply: bigint }> {
+  const protocol = getProtocol(protocolId);
+  if (!protocol) throw new Error(`Protocol ${protocolId} not found`);
+  const data = await publicClient.readContract({
+    address: protocol.address,
+    abi: protocol.abi,
+    functionName: "pools",
+    args: [poolId],
+  });
+
+  return {
+    reserve0: data[0],
+    reserve1: data[1],
+    supply: data[6],
+  };
+}
+
+// 2) calculateOptimalValue: exact mirror of the contract’s amount selection
+async function calculateOptimalValue(
+  publicClient: PublicClient,
+  {
+    token0,
+    token1,
+    amount0Desired,
+    amount1Desired,
+    feeBps,
+    protocolId,
+  }: {
+    token0: Token;
+    token1: Token;
+    amount0Desired: bigint;
+    amount1Desired: bigint;
+    feeBps: bigint;
+    protocolId: ProtocolId;
+  },
+): Promise<bigint> {
+  // ETH must be token0 in v0 (canonical ordering enforces this on first mint)
+  const isETH = token0.address === zeroAddress && token0.id === 0n;
+  if (!isETH) return 0n;
+
+  const protocol = getProtocol(protocolId);
+  if (!protocol) return amount0Desired;
+
+  // pool id & state
+  const poolId = computePoolId(token0, token1, feeBps, protocolId);
+  if (poolId === 0n) return 0n;
+
+  const { reserve0, reserve1, supply } = await getPoolReserves(publicClient, {
+    poolId: poolId,
+    protocolId: protocolId,
+  });
+
+  // Contract logic:
+  if (supply === 0n) {
+    // first mint uses desired amounts
+    return amount0Desired;
+  }
+
+  // guard against division by zero (shouldn't happen if supply>0, but be defensive)
+  if (reserve0 === 0n || reserve1 === 0n) {
+    return amount0Desired;
+  }
+
+  // amount1Optimal = amount0Desired * reserve1 / reserve0
+  const amount1Optimal = (amount0Desired * reserve1) / reserve0;
+
+  if (amount1Optimal <= amount1Desired) {
+    // branch: take all amount0Desired
+    return amount0Desired;
+  } else {
+    // amount0Optimal = amount1Desired * reserve0 / reserve1
+    const amount0Optimal = (amount1Desired * reserve0) / reserve1;
+    // this is the ETH value the contract will actually use
+    return amount0Optimal;
+  }
+}
+
 type AddLiquidityArgs = {
   owner: Address;
   token0: Token;
@@ -245,11 +331,23 @@ export const getAddLiquidityTx = async (
     args: [poolKey, amount0, amount1, amount0Min, amount1Min, owner, deadline],
   });
 
+  let value = isETH ? amount0 : 0n;
+  if (protocolId === "ZAMMV0") {
+    value = await calculateOptimalValue(publicClient, {
+      token0,
+      token1,
+      amount0Desired: amount0,
+      amount1Desired: amount1,
+      feeBps,
+      protocolId,
+    });
+  }
+
   return {
     approvals: [approval0, approval1].filter((approval) => approval !== null),
     tx: {
       to: protocol.address,
-      value: isETH ? amount0 : 0n,
+      value: value,
       data: callData,
     },
   };
