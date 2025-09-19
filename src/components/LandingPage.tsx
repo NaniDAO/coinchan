@@ -192,7 +192,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
           </ErrorBoundary>
           <ErrorBoundary fallback={<LoadingLogo />}>
             <TrendingFarm
-              chefId="81451133389625739869445444104677551191235868870135185413665230560425375295858"
+              chefId="2774204975865484998625983578957308881936129866247490838637631956688562044384"
               url="/farm"
             />
           </ErrorBoundary>
