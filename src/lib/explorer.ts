@@ -19,7 +19,7 @@ export function getEtherscanTxUrl(txHash: string, chainId = 0): string {
  * @param chainId - Chain ID (defaults to 0 for Ethereum mainnet)
  * @returns Formatted Etherscan URL
  */
-export function getEtherscanAddressUrl(address: string, chainId = 0): string {
+export function getEtherscanAddressUrl(address: string, chainId = 1): string {
   const baseUrl = getEtherscanBaseUrl(chainId);
   return `${baseUrl}/address/${address}`;
 }

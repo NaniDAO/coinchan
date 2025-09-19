@@ -47,6 +47,7 @@ import {
 } from "@/lib/token-query";
 import { FeeOrHookSelector } from "@/components/pools/FeeOrHookSelector";
 import { shortenUint } from "@/lib/math";
+import { getEtherscanTxUrl } from "@/lib/explorer";
 
 export const Route = createFileRoute("/positions/create")({
   component: RouteComponent,
@@ -1114,9 +1115,12 @@ function RouteComponent() {
                           <div className="text-sm">
                             <div className="font-medium">{s.label}</div>
                             {s.hash && (
-                              <div className="text-xs text-muted-foreground break-all">
+                              <a
+                                href={getEtherscanTxUrl(s.hash, 1)}
+                                className="text-xs hover:underline text-muted-foreground break-all"
+                              >
                                 {s.hash}
-                              </div>
+                              </a>
                             )}
                             {s.error && (
                               <div className="text-xs text-red-600">
