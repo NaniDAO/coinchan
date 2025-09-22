@@ -1,6 +1,8 @@
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
 import { CoinSource } from "./coins";
+import { Address, isAddressEqual } from "viem";
+import { CoinsAddress } from "@/constants/Coins";
 
 export const protocols = [
   { id: "ZAMMV0", label: "zamm V0 position" },
@@ -33,4 +35,15 @@ export const getProtocolIdBySource = (source?: CoinSource) => {
     return "ZAMMV1";
   }
   return null;
+};
+
+export const getSourceByContract = (address?: Address) => {
+  if (!address) return undefined;
+  if (isAddressEqual(address, CoinsAddress)) {
+    return "ZAMM";
+  } else if (isAddressEqual(address, CookbookAddress)) {
+    return "COOKBOOK";
+  }
+
+  return "ERC20";
 };

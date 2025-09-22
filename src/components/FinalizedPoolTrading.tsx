@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { formatEther, formatUnits } from "viem";
+import { Address, formatEther, formatUnits } from "viem";
 import { useAccount } from "wagmi";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -25,21 +25,23 @@ import {
 } from "@/hooks/use-zcurve-sale";
 import { computeZCurvePoolId } from "@/lib/zCurvePoolId";
 import { useReserves } from "@/hooks/use-reserves";
-import { formatNumber } from "@/lib/utils";
 import React from "react";
 import { EnhancedPoolChart } from "./EnhancedPoolChart";
-import { ChevronDown } from "lucide-react";
-import { TokenMetadata } from "@/lib/pools";
+import { ETH_TOKEN, TokenMetadata } from "@/lib/pools";
 import { CookbookAddress } from "@/constants/Cookbook";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { useGetCoin } from "@/hooks/metadata/use-get-coin";
-import { useQuery } from "@tanstack/react-query";
 import { ZDropsTable } from "./ZDropsTable";
 import { useGetZDrops } from "@/hooks/use-get-z-drops";
 import { CookbookFarmTab } from "./farm/CookbookFarmTab";
+import { PoolInfoSection } from "./explorer/token/TokenInfoSection";
+import ErrorFallback, { ErrorBoundary } from "./ErrorBoundary";
+import { useCoinTotalSupply } from "@/hooks/use-coin-total-supply";
+import { getSourceByContract } from "@/lib/protocol";
 
 interface FinalizedPoolTradingProps {
   coinId: string;
+  contractAddress?: Address;
   coinName?: string;
   coinSymbol?: string;
   coinIcon?: string;
@@ -47,70 +49,9 @@ interface FinalizedPoolTradingProps {
   totalSupply?: bigint;
 }
 
-// Hook to fetch total supply from holder balances
-const useCoinTotalSupply = (coinId: string, reserves?: any) => {
-  return useQuery({
-    queryKey: ["coinTotalSupply", coinId, reserves?.reserve1?.toString()],
-    queryFn: async () => {
-      try {
-        // Fetch ALL holder balances (no limit to ensure we get all)
-        let allHolders: any[] = [];
-        let offset = 0;
-        const limit = 100;
-        let hasMore = true;
-
-        while (hasMore) {
-          const response = await fetch(
-            `${import.meta.env.VITE_INDEXER_URL}/api/holders?coinId=${coinId}&limit=${limit}&offset=${offset}`,
-          );
-
-          if (!response.ok) {
-            throw new Error(`Failed to fetch holders: ${response.status}`);
-          }
-
-          const data = await response.json();
-          allHolders.push(...(data.data || []));
-
-          hasMore = data.hasMore;
-          offset += limit;
-
-          // Safety break
-          if (offset > 10000) {
-            console.warn("Reached maximum offset limit");
-            break;
-          }
-        }
-
-        // Sum all holder balances
-        let totalFromHolders = 0n;
-        for (const holder of allHolders) {
-          totalFromHolders += BigInt(holder.balance);
-        }
-
-        // For cookbook coins, add pool reserves if not already counted
-        const cookbookHolder = allHolders.find(
-          (h: any) => h.address.toLowerCase() === CookbookAddress.toLowerCase(),
-        );
-
-        if (reserves?.reserve1) {
-          if (!cookbookHolder || BigInt(cookbookHolder.balance) === 0n) {
-            totalFromHolders += reserves.reserve1;
-          }
-        }
-
-        return totalFromHolders;
-      } catch (error) {
-        console.error("Error fetching total supply from holders:", error);
-        return null;
-      }
-    },
-    enabled: !!coinId,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-  });
-};
-
 function FinalizedPoolTradingInner({
   coinId,
+  contractAddress,
   coinName,
   coinSymbol,
   coinIcon,
@@ -127,7 +68,7 @@ function FinalizedPoolTradingInner({
   const { data: zDrops } = useGetZDrops({
     address,
     tokenIn: {
-      address: CookbookAddress,
+      address: contractAddress || CookbookAddress,
       id: BigInt(coinId),
     },
   });
@@ -142,7 +83,7 @@ function FinalizedPoolTradingInner({
   // Fetch coin data to get totalSupply if not provided
   const { data: coinData } = useGetCoin({
     coinId: coinId,
-    token: CookbookAddress,
+    token: contractAddress || CookbookAddress,
   });
 
   // Calculate pool ID and fee - use feeOrHook from sale data if available
@@ -161,10 +102,17 @@ function FinalizedPoolTradingInner({
     return { poolId: computedPoolId, actualFee: finalFee };
   }, [providedPoolId, coinId, sale]);
 
+  const contractSource = getSourceByContract(contractAddress);
+  const source =
+    contractSource && contractSource !== "ERC20"
+      ? contractSource
+      : ("COOKBOOK" as const);
+
+  console.log("Source:", source, contractSource, contractAddress);
   // Fetch pool reserves
   const { data: reserves, refetch: refetchReserves } = useReserves({
     poolId: poolId ? BigInt(poolId) : undefined,
-    source: "COOKBOOK" as const,
+    source,
   });
 
   // Fetch total supply from holder balances as a fallback
@@ -203,7 +151,7 @@ function FinalizedPoolTradingInner({
       balance: 0n, // Will be fetched by components
       reserve0: reserves?.reserve0 || 0n,
       reserve1: reserves?.reserve1 || 0n,
-      source: "COOKBOOK" as const,
+      source: source,
     }),
     [reserves, theme],
   );
@@ -220,7 +168,7 @@ function FinalizedPoolTradingInner({
       balance: 0n, // Will be fetched by components
       reserve0: reserves?.reserve0 || 0n,
       reserve1: reserves?.reserve1 || 0n,
-      source: "COOKBOOK" as const,
+      source: source,
     }),
     [coinId, coinSymbol, coinName, sale, coinIcon, reserves],
   );
@@ -253,7 +201,7 @@ function FinalizedPoolTradingInner({
 
     return {
       id,
-      address: CookbookAddress,
+      address: contractAddress || CookbookAddress,
       symbol,
       name,
       decimals: 18,
@@ -301,28 +249,6 @@ function FinalizedPoolTradingInner({
   }
 
   const { data: ethPrice } = useETHPrice();
-
-  // Helper function to format very small USD values
-  const formatUsdPrice = (price: number): string => {
-    if (price === 0) return "$0.00";
-    if (price < 0.00000001) {
-      // For extremely small values, use scientific notation
-      return `$${price.toExponential(2)}`;
-    }
-    if (price < 0.000001) {
-      // For very small values, show up to 10 decimal places
-      const formatted = price.toFixed(10);
-      // Remove trailing zeros
-      return `$${formatted.replace(/\.?0+$/, "")}`;
-    }
-    if (price < 0.01) {
-      return `$${price.toFixed(6)}`;
-    }
-    if (price < 1) {
-      return `$${price.toFixed(4)}`;
-    }
-    return `$${price.toFixed(2)}`;
-  };
 
   // Calculate market cap and price
   const { coinPrice, coinUsdPrice, marketCapUsd, marketCapEth } =
@@ -445,6 +371,8 @@ function FinalizedPoolTradingInner({
             <div className="w-full">
               <ZCurveAddLiquidity
                 coinId={coinId}
+                contractAddress={contractAddress}
+                source={source}
                 poolId={poolId}
                 feeOrHook={actualFee}
               />
@@ -455,6 +383,8 @@ function FinalizedPoolTradingInner({
               {/* Remove Liquidity Form */}
               <ZCurveRemoveLiquidity
                 coinId={coinId}
+                contractAddress={contractAddress}
+                source={source}
                 poolId={poolId}
                 feeOrHook={actualFee}
               />
@@ -472,6 +402,8 @@ function FinalizedPoolTradingInner({
           <TabsContent value="farm" className="mt-4">
             <CookbookFarmTab
               poolId={poolId}
+              contractAddress={contractAddress}
+              source={source}
               coinId={coinId}
               coinSymbol={coinSymbol || coinToken.symbol}
               swapFee={actualFee}
@@ -480,152 +412,24 @@ function FinalizedPoolTradingInner({
         </Tabs>
       </div>
 
-      {/* Info Section */}
-      <div className="mt-4 sm:mt-6 md:mt-8 bg-card rounded-lg p-4 sm:p-6">
-        <h2 className="text-base sm:text-lg md:text-xl font-semibold mb-4 sm:mb-6 flex items-center gap-2">
-          <span className="w-2 h-2 bg-primary rounded-full"></span>
-          ETH / {coinToken.symbol} {t("coin.pool_details", "Pool")}
-        </h2>
-
-        {/* Unified Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-4 sm:mb-6">
-          {/* Price */}
-          <div>
-            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1 sm:mb-2">
-              Price
-            </div>
-            <div className="font-semibold text-sm sm:text-base lg:text-lg">
-              {reserves && coinPrice > 0
-                ? coinPrice < 1e-15
-                  ? `${((reserves.reserve0 * BigInt(1e18)) / reserves.reserve1).toString()} wei`
-                  : coinPrice < 1e-12
-                    ? `${(coinPrice * 1e9).toFixed(6)} gwei`
-                    : coinPrice < 1e-9
-                      ? `${(coinPrice * 1e9).toFixed(3)} gwei`
-                      : coinPrice < 1e-6
-                        ? `${(coinPrice * 1e6).toFixed(3)} μETH`
-                        : coinPrice < 0.001
-                          ? `${(coinPrice * 1000).toFixed(4)} mETH`
-                          : coinPrice < 0.01
-                            ? `${coinPrice.toFixed(6)} ETH`
-                            : coinPrice < 1
-                              ? `${coinPrice.toFixed(4)} ETH`
-                              : `${coinPrice.toFixed(2)} ETH`
-                : "0.00000000 ETH"}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {ethPrice?.priceUSD ? formatUsdPrice(coinUsdPrice) : "Loading..."}
-            </div>
-            {/* Tokens per ETH for context */}
-            {reserves && coinPrice > 0 && (
-              <div className="text-xs text-muted-foreground mt-1">
-                {(() => {
-                  const tokensPerEth = 1 / coinPrice;
-                  if (tokensPerEth >= 1e9) {
-                    return `${(tokensPerEth / 1e9).toFixed(2)}B per ETH`;
-                  } else if (tokensPerEth >= 1e6) {
-                    return `${(tokensPerEth / 1e6).toFixed(2)}M per ETH`;
-                  } else if (tokensPerEth >= 1e3) {
-                    return `${(tokensPerEth / 1e3).toFixed(2)}K per ETH`;
-                  } else {
-                    return `${tokensPerEth.toFixed(2)} per ETH`;
-                  }
-                })()}
-              </div>
-            )}
-          </div>
-
-          {/* Market Cap */}
-          <div>
-            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1 sm:mb-2">
-              Market Cap
-            </div>
-            <div className="font-semibold text-sm sm:text-base lg:text-lg">
-              {reserves && marketCapEth > 0 ? (
-                <>
-                  {marketCapEth < 1
-                    ? `${marketCapEth.toFixed(4)} ETH`
-                    : marketCapEth < 1000
-                      ? `${marketCapEth.toFixed(2)} ETH`
-                      : `${(marketCapEth / 1000).toFixed(2)}K ETH`}
-                  {ethPrice?.priceUSD && marketCapUsd > 0 && (
-                    <span className="text-muted-foreground text-xs ml-1">
-                      (~$
-                      {marketCapUsd > 1e9
-                        ? `${(marketCapUsd / 1e9).toFixed(2)}B`
-                        : marketCapUsd > 1e6
-                          ? `${(marketCapUsd / 1e6).toFixed(2)}M`
-                          : marketCapUsd > 1000
-                            ? `${(marketCapUsd / 1e3).toFixed(2)}K`
-                            : marketCapUsd.toFixed(0)}
-                      )
-                    </span>
-                  )}
-                </>
-              ) : (
-                "Loading..."
-              )}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {actualTotalSupply
-                ? `${formatNumber(Number(formatEther(actualTotalSupply)), 0)} supply`
-                : "Supply data loading..."}
-            </div>
-          </div>
-
-          {/* ETH Liquidity */}
-          <div>
-            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1 sm:mb-2">
-              ETH Liquidity
-            </div>
-            <div className="font-semibold text-sm sm:text-base lg:text-lg">
-              {formatNumber(Number(formatEther(reserves?.reserve0 || 0n)), 4)}
-            </div>
-            <div className="text-xs text-muted-foreground">ETH</div>
-          </div>
-
-          {/* Token Liquidity */}
-          <div>
-            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1 sm:mb-2">
-              {coinSymbol} Liquidity
-            </div>
-            <div className="font-semibold text-sm sm:text-base lg:text-lg">
-              {formatNumber(
-                Number(formatUnits(reserves?.reserve1 || 0n, 18)),
-                0,
-              )}
-            </div>
-            <div className="text-xs text-muted-foreground flex items-center gap-1">
-              {coinSymbol}
-              <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full text-xs font-medium">
-                {(Number(actualFee) / 100).toFixed(2)}% Fee
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Technical Details - Minimalist */}
-        <details className="group pt-4">
-          <summary className="flex items-center justify-between cursor-pointer py-2 hover:text-primary transition-colors">
-            <span className="text-sm font-medium text-muted-foreground">
-              Technical Details
-            </span>
-            <ChevronDown className="h-4 w-4 text-muted-foreground group-open:rotate-180 transition-transform" />
-          </summary>
-          <div className="mt-3 space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Pool ID</span>
-              <span className="font-mono text-xs text-primary">
-                {poolId?.slice(0, 8)}...{poolId?.slice(-6)}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Decimals</span>
-              <span>18</span>
-            </div>
-          </div>
-        </details>
-      </div>
+      <ErrorBoundary
+        fallback={<ErrorFallback errorMessage="Error loading Pool Info" />}
+      >
+        {/* Info Section */}
+        <PoolInfoSection
+          tokenA={ETH_TOKEN} // @TODO Hardcoded FIX
+          tokenB={token}
+          reserves={reserves}
+          price={coinPrice}
+          priceUsd={coinUsdPrice}
+          ethPrice={ethPrice}
+          marketCapEth={marketCapEth}
+          marketCapUsd={marketCapUsd}
+          fee={actualFee}
+          poolId={poolId}
+          totalSupply={actualTotalSupply}
+        />
+      </ErrorBoundary>
     </div>
   );
 }

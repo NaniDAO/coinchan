@@ -2,17 +2,19 @@ import { useIncentiveStreamsByLpPool } from "@/hooks/use-incentive-streams";
 import { useReserves } from "@/hooks/use-reserves";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { formatEther } from "viem";
+import { Address, formatEther } from "viem";
 import { IncentiveStreamCard } from "../IncentiveStreamCard";
 import { Alert, AlertDescription } from "../ui/alert";
 import { Info } from "lucide-react";
-import type { TokenMeta } from "@/lib/coins";
+import type { CoinSource, TokenMeta } from "@/lib/coins";
 import { CookbookAddress } from "@/constants/Cookbook";
 import { useGetCoin } from "@/hooks/metadata/use-get-coin";
 
 interface CookbookFarmTabProps {
   poolId: string;
   coinId: string;
+  contractAddress?: Address;
+  source: CoinSource;
   coinSymbol?: string;
   swapFee?: bigint;
 }
@@ -43,24 +45,30 @@ const formatCompactLiquidity = (value: number): string => {
   }).format(value);
 };
 
-export const CookbookFarmTab = ({ poolId, coinId, coinSymbol, swapFee }: CookbookFarmTabProps) => {
+export const CookbookFarmTab = ({
+  poolId,
+  coinId,
+  contractAddress,
+  source,
+  coinSymbol,
+  swapFee,
+}: CookbookFarmTabProps) => {
   const { t } = useTranslation();
 
   // Fetch coin data
   const { data: coinData } = useGetCoin({
     coinId: coinId,
-    token: CookbookAddress,
+    token: contractAddress || CookbookAddress,
   });
 
   // Get farms for this pool
-  const { data: poolFarms, isLoading: isLoadingStreams } = useIncentiveStreamsByLpPool(
-    poolId ? BigInt(poolId) : undefined
-  );
+  const { data: poolFarms, isLoading: isLoadingStreams } =
+    useIncentiveStreamsByLpPool(poolId ? BigInt(poolId) : undefined);
 
   // Get fresh reserves for the pool
   const { data: poolReserves } = useReserves({
     poolId: poolId ? BigInt(poolId) : undefined,
-    source: "COOKBOOK",
+    source: source || "COOKBOOK",
   });
 
   // Create token metadata for the LP token
@@ -71,7 +79,7 @@ export const CookbookFarmTab = ({ poolId, coinId, coinSymbol, swapFee }: Cookboo
       name: `ETH-${coinSymbol || coinData?.symbol || "COIN"} LP`,
       decimals: 18,
       poolId: poolId ? BigInt(poolId) : undefined, // This is the actual pool ID for fetching reserves
-      source: "COOKBOOK" as const,
+      source: source || ("COOKBOOK" as const),
       swapFee: swapFee || 30n, // Pass the feeOrHook value for cookbook pools
       reserve0: poolReserves?.reserve0 || 0n,
       reserve1: poolReserves?.reserve1 || 0n,
@@ -85,7 +93,7 @@ export const CookbookFarmTab = ({ poolId, coinId, coinSymbol, swapFee }: Cookboo
   const filteredFarms = useMemo(() => {
     if (!poolFarms || !poolId) return [];
     const poolIdBigInt = BigInt(poolId);
-    return poolFarms.filter(farm => {
+    return poolFarms.filter((farm) => {
       // Ensure the farm's lpId matches our poolId exactly
       return farm.lpId === poolIdBigInt;
     });
@@ -94,7 +102,10 @@ export const CookbookFarmTab = ({ poolId, coinId, coinSymbol, swapFee }: Cookboo
   // Calculate total staked across all farms
   const totalStaked = useMemo(() => {
     if (!filteredFarms) return 0n;
-    return filteredFarms.reduce((acc, farm) => acc + (farm.totalShares || 0n), 0n);
+    return filteredFarms.reduce(
+      (acc, farm) => acc + (farm.totalShares || 0n),
+      0n,
+    );
   }, [filteredFarms]);
 
   if (isLoadingStreams) {
@@ -113,25 +124,38 @@ export const CookbookFarmTab = ({ poolId, coinId, coinSymbol, swapFee }: Cookboo
       {/* Pool Stats */}
       {poolReserves && (
         <div className="bg-gradient-to-r from-primary/5 to-primary/10 border-2 border-primary/20 rounded-lg p-4">
-          <h3 className="font-mono font-bold text-primary mb-3">{t("common.pool_overview")}</h3>
+          <h3 className="font-mono font-bold text-primary mb-3">
+            {t("common.pool_overview")}
+          </h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="bg-background/50 border border-primary/20 rounded p-3">
-              <p className="text-xs text-muted-foreground font-mono">{t("common.eth_liquidity")}</p>
+              <p className="text-xs text-muted-foreground font-mono">
+                {t("common.eth_liquidity")}
+              </p>
               <p className="font-mono font-bold">
-                {formatCompactLiquidity(Number(formatEther(poolReserves.reserve0)))} ETH
+                {formatCompactLiquidity(
+                  Number(formatEther(poolReserves.reserve0)),
+                )}{" "}
+                ETH
               </p>
             </div>
             <div className="bg-background/50 border border-primary/20 rounded p-3">
               <p className="text-xs text-muted-foreground font-mono">
-                {coinSymbol || coinData?.symbol || "Token"} {t("common.reserves")}
+                {coinSymbol || coinData?.symbol || "Token"}{" "}
+                {t("common.reserves")}
               </p>
               <p className="font-mono font-bold">
-                {formatCompactLiquidity(Number(formatEther(poolReserves.reserve1)))} {coinSymbol || coinData?.symbol || ""}
+                {formatCompactLiquidity(
+                  Number(formatEther(poolReserves.reserve1)),
+                )}{" "}
+                {coinSymbol || coinData?.symbol || ""}
               </p>
             </div>
             {totalStaked > 0n && (
               <div className="bg-background/50 border border-primary/20 rounded p-3">
-                <p className="text-xs text-muted-foreground font-mono">{t("common.total_staked")}</p>
+                <p className="text-xs text-muted-foreground font-mono">
+                  {t("common.total_staked")}
+                </p>
                 <p className="font-mono font-bold">
                   {formatCompactLiquidity(Number(formatEther(totalStaked)))} LP
                 </p>
@@ -164,9 +188,7 @@ export const CookbookFarmTab = ({ poolId, coinId, coinSymbol, swapFee }: Cookboo
       ) : (
         <Alert>
           <Info className="h-4 w-4" />
-          <AlertDescription>
-            {t("no_active_farms_for_pool")}
-          </AlertDescription>
+          <AlertDescription>{t("no_active_farms_for_pool")}</AlertDescription>
         </Alert>
       )}
     </div>

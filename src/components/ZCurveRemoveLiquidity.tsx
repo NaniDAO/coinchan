@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { formatEther, formatUnits, parseUnits } from "viem";
+import { Address, formatEther, formatUnits, parseUnits } from "viem";
 import {
   useAccount,
   useReadContract,
@@ -23,6 +23,7 @@ import { nowSec, formatNumber } from "@/lib/utils";
 import {
   DEADLINE_SEC,
   SLIPPAGE_BPS,
+  ZAMMPoolKey,
   withSlippage,
   type CookbookPoolKey,
 } from "@/lib/swap";
@@ -30,15 +31,22 @@ import { handleWalletError } from "@/lib/errors";
 import { useTokenSelection } from "@/contexts/TokenSelectionContext";
 import { useReserves } from "@/hooks/use-reserves";
 import { computeZCurvePoolId } from "@/lib/zCurvePoolId";
+import { CoinSource } from "@/lib/coins";
+import { getProtocol, getProtocolIdBySource } from "@/lib/protocol";
+import { CoinsAddress } from "@/constants/Coins";
 
 interface ZCurveRemoveLiquidityProps {
   coinId: string;
+  contractAddress?: Address;
+  source: CoinSource;
   poolId?: string;
   feeOrHook?: bigint;
 }
 
 export function ZCurveRemoveLiquidity({
   coinId,
+  contractAddress,
+  source,
   poolId: providedPoolId,
   feeOrHook = 30n,
 }: ZCurveRemoveLiquidityProps) {
@@ -61,10 +69,13 @@ export function ZCurveRemoveLiquidity({
     );
   }, [providedPoolId, coinId, feeOrHook]);
 
+  const protocolId = getProtocolIdBySource(source);
+  const protocol = protocolId ? getProtocol(protocolId) : null;
+
   // Get LP token balance
   const { data: lpBalance } = useReadContract({
-    address: CookbookAddress,
-    abi: CookbookAbi,
+    address: protocol?.address || CookbookAddress,
+    abi: protocol?.abi || CookbookAbi,
     functionName: "balanceOf",
     args: address ? [address, BigInt(poolId)] : undefined,
     query: { enabled: !!address },
@@ -73,13 +84,13 @@ export function ZCurveRemoveLiquidity({
   // Get reserves
   const { data: reserves } = useReserves({
     poolId,
-    source: "COOKBOOK" as const,
+    source: source || ("COOKBOOK" as const),
   });
 
   // Get pool info
   const { data: poolInfo } = useReadContract({
-    address: CookbookAddress,
-    abi: CookbookAbi,
+    address: protocol?.address || CookbookAddress,
+    abi: protocol?.abi || CookbookAbi,
     functionName: "pools",
     args: [BigInt(poolId)],
     chainId: mainnet.id,
@@ -192,22 +203,35 @@ export function ZCurveRemoveLiquidity({
       const amount0Min = withSlippage(amount0, slippageBps);
       const amount1Min = withSlippage(amount1, slippageBps);
 
-      // Create pool key
-      const poolKey: CookbookPoolKey = {
-        id0: 0n, // ETH
-        id1: BigInt(buyToken.id || coinId),
-        token0: "0x0000000000000000000000000000000000000000" as const,
-        token1: CookbookAddress,
-        feeOrHook,
-      };
+      let poolKey: ZAMMPoolKey | CookbookPoolKey;
+      if (protocolId === "ZAMMV0") {
+        // Create pool key
+        poolKey = {
+          id0: 0n, // ETH
+          id1: BigInt(buyToken.id || coinId),
+          token0: "0x0000000000000000000000000000000000000000" as const,
+          token1: contractAddress ?? CoinsAddress,
+          swapFee: feeOrHook,
+        };
+      } else {
+        // Create pool key
+        poolKey = {
+          id0: 0n, // ETH
+          id1: BigInt(buyToken.id || coinId),
+          token0: "0x0000000000000000000000000000000000000000" as const,
+          token1: CookbookAddress,
+          feeOrHook,
+        };
+      }
 
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
       // Remove liquidity
       await writeContractAsync({
-        address: CookbookAddress,
-        abi: CookbookAbi,
+        address: protocol?.address || CookbookAddress,
+        abi: protocol?.abi || CookbookAbi,
         functionName: "removeLiquidity",
+        // @ts-expect-error
         args: [poolKey, lpTokens, amount0Min, amount1Min, address, deadline],
       });
 

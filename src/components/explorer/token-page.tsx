@@ -365,6 +365,7 @@ export const TokenPage = ({ token }: { token: Token }) => {
       >
         <UnifiedCoinTrading
           coinId={token?.id?.toString()}
+          token={token.address}
           coinName={name}
           coinSymbol={symbol}
           coinIcon={imageUrl}

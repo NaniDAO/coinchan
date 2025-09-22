@@ -1,6 +1,12 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
+import {
+  Address,
+  formatEther,
+  formatUnits,
+  parseEther,
+  parseUnits,
+} from "viem";
 import {
   useAccount,
   useBalance,
@@ -21,6 +27,7 @@ import { nowSec, formatNumber } from "@/lib/utils";
 import {
   DEADLINE_SEC,
   SLIPPAGE_BPS,
+  ZAMMPoolKey,
   withSlippage,
   type CookbookPoolKey,
 } from "@/lib/swap";
@@ -29,6 +36,9 @@ import { useTokenSelection } from "@/contexts/TokenSelectionContext";
 import { useReserves } from "@/hooks/use-reserves";
 import { computeZCurvePoolId } from "@/lib/zCurvePoolId";
 import { SwapPanel } from "./SwapPanel";
+import { CoinSource } from "@/lib/coins";
+import { getProtocol, getProtocolIdBySource } from "@/lib/protocol";
+import { CoinsAddress } from "@/constants/Coins";
 
 // Helper function to calculate square root for LP token calculation
 const sqrt = (value: bigint): bigint => {
@@ -52,12 +62,16 @@ const sqrt = (value: bigint): bigint => {
 
 interface ZCurveAddLiquidityProps {
   coinId: string;
+  contractAddress?: Address;
+  source: CoinSource;
   poolId?: string;
   feeOrHook?: bigint;
 }
 
 export function ZCurveAddLiquidity({
   coinId,
+  contractAddress,
+  source,
   poolId: providedPoolId,
   feeOrHook = 30n,
 }: ZCurveAddLiquidityProps) {
@@ -87,10 +101,12 @@ export function ZCurveAddLiquidity({
   // Get ETH balance
   const { data: ethBalance } = useBalance({ address });
 
+  const protocolId = getProtocolIdBySource(source);
+  const protocol = protocolId ? getProtocol(protocolId) : null;
   // Get token balance
   const { data: tokenBalance } = useReadContract({
-    address: CookbookAddress,
-    abi: CookbookAbi,
+    address: protocol?.address || CookbookAddress,
+    abi: protocol?.abi || CookbookAbi,
     functionName: "balanceOf",
     args: address ? [address, BigInt(coinId)] : undefined,
     query: { enabled: !!address },
@@ -99,13 +115,13 @@ export function ZCurveAddLiquidity({
   // Get reserves
   const { data: reserves } = useReserves({
     poolId,
-    source: "COOKBOOK" as const,
+    source: source || ("COOKBOOK" as const),
   });
 
   // Get pool info for LP token calculation
   const { data: poolInfo } = useReadContract({
-    address: CookbookAddress,
-    abi: CookbookAbi,
+    address: protocol?.address || CookbookAddress,
+    abi: protocol?.abi || CookbookAbi,
     functionName: "pools",
     args: [BigInt(poolId)],
     chainId: mainnet.id,
@@ -258,14 +274,26 @@ export function ZCurveAddLiquidity({
       const amount0 = parseEther(ethAmount); // ETH amount
       const amount1 = parseUnits(tokenAmount, 18); // Token amount
 
-      // Create pool key
-      const poolKey: CookbookPoolKey = {
-        id0: 0n, // ETH
-        id1: BigInt(buyToken.id || coinId),
-        token0: "0x0000000000000000000000000000000000000000" as const,
-        token1: CookbookAddress,
-        feeOrHook,
-      };
+      let poolKey: ZAMMPoolKey | CookbookPoolKey;
+      if (protocolId === "ZAMMV0") {
+        // Create pool key
+        poolKey = {
+          id0: 0n, // ETH
+          id1: BigInt(buyToken.id || coinId),
+          token0: "0x0000000000000000000000000000000000000000" as const,
+          token1: contractAddress ?? CoinsAddress,
+          swapFee: feeOrHook,
+        };
+      } else {
+        // Create pool key
+        poolKey = {
+          id0: 0n, // ETH
+          id1: BigInt(buyToken.id || coinId),
+          token0: "0x0000000000000000000000000000000000000000" as const,
+          token1: CookbookAddress,
+          feeOrHook,
+        };
+      }
 
       // Calculate minimum amounts with slippage
       const amount0Min = withSlippage(amount0, slippageBps);
@@ -274,9 +302,10 @@ export function ZCurveAddLiquidity({
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
       await writeContractAsync({
-        address: CookbookAddress,
-        abi: CookbookAbi,
+        address: protocol?.address || CookbookAddress,
+        abi: protocol?.abi || CookbookAbi,
         functionName: "addLiquidity",
+        // @ts-expect-error
         args: [
           poolKey,
           amount0,
