@@ -2,11 +2,19 @@ import { SWAP_FEE } from "@/lib/swap";
 import { useQuery } from "@tanstack/react-query";
 import { Address, formatEther } from "viem";
 import { formatImageURL } from "./coin-utils";
+import { ProtocolId } from "@/lib/protocol";
 
 interface PoolData {
   poolId: bigint;
   swapFee: bigint;
+  feeOrHook: string;
   marketCapEth: number;
+  token0: Address;
+  coin0Id: bigint;
+  token1: Address;
+  coin1Id: bigint;
+  price1: number;
+  protocol: ProtocolId;
 }
 
 interface GetCoinData {
@@ -42,13 +50,15 @@ const fetchMetadata = async (tokenURI: string) => {
 
 const fetchCoinData = async (coinId: string, token: Address) => {
   try {
-    const response = await fetch(import.meta.env.VITE_INDEXER_URL + "/graphql", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        query: `
+    const response = await fetch(
+      import.meta.env.VITE_INDEXER_URL + "/graphql",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query: `
             query GetCoinData {
               coin(id: "${coinId.toString()}", token: "${token.toString()}") {
                 id
@@ -63,15 +73,21 @@ const fetchCoinData = async (coinId: string, token: Address) => {
                   items {
                     id
                     swapFee
+                    feeOrHook
+                    token0
                     coin0Id
+                    token1
+                    coin1Id
                     price1
+                    source
                   }
                 }
               }
             }
           `,
-      }),
-    });
+        }),
+      },
+    );
 
     const json = await response.json();
 
@@ -84,14 +100,20 @@ const fetchCoinData = async (coinId: string, token: Address) => {
 
     const pools = (coin.pools.items || []).map((pool: any) => {
       const price1 = BigInt(pool?.price1 ?? 0n);
-      const marketCapEth = Number(formatEther(totalSupply)) * Number(formatEther(price1));
+      const marketCapEth =
+        Number(formatEther(totalSupply)) * Number(formatEther(price1));
 
       return {
         poolId: BigInt(pool.id),
         swapFee: BigInt(pool.swapFee ?? SWAP_FEE),
+        feeOrHook: pool?.feeOrHook?.toString(),
         marketCapEth,
         coin0Id: BigInt(pool.coin0Id),
+        coin1Id: BigInt(pool.coin1Id),
         price1: price1,
+        token0: pool.token0,
+        token1: pool.token1,
+        protocol: pool.source === "COOKBOOK" ? "ZAMMV1" : "ZAMMV0",
       };
     });
 

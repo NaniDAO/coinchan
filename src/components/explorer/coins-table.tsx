@@ -18,7 +18,8 @@ import { TokenImage } from "../TokenImage";
 import { Link } from "@tanstack/react-router";
 
 // ---------- formatting helpers ----------
-const fmt0 = (n?: number | null) => (n == null ? "—" : Intl.NumberFormat().format(n));
+const fmt0 = (n?: number | null) =>
+  n == null ? "—" : Intl.NumberFormat().format(n);
 const fmt2 = (n?: number | null) => {
   if (n == null) return "—";
   if (n === 0) return "0";
@@ -93,7 +94,8 @@ const fmtUSD = (n?: number | null, maxFrac: number = 2) => {
   }).format(n);
 };
 
-const fromEpoch = (s?: number | null) => (!s ? "—" : new Date(s * 1000).toLocaleString());
+const fromEpoch = (s?: number | null) =>
+  !s ? "—" : new Date(s * 1000).toLocaleString();
 
 // ---------- sorting map (table column -> api sortBy) ----------
 function mapSortingToApi(s: SortingState): SortBy {
@@ -123,7 +125,10 @@ type Props = {
   rowHeight?: number;
 };
 
-export default function CoinsTable({ defaultPageSize = 100, rowHeight = 56 }: Props) {
+export default function CoinsTable({
+  defaultPageSize = 100,
+  rowHeight = 56,
+}: Props) {
   const { data: ethUsdPrice } = useEthUsdPrice();
   const { data: activeIncentiveStreams } = useActiveIncentiveStreams();
 
@@ -136,7 +141,8 @@ export default function CoinsTable({ defaultPageSize = 100, rowHeight = 56 }: Pr
     return Number.isFinite(n) && n > 0 ? n : null;
   }, [ethUsdPrice]);
 
-  const toUSD = (eth?: number | null): number | null => (eth == null || ethUsdRate == null ? null : eth * ethUsdRate);
+  const toUSD = (eth?: number | null): number | null =>
+    eth == null || ethUsdRate == null ? null : eth * ethUsdRate;
 
   // Create a map of poolId to active incentive count
   // Note: lpId in incentives is the LP token ID, which equals the poolId for Cookbook pools
@@ -162,19 +168,22 @@ export default function CoinsTable({ defaultPageSize = 100, rowHeight = 56 }: Pr
       });
 
       // Debug logging
-      console.log('Active incentives map by poolId:', map);
-      console.log('Total fetched streams:', activeIncentiveStreams.length);
-      console.log('Truly active streams (not expired):', Array.from(map.values()).reduce((a, b) => a + b, 0));
+      console.log("Active incentives map by poolId:", map);
+      console.log("Total fetched streams:", activeIncentiveStreams.length);
+      console.log(
+        "Truly active streams (not expired):",
+        Array.from(map.values()).reduce((a, b) => a + b, 0),
+      );
 
       // Log some sample streams for debugging
       if (activeIncentiveStreams.length > 0) {
         const sample = activeIncentiveStreams[0];
-        console.log('Sample stream:', {
+        console.log("Sample stream:", {
           lpId: sample.lpId.toString(),
           status: sample.status,
           endTime: sample.endTime.toString(),
           now: now.toString(),
-          isExpired: sample.endTime <= now
+          isExpired: sample.endTime <= now,
         });
       }
     }
@@ -190,7 +199,9 @@ export default function CoinsTable({ defaultPageSize = 100, rowHeight = 56 }: Pr
   }, [query]);
 
   // sorting (1 column at a time, to align with API cursor)
-  const [sorting, setSorting] = useState<SortingState>([{ id: "liquidityEth", desc: true }]);
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "liquidityEth", desc: true },
+  ]);
 
   const params = useMemo(() => {
     const sortBy = mapSortingToApi(sorting);
@@ -203,10 +214,21 @@ export default function CoinsTable({ defaultPageSize = 100, rowHeight = 56 }: Pr
     };
   }, [debounced, sorting, defaultPageSize]);
 
-  const { data, hasNextPage, fetchNextPage, isFetching, isFetchingNextPage, refetch, status } = useCoinsTable(params);
+  const {
+    data,
+    hasNextPage,
+    fetchNextPage,
+    isFetching,
+    isFetchingNextPage,
+    refetch,
+    status,
+  } = useCoinsTable(params);
 
   // Flatten pages
-  const rowsData: CoinsTableItem[] = useMemo(() => (data?.pages ?? []).flatMap((p) => p.data), [data]);
+  const rowsData: CoinsTableItem[] = useMemo(
+    () => (data?.pages ?? []).flatMap((p) => p.data),
+    [data],
+  );
 
   // Virtualizer
   const parentRef = useRef<HTMLDivElement | null>(null);
@@ -243,19 +265,26 @@ export default function CoinsTable({ defaultPageSize = 100, rowHeight = 56 }: Pr
           const r = row.original;
           return (
             <Link
-              to="/c/$coinId"
-              params={{ coinId: r.coinId }}
+              to="/explore/token"
+              search={{ address: r.token, id: r.coinId }}
               className="flex items-center gap-3 min-w-0 hover:opacity-80 transition-opacity"
             >
               {r.imageUrl ? (
-                <TokenImage imageUrl={r.imageUrl} symbol={r.symbol ?? "Unknown"} className="w-7 h-7" />
+                <TokenImage
+                  imageUrl={r.imageUrl}
+                  symbol={r.symbol ?? "Unknown"}
+                  className="w-7 h-7"
+                />
               ) : (
                 <div className="w-7 h-7 rounded-full bg-muted border" />
               )}
               <div className="min-w-0">
-                <div className="text-sm font-medium truncate">{r.name ?? r.symbol ?? r.coinId}</div>
+                <div className="text-sm font-medium truncate">
+                  {r.name ?? r.symbol ?? r.coinId}
+                </div>
                 <div className="text-xs text-muted-foreground truncate">
-                  {r.symbol ?? "—"} · #{r.coinId.slice(0, 6)}… · {r.token.slice(0, 6)}…{r.token.slice(-4)}
+                  {r.symbol ?? "—"} · #{r.coinId.slice(0, 6)}… ·{" "}
+                  {r.token.slice(0, 6)}…{r.token.slice(-4)}
                 </div>
               </div>
             </Link>
@@ -310,7 +339,9 @@ export default function CoinsTable({ defaultPageSize = 100, rowHeight = 56 }: Pr
         id: "holders",
         header: "Holders",
         accessorKey: "holders",
-        cell: ({ getValue }) => <span className="tabular-nums">{fmt0(getValue<number>())}</span>,
+        cell: ({ getValue }) => (
+          <span className="tabular-nums">{fmt0(getValue<number>())}</span>
+        ),
         size: 110,
       },
       {
@@ -322,11 +353,13 @@ export default function CoinsTable({ defaultPageSize = 100, rowHeight = 56 }: Pr
           const backendCount = row.original.incentives; // Original count from backend
 
           // Use the active incentives count from our map, fallback to 0
-          const activeCount = poolId ? (activeIncentivesMap.get(poolId) || 0) : 0;
+          const activeCount = poolId ? activeIncentivesMap.get(poolId) || 0 : 0;
 
           // Log discrepancies for debugging
           if (backendCount > 0 && activeCount !== backendCount) {
-            console.log(`Pool ${poolId}: Backend shows ${backendCount}, Active shows ${activeCount}`);
+            console.log(
+              `Pool ${poolId}: Backend shows ${backendCount}, Active shows ${activeCount}`,
+            );
           }
 
           if (activeCount === 0) {
@@ -347,7 +380,9 @@ export default function CoinsTable({ defaultPageSize = 100, rowHeight = 56 }: Pr
         id: "createdAt",
         header: "Created",
         accessorKey: "createdAt",
-        cell: ({ getValue }) => <span className="tabular-nums">{fromEpoch(getValue<number>())}</span>,
+        cell: ({ getValue }) => (
+          <span className="tabular-nums">{fromEpoch(getValue<number>())}</span>
+        ),
         size: 180,
       },
     ],
@@ -384,7 +419,11 @@ export default function CoinsTable({ defaultPageSize = 100, rowHeight = 56 }: Pr
             className={`px-3 py-1 text-sm ${unit === "USD" ? "bg-muted/60 font-medium" : "bg-background"}`}
             onClick={() => setUnit("USD")}
             aria-pressed={unit === "USD"}
-            title={ethUsdRate == null ? "ETH→USD rate not loaded yet" : `Using ${fmtUSD(ethUsdRate, 2)} per ETH`}
+            title={
+              ethUsdRate == null
+                ? "ETH→USD rate not loaded yet"
+                : `Using ${fmtUSD(ethUsdRate, 2)} per ETH`
+            }
           >
             USD
           </button>
@@ -421,7 +460,10 @@ export default function CoinsTable({ defaultPageSize = 100, rowHeight = 56 }: Pr
                 onClick={header.column.getToggleSortingHandler()}
               >
                 <div className="flex items-center gap-1">
-                  {flexRender(header.column.columnDef.header, header.getContext())}
+                  {flexRender(
+                    header.column.columnDef.header,
+                    header.getContext(),
+                  )}
                   {/* safe indicator: don't index with `false` */}
                   {(() => {
                     const dir = header.column.getIsSorted();
@@ -460,7 +502,10 @@ export default function CoinsTable({ defaultPageSize = 100, rowHeight = 56 }: Pr
                 >
                   {row.getVisibleCells().map((cell) => (
                     <div key={cell.id} className="px-3 py-2 text-sm">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
                     </div>
                   ))}
                 </div>
@@ -475,8 +520,17 @@ export default function CoinsTable({ defaultPageSize = 100, rowHeight = 56 }: Pr
             {status === "pending" ? "Loading…" : `${rowsData.length} rows`}
             {isFetching ? " • refreshing…" : ""}
           </div>
-          <div>{hasNextPage ? (isFetchingNextPage ? "Loading more…" : "Scroll to load more") : "End of list"}</div>
-          <button className="px-2 py-1 border rounded" onClick={() => refetch()}>
+          <div>
+            {hasNextPage
+              ? isFetchingNextPage
+                ? "Loading more…"
+                : "Scroll to load more"
+              : "End of list"}
+          </div>
+          <button
+            className="px-2 py-1 border rounded"
+            onClick={() => refetch()}
+          >
             Refresh
           </button>
         </div>

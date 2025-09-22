@@ -29,6 +29,7 @@ import { Route as FarmIndexRouteImport } from './routes/farm/index'
 import { Route as PositionsCreateRouteImport } from './routes/positions/create'
 import { Route as FarmCreateRouteImport } from './routes/farm/create'
 import { Route as ExploreTokensRouteImport } from './routes/explore/tokens'
+import { Route as ExploreTokenRouteImport } from './routes/explore/token'
 import { Route as ExplorePoolsRouteImport } from './routes/explore/pools'
 import { Route as ExploreOrdersRouteImport } from './routes/explore/orders'
 import { Route as CCoinIdRouteImport } from './routes/c.$coinId'
@@ -133,6 +134,11 @@ const ExploreTokensRoute = ExploreTokensRouteImport.update({
   path: '/tokens',
   getParentRoute: () => ExploreRoute,
 } as any)
+const ExploreTokenRoute = ExploreTokenRouteImport.update({
+  id: '/token',
+  path: '/token',
+  getParentRoute: () => ExploreRoute,
+} as any)
 const ExplorePoolsRoute = ExplorePoolsRouteImport.update({
   id: '/pools',
   path: '/pools',
@@ -168,6 +174,7 @@ export interface FileRoutesByFullPath {
   '/c/$coinId': typeof CCoinIdRoute
   '/explore/orders': typeof ExploreOrdersRoute
   '/explore/pools': typeof ExplorePoolsRoute
+  '/explore/token': typeof ExploreTokenRoute
   '/explore/tokens': typeof ExploreTokensRoute
   '/farm/create': typeof FarmCreateRoute
   '/positions/create': typeof PositionsCreateRoute
@@ -191,6 +198,7 @@ export interface FileRoutesByTo {
   '/c/$coinId': typeof CCoinIdRoute
   '/explore/orders': typeof ExploreOrdersRoute
   '/explore/pools': typeof ExplorePoolsRoute
+  '/explore/token': typeof ExploreTokenRoute
   '/explore/tokens': typeof ExploreTokensRoute
   '/farm/create': typeof FarmCreateRoute
   '/positions/create': typeof PositionsCreateRoute
@@ -217,6 +225,7 @@ export interface FileRoutesById {
   '/c/$coinId': typeof CCoinIdRoute
   '/explore/orders': typeof ExploreOrdersRoute
   '/explore/pools': typeof ExplorePoolsRoute
+  '/explore/token': typeof ExploreTokenRoute
   '/explore/tokens': typeof ExploreTokensRoute
   '/farm/create': typeof FarmCreateRoute
   '/positions/create': typeof PositionsCreateRoute
@@ -244,6 +253,7 @@ export interface FileRouteTypes {
     | '/c/$coinId'
     | '/explore/orders'
     | '/explore/pools'
+    | '/explore/token'
     | '/explore/tokens'
     | '/farm/create'
     | '/positions/create'
@@ -267,6 +277,7 @@ export interface FileRouteTypes {
     | '/c/$coinId'
     | '/explore/orders'
     | '/explore/pools'
+    | '/explore/token'
     | '/explore/tokens'
     | '/farm/create'
     | '/positions/create'
@@ -292,6 +303,7 @@ export interface FileRouteTypes {
     | '/c/$coinId'
     | '/explore/orders'
     | '/explore/pools'
+    | '/explore/token'
     | '/explore/tokens'
     | '/farm/create'
     | '/positions/create'
@@ -460,6 +472,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExploreTokensRouteImport
       parentRoute: typeof ExploreRoute
     }
+    '/explore/token': {
+      id: '/explore/token'
+      path: '/token'
+      fullPath: '/explore/token'
+      preLoaderRoute: typeof ExploreTokenRouteImport
+      parentRoute: typeof ExploreRoute
+    }
     '/explore/pools': {
       id: '/explore/pools'
       path: '/pools'
@@ -487,12 +506,14 @@ declare module '@tanstack/react-router' {
 interface ExploreRouteChildren {
   ExploreOrdersRoute: typeof ExploreOrdersRoute
   ExplorePoolsRoute: typeof ExplorePoolsRoute
+  ExploreTokenRoute: typeof ExploreTokenRoute
   ExploreTokensRoute: typeof ExploreTokensRoute
 }
 
 const ExploreRouteChildren: ExploreRouteChildren = {
   ExploreOrdersRoute: ExploreOrdersRoute,
   ExplorePoolsRoute: ExplorePoolsRoute,
+  ExploreTokenRoute: ExploreTokenRoute,
   ExploreTokensRoute: ExploreTokensRoute,
 }
 

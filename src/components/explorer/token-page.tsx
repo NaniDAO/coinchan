@@ -1,38 +1,39 @@
+import AiMetaCard from "@/components/AiMetaCard";
+import { CoinBreadcrumb } from "@/components/CoinBreadcrumb";
+import { CoinInfoCard } from "@/components/CoinInfoCard";
+import { CoinPreview } from "@/components/CoinPreview";
+import ErrorFallback, { ErrorBoundary } from "@/components/ErrorBoundary";
+import { useGetCoin } from "@/hooks/metadata/use-get-coin";
+import { useCoinTotalSupply } from "@/hooks/use-coin-total-supply";
+import { useETHPrice } from "@/hooks/use-eth-price";
+import { useGetToken } from "@/hooks/use-get-token";
+import { useReserves } from "@/hooks/use-reserves";
+import { useZCurveSale } from "@/hooks/use-zcurve-sale";
+import { Token, computePoolId } from "@/lib/pools";
+import { ProtocolId } from "@/lib/protocol";
+import { SWAP_FEE } from "@/lib/swap";
+import { ZCURVE_STANDARD_PARAMS } from "@/lib/zCurveHelpers";
+import { computeZCurvePoolId } from "@/lib/zCurvePoolId";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { formatEther } from "viem";
+import { formatEther, zeroAddress } from "viem";
+import { VotePanel } from "../VotePanel";
+import { PoolOverview } from "../PoolOverview";
+import { UnifiedCoinTrading } from "../UnifiedCoinTrading";
 
-import { CookbookAddress } from "@/constants/Cookbook";
-import { useGetCoin } from "@/hooks/metadata/use-get-coin";
-import { useZCurveSale } from "@/hooks/use-zcurve-sale";
-import { SWAP_FEE, computePoolId } from "@/lib/swap";
-import { computeZCurvePoolId } from "@/lib/zCurvePoolId";
-import { useReserves } from "@/hooks/use-reserves";
-import { ZCURVE_STANDARD_PARAMS } from "@/lib/zCurveHelpers";
-import { useETHPrice } from "@/hooks/use-eth-price";
-
-import { CoinPreview } from "./CoinPreview";
-import { CoinInfoCard } from "./CoinInfoCard";
-import { UnifiedCoinTrading } from "./UnifiedCoinTrading";
-import { VotePanel } from "./VotePanel";
-import { PoolOverview } from "./PoolOverview";
-import ErrorFallback, { ErrorBoundary } from "./ErrorBoundary";
-import { useCoinTotalSupply } from "@/hooks/use-coin-total-supply";
-
-export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
+export const TokenPage = ({ token }: { token: Token }) => {
   const { t } = useTranslation();
 
+  const { data: tokenData, isLoading: isLoadingToken } = useGetToken({ token });
   // Fetch coin metadata
   const { data: coinData, isLoading: isLoadingCoin } = useGetCoin({
-    coinId: coinId.toString(),
-    token: CookbookAddress,
+    coinId: token.id.toString(),
+    token: token.address,
   });
-
-  // Check for zCurve sale
-  const { data: zcurveSale } = useZCurveSale(coinId.toString());
-
   // Fetch ETH price for market cap calculation
   const { data: ethPriceData } = useETHPrice();
+  // Check for zCurve sale
+  const { data: zcurveSale } = useZCurveSale(token?.id?.toString());
 
   // Extract coin data
   const [
@@ -47,9 +48,9 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
   ] = useMemo(() => {
     if (!coinData)
       return [
-        undefined,
-        undefined,
-        undefined,
+        tokenData?.name,
+        tokenData?.symbol,
+        tokenData?.imageUrl,
         undefined,
         undefined,
         undefined,
@@ -75,27 +76,42 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
     if (zcurveSale) {
       const feeOrHook = BigInt(zcurveSale.feeOrHook || 30n);
       const actualFee = feeOrHook < 10000n ? feeOrHook : 30n;
-      return computeZCurvePoolId(coinId, actualFee);
+      return BigInt(computeZCurvePoolId(token.id, actualFee));
     }
+    const tokenA = {
+      address: coinData?.pools?.[0]?.token0 ?? zeroAddress,
+      id: coinData?.pools?.[0]?.coin0Id ?? 0n,
+    };
+
+    const tokenB = {
+      address: coinData?.pools?.[0]?.token1 ?? zeroAddress,
+      id: coinData?.pools?.[0]?.coin1Id ?? 0n,
+    };
+
     return (
       poolIds?.[0] ||
       computePoolId(
-        coinId,
-        swapFees?.[0] ?? SWAP_FEE,
-        CookbookAddress,
-      ).toString()
+        tokenA,
+        tokenB,
+        BigInt(
+          coinData?.pools?.[0]?.feeOrHook ??
+            coinData?.pools?.[0]?.swapFee ??
+            SWAP_FEE,
+        ),
+        coinData?.pools?.[0]?.protocol as ProtocolId,
+      )
     );
-  }, [zcurveSale, coinId, poolIds, swapFees]);
+  }, [zcurveSale, token, poolIds, swapFees]);
 
   // Fetch pool reserves for finalized zCurve sales OR regular Cookbook coins
   const { data: reserves } = useReserves({
-    poolId: poolId ? BigInt(poolId) : undefined,
-    source: "COOKBOOK" as const,
+    poolId: poolId,
+    source: coinData?.pools?.[0]?.protocol === "ZAMMV0" ? "ZAMM" : "COOKBOOK",
   });
 
   // Fetch total supply from holder balances as a fallback
   const { data: holdersTotalSupply } = useCoinTotalSupply(
-    coinId.toString(),
+    token?.id?.toString(),
     reserves,
   );
 
@@ -290,43 +306,56 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
       actualTotalSupply,
     ]);
 
-  // Ensure poolId is always a string
-  const poolIdString = typeof poolId === "bigint" ? poolId.toString() : poolId;
-
   return (
-    <div className="w-full max-w-screen mx-auto flex flex-col gap-4 px-2 py-4 pb-16 sm:p-6 sm:pb-16">
+    <div>
+      <CoinBreadcrumb coinId={token.id} />
+      <AiMetaCard id={token.id.toString()} address={token.address} />
       <CoinPreview
-        coinId={coinId}
-        name={name}
-        symbol={symbol}
-        isLoading={isLoadingCoin}
+        className="mt-6"
+        coinId={token?.id}
+        name={tokenData?.name}
+        symbol={tokenData?.symbol}
+        isLoading={isLoadingToken}
       />
-
       <ErrorBoundary
         fallback={
           <ErrorFallback errorMessage="Error rendering Coin Info Card" />
         }
       >
-        <CoinInfoCard
-          coinId={coinId}
-          name={name}
-          symbol={symbol}
-          description={
-            description || t("coin.no_description", "No description available")
-          }
-          imageUrl={imageUrl}
-          swapFee={effectiveSwapFee}
-          isOwner={false}
-          marketCapEth={marketCapEth ?? 0}
-          marketCapUsd={marketCapUsd ?? 0}
-          isEthPriceData={ethPriceData !== undefined}
-          tokenURI={tokenURI}
-          isLoading={isLoadingCoin}
-          isZCurveBonding={isZCurveBonding}
-          zcurveFeeOrHook={zcurveSale?.feeOrHook}
-          creator={zcurveSale?.creator}
-        />
+        {tokenData ? (
+          <CoinInfoCard
+            coinId={token.id}
+            name={name}
+            symbol={symbol}
+            description={
+              description ??
+              tokenData?.description ??
+              t("coin.no_description", "No description available")
+            }
+            imageUrl={imageUrl}
+            swapFee={effectiveSwapFee}
+            isOwner={false}
+            marketCapEth={marketCapEth ?? 0}
+            marketCapUsd={marketCapUsd ?? 0}
+            isEthPriceData={ethPriceData !== undefined}
+            tokenURI={tokenURI}
+            isLoading={isLoadingCoin}
+            isZCurveBonding={isZCurveBonding}
+            zcurveFeeOrHook={zcurveSale?.feeOrHook}
+            creator={zcurveSale?.creator}
+          />
+        ) : null}
       </ErrorBoundary>
+
+      {(!zcurveSale || zcurveSale.status !== "ACTIVE") && (
+        <ErrorBoundary
+          fallback={
+            <ErrorFallback errorMessage="Error rendering voting panel" />
+          }
+        >
+          <VotePanel coinId={token?.id} />
+        </ErrorBoundary>
+      )}
 
       {/* Unified Trading Interface */}
       <ErrorBoundary
@@ -335,33 +364,22 @@ export const UnifiedCoinView = ({ coinId }: { coinId: bigint }) => {
         }
       >
         <UnifiedCoinTrading
-          coinId={coinId.toString()}
+          coinId={token?.id?.toString()}
           coinName={name}
           coinSymbol={symbol}
           coinIcon={imageUrl}
-          poolId={poolIdString}
+          poolId={poolId?.toString()}
           totalSupply={actualTotalSupply || undefined}
         />
       </ErrorBoundary>
 
-      {/* Vote Panel - only show if not in active zCurve sale */}
-      {(!zcurveSale || zcurveSale.status !== "ACTIVE") && (
-        <ErrorBoundary
-          fallback={
-            <ErrorFallback errorMessage="Error rendering voting panel" />
-          }
-        >
-          <VotePanel coinId={coinId} />
-        </ErrorBoundary>
-      )}
-
       {/* Pool Overview - only show if AMM pool exists */}
       {(!zcurveSale || zcurveSale.status === "FINALIZED") && (
         <PoolOverview
-          coinId={coinId.toString()}
-          poolId={poolIdString}
+          coinId={token.id.toString()}
+          poolId={poolId.toString()}
           symbol={symbol}
-          token={CookbookAddress}
+          token={token.address}
           priceImpact={null}
         />
       )}
