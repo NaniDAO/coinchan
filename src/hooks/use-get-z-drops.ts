@@ -147,8 +147,6 @@ export const useGetZDrops = ({
 
       let drops = await getZDrops();
 
-      console.log("Checking veZAMM drops...", drops);
-
       if (tokenIn) {
         const dropItems = drops.items.filter(
           (drop) =>

@@ -1,6 +1,12 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { z } from "zod";
-import { useAccount, usePublicClient, useWriteContract, useWaitForTransactionReceipt, useWalletClient } from "wagmi";
+import {
+  useAccount,
+  usePublicClient,
+  useWriteContract,
+  useWaitForTransactionReceipt,
+  useWalletClient,
+} from "wagmi";
 import { erc20Abi, parseEther, parseUnits, zeroAddress } from "viem";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
@@ -53,8 +59,14 @@ export const CreateCoinWizard: React.FC = () => {
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
 
-  const { writeContractAsync, data: hash, isPending, error: writeError } = useWriteContract();
-  const { isSuccess: txSuccess, isLoading: txLoading } = useWaitForTransactionReceipt({ hash });
+  const {
+    writeContractAsync,
+    data: hash,
+    isPending,
+    error: writeError,
+  } = useWriteContract();
+  const { isSuccess: txSuccess, isLoading: txLoading } =
+    useWaitForTransactionReceipt({ hash });
 
   const [form, setForm] = useState<SimpleForm>({
     name: "",
@@ -91,7 +103,9 @@ export const CreateCoinWizard: React.FC = () => {
   }, [feeOrHook]);
 
   const userToken: TokenMetadata = useMemo(() => {
-    const balance = BigInt(Math.max(0, form.supply - poolSupplyTokens - creatorSupplyTokens));
+    const balance = BigInt(
+      Math.max(0, form.supply - poolSupplyTokens - creatorSupplyTokens),
+    );
     return {
       address: CookbookAddress,
       id: liveCoinId ? liveCoinId : 0n,
@@ -103,7 +117,15 @@ export const CreateCoinWizard: React.FC = () => {
       standard: "ERC6909",
       balance,
     };
-  }, [liveCoinId, form.name, form.symbol, form.description, form.supply, imagePreviewUrl, poolPct]);
+  }, [
+    liveCoinId,
+    form.name,
+    form.symbol,
+    form.description,
+    form.supply,
+    imagePreviewUrl,
+    poolPct,
+  ]);
 
   const handleNumber = (raw: string) => {
     const value = raw.replace(/,/g, "");
@@ -223,13 +245,17 @@ export const CreateCoinWizard: React.FC = () => {
       toast.info("Preparing your token…");
 
       // 1) Pin image
-      const imgUri = await pinImageToPinata(imageBuffer, `${parsed.name}-logo`, {
-        keyvalues: {
-          coinName: parsed.name,
-          coinSymbol: parsed.symbol,
-          type: "coin-logo",
+      const imgUri = await pinImageToPinata(
+        imageBuffer,
+        `${parsed.name}-logo`,
+        {
+          keyvalues: {
+            coinName: parsed.name,
+            coinSymbol: parsed.symbol,
+            type: "coin-logo",
+          },
         },
-      });
+      );
 
       // 2) Pin metadata JSON
       const metadata = {
@@ -274,7 +300,10 @@ export const CreateCoinWizard: React.FC = () => {
       const creatorSupply = parseEther(creatorSupplyTokens.toString());
 
       // amountIn parsing
-      let amountIn: bigint = parseUnits((amountInText || "0").trim(), tokenIn.decimals);
+      let amountIn: bigint = parseUnits(
+        (amountInText || "0").trim(),
+        tokenIn.decimals,
+      );
 
       if (amountIn <= 0n) {
         toast.error("Enter a valid positive deposit amount");
@@ -310,7 +339,9 @@ export const CreateCoinWizard: React.FC = () => {
         // viem packs return tuple; accept either [coinId, lp] or object
         const res: any = sim.result as any;
         const predictedCoinId: bigint =
-          Array.isArray(res) && res.length >= 1 ? (res[0] as bigint) : (res?.coinId as bigint);
+          Array.isArray(res) && res.length >= 1
+            ? (res[0] as bigint)
+            : (res?.coinId as bigint);
         if (predictedCoinId) setCoinId(predictedCoinId);
       } catch {
         // simulate might revert if external state required — continue anyway
@@ -373,7 +404,9 @@ export const CreateCoinWizard: React.FC = () => {
         <div>
           <div className="mb-4">
             <Heading level={3}>Create Token</Heading>
-            <p className="text-sm text-secondary-foreground">Set your token details, then deploy.</p>
+            <p className="text-sm text-secondary-foreground">
+              Set your token details, then deploy.
+            </p>
             <Link
               to="/ico"
               className="text-sm text-primary underline hover:no-underline"
@@ -390,11 +423,17 @@ export const CreateCoinWizard: React.FC = () => {
                 <Input
                   id="name"
                   value={form.name}
-                  onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, name: e.target.value }))
+                  }
                   placeholder="e.g. ZAMM"
                 />
-                <p className="text-xs text-muted-foreground">Human-readable name shown in wallets and explorers.</p>
-                {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
+                <p className="text-xs text-muted-foreground">
+                  Human-readable name shown in wallets and explorers.
+                </p>
+                {errors.name && (
+                  <p className="text-xs text-red-500">{errors.name}</p>
+                )}
               </div>
 
               <div className="grid gap-2">
@@ -402,12 +441,18 @@ export const CreateCoinWizard: React.FC = () => {
                 <Input
                   id="symbol"
                   value={form.symbol}
-                  onChange={(e) => setForm((p) => ({ ...p, symbol: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, symbol: e.target.value }))
+                  }
                   placeholder="e.g. ZAMM"
                   maxLength={12}
                 />
-                <p className="text-xs text-muted-foreground">Up to 12 characters. {`Use A–Z, a–z, 0–9, _ $ . -`}</p>
-                {errors.symbol && <p className="text-xs text-red-500">{errors.symbol}</p>}
+                <p className="text-xs text-muted-foreground">
+                  Up to 12 characters. {`Use A–Z, a–z, 0–9, _ $ . -`}
+                </p>
+                {errors.symbol && (
+                  <p className="text-xs text-red-500">{errors.symbol}</p>
+                )}
               </div>
 
               <div className="grid gap-2">
@@ -416,11 +461,17 @@ export const CreateCoinWizard: React.FC = () => {
                   id="description"
                   rows={4}
                   value={form.description}
-                  onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, description: e.target.value }))
+                  }
                   placeholder="optional — what’s this coin for?"
                 />
-                <p className="text-xs text-muted-foreground">Shown in marketplaces and explorers (optional).</p>
-                {errors.description && <p className="text-xs text-red-500">{errors.description}</p>}
+                <p className="text-xs text-muted-foreground">
+                  Shown in marketplaces and explorers (optional).
+                </p>
+                {errors.description && (
+                  <p className="text-xs text-red-500">{errors.description}</p>
+                )}
               </div>
 
               <div className="grid gap-2">
@@ -432,16 +483,21 @@ export const CreateCoinWizard: React.FC = () => {
                   onChange={(e) => handleNumber(e.target.value)}
                   placeholder="e.g. 100,000,000"
                 />
-                {errors.supply && <p className="text-xs text-red-500">{errors.supply}</p>}
+                {errors.supply && (
+                  <p className="text-xs text-red-500">{errors.supply}</p>
+                )}
                 <p className="text-xs text-muted-foreground">
-                  Initial total supply (whole tokens). Minted to your address on create.
+                  Initial total supply (whole tokens). Minted to your address on
+                  create.
                 </p>
               </div>
 
               <div className="grid gap-2">
                 <Label>Token logo</Label>
                 <ImageInput onChange={handleImageChange} />
-                <p className="text-xs text-muted-foreground">PNG/JPG/GIF • Max 5MB • Square 256×256+ recommended.</p>
+                <p className="text-xs text-muted-foreground">
+                  PNG/JPG/GIF • Max 5MB • Square 256×256+ recommended.
+                </p>
               </div>
 
               {/* -------- Optional: Add a Pool -------- */}
@@ -482,20 +538,28 @@ export const CreateCoinWizard: React.FC = () => {
               )}
 
               {writeError && (
-                <Alert variant="destructive">
+                <Alert tone="destructive">
                   <AlertTitle>Transaction error</AlertTitle>
-                  <AlertDescription className="break-words">{writeError.message}</AlertDescription>
+                  <AlertDescription className="break-words">
+                    {writeError.message}
+                  </AlertDescription>
                 </Alert>
               )}
 
-              <Button disabled={submitting || isPending || !account} className="w-full" onClick={onSubmit}>
+              <Button
+                disabled={submitting || isPending || !account}
+                className="w-full"
+                onClick={onSubmit}
+              >
                 {buttonLabel}
               </Button>
 
               {hash && (
                 <Alert className="mt-2">
                   <AlertTitle>Transaction sent</AlertTitle>
-                  <AlertDescription className="break-all">{hash}</AlertDescription>
+                  <AlertDescription className="break-all">
+                    {hash}
+                  </AlertDescription>
                 </Alert>
               )}
 
@@ -525,7 +589,9 @@ export const CreateCoinWizard: React.FC = () => {
               {txLoading && (
                 <Alert className="mt-2">
                   <AlertTitle>Waiting for confirmation…</AlertTitle>
-                  <AlertDescription>Your transaction is being mined.</AlertDescription>
+                  <AlertDescription>
+                    Your transaction is being mined.
+                  </AlertDescription>
                 </Alert>
               )}
             </div>

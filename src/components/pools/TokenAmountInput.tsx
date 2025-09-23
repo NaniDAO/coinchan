@@ -57,7 +57,8 @@ export const TokenAmountInput: React.FC<TokenAmountInputProps> = ({
   }, [balance]);
 
   const hasFetched = !isLoading && !isFetching;
-  const hasBalance = hasFetched && formattedBalance && Number(formattedBalance) > 0;
+  const hasBalance =
+    hasFetched && formattedBalance && Number(formattedBalance) > 0;
 
   // Display helpers
   const formatForDisplay = (value?: string) => {
@@ -95,23 +96,32 @@ export const TokenAmountInput: React.FC<TokenAmountInputProps> = ({
     onAmountChange(out);
   };
 
-  console.log("TokenAmountInput.tsx", {
-    balance,
-  });
-
   return (
-    <div className={cn("group relative rounded-2xl border-2 bg-muted p-4 sm:p-5", className)}>
+    <div
+      className={cn(
+        "group relative rounded-2xl border-2 bg-muted p-4 sm:p-5",
+        className,
+      )}
+    >
       {/* Top-right token badge */}
       {locked ? (
         <div className="pointer-events-none absolute right-4 top-4 flex items-center gap-2 sm:right-5 sm:top-5">
           <div className="h-8 w-8 overflow-hidden rounded-full sm:h-9 sm:w-9">
             <TokenImage imageUrl={token.imageUrl} symbol={token.symbol} />
           </div>
-          <span className="text-lg font-semibold sm:text-xl">{token.symbol ?? "Token"}</span>
+          <span className="text-lg font-semibold sm:text-xl">
+            {token.symbol ?? "Token"}
+          </span>
         </div>
       ) : (
         <div className="max-w-fit absolute right-4 top-4 flex items-center gap-2 sm:right-5 sm:top-5">
-          <TokenSelector selectedToken={token} tokens={tokens} onSelect={onTokenSelect} locked={locked} className="" />
+          <TokenSelector
+            selectedToken={token}
+            tokens={tokens}
+            onSelect={onTokenSelect}
+            locked={locked}
+            className=""
+          />
         </div>
       )}
 

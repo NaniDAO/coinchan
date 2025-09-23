@@ -60,8 +60,14 @@ export const CreateICOWizard: React.FC = () => {
   const { address: account } = useAccount();
   const publicClient = usePublicClient();
 
-  const { writeContractAsync, data: hash, isPending, error: writeError } = useWriteContract();
-  const { isSuccess: txSuccess, isLoading: txLoading } = useWaitForTransactionReceipt({ hash });
+  const {
+    writeContractAsync,
+    data: hash,
+    isPending,
+    error: writeError,
+  } = useWriteContract();
+  const { isSuccess: txSuccess, isLoading: txLoading } =
+    useWaitForTransactionReceipt({ hash });
 
   const [form, setForm] = useState<ICOForm>({
     name: "",
@@ -179,13 +185,17 @@ export const CreateICOWizard: React.FC = () => {
       toast.info(t("ico.preparing_ico"));
 
       // 1) Pin image
-      const imgUri = await pinImageToPinata(imageBuffer, `${parsed.name}-logo`, {
-        keyvalues: {
-          coinName: parsed.name,
-          coinSymbol: parsed.symbol,
-          type: "ico-logo",
+      const imgUri = await pinImageToPinata(
+        imageBuffer,
+        `${parsed.name}-logo`,
+        {
+          keyvalues: {
+            coinName: parsed.name,
+            coinSymbol: parsed.symbol,
+            type: "ico-logo",
+          },
         },
-      });
+      );
 
       // 2) Pin metadata JSON
       const metadata = {
@@ -197,7 +207,7 @@ export const CreateICOWizard: React.FC = () => {
           type: "LP-mined ICO",
           airdrop: "veZAMM (87)",
           lpMining: true,
-        }
+        },
       };
       const tokenUri = await pinJsonToPinata(metadata);
 
@@ -298,7 +308,8 @@ export const CreateICOWizard: React.FC = () => {
     }
   };
 
-  const buttonLabel = submitting || isPending ? t("ico.launching") : t("ico.launch_button");
+  const buttonLabel =
+    submitting || isPending ? t("ico.launching") : t("ico.launch_button");
 
   return (
     <div className="mx-auto max-w-6xl p-4">
@@ -316,15 +327,34 @@ export const CreateICOWizard: React.FC = () => {
           <div className="mb-4">
             <Heading level={3}>{t("ico.title")}</Heading>
             <p className="text-sm text-secondary-foreground mt-2">
-              {t("ico.description", { days: form.incentiveDuration }).split("veZAMM (87)")[0]}
-              <Link to="/c/$coinId" params={{ coinId: "87" }} className="text-primary underline hover:no-underline">
+              {
+                t("ico.description", { days: form.incentiveDuration }).split(
+                  "veZAMM (87)",
+                )[0]
+              }
+              <Link
+                to="/c/$coinId"
+                params={{ coinId: "87" }}
+                className="text-primary underline hover:no-underline"
+              >
                 veZAMM (87)
               </Link>
-              {t("ico.description", { days: form.incentiveDuration }).split("veZAMM (87)")[1].split("zChef")[0]}
-              <Link to="/farm" className="text-primary underline hover:no-underline">
+              {
+                t("ico.description", { days: form.incentiveDuration })
+                  .split("veZAMM (87)")[1]
+                  .split("zChef")[0]
+              }
+              <Link
+                to="/farm"
+                className="text-primary underline hover:no-underline"
+              >
                 zChef
               </Link>
-              {t("ico.description", { days: form.incentiveDuration }).split("veZAMM (87)")[1].split("zChef")[1]}
+              {
+                t("ico.description", { days: form.incentiveDuration })
+                  .split("veZAMM (87)")[1]
+                  .split("zChef")[1]
+              }
             </p>
             <Link
               to="/create"
@@ -342,11 +372,17 @@ export const CreateICOWizard: React.FC = () => {
                 <Input
                   id="name"
                   value={form.name}
-                  onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, name: e.target.value }))
+                  }
                   placeholder={t("ico.token_name_placeholder")}
                 />
-                <p className="text-xs text-muted-foreground">{t("ico.token_name_hint")}</p>
-                {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
+                <p className="text-xs text-muted-foreground">
+                  {t("ico.token_name_hint")}
+                </p>
+                {errors.name && (
+                  <p className="text-xs text-red-500">{errors.name}</p>
+                )}
               </div>
 
               <div className="grid gap-2">
@@ -354,31 +390,47 @@ export const CreateICOWizard: React.FC = () => {
                 <Input
                   id="symbol"
                   value={form.symbol}
-                  onChange={(e) => setForm((p) => ({ ...p, symbol: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, symbol: e.target.value }))
+                  }
                   placeholder={t("ico.token_symbol_placeholder")}
                   maxLength={12}
                 />
-                <p className="text-xs text-muted-foreground">{t("ico.token_symbol_hint")}</p>
-                {errors.symbol && <p className="text-xs text-red-500">{errors.symbol}</p>}
+                <p className="text-xs text-muted-foreground">
+                  {t("ico.token_symbol_hint")}
+                </p>
+                {errors.symbol && (
+                  <p className="text-xs text-red-500">{errors.symbol}</p>
+                )}
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="description">{t("ico.token_description")}</Label>
+                <Label htmlFor="description">
+                  {t("ico.token_description")}
+                </Label>
                 <Textarea
                   id="description"
                   rows={4}
                   value={form.description}
-                  onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, description: e.target.value }))
+                  }
                   placeholder={t("ico.token_description_placeholder")}
                 />
-                <p className="text-xs text-muted-foreground">{t("ico.token_description_hint")}</p>
-                {errors.description && <p className="text-xs text-red-500">{errors.description}</p>}
+                <p className="text-xs text-muted-foreground">
+                  {t("ico.token_description_hint")}
+                </p>
+                {errors.description && (
+                  <p className="text-xs text-red-500">{errors.description}</p>
+                )}
               </div>
 
               <div className="grid gap-2">
                 <Label>{t("ico.token_logo")}</Label>
                 <ImageInput onChange={handleImageChange} />
-                <p className="text-xs text-muted-foreground">{t("ico.logo_hint")}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t("ico.logo_hint")}
+                </p>
               </div>
 
               {/* Advanced Options */}
@@ -602,19 +654,49 @@ export const CreateICOWizard: React.FC = () => {
 
               {/* Fixed Parameters Info */}
               <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
-                <AlertTitle className="text-blue-800 dark:text-blue-200">ICO Parameters</AlertTitle>
+                <AlertTitle className="text-blue-800 dark:text-blue-200">
+                  ICO Parameters
+                </AlertTitle>
                 <AlertDescription className="text-blue-700 dark:text-blue-300 space-y-1">
                   <p>• {t("ico.total_supply_fixed")}</p>
                   <p>• {t("ico.initial_pool")}</p>
-                  <p>• {t("ico.lp_mining", { days: form.incentiveDuration }).split("zChef")[0]}<Link to="/farm" className="text-primary underline hover:no-underline">zChef</Link>{t("ico.lp_mining", { days: form.incentiveDuration }).split("zChef")[1] || ""}</p>
-                  <p>• {t("ico.community_airdrop").split("veZAMM (87)")[0]}<Link to="/c/$coinId" params={{ coinId: "87" }} className="text-primary underline hover:no-underline">veZAMM (87)</Link>{t("ico.community_airdrop").split("veZAMM (87)")[1]}</p>
+                  <p>
+                    •{" "}
+                    {
+                      t("ico.lp_mining", {
+                        days: form.incentiveDuration,
+                      }).split("zChef")[0]
+                    }
+                    <Link
+                      to="/farm"
+                      className="text-primary underline hover:no-underline"
+                    >
+                      zChef
+                    </Link>
+                    {t("ico.lp_mining", { days: form.incentiveDuration }).split(
+                      "zChef",
+                    )[1] || ""}
+                  </p>
+                  <p>
+                    • {t("ico.community_airdrop").split("veZAMM (87)")[0]}
+                    <Link
+                      to="/c/$coinId"
+                      params={{ coinId: "87" }}
+                      className="text-primary underline hover:no-underline"
+                    >
+                      veZAMM (87)
+                    </Link>
+                    {t("ico.community_airdrop").split("veZAMM (87)")[1]}
+                  </p>
                   <p>• {t("ico.creator_allocation")}</p>
                 </AlertDescription>
               </Alert>
 
               {!account && (
                 <Alert className="border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-950">
-                  <AlertTitle className="text-yellow-800 dark:text-yellow-200">{t("common.wallet_required")}</AlertTitle>
+                  <AlertTitle className="text-yellow-800 dark:text-yellow-200">
+                    {t("common.wallet_required")}
+                  </AlertTitle>
                   <AlertDescription className="text-yellow-700 dark:text-yellow-300">
                     {t("ico.connect_wallet_to_launch")}
                   </AlertDescription>
@@ -622,26 +704,36 @@ export const CreateICOWizard: React.FC = () => {
               )}
 
               {writeError && (
-                <Alert variant="destructive">
+                <Alert tone="destructive">
                   <AlertTitle>Transaction error</AlertTitle>
-                  <AlertDescription className="break-words">{writeError.message}</AlertDescription>
+                  <AlertDescription className="break-words">
+                    {writeError.message}
+                  </AlertDescription>
                 </Alert>
               )}
 
-              <Button disabled={submitting || isPending || !account} className="w-full" onClick={onSubmit}>
+              <Button
+                disabled={submitting || isPending || !account}
+                className="w-full"
+                onClick={onSubmit}
+              >
                 {buttonLabel}
               </Button>
 
               {hash && (
                 <Alert className="mt-2">
                   <AlertTitle>Transaction sent</AlertTitle>
-                  <AlertDescription className="break-all">{hash}</AlertDescription>
+                  <AlertDescription className="break-all">
+                    {hash}
+                  </AlertDescription>
                 </Alert>
               )}
 
               {txSuccess && (
                 <Alert className="mt-2 border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950">
-                  <AlertTitle className="text-green-800 dark:text-green-200">ICO Launched Successfully!</AlertTitle>
+                  <AlertTitle className="text-green-800 dark:text-green-200">
+                    ICO Launched Successfully!
+                  </AlertTitle>
                   <AlertDescription className="space-y-2">
                     <div className="flex gap-2 flex-wrap">
                       {coinId !== null && (

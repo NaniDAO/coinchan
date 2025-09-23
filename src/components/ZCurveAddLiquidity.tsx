@@ -1,7 +1,19 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { formatEther, formatUnits, parseEther, parseUnits } from "viem";
-import { useAccount, useBalance, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import {
+  Address,
+  formatEther,
+  formatUnits,
+  parseEther,
+  parseUnits,
+} from "viem";
+import {
+  useAccount,
+  useBalance,
+  useReadContract,
+  useWriteContract,
+  useWaitForTransactionReceipt,
+} from "wagmi";
 import { mainnet } from "viem/chains";
 
 import { Button } from "@/components/ui/button";
@@ -12,12 +24,21 @@ import { Loader2 } from "lucide-react";
 
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { nowSec, formatNumber } from "@/lib/utils";
-import { DEADLINE_SEC, SLIPPAGE_BPS, withSlippage, type CookbookPoolKey } from "@/lib/swap";
+import {
+  DEADLINE_SEC,
+  SLIPPAGE_BPS,
+  ZAMMPoolKey,
+  withSlippage,
+  type CookbookPoolKey,
+} from "@/lib/swap";
 import { handleWalletError } from "@/lib/errors";
 import { useTokenSelection } from "@/contexts/TokenSelectionContext";
 import { useReserves } from "@/hooks/use-reserves";
 import { computeZCurvePoolId } from "@/lib/zCurvePoolId";
 import { SwapPanel } from "./SwapPanel";
+import { CoinSource } from "@/lib/coins";
+import { getProtocol, getProtocolIdBySource } from "@/lib/protocol";
+import { CoinsAddress } from "@/constants/Coins";
 
 // Helper function to calculate square root for LP token calculation
 const sqrt = (value: bigint): bigint => {
@@ -41,11 +62,19 @@ const sqrt = (value: bigint): bigint => {
 
 interface ZCurveAddLiquidityProps {
   coinId: string;
+  contractAddress?: Address;
+  source: CoinSource;
   poolId?: string;
   feeOrHook?: bigint;
 }
 
-export function ZCurveAddLiquidity({ coinId, poolId: providedPoolId, feeOrHook = 30n }: ZCurveAddLiquidityProps) {
+export function ZCurveAddLiquidity({
+  coinId,
+  contractAddress,
+  source,
+  poolId: providedPoolId,
+  feeOrHook = 30n,
+}: ZCurveAddLiquidityProps) {
   const { t } = useTranslation();
   const { address, isConnected } = useAccount();
   const { sellToken, buyToken } = useTokenSelection();
@@ -53,7 +82,9 @@ export function ZCurveAddLiquidity({ coinId, poolId: providedPoolId, feeOrHook =
   // State
   const [ethAmount, setEthAmount] = useState("");
   const [tokenAmount, setTokenAmount] = useState("");
-  const [lastEditedField, setLastEditedField] = useState<"eth" | "token">("eth");
+  const [lastEditedField, setLastEditedField] = useState<"eth" | "token">(
+    "eth",
+  );
   const [slippageBps, setSlippageBps] = useState<bigint>(SLIPPAGE_BPS);
   const [isCalculating, setIsCalculating] = useState(false);
   const [estimatedLpTokens, setEstimatedLpTokens] = useState<string>("");
@@ -62,16 +93,20 @@ export function ZCurveAddLiquidity({ coinId, poolId: providedPoolId, feeOrHook =
 
   // Compute pool ID if not provided
   const poolId = useMemo(() => {
-    return BigInt(providedPoolId || computeZCurvePoolId(BigInt(coinId), feeOrHook));
+    return BigInt(
+      providedPoolId || computeZCurvePoolId(BigInt(coinId), feeOrHook),
+    );
   }, [providedPoolId, coinId, feeOrHook]);
 
   // Get ETH balance
   const { data: ethBalance } = useBalance({ address });
 
+  const protocolId = getProtocolIdBySource(source);
+  const protocol = protocolId ? getProtocol(protocolId) : null;
   // Get token balance
   const { data: tokenBalance } = useReadContract({
-    address: CookbookAddress,
-    abi: CookbookAbi,
+    address: protocol?.address || CookbookAddress,
+    abi: protocol?.abi || CookbookAbi,
     functionName: "balanceOf",
     args: address ? [address, BigInt(coinId)] : undefined,
     query: { enabled: !!address },
@@ -80,13 +115,13 @@ export function ZCurveAddLiquidity({ coinId, poolId: providedPoolId, feeOrHook =
   // Get reserves
   const { data: reserves } = useReserves({
     poolId,
-    source: "COOKBOOK" as const,
+    source: source || ("COOKBOOK" as const),
   });
 
   // Get pool info for LP token calculation
   const { data: poolInfo } = useReadContract({
-    address: CookbookAddress,
-    abi: CookbookAbi,
+    address: protocol?.address || CookbookAddress,
+    abi: protocol?.abi || CookbookAbi,
     functionName: "pools",
     args: [BigInt(poolId)],
     chainId: mainnet.id,
@@ -128,7 +163,8 @@ export function ZCurveAddLiquidity({ coinId, poolId: providedPoolId, feeOrHook =
         if (totalSupply > 0n && reserves?.reserve0 && reserves?.reserve1) {
           const lpFromEth = (ethAmt * totalSupply) / reserves.reserve0;
           const lpFromToken = (tokenAmt * totalSupply) / reserves.reserve1;
-          const lpTokensToMint = lpFromEth < lpFromToken ? lpFromEth : lpFromToken;
+          const lpTokensToMint =
+            lpFromEth < lpFromToken ? lpFromEth : lpFromToken;
 
           setEstimatedLpTokens(formatUnits(lpTokensToMint, 18));
 
@@ -174,12 +210,14 @@ export function ZCurveAddLiquidity({ coinId, poolId: providedPoolId, feeOrHook =
         if (field === "eth") {
           // Calculate token amount based on ETH input
           const ethIn = parseEther(value);
-          const expectedTokens = (ethIn * reserves.reserve1) / reserves.reserve0;
+          const expectedTokens =
+            (ethIn * reserves.reserve1) / reserves.reserve0;
           setTokenAmount(formatUnits(expectedTokens, 18));
         } else {
           // Calculate ETH amount based on token input
           const tokensIn = parseUnits(value, 18);
-          const expectedEth = (tokensIn * reserves.reserve0) / reserves.reserve1;
+          const expectedEth =
+            (tokensIn * reserves.reserve0) / reserves.reserve1;
           setEthAmount(formatEther(expectedEth));
         }
       } catch (error) {
@@ -236,14 +274,26 @@ export function ZCurveAddLiquidity({ coinId, poolId: providedPoolId, feeOrHook =
       const amount0 = parseEther(ethAmount); // ETH amount
       const amount1 = parseUnits(tokenAmount, 18); // Token amount
 
-      // Create pool key
-      const poolKey: CookbookPoolKey = {
-        id0: 0n, // ETH
-        id1: BigInt(buyToken.id || coinId),
-        token0: "0x0000000000000000000000000000000000000000" as const,
-        token1: CookbookAddress,
-        feeOrHook,
-      };
+      let poolKey: ZAMMPoolKey | CookbookPoolKey;
+      if (protocolId === "ZAMMV0") {
+        // Create pool key
+        poolKey = {
+          id0: 0n, // ETH
+          id1: BigInt(buyToken.id || coinId),
+          token0: "0x0000000000000000000000000000000000000000" as const,
+          token1: contractAddress ?? CoinsAddress,
+          swapFee: feeOrHook,
+        };
+      } else {
+        // Create pool key
+        poolKey = {
+          id0: 0n, // ETH
+          id1: BigInt(buyToken.id || coinId),
+          token0: "0x0000000000000000000000000000000000000000" as const,
+          token1: CookbookAddress,
+          feeOrHook,
+        };
+      }
 
       // Calculate minimum amounts with slippage
       const amount0Min = withSlippage(amount0, slippageBps);
@@ -252,10 +302,19 @@ export function ZCurveAddLiquidity({ coinId, poolId: providedPoolId, feeOrHook =
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
       await writeContractAsync({
-        address: CookbookAddress,
-        abi: CookbookAbi,
+        address: protocol?.address || CookbookAddress,
+        abi: protocol?.abi || CookbookAbi,
         functionName: "addLiquidity",
-        args: [poolKey, amount0, amount1, amount0Min, amount1Min, address, deadline],
+        // @ts-expect-error
+        args: [
+          poolKey,
+          amount0,
+          amount1,
+          amount0Min,
+          amount1Min,
+          address,
+          deadline,
+        ],
         value: amount0, // Send ETH
       });
 
@@ -283,7 +342,10 @@ export function ZCurveAddLiquidity({ coinId, poolId: providedPoolId, feeOrHook =
   return (
     <div className="space-y-4">
       <div className="text-sm text-muted-foreground">
-        {t("liquidity.add_liquidity_description", "Add liquidity to earn fees from trades")}
+        {t(
+          "liquidity.add_liquidity_description",
+          "Add liquidity to earn fees from trades",
+        )}
       </div>
 
       {/* ETH Input - Using SwapPanel correctly */}
@@ -300,7 +362,9 @@ export function ZCurveAddLiquidity({ coinId, poolId: providedPoolId, feeOrHook =
         isEthBalanceFetching={isPending}
         showMaxButton={true}
         onMax={() => {
-          const maxEth = ethBalance?.value ? formatEther((ethBalance.value * 99n) / 100n) : "0";
+          const maxEth = ethBalance?.value
+            ? formatEther((ethBalance.value * 99n) / 100n)
+            : "0";
           setEthAmount(maxEth);
           setLastEditedField("eth");
         }}
@@ -340,7 +404,8 @@ export function ZCurveAddLiquidity({ coinId, poolId: providedPoolId, feeOrHook =
           <AlertDescription>
             <div className="space-y-1">
               <div>
-                {t("liquidity.estimated_lp_tokens")}: {formatNumber(parseFloat(estimatedLpTokens), 6)} LP
+                {t("liquidity.estimated_lp_tokens")}:{" "}
+                {formatNumber(parseFloat(estimatedLpTokens), 6)} LP
               </div>
               <div>
                 {t("liquidity.pool_share")}: {estimatedPoolShare}
@@ -364,7 +429,7 @@ export function ZCurveAddLiquidity({ coinId, poolId: providedPoolId, feeOrHook =
 
       {/* Error Message */}
       {txError && (
-        <Alert variant="destructive">
+        <Alert tone="destructive">
           <AlertDescription>{txError}</AlertDescription>
         </Alert>
       )}
@@ -375,7 +440,13 @@ export function ZCurveAddLiquidity({ coinId, poolId: providedPoolId, feeOrHook =
       {/* Add Liquidity Button */}
       <Button
         onClick={handleAddLiquidity}
-        disabled={!isConnected || isPending || !ethAmount || !tokenAmount || isCalculating}
+        disabled={
+          !isConnected ||
+          isPending ||
+          !ethAmount ||
+          !tokenAmount ||
+          isCalculating
+        }
         className="w-full"
         size="lg"
       >

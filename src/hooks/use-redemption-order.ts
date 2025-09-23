@@ -58,21 +58,18 @@ const fetchRedemptionOrderFromIndexer = async (): Promise<Order | null> => {
     }
 
     const orders = data.data?.orders?.items || [];
-    console.log(`Found ${orders.length} total orders from indexer`);
 
     // First check if our specific order exists
-    const SPECIFIC_ORDER_ID_NO_PREFIX = "2602BA56DE653CE8782AD8D8AB8994FBA221605254503D4B3472BB6F492D5597";
-    const specificOrder = orders.find((order: Order) =>
-      order.id.toLowerCase() === SPECIFIC_ORDER_ID_NO_PREFIX.toLowerCase() ||
-      order.id.toLowerCase() === `0x${SPECIFIC_ORDER_ID_NO_PREFIX}`.toLowerCase()
+    const SPECIFIC_ORDER_ID_NO_PREFIX =
+      "2602BA56DE653CE8782AD8D8AB8994FBA221605254503D4B3472BB6F492D5597";
+    const specificOrder = orders.find(
+      (order: Order) =>
+        order.id.toLowerCase() === SPECIFIC_ORDER_ID_NO_PREFIX.toLowerCase() ||
+        order.id.toLowerCase() ===
+          `0x${SPECIFIC_ORDER_ID_NO_PREFIX}`.toLowerCase(),
     );
 
     if (specificOrder) {
-      console.log("Found specific order in list:", specificOrder);
-      // Check what tokens it has
-      console.log("Order tokenIn:", specificOrder.tokenIn, "idIn:", specificOrder.idIn);
-      console.log("Order tokenOut:", specificOrder.tokenOut, "idOut:", specificOrder.idOut);
-
       // Return it if it's ZAMM -> veZAMM
       return specificOrder;
     }
@@ -81,9 +78,12 @@ const fetchRedemptionOrderFromIndexer = async (): Promise<Order | null> => {
     // ZAMM token is from Coins contract, veZAMM is Cookbook ID 87
     const redemptionOrders = orders.filter((order: Order) => {
       // Check if tokenIn is Coins contract (ZAMM)
-      const isZammIn = order.tokenIn.toLowerCase() === CoinsAddress.toLowerCase();
+      const isZammIn =
+        order.tokenIn.toLowerCase() === CoinsAddress.toLowerCase();
       // Check if tokenOut is Cookbook contract and ID is 87 (veZAMM)
-      const isVeZammOut = order.tokenOut.toLowerCase() === CookbookAddress.toLowerCase() && order.idOut === "87";
+      const isVeZammOut =
+        order.tokenOut.toLowerCase() === CookbookAddress.toLowerCase() &&
+        order.idOut === "87";
 
       // Also check if order is active or has remaining amount
       const isActive = order.status === "ACTIVE";
@@ -91,8 +91,6 @@ const fetchRedemptionOrderFromIndexer = async (): Promise<Order | null> => {
 
       return isZammIn && isVeZammOut && (isActive || hasRemaining);
     });
-
-    console.log(`Found ${redemptionOrders.length} ZAMM->veZAMM redemption orders`);
 
     // Return the most recent active order
     if (redemptionOrders.length > 0) {
@@ -114,7 +112,9 @@ const fetchRedemptionOrderFromIndexer = async (): Promise<Order | null> => {
 };
 
 // Fallback: Try specific order ID from indexer
-const fetchSpecificOrderFromIndexer = async (orderId: string): Promise<Order | null> => {
+const fetchSpecificOrderFromIndexer = async (
+  orderId: string,
+): Promise<Order | null> => {
   try {
     const query = `
       query GetOrder($id: String!) {
@@ -145,12 +145,15 @@ const fetchSpecificOrderFromIndexer = async (orderId: string): Promise<Order | n
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         query,
-        variables: { id: orderId }
+        variables: { id: orderId },
       }),
     });
 
     if (!response.ok) {
-      console.warn("Indexer request failed for specific order:", response.status);
+      console.warn(
+        "Indexer request failed for specific order:",
+        response.status,
+      );
       return null;
     }
 
@@ -171,13 +174,15 @@ const fetchSpecificOrderFromIndexer = async (orderId: string): Promise<Order | n
 // Fallback: Read from onchain
 const fetchOrderOnchain = async (
   publicClient: any,
-  orderId: string
+  orderId: string,
 ): Promise<Order | null> => {
   try {
     // The order ID is a hash, we need to check if this order exists onchain
     // Cookbook has a getOrder function we can use
     // Ensure the order ID is properly formatted as 0x-prefixed bytes32
-    const formattedOrderId = orderId.startsWith('0x') ? orderId : `0x${orderId}`;
+    const formattedOrderId = orderId.startsWith("0x")
+      ? orderId
+      : `0x${orderId}`;
 
     const orderData = await publicClient.readContract({
       address: CookbookAddress,
@@ -190,7 +195,19 @@ const fetchOrderOnchain = async (
 
     // Parse the onchain data into our Order format
     // The onchain data structure might be different, so we need to map it
-    const [maker, tokenIn, idIn, amtIn, tokenOut, idOut, amtOut, deadline, partialFill, inDone, outDone] = orderData;
+    const [
+      maker,
+      tokenIn,
+      idIn,
+      amtIn,
+      tokenOut,
+      idOut,
+      amtOut,
+      deadline,
+      partialFill,
+      inDone,
+      outDone,
+    ] = orderData;
 
     // Check if order exists (maker should not be zero address)
     if (maker === "0x0000000000000000000000000000000000000000") {
@@ -226,26 +243,23 @@ export const useRedemptionOrder = () => {
   const publicClient = usePublicClient();
 
   // The specific order ID provided by the user (with 0x prefix for onchain calls)
-  const SPECIFIC_ORDER_ID = "0x2602BA56DE653CE8782AD8D8AB8994FBA221605254503D4B3472BB6F492D5597";
+  const SPECIFIC_ORDER_ID =
+    "0x2602BA56DE653CE8782AD8D8AB8994FBA221605254503D4B3472BB6F492D5597";
 
   return useQuery({
     queryKey: ["redemption-order", SPECIFIC_ORDER_ID],
     queryFn: async () => {
-      console.log("Fetching redemption order...");
-
       // Try multiple strategies in order
 
       // 1. Try to fetch ZAMM -> veZAMM orders from indexer
       let order = await fetchRedemptionOrderFromIndexer();
       if (order) {
-        console.log("Found redemption order from indexer query:", order);
         return order;
       }
 
       // 2. Try to fetch the specific order ID from indexer
       order = await fetchSpecificOrderFromIndexer(SPECIFIC_ORDER_ID);
       if (order) {
-        console.log("Found specific order from indexer:", order);
         return order;
       }
 
@@ -253,7 +267,6 @@ export const useRedemptionOrder = () => {
       if (publicClient) {
         order = await fetchOrderOnchain(publicClient, SPECIFIC_ORDER_ID);
         if (order) {
-          console.log("Found order onchain:", order);
           return order;
         }
       }

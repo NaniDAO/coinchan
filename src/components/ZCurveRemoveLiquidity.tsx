@@ -1,7 +1,12 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { formatEther, formatUnits, parseUnits } from "viem";
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { Address, formatEther, formatUnits, parseUnits } from "viem";
+import {
+  useAccount,
+  useReadContract,
+  useWriteContract,
+  useWaitForTransactionReceipt,
+} from "wagmi";
 import { mainnet } from "viem/chains";
 
 import { Button } from "@/components/ui/button";
@@ -15,19 +20,36 @@ import { Loader2 } from "lucide-react";
 
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { nowSec, formatNumber } from "@/lib/utils";
-import { DEADLINE_SEC, SLIPPAGE_BPS, withSlippage, type CookbookPoolKey } from "@/lib/swap";
+import {
+  DEADLINE_SEC,
+  SLIPPAGE_BPS,
+  ZAMMPoolKey,
+  withSlippage,
+  type CookbookPoolKey,
+} from "@/lib/swap";
 import { handleWalletError } from "@/lib/errors";
 import { useTokenSelection } from "@/contexts/TokenSelectionContext";
 import { useReserves } from "@/hooks/use-reserves";
 import { computeZCurvePoolId } from "@/lib/zCurvePoolId";
+import { CoinSource } from "@/lib/coins";
+import { getProtocol, getProtocolIdBySource } from "@/lib/protocol";
+import { CoinsAddress } from "@/constants/Coins";
 
 interface ZCurveRemoveLiquidityProps {
   coinId: string;
+  contractAddress?: Address;
+  source: CoinSource;
   poolId?: string;
   feeOrHook?: bigint;
 }
 
-export function ZCurveRemoveLiquidity({ coinId, poolId: providedPoolId, feeOrHook = 30n }: ZCurveRemoveLiquidityProps) {
+export function ZCurveRemoveLiquidity({
+  coinId,
+  contractAddress,
+  source,
+  poolId: providedPoolId,
+  feeOrHook = 30n,
+}: ZCurveRemoveLiquidityProps) {
   const { t } = useTranslation();
   const { address, isConnected } = useAccount();
   const { sellToken, buyToken } = useTokenSelection();
@@ -42,13 +64,18 @@ export function ZCurveRemoveLiquidity({ coinId, poolId: providedPoolId, feeOrHoo
 
   // Compute pool ID if not provided
   const poolId = useMemo(() => {
-    return BigInt(providedPoolId || computeZCurvePoolId(BigInt(coinId), feeOrHook));
+    return BigInt(
+      providedPoolId || computeZCurvePoolId(BigInt(coinId), feeOrHook),
+    );
   }, [providedPoolId, coinId, feeOrHook]);
+
+  const protocolId = getProtocolIdBySource(source);
+  const protocol = protocolId ? getProtocol(protocolId) : null;
 
   // Get LP token balance
   const { data: lpBalance } = useReadContract({
-    address: CookbookAddress,
-    abi: CookbookAbi,
+    address: protocol?.address || CookbookAddress,
+    abi: protocol?.abi || CookbookAbi,
     functionName: "balanceOf",
     args: address ? [address, BigInt(poolId)] : undefined,
     query: { enabled: !!address },
@@ -57,13 +84,13 @@ export function ZCurveRemoveLiquidity({ coinId, poolId: providedPoolId, feeOrHoo
   // Get reserves
   const { data: reserves } = useReserves({
     poolId,
-    source: "COOKBOOK" as const,
+    source: source || ("COOKBOOK" as const),
   });
 
   // Get pool info
   const { data: poolInfo } = useReadContract({
-    address: CookbookAddress,
-    abi: CookbookAbi,
+    address: protocol?.address || CookbookAddress,
+    abi: protocol?.abi || CookbookAbi,
     functionName: "pools",
     args: [BigInt(poolId)],
     chainId: mainnet.id,
@@ -164,28 +191,47 @@ export function ZCurveRemoveLiquidity({ coinId, poolId: providedPoolId, feeOrHoo
 
       // Calculate minimum amounts with slippage
       const totalSupply = poolInfo?.[6] as bigint;
-      const amount0 = totalSupply > 0n ? (lpTokens * (reserves?.reserve0 || 0n)) / totalSupply : 0n;
-      const amount1 = totalSupply > 0n ? (lpTokens * (reserves?.reserve1 || 0n)) / totalSupply : 0n;
+      const amount0 =
+        totalSupply > 0n
+          ? (lpTokens * (reserves?.reserve0 || 0n)) / totalSupply
+          : 0n;
+      const amount1 =
+        totalSupply > 0n
+          ? (lpTokens * (reserves?.reserve1 || 0n)) / totalSupply
+          : 0n;
 
       const amount0Min = withSlippage(amount0, slippageBps);
       const amount1Min = withSlippage(amount1, slippageBps);
 
-      // Create pool key
-      const poolKey: CookbookPoolKey = {
-        id0: 0n, // ETH
-        id1: BigInt(buyToken.id || coinId),
-        token0: "0x0000000000000000000000000000000000000000" as const,
-        token1: CookbookAddress,
-        feeOrHook,
-      };
+      let poolKey: ZAMMPoolKey | CookbookPoolKey;
+      if (protocolId === "ZAMMV0") {
+        // Create pool key
+        poolKey = {
+          id0: 0n, // ETH
+          id1: BigInt(buyToken.id || coinId),
+          token0: "0x0000000000000000000000000000000000000000" as const,
+          token1: contractAddress ?? CoinsAddress,
+          swapFee: feeOrHook,
+        };
+      } else {
+        // Create pool key
+        poolKey = {
+          id0: 0n, // ETH
+          id1: BigInt(buyToken.id || coinId),
+          token0: "0x0000000000000000000000000000000000000000" as const,
+          token1: CookbookAddress,
+          feeOrHook,
+        };
+      }
 
       const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
       // Remove liquidity
       await writeContractAsync({
-        address: CookbookAddress,
-        abi: CookbookAbi,
+        address: protocol?.address || CookbookAddress,
+        abi: protocol?.abi || CookbookAbi,
         functionName: "removeLiquidity",
+        // @ts-expect-error
         args: [poolKey, lpTokens, amount0Min, amount1Min, address, deadline],
       });
 
@@ -220,7 +266,10 @@ export function ZCurveRemoveLiquidity({ coinId, poolId: providedPoolId, feeOrHoo
   return (
     <div className="space-y-4">
       <div className="text-sm text-muted-foreground">
-        {t("liquidity.remove_liquidity_description", "Remove liquidity to get back ETH and tokens")}
+        {t(
+          "liquidity.remove_liquidity_description",
+          "Remove liquidity to get back ETH and tokens",
+        )}
       </div>
 
       {/* LP Token Input */}
@@ -234,7 +283,12 @@ export function ZCurveRemoveLiquidity({ coinId, poolId: providedPoolId, feeOrHoo
             onChange={(e) => handleLpAmountChange(e.target.value)}
             disabled={isPending}
           />
-          <Button variant="outline" size="sm" onClick={handleMax} disabled={!lpBalance || lpBalance === 0n}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleMax}
+            disabled={!lpBalance || lpBalance === 0n}
+          >
             {t("common.max")}
           </Button>
         </div>
@@ -290,19 +344,30 @@ export function ZCurveRemoveLiquidity({ coinId, poolId: providedPoolId, feeOrHoo
         <Alert>
           <AlertDescription>
             <div className="space-y-2">
-              <div className="text-sm font-medium">{t("liquidity.you_will_receive")}:</div>
-              <div className="flex items-center gap-3">
-                <div className="w-5 h-5 flex-shrink-0">
-                  <TokenImage imageUrl={sellToken.imageUrl} symbol={sellToken.symbol} />
-                </div>
-                <span className="ml-1">{formatNumber(parseFloat(estimatedEth), 6)} ETH</span>
+              <div className="text-sm font-medium">
+                {t("liquidity.you_will_receive")}:
               </div>
               <div className="flex items-center gap-3">
                 <div className="w-5 h-5 flex-shrink-0">
-                  <TokenImage imageUrl={buyToken.imageUrl} symbol={buyToken.symbol} />
+                  <TokenImage
+                    imageUrl={sellToken.imageUrl}
+                    symbol={sellToken.symbol}
+                  />
                 </div>
                 <span className="ml-1">
-                  {formatNumber(parseFloat(estimatedTokens), 6)} {buyToken.symbol}
+                  {formatNumber(parseFloat(estimatedEth), 6)} ETH
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-5 h-5 flex-shrink-0">
+                  <TokenImage
+                    imageUrl={buyToken.imageUrl}
+                    symbol={buyToken.symbol}
+                  />
+                </div>
+                <span className="ml-1">
+                  {formatNumber(parseFloat(estimatedTokens), 6)}{" "}
+                  {buyToken.symbol}
                 </span>
               </div>
             </div>
@@ -324,7 +389,7 @@ export function ZCurveRemoveLiquidity({ coinId, poolId: providedPoolId, feeOrHoo
 
       {/* Error Message */}
       {txError && (
-        <Alert variant="destructive">
+        <Alert tone="destructive">
           <AlertDescription>{txError}</AlertDescription>
         </Alert>
       )}
@@ -335,7 +400,9 @@ export function ZCurveRemoveLiquidity({ coinId, poolId: providedPoolId, feeOrHoo
       {/* Remove Liquidity Button */}
       <Button
         onClick={handleRemoveLiquidity}
-        disabled={!isConnected || isPending || !lpAmount || parseFloat(lpAmount) === 0}
+        disabled={
+          !isConnected || isPending || !lpAmount || parseFloat(lpAmount) === 0
+        }
         className="w-full"
         size="lg"
         variant="destructive"

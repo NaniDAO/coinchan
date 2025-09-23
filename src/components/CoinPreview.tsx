@@ -1,16 +1,20 @@
+import { cn } from "@/lib/utils";
+
 export const CoinPreview = ({
   name,
   symbol,
   coinId,
   isLoading,
+  className,
 }: {
   name?: string;
   symbol?: string;
   coinId: bigint;
   isLoading: boolean;
+  className?: string;
 }) => {
   return (
-    <div className="flex flex-col items-start gap-2">
+    <div className={cn("flex flex-col items-start gap-2", className)}>
       <h2 className="text-lg sm:text-xl font-semibold transition-opacity duration-300">
         {isLoading ? (
           <span className="inline-flex items-center space-x-2">
@@ -23,7 +27,6 @@ export const CoinPreview = ({
           </span>
         )}
       </h2>
-      {/* Metadata like tokenId */}
       <p className="text-sm">ID: {coinId.toString()}</p>
     </div>
   );

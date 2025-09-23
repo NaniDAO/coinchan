@@ -1,8 +1,9 @@
+import { CoinSource } from "@/lib/coins";
 import { useQuery } from "@tanstack/react-query";
 
 const GET_POOL = `
-  query GetPool($id: BigInt!) {
-    pool(id: $id) {
+  query GetPool($id: BigInt!, $source: String!) {
+    pool(id: $id, source: $source) {
       feeOrHook
       hook
       hookType
@@ -72,13 +73,16 @@ type GetPoolResponse = {
 };
 
 // ----- Fetcher -----
-export const fetchPool = async (poolId: string): Promise<Pool | null> => {
+export const fetchPool = async (
+  poolId: string,
+  source: CoinSource,
+): Promise<Pool | null> => {
   const response = await fetch(`${import.meta.env.VITE_INDEXER_URL}/graphql`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       query: GET_POOL,
-      variables: { id: poolId },
+      variables: { id: poolId, source },
     }),
   });
 
@@ -87,8 +91,6 @@ export const fetchPool = async (poolId: string): Promise<Pool | null> => {
   }
 
   const json: GetPoolResponse = await response.json();
-
-  console.log("useGetPool", json);
 
   if (json.errors?.length) {
     // Surface the first GraphQL error
@@ -99,10 +101,10 @@ export const fetchPool = async (poolId: string): Promise<Pool | null> => {
 };
 
 // ----- React Query hook -----
-export const useGetPool = (poolId: string) => {
+export const useGetPool = (poolId: string, source: CoinSource) => {
   return useQuery({
     queryKey: ["get-pool", poolId],
-    queryFn: () => fetchPool(poolId),
+    queryFn: () => fetchPool(poolId, source),
     enabled: Boolean(poolId),
   });
 };
