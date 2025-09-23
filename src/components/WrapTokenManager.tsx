@@ -1,11 +1,6 @@
 import { useState, useMemo } from "react";
 import { WrapTextIcon } from "lucide-react";
-import {
-  useAccount,
-  usePublicClient,
-  useWaitForTransactionReceipt,
-  useWriteContract,
-} from "wagmi";
+import { useAccount, usePublicClient, useWriteContract } from "wagmi";
 import { formatUnits, parseUnits } from "viem";
 
 import { TokenMetadata } from "@/lib/pools";
@@ -23,25 +18,16 @@ import {
   ERC6909ERC20WrapperAbi,
   ERC6909ERC20WrapperAddress,
 } from "@/constants/ERC6909ERC20Wrapper";
-import { useTokenApproval } from "@/hooks/use-token-approval";
 import { useOperatorStatus } from "@/hooks/use-operator-status";
 import { erc6909Abi } from "zrouter-sdk";
-import {
-  getProtocol,
-  getProtocolIdBySource,
-  getSourceByContract,
-} from "@/lib/protocol";
+import { getSourceByContract } from "@/lib/protocol";
 import { toast } from "sonner";
 import { CookbookAddress } from "@/constants/Cookbook";
 import { CoinsAddress } from "@/constants/Coins";
 
-type Props = { token: TokenMetadata };
+type Props = { token?: TokenMetadata };
 
 export const WrapTokenManager = ({ token }: Props) => {
-  // Only ERC6909 can be wrapped; don't render trigger/UI otherwise
-  if (!token || token.standard === "ERC20") return null;
-  if (token.standard !== "ERC6909") return null;
-
   const { address } = useAccount();
   const { writeContractAsync } = useWriteContract();
   const publicClient = usePublicClient();
@@ -49,7 +35,7 @@ export const WrapTokenManager = ({ token }: Props) => {
     useOperatorStatus({
       address,
       operator: ERC6909ERC20WrapperAddress,
-      tokenId: token.id,
+      tokenId: token?.id ?? 0n,
     });
 
   const [tab, setTab] = useState<"wrap" | "unwrap">("wrap");
@@ -57,11 +43,12 @@ export const WrapTokenManager = ({ token }: Props) => {
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const decimals = Number.isFinite(token.decimals) ? token.decimals : 18;
+  const decimals =
+    token && Number.isFinite(token?.decimals) ? token?.decimals : 18;
 
   const humanBalance =
-    token.balance !== undefined
-      ? formatUnits(token.balance as bigint, decimals)
+    token && token?.balance !== undefined
+      ? formatUnits(token?.balance as bigint, decimals)
       : "0";
 
   const hasPositiveAmount = useMemo(() => {
@@ -90,6 +77,7 @@ export const WrapTokenManager = ({ token }: Props) => {
     setErrorMsg(null);
     setSubmitting(true);
     try {
+      if (!token) throw new Error("Token not found");
       if (!publicClient) throw new Error("Public client not found");
       const amt = safeParseAmount(amount);
       if (amt === null || amt <= 0n) {
@@ -136,6 +124,10 @@ export const WrapTokenManager = ({ token }: Props) => {
       setSubmitting(false);
     }
   };
+
+  // Only ERC6909 can be wrapped; don't render trigger/UI otherwise
+  if (!token || token?.standard === "ERC20") return null;
+  if (token?.standard !== "ERC6909") return null;
 
   return (
     <Dialog>
