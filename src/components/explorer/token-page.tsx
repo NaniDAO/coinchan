@@ -8,8 +8,8 @@ import { useETHPrice } from "@/hooks/use-eth-price";
 import { useGetToken } from "@/hooks/use-get-token";
 import { useReserves } from "@/hooks/use-reserves";
 import { useZCurveSale } from "@/hooks/use-zcurve-sale";
-import { Token, computePoolId } from "@/lib/pools";
-import { ProtocolId } from "@/lib/protocol";
+import { Token, TokenMetadata, computePoolId } from "@/lib/pools";
+import { ProtocolId, getSourceByContract } from "@/lib/protocol";
 import { SWAP_FEE } from "@/lib/swap";
 import { ZCURVE_STANDARD_PARAMS } from "@/lib/zCurveHelpers";
 import { computeZCurvePoolId } from "@/lib/zCurvePoolId";
@@ -19,6 +19,9 @@ import { formatEther, zeroAddress } from "viem";
 import { VotePanel } from "../VotePanel";
 import { PoolOverview } from "../PoolOverview";
 import { UnifiedCoinTrading } from "../UnifiedCoinTrading";
+import { WrapTokenManager } from "../WrapTokenManager";
+import { useTokenBalance } from "@/hooks/use-token-balance";
+import { useAccount } from "wagmi";
 
 export const TokenPage = ({ token }: { token: Token }) => {
   const { t } = useTranslation();
@@ -29,6 +32,12 @@ export const TokenPage = ({ token }: { token: Token }) => {
     coinId: token.id.toString(),
     token: token.address,
   });
+  const { address } = useAccount();
+  const { data: balance } = useTokenBalance({
+    address,
+    token,
+  });
+
   // Fetch ETH price for market cap calculation
   const { data: ethPriceData } = useETHPrice();
   // Check for zCurve sale
@@ -44,6 +53,7 @@ export const TokenPage = ({ token }: { token: Token }) => {
     poolIds,
     swapFees,
     totalSupply,
+    tokenMetadata,
   ] = useMemo(() => {
     if (!coinData)
       return [
@@ -58,6 +68,21 @@ export const TokenPage = ({ token }: { token: Token }) => {
       ];
     const pools = coinData.pools.map((pool) => pool.poolId);
     const fees = coinData.pools.map((pool) => BigInt(pool.swapFee));
+
+    const source = getSourceByContract(token.address);
+
+    const tokenMetadata: TokenMetadata = {
+      address: token.address,
+      id: token.id,
+      name: coinData.name,
+      symbol: coinData.symbol,
+      decimals: 18,
+      imageUrl: coinData.imageUrl,
+      description: coinData.description,
+      standard: source === "ERC20" ? "ERC20" : "ERC6909",
+      balance,
+    };
+
     return [
       coinData?.name,
       coinData?.symbol,
@@ -67,6 +92,8 @@ export const TokenPage = ({ token }: { token: Token }) => {
       pools,
       fees,
       coinData?.totalSupply,
+      tokenMetadata,
+      balance,
     ];
   }, [coinData]);
 
@@ -341,15 +368,24 @@ export const TokenPage = ({ token }: { token: Token }) => {
         ) : null}
       </ErrorBoundary>
 
-      {(!zcurveSale || zcurveSale.status !== "ACTIVE") && (
+      <div className="flex flex-row justify-between items-center">
+        {(!zcurveSale || zcurveSale.status !== "ACTIVE") && (
+          <ErrorBoundary
+            fallback={
+              <ErrorFallback errorMessage="Error rendering voting panel" />
+            }
+          >
+            <VotePanel coinId={token?.id} />
+          </ErrorBoundary>
+        )}
         <ErrorBoundary
           fallback={
             <ErrorFallback errorMessage="Error rendering voting panel" />
           }
         >
-          <VotePanel coinId={token?.id} />
+          <WrapTokenManager token={tokenMetadata} />
         </ErrorBoundary>
-      )}
+      </div>
 
       <div className="my-4">
         {/* Unified Trading Interface */}
