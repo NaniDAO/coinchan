@@ -93,10 +93,14 @@ export const CookbookFarmTab = ({
   const filteredFarms = useMemo(() => {
     if (!poolFarms || !poolId) return [];
     const poolIdBigInt = BigInt(poolId);
-    return poolFarms.filter((farm) => {
-      // Ensure the farm's lpId matches our poolId exactly
-      return farm.lpId === poolIdBigInt;
-    });
+    return poolFarms
+      .filter((farm) => {
+        // Ensure the farm's lpId matches our poolId exactly
+        return farm.lpId === poolIdBigInt;
+      })
+      .filter((farm) => {
+        return farm.status === "ACTIVE";
+      });
   }, [poolFarms, poolId]);
 
   // Calculate total staked across all farms
