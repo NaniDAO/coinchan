@@ -38,7 +38,7 @@ import {
   AlertCircleIcon,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { formatUnits, parseUnits } from "viem";
+import { parseUnits } from "viem";
 import { useAccount, usePublicClient, useWalletClient } from "wagmi";
 import {
   encodeTokenQ,
@@ -134,63 +134,64 @@ function RouteComponent() {
   });
 
   // ---- Fee-tier liquidity: compute poolIds and fetch reserves for each known tier ----
-  // (These remain as helpful presets; if a hook is active we won't render FeeSelector)
-  const poolId100 = useMemo(() => {
-    if (!tokenA || !tokenB) return undefined;
-    return computePoolId(
-      { address: tokenA.address, id: tokenA.id },
-      { address: tokenB.address, id: tokenB.id },
-      100n,
-      protocolId,
-    );
-  }, [tokenA, tokenB, protocolId]);
+  // Commented out - not currently used with new FeeOrHookSelector
+  // const poolId100 = useMemo(() => {
+  //   if (!tokenA || !tokenB) return undefined;
+  //   return computePoolId(
+  //     { address: tokenA.address, id: tokenA.id },
+  //     { address: tokenB.address, id: tokenB.id },
+  //     100n,
+  //     protocolId,
+  //   );
+  // }, [tokenA, tokenB, protocolId]);
 
-  const poolId500 = useMemo(() => {
-    if (!tokenA || !tokenB) return undefined;
-    return computePoolId(
-      { address: tokenA.address, id: tokenA.id },
-      { address: tokenB.address, id: tokenB.id },
-      500n,
-      protocolId,
-    );
-  }, [tokenA, tokenB, protocolId]);
+  // const poolId500 = useMemo(() => {
+  //   if (!tokenA || !tokenB) return undefined;
+  //   return computePoolId(
+  //     { address: tokenA.address, id: tokenA.id },
+  //     { address: tokenB.address, id: tokenB.id },
+  //     500n,
+  //     protocolId,
+  //   );
+  // }, [tokenA, tokenB, protocolId]);
 
-  const poolId3000 = useMemo(() => {
-    if (!tokenA || !tokenB) return undefined;
-    return computePoolId(
-      { address: tokenA.address, id: tokenA.id },
-      { address: tokenB.address, id: tokenB.id },
-      3000n,
-      protocolId,
-    );
-  }, [tokenA, tokenB, protocolId]);
+  // const poolId3000 = useMemo(() => {
+  //   if (!tokenA || !tokenB) return undefined;
+  //   return computePoolId(
+  //     { address: tokenA.address, id: tokenA.id },
+  //     { address: tokenB.address, id: tokenB.id },
+  //     3000n,
+  //     protocolId,
+  //   );
+  // }, [tokenA, tokenB, protocolId]);
 
-  const poolId10000 = useMemo(() => {
-    if (!tokenA || !tokenB) return undefined;
-    return computePoolId(
-      { address: tokenA.address, id: tokenA.id },
-      { address: tokenB.address, id: tokenB.id },
-      10000n,
-      protocolId,
-    );
-  }, [tokenA, tokenB, protocolId]);
+  // const poolId10000 = useMemo(() => {
+  //   if (!tokenA || !tokenB) return undefined;
+  //   return computePoolId(
+  //     { address: tokenA.address, id: tokenA.id },
+  //     { address: tokenB.address, id: tokenB.id },
+  //     10000n,
+  //     protocolId,
+  //   );
+  // }, [tokenA, tokenB, protocolId]);
 
-  const { data: reserves100 } = useReserves({
-    poolId: poolId100,
-    source: reservesSource,
-  });
-  const { data: reserves500 } = useReserves({
-    poolId: poolId500,
-    source: reservesSource,
-  });
-  const { data: reserves3000 } = useReserves({
-    poolId: poolId3000,
-    source: reservesSource,
-  });
-  const { data: reserves10000 } = useReserves({
-    poolId: poolId10000,
-    source: reservesSource,
-  });
+  // Commented out - not currently used with new FeeOrHookSelector
+  // const { data: reserves100 } = useReserves({
+  //   poolId: poolId100,
+  //   source: reservesSource,
+  // });
+  // const { data: reserves500 } = useReserves({
+  //   poolId: poolId500,
+  //   source: reservesSource,
+  // });
+  // const { data: reserves3000 } = useReserves({
+  //   poolId: poolId3000,
+  //   source: reservesSource,
+  // });
+  // const { data: reserves10000 } = useReserves({
+  //   poolId: poolId10000,
+  //   source: reservesSource,
+  // });
 
   useEffect(() => {
     if (!tokens?.length) return;
@@ -443,56 +444,23 @@ function RouteComponent() {
   }, [fee, isHook]);
 
   // ----- Formatting helpers for liquidity labels on fee cards -----
-  const fmtNumber = (n: number) =>
-    Number.isFinite(n)
-      ? n >= 1e6
-        ? n.toExponential(2)
-        : n.toLocaleString(undefined, { maximumFractionDigits: 4 })
-      : "—";
+  // Commented out - not currently used with new FeeOrHookSelector
+  // const fmtNumber = (n: number) =>
+  //   Number.isFinite(n)
+  //     ? n >= 1e6
+  //       ? n.toExponential(2)
+  //       : n.toLocaleString(undefined, { maximumFractionDigits: 4 })
+  //     : "—";
 
-  const toNum = (v: any) => {
-    if (typeof v === "bigint") {
-      // best-effort; may overflow for extremely large values but fine for UI hinting
-      return Number(v);
-    }
-    return Number(v);
-  };
+  // const toNum = (v: any) => {
+  //   if (typeof v === "bigint") {
+  //     // best-effort; may overflow for extremely large values but fine for UI hinting
+  //     return Number(v);
+  //   }
+  //   return Number(v);
+  // };
 
-  const makeLiquidityLabel = (r: any | undefined) => {
-    if (!r) return "—";
-    const liq = r.liquidity ?? r.totalLiquidity;
-    if (typeof liq === "bigint" || typeof liq === "number") {
-      const n = toNum(liq);
-      return n > 0 ? `Liquidity: ${fmtNumber(n)}` : "No liquidity";
-    }
-    const ra = r.reserveA ?? r.reserve0 ?? r[0];
-    const rb = r.reserveB ?? r.reserve1 ?? r[1];
-    if (ra != null && rb != null) {
-      const a = Number(formatUnits(ra, tokenA?.decimals ?? 18)).toFixed(2);
-      const b = Number(formatUnits(rb, tokenB?.decimals ?? 18)).toFixed(2);
-      return `${a} ${tokenA?.symbol ?? "A"} / ${b} ${tokenB?.symbol ?? "B"}`;
-    }
-    return "—";
-  };
 
-  const liquidityByFee: Record<string, string> = useMemo(
-    () => ({
-      "100": makeLiquidityLabel(reserves100),
-      "500": makeLiquidityLabel(reserves500),
-      "3000": makeLiquidityLabel(reserves3000),
-      "10000": makeLiquidityLabel(reserves10000),
-    }),
-    [
-      reserves100,
-      reserves500,
-      reserves3000,
-      reserves10000,
-      tokenA?.decimals,
-      tokenB?.decimals,
-      tokenA?.symbol,
-      tokenB?.symbol,
-    ],
-  );
 
   // Dynamic steps: show "Create new pool & seed" when relevant (Review step removed)
   const steps: CreatePoolStep[] = useMemo(() => {
@@ -797,7 +765,6 @@ function RouteComponent() {
                 feeOrHook={fee}
                 setFeeOrHook={setFee}
                 isHook={isHook}
-                liquidityByFee={liquidityByFee}
                 className="flex-1 min-w-0"
               />
 

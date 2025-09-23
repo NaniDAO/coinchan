@@ -16,6 +16,7 @@ import {
   Rocket,
   Coins as CoinsIcon,
   Logs,
+  TrendingUp,
 } from "lucide-react";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
 import {
@@ -222,6 +223,12 @@ export const Route = createRootRoute({
                     onMouseLeave={() => setIsFarmOpen(false)}
                   >
                     <DropdownMenuItem asChild>
+                      <Link to="/stake" className={itemClasses}>
+                        <TrendingUp className="h-4 w-4" />
+                        <span>{t("common.stake", "Stake")}</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
                       <Link to="/farm" className={itemClasses}>
                         <Layers className="h-4 w-4" />
                         <span>{t("common.farm")}</span>
@@ -285,6 +292,7 @@ export const Route = createRootRoute({
                     { to: "/explore/curve_coins", label: "Curve Coins" },
                     { to: "/positions", label: t("common.positions") },
                     { to: "/coins", label: t("common.coins") },
+                    { to: "/stake", label: `📈 ${t("common.stake", "Stake")}` },
                     { to: "/farm", label: `🌾 ${t("common.farm")}` },
                     {
                       to: "/farm/create",
