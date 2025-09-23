@@ -65,6 +65,7 @@ function FinalizedPoolTradingInner({
   const [activeTab, setActiveTab] = useState<
     "swap" | "add" | "remove" | "airdrop" | "farm"
   >("swap");
+  const [hideFarm, setHideFarm] = useState(false);
   const { setSellToken, setBuyToken } = useTokenSelection();
   const { data: zDrops } = useGetZDrops({
     address,
@@ -358,12 +359,14 @@ function FinalizedPoolTradingInner({
             >
               {t("common.airdrop")}
             </TabsTrigger>
-            <TabsTrigger
-              value="farm"
-              className="flex-1 px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
-            >
-              {t("common.farm", "Farm")}
-            </TabsTrigger>
+            {hideFarm === true ? null : (
+              <TabsTrigger
+                value="farm"
+                className="flex-1 px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              >
+                {t("common.farm", "Farm")}
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="swap" className="mt-4">
@@ -406,6 +409,7 @@ function FinalizedPoolTradingInner({
           </TabsContent>
           <TabsContent value="farm" className="mt-4">
             <CookbookFarmTab
+              setHide={setHideFarm}
               poolId={poolId}
               contractAddress={contractAddress}
               source={source}

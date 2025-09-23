@@ -1,6 +1,6 @@
 import { useIncentiveStreamsByLpPool } from "@/hooks/use-incentive-streams";
 import { useReserves } from "@/hooks/use-reserves";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Address, formatEther } from "viem";
 import { IncentiveStreamCard } from "../IncentiveStreamCard";
@@ -17,6 +17,7 @@ interface CookbookFarmTabProps {
   source: CoinSource;
   coinSymbol?: string;
   swapFee?: bigint;
+  setHide?: (value: boolean) => void;
 }
 
 // Format liquidity amounts for compact display
@@ -52,6 +53,7 @@ export const CookbookFarmTab = ({
   source,
   coinSymbol,
   swapFee,
+  setHide,
 }: CookbookFarmTabProps) => {
   const { t } = useTranslation();
 
@@ -89,25 +91,33 @@ export const CookbookFarmTab = ({
     };
   }, [poolReserves, poolId, coinId, coinSymbol, coinData, swapFee]);
 
-  // Filter farms to ensure they match the exact pool ID
   const filteredFarms = useMemo(() => {
+    // if (activeFarms) return activeFarms;
     if (!poolFarms || !poolId) return [];
-    const poolIdBigInt = BigInt(poolId);
+    const pid = BigInt(poolId);
+    const now = BigInt(Math.floor(Date.now() / 1000));
+
     return poolFarms
-      .filter((farm) => {
-        // Ensure the farm's lpId matches our poolId exactly
-        return farm.lpId === poolIdBigInt;
-      })
-      .filter((farm) => {
-        return farm.status === "ACTIVE";
-      })
-      .filter((farm) => {
-        const timeNow = BigInt(Math.floor(Date.now() / 1000));
-        const farmStartTime = farm.startTime || 0;
-        const farmEndTime = farm.endTime || Infinity;
-        return timeNow >= farmStartTime && timeNow <= farmEndTime;
+      .filter((f) => f.lpId === pid)
+      .filter((f) => f.status === "ACTIVE")
+      .filter((f) => {
+        const start = f.startTime ?? 0n;
+        const end = f.endTime ?? 0xffffffffffffffffn; // BigInt sentinel
+        return now >= start && now <= end;
       });
   }, [poolFarms, poolId]);
+
+  useEffect(() => {
+    // set hide to true if filtered farms = 0
+    if (filteredFarms.length === 0) {
+      setHide?.(true);
+    }
+
+    // set hide to false if filtered farms > 0
+    if (filteredFarms.length > 0) {
+      setHide?.(false);
+    }
+  }, [filteredFarms]);
 
   // Calculate total staked across all farms
   const totalStaked = useMemo(() => {
