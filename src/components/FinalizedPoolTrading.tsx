@@ -38,6 +38,7 @@ import { PoolInfoSection } from "./explorer/token/TokenInfoSection";
 import ErrorFallback, { ErrorBoundary } from "./ErrorBoundary";
 import { useCoinTotalSupply } from "@/hooks/use-coin-total-supply";
 import { getSourceByContract } from "@/lib/protocol";
+import { useGetPool } from "@/hooks/use-get-pool";
 
 interface FinalizedPoolTradingProps {
   coinId: string;
@@ -75,8 +76,15 @@ function FinalizedPoolTradingInner({
 
   const [chartRefreshKey, setChartRefreshKey] = useState(0);
 
+  const contractSource = getSourceByContract(contractAddress);
+  const source =
+    contractSource && contractSource !== "ERC20"
+      ? contractSource
+      : ("COOKBOOK" as const);
+
   // Fetch sale and user data
   const { data: sale } = useZCurveSale(coinId);
+  const { data: pool } = useGetPool(providedPoolId ?? "", source);
   const { data: saleSummary } = useZCurveSaleSummary(coinId, address);
   const { data: userBalance } = useZCurveBalance(coinId, address);
 
@@ -90,7 +98,11 @@ function FinalizedPoolTradingInner({
   const { poolId, actualFee } = useMemo(() => {
     if (providedPoolId) {
       // If poolId is provided, extract fee from sale data
-      const feeOrHook = sale?.feeOrHook ? BigInt(sale.feeOrHook) : 30n;
+      const feeOrHook = sale?.feeOrHook
+        ? BigInt(sale.feeOrHook)
+        : pool?.swapFee
+          ? BigInt(pool.swapFee)
+          : 30n;
       const fee = feeOrHook < 10000n ? feeOrHook : 30n;
       return { poolId: providedPoolId, actualFee: fee };
     }
@@ -100,15 +112,8 @@ function FinalizedPoolTradingInner({
     const finalFee = feeOrHook < 10000n ? feeOrHook : 30n; // Use actual fee or default to 30 bps for hooks
     const computedPoolId = computeZCurvePoolId(BigInt(coinId), finalFee);
     return { poolId: computedPoolId, actualFee: finalFee };
-  }, [providedPoolId, coinId, sale]);
+  }, [providedPoolId, pool, coinId, sale]);
 
-  const contractSource = getSourceByContract(contractAddress);
-  const source =
-    contractSource && contractSource !== "ERC20"
-      ? contractSource
-      : ("COOKBOOK" as const);
-
-  console.log("Source:", source, contractSource, contractAddress);
   // Fetch pool reserves
   const { data: reserves, refetch: refetchReserves } = useReserves({
     poolId: poolId ? BigInt(poolId) : undefined,
@@ -296,6 +301,9 @@ function FinalizedPoolTradingInner({
       };
     }, [reserves, ethPrice?.priceUSD, poolId, actualTotalSupply]);
 
+  console.log("FinalizedPoolTrading", {
+    actualFee,
+  });
   return (
     <div>
       {/* Claim Section */}
