@@ -1,4 +1,4 @@
-import { formatNumber } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 import type { Address } from "viem";
 import { CreatorDisplay } from "./CreatorDisplay";
 import { CoinImagePopup } from "./CoinImagePopup";
@@ -22,6 +22,7 @@ interface CoinInfoCardProps {
   isZCurveBonding?: boolean;
   zcurveFeeOrHook?: string;
   creator?: Address;
+  className?: string;
 }
 
 export const CoinInfoCard = ({
@@ -40,6 +41,7 @@ export const CoinInfoCard = ({
   isZCurveBonding = false,
   zcurveFeeOrHook,
   creator,
+  className,
 }: CoinInfoCardProps) => {
   // Since CoinImagePopup handles its own fallback logic, we just pass the URL
   const currentImageUrl = imageUrl || null;
@@ -47,7 +49,11 @@ export const CoinInfoCard = ({
 
   return (
     <div
-      className={`flex items-start gap-4 mb-4 p-4 border-muted border-2 bg-muted/10 text-muted-foreground rounded-lg content-transition ${isLoading ? "loading" : "loaded fadeIn"}`}
+      className={cn(
+        `flex items-start gap-4 mb-4 p-4 border-muted border-2 bg-muted/10 text-muted-foreground rounded-lg content-transition`,
+        isLoading ? "loading" : "loaded fadeIn",
+        className,
+      )}
     >
       <div className="flex-shrink-0">
         {isLoading ? (
@@ -77,7 +83,7 @@ export const CoinInfoCard = ({
               <h3 className="text-lg font-medium truncate content-transition loaded">
                 {name}
               </h3>
-              <span className="text-sm font-medium text-accent dark:text-accent content-transition loaded">
+              <span className="text-sm font-medium text-secondary-foreground  content-transition loaded">
                 [{symbol}]
               </span>
             </>
@@ -86,7 +92,7 @@ export const CoinInfoCard = ({
 
         {/* Token ID in hex format and Etherscan link */}
         <div className="flex items-center mt-1 text-xs">
-          <span className="font-medium text-secondary dark:text-chart-2 mr-1">
+          <span className="font-medium text-secondary-foreground mr-1">
             ID: {coinId.toString()}{" "}
             {tokenType === "COOKBOOK" ? null : `(0x${coinId.toString(16)})`}
           </span>

@@ -1,7 +1,6 @@
 import AiMetaCard from "@/components/AiMetaCard";
 import { CoinBreadcrumb } from "@/components/CoinBreadcrumb";
 import { CoinInfoCard } from "@/components/CoinInfoCard";
-import { CoinPreview } from "@/components/CoinPreview";
 import ErrorFallback, { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useGetCoin } from "@/hooks/metadata/use-get-coin";
 import { useCoinTotalSupply } from "@/hooks/use-coin-total-supply";
@@ -24,7 +23,7 @@ import { UnifiedCoinTrading } from "../UnifiedCoinTrading";
 export const TokenPage = ({ token }: { token: Token }) => {
   const { t } = useTranslation();
 
-  const { data: tokenData, isLoading: isLoadingToken } = useGetToken({ token });
+  const { data: tokenData } = useGetToken({ token });
   // Fetch coin metadata
   const { data: coinData, isLoading: isLoadingCoin } = useGetCoin({
     coinId: token.id.toString(),
@@ -310,13 +309,7 @@ export const TokenPage = ({ token }: { token: Token }) => {
     <div>
       <CoinBreadcrumb coinId={token.id} />
       <AiMetaCard id={token.id.toString()} address={token.address} />
-      <CoinPreview
-        className="mt-6"
-        coinId={token?.id}
-        name={tokenData?.name}
-        symbol={tokenData?.symbol}
-        isLoading={isLoadingToken}
-      />
+
       <ErrorBoundary
         fallback={
           <ErrorFallback errorMessage="Error rendering Coin Info Card" />
@@ -343,6 +336,7 @@ export const TokenPage = ({ token }: { token: Token }) => {
             isZCurveBonding={isZCurveBonding}
             zcurveFeeOrHook={zcurveSale?.feeOrHook}
             creator={zcurveSale?.creator}
+            className="my-4"
           />
         ) : null}
       </ErrorBoundary>
@@ -357,22 +351,24 @@ export const TokenPage = ({ token }: { token: Token }) => {
         </ErrorBoundary>
       )}
 
-      {/* Unified Trading Interface */}
-      <ErrorBoundary
-        fallback={
-          <ErrorFallback errorMessage="Error rendering trading interface" />
-        }
-      >
-        <UnifiedCoinTrading
-          coinId={token?.id?.toString()}
-          token={token.address}
-          coinName={name}
-          coinSymbol={symbol}
-          coinIcon={imageUrl}
-          poolId={poolId?.toString()}
-          totalSupply={actualTotalSupply || undefined}
-        />
-      </ErrorBoundary>
+      <div className="my-4">
+        {/* Unified Trading Interface */}
+        <ErrorBoundary
+          fallback={
+            <ErrorFallback errorMessage="Error rendering trading interface" />
+          }
+        >
+          <UnifiedCoinTrading
+            coinId={token?.id?.toString()}
+            token={token.address}
+            coinName={name}
+            coinSymbol={symbol}
+            coinIcon={imageUrl}
+            poolId={poolId?.toString()}
+            totalSupply={actualTotalSupply || undefined}
+          />
+        </ErrorBoundary>
+      </div>
 
       {/* Pool Overview - only show if AMM pool exists */}
       {(!zcurveSale || zcurveSale.status === "FINALIZED") && (
