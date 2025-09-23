@@ -100,6 +100,12 @@ export const CookbookFarmTab = ({
       })
       .filter((farm) => {
         return farm.status === "ACTIVE";
+      })
+      .filter((farm) => {
+        const timeNow = BigInt(Math.floor(Date.now() / 1000));
+        const farmStartTime = farm.startTime || 0;
+        const farmEndTime = farm.endTime || Infinity;
+        return timeNow >= farmStartTime && timeNow <= farmEndTime;
       });
   }, [poolFarms, poolId]);
 
@@ -122,6 +128,8 @@ export const CookbookFarmTab = ({
       </div>
     );
   }
+
+  console.log("Filtered Farms:", filteredFarms);
 
   return (
     <div className="space-y-4">
