@@ -198,12 +198,6 @@ export default function PoolsTable({
           const sym1 = r.coin1.symbol ?? shortAddr(r.coin1.address);
           const sym0 = r.coin0.symbol ?? shortAddr(r.coin0.address);
 
-          if ((!img1 || !sym1) && row.original.source === "COOKBOOK") {
-            console.log("MISSING METADATA:", {
-              r,
-            });
-          }
-
           return (
             <div className="flex items-center gap-3 min-w-0">
               <div className="relative w-9 h-7">

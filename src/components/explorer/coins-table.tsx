@@ -166,26 +166,6 @@ export default function CoinsTable({
           map.set(poolId, (map.get(poolId) || 0) + 1);
         }
       });
-
-      // Debug logging
-      console.log("Active incentives map by poolId:", map);
-      console.log("Total fetched streams:", activeIncentiveStreams.length);
-      console.log(
-        "Truly active streams (not expired):",
-        Array.from(map.values()).reduce((a, b) => a + b, 0),
-      );
-
-      // Log some sample streams for debugging
-      if (activeIncentiveStreams.length > 0) {
-        const sample = activeIncentiveStreams[0];
-        console.log("Sample stream:", {
-          lpId: sample.lpId.toString(),
-          status: sample.status,
-          endTime: sample.endTime.toString(),
-          now: now.toString(),
-          isExpired: sample.endTime <= now,
-        });
-      }
     }
     return map;
   }, [activeIncentiveStreams]);
@@ -350,17 +330,9 @@ export default function CoinsTable({
         accessorKey: "incentives",
         cell: ({ row }) => {
           const poolId = row.original.poolId;
-          const backendCount = row.original.incentives; // Original count from backend
 
           // Use the active incentives count from our map, fallback to 0
           const activeCount = poolId ? activeIncentivesMap.get(poolId) || 0 : 0;
-
-          // Log discrepancies for debugging
-          if (backendCount > 0 && activeCount !== backendCount) {
-            console.log(
-              `Pool ${poolId}: Backend shows ${backendCount}, Active shows ${activeCount}`,
-            );
-          }
 
           if (activeCount === 0) {
             return <span className="text-xs text-muted-foreground">—</span>;

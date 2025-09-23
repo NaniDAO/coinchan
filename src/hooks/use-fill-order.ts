@@ -25,17 +25,6 @@ export const useFillOrder = () => {
       //               and gives ZAMM (tokenIn = Coins, idIn = ZAMM token ID)
       // The user is filling with veZAMM to receive ZAMM
 
-      console.log("Filling order:", {
-        maker: order.maker,
-        tokenIn: order.tokenIn, // Should be Coins contract (ZAMM)
-        idIn: order.idIn,
-        amtIn: order.amtIn,
-        tokenOut: order.tokenOut, // Should be Cookbook contract (veZAMM)
-        idOut: order.idOut, // Should be 87
-        amtOut: order.amtOut,
-        fillAmount: amount.toString()
-      });
-
       // Encode fillOrder call
       const fillOrderData = encodeFunctionData({
         abi: CookbookAbi,

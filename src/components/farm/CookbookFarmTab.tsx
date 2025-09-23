@@ -129,8 +129,6 @@ export const CookbookFarmTab = ({
     );
   }
 
-  console.log("Filtered Farms:", filteredFarms);
-
   return (
     <div className="space-y-4">
       {/* Pool Stats */}

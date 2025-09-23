@@ -1,8 +1,27 @@
-import { useEffect, useState, useMemo, useCallback, lazy, Suspense } from "react";
+import {
+  useEffect,
+  useState,
+  useMemo,
+  useCallback,
+  lazy,
+  Suspense,
+} from "react";
 import { useTranslation } from "react-i18next";
-import { formatEther, formatUnits, parseEther, parseUnits, erc20Abi, maxUint256 } from "viem";
+import {
+  formatEther,
+  formatUnits,
+  parseEther,
+  parseUnits,
+  erc20Abi,
+  maxUint256,
+} from "viem";
 import { mainnet } from "viem/chains";
-import { useAccount, usePublicClient, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import {
+  useAccount,
+  usePublicClient,
+  useWriteContract,
+  useWaitForTransactionReceipt,
+} from "wagmi";
 
 import { useETHPrice } from "./hooks/use-eth-price";
 import { WlfiSwapPanel } from "./components/WlfiSwapPanel";
@@ -10,7 +29,14 @@ import { SlippageSettings } from "./components/SlippageSettings";
 // Lazy load heavy components
 const PoolPriceChart = lazy(() => import("./components/PoolPriceChart"));
 import { ChevronDownIcon } from "lucide-react";
-import { type TokenMeta, ETH_TOKEN, WLFI_TOKEN, WLFI_POOL_ID, WLFI_ADDRESS, WLFI_POOL_KEY } from "./lib/coins";
+import {
+  type TokenMeta,
+  ETH_TOKEN,
+  WLFI_TOKEN,
+  WLFI_POOL_ID,
+  WLFI_ADDRESS,
+  WLFI_POOL_KEY,
+} from "./lib/coins";
 import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { AddLiquidity } from "./AddLiquidity";
@@ -25,7 +51,9 @@ import { useErc20Allowance } from "./hooks/use-erc20-allowance";
 import { handleWalletError } from "./lib/errors";
 import { ConnectMenu } from "./ConnectMenu";
 const WlfiFarmTab = lazy(() =>
-  import("./components/farm/WlfiFarmTab").then((module) => ({ default: module.WlfiFarmTab })),
+  import("./components/farm/WlfiFarmTab").then((module) => ({
+    default: module.WlfiFarmTab,
+  })),
 );
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
@@ -47,11 +75,15 @@ export const WlfiBuySell = () => {
 
   const [wlfiBalance, setWlfiBalance] = useState<bigint>(0n);
   const [ethBalance, setEthBalance] = useState<bigint>(0n);
-  const [activeTab, setActiveTab] = useState<"swap" | "add" | "remove" | "zap">("swap");
+  const [activeTab, setActiveTab] = useState<"swap" | "add" | "remove" | "zap">(
+    "swap",
+  );
   const [swapDirection, setSwapDirection] = useState<"buy" | "sell">("buy"); // buy = ETH->WLFI, sell = WLFI->ETH
   const [sellAmount, setSellAmount] = useState("");
   const [buyAmount, setBuyAmount] = useState("");
-  const [lastEditedField, setLastEditedField] = useState<"sell" | "buy">("sell");
+  const [lastEditedField, setLastEditedField] = useState<"sell" | "buy">(
+    "sell",
+  );
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showPriceChart, setShowPriceChart] = useState<boolean>(true); // Open by default
@@ -186,7 +218,8 @@ export const WlfiBuySell = () => {
   const { wlfiPrice, wlfiUsdPrice, marketCapUsd } = useMemo(() => {
     const price =
       poolReserves.reserve0 > 0n && poolReserves.reserve1 > 0n
-        ? Number(formatEther(poolReserves.reserve0)) / Number(formatUnits(poolReserves.reserve1, 18))
+        ? Number(formatEther(poolReserves.reserve0)) /
+          Number(formatUnits(poolReserves.reserve1, 18))
         : 0;
 
     const usdPrice = price * (ethPrice?.priceUSD || 0);
@@ -195,7 +228,11 @@ export const WlfiBuySell = () => {
     const totalSupply = 100000000000n * 10n ** 18n; // 100B tokens with 18 decimals
     const marketCap = usdPrice * Number(formatUnits(totalSupply, 18));
 
-    return { wlfiPrice: price, wlfiUsdPrice: usdPrice, marketCapUsd: marketCap };
+    return {
+      wlfiPrice: price,
+      wlfiUsdPrice: usdPrice,
+      marketCapUsd: marketCap,
+    };
   }, [poolReserves.reserve0, poolReserves.reserve1, ethPrice?.priceUSD]);
 
   // Calculate output based on input
@@ -209,8 +246,10 @@ export const WlfiBuySell = () => {
       }
 
       // Check if pool reserves are loaded (they can be 0n for new pools)
-      if (poolReserves.reserve0 === undefined || poolReserves.reserve1 === undefined) {
-        console.log("Pool reserves not loaded yet");
+      if (
+        poolReserves.reserve0 === undefined ||
+        poolReserves.reserve1 === undefined
+      ) {
         if (field === "sell") setBuyAmount("");
         else setSellAmount("");
         return;
@@ -219,7 +258,6 @@ export const WlfiBuySell = () => {
       // Only show insufficient liquidity if pool truly has no reserves
       // Since the pool has reserves, we can calculate swaps
       if (poolReserves.reserve0 === 0n && poolReserves.reserve1 === 0n) {
-        console.log("Pool has no liquidity");
         setErrorMessage(t("errors.insufficient_liquidity"));
         if (field === "sell") setBuyAmount("");
         else setSellAmount("");
@@ -235,12 +273,22 @@ export const WlfiBuySell = () => {
           if (swapDirection === "buy") {
             // Buying WLFI with ETH
             const ethIn = parseEther(value);
-            const wlfiOut = getAmountOut(ethIn, poolReserves.reserve0, poolReserves.reserve1, 30n);
+            const wlfiOut = getAmountOut(
+              ethIn,
+              poolReserves.reserve0,
+              poolReserves.reserve1,
+              30n,
+            );
             setBuyAmount(formatUnits(wlfiOut, 18));
           } else {
             // Selling WLFI for ETH
             const wlfiIn = parseUnits(value, 18);
-            const ethOut = getAmountOut(wlfiIn, poolReserves.reserve1, poolReserves.reserve0, 30n);
+            const ethOut = getAmountOut(
+              wlfiIn,
+              poolReserves.reserve1,
+              poolReserves.reserve0,
+              30n,
+            );
             setBuyAmount(formatEther(ethOut));
           }
         } else {
@@ -253,7 +301,8 @@ export const WlfiBuySell = () => {
             if (poolReserves.reserve1 > wlfiOut && wlfiOut > 0n) {
               const denominator = (poolReserves.reserve1 - wlfiOut) * 9970n;
               if (denominator > 0n) {
-                const ethIn = (poolReserves.reserve0 * wlfiOut * 10000n) / denominator;
+                const ethIn =
+                  (poolReserves.reserve0 * wlfiOut * 10000n) / denominator;
                 setSellAmount(formatEther(ethIn));
               } else {
                 setSellAmount("");
@@ -268,7 +317,8 @@ export const WlfiBuySell = () => {
             if (poolReserves.reserve0 > ethOut && ethOut > 0n) {
               const denominator = (poolReserves.reserve0 - ethOut) * 9970n;
               if (denominator > 0n) {
-                const wlfiIn = (poolReserves.reserve1 * ethOut * 10000n) / denominator;
+                const wlfiIn =
+                  (poolReserves.reserve1 * ethOut * 10000n) / denominator;
                 setSellAmount(formatUnits(wlfiIn, 18));
               } else {
                 setSellAmount("");
@@ -289,13 +339,22 @@ export const WlfiBuySell = () => {
 
   // Debounced version for user input to prevent excessive recalculations
   const debouncedCalculateOutput = useMemo(
-    () => debounce((value: string, field: "sell" | "buy") => calculateOutput(value, field), 300),
+    () =>
+      debounce(
+        (value: string, field: "sell" | "buy") => calculateOutput(value, field),
+        300,
+      ),
     [calculateOutput],
   );
 
   // Calculate price impact with memoization
   const priceImpact = useMemo(() => {
-    if (!poolReserves.reserve0 || !poolReserves.reserve1 || !sellAmount || parseFloat(sellAmount) === 0) {
+    if (
+      !poolReserves.reserve0 ||
+      !poolReserves.reserve1 ||
+      !sellAmount ||
+      parseFloat(sellAmount) === 0
+    ) {
       return null;
     }
 
@@ -306,19 +365,32 @@ export const WlfiBuySell = () => {
       if (swapDirection === "buy") {
         // Buying WLFI with ETH
         const ethIn = parseEther(sellAmount);
-        const wlfiOut = getAmountOut(ethIn, poolReserves.reserve0, poolReserves.reserve1, 30n);
+        const wlfiOut = getAmountOut(
+          ethIn,
+          poolReserves.reserve0,
+          poolReserves.reserve1,
+          30n,
+        );
         newReserve0 = poolReserves.reserve0 + ethIn;
         newReserve1 = poolReserves.reserve1 - wlfiOut;
       } else {
         // Selling WLFI for ETH
         const wlfiIn = parseUnits(sellAmount, 18);
-        const ethOut = getAmountOut(wlfiIn, poolReserves.reserve1, poolReserves.reserve0, 30n);
+        const ethOut = getAmountOut(
+          wlfiIn,
+          poolReserves.reserve1,
+          poolReserves.reserve0,
+          30n,
+        );
         newReserve0 = poolReserves.reserve0 - ethOut;
         newReserve1 = poolReserves.reserve1 + wlfiIn;
       }
 
-      const currentPrice = Number(formatEther(poolReserves.reserve0)) / Number(formatUnits(poolReserves.reserve1, 18));
-      const newPrice = Number(formatEther(newReserve0)) / Number(formatUnits(newReserve1, 18));
+      const currentPrice =
+        Number(formatEther(poolReserves.reserve0)) /
+        Number(formatUnits(poolReserves.reserve1, 18));
+      const newPrice =
+        Number(formatEther(newReserve0)) / Number(formatUnits(newReserve1, 18));
       const impactPercent = ((newPrice - currentPrice) / currentPrice) * 100;
 
       return {
@@ -352,7 +424,12 @@ export const WlfiBuySell = () => {
           setErrorMessage("Insufficient ETH balance");
           return;
         }
-        const wlfiOut = getAmountOut(ethIn, poolReserves.reserve0, poolReserves.reserve1, 30n);
+        const wlfiOut = getAmountOut(
+          ethIn,
+          poolReserves.reserve0,
+          poolReserves.reserve1,
+          30n,
+        );
         const minOut = withSlippage(wlfiOut, slippageBps);
         const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
@@ -387,14 +464,21 @@ export const WlfiBuySell = () => {
           });
 
           try {
-            await publicClient?.waitForTransactionReceipt({ hash: approveHash });
+            await publicClient?.waitForTransactionReceipt({
+              hash: approveHash,
+            });
           } catch (approvalError) {
             setErrorMessage(t("errors.approval_failed"));
             return;
           }
         }
 
-        const ethOut = getAmountOut(wlfiIn, poolReserves.reserve1, poolReserves.reserve0, 30n);
+        const ethOut = getAmountOut(
+          wlfiIn,
+          poolReserves.reserve1,
+          poolReserves.reserve0,
+          30n,
+        );
         const minOut = withSlippage(ethOut, slippageBps);
         const deadline = nowSec() + BigInt(DEADLINE_SEC);
 
@@ -402,7 +486,14 @@ export const WlfiBuySell = () => {
           address: CookbookAddress,
           abi: CookbookAbi,
           functionName: "swapExactIn",
-          args: [WLFI_POOL_KEY as any, wlfiIn, minOut, false, address, deadline],
+          args: [
+            WLFI_POOL_KEY as any,
+            wlfiIn,
+            minOut,
+            false,
+            address,
+            deadline,
+          ],
         });
 
         setTxHash(hash);
@@ -432,7 +523,9 @@ export const WlfiBuySell = () => {
             <h1 className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-amber-600 via-amber-700 to-amber-800 dark:from-yellow-400 dark:via-yellow-500 dark:to-yellow-600 bg-clip-text text-transparent">
               WLFI
             </h1>
-            <p className="text-xs sm:text-sm text-amber-600 dark:text-yellow-400/80">World Liberty Financial</p>
+            <p className="text-xs sm:text-sm text-amber-600 dark:text-yellow-400/80">
+              World Liberty Financial
+            </p>
           </div>
         </div>
       </div>
@@ -479,7 +572,11 @@ export const WlfiBuySell = () => {
               <div className="relative space-y-1">
                 {/* Sell panel */}
                 <WlfiSwapPanel
-                  title={swapDirection === "buy" ? t("ens.you_pay") : t("ens.you_pay")}
+                  title={
+                    swapDirection === "buy"
+                      ? t("ens.you_pay")
+                      : t("ens.you_pay")
+                  }
                   selectedToken={swapDirection === "buy" ? ethToken : wlfiToken}
                   tokens={[]} // Empty array prevents token selection
                   onSelect={() => {}} // No-op
@@ -507,7 +604,8 @@ export const WlfiBuySell = () => {
                   }}
                   showPercentageSlider={
                     lastEditedField === "sell" &&
-                    ((swapDirection === "buy" && ethBalance > 0n) || (swapDirection === "sell" && wlfiBalance > 0n))
+                    ((swapDirection === "buy" && ethBalance > 0n) ||
+                      (swapDirection === "sell" && wlfiBalance > 0n))
                   }
                 />
 
@@ -516,13 +614,21 @@ export const WlfiBuySell = () => {
                   <div className="absolute inset-0 flex items-center justify-center">
                     <button
                       onClick={() => {
-                        setSwapDirection(swapDirection === "buy" ? "sell" : "buy");
+                        setSwapDirection(
+                          swapDirection === "buy" ? "sell" : "buy",
+                        );
                         setSellAmount("");
                         setBuyAmount("");
                       }}
                       className="bg-white dark:bg-black border-2 border-amber-400 dark:border-yellow-500/40 rounded-full p-2 hover:border-amber-500 dark:hover:border-yellow-500/60 transition-all hover:rotate-180 duration-300 hover:bg-amber-100 dark:hover:bg-yellow-500/10"
                     >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
                         <path
                           d="M7 16V4M7 4L3 8M7 4L11 8M17 8V20M17 20L21 16M17 20L13 16"
                           stroke="currentColor"
@@ -538,7 +644,11 @@ export const WlfiBuySell = () => {
 
                 {/* Buy panel */}
                 <WlfiSwapPanel
-                  title={swapDirection === "buy" ? t("ens.you_receive") : t("ens.you_receive")}
+                  title={
+                    swapDirection === "buy"
+                      ? t("ens.you_receive")
+                      : t("ens.you_receive")
+                  }
                   selectedToken={swapDirection === "buy" ? wlfiToken : ethToken}
                   tokens={[]} // Empty array prevents token selection
                   onSelect={() => {}} // No-op
@@ -562,15 +672,21 @@ export const WlfiBuySell = () => {
                       isPending ||
                       !sellAmount ||
                       parseFloat(sellAmount) === 0 ||
-                      (swapDirection === "buy" && ethBalance > 0n && parseEther(sellAmount || "0") > ethBalance) ||
-                      (swapDirection === "sell" && wlfiBalance > 0n && parseUnits(sellAmount || "0", 18) > wlfiBalance)
+                      (swapDirection === "buy" &&
+                        ethBalance > 0n &&
+                        parseEther(sellAmount || "0") > ethBalance) ||
+                      (swapDirection === "sell" &&
+                        wlfiBalance > 0n &&
+                        parseUnits(sellAmount || "0", 18) > wlfiBalance)
                     }
                     className="w-full bg-gradient-to-r from-amber-500 to-amber-600 dark:from-yellow-500 dark:to-yellow-600 hover:from-amber-600 hover:to-amber-700 dark:hover:from-yellow-600 dark:hover:to-yellow-700 text-white dark:text-black font-bold shadow-lg shadow-amber-500/30 dark:shadow-yellow-500/30"
                   >
                     {isPending ? (
                       <span className="flex items-center gap-2">
                         <LoadingLogo size="sm" />
-                        {swapDirection === "buy" ? "Buying WLFI..." : "Selling WLFI..."}
+                        {swapDirection === "buy"
+                          ? "Buying WLFI..."
+                          : "Selling WLFI..."}
                       </span>
                     ) : swapDirection === "buy" ? (
                       "Buy WLFI"
@@ -580,12 +696,21 @@ export const WlfiBuySell = () => {
                   </Button>
                 )}
 
-                {errorMessage && <p className="text-red-500 text-sm">{errorMessage}</p>}
-                {isSuccess && <p className="text-green-500 text-sm">Transaction confirmed!</p>}
+                {errorMessage && (
+                  <p className="text-red-500 text-sm">{errorMessage}</p>
+                )}
+                {isSuccess && (
+                  <p className="text-green-500 text-sm">
+                    Transaction confirmed!
+                  </p>
+                )}
 
                 {/* Slippage Settings */}
                 <div className="mt-4">
-                  <SlippageSettings slippageBps={slippageBps} setSlippageBps={setSlippageBps} />
+                  <SlippageSettings
+                    slippageBps={slippageBps}
+                    setSlippageBps={setSlippageBps}
+                  />
                 </div>
 
                 {/* Price impact display */}
@@ -612,7 +737,9 @@ export const WlfiBuySell = () => {
                       onClick={() => setShowPriceChart((prev) => !prev)}
                       className="text-xs text-amber-600 dark:text-yellow-400/60 flex items-center gap-1 hover:text-amber-700 dark:hover:text-yellow-400"
                     >
-                      {showPriceChart ? t("coin.hide_chart") : t("coin.show_chart")}
+                      {showPriceChart
+                        ? t("coin.hide_chart")
+                        : t("coin.show_chart")}
                       <ChevronDownIcon
                         className={`w-3 h-3 transition-transform ${showPriceChart ? "rotate-180" : ""}`}
                       />
@@ -652,15 +779,21 @@ export const WlfiBuySell = () => {
               {/* Market Stats - subtle below chart */}
               <div className="mt-4 sm:mt-6 grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 text-xs">
                 <div className="text-center">
-                  <p className="text-amber-600 dark:text-yellow-400/60">{t("coin.price")}</p>
+                  <p className="text-amber-600 dark:text-yellow-400/60">
+                    {t("coin.price")}
+                  </p>
                   <p className="font-medium text-amber-700 dark:text-yellow-400">
                     {wlfiPrice > 0 ? `${wlfiPrice.toFixed(8)} ETH` : "-"}
                   </p>
-                  <p className="text-amber-500 dark:text-yellow-400/40">${wlfiUsdPrice.toFixed(6)}</p>
+                  <p className="text-amber-500 dark:text-yellow-400/40">
+                    ${wlfiUsdPrice.toFixed(6)}
+                  </p>
                 </div>
 
                 <div className="text-center">
-                  <p className="text-amber-600 dark:text-yellow-400/60">{t("coin.market_cap")}</p>
+                  <p className="text-amber-600 dark:text-yellow-400/60">
+                    {t("coin.market_cap")}
+                  </p>
                   <p className="font-medium text-amber-700 dark:text-yellow-400">
                     $
                     {marketCapUsd > 1e9
@@ -672,16 +805,21 @@ export const WlfiBuySell = () => {
                 </div>
 
                 <div className="text-center">
-                  <p className="text-amber-600 dark:text-yellow-400/60">{t("coin.pool_eth")}</p>
+                  <p className="text-amber-600 dark:text-yellow-400/60">
+                    {t("coin.pool_eth")}
+                  </p>
                   <p className="font-medium text-amber-700 dark:text-yellow-400">
                     {formatEther(poolReserves.reserve0)} ETH
                   </p>
                 </div>
 
                 <div className="text-center">
-                  <p className="text-amber-600 dark:text-yellow-400/60">Pool WLFI</p>
+                  <p className="text-amber-600 dark:text-yellow-400/60">
+                    Pool WLFI
+                  </p>
                   <p className="font-medium text-amber-700 dark:text-yellow-400">
-                    {Number(formatUnits(poolReserves.reserve1, 18)).toFixed(0)} WLFI
+                    {Number(formatUnits(poolReserves.reserve1, 18)).toFixed(0)}{" "}
+                    WLFI
                   </p>
                 </div>
               </div>
@@ -690,7 +828,11 @@ export const WlfiBuySell = () => {
 
           <TabsContent value="add" className="mt-2 sm:mt-4">
             <ErrorBoundary
-              fallback={<div className="text-center py-4 text-red-500">{t("common.error_loading_component")}</div>}
+              fallback={
+                <div className="text-center py-4 text-red-500">
+                  {t("common.error_loading_component")}
+                </div>
+              }
             >
               <AddLiquidity />
             </ErrorBoundary>
@@ -698,7 +840,11 @@ export const WlfiBuySell = () => {
 
           <TabsContent value="remove" className="mt-2 sm:mt-4">
             <ErrorBoundary
-              fallback={<div className="text-center py-4 text-red-500">{t("common.error_loading_component")}</div>}
+              fallback={
+                <div className="text-center py-4 text-red-500">
+                  {t("common.error_loading_component")}
+                </div>
+              }
             >
               <RemoveLiquidity />
             </ErrorBoundary>
@@ -706,13 +852,23 @@ export const WlfiBuySell = () => {
 
           <TabsContent value="zap" className="mt-2 sm:mt-4">
             <ErrorBoundary
-              fallback={<div className="text-center py-4 text-red-500">{t("common.error_loading_component")}</div>}
+              fallback={
+                <div className="text-center py-4 text-red-500">
+                  {t("common.error_loading_component")}
+                </div>
+              }
             >
               <WLFIZapWrapper />
             </ErrorBoundary>
           </TabsContent>
           <TabsContent value="farm" className="mt-2 sm:mt-4">
-            <ErrorBoundary fallback={<div className="text-red-500">{t("common.error_loading_farm")}</div>}>
+            <ErrorBoundary
+              fallback={
+                <div className="text-red-500">
+                  {t("common.error_loading_farm")}
+                </div>
+              }
+            >
               <Suspense
                 fallback={
                   <div className="h-64 flex items-center justify-center">
@@ -733,8 +889,8 @@ export const WlfiBuySell = () => {
           About World Liberty Financial
         </h2>
         <p className="text-yellow-400/70 mb-4">
-          World Liberty Financial (WLFI) is a decentralized finance platform focused on financial freedom and
-          accessibility.
+          World Liberty Financial (WLFI) is a decentralized finance platform
+          focused on financial freedom and accessibility.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 text-sm">
           <div>

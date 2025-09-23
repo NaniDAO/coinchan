@@ -92,8 +92,6 @@ export const fetchPool = async (
 
   const json: GetPoolResponse = await response.json();
 
-  console.log("useGetPool", json);
-
   if (json.errors?.length) {
     // Surface the first GraphQL error
     throw new Error(json.errors[0].message || "GraphQL error");

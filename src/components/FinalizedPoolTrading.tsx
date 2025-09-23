@@ -301,9 +301,6 @@ function FinalizedPoolTradingInner({
       };
     }, [reserves, ethPrice?.priceUSD, poolId, actualTotalSupply]);
 
-  console.log("FinalizedPoolTrading", {
-    actualFee,
-  });
   return (
     <div>
       {/* Claim Section */}

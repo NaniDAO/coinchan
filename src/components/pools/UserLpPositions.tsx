@@ -205,7 +205,6 @@ async function fetchUserLpPositionsInfinite(
 
   if (!res.ok) throw new Error("Network error");
   const json = await res.json();
-  console.log("JSON, ", json);
   if (json.errors) throw new Error(json.errors[0].message as string);
 
   const conn = json.data.lpUserPositions as LpPositionsConnection;
@@ -260,8 +259,6 @@ export function UserLpPositions({
     enabled: !!address && !!publicClient,
     select: (d) => d.pages.flatMap((p) => p.items),
   });
-
-  console.log("UserPositions:", data);
 
   const sentinelRef = React.useRef<HTMLDivElement | null>(null);
 
