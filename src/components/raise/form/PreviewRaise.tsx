@@ -1,5 +1,3 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Heading } from "@/components/ui/typography";
 import { templates } from "./RaiseForm";
 
 export const PreviewRaise = ({
@@ -21,70 +19,128 @@ export const PreviewRaise = ({
   airdropPriceX18: bigint;
   incentiveDuration: bigint;
 }) => {
+  const imgUrl = imageBuffer
+    ? URL.createObjectURL(new Blob([imageBuffer]))
+    : null;
+
+  const initial = (state?.name?.trim?.()?.charAt(0) || "Z").toUpperCase();
+
   return (
-    <div>
-      <Heading level={2}>Preview</Heading>
-      <div className="mt-4">
-        <div className="mb-4 flex flex-row justify-between items-center">
-          <Avatar className="rounded-md mr-4 h-50 w-50">
-            <AvatarImage
-              src={
-                imageBuffer
-                  ? URL.createObjectURL(new Blob([imageBuffer]))
-                  : undefined
-              }
-              alt={state.name + " avatar"}
-            />
-            <AvatarFallback className="rounded-md">
-              {state?.name?.charAt(0)?.toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="w-full flex flex-col items-start justify-start">
-            <div>
-              <div>{state.name}</div>
-              <div>[{state.symbol}]</div>
+    <section
+      className="
+        h-fit rounded-2xl border bg-white/60 dark:bg-neutral-900/60
+        shadow-sm backdrop-blur-sm overflow-hidden
+      "
+    >
+      {/* header */}
+      <div className="px-5 py-4 border-b bg-gradient-to-b from-transparent to-black/[0.02] dark:to-white/[0.02]">
+        <h2 className="text-lg font-semibold tracking-tight">Preview</h2>
+      </div>
+
+      {/* identity row */}
+      <div className="px-5 py-4">
+        <div className="flex items-start gap-4">
+          {/* avatar / logo */}
+          <div
+            className="
+              relative h-32 w-32 shrink-0 rounded-xl
+              ring-1 ring-black/5 dark:ring-white/10
+              bg-neutral-100 dark:bg-neutral-800
+              grid place-items-center overflow-hidden
+            "
+          >
+            {imgUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={imgUrl}
+                alt={`${state.name || "Project"} logo`}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <span className="text-lg font-semibold text-neutral-500">
+                {initial}
+              </span>
+            )}
+          </div>
+
+          {/* name/symbol/desc */}
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <div className="text-xl font-bold leading-tight truncate">
+                {state.name || "Unnamed"}
+              </div>
+              <div className="text-sm px-2 py-0.5 rounded-md border bg-neutral-50 dark:bg-neutral-800/60 text-neutral-600 dark:text-neutral-300">
+                [{state.symbol || "---"}]
+              </div>
             </div>
-            <div>{state.description}</div>
+            <p
+              className="
+                mt-1 text-sm text-neutral-600 dark:text-neutral-300
+                whitespace-pre-wrap
+              "
+            >
+              {state.description || "No description yet."}
+            </p>
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-          <InfoPill title="ethRate (×1e18)" value={ethRate.toString()} />
-          <InfoPill title="otcSupply (wei)" value={otcSupply.toString()} />
+      </div>
+
+      {/* stats */}
+      <div className="px-5 pb-5">
+        <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-3">
+          Tokenomics
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <InfoStat title="ETH Rate (×1e18)" value={ethRate.toString()} />
+          <InfoStat title="OTC Supply (wei)" value={otcSupply.toString()} />
+
+          {/*@ts-expect-error */}
           {templates[state.template].needsChef && (
-            <InfoPill
-              title="incentiveAmount (wei)"
+            <InfoStat
+              title="Incentive Amount (wei)"
               value={incentiveAmount.toString()}
             />
           )}
+          {/*@ts-expect-error */}
           {templates[state.template].needsAirdrop && (
             <>
-              <InfoPill
-                title="airdropIncentive (wei)"
+              <InfoStat
+                title="Airdrop Incentive (wei)"
                 value={airdropIncentive.toString()}
               />
-              <InfoPill
-                title="airdropPriceX18"
+              <InfoStat
+                title="Airdrop Price X18"
                 value={airdropPriceX18.toString()}
               />
             </>
           )}
+          {/*@ts-expect-error */}
           {templates[state.template].needsChef && (
-            <InfoPill
-              title="incentiveDuration (sec)"
+            <InfoStat
+              title="Incentive Duration (sec)"
               value={incentiveDuration.toString()}
             />
           )}
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 
-function InfoPill({ title, value }: { title: string; value: string }) {
+function InfoStat({ title, value }: { title: string; value: string }) {
   return (
-    <div className="p-3 rounded-xl bg-muted/60 border text-xs flex flex-col">
-      <div className="text-muted-foreground">{title}</div>
-      <div className="font-mono break-all">{value}</div>
+    <div
+      className="
+        p-4 rounded-xl border bg-white/70 dark:bg-neutral-900/70
+        shadow-xs
+      "
+    >
+      <div className="text-[11px] uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+        {title}
+      </div>
+      <div className="mt-1 font-mono text-xs break-all text-neutral-900 dark:text-neutral-50">
+        {value || "—"}
+      </div>
     </div>
   );
 }
