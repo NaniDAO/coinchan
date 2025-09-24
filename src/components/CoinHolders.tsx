@@ -202,7 +202,7 @@ export const CoinHolders = ({
                 <div className="flex justify-between items-center p-2 rounded bg-muted/50">
                   <div>
                     <div className="font-medium">
-                      {t("holders.cookbook_pool", "Cookbook Pool")}
+                      {t("holders.cookbook_pool", "V1 Pool")}
                     </div>
                     <div className="text-sm text-muted-foreground">
                       {CookbookAddress.slice(0, 6)}...
@@ -224,8 +224,8 @@ export const CoinHolders = ({
                   const isZAMM =
                     holder.address.toLowerCase() === ZAMMAddress.toLowerCase();
                   const poolName = isZAMM
-                    ? t("holders.zamm_pool", "ZAMM Pool")
-                    : t("holders.cookbook_pool", "Cookbook Pool");
+                    ? t("holders.zamm_pool", "V0 Pool")
+                    : t("holders.cookbook_pool", "V1 Pool");
                   const balance = formatUnits(BigInt(holder.balance), 18);
                   const percentage =
                     totalSupply > 0n
