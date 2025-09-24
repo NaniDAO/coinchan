@@ -1,3 +1,8 @@
+// ============================
+// RaiseForm.tsx (updated)
+// - Adds useETHPrice hook to fetch ETH price in USD
+// - Passes ethPriceUSD down to PreviewRaise for initial coin USD price display
+// ============================
 import React, { useMemo, useRef, useState } from "react";
 import {
   useWriteContract,
@@ -18,6 +23,7 @@ import { useTranslation } from "react-i18next";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { pinImageToPinata, pinJsonToPinata } from "@/lib/pinata";
+import { useETHPrice } from "@/hooks/use-eth-price";
 
 // === Form logic ===
 export const templates = {
@@ -99,6 +105,8 @@ export default function RaiseForm() {
   });
 
   const [imageBuffer, setImageBuffer] = useState<ArrayBuffer | null>(null);
+
+  const { data: ethPrice } = useETHPrice();
 
   const onChange = (key: keyof typeof defaultState) => (e: any) => {
     setState((s) => ({ ...s, [key]: e?.target ? e.target.value : e }));
@@ -317,6 +325,7 @@ export default function RaiseForm() {
           airdropIncentive={airdropIncentive}
           airdropPriceX18={airdropPriceX18}
           incentiveDuration={incentiveDuration}
+          ethPriceUSD={ethPrice?.priceUSD ?? null} // <— NEW
         />
         <form onSubmit={submitCreateSale} className="space-y-6">
           <SectionTitle>Identity</SectionTitle>
@@ -368,16 +377,6 @@ export default function RaiseForm() {
           </Row>
 
           <Row>
-            <Field
-              label="lpBps"
-              description="0 → buyers do NOT mint LP; 100% ETH to creator"
-            >
-              <Input
-                type="number"
-                value={state.lpBps}
-                onChange={onChange("lpBps")}
-              />
-            </Field>
             {templates[state.template].needsChef && (
               <Field
                 label="feeOrHook"
