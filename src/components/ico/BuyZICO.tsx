@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   useAccount,
   useBalance,
@@ -6,7 +6,6 @@ import {
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
-import type { Address } from "viem";
 import { parseEther, formatEther, formatUnits } from "viem";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,15 +27,15 @@ import { TradePanel } from "../trade/TradePanel";
 import { ETH_TOKEN, TokenMetadata } from "@/lib/pools";
 import { ZICOSaleStatus } from "@/hooks/use-otc-sale-status";
 import { mainnet } from "viem/chains";
+import { Progress } from "../ui/progress";
 
 export type BuyOTCProps = {
   buyToken: TokenMetadata;
   sale?: ZICOSaleStatus;
+  totalSupply?: bigint;
   className?: string;
 };
 
-// --- Quote hook ---
-// Simulates calling buyOTC to compute amountOut for a given ETH input
 function useOtcQuote({
   coinId,
   slippageBps,
@@ -73,7 +72,12 @@ function useOtcQuote({
   };
 }
 
-export default function BuyOTC({ buyToken, sale, className }: BuyOTCProps) {
+export default function BuyOTC({
+  buyToken,
+  sale,
+  totalSupply,
+  className,
+}: BuyOTCProps) {
   const { address, isConnected } = useAccount();
 
   const [slippageBps, setSlippageBps] = useState<bigint>(BigInt(SLIPPAGE_BPS));
@@ -154,7 +158,7 @@ export default function BuyOTC({ buyToken, sale, className }: BuyOTCProps) {
   };
 
   const formattedOut = useMemo(() => {
-    if (!amountOut || !buyToken) return "-";
+    if (!amountOut || !buyToken) return "0";
     return formatUnits(amountOut, buyToken.decimals);
   }, [amountOut, buyToken]);
 
@@ -162,6 +166,16 @@ export default function BuyOTC({ buyToken, sale, className }: BuyOTCProps) {
     setEthAmount(v);
     // calculate buy amount and set it
   };
+
+  const progress = useMemo(() => {
+    if (!sale || !sale.zicoInventory || !totalSupply) return 0;
+    return (
+      ((Number(formatEther(totalSupply)) -
+        Number(formatEther(sale.zicoInventory))) /
+        Number(formatEther(totalSupply))) *
+      100
+    );
+  }, [sale, totalSupply]);
 
   return (
     <Card
@@ -193,6 +207,7 @@ export default function BuyOTC({ buyToken, sale, className }: BuyOTCProps) {
       </CardHeader>
 
       <CardContent className="space-y-4">
+        <Progress value={progress}></Progress>
         <TradePanel
           title={"Sell"}
           selectedToken={sellToken}

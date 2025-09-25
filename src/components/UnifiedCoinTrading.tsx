@@ -32,7 +32,7 @@ import { Address, zeroAddress } from "viem";
 import { Link } from "@tanstack/react-router";
 import { encodeTokenQ } from "@/lib/token-query";
 import { CookbookAddress } from "@/constants/Cookbook";
-import { Token, TokenMetadata } from "@/lib/pools";
+import { TokenMetadata } from "@/lib/pools";
 import { useOTCSaleStatus } from "@/hooks/use-otc-sale-status";
 import BuyOTC from "./ico/BuyZICO";
 import { ErrorBoundary } from "./ErrorBoundary";
@@ -223,7 +223,11 @@ export function UnifiedCoinTrading({
         <ErrorBoundary fallback={<div>Error</div>}>
           {/* zICO OTC sale */}
           {coin ? (
-            <BuyOTC buyToken={coin} sale={zICOsaleStatus} />
+            <BuyOTC
+              buyToken={coin}
+              sale={zICOsaleStatus}
+              totalSupply={totalSupply}
+            />
           ) : (
             <LoadingLogo />
           )}
