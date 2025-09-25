@@ -96,15 +96,7 @@ export function UnifiedCoinTrading({
   });
 
   const coin: TokenMetadata | undefined = useMemo(() => {
-    console.log("Coin:", {
-      coinId,
-      balance,
-      coinName,
-      coinSymbol,
-      coinIcon,
-    });
-    if (!coinId || !balance || !coinName || !coinSymbol || !coinIcon)
-      return undefined;
+    if (!coinId || !coinName || !coinSymbol || !coinIcon) return undefined;
     return {
       address: token ?? CookbookAddress,
       id: BigInt(coinId),
@@ -114,7 +106,7 @@ export function UnifiedCoinTrading({
       imageUrl: coinIcon,
       decimals: 18,
       standard: "ERC6909",
-      balance,
+      balance: balance ?? 0n,
     };
   }, [coinId, token, coinName, coinSymbol, coinIcon, balance]);
 
