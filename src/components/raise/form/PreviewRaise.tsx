@@ -1,4 +1,10 @@
+import { formatDuration } from "@/lib/date";
 import { templates } from "./RaiseForm";
+import { formatEther } from "viem"; // ✅ use library utility
+import { bigintToNumberSafe, formatDexscreenerStyle } from "@/lib/math";
+import { Heading } from "@/components/ui/typography";
+import { isFeeOrHook } from "@/lib/pools";
+import { useMemo } from "react";
 
 export const PreviewRaise = ({
   state,
@@ -31,7 +37,7 @@ export const PreviewRaise = ({
   const totalSupplyWei = parseUnitsSafe(state.totalSupplyDisplay, 18n);
   const creatorSupplyWei = parseUnitsSafe(state.creatorSupplyDisplay, 18n);
 
-  //@ts-expect-error
+  // @ts-expect-error
   const needsChef = templates[state.template].needsChef;
 
   const parts: Array<{
@@ -61,11 +67,24 @@ export const PreviewRaise = ({
 
   const breakdown = computeBreakdown(parts, totalSupplyWei);
 
-  // ----- Initial coin price in USD -----
-  // ethRate = coinsPerEth * 1e18 (BigInt). We want USD per coin = ethPriceUSD / coinsPerEth
+  // ----- Initial coin price in ETH & USD -----
+  // Interpret ethRate as tokens-per-ETH scaled by 1e18 (consistent with existing code).
   const coinsPerEth = ethRate > 0n ? ethRate / 10n ** 18n : 0n;
+
+  // price in ETH per token
+  const coinPriceETH = computeCoinEthPrice(coinsPerEth);
+  const coinPriceETHStr =
+    coinPriceETH == null ? "—" : `${formatNumberFlexible(coinPriceETH, 8)} ETH`;
+
+  // price in USD per token
   const coinPriceUSD = computeCoinUsdPrice(ethPriceUSD, coinsPerEth);
   const coinPriceUSDStr = coinPriceUSD == null ? "—" : formatUSD(coinPriceUSD);
+
+  const symbol = state.symbol || "---";
+  const initialPriceCombined =
+    coinPriceETH == null && coinPriceUSD == null
+      ? "—"
+      : `1 ${symbol} = ${formatDexscreenerStyle(coinPriceETH ?? 0)} ETH = ${coinPriceUSDStr} USD`;
 
   return (
     <section
@@ -92,7 +111,6 @@ export const PreviewRaise = ({
             "
           >
             {imgUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={imgUrl}
                 alt={`${state.name || "Project"} logo`}
@@ -112,7 +130,7 @@ export const PreviewRaise = ({
                 {state.name || "Unnamed"}
               </div>
               <div className="text-sm px-2 py-0.5 rounded-md border bg-neutral-50 dark:bg-neutral-800/60 text-neutral-600 dark:text-neutral-300">
-                [{state.symbol || "---"}]
+                [{symbol}]
               </div>
             </div>
             <p
@@ -133,7 +151,6 @@ export const PreviewRaise = ({
           Supply breakdown
         </h3>
 
-        {/* Segmented, read-only slider */}
         <div
           className="
             w-full h-4 rounded-full overflow-hidden border
@@ -151,13 +168,14 @@ export const PreviewRaise = ({
                 key={seg.key}
                 className={`${seg.color} h-full`}
                 style={{ width: `${seg.pct}%` }}
-                title={`${seg.label}: ${seg.pct.toFixed(2)}% • ${formatToken(seg.value)} tokens`}
+                title={`${seg.label}: ${formatPct(seg.pct, 2)} • ${formatToken(
+                  seg.value,
+                )} tokens`}
               />
             ))}
           </div>
         </div>
 
-        {/* Legend */}
         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
           {breakdown.items.map((seg) => (
             <div
@@ -177,13 +195,12 @@ export const PreviewRaise = ({
                 </span>
               </div>
               <div className="text-xs tabular-nums text-neutral-600 dark:text-neutral-300">
-                {seg.pct.toFixed(2)}%
+                {formatPct(seg.pct, 2)}
               </div>
             </div>
           ))}
         </div>
 
-        {/* Totals row */}
         <div className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
           Total: {formatToken(totalSupplyWei)} tokens
         </div>
@@ -194,41 +211,24 @@ export const PreviewRaise = ({
         <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-3">
           Tokenomics
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          <InfoStat title="ETH Rate (×1e18)" value={ethRate.toString()} />
-          <InfoStat title="OTC Supply (wei)" value={otcSupply.toString()} />
-
-          {/* NEW: Initial coin price in USD */}
-          <InfoStat title="Initial Price (USD)" value={coinPriceUSDStr} />
-
-          {/*@ts-expect-error */}
-          {templates[state.template].needsChef && (
+        <InfoStat title="ETH Rate" value={formatEtherWithCommas(ethRate, 6)} />
+        <InfoStat title="Initial Price" value={initialPriceCombined} />
+        {/*@ts-expect-error*/}
+        {templates[state.template].needsChef && (
+          <div>
+            <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-3">
+              Farming Incentives
+            </h3>
             <InfoStat
-              title="Incentive Amount (wei)"
-              value={incentiveAmount.toString()}
+              title={`Incentive Amount ${state.symbol && state.symbol}`}
+              value={formatEtherWithCommas(incentiveAmount, 6)}
             />
-          )}
-          {/*@ts-expect-error */}
-          {templates[state.template].needsAirdrop && (
-            <>
-              <InfoStat
-                title="Airdrop Incentive (wei)"
-                value={airdropIncentive.toString()}
-              />
-              <InfoStat
-                title="Airdrop Price X18"
-                value={airdropPriceX18.toString()}
-              />
-            </>
-          )}
-          {/*@ts-expect-error */}
-          {templates[state.template].needsChef && (
             <InfoStat
-              title="Incentive Duration (sec)"
-              value={incentiveDuration.toString()}
+              title="Incentive Duration"
+              value={formatDuration(bigintToNumberSafe(incentiveDuration))}
             />
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </section>
   );
@@ -236,31 +236,19 @@ export const PreviewRaise = ({
 
 function InfoStat({ title, value }: { title: string; value: string }) {
   return (
-    <div
-      className="
-        p-4 rounded-xl border bg-white/70 dark:bg-neutral-900/70
-        shadow-xs
-      "
-    >
-      <div className="text-[11px] uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-        {title}
-      </div>
-      <div className="mt-1 font-mono text-xs break-all text-neutral-900 dark:text-neutral-50">
-        {value || "—"}
-      </div>
+    <div className="w-full flex flex-row justify-between py-1 px-2 rounded-none mb-1 bg-secondary text-secondary-foreground">
+      <div className="text-sm uppercase tracking-wide">{title}</div>
+      <div className="mt-1 font-mono text-sm break-all">{value || "—"}</div>
     </div>
   );
 }
 
 /* ----------------- helpers ----------------- */
 
-/** Safe parseUnits for whole-token display strings using BigInt math (18 decimals). */
 function parseUnitsSafe(display: string, decimals: bigint): bigint {
   const cleaned = (display || "").trim();
   if (!cleaned) return 0n;
-  // Whole tokens only (form already assumes whole tokens). Strip everything after dot.
   const whole = cleaned.replace(/\..*$/, "");
-  // Remove any non-digits for safety (e.g., commas)
   const digits = whole.replace(/[^\d]/g, "");
   if (!digits) return 0n;
   try {
@@ -282,15 +270,13 @@ function computeBreakdown(
   const items = parts
     .filter((p) => p.value > 0n)
     .map((p) => {
-      // pct with two decimals precision using integer math: pct = (value * 10000) / total / 100
-      const pctTimes100 = Number((p.value * 10000n) / safeTotal); // 0..10000
+      const pctTimes100 = Number((p.value * 10000n) / safeTotal);
       return {
         ...p,
         pct: clamp(0, 100, pctTimes100 / 100),
       };
     });
 
-  // Normalize minor rounding to ensure the bar fills ~100%
   const totalPct = items.reduce((acc, it) => acc + it.pct, 0);
   if (items.length && totalPct !== 100) {
     const diff = 100 - totalPct;
@@ -308,13 +294,61 @@ function clamp(min: number, max: number, v: number) {
 }
 
 function formatToken(wei: bigint) {
-  // Format whole tokens by dividing by 1e18 (round down). For preview, whole-number readability is enough.
   const whole = wei / 10n ** 18n;
   return numberWithSeparators(whole.toString());
 }
 
 function numberWithSeparators(x: string) {
   return x.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+/** Insert commas into the integer part of a decimal string, keep fraction as-is. */
+function withCommasDecimalString(s: string) {
+  const [int, frac] = s.split(".");
+  const withInt = int.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return frac != null && frac.length > 0 ? `${withInt}.${frac}` : withInt;
+}
+
+/** Trim trailing zeros in the fraction; keep up to maxFractionDigits (no rounding). */
+function trimFraction(s: string, maxFractionDigits = 6) {
+  if (!s.includes(".")) return s;
+  let [int, frac] = s.split(".");
+  if (maxFractionDigits >= 0) frac = frac.slice(0, maxFractionDigits);
+  frac = frac.replace(/0+$/, "");
+  return frac ? `${int}.${frac}` : int;
+}
+
+/** Format a decimal string (e.g., result of formatEther) with commas + trimmed fraction. */
+function formatDecimalString(s: string, maxFractionDigits = 6) {
+  return withCommasDecimalString(trimFraction(s, maxFractionDigits));
+}
+
+/** ETH (from wei) → "1,234.5678" (no precision loss). */
+function formatEtherWithCommas(wei: bigint, maxFractionDigits = 6) {
+  return formatDecimalString(formatEther(wei), maxFractionDigits);
+}
+
+/** Bigint count with commas. */
+function formatBigintCount(n: bigint) {
+  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+/** Percent to "12,345.67%". */
+function formatPct(p: number, digits = 2) {
+  return (
+    p.toLocaleString(undefined, {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+    }) + "%"
+  );
+}
+
+/** Compute ETH price per token as a JS number from bigint tokens-per-ETH (integer). */
+function computeCoinEthPrice(coinsPerEth: bigint): number | null {
+  if (coinsPerEth <= 0n) return null;
+  const denom = Number(coinsPerEth);
+  if (!isFinite(denom) || denom <= 0) return null;
+  return 1 / denom;
 }
 
 function computeCoinUsdPrice(
@@ -328,9 +362,21 @@ function computeCoinUsdPrice(
   return ethPriceUSD / denom;
 }
 
+/** Flexible number formatter that trims trailing zeros automatically. */
+function formatNumberFlexible(n: number, maxFractionDigits = 6) {
+  if (!isFinite(n)) return "—";
+  return n.toLocaleString(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: maxFractionDigits,
+  });
+}
+
 function formatUSD(n: number) {
   if (!isFinite(n)) return "—";
   const abs = Math.abs(n);
   const digits = abs >= 1 ? 2 : abs >= 0.01 ? 4 : 6;
-  return `$${n.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
+  return `$${n.toLocaleString(undefined, {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  })}`;
 }

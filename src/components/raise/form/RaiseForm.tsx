@@ -24,6 +24,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { pinImageToPinata, pinJsonToPinata } from "@/lib/pinata";
 import { useETHPrice } from "@/hooks/use-eth-price";
+import { FeeOrHookSelector } from "@/components/pools/FeeOrHookSelector";
+import { isFeeOrHook } from "@/lib/pools";
 
 // === Form logic ===
 export const templates = {
@@ -46,7 +48,7 @@ const defaultState = {
   description: "",
   ethRateDisplay: "1000000000",
   lpBps: 0,
-  feeOrHook: 3000,
+  feeOrHook: 30n,
   totalSupplyDisplay: "1000000000",
   incentiveAmountDisplay: "100000000",
   airdropIncentiveDisplay: "50000000",
@@ -303,6 +305,10 @@ export default function RaiseForm() {
     }
   };
 
+  const isHook = useMemo(() => {
+    return isFeeOrHook(state.feeOrHook);
+  }, [state.feeOrHook]);
+
   return (
     <div className="max-w-5xl mx-auto p-4 md:p-8 space-y-8">
       <div className="flex items-center justify-between">
@@ -376,33 +382,15 @@ export default function RaiseForm() {
             </Field>
           </Row>
 
-          <Row>
-            {templates[state.template].needsChef && (
-              <Field
-                label="feeOrHook"
-                description="Pool fee/hook (used when LP exists)"
-              >
-                <Input
-                  type="number"
-                  value={state.feeOrHook}
-                  onChange={onChange("feeOrHook")}
-                />
-              </Field>
-            )}
-          </Row>
-
           <SectionTitle>Supply</SectionTitle>
           <Row>
-            <Field
-              label="Total supply (whole tokens)"
-              description="Assumes 18 decimals; we scale ×1e18"
-            >
+            <Field label="Total supply" description="Assumes 18 decimals">
               <Input
                 value={state.totalSupplyDisplay}
                 onChange={onChange("totalSupplyDisplay")}
               />
             </Field>
-            <Field label="Creator reserve (whole tokens)">
+            <Field label="Creator reserve">
               <Input
                 value={state.creatorSupplyDisplay}
                 onChange={onChange("creatorSupplyDisplay")}
@@ -411,29 +399,45 @@ export default function RaiseForm() {
           </Row>
 
           {templates[state.template].needsChef && (
-            <Row>
-              <Field
-                label="Incentive amount (whole tokens)"
-                description="Streamed by zChef"
-              >
-                <Input
-                  value={state.incentiveAmountDisplay}
-                  onChange={onChange("incentiveAmountDisplay")}
-                />
-              </Field>
-              <Field label="Incentive duration (days)">
-                <Input
-                  type="number"
-                  value={state.incentiveDurationDays}
-                  onChange={(e) =>
-                    setState((s) => ({
-                      ...s,
-                      incentiveDurationDays: Number(e.target.value || 0),
-                    }))
-                  }
-                />
-              </Field>
-            </Row>
+            <div>
+              <SectionTitle>Farm Incentives</SectionTitle>
+              <FeeOrHookSelector
+                feeOrHook={state.feeOrHook}
+                setFeeOrHook={onChange("feeOrHook")}
+                isHook={isHook}
+                className="mb-2"
+              />
+
+              <Row>
+                <Field
+                  label="Incentive amount"
+                  description="The amount to be streamed."
+                >
+                  <Input
+                    value={state.incentiveAmountDisplay}
+                    onChange={onChange("incentiveAmountDisplay")}
+                  />
+                </Field>
+                <Field
+                  label="Incentive duration"
+                  description="The duration of the incentive period."
+                >
+                  <Input
+                    type="number"
+                    value={state.incentiveDurationDays}
+                    onChange={(e) =>
+                      setState((s) => ({
+                        ...s,
+                        incentiveDurationDays: Number(e.target.value || 0),
+                      }))
+                    }
+                  />
+                </Field>
+              </Row>
+              <p className="mt-2 text-xs text-muted-foreground">
+                The pool can be initialized later by anyone.
+              </p>
+            </div>
           )}
 
           {error && (
@@ -447,7 +451,7 @@ export default function RaiseForm() {
             <Button
               type="submit"
               disabled={!canSubmit || isPending}
-              className="rounded-2xl px-5"
+              className="w-full px-5"
             >
               {isPending ? (
                 <span className="inline-flex items-center gap-2">
