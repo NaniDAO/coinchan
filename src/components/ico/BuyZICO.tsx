@@ -20,7 +20,6 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { Settings2, Loader2 } from "lucide-react";
-import { withSlippage, SLIPPAGE_BPS } from "@/lib/swap";
 import { zICOAbi, zICOAddress } from "@/constants/zICO";
 import { SlippageSettings } from "../SlippageSettings";
 import { TradePanel } from "../trade/TradePanel";
@@ -38,11 +37,9 @@ export type BuyOTCProps = {
 
 function useOtcQuote({
   coinId,
-  slippageBps,
   ethInWei,
 }: {
   coinId?: bigint;
-  slippageBps: bigint;
   ethInWei?: bigint;
 }) {
   const enabled = Boolean(
@@ -53,7 +50,7 @@ function useOtcQuote({
     abi: zICOAbi,
     address: zICOAddress,
     functionName: "buyOTC",
-    args: coinId !== undefined ? [coinId, slippageBps] : undefined,
+    args: coinId !== undefined ? [coinId, 0n] : undefined,
     value: ethInWei,
     query: {
       enabled,
@@ -79,8 +76,6 @@ export default function BuyOTC({
   className,
 }: BuyOTCProps) {
   const { address, isConnected } = useAccount();
-
-  const [slippageBps, setSlippageBps] = useState<bigint>(BigInt(SLIPPAGE_BPS));
 
   const { data: ethBalance } = useBalance({
     address,
@@ -121,7 +116,6 @@ export default function BuyOTC({
     error: quoteError,
   } = useOtcQuote({
     coinId,
-    slippageBps,
     ethInWei,
   });
 
@@ -152,8 +146,8 @@ export default function BuyOTC({
       address: zICOAddress,
       abi: zICOAbi,
       functionName: "buyOTC",
-      args: [coinId, slippageBps],
-      value: withSlippage(ethInWei, slippageBps),
+      args: [coinId, 0n],
+      value: ethInWei,
     });
   };
 
@@ -183,27 +177,6 @@ export default function BuyOTC({
     >
       <CardHeader className="flex items-center justify-between gap-2">
         <div className="text-xl font-semibold">Buy OTC</div>
-
-        {/* Advanced: Slippage in a HoverCard with Settings trigger */}
-        <HoverCard openDelay={150} closeDelay={150}>
-          <HoverCardTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-2xl"
-              aria-label="Advanced settings"
-            >
-              <Settings2 className="h-5 w-5" />
-            </Button>
-          </HoverCardTrigger>
-          <HoverCardContent className="w-80 p-4">
-            <div className="text-sm font-medium mb-2">Advanced: Slippage</div>
-            <SlippageSettings
-              slippageBps={slippageBps}
-              setSlippageBps={setSlippageBps}
-            />
-          </HoverCardContent>
-        </HoverCard>
       </CardHeader>
 
       <CardContent className="space-y-4">
