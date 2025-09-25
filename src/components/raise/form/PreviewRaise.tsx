@@ -2,9 +2,6 @@ import { formatDuration } from "@/lib/date";
 import { templates } from "./RaiseForm";
 import { formatEther } from "viem"; // ✅ use library utility
 import { bigintToNumberSafe, formatDexscreenerStyle } from "@/lib/math";
-import { Heading } from "@/components/ui/typography";
-import { isFeeOrHook } from "@/lib/pools";
-import { useMemo } from "react";
 
 export const PreviewRaise = ({
   state,
@@ -12,8 +9,6 @@ export const PreviewRaise = ({
   ethRate,
   otcSupply,
   incentiveAmount,
-  airdropIncentive,
-  airdropPriceX18,
   incentiveDuration,
   ethPriceUSD,
 }: {
@@ -22,8 +17,6 @@ export const PreviewRaise = ({
   ethRate: bigint;
   otcSupply: bigint;
   incentiveAmount: bigint;
-  airdropIncentive: bigint;
-  airdropPriceX18: bigint;
   incentiveDuration: bigint;
   ethPriceUSD: number | null;
 }) => {
@@ -73,8 +66,6 @@ export const PreviewRaise = ({
 
   // price in ETH per token
   const coinPriceETH = computeCoinEthPrice(coinsPerEth);
-  const coinPriceETHStr =
-    coinPriceETH == null ? "—" : `${formatNumberFlexible(coinPriceETH, 8)} ETH`;
 
   // price in USD per token
   const coinPriceUSD = computeCoinUsdPrice(ethPriceUSD, coinsPerEth);
@@ -328,11 +319,6 @@ function formatEtherWithCommas(wei: bigint, maxFractionDigits = 6) {
   return formatDecimalString(formatEther(wei), maxFractionDigits);
 }
 
-/** Bigint count with commas. */
-function formatBigintCount(n: bigint) {
-  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-}
-
 /** Percent to "12,345.67%". */
 function formatPct(p: number, digits = 2) {
   return (
@@ -360,15 +346,6 @@ function computeCoinUsdPrice(
   const denom = Number(coinsPerEth);
   if (!isFinite(denom) || denom <= 0) return null;
   return ethPriceUSD / denom;
-}
-
-/** Flexible number formatter that trims trailing zeros automatically. */
-function formatNumberFlexible(n: number, maxFractionDigits = 6) {
-  if (!isFinite(n)) return "—";
-  return n.toLocaleString(undefined, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: maxFractionDigits,
-  });
 }
 
 function formatUSD(n: number) {

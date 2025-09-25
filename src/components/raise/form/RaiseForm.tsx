@@ -328,8 +328,6 @@ export default function RaiseForm() {
           ethRate={ethRate}
           otcSupply={otcSupply}
           incentiveAmount={incentiveAmount}
-          airdropIncentive={airdropIncentive}
-          airdropPriceX18={airdropPriceX18}
           incentiveDuration={incentiveDuration}
           ethPriceUSD={ethPrice?.priceUSD ?? null} // <— NEW
         />
