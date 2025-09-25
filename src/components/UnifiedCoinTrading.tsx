@@ -28,7 +28,17 @@ import { getExpectedPoolId } from "@/lib/zCurvePoolId";
 import { useETHPrice } from "@/hooks/use-eth-price";
 import { CandlestickChartIcon, LineChartIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Address } from "viem";
+import { Address, zeroAddress } from "viem";
+import { Link } from "@tanstack/react-router";
+import { encodeTokenQ } from "@/lib/token-query";
+import { CookbookAddress } from "@/constants/Cookbook";
+import { Token, TokenMetadata } from "@/lib/pools";
+import { useOTCSaleStatus } from "@/hooks/use-otc-sale-status";
+import BuyOTC from "./ico/BuyZICO";
+import { ErrorBoundary } from "./ErrorBoundary";
+import { LoadingLogo } from "./ui/loading-logo";
+import { useTokenBalance } from "@/hooks/use-token-balance";
+import { useAccount } from "wagmi";
 
 interface ChartPreviewData {
   amount: bigint;
@@ -58,6 +68,7 @@ export function UnifiedCoinTrading({
   totalSupply,
 }: UnifiedCoinTradingProps) {
   const { t } = useTranslation();
+  const { address } = useAccount();
   const [chartPreview, setChartPreview] = useState<ChartPreviewData | null>(
     null,
   );
@@ -74,6 +85,41 @@ export function UnifiedCoinTrading({
   // Check for ZAMMLaunch sale
   const { data: zammLaunchSale, isLoading: zammLoading } = useCoinSale({
     coinId: coinId,
+  });
+
+  const { data: balance } = useTokenBalance({
+    address: address,
+    token: {
+      address: token ?? CookbookAddress,
+      id: BigInt(coinId),
+    },
+  });
+
+  const coin: TokenMetadata | undefined = useMemo(() => {
+    console.log("Coin:", {
+      coinId,
+      balance,
+      coinName,
+      coinSymbol,
+      coinIcon,
+    });
+    if (!coinId || !balance || !coinName || !coinSymbol || !coinIcon)
+      return undefined;
+    return {
+      address: token ?? CookbookAddress,
+      id: BigInt(coinId),
+      name: coinName,
+      symbol: coinSymbol,
+      description: "Token on Sale",
+      imageUrl: coinIcon,
+      decimals: 18,
+      standard: "ERC6909",
+      balance,
+    };
+  }, [coinId, token, coinName, coinSymbol, coinIcon, balance]);
+
+  const { data: zICOsaleStatus } = useOTCSaleStatus({
+    token: coin,
   });
 
   // Time formatting utility
@@ -173,6 +219,15 @@ export function UnifiedCoinTrading({
         {sale?.status === "FINALIZED" && (
           <ZCurveClaim coinId={coinId} coinSymbol={coinSymbol} />
         )}
+
+        <ErrorBoundary fallback={<div>Error</div>}>
+          {/* zICO OTC sale */}
+          {coin ? (
+            <BuyOTC buyToken={coin} sale={zICOsaleStatus} />
+          ) : (
+            <LoadingLogo />
+          )}
+        </ErrorBoundary>
 
         {/* Desktop: Side by side, Mobile: Stacked */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -324,7 +379,7 @@ export function UnifiedCoinTrading({
                     hideZAMMLaunchClaim={isFinalized} // Hide for zCurve graduated coins
                   />
                 ) : (
-                  <Alert>
+                  <Alert tone="info" emphasis={"soft"} size="sm">
                     <AlertDescription>
                       {isExpired && !isFinalized
                         ? t(
@@ -335,6 +390,24 @@ export function UnifiedCoinTrading({
                             "trade.no_liquidity",
                             "No liquidity available for trading",
                           )}
+                      <Link
+                        to="/positions/create"
+                        className="text-primary hover:underline"
+                        search={{
+                          tokenA: encodeTokenQ({
+                            address: zeroAddress,
+                            id: BigInt(0),
+                          }),
+                          tokenB: encodeTokenQ({
+                            address: token ?? CookbookAddress,
+                            id: BigInt(coinId),
+                          }),
+                          fee: "30",
+                          protocol: "ZAMMV1",
+                        }}
+                      >
+                        Add liquidity to initialize trading for this coin.
+                      </Link>
                     </AlertDescription>
                   </Alert>
                 )}
