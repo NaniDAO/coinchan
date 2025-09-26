@@ -276,9 +276,9 @@ export default function RaiseForm() {
             otcSupply,
             creatorSupply,
             0n,
-            0n,
-            0n,
-            0n,
+            airdropIncentive,
+            BigInt(state.airdropIncentiveId),
+            airdropPriceX18,
             metadataUri,
           ],
         });
