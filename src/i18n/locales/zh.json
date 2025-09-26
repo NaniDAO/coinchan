@@ -1459,5 +1459,64 @@
     "error_upload_image": "请上传徽标图片",
     "connect_wallet_to_launch": "连接您的钱包以启动ICO",
     "transaction_error": "交易错误"
+  },
+  "raise": {
+    "title": "立即筹款",
+    "subtitle": "为任何目标在链上筹集资金。",
+    "templates": {
+      "fundraising": "筹款",
+      "fundraising_with_incentives": "筹款 + 农场激励"
+    },
+    "form": {
+      "identity_section": "身份",
+      "name_label": "名称",
+      "name_description": "例如：我的详细项目名称",
+      "symbol_label": "符号",
+      "symbol_description": "例如：MYVDPN",
+      "description_label": "描述",
+      "description_description": "例如：超级深入的项目描述",
+      "tokenomics_section": "代币经济学",
+      "eth_rate_label": "ETH 汇率（每 1 ETH 的代币数）",
+      "eth_rate_description": "示例：1000000000 → 每个 ETH 1e9 个代币",
+      "supply_section": "供应量",
+      "total_supply_label": "总供应量",
+      "total_supply_description": "假设为 18 位小数",
+      "creator_reserve_label": "创建者储备",
+      "farm_incentives_section": "农场激励",
+      "farm_incentives_description": "通过随时间流式分配奖励为您的市场提供流动性的LP",
+      "incentive_amount_label": "激励金额",
+      "incentive_amount_description": "将要流式传输的金额。",
+      "incentive_duration_label": "激励持续时间（天）",
+      "incentive_duration_description": "激励期的持续时间（以天为单位）。",
+      "pool_note": "池可以稍后由任何人初始化。",
+      "create_sale_button": "创建销售",
+      "confirm_in_wallet": "在钱包中确认…",
+      "submitted_tx": "已提交交易：",
+      "mined_in_block": "在区块中挖矿",
+      "required_fields_error": "请填写所有必填字段。",
+      "creator_not_found": "未找到创建者。请连接您的钱包。",
+      "image_too_large": "图片必须小于 5MB",
+      "invalid_image_type": "请上传图片文件"
+    },
+    "preview": {
+      "title": "预览",
+      "unnamed": "未命名",
+      "no_description": "还没有描述。",
+      "supply_breakdown": "供应细分",
+      "otc": "场外交易",
+      "creator": "创建者",
+      "incentive": "激励",
+      "total": "总计：",
+      "tokenomics": "代币经济学",
+      "eth_rate": "ETH 汇率",
+      "initial_price": "初始价格",
+      "farming_incentives": "农场激励",
+      "incentive_amount": "激励金额",
+      "incentive_duration": "激励持续时间"
+    },
+    "help": {
+      "notes": "注意事项",
+      "airdrop_note": "所有创建的代币都有资格参加空投计划，创建代币总供应量的 5% 将以可认领的方式空投给 veZAMM 持有者。"
+    }
   }
 }

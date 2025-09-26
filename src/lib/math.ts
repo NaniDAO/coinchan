@@ -186,3 +186,16 @@ export const formatUsdPrice = (price: number): string => {
   }
   return `$${price.toFixed(2)}`;
 };
+
+export function bigintToNumberSafe(value: bigint): number {
+  const maxSafe = BigInt(Number.MAX_SAFE_INTEGER);
+  const minSafe = BigInt(Number.MIN_SAFE_INTEGER);
+
+  if (value > maxSafe || value < minSafe) {
+    throw new RangeError(
+      `Value ${value} is outside the safe integer range for a number.`,
+    );
+  }
+
+  return Number(value);
+}
