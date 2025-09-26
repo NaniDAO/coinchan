@@ -137,6 +137,12 @@ export async function fetchPools(
     throw new Error(`Indexer error ${res.status}: ${text}`);
   }
   const json = (await res.json()) as PoolsQueryResponse;
+  console.log("COIN POOLS LIST JSON DATA:", {
+    coinId,
+    token,
+    json,
+  });
+
   if (json.errors?.length) {
     throw new Error(json.errors.map((e) => e.message).join("; "));
   }

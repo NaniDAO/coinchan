@@ -332,6 +332,7 @@ export const TokenPage = ({ token }: { token: Token }) => {
       actualTotalSupply,
     ]);
 
+  console.log("POOLID:", poolId);
   return (
     <div>
       <CoinBreadcrumb coinId={token.id} />
@@ -407,15 +408,13 @@ export const TokenPage = ({ token }: { token: Token }) => {
       </div>
 
       {/* Pool Overview - only show if AMM pool exists */}
-      {(!zcurveSale || zcurveSale.status === "FINALIZED") && (
-        <PoolOverview
-          coinId={token.id.toString()}
-          poolId={poolId.toString()}
-          symbol={symbol}
-          token={token.address}
-          priceImpact={null}
-        />
-      )}
+      <PoolOverview
+        coinId={token.id.toString()}
+        poolId={poolId.toString()}
+        symbol={symbol}
+        token={token.address}
+        priceImpact={null}
+      />
     </div>
   );
 };
