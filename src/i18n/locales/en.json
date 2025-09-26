@@ -1383,7 +1383,7 @@
       "incentive_duration_label": "Incentive duration (days)",
       "incentive_duration_description": "The duration of the incentive period in days.",
       "pool_note": "The pool can be initialized later by anyone.",
-      "create_sale_button": "Create Sale",
+      "create_sale_button": "Launch",
       "confirm_in_wallet": "Confirm in wallet…",
       "submitted_tx": "Submitted tx:",
       "mined_in_block": "Mined in block",

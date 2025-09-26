@@ -1490,7 +1490,7 @@
       "incentive_duration_label": "激励持续时间（天）",
       "incentive_duration_description": "激励期的持续时间（以天为单位）。",
       "pool_note": "池可以稍后由任何人初始化。",
-      "create_sale_button": "创建销售",
+      "create_sale_button": "启动",
       "confirm_in_wallet": "在钱包中确认…",
       "submitted_tx": "已提交交易：",
       "mined_in_block": "在区块中挖矿",

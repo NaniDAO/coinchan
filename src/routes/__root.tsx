@@ -272,7 +272,7 @@ export const Route = createRootRoute({
             <div className="hidden md:flex items-center gap-2.5 flex-shrink-0">
               <Link to="/raise">
                 <Button variant="outline" size="sm">
-                  {t("navigation.create", "Create")}
+                  {t("common.launch", "Launch")}
                 </Button>
               </Link>
               <RainbowConnectButton />
