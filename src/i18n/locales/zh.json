@@ -1508,8 +1508,11 @@
       "incentive": "激励",
       "total": "总计：",
       "tokenomics": "代币经济学",
+      "total_supply": "总供应量",
+      "otc_supply": "场外交易供应量",
       "eth_rate": "ETH 汇率",
       "initial_price": "初始价格",
+      "max_eth_raise": "最大可筹集 ETH",
       "farming_incentives": "农场激励",
       "incentive_amount": "激励金额",
       "incentive_duration": "激励持续时间"

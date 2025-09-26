@@ -1401,8 +1401,11 @@
       "incentive": "Incentive",
       "total": "Total:",
       "tokenomics": "Tokenomics",
+      "total_supply": "Total Supply",
+      "otc_supply": "OTC Supply",
       "eth_rate": "ETH Rate",
       "initial_price": "Initial Price",
+      "max_eth_raise": "Max ETH Raisable",
       "farming_incentives": "Farming Incentives",
       "incentive_amount": "Incentive Amount",
       "incentive_duration": "Incentive Duration"

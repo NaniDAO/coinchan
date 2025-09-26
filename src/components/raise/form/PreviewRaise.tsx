@@ -21,7 +21,7 @@ export const PreviewRaise = ({
   incentiveDuration: bigint;
   ethPriceUSD: number | null;
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const imgUrl = imageBuffer
     ? URL.createObjectURL(new Blob([imageBuffer]))
     : null;
@@ -79,6 +79,67 @@ export const PreviewRaise = ({
       ? "—"
       : `1 ${symbol} = ${formatDexscreenerStyle(coinPriceETH ?? 0)} ETH = ${coinPriceUSDStr} USD`;
 
+  // Calculate max ETH that can be raised from OTC supply
+  // Note: Both airdrop and farm incentives are allocated separately and don't reduce ETH raised
+  // All ETH from the sale goes to the creator
+  const otcSupplyForEthCalc = totalSupplyWei - creatorSupplyWei;
+  const maxEthRaisable = coinsPerEth > 0n ? otcSupplyForEthCalc / coinsPerEth : 0n;
+  const maxEthRaisableStr = formatEtherWithCommas(maxEthRaisable, 6);
+  const maxUsdRaisable = ethPriceUSD && maxEthRaisable > 0n
+    ? Number(formatEther(maxEthRaisable)) * ethPriceUSD
+    : null;
+
+  // Calculate airdrop supply (assuming 5% default)
+  const airdropSupply = parseUnitsSafe(state.airdropIncentiveDisplay || "50000000", 18n);
+
+  // Build dynamic summary
+  const buildSummary = () => {
+    const otcSupplyFormatted = formatTokenCompact(otcSupply);
+    const totalSupplyFormatted = formatTokenCompact(totalSupplyWei);
+    const creatorSupplyFormatted = formatTokenCompact(creatorSupplyWei);
+    const airdropSupplyFormatted = formatTokenCompact(airdropSupply);
+    const incentiveFormatted = needsChef ? formatTokenCompact(incentiveAmount) : null;
+    const maxEthFormatted = formatEther(maxEthRaisable);
+
+    // Remove trailing zeros and format nicely
+    const cleanEth = Number(maxEthFormatted).toLocaleString(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 3
+    });
+
+    if (i18n.language === 'zh') {
+      let summary = `您正在通过 ${otcSupplyFormatted} 个代币的销售筹集最多 ${cleanEth} ETH`;
+      if (creatorSupplyWei > 0n) {
+        summary += `，${creatorSupplyFormatted} 个创建者储备`;
+      }
+      if (airdropSupply > 0n) {
+        summary += `，${airdropSupplyFormatted} 个空投`;
+      }
+      if (needsChef && incentiveAmount > 0n) {
+        summary += `，${incentiveFormatted} 个农场激励`;
+      }
+      summary += `（总供应量：${totalSupplyFormatted}）`;
+      return summary;
+    } else {
+      let summary = `You are raising up to ${cleanEth} ETH through a ${otcSupplyFormatted} token sale`;
+      const parts = [];
+      if (creatorSupplyWei > 0n) {
+        parts.push(`${creatorSupplyFormatted} creator reserve`);
+      }
+      if (airdropSupply > 0n) {
+        parts.push(`${airdropSupplyFormatted} airdrop`);
+      }
+      if (needsChef && incentiveAmount > 0n) {
+        parts.push(`${incentiveFormatted} farm incentives`);
+      }
+      if (parts.length > 0) {
+        summary += ` with ${parts.join(', ')}`;
+      }
+      summary += ` (${totalSupplyFormatted} total supply)`;
+      return summary;
+    }
+  };
+
   return (
     <section
       className="
@@ -89,6 +150,13 @@ export const PreviewRaise = ({
       {/* header */}
       <div className="px-5 py-4 border-b bg-gradient-to-b from-transparent to-black/[0.02] dark:to-white/[0.02]">
         <h2 className="text-lg font-semibold tracking-tight">{t("raise.preview.title")}</h2>
+      </div>
+
+      {/* Summary sentence */}
+      <div className="px-5 py-3 bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20 border-b">
+        <p className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
+          {buildSummary()}
+        </p>
       </div>
 
       {/* identity row */}
@@ -204,8 +272,26 @@ export const PreviewRaise = ({
         <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-3">
           {t("raise.preview.tokenomics")}
         </h3>
-        <InfoStat title={t("raise.preview.eth_rate")} value={formatEtherWithCommas(ethRate, 6)} />
-        <InfoStat title={t("raise.preview.initial_price")} value={initialPriceCombined} />
+        <InfoStat
+          title={t("raise.preview.total_supply") || "Total Supply"}
+          value={`${formatToken(totalSupplyWei)} ${symbol}`}
+        />
+        <InfoStat
+          title={t("raise.preview.otc_supply") || "OTC Supply"}
+          value={`${formatToken(otcSupply)} ${symbol}`}
+        />
+        <InfoStat
+          title={t("raise.preview.eth_rate") || "Tokens per ETH"}
+          value={formatEtherWithCommas(ethRate, 6)}
+        />
+        <InfoStat
+          title={t("raise.preview.initial_price")}
+          value={initialPriceCombined}
+        />
+        <InfoStat
+          title={t("raise.preview.max_eth_raise") || "Max ETH Raisable"}
+          value={`${maxEthRaisableStr} ETH${maxUsdRaisable ? ` (${formatUSD(maxUsdRaisable)})` : ""}`}
+        />
         {/*@ts-expect-error*/}
         {templates[state.template].needsChef && (
           <div>
@@ -291,6 +377,31 @@ function clamp(min: number, max: number, v: number) {
 function formatToken(wei: bigint) {
   const whole = wei / 10n ** 18n;
   return numberWithSeparators(whole.toString());
+}
+
+function formatTokenCompact(wei: bigint): string {
+  const whole = wei / 10n ** 18n;
+  const num = Number(whole);
+
+  if (num >= 1e9) {
+    return (num / 1e9).toLocaleString(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 1
+    }) + 'B';
+  }
+  if (num >= 1e6) {
+    return (num / 1e6).toLocaleString(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 1
+    }) + 'M';
+  }
+  if (num >= 1e3) {
+    return (num / 1e3).toLocaleString(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 1
+    }) + 'K';
+  }
+  return num.toLocaleString();
 }
 
 function numberWithSeparators(x: string) {

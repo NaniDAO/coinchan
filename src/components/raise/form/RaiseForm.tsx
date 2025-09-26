@@ -26,6 +26,7 @@ import { pinImageToPinata, pinJsonToPinata } from "@/lib/pinata";
 import { useETHPrice } from "@/hooks/use-eth-price";
 import { FeeOrHookSelector } from "@/components/pools/FeeOrHookSelector";
 import { isFeeOrHook } from "@/lib/pools";
+import { Link } from "@tanstack/react-router";
 
 // === Form logic ===
 export const templates = {
@@ -195,9 +196,8 @@ export default function RaiseForm() {
   );
 
   const otcSupply = useMemo(() => {
-    let res = totalSupply - creatorSupply;
+    let res = totalSupply - creatorSupply - airdropIncentive;
     if (templates[state.template].needsChef) res -= incentiveAmount;
-    if (templates[state.template].needsAirdrop) res -= airdropIncentive;
     return res;
   }, [
     state.template,
@@ -310,8 +310,28 @@ export default function RaiseForm() {
       }
     } catch (err: any) {
       console.error(err);
-      setError(err?.shortMessage || err?.message || "Transaction failed");
-      toast.error(err?.shortMessage || err?.message || "Transaction failed");
+
+      // Check for user rejection
+      if (err?.message?.includes("User rejected") ||
+          err?.shortMessage?.includes("User rejected") ||
+          err?.cause?.message?.includes("User rejected")) {
+        setError(t("common.transaction_rejected") || "Transaction cancelled");
+        toast.info(t("common.transaction_rejected") || "Transaction cancelled");
+        return;
+      }
+
+      // Check for other common wallet errors
+      if (err?.message?.includes("User denied") ||
+          err?.shortMessage?.includes("User denied")) {
+        setError(t("common.transaction_denied") || "Transaction denied");
+        toast.info(t("common.transaction_denied") || "Transaction denied");
+        return;
+      }
+
+      // Default error handling
+      const errorMessage = err?.shortMessage || err?.message || "Transaction failed";
+      setError(errorMessage);
+      toast.error(errorMessage);
     }
   }
 
@@ -523,13 +543,32 @@ export default function RaiseForm() {
 }
 
 function HelpNotes() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isZh = i18n.language === 'zh';
+
   return (
     <div className="shadow-none border border-dashed p-5 text-sm space-y-2 leading-relaxed">
       <div className="font-medium">{t("raise.help.notes")}</div>
       <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
         <li>
-          {t("raise.help.airdrop_note")}
+          {isZh ? (
+            <>
+              所有创建的代币都有资格参加空投计划，创建代币总供应量的 5% 将以可认领的方式空投给{" "}
+              <Link to="/stake" className="text-primary underline hover:no-underline">
+                veZAMM 持有者
+              </Link>
+              。
+            </>
+          ) : (
+            <>
+              All created tokens are eligible for the airdrop program, where 5% of the created token total supply
+              will be claimably airdropped to{" "}
+              <Link to="/stake" className="text-primary underline hover:no-underline">
+                veZAMM holders
+              </Link>
+              .
+            </>
+          )}
         </li>
       </ul>
     </div>
