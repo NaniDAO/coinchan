@@ -14,14 +14,8 @@ import {
   CardFooter,
   CardHeader,
 } from "@/components/ui/card";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card";
-import { Settings2, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { zICOAbi, zICOAddress } from "@/constants/zICO";
-import { SlippageSettings } from "../SlippageSettings";
 import { TradePanel } from "../trade/TradePanel";
 import { ETH_TOKEN, TokenMetadata } from "@/lib/pools";
 import { ZICOSaleStatus } from "@/hooks/use-otc-sale-status";
