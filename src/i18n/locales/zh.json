@@ -34,6 +34,7 @@
     "wrong_network": "网络错误",
     "connect_wallet_to_continue": "请连接您的钱包以继续",
     "wallet_required": "需要钱包",
+    "wallet_connection_error": "钱包连接错误。请重新连接您的钱包。",
     "error_fix_form": "请修正表单错误",
     "error_connect_wallet": "请连接您的钱包",
     "transaction_hash": "交易",
@@ -1522,5 +1523,19 @@
       "notes": "注意事项",
       "airdrop_note": "所有创建的代币都有资格参加空投计划，创建代币总供应量的 5% 将以可认领的方式空投给 veZAMM 持有者。"
     }
+  },
+  "pools": {
+    "advanced_options": "高级选项",
+    "hook_active": "钩子已激活",
+    "swap_fee": "交换手续费",
+    "hook_address": "钩子地址",
+    "swap_fee_percentage": "交换手续费百分比",
+    "common_fee_tiers": "常用手续费等级：",
+    "swap_fee_description": "交换手续费是每笔交易收取的百分比。较低的费用吸引更多交易量，但每笔交易赚取较少。",
+    "hook_contract_address": "钩子合约地址",
+    "hook_address_description": "输入自定义钩子合约的地址以向您的池添加特殊逻辑。留空则使用标准交换费。",
+    "clear_hook": "清除钩子（使用交换费）",
+    "using_custom_hook": "使用自定义钩子进行池逻辑",
+    "swap_fee_summary": "交换费：{{fee}}%"
   }
 }

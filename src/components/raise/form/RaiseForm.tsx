@@ -225,19 +225,16 @@ export default function RaiseForm() {
   const canSubmit = useMemo(() => {
     if (!isConnected || !creator || !state.uri) return false;
     if (otcSupply <= 0n) return false;
-    if (
-      templates[state.template].needsAirdrop &&
-      airdropIncentive > 0n &&
-      airdropPriceX18 === 0n
-    )
+    // Check airdrop settings (always required now)
+    if (airdropIncentive > 0n && airdropPriceX18 === 0n) {
       return false;
+    }
     return true;
   }, [
     isConnected,
     creator,
     state.uri,
     otcSupply,
-    state.template,
     airdropIncentive,
     airdropPriceX18,
   ]);
@@ -323,11 +320,9 @@ export default function RaiseForm() {
             0n,
             incentiveAmount,
             incentiveDuration,
-            templates[state.template].needsAirdrop ? airdropIncentive : 0n,
-            templates[state.template].needsAirdrop
-              ? BigInt(state.airdropIncentiveId)
-              : 0n,
-            templates[state.template].needsAirdrop ? airdropPriceX18 : 0n,
+            airdropIncentive,
+            BigInt(state.airdropIncentiveId),
+            airdropPriceX18,
             metadataUri,
           ],
         });

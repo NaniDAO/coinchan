@@ -34,6 +34,7 @@
     "wrong_network": "Wrong Network",
     "connect_wallet_to_continue": "Please connect your wallet to continue",
     "wallet_required": "Wallet required",
+    "wallet_connection_error": "Wallet connection error. Please reconnect your wallet.",
     "uploading": "Uploading...",
     "switching": "Switching...",
     "switch_network": "Switch Network",
@@ -1415,5 +1416,19 @@
       "notes": "Notes",
       "airdrop_note": "All created coins are eligible under the airdrop program, 5% of the total supply of the created coin will be airdropped to veZAMM holders on a claimable basis."
     }
+  },
+  "pools": {
+    "advanced_options": "Advanced Options",
+    "hook_active": "hook active",
+    "swap_fee": "Swap Fee",
+    "hook_address": "Hook Address",
+    "swap_fee_percentage": "Swap Fee Percentage",
+    "common_fee_tiers": "Common fee tiers:",
+    "swap_fee_description": "The swap fee is the percentage charged on each trade. Lower fees attract more volume but earn less per trade.",
+    "hook_contract_address": "Hook Contract Address",
+    "hook_address_description": "Enter the address of a custom hook contract to add special logic to your pool. Leave empty to use standard swap fees instead.",
+    "clear_hook": "Clear Hook (Use Swap Fees)",
+    "using_custom_hook": "Using custom hook for pool logic",
+    "swap_fee_summary": "Swap fee: {{fee}}%"
   }
 }

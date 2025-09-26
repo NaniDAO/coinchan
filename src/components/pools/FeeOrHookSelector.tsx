@@ -7,6 +7,7 @@ import { InfoIcon, Percent, Code2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { maxUint256 } from "viem";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface FeeOrHookSelectorProps {
   feeOrHook: bigint;
@@ -21,6 +22,7 @@ export const FeeOrHookSelector = ({
   isHook,
   className,
 }: FeeOrHookSelectorProps) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<"fee" | "hook">(isHook ? "hook" : "fee");
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -77,10 +79,10 @@ export const FeeOrHookSelector = ({
           className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-accent/50 transition-colors rounded-lg"
         >
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">Advanced Options</span>
+            <span className="text-sm font-medium">{t("pools.advanced_options")}</span>
             {isHook && (
               <span className="text-[10px] rounded-sm border border-primary bg-primary/10 px-1.5 py-0.5">
-                hook active
+                {t("pools.hook_active")}
               </span>
             )}
           </div>
@@ -120,7 +122,7 @@ export const FeeOrHookSelector = ({
               >
                 <div className="flex items-center justify-center gap-2">
                   <Percent className="h-3.5 w-3.5" />
-                  <span>Swap Fee</span>
+                  <span>{t("pools.swap_fee")}</span>
                 </div>
               </button>
               <button
@@ -135,7 +137,7 @@ export const FeeOrHookSelector = ({
               >
                 <div className="flex items-center justify-center gap-2">
                   <Code2 className="h-3.5 w-3.5" />
-                  <span>Hook Address</span>
+                  <span>{t("pools.hook_address")}</span>
                 </div>
               </button>
             </div>
@@ -146,7 +148,7 @@ export const FeeOrHookSelector = ({
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <Label htmlFor="feeSlider" className="text-sm">
-                      Swap Fee Percentage
+                      {t("pools.swap_fee_percentage")}
                     </Label>
                     <span className="text-sm font-mono font-medium">
                       {feePercentage.toFixed(2)}%
@@ -171,7 +173,7 @@ export const FeeOrHookSelector = ({
 
                 {/* Quick presets */}
                 <div>
-                  <p className="text-xs text-muted-foreground mb-2">Common fee tiers:</p>
+                  <p className="text-xs text-muted-foreground mb-2">{t("pools.common_fee_tiers")}</p>
                   <div className="flex flex-wrap gap-2">
                     {FEE_OPTIONS.map((option) => {
                       const isSelected = feeOrHook === option.value;
@@ -195,8 +197,7 @@ export const FeeOrHookSelector = ({
                 </div>
 
                 <p className="text-xs text-muted-foreground">
-                  The swap fee is the percentage charged on each trade. Lower fees attract more
-                  volume but earn less per trade.
+                  {t("pools.swap_fee_description")}
                 </p>
               </div>
             )}
@@ -206,7 +207,7 @@ export const FeeOrHookSelector = ({
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="hookAddress" className="text-sm mb-2 block">
-                    Hook Contract Address
+                    {t("pools.hook_contract_address")}
                   </Label>
                   <Input
                     id="hookAddress"
@@ -217,8 +218,7 @@ export const FeeOrHookSelector = ({
                     className="font-mono text-sm"
                   />
                   <p className="text-xs text-muted-foreground mt-2">
-                    Enter the address of a custom hook contract to add special logic to your pool.
-                    Leave empty to use standard swap fees instead.
+                    {t("pools.hook_address_description")}
                   </p>
                 </div>
 
@@ -227,7 +227,7 @@ export const FeeOrHookSelector = ({
                     <div className="flex items-start gap-2">
                       <InfoIcon className="w-4 h-4 mt-0.5 text-muted-foreground" />
                       <div className="text-sm space-y-1">
-                        <div className="font-medium">Hook Active</div>
+                        <div className="font-medium">{t("pools.hook_active")}</div>
                         <div className="text-xs text-muted-foreground font-mono break-all">
                           ID: {feeOrHook.toString()}
                         </div>
@@ -246,7 +246,7 @@ export const FeeOrHookSelector = ({
                   }}
                   className="w-full"
                 >
-                  Clear Hook (Use Swap Fees)
+                  {t("pools.clear_hook")}
                 </Button>
               </div>
             )}
@@ -258,8 +258,8 @@ export const FeeOrHookSelector = ({
       {!showAdvanced && (
         <div className="text-sm text-muted-foreground">
           {isHook
-            ? "Using custom hook for pool logic"
-            : `Swap fee: ${feePercentage.toFixed(2)}%`}
+            ? t("pools.using_custom_hook")
+            : t("pools.swap_fee_summary", { fee: feePercentage.toFixed(2) })}
         </div>
       )}
     </div>
