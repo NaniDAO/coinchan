@@ -31,6 +31,9 @@ export const PreviewRaise = ({
   // ----- Supply breakdown (percent-safe with BigInt math) -----
   const totalSupplyWei = parseUnitsSafe(state.totalSupplyDisplay, 18n);
   const creatorSupplyWei = parseUnitsSafe(state.creatorSupplyDisplay, 18n);
+  // Calculate 5% of total supply if airdrop display is not set
+  const defaultAirdrop = (Number(state.totalSupplyDisplay?.replace(/,/g, '') || "1000000000") * 0.05).toString();
+  const airdropSupply = parseUnitsSafe(state.airdropIncentiveDisplay || defaultAirdrop, 18n);
 
   // @ts-expect-error
   const needsChef = templates[state.template].needsChef;
@@ -47,6 +50,12 @@ export const PreviewRaise = ({
       label: t("raise.preview.creator"),
       value: max0(creatorSupplyWei),
       color: "bg-emerald-500",
+    },
+    {
+      key: "airdrop",
+      label: t("raise.preview.airdrop") || "Airdrop",
+      value: max0(airdropSupply),
+      color: "bg-purple-500",
     },
     ...(needsChef
       ? [
@@ -88,9 +97,6 @@ export const PreviewRaise = ({
   const maxUsdRaisable = ethPriceUSD && maxEthRaisable > 0n
     ? Number(formatEther(maxEthRaisable)) * ethPriceUSD
     : null;
-
-  // Calculate airdrop supply (assuming 5% default)
-  const airdropSupply = parseUnitsSafe(state.airdropIncentiveDisplay || "50000000", 18n);
 
   // Build dynamic summary
   const buildSummary = () => {

@@ -3,7 +3,7 @@
 // - Adds useETHPrice hook to fetch ETH price in USD
 // - Passes ethPriceUSD down to PreviewRaise for initial coin USD price display
 // ============================
-import React, { useMemo, useRef, useState } from "react";
+import React, { useMemo, useRef, useState, useEffect } from "react";
 import {
   useWriteContract,
   useWaitForTransactionReceipt,
@@ -101,7 +101,7 @@ export default function RaiseForm() {
   const [error, setError] = useState<string | null>(null);
   const formRef = useRef<HTMLDivElement | null>(null);
 
-  const { address: creator } = useAccount();
+  const { address: creator, isConnected, connector } = useAccount();
   const { writeContractAsync, isPending } = useWriteContract();
   const { data: receipt } = useWaitForTransactionReceipt({
     hash: txHash ?? undefined,
@@ -110,6 +110,11 @@ export default function RaiseForm() {
   const [imageBuffer, setImageBuffer] = useState<ArrayBuffer | null>(null);
 
   const { data: ethPrice } = useETHPrice();
+
+  // Helper to remove commas for parsing
+  const removeCommas = (value: string) => {
+    return value.replace(/,/g, '');
+  };
 
   // Helper to format number with commas
   const formatWithCommas = (value: string) => {
@@ -126,10 +131,20 @@ export default function RaiseForm() {
     return parts.join('.');
   };
 
-  // Helper to remove commas for parsing
-  const removeCommas = (value: string) => {
-    return value.replace(/,/g, '');
-  };
+  // Auto-calculate airdrop as 5% of total supply
+  useEffect(() => {
+    const totalSupplyNum = parseFloat(removeCommas(state.totalSupplyDisplay) || "0");
+    if (totalSupplyNum > 0) {
+      const airdropAmount = totalSupplyNum * 0.05; // 5% of total supply
+      const airdropFormatted = formatWithCommas(airdropAmount.toString());
+      if (state.airdropIncentiveDisplay !== airdropFormatted) {
+        setState(prev => ({
+          ...prev,
+          airdropIncentiveDisplay: airdropFormatted
+        }));
+      }
+    }
+  }, [state.totalSupplyDisplay]);
 
   const onChange = (key: keyof typeof defaultState) => (e: any) => {
     let value = e?.target ? e.target.value : e;
@@ -208,7 +223,7 @@ export default function RaiseForm() {
   ]);
 
   const canSubmit = useMemo(() => {
-    if (!creator || !state.uri) return false;
+    if (!isConnected || !creator || !state.uri) return false;
     if (otcSupply <= 0n) return false;
     if (
       templates[state.template].needsAirdrop &&
@@ -218,6 +233,7 @@ export default function RaiseForm() {
       return false;
     return true;
   }, [
+    isConnected,
     creator,
     state.uri,
     otcSupply,
@@ -232,11 +248,20 @@ export default function RaiseForm() {
     setTxHash(null);
 
     try {
+      // Validate wallet connection first
+      if (!isConnected || !creator) {
+        throw new Error(t("raise.form.creator_not_found"));
+      }
+
+      // Check if connector is properly initialized
+      if (!connector || typeof connector.getChainId !== 'function') {
+        toast.error(t("common.wallet_connection_error") || "Wallet connection error. Please reconnect your wallet.");
+        throw new Error("Wallet connector not properly initialized");
+      }
+
       if (!state.name || !state.symbol || !state.description) {
         throw new Error(t("raise.form.required_fields_error"));
       }
-
-      if (!creator) throw new Error(t("raise.form.creator_not_found"));
 
       const metadata: Record<string, unknown> = {
         name: state.name.trim(),
@@ -497,6 +522,22 @@ export default function RaiseForm() {
               <p className="mt-2 text-xs text-muted-foreground">
                 {t("raise.form.pool_note")}
               </p>
+            </div>
+          )}
+
+          {!isConnected && (
+            <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-sm">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 mt-0.5 text-amber-600 dark:text-amber-400" />
+                <div>
+                  <div className="font-medium text-amber-900 dark:text-amber-100">
+                    {t("common.wallet_required") || "Wallet Required"}
+                  </div>
+                  <div className="text-amber-700 dark:text-amber-300 mt-1">
+                    {t("common.connect_wallet_to_continue") || "Please connect your wallet to create a sale"}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
