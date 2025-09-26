@@ -1352,5 +1352,64 @@
     "transaction_error": "Transaction error",
     "prefer_lp_mined": "Prefer LP-mined fair launch? Try /ico",
     "prefer_traditional": "Prefer traditional token creation? Try /create"
+  },
+  "raise": {
+    "title": "Raise now",
+    "subtitle": "Raise funds onchain for any goal.",
+    "templates": {
+      "fundraising": "Fundraising",
+      "fundraising_with_incentives": "Fundraising + Farming Incentives"
+    },
+    "form": {
+      "identity_section": "Identity",
+      "name_label": "Name",
+      "name_description": "e.g. My Very Descriptive Project Name",
+      "symbol_label": "Symbol",
+      "symbol_description": "e.g. MYVDPN",
+      "description_label": "Description",
+      "description_description": "e.g. Super In-depth Project Description",
+      "tokenomics_section": "Tokenomics",
+      "eth_rate_label": "ETH rate (coins per 1 ETH)",
+      "eth_rate_description": "Example: 1000000000 → 1e9 coins per ETH",
+      "supply_section": "Supply",
+      "total_supply_label": "Total supply",
+      "total_supply_description": "Assumes 18 decimals",
+      "creator_reserve_label": "Creator reserve",
+      "farm_incentives_section": "Farm Incentives",
+      "farm_incentives_description": "Reward LPs with streaming allocation over time for providing liquidity to your market",
+      "incentive_amount_label": "Incentive amount",
+      "incentive_amount_description": "The amount to be streamed.",
+      "incentive_duration_label": "Incentive duration (days)",
+      "incentive_duration_description": "The duration of the incentive period in days.",
+      "pool_note": "The pool can be initialized later by anyone.",
+      "create_sale_button": "Create Sale",
+      "confirm_in_wallet": "Confirm in wallet…",
+      "submitted_tx": "Submitted tx:",
+      "mined_in_block": "Mined in block",
+      "required_fields_error": "Please fill in all required fields.",
+      "creator_not_found": "Creator not found. Connect your wallet.",
+      "image_too_large": "Image must be less than 5MB",
+      "invalid_image_type": "Please upload an image file"
+    },
+    "preview": {
+      "title": "Preview",
+      "unnamed": "Unnamed",
+      "no_description": "No description yet.",
+      "supply_breakdown": "Supply breakdown",
+      "otc": "OTC",
+      "creator": "Creator",
+      "incentive": "Incentive",
+      "total": "Total:",
+      "tokenomics": "Tokenomics",
+      "eth_rate": "ETH Rate",
+      "initial_price": "Initial Price",
+      "farming_incentives": "Farming Incentives",
+      "incentive_amount": "Incentive Amount",
+      "incentive_duration": "Incentive Duration"
+    },
+    "help": {
+      "notes": "Notes",
+      "airdrop_note": "All created coins are eligible under the airdrop program, 5% of the total supply of the created coin will be airdropped to veZAMM holders on a claimable basis."
+    }
   }
 }

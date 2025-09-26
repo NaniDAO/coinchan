@@ -1,18 +1,7 @@
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
-const videoTemplates = [
-  {
-    key: "kickstarter",
-    title: "Fundraising",
-    video: "/templates/kickstarter.mp4",
-  },
-  {
-    key: "kickstarter_chef",
-    title: "Fundraising + Farming Incentives",
-    video: "/templates/kickstarter-zchef-airdrop.mp4",
-  },
-] as const;
 
 export function TemplateCards({
   onSelect,
@@ -21,7 +10,21 @@ export function TemplateCards({
   onSelect?: (key: string) => void;
   selectedKey?: string;
 }) {
+  const { t } = useTranslation();
   console.log("TemplateCards", selectedKey);
+
+  const videoTemplates = [
+    {
+      key: "kickstarter",
+      title: t("raise.templates.fundraising"),
+      video: "/templates/kickstarter.mp4",
+    },
+    {
+      key: "kickstarter_chef",
+      title: t("raise.templates.fundraising_with_incentives"),
+      video: "/templates/kickstarter-zchef-airdrop.mp4",
+    },
+  ] as const;
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {videoTemplates.map((tpl) => (

@@ -46,12 +46,12 @@ const defaultState = {
   name: "",
   symbol: "",
   description: "",
-  ethRateDisplay: "1000000000",
+  ethRateDisplay: "1,000,000,000",
   lpBps: 0,
   feeOrHook: 30n,
-  totalSupplyDisplay: "1000000000",
-  incentiveAmountDisplay: "100000000",
-  airdropIncentiveDisplay: "50000000",
+  totalSupplyDisplay: "1,000,000,000",
+  incentiveAmountDisplay: "100,000,000",
+  airdropIncentiveDisplay: "50,000,000",
   creatorSupplyDisplay: "0",
   incentiveDurationDays: 30,
   airdropIncentiveId: 87,
@@ -110,8 +110,41 @@ export default function RaiseForm() {
 
   const { data: ethPrice } = useETHPrice();
 
+  // Helper to format number with commas
+  const formatWithCommas = (value: string) => {
+    // Remove all non-digit and non-decimal characters
+    const cleanValue = value.replace(/[^\d.]/g, '');
+
+    // Split into integer and decimal parts
+    const parts = cleanValue.split('.');
+
+    // Format integer part with commas
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+    // Join back together
+    return parts.join('.');
+  };
+
+  // Helper to remove commas for parsing
+  const removeCommas = (value: string) => {
+    return value.replace(/,/g, '');
+  };
+
   const onChange = (key: keyof typeof defaultState) => (e: any) => {
-    setState((s) => ({ ...s, [key]: e?.target ? e.target.value : e }));
+    let value = e?.target ? e.target.value : e;
+
+    // Apply comma formatting for number display fields
+    if (typeof value === 'string' && [
+      'ethRateDisplay',
+      'totalSupplyDisplay',
+      'incentiveAmountDisplay',
+      'airdropIncentiveDisplay',
+      'creatorSupplyDisplay'
+    ].includes(key)) {
+      value = formatWithCommas(value);
+    }
+
+    setState((s) => ({ ...s, [key]: value }));
   };
 
   // Map card key → internal template key
@@ -133,23 +166,23 @@ export default function RaiseForm() {
 
   // ===== Derived values =====
   const totalSupply = useMemo(
-    () => parseUnits(safeNum(state.totalSupplyDisplay), 18),
+    () => parseUnits(safeNum(removeCommas(state.totalSupplyDisplay)), 18),
     [state.totalSupplyDisplay],
   );
   const incentiveAmount = useMemo(
-    () => parseUnits(safeNum(state.incentiveAmountDisplay), 18),
+    () => parseUnits(safeNum(removeCommas(state.incentiveAmountDisplay)), 18),
     [state.incentiveAmountDisplay],
   );
   const airdropIncentive = useMemo(
-    () => parseUnits(safeNum(state.airdropIncentiveDisplay), 18),
+    () => parseUnits(safeNum(removeCommas(state.airdropIncentiveDisplay)), 18),
     [state.airdropIncentiveDisplay],
   );
   const creatorSupply = useMemo(
-    () => parseUnits(safeNum(state.creatorSupplyDisplay), 18),
+    () => parseUnits(safeNum(removeCommas(state.creatorSupplyDisplay)), 18),
     [state.creatorSupplyDisplay],
   );
   const ethRate = useMemo(() => {
-    const coinsPerEth = BigInt(safeInt(state.ethRateDisplay));
+    const coinsPerEth = BigInt(safeInt(removeCommas(state.ethRateDisplay)));
     return coinsPerEth * BigInt(1e18);
   }, [state.ethRateDisplay]);
   const incentiveDuration = useMemo(
@@ -200,10 +233,10 @@ export default function RaiseForm() {
 
     try {
       if (!state.name || !state.symbol || !state.description) {
-        throw new Error("Please fill in all required fields.");
+        throw new Error(t("raise.form.required_fields_error"));
       }
 
-      if (!creator) throw new Error("Creator not found. Connect your wallet.");
+      if (!creator) throw new Error(t("raise.form.creator_not_found"));
 
       const metadata: Record<string, unknown> = {
         name: state.name.trim(),
@@ -226,7 +259,7 @@ export default function RaiseForm() {
 
         metadata.image = imageUri;
       } else {
-        throw new Error("Please upload an image.");
+        throw new Error(t("ico.error_upload_image"));
       }
 
       const metadataUri = await pinJsonToPinata(metadata);
@@ -286,14 +319,14 @@ export default function RaiseForm() {
     if (file && !Array.isArray(file)) {
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        toast.error(t("create.image_too_large", "Image must be less than 5MB"));
+        toast.error(t("raise.form.image_too_large"));
         return;
       }
 
       // Validate file type
       if (!file.type.startsWith("image/")) {
         toast.error(
-          t("create.invalid_image_type", "Please upload an image file"),
+          t("raise.form.invalid_image_type"),
         );
         return;
       }
@@ -312,9 +345,9 @@ export default function RaiseForm() {
   return (
     <div className="max-w-5xl mx-auto p-4 md:p-8 space-y-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl md:text-3xl font-bold">Raise now</h1>
+        <h1 className="text-2xl md:text-3xl font-bold">{t("raise.title")}</h1>
         <div className="text-xs md:text-sm text-muted-foreground">
-          Raise funds onchain for <i>any</i> goal.
+          {t("raise.subtitle")}
         </div>
       </div>
 
@@ -332,11 +365,11 @@ export default function RaiseForm() {
           ethPriceUSD={ethPrice?.priceUSD ?? null} // <— NEW
         />
         <form onSubmit={submitCreateSale} className="space-y-6">
-          <SectionTitle>Identity</SectionTitle>
+          <SectionTitle>{t("raise.form.identity_section")}</SectionTitle>
           <Row>
             <Field
-              label="Name"
-              description="e.g. My Very Descriptive Project Name"
+              label={t("raise.form.name_label")}
+              description={t("raise.form.name_description")}
             >
               <Input
                 className="rounded-md"
@@ -344,7 +377,7 @@ export default function RaiseForm() {
                 onChange={onChange("name")}
               />
             </Field>
-            <Field label="Symbol" description="e.g. MYVDPN">
+            <Field label={t("raise.form.symbol_label")} description={t("raise.form.symbol_description")}>
               <Input
                 className="rounded-md"
                 value={state.symbol}
@@ -354,8 +387,8 @@ export default function RaiseForm() {
           </Row>
           <Row>
             <Field
-              label="Description"
-              description="e.g. Super In-depth Project Description"
+              label={t("raise.form.description_label")}
+              description={t("raise.form.description_description")}
               className="col-span-2"
             >
               <Textarea
@@ -367,11 +400,11 @@ export default function RaiseForm() {
           </Row>
 
           <ImageInput onChange={handleImageFileChange} />
-          <SectionTitle>Tokenomics</SectionTitle>
+          <SectionTitle>{t("raise.form.tokenomics_section")}</SectionTitle>
           <Row>
             <Field
-              label="ETH rate (coins per 1 ETH)"
-              description="Example: 1000000000 → 1e9 coins per ETH"
+              label={t("raise.form.eth_rate_label")}
+              description={t("raise.form.eth_rate_description")}
             >
               <Input
                 value={state.ethRateDisplay}
@@ -380,15 +413,15 @@ export default function RaiseForm() {
             </Field>
           </Row>
 
-          <SectionTitle>Supply</SectionTitle>
+          <SectionTitle>{t("raise.form.supply_section")}</SectionTitle>
           <Row>
-            <Field label="Total supply" description="Assumes 18 decimals">
+            <Field label={t("raise.form.total_supply_label")} description={t("raise.form.total_supply_description")}>
               <Input
                 value={state.totalSupplyDisplay}
                 onChange={onChange("totalSupplyDisplay")}
               />
             </Field>
-            <Field label="Creator reserve">
+            <Field label={t("raise.form.creator_reserve_label")}>
               <Input
                 value={state.creatorSupplyDisplay}
                 onChange={onChange("creatorSupplyDisplay")}
@@ -398,7 +431,10 @@ export default function RaiseForm() {
 
           {templates[state.template].needsChef && (
             <div>
-              <SectionTitle>Farm Incentives</SectionTitle>
+              <SectionTitle>{t("raise.form.farm_incentives_section")}</SectionTitle>
+              <p className="text-sm text-muted-foreground mb-4">
+                {t("raise.form.farm_incentives_description")}
+              </p>
               <FeeOrHookSelector
                 feeOrHook={state.feeOrHook}
                 setFeeOrHook={onChange("feeOrHook")}
@@ -408,8 +444,8 @@ export default function RaiseForm() {
 
               <Row>
                 <Field
-                  label="Incentive amount"
-                  description="The amount to be streamed."
+                  label={t("raise.form.incentive_amount_label")}
+                  description={t("raise.form.incentive_amount_description")}
                 >
                   <Input
                     value={state.incentiveAmountDisplay}
@@ -417,23 +453,29 @@ export default function RaiseForm() {
                   />
                 </Field>
                 <Field
-                  label="Incentive duration"
-                  description="The duration of the incentive period."
+                  label={t("raise.form.incentive_duration_label")}
+                  description={t("raise.form.incentive_duration_description")}
                 >
-                  <Input
-                    type="number"
-                    value={state.incentiveDurationDays}
-                    onChange={(e) =>
-                      setState((s) => ({
-                        ...s,
-                        incentiveDurationDays: Number(e.target.value || 0),
-                      }))
-                    }
-                  />
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      value={state.incentiveDurationDays}
+                      onChange={(e) =>
+                        setState((s) => ({
+                          ...s,
+                          incentiveDurationDays: Number(e.target.value || 0),
+                        }))
+                      }
+                      className="pr-12"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                      {t("common.days")}
+                    </span>
+                  </div>
                 </Field>
               </Row>
               <p className="mt-2 text-xs text-muted-foreground">
-                The pool can be initialized later by anyone.
+                {t("raise.form.pool_note")}
               </p>
             </div>
           )}
@@ -453,22 +495,21 @@ export default function RaiseForm() {
             >
               {isPending ? (
                 <span className="inline-flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Confirm in
-                  wallet…
+                  <Loader2 className="h-4 w-4 animate-spin" /> {t("raise.form.confirm_in_wallet")}
                 </span>
               ) : (
-                "Create Sale"
+                t("raise.form.create_sale_button")
               )}
             </Button>
             {txHash && (
               <span className="text-sm">
-                Submitted tx:{" "}
+                {t("raise.form.submitted_tx")}{" "}
                 <code className="bg-muted px-2 py-1 rounded">{txHash}</code>
               </span>
             )}
             {receipt && (
               <span className="inline-flex items-center gap-1 text-sm text-green-600">
-                <CheckCircle className="w-4 h-4" /> Mined in block{" "}
+                <CheckCircle className="w-4 h-4" /> {t("raise.form.mined_in_block")}{" "}
                 {receipt.blockNumber?.toString?.()}
               </span>
             )}
@@ -482,14 +523,13 @@ export default function RaiseForm() {
 }
 
 function HelpNotes() {
+  const { t } = useTranslation();
   return (
     <div className="shadow-none border border-dashed p-5 text-sm space-y-2 leading-relaxed">
-      <div className="font-medium">Notes</div>
+      <div className="font-medium">{t("raise.help.notes")}</div>
       <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
         <li>
-          All created coins are eligible under the airdrop program, 5% of the
-          total supply of the created coin will be airdropped to veZAMM holders
-          on a claimable basis.
+          {t("raise.help.airdrop_note")}
         </li>
       </ul>
     </div>

@@ -2,6 +2,7 @@ import { formatDuration } from "@/lib/date";
 import { templates } from "./RaiseForm";
 import { formatEther } from "viem"; // ✅ use library utility
 import { bigintToNumberSafe, formatDexscreenerStyle } from "@/lib/math";
+import { useTranslation } from "react-i18next";
 
 export const PreviewRaise = ({
   state,
@@ -20,6 +21,7 @@ export const PreviewRaise = ({
   incentiveDuration: bigint;
   ethPriceUSD: number | null;
 }) => {
+  const { t } = useTranslation();
   const imgUrl = imageBuffer
     ? URL.createObjectURL(new Blob([imageBuffer]))
     : null;
@@ -39,10 +41,10 @@ export const PreviewRaise = ({
     value: bigint;
     color: string;
   }> = [
-    { key: "otc", label: "OTC", value: max0(otcSupply), color: "bg-blue-500" },
+    { key: "otc", label: t("raise.preview.otc"), value: max0(otcSupply), color: "bg-blue-500" },
     {
       key: "creator",
-      label: "Creator",
+      label: t("raise.preview.creator"),
       value: max0(creatorSupplyWei),
       color: "bg-emerald-500",
     },
@@ -50,7 +52,7 @@ export const PreviewRaise = ({
       ? [
           {
             key: "incentive",
-            label: "Incentive",
+            label: t("raise.preview.incentive"),
             value: max0(incentiveAmount),
             color: "bg-fuchsia-500",
           },
@@ -86,7 +88,7 @@ export const PreviewRaise = ({
     >
       {/* header */}
       <div className="px-5 py-4 border-b bg-gradient-to-b from-transparent to-black/[0.02] dark:to-white/[0.02]">
-        <h2 className="text-lg font-semibold tracking-tight">Preview</h2>
+        <h2 className="text-lg font-semibold tracking-tight">{t("raise.preview.title")}</h2>
       </div>
 
       {/* identity row */}
@@ -118,7 +120,7 @@ export const PreviewRaise = ({
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <div className="text-xl font-bold leading-tight truncate">
-                {state.name || "Unnamed"}
+                {state.name || t("raise.preview.unnamed")}
               </div>
               <div className="text-sm px-2 py-0.5 rounded-md border bg-neutral-50 dark:bg-neutral-800/60 text-neutral-600 dark:text-neutral-300">
                 [{symbol}]
@@ -130,7 +132,7 @@ export const PreviewRaise = ({
                 whitespace-pre-wrap
               "
             >
-              {state.description || "No description yet."}
+              {state.description || t("raise.preview.no_description")}
             </p>
           </div>
         </div>
@@ -139,7 +141,7 @@ export const PreviewRaise = ({
       {/* supply slider */}
       <div className="px-5 pb-4">
         <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-2">
-          Supply breakdown
+          {t("raise.preview.supply_breakdown")}
         </h3>
 
         <div
@@ -193,29 +195,29 @@ export const PreviewRaise = ({
         </div>
 
         <div className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
-          Total: {formatToken(totalSupplyWei)} tokens
+          {t("raise.preview.total")} {formatToken(totalSupplyWei)} tokens
         </div>
       </div>
 
       {/* stats */}
       <div className="px-5 pb-5">
         <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-3">
-          Tokenomics
+          {t("raise.preview.tokenomics")}
         </h3>
-        <InfoStat title="ETH Rate" value={formatEtherWithCommas(ethRate, 6)} />
-        <InfoStat title="Initial Price" value={initialPriceCombined} />
+        <InfoStat title={t("raise.preview.eth_rate")} value={formatEtherWithCommas(ethRate, 6)} />
+        <InfoStat title={t("raise.preview.initial_price")} value={initialPriceCombined} />
         {/*@ts-expect-error*/}
         {templates[state.template].needsChef && (
           <div>
             <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-3">
-              Farming Incentives
+              {t("raise.preview.farming_incentives")}
             </h3>
             <InfoStat
-              title={`Incentive Amount ${state.symbol && state.symbol}`}
+              title={`${t("raise.preview.incentive_amount")} ${state.symbol && state.symbol}`}
               value={formatEtherWithCommas(incentiveAmount, 6)}
             />
             <InfoStat
-              title="Incentive Duration"
+              title={t("raise.preview.incentive_duration")}
               value={formatDuration(bigintToNumberSafe(incentiveDuration))}
             />
           </div>
@@ -239,7 +241,9 @@ function InfoStat({ title, value }: { title: string; value: string }) {
 function parseUnitsSafe(display: string, decimals: bigint): bigint {
   const cleaned = (display || "").trim();
   if (!cleaned) return 0n;
-  const whole = cleaned.replace(/\..*$/, "");
+  // Remove commas first
+  const noCommas = cleaned.replace(/,/g, "");
+  const whole = noCommas.replace(/\..*$/, "");
   const digits = whole.replace(/[^\d]/g, "");
   if (!digits) return 0n;
   try {
