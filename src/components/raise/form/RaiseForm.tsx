@@ -27,6 +27,9 @@ import { useETHPrice } from "@/hooks/use-eth-price";
 import { FeeOrHookSelector } from "@/components/pools/FeeOrHookSelector";
 import { isFeeOrHook } from "@/lib/pools";
 import { Link } from "@tanstack/react-router";
+import { getEtherscanTxUrl } from "@/lib/explorer";
+import { ExternalLink } from "lucide-react";
+import { decodeEventLog } from "viem";
 
 // === Form logic ===
 export const templates = {
@@ -99,6 +102,7 @@ export default function RaiseForm() {
   const [state, setState] = useState(defaultState);
   const [txHash, setTxHash] = useState<`0x${string}` | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [coinId, setCoinId] = useState<string | null>(null);
   const formRef = useRef<HTMLDivElement | null>(null);
 
   const { address: creator, isConnected, connector } = useAccount();
@@ -110,6 +114,36 @@ export default function RaiseForm() {
   const [imageBuffer, setImageBuffer] = useState<ArrayBuffer | null>(null);
 
   const { data: ethPrice } = useETHPrice();
+
+  // Extract coinId from transaction receipt
+  useEffect(() => {
+    if (receipt && receipt.logs) {
+      try {
+        // Find the OTC event in the logs
+        for (const log of receipt.logs) {
+          try {
+            const decodedLog = decodeEventLog({
+              abi: zICOAbi,
+              data: log.data,
+              topics: log.topics,
+            });
+
+            if (decodedLog.eventName === 'OTC') {
+              const id = (decodedLog.args as any).coinId;
+              if (id) {
+                setCoinId(id.toString());
+                break;
+              }
+            }
+          } catch {
+            // Continue to next log if this one doesn't match
+          }
+        }
+      } catch (error) {
+        console.error('Error extracting coinId from receipt:', error);
+      }
+    }
+  }, [receipt]);
 
   // Helper to remove commas for parsing
   const removeCommas = (value: string) => {
@@ -543,7 +577,7 @@ export default function RaiseForm() {
             </div>
           )}
 
-          <div className="flex items-center gap-3">
+          <div className="space-y-4">
             <Button
               type="submit"
               disabled={!canSubmit || isPending}
@@ -557,17 +591,65 @@ export default function RaiseForm() {
                 t("raise.form.create_sale_button")
               )}
             </Button>
-            {txHash && (
-              <span className="text-sm">
-                {t("raise.form.submitted_tx")}{" "}
-                <code className="bg-muted px-2 py-1 rounded">{txHash}</code>
-              </span>
+
+            {txHash && !receipt && (
+              <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                <div className="flex items-start gap-2">
+                  <Loader2 className="w-4 h-4 mt-0.5 animate-spin text-blue-600 dark:text-blue-400" />
+                  <div className="space-y-1 flex-1">
+                    <div className="font-medium text-blue-900 dark:text-blue-100">
+                      {t("raise.form.submitted_tx") || "Transaction submitted"}
+                    </div>
+                    <a
+                      href={getEtherscanTxUrl(txHash)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-sm text-blue-700 dark:text-blue-300 hover:underline"
+                    >
+                      View on Etherscan
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                </div>
+              </div>
             )}
+
             {receipt && (
-              <span className="inline-flex items-center gap-1 text-sm text-green-600">
-                <CheckCircle className="w-4 h-4" /> {t("raise.form.mined_in_block")}{" "}
-                {receipt.blockNumber?.toString?.()}
-              </span>
+              <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                <div className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 mt-0.5 text-green-600 dark:text-green-400" />
+                  <div className="space-y-2 flex-1">
+                    <div className="space-y-1">
+                      <div className="font-medium text-green-900 dark:text-green-100">
+                        {t("raise.form.success") || "Coin created successfully!"}
+                      </div>
+                      <div className="text-sm text-green-700 dark:text-green-300">
+                        {t("raise.form.mined_in_block") || "Mined in block"} {receipt.blockNumber?.toString?.()}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <a
+                        href={getEtherscanTxUrl(txHash!)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-sm px-3 py-1.5 bg-white dark:bg-gray-800 border border-green-300 dark:border-green-700 rounded-md hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        View Transaction
+                      </a>
+                      {coinId && (
+                        <Link
+                          to="/c/$coinId"
+                          params={{ coinId }}
+                          className="inline-flex items-center gap-1 text-sm px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                        >
+                          View Your Coin →
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </form>
