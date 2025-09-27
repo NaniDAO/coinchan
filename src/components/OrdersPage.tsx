@@ -328,12 +328,12 @@ export const OrdersPage = () => {
       return orders.filter((order) => {
         // Exclude launchpad orders completely (where maker is ZAMMLaunch contract)
         const isLaunchpadOrder =
-          order.maker.toLowerCase() === ZAMMLaunchAddress.toLowerCase();
+          order?.maker?.toLowerCase() === ZAMMLaunchAddress.toLowerCase();
         if (isLaunchpadOrder) return false;
 
         // Exclude zICO orders (where maker is zICO contract)
         const isZICOOrder =
-          order.maker.toLowerCase() === zICOAddress.toLowerCase();
+          order?.maker?.toLowerCase() === zICOAddress.toLowerCase();
         if (isZICOOrder) return false;
 
         // Status filter: Include if status list is empty or order status is in the list
@@ -349,9 +349,9 @@ export const OrdersPage = () => {
         const ownershipMatch =
           !ownershipFilterActive || // If filter is not active, it matches
           (currentFilters.onlyMine &&
-            order.maker.toLowerCase() === address?.toLowerCase()) || // If onlyMine, check maker
+            order.maker?.toLowerCase() === address?.toLowerCase()) || // If onlyMine, check maker
           (currentFilters.excludeMine &&
-            order.maker.toLowerCase() !== address?.toLowerCase()); // If excludeMine, check maker
+            order.maker?.toLowerCase() !== address?.toLowerCase()); // If excludeMine, check maker
 
         // An order matches if both status and ownership filters match
         return statusMatch && ownershipMatch;
