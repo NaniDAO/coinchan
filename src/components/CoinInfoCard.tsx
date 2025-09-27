@@ -3,8 +3,10 @@ import type { Address } from "viem";
 import { CreatorDisplay } from "./CreatorDisplay";
 import { CoinImagePopup } from "./CoinImagePopup";
 import { bpsToPct } from "@/lib/pools";
-import { formatImageURL } from "@/hooks/metadata";
+import { formatTokenURL } from "@/hooks/metadata";
 import { isCookbookCoin } from "@/lib/coin-utils";
+import { useQuery } from "@tanstack/react-query";
+import { TokenUriMetadata, buildProjectLinksFromMetadata } from "@/lib/links";
 
 interface CoinInfoCardProps {
   coinId: bigint;
@@ -43,9 +45,23 @@ export const CoinInfoCard = ({
   creator,
   className,
 }: CoinInfoCardProps) => {
+  const { data: tokenMetadata } = useQuery<TokenUriMetadata | null>({
+    queryKey: ["tokenMetadata", tokenURI?.toString()],
+    queryFn: async () => {
+      if (!tokenURI) return null;
+      const response = await fetch(formatTokenURL(tokenURI));
+      const data = (await response.json()) as TokenUriMetadata;
+      return data;
+    },
+    enabled: !!tokenURI,
+  });
+
   // Since CoinImagePopup handles its own fallback logic, we just pass the URL
   const currentImageUrl = imageUrl || null;
   const tokenType = isCookbookCoin(coinId) ? "COOKBOOK" : "ZAMM";
+
+  // ---- Project links from metadata.attributes ----
+  const projectLinks = buildProjectLinksFromMetadata(tokenMetadata);
 
   return (
     <div
@@ -71,6 +87,7 @@ export const CoinInfoCard = ({
           />
         )}
       </div>
+
       <div className="flex flex-col flex-grow overflow-hidden">
         <div className="flex items-baseline space-x-2">
           {isLoading ? (
@@ -128,8 +145,36 @@ export const CoinInfoCard = ({
           </div>
         )}
 
+        {/* --- Project Links with logos --- */}
+        {!isLoading && projectLinks.length > 0 && (
+          <div className="mt-3">
+            <div className="text-xs font-semibold text-foreground/80 mb-1">
+              Project links
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {projectLinks.map((l) => (
+                <a
+                  key={l.key}
+                  href={l.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(
+                    "inline-flex items-center gap-1 px-2 py-1 rounded-md border",
+                    "bg-background/70 hover:bg-background transition-colors",
+                    "text-xs font-medium",
+                  )}
+                  title={l.title}
+                >
+                  <l.icon className="h-3.5 w-3.5 opacity-80" />
+                  <span className="truncate max-w-[12rem]">{l.label}</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Market Cap Estimation and Swap Fee */}
-        <div className="mt-2 text-xs">
+        <div className="mt-3 text-xs">
           <div className="flex flex-col gap-1">
             {/* Always show the swap fee, independent of market cap calculation */}
             <div className="flex items-center gap-1">
@@ -216,7 +261,7 @@ export const CoinInfoCard = ({
           {!isLoading && tokenURI && tokenURI !== "N/A" && (
             <div className="mt-1">
               <a
-                href={formatImageURL(tokenURI)}
+                href={formatTokenURL(tokenURI)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs text-primary hover:underline"

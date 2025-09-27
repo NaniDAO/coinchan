@@ -3,6 +3,7 @@ import { templates } from "./RaiseForm";
 import { formatEther } from "viem";
 import { bigintToNumberSafe, formatDexscreenerStyle } from "@/lib/math";
 import { useTranslation } from "react-i18next";
+import { buildProjectLinks } from "@/lib/links";
 
 export const PreviewRaise = ({
   state,
@@ -531,50 +532,4 @@ function formatUSD(n: number) {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
   })}`;
-}
-
-/* -------- project links helpers -------- */
-
-function ensureProtocol(u: string): string {
-  const x = (u || "").trim();
-  if (!x) return "";
-  if (/^https?:\/\//i.test(x)) return x;
-  return `https://${x}`;
-}
-
-/** Turn "@handle" or raw "handle" or full twitter/x url into a nice x.com link */
-function toXLink(h: string): string {
-  const x = (h || "").trim();
-  if (!x) return "";
-  // if full URL, normalize domain to x.com
-  const urlMatch = x.match(/^https?:\/\/(www\.)?(x|twitter)\.com\/([^/?#]+)/i);
-  const handle = urlMatch ? urlMatch[3] : x.replace(/^@/, "");
-  return `https://x.com/${handle}`;
-}
-
-function buildProjectLinks(
-  state: any,
-): Array<{ label: string; href: string; title: string }> {
-  const out: Array<{ label: string; href: string; title: string }> = [];
-
-  const website = ensureProtocol(state.website || "");
-  const twitter = (state.twitter || "").trim();
-  const discord = ensureProtocol(state.discordInvite || "");
-  const telegram = ensureProtocol(state.telegramInvite || "");
-
-  if (website) {
-    out.push({ label: "Website", href: website, title: website });
-  }
-  if (twitter) {
-    const href = toXLink(twitter);
-    out.push({ label: "Twitter", href, title: href });
-  }
-  if (discord) {
-    out.push({ label: "Discord", href: discord, title: discord });
-  }
-  if (telegram) {
-    out.push({ label: "Telegram", href: telegram, title: telegram });
-  }
-
-  return out;
 }
