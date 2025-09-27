@@ -1,8 +1,3 @@
-// ============================
-// RaiseForm.tsx (updated)
-// - Adds useETHPrice hook to fetch ETH price in USD
-// - Passes ethPriceUSD down to PreviewRaise for initial coin USD price display
-// ============================
 import React, { useMemo, useRef, useState, useEffect } from "react";
 import {
   useWriteContract,
@@ -30,6 +25,7 @@ import { Link } from "@tanstack/react-router";
 import { getEtherscanTxUrl } from "@/lib/explorer";
 import { ExternalLink } from "lucide-react";
 import { decodeEventLog } from "viem";
+import { headingLevel } from "@/components/ui/typography";
 
 // === Form logic ===
 export const templates = {
@@ -63,6 +59,11 @@ const defaultState = {
   uri: "ipfs://…",
   buyCoinId: "",
   buyEthAmount: "",
+  // --- NEW optional project links (hidden behind <details>) ---
+  website: "",
+  twitter: "",
+  discordInvite: "",
+  telegramInvite: "",
 };
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
@@ -128,7 +129,7 @@ export default function RaiseForm() {
               topics: log.topics,
             });
 
-            if (decodedLog.eventName === 'OTC') {
+            if (decodedLog.eventName === "OTC") {
               const id = (decodedLog.args as any).coinId;
               if (id) {
                 setCoinId(id.toString());
@@ -140,41 +141,60 @@ export default function RaiseForm() {
           }
         }
       } catch (error) {
-        console.error('Error extracting coinId from receipt:', error);
+        console.error("Error extracting coinId from receipt:", error);
       }
     }
   }, [receipt]);
 
   // Helper to remove commas for parsing
   const removeCommas = (value: string) => {
-    return value.replace(/,/g, '');
+    return value.replace(/,/g, "");
   };
 
   // Helper to format number with commas
   const formatWithCommas = (value: string) => {
     // Remove all non-digit and non-decimal characters
-    const cleanValue = value.replace(/[^\d.]/g, '');
+    const cleanValue = value.replace(/[^\d.]/g, "");
 
     // Split into integer and decimal parts
-    const parts = cleanValue.split('.');
+    const parts = cleanValue.split(".");
 
     // Format integer part with commas
-    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
     // Join back together
-    return parts.join('.');
+    return parts.join(".");
   };
+
+  // --- link/handle helpers (NEW) ---
+  function normalizeUrl(url: string) {
+    const x = (url || "").trim();
+    if (!x) return "";
+    if (/^https?:\/\//i.test(x)) return x;
+    return `https://${x}`;
+  }
+  function normalizeTwitterHandle(h: string) {
+    const x = (h || "").trim();
+    if (!x) return "";
+    // If a full profile URL was pasted, reduce to handle; ensure leading '@'
+    const cleaned = x
+      .replace(/^https?:\/\/(www\.)?(x|twitter)\.com\//i, "")
+      .replace(/^@/, "");
+    return `@${cleaned}`;
+  }
 
   // Auto-calculate airdrop as 5% of total supply
   useEffect(() => {
-    const totalSupplyNum = parseFloat(removeCommas(state.totalSupplyDisplay) || "0");
+    const totalSupplyNum = parseFloat(
+      removeCommas(state.totalSupplyDisplay) || "0",
+    );
     if (totalSupplyNum > 0) {
       const airdropAmount = totalSupplyNum * 0.05; // 5% of total supply
       const airdropFormatted = formatWithCommas(airdropAmount.toString());
       if (state.airdropIncentiveDisplay !== airdropFormatted) {
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
-          airdropIncentiveDisplay: airdropFormatted
+          airdropIncentiveDisplay: airdropFormatted,
         }));
       }
     }
@@ -184,13 +204,16 @@ export default function RaiseForm() {
     let value = e?.target ? e.target.value : e;
 
     // Apply comma formatting for number display fields
-    if (typeof value === 'string' && [
-      'ethRateDisplay',
-      'totalSupplyDisplay',
-      'incentiveAmountDisplay',
-      'airdropIncentiveDisplay',
-      'creatorSupplyDisplay'
-    ].includes(key)) {
+    if (
+      typeof value === "string" &&
+      [
+        "ethRateDisplay",
+        "totalSupplyDisplay",
+        "incentiveAmountDisplay",
+        "airdropIncentiveDisplay",
+        "creatorSupplyDisplay",
+      ].includes(key)
+    ) {
       value = formatWithCommas(value);
     }
 
@@ -285,8 +308,11 @@ export default function RaiseForm() {
       }
 
       // Check if connector is properly initialized
-      if (!connector || typeof connector.getChainId !== 'function') {
-        toast.error(t("common.wallet_connection_error") || "Wallet connection error. Please reconnect your wallet.");
+      if (!connector || typeof connector.getChainId !== "function") {
+        toast.error(
+          t("common.wallet_connection_error") ||
+            "Wallet connection error. Please reconnect your wallet.",
+        );
         throw new Error("Wallet connector not properly initialized");
       }
 
@@ -300,20 +326,37 @@ export default function RaiseForm() {
         description: state.description.trim(),
       };
 
+      // --- NEW: gather optional project links into attributes ---
+      const attributes: Record<string, string> = {};
+      const website = normalizeUrl(state.website);
+      const twitter = normalizeTwitterHandle(state.twitter);
+      const discord = normalizeUrl(state.discordInvite);
+      const telegram = normalizeUrl(state.telegramInvite);
+
+      if (website) attributes.website = website;
+      if (twitter) attributes.twitter = twitter; // stored as "@handle"
+      if (discord) attributes.discord_invite = discord;
+      if (telegram) attributes.telegram_invite = telegram;
+
+      if (Object.keys(attributes).length > 0) {
+        (metadata as any).attributes = attributes;
+      }
+      // ---------------------------------------------
+
       if (imageBuffer) {
         const imageUri = await pinImageToPinata(
           imageBuffer,
           `${metadata.name}-logo`,
           {
             keyvalues: {
-              coinName: metadata.name,
-              coinSymbol: metadata.symbol,
+              coinName: metadata.name as string,
+              coinSymbol: metadata.symbol as string,
               type: "coin-logo",
             },
           },
         );
 
-        metadata.image = imageUri;
+        (metadata as any).image = imageUri;
       } else {
         throw new Error(t("ico.error_upload_image"));
       }
@@ -366,24 +409,29 @@ export default function RaiseForm() {
       console.error(err);
 
       // Check for user rejection
-      if (err?.message?.includes("User rejected") ||
-          err?.shortMessage?.includes("User rejected") ||
-          err?.cause?.message?.includes("User rejected")) {
+      if (
+        err?.message?.includes("User rejected") ||
+        err?.shortMessage?.includes("User rejected") ||
+        err?.cause?.message?.includes("User rejected")
+      ) {
         setError(t("common.transaction_rejected") || "Transaction cancelled");
         toast.info(t("common.transaction_rejected") || "Transaction cancelled");
         return;
       }
 
       // Check for other common wallet errors
-      if (err?.message?.includes("User denied") ||
-          err?.shortMessage?.includes("User denied")) {
+      if (
+        err?.message?.includes("User denied") ||
+        err?.shortMessage?.includes("User denied")
+      ) {
         setError(t("common.transaction_denied") || "Transaction denied");
         toast.info(t("common.transaction_denied") || "Transaction denied");
         return;
       }
 
       // Default error handling
-      const errorMessage = err?.shortMessage || err?.message || "Transaction failed";
+      const errorMessage =
+        err?.shortMessage || err?.message || "Transaction failed";
       setError(errorMessage);
       toast.error(errorMessage);
     }
@@ -399,9 +447,7 @@ export default function RaiseForm() {
 
       // Validate file type
       if (!file.type.startsWith("image/")) {
-        toast.error(
-          t("raise.form.invalid_image_type"),
-        );
+        toast.error(t("raise.form.invalid_image_type"));
         return;
       }
 
@@ -436,7 +482,7 @@ export default function RaiseForm() {
           otcSupply={otcSupply}
           incentiveAmount={incentiveAmount}
           incentiveDuration={incentiveDuration}
-          ethPriceUSD={ethPrice?.priceUSD ?? null} // <— NEW
+          ethPriceUSD={ethPrice?.priceUSD ?? null}
         />
         <form onSubmit={submitCreateSale} className="space-y-6">
           <SectionTitle>{t("raise.form.identity_section")}</SectionTitle>
@@ -451,7 +497,10 @@ export default function RaiseForm() {
                 onChange={onChange("name")}
               />
             </Field>
-            <Field label={t("raise.form.symbol_label")} description={t("raise.form.symbol_description")}>
+            <Field
+              label={t("raise.form.symbol_label")}
+              description={t("raise.form.symbol_description")}
+            >
               <Input
                 className="rounded-md"
                 value={state.symbol}
@@ -474,6 +523,61 @@ export default function RaiseForm() {
           </Row>
 
           <ImageInput onChange={handleImageFileChange} />
+
+          <details className="p-2 open:bg-muted">
+            <summary className={cn(headingLevel[2], "cursor-pointer text-xl")}>
+              Project links
+            </summary>
+            <div className="mt-4 space-y-4">
+              <Row>
+                <Field label="Website" description="Public project site">
+                  <Input
+                    className="rounded-md"
+                    placeholder="https://example.com"
+                    value={state.website}
+                    onChange={onChange("website")}
+                  />
+                </Field>
+                <Field
+                  label="Twitter handle"
+                  description="Your X/Twitter username"
+                >
+                  <Input
+                    className="rounded-md"
+                    placeholder="@yourhandle"
+                    value={state.twitter}
+                    onChange={onChange("twitter")}
+                  />
+                </Field>
+              </Row>
+              <Row>
+                <Field
+                  label="Discord invite link"
+                  description="Permanent or long-lived invite"
+                >
+                  <Input
+                    className="rounded-md"
+                    placeholder="https://discord.gg/yourcode"
+                    value={state.discordInvite}
+                    onChange={onChange("discordInvite")}
+                  />
+                </Field>
+                <Field
+                  label="Telegram invite link"
+                  description="Public or invite link"
+                >
+                  <Input
+                    className="rounded-md"
+                    placeholder="https://t.me/yourchannel"
+                    value={state.telegramInvite}
+                    onChange={onChange("telegramInvite")}
+                  />
+                </Field>
+              </Row>
+            </div>
+          </details>
+          {/* --- END Project links section --- */}
+
           <SectionTitle>{t("raise.form.tokenomics_section")}</SectionTitle>
           <Row>
             <Field
@@ -489,7 +593,10 @@ export default function RaiseForm() {
 
           <SectionTitle>{t("raise.form.supply_section")}</SectionTitle>
           <Row>
-            <Field label={t("raise.form.total_supply_label")} description={t("raise.form.total_supply_description")}>
+            <Field
+              label={t("raise.form.total_supply_label")}
+              description={t("raise.form.total_supply_description")}
+            >
               <Input
                 value={state.totalSupplyDisplay}
                 onChange={onChange("totalSupplyDisplay")}
@@ -505,7 +612,9 @@ export default function RaiseForm() {
 
           {templates[state.template].needsChef && (
             <div>
-              <SectionTitle>{t("raise.form.farm_incentives_section")}</SectionTitle>
+              <SectionTitle>
+                {t("raise.form.farm_incentives_section")}
+              </SectionTitle>
               <p className="text-sm text-muted-foreground mb-4">
                 {t("raise.form.farm_incentives_description")}
               </p>
@@ -563,7 +672,8 @@ export default function RaiseForm() {
                     {t("common.wallet_required") || "Wallet Required"}
                   </div>
                   <div className="text-amber-700 dark:text-amber-300 mt-1">
-                    {t("common.connect_wallet_to_continue") || "Please connect your wallet to create a sale"}
+                    {t("common.connect_wallet_to_continue") ||
+                      "Please connect your wallet to create a sale"}
                   </div>
                 </div>
               </div>
@@ -585,7 +695,8 @@ export default function RaiseForm() {
             >
               {isPending ? (
                 <span className="inline-flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" /> {t("raise.form.confirm_in_wallet")}
+                  <Loader2 className="h-4 w-4 animate-spin" />{" "}
+                  {t("raise.form.confirm_in_wallet")}
                 </span>
               ) : (
                 t("raise.form.create_sale_button")
@@ -621,10 +732,12 @@ export default function RaiseForm() {
                   <div className="space-y-2 flex-1">
                     <div className="space-y-1">
                       <div className="font-medium text-green-900 dark:text-green-100">
-                        {t("raise.form.success") || "Coin created successfully!"}
+                        {t("raise.form.success") ||
+                          "Coin created successfully!"}
                       </div>
                       <div className="text-sm text-green-700 dark:text-green-300">
-                        {t("raise.form.mined_in_block") || "Mined in block"} {receipt.blockNumber?.toString?.()}
+                        {t("raise.form.mined_in_block") || "Mined in block"}{" "}
+                        {receipt.blockNumber?.toString?.()}
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -662,7 +775,7 @@ export default function RaiseForm() {
 
 function HelpNotes() {
   const { t, i18n } = useTranslation();
-  const isZh = i18n.language === 'zh';
+  const isZh = i18n.language === "zh";
 
   return (
     <div className="shadow-none border border-dashed p-5 text-sm space-y-2 leading-relaxed">
@@ -671,17 +784,24 @@ function HelpNotes() {
         <li>
           {isZh ? (
             <>
-              所有创建的代币都有资格参加空投计划，创建代币总供应量的 5% 将以可认领的方式空投给{" "}
-              <Link to="/stake" className="text-primary underline hover:no-underline">
+              所有创建的代币都有资格参加空投计划，创建代币总供应量的 5%
+              将以可认领的方式空投给{" "}
+              <Link
+                to="/stake"
+                className="text-primary underline hover:no-underline"
+              >
                 veZAMM 持有者
               </Link>
               。
             </>
           ) : (
             <>
-              All created tokens are eligible for the airdrop program, where 5% of the created token total supply
-              will be claimably airdropped to{" "}
-              <Link to="/stake" className="text-primary underline hover:no-underline">
+              All created tokens are eligible for the airdrop program, where 5%
+              of the created token total supply will be claimably airdropped to{" "}
+              <Link
+                to="/stake"
+                className="text-primary underline hover:no-underline"
+              >
                 veZAMM holders
               </Link>
               .

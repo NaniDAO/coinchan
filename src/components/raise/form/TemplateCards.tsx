@@ -2,7 +2,6 @@ import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 
-
 export function TemplateCards({
   onSelect,
   selectedKey,
@@ -11,7 +10,6 @@ export function TemplateCards({
   selectedKey?: string;
 }) {
   const { t } = useTranslation();
-  console.log("TemplateCards", selectedKey);
 
   const videoTemplates = [
     {
