@@ -14,14 +14,13 @@ import {
   CardFooter,
   CardHeader,
 } from "@/components/ui/card";
-import { Loader2, Coins, Clock, Users, DollarSign } from "lucide-react";
+import { Loader2, Coins, Clock, DollarSign } from "lucide-react";
 import { zICOAbi, zICOAddress } from "@/constants/zICO";
 import { TradePanel } from "../trade/TradePanel";
 import { ETH_TOKEN, TokenMetadata } from "@/lib/pools";
 import { ZICOSaleStatus } from "@/hooks/use-otc-sale-status";
 import { mainnet } from "viem/chains";
 import { Progress } from "../ui/progress";
-import { useTranslation } from "react-i18next";
 import { useETHPrice } from "@/hooks/use-eth-price";
 
 export type BuyOTCProps = {
@@ -71,7 +70,6 @@ export default function BuyOTC({
   totalSupply,
   className,
 }: BuyOTCProps) {
-  const { t } = useTranslation();
   const { address, isConnected } = useAccount();
   const { data: ethPrice } = useETHPrice();
 
@@ -202,14 +200,16 @@ export default function BuyOTC({
     if (sale.ethRate > 0n) {
       // Calculate tokens sold: ETH raised * tokens per ETH
       // Note: ethRate is already in wei (tokens * 10^18 per 1 ETH)
-      sold = (sale.reserveEth * sale.ethRate) / (10n ** 18n);
+      sold = (sale.reserveEth * sale.ethRate) / 10n ** 18n;
 
       // Initial OTC supply = current remaining + sold
       initialOTCSupply = remaining + sold;
 
       // This is now accurate: we know both sold and initial
       if (initialOTCSupply > 0n) {
-        progress = (Number(formatEther(sold)) / Number(formatEther(initialOTCSupply))) * 100;
+        progress =
+          (Number(formatEther(sold)) / Number(formatEther(initialOTCSupply))) *
+          100;
         isIntelligentTracking = true;
       }
     } else {
@@ -281,8 +281,12 @@ export default function BuyOTC({
       pricePerTokenUSD,
       tokensPerEth,
       initialSaleSupply: formatEther(initialOTCSupply),
-      initialSaleSupplyFormatted: formatLargeNumber(formatEther(initialOTCSupply)),
-      totalSupplyFormatted: totalSupply ? formatLargeNumber(formatEther(totalSupply)) : "21M",
+      initialSaleSupplyFormatted: formatLargeNumber(
+        formatEther(initialOTCSupply),
+      ),
+      totalSupplyFormatted: totalSupply
+        ? formatLargeNumber(formatEther(totalSupply))
+        : "21M",
       isIntelligentTracking,
     };
   }, [sale, totalSupply, ethPrice]);
@@ -327,7 +331,10 @@ export default function BuyOTC({
               <Coins className="w-3.5 h-3.5 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Available</span>
             </div>
-            <div className="font-semibold text-sm" title="Tokens currently available for purchase">
+            <div
+              className="font-semibold text-sm"
+              title="Tokens currently available for purchase"
+            >
               {saleStats.remainingFormatted}
             </div>
           </div>
@@ -337,7 +344,10 @@ export default function BuyOTC({
               <Clock className="w-3.5 h-3.5 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Rate</span>
             </div>
-            <div className="font-semibold text-sm" title={`1 ETH = ${saleStats.tokensPerEth} tokens`}>
+            <div
+              className="font-semibold text-sm"
+              title={`1 ETH = ${saleStats.tokensPerEth} tokens`}
+            >
               {saleStats.tokensPerEth}/ETH
             </div>
           </div>
@@ -349,10 +359,13 @@ export default function BuyOTC({
             </div>
             <div className="space-y-0.5">
               <div className="font-semibold text-sm" title="Price per token">
-                {saleStats.pricePerTokenUSD !== "0" ? `$${saleStats.pricePerTokenUSD}` : `${saleStats.pricePerToken} Ξ`}
+                {saleStats.pricePerTokenUSD !== "0"
+                  ? `$${saleStats.pricePerTokenUSD}`
+                  : `${saleStats.pricePerToken} Ξ`}
               </div>
               <div className="text-xs text-muted-foreground">
-                {saleStats.pricePerTokenUSD !== "0" && `${saleStats.pricePerToken} Ξ`}
+                {saleStats.pricePerTokenUSD !== "0" &&
+                  `${saleStats.pricePerToken} Ξ`}
               </div>
             </div>
           </div>
