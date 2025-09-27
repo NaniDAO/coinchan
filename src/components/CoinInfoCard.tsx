@@ -145,34 +145,6 @@ export const CoinInfoCard = ({
           </div>
         )}
 
-        {/* --- Project Links with logos --- */}
-        {!isLoading && projectLinks.length > 0 && (
-          <div className="mt-3">
-            <div className="text-xs font-semibold text-foreground/80 mb-1">
-              Project links
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {projectLinks.map((l) => (
-                <a
-                  key={l.key}
-                  href={l.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={cn(
-                    "inline-flex items-center gap-1 px-2 py-1 rounded-md border",
-                    "bg-background/70 hover:bg-background transition-colors",
-                    "text-xs font-medium",
-                  )}
-                  title={l.title}
-                >
-                  <l.icon className="h-3.5 w-3.5 opacity-80" />
-                  <span className="truncate max-w-[12rem]">{l.label}</span>
-                </a>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Market Cap Estimation and Swap Fee */}
         <div className="mt-3 text-xs">
           <div className="flex flex-col gap-1">
@@ -271,6 +243,31 @@ export const CoinInfoCard = ({
             </div>
           )}
         </div>
+
+        {/* --- Project Links with logos --- */}
+        {!isLoading && projectLinks.length > 0 && (
+          <div className="mt-3">
+            <div className="flex flex-wrap gap-2">
+              {projectLinks.map((l) => (
+                <a
+                  key={l.key}
+                  href={l.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(
+                    "inline-flex items-center gap-1 px-2 py-1 rounded-md border",
+                    "bg-background/70 hover:bg-background transition-colors",
+                    "text-xs font-medium",
+                  )}
+                  title={l.title}
+                >
+                  <l.icon className="h-3.5 w-3.5 opacity-80" />
+                  <span className="truncate max-w-[12rem]">{l.label}</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
