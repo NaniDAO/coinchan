@@ -1,8 +1,9 @@
 import { formatDuration } from "@/lib/date";
 import { templates } from "./RaiseForm";
-import { formatEther } from "viem"; // ✅ use library utility
+import { formatEther } from "viem";
 import { bigintToNumberSafe, formatDexscreenerStyle } from "@/lib/math";
 import { useTranslation } from "react-i18next";
+import { buildProjectLinks } from "@/lib/links";
 
 export const PreviewRaise = ({
   state,
@@ -32,8 +33,13 @@ export const PreviewRaise = ({
   const totalSupplyWei = parseUnitsSafe(state.totalSupplyDisplay, 18n);
   const creatorSupplyWei = parseUnitsSafe(state.creatorSupplyDisplay, 18n);
   // Calculate 5% of total supply if airdrop display is not set
-  const defaultAirdrop = (Number(state.totalSupplyDisplay?.replace(/,/g, '') || "1000000000") * 0.05).toString();
-  const airdropSupply = parseUnitsSafe(state.airdropIncentiveDisplay || defaultAirdrop, 18n);
+  const defaultAirdrop = (
+    Number(state.totalSupplyDisplay?.replace(/,/g, "") || "1000000000") * 0.05
+  ).toString();
+  const airdropSupply = parseUnitsSafe(
+    state.airdropIncentiveDisplay || defaultAirdrop,
+    18n,
+  );
 
   // @ts-expect-error
   const needsChef = templates[state.template].needsChef;
@@ -44,7 +50,12 @@ export const PreviewRaise = ({
     value: bigint;
     color: string;
   }> = [
-    { key: "otc", label: t("raise.preview.otc"), value: max0(otcSupply), color: "bg-blue-500" },
+    {
+      key: "otc",
+      label: t("raise.preview.otc"),
+      value: max0(otcSupply),
+      color: "bg-blue-500",
+    },
     {
       key: "creator",
       label: t("raise.preview.creator"),
@@ -92,11 +103,16 @@ export const PreviewRaise = ({
   // Note: Both airdrop and farm incentives are allocated separately and don't reduce ETH raised
   // All ETH from the sale goes to the creator
   const otcSupplyForEthCalc = totalSupplyWei - creatorSupplyWei;
-  const maxEthRaisable = coinsPerEth > 0n ? otcSupplyForEthCalc / coinsPerEth : 0n;
+  const maxEthRaisable =
+    coinsPerEth > 0n ? otcSupplyForEthCalc / coinsPerEth : 0n;
   const maxEthRaisableStr = formatEtherWithCommas(maxEthRaisable, 6);
-  const maxUsdRaisable = ethPriceUSD && maxEthRaisable > 0n
-    ? Number(formatEther(maxEthRaisable)) * ethPriceUSD
-    : null;
+  const maxUsdRaisable =
+    ethPriceUSD && maxEthRaisable > 0n
+      ? Number(formatEther(maxEthRaisable)) * ethPriceUSD
+      : null;
+
+  // ----- Project links (optional) -----
+  const links = buildProjectLinks(state);
 
   // Build dynamic summary
   const buildSummary = () => {
@@ -104,16 +120,18 @@ export const PreviewRaise = ({
     const totalSupplyFormatted = formatTokenCompact(totalSupplyWei);
     const creatorSupplyFormatted = formatTokenCompact(creatorSupplyWei);
     const airdropSupplyFormatted = formatTokenCompact(airdropSupply);
-    const incentiveFormatted = needsChef ? formatTokenCompact(incentiveAmount) : null;
+    const incentiveFormatted = needsChef
+      ? formatTokenCompact(incentiveAmount)
+      : null;
     const maxEthFormatted = formatEther(maxEthRaisable);
 
     // Remove trailing zeros and format nicely
     const cleanEth = Number(maxEthFormatted).toLocaleString(undefined, {
       minimumFractionDigits: 0,
-      maximumFractionDigits: 3
+      maximumFractionDigits: 3,
     });
 
-    if (i18n.language === 'zh') {
+    if (i18n.language === "zh") {
       let summary = `您正在通过 ${otcSupplyFormatted} 个代币的销售筹集最多 ${cleanEth} ETH`;
       if (creatorSupplyWei > 0n) {
         summary += `，${creatorSupplyFormatted} 个创建者储备`;
@@ -139,7 +157,7 @@ export const PreviewRaise = ({
         parts.push(`${incentiveFormatted} farm incentives`);
       }
       if (parts.length > 0) {
-        summary += ` with ${parts.join(', ')}`;
+        summary += ` with ${parts.join(", ")}`;
       }
       summary += ` (${totalSupplyFormatted} total supply)`;
       return summary;
@@ -155,7 +173,9 @@ export const PreviewRaise = ({
     >
       {/* header */}
       <div className="px-5 py-4 border-b bg-gradient-to-b from-transparent to-black/[0.02] dark:to-white/[0.02]">
-        <h2 className="text-lg font-semibold tracking-tight">{t("raise.preview.title")}</h2>
+        <h2 className="text-lg font-semibold tracking-tight">
+          {t("raise.preview.title")}
+        </h2>
       </div>
 
       {/* Summary sentence */}
@@ -208,6 +228,35 @@ export const PreviewRaise = ({
             >
               {state.description || t("raise.preview.no_description")}
             </p>
+
+            {/* Project links preview (only if any provided) */}
+            {links.length > 0 && (
+              <div className="mt-3">
+                <div className="text-xs font-semibold text-neutral-700 dark:text-neutral-200 mb-1">
+                  {i18n.language === "zh" ? "项目链接" : "Project links"}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {links.map((l) => (
+                    <a
+                      key={l.label}
+                      href={l.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="
+                        inline-flex items-center gap-1 text-xs
+                        px-2 py-1 rounded-md border
+                        bg-white/70 dark:bg-neutral-900/70
+                        hover:bg-neutral-50 dark:hover:bg-neutral-800/70
+                        transition-colors
+                      "
+                      title={l.title}
+                    >
+                      <span className="font-medium">{l.label}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -390,22 +439,28 @@ function formatTokenCompact(wei: bigint): string {
   const num = Number(whole);
 
   if (num >= 1e9) {
-    return (num / 1e9).toLocaleString(undefined, {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 1
-    }) + 'B';
+    return (
+      (num / 1e9).toLocaleString(undefined, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 1,
+      }) + "B"
+    );
   }
   if (num >= 1e6) {
-    return (num / 1e6).toLocaleString(undefined, {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 1
-    }) + 'M';
+    return (
+      (num / 1e6).toLocaleString(undefined, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 1,
+      }) + "M"
+    );
   }
   if (num >= 1e3) {
-    return (num / 1e3).toLocaleString(undefined, {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 1
-    }) + 'K';
+    return (
+      (num / 1e3).toLocaleString(undefined, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 1,
+      }) + "K"
+    );
   }
   return num.toLocaleString();
 }

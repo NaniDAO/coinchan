@@ -204,6 +204,10 @@ export async function processTokenURI(
   }
 }
 
+export function formatTokenURL(tokenURL?: string | null): string {
+  return formatImageURL(tokenURL);
+}
+
 // Format image URL (handle IPFS URLs)
 export function formatImageURL(imageURL?: string | null): string {
   if (!imageURL || imageURL === null || imageURL.trim() === "") {
