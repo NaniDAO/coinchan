@@ -1,5 +1,5 @@
 import { http, fallback } from "wagmi";
-import { mainnet } from "wagmi/chains";
+import { mainnet, sepolia } from "wagmi/chains";
 
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
 
@@ -13,30 +13,44 @@ const batchConfig = {
   maxSize: 1_000_000,
 };
 
+// Detect environment
+const isProd = process.env.NODE_ENV === "production";
+const isVercelPreview = process.env.VERCEL_ENV === "preview";
+
+const chains = isProd && !isVercelPreview ? [mainnet] : [mainnet, sepolia];
+
 export const config = getDefaultConfig({
   appName: "ZAMM",
   projectId: import.meta.env.VITE_WC_PROJECT_ID,
-  chains: [mainnet],
+  // @ts-expect-error
+  chains,
   transports: {
     [mainnet.id]: fallback([
-      // Primary RPC with batching enabled
       http(import.meta.env.VITE_DRPC_1, {
         batch: batchConfig,
         retryCount: 2,
         retryDelay: 200,
       }),
-      // Alchemy fallback with batching
       http(import.meta.env.VITE_ALCHEMY_1, {
         batch: batchConfig,
         retryCount: 2,
         retryDelay: 200,
       }),
-      // Cloudflare as last resort fallback (no batching)
       http("https://cloudflare-eth.com"),
     ]),
+    [sepolia.id]: fallback([
+      http(import.meta.env.VITE_DRPC_SEPOLIA ?? "https://rpc.sepolia.org", {
+        batch: batchConfig,
+        retryCount: 2,
+        retryDelay: 200,
+      }),
+      http(import.meta.env.VITE_ALCHEMY_SEPOLIA ?? "", {
+        batch: batchConfig,
+        retryCount: 2,
+        retryDelay: 200,
+      }),
+    ]),
   },
-  // @TODO farcaster
   ssr: false,
-  // Disable sync since we only support mainnet
   syncConnectedChain: false,
 });
