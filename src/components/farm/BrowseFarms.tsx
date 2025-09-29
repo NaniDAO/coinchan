@@ -2,7 +2,13 @@ import { useAllCoins } from "@/hooks/metadata/use-all-coins";
 import { useActiveIncentiveStreams } from "@/hooks/use-incentive-streams";
 import { useFarmsSummary } from "@/hooks/use-farms-summary";
 import { useReserves } from "@/hooks/use-reserves";
-import { ETH_TOKEN, ENS_POOL_ID, WLFI_POOL_ID, WLFI_TOKEN, type TokenMeta } from "@/lib/coins";
+import {
+  ETH_TOKEN,
+  ENS_POOL_ID,
+  WLFI_POOL_ID,
+  WLFI_TOKEN,
+  type TokenMeta,
+} from "@/lib/coins";
 import { cn, formatBalance } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 import { formatEther } from "viem";
@@ -13,6 +19,7 @@ import { StakingNotifications } from "./StakingNotifications";
 import { FarmingGuide } from "./FarmingGuide";
 import { useMemo, useState } from "react";
 import { useAccount } from "wagmi";
+import { Alert, AlertDescription } from "../ui/alert";
 
 const blacklistedFarms = [
   "30576670561321421054962543206778733172760596119058029640058396257464510774095", // cause they made a mistake
@@ -24,7 +31,8 @@ export const BrowseFarms = () => {
   const { t } = useTranslation();
   const { address } = useAccount();
   const { tokens, loading: isLoadingTokens } = useAllCoins();
-  const { data: activeStreams, isLoading: isLoadingStreams } = useActiveIncentiveStreams();
+  const { data: activeStreams, isLoading: isLoadingStreams } =
+    useActiveIncentiveStreams();
   const [showHiddenFarms, setShowHiddenFarms] = useState(false);
 
   // Get fresh reserves for ENS and WLFI pools
@@ -43,16 +51,20 @@ export const BrowseFarms = () => {
     if (!activeStreams) return undefined;
     const currentTime = BigInt(Math.floor(Date.now() / 1000));
     return activeStreams.filter(
-      (stream) => stream.endTime > currentTime && !blacklistedFarms.includes(stream.chefId.toString()),
+      (stream) =>
+        stream.endTime > currentTime &&
+        !blacklistedFarms.includes(stream.chefId.toString()),
     );
   }, [activeStreams]);
 
   // Get real-time farm summary data
-  const { totalStaked, uniquePools, streamsWithRealTimeData } = useFarmsSummary(activeOnlyStreams);
+  const { totalStaked, uniquePools, streamsWithRealTimeData } =
+    useFarmsSummary(activeOnlyStreams);
 
   // Separate active farms and hidden farms (zero staked)
   const { activeFarms, hiddenFarms } = useMemo(() => {
-    if (!streamsWithRealTimeData) return { activeFarms: undefined, hiddenFarms: undefined };
+    if (!streamsWithRealTimeData)
+      return { activeFarms: undefined, hiddenFarms: undefined };
 
     const active: typeof streamsWithRealTimeData = [];
     const hidden: typeof streamsWithRealTimeData = [];
@@ -102,7 +114,9 @@ export const BrowseFarms = () => {
         <div className="flex items-center justify-between mb-3">
           <div className="flex justify-center items-center gap-3">
             <h3 className="font-mono font-bold text-sm sm:text-base uppercase tracking-wider text-primary">
-              {showHiddenFarms ? t("common.hidden_farms") : t("common.active_farms")}
+              {showHiddenFarms
+                ? t("common.hidden_farms")
+                : t("common.active_farms")}
             </h3>
             <div
               className={cn(
@@ -110,7 +124,9 @@ export const BrowseFarms = () => {
                 sortedStreams && sortedStreams.length > 0 && "animate-pulse",
               )}
             >
-              <span className="text-primary font-mono text-sm font-bold">{sortedStreams?.length || 0}</span>
+              <span className="text-primary font-mono text-sm font-bold">
+                {sortedStreams?.length || 0}
+              </span>
             </div>
             {/* Hidden farms toggle */}
             {hiddenFarms && hiddenFarms.length > 0 && (
@@ -122,7 +138,11 @@ export const BrowseFarms = () => {
                     ? "bg-primary/20 text-primary border border-primary/30"
                     : "text-muted-foreground hover:text-primary border border-transparent hover:border-primary/20",
                 )}
-                title={showHiddenFarms ? t("common.show_active_farms") : t("common.show_hidden_farms")}
+                title={
+                  showHiddenFarms
+                    ? t("common.show_active_farms")
+                    : t("common.show_hidden_farms")
+                }
               >
                 [{showHiddenFarms ? "-" : "+"}]
               </button>
@@ -132,12 +152,20 @@ export const BrowseFarms = () => {
             {sortedStreams && sortedStreams.length > 0 && (
               <>
                 <div className="text-xs font-mono">
-                  <span className="text-muted-foreground">{t("common.total_staked")}:</span>
-                  <span className="text-primary font-bold ml-1">{formatBalance(formatEther(totalStaked), "LP")}</span>
+                  <span className="text-muted-foreground">
+                    {t("common.total_staked")}:
+                  </span>
+                  <span className="text-primary font-bold ml-1">
+                    {formatBalance(formatEther(totalStaked), "LP")}
+                  </span>
                 </div>
                 <div className="text-xs font-mono">
-                  <span className="text-muted-foreground">{t("common.unique_pools")}:</span>
-                  <span className="text-primary font-bold ml-1">{uniquePools}</span>
+                  <span className="text-muted-foreground">
+                    {t("common.unique_pools")}:
+                  </span>
+                  <span className="text-primary font-bold ml-1">
+                    {uniquePools}
+                  </span>
                 </div>
               </>
             )}
@@ -148,7 +176,9 @@ export const BrowseFarms = () => {
       {/* Hidden farms info message */}
       {showHiddenFarms && hiddenFarms && hiddenFarms.length > 0 && (
         <div className="bg-muted/10 border border-muted/30 rounded-lg p-3 mb-4">
-          <p className="text-xs font-mono text-muted-foreground">{t("common.hidden_farms_info")}</p>
+          <p className="text-xs font-mono text-muted-foreground">
+            {t("common.hidden_farms_info")}
+          </p>
         </div>
       )}
 
@@ -178,33 +208,50 @@ export const BrowseFarms = () => {
                       liquidity: wlfiReserves?.reserve0 || 0n,
                     } as TokenMeta)
                   : tokens.find((t) => {
+                      // Special handling for CULT tokens - check if lpId matches CULT_POOL_ID
+                      if (
+                        t.symbol === "CULT" &&
+                        BigInt(stream.lpId) === t.poolId
+                      )
+                        return true;
+
                       // Direct pool ID match
                       if (t.poolId === BigInt(stream.lpId)) return true;
-                      // Special handling for CULT tokens - check if lpId matches CULT_POOL_ID
-                      if (t.symbol === "CULT" && BigInt(stream.lpId) === t.poolId) return true;
+
                       return false;
                     });
 
             // If lpToken is not found and tokens are not loading, show error
             // Otherwise, use ETH_TOKEN as fallback during loading
-            if (!lpToken && !isLoadingTokens) {
+            if (!lpToken) {
+              console.log("lpToken not found", {
+                stream,
+              });
+
               return (
-                <div key={stream.chefId.toString()} className="group">
-                  <div className="bg-red-500/10 border border-red-500/30 rounded p-3">
-                    <p className="text-sm text-red-400 font-mono">
-                      {t("common.lp_token_not_found", {
-                        poolId: stream.lpId.toString(),
-                      })}
-                    </p>
-                  </div>
-                </div>
+                <Alert
+                  tone="info"
+                  key={stream.chefId.toString()}
+                  className="group"
+                >
+                  <AlertDescription className="break-all">
+                    {t("common.lp_token_not_found", {
+                      poolId: stream.lpId.toString(),
+                    })}
+                  </AlertDescription>
+                </Alert>
               );
             }
 
             return (
               <div key={stream.chefId.toString()} className="group">
-                <ErrorBoundary fallback={<div>{t("common.error_loading_farm")}</div>}>
-                  <IncentiveStreamCard stream={stream} lpToken={lpToken || ETH_TOKEN} />
+                <ErrorBoundary
+                  fallback={<div>{t("common.error_loading_farm")}</div>}
+                >
+                  <IncentiveStreamCard
+                    stream={stream}
+                    lpToken={lpToken || ETH_TOKEN}
+                  />
                 </ErrorBoundary>
               </div>
             );
@@ -215,7 +262,9 @@ export const BrowseFarms = () => {
           <div className="bg-gradient-to-br from-muted/20 to-muted/5 border-2 border-dashed border-primary/30 rounded-xl p-8 backdrop-blur-sm">
             <div className="font-mono text-muted-foreground space-y-4">
               <div className="text-4xl sm:text-5xl opacity-20">◇</div>
-              <p className="text-xl font-bold text-primary">[ {t("common.no_active_farms")} ]</p>
+              <p className="text-xl font-bold text-primary">
+                [ {t("common.no_active_farms")} ]
+              </p>
               <p className="text-sm mt-3">{t("common.no_farms_description")}</p>
             </div>
           </div>
