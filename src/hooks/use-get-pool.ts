@@ -25,6 +25,8 @@ const GET_POOL = `
         symbol
         source
         token
+        imageUrl
+        tokenURI
       }
       coin1 {
         decimals
@@ -33,6 +35,8 @@ const GET_POOL = `
         source
         symbol
         token
+        imageUrl
+        tokenURI
       }
     }
   }
@@ -46,6 +50,8 @@ type Coin = {
   symbol: string;
   source: string;
   token: string;
+  imageUrl: string;
+  tokenURI: string;
 };
 
 export type Pool = {

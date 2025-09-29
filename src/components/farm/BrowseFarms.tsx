@@ -1,25 +1,23 @@
-import { useAllCoins } from "@/hooks/metadata/use-all-coins";
-import { useActiveIncentiveStreams } from "@/hooks/use-incentive-streams";
-import { useFarmsSummary } from "@/hooks/use-farms-summary";
-import { useReserves } from "@/hooks/use-reserves";
 import {
-  ETH_TOKEN,
-  ENS_POOL_ID,
-  WLFI_POOL_ID,
-  WLFI_TOKEN,
-  type TokenMeta,
-} from "@/lib/coins";
+  IncentiveStream,
+  useActiveIncentiveStreams,
+} from "@/hooks/use-incentive-streams";
+import { useFarmsSummary } from "@/hooks/use-farms-summary";
+import { getReserves } from "@/hooks/use-reserves";
+import { ETH_TOKEN, type TokenMeta } from "@/lib/coins";
 import { cn, formatBalance } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
-import { formatEther } from "viem";
+import { Address, formatEther } from "viem";
 import { ErrorBoundary } from "../ErrorBoundary";
 import { FarmGridSkeleton } from "../FarmLoadingStates";
 import { IncentiveStreamCard } from "../IncentiveStreamCard";
 import { StakingNotifications } from "./StakingNotifications";
 import { FarmingGuide } from "./FarmingGuide";
 import { useMemo, useState } from "react";
-import { useAccount } from "wagmi";
+import { useAccount, usePublicClient } from "wagmi";
 import { Alert, AlertDescription } from "../ui/alert";
+import { useQuery } from "@tanstack/react-query";
+import { fetchPool } from "@/hooks/use-get-pool";
 
 const blacklistedFarms = [
   "30576670561321421054962543206778733172760596119058029640058396257464510774095", // cause they made a mistake
@@ -30,21 +28,9 @@ const blacklistedFarms = [
 export const BrowseFarms = () => {
   const { t } = useTranslation();
   const { address } = useAccount();
-  const { tokens, loading: isLoadingTokens } = useAllCoins();
   const { data: activeStreams, isLoading: isLoadingStreams } =
     useActiveIncentiveStreams();
   const [showHiddenFarms, setShowHiddenFarms] = useState(false);
-
-  // Get fresh reserves for ENS and WLFI pools
-  const { data: ensReserves } = useReserves({
-    poolId: ENS_POOL_ID,
-    source: "COOKBOOK",
-  });
-
-  const { data: wlfiReserves } = useReserves({
-    poolId: WLFI_POOL_ID,
-    source: "COOKBOOK",
-  });
 
   // Filter out ended streams
   const activeOnlyStreams = useMemo(() => {
@@ -96,12 +82,6 @@ export const BrowseFarms = () => {
   // Display either active or hidden farms based on toggle
   const sortedStreams = showHiddenFarms ? hiddenFarms : activeFarms;
 
-  // Could add featured farms section in the future
-  // const featuredFarms = sortedStreams?.filter(stream => {
-  //   const hasHighLiquidity = stream.lpPool && stream.lpPool.liquidity > parseEther('10');
-  //   const hasHighStake = stream.totalShares > parseEther('5');
-  //   return hasHighLiquidity || hasHighStake;
-  // }).slice(0, 3); // Top 3 featured farms
   return (
     <div className="space-y-5 sm:space-y-6">
       {/* Farming guide for new users */}
@@ -182,80 +162,13 @@ export const BrowseFarms = () => {
         </div>
       )}
 
-      {isLoadingStreams || isLoadingTokens ? (
+      {isLoadingStreams ? (
         <FarmGridSkeleton count={6} />
       ) : sortedStreams && sortedStreams.length > 0 ? (
         <div className="farm-cards-container grid gap-4 sm:gap-5 grid-cols-1 lg:grid-cols-2">
-          {sortedStreams?.map((stream) => {
-            // Special handling for ENS and WLFI farms - always use correct token with poolId and fresh reserves
-            const lpToken =
-              BigInt(stream.lpId) === ENS_POOL_ID
-                ? ({
-                    ...(tokens.find((t) => t.symbol === "ENS") || {}),
-                    poolId: ENS_POOL_ID,
-                    source: "COOKBOOK" as const,
-                    reserve0: ensReserves?.reserve0 || 0n,
-                    reserve1: ensReserves?.reserve1 || 0n,
-                    liquidity: ensReserves?.reserve0 || 0n,
-                  } as TokenMeta)
-                : BigInt(stream.lpId) === WLFI_POOL_ID
-                  ? ({
-                      ...WLFI_TOKEN,
-                      poolId: WLFI_POOL_ID,
-                      source: "COOKBOOK" as const,
-                      reserve0: wlfiReserves?.reserve0 || 0n,
-                      reserve1: wlfiReserves?.reserve1 || 0n,
-                      liquidity: wlfiReserves?.reserve0 || 0n,
-                    } as TokenMeta)
-                  : tokens.find((t) => {
-                      // Special handling for CULT tokens - check if lpId matches CULT_POOL_ID
-                      if (
-                        t.symbol === "CULT" &&
-                        BigInt(stream.lpId) === t.poolId
-                      )
-                        return true;
-
-                      // Direct pool ID match
-                      if (t.poolId === BigInt(stream.lpId)) return true;
-
-                      return false;
-                    });
-
-            // If lpToken is not found and tokens are not loading, show error
-            // Otherwise, use ETH_TOKEN as fallback during loading
-            if (!lpToken) {
-              console.log("lpToken not found", {
-                stream,
-              });
-
-              return (
-                <Alert
-                  tone="info"
-                  key={stream.chefId.toString()}
-                  className="group"
-                >
-                  <AlertDescription className="break-all">
-                    {t("common.lp_token_not_found", {
-                      poolId: stream.lpId.toString(),
-                    })}
-                  </AlertDescription>
-                </Alert>
-              );
-            }
-
-            return (
-              <div key={stream.chefId.toString()} className="group">
-                <ErrorBoundary
-                  fallback={<div>{t("common.error_loading_farm")}</div>}
-                >
-                  <IncentiveStreamCard
-                    stream={stream}
-                    lpToken={lpToken || ETH_TOKEN}
-                  />
-                </ErrorBoundary>
-              </div>
-            );
-          })}
+          {sortedStreams?.map((stream) => (
+            <IncentiveStreamCardListItem key={stream.chefId} stream={stream} />
+          ))}
         </div>
       ) : (
         <div className="text-center h-full">
@@ -270,6 +183,85 @@ export const BrowseFarms = () => {
           </div>
         </div>
       )}
+    </div>
+  );
+};
+
+const useGetTokenMetaFromPool = (poolId?: bigint) => {
+  const publicClient = usePublicClient();
+
+  return useQuery({
+    queryKey: ["token-meta-from-pool", poolId],
+    queryFn: async (): Promise<TokenMeta | null> => {
+      const pool = await fetchPool(poolId!.toString(), "COOKBOOK");
+
+      if (!pool) {
+        throw new Error(`Pool not found for ID ${poolId}`);
+      }
+
+      const reserves = await getReserves(publicClient!, {
+        poolId: poolId!,
+        source: "COOKBOOK",
+      });
+
+      if (!pool?.coin1Id) {
+        throw new Error(`Coin1 ID not found for pool ${poolId}`);
+      }
+
+      return {
+        id: BigInt(pool?.coin1Id),
+        name: pool?.coin1?.name ?? "Unknown Token",
+        symbol: pool?.coin1?.symbol ?? "UNT",
+        source: "COOKBOOK",
+        tokenUri: pool?.coin1?.tokenURI,
+        imageUrl: pool?.coin1?.imageUrl,
+        reserve0: reserves.reserve0, // ETH reserves in the pool
+        reserve1: reserves.reserve1, // Token reserves in the pool
+        liquidity: reserves.reserve0 + reserves.reserve1, // Total liquidity in the pool
+        swapFee: pool?.feeOrHook
+          ? BigInt(pool?.feeOrHook)
+          : pool?.swapFee
+            ? BigInt(pool?.swapFee)
+            : undefined,
+        poolId: BigInt(pool?.id),
+        token0: (pool?.token0 as Address) ?? undefined,
+        token1: (pool?.token1 as Address) ?? undefined,
+        decimals: pool?.coin1?.decimals ?? 18,
+      };
+    },
+    enabled: !!poolId && !!publicClient,
+  });
+};
+
+const IncentiveStreamCardListItem = ({
+  stream,
+}: {
+  stream: IncentiveStream;
+}) => {
+  const { data: lpToken, isLoading: isLoadingLpToken } =
+    useGetTokenMetaFromPool(stream.lpId);
+  const { t } = useTranslation();
+
+  // If lpToken is not found and tokens are not loading, show error
+  // Otherwise, use ETH_TOKEN as fallback during loading
+  console.log(lpToken, isLoadingLpToken);
+  if (!lpToken && !isLoadingLpToken) {
+    return (
+      <Alert tone="info" key={stream.chefId.toString()} className="group">
+        <AlertDescription className="break-all">
+          {t("common.lp_token_not_found", {
+            poolId: stream.lpId.toString(),
+          })}
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  return (
+    <div key={stream.chefId.toString()} className="group">
+      <ErrorBoundary fallback={<div>{t("common.error_loading_farm")}</div>}>
+        <IncentiveStreamCard stream={stream} lpToken={lpToken || ETH_TOKEN} />
+      </ErrorBoundary>
     </div>
   );
 };
