@@ -193,7 +193,16 @@ const useGetTokenMetaFromPool = (poolId?: bigint) => {
   return useQuery({
     queryKey: ["token-meta-from-pool", poolId],
     queryFn: async (): Promise<TokenMeta | null> => {
-      const pool = await fetchPool(poolId!.toString(), "COOKBOOK");
+      // Try fetching from both sources since we don't know the source yet
+      // First try ZAMM (for regular pools), then COOKBOOK (for cookbook coins)
+      let pool = await fetchPool(poolId!.toString(), "ZAMM");
+      let source: "ZAMM" | "COOKBOOK" = "ZAMM";
+
+      if (!pool) {
+        // If not found in ZAMM, try COOKBOOK
+        pool = await fetchPool(poolId!.toString(), "COOKBOOK");
+        source = "COOKBOOK";
+      }
 
       if (!pool) {
         throw new Error(`Pool not found for ID ${poolId}`);
@@ -201,7 +210,7 @@ const useGetTokenMetaFromPool = (poolId?: bigint) => {
 
       const reserves = await getReserves(publicClient!, {
         poolId: poolId!,
-        source: "COOKBOOK",
+        source: source,
       });
 
       if (!pool?.coin1Id) {
@@ -212,7 +221,7 @@ const useGetTokenMetaFromPool = (poolId?: bigint) => {
         id: BigInt(pool?.coin1Id),
         name: pool?.coin1?.name ?? "Unknown Token",
         symbol: pool?.coin1?.symbol ?? "UNT",
-        source: "COOKBOOK",
+        source: source,
         tokenUri: pool?.coin1?.tokenURI,
         imageUrl: pool?.coin1?.imageUrl,
         reserve0: reserves.reserve0, // ETH reserves in the pool
