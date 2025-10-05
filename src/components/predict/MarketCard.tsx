@@ -6,8 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TradeModal } from "./TradeModal";
 import { MarketCountdown } from "./MarketCountdown";
-import { PredictionMarketAddress, PredictionMarketAbi } from "@/constants/PredictionMarket";
+import {
+  PredictionMarketAddress,
+  PredictionMarketAbi,
+} from "@/constants/PredictionMarket";
 import { ExternalLink } from "lucide-react";
+import { formatImageURL } from "@/hooks/metadata";
 
 interface MarketMetadata {
   name: string;
@@ -63,18 +67,12 @@ export const MarketCard: React.FC<MarketCardProps> = ({
       try {
         if (!description) return;
 
-        let url = description;
-        if (description.startsWith("ipfs://")) {
-          url = description.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/");
-        }
+        let url = formatImageURL(description);
 
         const response = await fetch(url);
         const data = await response.json();
 
-        let imageUrl = data.image || "";
-        if (imageUrl.startsWith("ipfs://")) {
-          imageUrl = imageUrl.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/");
-        }
+        let imageUrl = formatImageURL(data.image || "");
 
         setMetadata({
           name: data.name || "Unnamed Market",
@@ -107,7 +105,8 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   }
 
   const totalSupply = yesSupply + noSupply;
-  const yesPercent = totalSupply > 0n ? Number((yesSupply * 100n) / totalSupply) : 50;
+  const yesPercent =
+    totalSupply > 0n ? Number((yesSupply * 100n) / totalSupply) : 50;
   const noPercent = 100 - yesPercent;
 
   return (
@@ -129,9 +128,14 @@ export const MarketCard: React.FC<MarketCardProps> = ({
         <div className="p-4 space-y-3">
           <div>
             <div className="flex items-start justify-between gap-2 mb-1">
-              <h3 className="font-bold text-sm line-clamp-2">{metadata.name}</h3>
+              <h3 className="font-bold text-sm line-clamp-2">
+                {metadata.name}
+              </h3>
               {resolved && (
-                <Badge variant={outcome ? "default" : "secondary"} className="shrink-0">
+                <Badge
+                  variant={outcome ? "default" : "secondary"}
+                  className="shrink-0"
+                >
                   {outcome ? "YES" : "NO"}
                 </Badge>
               )}
@@ -150,8 +154,12 @@ export const MarketCard: React.FC<MarketCardProps> = ({
           {!resolved && (
             <div className="space-y-1">
               <div className="flex justify-between text-xs font-medium">
-                <span className="text-green-600 dark:text-green-400">YES {yesPercent.toFixed(1)}%</span>
-                <span className="text-red-600 dark:text-red-400">NO {noPercent.toFixed(1)}%</span>
+                <span className="text-green-600 dark:text-green-400">
+                  YES {yesPercent.toFixed(1)}%
+                </span>
+                <span className="text-red-600 dark:text-red-400">
+                  NO {noPercent.toFixed(1)}%
+                </span>
               </div>
               <div className="flex h-2 rounded-full overflow-hidden bg-muted">
                 <div
@@ -169,7 +177,9 @@ export const MarketCard: React.FC<MarketCardProps> = ({
           <div className="text-xs text-muted-foreground space-y-1">
             <div className="flex justify-between">
               <span>Total Pool:</span>
-              <span className="font-mono">{Number(formatEther(pot)).toFixed(4)} wstETH</span>
+              <span className="font-mono">
+                {Number(formatEther(pot)).toFixed(4)} wstETH
+              </span>
             </div>
             <div className="flex justify-between items-center">
               <span>Resolver:</span>
