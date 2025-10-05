@@ -332,7 +332,6 @@ export const TokenPage = ({ token }: { token: Token }) => {
       actualTotalSupply,
     ]);
 
-  console.log("POOLID:", poolId);
   return (
     <div>
       <CoinBreadcrumb coinId={token.id} />
