@@ -44,3 +44,16 @@ export const PoolIcon = () => (
     </g>
   </svg>
 );
+
+export const CrystalBallIcon = () => (
+  <svg width="24" height="29" viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg" className="inline-block">
+    <circle cx="100" cy="100" r="75" fill="#B967DB" opacity="0.3" stroke="#000000" stroke-width="2" />
+    <circle cx="100" cy="100" r="75" fill="none" stroke="#000000" stroke-width="2" />
+    <ellipse cx="100" cy="85" rx="30" ry="20" fill="#FFFFFF" opacity="0.6" />
+    <path d="M40,160 Q50,170 70,175 L130,175 Q150,170 160,160" fill="#66D9A6" stroke="#000000" stroke-width="2" />
+    <rect x="70" y="175" width="60" height="10" fill="#FFE066" stroke="#000000" stroke-width="2" />
+    <path d="M75,185 L75,195 L80,200 L120,200 L125,195 L125,185" fill="#FF9F40" stroke="#000000" stroke-width="2" />
+    <circle cx="80" cy="95" r="8" fill="#00D4FF" opacity="0.5" />
+    <circle cx="120" cy="110" r="6" fill="#FF6B9D" opacity="0.5" />
+  </svg>
+);

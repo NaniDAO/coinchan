@@ -125,6 +125,7 @@
     "launch": "Launch",
     "holders": "Holders",
     "activity": "Activity",
+    "predict": "Predict",
     "farm": "Farm",
     "farm_alpha": "Farm",
     "farm_description": "Stake LP tokens to earn rewards from incentive farms",
