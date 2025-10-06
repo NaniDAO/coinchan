@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { formatEther } from "viem";
-import { useEnsName, useReadContract } from "wagmi";
+import {
+  useEnsName,
+  useReadContract,
+  useBytecode,
+  useWriteContract,
+  useWaitForTransactionReceipt,
+  useAccount,
+} from "wagmi";
 import { mainnet } from "wagmi/chains";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,8 +17,9 @@ import {
   PredictionMarketAddress,
   PredictionMarketAbi,
 } from "@/constants/PredictionMarket";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, BadgeCheck } from "lucide-react";
 import { formatImageURL } from "@/hooks/metadata";
+import { isTrustedResolver } from "@/constants/TrustedResolvers";
 
 interface MarketMetadata {
   name: string;
@@ -31,6 +39,10 @@ interface MarketCardProps {
   payoutPerShare: bigint;
   description: string;
   closingTime?: number;
+  userYesBalance?: bigint;
+  userNoBalance?: bigint;
+  userClaimable?: bigint;
+  onClaimSuccess?: () => void;
 }
 
 export const MarketCard: React.FC<MarketCardProps> = ({
@@ -41,16 +53,36 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   resolved,
   outcome,
   pot,
+  payoutPerShare,
   description,
+  userYesBalance = 0n,
+  userNoBalance = 0n,
+  userClaimable = 0n,
+  onClaimSuccess,
 }) => {
   const [metadata, setMetadata] = useState<MarketMetadata | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const { address } = useAccount();
+
+  const { writeContract, data: claimHash } = useWriteContract();
+  const { isSuccess: isClaimSuccess } = useWaitForTransactionReceipt({
+    hash: claimHash,
+  });
 
   const { data: ensName } = useEnsName({
     address: resolver as `0x${string}`,
     chainId: mainnet.id,
   });
+
+  // Check if resolver is a contract (oracle)
+  const { data: bytecode } = useBytecode({
+    address: resolver as `0x${string}`,
+    chainId: mainnet.id,
+  });
+
+  const isOracle = bytecode && bytecode !== "0x";
+  const isTrusted = isTrustedResolver(resolver);
 
   // Fetch market details to get closing time
   const { data: marketData } = useReadContract({
@@ -61,6 +93,27 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   });
 
   const closingTime = marketData ? Number(marketData[4]) : undefined;
+  const isClosed = closingTime ? Date.now() / 1000 >= closingTime : false;
+  const isTradingDisabled = resolved || isClosed;
+
+  const hasPosition = userYesBalance > 0n || userNoBalance > 0n;
+  const canClaim = resolved && userClaimable > 0n;
+
+  const handleClaim = () => {
+    if (!address) return;
+    writeContract({
+      address: PredictionMarketAddress as `0x${string}`,
+      abi: PredictionMarketAbi,
+      functionName: "claim",
+      args: [marketId, address],
+    });
+  };
+
+  useEffect(() => {
+    if (isClaimSuccess && onClaimSuccess) {
+      onClaimSuccess();
+    }
+  }, [isClaimSuccess, onClaimSuccess]);
 
   useEffect(() => {
     const fetchMetadata = async () => {
@@ -141,7 +194,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
               )}
             </div>
             {metadata.description && (
-              <p className="text-xs text-muted-foreground line-clamp-2">
+              <p className="text-xs text-muted-foreground">
                 {metadata.description}
               </p>
             )}
@@ -175,34 +228,116 @@ export const MarketCard: React.FC<MarketCardProps> = ({
           )}
 
           <div className="text-xs text-muted-foreground space-y-1">
+            {hasPosition && (
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded p-2 space-y-1">
+                <div className="flex justify-between">
+                  <span className="font-semibold text-blue-600 dark:text-blue-400">
+                    Your Position:
+                  </span>
+                </div>
+                {userYesBalance > 0n && (
+                  <div className="flex justify-between">
+                    <span>YES shares:</span>
+                    <span className="font-mono">
+                      {Number(formatEther(userYesBalance)).toFixed(4)}
+                    </span>
+                  </div>
+                )}
+                {userNoBalance > 0n && (
+                  <div className="flex justify-between">
+                    <span>NO shares:</span>
+                    <span className="font-mono">
+                      {Number(formatEther(userNoBalance)).toFixed(4)}
+                    </span>
+                  </div>
+                )}
+                {canClaim && (
+                  <div className="flex justify-between">
+                    <span className="font-semibold">Claimable:</span>
+                    <span className="font-mono font-semibold text-green-600 dark:text-green-400">
+                      {Number(formatEther(userClaimable)).toFixed(4)} wstETH
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
             <div className="flex justify-between">
               <span>Total Pool:</span>
               <span className="font-mono">
                 {Number(formatEther(pot)).toFixed(4)} wstETH
               </span>
             </div>
+            {resolved && payoutPerShare > 0n && (
+              <>
+                <div className="flex justify-between">
+                  <span>Winning Side:</span>
+                  <span className="font-semibold">
+                    {outcome ? "YES" : "NO"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Winning Shares:</span>
+                  <span className="font-mono">
+                    {Number(formatEther(outcome ? yesSupply : noSupply)).toFixed(
+                      4
+                    )}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Payout Per Share:</span>
+                  <span className="font-mono">
+                    {Number(formatEther(payoutPerShare)).toFixed(4)} wstETH
+                  </span>
+                </div>
+              </>
+            )}
             <div className="flex justify-between items-center">
               <span>Resolver:</span>
-              <a
-                href={`https://etherscan.io/address/${resolver}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 hover:text-primary transition-colors font-mono"
-              >
-                {ensName || `${resolver.slice(0, 6)}...${resolver.slice(-4)}`}
-                <ExternalLink className="h-3 w-3" />
-              </a>
+              <div className="flex items-center gap-1">
+                <a
+                  href={`https://etherscan.io/address/${resolver}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 hover:text-primary transition-colors font-mono"
+                >
+                  {ensName || `${resolver.slice(0, 6)}...${resolver.slice(-4)}`}
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+                {isTrusted && (
+                  <BadgeCheck className="h-4 w-4 text-blue-500 shrink-0" />
+                )}
+                {isOracle && (
+                  <Badge variant="outline" className="text-xs">
+                    Oracle
+                  </Badge>
+                )}
+              </div>
             </div>
           </div>
 
-          <Button
-            onClick={() => setIsModalOpen(true)}
-            className="w-full"
-            size="sm"
-            disabled={resolved}
-          >
-            {resolved ? "Market Resolved" : "Trade"}
-          </Button>
+          {canClaim ? (
+            <Button
+              onClick={handleClaim}
+              className="w-full"
+              size="sm"
+              variant="default"
+            >
+              Claim {Number(formatEther(userClaimable)).toFixed(4)} wstETH
+            </Button>
+          ) : (
+            <Button
+              onClick={() => setIsModalOpen(true)}
+              className="w-full"
+              size="sm"
+              disabled={isTradingDisabled}
+            >
+              {resolved
+                ? "Market Resolved"
+                : isClosed
+                  ? "Market Closed"
+                  : "Trade"}
+            </Button>
+          )}
         </div>
       </div>
 
