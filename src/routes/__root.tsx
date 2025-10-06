@@ -88,7 +88,7 @@ export const Route = createRootRoute({
             <nav className="hidden md:flex md:flex-row items-stretch gap-3 flex-1 mx-4">
               {/* Trade */}
               <div className="flex-1 min-w-0 relative">
-                <DropdownMenu open={isTradeOpen} onOpenChange={setIsTradeOpen}>
+                <DropdownMenu open={isTradeOpen} onOpenChange={setIsTradeOpen} modal={false}>
                   <DropdownMenuTrigger asChild>
                     <Link
                       to="/swap"
@@ -105,7 +105,7 @@ export const Route = createRootRoute({
 
                   <DropdownMenuContent
                     align="start"
-                    sideOffset={8}
+                    sideOffset={2}
                     className="min-w-[200px]"
                     onMouseEnter={() => setIsTradeOpen(true)}
                     onMouseLeave={() => setIsTradeOpen(false)}
@@ -145,6 +145,7 @@ export const Route = createRootRoute({
                 <DropdownMenu
                   open={isExploreOpen}
                   onOpenChange={setIsExploreOpen}
+                  modal={false}
                 >
                   <DropdownMenuTrigger asChild>
                     <Link
@@ -162,7 +163,7 @@ export const Route = createRootRoute({
 
                   <DropdownMenuContent
                     align="start"
-                    sideOffset={8}
+                    sideOffset={2}
                     className="min-w-[220px]"
                     onMouseEnter={() => setIsExploreOpen(true)}
                     onMouseLeave={() => setIsExploreOpen(false)}
@@ -191,7 +192,7 @@ export const Route = createRootRoute({
 
               {/* Pool (dropdown) */}
               <div className="flex-1 min-w-0 relative">
-                <DropdownMenu open={isPoolOpen} onOpenChange={setIsPoolOpen}>
+                <DropdownMenu open={isPoolOpen} onOpenChange={setIsPoolOpen} modal={false}>
                   <DropdownMenuTrigger asChild>
                     <Link
                       to="/positions" // default click goes to /positions
@@ -208,7 +209,7 @@ export const Route = createRootRoute({
 
                   <DropdownMenuContent
                     align="start"
-                    sideOffset={8}
+                    sideOffset={2}
                     className="min-w-[200px]"
                     onMouseEnter={() => setIsPoolOpen(true)}
                     onMouseLeave={() => setIsPoolOpen(false)}
@@ -231,7 +232,7 @@ export const Route = createRootRoute({
 
               {/* Farm (dropdown) - UPDATED */}
               <div className="flex-1 min-w-0 relative">
-                <DropdownMenu open={isFarmOpen} onOpenChange={setIsFarmOpen}>
+                <DropdownMenu open={isFarmOpen} onOpenChange={setIsFarmOpen} modal={false}>
                   <DropdownMenuTrigger asChild>
                     <Link
                       to="/farm" // default click goes to /farm
@@ -248,7 +249,7 @@ export const Route = createRootRoute({
 
                   <DropdownMenuContent
                     align="start"
-                    sideOffset={8}
+                    sideOffset={2}
                     className="min-w-[200px]"
                     onMouseEnter={() => setIsFarmOpen(true)}
                     onMouseLeave={() => setIsFarmOpen(false)}
