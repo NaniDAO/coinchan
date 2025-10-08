@@ -25,7 +25,6 @@ import { ExternalLink, BadgeCheck, ArrowUpRight } from "lucide-react";
 import { formatImageURL } from "@/hooks/metadata";
 import { isTrustedResolver } from "@/constants/TrustedResolvers";
 import ReactMarkdown from "react-markdown";
-import { Link } from "@tanstack/react-router";
 
 interface MarketMetadata {
   name: string;
@@ -49,7 +48,7 @@ interface MarketCardProps {
   userNoBalance?: bigint;
   userClaimable?: bigint;
   marketType?: "parimutuel" | "amm";
-  contractAddress?: string;
+  contractAddress?: `0x${string}`;
   onClaimSuccess?: () => void;
 }
 

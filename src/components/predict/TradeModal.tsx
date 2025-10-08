@@ -3,6 +3,7 @@ import { parseEther, formatEther } from "viem";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { toast } from "sonner";
 import { PredictionMarketAddress, PredictionMarketAbi } from "@/constants/PredictionMarket";
+import { PredictionAMMAbi } from "@/constants/PredictionMarketAMM";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +24,8 @@ interface TradeModalProps {
   marketName: string;
   yesSupply: bigint;
   noSupply: bigint;
+  marketType?: "parimutuel" | "amm";
+  contractAddress?: string;
 }
 
 export const TradeModal: React.FC<TradeModalProps> = ({
@@ -32,6 +35,8 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   marketName,
   yesSupply,
   noSupply,
+  marketType = "parimutuel",
+  contractAddress = PredictionMarketAddress,
 }) => {
   const { address } = useAccount();
   const [action, setAction] = useState<"buy" | "sell">("buy");
@@ -71,11 +76,13 @@ export const TradeModal: React.FC<TradeModalProps> = ({
     try {
       const amountWei = parseEther(amount);
 
+      const abi = marketType === "amm" ? PredictionAMMAbi : PredictionMarketAbi;
+
       if (action === "buy") {
         const functionName = position === "yes" ? "buyYes" : "buyNo";
         await writeContractAsync({
-          address: PredictionMarketAddress as `0x${string}`,
-          abi: PredictionMarketAbi,
+          address: contractAddress as `0x${string}`,
+          abi,
           functionName,
           args: [marketId, 0n, address],
           value: amountWei,
@@ -83,8 +90,8 @@ export const TradeModal: React.FC<TradeModalProps> = ({
       } else {
         const functionName = position === "yes" ? "sellYes" : "sellNo";
         await writeContractAsync({
-          address: PredictionMarketAddress as `0x${string}`,
-          abi: PredictionMarketAbi,
+          address: contractAddress as `0x${string}`,
+          abi,
           functionName,
           args: [marketId, amountWei, address],
         });

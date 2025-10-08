@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { z } from "zod";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useEnsAddress, useEnsName } from "wagmi";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useEnsAddress } from "wagmi";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { parseEther, isAddress } from "viem";
@@ -31,7 +31,7 @@ const schema = z.object({
 });
 
 type FormData = z.infer<typeof schema>;
-type MarketType = "parimutuel" | "amm";
+//type MarketType = "parimutuel" | "amm";
 
 interface CreateMarketFormProps {
   onMarketCreated?: () => void;

@@ -13,7 +13,7 @@ interface MarketGalleryProps {
 type MarketFilter = "all" | "active" | "closed" | "resolved" | "positions" | "parimutuel" | "amm";
 
 export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
-  const [start, setStart] = useState(0);
+  const [start] = useState(0);
   const [filter, setFilter] = useState<MarketFilter>("all");
   const count = 20;
   const { address } = useAccount();
@@ -216,7 +216,7 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
         userYesBalance: userPositions?.yesBalances[idx] || 0n,
         userNoBalance: userPositions?.noBalances[idx] || 0n,
         userClaimable: userPositions?.claimables[idx] || 0n,
-        tradingOpen: tradingOpenData?.[idx]?.result ?? true,
+        tradingOpen: Boolean(tradingOpenData?.[idx]?.result ?? true),
         marketType: "parimutuel",
         contractAddress: PredictionMarketAddress,
       });
@@ -239,7 +239,7 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
         userYesBalance: userAmmPositions?.yesBalances[idx] || 0n,
         userNoBalance: userAmmPositions?.noBalances[idx] || 0n,
         userClaimable: userAmmPositions?.claimables[idx] || 0n,
-        tradingOpen: ammTradingOpenData?.[idx]?.result ?? true,
+        tradingOpen: Boolean(ammTradingOpenData?.[idx]?.result ?? true),
         marketType: "amm",
         contractAddress: PredictionAMMAddress,
       });
