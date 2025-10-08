@@ -13,13 +13,19 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TradeModal } from "./TradeModal";
 import { MarketCountdown } from "./MarketCountdown";
+import { ResolverControls } from "./ResolverControls";
 import {
   PredictionMarketAddress,
   PredictionMarketAbi,
 } from "@/constants/PredictionMarket";
-import { ExternalLink, BadgeCheck } from "lucide-react";
+import {
+  PredictionAMMAbi,
+} from "@/constants/PredictionMarketAMM";
+import { ExternalLink, BadgeCheck, ArrowUpRight } from "lucide-react";
 import { formatImageURL } from "@/hooks/metadata";
 import { isTrustedResolver } from "@/constants/TrustedResolvers";
+import ReactMarkdown from "react-markdown";
+import { Link } from "@tanstack/react-router";
 
 interface MarketMetadata {
   name: string;
@@ -42,6 +48,8 @@ interface MarketCardProps {
   userYesBalance?: bigint;
   userNoBalance?: bigint;
   userClaimable?: bigint;
+  marketType?: "parimutuel" | "amm";
+  contractAddress?: string;
   onClaimSuccess?: () => void;
 }
 
@@ -58,10 +66,13 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   userYesBalance = 0n,
   userNoBalance = 0n,
   userClaimable = 0n,
+  marketType = "parimutuel",
+  contractAddress = PredictionMarketAddress,
   onClaimSuccess,
 }) => {
   const [metadata, setMetadata] = useState<MarketMetadata | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const { address } = useAccount();
 
@@ -84,26 +95,40 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   const isOracle = bytecode && bytecode !== "0x";
   const isTrusted = isTrustedResolver(resolver);
 
-  // Fetch market details to get closing time
-  const { data: marketData } = useReadContract({
-    address: PredictionMarketAddress as `0x${string}`,
-    abi: PredictionMarketAbi,
+  // Fetch market details to get closing time and canAccelerateClosing
+  const { data: marketData, refetch: refetchMarketData } = useReadContract({
+    address: contractAddress as `0x${string}`,
+    abi: marketType === "amm" ? PredictionAMMAbi : PredictionMarketAbi,
     functionName: "markets",
     args: [marketId],
   });
 
   const closingTime = marketData ? Number(marketData[4]) : undefined;
+  const canAccelerateClosing = marketData ? Boolean(marketData[5]) : false;
   const isClosed = closingTime ? Date.now() / 1000 >= closingTime : false;
   const isTradingDisabled = resolved || isClosed;
 
   const hasPosition = userYesBalance > 0n || userNoBalance > 0n;
   const canClaim = resolved && userClaimable > 0n;
 
+  // Calculate NO token ID for AMM markets (YES ID = marketId, NO ID = marketId | (1 << 255))
+  const getNoTokenId = (yesId: bigint): bigint => {
+    return yesId | (1n << 255n);
+  };
+
+  // Generate ZAMM swap URL for AMM markets
+  const getZammUrl = (): string => {
+    const ammContractAddress = "0x000000000088B4B43A69f8CDa34d93eD1d6f1431";
+    const yesId = marketId.toString();
+    const noId = getNoTokenId(marketId).toString();
+    return `https://www.zamm.finance/swap?tokenA=${ammContractAddress}&idA=${encodeURIComponent(yesId)}&tokenB=${ammContractAddress}&idB=${encodeURIComponent(noId)}`;
+  };
+
   const handleClaim = () => {
     if (!address) return;
     writeContract({
-      address: PredictionMarketAddress as `0x${string}`,
-      abi: PredictionMarketAbi,
+      address: contractAddress as `0x${string}`,
+      abi: marketType === "amm" ? PredictionAMMAbi : PredictionMarketAbi,
       functionName: "claim",
       args: [marketId, address],
     });
@@ -249,22 +274,83 @@ export const MarketCard: React.FC<MarketCardProps> = ({
         <div className="p-4 space-y-3">
           <div>
             <div className="flex items-start justify-between gap-2 mb-1">
-              <h3 className="font-bold text-sm line-clamp-2">
-                {metadata.name}
-              </h3>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="font-bold text-sm line-clamp-2">
+                    {metadata.name}
+                  </h3>
+                </div>
+                <Badge
+                  variant="outline"
+                  className={`text-[10px] ${
+                    marketType === "amm"
+                      ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                      : "border-purple-500 text-purple-600 dark:text-purple-400"
+                  }`}
+                >
+                  {marketType === "amm" ? "Live Bets (AMM)" : "Pari-Mutuel"}
+                </Badge>
+              </div>
               {resolved && (
                 <Badge
-                  variant={outcome ? "default" : "secondary"}
-                  className="shrink-0"
+                  className={`shrink-0 ${
+                    outcome
+                      ? "bg-green-600 dark:bg-green-500 text-white hover:bg-green-700"
+                      : "bg-red-600 dark:bg-red-500 text-white hover:bg-red-700"
+                  }`}
                 >
                   {outcome ? "YES" : "NO"}
                 </Badge>
               )}
             </div>
             {metadata.description && (
-              <p className="text-xs text-muted-foreground">
-                {metadata.description}
-              </p>
+              <div>
+                <div
+                  className={`text-xs text-muted-foreground markdown-content transition-all ${
+                    isDescriptionExpanded ? "max-h-96 overflow-y-auto" : "line-clamp-3"
+                  }`}
+                >
+                  <ReactMarkdown
+                    components={{
+                      // Customize rendering to fit card design
+                      p: ({ children }: { children?: React.ReactNode }) => <p className="mb-1 last:mb-0">{children}</p>,
+                      a: ({ children, href }: { children?: React.ReactNode; href?: string }) => (
+                        <a
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {children}
+                        </a>
+                      ),
+                      strong: ({ children }: { children?: React.ReactNode }) => <strong className="font-semibold text-foreground">{children}</strong>,
+                      em: ({ children }: { children?: React.ReactNode }) => <em className="italic">{children}</em>,
+                      code: ({ children }: { children?: React.ReactNode }) => (
+                        <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono">{children}</code>
+                      ),
+                      ul: ({ children }: { children?: React.ReactNode }) => <ul className="list-disc list-inside space-y-0.5">{children}</ul>,
+                      ol: ({ children }: { children?: React.ReactNode }) => <ol className="list-decimal list-inside space-y-0.5">{children}</ol>,
+                      li: ({ children }: { children?: React.ReactNode }) => <li className="text-xs">{children}</li>,
+                      h1: ({ children }: { children?: React.ReactNode }) => <h1 className="text-base font-bold mt-2 mb-1">{children}</h1>,
+                      h2: ({ children }: { children?: React.ReactNode }) => <h2 className="text-sm font-bold mt-2 mb-1">{children}</h2>,
+                      h3: ({ children }: { children?: React.ReactNode }) => <h3 className="text-xs font-semibold mt-1 mb-0.5">{children}</h3>,
+                      blockquote: ({ children }: { children?: React.ReactNode }) => (
+                        <blockquote className="border-l-2 border-primary pl-2 italic my-1">{children}</blockquote>
+                      ),
+                    }}
+                  >
+                    {metadata.description}
+                  </ReactMarkdown>
+                </div>
+                <button
+                  onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                  className="text-xs text-primary hover:underline mt-1 focus:outline-none"
+                >
+                  {isDescriptionExpanded ? "Show less" : "Read more..."}
+                </button>
+              </div>
             )}
           </div>
 
@@ -383,29 +469,60 @@ export const MarketCard: React.FC<MarketCardProps> = ({
             </div>
           </div>
 
-          {canClaim ? (
-            <Button
-              onClick={handleClaim}
-              className="w-full"
-              size="sm"
-              variant="default"
-            >
-              Claim {Number(formatEther(userClaimable)).toFixed(4)} wstETH
-            </Button>
-          ) : (
-            <Button
-              onClick={() => setIsModalOpen(true)}
-              className="w-full"
-              size="sm"
-              disabled={isTradingDisabled}
-            >
-              {resolved
-                ? "Market Resolved"
-                : isClosed
-                  ? "Market Closed"
-                  : "Trade"}
-            </Button>
+          {/* Resolver Controls - only shown to the resolver */}
+          {closingTime && (
+            <ResolverControls
+              marketId={marketId}
+              contractAddress={contractAddress}
+              marketType={marketType}
+              resolver={resolver}
+              closingTime={closingTime}
+              canAccelerateClosing={canAccelerateClosing}
+              resolved={resolved}
+              onSuccess={() => {
+                refetchMarketData();
+                if (onClaimSuccess) onClaimSuccess();
+              }}
+            />
           )}
+
+          <div className="space-y-2">
+            {canClaim ? (
+              <Button
+                onClick={handleClaim}
+                className="w-full"
+                size="sm"
+                variant="default"
+              >
+                Claim {Number(formatEther(userClaimable)).toFixed(4)} wstETH
+              </Button>
+            ) : (
+              <Button
+                onClick={() => setIsModalOpen(true)}
+                className="w-full"
+                size="sm"
+                disabled={isTradingDisabled}
+              >
+                {resolved
+                  ? "Market Resolved"
+                  : isClosed
+                    ? "Market Closed"
+                    : "Trade"}
+              </Button>
+            )}
+
+            {marketType === "amm" && !resolved && (
+              <a
+                href={getZammUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 border border-blue-500/50 rounded-md hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-colors"
+              >
+                Trade on ZAMM
+                <ArrowUpRight className="h-4 w-4" />
+              </a>
+            )}
+          </div>
         </div>
       </div>
 
@@ -416,6 +533,8 @@ export const MarketCard: React.FC<MarketCardProps> = ({
         marketName={metadata.name}
         yesSupply={yesSupply}
         noSupply={noSupply}
+        marketType={marketType}
+        contractAddress={contractAddress}
       />
     </>
   );

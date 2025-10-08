@@ -1,9 +1,12 @@
 import React, { useState } from "react";
 import { z } from "zod";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useEnsAddress, useEnsName } from "wagmi";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { parseEther, isAddress } from "viem";
+import { normalize } from "viem/ens";
 import { PredictionMarketAddress, PredictionMarketAbi } from "@/constants/PredictionMarket";
+import { PredictionAMMAddress, PredictionAMMAbi } from "@/constants/PredictionMarketAMM";
 import { pinImageToPinata, pinJsonToPinata } from "@/lib/pinata";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,12 +24,14 @@ const schema = z.object({
   name: z.string().trim().min(1, "Name is required").max(200),
   symbol: z.string().trim().min(1, "Symbol is required").max(20),
   description: z.string().trim().max(2000).optional().default(""),
-  resolver: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum address"),
+  resolver: z.string().min(1, "Resolver address or ENS name is required"),
   closingTime: z.string().min(1, "Closing time is required"),
   canAccelerateClosing: z.boolean(),
+  marketType: z.enum(["parimutuel", "amm"]),
 });
 
 type FormData = z.infer<typeof schema>;
+type MarketType = "parimutuel" | "amm";
 
 interface CreateMarketFormProps {
   onMarketCreated?: () => void;
@@ -56,9 +61,10 @@ export const CreateMarketForm: React.FC<CreateMarketFormProps> = ({ onMarketCrea
     name: "",
     symbol: "",
     description: "",
-    resolver: account || "",
+    resolver: "",
     closingTime: getDefaultClosingTime(),
     canAccelerateClosing: false,
+    marketType: "parimutuel",
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -66,11 +72,25 @@ export const CreateMarketForm: React.FC<CreateMarketFormProps> = ({ onMarketCrea
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
 
-  React.useEffect(() => {
-    if (account && !form.resolver) {
-      setForm((prev) => ({ ...prev, resolver: account }));
-    }
-  }, [account]);
+  // Generate preview SVG URL for display
+  const getPreviewImageUrl = (): string => {
+    if (imagePreviewUrl) return imagePreviewUrl;
+    if (!form.name) return "/zammzamm.png";
+
+    // Generate SVG for preview (use symbol if available, otherwise use empty string)
+    const svgBuffer = generateSvgImage(form.name, form.symbol || "");
+    const svgBlob = new Blob([svgBuffer], { type: "image/svg+xml" });
+    return URL.createObjectURL(svgBlob);
+  };
+
+  // ENS resolution for resolver field
+  const isEnsName = form.resolver.includes(".") && !form.resolver.startsWith("0x");
+  const { data: ensAddress, isLoading: isResolvingEns } = useEnsAddress({
+    name: isEnsName ? normalize(form.resolver) : undefined,
+    query: {
+      enabled: isEnsName,
+    },
+  });
 
   React.useEffect(() => {
     if (txSuccess && onMarketCreated) {
@@ -83,6 +103,7 @@ export const CreateMarketForm: React.FC<CreateMarketFormProps> = ({ onMarketCrea
         resolver: account || "",
         closingTime: getDefaultClosingTime(),
         canAccelerateClosing: false,
+        marketType: "parimutuel",
       });
       setImageBuffer(null);
       setImagePreviewUrl("");
@@ -123,6 +144,67 @@ export const CreateMarketForm: React.FC<CreateMarketFormProps> = ({ onMarketCrea
     }
   };
 
+  // Generate SVG image with random color
+  const generateSvgImage = (name: string, symbol: string): ArrayBuffer => {
+    // Array of bright, high-contrast colors
+    const brightColors = [
+      "#00BFFF", // Deep Sky Blue
+      "#FF69B4", // Hot Pink
+      "#FFD700", // Gold
+      "#00FF7F", // Spring Green
+      "#FF6347", // Tomato
+      "#9370DB", // Medium Purple
+      "#20B2AA", // Light Sea Green
+      "#FF8C00", // Dark Orange
+      "#DA70D6", // Orchid
+      "#00CED1", // Dark Turquoise
+      "#FFB6C1", // Light Pink
+      "#98FB98", // Pale Green
+      "#DDA0DD", // Plum
+      "#F0E68C", // Khaki
+      "#87CEEB", // Sky Blue
+    ];
+
+    // Pick a random color
+    const bgColor = brightColors[Math.floor(Math.random() * brightColors.length)];
+
+    // Split name into lines (max 3 lines, wrap at ~20 chars or natural break)
+    const words = name.split(" ");
+    const lines: string[] = [];
+    let currentLine = "";
+
+    for (const word of words) {
+      if (currentLine.length + word.length + 1 <= 20) {
+        currentLine += (currentLine ? " " : "") + word;
+      } else {
+        if (currentLine) lines.push(currentLine);
+        currentLine = word;
+        if (lines.length >= 2) break; // Max 3 lines
+      }
+    }
+    if (currentLine) lines.push(currentLine);
+
+    // Add symbol line if symbol exists
+    if (symbol) {
+      lines.push(`(${symbol})`);
+    }
+
+    // Generate SVG
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <rect width="400" height="400" fill="${bgColor}"/>
+  <text x="200" y="200" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#000000" text-anchor="middle" dominant-baseline="middle">
+${lines.map((line, i) => {
+  const offset = (i - (lines.length - 1) / 2) * 30;
+  return `    <tspan x="200" dy="${i === 0 ? offset : 30}">${line}</tspan>`;
+}).join("\n")}
+  </text>
+</svg>`;
+
+    // Convert SVG string to ArrayBuffer
+    const encoder = new TextEncoder();
+    return encoder.encode(svg).buffer;
+  };
+
   const onSubmit = async () => {
     const parsed = validate();
     if (!parsed) {
@@ -136,9 +218,31 @@ export const CreateMarketForm: React.FC<CreateMarketFormProps> = ({ onMarketCrea
 
     try {
       setSubmitting(true);
+
+      // Resolve ENS name to address if needed
+      let resolverAddress: string;
+      if (isEnsName) {
+        if (isResolvingEns) {
+          toast.info("Resolving ENS name…");
+          await new Promise(resolve => setTimeout(resolve, 500)); // Brief wait for resolution
+        }
+        if (!ensAddress) {
+          toast.error("Could not resolve ENS name");
+          setSubmitting(false);
+          return;
+        }
+        resolverAddress = ensAddress;
+      } else if (isAddress(parsed.resolver)) {
+        resolverAddress = parsed.resolver;
+      } else {
+        toast.error("Invalid resolver address or ENS name");
+        setSubmitting(false);
+        return;
+      }
+
       toast.info("Preparing market metadata…");
 
-      // 1) Pin image (or fetch default zamm logo if none provided)
+      // 1) Pin image (generate SVG if none provided)
       let imgUri: string;
       if (imageBuffer) {
         imgUri = await pinImageToPinata(imageBuffer, `${parsed.name}-image`, {
@@ -149,15 +253,13 @@ export const CreateMarketForm: React.FC<CreateMarketFormProps> = ({ onMarketCrea
           },
         });
       } else {
-        // Fetch the default zamm logo and pin it
-        const response = await fetch("/zammzamm.png");
-        const blob = await response.blob();
-        const arrayBuffer = await blob.arrayBuffer();
-        imgUri = await pinImageToPinata(arrayBuffer, `${parsed.name}-default-logo`, {
+        // Generate SVG image with random color
+        const svgBuffer = generateSvgImage(parsed.name, parsed.symbol);
+        imgUri = await pinImageToPinata(svgBuffer, `${parsed.name}-generated.svg`, {
           keyvalues: {
             marketName: parsed.name,
             marketSymbol: parsed.symbol,
-            type: "prediction-market-default",
+            type: "prediction-market-generated",
           },
         });
       }
@@ -182,17 +284,39 @@ export const CreateMarketForm: React.FC<CreateMarketFormProps> = ({ onMarketCrea
 
       toast.info("Creating market…");
 
-      await writeContractAsync({
-        address: PredictionMarketAddress as `0x${string}`,
-        abi: PredictionMarketAbi,
-        functionName: "createMarket",
-        args: [
-          tokenUri,
-          parsed.resolver as `0x${string}`,
-          BigInt(closingTimestamp),
-          parsed.canAccelerateClosing,
-        ],
-      });
+      if (parsed.marketType === "parimutuel") {
+        // Pari-mutuel market (existing PredictionMarket contract)
+        await writeContractAsync({
+          address: PredictionMarketAddress as `0x${string}`,
+          abi: PredictionMarketAbi,
+          functionName: "createMarket",
+          args: [
+            tokenUri,
+            resolverAddress as `0x${string}`,
+            BigInt(closingTimestamp),
+            parsed.canAccelerateClosing,
+          ],
+        });
+      } else {
+        // AMM-based market (PredictionAMM contract) with sensible default seeding
+        // Seed with 1 YES token and 1 NO token for 50/50 starting probability
+        const seedYes = parseEther("1");
+        const seedNo = parseEther("1");
+
+        await writeContractAsync({
+          address: PredictionAMMAddress as `0x${string}`,
+          abi: PredictionAMMAbi,
+          functionName: "createMarket",
+          args: [
+            tokenUri,
+            resolverAddress as `0x${string}`,
+            BigInt(closingTimestamp),
+            parsed.canAccelerateClosing,
+            seedYes,
+            seedNo,
+          ],
+        });
+      }
 
       toast.success("Market creation transaction submitted");
     } catch (err: any) {
@@ -205,71 +329,162 @@ export const CreateMarketForm: React.FC<CreateMarketFormProps> = ({ onMarketCrea
   return (
     <div className="bg-card border border-border rounded-lg p-6">
       <Heading level={3} className="mb-4">
-        Create Prediction Market
+        {t("predict.create_prediction_market")}
       </Heading>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Form */}
         <div className="space-y-4">
           <div className="grid gap-2">
-            <Label htmlFor="name">Market Name</Label>
+            <Label htmlFor="name">{t("predict.market_name")}</Label>
             <Input
               id="name"
               value={form.name}
               onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-              placeholder="e.g. ETH will reach $10k by 2026"
+              placeholder={t("predict.market_name_placeholder")}
             />
             {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="symbol">Symbol</Label>
+            <Label htmlFor="symbol">{t("predict.symbol")}</Label>
             <Input
               id="symbol"
               value={form.symbol}
               onChange={(e) => setForm((p) => ({ ...p, symbol: e.target.value }))}
-              placeholder="e.g. ETH10K"
+              placeholder={t("predict.symbol_placeholder")}
               maxLength={20}
             />
             {errors.symbol && <p className="text-xs text-red-500">{errors.symbol}</p>}
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">{t("predict.description")}</Label>
             <Textarea
               id="description"
               rows={3}
               value={form.description}
               onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-              placeholder="Detailed description of the market outcome…"
+              placeholder={t("predict.description_placeholder")}
             />
             {errors.description && <p className="text-xs text-red-500">{errors.description}</p>}
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="image">Market Image</Label>
+            <Label>{t("predict.market_type")}</Label>
+            <div className="flex flex-col gap-3">
+              <div
+                className={`border rounded-lg p-3 cursor-pointer transition-colors ${
+                  form.marketType === "parimutuel"
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:border-primary/50"
+                }`}
+                onClick={() => setForm((p) => ({ ...p, marketType: "parimutuel" }))}
+              >
+                <div className="flex items-start gap-2">
+                  <input
+                    type="radio"
+                    name="marketType"
+                    checked={form.marketType === "parimutuel"}
+                    onChange={() => setForm((p) => ({ ...p, marketType: "parimutuel" }))}
+                    className="mt-1"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-1">
+                      <span className="font-semibold">{t("predict.parimutuel")}</span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p>
+                            {t("predict.parimutuel_description")}
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {t("predict.parimutuel_summary")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                className={`border rounded-lg p-3 cursor-pointer transition-colors ${
+                  form.marketType === "amm"
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:border-primary/50"
+                }`}
+                onClick={() => setForm((p) => ({ ...p, marketType: "amm" }))}
+              >
+                <div className="flex items-start gap-2">
+                  <input
+                    type="radio"
+                    name="marketType"
+                    checked={form.marketType === "amm"}
+                    onChange={() => setForm((p) => ({ ...p, marketType: "amm" }))}
+                    className="mt-1"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-1">
+                      <span className="font-semibold">{t("predict.live_bets_amm")}</span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p>
+                            {t("predict.amm_description")}
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {t("predict.amm_summary")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="image">
+              {t("predict.market_image")} <span className="text-muted-foreground font-normal">({t("common.optional")})</span>
+            </Label>
             <ImageInput onChange={handleImageChange} />
             <p className="text-xs text-muted-foreground">
-              PNG/JPG/GIF • Max 5MB
+              {t("predict.image_hint_optional")}
             </p>
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="resolver">Resolver Address</Label>
+            <Label htmlFor="resolver">{t("predict.resolver_address")}</Label>
             <Input
               id="resolver"
               value={form.resolver}
               onChange={(e) => setForm((p) => ({ ...p, resolver: e.target.value }))}
-              placeholder="0x..."
+              placeholder={t("predict.resolver_placeholder")}
             />
-            <p className="text-xs text-muted-foreground">
-              Address that will resolve the market outcome
-            </p>
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-xs text-muted-foreground">
+                {t("predict.resolver_address_help")}
+              </p>
+              {isResolvingEns && (
+                <p className="text-xs text-blue-500 whitespace-nowrap">{t("predict.resolving_ens")}</p>
+              )}
+              {isEnsName && ensAddress && !isResolvingEns && (
+                <p className="text-xs text-green-600 dark:text-green-400 whitespace-nowrap">
+                  ✓ {ensAddress.slice(0, 6)}...{ensAddress.slice(-4)}
+                </p>
+              )}
+            </div>
             {errors.resolver && <p className="text-xs text-red-500">{errors.resolver}</p>}
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="closingTime">Closing Time</Label>
+            <Label htmlFor="closingTime">{t("predict.closing_time")}</Label>
             <Input
               id="closingTime"
               type="datetime-local"
@@ -277,7 +492,7 @@ export const CreateMarketForm: React.FC<CreateMarketFormProps> = ({ onMarketCrea
               onChange={(e) => setForm((p) => ({ ...p, closingTime: e.target.value }))}
             />
             <p className="text-xs text-muted-foreground">
-              When trading closes and resolution can begin
+              {t("predict.closing_time_help")}
             </p>
             {errors.closingTime && <p className="text-xs text-red-500">{errors.closingTime}</p>}
           </div>
@@ -291,15 +506,14 @@ export const CreateMarketForm: React.FC<CreateMarketFormProps> = ({ onMarketCrea
               }
             />
             <Label htmlFor="canAccelerateClosing" className="flex items-center gap-1">
-              Allow resolver to accelerate closing
+              {t("predict.allow_resolver_accelerate_closing")}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
                 </TooltipTrigger>
                 <TooltipContent className="max-w-xs">
                   <p>
-                    When enabled, the resolver can call <code>closeMarket()</code> to end trading before the scheduled closing time.
-                    This is useful if the outcome becomes certain early. When disabled, trading continues until the closing time.
+                    {t("predict.accelerate_closing_help")}
                   </p>
                 </TooltipContent>
               </Tooltip>
@@ -319,7 +533,7 @@ export const CreateMarketForm: React.FC<CreateMarketFormProps> = ({ onMarketCrea
 
           {writeError && (
             <Alert tone="destructive">
-              <AlertTitle>Transaction error</AlertTitle>
+              <AlertTitle>{t("common.error")}</AlertTitle>
               <AlertDescription className="break-words">
                 {writeError.message}
               </AlertDescription>
@@ -331,20 +545,20 @@ export const CreateMarketForm: React.FC<CreateMarketFormProps> = ({ onMarketCrea
             className="w-full"
             onClick={onSubmit}
           >
-            {submitting || isPending ? "Creating…" : "Create Market"}
+            {submitting || isPending ? t("predict.creating") : t("predict.create_market")}
           </Button>
 
           {txLoading && (
             <Alert>
-              <AlertTitle>Waiting for confirmation…</AlertTitle>
-              <AlertDescription>Your transaction is being mined.</AlertDescription>
+              <AlertTitle>{t("predict.waiting_confirmation")}</AlertTitle>
+              <AlertDescription>{t("predict.transaction_mining")}</AlertDescription>
             </Alert>
           )}
 
           {txSuccess && (
             <Alert>
-              <AlertTitle>Market Created!</AlertTitle>
-              <AlertDescription>Your prediction market has been created successfully.</AlertDescription>
+              <AlertTitle>{t("predict.market_created")}</AlertTitle>
+              <AlertDescription>{t("predict.market_created_description")}</AlertDescription>
             </Alert>
           )}
         </div>
@@ -352,36 +566,36 @@ export const CreateMarketForm: React.FC<CreateMarketFormProps> = ({ onMarketCrea
         {/* Preview */}
         <div className="bg-muted rounded-lg p-6 flex flex-col h-full">
           <Heading level={4} className="mb-4">
-            Preview
+            {t("predict.preview")}
           </Heading>
 
           <div className="space-y-4 mb-6">
             <img
-              src={imagePreviewUrl || "/zammzamm.png"}
-              alt="Market preview"
+              src={getPreviewImageUrl()}
+              alt={t("predict.market_preview")}
               className="w-full h-48 object-contain rounded-lg border border-border bg-background"
             />
             {form.name && (
               <div>
-                <p className="text-xs text-muted-foreground">Name</p>
+                <p className="text-xs text-muted-foreground">{t("predict.name")}</p>
                 <p className="font-bold">{form.name}</p>
               </div>
             )}
             {form.symbol && (
               <div>
-                <p className="text-xs text-muted-foreground">Symbol</p>
+                <p className="text-xs text-muted-foreground">{t("predict.symbol")}</p>
                 <p className="font-mono">{form.symbol}</p>
               </div>
             )}
             {form.description && (
               <div>
-                <p className="text-xs text-muted-foreground">Description</p>
+                <p className="text-xs text-muted-foreground">{t("predict.description")}</p>
                 <p className="text-sm">{form.description}</p>
               </div>
             )}
             {form.closingTime && (
               <div>
-                <p className="text-xs text-muted-foreground">Closes</p>
+                <p className="text-xs text-muted-foreground">{t("predict.closes")}</p>
                 <p className="text-sm">
                   {new Date(form.closingTime).toLocaleString()}
                 </p>
