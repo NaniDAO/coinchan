@@ -1,6 +1,6 @@
-import React, { useState } from "react";
-import { parseEther, formatEther } from "viem";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import React, { useState, useEffect } from "react";
+import { parseEther, formatEther, maxUint256 } from "viem";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from "wagmi";
 import { toast } from "sonner";
 import { PredictionMarketAddress, PredictionMarketAbi } from "@/constants/PredictionMarket";
 import { PredictionAMMAbi } from "@/constants/PredictionMarketAMM";
@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Slider } from "@/components/ui/slider";
 
 interface TradeModalProps {
   isOpen: boolean;
@@ -42,6 +43,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   const [action, setAction] = useState<"buy" | "sell">("buy");
   const [position, setPosition] = useState<"yes" | "no">("yes");
   const [amount, setAmount] = useState("");
+  const [slippageTolerance, setSlippageTolerance] = useState(0.5); // 0.5% default
 
   const {
     writeContractAsync,
@@ -51,6 +53,39 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   } = useWriteContract();
 
   const { isSuccess: txSuccess, isLoading: txLoading } = useWaitForTransactionReceipt({ hash });
+
+  // Quote for AMM buy trades
+  const sharesAmount = amount && parseFloat(amount) > 0 ? parseEther(amount) : 0n;
+
+  const { data: quoteData } = useReadContract({
+    address: contractAddress as `0x${string}`,
+    abi: PredictionAMMAbi,
+    functionName: action === "buy"
+      ? (position === "yes" ? "quoteBuyYes" : "quoteBuyNo")
+      : (position === "yes" ? "quoteSellYes" : "quoteSellNo"),
+    args: [marketId, sharesAmount],
+    query: {
+      enabled: marketType === "amm" && sharesAmount > 0n,
+    },
+  });
+
+  const estimatedCost = quoteData ? quoteData[1] : 0n; // wstInFair or wstOutFair
+  const oppIn = quoteData ? quoteData[0] : 0n; // oppIn or oppOut
+
+  // For AMM markets, fetch pool reserves to show live odds
+  const { data: ammPoolData } = useReadContract({
+    address: contractAddress as `0x${string}`,
+    abi: PredictionAMMAbi,
+    functionName: "getPool",
+    args: [marketId],
+    query: {
+      enabled: marketType === "amm",
+    },
+  });
+
+  // Extract reserves: [poolId, rYes, rNo, tsLast, kLast, lpSupply]
+  const rYes = ammPoolData ? ammPoolData[1] : 0n;
+  const rNo = ammPoolData ? ammPoolData[2] : 0n;
 
   React.useEffect(() => {
     if (txSuccess) {
@@ -76,36 +111,107 @@ export const TradeModal: React.FC<TradeModalProps> = ({
     try {
       const amountWei = parseEther(amount);
 
-      const abi = marketType === "amm" ? PredictionAMMAbi : PredictionMarketAbi;
+      if (marketType === "amm") {
+        // AMM market trading
+        if (action === "buy") {
+          // For AMM buy: amount is shares to buy, we pay with ETH
+          const slippageMultiplier = BigInt(Math.floor((1 + slippageTolerance / 100) * 10000));
+          const wstInMax = (estimatedCost * slippageMultiplier) / 10000n;
+          const oppInMax = (oppIn * slippageMultiplier) / 10000n;
 
-      if (action === "buy") {
-        const functionName = position === "yes" ? "buyYes" : "buyNo";
-        await writeContractAsync({
-          address: contractAddress as `0x${string}`,
-          abi,
-          functionName,
-          args: [marketId, 0n, address],
-          value: amountWei,
-        });
+          // Add 40% buffer to wstInMax for ETH→wstETH conversion (wstETH worth ~1.18 ETH)
+          const ethValue = (wstInMax * 14n) / 10n;
+
+          const functionName = position === "yes" ? "buyYesViaPool" : "buyNoViaPool";
+          await writeContractAsync({
+            address: contractAddress as `0x${string}`,
+            abi: PredictionAMMAbi,
+            functionName,
+            args: [
+              marketId,
+              amountWei,    // yesOut or noOut (shares to buy)
+              true,         // inIsETH
+              wstInMax,     // wstInMax (slippage protection)
+              oppInMax,     // oppInMax (slippage protection)
+              address,      // to
+            ],
+            value: ethValue,
+          });
+        } else {
+          // For AMM sell: amount is shares to sell
+          const slippageMultiplier = BigInt(Math.floor((1 - slippageTolerance / 100) * 10000));
+          const wstOutMin = (estimatedCost * slippageMultiplier) / 10000n;
+          const oppOutMin = (oppIn * slippageMultiplier) / 10000n;
+
+          const functionName = position === "yes" ? "sellYesViaPool" : "sellNoViaPool";
+          await writeContractAsync({
+            address: contractAddress as `0x${string}`,
+            abi: PredictionAMMAbi,
+            functionName,
+            args: [
+              marketId,
+              amountWei,    // yesIn or noIn (shares to sell)
+              wstOutMin,    // wstOutMin (slippage protection)
+              oppOutMin,    // oppOutMin (slippage protection)
+              address,      // to
+            ],
+          });
+        }
       } else {
-        const functionName = position === "yes" ? "sellYes" : "sellNo";
-        await writeContractAsync({
-          address: contractAddress as `0x${string}`,
-          abi,
-          functionName,
-          args: [marketId, amountWei, address],
-        });
+        // Parimutuel market trading
+        if (action === "buy") {
+          const functionName = position === "yes" ? "buyYes" : "buyNo";
+          await writeContractAsync({
+            address: contractAddress as `0x${string}`,
+            abi: PredictionMarketAbi,
+            functionName,
+            args: [marketId, 0n, address],
+            value: amountWei,
+          });
+        } else {
+          const functionName = position === "yes" ? "sellYes" : "sellNo";
+          await writeContractAsync({
+            address: contractAddress as `0x${string}`,
+            abi: PredictionMarketAbi,
+            functionName,
+            args: [marketId, amountWei, address],
+          });
+        }
       }
 
       toast.success("Transaction submitted");
     } catch (err: any) {
       console.error(err);
-      toast.error(err?.shortMessage ?? err?.message ?? "Transaction failed");
+
+      // Handle wallet rejection gracefully
+      if (err?.code === 4001 || err?.code === "ACTION_REJECTED") {
+        toast.info("Transaction cancelled");
+        return;
+      }
+
+      // Handle user rejection messages
+      const errorMessage = err?.shortMessage ?? err?.message ?? "";
+      if (
+        errorMessage.toLowerCase().includes("user rejected") ||
+        errorMessage.toLowerCase().includes("user denied") ||
+        errorMessage.toLowerCase().includes("user cancelled") ||
+        errorMessage.toLowerCase().includes("rejected by user")
+      ) {
+        toast.info("Transaction cancelled");
+        return;
+      }
+
+      // Other errors
+      toast.error(errorMessage || "Transaction failed");
     }
   };
 
-  const totalSupply = yesSupply + noSupply;
-  const yesPercent = totalSupply > 0n ? Number((yesSupply * 100n) / totalSupply) : 50;
+  // For AMM markets, use pool reserves for odds; for parimutuel, use total supply
+  const useYes = marketType === "amm" && rYes > 0n ? rYes : yesSupply;
+  const useNo = marketType === "amm" && rNo > 0n ? rNo : noSupply;
+
+  const totalSupply = useYes + useNo;
+  const yesPercent = totalSupply > 0n ? Number((useYes * 100n) / totalSupply) : 50;
   const noPercent = 100 - yesPercent;
 
   return (
@@ -138,8 +244,8 @@ export const TradeModal: React.FC<TradeModalProps> = ({
               />
             </div>
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>{formatEther(yesSupply)} wstETH</span>
-              <span>{formatEther(noSupply)} wstETH</span>
+              <span>{formatEther(useYes)} wstETH</span>
+              <span>{formatEther(useNo)} wstETH</span>
             </div>
           </div>
 
@@ -172,7 +278,9 @@ export const TradeModal: React.FC<TradeModalProps> = ({
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="amount">Amount (ETH)</Label>
+                <Label htmlFor="amount">
+                  {marketType === "amm" ? "Shares to Buy" : "Amount (ETH)"}
+                </Label>
                 <Input
                   id="amount"
                   type="number"
@@ -183,9 +291,59 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                   placeholder="0.1"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Buy {position.toUpperCase()} shares with ETH
+                  {marketType === "amm"
+                    ? `Enter number of ${position.toUpperCase()} shares to buy`
+                    : `Buy ${position.toUpperCase()} shares with ETH`
+                  }
                 </p>
               </div>
+
+              {marketType === "amm" && estimatedCost > 0n && (
+                <div className="bg-muted rounded-lg p-3 space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Estimated Cost:</span>
+                    <span className="font-mono font-semibold">
+                      {Number(formatEther(estimatedCost)).toFixed(6)} wstETH
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Max Cost (with slippage):</span>
+                    <span className="font-mono text-xs">
+                      {Number(formatEther((estimatedCost * BigInt(Math.floor((1 + slippageTolerance / 100) * 10000))) / 10000n)).toFixed(6)} wstETH
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">ETH to send:</span>
+                    <span className="font-mono">
+                      {Number(formatEther((estimatedCost * BigInt(Math.floor((1 + slippageTolerance / 100) * 10000)) * 14n) / 100000n)).toFixed(6)} ETH
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground italic">
+                    Extra ETH will be refunded. Includes conversion buffer.
+                  </p>
+                </div>
+              )}
+
+              {marketType === "amm" && (
+                <div className="grid gap-2">
+                  <Label htmlFor="slippage">
+                    Slippage Tolerance: {slippageTolerance}%
+                  </Label>
+                  <Slider
+                    id="slippage"
+                    min={0.1}
+                    max={5}
+                    step={0.1}
+                    value={[slippageTolerance]}
+                    onValueChange={(value) => setSlippageTolerance(value[0])}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>0.1%</span>
+                    <span>5%</span>
+                  </div>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="sell" className="space-y-4">
@@ -210,7 +368,9 @@ export const TradeModal: React.FC<TradeModalProps> = ({
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="sell-amount">Amount (wstETH shares)</Label>
+                <Label htmlFor="sell-amount">
+                  {marketType === "amm" ? "Shares to Sell" : "Amount (wstETH shares)"}
+                </Label>
                 <Input
                   id="sell-amount"
                   type="number"
@@ -224,6 +384,41 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                   Sell your {position.toUpperCase()} shares for wstETH
                 </p>
               </div>
+
+              {marketType === "amm" && estimatedCost > 0n && (
+                <div className="bg-muted rounded-lg p-3 space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Estimated Payout:</span>
+                    <span className="font-mono font-semibold">
+                      {Number(formatEther(estimatedCost)).toFixed(6)} wstETH
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground italic">
+                    Payout may vary due to price impact and slippage.
+                  </p>
+                </div>
+              )}
+
+              {marketType === "amm" && (
+                <div className="grid gap-2">
+                  <Label htmlFor="slippage-sell">
+                    Slippage Tolerance: {slippageTolerance}%
+                  </Label>
+                  <Slider
+                    id="slippage-sell"
+                    min={0.1}
+                    max={5}
+                    step={0.1}
+                    value={[slippageTolerance]}
+                    onValueChange={(value) => setSlippageTolerance(value[0])}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>0.1%</span>
+                    <span>5%</span>
+                  </div>
+                </div>
+              )}
             </TabsContent>
           </Tabs>
 

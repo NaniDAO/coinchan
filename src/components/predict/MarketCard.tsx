@@ -9,6 +9,7 @@ import {
   useAccount,
 } from "wagmi";
 import { mainnet } from "wagmi/chains";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TradeModal } from "./TradeModal";
@@ -49,6 +50,8 @@ interface MarketCardProps {
   userClaimable?: bigint;
   marketType?: "parimutuel" | "amm";
   contractAddress?: `0x${string}`;
+  rYes?: bigint;
+  rNo?: bigint;
   onClaimSuccess?: () => void;
 }
 
@@ -67,6 +70,8 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   userClaimable = 0n,
   marketType = "parimutuel",
   contractAddress = PredictionMarketAddress,
+  rYes,
+  rNo,
   onClaimSuccess,
 }) => {
   const [metadata, setMetadata] = useState<MarketMetadata | null>(null);
@@ -75,7 +80,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   const [imageError, setImageError] = useState(false);
   const { address } = useAccount();
 
-  const { writeContract, data: claimHash } = useWriteContract();
+  const { writeContract, data: claimHash, error: claimError } = useWriteContract();
   const { isSuccess: isClaimSuccess } = useWaitForTransactionReceipt({
     hash: claimHash,
   });
@@ -124,7 +129,10 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   };
 
   const handleClaim = () => {
-    if (!address) return;
+    if (!address) {
+      toast.error("Please connect your wallet");
+      return;
+    }
     writeContract({
       address: contractAddress as `0x${string}`,
       abi: marketType === "amm" ? PredictionAMMAbi : PredictionMarketAbi,
@@ -135,9 +143,35 @@ export const MarketCard: React.FC<MarketCardProps> = ({
 
   useEffect(() => {
     if (isClaimSuccess && onClaimSuccess) {
+      toast.success("Claim successful!");
       onClaimSuccess();
     }
   }, [isClaimSuccess, onClaimSuccess]);
+
+  useEffect(() => {
+    if (claimError) {
+      // Handle wallet rejection gracefully
+      if ((claimError as any)?.code === 4001 || (claimError as any)?.code === "ACTION_REJECTED") {
+        toast.info("Transaction cancelled");
+        return;
+      }
+
+      // Handle user rejection messages
+      const errorMessage = (claimError as any)?.shortMessage ?? claimError?.message ?? "";
+      if (
+        errorMessage.toLowerCase().includes("user rejected") ||
+        errorMessage.toLowerCase().includes("user denied") ||
+        errorMessage.toLowerCase().includes("user cancelled") ||
+        errorMessage.toLowerCase().includes("rejected by user")
+      ) {
+        toast.info("Transaction cancelled");
+        return;
+      }
+
+      // Other errors
+      toast.error(errorMessage || "Claim failed");
+    }
+  }, [claimError]);
 
   useEffect(() => {
     const fetchMetadata = async () => {
@@ -249,9 +283,13 @@ export const MarketCard: React.FC<MarketCardProps> = ({
     );
   }
 
-  const totalSupply = yesSupply + noSupply;
+  // For AMM markets, use pool reserves for odds; for parimutuel, use total supply
+  const useYes = marketType === "amm" && rYes !== undefined ? rYes : yesSupply;
+  const useNo = marketType === "amm" && rNo !== undefined ? rNo : noSupply;
+
+  const totalSupply = useYes + useNo;
   const yesPercent =
-    totalSupply > 0n ? Number((yesSupply * 100n) / totalSupply) : 50;
+    totalSupply > 0n ? Number((useYes * 100n) / totalSupply) : 50;
   const noPercent = 100 - yesPercent;
 
   return (

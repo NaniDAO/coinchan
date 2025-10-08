@@ -198,6 +198,8 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
     tradingOpen: boolean;
     marketType: "parimutuel" | "amm";
     contractAddress: `0x${string}`;
+    rYes?: bigint;
+    rNo?: bigint;
   }> = [];
 
   // Add Pari-Mutuel markets
@@ -242,6 +244,8 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
         tradingOpen: Boolean(ammTradingOpenData?.[idx]?.result ?? true),
         marketType: "amm",
         contractAddress: PredictionAMMAddress as `0x${string}`,
+        rYes: ammMarkets.rYesArr[idx],
+        rNo: ammMarkets.rNoArr[idx],
       });
     });
   }
@@ -331,6 +335,8 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
                   userClaimable={market.userClaimable}
                   marketType={market.marketType}
                   contractAddress={market.contractAddress}
+                  rYes={market.rYes}
+                  rNo={market.rNo}
                   onClaimSuccess={() => {
                     refetch();
                     if (address) refetchUserData();

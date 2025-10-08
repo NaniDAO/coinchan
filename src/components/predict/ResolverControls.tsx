@@ -102,7 +102,28 @@ export const ResolverControls: React.FC<ResolverControlsProps> = ({
 
   React.useEffect(() => {
     if (error) {
-      toast.error(error.message);
+      // Handle wallet rejection gracefully
+      if ((error as any)?.code === 4001 || (error as any)?.code === "ACTION_REJECTED") {
+        toast.info("Transaction cancelled");
+        setResolvingTo(null);
+        return;
+      }
+
+      // Handle user rejection messages
+      const errorMessage = (error as any)?.shortMessage ?? error?.message ?? "";
+      if (
+        errorMessage.toLowerCase().includes("user rejected") ||
+        errorMessage.toLowerCase().includes("user denied") ||
+        errorMessage.toLowerCase().includes("user cancelled") ||
+        errorMessage.toLowerCase().includes("rejected by user")
+      ) {
+        toast.info("Transaction cancelled");
+        setResolvingTo(null);
+        return;
+      }
+
+      // Other errors
+      toast.error(errorMessage || "Transaction failed");
       setResolvingTo(null);
     }
   }, [error]);

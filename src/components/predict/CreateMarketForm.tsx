@@ -321,7 +321,29 @@ ${lines.map((line, i) => {
       toast.success("Market creation transaction submitted");
     } catch (err: any) {
       console.error(err);
-      toast.error(err?.message ?? "Failed to create market");
+
+      // Handle wallet rejection gracefully
+      if (err?.code === 4001 || err?.code === "ACTION_REJECTED") {
+        toast.info("Transaction cancelled");
+        setSubmitting(false);
+        return;
+      }
+
+      // Handle user rejection messages
+      const errorMessage = err?.shortMessage ?? err?.message ?? "";
+      if (
+        errorMessage.toLowerCase().includes("user rejected") ||
+        errorMessage.toLowerCase().includes("user denied") ||
+        errorMessage.toLowerCase().includes("user cancelled") ||
+        errorMessage.toLowerCase().includes("rejected by user")
+      ) {
+        toast.info("Transaction cancelled");
+        setSubmitting(false);
+        return;
+      }
+
+      // Other errors
+      toast.error(errorMessage || "Failed to create market");
       setSubmitting(false);
     }
   };
