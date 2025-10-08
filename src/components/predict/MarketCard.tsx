@@ -127,6 +127,74 @@ export const MarketCard: React.FC<MarketCardProps> = ({
 
         let imageUrl = formatImageURL(data.image || "");
 
+        // Check if the image URL might be another JSON metadata file or IPFS directory
+        // This happens with some NFT metadata standards where image field points to more metadata
+        if (imageUrl && !imageUrl.match(/\.(jpg|jpeg|png|gif|svg|webp)$/i)) {
+          try {
+            const imageResponse = await fetch(imageUrl);
+            const contentType = imageResponse.headers.get("content-type");
+
+            // Check if it's JSON metadata
+            if (contentType && contentType.includes("application/json")) {
+              const imageData = await imageResponse.json();
+
+              if (imageData.image) {
+                imageUrl = formatImageURL(imageData.image);
+              }
+            }
+            // Check if it's an IPFS directory listing (HTML)
+            else if (contentType && contentType.includes("text/html")) {
+              const html = await imageResponse.text();
+
+              // Extract all href values that are not data URIs, parent directories, or the current directory
+              const hrefMatches = html.matchAll(/href="([^"]+)"/gi);
+              const files: string[] = [];
+
+              for (const match of hrefMatches) {
+                const href = match[1];
+                // Skip data URIs, parent directory (..), current directory (.), directories (ending with /), and full URLs
+                if (!href.startsWith('data:') &&
+                    !href.startsWith('http://') &&
+                    !href.startsWith('https://') &&
+                    href !== '..' &&
+                    href !== '.' &&
+                    !href.endsWith('/')) {
+                  files.push(href);
+                }
+              }
+
+              let filePath = null;
+
+              // First try with common image extensions
+              filePath = files.find(f => /\.(jpg|jpeg|png|gif|svg|webp)$/i.test(f));
+
+              // If no match, try to find files with "image" in the name (common pattern)
+              if (!filePath) {
+                filePath = files.find(f => /image/i.test(f));
+              }
+
+              // If still no match, take the first file
+              if (!filePath && files.length > 0) {
+                filePath = files[0];
+              }
+
+              if (filePath) {
+                // Check if the path is absolute (starts with /)
+                if (filePath.startsWith('/')) {
+                  // Use the gateway base URL + the absolute path
+                  const gatewayBase = imageUrl.split('/ipfs/')[0];
+                  imageUrl = gatewayBase + filePath;
+                } else {
+                  // Relative path, append to the directory URL
+                  imageUrl = imageUrl.endsWith('/') ? imageUrl + filePath : imageUrl + '/' + filePath;
+                }
+              }
+            }
+          } catch (nestedError) {
+            // If fetching as JSON fails, the URL is likely a direct image, use it as-is
+          }
+        }
+
         setMetadata({
           name: data.name || "Unnamed Market",
           symbol: data.symbol || "",
