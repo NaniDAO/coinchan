@@ -227,10 +227,10 @@ export const TradeModal: React.FC<TradeModalProps> = ({
           <div className="bg-muted rounded-lg p-4 space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-green-600 dark:text-green-400 font-bold">
-                YES {yesPercent.toFixed(1)}%
+                YES {yesPercent.toFixed(2)}%
               </span>
               <span className="text-red-600 dark:text-red-400 font-bold">
-                NO {noPercent.toFixed(1)}%
+                NO {noPercent.toFixed(2)}%
               </span>
             </div>
             <div className="flex h-3 rounded-full overflow-hidden bg-background">

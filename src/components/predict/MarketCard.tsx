@@ -399,10 +399,10 @@ export const MarketCard: React.FC<MarketCardProps> = ({
             <div className="space-y-1">
               <div className="flex justify-between text-xs font-medium">
                 <span className="text-green-600 dark:text-green-400">
-                  YES {yesPercent.toFixed(1)}%
+                  YES {yesPercent.toFixed(2)}%
                 </span>
                 <span className="text-red-600 dark:text-red-400">
-                  NO {noPercent.toFixed(1)}%
+                  NO {noPercent.toFixed(2)}%
                 </span>
               </div>
               <div className="flex h-2 rounded-full overflow-hidden bg-muted">
