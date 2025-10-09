@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 
 import { useTokenPair } from "@/hooks/use-token-pair";
 import { TradeController } from "./TradeController";
@@ -43,6 +43,13 @@ import {
 import { InfoIcon } from "lucide-react";
 import { SlippageSettings } from "../SlippageSettings";
 
+import { useNavigate, useSearch } from "@tanstack/react-router";
+import {
+  encodeTokenQ,
+  findTokenFlexible,
+  isCanonicalTokenQ,
+} from "@/lib/token-query";
+
 interface InstantTradeActionProps {
   locked?: boolean;
   initialSellToken?: TokenMetadata;
@@ -54,6 +61,13 @@ export const InstantTradeAction = ({
   initialSellToken,
   initialBuyToken,
 }: InstantTradeActionProps) => {
+  // URL hooks
+  const navigate = useNavigate();
+  const search = useSearch({ from: "/swap" }) as {
+    sellToken?: string;
+    buyToken?: string;
+  };
+
   const { sellToken, setSellToken, buyToken, setBuyToken, flip } = useTokenPair(
     {
       initial: {
@@ -87,10 +101,10 @@ export const InstantTradeAction = ({
   const [txError, setTxError] = useState<string | null>(null);
   const [suppressErrors, setSuppressErrors] = useState(false);
 
+  // Track whether user manually changed the pair (to avoid re-hydrating/overwriting)
   const userChangedPairRef = useRef(false);
 
   const clearErrorsOnUserEdit = () => {
-    // Hide any previous errors once the user edits inputs/tokens
     setTxError(null);
     setSuppressErrors(true);
   };
@@ -103,14 +117,86 @@ export const InstantTradeAction = ({
     clearErrorsOnUserEdit();
   }, [sellToken?.id, buyToken?.id]);
 
+  // ------------------------------
+  // URL → State (decode once tokens are known)
+  // ------------------------------
+  useEffect(() => {
+    if (!tokens?.length) return;
+
+    // Resolve flexible queries from URL (addr:id | addr | symbol | id)
+    const matchSell = findTokenFlexible(tokens as any, search.sellToken);
+    const matchBuy = findTokenFlexible(tokens as any, search.buyToken);
+
+    // Apply resolved tokens (only if different)
+    if (matchSell) {
+      setSellToken((prev) =>
+        prev && sameToken(prev, matchSell) ? prev : matchSell,
+      );
+    }
+    if (matchBuy) {
+      setBuyToken((prev) =>
+        prev && sameToken(prev, matchBuy) ? prev : matchBuy,
+      );
+    }
+
+    // Canonicalize (or fill defaults) into the URL if needed
+    const canonSell = matchSell
+      ? encodeTokenQ(matchSell)
+      : sellToken
+        ? encodeTokenQ(sellToken)
+        : encodeTokenQ(ETH_TOKEN);
+    const canonBuy = matchBuy
+      ? encodeTokenQ(matchBuy)
+      : buyToken
+        ? encodeTokenQ(buyToken)
+        : encodeTokenQ(ZAMM_TOKEN);
+
+    const needsCanonSell = !isCanonicalTokenQ(search.sellToken) && !!canonSell;
+    const needsCanonBuy = !isCanonicalTokenQ(search.buyToken) && !!canonBuy;
+    const needsFill = !search.sellToken || !search.buyToken;
+
+    if (needsCanonSell || needsCanonBuy || needsFill) {
+      navigate({
+        to: "/swap",
+        replace: true,
+        search: (s: any) => ({
+          ...s,
+          sellToken: canonSell,
+          buyToken: canonBuy,
+        }),
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tokens]);
+
+  // ------------------------------
+  // State → URL (keep URL in sync whenever selected tokens change)
+  // ------------------------------
+  useEffect(() => {
+    if (!sellToken || !buyToken) return;
+
+    navigate({
+      to: "/swap",
+      replace: true,
+      search: (s: any) => ({
+        ...s,
+        sellToken: encodeTokenQ(sellToken),
+        buyToken: encodeTokenQ(buyToken),
+      }),
+    });
+  }, [sellToken, buyToken, navigate]);
+
+  // Hydrate current selections with balances (without changing which token is selected)
   useEffect(() => {
     if (!tokens?.length) return;
 
     // Only auto-hydrate while the pair is still the initial one (or untouched)
     const stillDefaultPair =
       sameToken(sellToken, ETH_TOKEN) && sameToken(buyToken, ZAMM_TOKEN);
-
-    if (!stillDefaultPair || userChangedPairRef.current) return;
+    if (!stillDefaultPair || userChangedPairRef.current) {
+      // even if user changed, still attempt balance hydration without changing ids
+      // (same behavior as positions page)
+    }
 
     const BALANCE_KEYS = ["balance", "rawBalance", "formattedBalance"] as const;
 
@@ -129,20 +215,20 @@ export const InstantTradeAction = ({
       return changed ? (next as T) : prev;
     };
 
-    // Hydrate sell token
+    // Hydrate SELL without changing which token is selected
     setSellToken((prev) => {
       if (!prev) return prev;
       const match = tokens.find((t) => sameToken(t as any, prev));
       return match ? mergeBalances(prev, match) : prev;
     });
 
-    // Hydrate buy token
+    // Hydrate BUY without changing which token is selected
     setBuyToken((prev) => {
       if (!prev) return prev;
       const match = tokens.find((t) => sameToken(t as any, prev));
       return match ? mergeBalances(prev, match) : prev;
     });
-  }, [tokens, sellToken?.id, buyToken?.id]);
+  }, [tokens, setSellToken, setBuyToken, sellToken, buyToken]);
 
   // ------------------------------
   // Quotes via useZRouterQuote
@@ -200,6 +286,17 @@ export const InstantTradeAction = ({
     setSellAmount("");
     setBuyAmount("");
     setLastEditedField("sell");
+
+    // reflect to URL immediately
+    navigate({
+      to: "/swap",
+      replace: true,
+      search: (s: any) => ({
+        ...s,
+        sellToken: encodeTokenQ(token),
+        buyToken: encodeTokenQ(buyToken ?? ZAMM_TOKEN),
+      }),
+    });
   };
 
   // BUY token cannot be changed when locked
@@ -211,6 +308,17 @@ export const InstantTradeAction = ({
     setSellAmount("");
     setBuyAmount("");
     setLastEditedField("buy");
+
+    // reflect to URL immediately
+    navigate({
+      to: "/swap",
+      replace: true,
+      search: (s: any) => ({
+        ...s,
+        sellToken: encodeTokenQ(sellToken ?? ETH_TOKEN),
+        buyToken: encodeTokenQ(token),
+      }),
+    });
   };
 
   // Flipping is allowed even when locked
@@ -221,11 +329,21 @@ export const InstantTradeAction = ({
     setSellAmount("");
     setBuyAmount("");
     setLastEditedField("sell");
-  };
 
-  const hasSellBalance = !!(
-    sellToken?.balance && BigInt(sellToken.balance) > 0n
-  );
+    // reflect to URL after flip
+    // NOTE: flip() swaps the state; compute next using current
+    const nextSell = buyToken ?? ZAMM_TOKEN;
+    const nextBuy = sellToken ?? ETH_TOKEN;
+    navigate({
+      to: "/swap",
+      replace: true,
+      search: (s: any) => ({
+        ...s,
+        sellToken: encodeTokenQ(nextSell),
+        buyToken: encodeTokenQ(nextBuy),
+      }),
+    });
+  };
 
   // ------------------------------
   // Execute swap (approvals + multicall)
@@ -368,20 +486,40 @@ export const InstantTradeAction = ({
     }
   };
 
+  // ------------------------------
+  // Optional helpers (unchanged)
+  // ------------------------------
+  const onControllerAmountChange = useCallback((val: string) => {
+    clearErrorsOnUserEdit();
+    setSellAmount(val);
+    setLastEditedField("sell");
+  }, []);
+
+  const hasSell = useMemo(
+    () => !!(sellToken?.balance && BigInt(sellToken.balance) > 0n),
+    [sellToken?.balance],
+  );
+
   return (
     <div>
       {/* Optional controller-style single line input */}
       <TradeController
-        onAmountChange={(val) => {
-          clearErrorsOnUserEdit();
-          setSellAmount(val);
-          setLastEditedField("sell");
-        }}
+        onAmountChange={onControllerAmountChange}
         currentSellToken={sellToken}
         // SELL token can always be changed
         setSellToken={(t) => {
           clearErrorsOnUserEdit();
+          userChangedPairRef.current = true;
           setSellToken(t);
+          navigate({
+            to: "/swap",
+            replace: true,
+            search: (s: any) => ({
+              ...s,
+              sellToken: encodeTokenQ(t),
+              buyToken: encodeTokenQ(buyToken ?? ZAMM_TOKEN),
+            }),
+          });
         }}
         currentBuyToken={buyToken}
         // BUY token setter disabled only when locked
@@ -390,7 +528,17 @@ export const InstantTradeAction = ({
             ? undefined
             : (t) => {
                 clearErrorsOnUserEdit();
+                userChangedPairRef.current = true;
                 setBuyToken(t);
+                navigate({
+                  to: "/swap",
+                  replace: true,
+                  search: (s: any) => ({
+                    ...s,
+                    sellToken: encodeTokenQ(sellToken ?? ETH_TOKEN),
+                    buyToken: encodeTokenQ(t),
+                  }),
+                });
               }
         }
         currentSellAmount={sellAmount}
@@ -411,14 +559,14 @@ export const InstantTradeAction = ({
           onSelect={handleSellTokenSelect}
           amount={sellAmount}
           onAmountChange={syncFromSell}
-          showMaxButton={hasSellBalance && lastEditedField === "sell"}
+          showMaxButton={hasSell && lastEditedField === "sell"}
           onMax={() => {
             if (!sellToken?.balance) return;
             clearErrorsOnUserEdit();
             const decimals = sellToken.decimals ?? 18;
             syncFromSell(formatUnits(sellToken.balance as bigint, decimals));
           }}
-          showPercentageSlider={hasSellBalance}
+          showPercentageSlider={hasSell}
           className="pb-4 rounded-t-2xl"
         />
 

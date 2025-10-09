@@ -9,6 +9,7 @@ import { SwapAction } from "@/components/swap/SwapAction";
 
 export const Route = createFileRoute("/swap")({
   component: RouteComponent,
+  validateSearch: (search: { buyToken?: string; sellToken?: string }) => search,
 });
 
 function RouteComponent() {
@@ -42,7 +43,8 @@ function RouteComponent() {
             </ErrorBoundary>
             {/* Info showing token count */}
             <div className="text-xs mt-5 text-center font-mono">
-              {t("common.available_tokens")} {tokenCount} {t("common.eth_plus_coins", { count: tokenCount - 1 })}
+              {t("common.available_tokens")} {tokenCount}{" "}
+              {t("common.eth_plus_coins", { count: tokenCount - 1 })}
             </div>
           </div>
         </div>
