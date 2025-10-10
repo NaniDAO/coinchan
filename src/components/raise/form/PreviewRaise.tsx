@@ -23,9 +23,7 @@ export const PreviewRaise = ({
   ethPriceUSD: number | null;
 }) => {
   const { t, i18n } = useTranslation();
-  const imgUrl = imageBuffer
-    ? URL.createObjectURL(new Blob([imageBuffer]))
-    : null;
+  const imgUrl = imageBuffer ? URL.createObjectURL(new Blob([imageBuffer])) : null;
 
   const initial = (state?.name?.trim?.()?.charAt(0) || "Z").toUpperCase();
 
@@ -33,13 +31,8 @@ export const PreviewRaise = ({
   const totalSupplyWei = parseUnitsSafe(state.totalSupplyDisplay, 18n);
   const creatorSupplyWei = parseUnitsSafe(state.creatorSupplyDisplay, 18n);
   // Calculate 5% of total supply if airdrop display is not set
-  const defaultAirdrop = (
-    Number(state.totalSupplyDisplay?.replace(/,/g, "") || "1000000000") * 0.05
-  ).toString();
-  const airdropSupply = parseUnitsSafe(
-    state.airdropIncentiveDisplay || defaultAirdrop,
-    18n,
-  );
+  const defaultAirdrop = (Number(state.totalSupplyDisplay?.replace(/,/g, "") || "1000000000") * 0.05).toString();
+  const airdropSupply = parseUnitsSafe(state.airdropIncentiveDisplay || defaultAirdrop, 18n);
 
   // @ts-expect-error
   const needsChef = templates[state.template].needsChef;
@@ -103,13 +96,9 @@ export const PreviewRaise = ({
   // Note: Both airdrop and farm incentives are allocated separately and don't reduce ETH raised
   // All ETH from the sale goes to the creator
   const otcSupplyForEthCalc = totalSupplyWei - creatorSupplyWei;
-  const maxEthRaisable =
-    coinsPerEth > 0n ? otcSupplyForEthCalc / coinsPerEth : 0n;
+  const maxEthRaisable = coinsPerEth > 0n ? otcSupplyForEthCalc / coinsPerEth : 0n;
   const maxEthRaisableStr = formatEtherWithCommas(maxEthRaisable, 6);
-  const maxUsdRaisable =
-    ethPriceUSD && maxEthRaisable > 0n
-      ? Number(formatEther(maxEthRaisable)) * ethPriceUSD
-      : null;
+  const maxUsdRaisable = ethPriceUSD && maxEthRaisable > 0n ? Number(formatEther(maxEthRaisable)) * ethPriceUSD : null;
 
   // ----- Project links (optional) -----
   const links = buildProjectLinks(state);
@@ -120,9 +109,7 @@ export const PreviewRaise = ({
     const totalSupplyFormatted = formatTokenCompact(totalSupplyWei);
     const creatorSupplyFormatted = formatTokenCompact(creatorSupplyWei);
     const airdropSupplyFormatted = formatTokenCompact(airdropSupply);
-    const incentiveFormatted = needsChef
-      ? formatTokenCompact(incentiveAmount)
-      : null;
+    const incentiveFormatted = needsChef ? formatTokenCompact(incentiveAmount) : null;
     const maxEthFormatted = formatEther(maxEthRaisable);
 
     // Remove trailing zeros and format nicely
@@ -173,16 +160,12 @@ export const PreviewRaise = ({
     >
       {/* header */}
       <div className="px-5 py-4 border-b bg-gradient-to-b from-transparent to-black/[0.02] dark:to-white/[0.02]">
-        <h2 className="text-lg font-semibold tracking-tight">
-          {t("raise.preview.title")}
-        </h2>
+        <h2 className="text-lg font-semibold tracking-tight">{t("raise.preview.title")}</h2>
       </div>
 
       {/* Summary sentence */}
       <div className="px-5 py-3 bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20 border-b">
-        <p className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
-          {buildSummary()}
-        </p>
+        <p className="text-sm font-medium text-neutral-700 dark:text-neutral-200">{buildSummary()}</p>
       </div>
 
       {/* identity row */}
@@ -198,24 +181,16 @@ export const PreviewRaise = ({
             "
           >
             {imgUrl ? (
-              <img
-                src={imgUrl}
-                alt={`${state.name || "Project"} logo`}
-                className="h-full w-full object-cover"
-              />
+              <img src={imgUrl} alt={`${state.name || "Project"} logo`} className="h-full w-full object-cover" />
             ) : (
-              <span className="text-lg font-semibold text-neutral-500">
-                {initial}
-              </span>
+              <span className="text-lg font-semibold text-neutral-500">{initial}</span>
             )}
           </div>
 
           {/* name/symbol/desc */}
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <div className="text-xl font-bold leading-tight truncate">
-                {state.name || t("raise.preview.unnamed")}
-              </div>
+              <div className="text-xl font-bold leading-tight truncate">{state.name || t("raise.preview.unnamed")}</div>
               <div className="text-sm px-2 py-0.5 rounded-md border bg-neutral-50 dark:bg-neutral-800/60 text-neutral-600 dark:text-neutral-300">
                 [{symbol}]
               </div>
@@ -284,9 +259,7 @@ export const PreviewRaise = ({
                 key={seg.key}
                 className={`${seg.color} h-full`}
                 style={{ width: `${seg.pct}%` }}
-                title={`${seg.label}: ${formatPct(seg.pct, 2)} • ${formatToken(
-                  seg.value,
-                )} tokens`}
+                title={`${seg.label}: ${formatPct(seg.pct, 2)} • ${formatToken(seg.value)} tokens`}
               />
             ))}
           </div>
@@ -303,16 +276,10 @@ export const PreviewRaise = ({
               "
             >
               <div className="flex items-center gap-2 min-w-0">
-                <span
-                  className={`inline-block h-3 w-3 rounded-sm ${seg.color}`}
-                />
-                <span className="text-sm font-medium truncate">
-                  {seg.label}
-                </span>
+                <span className={`inline-block h-3 w-3 rounded-sm ${seg.color}`} />
+                <span className="text-sm font-medium truncate">{seg.label}</span>
               </div>
-              <div className="text-xs tabular-nums text-neutral-600 dark:text-neutral-300">
-                {formatPct(seg.pct, 2)}
-              </div>
+              <div className="text-xs tabular-nums text-neutral-600 dark:text-neutral-300">{formatPct(seg.pct, 2)}</div>
             </div>
           ))}
         </div>
@@ -331,18 +298,9 @@ export const PreviewRaise = ({
           title={t("raise.preview.total_supply") || "Total Supply"}
           value={`${formatToken(totalSupplyWei)} ${symbol}`}
         />
-        <InfoStat
-          title={t("raise.preview.otc_supply") || "OTC Supply"}
-          value={`${formatToken(otcSupply)} ${symbol}`}
-        />
-        <InfoStat
-          title={t("raise.preview.eth_rate") || "Tokens per ETH"}
-          value={formatEtherWithCommas(ethRate, 6)}
-        />
-        <InfoStat
-          title={t("raise.preview.initial_price")}
-          value={initialPriceCombined}
-        />
+        <InfoStat title={t("raise.preview.otc_supply") || "OTC Supply"} value={`${formatToken(otcSupply)} ${symbol}`} />
+        <InfoStat title={t("raise.preview.eth_rate") || "Tokens per ETH"} value={formatEtherWithCommas(ethRate, 6)} />
+        <InfoStat title={t("raise.preview.initial_price")} value={initialPriceCombined} />
         <InfoStat
           title={t("raise.preview.max_eth_raise") || "Max ETH Raisable"}
           value={`${maxEthRaisableStr} ETH${maxUsdRaisable ? ` (${formatUSD(maxUsdRaisable)})` : ""}`}
@@ -398,10 +356,7 @@ function max0(v: bigint) {
   return v < 0n ? 0n : v;
 }
 
-function computeBreakdown(
-  parts: Array<{ key: string; label: string; value: bigint; color: string }>,
-  total: bigint,
-) {
+function computeBreakdown(parts: Array<{ key: string; label: string; value: bigint; color: string }>, total: bigint) {
   const safeTotal = total > 0n ? total : 1n;
   const items = parts
     .filter((p) => p.value > 0n)
@@ -513,10 +468,7 @@ function computeCoinEthPrice(coinsPerEth: bigint): number | null {
   return 1 / denom;
 }
 
-function computeCoinUsdPrice(
-  ethPriceUSD: number | null,
-  coinsPerEth: bigint,
-): number | null {
+function computeCoinUsdPrice(ethPriceUSD: number | null, coinsPerEth: bigint): number | null {
   if (ethPriceUSD == null) return null;
   if (coinsPerEth <= 0n) return null;
   const denom = Number(coinsPerEth);

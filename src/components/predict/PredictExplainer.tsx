@@ -1,11 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
 interface PredictExplainerProps {
@@ -19,9 +13,7 @@ export const PredictExplainer: React.FC<PredictExplainerProps> = ({ isOpen, onCl
       <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-lg sm:text-xl">Welcome to Prediction Markets on zAMM</DialogTitle>
-          <DialogDescription className="text-sm">
-            Trade on the outcomes of future events using wstETH
-          </DialogDescription>
+          <DialogDescription className="text-sm">Trade on the outcomes of future events using wstETH</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3 sm:space-y-4 text-sm">
@@ -55,8 +47,8 @@ export const PredictExplainer: React.FC<PredictExplainerProps> = ({ isOpen, onCl
                   Pari-Mutuel
                 </p>
                 <p className="text-[11px] sm:text-xs text-purple-800 dark:text-purple-200 leading-relaxed">
-                  All bets pool together. Winners split the total pot proportionally based on their shares.
-                  Simple 1:1 share purchase (1 wstETH = 1 share).
+                  All bets pool together. Winners split the total pot proportionally based on their shares. Simple 1:1
+                  share purchase (1 wstETH = 1 share).
                 </p>
               </div>
               <div className="bg-blue-50 dark:bg-blue-950/20 p-2.5 sm:p-3 rounded-lg border border-blue-200 dark:border-blue-800">
@@ -64,8 +56,8 @@ export const PredictExplainer: React.FC<PredictExplainerProps> = ({ isOpen, onCl
                   Live Bets (AMM)
                 </p>
                 <p className="text-[11px] sm:text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
-                  Automated Market Maker with dynamic pricing. Prices update based on supply and demand.
-                  Buy and sell shares anytime with instant liquidity. 0.1% swap fees apply.
+                  Automated Market Maker with dynamic pricing. Prices update based on supply and demand. Buy and sell
+                  shares anytime with instant liquidity. 0.1% swap fees apply.
                 </p>
               </div>
             </div>
@@ -108,8 +100,8 @@ export const PredictExplainer: React.FC<PredictExplainerProps> = ({ isOpen, onCl
 
           <div className="bg-muted p-2.5 sm:p-3 rounded-lg">
             <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed">
-              <strong>Note:</strong> Make sure you trust the resolver of any market you participate in.
-              The resolver has full authority to determine the outcome after the market closes.
+              <strong>Note:</strong> Make sure you trust the resolver of any market you participate in. The resolver has
+              full authority to determine the outcome after the market closes.
             </p>
           </div>
         </div>

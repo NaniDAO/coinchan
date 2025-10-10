@@ -63,9 +63,7 @@ function RouteComponent() {
         </div>
         <div className="max-w-2xl mx-auto mt-8">
           <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-6 text-center">
-            <p className="font-mono text-red-400">
-              [ERROR]: {error?.message || t("common.farm_not_found")}
-            </p>
+            <p className="font-mono text-red-400">[ERROR]: {error?.message || t("common.farm_not_found")}</p>
           </div>
         </div>
       </div>
@@ -73,12 +71,14 @@ function RouteComponent() {
   }
 
   const userHasPosition = stakedBalance && stakedBalance > 0n;
-  const userPosition = userHasPosition ? {
-    shares: stakedBalance,
-    pendingRewards: pendingRewards || 0n,
-    totalDeposited: stakedBalance,
-    totalHarvested: 0n,
-  } : null;
+  const userPosition = userHasPosition
+    ? {
+        shares: stakedBalance,
+        pendingRewards: pendingRewards || 0n,
+        totalDeposited: stakedBalance,
+        totalHarvested: 0n,
+      }
+    : null;
 
   return (
     <div className="min-h-screen p-3 sm:p-6 pb-20">
@@ -94,16 +94,12 @@ function RouteComponent() {
         {/* User Position Card */}
         {address && userPosition && (
           <div className="bg-card border-2 border-green-600 rounded-lg p-4 sm:p-6">
-            <h3 className="font-mono font-bold text-lg text-green-500 mb-4">
-              [{t("common.your_position")}]
-            </h3>
+            <h3 className="font-mono font-bold text-lg text-green-500 mb-4">[{t("common.your_position")}]</h3>
 
             <div className="space-y-4">
               {/* Staked Amount */}
               <div className="flex justify-between items-center">
-                <span className="font-mono text-muted-foreground">
-                  {t("common.staked")}:
-                </span>
+                <span className="font-mono text-muted-foreground">{t("common.staked")}:</span>
                 <span className="font-mono font-bold text-primary">
                   {formatBalance(formatEther(stakedBalance || 0n), "LP")}
                 </span>
@@ -112,13 +108,11 @@ function RouteComponent() {
               {/* Pending Rewards */}
               {pendingRewards !== undefined && data?.stream.rewardCoin && (
                 <div className="flex justify-between items-center">
-                  <span className="font-mono text-muted-foreground">
-                    {t("common.pending_rewards")}:
-                  </span>
+                  <span className="font-mono text-muted-foreground">{t("common.pending_rewards")}:</span>
                   <span className="font-mono font-bold text-green-500">
                     {formatBalance(
                       formatUnits(pendingRewards || 0n, data.stream.rewardCoin.decimals || 18),
-                      data.stream.rewardCoin.symbol
+                      data.stream.rewardCoin.symbol,
                     )}
                   </span>
                 </div>

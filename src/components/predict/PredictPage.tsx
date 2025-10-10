@@ -52,9 +52,7 @@ const PredictPage: React.FC = () => {
             </TooltipContent>
           </Tooltip>
         </div>
-        <p className="text-sm text-muted-foreground">
-          {t("predict.create_and_trade_tagline")}
-        </p>
+        <p className="text-sm text-muted-foreground">{t("predict.create_and_trade_tagline")}</p>
         <p className="text-xs text-muted-foreground italic">
           {t("predict.all_deposits_earn_lido")}{" "}
           <a

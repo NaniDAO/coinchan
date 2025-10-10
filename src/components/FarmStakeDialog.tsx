@@ -1,10 +1,4 @@
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatImageURL } from "@/hooks/metadata";
@@ -13,24 +7,11 @@ import { useLpBalance } from "@/hooks/use-lp-balance";
 import { useLpSupply } from "@/hooks/use-lp-supply";
 import { useLpOperatorStatus } from "@/hooks/use-lp-operator-status";
 import { useStreamValidation } from "@/hooks/use-stream-validation";
-import {
-  useZapCalculations,
-  calculateMaxEthForZap,
-} from "@/hooks/use-zap-calculations";
+import { useZapCalculations, calculateMaxEthForZap } from "@/hooks/use-zap-calculations";
 import { useZapDeposit } from "@/hooks/use-zap-deposit";
-import {
-  useZChefActions,
-  useZChefUserBalance,
-  useZChefPool,
-  useSetOperatorApproval,
-} from "@/hooks/use-zchef-contract";
+import { useZChefActions, useZChefUserBalance, useZChefPool, useSetOperatorApproval } from "@/hooks/use-zchef-contract";
 import { ZChefAddress } from "@/constants/zChef";
-import {
-  ETH_TOKEN,
-  ENS_POOL_ID,
-  WLFI_POOL_ID,
-  type TokenMeta,
-} from "@/lib/coins";
+import { ETH_TOKEN, ENS_POOL_ID, WLFI_POOL_ID, type TokenMeta } from "@/lib/coins";
 import { isUserRejectionError } from "@/lib/errors";
 import { cn, formatBalance } from "@/lib/utils";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -63,12 +44,7 @@ const formatCompactLiquidity = (value: number): string => {
   }).format(value);
 };
 
-export function FarmStakeDialog({
-  stream,
-  lpToken,
-  trigger,
-  onSuccess,
-}: FarmStakeDialogProps) {
+export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmStakeDialogProps) {
   const { t } = useTranslation();
   const publicClient = usePublicClient();
   const { address } = useAccount();
@@ -83,9 +59,7 @@ export function FarmStakeDialog({
   const [showSlippageSettings, setShowSlippageSettings] = useState(false);
 
   const [txHash, setTxHash] = useState<string | null>(null);
-  const [txStatus, setTxStatus] = useState<
-    "idle" | "pending" | "confirming" | "success" | "error"
-  >("idle");
+  const [txStatus, setTxStatus] = useState<"idle" | "pending" | "confirming" | "success" | "error">("idle");
   const [txError, setTxError] = useState<string | null>(null);
   const [txMessage, setTxMessage] = useState<string | null>(null);
 
@@ -103,14 +77,17 @@ export function FarmStakeDialog({
   const totalStaked = poolData?.[7] ?? stream.totalShares ?? 0n;
 
   // LP balance
-  const { balance: lpTokenBalance, isLoading: isLpBalanceLoading } =
-    useLpBalance({ lpToken, poolId: stream.lpId, enabled: stakeMode === "lp" });
+  const { balance: lpTokenBalance, isLoading: isLpBalanceLoading } = useLpBalance({
+    lpToken,
+    poolId: stream.lpId,
+    enabled: stakeMode === "lp",
+  });
 
   // LP token total supply
   const { supply: lpSupply } = useLpSupply({
     lpToken,
     poolId: stream.lpId,
-    enabled: true
+    enabled: true,
   });
 
   // ETH token
@@ -130,20 +107,10 @@ export function FarmStakeDialog({
 
   // Max ETH for zap by liquidity
   const maxEthForZap = useMemo(() => {
-    if (
-      !lpToken ||
-      !lpToken.reserve0 ||
-      !lpToken.reserve1 ||
-      lpToken.reserve0 === 0n ||
-      lpToken.reserve1 === 0n
-    )
+    if (!lpToken || !lpToken.reserve0 || !lpToken.reserve1 || lpToken.reserve0 === 0n || lpToken.reserve1 === 0n)
       return 0n;
     try {
-      return calculateMaxEthForZap(
-        lpToken.reserve0,
-        lpToken.reserve1,
-        slippageBps,
-      );
+      return calculateMaxEthForZap(lpToken.reserve0, lpToken.reserve1, slippageBps);
     } catch {
       return 0n;
     }
@@ -155,9 +122,7 @@ export function FarmStakeDialog({
         ? formatUnits(lpTokenBalance, 18)
         : "0"
       : ethToken.balance
-        ? formatEther(
-            ethToken.balance < maxEthForZap ? ethToken.balance : maxEthForZap,
-          )
+        ? formatEther(ethToken.balance < maxEthForZap ? ethToken.balance : maxEthForZap)
         : "0";
 
   // Debounced zap calculation
@@ -167,12 +132,7 @@ export function FarmStakeDialog({
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
       debounceTimerRef.current = setTimeout(async () => {
         try {
-          const result = await calculateZapAmounts(
-            ethAmount,
-            stream,
-            lpToken,
-            slippageBps,
-          );
+          const result = await calculateZapAmounts(ethAmount, stream, lpToken, slippageBps);
           setZapCalculation(result);
         } catch (e) {
           console.error("Zap calculation failed:", e);
@@ -271,8 +231,7 @@ export function FarmStakeDialog({
           amount: amountBigInt,
         });
       } else {
-        if (!zapCalculation || !zapCalculation.isValid)
-          throw new Error(t("common.invalid_zap_calculation"));
+        if (!zapCalculation || !zapCalculation.isValid) throw new Error(t("common.invalid_zap_calculation"));
         const ethAmountBigInt = parseEther(amount);
         hash = await zapDeposit.mutateAsync({
           chefId: stream.chefId,
@@ -347,11 +306,7 @@ export function FarmStakeDialog({
                   </div>
                 ) : BigInt(stream.lpId) === WLFI_POOL_ID ? (
                   <div className="relative">
-                    <img
-                      src="/wlfi.png"
-                      alt="WLFI"
-                      className="w-8 h-8 rounded-full border-2 border-primary/40"
-                    />
+                    <img src="/wlfi.png" alt="WLFI" className="w-8 h-8 rounded-full border-2 border-primary/40" />
                     <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-primary/30 to-transparent opacity-50 blur-sm"></div>
                   </div>
                 ) : lpToken?.imageUrl ? (
@@ -378,9 +333,7 @@ export function FarmStakeDialog({
                               : `Pool ${lpId}`;
                           })()}
                   </h3>
-                  <p className="text-xs text-muted-foreground font-mono">
-                    {t("common.lp_token_pool")}
-                  </p>
+                  <p className="text-xs text-muted-foreground font-mono">{t("common.lp_token_pool")}</p>
                 </div>
               </div>
               <div
@@ -396,27 +349,14 @@ export function FarmStakeDialog({
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div className="bg-background/30 border border-primary/20 rounded p-3">
-                <p className="text-muted-foreground font-mono text-xs">
-                  {t("common.reward_token")}
-                </p>
-                <p className="font-mono font-bold text-primary">
-                  {stream.rewardCoin?.symbol}
-                </p>
+                <p className="text-muted-foreground font-mono text-xs">{t("common.reward_token")}</p>
+                <p className="font-mono font-bold text-primary">{stream.rewardCoin?.symbol}</p>
               </div>
               {lpToken && (
                 <div className="bg-background/30 border border-primary/20 rounded p-3">
-                  <p className="text-muted-foreground font-mono text-xs">
-                    {t("pool.liquidity")}
-                  </p>
+                  <p className="text-muted-foreground font-mono text-xs">{t("pool.liquidity")}</p>
                   <p className="font-mono font-bold text-primary">
-                    {formatCompactLiquidity(
-                      Number(
-                        formatEther(
-                          lpToken.reserve0 || lpToken.liquidity || 0n,
-                        ),
-                      ),
-                    )}{" "}
-                    ETH
+                    {formatCompactLiquidity(Number(formatEther(lpToken.reserve0 || lpToken.liquidity || 0n)))} ETH
                   </p>
                 </div>
               )}
@@ -443,12 +383,8 @@ export function FarmStakeDialog({
                 </div>
               ) : null}
               <div className="bg-background/30 border border-primary/20 rounded p-3">
-                <p className="text-muted-foreground font-mono text-xs">
-                  {t("common.total_staked")}
-                </p>
-                <p className="font-mono font-bold text-primary">
-                  {formatBalance(formatEther(totalStaked), "LP")}
-                </p>
+                <p className="text-muted-foreground font-mono text-xs">{t("common.total_staked")}</p>
+                <p className="font-mono font-bold text-primary">{formatBalance(formatEther(totalStaked), "LP")}</p>
               </div>
             </div>
           </div>
@@ -460,16 +396,12 @@ export function FarmStakeDialog({
             <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-muted-foreground font-mono uppercase">
-                    {t("common.your_stake")}
-                  </p>
+                  <p className="text-xs text-muted-foreground font-mono uppercase">{t("common.your_stake")}</p>
                   <p className="font-mono font-bold text-green-500 text-lg mt-1">
                     {formatBalance(formatEther(userStakedBalance), "LP")}
                   </p>
                 </div>
-                <div className="text-xs text-green-500/80 font-mono">
-                  [{t("common.staked")}]
-                </div>
+                <div className="text-xs text-green-500/80 font-mono">[{t("common.staked")}]</div>
               </div>
             </div>
           )}
@@ -478,8 +410,7 @@ export function FarmStakeDialog({
           {lpToken?.symbol === "CULT" ? (
             <div className="space-y-3">
               <Label className="font-mono font-bold text-primary uppercase tracking-wide">
-                <span className="text-muted-foreground">&gt;</span>{" "}
-                {t("common.stake_mode")}
+                <span className="text-muted-foreground">&gt;</span> {t("common.stake_mode")}
               </Label>
               <div className="font-mono text-sm text-muted-foreground">
                 [{t("common.lp_tokens")}] - ETH zap not available for CULT pools
@@ -488,8 +419,7 @@ export function FarmStakeDialog({
           ) : (
             <div className="space-y-3">
               <Label className="font-mono font-bold text-primary uppercase tracking-wide">
-                <span className="text-muted-foreground">&gt;</span>{" "}
-                {t("common.stake_mode")}
+                <span className="text-muted-foreground">&gt;</span> {t("common.stake_mode")}
               </Label>
               <Tabs
                 value={stakeMode}
@@ -500,16 +430,10 @@ export function FarmStakeDialog({
                 }}
               >
                 <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger
-                    value="lp"
-                    className="font-mono font-bold tracking-wide"
-                  >
+                  <TabsTrigger value="lp" className="font-mono font-bold tracking-wide">
                     [{t("common.lp_tokens")}]
                   </TabsTrigger>
-                  <TabsTrigger
-                    value="eth"
-                    className="font-mono font-bold tracking-wide"
-                  >
+                  <TabsTrigger value="eth" className="font-mono font-bold tracking-wide">
                     [{t("common.eth_zap")}]
                   </TabsTrigger>
                 </TabsList>
@@ -585,33 +509,25 @@ export function FarmStakeDialog({
                   {txStatus === "pending" && (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent"></div>
-                      <span className="font-mono font-bold text-primary">
-                        [{t("common.status_pending")}]
-                      </span>
+                      <span className="font-mono font-bold text-primary">[{t("common.status_pending")}]</span>
                     </>
                   )}
                   {txStatus === "confirming" && (
                     <>
                       <div className="animate-pulse h-4 w-4 bg-yellow-500 rounded-full"></div>
-                      <span className="font-mono font-bold text-yellow-500">
-                        [{t("common.status_confirming")}]
-                      </span>
+                      <span className="font-mono font-bold text-yellow-500">[{t("common.status_confirming")}]</span>
                     </>
                   )}
                   {txStatus === "success" && (
                     <>
                       <div className="h-4 w-4 bg-green-500 rounded-full"></div>
-                      <span className="font-mono font-bold text-green-500">
-                        [{t("common.status_success")}]
-                      </span>
+                      <span className="font-mono font-bold text-green-500">[{t("common.status_success")}]</span>
                     </>
                   )}
                   {txStatus === "error" && (
                     <>
                       <div className="h-4 w-4 bg-red-500 rounded-full"></div>
-                      <span className="font-mono font-bold text-red-500">
-                        [{t("common.status_error")}]
-                      </span>
+                      <span className="font-mono font-bold text-red-500">[{t("common.status_error")}]</span>
                     </>
                   )}
                 </div>
@@ -624,31 +540,23 @@ export function FarmStakeDialog({
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 px-3 py-1.5 bg-background/50 border border-primary/20 rounded font-mono text-xs hover:bg-primary/10 transition-colors duration-200"
                     >
-                      <span className="text-muted-foreground">
-                        {t("common.tx_label")}:
-                      </span>
+                      <span className="text-muted-foreground">{t("common.tx_label")}:</span>
                       <span className="text-primary font-bold">
                         {txHash.slice(0, 6)}...{txHash.slice(-4)}
                       </span>
-                      <span className="text-muted-foreground">
-                        {t("common.external_link")}
-                      </span>
+                      <span className="text-muted-foreground">{t("common.external_link")}</span>
                     </a>
                   </div>
                 )}
 
                 {txMessage && !txError && (
                   <div className="text-center">
-                    <p className="text-sm text-primary font-mono break-words">
-                      {txMessage}
-                    </p>
+                    <p className="text-sm text-primary font-mono break-words">{txMessage}</p>
                   </div>
                 )}
                 {txError && (
                   <div className="text-center">
-                    <p className="text-sm text-red-400 font-mono break-words">
-                      {txError}
-                    </p>
+                    <p className="text-sm text-red-400 font-mono break-words">{txError}</p>
                   </div>
                 )}
                 {txStatus === "success" && (

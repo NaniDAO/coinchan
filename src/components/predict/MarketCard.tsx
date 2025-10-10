@@ -15,13 +15,8 @@ import { Badge } from "@/components/ui/badge";
 import { TradeModal } from "./TradeModal";
 import { MarketCountdown } from "./MarketCountdown";
 import { ResolverControls } from "./ResolverControls";
-import {
-  PredictionMarketAddress,
-  PredictionMarketAbi,
-} from "@/constants/PredictionMarket";
-import {
-  PredictionAMMAbi,
-} from "@/constants/PredictionMarketAMM";
+import { PredictionMarketAddress, PredictionMarketAbi } from "@/constants/PredictionMarket";
+import { PredictionAMMAbi } from "@/constants/PredictionMarketAMM";
 import { ExternalLink, BadgeCheck, ArrowUpRight } from "lucide-react";
 import { formatImageURL } from "@/hooks/metadata";
 import { isTrustedResolver } from "@/constants/TrustedResolvers";
@@ -211,12 +206,14 @@ export const MarketCard: React.FC<MarketCardProps> = ({
               for (const match of hrefMatches) {
                 const href = match[1];
                 // Skip data URIs, parent directory (..), current directory (.), directories (ending with /), and full URLs
-                if (!href.startsWith('data:') &&
-                    !href.startsWith('http://') &&
-                    !href.startsWith('https://') &&
-                    href !== '..' &&
-                    href !== '.' &&
-                    !href.endsWith('/')) {
+                if (
+                  !href.startsWith("data:") &&
+                  !href.startsWith("http://") &&
+                  !href.startsWith("https://") &&
+                  href !== ".." &&
+                  href !== "." &&
+                  !href.endsWith("/")
+                ) {
                   files.push(href);
                 }
               }
@@ -224,11 +221,11 @@ export const MarketCard: React.FC<MarketCardProps> = ({
               let filePath = null;
 
               // First try with common image extensions
-              filePath = files.find(f => /\.(jpg|jpeg|png|gif|svg|webp)$/i.test(f));
+              filePath = files.find((f) => /\.(jpg|jpeg|png|gif|svg|webp)$/i.test(f));
 
               // If no match, try to find files with "image" in the name (common pattern)
               if (!filePath) {
-                filePath = files.find(f => /image/i.test(f));
+                filePath = files.find((f) => /image/i.test(f));
               }
 
               // If still no match, take the first file
@@ -238,13 +235,13 @@ export const MarketCard: React.FC<MarketCardProps> = ({
 
               if (filePath) {
                 // Check if the path is absolute (starts with /)
-                if (filePath.startsWith('/')) {
+                if (filePath.startsWith("/")) {
                   // Use the gateway base URL + the absolute path
-                  const gatewayBase = imageUrl.split('/ipfs/')[0];
+                  const gatewayBase = imageUrl.split("/ipfs/")[0];
                   imageUrl = gatewayBase + filePath;
                 } else {
                   // Relative path, append to the directory URL
-                  imageUrl = imageUrl.endsWith('/') ? imageUrl + filePath : imageUrl + '/' + filePath;
+                  imageUrl = imageUrl.endsWith("/") ? imageUrl + filePath : imageUrl + "/" + filePath;
                 }
               }
             }
@@ -288,8 +285,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   const useNo = marketType === "amm" && rNo !== undefined ? rNo : noSupply;
 
   const totalSupply = useYes + useNo;
-  const yesPercent =
-    totalSupply > 0n ? Number((useYes * 100n) / totalSupply) : 50;
+  const yesPercent = totalSupply > 0n ? Number((useYes * 100n) / totalSupply) : 50;
   const noPercent = 100 - yesPercent;
 
   return (
@@ -313,9 +309,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
             <div className="flex items-start justify-between gap-2 mb-1">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-bold text-sm line-clamp-2">
-                    {metadata.name}
-                  </h3>
+                  <h3 className="font-bold text-sm line-clamp-2">{metadata.name}</h3>
                 </div>
                 <Badge
                   variant="outline"
@@ -362,17 +356,29 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                           {children}
                         </a>
                       ),
-                      strong: ({ children }: { children?: React.ReactNode }) => <strong className="font-semibold text-foreground">{children}</strong>,
+                      strong: ({ children }: { children?: React.ReactNode }) => (
+                        <strong className="font-semibold text-foreground">{children}</strong>
+                      ),
                       em: ({ children }: { children?: React.ReactNode }) => <em className="italic">{children}</em>,
                       code: ({ children }: { children?: React.ReactNode }) => (
                         <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono">{children}</code>
                       ),
-                      ul: ({ children }: { children?: React.ReactNode }) => <ul className="list-disc list-inside space-y-0.5">{children}</ul>,
-                      ol: ({ children }: { children?: React.ReactNode }) => <ol className="list-decimal list-inside space-y-0.5">{children}</ol>,
+                      ul: ({ children }: { children?: React.ReactNode }) => (
+                        <ul className="list-disc list-inside space-y-0.5">{children}</ul>
+                      ),
+                      ol: ({ children }: { children?: React.ReactNode }) => (
+                        <ol className="list-decimal list-inside space-y-0.5">{children}</ol>
+                      ),
                       li: ({ children }: { children?: React.ReactNode }) => <li className="text-xs">{children}</li>,
-                      h1: ({ children }: { children?: React.ReactNode }) => <h1 className="text-base font-bold mt-2 mb-1">{children}</h1>,
-                      h2: ({ children }: { children?: React.ReactNode }) => <h2 className="text-sm font-bold mt-2 mb-1">{children}</h2>,
-                      h3: ({ children }: { children?: React.ReactNode }) => <h3 className="text-xs font-semibold mt-1 mb-0.5">{children}</h3>,
+                      h1: ({ children }: { children?: React.ReactNode }) => (
+                        <h1 className="text-base font-bold mt-2 mb-1">{children}</h1>
+                      ),
+                      h2: ({ children }: { children?: React.ReactNode }) => (
+                        <h2 className="text-sm font-bold mt-2 mb-1">{children}</h2>
+                      ),
+                      h3: ({ children }: { children?: React.ReactNode }) => (
+                        <h3 className="text-xs font-semibold mt-1 mb-0.5">{children}</h3>
+                      ),
                       blockquote: ({ children }: { children?: React.ReactNode }) => (
                         <blockquote className="border-l-2 border-primary pl-2 italic my-1">{children}</blockquote>
                       ),
@@ -391,29 +397,17 @@ export const MarketCard: React.FC<MarketCardProps> = ({
             )}
           </div>
 
-          {closingTime && (
-            <MarketCountdown closingTime={closingTime} resolved={resolved} />
-          )}
+          {closingTime && <MarketCountdown closingTime={closingTime} resolved={resolved} />}
 
           {!resolved && (
             <div className="space-y-1">
               <div className="flex justify-between text-xs font-medium">
-                <span className="text-green-600 dark:text-green-400">
-                  YES {yesPercent.toFixed(2)}%
-                </span>
-                <span className="text-red-600 dark:text-red-400">
-                  NO {noPercent.toFixed(2)}%
-                </span>
+                <span className="text-green-600 dark:text-green-400">YES {yesPercent.toFixed(2)}%</span>
+                <span className="text-red-600 dark:text-red-400">NO {noPercent.toFixed(2)}%</span>
               </div>
               <div className="flex h-2 rounded-full overflow-hidden bg-muted">
-                <div
-                  className="bg-green-600 dark:bg-green-400"
-                  style={{ width: `${yesPercent}%` }}
-                />
-                <div
-                  className="bg-red-600 dark:bg-red-400"
-                  style={{ width: `${noPercent}%` }}
-                />
+                <div className="bg-green-600 dark:bg-green-400" style={{ width: `${yesPercent}%` }} />
+                <div className="bg-red-600 dark:bg-red-400" style={{ width: `${noPercent}%` }} />
               </div>
             </div>
           )}
@@ -422,24 +416,18 @@ export const MarketCard: React.FC<MarketCardProps> = ({
             {hasPosition && (
               <div className="bg-blue-500/10 border border-blue-500/20 rounded p-2 space-y-1">
                 <div className="flex justify-between">
-                  <span className="font-semibold text-blue-600 dark:text-blue-400">
-                    Your Position:
-                  </span>
+                  <span className="font-semibold text-blue-600 dark:text-blue-400">Your Position:</span>
                 </div>
                 {userYesBalance > 0n && (
                   <div className="flex justify-between">
                     <span>YES shares:</span>
-                    <span className="font-mono">
-                      {Number(formatEther(userYesBalance)).toFixed(4)}
-                    </span>
+                    <span className="font-mono">{Number(formatEther(userYesBalance)).toFixed(4)}</span>
                   </div>
                 )}
                 {userNoBalance > 0n && (
                   <div className="flex justify-between">
                     <span>NO shares:</span>
-                    <span className="font-mono">
-                      {Number(formatEther(userNoBalance)).toFixed(4)}
-                    </span>
+                    <span className="font-mono">{Number(formatEther(userNoBalance)).toFixed(4)}</span>
                   </div>
                 )}
                 {canClaim && (
@@ -454,31 +442,21 @@ export const MarketCard: React.FC<MarketCardProps> = ({
             )}
             <div className="flex justify-between">
               <span>Total Pool:</span>
-              <span className="font-mono">
-                {Number(formatEther(pot)).toFixed(4)} wstETH
-              </span>
+              <span className="font-mono">{Number(formatEther(pot)).toFixed(4)} wstETH</span>
             </div>
             {resolved && payoutPerShare > 0n && (
               <>
                 <div className="flex justify-between">
                   <span>Winning Side:</span>
-                  <span className="font-semibold">
-                    {outcome ? "YES" : "NO"}
-                  </span>
+                  <span className="font-semibold">{outcome ? "YES" : "NO"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Winning Shares:</span>
-                  <span className="font-mono">
-                    {Number(formatEther(outcome ? yesSupply : noSupply)).toFixed(
-                      4
-                    )}
-                  </span>
+                  <span className="font-mono">{Number(formatEther(outcome ? yesSupply : noSupply)).toFixed(4)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Payout Per Share:</span>
-                  <span className="font-mono">
-                    {Number(formatEther(payoutPerShare)).toFixed(4)} wstETH
-                  </span>
+                  <span className="font-mono">{Number(formatEther(payoutPerShare)).toFixed(4)} wstETH</span>
                 </div>
               </>
             )}
@@ -494,9 +472,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                   {ensName || `${resolver.slice(0, 6)}...${resolver.slice(-4)}`}
                   <ExternalLink className="h-3 w-3" />
                 </a>
-                {isTrusted && (
-                  <BadgeCheck className="h-4 w-4 text-blue-500 shrink-0" />
-                )}
+                {isTrusted && <BadgeCheck className="h-4 w-4 text-blue-500 shrink-0" />}
                 {isOracle && (
                   <Badge variant="outline" className="text-xs">
                     Oracle
@@ -525,26 +501,12 @@ export const MarketCard: React.FC<MarketCardProps> = ({
 
           <div className="space-y-2">
             {canClaim ? (
-              <Button
-                onClick={handleClaim}
-                className="w-full"
-                size="sm"
-                variant="default"
-              >
+              <Button onClick={handleClaim} className="w-full" size="sm" variant="default">
                 Claim {Number(formatEther(userClaimable)).toFixed(4)} wstETH
               </Button>
             ) : (
-              <Button
-                onClick={() => setIsModalOpen(true)}
-                className="w-full"
-                size="sm"
-                disabled={isTradingDisabled}
-              >
-                {resolved
-                  ? "Market Resolved"
-                  : isClosed
-                    ? "Market Closed"
-                    : "Trade"}
+              <Button onClick={() => setIsModalOpen(true)} className="w-full" size="sm" disabled={isTradingDisabled}>
+                {resolved ? "Market Resolved" : isClosed ? "Market Closed" : "Trade"}
               </Button>
             )}
 

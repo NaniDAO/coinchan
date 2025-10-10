@@ -14,15 +14,9 @@ export const TRUSTED_RESOLVERS: TrustedResolver[] = [
 ];
 
 export const isTrustedResolver = (address: string): boolean => {
-  return TRUSTED_RESOLVERS.some(
-    (resolver) => resolver.address.toLowerCase() === address.toLowerCase()
-  );
+  return TRUSTED_RESOLVERS.some((resolver) => resolver.address.toLowerCase() === address.toLowerCase());
 };
 
-export const getTrustedResolver = (
-  address: string
-): TrustedResolver | undefined => {
-  return TRUSTED_RESOLVERS.find(
-    (resolver) => resolver.address.toLowerCase() === address.toLowerCase()
-  );
+export const getTrustedResolver = (address: string): TrustedResolver | undefined => {
+  return TRUSTED_RESOLVERS.find((resolver) => resolver.address.toLowerCase() === address.toLowerCase());
 };

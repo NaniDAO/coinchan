@@ -70,10 +70,7 @@ export const handleWalletError = (
     const errorMessage = String(error).toLowerCase();
 
     // Check for insufficient funds
-    if (
-      errorMessage.includes("insufficient") &&
-      errorMessage.includes("funds")
-    ) {
+    if (errorMessage.includes("insufficient") && errorMessage.includes("funds")) {
       return t("errors.insufficient_funds");
     }
 
@@ -83,10 +80,7 @@ export const handleWalletError = (
     }
 
     // Check for network errors
-    if (
-      errorMessage.includes("network") ||
-      errorMessage.includes("connection")
-    ) {
+    if (errorMessage.includes("network") || errorMessage.includes("connection")) {
       return t("errors.network_error");
     }
 

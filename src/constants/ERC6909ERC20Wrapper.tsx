@@ -76,5 +76,4 @@ export const ERC6909ERC20WrapperAbi = [
     type: "function",
   },
 ] as const;
-export const ERC6909ERC20WrapperAddress =
-  "0x000000000020979cc92752fa2708868984a7f746";
+export const ERC6909ERC20WrapperAddress = "0x000000000020979cc92752fa2708868984a7f746";

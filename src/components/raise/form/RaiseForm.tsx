@@ -1,9 +1,5 @@
 import React, { useMemo, useRef, useState, useEffect } from "react";
-import {
-  useWriteContract,
-  useWaitForTransactionReceipt,
-  useAccount,
-} from "wagmi";
+import { useWriteContract, useWaitForTransactionReceipt, useAccount } from "wagmi";
 import { zICOAbi, zICOAddress } from "@/constants/zICO";
 import { parseUnits } from "viem";
 import { Button } from "@/components/ui/button";
@@ -70,9 +66,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return <div className="text-xl font-semibold mb-3 mt-2">{children}</div>;
 }
 function Row({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{children}</div>
-  );
+  return <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{children}</div>;
 }
 function Field({
   label,
@@ -89,11 +83,7 @@ function Field({
     <div className={cn("flex flex-col gap-2", className)}>
       <Label className="text-sm font-medium">{label}</Label>
       {children}
-      {description ? (
-        <div className="text-xs text-muted-foreground leading-snug">
-          {description}
-        </div>
-      ) : null}
+      {description ? <div className="text-xs text-muted-foreground leading-snug">{description}</div> : null}
     </div>
   );
 }
@@ -177,17 +167,13 @@ export default function RaiseForm() {
     const x = (h || "").trim();
     if (!x) return "";
     // If a full profile URL was pasted, reduce to handle; ensure leading '@'
-    const cleaned = x
-      .replace(/^https?:\/\/(www\.)?(x|twitter)\.com\//i, "")
-      .replace(/^@/, "");
+    const cleaned = x.replace(/^https?:\/\/(www\.)?(x|twitter)\.com\//i, "").replace(/^@/, "");
     return `@${cleaned}`;
   }
 
   // Auto-calculate airdrop as 5% of total supply
   useEffect(() => {
-    const totalSupplyNum = parseFloat(
-      removeCommas(state.totalSupplyDisplay) || "0",
-    );
+    const totalSupplyNum = parseFloat(removeCommas(state.totalSupplyDisplay) || "0");
     if (totalSupplyNum > 0) {
       const airdropAmount = totalSupplyNum * 0.05; // 5% of total supply
       const airdropFormatted = formatWithCommas(airdropAmount.toString());
@@ -230,11 +216,7 @@ export default function RaiseForm() {
     const mapped = cardMap[key] || "kickstarter";
     setState((s) => ({ ...s, template: mapped }));
     // Smooth focus to the form
-    setTimeout(
-      () =>
-        formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
-      0,
-    );
+    setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
   }
 
   // ===== Derived values =====
@@ -271,13 +253,7 @@ export default function RaiseForm() {
     let res = totalSupply - creatorSupply - airdropIncentive;
     if (templates[state.template].needsChef) res -= incentiveAmount;
     return res;
-  }, [
-    state.template,
-    totalSupply,
-    creatorSupply,
-    incentiveAmount,
-    airdropIncentive,
-  ]);
+  }, [state.template, totalSupply, creatorSupply, incentiveAmount, airdropIncentive]);
 
   const canSubmit = useMemo(() => {
     if (!isConnected || !creator || !state.uri) return false;
@@ -287,14 +263,7 @@ export default function RaiseForm() {
       return false;
     }
     return true;
-  }, [
-    isConnected,
-    creator,
-    state.uri,
-    otcSupply,
-    airdropIncentive,
-    airdropPriceX18,
-  ]);
+  }, [isConnected, creator, state.uri, otcSupply, airdropIncentive, airdropPriceX18]);
 
   async function submitCreateSale(e: React.FormEvent) {
     e.preventDefault();
@@ -309,10 +278,7 @@ export default function RaiseForm() {
 
       // Check if connector is properly initialized
       if (!connector || typeof connector.getChainId !== "function") {
-        toast.error(
-          t("common.wallet_connection_error") ||
-            "Wallet connection error. Please reconnect your wallet.",
-        );
+        toast.error(t("common.wallet_connection_error") || "Wallet connection error. Please reconnect your wallet.");
         throw new Error("Wallet connector not properly initialized");
       }
 
@@ -344,17 +310,13 @@ export default function RaiseForm() {
       // ---------------------------------------------
 
       if (imageBuffer) {
-        const imageUri = await pinImageToPinata(
-          imageBuffer,
-          `${metadata.name}-logo`,
-          {
-            keyvalues: {
-              coinName: metadata.name as string,
-              coinSymbol: metadata.symbol as string,
-              type: "coin-logo",
-            },
+        const imageUri = await pinImageToPinata(imageBuffer, `${metadata.name}-logo`, {
+          keyvalues: {
+            coinName: metadata.name as string,
+            coinSymbol: metadata.symbol as string,
+            type: "coin-logo",
           },
-        );
+        });
 
         (metadata as any).image = imageUri;
       } else {
@@ -420,18 +382,14 @@ export default function RaiseForm() {
       }
 
       // Check for other common wallet errors
-      if (
-        err?.message?.includes("User denied") ||
-        err?.shortMessage?.includes("User denied")
-      ) {
+      if (err?.message?.includes("User denied") || err?.shortMessage?.includes("User denied")) {
         setError(t("common.transaction_denied") || "Transaction denied");
         toast.info(t("common.transaction_denied") || "Transaction denied");
         return;
       }
 
       // Default error handling
-      const errorMessage =
-        err?.shortMessage || err?.message || "Transaction failed";
+      const errorMessage = err?.shortMessage || err?.message || "Transaction failed";
       setError(errorMessage);
       toast.error(errorMessage);
     }
@@ -466,9 +424,7 @@ export default function RaiseForm() {
     <div className="max-w-5xl mx-auto p-4 md:p-8 space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl md:text-3xl font-bold">{t("raise.title")}</h1>
-        <div className="text-xs md:text-sm text-muted-foreground">
-          {t("raise.subtitle")}
-        </div>
+        <div className="text-xs md:text-sm text-muted-foreground">{t("raise.subtitle")}</div>
       </div>
 
       {/* Template selector cards */}
@@ -487,25 +443,11 @@ export default function RaiseForm() {
         <form onSubmit={submitCreateSale} className="space-y-6">
           <SectionTitle>{t("raise.form.identity_section")}</SectionTitle>
           <Row>
-            <Field
-              label={t("raise.form.name_label")}
-              description={t("raise.form.name_description")}
-            >
-              <Input
-                className="rounded-md"
-                value={state.name}
-                onChange={onChange("name")}
-              />
+            <Field label={t("raise.form.name_label")} description={t("raise.form.name_description")}>
+              <Input className="rounded-md" value={state.name} onChange={onChange("name")} />
             </Field>
-            <Field
-              label={t("raise.form.symbol_label")}
-              description={t("raise.form.symbol_description")}
-            >
-              <Input
-                className="rounded-md"
-                value={state.symbol}
-                onChange={onChange("symbol")}
-              />
+            <Field label={t("raise.form.symbol_label")} description={t("raise.form.symbol_description")}>
+              <Input className="rounded-md" value={state.symbol} onChange={onChange("symbol")} />
             </Field>
           </Row>
           <Row>
@@ -514,20 +456,14 @@ export default function RaiseForm() {
               description={t("raise.form.description_description")}
               className="col-span-2"
             >
-              <Textarea
-                className="rounded-md"
-                value={state.description}
-                onChange={onChange("description")}
-              />
+              <Textarea className="rounded-md" value={state.description} onChange={onChange("description")} />
             </Field>
           </Row>
 
           <ImageInput onChange={handleImageFileChange} />
 
           <details className="p-2 open:bg-muted">
-            <summary className={cn(headingLevel[2], "cursor-pointer text-xl")}>
-              Project links
-            </summary>
+            <summary className={cn(headingLevel[2], "cursor-pointer text-xl")}>Project links</summary>
             <div className="mt-4 space-y-4">
               <Row>
                 <Field label="Website" description="Public project site">
@@ -538,10 +474,7 @@ export default function RaiseForm() {
                     onChange={onChange("website")}
                   />
                 </Field>
-                <Field
-                  label="Twitter handle"
-                  description="Your X/Twitter username"
-                >
+                <Field label="Twitter handle" description="Your X/Twitter username">
                   <Input
                     className="rounded-md"
                     placeholder="@yourhandle"
@@ -551,10 +484,7 @@ export default function RaiseForm() {
                 </Field>
               </Row>
               <Row>
-                <Field
-                  label="Discord invite link"
-                  description="Permanent or long-lived invite"
-                >
+                <Field label="Discord invite link" description="Permanent or long-lived invite">
                   <Input
                     className="rounded-md"
                     placeholder="https://discord.gg/yourcode"
@@ -562,10 +492,7 @@ export default function RaiseForm() {
                     onChange={onChange("discordInvite")}
                   />
                 </Field>
-                <Field
-                  label="Telegram invite link"
-                  description="Public or invite link"
-                >
+                <Field label="Telegram invite link" description="Public or invite link">
                   <Input
                     className="rounded-md"
                     placeholder="https://t.me/yourchannel"
@@ -580,44 +507,25 @@ export default function RaiseForm() {
 
           <SectionTitle>{t("raise.form.tokenomics_section")}</SectionTitle>
           <Row>
-            <Field
-              label={t("raise.form.eth_rate_label")}
-              description={t("raise.form.eth_rate_description")}
-            >
-              <Input
-                value={state.ethRateDisplay}
-                onChange={onChange("ethRateDisplay")}
-              />
+            <Field label={t("raise.form.eth_rate_label")} description={t("raise.form.eth_rate_description")}>
+              <Input value={state.ethRateDisplay} onChange={onChange("ethRateDisplay")} />
             </Field>
           </Row>
 
           <SectionTitle>{t("raise.form.supply_section")}</SectionTitle>
           <Row>
-            <Field
-              label={t("raise.form.total_supply_label")}
-              description={t("raise.form.total_supply_description")}
-            >
-              <Input
-                value={state.totalSupplyDisplay}
-                onChange={onChange("totalSupplyDisplay")}
-              />
+            <Field label={t("raise.form.total_supply_label")} description={t("raise.form.total_supply_description")}>
+              <Input value={state.totalSupplyDisplay} onChange={onChange("totalSupplyDisplay")} />
             </Field>
             <Field label={t("raise.form.creator_reserve_label")}>
-              <Input
-                value={state.creatorSupplyDisplay}
-                onChange={onChange("creatorSupplyDisplay")}
-              />
+              <Input value={state.creatorSupplyDisplay} onChange={onChange("creatorSupplyDisplay")} />
             </Field>
           </Row>
 
           {templates[state.template].needsChef && (
             <div>
-              <SectionTitle>
-                {t("raise.form.farm_incentives_section")}
-              </SectionTitle>
-              <p className="text-sm text-muted-foreground mb-4">
-                {t("raise.form.farm_incentives_description")}
-              </p>
+              <SectionTitle>{t("raise.form.farm_incentives_section")}</SectionTitle>
+              <p className="text-sm text-muted-foreground mb-4">{t("raise.form.farm_incentives_description")}</p>
               <FeeOrHookSelector
                 feeOrHook={state.feeOrHook}
                 setFeeOrHook={onChange("feeOrHook")}
@@ -630,10 +538,7 @@ export default function RaiseForm() {
                   label={t("raise.form.incentive_amount_label")}
                   description={t("raise.form.incentive_amount_description")}
                 >
-                  <Input
-                    value={state.incentiveAmountDisplay}
-                    onChange={onChange("incentiveAmountDisplay")}
-                  />
+                  <Input value={state.incentiveAmountDisplay} onChange={onChange("incentiveAmountDisplay")} />
                 </Field>
                 <Field
                   label={t("raise.form.incentive_duration_label")}
@@ -657,9 +562,7 @@ export default function RaiseForm() {
                   </div>
                 </Field>
               </Row>
-              <p className="mt-2 text-xs text-muted-foreground">
-                {t("raise.form.pool_note")}
-              </p>
+              <p className="mt-2 text-xs text-muted-foreground">{t("raise.form.pool_note")}</p>
             </div>
           )}
 
@@ -672,8 +575,7 @@ export default function RaiseForm() {
                     {t("common.wallet_required") || "Wallet Required"}
                   </div>
                   <div className="text-amber-700 dark:text-amber-300 mt-1">
-                    {t("common.connect_wallet_to_continue") ||
-                      "Please connect your wallet to create a sale"}
+                    {t("common.connect_wallet_to_continue") || "Please connect your wallet to create a sale"}
                   </div>
                 </div>
               </div>
@@ -688,15 +590,10 @@ export default function RaiseForm() {
           )}
 
           <div className="space-y-4">
-            <Button
-              type="submit"
-              disabled={!canSubmit || isPending}
-              className="w-full px-5"
-            >
+            <Button type="submit" disabled={!canSubmit || isPending} className="w-full px-5">
               {isPending ? (
                 <span className="inline-flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />{" "}
-                  {t("raise.form.confirm_in_wallet")}
+                  <Loader2 className="h-4 w-4 animate-spin" /> {t("raise.form.confirm_in_wallet")}
                 </span>
               ) : (
                 t("raise.form.create_sale_button")
@@ -732,12 +629,10 @@ export default function RaiseForm() {
                   <div className="space-y-2 flex-1">
                     <div className="space-y-1">
                       <div className="font-medium text-green-900 dark:text-green-100">
-                        {t("raise.form.success") ||
-                          "Coin created successfully!"}
+                        {t("raise.form.success") || "Coin created successfully!"}
                       </div>
                       <div className="text-sm text-green-700 dark:text-green-300">
-                        {t("raise.form.mined_in_block") || "Mined in block"}{" "}
-                        {receipt.blockNumber?.toString?.()}
+                        {t("raise.form.mined_in_block") || "Mined in block"} {receipt.blockNumber?.toString?.()}
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -784,24 +679,17 @@ function HelpNotes() {
         <li>
           {isZh ? (
             <>
-              所有创建的代币都有资格参加空投计划，创建代币总供应量的 5%
-              将以可认领的方式空投给{" "}
-              <Link
-                to="/stake"
-                className="text-primary underline hover:no-underline"
-              >
+              所有创建的代币都有资格参加空投计划，创建代币总供应量的 5% 将以可认领的方式空投给{" "}
+              <Link to="/stake" className="text-primary underline hover:no-underline">
                 veZAMM 持有者
               </Link>
               。
             </>
           ) : (
             <>
-              All created tokens are eligible for the airdrop program, where 5%
-              of the created token total supply will be claimably airdropped to{" "}
-              <Link
-                to="/stake"
-                className="text-primary underline hover:no-underline"
-              >
+              All created tokens are eligible for the airdrop program, where 5% of the created token total supply will
+              be claimably airdropped to{" "}
+              <Link to="/stake" className="text-primary underline hover:no-underline">
                 veZAMM holders
               </Link>
               .

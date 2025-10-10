@@ -14,9 +14,7 @@ function RouteComponent() {
       <div className="py-5 w-full">
         <div className="flex justify-center py-5">
           <div className="w-full">
-            <p className="text-center">
-              Please connect your wallet to view your profile.
-            </p>
+            <p className="text-center">Please connect your wallet to view your profile.</p>
           </div>
         </div>
       </div>

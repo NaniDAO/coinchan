@@ -80,12 +80,8 @@ export const LpTokensTab: React.FC<LpTokensTabProps> = ({
     <div className="space-y-4">
       {/* Amount */}
       <div className="space-y-3">
-        <Label
-          htmlFor="amount-lp"
-          className="font-mono font-bold text-primary uppercase tracking-wide"
-        >
-          <span className="text-muted-foreground">&gt;</span>{" "}
-          {t("common.amount_to_stake")}
+        <Label htmlFor="amount-lp" className="font-mono font-bold text-primary uppercase tracking-wide">
+          <span className="text-muted-foreground">&gt;</span> {t("common.amount_to_stake")}
         </Label>
         <div className="flex flex-col sm:flex-row gap-3">
           <Input
@@ -113,14 +109,10 @@ export const LpTokensTab: React.FC<LpTokensTabProps> = ({
         <div className="bg-background/30 border border-primary/20 rounded p-3">
           <div className="space-y-2 text-sm font-mono">
             <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
-              <span className="text-muted-foreground">
-                {t("common.available")}:
-              </span>
+              <span className="text-muted-foreground">{t("common.available")}:</span>
               <span className="text-primary font-bold break-all text-left sm:text-right flex items-center gap-2">
                 {isLpBalanceLoading ? (
-                  <span className="animate-pulse">
-                    {t("common.loading_balance")}
-                  </span>
+                  <span className="animate-pulse">{t("common.loading_balance")}</span>
                 ) : (
                   <>{formatBalance(maxAmount, "LP")}</>
                 )}
@@ -133,15 +125,11 @@ export const LpTokensTab: React.FC<LpTokensTabProps> = ({
       {/* Preview Section */}
       {estimations && (
         <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
-          <p className="font-mono font-bold mb-3 text-green-500 text-sm">
-            [{t("common.preview")}]
-          </p>
+          <p className="font-mono font-bold mb-3 text-green-500 text-sm">[{t("common.preview")}]</p>
           <div className="space-y-2 text-sm font-mono">
             <div className="flex justify-between">
               <span className="text-muted-foreground">{t("common.staking_pool_share")}:</span>
-              <span className="text-green-500 font-bold">
-                {estimations.stakingPoolPercentage}%
-              </span>
+              <span className="text-green-500 font-bold">{estimations.stakingPoolPercentage}%</span>
             </div>
             {estimations.dailyRewards && stream?.rewardCoin && (
               <div className="flex justify-between">
@@ -158,12 +146,8 @@ export const LpTokensTab: React.FC<LpTokensTabProps> = ({
       {/* Operator approval notice */}
       {!isOperatorApproved && (
         <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
-          <p className="font-mono font-bold mb-2 text-yellow-500 text-sm">
-            [{t("common.approval_required")}]
-          </p>
-          <p className="text-sm font-mono text-yellow-500/80">
-            {t("common.operator_approval_needed_for_lp_staking")}
-          </p>
+          <p className="font-mono font-bold mb-2 text-yellow-500 text-sm">[{t("common.approval_required")}]</p>
+          <p className="text-sm font-mono text-yellow-500/80">{t("common.operator_approval_needed_for_lp_staking")}</p>
         </div>
       )}
 
@@ -177,11 +161,7 @@ export const LpTokensTab: React.FC<LpTokensTabProps> = ({
             "w-full font-mono font-bold tracking-wide text-lg py-4 hover:scale-105 transition-all duration-200 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary shadow-lg disabled:opacity-50 !text-background",
           )}
         >
-          [
-          {isOperatorApproved
-            ? t("common.stake")
-            : t("common.approve_and_stake")}
-          ]
+          [{isOperatorApproved ? t("common.stake") : t("common.approve_and_stake")}]
         </Button>
       </div>
     </div>

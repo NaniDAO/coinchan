@@ -47,9 +47,7 @@ export const PoolInfoSection = ({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-4 sm:mb-6">
         {/* Price */}
         <div>
-          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1 sm:mb-2">
-            Price
-          </div>
+          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1 sm:mb-2">Price</div>
           <div className="font-semibold text-sm sm:text-base lg:text-lg">
             {reserves && price > 0
               ? price < 1e-15
@@ -123,9 +121,7 @@ export const PoolInfoSection = ({
             )}
           </div>
           <div className="text-xs text-muted-foreground">
-            {totalSupply
-              ? `${formatNumber(Number(formatEther(totalSupply)), 0)} supply`
-              : "Supply data loading..."}
+            {totalSupply ? `${formatNumber(Number(formatEther(totalSupply)), 0)} supply` : "Supply data loading..."}
           </div>
         </div>
 
@@ -160,9 +156,7 @@ export const PoolInfoSection = ({
       {/* Technical Details - Minimalist */}
       <details className="group pt-4">
         <summary className="flex items-center justify-between cursor-pointer py-2 hover:text-primary transition-colors">
-          <span className="text-sm font-medium text-muted-foreground">
-            Technical Details
-          </span>
+          <span className="text-sm font-medium text-muted-foreground">Technical Details</span>
           <ChevronDown className="h-4 w-4 text-muted-foreground group-open:rotate-180 transition-transform" />
         </summary>
         <div className="mt-3 space-y-2 text-sm">

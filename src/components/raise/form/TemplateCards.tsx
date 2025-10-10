@@ -35,23 +35,12 @@ export function TemplateCards({
           <div
             className={cn(
               "relative overflow-hidden rounded-md shadow-lg cursor-pointer group border-0",
-              selectedKey === tpl.key
-                ? "outline-2 outline-offset-2 outline-border"
-                : "",
+              selectedKey === tpl.key ? "outline-2 outline-offset-2 outline-border" : "",
             )}
           >
-            <video
-              src={tpl.video}
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="w-full h-64 object-cover"
-            />
+            <video src={tpl.video} autoPlay loop muted playsInline className="w-full h-64 object-cover" />
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-              <h3 className="text-white font-semibold text-lg drop-shadow-md">
-                {tpl.title}
-              </h3>
+              <h3 className="text-white font-semibold text-lg drop-shadow-md">{tpl.title}</h3>
             </div>
           </div>
         </motion.div>

@@ -60,14 +60,8 @@ export const CreateICOWizard: React.FC = () => {
   const { address: account } = useAccount();
   const publicClient = usePublicClient();
 
-  const {
-    writeContractAsync,
-    data: hash,
-    isPending,
-    error: writeError,
-  } = useWriteContract();
-  const { isSuccess: txSuccess, isLoading: txLoading } =
-    useWaitForTransactionReceipt({ hash });
+  const { writeContractAsync, data: hash, isPending, error: writeError } = useWriteContract();
+  const { isSuccess: txSuccess, isLoading: txLoading } = useWaitForTransactionReceipt({ hash });
 
   const [form, setForm] = useState<ICOForm>({
     name: "",
@@ -95,11 +89,11 @@ export const CreateICOWizard: React.FC = () => {
 
   const handleFeeSliderChange = (values: number[]) => {
     const bps = BigInt(Math.round(values[0] * 100));
-    setForm(p => ({ ...p, feeOrHook: bps }));
+    setForm((p) => ({ ...p, feeOrHook: bps }));
   };
 
   const handlePresetClick = (bps: bigint) => {
-    setForm(p => ({ ...p, feeOrHook: bps }));
+    setForm((p) => ({ ...p, feeOrHook: bps }));
     setActiveTab("fee");
   };
 
@@ -107,22 +101,21 @@ export const CreateICOWizard: React.FC = () => {
     try {
       const cleaned = address.replace(/^0x/i, "");
       if (!cleaned) {
-        setForm(p => ({ ...p, feeOrHook: DEFAULT_FEE_TIER }));
+        setForm((p) => ({ ...p, feeOrHook: DEFAULT_FEE_TIER }));
         setActiveTab("fee");
         return;
       }
       if (!/^[0-9a-fA-F]*$/.test(cleaned)) return;
       const hookId = BigInt("0x" + cleaned);
-      setForm(p => ({ ...p, feeOrHook: hookId }));
+      setForm((p) => ({ ...p, feeOrHook: hookId }));
       setActiveTab("hook");
     } catch (e) {
       // Invalid input, ignore
     }
   };
 
-  const currentHookAddress = isHook && form.feeOrHook > (maxUint256 / 2n)
-    ? "0x" + form.feeOrHook.toString(16).padStart(40, "0")
-    : "";
+  const currentHookAddress =
+    isHook && form.feeOrHook > maxUint256 / 2n ? "0x" + form.feeOrHook.toString(16).padStart(40, "0") : "";
 
   const handleImageChange = async (file: File | File[] | undefined) => {
     if (!file || Array.isArray(file)) {
@@ -149,7 +142,7 @@ export const CreateICOWizard: React.FC = () => {
       // Validate feeOrHook separately
       if (form.feeOrHook < 1n || form.feeOrHook > 10000n) {
         if (!isHook) {
-          setErrors(prev => ({ ...prev, feeOrHook: "Must be between 0.01% and 100%" }));
+          setErrors((prev) => ({ ...prev, feeOrHook: "Must be between 0.01% and 100%" }));
           return null;
         }
       }
@@ -185,17 +178,13 @@ export const CreateICOWizard: React.FC = () => {
       toast.info(t("ico.preparing_ico"));
 
       // 1) Pin image
-      const imgUri = await pinImageToPinata(
-        imageBuffer,
-        `${parsed.name}-logo`,
-        {
-          keyvalues: {
-            coinName: parsed.name,
-            coinSymbol: parsed.symbol,
-            type: "ico-logo",
-          },
+      const imgUri = await pinImageToPinata(imageBuffer, `${parsed.name}-logo`, {
+        keyvalues: {
+          coinName: parsed.name,
+          coinSymbol: parsed.symbol,
+          type: "ico-logo",
         },
-      );
+      });
 
       // 2) Pin metadata JSON
       const metadata = {
@@ -308,8 +297,7 @@ export const CreateICOWizard: React.FC = () => {
     }
   };
 
-  const buttonLabel =
-    submitting || isPending ? t("ico.launching") : t("ico.launch_button");
+  const buttonLabel = submitting || isPending ? t("ico.launching") : t("ico.launch_button");
 
   return (
     <div className="mx-auto max-w-6xl p-4">
@@ -327,39 +315,17 @@ export const CreateICOWizard: React.FC = () => {
           <div className="mb-4">
             <Heading level={3}>{t("ico.title")}</Heading>
             <p className="text-sm text-secondary-foreground mt-2">
-              {
-                t("ico.description", { days: form.incentiveDuration }).split(
-                  "veZAMM (87)",
-                )[0]
-              }
-              <Link
-                to="/c/$coinId"
-                params={{ coinId: "87" }}
-                className="text-primary underline hover:no-underline"
-              >
+              {t("ico.description", { days: form.incentiveDuration }).split("veZAMM (87)")[0]}
+              <Link to="/c/$coinId" params={{ coinId: "87" }} className="text-primary underline hover:no-underline">
                 veZAMM (87)
               </Link>
-              {
-                t("ico.description", { days: form.incentiveDuration })
-                  .split("veZAMM (87)")[1]
-                  .split("zChef")[0]
-              }
-              <Link
-                to="/farm"
-                className="text-primary underline hover:no-underline"
-              >
+              {t("ico.description", { days: form.incentiveDuration }).split("veZAMM (87)")[1].split("zChef")[0]}
+              <Link to="/farm" className="text-primary underline hover:no-underline">
                 zChef
               </Link>
-              {
-                t("ico.description", { days: form.incentiveDuration })
-                  .split("veZAMM (87)")[1]
-                  .split("zChef")[1]
-              }
+              {t("ico.description", { days: form.incentiveDuration }).split("veZAMM (87)")[1].split("zChef")[1]}
             </p>
-            <Link
-              to="/create"
-              className="text-sm text-primary underline hover:no-underline"
-            >
+            <Link to="/create" className="text-sm text-primary underline hover:no-underline">
               {t("ico.prefer_traditional")}
             </Link>
           </div>
@@ -372,17 +338,11 @@ export const CreateICOWizard: React.FC = () => {
                 <Input
                   id="name"
                   value={form.name}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, name: e.target.value }))
-                  }
+                  onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
                   placeholder={t("ico.token_name_placeholder")}
                 />
-                <p className="text-xs text-muted-foreground">
-                  {t("ico.token_name_hint")}
-                </p>
-                {errors.name && (
-                  <p className="text-xs text-red-500">{errors.name}</p>
-                )}
+                <p className="text-xs text-muted-foreground">{t("ico.token_name_hint")}</p>
+                {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
               </div>
 
               <div className="grid gap-2">
@@ -390,47 +350,31 @@ export const CreateICOWizard: React.FC = () => {
                 <Input
                   id="symbol"
                   value={form.symbol}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, symbol: e.target.value }))
-                  }
+                  onChange={(e) => setForm((p) => ({ ...p, symbol: e.target.value }))}
                   placeholder={t("ico.token_symbol_placeholder")}
                   maxLength={12}
                 />
-                <p className="text-xs text-muted-foreground">
-                  {t("ico.token_symbol_hint")}
-                </p>
-                {errors.symbol && (
-                  <p className="text-xs text-red-500">{errors.symbol}</p>
-                )}
+                <p className="text-xs text-muted-foreground">{t("ico.token_symbol_hint")}</p>
+                {errors.symbol && <p className="text-xs text-red-500">{errors.symbol}</p>}
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="description">
-                  {t("ico.token_description")}
-                </Label>
+                <Label htmlFor="description">{t("ico.token_description")}</Label>
                 <Textarea
                   id="description"
                   rows={4}
                   value={form.description}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, description: e.target.value }))
-                  }
+                  onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
                   placeholder={t("ico.token_description_placeholder")}
                 />
-                <p className="text-xs text-muted-foreground">
-                  {t("ico.token_description_hint")}
-                </p>
-                {errors.description && (
-                  <p className="text-xs text-red-500">{errors.description}</p>
-                )}
+                <p className="text-xs text-muted-foreground">{t("ico.token_description_hint")}</p>
+                {errors.description && <p className="text-xs text-red-500">{errors.description}</p>}
               </div>
 
               <div className="grid gap-2">
                 <Label>{t("ico.token_logo")}</Label>
                 <ImageInput onChange={handleImageChange} />
-                <p className="text-xs text-muted-foreground">
-                  {t("ico.logo_hint")}
-                </p>
+                <p className="text-xs text-muted-foreground">{t("ico.logo_hint")}</p>
               </div>
 
               {/* Advanced Options */}
@@ -449,10 +393,7 @@ export const CreateICOWizard: React.FC = () => {
                     )}
                   </div>
                   <svg
-                    className={cn(
-                      "h-4 w-4 transition-transform",
-                      showAdvanced && "rotate-180"
-                    )}
+                    className={cn("h-4 w-4 transition-transform", showAdvanced && "rotate-180")}
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 24 24"
                     fill="none"
@@ -473,13 +414,11 @@ export const CreateICOWizard: React.FC = () => {
                         type="button"
                         onClick={() => {
                           setActiveTab("fee");
-                          if (isHook) setForm(p => ({ ...p, feeOrHook: DEFAULT_FEE_TIER }));
+                          if (isHook) setForm((p) => ({ ...p, feeOrHook: DEFAULT_FEE_TIER }));
                         }}
                         className={cn(
                           "flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all",
-                          activeTab === "fee"
-                            ? "bg-background shadow-sm"
-                            : "hover:bg-background/50"
+                          activeTab === "fee" ? "bg-background shadow-sm" : "hover:bg-background/50",
                         )}
                       >
                         <div className="flex items-center justify-center gap-2">
@@ -492,9 +431,7 @@ export const CreateICOWizard: React.FC = () => {
                         onClick={() => setActiveTab("hook")}
                         className={cn(
                           "flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all",
-                          activeTab === "hook"
-                            ? "bg-background shadow-sm"
-                            : "hover:bg-background/50"
+                          activeTab === "hook" ? "bg-background shadow-sm" : "hover:bg-background/50",
                         )}
                       >
                         <div className="flex items-center justify-center gap-2">
@@ -512,9 +449,7 @@ export const CreateICOWizard: React.FC = () => {
                             <Label htmlFor="feeSlider" className="text-sm">
                               Swap Fee Percentage
                             </Label>
-                            <span className="text-sm font-mono font-medium">
-                              {feePercentage.toFixed(2)}%
-                            </span>
+                            <span className="text-sm font-mono font-medium">{feePercentage.toFixed(2)}%</span>
                           </div>
 
                           <Slider
@@ -548,7 +483,7 @@ export const CreateICOWizard: React.FC = () => {
                                     "px-3 py-1.5 rounded-md text-xs font-medium border transition-all",
                                     isSelected
                                       ? "bg-primary text-primary-foreground border-primary"
-                                      : "bg-background hover:bg-accent border-border"
+                                      : "bg-background hover:bg-accent border-border",
                                   )}
                                 >
                                   {option.label}
@@ -558,9 +493,7 @@ export const CreateICOWizard: React.FC = () => {
                           </div>
                         </div>
 
-                        <p className="text-xs text-muted-foreground">
-                          {t("ico.swap_fee_hint")}
-                        </p>
+                        <p className="text-xs text-muted-foreground">{t("ico.swap_fee_hint")}</p>
                       </div>
                     )}
 
@@ -580,8 +513,8 @@ export const CreateICOWizard: React.FC = () => {
                             className="font-mono text-sm"
                           />
                           <p className="text-xs text-muted-foreground mt-2">
-                            Enter the address of a custom hook contract to add special logic to your pool.
-                            Leave empty to use standard swap fees instead.
+                            Enter the address of a custom hook contract to add special logic to your pool. Leave empty
+                            to use standard swap fees instead.
                           </p>
                         </div>
 
@@ -604,7 +537,7 @@ export const CreateICOWizard: React.FC = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => {
-                            setForm(p => ({ ...p, feeOrHook: DEFAULT_FEE_TIER }));
+                            setForm((p) => ({ ...p, feeOrHook: DEFAULT_FEE_TIER }));
                             setActiveTab("fee");
                           }}
                           className="w-full"
@@ -632,9 +565,7 @@ export const CreateICOWizard: React.FC = () => {
                         <span>7 days</span>
                         <span>30 days</span>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {t("ico.incentive_duration_hint")}
-                      </p>
+                      <p className="text-xs text-muted-foreground">{t("ico.incentive_duration_hint")}</p>
                       {errors.incentiveDuration && <p className="text-xs text-red-500">{errors.incentiveDuration}</p>}
                     </div>
                   </div>
@@ -644,9 +575,7 @@ export const CreateICOWizard: React.FC = () => {
               {/* Summary Display (always visible) */}
               {!showAdvanced && (
                 <div className="text-sm text-muted-foreground">
-                  {isHook
-                    ? "Using custom hook for pool logic"
-                    : `Swap fee: ${feePercentage.toFixed(2)}%`}
+                  {isHook ? "Using custom hook for pool logic" : `Swap fee: ${feePercentage.toFixed(2)}%`}
                   {" • "}
                   {t("ico.incentive_duration", { days: form.incentiveDuration })}
                 </div>
@@ -654,9 +583,7 @@ export const CreateICOWizard: React.FC = () => {
 
               {/* Fixed Parameters Info */}
               <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
-                <AlertTitle className="text-blue-800 dark:text-blue-200">
-                  ICO Parameters
-                </AlertTitle>
+                <AlertTitle className="text-blue-800 dark:text-blue-200">ICO Parameters</AlertTitle>
                 <AlertDescription className="text-blue-700 dark:text-blue-300 space-y-1">
                   <p>• {t("ico.total_supply_fixed")}</p>
                   <p>• {t("ico.initial_pool")}</p>
@@ -667,15 +594,10 @@ export const CreateICOWizard: React.FC = () => {
                         days: form.incentiveDuration,
                       }).split("zChef")[0]
                     }
-                    <Link
-                      to="/farm"
-                      className="text-primary underline hover:no-underline"
-                    >
+                    <Link to="/farm" className="text-primary underline hover:no-underline">
                       zChef
                     </Link>
-                    {t("ico.lp_mining", { days: form.incentiveDuration }).split(
-                      "zChef",
-                    )[1] || ""}
+                    {t("ico.lp_mining", { days: form.incentiveDuration }).split("zChef")[1] || ""}
                   </p>
                   <p>
                     • {t("ico.community_airdrop").split("veZAMM (87)")[0]}
@@ -706,34 +628,24 @@ export const CreateICOWizard: React.FC = () => {
               {writeError && (
                 <Alert tone="destructive">
                   <AlertTitle>Transaction error</AlertTitle>
-                  <AlertDescription className="break-words">
-                    {writeError.message}
-                  </AlertDescription>
+                  <AlertDescription className="break-words">{writeError.message}</AlertDescription>
                 </Alert>
               )}
 
-              <Button
-                disabled={submitting || isPending || !account}
-                className="w-full"
-                onClick={onSubmit}
-              >
+              <Button disabled={submitting || isPending || !account} className="w-full" onClick={onSubmit}>
                 {buttonLabel}
               </Button>
 
               {hash && (
                 <Alert className="mt-2">
                   <AlertTitle>Transaction sent</AlertTitle>
-                  <AlertDescription className="break-all">
-                    {hash}
-                  </AlertDescription>
+                  <AlertDescription className="break-all">{hash}</AlertDescription>
                 </Alert>
               )}
 
               {txSuccess && (
                 <Alert className="mt-2 border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950">
-                  <AlertTitle className="text-green-800 dark:text-green-200">
-                    ICO Launched Successfully!
-                  </AlertTitle>
+                  <AlertTitle className="text-green-800 dark:text-green-200">ICO Launched Successfully!</AlertTitle>
                   <AlertDescription className="space-y-2">
                     <div className="flex gap-2 flex-wrap">
                       {coinId !== null && (

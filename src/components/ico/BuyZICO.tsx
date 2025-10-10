@@ -1,19 +1,8 @@
 import { useMemo, useState } from "react";
-import {
-  useAccount,
-  useBalance,
-  useSimulateContract,
-  useWaitForTransactionReceipt,
-  useWriteContract,
-} from "wagmi";
+import { useAccount, useBalance, useSimulateContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { parseEther, formatEther, formatUnits } from "viem";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Loader2, Coins, Clock, DollarSign } from "lucide-react";
 import { zICOAbi, zICOAddress } from "@/constants/zICO";
 import { TradePanel } from "../trade/TradePanel";
@@ -37,9 +26,7 @@ function useOtcQuote({
   coinId?: bigint;
   ethInWei?: bigint;
 }) {
-  const enabled = Boolean(
-    coinId !== undefined && ethInWei !== undefined && ethInWei! > 0n,
-  );
+  const enabled = Boolean(coinId !== undefined && ethInWei !== undefined && ethInWei! > 0n);
 
   const sim = useSimulateContract({
     abi: zICOAbi,
@@ -64,12 +51,7 @@ function useOtcQuote({
   };
 }
 
-export default function BuyOTC({
-  buyToken,
-  sale,
-  totalSupply,
-  className,
-}: BuyOTCProps) {
+export default function BuyOTC({ buyToken, sale, totalSupply, className }: BuyOTCProps) {
   const { address, isConnected } = useAccount();
   const { data: ethPrice } = useETHPrice();
 
@@ -116,12 +98,7 @@ export default function BuyOTC({
   });
 
   // --- Write ---
-  const {
-    writeContract,
-    data: txHash,
-    isPending: isWriting,
-    error: writeError,
-  } = useWriteContract();
+  const { writeContract, data: txHash, isPending: isWriting, error: writeError } = useWriteContract();
   const {
     isLoading: isMining,
     isSuccess,
@@ -133,8 +110,7 @@ export default function BuyOTC({
     },
   });
 
-  const canSubmit =
-    isConnected && !!ethInWei && !!coinId && !isWriting && !isMining;
+  const canSubmit = isConnected && !!ethInWei && !!coinId && !isWriting && !isMining;
 
   const onBuy = () => {
     if (!ethInWei || !coinId) return;
@@ -207,9 +183,7 @@ export default function BuyOTC({
 
       // This is now accurate: we know both sold and initial
       if (initialOTCSupply > 0n) {
-        progress =
-          (Number(formatEther(sold)) / Number(formatEther(initialOTCSupply))) *
-          100;
+        progress = (Number(formatEther(sold)) / Number(formatEther(initialOTCSupply))) * 100;
         isIntelligentTracking = true;
       }
     } else {
@@ -281,20 +255,14 @@ export default function BuyOTC({
       pricePerTokenUSD,
       tokensPerEth,
       initialSaleSupply: formatEther(initialOTCSupply),
-      initialSaleSupplyFormatted: formatLargeNumber(
-        formatEther(initialOTCSupply),
-      ),
-      totalSupplyFormatted: totalSupply
-        ? formatLargeNumber(formatEther(totalSupply))
-        : "21M",
+      initialSaleSupplyFormatted: formatLargeNumber(formatEther(initialOTCSupply)),
+      totalSupplyFormatted: totalSupply ? formatLargeNumber(formatEther(totalSupply)) : "21M",
       isIntelligentTracking,
     };
   }, [sale, totalSupply, ethPrice]);
 
   return (
-    <Card
-      className={`w-full max-w-xl mx-auto shadow-lg rounded-2xl ${className ?? ""}`}
-    >
+    <Card className={`w-full max-w-xl mx-auto shadow-lg rounded-2xl ${className ?? ""}`}>
       <CardHeader className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="text-xl font-semibold">Buy OTC</div>
@@ -304,9 +272,7 @@ export default function BuyOTC({
                 {(sale.lpBps / 100).toFixed(0)}% LP
               </div>
             )}
-            <div className="text-sm font-medium text-muted-foreground">
-              {saleStats.remainingFormatted} available
-            </div>
+            <div className="text-sm font-medium text-muted-foreground">{saleStats.remainingFormatted} available</div>
           </div>
         </div>
 
@@ -331,10 +297,7 @@ export default function BuyOTC({
               <Coins className="w-3.5 h-3.5 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Available</span>
             </div>
-            <div
-              className="font-semibold text-sm"
-              title="Tokens currently available for purchase"
-            >
+            <div className="font-semibold text-sm" title="Tokens currently available for purchase">
               {saleStats.remainingFormatted}
             </div>
           </div>
@@ -344,10 +307,7 @@ export default function BuyOTC({
               <Clock className="w-3.5 h-3.5 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Rate</span>
             </div>
-            <div
-              className="font-semibold text-sm"
-              title={`1 ETH = ${saleStats.tokensPerEth} tokens`}
-            >
+            <div className="font-semibold text-sm" title={`1 ETH = ${saleStats.tokensPerEth} tokens`}>
               {saleStats.tokensPerEth}/ETH
             </div>
           </div>
@@ -359,13 +319,10 @@ export default function BuyOTC({
             </div>
             <div className="space-y-0.5">
               <div className="font-semibold text-sm" title="Price per token">
-                {saleStats.pricePerTokenUSD !== "0"
-                  ? `$${saleStats.pricePerTokenUSD}`
-                  : `${saleStats.pricePerToken} Ξ`}
+                {saleStats.pricePerTokenUSD !== "0" ? `$${saleStats.pricePerTokenUSD}` : `${saleStats.pricePerToken} Ξ`}
               </div>
               <div className="text-xs text-muted-foreground">
-                {saleStats.pricePerTokenUSD !== "0" &&
-                  `${saleStats.pricePerToken} Ξ`}
+                {saleStats.pricePerTokenUSD !== "0" && `${saleStats.pricePerToken} Ξ`}
               </div>
             </div>
           </div>
@@ -386,9 +343,7 @@ export default function BuyOTC({
             if (!ethBalance) return;
             syncFromBuy(formatEther(ethBalance.value));
           }}
-          showMaxButton={
-            !!(sellToken.balance !== undefined && sellToken.balance > 0n)
-          }
+          showMaxButton={!!(sellToken.balance !== undefined && sellToken.balance > 0n)}
         />
         {/* Trade Panel: lock only buy token selection per spec */}
         <TradePanel
@@ -419,35 +374,17 @@ export default function BuyOTC({
 
         {/* Errors (quote) */}
         {quoteError && (
-          <div className="text-xs text-red-500">
-            Quote failed: {quoteError.message ?? String(quoteError)}
-          </div>
+          <div className="text-xs text-red-500">Quote failed: {quoteError.message ?? String(quoteError)}</div>
         )}
 
         {/* Transaction status */}
-        {txHash && (
-          <div className="text-xs text-muted-foreground break-all">
-            Submitted: {txHash}
-          </div>
-        )}
-        {isSuccess && (
-          <div className="text-xs text-green-600">
-            Success! Tokens purchased.
-          </div>
-        )}
-        {isError && writeError && (
-          <div className="text-xs text-red-500">
-            Tx failed: {writeError.message}
-          </div>
-        )}
+        {txHash && <div className="text-xs text-muted-foreground break-all">Submitted: {txHash}</div>}
+        {isSuccess && <div className="text-xs text-green-600">Success! Tokens purchased.</div>}
+        {isError && writeError && <div className="text-xs text-red-500">Tx failed: {writeError.message}</div>}
       </CardContent>
 
       <CardFooter className="flex gap-2">
-        <Button
-          onClick={onBuy}
-          disabled={!canSubmit}
-          className="w-full h-11 rounded-2xl"
-        >
+        <Button onClick={onBuy} disabled={!canSubmit} className="w-full h-11 rounded-2xl">
           {isWriting || isMining ? (
             <span className="inline-flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" /> Processing...

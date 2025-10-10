@@ -3,25 +3,21 @@ import { useQuery } from "@tanstack/react-query";
 import { formatUnits } from "viem";
 
 const DECIMALS = 18;
-const toEth = (raw: bigint, isEth: boolean, px0: number) =>
-  Number(formatUnits(raw, DECIMALS)) / (isEth ? 1 : px0);
+const toEth = (raw: bigint, isEth: boolean, px0: number) => Number(formatUnits(raw, DECIMALS)) / (isEth ? 1 : px0);
 
 export const usePoolApy = (poolId?: string, source?: CoinSource) => {
   return useQuery({
     queryKey: ["pool-apy", poolId],
     queryFn: async () => {
       const numDays = 30;
-      const timestamp_gte =
-        Math.floor(Date.now() / 1000) - numDays * 24 * 60 * 60;
-      const response = await fetch(
-        `${import.meta.env.VITE_INDEXER_URL}/graphql`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            query: `
+      const timestamp_gte = Math.floor(Date.now() / 1000) - numDays * 24 * 60 * 60;
+      const response = await fetch(`${import.meta.env.VITE_INDEXER_URL}/graphql`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query: `
               query GetSwapAmounts {
                 pool(id: "${poolId}", source: "${source || "ZAMM"}") {
                   reserve0,
@@ -42,9 +38,8 @@ export const usePoolApy = (poolId?: string, source?: CoinSource) => {
                 }
               }
             `,
-          }),
-        },
-      );
+        }),
+      });
 
       const data = await response.json();
 
@@ -54,9 +49,7 @@ export const usePoolApy = (poolId?: string, source?: CoinSource) => {
       const DECIMALS = 18;
       const px0 = Number(formatUnits(BigInt(pool.price0), DECIMALS)); // token1 per ETH
 
-      const tvlEth =
-        toEth(BigInt(pool.reserve0), true, px0) +
-        toEth(BigInt(pool.reserve1), false, px0);
+      const tvlEth = toEth(BigInt(pool.reserve0), true, px0) + toEth(BigInt(pool.reserve1), false, px0);
 
       let grossFeeEth = 0;
       for (const r of swaps.items) {

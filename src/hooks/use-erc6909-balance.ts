@@ -10,13 +10,7 @@ interface UseERC6909BalanceParams {
   enabled?: boolean;
 }
 
-export function useERC6909Balance({
-  address,
-  tokenAddress,
-  tokenId,
-  enabled = true
-}: UseERC6909BalanceParams) {
-
+export function useERC6909Balance({ address, tokenAddress, tokenId, enabled = true }: UseERC6909BalanceParams) {
   // Determine which contract and ABI to use
   const isCoins = tokenAddress && tokenAddress.toLowerCase() === CoinsAddress.toLowerCase();
   const isCookbook = tokenAddress && tokenAddress.toLowerCase() === CookbookAddress.toLowerCase();
@@ -24,8 +18,8 @@ export function useERC6909Balance({
   const contractConfig = isCoins
     ? { address: CoinsAddress, abi: CoinsAbi }
     : isCookbook
-    ? { address: CookbookAddress, abi: CookbookAbi }
-    : null;
+      ? { address: CookbookAddress, abi: CookbookAbi }
+      : null;
 
   return useReadContract({
     address: contractConfig?.address,

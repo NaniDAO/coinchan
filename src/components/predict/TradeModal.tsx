@@ -4,13 +4,7 @@ import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadCont
 import { toast } from "sonner";
 import { PredictionMarketAddress, PredictionMarketAbi } from "@/constants/PredictionMarket";
 import { PredictionAMMAbi } from "@/constants/PredictionMarketAMM";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,12 +39,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   const [amount, setAmount] = useState("");
   const [slippageTolerance, setSlippageTolerance] = useState(0.5); // 0.5% default
 
-  const {
-    writeContractAsync,
-    data: hash,
-    isPending,
-    error: writeError,
-  } = useWriteContract();
+  const { writeContractAsync, data: hash, isPending, error: writeError } = useWriteContract();
 
   const { isSuccess: txSuccess, isLoading: txLoading } = useWaitForTransactionReceipt({ hash });
 
@@ -60,9 +49,14 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   const { data: quoteData } = useReadContract({
     address: contractAddress as `0x${string}`,
     abi: PredictionAMMAbi,
-    functionName: action === "buy"
-      ? (position === "yes" ? "quoteBuyYes" : "quoteBuyNo")
-      : (position === "yes" ? "quoteSellYes" : "quoteSellNo"),
+    functionName:
+      action === "buy"
+        ? position === "yes"
+          ? "quoteBuyYes"
+          : "quoteBuyNo"
+        : position === "yes"
+          ? "quoteSellYes"
+          : "quoteSellNo",
     args: [marketId, sharesAmount],
     query: {
       enabled: marketType === "amm" && sharesAmount > 0n,
@@ -129,11 +123,11 @@ export const TradeModal: React.FC<TradeModalProps> = ({
             functionName,
             args: [
               marketId,
-              amountWei,    // yesOut or noOut (shares to buy)
-              true,         // inIsETH
-              wstInMax,     // wstInMax (slippage protection)
-              oppInMax,     // oppInMax (slippage protection)
-              address,      // to
+              amountWei, // yesOut or noOut (shares to buy)
+              true, // inIsETH
+              wstInMax, // wstInMax (slippage protection)
+              oppInMax, // oppInMax (slippage protection)
+              address, // to
             ],
             value: ethValue,
           });
@@ -150,10 +144,10 @@ export const TradeModal: React.FC<TradeModalProps> = ({
             functionName,
             args: [
               marketId,
-              amountWei,    // yesIn or noIn (shares to sell)
-              wstOutMin,    // wstOutMin (slippage protection)
-              oppOutMin,    // oppOutMin (slippage protection)
-              address,      // to
+              amountWei, // yesIn or noIn (shares to sell)
+              wstOutMin, // wstOutMin (slippage protection)
+              oppOutMin, // oppOutMin (slippage protection)
+              address, // to
             ],
           });
         }
@@ -226,22 +220,12 @@ export const TradeModal: React.FC<TradeModalProps> = ({
           {/* Odds Display */}
           <div className="bg-muted rounded-lg p-4 space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-green-600 dark:text-green-400 font-bold">
-                YES {yesPercent.toFixed(2)}%
-              </span>
-              <span className="text-red-600 dark:text-red-400 font-bold">
-                NO {noPercent.toFixed(2)}%
-              </span>
+              <span className="text-green-600 dark:text-green-400 font-bold">YES {yesPercent.toFixed(2)}%</span>
+              <span className="text-red-600 dark:text-red-400 font-bold">NO {noPercent.toFixed(2)}%</span>
             </div>
             <div className="flex h-3 rounded-full overflow-hidden bg-background">
-              <div
-                className="bg-green-600 dark:bg-green-400"
-                style={{ width: `${yesPercent}%` }}
-              />
-              <div
-                className="bg-red-600 dark:bg-red-400"
-                style={{ width: `${noPercent}%` }}
-              />
+              <div className="bg-green-600 dark:bg-green-400" style={{ width: `${yesPercent}%` }} />
+              <div className="bg-red-600 dark:bg-red-400" style={{ width: `${noPercent}%` }} />
             </div>
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>{formatEther(useYes)} wstETH</span>
@@ -278,9 +262,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="amount">
-                  {marketType === "amm" ? "Shares to Buy" : "Amount (ETH)"}
-                </Label>
+                <Label htmlFor="amount">{marketType === "amm" ? "Shares to Buy" : "Amount (ETH)"}</Label>
                 <Input
                   id="amount"
                   type="number"
@@ -293,8 +275,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                 <p className="text-xs text-muted-foreground">
                   {marketType === "amm"
                     ? `Enter number of ${position.toUpperCase()} shares to buy`
-                    : `Buy ${position.toUpperCase()} shares with ETH`
-                  }
+                    : `Buy ${position.toUpperCase()} shares with ETH`}
                 </p>
               </div>
 
@@ -309,13 +290,23 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Max Cost (with slippage):</span>
                     <span className="font-mono text-xs">
-                      {Number(formatEther((estimatedCost * BigInt(Math.floor((1 + slippageTolerance / 100) * 10000))) / 10000n)).toFixed(6)} wstETH
+                      {Number(
+                        formatEther(
+                          (estimatedCost * BigInt(Math.floor((1 + slippageTolerance / 100) * 10000))) / 10000n,
+                        ),
+                      ).toFixed(6)}{" "}
+                      wstETH
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">ETH to send:</span>
                     <span className="font-mono">
-                      {Number(formatEther((estimatedCost * BigInt(Math.floor((1 + slippageTolerance / 100) * 10000)) * 14n) / 100000n)).toFixed(6)} ETH
+                      {Number(
+                        formatEther(
+                          (estimatedCost * BigInt(Math.floor((1 + slippageTolerance / 100) * 10000)) * 14n) / 100000n,
+                        ),
+                      ).toFixed(6)}{" "}
+                      ETH
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground italic">
@@ -326,9 +317,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 
               {marketType === "amm" && (
                 <div className="grid gap-2">
-                  <Label htmlFor="slippage">
-                    Slippage Tolerance: {slippageTolerance}%
-                  </Label>
+                  <Label htmlFor="slippage">Slippage Tolerance: {slippageTolerance}%</Label>
                   <Slider
                     id="slippage"
                     min={0.1}
@@ -380,9 +369,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="0.1"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Sell your {position.toUpperCase()} shares for wstETH
-                </p>
+                <p className="text-xs text-muted-foreground">Sell your {position.toUpperCase()} shares for wstETH</p>
               </div>
 
               {marketType === "amm" && estimatedCost > 0n && (
@@ -401,9 +388,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 
               {marketType === "amm" && (
                 <div className="grid gap-2">
-                  <Label htmlFor="slippage-sell">
-                    Slippage Tolerance: {slippageTolerance}%
-                  </Label>
+                  <Label htmlFor="slippage-sell">Slippage Tolerance: {slippageTolerance}%</Label>
                   <Slider
                     id="slippage-sell"
                     min={0.1}
@@ -424,9 +409,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 
           {writeError && (
             <Alert tone="destructive">
-              <AlertDescription className="break-words text-sm">
-                {writeError.message}
-              </AlertDescription>
+              <AlertDescription className="break-words text-sm">{writeError.message}</AlertDescription>
             </Alert>
           )}
 
@@ -438,18 +421,12 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 
           {txSuccess && (
             <Alert>
-              <AlertDescription className="text-green-600 dark:text-green-400">
-                Trade successful!
-              </AlertDescription>
+              <AlertDescription className="text-green-600 dark:text-green-400">Trade successful!</AlertDescription>
             </Alert>
           )}
 
           <div className="flex gap-2">
-            <Button
-              onClick={handleTrade}
-              disabled={isPending || txLoading || !address}
-              className="flex-1"
-            >
+            <Button onClick={handleTrade} disabled={isPending || txLoading || !address} className="flex-1">
               {isPending || txLoading
                 ? "Processing…"
                 : `${action === "buy" ? "Buy" : "Sell"} ${position.toUpperCase()}`}

@@ -74,25 +74,13 @@ export function UnifiedCoinTrading({
   return (
     <div className="w-full">
       <div className="space-y-6">
-        <ErrorBoundary
-          fallback={
-            <ErrorFallback errorMessage="Error loading Trading Panel"></ErrorFallback>
-          }
-        >
+        <ErrorBoundary fallback={<ErrorFallback errorMessage="Error loading Trading Panel"></ErrorFallback>}>
           {coin && zICOsaleStatus && zICOsaleStatus.zicoInventory > 0n ? (
-            <BuyOTC
-              buyToken={coin}
-              sale={zICOsaleStatus}
-              totalSupply={totalSupply}
-            />
+            <BuyOTC buyToken={coin} sale={zICOsaleStatus} totalSupply={totalSupply} />
           ) : null}
         </ErrorBoundary>
 
-        <ErrorBoundary
-          fallback={
-            <ErrorFallback errorMessage="Error loading Trading Panel"></ErrorFallback>
-          }
-        >
+        <ErrorBoundary fallback={<ErrorFallback errorMessage="Error loading Trading Panel"></ErrorFallback>}>
           {computedPoolId ? (
             <FinalizedPoolTrading
               coinId={coinId}
@@ -106,10 +94,7 @@ export function UnifiedCoinTrading({
           ) : (
             <Alert>
               <AlertDescription className="flex flex-col gap-2">
-                {t(
-                  "trade.no_pool_yet",
-                  "No liquidity pool found for this token.",
-                )}
+                {t("trade.no_pool_yet", "No liquidity pool found for this token.")}
                 <Link
                   to="/positions/create"
                   search={{

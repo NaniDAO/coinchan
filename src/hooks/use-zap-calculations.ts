@@ -4,13 +4,7 @@ import { CheckTheChainAbi, CheckTheChainAddress } from "@/constants/CheckTheChai
 import type { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { isCookbookCoin } from "@/lib/coin-utils";
 import { type TokenMeta, CULT_POOL_KEY, ENS_POOL_KEY, WLFI_POOL_KEY, WLFI_POOL_ID } from "@/lib/coins";
-import {
-  SINGLE_ETH_SLIPPAGE_BPS,
-  SWAP_FEE,
-  computePoolKey,
-  getAmountOut,
-  withSlippage,
-} from "@/lib/swap";
+import { SINGLE_ETH_SLIPPAGE_BPS, SWAP_FEE, computePoolKey, getAmountOut, withSlippage } from "@/lib/swap";
 import { useCallback } from "react";
 import { formatEther, formatUnits, parseEther } from "viem";
 import { usePublicClient } from "wagmi";
@@ -47,7 +41,7 @@ export interface ZapCalculation {
 export function calculateMaxEthForZap(
   ethReserve: bigint,
   tokenReserve: bigint,
-  slippageBps: bigint = SINGLE_ETH_SLIPPAGE_BPS
+  slippageBps: bigint = SINGLE_ETH_SLIPPAGE_BPS,
 ): bigint {
   if (!ethReserve || !tokenReserve || ethReserve === 0n || tokenReserve === 0n) {
     return 0n;

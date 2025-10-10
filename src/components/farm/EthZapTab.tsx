@@ -51,8 +51,7 @@ export const EthZapTab: React.FC<EthZapTabProps> = ({
   stream,
   totalStaked,
 }) => {
-  const isLowLiquidityPool =
-    lpToken?.reserve0 && lpToken.reserve0 < BigInt("10000000000000000");
+  const isLowLiquidityPool = lpToken?.reserve0 && lpToken.reserve0 < BigInt("10000000000000000");
 
   // Calculate AMM pool share, staking pool share, and daily rewards estimate
   const estimations = useMemo(() => {
@@ -106,12 +105,8 @@ export const EthZapTab: React.FC<EthZapTabProps> = ({
     <div className="space-y-4">
       {/* Amount */}
       <div className="space-y-3">
-        <Label
-          htmlFor="amount-eth"
-          className="font-mono font-bold text-primary uppercase tracking-wide"
-        >
-          <span className="text-muted-foreground">&gt;</span>{" "}
-          {t("common.eth_amount")}
+        <Label htmlFor="amount-eth" className="font-mono font-bold text-primary uppercase tracking-wide">
+          <span className="text-muted-foreground">&gt;</span> {t("common.eth_amount")}
         </Label>
         <div className="flex flex-col sm:flex-row gap-3">
           <Input
@@ -139,9 +134,7 @@ export const EthZapTab: React.FC<EthZapTabProps> = ({
         <div className="bg-background/30 border border-primary/20 rounded p-3">
           <div className="space-y-2 text-sm font-mono">
             <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
-              <span className="text-muted-foreground">
-                {t("common.available")}:
-              </span>
+              <span className="text-muted-foreground">{t("common.available")}:</span>
               <span className="text-primary font-bold break-all text-left sm:text-right flex items-center gap-2">
                 {maxAmount}
               </span>
@@ -153,8 +146,7 @@ export const EthZapTab: React.FC<EthZapTabProps> = ({
         <div className="space-y-3">
           <div className="flex justify-between items-center">
             <Label className="font-mono font-bold text-primary uppercase tracking-wide">
-              <span className="text-muted-foreground">&gt;</span> Slippage
-              Tolerance
+              <span className="text-muted-foreground">&gt;</span> Slippage Tolerance
             </Label>
             <Button
               type="button"
@@ -193,26 +185,19 @@ export const EthZapTab: React.FC<EthZapTabProps> = ({
                   max={50}
                   step={0.1}
                 />
-                <span className="text-xs font-mono text-muted-foreground">
-                  %
-                </span>
+                <span className="text-xs font-mono text-muted-foreground">%</span>
               </div>
               {parseFloat(customSlippage) > 15 && (
-                <p className="text-xs text-yellow-500 font-mono">
-                  ⚠ High slippage may result in unfavorable rates
-                </p>
+                <p className="text-xs text-yellow-500 font-mono">⚠ High slippage may result in unfavorable rates</p>
               )}
             </div>
           )}
 
           {isLowLiquidityPool ? (
             <div className="bg-yellow-500/10 border border-yellow-500/30 rounded p-3">
-              <p className="text-xs font-mono text-yellow-500">
-                ⚠ Low liquidity pool - limited ETH capacity
-              </p>
+              <p className="text-xs font-mono text-yellow-500">⚠ Low liquidity pool - limited ETH capacity</p>
               <p className="text-xs font-mono text-muted-foreground mt-1">
-                Max ETH for {customSlippage}% slippage:{" "}
-                {formatEther(maxEthForZap)} ETH
+                Max ETH for {customSlippage}% slippage: {formatEther(maxEthForZap)} ETH
               </p>
             </div>
           ) : null}
@@ -222,29 +207,21 @@ export const EthZapTab: React.FC<EthZapTabProps> = ({
       {/* Preview Section */}
       {estimations && (
         <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
-          <p className="font-mono font-bold mb-3 text-green-500 text-sm">
-            [{t("common.preview")}]
-          </p>
+          <p className="font-mono font-bold mb-3 text-green-500 text-sm">[{t("common.preview")}]</p>
           <div className="space-y-2 text-sm font-mono">
             <div className="flex justify-between">
               <span className="text-muted-foreground">{t("common.expected_lp_tokens")}:</span>
-              <span className="text-green-500 font-bold">
-                {formatBalance(estimations.lpTokensOut, "LP")}
-              </span>
+              <span className="text-green-500 font-bold">{formatBalance(estimations.lpTokensOut, "LP")}</span>
             </div>
             {estimations.ammPoolPercentage && estimations.ammPoolPercentage !== "0.0000" && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">{t("common.amm_pool_share")}:</span>
-                <span className="text-green-500 font-bold">
-                  {estimations.ammPoolPercentage}%
-                </span>
+                <span className="text-green-500 font-bold">{estimations.ammPoolPercentage}%</span>
               </div>
             )}
             <div className="flex justify-between">
               <span className="text-muted-foreground">{t("common.staking_pool_share")}:</span>
-              <span className="text-green-500 font-bold">
-                {estimations.stakingPoolPercentage}%
-              </span>
+              <span className="text-green-500 font-bold">{estimations.stakingPoolPercentage}%</span>
             </div>
             {estimations.dailyRewards && stream?.rewardCoin && (
               <div className="flex justify-between">
@@ -260,9 +237,7 @@ export const EthZapTab: React.FC<EthZapTabProps> = ({
 
       {/* ETH Zap Explanation */}
       <div className="bg-gradient-to-r from-primary/15 via-primary/10 to-primary/5 border border-primary/30 rounded-lg p-4">
-        <p className="font-mono font-bold mb-3 text-primary text-sm">
-          [{t("common.eth_zap_info")}]
-        </p>
+        <p className="font-mono font-bold mb-3 text-primary text-sm">[{t("common.eth_zap_info")}]</p>
         <ul className="space-y-2 text-sm font-mono text-muted-foreground">
           <li className="flex items-start gap-2">
             <span className="text-primary font-bold">•</span>
@@ -278,9 +253,7 @@ export const EthZapTab: React.FC<EthZapTabProps> = ({
           </li>
           <li className="flex items-start gap-2">
             <span className="text-primary font-bold">•</span>
-            <span className="text-xs opacity-75">
-              {t("common.dust_refund_note")}
-            </span>
+            <span className="text-xs opacity-75">{t("common.dust_refund_note")}</span>
           </li>
         </ul>
       </div>
@@ -289,8 +262,7 @@ export const EthZapTab: React.FC<EthZapTabProps> = ({
       {zapCalculation && !zapCalculation.isValid && (
         <div className="bg-red-500/10 border border-red-500/30 rounded p-2">
           <div className="text-sm text-red-400 font-mono">
-            [ERROR]:{" "}
-            {zapCalculation.error || t("common.zap_calculation_failed")}
+            [ERROR]: {zapCalculation.error || t("common.zap_calculation_failed")}
           </div>
         </div>
       )}

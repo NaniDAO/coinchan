@@ -419,9 +419,9 @@ export function analyzeTokens(
   // coinId logic as before…
   let coinId: bigint;
   if (isCustom) {
-    coinId = sell.isCustomPool ? (sell.id ?? 0n) : (buy?.id ?? 0n);
+    coinId = sell.isCustomPool ? sell.id ?? 0n : buy?.id ?? 0n;
   } else {
-    coinId = isSellETH ? (buy?.id ?? 0n) : (sell.id ?? 0n);
+    coinId = isSellETH ? buy?.id ?? 0n : sell.id ?? 0n;
   }
 
   // canSwap covers all the cases where we actually want the “Go” button enabled:

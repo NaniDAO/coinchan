@@ -4,9 +4,7 @@ import type { CoinSource } from "./coins";
  * Determines if a coin is a cookbook coin based on its ID
  * Cookbook coins have ID < 1000000n
  */
-export const isCookbookCoin = (
-  coinId: string | bigint | null,
-): boolean | null => {
+export const isCookbookCoin = (coinId: string | bigint | null): boolean | null => {
   try {
     return coinId !== null && BigInt(coinId) < 1000000n;
   } catch (error) {
@@ -19,10 +17,7 @@ export const isCookbookCoin = (
  * Determines the correct reserve source based on coin type
  * Custom pools (like USDT) use ZAMM, cookbook coins use COOKBOOK
  */
-export const determineReserveSource = (
-  coinId: bigint | null,
-  isCustomPool: boolean,
-): CoinSource => {
+export const determineReserveSource = (coinId: bigint | null, isCustomPool: boolean): CoinSource => {
   const isCookbook = isCookbookCoin(coinId);
   return isCookbook && !isCustomPool ? "COOKBOOK" : "ZAMM";
 };
