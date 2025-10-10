@@ -201,12 +201,31 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   };
 
   // For AMM markets, use pool reserves for odds; for parimutuel, use total supply
-  const useYes = marketType === "amm" && rYes > 0n ? rYes : yesSupply;
-  const useNo = marketType === "amm" && rNo > 0n ? rNo : noSupply;
+  // AMM odds formula (from PAMM.sol impliedYesProb):
+  //   YES probability = rNo / (rYes + rNo)
+  //   NO probability = rYes / (rYes + rNo)
+  // This is because reserves are inversely related to probability in a CPMM
+  let yesPercent: number;
+  let noPercent: number;
+  let displayYes: bigint;
+  let displayNo: bigint;
 
-  const totalSupply = useYes + useNo;
-  const yesPercent = totalSupply > 0n ? Number((useYes * 100n) / totalSupply) : 50;
-  const noPercent = 100 - yesPercent;
+  if (marketType === "amm" && rYes > 0n && rNo > 0n) {
+    const totalReserves = rYes + rNo;
+    // YES probability uses rNo in numerator (inverse relationship)
+    yesPercent = Number((rNo * 100n) / totalReserves);
+    noPercent = 100 - yesPercent;
+    // For display of reserve values, show actual reserves
+    displayYes = rYes;
+    displayNo = rNo;
+  } else {
+    // Parimutuel markets: use total supply directly
+    const totalSupply = yesSupply + noSupply;
+    yesPercent = totalSupply > 0n ? Number((yesSupply * 100n) / totalSupply) : 50;
+    noPercent = 100 - yesPercent;
+    displayYes = yesSupply;
+    displayNo = noSupply;
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -228,8 +247,8 @@ export const TradeModal: React.FC<TradeModalProps> = ({
               <div className="bg-red-600 dark:bg-red-400" style={{ width: `${noPercent}%` }} />
             </div>
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>{formatEther(useYes)} wstETH</span>
-              <span>{formatEther(useNo)} wstETH</span>
+              <span>{formatEther(displayYes)} wstETH</span>
+              <span>{formatEther(displayNo)} wstETH</span>
             </div>
           </div>
 

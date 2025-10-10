@@ -80,10 +80,22 @@ export const CreateMarketForm: React.FC<CreateMarketFormProps> = ({ onMarketCrea
 
   // ENS resolution for resolver field
   const isEnsName = form.resolver.includes(".") && !form.resolver.startsWith("0x");
+
+  // Safely normalize ENS name, catching any errors during typing
+  let normalizedEnsName: string | undefined;
+  if (isEnsName) {
+    try {
+      normalizedEnsName = normalize(form.resolver);
+    } catch (e) {
+      // Invalid ENS name while typing, will be handled gracefully
+      normalizedEnsName = undefined;
+    }
+  }
+
   const { data: ensAddress, isLoading: isResolvingEns } = useEnsAddress({
-    name: isEnsName ? normalize(form.resolver) : undefined,
+    name: normalizedEnsName,
     query: {
-      enabled: isEnsName,
+      enabled: !!normalizedEnsName,
     },
   });
 

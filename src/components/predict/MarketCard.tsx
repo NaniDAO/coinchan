@@ -17,7 +17,7 @@ import { MarketCountdown } from "./MarketCountdown";
 import { ResolverControls } from "./ResolverControls";
 import { PredictionMarketAddress, PredictionMarketAbi } from "@/constants/PredictionMarket";
 import { PredictionAMMAbi } from "@/constants/PredictionMarketAMM";
-import { ExternalLink, BadgeCheck, ArrowUpRight } from "lucide-react";
+import { ExternalLink, BadgeCheck, ArrowUpRight, Copy, Check } from "lucide-react";
 import { formatImageURL } from "@/hooks/metadata";
 import { isTrustedResolver } from "@/constants/TrustedResolvers";
 import ReactMarkdown from "react-markdown";
@@ -73,6 +73,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
   const { address } = useAccount();
 
   const { writeContract, data: claimHash, error: claimError } = useWriteContract();
@@ -117,7 +118,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
 
   // Generate ZAMM swap URL for AMM markets
   const getZammUrl = (): string => {
-    const ammContractAddress = "0x000000000088B4B43A69f8CDa34d93eD1d6f1431";
+    const ammContractAddress = "0x000000000071176401AdA1f2CD7748e28E173FCa";
     const yesId = marketId.toString();
     const noId = getNoTokenId(marketId).toString();
     return `https://www.zamm.finance/swap?tokenA=${ammContractAddress}&idA=${encodeURIComponent(yesId)}&tokenB=${ammContractAddress}&idB=${encodeURIComponent(noId)}`;
@@ -134,6 +135,13 @@ export const MarketCard: React.FC<MarketCardProps> = ({
       functionName: "claim",
       args: [marketId, address],
     });
+  };
+
+  const handleCopyMarketId = () => {
+    navigator.clipboard.writeText(marketId.toString());
+    setIsCopied(true);
+    toast.success("Market ID copied!");
+    setTimeout(() => setIsCopied(false), 2000);
   };
 
   useEffect(() => {
@@ -281,12 +289,29 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   }
 
   // For AMM markets, use pool reserves for odds; for parimutuel, use total supply
-  const useYes = marketType === "amm" && rYes !== undefined ? rYes : yesSupply;
-  const useNo = marketType === "amm" && rNo !== undefined ? rNo : noSupply;
+  // AMM odds formula (from PAMM.sol impliedYesProb):
+  //   YES probability = rNo / (rYes + rNo)
+  //   NO probability = rYes / (rYes + rNo)
+  // This is because reserves are inversely related to probability in a CPMM
+  let yesPercent: number;
+  let noPercent: number;
 
-  const totalSupply = useYes + useNo;
-  const yesPercent = totalSupply > 0n ? Number((useYes * 100n) / totalSupply) : 50;
-  const noPercent = 100 - yesPercent;
+  if (marketType === "amm" && rYes !== undefined && rNo !== undefined) {
+    const totalReserves = rYes + rNo;
+    if (totalReserves > 0n) {
+      // YES probability uses rNo in numerator (inverse relationship)
+      yesPercent = Number((rNo * 100n) / totalReserves);
+      noPercent = 100 - yesPercent;
+    } else {
+      yesPercent = 50;
+      noPercent = 50;
+    }
+  } else {
+    // Parimutuel markets: use total supply directly
+    const totalSupply = yesSupply + noSupply;
+    yesPercent = totalSupply > 0n ? Number((yesSupply * 100n) / totalSupply) : 50;
+    noPercent = 100 - yesPercent;
+  }
 
   return (
     <>
@@ -479,6 +504,23 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                   </Badge>
                 )}
               </div>
+            </div>
+            <div className="flex justify-between items-center pt-1 border-t border-border/50">
+              <span className="text-[10px] opacity-60">Market ID:</span>
+              <button
+                onClick={handleCopyMarketId}
+                className="flex items-center gap-1 hover:text-primary transition-colors group"
+                title="Click to copy Market ID"
+              >
+                <span className="font-mono text-[10px] opacity-60 group-hover:opacity-100">
+                  {marketId.toString().slice(0, 8)}...{marketId.toString().slice(-6)}
+                </span>
+                {isCopied ? (
+                  <Check className="h-3 w-3 text-green-500" />
+                ) : (
+                  <Copy className="h-3 w-3 opacity-40 group-hover:opacity-100" />
+                )}
+              </button>
             </div>
           </div>
 
