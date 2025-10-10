@@ -54,16 +54,24 @@ interface InstantTradeActionProps {
   locked?: boolean;
   initialSellToken?: TokenMetadata;
   initialBuyToken?: TokenMetadata;
+  /**
+   * When true, activate TanStack Router search syncing (read from and write to the URL).
+   * When false (default), the component ignores URL search params entirely.
+   */
+  useSearchHook?: boolean;
 }
 
 export const InstantTradeAction = ({
   locked = false,
   initialSellToken,
   initialBuyToken,
+  useSearchHook = false,
 }: InstantTradeActionProps) => {
-  // URL hooks
+  // URL hooks (bind to the *current* route so it is safe on "/" and "/swap")
   const navigate = useNavigate();
-  const search = useSearch({ from: "/swap" }) as {
+  const search = useSearch(
+    useSearchHook === true ? { from: "/swap" } : { from: "/" },
+  ) as {
     sellToken?: string;
     buyToken?: string;
   };
@@ -118,9 +126,10 @@ export const InstantTradeAction = ({
   }, [sellToken?.id, buyToken?.id]);
 
   // ------------------------------
-  // URL → State (decode once tokens are known)
+  // URL → State (decode once tokens are known) — only when useSearchHook=true
   // ------------------------------
   useEffect(() => {
+    if (!useSearchHook) return; // 🚫 do nothing when disabled
     if (!tokens?.length) return;
 
     // Resolve flexible queries from URL (addr:id | addr | symbol | id)
@@ -157,7 +166,7 @@ export const InstantTradeAction = ({
 
     if (needsCanonSell || needsCanonBuy || needsFill) {
       navigate({
-        to: "/swap",
+        to: ".",
         replace: true,
         search: (s: any) => ({
           ...s,
@@ -167,16 +176,17 @@ export const InstantTradeAction = ({
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tokens]);
+  }, [tokens, useSearchHook]);
 
   // ------------------------------
-  // State → URL (keep URL in sync whenever selected tokens change)
+  // State → URL (keep URL in sync whenever selected tokens change) — only when useSearchHook=true
   // ------------------------------
   useEffect(() => {
+    if (!useSearchHook) return; // 🚫 do nothing when disabled
     if (!sellToken || !buyToken) return;
 
     navigate({
-      to: "/swap",
+      to: ".",
       replace: true,
       search: (s: any) => ({
         ...s,
@@ -184,7 +194,7 @@ export const InstantTradeAction = ({
         buyToken: encodeTokenQ(buyToken),
       }),
     });
-  }, [sellToken, buyToken, navigate]);
+  }, [sellToken, buyToken, navigate, useSearchHook]);
 
   // Hydrate current selections with balances (without changing which token is selected)
   useEffect(() => {
@@ -195,7 +205,6 @@ export const InstantTradeAction = ({
       sameToken(sellToken, ETH_TOKEN) && sameToken(buyToken, ZAMM_TOKEN);
     if (!stillDefaultPair || userChangedPairRef.current) {
       // even if user changed, still attempt balance hydration without changing ids
-      // (same behavior as positions page)
     }
 
     const BALANCE_KEYS = ["balance", "rawBalance", "formattedBalance"] as const;
@@ -287,16 +296,18 @@ export const InstantTradeAction = ({
     setBuyAmount("");
     setLastEditedField("sell");
 
-    // reflect to URL immediately
-    navigate({
-      to: "/swap",
-      replace: true,
-      search: (s: any) => ({
-        ...s,
-        sellToken: encodeTokenQ(token),
-        buyToken: encodeTokenQ(buyToken ?? ZAMM_TOKEN),
-      }),
-    });
+    // reflect to URL immediately (only when enabled)
+    if (useSearchHook) {
+      navigate({
+        to: ".",
+        replace: true,
+        search: (s: any) => ({
+          ...s,
+          sellToken: encodeTokenQ(token),
+          buyToken: encodeTokenQ(buyToken ?? ZAMM_TOKEN),
+        }),
+      });
+    }
   };
 
   // BUY token cannot be changed when locked
@@ -309,16 +320,18 @@ export const InstantTradeAction = ({
     setBuyAmount("");
     setLastEditedField("buy");
 
-    // reflect to URL immediately
-    navigate({
-      to: "/swap",
-      replace: true,
-      search: (s: any) => ({
-        ...s,
-        sellToken: encodeTokenQ(sellToken ?? ETH_TOKEN),
-        buyToken: encodeTokenQ(token),
-      }),
-    });
+    // reflect to URL immediately (only when enabled)
+    if (useSearchHook) {
+      navigate({
+        to: ".",
+        replace: true,
+        search: (s: any) => ({
+          ...s,
+          sellToken: encodeTokenQ(sellToken ?? ETH_TOKEN),
+          buyToken: encodeTokenQ(token),
+        }),
+      });
+    }
   };
 
   // Flipping is allowed even when locked
@@ -330,19 +343,20 @@ export const InstantTradeAction = ({
     setBuyAmount("");
     setLastEditedField("sell");
 
-    // reflect to URL after flip
-    // NOTE: flip() swaps the state; compute next using current
-    const nextSell = buyToken ?? ZAMM_TOKEN;
-    const nextBuy = sellToken ?? ETH_TOKEN;
-    navigate({
-      to: "/swap",
-      replace: true,
-      search: (s: any) => ({
-        ...s,
-        sellToken: encodeTokenQ(nextSell),
-        buyToken: encodeTokenQ(nextBuy),
-      }),
-    });
+    // reflect to URL after flip (only when enabled)
+    if (useSearchHook) {
+      const nextSell = buyToken ?? ZAMM_TOKEN;
+      const nextBuy = sellToken ?? ETH_TOKEN;
+      navigate({
+        to: ".",
+        replace: true,
+        search: (s: any) => ({
+          ...s,
+          sellToken: encodeTokenQ(nextSell),
+          buyToken: encodeTokenQ(nextBuy),
+        }),
+      });
+    }
   };
 
   // ------------------------------
@@ -511,15 +525,17 @@ export const InstantTradeAction = ({
           clearErrorsOnUserEdit();
           userChangedPairRef.current = true;
           setSellToken(t);
-          navigate({
-            to: "/swap",
-            replace: true,
-            search: (s: any) => ({
-              ...s,
-              sellToken: encodeTokenQ(t),
-              buyToken: encodeTokenQ(buyToken ?? ZAMM_TOKEN),
-            }),
-          });
+          if (useSearchHook) {
+            navigate({
+              to: ".",
+              replace: true,
+              search: (s: any) => ({
+                ...s,
+                sellToken: encodeTokenQ(t),
+                buyToken: encodeTokenQ(buyToken ?? ZAMM_TOKEN),
+              }),
+            });
+          }
         }}
         currentBuyToken={buyToken}
         // BUY token setter disabled only when locked
@@ -530,15 +546,17 @@ export const InstantTradeAction = ({
                 clearErrorsOnUserEdit();
                 userChangedPairRef.current = true;
                 setBuyToken(t);
-                navigate({
-                  to: "/swap",
-                  replace: true,
-                  search: (s: any) => ({
-                    ...s,
-                    sellToken: encodeTokenQ(sellToken ?? ETH_TOKEN),
-                    buyToken: encodeTokenQ(t),
-                  }),
-                });
+                if (useSearchHook) {
+                  navigate({
+                    to: ".",
+                    replace: true,
+                    search: (s: any) => ({
+                      ...s,
+                      sellToken: encodeTokenQ(sellToken ?? ETH_TOKEN),
+                      buyToken: encodeTokenQ(t),
+                    }),
+                  });
+                }
               }
         }
         currentSellAmount={sellAmount}
