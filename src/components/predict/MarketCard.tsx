@@ -300,7 +300,8 @@ export const MarketCard: React.FC<MarketCardProps> = ({
     const totalReserves = rYes + rNo;
     if (totalReserves > 0n) {
       // YES probability uses rNo in numerator (inverse relationship)
-      yesPercent = Number((rNo * 100n) / totalReserves);
+      // Use high precision calculation to avoid BigInt truncation
+      yesPercent = (Number(rNo) / Number(totalReserves)) * 100;
       noPercent = 100 - yesPercent;
     } else {
       yesPercent = 50;
@@ -309,7 +310,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   } else {
     // Parimutuel markets: use total supply directly
     const totalSupply = yesSupply + noSupply;
-    yesPercent = totalSupply > 0n ? Number((yesSupply * 100n) / totalSupply) : 50;
+    yesPercent = totalSupply > 0n ? (Number(yesSupply) / Number(totalSupply)) * 100 : 50;
     noPercent = 100 - yesPercent;
   }
 

@@ -213,7 +213,8 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   if (marketType === "amm" && rYes > 0n && rNo > 0n) {
     const totalReserves = rYes + rNo;
     // YES probability uses rNo in numerator (inverse relationship)
-    yesPercent = Number((rNo * 100n) / totalReserves);
+    // Use high precision calculation to avoid BigInt truncation
+    yesPercent = (Number(rNo) / Number(totalReserves)) * 100;
     noPercent = 100 - yesPercent;
     // For display of reserve values, show actual reserves
     displayYes = rYes;
@@ -221,7 +222,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   } else {
     // Parimutuel markets: use total supply directly
     const totalSupply = yesSupply + noSupply;
-    yesPercent = totalSupply > 0n ? Number((yesSupply * 100n) / totalSupply) : 50;
+    yesPercent = totalSupply > 0n ? (Number(yesSupply) / Number(totalSupply)) * 100 : 50;
     noPercent = 100 - yesPercent;
     displayYes = yesSupply;
     displayNo = noSupply;
