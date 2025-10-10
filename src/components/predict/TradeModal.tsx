@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { parseEther, formatEther, maxUint256 } from "viem";
+import React, { useState } from "react";
+import { parseEther, formatEther } from "viem";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from "wagmi";
 import { toast } from "sonner";
 import { PredictionMarketAddress, PredictionMarketAbi } from "@/constants/PredictionMarket";
