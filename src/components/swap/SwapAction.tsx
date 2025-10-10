@@ -1,7 +1,7 @@
 import { SwapModeTab } from "@/components/swap/SwapModeTab";
 import { LimitSwapAction } from "@/components/swap//LimitSwapAction";
 import { InstantTradeAction } from "../trade/InstantTradeAction";
-import { useLocation, useRouterState } from "@tanstack/react-router";
+import { useLocation } from "@tanstack/react-router";
 
 interface SwapActionProps {
   action: "instant" | "limit";
