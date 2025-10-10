@@ -5,9 +5,7 @@ export type TokenUriMetadata = {
   symbol?: string;
   description?: string;
   image?: string;
-  attributes?:
-    | Record<string, string>
-    | Array<{ trait_type?: string; value?: string }>;
+  attributes?: Record<string, string> | Array<{ trait_type?: string; value?: string }>;
 };
 
 function ensureProtocol(u: string): string {
@@ -28,9 +26,7 @@ function toXLink(h: string): string {
 }
 
 /** Extract attributes as a simple string map from either object or array shape */
-function extractAttributesMap(
-  meta: TokenUriMetadata | null | undefined,
-): Record<string, string> {
+function extractAttributesMap(meta: TokenUriMetadata | null | undefined): Record<string, string> {
   const result: Record<string, string> = {};
   if (!meta?.attributes) return result;
 
@@ -48,9 +44,7 @@ function extractAttributesMap(
   return result;
 }
 
-export function buildProjectLinksFromMetadata(
-  meta: TokenUriMetadata | null | undefined,
-): Array<{
+export function buildProjectLinksFromMetadata(meta: TokenUriMetadata | null | undefined): Array<{
   key: string;
   label: string;
   href: string;
@@ -62,9 +56,7 @@ export function buildProjectLinksFromMetadata(
   const website = ensureProtocol(attrs["website"]);
   const twitter = attrs["twitter"] ? toXLink(attrs["twitter"]) : "";
   const discord = ensureProtocol(attrs["discord_invite"] || attrs["discord"]);
-  const telegram = ensureProtocol(
-    attrs["telegram_invite"] || attrs["telegram"],
-  );
+  const telegram = ensureProtocol(attrs["telegram_invite"] || attrs["telegram"]);
 
   const out: Array<{
     key: string;
@@ -110,9 +102,7 @@ export function buildProjectLinksFromMetadata(
   return out;
 }
 
-export function buildProjectLinks(
-  state: any,
-): Array<{ label: string; href: string; title: string }> {
+export function buildProjectLinks(state: any): Array<{ label: string; href: string; title: string }> {
   const out: Array<{ label: string; href: string; title: string }> = [];
 
   const website = ensureProtocol(state.website || "");

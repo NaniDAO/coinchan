@@ -64,8 +64,9 @@ export const CookbookFarmTab = ({
   });
 
   // Get farms for this pool
-  const { data: poolFarms, isLoading: isLoadingStreams } =
-    useIncentiveStreamsByLpPool(poolId ? BigInt(poolId) : undefined);
+  const { data: poolFarms, isLoading: isLoadingStreams } = useIncentiveStreamsByLpPool(
+    poolId ? BigInt(poolId) : undefined,
+  );
 
   // Get fresh reserves for the pool
   const { data: poolReserves } = useReserves({
@@ -122,10 +123,7 @@ export const CookbookFarmTab = ({
   // Calculate total staked across all farms
   const totalStaked = useMemo(() => {
     if (!filteredFarms) return 0n;
-    return filteredFarms.reduce(
-      (acc, farm) => acc + (farm.totalShares || 0n),
-      0n,
-    );
+    return filteredFarms.reduce((acc, farm) => acc + (farm.totalShares || 0n), 0n);
   }, [filteredFarms]);
 
   if (isLoadingStreams) {
@@ -144,41 +142,27 @@ export const CookbookFarmTab = ({
       {/* Pool Stats */}
       {poolReserves && (
         <div className="bg-gradient-to-r from-primary/5 to-primary/10 border-2 border-primary/20 rounded-lg p-4">
-          <h3 className="font-mono font-bold text-primary mb-3">
-            {t("common.pool_overview")}
-          </h3>
+          <h3 className="font-mono font-bold text-primary mb-3">{t("common.pool_overview")}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="bg-background/50 border border-primary/20 rounded p-3">
-              <p className="text-xs text-muted-foreground font-mono">
-                {t("common.eth_liquidity")}
-              </p>
+              <p className="text-xs text-muted-foreground font-mono">{t("common.eth_liquidity")}</p>
               <p className="font-mono font-bold">
-                {formatCompactLiquidity(
-                  Number(formatEther(poolReserves.reserve0)),
-                )}{" "}
-                ETH
+                {formatCompactLiquidity(Number(formatEther(poolReserves.reserve0)))} ETH
               </p>
             </div>
             <div className="bg-background/50 border border-primary/20 rounded p-3">
               <p className="text-xs text-muted-foreground font-mono">
-                {coinSymbol || coinData?.symbol || "Token"}{" "}
-                {t("common.reserves")}
+                {coinSymbol || coinData?.symbol || "Token"} {t("common.reserves")}
               </p>
               <p className="font-mono font-bold">
-                {formatCompactLiquidity(
-                  Number(formatEther(poolReserves.reserve1)),
-                )}{" "}
+                {formatCompactLiquidity(Number(formatEther(poolReserves.reserve1)))}{" "}
                 {coinSymbol || coinData?.symbol || ""}
               </p>
             </div>
             {totalStaked > 0n && (
               <div className="bg-background/50 border border-primary/20 rounded p-3">
-                <p className="text-xs text-muted-foreground font-mono">
-                  {t("common.total_staked")}
-                </p>
-                <p className="font-mono font-bold">
-                  {formatCompactLiquidity(Number(formatEther(totalStaked)))} LP
-                </p>
+                <p className="text-xs text-muted-foreground font-mono">{t("common.total_staked")}</p>
+                <p className="font-mono font-bold">{formatCompactLiquidity(Number(formatEther(totalStaked)))} LP</p>
               </div>
             )}
           </div>
@@ -196,13 +180,7 @@ export const CookbookFarmTab = ({
             if (!stream || !stream.chefId) {
               return null;
             }
-            return (
-              <IncentiveStreamCard
-                key={stream.chefId.toString()}
-                stream={stream}
-                lpToken={lpToken}
-              />
-            );
+            return <IncentiveStreamCard key={stream.chefId.toString()} stream={stream} lpToken={lpToken} />;
           })}
         </div>
       ) : (

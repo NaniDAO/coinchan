@@ -124,45 +124,47 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
 
   if (!hasPMMarkets && !hasAMMMarkets) {
     return (
-      <div className="text-center py-12 text-muted-foreground">
-        No prediction markets yet. Create the first one!
-      </div>
+      <div className="text-center py-12 text-muted-foreground">No prediction markets yet. Create the first one!</div>
     );
   }
 
   // Parse Pari-Mutuel markets
-  const pmMarkets = hasPMMarkets ? {
-    marketIdsArray: marketsData![0],
-    yesSupplies: marketsData![1],
-    noSupplies: marketsData![2],
-    resolvers: marketsData![3],
-    resolved: marketsData![4],
-    outcome: marketsData![5],
-    pot: marketsData![6],
-    payoutPerShare: marketsData![7],
-    descs: marketsData![8],
-    next: marketsData![9],
-  } : null;
+  const pmMarkets = hasPMMarkets
+    ? {
+        marketIdsArray: marketsData![0],
+        yesSupplies: marketsData![1],
+        noSupplies: marketsData![2],
+        resolvers: marketsData![3],
+        resolved: marketsData![4],
+        outcome: marketsData![5],
+        pot: marketsData![6],
+        payoutPerShare: marketsData![7],
+        descs: marketsData![8],
+        next: marketsData![9],
+      }
+    : null;
 
   // Parse AMM markets - note the AMM contract returns more fields
-  const ammMarkets = hasAMMMarkets ? {
-    marketIdsArray: ammMarketsData![0],
-    yesSupplies: ammMarketsData![1],
-    noSupplies: ammMarketsData![2],
-    resolvers: ammMarketsData![3],
-    resolved: ammMarketsData![4],
-    outcome: ammMarketsData![5],
-    pot: ammMarketsData![6],
-    payoutPerShare: ammMarketsData![7],
-    descs: ammMarketsData![8],
-    closes: ammMarketsData![9],
-    canCloses: ammMarketsData![10],
-    rYesArr: ammMarketsData![11],
-    rNoArr: ammMarketsData![12],
-    pYesNumArr: ammMarketsData![13],
-    pYesDenArr: ammMarketsData![14],
-    next: ammMarketsData![15],
-  } : null;
+  const ammMarkets = hasAMMMarkets
+    ? {
+        marketIdsArray: ammMarketsData![0],
+        yesSupplies: ammMarketsData![1],
+        noSupplies: ammMarketsData![2],
+        resolvers: ammMarketsData![3],
+        resolved: ammMarketsData![4],
+        outcome: ammMarketsData![5],
+        pot: ammMarketsData![6],
+        payoutPerShare: ammMarketsData![7],
+        descs: ammMarketsData![8],
+        closes: ammMarketsData![9],
+        canCloses: ammMarketsData![10],
+        rYesArr: ammMarketsData![11],
+        rNoArr: ammMarketsData![12],
+        pYesNumArr: ammMarketsData![13],
+        pYesDenArr: ammMarketsData![14],
+        next: ammMarketsData![15],
+      }
+    : null;
 
   // Extract user positions data for both types
   const userPositions = userMarketsData
@@ -267,9 +269,7 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
   const activeCount = allMarkets.filter((m) => m.tradingOpen && !m.resolved).length;
   const closedCount = allMarkets.filter((m) => !m.tradingOpen && !m.resolved).length;
   const resolvedCount = allMarkets.filter((m) => m.resolved).length;
-  const positionsCount = allMarkets.filter(
-    (m) => m.userYesBalance > 0n || m.userNoBalance > 0n
-  ).length;
+  const positionsCount = allMarkets.filter((m) => m.userYesBalance > 0n || m.userNoBalance > 0n).length;
   const pmCount = allMarkets.filter((m) => m.marketType === "parimutuel").length;
   const ammCount = allMarkets.filter((m) => m.marketType === "amm").length;
 

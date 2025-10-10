@@ -12,12 +12,7 @@ interface ICOLivePreviewProps {
   chefId?: string;
 }
 
-export const ICOLivePreview = ({
-  form,
-  imagePreviewUrl,
-  coinId,
-  chefId,
-}: ICOLivePreviewProps) => {
+export const ICOLivePreview = ({ form, imagePreviewUrl, coinId, chefId }: ICOLivePreviewProps) => {
   const { t } = useTranslation();
   const totalSupply = 1_000_000_000;
   const poolAllocation = 1_000_000; // 0.1%
@@ -82,7 +77,9 @@ export const ICOLivePreview = ({
 
             {/* Token Distribution */}
             <div className="w-full mt-6 border-t border-border pt-4">
-              <Heading level={4} className="font-bold mb-2">{t("ico.token_distribution")}</Heading>
+              <Heading level={4} className="font-bold mb-2">
+                {t("ico.token_distribution")}
+              </Heading>
 
               {/* Total Supply */}
               <div className="mt-3 bg-accent text-accent-foreground p-3 border border-border w-full rounded-md">
@@ -122,12 +119,24 @@ export const ICOLivePreview = ({
                     <p className="truncate text-accent-foreground">
                       {airdropAllocation.toLocaleString()} {form.symbol || "SYMBOL"}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">To <Link to="/c/$coinId" params={{ coinId: "87" }} className="text-primary underline hover:no-underline">veZAMM (87)</Link> holders</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      To{" "}
+                      <Link
+                        to="/c/$coinId"
+                        params={{ coinId: "87" }}
+                        className="text-primary underline hover:no-underline"
+                      >
+                        veZAMM (87)
+                      </Link>{" "}
+                      holders
+                    </p>
                   </div>
 
                   <p className="font-bold text-foreground">{t("ico.creator_allocation_fair")}</p>
                   <div className="min-w-0 max-w-full">
-                    <p className="truncate text-accent-foreground">{creatorAllocation} {form.symbol || "SYMBOL"}</p>
+                    <p className="truncate text-accent-foreground">
+                      {creatorAllocation} {form.symbol || "SYMBOL"}
+                    </p>
                     <p className="text-xs text-muted-foreground mt-1">{t("ico.fair_launch_no_creator")}</p>
                   </div>
                 </div>
@@ -144,7 +153,9 @@ export const ICOLivePreview = ({
                   <p className="text-accent-foreground">1 ETH = 1,000,000,000 {form.symbol || "SYMBOL"}</p>
 
                   <p className="font-semibold text-foreground">{t("ico.swap_fee")}</p>
-                  <p className="text-accent-foreground">{feeBps.toString()} bps ({feePercent.toFixed(2)}%)</p>
+                  <p className="text-accent-foreground">
+                    {feeBps.toString()} bps ({feePercent.toFixed(2)}%)
+                  </p>
 
                   <p className="font-semibold text-foreground">{t("ico.pool_type")}</p>
                   <p className="text-accent-foreground">zAMM ETH/{form.symbol || "SYMBOL"}</p>
@@ -156,16 +167,34 @@ export const ICOLivePreview = ({
                 <p className="font-bold text-lg mb-3">{t("ico.incentive_structure")}</p>
                 <div className="grid grid-cols-[max-content,1fr] gap-x-4 gap-y-3 items-start w-full">
                   <p className="font-semibold text-foreground">{t("ico.lp_staking")}</p>
-                  <p className="text-accent-foreground">{t("ico.stake_lp_mine", { symbol: form.symbol || "SYMBOL" })}</p>
+                  <p className="text-accent-foreground">
+                    {t("ico.stake_lp_mine", { symbol: form.symbol || "SYMBOL" })}
+                  </p>
 
                   <p className="font-semibold text-foreground">{t("ico.mining_duration")}</p>
-                  <p className="text-accent-foreground">{form.incentiveDuration} {t("common.days")}</p>
+                  <p className="text-accent-foreground">
+                    {form.incentiveDuration} {t("common.days")}
+                  </p>
 
                   <p className="font-semibold text-foreground">{t("ico.daily_emission")}</p>
-                  <p className="text-accent-foreground">{t("ico.tokens_per_day", { amount: Math.floor(lpMiningAllocation / form.incentiveDuration).toLocaleString(), symbol: form.symbol || "SYMBOL" })}</p>
+                  <p className="text-accent-foreground">
+                    {t("ico.tokens_per_day", {
+                      amount: Math.floor(lpMiningAllocation / form.incentiveDuration).toLocaleString(),
+                      symbol: form.symbol || "SYMBOL",
+                    })}
+                  </p>
 
                   <p className="font-semibold text-foreground">{t("ico.airdrop_exchange")}</p>
-                  <p className="text-accent-foreground">{t("ico.exchange_rate", { symbol: form.symbol || "SYMBOL" }).split("veZAMM (87)")[0]}<Link to="/c/$coinId" params={{ coinId: "87" }} className="text-primary underline hover:no-underline">veZAMM (87)</Link></p>
+                  <p className="text-accent-foreground">
+                    {t("ico.exchange_rate", { symbol: form.symbol || "SYMBOL" }).split("veZAMM (87)")[0]}
+                    <Link
+                      to="/c/$coinId"
+                      params={{ coinId: "87" }}
+                      className="text-primary underline hover:no-underline"
+                    >
+                      veZAMM (87)
+                    </Link>
+                  </p>
 
                   <p className="font-semibold text-foreground">{t("ico.eth_zap")}</p>
                   <p className="text-accent-foreground">{t("ico.direct_eth_staking")}</p>

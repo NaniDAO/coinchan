@@ -42,9 +42,7 @@ export const useCoinTotalSupply = (coinId: string, reserves?: any) => {
         }
 
         // For cookbook coins, add pool reserves if not already counted
-        const cookbookHolder = allHolders.find(
-          (h: any) => h.address.toLowerCase() === CookbookAddress.toLowerCase(),
-        );
+        const cookbookHolder = allHolders.find((h: any) => h.address.toLowerCase() === CookbookAddress.toLowerCase());
 
         if (reserves?.reserve1) {
           if (!cookbookHolder || BigInt(cookbookHolder.balance) === 0n) {

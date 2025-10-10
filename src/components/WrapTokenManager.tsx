@@ -14,10 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 
-import {
-  ERC6909ERC20WrapperAbi,
-  ERC6909ERC20WrapperAddress,
-} from "@/constants/ERC6909ERC20Wrapper";
+import { ERC6909ERC20WrapperAbi, ERC6909ERC20WrapperAddress } from "@/constants/ERC6909ERC20Wrapper";
 import { useOperatorStatus } from "@/hooks/use-operator-status";
 import { erc6909Abi } from "zrouter-sdk";
 import { getSourceByContract } from "@/lib/protocol";
@@ -31,25 +28,20 @@ export const WrapTokenManager = ({ token }: Props) => {
   const { address } = useAccount();
   const { writeContractAsync } = useWriteContract();
   const publicClient = usePublicClient();
-  const { data: operatorStatus, refetch: refetchOperatorStatus } =
-    useOperatorStatus({
-      address,
-      operator: ERC6909ERC20WrapperAddress,
-      tokenId: token?.id ?? 0n,
-    });
+  const { data: operatorStatus, refetch: refetchOperatorStatus } = useOperatorStatus({
+    address,
+    operator: ERC6909ERC20WrapperAddress,
+    tokenId: token?.id ?? 0n,
+  });
 
   const [tab, setTab] = useState<"wrap" | "unwrap">("wrap");
   const [amount, setAmount] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const decimals =
-    token && Number.isFinite(token?.decimals) ? token?.decimals : 18;
+  const decimals = token && Number.isFinite(token?.decimals) ? token?.decimals : 18;
 
-  const humanBalance =
-    token && token?.balance !== undefined
-      ? formatUnits(token?.balance as bigint, decimals)
-      : "0";
+  const humanBalance = token && token?.balance !== undefined ? formatUnits(token?.balance as bigint, decimals) : "0";
 
   const hasPositiveAmount = useMemo(() => {
     const n = Number(amount);
@@ -140,18 +132,13 @@ export const WrapTokenManager = ({ token }: Props) => {
         <div className="space-y-3">
           <Heading level={4}>Token Wrap Manager</Heading>
           <p className="text-xs text-muted-foreground">
-            {token?.symbol ?? "Token"} · ID: {String(token?.id)} · Decimals:{" "}
-            {decimals}
+            {token?.symbol ?? "Token"} · ID: {String(token?.id)} · Decimals: {decimals}
           </p>
         </div>
 
         <Separator />
 
-        <Tabs
-          value={tab}
-          onValueChange={(v) => setTab(v as "wrap" | "unwrap")}
-          className="w-full"
-        >
+        <Tabs value={tab} onValueChange={(v) => setTab(v as "wrap" | "unwrap")} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="wrap">Wrap</TabsTrigger>
             <TabsTrigger value="unwrap">Unwrap</TabsTrigger>
@@ -190,20 +177,12 @@ export const WrapTokenManager = ({ token }: Props) => {
                   </Button>
                 </div>
 
-                <p className="text-xs text-muted-foreground">
-                  Wrap ERC-6909 units into their ERC-20 representation.
-                </p>
+                <p className="text-xs text-muted-foreground">Wrap ERC-6909 units into their ERC-20 representation.</p>
               </div>
 
-              {errorMsg && tab === "wrap" && (
-                <p className="text-xs text-destructive">{errorMsg}</p>
-              )}
+              {errorMsg && tab === "wrap" && <p className="text-xs text-destructive">{errorMsg}</p>}
 
-              <Button
-                className="w-full"
-                disabled={disabled && tab === "wrap"}
-                onClick={() => handleTx("wrap")}
-              >
+              <Button className="w-full" disabled={disabled && tab === "wrap"} onClick={() => handleTx("wrap")}>
                 {submitting ? "Wrapping..." : "Wrap"}
               </Button>
             </div>
@@ -230,9 +209,7 @@ export const WrapTokenManager = ({ token }: Props) => {
                 </p>
               </div>
 
-              {errorMsg && tab === "unwrap" && (
-                <p className="text-xs text-destructive">{errorMsg}</p>
-              )}
+              {errorMsg && tab === "unwrap" && <p className="text-xs text-destructive">{errorMsg}</p>}
 
               <Button
                 variant="secondary"

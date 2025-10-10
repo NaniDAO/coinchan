@@ -4,13 +4,7 @@ import { ResponsiveContainer, Tooltip, Treemap } from "recharts";
 import { type Address, formatUnits, getAddress } from "viem";
 import { useEnsName } from "wagmi";
 import { Table, TableBody, TableCell, TableHead, TableRow } from "./ui/table";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "./ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { ZAMMAddress } from "@/constants/ZAAM";
 import { CookbookAddress } from "@/constants/Cookbook";
 import { useReserves } from "@/hooks/use-reserves";
@@ -113,19 +107,12 @@ export const CoinHolders = ({
   });
 
   // Separate different types of holders
-  const poolAddresses = [
-    ZAMMAddress.toLowerCase(),
-    CookbookAddress.toLowerCase(),
-  ];
+  const poolAddresses = [ZAMMAddress.toLowerCase(), CookbookAddress.toLowerCase()];
   const [poolHolders, userHolders] = useMemo(() => {
     if (!data) return [[], []];
 
-    const poolHolders = data.filter((holder) =>
-      poolAddresses.includes(holder.address.toLowerCase()),
-    );
-    const userHolders = data.filter(
-      (holder) => !poolAddresses.includes(holder.address.toLowerCase()),
-    );
+    const poolHolders = data.filter((holder) => poolAddresses.includes(holder.address.toLowerCase()));
+    const userHolders = data.filter((holder) => !poolAddresses.includes(holder.address.toLowerCase()));
 
     return [poolHolders, userHolders];
   }, [data]);
@@ -137,30 +124,19 @@ export const CoinHolders = ({
       return reserves.reserve1;
     }
     // For ZAMM pools, use the holder balance
-    return poolHolders.reduce(
-      (acc, holder) => acc + BigInt(holder.balance),
-      BigInt(0),
-    );
+    return poolHolders.reduce((acc, holder) => acc + BigInt(holder.balance), BigInt(0));
   }, [isCookbook, reserves, poolHolders]);
 
-  const userBalance = userHolders.reduce(
-    (acc, holder) => acc + BigInt(holder.balance),
-    BigInt(0),
-  );
+  const userBalance = userHolders.reduce((acc, holder) => acc + BigInt(holder.balance), BigInt(0));
 
   // Calculate total supply - for cookbook coins, add pool reserves to holder totals
   const totalSupply = useMemo(() => {
     if (!data) return BigInt(0);
-    const holderTotal = data.reduce(
-      (acc, holder) => acc + BigInt(holder.balance),
-      BigInt(0),
-    );
+    const holderTotal = data.reduce((acc, holder) => acc + BigInt(holder.balance), BigInt(0));
     if (isCookbook && reserves?.reserve1) {
       // For cookbook coins, add the pool reserves to the total
       // But don't double-count if the Cookbook address is already in the holders list
-      const cookbookHolding = data.find(
-        (h) => h.address.toLowerCase() === CookbookAddress.toLowerCase(),
-      );
+      const cookbookHolding = data.find((h) => h.address.toLowerCase() === CookbookAddress.toLowerCase());
       if (!cookbookHolding || BigInt(cookbookHolding.balance) === 0n) {
         return holderTotal + reserves.reserve1;
       }
@@ -168,10 +144,8 @@ export const CoinHolders = ({
     return holderTotal;
   }, [data, isCookbook, reserves]);
 
-  const poolPercentage =
-    totalSupply > 0n ? (Number(poolBalance) / Number(totalSupply)) * 100 : 0;
-  const userPercentage =
-    totalSupply > 0n ? (Number(userBalance) / Number(totalSupply)) * 100 : 0;
+  const poolPercentage = totalSupply > 0n ? (Number(poolBalance) / Number(totalSupply)) * 100 : 0;
+  const userPercentage = totalSupply > 0n ? (Number(userBalance) / Number(totalSupply)) * 100 : 0;
 
   if (isLoading || !data) return <div>{t("common.loading")}</div>;
   if (error)
@@ -189,10 +163,7 @@ export const CoinHolders = ({
           <CardHeader>
             <CardTitle>{t("holders.pool_holdings", "Pool Holdings")}</CardTitle>
             <CardDescription>
-              {t(
-                "holders.pool_description",
-                "Liquidity held by ZAMM and Cookbook pools",
-              )}
+              {t("holders.pool_description", "Liquidity held by ZAMM and Cookbook pools")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -201,9 +172,7 @@ export const CoinHolders = ({
                 // For cookbook coins, show the pool reserves
                 <div className="flex justify-between items-center p-2 rounded bg-muted/50">
                   <div>
-                    <div className="font-medium">
-                      {t("holders.cookbook_pool", "V1 Pool")}
-                    </div>
+                    <div className="font-medium">{t("holders.cookbook_pool", "V1 Pool")}</div>
                     <div className="text-sm text-muted-foreground">
                       {CookbookAddress.slice(0, 6)}...
                       {CookbookAddress.slice(-4)}
@@ -213,31 +182,20 @@ export const CoinHolders = ({
                     <div className="font-medium">
                       {Number(formatUnits(poolBalance, 18)).toFixed(4)} {symbol}
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      {poolPercentage.toFixed(2)}%
-                    </div>
+                    <div className="text-sm text-muted-foreground">{poolPercentage.toFixed(2)}%</div>
                   </div>
                 </div>
               ) : (
                 // For ZAMM pools, show holder-based pool holdings
                 poolHolders.map((holder, index) => {
-                  const isZAMM =
-                    holder.address.toLowerCase() === ZAMMAddress.toLowerCase();
-                  const poolName = isZAMM
-                    ? t("holders.zamm_pool", "V0 Pool")
-                    : t("holders.cookbook_pool", "V1 Pool");
+                  const isZAMM = holder.address.toLowerCase() === ZAMMAddress.toLowerCase();
+                  const poolName = isZAMM ? t("holders.zamm_pool", "V0 Pool") : t("holders.cookbook_pool", "V1 Pool");
                   const balance = formatUnits(BigInt(holder.balance), 18);
                   const percentage =
-                    totalSupply > 0n
-                      ? (Number(BigInt(holder.balance)) / Number(totalSupply)) *
-                        100
-                      : 0;
+                    totalSupply > 0n ? (Number(BigInt(holder.balance)) / Number(totalSupply)) * 100 : 0;
 
                   return (
-                    <div
-                      key={index}
-                      className="flex justify-between items-center p-2 rounded bg-muted/50"
-                    >
+                    <div key={index} className="flex justify-between items-center p-2 rounded bg-muted/50">
                       <div>
                         <div className="font-medium">{poolName}</div>
                         <div className="text-sm text-muted-foreground">
@@ -249,9 +207,7 @@ export const CoinHolders = ({
                         <div className="font-medium">
                           {Number(balance).toFixed(4)} {symbol}
                         </div>
-                        <div className="text-sm text-muted-foreground">
-                          {percentage.toFixed(2)}%
-                        </div>
+                        <div className="text-sm text-muted-foreground">{percentage.toFixed(2)}%</div>
                       </div>
                     </div>
                   );
@@ -259,9 +215,7 @@ export const CoinHolders = ({
               )}
               <div className="pt-2 mt-2 border-t">
                 <div className="flex justify-between items-center font-medium">
-                  <span>
-                    {t("holders.total_pool_holdings", "Total Pool Holdings")}
-                  </span>
+                  <span>{t("holders.total_pool_holdings", "Total Pool Holdings")}</span>
                   <span>{poolPercentage.toFixed(2)}%</span>
                 </div>
               </div>
@@ -273,9 +227,7 @@ export const CoinHolders = ({
       {/* Circulating Supply Summary */}
       <Card>
         <CardHeader>
-          <CardTitle>
-            {t("holders.distribution_summary", "Token Distribution Summary")}
-          </CardTitle>
+          <CardTitle>{t("holders.distribution_summary", "Token Distribution Summary")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
@@ -299,9 +251,7 @@ export const CoinHolders = ({
 
       {/* User Holders */}
       <div>
-        <h3 className="text-lg font-semibold mb-2">
-          {t("holders.actual_holders", "Actual Token Holders")}
-        </h3>
+        <h3 className="text-lg font-semibold mb-2">{t("holders.actual_holders", "Actual Token Holders")}</h3>
         <p className="text-sm text-muted-foreground mb-4">
           {t("holders.actual_holders_description", "Excluding pool liquidity")}
         </p>
@@ -341,13 +291,7 @@ export const CoinHoldersTreemap = ({ data }: { data: Holder[] }) => {
             content={({ payload }) => {
               if (!payload || payload.length === 0) return null;
               const item = payload[0].payload;
-              return (
-                <CoinHolderTag
-                  address={item.address}
-                  balance={item.size}
-                  symbol={item.symbol}
-                />
-              );
+              return <CoinHolderTag address={item.address} balance={item.size} symbol={item.symbol} />;
             }}
           />
         </Treemap>
@@ -437,11 +381,7 @@ const CustomTreemapContent = (props: any) => {
   const { x, y, width, height, address, color } = props;
 
   return (
-    <a
-      href={`https://etherscan.io/address/${address}`}
-      target="_blank"
-      rel="noopener noreferrer"
-    >
+    <a href={`https://etherscan.io/address/${address}`} target="_blank" rel="noopener noreferrer">
       <g>
         <rect
           x={x}
@@ -456,13 +396,7 @@ const CustomTreemapContent = (props: any) => {
           }}
         />
         {width > 60 && height > 20 ? (
-          <text
-            x={x + width / 2}
-            y={y + height / 2}
-            textAnchor="middle"
-            fill="#fff"
-            fontSize={12}
-          >
+          <text x={x + width / 2} y={y + height / 2} textAnchor="middle" fill="#fff" fontSize={12}>
             {/* {name} */}
           </text>
         ) : null}
@@ -481,10 +415,7 @@ const CoinHoldersTable = ({
   symbol: string;
 }) => {
   const { t } = useTranslation();
-  const totalSupply = data.reduce(
-    (acc, holder) => acc + BigInt(holder.balance),
-    BigInt(0),
-  );
+  const totalSupply = data.reduce((acc, holder) => acc + BigInt(holder.balance), BigInt(0));
 
   return (
     <Table>
@@ -542,11 +473,7 @@ export const CoinHolderTableRow = ({
         {Number(
           (
             (Number.parseFloat(formatUnits(BigInt(balance), 18)) /
-              Number.parseFloat(
-                totalSupply
-                  ? formatUnits(totalSupply, 18)
-                  : DEFAULT_TOTAL_SUPPLY.toString(),
-              )) *
+              Number.parseFloat(totalSupply ? formatUnits(totalSupply, 18) : DEFAULT_TOTAL_SUPPLY.toString())) *
             100
           ).toString(),
         ).toFixed(4)}

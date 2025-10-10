@@ -41,12 +41,7 @@ export const CreateMarketForm: React.FC<CreateMarketFormProps> = ({ onMarketCrea
   const { t } = useTranslation();
   const { address: account } = useAccount();
 
-  const {
-    writeContractAsync,
-    data: hash,
-    isPending,
-    error: writeError,
-  } = useWriteContract();
+  const { writeContractAsync, data: hash, isPending, error: writeError } = useWriteContract();
 
   const { isSuccess: txSuccess, isLoading: txLoading } = useWaitForTransactionReceipt({ hash });
 
@@ -85,10 +80,22 @@ export const CreateMarketForm: React.FC<CreateMarketFormProps> = ({ onMarketCrea
 
   // ENS resolution for resolver field
   const isEnsName = form.resolver.includes(".") && !form.resolver.startsWith("0x");
+
+  // Safely normalize ENS name, catching any errors during typing
+  let normalizedEnsName: string | undefined;
+  if (isEnsName) {
+    try {
+      normalizedEnsName = normalize(form.resolver);
+    } catch (e) {
+      // Invalid ENS name while typing, will be handled gracefully
+      normalizedEnsName = undefined;
+    }
+  }
+
   const { data: ensAddress, isLoading: isResolvingEns } = useEnsAddress({
-    name: isEnsName ? normalize(form.resolver) : undefined,
+    name: normalizedEnsName,
     query: {
-      enabled: isEnsName,
+      enabled: !!normalizedEnsName,
     },
   });
 
@@ -193,10 +200,12 @@ export const CreateMarketForm: React.FC<CreateMarketFormProps> = ({ onMarketCrea
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
   <rect width="400" height="400" fill="${bgColor}"/>
   <text x="200" y="200" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#000000" text-anchor="middle" dominant-baseline="middle">
-${lines.map((line, i) => {
-  const offset = (i - (lines.length - 1) / 2) * 30;
-  return `    <tspan x="200" dy="${i === 0 ? offset : 30}">${line}</tspan>`;
-}).join("\n")}
+${lines
+  .map((line, i) => {
+    const offset = (i - (lines.length - 1) / 2) * 30;
+    return `    <tspan x="200" dy="${i === 0 ? offset : 30}">${line}</tspan>`;
+  })
+  .join("\n")}
   </text>
 </svg>`;
 
@@ -224,7 +233,7 @@ ${lines.map((line, i) => {
       if (isEnsName) {
         if (isResolvingEns) {
           toast.info("Resolving ENS name…");
-          await new Promise(resolve => setTimeout(resolve, 500)); // Brief wait for resolution
+          await new Promise((resolve) => setTimeout(resolve, 500)); // Brief wait for resolution
         }
         if (!ensAddress) {
           toast.error("Could not resolve ENS name");
@@ -290,12 +299,7 @@ ${lines.map((line, i) => {
           address: PredictionMarketAddress as `0x${string}`,
           abi: PredictionMarketAbi,
           functionName: "createMarket",
-          args: [
-            tokenUri,
-            resolverAddress as `0x${string}`,
-            BigInt(closingTimestamp),
-            parsed.canAccelerateClosing,
-          ],
+          args: [tokenUri, resolverAddress as `0x${string}`, BigInt(closingTimestamp), parsed.canAccelerateClosing],
         });
       } else {
         // AMM-based market (PredictionAMM contract) with sensible default seeding
@@ -419,24 +423,18 @@ ${lines.map((line, i) => {
                           <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs">
-                          <p>
-                            {t("predict.parimutuel_description")}
-                          </p>
+                          <p>{t("predict.parimutuel_description")}</p>
                         </TooltipContent>
                       </Tooltip>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {t("predict.parimutuel_summary")}
-                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">{t("predict.parimutuel_summary")}</p>
                   </div>
                 </div>
               </div>
 
               <div
                 className={`border rounded-lg p-3 cursor-pointer transition-colors ${
-                  form.marketType === "amm"
-                    ? "border-primary bg-primary/5"
-                    : "border-border hover:border-primary/50"
+                  form.marketType === "amm" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
                 }`}
                 onClick={() => setForm((p) => ({ ...p, marketType: "amm" }))}
               >
@@ -456,15 +454,11 @@ ${lines.map((line, i) => {
                           <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs">
-                          <p>
-                            {t("predict.amm_description")}
-                          </p>
+                          <p>{t("predict.amm_description")}</p>
                         </TooltipContent>
                       </Tooltip>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {t("predict.amm_summary")}
-                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">{t("predict.amm_summary")}</p>
                   </div>
                 </div>
               </div>
@@ -473,12 +467,11 @@ ${lines.map((line, i) => {
 
           <div className="grid gap-2">
             <Label htmlFor="image">
-              {t("predict.market_image")} <span className="text-muted-foreground font-normal">({t("common.optional")})</span>
+              {t("predict.market_image")}{" "}
+              <span className="text-muted-foreground font-normal">({t("common.optional")})</span>
             </Label>
             <ImageInput onChange={handleImageChange} />
-            <p className="text-xs text-muted-foreground">
-              {t("predict.image_hint_optional")}
-            </p>
+            <p className="text-xs text-muted-foreground">{t("predict.image_hint_optional")}</p>
           </div>
 
           <div className="grid gap-2">
@@ -490,9 +483,7 @@ ${lines.map((line, i) => {
               placeholder={t("predict.resolver_placeholder")}
             />
             <div className="flex items-start justify-between gap-2">
-              <p className="text-xs text-muted-foreground">
-                {t("predict.resolver_address_help")}
-              </p>
+              <p className="text-xs text-muted-foreground">{t("predict.resolver_address_help")}</p>
               {isResolvingEns && (
                 <p className="text-xs text-blue-500 whitespace-nowrap">{t("predict.resolving_ens")}</p>
               )}
@@ -513,9 +504,7 @@ ${lines.map((line, i) => {
               value={form.closingTime}
               onChange={(e) => setForm((p) => ({ ...p, closingTime: e.target.value }))}
             />
-            <p className="text-xs text-muted-foreground">
-              {t("predict.closing_time_help")}
-            </p>
+            <p className="text-xs text-muted-foreground">{t("predict.closing_time_help")}</p>
             {errors.closingTime && <p className="text-xs text-red-500">{errors.closingTime}</p>}
           </div>
 
@@ -523,9 +512,7 @@ ${lines.map((line, i) => {
             <Switch
               id="canAccelerateClosing"
               checked={form.canAccelerateClosing}
-              onCheckedChange={(checked) =>
-                setForm((p) => ({ ...p, canAccelerateClosing: checked }))
-              }
+              onCheckedChange={(checked) => setForm((p) => ({ ...p, canAccelerateClosing: checked }))}
             />
             <Label htmlFor="canAccelerateClosing" className="flex items-center gap-1">
               {t("predict.allow_resolver_accelerate_closing")}
@@ -534,9 +521,7 @@ ${lines.map((line, i) => {
                   <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
                 </TooltipTrigger>
                 <TooltipContent className="max-w-xs">
-                  <p>
-                    {t("predict.accelerate_closing_help")}
-                  </p>
+                  <p>{t("predict.accelerate_closing_help")}</p>
                 </TooltipContent>
               </Tooltip>
             </Label>
@@ -544,9 +529,7 @@ ${lines.map((line, i) => {
 
           {!account && (
             <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
-              <AlertTitle className="text-blue-800 dark:text-blue-200">
-                {t("common.wallet_required")}
-              </AlertTitle>
+              <AlertTitle className="text-blue-800 dark:text-blue-200">{t("common.wallet_required")}</AlertTitle>
               <AlertDescription className="text-blue-700 dark:text-blue-300">
                 {t("common.connect_wallet_to_continue")}
               </AlertDescription>
@@ -556,17 +539,11 @@ ${lines.map((line, i) => {
           {writeError && (
             <Alert tone="destructive">
               <AlertTitle>{t("common.error")}</AlertTitle>
-              <AlertDescription className="break-words">
-                {writeError.message}
-              </AlertDescription>
+              <AlertDescription className="break-words">{writeError.message}</AlertDescription>
             </Alert>
           )}
 
-          <Button
-            disabled={submitting || isPending || !account}
-            className="w-full"
-            onClick={onSubmit}
-          >
+          <Button disabled={submitting || isPending || !account} className="w-full" onClick={onSubmit}>
             {submitting || isPending ? t("predict.creating") : t("predict.create_market")}
           </Button>
 
@@ -618,9 +595,7 @@ ${lines.map((line, i) => {
             {form.closingTime && (
               <div>
                 <p className="text-xs text-muted-foreground">{t("predict.closes")}</p>
-                <p className="text-sm">
-                  {new Date(form.closingTime).toLocaleString()}
-                </p>
+                <p className="text-sm">{new Date(form.closingTime).toLocaleString()}</p>
               </div>
             )}
           </div>

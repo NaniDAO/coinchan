@@ -252,7 +252,7 @@ export async function buildSwapCalls(params: SwapParams & { publicClient: Public
           : buyToken.poolKey!
         : (computePoolKey(
             isSellETH ? buyToken.id! : sellToken.id!,
-            isSellETH ? (buyToken?.swapFee ?? SWAP_FEE) : (sellToken?.swapFee ?? SWAP_FEE),
+            isSellETH ? buyToken?.swapFee ?? SWAP_FEE : sellToken?.swapFee ?? SWAP_FEE,
             isSellETH
               ? buyToken.source === "ZAMM"
                 ? CoinsAddress

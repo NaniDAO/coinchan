@@ -11,9 +11,7 @@ export const SwapModeTab = () => {
         <Link
           to="/swap"
           className={`px-3 py-1.5 text-xs font-bold uppercase cursor-pointer transition-all duration-100 font-body hover:opacity-80 focus:ring-2 focus:ring-primary/50 focus:outline-none ${
-            location.pathname === "/swap"
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted text-muted-foreground"
+            location.pathname === "/swap" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
           }`}
         >
           {t("swap.instant")}
@@ -21,9 +19,7 @@ export const SwapModeTab = () => {
         <Link
           to="/limit"
           className={`px-3 py-1.5 text-xs font-bold uppercase cursor-pointer transition-all duration-100 font-body hover:opacity-80 focus:ring-2 focus:ring-primary/50 focus:outline-none ${
-            location.pathname === "/limit"
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted text-muted-foreground"
+            location.pathname === "/limit" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
           }`}
         >
           {t("swap.limit_order")}

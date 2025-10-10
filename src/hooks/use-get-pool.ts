@@ -79,10 +79,7 @@ type GetPoolResponse = {
 };
 
 // ----- Fetcher -----
-export const fetchPool = async (
-  poolId: string,
-  source: CoinSource,
-): Promise<Pool | null> => {
+export const fetchPool = async (poolId: string, source: CoinSource): Promise<Pool | null> => {
   const response = await fetch(`${import.meta.env.VITE_INDEXER_URL}/graphql`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

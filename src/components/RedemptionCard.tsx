@@ -54,13 +54,11 @@ export function RedemptionCard({ order, onOrderFilled }: RedemptionCardProps) {
   const veZammBalance = veZammBalanceRaw as bigint | undefined;
 
   // Calculate maximum redeemable amount
-  const remainingInOrder = order.amtIn && order.inDone
-    ? BigInt(order.amtIn) - BigInt(order.inDone)
-    : BigInt(order.amtIn || "0");
+  const remainingInOrder =
+    order.amtIn && order.inDone ? BigInt(order.amtIn) - BigInt(order.inDone) : BigInt(order.amtIn || "0");
 
-  const maxRedeemable = zammBalance && remainingInOrder
-    ? (zammBalance < remainingInOrder ? zammBalance : remainingInOrder)
-    : 0n;
+  const maxRedeemable =
+    zammBalance && remainingInOrder ? (zammBalance < remainingInOrder ? zammBalance : remainingInOrder) : 0n;
 
   // Reset amount when max changes
   useEffect(() => {
@@ -123,12 +121,8 @@ export function RedemptionCard({ order, onOrderFilled }: RedemptionCardProps) {
 
   return (
     <div className="bg-card border-2 border-primary/30 rounded-lg p-4 sm:p-6">
-      <h3 className="font-mono font-bold text-lg text-primary mb-4">
-        [{t("common.redeem_rewards")}]
-      </h3>
-      <p className="font-mono text-sm text-muted-foreground mb-6">
-        {t("common.redeem_vezamm_for_zamm")}
-      </p>
+      <h3 className="font-mono font-bold text-lg text-primary mb-4">[{t("common.redeem_rewards")}]</h3>
+      <p className="font-mono text-sm text-muted-foreground mb-6">{t("common.redeem_vezamm_for_zamm")}</p>
 
       <div className="space-y-4">
         {/* From Token - veZAMM */}
@@ -180,7 +174,9 @@ export function RedemptionCard({ order, onOrderFilled }: RedemptionCardProps) {
           <div className="flex justify-between items-center mb-2">
             <span className="font-mono text-xs text-muted-foreground uppercase">To</span>
             <div className="flex flex-col sm:flex-row gap-1 sm:gap-4 text-xs font-mono text-muted-foreground text-right sm:text-left">
-              <span>{t("common.balance")}: {formatBalance(formatUnits(zammBalance || 0n, 18), "")}</span>
+              <span>
+                {t("common.balance")}: {formatBalance(formatUnits(zammBalance || 0n, 18), "")}
+              </span>
               <span>{t("common.ratio")}: 1:1</span>
             </div>
           </div>
@@ -195,9 +191,7 @@ export function RedemptionCard({ order, onOrderFilled }: RedemptionCardProps) {
               )}
               <span className="font-mono font-bold text-base sm:text-lg">{zammToken.symbol}</span>
             </div>
-            <div className="text-right font-mono font-bold text-sm sm:text-lg">
-              {amount || "0.0"}
-            </div>
+            <div className="text-right font-mono font-bold text-sm sm:text-lg">{amount || "0.0"}</div>
           </div>
         </div>
 
@@ -238,33 +232,25 @@ export function RedemptionCard({ order, onOrderFilled }: RedemptionCardProps) {
                 {txStatus === "pending" && (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent"></div>
-                    <span className="font-mono font-bold text-primary">
-                      [{t("common.status_pending")}]
-                    </span>
+                    <span className="font-mono font-bold text-primary">[{t("common.status_pending")}]</span>
                   </>
                 )}
                 {txStatus === "confirming" && (
                   <>
                     <div className="animate-pulse h-4 w-4 bg-yellow-500 rounded-full"></div>
-                    <span className="font-mono font-bold text-yellow-500">
-                      [{t("common.status_confirming")}]
-                    </span>
+                    <span className="font-mono font-bold text-yellow-500">[{t("common.status_confirming")}]</span>
                   </>
                 )}
                 {txStatus === "success" && (
                   <>
                     <div className="h-4 w-4 bg-green-500 rounded-full"></div>
-                    <span className="font-mono font-bold text-green-500">
-                      [{t("common.status_success")}]
-                    </span>
+                    <span className="font-mono font-bold text-green-500">[{t("common.status_success")}]</span>
                   </>
                 )}
                 {txStatus === "error" && (
                   <>
                     <div className="h-4 w-4 bg-red-500 rounded-full"></div>
-                    <span className="font-mono font-bold text-red-500">
-                      [{t("common.status_error")}]
-                    </span>
+                    <span className="font-mono font-bold text-red-500">[{t("common.status_error")}]</span>
                   </>
                 )}
               </div>
@@ -294,9 +280,7 @@ export function RedemptionCard({ order, onOrderFilled }: RedemptionCardProps) {
 
               {txStatus === "success" && (
                 <div className="text-center">
-                  <p className="text-sm text-green-400 font-mono">
-                    {t("common.redemption_successful")}
-                  </p>
+                  <p className="text-sm text-green-400 font-mono">{t("common.redemption_successful")}</p>
                 </div>
               )}
             </div>

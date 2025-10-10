@@ -52,26 +52,22 @@ const alertVariants = cva(
       {
         emphasis: "soft",
         tone: "default",
-        class:
-          "bg-accent text-accent-foreground before:bg-[color:var(--accent)]/80",
+        class: "bg-accent text-accent-foreground before:bg-[color:var(--accent)]/80",
       },
       {
         emphasis: "soft",
         tone: "info",
-        class:
-          "bg-[color:var(--accent)] text-foreground before:bg-[color:var(--ring)]/60",
+        class: "bg-[color:var(--accent)] text-foreground before:bg-[color:var(--ring)]/60",
       },
       {
         emphasis: "soft",
         tone: "success",
-        class:
-          "bg-[color:var(--secondary)] text-foreground before:bg-[color:var(--primary)]/70",
+        class: "bg-[color:var(--secondary)] text-foreground before:bg-[color:var(--primary)]/70",
       },
       {
         emphasis: "soft",
         tone: "warning",
-        class:
-          "bg-[color:var(--muted)] text-foreground before:bg-[color:var(--terminal-dark-gray)]",
+        class: "bg-[color:var(--muted)] text-foreground before:bg-[color:var(--terminal-dark-gray)]",
       },
       {
         emphasis: "soft",
@@ -95,28 +91,24 @@ const alertVariants = cva(
       {
         emphasis: "solid",
         tone: "success",
-        class:
-          "bg-[color:var(--primary)] text-[color:var(--primary-foreground)] before:bg-[color:var(--primary)]",
+        class: "bg-[color:var(--primary)] text-[color:var(--primary-foreground)] before:bg-[color:var(--primary)]",
       },
       {
         emphasis: "solid",
         tone: "warning",
-        class:
-          "bg-[color:var(--accent)] text-accent-foreground before:bg-[color:var(--accent)]",
+        class: "bg-[color:var(--accent)] text-accent-foreground before:bg-[color:var(--accent)]",
       },
       {
         emphasis: "solid",
         tone: "destructive",
-        class:
-          "bg-[color:var(--destructive)] text-white before:bg-[color:var(--destructive)]",
+        class: "bg-[color:var(--destructive)] text-white before:bg-[color:var(--destructive)]",
       },
 
       // OUTLINE
       {
         emphasis: "outline",
         tone: "default",
-        class:
-          "bg-[color:var(--terminal-white)] dark:bg-card before:bg-[color:var(--accent)]/70",
+        class: "bg-[color:var(--terminal-white)] dark:bg-card before:bg-[color:var(--accent)]/70",
       },
       {
         emphasis: "outline",
@@ -133,17 +125,9 @@ const alertVariants = cva(
   },
 );
 
-type AlertProps = React.ComponentProps<"div"> &
-  VariantProps<typeof alertVariants>;
+type AlertProps = React.ComponentProps<"div"> & VariantProps<typeof alertVariants>;
 
-function Alert({
-  className,
-  tone,
-  emphasis,
-  size,
-  center,
-  ...props
-}: AlertProps) {
+function Alert({ className, tone, emphasis, size, center, ...props }: AlertProps) {
   return (
     <div
       data-slot="alert"
@@ -158,19 +142,13 @@ function AlertTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="alert-title"
-      className={cn(
-        "col-start-2 min-h-4 line-clamp-1 font-medium tracking-tight",
-        className,
-      )}
+      className={cn("col-start-2 min-h-4 line-clamp-1 font-medium tracking-tight", className)}
       {...props}
     />
   );
 }
 
-function AlertDescription({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
+function AlertDescription({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="alert-description"

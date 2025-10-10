@@ -57,12 +57,8 @@ export const ResolverControls: React.FC<ResolverControlsProps> = ({
     return (
       <Card className="p-4 bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
         <div className="flex items-center gap-2">
-          <Badge className="bg-green-600 hover:bg-green-700">
-            {t("predict.resolved")}
-          </Badge>
-          <p className="text-sm text-green-800 dark:text-green-200">
-            {t("predict.market_resolved")}
-          </p>
+          <Badge className="bg-green-600 hover:bg-green-700">{t("predict.resolved")}</Badge>
+          <p className="text-sm text-green-800 dark:text-green-200">{t("predict.market_resolved")}</p>
         </div>
       </Card>
     );
@@ -156,9 +152,7 @@ export const ResolverControls: React.FC<ResolverControlsProps> = ({
         {/* Close Market Button */}
         {canClose && (
           <div className="space-y-2">
-            <p className="text-xs text-muted-foreground">
-              {t("predict.close_market_description")}
-            </p>
+            <p className="text-xs text-muted-foreground">{t("predict.close_market_description")}</p>
             <Button
               onClick={handleCloseMarket}
               disabled={isPending || isTxLoading}
@@ -190,18 +184,14 @@ export const ResolverControls: React.FC<ResolverControlsProps> = ({
               disabled={isPending || isTxLoading || resolvingTo !== null}
               className="bg-green-600 hover:bg-green-700 text-white"
             >
-              {resolvingTo === true && (isPending || isTxLoading)
-                ? t("predict.resolving")
-                : t("predict.resolve_yes")}
+              {resolvingTo === true && (isPending || isTxLoading) ? t("predict.resolving") : t("predict.resolve_yes")}
             </Button>
             <Button
               onClick={() => handleResolve(false)}
               disabled={isPending || isTxLoading || resolvingTo !== null}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
-              {resolvingTo === false && (isPending || isTxLoading)
-                ? t("predict.resolving")
-                : t("predict.resolve_no")}
+              {resolvingTo === false && (isPending || isTxLoading) ? t("predict.resolving") : t("predict.resolve_no")}
             </Button>
           </div>
         )}

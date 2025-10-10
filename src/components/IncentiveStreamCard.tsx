@@ -2,11 +2,7 @@ import { APRDisplay } from "@/components/farm/APRDisplay";
 import { formatImageURL } from "@/hooks/metadata";
 import type { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { useLpBalance } from "@/hooks/use-lp-balance";
-import {
-  useZChefPool,
-  useZChefUserBalance,
-  useZChefUtilities,
-} from "@/hooks/use-zchef-contract";
+import { useZChefPool, useZChefUserBalance, useZChefUtilities } from "@/hooks/use-zchef-contract";
 import { ENS_POOL_ID, WLFI_POOL_ID, type TokenMeta } from "@/lib/coins";
 import { cn, formatBalance } from "@/lib/utils";
 import { useMemo } from "react";
@@ -50,10 +46,7 @@ const formatCompactLiquidity = (value: number): string => {
   }).format(value);
 };
 
-export function IncentiveStreamCard({
-  stream,
-  lpToken,
-}: IncentiveStreamCardProps) {
+export function IncentiveStreamCard({ stream, lpToken }: IncentiveStreamCardProps) {
   const { t } = useTranslation();
   const { calculateTimeRemaining } = useZChefUtilities();
   const { data: creatorEnsName } = useEnsName({ address: stream.creator });
@@ -81,9 +74,7 @@ export function IncentiveStreamCard({
     let formatted = num.toFixed(4);
     // Remove trailing zeros after decimal point, but keep at least 2 decimal places
     if (formatted.includes(".")) {
-      formatted = formatted
-        .replace(/(\.\d{2})\d*?0+$/, "$1")
-        .replace(/\.00$/, ".00");
+      formatted = formatted.replace(/(\.\d{2})\d*?0+$/, "$1").replace(/\.00$/, ".00");
     }
     return includeUnit ? `${formatted} LP` : formatted;
   };
@@ -97,11 +88,7 @@ export function IncentiveStreamCard({
     const now = BigInt(Math.floor(Date.now() / 1000));
 
     // Handle missing or invalid startTime (offline mode fallback)
-    if (
-      !stream.startTime ||
-      stream.startTime === 0n ||
-      stream.startTime >= stream.endTime
-    ) {
+    if (!stream.startTime || stream.startTime === 0n || stream.startTime >= stream.endTime) {
       // Fallback: estimate based on current position
       if (now >= BigInt(stream.endTime)) return 100;
       return 50; // Assume halfway through if we can't calculate
@@ -129,9 +116,7 @@ export function IncentiveStreamCard({
     <div
       className={cn(
         "bg-card text-card-foreground w-full border transform-gpu",
-        hasStakeableTokens || hasStakedTokens
-          ? "border-green-600"
-          : "border-border",
+        hasStakeableTokens || hasStakedTokens ? "border-green-600" : "border-border",
       )}
     >
       <div className="p-4 border-b border-border">
@@ -140,17 +125,9 @@ export function IncentiveStreamCard({
             {isENSFarm ? (
               <ENSLogo className="w-6 h-6" />
             ) : isWLFIFarm ? (
-              <img
-                src="/wlfi.png"
-                alt="WLFI"
-                className="w-6 h-6 rounded-full"
-              />
+              <img src="/wlfi.png" alt="WLFI" className="w-6 h-6 rounded-full" />
             ) : lpToken?.symbol === "CULT" ? (
-              <img
-                src="/cult.jpg"
-                alt="CULT"
-                className="w-6 h-6 border border-muted"
-              />
+              <img src="/cult.jpg" alt="CULT" className="w-6 h-6 border border-muted" />
             ) : lpToken?.imageUrl ? (
               <img
                 src={formatImageURL(lpToken?.imageUrl)}
@@ -166,9 +143,7 @@ export function IncentiveStreamCard({
             <div
               className={cn(
                 "px-2 py-1 border font-mono text-xs uppercase tracking-wider font-bold",
-                isActive
-                  ? "border-green-700 text-green-600"
-                  : "border-muted text-muted-foreground",
+                isActive ? "border-green-700 text-green-600" : "border-muted text-muted-foreground",
               )}
             >
               [{isActive ? t("orders.active") : t("common.ended")}]
@@ -177,15 +152,11 @@ export function IncentiveStreamCard({
                   {hasStakeableTokens && hasStakedTokens ? (
                     // Show both available LP and staked amounts
                     <span className="whitespace-nowrap">
-                      {formatLpAmount(lpBalance)} /{" "}
-                      {formatLpAmount(stakedAmount || 0n, false)}{" "}
-                      {t("common.staked")}
+                      {formatLpAmount(lpBalance)} / {formatLpAmount(stakedAmount || 0n, false)} {t("common.staked")}
                     </span>
                   ) : hasStakeableTokens ? (
                     // Show only available LP tokens
-                    <span className="whitespace-nowrap">
-                      {formatLpAmount(lpBalance)}
-                    </span>
+                    <span className="whitespace-nowrap">{formatLpAmount(lpBalance)}</span>
                   ) : (
                     // Show only staked amount
                     <span className="whitespace-nowrap">
@@ -228,9 +199,7 @@ export function IncentiveStreamCard({
         {/* Time Remaining */}
         <div className="space-y-2">
           <div className="flex justify-between items-center text-sm">
-            <span className="font-mono text-muted-foreground">
-              [{t("common.time_remaining")}]
-            </span>
+            <span className="font-mono text-muted-foreground">[{t("common.time_remaining")}]</span>
             <div className="border border-muted px-2 py-1">
               <span className="font-mono text-foreground">
                 {isActive
@@ -240,25 +209,17 @@ export function IncentiveStreamCard({
             </div>
           </div>
           <div className="w-full h-2 border border-muted bg-background">
-            <div
-              className="h-full bg-foreground"
-              style={{ width: `${progress}%` }}
-            />
+            <div className="h-full bg-foreground" style={{ width: `${progress}%` }} />
           </div>
         </div>
 
         {/* Total Rewards */}
         <div className="border border-muted p-3">
           <div className="flex items-center justify-between">
-            <span className="text-muted-foreground font-mono text-sm">
-              [{t("common.total_rewards")}]
-            </span>
+            <span className="text-muted-foreground font-mono text-sm">[{t("common.total_rewards")}]</span>
             <span className="font-mono font-bold text-sm text-foreground">
               {formatBalance(
-                formatUnits(
-                  stream.rewardAmount || BigInt(0),
-                  rewardTokenDecimals,
-                ),
+                formatUnits(stream.rewardAmount || BigInt(0), rewardTokenDecimals),
                 stream.rewardCoin?.symbol,
               )}
             </span>
@@ -268,25 +229,16 @@ export function IncentiveStreamCard({
         {/* Pool Information */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 min-h-[72px]">
           <div className="border border-muted p-2 sm:p-3">
-            <p className="text-muted-foreground font-mono text-xs">
-              [{t("common.total_staked")}]
-            </p>
+            <p className="text-muted-foreground font-mono text-xs">[{t("common.total_staked")}]</p>
             <p className="font-mono font-bold text-sm text-foreground mt-1">
               {formatBalance(formatEther(totalShares), "LP")}
             </p>
           </div>
           {lpToken && lpToken.liquidity !== undefined && (
             <div className="border border-muted p-2 sm:p-3">
-              <p className="text-muted-foreground font-mono text-xs">
-                [{t("pool.liquidity")}]
-              </p>
+              <p className="text-muted-foreground font-mono text-xs">[{t("pool.liquidity")}]</p>
               <p className="font-mono font-bold text-sm text-foreground mt-1">
-                {formatCompactLiquidity(
-                  Number(
-                    formatEther(lpToken.reserve0 || lpToken.liquidity || 0n),
-                  ),
-                )}{" "}
-                ETH
+                {formatCompactLiquidity(Number(formatEther(lpToken.reserve0 || lpToken.liquidity || 0n)))} ETH
               </p>
             </div>
           )}
@@ -303,9 +255,7 @@ export function IncentiveStreamCard({
             </h5>
             <div className="space-y-2 text-xs font-mono">
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0">
-                <span className="text-muted-foreground">
-                  [{t("common.chef_id")}]:
-                </span>
+                <span className="text-muted-foreground">[{t("common.chef_id")}]:</span>
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(stream.chefId.toString());
@@ -317,31 +267,22 @@ export function IncentiveStreamCard({
                   {(() => {
                     const chefId = stream.chefId.toString();
                     // Chef IDs are always full uint, truncate for UI
-                    return chefId.length > 16
-                      ? `${chefId.slice(0, 8)}...${chefId.slice(-8)}`
-                      : chefId;
+                    return chefId.length > 16 ? `${chefId.slice(0, 8)}...${chefId.slice(-8)}` : chefId;
                   })()}
                 </button>
               </div>
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0">
-                <span className="text-muted-foreground">
-                  [{t("common.created_by")}]:
-                </span>
+                <span className="text-muted-foreground">[{t("common.created_by")}]:</span>
                 <span className="border border-muted px-1 py-0.5 font-bold text-foreground sm:max-w-[60%] text-left sm:text-right">
-                  {creatorEnsName ??
-                    `${stream.creator.slice(0, 6)}...${stream.creator.slice(-4)}`}
+                  {creatorEnsName ?? `${stream.creator.slice(0, 6)}...${stream.creator.slice(-4)}`}
                 </span>
               </div>
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0">
-                <span className="text-muted-foreground">
-                  [{t("common.started")}]:
-                </span>
+                <span className="text-muted-foreground">[{t("common.started")}]:</span>
                 <span className="border border-muted px-1 py-0.5 font-bold text-foreground text-left sm:text-right">
                   {(() => {
                     try {
-                      return new Date(
-                        Number(stream.startTime) * 1000,
-                      ).toLocaleDateString();
+                      return new Date(Number(stream.startTime) * 1000).toLocaleDateString();
                     } catch {
                       return "N/A";
                     }

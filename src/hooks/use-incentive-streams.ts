@@ -221,15 +221,10 @@ export function useUserIncentivePositions(userAddress?: `0x${string}`) {
         const rewardRate = Number(stream.rewardRate);
         const isActive = stream.status === "ACTIVE";
 
-        const sharePercentage =
-          totalShares > 0 ? ((share / totalShares) * 100).toFixed(4) : "0.0000";
+        const sharePercentage = totalShares > 0 ? ((share / totalShares) * 100).toFixed(4) : "0.0000";
 
         const estimatedApy =
-          totalShares > 0 && isActive
-            ? ((rewardRate * 31536000 * share) / (totalShares * 1e12)).toFixed(
-                2,
-              )
-            : "0.00";
+          totalShares > 0 && isActive ? ((rewardRate * 31536000 * share) / (totalShares * 1e12)).toFixed(2) : "0.00";
 
         return {
           // Position details
@@ -279,10 +274,7 @@ export function useUserIncentivePositions(userAddress?: `0x${string}`) {
   });
 }
 
-export function useUserIncentivePosition(
-  chefId: bigint | undefined,
-  userAddress?: `0x${string}`,
-) {
+export function useUserIncentivePosition(chefId: bigint | undefined, userAddress?: `0x${string}`) {
   const { address } = useAccount();
   const targetAddress = userAddress || address;
 
@@ -291,9 +283,7 @@ export function useUserIncentivePosition(
     queryFn: async (): Promise<IncentiveUserPosition | null> => {
       if (!chefId || !targetAddress) return null;
 
-      const response = await fetch(
-        `${INDEXER_URL}/api/incentive-positions/${chefId}/${targetAddress}`,
-      );
+      const response = await fetch(`${INDEXER_URL}/api/incentive-positions/${chefId}/${targetAddress}`);
       if (!response.ok) {
         throw new Error("Failed to fetch user incentive position");
       }
@@ -330,18 +320,14 @@ export function useIncentiveStreamsByLpPool(lpId: bigint | undefined) {
           lpId: BigInt(stream.lp_id || stream.lpId || "0"),
           rewardToken: stream.reward_token || stream.rewardToken,
           rewardId: BigInt(stream.reward_id || stream.rewardId || "0"),
-          rewardAmount: BigInt(
-            stream.reward_amount || stream.rewardAmount || "0",
-          ),
+          rewardAmount: BigInt(stream.reward_amount || stream.rewardAmount || "0"),
           rewardRate: BigInt(stream.reward_rate || stream.rewardRate || "0"),
           duration: BigInt(stream.duration || "0"),
           startTime: BigInt(stream.start_time || stream.startTime || "0"),
           endTime: BigInt(stream.end_time || stream.endTime || "0"),
           lastUpdate: BigInt(stream.last_update || stream.lastUpdate || "0"),
           totalShares: BigInt(stream.total_shares || stream.totalShares || "0"),
-          accRewardPerShare: BigInt(
-            stream.acc_reward_per_share || stream.accRewardPerShare || "0",
-          ),
+          accRewardPerShare: BigInt(stream.acc_reward_per_share || stream.accRewardPerShare || "0"),
           status: stream.status || "ACTIVE",
           createdAt: stream.created_at || stream.createdAt,
           updatedAt: stream.updated_at || stream.updatedAt,
@@ -350,12 +336,9 @@ export function useIncentiveStreamsByLpPool(lpId: bigint | undefined) {
           rewardCoin: stream.rewardCoin || {
             id: BigInt(stream.reward_id || stream.rewardId || "0"),
             name: stream.reward_token_name || stream.rewardTokenName || "",
-            symbol:
-              stream.reward_token_symbol || stream.rewardTokenSymbol || "",
-            imageUrl:
-              stream.reward_token_image_url || stream.rewardTokenImageUrl || "",
-            decimals:
-              stream.reward_token_decimals || stream.rewardTokenDecimals || 18,
+            symbol: stream.reward_token_symbol || stream.rewardTokenSymbol || "",
+            imageUrl: stream.reward_token_image_url || stream.rewardTokenImageUrl || "",
+            decimals: stream.reward_token_decimals || stream.rewardTokenDecimals || 18,
           },
         };
 
@@ -376,9 +359,7 @@ export function useIncentiveStreamAPY(chefId: bigint | undefined) {
       totalValueLocked: bigint;
     } | null> => {
       if (!chefId) return null;
-      const response = await fetch(
-        `${INDEXER_URL}/api/incentive-streams/${chefId}/apy`,
-      );
+      const response = await fetch(`${INDEXER_URL}/api/incentive-streams/${chefId}/apy`);
       if (!response.ok) {
         if (response.status === 404) return null;
         throw new Error("Failed to fetch incentive stream APY");
@@ -390,10 +371,7 @@ export function useIncentiveStreamAPY(chefId: bigint | undefined) {
   });
 }
 
-export function useIncentiveStreamHistory(
-  chefId: bigint | undefined,
-  userAddress?: `0x${string}`,
-) {
+export function useIncentiveStreamHistory(chefId: bigint | undefined, userAddress?: `0x${string}`) {
   const { address } = useAccount();
   const targetAddress = userAddress || address;
 
@@ -422,11 +400,8 @@ export function useIncentiveStreamHistory(
         txHash: `0x${string}`;
       }>;
     }> => {
-      if (!chefId || !targetAddress)
-        return { deposits: [], withdraws: [], harvests: [] };
-      const response = await fetch(
-        `${INDEXER_URL}/api/incentive-streams/${chefId}/history?user=${targetAddress}`,
-      );
+      if (!chefId || !targetAddress) return { deposits: [], withdraws: [], harvests: [] };
+      const response = await fetch(`${INDEXER_URL}/api/incentive-streams/${chefId}/history?user=${targetAddress}`);
       if (!response.ok) {
         throw new Error("Failed to fetch incentive stream history");
       }
