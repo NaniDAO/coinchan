@@ -163,10 +163,9 @@ export const InstantTradeAction = ({
   const urlInitialSell = useMemo(
     () =>
       useSearchHook
-        ? ((resolveFromUrl(tokens, search.sellToken) as
+        ? (resolveFromUrl(tokens, search.sellToken) as
             | TokenMetadata
-            | undefined) ??
-          (minimalFromTokenQ(search.sellToken) as TokenMetadata | undefined))
+            | undefined)
         : undefined,
     // include `tokens` so if they arrive before first render, we seed with richer info
     [useSearchHook, search.sellToken, tokens],
@@ -175,10 +174,7 @@ export const InstantTradeAction = ({
   const urlInitialBuy = useMemo(
     () =>
       useSearchHook
-        ? ((resolveFromUrl(tokens, search.buyToken) as
-            | TokenMetadata
-            | undefined) ??
-          (minimalFromTokenQ(search.buyToken) as TokenMetadata | undefined))
+        ? (resolveFromUrl(tokens, search.buyToken) as TokenMetadata | undefined)
         : undefined,
     [useSearchHook, search.buyToken, tokens],
   );
@@ -273,25 +269,29 @@ export const InstantTradeAction = ({
       undefined;
 
     if (canonSellCandidate && !isCanonicalTokenQ(search.sellToken)) {
-      updates.sellToken = encodeTokenQ(canonSellCandidate);
+      let encoded = encodeTokenQ(canonSellCandidate);
+      if (encoded) updates.sellToken = encoded;
     }
     if (canonBuyCandidate && !isCanonicalTokenQ(search.buyToken)) {
-      updates.buyToken = encodeTokenQ(canonBuyCandidate);
+      let encoded = encodeTokenQ(canonBuyCandidate);
+      if (encoded) updates.buyToken = encoded;
     }
 
     if (!search.sellToken && (sellToken || matchSell)) {
-      updates.sellToken = encodeTokenQ(
+      let encoded = encodeTokenQ(
         (canonSellCandidate ??
           (sellToken as TokenMetadata) ??
           (matchSell as TokenMetadata)) as TokenMetadata,
       );
+      if (encoded) updates.sellToken = encoded;
     }
     if (!search.buyToken && (buyToken || matchBuy)) {
-      updates.buyToken = encodeTokenQ(
+      let encoded = encodeTokenQ(
         (canonBuyCandidate ??
           (buyToken as TokenMetadata) ??
           (matchBuy as TokenMetadata)) as TokenMetadata,
       );
+      if (encoded) updates.buyToken = encoded;
     }
 
     if (Object.keys(updates).length) {
