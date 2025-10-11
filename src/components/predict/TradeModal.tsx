@@ -11,6 +11,22 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Slider } from "@/components/ui/slider";
+import { BadgeCheck } from "lucide-react";
+import { isPerpetualOracleResolver } from "@/constants/TrustedResolvers";
+
+// wstETH contract address
+const WSTETH_ADDRESS = "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0" as const;
+
+// Minimal ABI for wstETH stEthPerToken function
+const WSTETH_ABI = [
+  {
+    inputs: [],
+    name: "stEthPerToken",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+] as const;
 
 interface TradeModalProps {
   isOpen: boolean;
@@ -21,6 +37,7 @@ interface TradeModalProps {
   noSupply: bigint;
   marketType?: "parimutuel" | "amm";
   contractAddress?: string;
+  resolver?: string; // Optional: resolver address to show verification badge
 }
 
 export const TradeModal: React.FC<TradeModalProps> = ({
@@ -32,12 +49,14 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   noSupply,
   marketType = "parimutuel",
   contractAddress = PredictionMarketAddress,
+  resolver,
 }) => {
+  const isPerpetualOracle = resolver ? isPerpetualOracleResolver(resolver) : false;
   const { address } = useAccount();
   const [action, setAction] = useState<"buy" | "sell">("buy");
   const [position, setPosition] = useState<"yes" | "no">("yes");
   const [amount, setAmount] = useState("");
-  const [slippageTolerance, setSlippageTolerance] = useState(0.5); // 0.5% default
+  const [slippageTolerance, setSlippageTolerance] = useState(5); // 5% default for AMM markets
 
   const { writeContractAsync, data: hash, isPending, error: writeError } = useWriteContract();
 
@@ -81,6 +100,16 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   const rYes = ammPoolData ? ammPoolData[1] : 0n;
   const rNo = ammPoolData ? ammPoolData[2] : 0n;
 
+  // Fetch wstETH to stETH (≈ ETH) conversion rate
+  const { data: stEthPerToken } = useReadContract({
+    address: WSTETH_ADDRESS,
+    abi: WSTETH_ABI,
+    functionName: "stEthPerToken",
+    query: {
+      enabled: marketType === "amm" && action === "buy",
+    },
+  });
+
   React.useEffect(() => {
     if (txSuccess) {
       toast.success("Transaction confirmed!");
@@ -113,8 +142,17 @@ export const TradeModal: React.FC<TradeModalProps> = ({
           const wstInMax = (estimatedCost * slippageMultiplier) / 10000n;
           const oppInMax = (oppIn * slippageMultiplier) / 10000n;
 
-          // Add 40% buffer to wstInMax for ETH→wstETH conversion (wstETH worth ~1.18 ETH)
-          const ethValue = (wstInMax * 14n) / 10n;
+          // Calculate ETH needed: wstETH / stEthPerToken * 1e18 gives ≈ ETH needed
+          // Add small buffer for exchange rate movement (3% since contract refunds excess wstETH)
+          // Note: PAMM quote already includes tuning params (late ramp, extreme pricing)
+          let ethValue: bigint;
+          if (stEthPerToken) {
+            // Use actual exchange rate: (wstInMax / stEthPerToken * 1e18) * 1.03
+            ethValue = (wstInMax * parseEther("1") * 103n) / (stEthPerToken * 100n);
+          } else {
+            // Fallback: use 1.2 ratio with 3% buffer = 1.236x total
+            ethValue = (wstInMax * 1236n) / 1000n;
+          }
 
           const functionName = position === "yes" ? "buyYesViaPool" : "buyNoViaPool";
           await writeContractAsync({
@@ -177,19 +215,30 @@ export const TradeModal: React.FC<TradeModalProps> = ({
     } catch (err: any) {
       console.error(err);
 
-      // Handle wallet rejection gracefully
-      if (err?.code === 4001 || err?.code === "ACTION_REJECTED") {
+      // Handle wallet rejection gracefully - multiple patterns for different wallets
+      if (
+        err?.code === 4001 || // MetaMask user rejection
+        err?.code === "ACTION_REJECTED" || // Wagmi action rejected
+        err?.code === -32603 || // Internal error (sometimes rejection)
+        err?.name === "UserRejectedRequestError" ||
+        err?.name === "TransactionExecutionError"
+      ) {
         toast.info("Transaction cancelled");
         return;
       }
 
-      // Handle user rejection messages
-      const errorMessage = err?.shortMessage ?? err?.message ?? "";
+      // Handle user rejection messages - comprehensive patterns
+      const errorMessage = err?.shortMessage ?? err?.message ?? err?.toString() ?? "";
+      const lowerMessage = errorMessage.toLowerCase();
       if (
-        errorMessage.toLowerCase().includes("user rejected") ||
-        errorMessage.toLowerCase().includes("user denied") ||
-        errorMessage.toLowerCase().includes("user cancelled") ||
-        errorMessage.toLowerCase().includes("rejected by user")
+        lowerMessage.includes("user rejected") ||
+        lowerMessage.includes("user denied") ||
+        lowerMessage.includes("user cancelled") ||
+        lowerMessage.includes("rejected by user") ||
+        lowerMessage.includes("rejected the request") ||
+        lowerMessage.includes("user disapproved") ||
+        lowerMessage.includes("transaction was rejected") ||
+        lowerMessage.includes("cancelled by user")
       ) {
         toast.info("Transaction cancelled");
         return;
@@ -232,7 +281,14 @@ export const TradeModal: React.FC<TradeModalProps> = ({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{marketName}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            {marketName}
+            {isPerpetualOracle && (
+              <span title="Perpetual Oracle Resolver">
+                <BadgeCheck className="h-5 w-5 text-yellow-500 shrink-0" />
+              </span>
+            )}
+          </DialogTitle>
           <DialogDescription>Trade shares in this prediction market</DialogDescription>
         </DialogHeader>
 
@@ -299,41 +355,44 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                 </p>
               </div>
 
-              {marketType === "amm" && estimatedCost > 0n && (
-                <div className="bg-muted rounded-lg p-3 space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Estimated Cost:</span>
-                    <span className="font-mono font-semibold">
-                      {Number(formatEther(estimatedCost)).toFixed(6)} wstETH
-                    </span>
+              {marketType === "amm" && estimatedCost > 0n && (() => {
+                const slippageMultiplier = BigInt(Math.floor((1 + slippageTolerance / 100) * 10000));
+                const wstInMax = (estimatedCost * slippageMultiplier) / 10000n;
+
+                // Calculate ETH to send using the same logic as handleTrade
+                let ethToSend: bigint;
+                if (stEthPerToken) {
+                  ethToSend = (wstInMax * parseEther("1") * 103n) / (stEthPerToken * 100n);
+                } else {
+                  ethToSend = (wstInMax * 1236n) / 1000n;
+                }
+
+                return (
+                  <div className="bg-muted rounded-lg p-3 space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Estimated Cost:</span>
+                      <span className="font-mono font-semibold">
+                        {Number(formatEther(estimatedCost)).toFixed(6)} wstETH
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Max Cost (with slippage):</span>
+                      <span className="font-mono text-xs">
+                        {Number(formatEther(wstInMax)).toFixed(6)} wstETH
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">ETH to send:</span>
+                      <span className="font-mono">
+                        {Number(formatEther(ethToSend)).toFixed(6)} ETH
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground italic">
+                      Extra ETH is refunded as wstETH. Includes 3% buffer for rate fluctuation.
+                    </p>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Max Cost (with slippage):</span>
-                    <span className="font-mono text-xs">
-                      {Number(
-                        formatEther(
-                          (estimatedCost * BigInt(Math.floor((1 + slippageTolerance / 100) * 10000))) / 10000n,
-                        ),
-                      ).toFixed(6)}{" "}
-                      wstETH
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">ETH to send:</span>
-                    <span className="font-mono">
-                      {Number(
-                        formatEther(
-                          (estimatedCost * BigInt(Math.floor((1 + slippageTolerance / 100) * 10000)) * 14n) / 100000n,
-                        ),
-                      ).toFixed(6)}{" "}
-                      ETH
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground italic">
-                    Extra ETH will be refunded. Includes conversion buffer.
-                  </p>
-                </div>
-              )}
+                );
+              })()}
 
               {marketType === "amm" && (
                 <div className="grid gap-2">

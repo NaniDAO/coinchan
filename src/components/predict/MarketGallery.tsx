@@ -14,7 +14,7 @@ type MarketFilter = "all" | "active" | "closed" | "resolved" | "positions" | "pa
 
 export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
   const [start] = useState(0);
-  const [filter, setFilter] = useState<MarketFilter>("all");
+  const [filter, setFilter] = useState<MarketFilter>("active");
   const count = 20;
   const { address } = useAccount();
 
@@ -278,13 +278,13 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
       <Tabs value={filter} onValueChange={(v) => setFilter(v as MarketFilter)}>
         <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
           <TabsList className="inline-flex w-auto min-w-full">
-            <TabsTrigger value="all" className="whitespace-nowrap">
-              <span className="hidden sm:inline">All ({allMarkets.length})</span>
-              <span className="sm:hidden">All</span>
-            </TabsTrigger>
             <TabsTrigger value="active" className="whitespace-nowrap">
               <span className="hidden sm:inline">Active ({activeCount})</span>
               <span className="sm:hidden">Active</span>
+            </TabsTrigger>
+            <TabsTrigger value="all" className="whitespace-nowrap">
+              <span className="hidden sm:inline">All ({allMarkets.length})</span>
+              <span className="sm:hidden">All</span>
             </TabsTrigger>
             <TabsTrigger value="parimutuel" className="whitespace-nowrap">
               <span className="hidden sm:inline">Pari-Mutuel ({pmCount})</span>

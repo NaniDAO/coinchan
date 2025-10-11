@@ -17,9 +17,12 @@ import { MarketCountdown } from "./MarketCountdown";
 import { ResolverControls } from "./ResolverControls";
 import { PredictionMarketAddress, PredictionMarketAbi } from "@/constants/PredictionMarket";
 import { PredictionAMMAbi } from "@/constants/PredictionMarketAMM";
-import { ExternalLink, BadgeCheck, ArrowUpRight, Copy, Check } from "lucide-react";
+import { ExternalLink, BadgeCheck, ArrowUpRight, Copy, Check, Sparkles, Coins } from "lucide-react";
 import { formatImageURL } from "@/hooks/metadata";
-import { isTrustedResolver } from "@/constants/TrustedResolvers";
+import { isTrustedResolver, isPerpetualOracleResolver, ETH_WENT_UP_RESOLVER_ADDRESS } from "@/constants/TrustedResolvers";
+import { extractOracleMetadata } from "@/lib/perpetualOracleUtils";
+import { EthWentUpResolverAbi } from "@/constants/EthWentUpResolver";
+import { useBalance } from "wagmi";
 import ReactMarkdown from "react-markdown";
 
 interface MarketMetadata {
@@ -94,6 +97,75 @@ export const MarketCard: React.FC<MarketCardProps> = ({
 
   const isOracle = bytecode && bytecode !== "0x";
   const isTrusted = isTrustedResolver(resolver);
+  const isPerpetualOracle = isPerpetualOracleResolver(resolver);
+  const isEthWentUpResolver = resolver.toLowerCase() === ETH_WENT_UP_RESOLVER_ADDRESS.toLowerCase();
+
+  // For EthWentUpResolver markets, fetch epoch data to check if ready to resolve
+  const { data: epochData } = useReadContract({
+    address: ETH_WENT_UP_RESOLVER_ADDRESS as `0x${string}`,
+    abi: EthWentUpResolverAbi,
+    functionName: "epochs",
+    args: [marketId],
+    query: {
+      enabled: isEthWentUpResolver,
+    },
+  });
+
+  // Check ETH balance in resolver for tip button
+  const { data: resolverBalance } = useBalance({
+    address: ETH_WENT_UP_RESOLVER_ADDRESS as `0x${string}`,
+    query: {
+      enabled: isEthWentUpResolver,
+    },
+  });
+
+  // Fetch tip amount from resolver
+  const { data: tipPerResolve } = useReadContract({
+    address: ETH_WENT_UP_RESOLVER_ADDRESS as `0x${string}`,
+    abi: EthWentUpResolverAbi,
+    functionName: "tipPerResolve",
+    query: {
+      enabled: isEthWentUpResolver,
+    },
+  });
+
+  // Check if market can be resolved (past resolveAt time and not yet resolved)
+  const canResolve = Boolean(
+    isEthWentUpResolver &&
+      epochData &&
+      !resolved &&
+      epochData[7] === false && // epoch.resolved
+      Date.now() / 1000 >= Number(epochData[1]) // now >= resolveAt
+  );
+
+  // Show tip button if balance is low (less than 2x tipPerResolve)
+  const showTipButton = Boolean(
+    isEthWentUpResolver &&
+      resolverBalance &&
+      tipPerResolve &&
+      resolverBalance.value < tipPerResolve * 2n
+  );
+
+  //  Resolve and tip transaction handling
+  const {
+    writeContract: writeResolve,
+    data: resolveHash,
+    isPending: isResolvePending,
+    error: resolveError,
+  } = useWriteContract();
+  const { isSuccess: isResolveSuccess } = useWaitForTransactionReceipt({
+    hash: resolveHash,
+  });
+
+  const {
+    writeContract: writeTip,
+    data: tipHash,
+    isPending: isTipPending,
+    error: tipError,
+  } = useWriteContract();
+  const { isSuccess: isTipSuccess } = useWaitForTransactionReceipt({
+    hash: tipHash,
+  });
 
   // Fetch market details to get closing time and canAccelerateClosing
   const { data: marketData, refetch: refetchMarketData } = useReadContract({
@@ -144,6 +216,24 @@ export const MarketCard: React.FC<MarketCardProps> = ({
     setTimeout(() => setIsCopied(false), 2000);
   };
 
+  const handleResolve = () => {
+    writeResolve({
+      address: ETH_WENT_UP_RESOLVER_ADDRESS as `0x${string}`,
+      abi: EthWentUpResolverAbi,
+      functionName: "resolve",
+    });
+  };
+
+  const handleTip = () => {
+    if (!tipPerResolve) return;
+    writeTip({
+      address: ETH_WENT_UP_RESOLVER_ADDRESS as `0x${string}`,
+      abi: EthWentUpResolverAbi,
+      functionName: "fundTips",
+      value: tipPerResolve,
+    });
+  };
+
   useEffect(() => {
     if (isClaimSuccess && onClaimSuccess) {
       toast.success("Claim successful!");
@@ -177,9 +267,60 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   }, [claimError]);
 
   useEffect(() => {
+    if (isResolveSuccess) {
+      toast.success("Market resolved! Keeper tip paid.");
+      refetchMarketData();
+      if (onClaimSuccess) onClaimSuccess();
+    }
+  }, [isResolveSuccess, refetchMarketData, onClaimSuccess]);
+
+  useEffect(() => {
+    if (resolveError) {
+      const errorMessage = (resolveError as any)?.shortMessage ?? resolveError?.message ?? "";
+      if (
+        errorMessage.toLowerCase().includes("user rejected") ||
+        errorMessage.toLowerCase().includes("user denied") ||
+        errorMessage.toLowerCase().includes("cancelled")
+      ) {
+        toast.info("Transaction cancelled");
+        return;
+      }
+      toast.error(errorMessage || "Resolve failed");
+    }
+  }, [resolveError]);
+
+  useEffect(() => {
+    if (isTipSuccess) {
+      toast.success("Tip added successfully! Thank you for supporting keepers.");
+    }
+  }, [isTipSuccess]);
+
+  useEffect(() => {
+    if (tipError) {
+      const errorMessage = (tipError as any)?.shortMessage ?? tipError?.message ?? "";
+      if (
+        errorMessage.toLowerCase().includes("user rejected") ||
+        errorMessage.toLowerCase().includes("user denied") ||
+        errorMessage.toLowerCase().includes("cancelled")
+      ) {
+        toast.info("Transaction cancelled");
+        return;
+      }
+      toast.error(errorMessage || "Tip failed");
+    }
+  }, [tipError]);
+
+  useEffect(() => {
     const fetchMetadata = async () => {
       try {
         if (!description) return;
+
+        // For perpetual oracle markets, use onchain description directly
+        if (isPerpetualOracle) {
+          const oracleMetadata = extractOracleMetadata(description);
+          setMetadata(oracleMetadata);
+          return;
+        }
 
         let url = formatImageURL(description);
 
@@ -276,7 +417,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
     };
 
     fetchMetadata();
-  }, [description, marketId]);
+  }, [description, marketId, isPerpetualOracle]);
 
   if (!metadata) {
     return (
@@ -425,6 +566,38 @@ export const MarketCard: React.FC<MarketCardProps> = ({
 
           {closingTime && <MarketCountdown closingTime={closingTime} resolved={resolved} />}
 
+          {/* Perpetual Oracle Info - Timing and Rules */}
+          {isPerpetualOracle && metadata && (metadata as any).resolveTime && (
+            <div className="bg-yellow-500/5 border border-yellow-500/20 rounded p-2 space-y-1">
+              <div className="flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-400" />
+                <span className="text-xs font-semibold text-yellow-700 dark:text-yellow-300">
+                  Automated Oracle Market
+                </span>
+              </div>
+              <div className="text-xs text-muted-foreground space-y-0.5">
+                {(metadata as any).resolveTime && (
+                  <div className="flex justify-between">
+                    <span>Resolves:</span>
+                    <span className="font-mono">
+                      {new Date((metadata as any).resolveTime * 1000).toLocaleString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  </div>
+                )}
+                {(metadata as any).rules && (
+                  <div className="pt-0.5 text-[11px] italic opacity-80">
+                    {(metadata as any).rules}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {!resolved && (
             <div className="space-y-1">
               <div className="flex justify-between text-xs font-medium">
@@ -498,7 +671,13 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                   {ensName || `${resolver.slice(0, 6)}...${resolver.slice(-4)}`}
                   <ExternalLink className="h-3 w-3" />
                 </a>
-                {isTrusted && <BadgeCheck className="h-4 w-4 text-blue-500 shrink-0" />}
+                {isPerpetualOracle ? (
+                  <span title="Perpetual Oracle Resolver">
+                    <BadgeCheck className="h-4 w-4 text-yellow-500 shrink-0" />
+                  </span>
+                ) : isTrusted ? (
+                  <BadgeCheck className="h-4 w-4 text-blue-500 shrink-0" />
+                ) : null}
                 {isOracle && (
                   <Badge variant="outline" className="text-xs">
                     Oracle
@@ -542,6 +721,39 @@ export const MarketCard: React.FC<MarketCardProps> = ({
             />
           )}
 
+          {/* EthWentUpResolver Automation - Resolve Button */}
+          {canResolve && (
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded p-2">
+              <Button
+                onClick={handleResolve}
+                className="w-full bg-yellow-600 hover:bg-yellow-700 text-white"
+                size="sm"
+                disabled={isResolvePending}
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                {isResolvePending ? "Resolving..." : "Resolve Market (Earn Tip!)"}
+              </Button>
+              <p className="text-xs text-muted-foreground mt-1 text-center">
+                Automated market ready. Resolve to earn {tipPerResolve ? formatEther(tipPerResolve) : "0.001"} ETH tip
+              </p>
+            </div>
+          )}
+
+          {/* EthWentUpResolver Tip Button - Subtle, only shown when balance is low */}
+          {showTipButton && (
+            <button
+              onClick={handleTip}
+              className="w-full text-xs text-muted-foreground hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors flex items-center justify-center gap-1 py-1 opacity-60 hover:opacity-100"
+              disabled={isTipPending}
+              title="Add tip to incentivize keepers to resolve this market"
+            >
+              <Coins className="h-3 w-3" />
+              {isTipPending
+                ? "Adding tip..."
+                : `Tip keepers ${tipPerResolve ? formatEther(tipPerResolve) : "0.001"} ETH`}
+            </button>
+          )}
+
           <div className="space-y-2">
             {canClaim ? (
               <Button onClick={handleClaim} className="w-full" size="sm" variant="default">
@@ -577,6 +789,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
         noSupply={noSupply}
         marketType={marketType}
         contractAddress={contractAddress}
+        resolver={resolver}
       />
     </>
   );
