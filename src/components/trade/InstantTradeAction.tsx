@@ -108,17 +108,22 @@ function resolveFromUrl(
  */
 function mergeTokenFields<T extends Record<string, any>>(dst: T, src?: any): T {
   if (!src) return dst;
-  const BALANCE_KEYS = ["balance", "rawBalance", "formattedBalance"] as const;
-  const META_KEYS = ["name", "symbol", "logoURI", "decimals"] as const;
+
+  // fields that define identity and should never be overwritten
+  const IDENTITY_KEYS = new Set(["address", "id"]);
+
   let changed = false;
   const next: any = { ...dst };
 
-  for (const k of [...BALANCE_KEYS, ...META_KEYS]) {
-    if (src[k] !== undefined && src[k] !== dst[k]) {
-      next[k] = src[k];
+  for (const [k, v] of Object.entries(src)) {
+    if (v === undefined) continue;
+    if (IDENTITY_KEYS.has(k)) continue; // don’t change identity
+    if (next[k] !== v) {
+      next[k] = v; // merge any other metadata, incl. `image`
       changed = true;
     }
   }
+
   return changed ? (next as T) : dst;
 }
 
