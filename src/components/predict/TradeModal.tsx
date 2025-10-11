@@ -57,8 +57,9 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   const [position, setPosition] = useState<"yes" | "no">("yes");
   const [amount, setAmount] = useState("");
   const [slippageTolerance, setSlippageTolerance] = useState(5); // 5% default for AMM markets
+  const [localError, setLocalError] = useState<string | null>(null);
 
-  const { writeContractAsync, data: hash, isPending, error: writeError } = useWriteContract();
+  const { writeContractAsync, data: hash, isPending, error: writeError, reset } = useWriteContract();
 
   const { isSuccess: txSuccess, isLoading: txLoading } = useWaitForTransactionReceipt({ hash });
 
@@ -114,13 +115,31 @@ export const TradeModal: React.FC<TradeModalProps> = ({
     if (txSuccess) {
       toast.success("Transaction confirmed!");
       setAmount("");
+      setLocalError(null);
       setTimeout(() => {
         onClose();
       }, 2000);
     }
   }, [txSuccess, onClose]);
 
+  // Clear errors when modal closes
+  React.useEffect(() => {
+    if (!isOpen) {
+      setLocalError(null);
+      reset();
+    }
+  }, [isOpen, reset]);
+
+  // Handle wallet disconnection
+  React.useEffect(() => {
+    if (!address && isOpen && (isPending || txLoading)) {
+      toast.error("Wallet disconnected");
+      setLocalError("Wallet disconnected during transaction");
+    }
+  }, [address, isOpen, isPending, txLoading]);
+
   const handleTrade = async () => {
+    // Check wallet connection first
     if (!address) {
       toast.error("Please connect your wallet");
       return;
@@ -130,6 +149,9 @@ export const TradeModal: React.FC<TradeModalProps> = ({
       toast.error("Please enter a valid amount");
       return;
     }
+
+    // Clear any previous errors
+    setLocalError(null);
 
     try {
       const amountWei = parseEther(amount);
@@ -143,15 +165,17 @@ export const TradeModal: React.FC<TradeModalProps> = ({
           const oppInMax = (oppIn * slippageMultiplier) / 10000n;
 
           // Calculate ETH needed: wstETH / stEthPerToken * 1e18 gives ≈ ETH needed
-          // Add small buffer for exchange rate movement (3% since contract refunds excess wstETH)
-          // Note: PAMM quote already includes tuning params (late ramp, extreme pricing)
+          // CRITICAL: Contract calculates wstIn on-chain at execution time (not bounded by wstInMax when inIsETH=true)
+          // Need large buffer because wstIn can increase if: pool moves, tuning changes, rounding differences
+          // Small purchases need even more buffer due to proportionally larger rounding errors
+          // 40% buffer = slippage protection (10%) + state changes + tuning + rounding for small amounts
           let ethValue: bigint;
           if (stEthPerToken) {
-            // Use actual exchange rate: (wstInMax / stEthPerToken * 1e18) * 1.03
-            ethValue = (wstInMax * parseEther("1") * 103n) / (stEthPerToken * 100n);
+            // Use actual exchange rate: (wstInMax / stEthPerToken * 1e18) * 1.40
+            ethValue = (wstInMax * parseEther("1") * 140n) / (stEthPerToken * 100n);
           } else {
-            // Fallback: use 1.2 ratio with 3% buffer = 1.236x total
-            ethValue = (wstInMax * 1236n) / 1000n;
+            // Fallback: use 1.2 ratio with 40% buffer = 1.68x total
+            ethValue = (wstInMax * 168n) / 100n;
           }
 
           const functionName = position === "yes" ? "buyYesViaPool" : "buyNoViaPool";
@@ -212,24 +236,31 @@ export const TradeModal: React.FC<TradeModalProps> = ({
       }
 
       toast.success("Transaction submitted");
+      setLocalError(null);
     } catch (err: any) {
-      console.error(err);
+      console.error("Trade error:", err);
 
       // Handle wallet rejection gracefully - multiple patterns for different wallets
       if (
         err?.code === 4001 || // MetaMask user rejection
         err?.code === "ACTION_REJECTED" || // Wagmi action rejected
         err?.code === -32603 || // Internal error (sometimes rejection)
+        err?.code === -32002 || // Pending request
         err?.name === "UserRejectedRequestError" ||
-        err?.name === "TransactionExecutionError"
+        err?.name === "TransactionExecutionError" ||
+        err?.name === "ConnectorNotConnectedError" ||
+        err?.name === "ConnectorAlreadyConnectedError"
       ) {
-        toast.info("Transaction cancelled");
+        const isDisconnection = err?.name === "ConnectorNotConnectedError";
+        toast.info(isDisconnection ? "Wallet disconnected" : "Transaction cancelled");
+        setLocalError(null);
         return;
       }
 
       // Handle user rejection messages - comprehensive patterns
-      const errorMessage = err?.shortMessage ?? err?.message ?? err?.toString() ?? "";
-      const lowerMessage = errorMessage.toLowerCase();
+      const errorMessage = err?.shortMessage ?? err?.message ?? err?.reason ?? String(err);
+      const lowerMessage = (errorMessage || "").toLowerCase();
+
       if (
         lowerMessage.includes("user rejected") ||
         lowerMessage.includes("user denied") ||
@@ -238,14 +269,24 @@ export const TradeModal: React.FC<TradeModalProps> = ({
         lowerMessage.includes("rejected the request") ||
         lowerMessage.includes("user disapproved") ||
         lowerMessage.includes("transaction was rejected") ||
-        lowerMessage.includes("cancelled by user")
+        lowerMessage.includes("cancelled by user") ||
+        lowerMessage.includes("user_rejected")
       ) {
         toast.info("Transaction cancelled");
+        setLocalError(null);
         return;
       }
 
-      // Other errors
-      toast.error(errorMessage || "Transaction failed");
+      // Extract clean error message - avoid showing huge error objects
+      let displayMessage = errorMessage;
+      if (errorMessage && errorMessage.length > 200) {
+        // Truncate very long errors - likely stack traces
+        displayMessage = errorMessage.substring(0, 200) + "...";
+      }
+
+      // Show error in toast and local error state
+      setLocalError(displayMessage || "Transaction failed");
+      toast.error(displayMessage || "Transaction failed");
     }
   };
 
@@ -362,9 +403,9 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                 // Calculate ETH to send using the same logic as handleTrade
                 let ethToSend: bigint;
                 if (stEthPerToken) {
-                  ethToSend = (wstInMax * parseEther("1") * 103n) / (stEthPerToken * 100n);
+                  ethToSend = (wstInMax * parseEther("1") * 140n) / (stEthPerToken * 100n);
                 } else {
-                  ethToSend = (wstInMax * 1236n) / 1000n;
+                  ethToSend = (wstInMax * 168n) / 100n;
                 }
 
                 return (
@@ -388,7 +429,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground italic">
-                      Extra ETH is refunded as wstETH. Includes 3% buffer for rate fluctuation.
+                      Extra ETH is refunded as wstETH. Includes 40% buffer for on-chain pricing & small amount rounding.
                     </p>
                   </div>
                 );
@@ -400,7 +441,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                   <Slider
                     id="slippage"
                     min={0.1}
-                    max={5}
+                    max={10}
                     step={0.1}
                     value={[slippageTolerance]}
                     onValueChange={(value) => setSlippageTolerance(value[0])}
@@ -408,7 +449,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                   />
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>0.1%</span>
-                    <span>5%</span>
+                    <span>10%</span>
                   </div>
                 </div>
               )}
@@ -471,7 +512,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                   <Slider
                     id="slippage-sell"
                     min={0.1}
-                    max={5}
+                    max={10}
                     step={0.1}
                     value={[slippageTolerance]}
                     onValueChange={(value) => setSlippageTolerance(value[0])}
@@ -479,16 +520,18 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                   />
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>0.1%</span>
-                    <span>5%</span>
+                    <span>10%</span>
                   </div>
                 </div>
               )}
             </TabsContent>
           </Tabs>
 
-          {writeError && (
+          {(writeError || localError) && (
             <Alert tone="destructive">
-              <AlertDescription className="break-words text-sm">{writeError.message}</AlertDescription>
+              <AlertDescription className="break-words text-sm">
+                {localError || writeError?.message || "Transaction failed"}
+              </AlertDescription>
             </Alert>
           )}
 
