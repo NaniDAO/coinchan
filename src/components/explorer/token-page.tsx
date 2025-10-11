@@ -299,7 +299,6 @@ export const TokenPage = ({ token }: { token: Token }) => {
     };
   }, [coinData, ethPriceData, zcurveSale, swapFees, reserves, actualTotalSupply]);
 
-  console.log("POOLID:", poolId);
   return (
     <div>
       <CoinBreadcrumb coinId={token.id} />
