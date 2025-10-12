@@ -1,4 +1,4 @@
-export const ETH_WENT_UP_RESOLVER_ADDRESS = "0x40cc6F9ca737a0aA746b645cFc92a67942162CC3" as const;
+export const ETH_WENT_UP_RESOLVER_ADDRESS = "0x904EB96808704d0dB0469640188FCA86B762912b" as const;
 
 export const EthWentUpResolverAbi = [
   {
