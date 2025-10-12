@@ -254,7 +254,17 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
 
   // Excluded resolver address
   const excludedResolver = "0x40cc6F9ca737a0aA746b645cFc92a67942162CC3".toLowerCase();
-  const visibleMarkets = allMarkets.filter((m) => m.resolver.toLowerCase() !== excludedResolver);
+
+  // Excluded market IDs (specific Coinflip markets to hide)
+  const excludedMarketIds = new Set([
+    54729014062189984233222064350194783449228335005152376603700161212069844720568n,
+    26201201871669602142649258403946775672767689279764719138083439927528646678749n,
+    2432527491801219314479643753245417709526518743184029612039853322401478992262n,
+  ]);
+
+  const visibleMarkets = allMarkets.filter(
+    (m) => m.resolver.toLowerCase() !== excludedResolver && !excludedMarketIds.has(m.marketId)
+  );
 
   // Filter markets based on selected filter
   const filteredMarkets = visibleMarkets.filter((market) => {
