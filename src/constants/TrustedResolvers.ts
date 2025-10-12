@@ -6,12 +6,19 @@ export interface TrustedResolver {
 }
 
 export const ETH_WENT_UP_RESOLVER_ADDRESS = "0x904EB96808704d0dB0469640188FCA86B762912b" as const;
+export const COINFLIP_RESOLVER_ADDRESS = "0x07e53dd08D9579e90928636068835d4EADc253a6" as const;
 
 export const TRUSTED_RESOLVERS: TrustedResolver[] = [
   {
     address: ETH_WENT_UP_RESOLVER_ADDRESS,
     name: "EthWentUpResolver",
     description: "Perpetual oracle resolver for ETH price movements using Chainlink feeds",
+    isPerpetualOracle: true,
+  },
+  {
+    address: COINFLIP_RESOLVER_ADDRESS,
+    name: "CoinflipResolver",
+    description: "Perpetual oracle resolver for provably fair coinflips using blockhashes",
     isPerpetualOracle: true,
   },
   {

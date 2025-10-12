@@ -252,8 +252,12 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
     });
   }
 
+  // Excluded resolver address
+  const excludedResolver = "0x40cc6F9ca737a0aA746b645cFc92a67942162CC3".toLowerCase();
+  const visibleMarkets = allMarkets.filter((m) => m.resolver.toLowerCase() !== excludedResolver);
+
   // Filter markets based on selected filter
-  const filteredMarkets = allMarkets.filter((market) => {
+  const filteredMarkets = visibleMarkets.filter((market) => {
     if (filter === "all") return true;
     if (filter === "parimutuel") return market.marketType === "parimutuel";
     if (filter === "amm") return market.marketType === "amm";
@@ -266,12 +270,12 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
     return true;
   });
 
-  const activeCount = allMarkets.filter((m) => m.tradingOpen && !m.resolved).length;
-  const closedCount = allMarkets.filter((m) => !m.tradingOpen && !m.resolved).length;
-  const resolvedCount = allMarkets.filter((m) => m.resolved).length;
-  const positionsCount = allMarkets.filter((m) => m.userYesBalance > 0n || m.userNoBalance > 0n).length;
-  const pmCount = allMarkets.filter((m) => m.marketType === "parimutuel").length;
-  const ammCount = allMarkets.filter((m) => m.marketType === "amm").length;
+  const activeCount = visibleMarkets.filter((m) => m.tradingOpen && !m.resolved).length;
+  const closedCount = visibleMarkets.filter((m) => !m.tradingOpen && !m.resolved).length;
+  const resolvedCount = visibleMarkets.filter((m) => m.resolved).length;
+  const positionsCount = visibleMarkets.filter((m) => m.userYesBalance > 0n || m.userNoBalance > 0n).length;
+  const pmCount = visibleMarkets.filter((m) => m.marketType === "parimutuel").length;
+  const ammCount = visibleMarkets.filter((m) => m.marketType === "amm").length;
 
   return (
     <div className="space-y-6">
@@ -283,7 +287,7 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
               <span className="sm:hidden">Active</span>
             </TabsTrigger>
             <TabsTrigger value="all" className="whitespace-nowrap">
-              <span className="hidden sm:inline">All ({allMarkets.length})</span>
+              <span className="hidden sm:inline">All ({visibleMarkets.length})</span>
               <span className="sm:hidden">All</span>
             </TabsTrigger>
             <TabsTrigger value="parimutuel" className="whitespace-nowrap">

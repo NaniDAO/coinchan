@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Slider } from "@/components/ui/slider";
 import { BadgeCheck } from "lucide-react";
 import { isPerpetualOracleResolver } from "@/constants/TrustedResolvers";
+import { isUserRejectionError } from "@/lib/errors";
 
 // wstETH contract address
 const WSTETH_ADDRESS = "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0" as const;
@@ -56,7 +57,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   const [action, setAction] = useState<"buy" | "sell">("buy");
   const [position, setPosition] = useState<"yes" | "no">("yes");
   const [amount, setAmount] = useState("");
-  const [slippageTolerance, setSlippageTolerance] = useState(5); // 5% default for AMM markets
+  const [slippageTolerance, setSlippageTolerance] = useState(10); // 10% default for AMM markets
   const [localError, setLocalError] = useState<string | null>(null);
 
   const { writeContractAsync, data: hash, isPending, error: writeError, reset } = useWriteContract();
@@ -238,46 +239,17 @@ export const TradeModal: React.FC<TradeModalProps> = ({
       toast.success("Transaction submitted");
       setLocalError(null);
     } catch (err: any) {
+      // Handle user rejection silently - no toast, just reset state
+      if (isUserRejectionError(err)) {
+        setLocalError(null);
+        return;
+      }
+
+      // For actual errors, log and show to user
       console.error("Trade error:", err);
 
-      // Handle wallet rejection gracefully - multiple patterns for different wallets
-      if (
-        err?.code === 4001 || // MetaMask user rejection
-        err?.code === "ACTION_REJECTED" || // Wagmi action rejected
-        err?.code === -32603 || // Internal error (sometimes rejection)
-        err?.code === -32002 || // Pending request
-        err?.name === "UserRejectedRequestError" ||
-        err?.name === "TransactionExecutionError" ||
-        err?.name === "ConnectorNotConnectedError" ||
-        err?.name === "ConnectorAlreadyConnectedError"
-      ) {
-        const isDisconnection = err?.name === "ConnectorNotConnectedError";
-        toast.info(isDisconnection ? "Wallet disconnected" : "Transaction cancelled");
-        setLocalError(null);
-        return;
-      }
-
-      // Handle user rejection messages - comprehensive patterns
-      const errorMessage = err?.shortMessage ?? err?.message ?? err?.reason ?? String(err);
-      const lowerMessage = (errorMessage || "").toLowerCase();
-
-      if (
-        lowerMessage.includes("user rejected") ||
-        lowerMessage.includes("user denied") ||
-        lowerMessage.includes("user cancelled") ||
-        lowerMessage.includes("rejected by user") ||
-        lowerMessage.includes("rejected the request") ||
-        lowerMessage.includes("user disapproved") ||
-        lowerMessage.includes("transaction was rejected") ||
-        lowerMessage.includes("cancelled by user") ||
-        lowerMessage.includes("user_rejected")
-      ) {
-        toast.info("Transaction cancelled");
-        setLocalError(null);
-        return;
-      }
-
       // Extract clean error message - avoid showing huge error objects
+      const errorMessage = err?.shortMessage ?? err?.message ?? err?.reason ?? String(err);
       let displayMessage = errorMessage;
       if (errorMessage && errorMessage.length > 200) {
         // Truncate very long errors - likely stack traces
@@ -441,7 +413,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                   <Slider
                     id="slippage"
                     min={0.1}
-                    max={10}
+                    max={20}
                     step={0.1}
                     value={[slippageTolerance]}
                     onValueChange={(value) => setSlippageTolerance(value[0])}
@@ -449,7 +421,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                   />
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>0.1%</span>
-                    <span>10%</span>
+                    <span>20%</span>
                   </div>
                 </div>
               )}
@@ -512,7 +484,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                   <Slider
                     id="slippage-sell"
                     min={0.1}
-                    max={10}
+                    max={20}
                     step={0.1}
                     value={[slippageTolerance]}
                     onValueChange={(value) => setSlippageTolerance(value[0])}
@@ -520,7 +492,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                   />
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>0.1%</span>
-                    <span>10%</span>
+                    <span>20%</span>
                   </div>
                 </div>
               )}

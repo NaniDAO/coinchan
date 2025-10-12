@@ -19,11 +19,13 @@ import { PredictionMarketAddress, PredictionMarketAbi } from "@/constants/Predic
 import { PredictionAMMAbi } from "@/constants/PredictionMarketAMM";
 import { ExternalLink, BadgeCheck, ArrowUpRight, Copy, Check, Sparkles, Coins } from "lucide-react";
 import { formatImageURL } from "@/hooks/metadata";
-import { isTrustedResolver, isPerpetualOracleResolver, ETH_WENT_UP_RESOLVER_ADDRESS } from "@/constants/TrustedResolvers";
+import { isTrustedResolver, isPerpetualOracleResolver, ETH_WENT_UP_RESOLVER_ADDRESS, COINFLIP_RESOLVER_ADDRESS } from "@/constants/TrustedResolvers";
 import { extractOracleMetadata } from "@/lib/perpetualOracleUtils";
 import { EthWentUpResolverAbi } from "@/constants/EthWentUpResolver";
+import { CoinflipResolverAbi } from "@/constants/CoinflipResolver";
 import { useBalance } from "wagmi";
 import ReactMarkdown from "react-markdown";
+import { isUserRejectionError } from "@/lib/errors";
 
 interface MarketMetadata {
   name: string;
@@ -79,6 +81,14 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   const [isCopied, setIsCopied] = useState(false);
   const { address } = useAccount();
 
+  // Track which transactions we've already shown toasts for to prevent duplicates
+  const toastedClaim = React.useRef<string | null>(null);
+  const toastedResolve = React.useRef<string | null>(null);
+  const toastedTip = React.useRef<string | null>(null);
+  const toastedClaimError = React.useRef<any>(null);
+  const toastedResolveError = React.useRef<any>(null);
+  const toastedTipError = React.useRef<any>(null);
+
   const { writeContract, data: claimHash, error: claimError } = useWriteContract();
   const { isSuccess: isClaimSuccess } = useWaitForTransactionReceipt({
     hash: claimHash,
@@ -99,6 +109,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   const isTrusted = isTrustedResolver(resolver);
   const isPerpetualOracle = isPerpetualOracleResolver(resolver);
   const isEthWentUpResolver = resolver.toLowerCase() === ETH_WENT_UP_RESOLVER_ADDRESS.toLowerCase();
+  const isCoinflipResolver = resolver.toLowerCase() === COINFLIP_RESOLVER_ADDRESS.toLowerCase();
 
   // For EthWentUpResolver markets, fetch epoch data to check if ready to resolve
   const { data: epochData } = useReadContract({
@@ -144,6 +155,54 @@ export const MarketCard: React.FC<MarketCardProps> = ({
       resolverBalance &&
       tipPerResolve &&
       resolverBalance.value < tipPerResolve * 2n
+  );
+
+  // For CoinflipResolver markets, fetch epoch data
+  const { data: coinflipEpochData } = useReadContract({
+    address: COINFLIP_RESOLVER_ADDRESS as `0x${string}`,
+    abi: CoinflipResolverAbi,
+    functionName: "epochs",
+    args: [marketId],
+    query: {
+      enabled: isCoinflipResolver,
+    },
+  });
+
+  // Check ETH balance in CoinflipResolver for tip button
+  const { data: coinflipResolverBalance } = useBalance({
+    address: COINFLIP_RESOLVER_ADDRESS as `0x${string}`,
+    query: {
+      enabled: isCoinflipResolver,
+    },
+  });
+
+  // Fetch tip amount from CoinflipResolver
+  const { data: coinflipTipPerResolve } = useReadContract({
+    address: COINFLIP_RESOLVER_ADDRESS as `0x${string}`,
+    abi: CoinflipResolverAbi,
+    functionName: "tipPerResolve",
+    query: {
+      enabled: isCoinflipResolver,
+    },
+  });
+
+  // Check if coinflip market can be resolved
+  // For Coinflip, we need to check block.number vs targetBlock
+  // Since we can't get block.number directly in React, we'll use a simpler check based on closeAt time
+  const canResolveCoinflip = Boolean(
+    isCoinflipResolver &&
+      coinflipEpochData &&
+      !resolved &&
+      coinflipEpochData[3] === false && // epoch.resolved
+      Date.now() / 1000 >= Number(coinflipEpochData[0]) // now >= closeAt
+  );
+
+  // Show tip button for Coinflip if balance is low
+  const showCoinflipTipButton = Boolean(
+    isCoinflipResolver &&
+      coinflipResolverBalance &&
+      coinflipTipPerResolve &&
+      coinflipResolverBalance.value < coinflipTipPerResolve * 2n
   );
 
   //  Resolve and tip transaction handling
@@ -217,95 +276,104 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   };
 
   const handleResolve = () => {
-    writeResolve({
-      address: ETH_WENT_UP_RESOLVER_ADDRESS as `0x${string}`,
-      abi: EthWentUpResolverAbi,
-      functionName: "resolve",
-    });
+    if (isEthWentUpResolver) {
+      writeResolve({
+        address: ETH_WENT_UP_RESOLVER_ADDRESS as `0x${string}`,
+        abi: EthWentUpResolverAbi,
+        functionName: "resolve",
+      });
+    } else if (isCoinflipResolver) {
+      writeResolve({
+        address: COINFLIP_RESOLVER_ADDRESS as `0x${string}`,
+        abi: CoinflipResolverAbi,
+        functionName: "resolve",
+      });
+    }
   };
 
   const handleTip = () => {
-    if (!tipPerResolve) return;
-    writeTip({
-      address: ETH_WENT_UP_RESOLVER_ADDRESS as `0x${string}`,
-      abi: EthWentUpResolverAbi,
-      functionName: "fundTips",
-      value: tipPerResolve,
-    });
+    if (isEthWentUpResolver && tipPerResolve) {
+      writeTip({
+        address: ETH_WENT_UP_RESOLVER_ADDRESS as `0x${string}`,
+        abi: EthWentUpResolverAbi,
+        functionName: "fundTips",
+        value: tipPerResolve,
+      });
+    } else if (isCoinflipResolver && coinflipTipPerResolve) {
+      writeTip({
+        address: COINFLIP_RESOLVER_ADDRESS as `0x${string}`,
+        abi: CoinflipResolverAbi,
+        functionName: "fundTips",
+        value: coinflipTipPerResolve,
+      });
+    }
   };
 
   useEffect(() => {
-    if (isClaimSuccess && onClaimSuccess) {
+    if (isClaimSuccess && claimHash && toastedClaim.current !== claimHash) {
+      toastedClaim.current = claimHash;
       toast.success("Claim successful!");
-      onClaimSuccess();
+      if (onClaimSuccess) onClaimSuccess();
     }
-  }, [isClaimSuccess, onClaimSuccess]);
+  }, [isClaimSuccess, claimHash, onClaimSuccess]);
 
   useEffect(() => {
-    if (claimError) {
-      // Handle wallet rejection gracefully
-      if ((claimError as any)?.code === 4001 || (claimError as any)?.code === "ACTION_REJECTED") {
-        toast.info("Transaction cancelled");
+    if (claimError && toastedClaimError.current !== claimError) {
+      toastedClaimError.current = claimError;
+
+      // Handle user rejection silently
+      if (isUserRejectionError(claimError)) {
         return;
       }
 
-      // Handle user rejection messages
+      // Show actual errors
       const errorMessage = (claimError as any)?.shortMessage ?? claimError?.message ?? "";
-      if (
-        errorMessage.toLowerCase().includes("user rejected") ||
-        errorMessage.toLowerCase().includes("user denied") ||
-        errorMessage.toLowerCase().includes("user cancelled") ||
-        errorMessage.toLowerCase().includes("rejected by user")
-      ) {
-        toast.info("Transaction cancelled");
-        return;
-      }
-
-      // Other errors
       toast.error(errorMessage || "Claim failed");
     }
   }, [claimError]);
 
   useEffect(() => {
-    if (isResolveSuccess) {
+    if (isResolveSuccess && resolveHash && toastedResolve.current !== resolveHash) {
+      toastedResolve.current = resolveHash;
       toast.success("Market resolved! Keeper tip paid.");
       refetchMarketData();
       if (onClaimSuccess) onClaimSuccess();
     }
-  }, [isResolveSuccess, refetchMarketData, onClaimSuccess]);
+  }, [isResolveSuccess, resolveHash, refetchMarketData, onClaimSuccess]);
 
   useEffect(() => {
-    if (resolveError) {
-      const errorMessage = (resolveError as any)?.shortMessage ?? resolveError?.message ?? "";
-      if (
-        errorMessage.toLowerCase().includes("user rejected") ||
-        errorMessage.toLowerCase().includes("user denied") ||
-        errorMessage.toLowerCase().includes("cancelled")
-      ) {
-        toast.info("Transaction cancelled");
+    if (resolveError && toastedResolveError.current !== resolveError) {
+      toastedResolveError.current = resolveError;
+
+      // Handle user rejection silently
+      if (isUserRejectionError(resolveError)) {
         return;
       }
+
+      // Show actual errors
+      const errorMessage = (resolveError as any)?.shortMessage ?? resolveError?.message ?? "";
       toast.error(errorMessage || "Resolve failed");
     }
   }, [resolveError]);
 
   useEffect(() => {
-    if (isTipSuccess) {
+    if (isTipSuccess && tipHash && toastedTip.current !== tipHash) {
+      toastedTip.current = tipHash;
       toast.success("Tip added successfully! Thank you for supporting keepers.");
     }
-  }, [isTipSuccess]);
+  }, [isTipSuccess, tipHash]);
 
   useEffect(() => {
-    if (tipError) {
-      const errorMessage = (tipError as any)?.shortMessage ?? tipError?.message ?? "";
-      if (
-        errorMessage.toLowerCase().includes("user rejected") ||
-        errorMessage.toLowerCase().includes("user denied") ||
-        errorMessage.toLowerCase().includes("cancelled")
-      ) {
-        toast.info("Transaction cancelled");
+    if (tipError && toastedTipError.current !== tipError) {
+      toastedTipError.current = tipError;
+
+      // Handle user rejection silently
+      if (isUserRejectionError(tipError)) {
         return;
       }
+
+      // Show actual errors
+      const errorMessage = (tipError as any)?.shortMessage ?? tipError?.message ?? "";
       toast.error(errorMessage || "Tip failed");
     }
   }, [tipError]);
@@ -568,17 +636,29 @@ export const MarketCard: React.FC<MarketCardProps> = ({
 
           {/* Perpetual Oracle Info - Timing and Rules */}
           {isPerpetualOracle && metadata && (metadata as any).resolveTime && (
-            <div className="bg-yellow-500/5 border border-yellow-500/20 rounded p-2 space-y-1">
+            <div className={`${
+              isCoinflipResolver
+                ? "bg-blue-500/5 border border-blue-500/20"
+                : "bg-yellow-500/5 border border-yellow-500/20"
+            } rounded p-2 space-y-1`}>
               <div className="flex items-center gap-1.5">
-                <Sparkles className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-400" />
-                <span className="text-xs font-semibold text-yellow-700 dark:text-yellow-300">
+                <Sparkles className={`h-3.5 w-3.5 ${
+                  isCoinflipResolver
+                    ? "text-blue-600 dark:text-blue-400"
+                    : "text-yellow-600 dark:text-yellow-400"
+                }`} />
+                <span className={`text-xs font-semibold ${
+                  isCoinflipResolver
+                    ? "text-blue-700 dark:text-blue-300"
+                    : "text-yellow-700 dark:text-yellow-300"
+                }`}>
                   Automated Oracle Market
                 </span>
               </div>
               <div className="text-xs text-muted-foreground space-y-0.5">
                 {(metadata as any).resolveTime && (
                   <div className="flex justify-between">
-                    <span>Resolves:</span>
+                    <span>{isCoinflipResolver ? "Closes:" : "Resolves:"}</span>
                     <span className="font-mono">
                       {new Date((metadata as any).resolveTime * 1000).toLocaleString(undefined, {
                         month: 'short',
@@ -586,6 +666,14 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                         hour: '2-digit',
                         minute: '2-digit'
                       })}
+                    </span>
+                  </div>
+                )}
+                {isCoinflipResolver && (metadata as any).targetBlocks && (metadata as any).targetBlocks.length > 0 && (
+                  <div className="flex justify-between">
+                    <span>Target Blocks:</span>
+                    <span className="font-mono text-[10px]">
+                      {(metadata as any).targetBlocks.join(", ")}
                     </span>
                   </div>
                 )}
@@ -721,12 +809,20 @@ export const MarketCard: React.FC<MarketCardProps> = ({
             />
           )}
 
-          {/* EthWentUpResolver Automation - Resolve Button */}
-          {canResolve && (
-            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded p-2">
+          {/* Perpetual Oracle Automation - Resolve Button */}
+          {(canResolve || canResolveCoinflip) && (
+            <div className={`${
+              isCoinflipResolver
+                ? "bg-blue-500/10 border border-blue-500/30"
+                : "bg-yellow-500/10 border border-yellow-500/30"
+            } rounded p-2`}>
               <Button
                 onClick={handleResolve}
-                className="w-full bg-yellow-600 hover:bg-yellow-700 text-white"
+                className={`w-full ${
+                  isCoinflipResolver
+                    ? "bg-blue-600 hover:bg-blue-700"
+                    : "bg-yellow-600 hover:bg-yellow-700"
+                } text-white`}
                 size="sm"
                 disabled={isResolvePending}
               >
@@ -734,23 +830,35 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                 {isResolvePending ? "Resolving..." : "Resolve Market (Earn Tip!)"}
               </Button>
               <p className="text-xs text-muted-foreground mt-1 text-center">
-                Automated market ready. Resolve to earn {tipPerResolve ? formatEther(tipPerResolve) : "0.001"} ETH tip
+                Automated market ready. Resolve to earn {
+                  isCoinflipResolver
+                    ? (coinflipTipPerResolve ? formatEther(coinflipTipPerResolve) : "0.001")
+                    : (tipPerResolve ? formatEther(tipPerResolve) : "0.001")
+                } ETH tip
               </p>
             </div>
           )}
 
-          {/* EthWentUpResolver Tip Button - Subtle, only shown when balance is low */}
-          {showTipButton && (
+          {/* Perpetual Oracle Tip Button - Subtle, only shown when balance is low */}
+          {(showTipButton || showCoinflipTipButton) && (
             <button
               onClick={handleTip}
-              className="w-full text-xs text-muted-foreground hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors flex items-center justify-center gap-1 py-1 opacity-60 hover:opacity-100"
+              className={`w-full text-xs text-muted-foreground ${
+                isCoinflipResolver
+                  ? "hover:text-blue-600 dark:hover:text-blue-400"
+                  : "hover:text-yellow-600 dark:hover:text-yellow-400"
+              } transition-colors flex items-center justify-center gap-1 py-1 opacity-60 hover:opacity-100`}
               disabled={isTipPending}
               title="Add tip to incentivize keepers to resolve this market"
             >
               <Coins className="h-3 w-3" />
               {isTipPending
                 ? "Adding tip..."
-                : `Tip keepers ${tipPerResolve ? formatEther(tipPerResolve) : "0.001"} ETH`}
+                : `Tip keepers ${
+                    isCoinflipResolver
+                      ? (coinflipTipPerResolve ? formatEther(coinflipTipPerResolve) : "0.001")
+                      : (tipPerResolve ? formatEther(tipPerResolve) : "0.001")
+                  } ETH`}
             </button>
           )}
 
