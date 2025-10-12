@@ -45,17 +45,22 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
   const publicClient = usePublicClient({
     chainId: mainnet.id,
   });
+
+  if (!order?.idIn || !order?.idOut || !order?.deadline || !order?.amtIn || !order?.amtOut || !order?.deadline) {
+    return null;
+  }
+
   // Parse order data
-  const tokenInId = order.idIn === "0" ? null : BigInt(order.idIn);
-  const tokenOutId = order.idOut === "0" ? null : BigInt(order.idOut);
+  const tokenInId = order?.idIn && order.idIn === "0" ? null : BigInt(order.idIn);
+  const tokenOutId = order?.idOut && order.idOut === "0" ? null : BigInt(order.idOut);
 
   const tokenIn = tokenInId === null ? ETH_TOKEN : tokens.find((t) => t.id === tokenInId);
   const tokenOut = tokenOutId === null ? ETH_TOKEN : tokens.find((t) => t.id === tokenOutId);
 
-  const amtIn = BigInt(order.amtIn);
-  const amtOut = BigInt(order.amtOut);
-  const inDone = BigInt(order.inDone);
-  const outDone = BigInt(order.outDone);
+  const amtIn = order?.amtIn ? BigInt(order.amtIn) : BigInt(0);
+  const amtOut = order?.amtOut ? BigInt(order.amtOut) : BigInt(0);
+  const inDone = order?.inDone ? BigInt(order.inDone) : BigInt(0);
+  const outDone = order?.outDone ? BigInt(order.outDone) : BigInt(0);
 
   // Calculate progress and remaining amounts
   const progress = amtOut > 0n ? Number((outDone * 100n) / amtOut) : 0;
@@ -65,7 +70,7 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
   // Check if order is expired
   const deadline = new Date(Number(order.deadline) * 1000);
   const isExpired = deadline < new Date();
-  const isOwnOrder = currentUser && order.maker.toLowerCase() === currentUser.toLowerCase();
+  const isOwnOrder = currentUser && order.maker?.toLowerCase() === currentUser.toLowerCase();
   const canFill = !isOwnOrder && order.status === "ACTIVE" && !isExpired && remainingOut > 0n;
 
   // Calculate exchange rate
@@ -134,12 +139,12 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
         args: [
           order.maker as `0x${string}`,
           order.tokenIn as `0x${string}`,
-          BigInt(order.idIn),
-          BigInt(order.amtIn),
+          BigInt(order?.idIn),
+          BigInt(order?.amtIn),
           order.tokenOut as `0x${string}`,
-          BigInt(order.idOut),
-          BigInt(order.amtOut),
-          BigInt(order.deadline),
+          BigInt(order?.idOut),
+          BigInt(order?.amtOut),
+          BigInt(order?.deadline),
           order.partialFill,
           fillAmountBigInt,
         ],
@@ -199,6 +204,16 @@ export const OrderCard = ({ order, currentUser, onOrderFilled }: OrderCardProps)
     if (!publicClient) return;
 
     try {
+      if (!order?.idIn || !order?.idOut) {
+        throw new Error("Order IDs are missing");
+      }
+      if (!order?.amtIn || !order?.amtOut) {
+        throw new Error("Order amounts are missing");
+      }
+      if (!order?.deadline) {
+        throw new Error("Order deadline is missing");
+      }
+
       setCancelTxError(null);
 
       // Encode cancelOrder call

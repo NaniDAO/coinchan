@@ -12,11 +12,7 @@ export const ErrorAlert = ({
   children: React.ReactNode;
 }) => {
   return (
-    <Alert
-      className={cn("w-full", className)}
-      tone="destructive"
-      emphasis="soft"
-    >
+    <Alert className={cn("w-full", className)} tone="destructive" emphasis="soft">
       <AlertTitle className="w-full">{error.name}</AlertTitle>
       <AlertDescription className="w-full">
         <p>{error.message}</p>

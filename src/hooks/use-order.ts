@@ -32,7 +32,7 @@ const fetchOrderById = async (orderId: string): Promise<Order | null> => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       query,
-      variables: { id: orderId }
+      variables: { id: orderId },
     }),
   });
 

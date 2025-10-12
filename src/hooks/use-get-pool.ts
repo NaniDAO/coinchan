@@ -25,6 +25,8 @@ const GET_POOL = `
         symbol
         source
         token
+        imageUrl
+        tokenURI
       }
       coin1 {
         decimals
@@ -33,6 +35,8 @@ const GET_POOL = `
         source
         symbol
         token
+        imageUrl
+        tokenURI
       }
     }
   }
@@ -46,6 +50,8 @@ type Coin = {
   symbol: string;
   source: string;
   token: string;
+  imageUrl: string;
+  tokenURI: string;
 };
 
 export type Pool = {
@@ -73,10 +79,7 @@ type GetPoolResponse = {
 };
 
 // ----- Fetcher -----
-export const fetchPool = async (
-  poolId: string,
-  source: CoinSource,
-): Promise<Pool | null> => {
+export const fetchPool = async (poolId: string, source: CoinSource): Promise<Pool | null> => {
   const response = await fetch(`${import.meta.env.VITE_INDEXER_URL}/graphql`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

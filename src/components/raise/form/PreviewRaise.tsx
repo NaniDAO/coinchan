@@ -1,8 +1,9 @@
 import { formatDuration } from "@/lib/date";
 import { templates } from "./RaiseForm";
-import { formatEther } from "viem"; // ✅ use library utility
+import { formatEther } from "viem";
 import { bigintToNumberSafe, formatDexscreenerStyle } from "@/lib/math";
 import { useTranslation } from "react-i18next";
+import { buildProjectLinks } from "@/lib/links";
 
 export const PreviewRaise = ({
   state,
@@ -22,9 +23,7 @@ export const PreviewRaise = ({
   ethPriceUSD: number | null;
 }) => {
   const { t, i18n } = useTranslation();
-  const imgUrl = imageBuffer
-    ? URL.createObjectURL(new Blob([imageBuffer]))
-    : null;
+  const imgUrl = imageBuffer ? URL.createObjectURL(new Blob([imageBuffer])) : null;
 
   const initial = (state?.name?.trim?.()?.charAt(0) || "Z").toUpperCase();
 
@@ -32,7 +31,7 @@ export const PreviewRaise = ({
   const totalSupplyWei = parseUnitsSafe(state.totalSupplyDisplay, 18n);
   const creatorSupplyWei = parseUnitsSafe(state.creatorSupplyDisplay, 18n);
   // Calculate 5% of total supply if airdrop display is not set
-  const defaultAirdrop = (Number(state.totalSupplyDisplay?.replace(/,/g, '') || "1000000000") * 0.05).toString();
+  const defaultAirdrop = (Number(state.totalSupplyDisplay?.replace(/,/g, "") || "1000000000") * 0.05).toString();
   const airdropSupply = parseUnitsSafe(state.airdropIncentiveDisplay || defaultAirdrop, 18n);
 
   // @ts-expect-error
@@ -44,7 +43,12 @@ export const PreviewRaise = ({
     value: bigint;
     color: string;
   }> = [
-    { key: "otc", label: t("raise.preview.otc"), value: max0(otcSupply), color: "bg-blue-500" },
+    {
+      key: "otc",
+      label: t("raise.preview.otc"),
+      value: max0(otcSupply),
+      color: "bg-blue-500",
+    },
     {
       key: "creator",
       label: t("raise.preview.creator"),
@@ -94,9 +98,10 @@ export const PreviewRaise = ({
   const otcSupplyForEthCalc = totalSupplyWei - creatorSupplyWei;
   const maxEthRaisable = coinsPerEth > 0n ? otcSupplyForEthCalc / coinsPerEth : 0n;
   const maxEthRaisableStr = formatEtherWithCommas(maxEthRaisable, 6);
-  const maxUsdRaisable = ethPriceUSD && maxEthRaisable > 0n
-    ? Number(formatEther(maxEthRaisable)) * ethPriceUSD
-    : null;
+  const maxUsdRaisable = ethPriceUSD && maxEthRaisable > 0n ? Number(formatEther(maxEthRaisable)) * ethPriceUSD : null;
+
+  // ----- Project links (optional) -----
+  const links = buildProjectLinks(state);
 
   // Build dynamic summary
   const buildSummary = () => {
@@ -110,10 +115,10 @@ export const PreviewRaise = ({
     // Remove trailing zeros and format nicely
     const cleanEth = Number(maxEthFormatted).toLocaleString(undefined, {
       minimumFractionDigits: 0,
-      maximumFractionDigits: 3
+      maximumFractionDigits: 3,
     });
 
-    if (i18n.language === 'zh') {
+    if (i18n.language === "zh") {
       let summary = `您正在通过 ${otcSupplyFormatted} 个代币的销售筹集最多 ${cleanEth} ETH`;
       if (creatorSupplyWei > 0n) {
         summary += `，${creatorSupplyFormatted} 个创建者储备`;
@@ -139,7 +144,7 @@ export const PreviewRaise = ({
         parts.push(`${incentiveFormatted} farm incentives`);
       }
       if (parts.length > 0) {
-        summary += ` with ${parts.join(', ')}`;
+        summary += ` with ${parts.join(", ")}`;
       }
       summary += ` (${totalSupplyFormatted} total supply)`;
       return summary;
@@ -160,9 +165,7 @@ export const PreviewRaise = ({
 
       {/* Summary sentence */}
       <div className="px-5 py-3 bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20 border-b">
-        <p className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
-          {buildSummary()}
-        </p>
+        <p className="text-sm font-medium text-neutral-700 dark:text-neutral-200">{buildSummary()}</p>
       </div>
 
       {/* identity row */}
@@ -178,24 +181,16 @@ export const PreviewRaise = ({
             "
           >
             {imgUrl ? (
-              <img
-                src={imgUrl}
-                alt={`${state.name || "Project"} logo`}
-                className="h-full w-full object-cover"
-              />
+              <img src={imgUrl} alt={`${state.name || "Project"} logo`} className="h-full w-full object-cover" />
             ) : (
-              <span className="text-lg font-semibold text-neutral-500">
-                {initial}
-              </span>
+              <span className="text-lg font-semibold text-neutral-500">{initial}</span>
             )}
           </div>
 
           {/* name/symbol/desc */}
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <div className="text-xl font-bold leading-tight truncate">
-                {state.name || t("raise.preview.unnamed")}
-              </div>
+              <div className="text-xl font-bold leading-tight truncate">{state.name || t("raise.preview.unnamed")}</div>
               <div className="text-sm px-2 py-0.5 rounded-md border bg-neutral-50 dark:bg-neutral-800/60 text-neutral-600 dark:text-neutral-300">
                 [{symbol}]
               </div>
@@ -208,6 +203,35 @@ export const PreviewRaise = ({
             >
               {state.description || t("raise.preview.no_description")}
             </p>
+
+            {/* Project links preview (only if any provided) */}
+            {links.length > 0 && (
+              <div className="mt-3">
+                <div className="text-xs font-semibold text-neutral-700 dark:text-neutral-200 mb-1">
+                  {i18n.language === "zh" ? "项目链接" : "Project links"}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {links.map((l) => (
+                    <a
+                      key={l.label}
+                      href={l.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="
+                        inline-flex items-center gap-1 text-xs
+                        px-2 py-1 rounded-md border
+                        bg-white/70 dark:bg-neutral-900/70
+                        hover:bg-neutral-50 dark:hover:bg-neutral-800/70
+                        transition-colors
+                      "
+                      title={l.title}
+                    >
+                      <span className="font-medium">{l.label}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -235,9 +259,7 @@ export const PreviewRaise = ({
                 key={seg.key}
                 className={`${seg.color} h-full`}
                 style={{ width: `${seg.pct}%` }}
-                title={`${seg.label}: ${formatPct(seg.pct, 2)} • ${formatToken(
-                  seg.value,
-                )} tokens`}
+                title={`${seg.label}: ${formatPct(seg.pct, 2)} • ${formatToken(seg.value)} tokens`}
               />
             ))}
           </div>
@@ -254,16 +276,10 @@ export const PreviewRaise = ({
               "
             >
               <div className="flex items-center gap-2 min-w-0">
-                <span
-                  className={`inline-block h-3 w-3 rounded-sm ${seg.color}`}
-                />
-                <span className="text-sm font-medium truncate">
-                  {seg.label}
-                </span>
+                <span className={`inline-block h-3 w-3 rounded-sm ${seg.color}`} />
+                <span className="text-sm font-medium truncate">{seg.label}</span>
               </div>
-              <div className="text-xs tabular-nums text-neutral-600 dark:text-neutral-300">
-                {formatPct(seg.pct, 2)}
-              </div>
+              <div className="text-xs tabular-nums text-neutral-600 dark:text-neutral-300">{formatPct(seg.pct, 2)}</div>
             </div>
           ))}
         </div>
@@ -282,18 +298,9 @@ export const PreviewRaise = ({
           title={t("raise.preview.total_supply") || "Total Supply"}
           value={`${formatToken(totalSupplyWei)} ${symbol}`}
         />
-        <InfoStat
-          title={t("raise.preview.otc_supply") || "OTC Supply"}
-          value={`${formatToken(otcSupply)} ${symbol}`}
-        />
-        <InfoStat
-          title={t("raise.preview.eth_rate") || "Tokens per ETH"}
-          value={formatEtherWithCommas(ethRate, 6)}
-        />
-        <InfoStat
-          title={t("raise.preview.initial_price")}
-          value={initialPriceCombined}
-        />
+        <InfoStat title={t("raise.preview.otc_supply") || "OTC Supply"} value={`${formatToken(otcSupply)} ${symbol}`} />
+        <InfoStat title={t("raise.preview.eth_rate") || "Tokens per ETH"} value={formatEtherWithCommas(ethRate, 6)} />
+        <InfoStat title={t("raise.preview.initial_price")} value={initialPriceCombined} />
         <InfoStat
           title={t("raise.preview.max_eth_raise") || "Max ETH Raisable"}
           value={`${maxEthRaisableStr} ETH${maxUsdRaisable ? ` (${formatUSD(maxUsdRaisable)})` : ""}`}
@@ -349,10 +356,7 @@ function max0(v: bigint) {
   return v < 0n ? 0n : v;
 }
 
-function computeBreakdown(
-  parts: Array<{ key: string; label: string; value: bigint; color: string }>,
-  total: bigint,
-) {
+function computeBreakdown(parts: Array<{ key: string; label: string; value: bigint; color: string }>, total: bigint) {
   const safeTotal = total > 0n ? total : 1n;
   const items = parts
     .filter((p) => p.value > 0n)
@@ -390,22 +394,28 @@ function formatTokenCompact(wei: bigint): string {
   const num = Number(whole);
 
   if (num >= 1e9) {
-    return (num / 1e9).toLocaleString(undefined, {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 1
-    }) + 'B';
+    return (
+      (num / 1e9).toLocaleString(undefined, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 1,
+      }) + "B"
+    );
   }
   if (num >= 1e6) {
-    return (num / 1e6).toLocaleString(undefined, {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 1
-    }) + 'M';
+    return (
+      (num / 1e6).toLocaleString(undefined, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 1,
+      }) + "M"
+    );
   }
   if (num >= 1e3) {
-    return (num / 1e3).toLocaleString(undefined, {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 1
-    }) + 'K';
+    return (
+      (num / 1e3).toLocaleString(undefined, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 1,
+      }) + "K"
+    );
   }
   return num.toLocaleString();
 }
@@ -458,10 +468,7 @@ function computeCoinEthPrice(coinsPerEth: bigint): number | null {
   return 1 / denom;
 }
 
-function computeCoinUsdPrice(
-  ethPriceUSD: number | null,
-  coinsPerEth: bigint,
-): number | null {
+function computeCoinUsdPrice(ethPriceUSD: number | null, coinsPerEth: bigint): number | null {
   if (ethPriceUSD == null) return null;
   if (coinsPerEth <= 0n) return null;
   const denom = Number(coinsPerEth);

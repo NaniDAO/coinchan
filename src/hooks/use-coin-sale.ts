@@ -4,15 +4,13 @@ export const useCoinSale = ({ coinId }: { coinId: string }) => {
   return useQuery({
     queryKey: ["coin-sale", coinId],
     queryFn: async () => {
-      const response = await fetch(
-        import.meta.env.VITE_INDEXER_URL + "/graphql",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            query: `
+      const response = await fetch(import.meta.env.VITE_INDEXER_URL + "/graphql", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query: `
             query SaleQuery {
               sales(where: {coinId: "${coinId}"}) {
                 items {
@@ -40,9 +38,8 @@ export const useCoinSale = ({ coinId }: { coinId: string }) => {
               }
             }
           `,
-          }),
-        },
-      );
+        }),
+      });
 
       const json = await response.json();
 

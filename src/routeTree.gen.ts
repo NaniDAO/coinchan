@@ -15,6 +15,7 @@ import { Route as SwapRouteImport } from './routes/swap'
 import { Route as StakeRouteImport } from './routes/stake'
 import { Route as SendRouteImport } from './routes/send'
 import { Route as RaiseRouteImport } from './routes/raise'
+import { Route as PredictRouteImport } from './routes/predict'
 import { Route as PositionsRouteImport } from './routes/positions'
 import { Route as LimitRouteImport } from './routes/limit'
 import { Route as IcoRouteImport } from './routes/ico'
@@ -63,6 +64,11 @@ const SendRoute = SendRouteImport.update({
 const RaiseRoute = RaiseRouteImport.update({
   id: '/raise',
   path: '/raise',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PredictRoute = PredictRouteImport.update({
+  id: '/predict',
+  path: '/predict',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PositionsRoute = PositionsRouteImport.update({
@@ -172,6 +178,7 @@ export interface FileRoutesByFullPath {
   '/ico': typeof IcoRoute
   '/limit': typeof LimitRoute
   '/positions': typeof PositionsRouteWithChildren
+  '/predict': typeof PredictRoute
   '/raise': typeof RaiseRoute
   '/send': typeof SendRoute
   '/stake': typeof StakeRoute
@@ -197,6 +204,7 @@ export interface FileRoutesByTo {
   '/explore': typeof ExploreRouteWithChildren
   '/ico': typeof IcoRoute
   '/limit': typeof LimitRoute
+  '/predict': typeof PredictRoute
   '/raise': typeof RaiseRoute
   '/send': typeof SendRoute
   '/stake': typeof StakeRoute
@@ -225,6 +233,7 @@ export interface FileRoutesById {
   '/ico': typeof IcoRoute
   '/limit': typeof LimitRoute
   '/positions': typeof PositionsRouteWithChildren
+  '/predict': typeof PredictRoute
   '/raise': typeof RaiseRoute
   '/send': typeof SendRoute
   '/stake': typeof StakeRoute
@@ -254,6 +263,7 @@ export interface FileRouteTypes {
     | '/ico'
     | '/limit'
     | '/positions'
+    | '/predict'
     | '/raise'
     | '/send'
     | '/stake'
@@ -279,6 +289,7 @@ export interface FileRouteTypes {
     | '/explore'
     | '/ico'
     | '/limit'
+    | '/predict'
     | '/raise'
     | '/send'
     | '/stake'
@@ -306,6 +317,7 @@ export interface FileRouteTypes {
     | '/ico'
     | '/limit'
     | '/positions'
+    | '/predict'
     | '/raise'
     | '/send'
     | '/stake'
@@ -334,6 +346,7 @@ export interface RootRouteChildren {
   IcoRoute: typeof IcoRoute
   LimitRoute: typeof LimitRoute
   PositionsRoute: typeof PositionsRouteWithChildren
+  PredictRoute: typeof PredictRoute
   RaiseRoute: typeof RaiseRoute
   SendRoute: typeof SendRoute
   StakeRoute: typeof StakeRoute
@@ -385,6 +398,13 @@ declare module '@tanstack/react-router' {
       path: '/raise'
       fullPath: '/raise'
       preLoaderRoute: typeof RaiseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/predict': {
+      id: '/predict'
+      path: '/predict'
+      fullPath: '/predict'
+      preLoaderRoute: typeof PredictRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/positions': {
@@ -577,6 +597,7 @@ const rootRouteChildren: RootRouteChildren = {
   IcoRoute: IcoRoute,
   LimitRoute: LimitRoute,
   PositionsRoute: PositionsRouteWithChildren,
+  PredictRoute: PredictRoute,
   RaiseRoute: RaiseRoute,
   SendRoute: SendRoute,
   StakeRoute: StakeRoute,

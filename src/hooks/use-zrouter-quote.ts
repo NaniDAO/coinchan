@@ -47,6 +47,14 @@ export function useZRouterQuote({
   side,
   enabled,
 }: UseZRouterQuoteArgs) {
+  console.log("useZRouterQuote", {
+    publicClient,
+    sellToken,
+    buyToken,
+    rawAmount,
+    side,
+    enabled,
+  });
   // Resolve tokens & decimals once
   const tokenIn = useMemo(
     () => toZRouterToken(sellToken || undefined),

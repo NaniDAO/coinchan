@@ -102,12 +102,8 @@ export function FarmHarvestDialog({ stream, lpToken, trigger, onSuccess }: FarmH
                 />
               )}
               <div>
-                <h3 className="font-mono font-bold text-lg text-primary">
-                  {lpToken?.symbol || "LP"}
-                </h3>
-                <p className="text-xs text-muted-foreground font-mono">
-                  {t("common.farm_rewards")}
-                </p>
+                <h3 className="font-mono font-bold text-lg text-primary">{lpToken?.symbol || "LP"}</h3>
+                <p className="text-xs text-muted-foreground font-mono">{t("common.farm_rewards")}</p>
               </div>
             </div>
           </div>
@@ -115,9 +111,7 @@ export function FarmHarvestDialog({ stream, lpToken, trigger, onSuccess }: FarmH
           {/* Pending Rewards Display */}
           <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-6">
             <div className="text-center space-y-4">
-              <p className="text-sm text-muted-foreground font-mono uppercase">
-                {t("common.pending_rewards")}
-              </p>
+              <p className="text-sm text-muted-foreground font-mono uppercase">{t("common.pending_rewards")}</p>
               <div className="flex items-center justify-center gap-3">
                 {stream.rewardCoin?.imageUrl && (
                   <img
@@ -131,9 +125,7 @@ export function FarmHarvestDialog({ stream, lpToken, trigger, onSuccess }: FarmH
                 </p>
               </div>
               {!pendingRewards || pendingRewards === 0n ? (
-                <p className="text-xs text-yellow-500 font-mono">
-                  {t("common.no_rewards_to_harvest")}
-                </p>
+                <p className="text-xs text-yellow-500 font-mono">{t("common.no_rewards_to_harvest")}</p>
               ) : null}
             </div>
           </div>
@@ -155,33 +147,25 @@ export function FarmHarvestDialog({ stream, lpToken, trigger, onSuccess }: FarmH
                   {txStatus === "pending" && (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent"></div>
-                      <span className="font-mono font-bold text-primary">
-                        [{t("common.status_pending")}]
-                      </span>
+                      <span className="font-mono font-bold text-primary">[{t("common.status_pending")}]</span>
                     </>
                   )}
                   {txStatus === "confirming" && (
                     <>
                       <div className="animate-pulse h-4 w-4 bg-yellow-500 rounded-full"></div>
-                      <span className="font-mono font-bold text-yellow-500">
-                        [{t("common.status_confirming")}]
-                      </span>
+                      <span className="font-mono font-bold text-yellow-500">[{t("common.status_confirming")}]</span>
                     </>
                   )}
                   {txStatus === "success" && (
                     <>
                       <div className="h-4 w-4 bg-green-500 rounded-full"></div>
-                      <span className="font-mono font-bold text-green-500">
-                        [{t("common.status_success")}]
-                      </span>
+                      <span className="font-mono font-bold text-green-500">[{t("common.status_success")}]</span>
                     </>
                   )}
                   {txStatus === "error" && (
                     <>
                       <div className="h-4 w-4 bg-red-500 rounded-full"></div>
-                      <span className="font-mono font-bold text-red-500">
-                        [{t("common.status_error")}]
-                      </span>
+                      <span className="font-mono font-bold text-red-500">[{t("common.status_error")}]</span>
                     </>
                   )}
                 </div>
@@ -211,9 +195,7 @@ export function FarmHarvestDialog({ stream, lpToken, trigger, onSuccess }: FarmH
 
                 {txStatus === "success" && (
                   <div className="text-center">
-                    <p className="text-sm text-green-400 font-mono">
-                      {t("common.rewards_harvested_successfully")}
-                    </p>
+                    <p className="text-sm text-green-400 font-mono">{t("common.rewards_harvested_successfully")}</p>
                   </div>
                 )}
               </div>
@@ -223,12 +205,7 @@ export function FarmHarvestDialog({ stream, lpToken, trigger, onSuccess }: FarmH
           {/* Action Button */}
           <Button
             onClick={handleHarvest}
-            disabled={
-              !pendingRewards ||
-              pendingRewards === 0n ||
-              txStatus !== "idle" ||
-              harvest.isPending
-            }
+            disabled={!pendingRewards || pendingRewards === 0n || txStatus !== "idle" || harvest.isPending}
             className={cn(
               "w-full font-mono font-bold tracking-wide text-lg py-4 hover:scale-105 transition-all duration-200",
               "bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400",

@@ -1,29 +1,15 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { formatEther } from "viem";
-import {
-  useAccount,
-  useWriteContract,
-  useWaitForTransactionReceipt,
-} from "wagmi";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { zCurveAbi, zCurveAddress } from "@/constants/zCurve";
-import {
-  useZCurveSale,
-  useZCurveBalance,
-  useZCurveSaleSummary,
-} from "@/hooks/use-zcurve-sale";
+import { useZCurveSale, useZCurveBalance, useZCurveSaleSummary } from "@/hooks/use-zcurve-sale";
 import { handleWalletError, isUserRejectionError } from "@/lib/errors";
 
 interface ZCurveClaimProps {
@@ -31,21 +17,14 @@ interface ZCurveClaimProps {
   coinSymbol?: string;
 }
 
-export function ZCurveClaim({
-  coinId,
-  coinSymbol = "TOKEN",
-}: ZCurveClaimProps) {
+export function ZCurveClaim({ coinId, coinSymbol = "TOKEN" }: ZCurveClaimProps) {
   const { t } = useTranslation();
   const { address } = useAccount();
   const [localError, setLocalError] = useState<string | null>(null);
 
   const { data: sale } = useZCurveSale(coinId);
   const { data: saleSummary } = useZCurveSaleSummary(coinId, address);
-  const {
-    data: userBalance,
-    refetch: refetchBalance,
-    isLoading: balanceLoading,
-  } = useZCurveBalance(coinId, address);
+  const { data: userBalance, refetch: refetchBalance, isLoading: balanceLoading } = useZCurveBalance(coinId, address);
 
   const { data: hash, error, isPending, writeContract } = useWriteContract();
   const { isSuccess: txSuccess } = useWaitForTransactionReceipt({
@@ -65,12 +44,8 @@ export function ZCurveClaim({
         setLocalError(null); // Clear any previous error
       } else {
         const errorMessage = handleWalletError(error, { t });
-        setLocalError(
-          errorMessage || t("claim.failed", "Failed to claim tokens"),
-        );
-        toast.error(
-          errorMessage || t("claim.failed", "Failed to claim tokens"),
-        );
+        setLocalError(errorMessage || t("claim.failed", "Failed to claim tokens"));
+        toast.error(errorMessage || t("claim.failed", "Failed to claim tokens"));
       }
     }
   }, [error, t]);
@@ -108,11 +83,7 @@ export function ZCurveClaim({
       : 0n;
 
   // Don't show if sale isn't finalized, still loading, or user has no balance
-  if (
-    (sale?.status !== "FINALIZED" && !saleSummary?.isFinalized) ||
-    balanceLoading ||
-    balance === 0n
-  ) {
+  if ((sale?.status !== "FINALIZED" && !saleSummary?.isFinalized) || balanceLoading || balance === 0n) {
     return null;
   }
 
@@ -127,18 +98,13 @@ export function ZCurveClaim({
           {t("claim.title", "Claim Your Tokens")}
         </CardTitle>
         <CardDescription className="text-base">
-          {t(
-            "claim.description",
-            "The sale has finalized. You can now claim your tokens.",
-          )}
+          {t("claim.description", "The sale has finalized. You can now claim your tokens.")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">
-              {t("claim.claimable", "Claimable")}
-            </span>
+            <span className="text-muted-foreground">{t("claim.claimable", "Claimable")}</span>
             <span className="font-bold text-lg">
               {formatEther(claimableAmount)} {coinSymbol}
             </span>
@@ -146,9 +112,7 @@ export function ZCurveClaim({
 
           {totalClaimed > 0n && (
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">
-                {t("claim.already_claimed", "Already Claimed")}
-              </span>
+              <span className="text-muted-foreground">{t("claim.already_claimed", "Already Claimed")}</span>
               <span>
                 {formatEther(totalClaimed)} {coinSymbol}
               </span>
@@ -172,14 +136,9 @@ export function ZCurveClaim({
         {/* Success Message */}
         {txSuccess && (
           <Alert className="border-green-200 bg-green-50">
-            <AlertTitle className="text-green-800">
-              {t("claim.success_title", "Success!")}
-            </AlertTitle>
+            <AlertTitle className="text-green-800">{t("claim.success_title", "Success!")}</AlertTitle>
             <AlertDescription className="text-green-700">
-              {t(
-                "claim.success_message",
-                "Your tokens have been claimed successfully.",
-              )}
+              {t("claim.success_message", "Your tokens have been claimed successfully.")}
             </AlertDescription>
           </Alert>
         )}

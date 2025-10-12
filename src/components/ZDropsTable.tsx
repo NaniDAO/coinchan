@@ -6,13 +6,7 @@ import { useReadContract, useWriteContract } from "wagmi";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Label } from "@/components/ui/label";
@@ -44,8 +38,7 @@ export const ZDropsTable = ({
             to="/farm"
             className="text-sm text-destructive-foreground mt-2 block hover:underline visited:text-primary"
           >
-            veZAMM holders are eligible to claim airdrops. Get veZAMM by farming
-            ZAMM.
+            veZAMM holders are eligible to claim airdrops. Get veZAMM by farming ZAMM.
           </Link>
         )}
       </div>
@@ -112,31 +105,21 @@ const ZDropClaim: React.FC<{ drop: ZDrop }> = ({ drop }) => {
   // For the intended airdrop flow (user pays veZAMM), tokenOut should be veZAMM.
   // We'll detect that and compute claim capacity accordingly.
   const takerPaysIsVeZAMM =
-    (drop.tokenOut as Address)?.toLowerCase() ===
-      VEZAMM_TOKEN.address.toLowerCase() &&
+    (drop.tokenOut as Address)?.toLowerCase() === VEZAMM_TOKEN.address.toLowerCase() &&
     drop.idOut === VEZAMM_TOKEN.id.toString();
 
-  const veZammBalance = takerPaysIsVeZAMM
-    ? (tokenOut?.balance ?? 0n)
-    : (tokenIn?.balance ?? 0n); // fallback if your setup flips them (not recommended)
+  const veZammBalance = takerPaysIsVeZAMM ? tokenOut?.balance ?? 0n : tokenIn?.balance ?? 0n; // fallback if your setup flips them (not recommended)
 
   // For partial fills: taker chooses "sliceOut" (amount of tokenOut to pay).
   // Max they can pay is the min of their balance and remainingOut.
-  const maxPayableOut = takerPaysIsVeZAMM
-    ? veZammBalance < remainOut
-      ? veZammBalance
-      : remainOut
-    : 0n;
+  const maxPayableOut = takerPaysIsVeZAMM ? (veZammBalance < remainOut ? veZammBalance : remainOut) : 0n;
 
   // If the order is non-partial, user must take exactly the full remainder:
   const requiredOutIfNonPartial = drop.partialFill ? undefined : remainOut;
 
   // Derive what the user will receive for a given "sliceOut":
   // sliceIn = floor(amtIn * sliceOut / amtOut)
-  const quoteReceiveForOut = React.useCallback(
-    (sliceOut: bigint) => (amtIn * sliceOut) / amtOut,
-    [amtIn, amtOut],
-  );
+  const quoteReceiveForOut = React.useCallback((sliceOut: bigint) => (amtIn * sliceOut) / amtOut, [amtIn, amtOut]);
 
   // UI state: desired "fillPart" = how much tokenOut the user wants to pay
   const [desiredOut, setDesiredOut] = React.useState<bigint>(0n);
@@ -152,32 +135,24 @@ const ZDropClaim: React.FC<{ drop: ZDrop }> = ({ drop }) => {
 
   // Pretty numbers
   const fmt = (v: bigint, decimals?: number) =>
-    decimals !== undefined
-      ? Number(formatUnits(v, decimals)).toLocaleString()
-      : v.toString();
+    decimals !== undefined ? Number(formatUnits(v, decimals)).toLocaleString() : v.toString();
 
   const inDecimals = tokenIn?.decimals ?? 18;
   const outDecimals = tokenOut?.decimals ?? 18;
 
   const userReceivesIn = quoteReceiveForOut(desiredOut);
-  const progressPct =
-    Number((outDone * 10000n) / (amtOut === 0n ? 1n : amtOut)) / 100;
+  const progressPct = Number((outDone * 10000n) / (amtOut === 0n ? 1n : amtOut)) / 100;
 
   const nowSec = Math.floor(Date.now() / 1000);
-  const expired =
-    Number(drop.deadline) <= nowSec ||
-    (orderData && Number(orderData.deadline) <= nowSec);
+  const expired = Number(drop.deadline) <= nowSec || (orderData && Number(orderData.deadline) <= nowSec);
   const fullyFilled = remainOut === 0n || remainIn === 0n;
 
   // Final button disabled states
   const cannotClaimBecauseFlip = !takerPaysIsVeZAMM && drop.status === "ACTIVE"; // order created with opposite orientation
-  const insufficientBalance =
-    takerPaysIsVeZAMM && desiredOut > (tokenOut?.balance ?? 0n);
+  const insufficientBalance = takerPaysIsVeZAMM && desiredOut > (tokenOut?.balance ?? 0n);
   const invalidAmount =
     desiredOut <= 0n ||
-    (!drop.partialFill &&
-      requiredOutIfNonPartial !== undefined &&
-      desiredOut !== requiredOutIfNonPartial);
+    (!drop.partialFill && requiredOutIfNonPartial !== undefined && desiredOut !== requiredOutIfNonPartial);
 
   const claimDisabled =
     expired ||
@@ -237,17 +212,14 @@ const ZDropClaim: React.FC<{ drop: ZDrop }> = ({ drop }) => {
             <span className="font-semibold">{tokenInSymbol}</span>
           </CardTitle>
           <div className="flex items-center gap-2">
-            <Badge variant={drop.status === "ACTIVE" ? "default" : "secondary"}>
-              {drop.status}
-            </Badge>
+            <Badge variant={drop.status === "ACTIVE" ? "default" : "secondary"}>{drop.status}</Badge>
             {expired && <Badge variant="destructive">Expired</Badge>}
             {fullyFilled && <Badge variant="outline">Filled</Badge>}
           </div>
         </div>
         <CardDescription>
           Claim <span className="font-medium">{tokenInSymbol}</span> with{" "}
-          <span className="font-medium">{tokenOutSymbol}</span> while the drop
-          is ongoing.
+          <span className="font-medium">{tokenOutSymbol}</span> while the drop is ongoing.
         </CardDescription>
       </CardHeader>
 
@@ -258,15 +230,13 @@ const ZDropClaim: React.FC<{ drop: ZDrop }> = ({ drop }) => {
             <div className="text-sm">
               <div className="font-medium">Order</div>
               <div className="text-muted-foreground">
-                {fmt(amtIn, inDecimals)} {tokenInSymbol} for{" "}
-                {fmt(amtOut, outDecimals)} {tokenOutSymbol}
+                {fmt(amtIn, inDecimals)} {tokenInSymbol} for {fmt(amtOut, outDecimals)} {tokenOutSymbol}
               </div>
             </div>
             <div className="text-right text-sm">
               <div className="font-medium">Remaining</div>
               <div className="text-muted-foreground">
-                {fmt(remainIn, inDecimals)} {tokenInSymbol} •{" "}
-                {fmt(remainOut, outDecimals)} {tokenOutSymbol}
+                {fmt(remainIn, inDecimals)} {tokenInSymbol} • {fmt(remainOut, outDecimals)} {tokenOutSymbol}
               </div>
             </div>
           </div>
@@ -288,8 +258,7 @@ const ZDropClaim: React.FC<{ drop: ZDrop }> = ({ drop }) => {
             <div className="text-xs text-muted-foreground">Your veZAMM</div>
             <div className="text-sm font-medium">
               {fmt(
-                (takerPaysIsVeZAMM ? tokenOut?.balance : tokenIn?.balance) ??
-                  0n,
+                (takerPaysIsVeZAMM ? tokenOut?.balance : tokenIn?.balance) ?? 0n,
                 takerPaysIsVeZAMM ? outDecimals : inDecimals,
               )}{" "}
               veZAMM
@@ -297,9 +266,7 @@ const ZDropClaim: React.FC<{ drop: ZDrop }> = ({ drop }) => {
           </div>
           <div className="rounded-lg border p-3">
             <div className="text-xs text-muted-foreground">Deadline (UTC)</div>
-            <div className="text-sm font-medium">
-              {new Date(Number(drop.deadline) * 1000).toUTCString()}
-            </div>
+            <div className="text-sm font-medium">{new Date(Number(drop.deadline) * 1000).toUTCString()}</div>
           </div>
         </div>
 
@@ -330,12 +297,7 @@ const ZDropClaim: React.FC<{ drop: ZDrop }> = ({ drop }) => {
                 placeholder="0.0"
                 value={formatUnits(desiredOut, outDecimals)}
                 onChange={(e) => handleOutInput(e.target.value)}
-                disabled={
-                  !drop.partialFill ||
-                  expired ||
-                  fullyFilled ||
-                  drop.status !== "ACTIVE"
-                }
+                disabled={!drop.partialFill || expired || fullyFilled || drop.status !== "ACTIVE"}
               />
 
               <div className="text-xs text-muted-foreground">
@@ -346,24 +308,17 @@ const ZDropClaim: React.FC<{ drop: ZDrop }> = ({ drop }) => {
               </div>
             </>
           ) : (
-            <div className="text-xs text-destructive">
-              Farm {tokenOutSymbol} to claim future zDrops.
-            </div>
+            <div className="text-xs text-destructive">Farm {tokenOutSymbol} to claim future zDrops.</div>
           )}
         </div>
 
-        <Button
-          className="w-full"
-          disabled={claimDisabled || isPending}
-          onClick={onClaim}
-        >
+        <Button className="w-full" disabled={claimDisabled || isPending} onClick={onClaim}>
           {isPending ? "Claiming..." : "Claim"}
         </Button>
 
         {/* Tiny footnote on ratios */}
         <div className="text-[11px] text-muted-foreground text-center">
-          Rate: 1 {tokenOutSymbol} →{" "}
-          {(Number(amtIn) / Number(amtOut) || 0).toFixed(6)} {tokenInSymbol}
+          Rate: 1 {tokenOutSymbol} → {(Number(amtIn) / Number(amtOut) || 0).toFixed(6)} {tokenInSymbol}
         </div>
       </CardContent>
     </Card>

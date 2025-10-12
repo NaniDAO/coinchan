@@ -235,7 +235,7 @@ function useUniV3BestQuote({
     path: (data?.path as `0x${string}`) ?? ("0x" as `0x${string}`),
     isFetching,
     isError,
-    error: isError ? ((error as Error)?.message ?? "error") : null,
+    error: isError ? (error as Error)?.message ?? "error" : null,
     enabled,
   };
 }

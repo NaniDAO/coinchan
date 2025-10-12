@@ -16,12 +16,7 @@ interface FeeOrHookSelectorProps {
   className?: string;
 }
 
-export const FeeOrHookSelector = ({
-  feeOrHook,
-  setFeeOrHook,
-  isHook,
-  className,
-}: FeeOrHookSelectorProps) => {
+export const FeeOrHookSelector = ({ feeOrHook, setFeeOrHook, isHook, className }: FeeOrHookSelectorProps) => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<"fee" | "hook">(isHook ? "hook" : "fee");
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -65,9 +60,8 @@ export const FeeOrHookSelector = ({
     }
   };
 
-  const currentHookAddress = isHook && feeOrHook > maxUint256 / 2n
-    ? "0x" + feeOrHook.toString(16).padStart(40, "0")
-    : "";
+  const currentHookAddress =
+    isHook && feeOrHook > maxUint256 / 2n ? "0x" + feeOrHook.toString(16).padStart(40, "0") : "";
 
   return (
     <div className={cn("mt-4 space-y-4", className)}>
@@ -87,10 +81,7 @@ export const FeeOrHookSelector = ({
             )}
           </div>
           <svg
-            className={cn(
-              "h-4 w-4 transition-transform",
-              showAdvanced && "rotate-180"
-            )}
+            className={cn("h-4 w-4 transition-transform", showAdvanced && "rotate-180")}
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
             fill="none"
@@ -115,9 +106,7 @@ export const FeeOrHookSelector = ({
                 }}
                 className={cn(
                   "flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all",
-                  activeTab === "fee"
-                    ? "bg-background shadow-sm"
-                    : "hover:bg-background/50"
+                  activeTab === "fee" ? "bg-background shadow-sm" : "hover:bg-background/50",
                 )}
               >
                 <div className="flex items-center justify-center gap-2">
@@ -130,9 +119,7 @@ export const FeeOrHookSelector = ({
                 onClick={() => setActiveTab("hook")}
                 className={cn(
                   "flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all",
-                  activeTab === "hook"
-                    ? "bg-background shadow-sm"
-                    : "hover:bg-background/50"
+                  activeTab === "hook" ? "bg-background shadow-sm" : "hover:bg-background/50",
                 )}
               >
                 <div className="flex items-center justify-center gap-2">
@@ -150,9 +137,7 @@ export const FeeOrHookSelector = ({
                     <Label htmlFor="feeSlider" className="text-sm">
                       {t("pools.swap_fee_percentage")}
                     </Label>
-                    <span className="text-sm font-mono font-medium">
-                      {feePercentage.toFixed(2)}%
-                    </span>
+                    <span className="text-sm font-mono font-medium">{feePercentage.toFixed(2)}%</span>
                   </div>
 
                   <Slider
@@ -186,7 +171,7 @@ export const FeeOrHookSelector = ({
                             "px-3 py-1.5 rounded-md text-xs font-medium border transition-all",
                             isSelected
                               ? "bg-primary text-primary-foreground border-primary"
-                              : "bg-background hover:bg-accent border-border"
+                              : "bg-background hover:bg-accent border-border",
                           )}
                         >
                           {option.label}
@@ -196,9 +181,7 @@ export const FeeOrHookSelector = ({
                   </div>
                 </div>
 
-                <p className="text-xs text-muted-foreground">
-                  {t("pools.swap_fee_description")}
-                </p>
+                <p className="text-xs text-muted-foreground">{t("pools.swap_fee_description")}</p>
               </div>
             )}
 
@@ -217,9 +200,7 @@ export const FeeOrHookSelector = ({
                     onChange={(e) => handleHookAddressChange(e.target.value)}
                     className="font-mono text-sm"
                   />
-                  <p className="text-xs text-muted-foreground mt-2">
-                    {t("pools.hook_address_description")}
-                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">{t("pools.hook_address_description")}</p>
                 </div>
 
                 {isHook && feeOrHook > 0n && (
@@ -257,9 +238,7 @@ export const FeeOrHookSelector = ({
       {/* Summary Display (always visible) */}
       {!showAdvanced && (
         <div className="text-sm text-muted-foreground">
-          {isHook
-            ? t("pools.using_custom_hook")
-            : t("pools.swap_fee_summary", { fee: feePercentage.toFixed(2) })}
+          {isHook ? t("pools.using_custom_hook") : t("pools.swap_fee_summary", { fee: feePercentage.toFixed(2) })}
         </div>
       )}
     </div>

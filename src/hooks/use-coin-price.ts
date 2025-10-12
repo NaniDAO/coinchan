@@ -10,16 +10,15 @@ export const useCoinPrice = ({ token }: { token?: Token }) => {
       if (!token) return 0;
 
       if (!token) return 0;
-      const pools = (
-        await fetchPools(token.id.toString(), token.address)
-      ).filter((pool) => pool.token0 === zeroAddress);
+      const pools = (await fetchPools(token.id.toString(), token.address)).filter(
+        (pool) => pool.token0 === zeroAddress,
+      );
 
       const reserve0 = BigInt(pools[0]?.reserve0 ?? 0);
       const reserve1 = BigInt(pools[0]?.reserve1 ?? 0);
       const SCALING1 = 10n ** BigInt(18);
 
-      const price1Fixed =
-        reserve1 === 0n ? 0n : (reserve0 * SCALING1) / reserve1;
+      const price1Fixed = reserve1 === 0n ? 0n : (reserve0 * SCALING1) / reserve1;
 
       return Number(formatEther(price1Fixed));
     },

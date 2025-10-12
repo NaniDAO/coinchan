@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 
 import { useTokenPair } from "@/hooks/use-token-pair";
 import { TradeController } from "./TradeController";
@@ -43,22 +43,155 @@ import {
 import { InfoIcon } from "lucide-react";
 import { SlippageSettings } from "../SlippageSettings";
 
+import { useNavigate, useSearch } from "@tanstack/react-router";
+import {
+  encodeTokenQ,
+  parseTokenQ,
+  findTokenFlexible,
+  isCanonicalTokenQ,
+} from "@/lib/token-query";
+
+/** ----------------------------------------------------------------
+ * URL token helpers
+ * ---------------------------------------------------------------- */
+
+function isAddress(str?: string): str is Address {
+  return !!str && /^0x[a-fA-F0-9]{40}$/.test(str);
+}
+
+/**
+ * Resolve a URL token query against a loaded tokenlist.
+ * Falls back to `minimalFromTokenQ` when no match yet.
+ */
+function resolveFromUrl(
+  tokens: TokenMetadata[] | undefined,
+  q?: string,
+): Partial<TokenMetadata> | undefined {
+  if (!q) return undefined;
+  const match =
+    tokens && tokens.length
+      ? (findTokenFlexible(tokens as any, q) as TokenMetadata | undefined)
+      : undefined;
+
+  if (match) return match;
+  // parse token q
+  const parsed = parseTokenQ(q);
+
+  if (parsed) {
+    if (parsed.kind === "addrid") {
+      return {
+        address: parsed.address,
+        id: parsed.id,
+        standard: "ERC6909",
+      };
+    } else if (parsed.kind === "addr") {
+      if (isAddress(parsed.address)) {
+        return {
+          address: parsed.address,
+          standard: "ERC20",
+        };
+      } else {
+        return {
+          address: parsed.address,
+          standard: "ERC20",
+        };
+      }
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Merge known fields (balances + metadata) from `src` onto `dst`
+ * without changing the token identity. Use this to hydrate tokens
+ * with name/symbol/logoURI/decimals once the tokenlist is available.
+ */
+function mergeTokenFields<T extends Record<string, any>>(dst: T, src?: any): T {
+  if (!src) return dst;
+
+  // fields that define identity and should never be overwritten
+  const IDENTITY_KEYS = new Set(["address", "id"]);
+
+  let changed = false;
+  const next: any = { ...dst };
+
+  for (const [k, v] of Object.entries(src)) {
+    if (v === undefined) continue;
+    if (IDENTITY_KEYS.has(k)) continue; // don’t change identity
+    if (next[k] !== v) {
+      next[k] = v; // merge any other metadata, incl. `image`
+      changed = true;
+    }
+  }
+
+  return changed ? (next as T) : dst;
+}
+
+/** ----------------------------------------------------------------
+ * Component
+ * ---------------------------------------------------------------- */
+
 interface InstantTradeActionProps {
   locked?: boolean;
   initialSellToken?: TokenMetadata;
   initialBuyToken?: TokenMetadata;
+  /**
+   * When true, activate TanStack Router search syncing (read from and write to the URL).
+   * When false (default), the component ignores URL search params entirely.
+   */
+  useSearchHook?: boolean;
 }
 
 export const InstantTradeAction = ({
   locked = false,
   initialSellToken,
   initialBuyToken,
+  useSearchHook = false,
 }: InstantTradeActionProps) => {
+  // URL hooks (bind to the *current* route so it is safe on "/" and "/swap")
+  const navigate = useNavigate();
+  const search = useSearch(
+    useSearchHook === true ? { from: "/swap" } : { from: "/" },
+  ) as {
+    sellToken?: string;
+    buyToken?: string;
+  };
+
+  const { address: owner, isConnected } = useAccount();
+  const { data: tokens = [] } = useGetTokens(owner);
+  const publicClient = usePublicClient();
+  const chainId = useChainId();
+
+  /** ------------------------------------------------------------
+   * Seed useTokenPair from URL so first paint reflects deep link
+   * ------------------------------------------------------------ */
+  const urlInitialSell = useMemo(
+    () =>
+      useSearchHook
+        ? (resolveFromUrl(tokens, search.sellToken) as
+            | TokenMetadata
+            | undefined)
+        : undefined,
+    // include `tokens` so if they arrive before first render, we seed with richer info
+    [useSearchHook, search.sellToken, tokens],
+  );
+
+  const urlInitialBuy = useMemo(
+    () =>
+      useSearchHook
+        ? (resolveFromUrl(tokens, search.buyToken) as TokenMetadata | undefined)
+        : undefined,
+    [useSearchHook, search.buyToken, tokens],
+  );
+
   const { sellToken, setSellToken, buyToken, setBuyToken, flip } = useTokenPair(
     {
       initial: {
-        sellToken: initialSellToken ?? ETH_TOKEN,
-        buyToken: initialBuyToken ?? ZAMM_TOKEN,
+        // Priority: URL → explicit props → defaults
+        sellToken:
+          (urlInitialSell as TokenMetadata) ?? initialSellToken ?? ETH_TOKEN,
+        buyToken:
+          (urlInitialBuy as TokenMetadata) ?? initialBuyToken ?? ZAMM_TOKEN,
       },
     },
   );
@@ -70,11 +203,6 @@ export const InstantTradeAction = ({
   );
   const [slippageBps, setSlippageBps] = useState<bigint>(SLIPPAGE_BPS);
 
-  const { address: owner, isConnected } = useAccount();
-  const { data: tokens = [] } = useGetTokens(owner);
-  const publicClient = usePublicClient();
-
-  const chainId = useChainId();
   const {
     sendTransactionAsync,
     isPending,
@@ -87,62 +215,121 @@ export const InstantTradeAction = ({
   const [txError, setTxError] = useState<string | null>(null);
   const [suppressErrors, setSuppressErrors] = useState(false);
 
+  // Track whether user manually changed the pair (to avoid re-hydrating/overwriting)
   const userChangedPairRef = useRef(false);
+  const didInitialUrlHydrate = useRef(false);
 
   const clearErrorsOnUserEdit = () => {
-    // Hide any previous errors once the user edits inputs/tokens
     setTxError(null);
     setSuppressErrors(true);
   };
 
-  // Reset amounts when pair changes (and clear errors)
+  // Reset amounts when pair changes (skip first URL hydration-triggered change)
   useEffect(() => {
+    if (!didInitialUrlHydrate.current && useSearchHook) {
+      didInitialUrlHydrate.current = true;
+      return;
+    }
     setSellAmount("");
     setBuyAmount("");
     setLastEditedField("sell");
     clearErrorsOnUserEdit();
-  }, [sellToken?.id, buyToken?.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sellToken?.address ?? sellToken?.id, buyToken?.address ?? buyToken?.id]);
 
+  // ------------------------------
+  // URL → State (decode immediately; don't depend on tokens)
+  // ------------------------------
+  useEffect(() => {
+    if (!useSearchHook) return;
+
+    // Resolve against loaded tokens if possible, else minimal identity
+    const matchSell = resolveFromUrl(tokens, search.sellToken);
+    const matchBuy = resolveFromUrl(tokens, search.buyToken);
+
+    if (matchSell) {
+      setSellToken((prev) =>
+        prev && sameToken(prev, matchSell as TokenMetadata)
+          ? mergeTokenFields(prev, matchSell)
+          : (matchSell as TokenMetadata),
+      );
+    }
+    if (matchBuy) {
+      setBuyToken((prev) =>
+        prev && sameToken(prev, matchBuy as TokenMetadata)
+          ? mergeTokenFields(prev, matchBuy)
+          : (matchBuy as TokenMetadata),
+      );
+    }
+
+    // Canonicalize only when we have a confident match from the tokenlist,
+    // or when the URL is missing values. Do NOT inject ETH/ZAMM just because
+    // we couldn't resolve yet.
+    const updates: Record<string, string> = {};
+    const canonSellCandidate =
+      (tokens.length && findTokenFlexible(tokens as any, search.sellToken)) ||
+      undefined;
+    const canonBuyCandidate =
+      (tokens.length && findTokenFlexible(tokens as any, search.buyToken)) ||
+      undefined;
+
+    if (canonSellCandidate && !isCanonicalTokenQ(search.sellToken)) {
+      let encoded = encodeTokenQ(canonSellCandidate);
+      if (encoded) updates.sellToken = encoded;
+    }
+    if (canonBuyCandidate && !isCanonicalTokenQ(search.buyToken)) {
+      let encoded = encodeTokenQ(canonBuyCandidate);
+      if (encoded) updates.buyToken = encoded;
+    }
+
+    if (!search.sellToken && (sellToken || matchSell)) {
+      let encoded = encodeTokenQ(
+        (canonSellCandidate ??
+          (sellToken as TokenMetadata) ??
+          (matchSell as TokenMetadata)) as TokenMetadata,
+      );
+      if (encoded) updates.sellToken = encoded;
+    }
+    if (!search.buyToken && (buyToken || matchBuy)) {
+      let encoded = encodeTokenQ(
+        (canonBuyCandidate ??
+          (buyToken as TokenMetadata) ??
+          (matchBuy as TokenMetadata)) as TokenMetadata,
+      );
+      if (encoded) updates.buyToken = encoded;
+    }
+
+    if (Object.keys(updates).length) {
+      navigate({
+        to: ".",
+        replace: true,
+        search: (s: any) => ({ ...s, ...updates }),
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [useSearchHook, search.sellToken, search.buyToken, tokens]);
+
+  // ------------------------------
+  // Hydrate current selections with balances + metadata
+  // (without changing which token is selected)
+  // ------------------------------
   useEffect(() => {
     if (!tokens?.length) return;
 
-    // Only auto-hydrate while the pair is still the initial one (or untouched)
-    const stillDefaultPair =
-      sameToken(sellToken, ETH_TOKEN) && sameToken(buyToken, ZAMM_TOKEN);
-
-    if (!stillDefaultPair || userChangedPairRef.current) return;
-
-    const BALANCE_KEYS = ["balance", "rawBalance", "formattedBalance"] as const;
-
-    const mergeBalances = <T extends Record<string, any>>(
-      prev: T,
-      match: any,
-    ): T => {
-      let changed = false;
-      const next: any = { ...prev };
-      for (const k of BALANCE_KEYS) {
-        if (match?.[k] !== undefined && match?.[k] !== prev?.[k]) {
-          next[k] = match[k];
-          changed = true;
-        }
-      }
-      return changed ? (next as T) : prev;
-    };
-
-    // Hydrate sell token
+    // Hydrate SELL without changing identity
     setSellToken((prev) => {
       if (!prev) return prev;
       const match = tokens.find((t) => sameToken(t as any, prev));
-      return match ? mergeBalances(prev, match) : prev;
+      return match ? mergeTokenFields(prev, match) : prev;
     });
 
-    // Hydrate buy token
+    // Hydrate BUY without changing identity
     setBuyToken((prev) => {
       if (!prev) return prev;
       const match = tokens.find((t) => sameToken(t as any, prev));
-      return match ? mergeBalances(prev, match) : prev;
+      return match ? mergeTokenFields(prev, match) : prev;
     });
-  }, [tokens, sellToken?.id, buyToken?.id]);
+  }, [tokens, setSellToken, setBuyToken]);
 
   // ------------------------------
   // Quotes via useZRouterQuote
@@ -200,6 +387,19 @@ export const InstantTradeAction = ({
     setSellAmount("");
     setBuyAmount("");
     setLastEditedField("sell");
+
+    // reflect to URL immediately (only when enabled)
+    if (useSearchHook) {
+      navigate({
+        to: ".",
+        replace: true,
+        search: (s: any) => ({
+          ...s,
+          sellToken: encodeTokenQ(token),
+          buyToken: encodeTokenQ(buyToken ?? ZAMM_TOKEN),
+        }),
+      });
+    }
   };
 
   // BUY token cannot be changed when locked
@@ -211,6 +411,19 @@ export const InstantTradeAction = ({
     setSellAmount("");
     setBuyAmount("");
     setLastEditedField("buy");
+
+    // reflect to URL immediately (only when enabled)
+    if (useSearchHook) {
+      navigate({
+        to: ".",
+        replace: true,
+        search: (s: any) => ({
+          ...s,
+          sellToken: encodeTokenQ(sellToken ?? ETH_TOKEN),
+          buyToken: encodeTokenQ(token),
+        }),
+      });
+    }
   };
 
   // Flipping is allowed even when locked
@@ -221,11 +434,22 @@ export const InstantTradeAction = ({
     setSellAmount("");
     setBuyAmount("");
     setLastEditedField("sell");
-  };
 
-  const hasSellBalance = !!(
-    sellToken?.balance && BigInt(sellToken.balance) > 0n
-  );
+    // reflect to URL after flip (only when enabled)
+    if (useSearchHook) {
+      const nextSell = buyToken ?? ZAMM_TOKEN;
+      const nextBuy = sellToken ?? ETH_TOKEN;
+      navigate({
+        to: ".",
+        replace: true,
+        search: (s: any) => ({
+          ...s,
+          sellToken: encodeTokenQ(nextSell),
+          buyToken: encodeTokenQ(nextBuy),
+        }),
+      });
+    }
+  };
 
   // ------------------------------
   // Execute swap (approvals + multicall)
@@ -368,20 +592,42 @@ export const InstantTradeAction = ({
     }
   };
 
+  // ------------------------------
+  // Optional helpers (unchanged)
+  // ------------------------------
+  const onControllerAmountChange = useCallback((val: string) => {
+    clearErrorsOnUserEdit();
+    setSellAmount(val);
+    setLastEditedField("sell");
+  }, []);
+
+  const hasSell = useMemo(
+    () => !!(sellToken?.balance && BigInt(sellToken.balance) > 0n),
+    [sellToken?.balance],
+  );
+
   return (
     <div>
       {/* Optional controller-style single line input */}
       <TradeController
-        onAmountChange={(val) => {
-          clearErrorsOnUserEdit();
-          setSellAmount(val);
-          setLastEditedField("sell");
-        }}
+        onAmountChange={onControllerAmountChange}
         currentSellToken={sellToken}
         // SELL token can always be changed
         setSellToken={(t) => {
           clearErrorsOnUserEdit();
+          userChangedPairRef.current = true;
           setSellToken(t);
+          if (useSearchHook) {
+            navigate({
+              to: ".",
+              replace: true,
+              search: (s: any) => ({
+                ...s,
+                sellToken: encodeTokenQ(t),
+                buyToken: encodeTokenQ(buyToken ?? ZAMM_TOKEN),
+              }),
+            });
+          }
         }}
         currentBuyToken={buyToken}
         // BUY token setter disabled only when locked
@@ -390,7 +636,19 @@ export const InstantTradeAction = ({
             ? undefined
             : (t) => {
                 clearErrorsOnUserEdit();
+                userChangedPairRef.current = true;
                 setBuyToken(t);
+                if (useSearchHook) {
+                  navigate({
+                    to: ".",
+                    replace: true,
+                    search: (s: any) => ({
+                      ...s,
+                      sellToken: encodeTokenQ(sellToken ?? ETH_TOKEN),
+                      buyToken: encodeTokenQ(t),
+                    }),
+                  });
+                }
               }
         }
         currentSellAmount={sellAmount}
@@ -411,14 +669,14 @@ export const InstantTradeAction = ({
           onSelect={handleSellTokenSelect}
           amount={sellAmount}
           onAmountChange={syncFromSell}
-          showMaxButton={hasSellBalance && lastEditedField === "sell"}
+          showMaxButton={hasSell && lastEditedField === "sell"}
           onMax={() => {
             if (!sellToken?.balance) return;
             clearErrorsOnUserEdit();
             const decimals = sellToken.decimals ?? 18;
             syncFromSell(formatUnits(sellToken.balance as bigint, decimals));
           }}
-          showPercentageSlider={hasSellBalance}
+          showPercentageSlider={hasSell}
           className="pb-4 rounded-t-2xl"
         />
 
