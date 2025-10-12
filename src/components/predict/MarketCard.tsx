@@ -157,17 +157,6 @@ export const MarketCard: React.FC<MarketCardProps> = ({
       resolverBalance.value < tipPerResolve * 2n
   );
 
-  // For CoinflipResolver markets, fetch epoch data
-  const { data: coinflipEpochData } = useReadContract({
-    address: COINFLIP_RESOLVER_ADDRESS as `0x${string}`,
-    abi: CoinflipResolverAbi,
-    functionName: "epochs",
-    args: [marketId],
-    query: {
-      enabled: isCoinflipResolver,
-    },
-  });
-
   // Check ETH balance in CoinflipResolver for tip button
   const { data: coinflipResolverBalance } = useBalance({
     address: COINFLIP_RESOLVER_ADDRESS as `0x${string}`,
@@ -186,15 +175,21 @@ export const MarketCard: React.FC<MarketCardProps> = ({
     },
   });
 
-  // Check if coinflip market can be resolved
-  // For Coinflip, we need to check block.number vs targetBlock
-  // Since we can't get block.number directly in React, we'll use a simpler check based on closeAt time
+  // Check if coinflip market can be resolved using canResolveNow()
+  const { data: coinflipCanResolveData } = useReadContract({
+    address: COINFLIP_RESOLVER_ADDRESS as `0x${string}`,
+    abi: CoinflipResolverAbi,
+    functionName: "canResolveNow",
+    query: {
+      enabled: isCoinflipResolver && !resolved,
+    },
+  });
+
   const canResolveCoinflip = Boolean(
     isCoinflipResolver &&
-      coinflipEpochData &&
       !resolved &&
-      coinflipEpochData[3] === false && // epoch.resolved
-      Date.now() / 1000 >= Number(coinflipEpochData[0]) // now >= closeAt
+      coinflipCanResolveData &&
+      coinflipCanResolveData[0] === true // ready
   );
 
   // Show tip button for Coinflip if balance is low
