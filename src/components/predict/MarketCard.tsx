@@ -111,17 +111,6 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   const isEthWentUpResolver = resolver.toLowerCase() === ETH_WENT_UP_RESOLVER_ADDRESS.toLowerCase();
   const isCoinflipResolver = resolver.toLowerCase() === COINFLIP_RESOLVER_ADDRESS.toLowerCase();
 
-  // For EthWentUpResolver markets, fetch epoch data to check if ready to resolve
-  const { data: epochData } = useReadContract({
-    address: ETH_WENT_UP_RESOLVER_ADDRESS as `0x${string}`,
-    abi: EthWentUpResolverAbi,
-    functionName: "epochs",
-    args: [marketId],
-    query: {
-      enabled: isEthWentUpResolver,
-    },
-  });
-
   // Check ETH balance in resolver for tip button
   const { data: resolverBalance } = useBalance({
     address: ETH_WENT_UP_RESOLVER_ADDRESS as `0x${string}`,
@@ -140,13 +129,21 @@ export const MarketCard: React.FC<MarketCardProps> = ({
     },
   });
 
-  // Check if market can be resolved (past resolveAt time and not yet resolved)
+  // Check if EthWentUp market can be resolved using canResolveNow()
+  const { data: ethWentUpCanResolveData } = useReadContract({
+    address: ETH_WENT_UP_RESOLVER_ADDRESS as `0x${string}`,
+    abi: EthWentUpResolverAbi,
+    functionName: "canResolveNow",
+    query: {
+      enabled: isEthWentUpResolver && !resolved,
+    },
+  });
+
   const canResolve = Boolean(
     isEthWentUpResolver &&
-      epochData &&
       !resolved &&
-      epochData[7] === false && // epoch.resolved
-      Date.now() / 1000 >= Number(epochData[1]) // now >= resolveAt
+      ethWentUpCanResolveData &&
+      ethWentUpCanResolveData[0] === true // ready
   );
 
   // Show tip button if balance is low (less than 2x tipPerResolve)

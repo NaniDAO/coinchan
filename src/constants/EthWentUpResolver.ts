@@ -57,4 +57,14 @@ export const EthWentUpResolverAbi = [
     stateMutability: "view",
     type: "function",
   },
+  {
+    inputs: [],
+    name: "canResolveNow",
+    outputs: [
+      { name: "ready", type: "bool" },
+      { name: "shouldSkip", type: "bool" },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
 ] as const;
