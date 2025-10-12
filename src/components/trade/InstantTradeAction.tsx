@@ -43,7 +43,7 @@ import {
 import { InfoIcon } from "lucide-react";
 import { SlippageSettings } from "../SlippageSettings";
 
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useLocation, useNavigate, useSearch } from "@tanstack/react-router";
 import {
   encodeTokenQ,
   parseTokenQ,
@@ -148,10 +148,11 @@ export const InstantTradeAction = ({
   initialBuyToken,
   useSearchHook = false,
 }: InstantTradeActionProps) => {
-  // URL hooks (bind to the *current* route so it is safe on "/" and "/swap")
   const navigate = useNavigate();
+  const location = useLocation();
   const search = useSearch(
-    useSearchHook === true ? { from: "/swap" } : { from: "/" },
+    // @ts-expect-error
+    useSearchHook === true ? { from: "/swap" } : { from: location.pathname },
   ) as {
     sellToken?: string;
     buyToken?: string;

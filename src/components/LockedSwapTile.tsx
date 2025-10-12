@@ -19,6 +19,7 @@ function LockedSwapTileBase({ token }: { token: TokenMetadata }) {
         balance: userEthBalance?.value,
       }}
       initialBuyToken={token}
+      useSearchHook={false}
     />
   );
 }
@@ -26,5 +27,6 @@ function LockedSwapTileBase({ token }: { token: TokenMetadata }) {
 export const LockedSwapTile = React.memo(
   LockedSwapTileBase,
   (prevProps, nextProps) =>
-    prevProps.token.address === nextProps.token.address && prevProps.token.id === nextProps.token.id,
+    prevProps.token.address === nextProps.token.address &&
+    prevProps.token.id === nextProps.token.id,
 );
