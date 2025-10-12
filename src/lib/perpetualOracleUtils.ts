@@ -107,50 +107,45 @@ export const generateOracleSvg = (question: string, symbol?: string): string => 
 
   // Generate SVG with oracle branding
   // For Coinflip, add animated 8-bit style coin
+  const coinGradientDefs = isCoinflip ? `
+    <radialGradient id="coinGradient" cx="40%" cy="40%">
+      <stop offset="0%" style="stop-color:#FFED4E;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FFD700;stop-opacity:0" />
+    </radialGradient>` : '';
+
   const animatedCoinSvg = isCoinflip ? `
-  <!-- Animated 8-bit Coin -->
   <g id="coin">
-    <defs>
-      <!-- Coin rotation animation -->
-      <animateTransform
-        attributeName="transform"
-        attributeType="XML"
-        type="rotate"
-        from="0 360 40"
-        to="360 360 40"
-        dur="3s"
-        repeatCount="indefinite"/>
-    </defs>
-    <!-- Coin body - 8-bit pixel style -->
+    <animateTransform
+      attributeName="transform"
+      attributeType="XML"
+      type="rotate"
+      from="0 360 40"
+      to="360 360 40"
+      dur="3s"
+      repeatCount="indefinite"/>
     <ellipse cx="360" cy="40" rx="24" ry="24" fill="#FFD700" stroke="#DAA520" stroke-width="2">
       <animate attributeName="rx" values="24;6;24" dur="3s" repeatCount="indefinite"/>
     </ellipse>
-    <!-- Coin shine effect -->
     <ellipse cx="360" cy="40" rx="20" ry="20" fill="url(#coinGradient)" opacity="0.6">
       <animate attributeName="rx" values="20;4;20" dur="3s" repeatCount="indefinite"/>
     </ellipse>
-    <!-- 8-bit dollar sign -->
     <text x="360" y="45" font-family="monospace" font-size="16" font-weight="bold" fill="#8B6914" text-anchor="middle">
       <tspan>$</tspan>
       <animate attributeName="opacity" values="1;0;1" dur="3s" repeatCount="indefinite"/>
     </text>
-    <!-- Sparkle effects -->
     <circle cx="350" cy="30" r="2" fill="#FFF">
       <animate attributeName="opacity" values="0;1;0" dur="1.5s" repeatCount="indefinite"/>
     </circle>
     <circle cx="370" cy="35" r="2" fill="#FFF">
       <animate attributeName="opacity" values="0;1;0" dur="1.5s" begin="0.5s" repeatCount="indefinite"/>
     </circle>
-  </g>
-  <defs>
-    <radialGradient id="coinGradient" cx="40%" cy="40%">
-      <stop offset="0%" style="stop-color:#FFED4E;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#FFD700;stop-opacity:0" />
-    </radialGradient>
-  </defs>` : `<circle cx="360" cy="40" r="25" fill="${badgeColor}"/>
+  </g>` : `<circle cx="360" cy="40" r="25" fill="${badgeColor}"/>
   <text x="360" y="45" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" fill="#000000">${icon}</text>`;
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <defs>
+    ${coinGradientDefs}
+  </defs>
   <rect width="400" height="400" fill="${bgColor}"/>
   <text x="200" y="200" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#000000" text-anchor="middle" dominant-baseline="middle">
 ${lines
