@@ -7,6 +7,7 @@ export interface TrustedResolver {
 
 export const ETH_WENT_UP_RESOLVER_ADDRESS = "0x904EB96808704d0dB0469640188FCA86B762912b" as const;
 export const COINFLIP_RESOLVER_ADDRESS = "0xeAd4D6A7C5C0D8ff7bFbe3ab1b4b4bc596C1FD1c" as const;
+export const NOUNS_PASS_VOTING_RESOLVER_ADDRESS = "0x1637047F090D6b38D81DA0C589D4D8B9D3C7F32e" as const;
 
 export const TRUSTED_RESOLVERS: TrustedResolver[] = [
   {
@@ -19,6 +20,12 @@ export const TRUSTED_RESOLVERS: TrustedResolver[] = [
     address: COINFLIP_RESOLVER_ADDRESS,
     name: "CoinflipResolver",
     description: "Perpetual oracle resolver for provably fair coinflips using blockhashes",
+    isPerpetualOracle: true,
+  },
+  {
+    address: NOUNS_PASS_VOTING_RESOLVER_ADDRESS,
+    name: "NounsPassVotingResolver",
+    description: "Perpetual oracle resolver for Nouns DAO proposal voting outcomes",
     isPerpetualOracle: true,
   },
   {

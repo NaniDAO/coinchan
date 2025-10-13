@@ -14,11 +14,23 @@
  * For CoinflipResolver:
  * Example input: "Coinflip: YES if parity(keccak(blockhash(123), blockhash(124), marketId)) == 1. Trading closes at unix=1234567890."
  * Example output: "Coinflip"
+ *
+ * For NounsPassVotingResolver:
+ * Example input: "Nouns #123 - Pass Voting? YES if Succeeded/Queued/Executed/Expired at/after voting end (or objection end)..."
+ * Example output: "Nouns #123 - Pass Voting?"
  */
 export const extractMarketQuestion = (description: string): string => {
   // For CoinflipResolver, extract just "Coinflip"
   if (description.startsWith("Coinflip:")) {
     return "Coinflip";
+  }
+
+  // For NounsPassVotingResolver, extract "Nouns #XXX - Pass Voting?"
+  if (description.startsWith("Nouns #")) {
+    const match = description.match(/^(Nouns #\d+ - Pass Voting\?)/);
+    if (match) {
+      return match[1];
+    }
   }
 
   // For EthWentUpResolver, the question is before the "Resolved by" part
@@ -45,6 +57,7 @@ export const extractMarketQuestion = (description: string): string => {
 export const generateOracleSvg = (question: string, symbol?: string): string => {
   // Determine color theme based on oracle type
   const isCoinflip = question === "Coinflip";
+  const isNouns = question.startsWith("Nouns #");
 
   // For Coinflip: blue/purple/blockchain theme
   const coinflipColors = [
@@ -57,6 +70,20 @@ export const generateOracleSvg = (question: string, symbol?: string): string => 
     "#6A5ACD", // Slate Blue
     "#483D8B", // Dark Slate Blue
     "#9370DB", // Medium Purple
+    "#8A2BE2", // Blue Violet
+  ];
+
+  // For Nouns: pink/purple/magenta theme (Nouns DAO branding)
+  const nounsColors = [
+    "#FF69B4", // Hot Pink
+    "#FF1493", // Deep Pink
+    "#DB7093", // Pale Violet Red
+    "#C71585", // Medium Violet Red
+    "#DA70D6", // Orchid
+    "#BA55D3", // Medium Orchid
+    "#9370DB", // Medium Purple
+    "#8B008B", // Dark Magenta
+    "#9932CC", // Dark Orchid
     "#8A2BE2", // Blue Violet
   ];
 
@@ -74,7 +101,7 @@ export const generateOracleSvg = (question: string, symbol?: string): string => 
     "#FFCC00", // Bright Gold
   ];
 
-  const colors = isCoinflip ? coinflipColors : oracleColors;
+  const colors = isCoinflip ? coinflipColors : (isNouns ? nounsColors : oracleColors);
 
   // Pick a consistent color based on question hash (for consistent colors per market)
   const colorIndex = question.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
@@ -102,8 +129,10 @@ export const generateOracleSvg = (question: string, symbol?: string): string => 
   }
 
   // Choose icon and badge color based on oracle type
-  const icon = isCoinflip ? "🎲" : "⚡";
-  const badgeColor = isCoinflip ? "rgba(65, 105, 225, 0.3)" : "rgba(218, 165, 32, 0.3)";
+  const icon = isCoinflip ? "🎲" : (isNouns ? "⌐◨-◨" : "⚡");
+  const badgeColor = isCoinflip
+    ? "rgba(65, 105, 225, 0.3)"
+    : (isNouns ? "rgba(255, 105, 180, 0.3)" : "rgba(218, 165, 32, 0.3)");
 
   // Generate SVG with oracle branding
   // For Coinflip, add animated 8-bit style coin
@@ -139,8 +168,11 @@ export const generateOracleSvg = (question: string, symbol?: string): string => 
     <circle cx="370" cy="35" r="2" fill="#FFF">
       <animate attributeName="opacity" values="0;1;0" dur="1.5s" begin="0.5s" repeatCount="indefinite"/>
     </circle>
-  </g>` : `<circle cx="360" cy="40" r="25" fill="${badgeColor}"/>
-  <text x="360" y="45" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" fill="#000000">${icon}</text>`;
+  </g>` : `<g>
+    <circle cx="360" cy="40" r="28" fill="rgba(0, 0, 0, 0.2)"/>
+    <circle cx="360" cy="40" r="25" fill="${badgeColor}"/>
+    <text x="360" y="${isNouns ? 47 : 52}" font-family="Arial, sans-serif" font-size="${isNouns ? 18 : 32}" font-weight="bold" text-anchor="middle" fill="#FFFFFF" stroke="rgba(0, 0, 0, 0.3)" stroke-width="1">${icon}</text>
+  </g>`;
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
   <defs>
@@ -213,6 +245,42 @@ export const extractOracleSource = (description: string): string | null => {
 };
 
 /**
+ * Extracts Nouns proposal ID from description
+ * Example: "Nouns #123 - Pass Voting? ..." → 123
+ */
+export const extractNounsProposalId = (description: string): number | null => {
+  const match = description.match(/^Nouns #(\d+)/);
+  return match ? parseInt(match[1], 10) : null;
+};
+
+/**
+ * Extracts endBlock from Nouns description
+ * Example: "... endBlock=12345678, ..." → 12345678
+ */
+export const extractNounsEndBlock = (description: string): number | null => {
+  const match = description.match(/endBlock=(\d+)/);
+  return match ? parseInt(match[1], 10) : null;
+};
+
+/**
+ * Extracts objectionEndBlock from Nouns description
+ * Example: "... objectionEndBlock=12345678, ..." → 12345678
+ */
+export const extractNounsObjectionEndBlock = (description: string): number | null => {
+  const match = description.match(/objectionEndBlock=(\d+)/);
+  return match ? parseInt(match[1], 10) : null;
+};
+
+/**
+ * Extracts evalBlock from Nouns description
+ * Example: "... evalBlock=12345678" → 12345678
+ */
+export const extractNounsEvalBlock = (description: string): number | null => {
+  const match = description.match(/evalBlock=(\d+)/);
+  return match ? parseInt(match[1], 10) : null;
+};
+
+/**
  * Extracts metadata from a perpetual oracle market description
  * Returns name, description, SVG image URL, and timing info
  */
@@ -225,6 +293,12 @@ export const extractOracleMetadata = (onchainDescription: string) => {
   const oracleSource = extractOracleSource(onchainDescription);
   const targetBlocks = extractTargetBlocks(onchainDescription);
 
+  // Extract Nouns-specific data
+  const nounsProposalId = extractNounsProposalId(onchainDescription);
+  const nounsEndBlock = extractNounsEndBlock(onchainDescription);
+  const nounsObjectionEndBlock = extractNounsObjectionEndBlock(onchainDescription);
+  const nounsEvalBlock = extractNounsEvalBlock(onchainDescription);
+
   return {
     name: question,
     symbol: "ORACLE",
@@ -234,5 +308,9 @@ export const extractOracleMetadata = (onchainDescription: string) => {
     rules,
     oracleSource,
     targetBlocks,
+    nounsProposalId,
+    nounsEndBlock,
+    nounsObjectionEndBlock,
+    nounsEvalBlock,
   };
 };

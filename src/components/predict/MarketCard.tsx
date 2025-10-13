@@ -19,10 +19,11 @@ import { PredictionMarketAddress, PredictionMarketAbi } from "@/constants/Predic
 import { PredictionAMMAbi } from "@/constants/PredictionMarketAMM";
 import { ExternalLink, BadgeCheck, ArrowUpRight, Copy, Check, Sparkles, Coins } from "lucide-react";
 import { formatImageURL } from "@/hooks/metadata";
-import { isTrustedResolver, isPerpetualOracleResolver, ETH_WENT_UP_RESOLVER_ADDRESS, COINFLIP_RESOLVER_ADDRESS } from "@/constants/TrustedResolvers";
+import { isTrustedResolver, isPerpetualOracleResolver, ETH_WENT_UP_RESOLVER_ADDRESS, COINFLIP_RESOLVER_ADDRESS, NOUNS_PASS_VOTING_RESOLVER_ADDRESS } from "@/constants/TrustedResolvers";
 import { extractOracleMetadata } from "@/lib/perpetualOracleUtils";
 import { EthWentUpResolverAbi } from "@/constants/EthWentUpResolver";
 import { CoinflipResolverAbi } from "@/constants/CoinflipResolver";
+import { NounsPassVotingResolverAbi } from "@/constants/NounsPassVotingResolver";
 import { useBalance } from "wagmi";
 import ReactMarkdown from "react-markdown";
 import { isUserRejectionError } from "@/lib/errors";
@@ -110,6 +111,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   const isPerpetualOracle = isPerpetualOracleResolver(resolver);
   const isEthWentUpResolver = resolver.toLowerCase() === ETH_WENT_UP_RESOLVER_ADDRESS.toLowerCase();
   const isCoinflipResolver = resolver.toLowerCase() === COINFLIP_RESOLVER_ADDRESS.toLowerCase();
+  const isNounsResolver = resolver.toLowerCase() === NOUNS_PASS_VOTING_RESOLVER_ADDRESS.toLowerCase();
 
   // Check ETH balance in resolver for tip button
   const { data: resolverBalance } = useBalance({
@@ -197,6 +199,57 @@ export const MarketCard: React.FC<MarketCardProps> = ({
       coinflipResolverBalance.value < coinflipTipPerResolve * 2n
   );
 
+  // Extract Nouns proposal ID from metadata for contract calls
+  const nounsProposalId =
+    isNounsResolver && metadata && (metadata as any).nounsProposalId
+      ? BigInt((metadata as any).nounsProposalId)
+      : undefined;
+
+  // Check ETH balance in NounsPassVotingResolver for tip button
+  const { data: nounsResolverBalance } = useBalance({
+    address: NOUNS_PASS_VOTING_RESOLVER_ADDRESS as `0x${string}`,
+    query: {
+      enabled: isNounsResolver,
+    },
+  });
+
+  // Fetch tip amount from NounsPassVotingResolver
+  const { data: nounsTipPerAction } = useReadContract({
+    address: NOUNS_PASS_VOTING_RESOLVER_ADDRESS as `0x${string}`,
+    abi: NounsPassVotingResolverAbi,
+    functionName: "tipPerAction",
+    query: {
+      enabled: isNounsResolver,
+    },
+  });
+
+  // Check if Nouns market can be resolved using canResolveNow(proposalId)
+  const { data: nounsCanResolveData } = useReadContract({
+    address: NOUNS_PASS_VOTING_RESOLVER_ADDRESS as `0x${string}`,
+    abi: NounsPassVotingResolverAbi,
+    functionName: "canResolveNow",
+    args: nounsProposalId !== undefined ? [nounsProposalId] : undefined,
+    query: {
+      enabled: isNounsResolver && !resolved && nounsProposalId !== undefined,
+    },
+  });
+
+  const canResolveNouns = Boolean(
+    isNounsResolver &&
+      !resolved &&
+      nounsCanResolveData &&
+      nounsCanResolveData[0] === true && // ready
+      nounsCanResolveData[1] === false // not a dead market
+  );
+
+  // Show tip button for Nouns if balance is low
+  const showNounsTipButton = Boolean(
+    isNounsResolver &&
+      nounsResolverBalance &&
+      nounsTipPerAction &&
+      nounsResolverBalance.value < nounsTipPerAction * 2n
+  );
+
   //  Resolve and tip transaction handling
   const {
     writeContract: writeResolve,
@@ -280,6 +333,13 @@ export const MarketCard: React.FC<MarketCardProps> = ({
         abi: CoinflipResolverAbi,
         functionName: "resolve",
       });
+    } else if (isNounsResolver && nounsProposalId !== undefined) {
+      writeResolve({
+        address: NOUNS_PASS_VOTING_RESOLVER_ADDRESS as `0x${string}`,
+        abi: NounsPassVotingResolverAbi,
+        functionName: "poke",
+        args: [nounsProposalId],
+      });
     }
   };
 
@@ -297,6 +357,13 @@ export const MarketCard: React.FC<MarketCardProps> = ({
         abi: CoinflipResolverAbi,
         functionName: "fundTips",
         value: coinflipTipPerResolve,
+      });
+    } else if (isNounsResolver && nounsTipPerAction) {
+      writeTip({
+        address: NOUNS_PASS_VOTING_RESOLVER_ADDRESS as `0x${string}`,
+        abi: NounsPassVotingResolverAbi,
+        functionName: "fundTips",
+        value: nounsTipPerAction,
       });
     }
   };
@@ -627,28 +694,56 @@ export const MarketCard: React.FC<MarketCardProps> = ({
           {closingTime && <MarketCountdown closingTime={closingTime} resolved={resolved} />}
 
           {/* Perpetual Oracle Info - Timing and Rules */}
-          {isPerpetualOracle && metadata && (metadata as any).resolveTime && (
+          {isPerpetualOracle && metadata && ((metadata as any).resolveTime || (metadata as any).nounsProposalId) && (
             <div className={`${
               isCoinflipResolver
                 ? "bg-blue-500/5 border border-blue-500/20"
-                : "bg-yellow-500/5 border border-yellow-500/20"
+                : (isNounsResolver
+                  ? "bg-pink-500/5 border border-pink-500/20"
+                  : "bg-yellow-500/5 border border-yellow-500/20")
             } rounded p-2 space-y-1`}>
               <div className="flex items-center gap-1.5">
                 <Sparkles className={`h-3.5 w-3.5 ${
                   isCoinflipResolver
                     ? "text-blue-600 dark:text-blue-400"
-                    : "text-yellow-600 dark:text-yellow-400"
+                    : (isNounsResolver
+                      ? "text-pink-600 dark:text-pink-400"
+                      : "text-yellow-600 dark:text-yellow-400")
                 }`} />
                 <span className={`text-xs font-semibold ${
                   isCoinflipResolver
                     ? "text-blue-700 dark:text-blue-300"
-                    : "text-yellow-700 dark:text-yellow-300"
+                    : (isNounsResolver
+                      ? "text-pink-700 dark:text-pink-300"
+                      : "text-yellow-700 dark:text-yellow-300")
                 }`}>
                   Automated Oracle Market
                 </span>
               </div>
               <div className="text-xs text-muted-foreground space-y-0.5">
-                {(metadata as any).resolveTime && (
+                {isNounsResolver && (metadata as any).nounsProposalId && (
+                  <div className="flex justify-between">
+                    <span>Proposal ID:</span>
+                    <a
+                      href={`https://nouns.wtf/vote/${(metadata as any).nounsProposalId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono text-pink-600 dark:text-pink-400 hover:underline flex items-center gap-1"
+                    >
+                      #{(metadata as any).nounsProposalId}
+                      <ExternalLink className="h-2.5 w-2.5" />
+                    </a>
+                  </div>
+                )}
+                {isNounsResolver && (metadata as any).nounsEvalBlock && (
+                  <div className="flex justify-between">
+                    <span>Eval Block:</span>
+                    <span className="font-mono text-[10px]">
+                      {(metadata as any).nounsEvalBlock}
+                    </span>
+                  </div>
+                )}
+                {(metadata as any).resolveTime && !isNounsResolver && (
                   <div className="flex justify-between">
                     <span>{isCoinflipResolver ? "Closes:" : "Resolves:"}</span>
                     <span className="font-mono">
@@ -802,18 +897,22 @@ export const MarketCard: React.FC<MarketCardProps> = ({
           )}
 
           {/* Perpetual Oracle Automation - Resolve Button */}
-          {(canResolve || canResolveCoinflip) && (
+          {(canResolve || canResolveCoinflip || canResolveNouns) && (
             <div className={`${
               isCoinflipResolver
                 ? "bg-blue-500/10 border border-blue-500/30"
-                : "bg-yellow-500/10 border border-yellow-500/30"
+                : (isNounsResolver
+                  ? "bg-pink-500/10 border border-pink-500/30"
+                  : "bg-yellow-500/10 border border-yellow-500/30")
             } rounded p-2`}>
               <Button
                 onClick={handleResolve}
                 className={`w-full ${
                   isCoinflipResolver
                     ? "bg-blue-600 hover:bg-blue-700"
-                    : "bg-yellow-600 hover:bg-yellow-700"
+                    : (isNounsResolver
+                      ? "bg-pink-600 hover:bg-pink-700"
+                      : "bg-yellow-600 hover:bg-yellow-700")
                 } text-white`}
                 size="sm"
                 disabled={isResolvePending}
@@ -825,20 +924,24 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                 Automated market ready. Resolve to earn {
                   isCoinflipResolver
                     ? (coinflipTipPerResolve ? formatEther(coinflipTipPerResolve) : "0.001")
-                    : (tipPerResolve ? formatEther(tipPerResolve) : "0.001")
+                    : (isNounsResolver
+                      ? (nounsTipPerAction ? formatEther(nounsTipPerAction) : "0.001")
+                      : (tipPerResolve ? formatEther(tipPerResolve) : "0.001"))
                 } ETH tip
               </p>
             </div>
           )}
 
           {/* Perpetual Oracle Tip Button - Subtle, only shown when balance is low */}
-          {(showTipButton || showCoinflipTipButton) && (
+          {(showTipButton || showCoinflipTipButton || showNounsTipButton) && (
             <button
               onClick={handleTip}
               className={`w-full text-xs text-muted-foreground ${
                 isCoinflipResolver
                   ? "hover:text-blue-600 dark:hover:text-blue-400"
-                  : "hover:text-yellow-600 dark:hover:text-yellow-400"
+                  : (isNounsResolver
+                    ? "hover:text-pink-600 dark:hover:text-pink-400"
+                    : "hover:text-yellow-600 dark:hover:text-yellow-400")
               } transition-colors flex items-center justify-center gap-1 py-1 opacity-60 hover:opacity-100`}
               disabled={isTipPending}
               title="Add tip to incentivize keepers to resolve this market"
@@ -849,7 +952,9 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                 : `Tip keepers ${
                     isCoinflipResolver
                       ? (coinflipTipPerResolve ? formatEther(coinflipTipPerResolve) : "0.001")
-                      : (tipPerResolve ? formatEther(tipPerResolve) : "0.001")
+                      : (isNounsResolver
+                        ? (nounsTipPerAction ? formatEther(nounsTipPerAction) : "0.001")
+                        : (tipPerResolve ? formatEther(tipPerResolve) : "0.001"))
                   } ETH`}
             </button>
           )}

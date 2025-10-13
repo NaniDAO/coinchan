@@ -276,7 +276,11 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
     if (filter === "parimutuel") return market.marketType === "parimutuel";
     if (filter === "amm") return market.marketType === "amm";
     if (filter === "active") return market.tradingOpen && !market.resolved;
-    if (filter === "closed") return !market.tradingOpen && !market.resolved;
+    if (filter === "closed") {
+      // Hide dead pools (zero pot and zero shares on both sides) from Closed tab
+      const isDead = market.pot === 0n && market.yesSupply === 0n && market.noSupply === 0n;
+      return !market.tradingOpen && !market.resolved && !isDead;
+    }
     if (filter === "resolved") return market.resolved;
     if (filter === "positions") {
       return market.userYesBalance > 0n || market.userNoBalance > 0n;
@@ -285,7 +289,10 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
   });
 
   const activeCount = visibleMarkets.filter((m) => m.tradingOpen && !m.resolved).length;
-  const closedCount = visibleMarkets.filter((m) => !m.tradingOpen && !m.resolved).length;
+  const closedCount = visibleMarkets.filter((m) => {
+    const isDead = m.pot === 0n && m.yesSupply === 0n && m.noSupply === 0n;
+    return !m.tradingOpen && !m.resolved && !isDead;
+  }).length;
   const resolvedCount = visibleMarkets.filter((m) => m.resolved).length;
   const positionsCount = visibleMarkets.filter((m) => m.userYesBalance > 0n || m.userNoBalance > 0n).length;
   const pmCount = visibleMarkets.filter((m) => m.marketType === "parimutuel").length;
