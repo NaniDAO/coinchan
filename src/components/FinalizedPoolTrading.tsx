@@ -182,7 +182,7 @@ function FinalizedPoolTradingInner({
   const { data: userTokenBalance } = useTokenBalance({
     token: {
       id: BigInt(coinId),
-      address: CookbookAddress,
+      address: contractAddress ?? CookbookAddress,
     },
     address,
   });
