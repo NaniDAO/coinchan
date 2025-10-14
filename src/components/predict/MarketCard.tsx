@@ -19,7 +19,10 @@ import {
   PredictionMarketAddress,
   PredictionMarketAbi,
 } from "@/constants/PredictionMarket";
-import { PredictionAMMAbi } from "@/constants/PredictionMarketAMM";
+import {
+  PredictionAMMAbi,
+  PredictionAMMAddress,
+} from "@/constants/PredictionMarketAMM";
 import {
   ExternalLink,
   BadgeCheck,
@@ -46,6 +49,7 @@ import ReactMarkdown from "react-markdown";
 import { isUserRejectionError } from "@/lib/errors";
 import { Link } from "@tanstack/react-router";
 import { encodeTokenQ } from "@/lib/token-query";
+import { calculateNoTokenId } from "@/lib/pamm";
 
 interface MarketMetadata {
   name: string;
@@ -313,22 +317,17 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   const hasPosition = userYesBalance > 0n || userNoBalance > 0n;
   const canClaim = resolved && userClaimable > 0n;
 
-  // Calculate NO token ID for AMM markets (YES ID = marketId, NO ID = marketId | (1 << 255))
-  const getNoTokenId = (yesId: bigint): bigint => {
-    return yesId | (1n << 255n);
-  };
-
   // Generate ZAMM swap URL for AMM markets
   const getZammUrl = () => {
-    const ammContractAddress = "0x000000000071176401AdA1f2CD7748e28E173FCa";
     const yesId = marketId.toString();
-    const noId = getNoTokenId(marketId).toString();
+    const noId = calculateNoTokenId(marketId);
+
     return {
       sellToken: encodeTokenQ({
-        address: ammContractAddress,
+        address: PredictionAMMAddress,
         id: BigInt(yesId),
       }),
-      buyToken: encodeTokenQ({ address: ammContractAddress, id: BigInt(noId) }),
+      buyToken: encodeTokenQ({ address: PredictionAMMAddress, id: noId }),
     };
   };
 
