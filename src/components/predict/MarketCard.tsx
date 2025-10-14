@@ -15,11 +15,28 @@ import { Badge } from "@/components/ui/badge";
 import { TradeModal } from "./TradeModal";
 import { MarketCountdown } from "./MarketCountdown";
 import { ResolverControls } from "./ResolverControls";
-import { PredictionMarketAddress, PredictionMarketAbi } from "@/constants/PredictionMarket";
+import {
+  PredictionMarketAddress,
+  PredictionMarketAbi,
+} from "@/constants/PredictionMarket";
 import { PredictionAMMAbi } from "@/constants/PredictionMarketAMM";
-import { ExternalLink, BadgeCheck, ArrowUpRight, Copy, Check, Sparkles, Coins } from "lucide-react";
+import {
+  ExternalLink,
+  BadgeCheck,
+  ArrowUpRight,
+  Copy,
+  Check,
+  Sparkles,
+  Coins,
+} from "lucide-react";
 import { formatImageURL } from "@/hooks/metadata";
-import { isTrustedResolver, isPerpetualOracleResolver, ETH_WENT_UP_RESOLVER_ADDRESS, COINFLIP_RESOLVER_ADDRESS, NOUNS_PASS_VOTING_RESOLVER_ADDRESS } from "@/constants/TrustedResolvers";
+import {
+  isTrustedResolver,
+  isPerpetualOracleResolver,
+  ETH_WENT_UP_RESOLVER_ADDRESS,
+  COINFLIP_RESOLVER_ADDRESS,
+  NOUNS_PASS_VOTING_RESOLVER_ADDRESS,
+} from "@/constants/TrustedResolvers";
 import { extractOracleMetadata } from "@/lib/perpetualOracleUtils";
 import { EthWentUpResolverAbi } from "@/constants/EthWentUpResolver";
 import { CoinflipResolverAbi } from "@/constants/CoinflipResolver";
@@ -27,6 +44,8 @@ import { NounsPassVotingResolverAbi } from "@/constants/NounsPassVotingResolver"
 import { useBalance } from "wagmi";
 import ReactMarkdown from "react-markdown";
 import { isUserRejectionError } from "@/lib/errors";
+import { Link } from "@tanstack/react-router";
+import { encodeTokenQ } from "@/lib/token-query";
 
 interface MarketMetadata {
   name: string;
@@ -90,7 +109,11 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   const toastedResolveError = React.useRef<any>(null);
   const toastedTipError = React.useRef<any>(null);
 
-  const { writeContract, data: claimHash, error: claimError } = useWriteContract();
+  const {
+    writeContract,
+    data: claimHash,
+    error: claimError,
+  } = useWriteContract();
   const { isSuccess: isClaimSuccess } = useWaitForTransactionReceipt({
     hash: claimHash,
   });
@@ -109,9 +132,12 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   const isOracle = bytecode && bytecode !== "0x";
   const isTrusted = isTrustedResolver(resolver);
   const isPerpetualOracle = isPerpetualOracleResolver(resolver);
-  const isEthWentUpResolver = resolver.toLowerCase() === ETH_WENT_UP_RESOLVER_ADDRESS.toLowerCase();
-  const isCoinflipResolver = resolver.toLowerCase() === COINFLIP_RESOLVER_ADDRESS.toLowerCase();
-  const isNounsResolver = resolver.toLowerCase() === NOUNS_PASS_VOTING_RESOLVER_ADDRESS.toLowerCase();
+  const isEthWentUpResolver =
+    resolver.toLowerCase() === ETH_WENT_UP_RESOLVER_ADDRESS.toLowerCase();
+  const isCoinflipResolver =
+    resolver.toLowerCase() === COINFLIP_RESOLVER_ADDRESS.toLowerCase();
+  const isNounsResolver =
+    resolver.toLowerCase() === NOUNS_PASS_VOTING_RESOLVER_ADDRESS.toLowerCase();
 
   // Check ETH balance in resolver for tip button
   const { data: resolverBalance } = useBalance({
@@ -145,7 +171,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
     isEthWentUpResolver &&
       !resolved &&
       ethWentUpCanResolveData &&
-      ethWentUpCanResolveData[0] === true // ready
+      ethWentUpCanResolveData[0] === true, // ready
   );
 
   // Show tip button if balance is low (less than 2x tipPerResolve)
@@ -153,7 +179,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
     isEthWentUpResolver &&
       resolverBalance &&
       tipPerResolve &&
-      resolverBalance.value < tipPerResolve * 2n
+      resolverBalance.value < tipPerResolve * 2n,
   );
 
   // Check ETH balance in CoinflipResolver for tip button
@@ -188,7 +214,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
     isCoinflipResolver &&
       !resolved &&
       coinflipCanResolveData &&
-      coinflipCanResolveData[0] === true // ready
+      coinflipCanResolveData[0] === true, // ready
   );
 
   // Show tip button for Coinflip if balance is low
@@ -196,7 +222,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
     isCoinflipResolver &&
       coinflipResolverBalance &&
       coinflipTipPerResolve &&
-      coinflipResolverBalance.value < coinflipTipPerResolve * 2n
+      coinflipResolverBalance.value < coinflipTipPerResolve * 2n,
   );
 
   // Extract Nouns proposal ID from metadata for contract calls
@@ -239,7 +265,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
       !resolved &&
       nounsCanResolveData &&
       nounsCanResolveData[0] === true && // ready
-      nounsCanResolveData[1] === false // not a dead market
+      nounsCanResolveData[1] === false, // not a dead market
   );
 
   // Show tip button for Nouns if balance is low
@@ -247,7 +273,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
     isNounsResolver &&
       nounsResolverBalance &&
       nounsTipPerAction &&
-      nounsResolverBalance.value < nounsTipPerAction * 2n
+      nounsResolverBalance.value < nounsTipPerAction * 2n,
   );
 
   //  Resolve and tip transaction handling
@@ -293,11 +319,17 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   };
 
   // Generate ZAMM swap URL for AMM markets
-  const getZammUrl = (): string => {
+  const getZammUrl = () => {
     const ammContractAddress = "0x000000000071176401AdA1f2CD7748e28E173FCa";
     const yesId = marketId.toString();
     const noId = getNoTokenId(marketId).toString();
-    return `https://www.zamm.finance/swap?tokenA=${ammContractAddress}&idA=${encodeURIComponent(yesId)}&tokenB=${ammContractAddress}&idB=${encodeURIComponent(noId)}`;
+    return {
+      sellToken: encodeTokenQ({
+        address: ammContractAddress,
+        id: BigInt(yesId),
+      }),
+      buyToken: encodeTokenQ({ address: ammContractAddress, id: BigInt(noId) }),
+    };
   };
 
   const handleClaim = () => {
@@ -386,13 +418,18 @@ export const MarketCard: React.FC<MarketCardProps> = ({
       }
 
       // Show actual errors
-      const errorMessage = (claimError as any)?.shortMessage ?? claimError?.message ?? "";
+      const errorMessage =
+        (claimError as any)?.shortMessage ?? claimError?.message ?? "";
       toast.error(errorMessage || "Claim failed");
     }
   }, [claimError]);
 
   useEffect(() => {
-    if (isResolveSuccess && resolveHash && toastedResolve.current !== resolveHash) {
+    if (
+      isResolveSuccess &&
+      resolveHash &&
+      toastedResolve.current !== resolveHash
+    ) {
       toastedResolve.current = resolveHash;
       toast.success("Market resolved! Keeper tip paid.");
       refetchMarketData();
@@ -410,7 +447,8 @@ export const MarketCard: React.FC<MarketCardProps> = ({
       }
 
       // Show actual errors
-      const errorMessage = (resolveError as any)?.shortMessage ?? resolveError?.message ?? "";
+      const errorMessage =
+        (resolveError as any)?.shortMessage ?? resolveError?.message ?? "";
       toast.error(errorMessage || "Resolve failed");
     }
   }, [resolveError]);
@@ -418,7 +456,9 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   useEffect(() => {
     if (isTipSuccess && tipHash && toastedTip.current !== tipHash) {
       toastedTip.current = tipHash;
-      toast.success("Tip added successfully! Thank you for supporting keepers.");
+      toast.success(
+        "Tip added successfully! Thank you for supporting keepers.",
+      );
     }
   }, [isTipSuccess, tipHash]);
 
@@ -432,7 +472,8 @@ export const MarketCard: React.FC<MarketCardProps> = ({
       }
 
       // Show actual errors
-      const errorMessage = (tipError as any)?.shortMessage ?? tipError?.message ?? "";
+      const errorMessage =
+        (tipError as any)?.shortMessage ?? tipError?.message ?? "";
       toast.error(errorMessage || "Tip failed");
     }
   }, [tipError]);
@@ -497,7 +538,9 @@ export const MarketCard: React.FC<MarketCardProps> = ({
               let filePath = null;
 
               // First try with common image extensions
-              filePath = files.find((f) => /\.(jpg|jpeg|png|gif|svg|webp)$/i.test(f));
+              filePath = files.find((f) =>
+                /\.(jpg|jpeg|png|gif|svg|webp)$/i.test(f),
+              );
 
               // If no match, try to find files with "image" in the name (common pattern)
               if (!filePath) {
@@ -517,7 +560,9 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                   imageUrl = gatewayBase + filePath;
                 } else {
                   // Relative path, append to the directory URL
-                  imageUrl = imageUrl.endsWith("/") ? imageUrl + filePath : imageUrl + "/" + filePath;
+                  imageUrl = imageUrl.endsWith("/")
+                    ? imageUrl + filePath
+                    : imageUrl + "/" + filePath;
                 }
               }
             }
@@ -578,7 +623,8 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   } else {
     // Parimutuel markets: use total supply directly
     const totalSupply = yesSupply + noSupply;
-    yesPercent = totalSupply > 0n ? (Number(yesSupply) / Number(totalSupply)) * 100 : 50;
+    yesPercent =
+      totalSupply > 0n ? (Number(yesSupply) / Number(totalSupply)) * 100 : 50;
     noPercent = 100 - yesPercent;
   }
 
@@ -603,7 +649,9 @@ export const MarketCard: React.FC<MarketCardProps> = ({
             <div className="flex items-start justify-between gap-2 mb-1">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-bold text-sm line-clamp-2">{metadata.name}</h3>
+                  <h3 className="font-bold text-sm line-clamp-2">
+                    {metadata.name}
+                  </h3>
                 </div>
                 <Badge
                   variant="outline"
@@ -632,14 +680,24 @@ export const MarketCard: React.FC<MarketCardProps> = ({
               <div>
                 <div
                   className={`text-xs text-muted-foreground markdown-content transition-all ${
-                    isDescriptionExpanded ? "max-h-96 overflow-y-auto" : "line-clamp-3"
+                    isDescriptionExpanded
+                      ? "max-h-96 overflow-y-auto"
+                      : "line-clamp-3"
                   }`}
                 >
                   <ReactMarkdown
                     components={{
                       // Customize rendering to fit card design
-                      p: ({ children }: { children?: React.ReactNode }) => <p className="mb-1 last:mb-0">{children}</p>,
-                      a: ({ children, href }: { children?: React.ReactNode; href?: string }) => (
+                      p: ({ children }: { children?: React.ReactNode }) => (
+                        <p className="mb-1 last:mb-0">{children}</p>
+                      ),
+                      a: ({
+                        children,
+                        href,
+                      }: {
+                        children?: React.ReactNode;
+                        href?: string;
+                      }) => (
                         <a
                           href={href}
                           target="_blank"
@@ -650,31 +708,59 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                           {children}
                         </a>
                       ),
-                      strong: ({ children }: { children?: React.ReactNode }) => (
-                        <strong className="font-semibold text-foreground">{children}</strong>
+                      strong: ({
+                        children,
+                      }: {
+                        children?: React.ReactNode;
+                      }) => (
+                        <strong className="font-semibold text-foreground">
+                          {children}
+                        </strong>
                       ),
-                      em: ({ children }: { children?: React.ReactNode }) => <em className="italic">{children}</em>,
+                      em: ({ children }: { children?: React.ReactNode }) => (
+                        <em className="italic">{children}</em>
+                      ),
                       code: ({ children }: { children?: React.ReactNode }) => (
-                        <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono">{children}</code>
+                        <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono">
+                          {children}
+                        </code>
                       ),
                       ul: ({ children }: { children?: React.ReactNode }) => (
-                        <ul className="list-disc list-inside space-y-0.5">{children}</ul>
+                        <ul className="list-disc list-inside space-y-0.5">
+                          {children}
+                        </ul>
                       ),
                       ol: ({ children }: { children?: React.ReactNode }) => (
-                        <ol className="list-decimal list-inside space-y-0.5">{children}</ol>
+                        <ol className="list-decimal list-inside space-y-0.5">
+                          {children}
+                        </ol>
                       ),
-                      li: ({ children }: { children?: React.ReactNode }) => <li className="text-xs">{children}</li>,
+                      li: ({ children }: { children?: React.ReactNode }) => (
+                        <li className="text-xs">{children}</li>
+                      ),
                       h1: ({ children }: { children?: React.ReactNode }) => (
-                        <h1 className="text-base font-bold mt-2 mb-1">{children}</h1>
+                        <h1 className="text-base font-bold mt-2 mb-1">
+                          {children}
+                        </h1>
                       ),
                       h2: ({ children }: { children?: React.ReactNode }) => (
-                        <h2 className="text-sm font-bold mt-2 mb-1">{children}</h2>
+                        <h2 className="text-sm font-bold mt-2 mb-1">
+                          {children}
+                        </h2>
                       ),
                       h3: ({ children }: { children?: React.ReactNode }) => (
-                        <h3 className="text-xs font-semibold mt-1 mb-0.5">{children}</h3>
+                        <h3 className="text-xs font-semibold mt-1 mb-0.5">
+                          {children}
+                        </h3>
                       ),
-                      blockquote: ({ children }: { children?: React.ReactNode }) => (
-                        <blockquote className="border-l-2 border-primary pl-2 italic my-1">{children}</blockquote>
+                      blockquote: ({
+                        children,
+                      }: {
+                        children?: React.ReactNode;
+                      }) => (
+                        <blockquote className="border-l-2 border-primary pl-2 italic my-1">
+                          {children}
+                        </blockquote>
                       ),
                     }}
                   >
@@ -682,7 +768,9 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                   </ReactMarkdown>
                 </div>
                 <button
-                  onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                  onClick={() =>
+                    setIsDescriptionExpanded(!isDescriptionExpanded)
+                  }
                   className="text-xs text-primary hover:underline mt-1 focus:outline-none"
                 >
                   {isDescriptionExpanded ? "Show less" : "Read more..."}
@@ -691,97 +779,124 @@ export const MarketCard: React.FC<MarketCardProps> = ({
             )}
           </div>
 
-          {closingTime && <MarketCountdown closingTime={closingTime} resolved={resolved} />}
+          {closingTime && (
+            <MarketCountdown closingTime={closingTime} resolved={resolved} />
+          )}
 
           {/* Perpetual Oracle Info - Timing and Rules */}
-          {isPerpetualOracle && metadata && ((metadata as any).resolveTime || (metadata as any).nounsProposalId) && (
-            <div className={`${
-              isCoinflipResolver
-                ? "bg-blue-500/5 border border-blue-500/20"
-                : (isNounsResolver
-                  ? "bg-pink-500/5 border border-pink-500/20"
-                  : "bg-yellow-500/5 border border-yellow-500/20")
-            } rounded p-2 space-y-1`}>
-              <div className="flex items-center gap-1.5">
-                <Sparkles className={`h-3.5 w-3.5 ${
+          {isPerpetualOracle &&
+            metadata &&
+            ((metadata as any).resolveTime ||
+              (metadata as any).nounsProposalId) && (
+              <div
+                className={`${
                   isCoinflipResolver
-                    ? "text-blue-600 dark:text-blue-400"
-                    : (isNounsResolver
-                      ? "text-pink-600 dark:text-pink-400"
-                      : "text-yellow-600 dark:text-yellow-400")
-                }`} />
-                <span className={`text-xs font-semibold ${
-                  isCoinflipResolver
-                    ? "text-blue-700 dark:text-blue-300"
-                    : (isNounsResolver
-                      ? "text-pink-700 dark:text-pink-300"
-                      : "text-yellow-700 dark:text-yellow-300")
-                }`}>
-                  Automated Oracle Market
-                </span>
+                    ? "bg-blue-500/5 border border-blue-500/20"
+                    : isNounsResolver
+                      ? "bg-pink-500/5 border border-pink-500/20"
+                      : "bg-yellow-500/5 border border-yellow-500/20"
+                } rounded p-2 space-y-1`}
+              >
+                <div className="flex items-center gap-1.5">
+                  <Sparkles
+                    className={`h-3.5 w-3.5 ${
+                      isCoinflipResolver
+                        ? "text-blue-600 dark:text-blue-400"
+                        : isNounsResolver
+                          ? "text-pink-600 dark:text-pink-400"
+                          : "text-yellow-600 dark:text-yellow-400"
+                    }`}
+                  />
+                  <span
+                    className={`text-xs font-semibold ${
+                      isCoinflipResolver
+                        ? "text-blue-700 dark:text-blue-300"
+                        : isNounsResolver
+                          ? "text-pink-700 dark:text-pink-300"
+                          : "text-yellow-700 dark:text-yellow-300"
+                    }`}
+                  >
+                    Automated Oracle Market
+                  </span>
+                </div>
+                <div className="text-xs text-muted-foreground space-y-0.5">
+                  {isNounsResolver && (metadata as any).nounsProposalId && (
+                    <div className="flex justify-between">
+                      <span>Proposal ID:</span>
+                      <a
+                        href={`https://nouns.wtf/vote/${(metadata as any).nounsProposalId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-mono text-pink-600 dark:text-pink-400 hover:underline flex items-center gap-1"
+                      >
+                        #{(metadata as any).nounsProposalId}
+                        <ExternalLink className="h-2.5 w-2.5" />
+                      </a>
+                    </div>
+                  )}
+                  {isNounsResolver && (metadata as any).nounsEvalBlock && (
+                    <div className="flex justify-between">
+                      <span>Eval Block:</span>
+                      <span className="font-mono text-[10px]">
+                        {(metadata as any).nounsEvalBlock}
+                      </span>
+                    </div>
+                  )}
+                  {(metadata as any).resolveTime && !isNounsResolver && (
+                    <div className="flex justify-between">
+                      <span>
+                        {isCoinflipResolver ? "Closes:" : "Resolves:"}
+                      </span>
+                      <span className="font-mono">
+                        {new Date(
+                          (metadata as any).resolveTime * 1000,
+                        ).toLocaleString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                  )}
+                  {isCoinflipResolver &&
+                    (metadata as any).targetBlocks &&
+                    (metadata as any).targetBlocks.length > 0 && (
+                      <div className="flex justify-between">
+                        <span>Target Blocks:</span>
+                        <span className="font-mono text-[10px]">
+                          {(metadata as any).targetBlocks.join(", ")}
+                        </span>
+                      </div>
+                    )}
+                  {(metadata as any).rules && (
+                    <div className="pt-0.5 text-[11px] italic opacity-80">
+                      {(metadata as any).rules}
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="text-xs text-muted-foreground space-y-0.5">
-                {isNounsResolver && (metadata as any).nounsProposalId && (
-                  <div className="flex justify-between">
-                    <span>Proposal ID:</span>
-                    <a
-                      href={`https://nouns.wtf/vote/${(metadata as any).nounsProposalId}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-mono text-pink-600 dark:text-pink-400 hover:underline flex items-center gap-1"
-                    >
-                      #{(metadata as any).nounsProposalId}
-                      <ExternalLink className="h-2.5 w-2.5" />
-                    </a>
-                  </div>
-                )}
-                {isNounsResolver && (metadata as any).nounsEvalBlock && (
-                  <div className="flex justify-between">
-                    <span>Eval Block:</span>
-                    <span className="font-mono text-[10px]">
-                      {(metadata as any).nounsEvalBlock}
-                    </span>
-                  </div>
-                )}
-                {(metadata as any).resolveTime && !isNounsResolver && (
-                  <div className="flex justify-between">
-                    <span>{isCoinflipResolver ? "Closes:" : "Resolves:"}</span>
-                    <span className="font-mono">
-                      {new Date((metadata as any).resolveTime * 1000).toLocaleString(undefined, {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </span>
-                  </div>
-                )}
-                {isCoinflipResolver && (metadata as any).targetBlocks && (metadata as any).targetBlocks.length > 0 && (
-                  <div className="flex justify-between">
-                    <span>Target Blocks:</span>
-                    <span className="font-mono text-[10px]">
-                      {(metadata as any).targetBlocks.join(", ")}
-                    </span>
-                  </div>
-                )}
-                {(metadata as any).rules && (
-                  <div className="pt-0.5 text-[11px] italic opacity-80">
-                    {(metadata as any).rules}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+            )}
 
           {!resolved && (
             <div className="space-y-1">
               <div className="flex justify-between text-xs font-medium">
-                <span className="text-green-600 dark:text-green-400">YES {yesPercent.toFixed(2)}%</span>
-                <span className="text-red-600 dark:text-red-400">NO {noPercent.toFixed(2)}%</span>
+                <span className="text-green-600 dark:text-green-400">
+                  YES {yesPercent.toFixed(2)}%
+                </span>
+                <span className="text-red-600 dark:text-red-400">
+                  NO {noPercent.toFixed(2)}%
+                </span>
               </div>
               <div className="flex h-2 rounded-full overflow-hidden bg-muted">
-                <div className="bg-green-600 dark:bg-green-400" style={{ width: `${yesPercent}%` }} />
-                <div className="bg-red-600 dark:bg-red-400" style={{ width: `${noPercent}%` }} />
+                <div
+                  className="bg-green-600 dark:bg-green-400"
+                  style={{ width: `${yesPercent}%` }}
+                />
+                <div
+                  className="bg-red-600 dark:bg-red-400"
+                  style={{ width: `${noPercent}%` }}
+                />
               </div>
             </div>
           )}
@@ -790,18 +905,24 @@ export const MarketCard: React.FC<MarketCardProps> = ({
             {hasPosition && (
               <div className="bg-blue-500/10 border border-blue-500/20 rounded p-2 space-y-1">
                 <div className="flex justify-between">
-                  <span className="font-semibold text-blue-600 dark:text-blue-400">Your Position:</span>
+                  <span className="font-semibold text-blue-600 dark:text-blue-400">
+                    Your Position:
+                  </span>
                 </div>
                 {userYesBalance > 0n && (
                   <div className="flex justify-between">
                     <span>YES shares:</span>
-                    <span className="font-mono">{Number(formatEther(userYesBalance)).toFixed(4)}</span>
+                    <span className="font-mono">
+                      {Number(formatEther(userYesBalance)).toFixed(4)}
+                    </span>
                   </div>
                 )}
                 {userNoBalance > 0n && (
                   <div className="flex justify-between">
                     <span>NO shares:</span>
-                    <span className="font-mono">{Number(formatEther(userNoBalance)).toFixed(4)}</span>
+                    <span className="font-mono">
+                      {Number(formatEther(userNoBalance)).toFixed(4)}
+                    </span>
                   </div>
                 )}
                 {canClaim && (
@@ -816,21 +937,31 @@ export const MarketCard: React.FC<MarketCardProps> = ({
             )}
             <div className="flex justify-between">
               <span>Total Pool:</span>
-              <span className="font-mono">{Number(formatEther(pot)).toFixed(4)} wstETH</span>
+              <span className="font-mono">
+                {Number(formatEther(pot)).toFixed(4)} wstETH
+              </span>
             </div>
             {resolved && payoutPerShare > 0n && (
               <>
                 <div className="flex justify-between">
                   <span>Winning Side:</span>
-                  <span className="font-semibold">{outcome ? "YES" : "NO"}</span>
+                  <span className="font-semibold">
+                    {outcome ? "YES" : "NO"}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Winning Shares:</span>
-                  <span className="font-mono">{Number(formatEther(outcome ? yesSupply : noSupply)).toFixed(4)}</span>
+                  <span className="font-mono">
+                    {Number(
+                      formatEther(outcome ? yesSupply : noSupply),
+                    ).toFixed(4)}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Payout Per Share:</span>
-                  <span className="font-mono">{Number(formatEther(payoutPerShare)).toFixed(4)} wstETH</span>
+                  <span className="font-mono">
+                    {Number(formatEther(payoutPerShare)).toFixed(4)} wstETH
+                  </span>
                 </div>
               </>
             )}
@@ -868,7 +999,8 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                 title="Click to copy Market ID"
               >
                 <span className="font-mono text-[10px] opacity-60 group-hover:opacity-100">
-                  {marketId.toString().slice(0, 8)}...{marketId.toString().slice(-6)}
+                  {marketId.toString().slice(0, 8)}...
+                  {marketId.toString().slice(-6)}
                 </span>
                 {isCopied ? (
                   <Check className="h-3 w-3 text-green-500" />
@@ -898,36 +1030,46 @@ export const MarketCard: React.FC<MarketCardProps> = ({
 
           {/* Perpetual Oracle Automation - Resolve Button */}
           {(canResolve || canResolveCoinflip || canResolveNouns) && (
-            <div className={`${
-              isCoinflipResolver
-                ? "bg-blue-500/10 border border-blue-500/30"
-                : (isNounsResolver
-                  ? "bg-pink-500/10 border border-pink-500/30"
-                  : "bg-yellow-500/10 border border-yellow-500/30")
-            } rounded p-2`}>
+            <div
+              className={`${
+                isCoinflipResolver
+                  ? "bg-blue-500/10 border border-blue-500/30"
+                  : isNounsResolver
+                    ? "bg-pink-500/10 border border-pink-500/30"
+                    : "bg-yellow-500/10 border border-yellow-500/30"
+              } rounded p-2`}
+            >
               <Button
                 onClick={handleResolve}
                 className={`w-full ${
                   isCoinflipResolver
                     ? "bg-blue-600 hover:bg-blue-700"
-                    : (isNounsResolver
+                    : isNounsResolver
                       ? "bg-pink-600 hover:bg-pink-700"
-                      : "bg-yellow-600 hover:bg-yellow-700")
+                      : "bg-yellow-600 hover:bg-yellow-700"
                 } text-white`}
                 size="sm"
                 disabled={isResolvePending}
               >
                 <Sparkles className="h-4 w-4 mr-2" />
-                {isResolvePending ? "Resolving..." : "Resolve Market (Earn Tip!)"}
+                {isResolvePending
+                  ? "Resolving..."
+                  : "Resolve Market (Earn Tip!)"}
               </Button>
               <p className="text-xs text-muted-foreground mt-1 text-center">
-                Automated market ready. Resolve to earn {
-                  isCoinflipResolver
-                    ? (coinflipTipPerResolve ? formatEther(coinflipTipPerResolve) : "0.001")
-                    : (isNounsResolver
-                      ? (nounsTipPerAction ? formatEther(nounsTipPerAction) : "0.001")
-                      : (tipPerResolve ? formatEther(tipPerResolve) : "0.001"))
-                } ETH tip
+                Automated market ready. Resolve to earn{" "}
+                {isCoinflipResolver
+                  ? coinflipTipPerResolve
+                    ? formatEther(coinflipTipPerResolve)
+                    : "0.001"
+                  : isNounsResolver
+                    ? nounsTipPerAction
+                      ? formatEther(nounsTipPerAction)
+                      : "0.001"
+                    : tipPerResolve
+                      ? formatEther(tipPerResolve)
+                      : "0.001"}{" "}
+                ETH tip
               </p>
             </div>
           )}
@@ -939,9 +1081,9 @@ export const MarketCard: React.FC<MarketCardProps> = ({
               className={`w-full text-xs text-muted-foreground ${
                 isCoinflipResolver
                   ? "hover:text-blue-600 dark:hover:text-blue-400"
-                  : (isNounsResolver
+                  : isNounsResolver
                     ? "hover:text-pink-600 dark:hover:text-pink-400"
-                    : "hover:text-yellow-600 dark:hover:text-yellow-400")
+                    : "hover:text-yellow-600 dark:hover:text-yellow-400"
               } transition-colors flex items-center justify-center gap-1 py-1 opacity-60 hover:opacity-100`}
               disabled={isTipPending}
               title="Add tip to incentivize keepers to resolve this market"
@@ -951,35 +1093,54 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                 ? "Adding tip..."
                 : `Tip keepers ${
                     isCoinflipResolver
-                      ? (coinflipTipPerResolve ? formatEther(coinflipTipPerResolve) : "0.001")
-                      : (isNounsResolver
-                        ? (nounsTipPerAction ? formatEther(nounsTipPerAction) : "0.001")
-                        : (tipPerResolve ? formatEther(tipPerResolve) : "0.001"))
+                      ? coinflipTipPerResolve
+                        ? formatEther(coinflipTipPerResolve)
+                        : "0.001"
+                      : isNounsResolver
+                        ? nounsTipPerAction
+                          ? formatEther(nounsTipPerAction)
+                          : "0.001"
+                        : tipPerResolve
+                          ? formatEther(tipPerResolve)
+                          : "0.001"
                   } ETH`}
             </button>
           )}
 
           <div className="space-y-2">
             {canClaim ? (
-              <Button onClick={handleClaim} className="w-full" size="sm" variant="default">
+              <Button
+                onClick={handleClaim}
+                className="w-full"
+                size="sm"
+                variant="default"
+              >
                 Claim {Number(formatEther(userClaimable)).toFixed(4)} wstETH
               </Button>
             ) : (
-              <Button onClick={() => setIsModalOpen(true)} className="w-full" size="sm" disabled={isTradingDisabled}>
-                {resolved ? "Market Resolved" : isClosed ? "Market Closed" : "Trade"}
+              <Button
+                onClick={() => setIsModalOpen(true)}
+                className="w-full"
+                size="sm"
+                disabled={isTradingDisabled}
+              >
+                {resolved
+                  ? "Market Resolved"
+                  : isClosed
+                    ? "Market Closed"
+                    : "Trade"}
               </Button>
             )}
 
             {marketType === "amm" && !resolved && (
-              <a
-                href={getZammUrl()}
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                to="/swap"
+                search={getZammUrl}
                 className="flex items-center justify-center gap-2 w-full px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 border border-blue-500/50 rounded-md hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-colors"
               >
                 Trade on ZAMM
                 <ArrowUpRight className="h-4 w-4" />
-              </a>
+              </Link>
             )}
           </div>
         </div>
