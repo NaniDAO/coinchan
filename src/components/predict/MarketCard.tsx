@@ -1029,7 +1029,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                       style={{ width: `${Math.min(progressPercent, 100)}%` }}
                     />
                   </div>
-                  {!resolved && deadline && Number(deadline) > 0 && (
+                  {!resolved && Number(deadline) > 0 && (
                     <div className="flex justify-between items-center pt-1 border-t border-red-500/20">
                       <span>Deadline:</span>
                       <span className="font-mono text-[11px]">
