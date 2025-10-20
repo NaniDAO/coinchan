@@ -44,7 +44,7 @@ export const PredictExplainer: React.FC<PredictExplainerProps> = ({ isOpen, onCl
             <div className="space-y-2 sm:space-y-3">
               <div className="bg-purple-50 dark:bg-purple-950/20 p-2.5 sm:p-3 rounded-lg border border-purple-200 dark:border-purple-800">
                 <p className="font-semibold text-purple-900 dark:text-purple-100 mb-1 text-xs sm:text-sm">
-                  Pari-Mutuel
+                  Parimutuel (Pot)
                 </p>
                 <p className="text-[11px] sm:text-xs text-purple-800 dark:text-purple-200 leading-relaxed">
                   All bets pool together. Winners split the total pot proportionally based on their shares. Simple 1:1
@@ -53,7 +53,7 @@ export const PredictExplainer: React.FC<PredictExplainerProps> = ({ isOpen, onCl
               </div>
               <div className="bg-blue-50 dark:bg-blue-950/20 p-2.5 sm:p-3 rounded-lg border border-blue-200 dark:border-blue-800">
                 <p className="font-semibold text-blue-900 dark:text-blue-100 mb-1 text-xs sm:text-sm">
-                  Live Bets (AMM)
+                  Tradeable (AMM)
                 </p>
                 <p className="text-[11px] sm:text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
                   Automated Market Maker with dynamic pricing. Prices update based on supply and demand. Buy and sell
@@ -70,7 +70,7 @@ export const PredictExplainer: React.FC<PredictExplainerProps> = ({ isOpen, onCl
             </p>
             <ul className="space-y-0.5 sm:space-y-1 list-disc list-inside text-muted-foreground text-xs sm:text-sm">
               <li>Market question and details</li>
-              <li>Market type (Pari-Mutuel or Live Bets AMM)</li>
+              <li>Market type (Parimutuel or Tradeable AMM)</li>
               <li>Resolver address (who decides the outcome)</li>
               <li>Closing time (when trading stops)</li>
               <li>Optional early closing by resolver</li>
@@ -81,7 +81,7 @@ export const PredictExplainer: React.FC<PredictExplainerProps> = ({ isOpen, onCl
             <h4 className="font-bold mb-1.5 sm:mb-2 text-sm sm:text-base">Key Features</h4>
             <ul className="space-y-0.5 sm:space-y-1 list-disc list-inside text-muted-foreground text-xs sm:text-sm">
               <li>
-                All deposits earn{" "}
+                All trades earn{" "}
                 <a
                   href="https://lido.fi/"
                   target="_blank"
@@ -92,9 +92,9 @@ export const PredictExplainer: React.FC<PredictExplainerProps> = ({ isOpen, onCl
                 </a>{" "}
                 staking yield (~3-4% APY)
               </li>
-              <li>Trustless - outcomes determined by designated resolver</li>
-              <li>ERC6909 shares - tradeable and transferable</li>
-              <li>No platform fees on Pari-Mutuel, 0.1% swap fee on AMM</li>
+              <li>Open - outcomes determined by your designated resolver</li>
+              <li>ERC6909 shares - tradeable and transferable on zAMM</li>
+              <li>No platform fees on Parimutuel, 0.1% swap fee on zAMM</li>
             </ul>
           </div>
 

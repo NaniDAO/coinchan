@@ -1,33 +1,18 @@
 import React, { useState } from "react";
-import { useReadContract } from "wagmi";
 import { useTranslation } from "react-i18next";
-import { PredictionMarketAddress, PredictionMarketAbi } from "@/constants/PredictionMarket";
-import { PredictionAMMAddress, PredictionAMMAbi } from "@/constants/PredictionMarketAMM";
 import { CreateMarketForm } from "./CreateMarketForm";
 import { MarketGallery } from "./MarketGallery";
 import { Heading } from "@/components/ui/typography";
 import { PredictExplainer, usePredictExplainer } from "./PredictExplainer";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { HelpCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { HelpCircle, ChevronDown, ChevronUp } from "lucide-react";
 
 const PredictPage: React.FC = () => {
   const { t } = useTranslation();
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
   const { showExplainer, handleClose, setShowExplainer } = usePredictExplainer();
-
-  const { data: pmMarketCount } = useReadContract({
-    address: PredictionMarketAddress as `0x${string}`,
-    abi: PredictionMarketAbi,
-    functionName: "marketCount",
-  });
-
-  const { data: ammMarketCount } = useReadContract({
-    address: PredictionAMMAddress as `0x${string}`,
-    abi: PredictionAMMAbi,
-    functionName: "marketCount",
-  });
-
-  const totalMarketCount = (BigInt(pmMarketCount || 0) + BigInt(ammMarketCount || 0)).toString();
 
   const handleMarketCreated = () => {
     setRefreshKey((prev) => prev + 1);
@@ -68,15 +53,23 @@ const PredictPage: React.FC = () => {
 
       <PredictExplainer isOpen={showExplainer} onClose={handleClose} />
 
-      <div>
-        <Heading level={3} className="mb-6">
-          {t("predict.all_markets")} ({totalMarketCount})
-        </Heading>
-        <MarketGallery refreshKey={refreshKey} />
-      </div>
+      <MarketGallery refreshKey={refreshKey} />
 
-      <div className="border-t border-border pt-8 mt-8">
-        <CreateMarketForm onMarketCreated={handleMarketCreated} />
+      <div className="border-t border-border pt-6 mt-8">
+        <Button
+          variant="outline"
+          onClick={() => setIsCreateFormOpen(!isCreateFormOpen)}
+          className="w-full flex items-center justify-between"
+        >
+          <span className="font-semibold">{t("predict.create_prediction_market")}</span>
+          {isCreateFormOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </Button>
+
+        {isCreateFormOpen && (
+          <div className="mt-6">
+            <CreateMarketForm onMarketCreated={handleMarketCreated} />
+          </div>
+        )}
       </div>
     </div>
   );

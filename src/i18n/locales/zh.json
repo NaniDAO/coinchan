@@ -1539,10 +1539,10 @@
     "swap_fee_summary": "交换费：{{fee}}%"
   },
   "predict": {
-    "parimutuel": "联合投注",
+    "parimutuel": "联合投注 (奖池)",
     "parimutuel_summary": "奖池共享的集体投注",
     "parimutuel_description": "所有投注汇入共享奖池。获胜者按其持有的份额比例分享总奖池。以 1:1 比例购买份额（1 wstETH = 1 份额）。最终派彩取决于市场解决时的总奖池分布。",
-    "live_bets_amm": "实时投注 (AMM)",
+    "live_bets_amm": "可交易 (AMM)",
     "amm_summary": "动态定价与即时流动性",
     "amm_description": "基于供需关系的动态定价自动做市商。随时以即时流动性买卖份额。使用 CPMM（恒定乘积做市商）配合路径公平 EV 定价和 0.1% 交易费。",
     "create_prediction_market": "创建预测市场",

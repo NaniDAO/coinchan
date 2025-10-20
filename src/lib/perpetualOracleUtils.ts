@@ -18,8 +18,17 @@
  * For NounsPassVotingResolver:
  * Example input: "Nouns #123 - Pass Voting? YES if Succeeded/Queued/Executed/Expired at/after voting end (or objection end)..."
  * Example output: "Nouns #123 - Pass Voting?"
+ *
+ * For BETHPM:
+ * Example input: "BETH totalBurned() >= 1000000000000000000 ETH (wei) by 1234567890 Unix epoch time. Note: market may close early once threshold is reached."
+ * Example output: "BETH Burn Milestone"
  */
 export const extractMarketQuestion = (description: string): string => {
+  // For BETHPM, extract burn milestone
+  if (description.startsWith("BETH totalBurned()")) {
+    return "BETH Burn Milestone";
+  }
+
   // For CoinflipResolver, extract just "Coinflip"
   if (description.startsWith("Coinflip:")) {
     return "Coinflip";
@@ -58,6 +67,7 @@ export const generateOracleSvg = (question: string, symbol?: string): string => 
   // Determine color theme based on oracle type
   const isCoinflip = question === "Coinflip";
   const isNouns = question.startsWith("Nouns #");
+  const isBETH = question === "BETH Burn Milestone";
 
   // For Coinflip: blue/purple/blockchain theme
   const coinflipColors = [
@@ -87,6 +97,20 @@ export const generateOracleSvg = (question: string, symbol?: string): string => 
     "#8A2BE2", // Blue Violet
   ];
 
+  // For BETH: red/orange/fire theme (burn theme)
+  const bethColors = [
+    "#FF4500", // Orange Red
+    "#FF6347", // Tomato
+    "#DC143C", // Crimson
+    "#B22222", // Fire Brick
+    "#8B0000", // Dark Red
+    "#FF8C00", // Dark Orange
+    "#FF7F50", // Coral
+    "#CD5C5C", // Indian Red
+    "#FA8072", // Salmon
+    "#E9967A", // Dark Salmon
+  ];
+
   // For EthWentUp and others: gold/yellow theme
   const oracleColors = [
     "#FFD700", // Gold
@@ -101,7 +125,7 @@ export const generateOracleSvg = (question: string, symbol?: string): string => 
     "#FFCC00", // Bright Gold
   ];
 
-  const colors = isCoinflip ? coinflipColors : (isNouns ? nounsColors : oracleColors);
+  const colors = isCoinflip ? coinflipColors : (isNouns ? nounsColors : (isBETH ? bethColors : oracleColors));
 
   // Pick a consistent color based on question hash (for consistent colors per market)
   const colorIndex = question.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
@@ -129,10 +153,10 @@ export const generateOracleSvg = (question: string, symbol?: string): string => 
   }
 
   // Choose icon and badge color based on oracle type
-  const icon = isCoinflip ? "🎲" : (isNouns ? "⌐◨-◨" : "⚡");
+  const icon = isCoinflip ? "🎲" : (isNouns ? "⌐◨-◨" : (isBETH ? "🔥" : "⚡"));
   const badgeColor = isCoinflip
     ? "rgba(65, 105, 225, 0.3)"
-    : (isNouns ? "rgba(255, 105, 180, 0.3)" : "rgba(218, 165, 32, 0.3)");
+    : (isNouns ? "rgba(255, 105, 180, 0.3)" : (isBETH ? "rgba(255, 69, 0, 0.3)" : "rgba(218, 165, 32, 0.3)"));
 
   // Generate SVG with oracle branding
   // For Coinflip, add animated 8-bit style coin
@@ -281,6 +305,24 @@ export const extractNounsEvalBlock = (description: string): number | null => {
 };
 
 /**
+ * Extracts BETH burn target amount from description
+ * Example: "BETH totalBurned() >= 1000000000000000000 ETH (wei) by ..." → "1000000000000000000"
+ */
+export const extractBETHBurnAmount = (description: string): string | null => {
+  const match = description.match(/totalBurned\(\)\s*>=\s*(\d+)/);
+  return match ? match[1] : null;
+};
+
+/**
+ * Extracts BETH deadline from description
+ * Example: "... by 1234567890 Unix epoch time." → 1234567890
+ */
+export const extractBETHDeadline = (description: string): number | null => {
+  const match = description.match(/by\s+(\d+)\s+Unix epoch time/);
+  return match ? parseInt(match[1], 10) : null;
+};
+
+/**
  * Extracts metadata from a perpetual oracle market description
  * Returns name, description, SVG image URL, and timing info
  */
@@ -299,6 +341,10 @@ export const extractOracleMetadata = (onchainDescription: string) => {
   const nounsObjectionEndBlock = extractNounsObjectionEndBlock(onchainDescription);
   const nounsEvalBlock = extractNounsEvalBlock(onchainDescription);
 
+  // Extract BETH-specific data
+  const bethBurnAmount = extractBETHBurnAmount(onchainDescription);
+  const bethDeadline = extractBETHDeadline(onchainDescription);
+
   return {
     name: question,
     symbol: "ORACLE",
@@ -312,5 +358,7 @@ export const extractOracleMetadata = (onchainDescription: string) => {
     nounsEndBlock,
     nounsObjectionEndBlock,
     nounsEvalBlock,
+    bethBurnAmount,
+    bethDeadline,
   };
 };

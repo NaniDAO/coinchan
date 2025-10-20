@@ -1118,10 +1118,10 @@
     "discourse": "DISCOURSE"
   },
   "predict": {
-    "parimutuel": "Pari-Mutuel",
+    "parimutuel": "Parimutuel (Pot)",
     "parimutuel_summary": "Pooled betting with shared payouts",
     "parimutuel_description": "All bets pool together. Winners split the total pot proportionally based on their shares. Buy shares at 1:1 ratio (1 wstETH = 1 share). Final payout depends on total pool distribution when the market resolves.",
-    "live_bets_amm": "Live Bets (AMM)",
+    "live_bets_amm": "Tradeable (AMM)",
     "amm_summary": "Dynamic pricing with instant liquidity",
     "amm_description": "Automated Market Maker with dynamic pricing based on supply and demand. Buy and sell shares at any time with instant liquidity. Uses CPMM (Constant Product Market Maker) with path-fair EV pricing and 0.1% swap fees.",
     "create_prediction_market": "Create Prediction Market",
@@ -1157,7 +1157,7 @@
     "prediction_markets": "Prediction Markets",
     "create_and_trade": "Create and trade on prediction markets",
     "create_and_trade_tagline": "Create and trade on what might happen",
-    "all_deposits_earn_lido": "All deposits earn yield from",
+    "all_deposits_earn_lido": "All trades earn yield from",
     "learn_how_markets_work": "Learn how prediction markets work",
     "resolver_controls": "Resolver Controls",
     "resolved": "Resolved",

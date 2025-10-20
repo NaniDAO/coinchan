@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { formatEther } from "viem";
 import {
   useEnsName,
@@ -7,11 +7,13 @@ import {
   useWriteContract,
   useWaitForTransactionReceipt,
   useAccount,
+  useBlockNumber,
 } from "wagmi";
 import { mainnet } from "wagmi/chains";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { TradeModal } from "./TradeModal";
 import { MarketCountdown } from "./MarketCountdown";
 import { ResolverControls } from "./ResolverControls";
@@ -21,12 +23,10 @@ import {
 } from "@/constants/PredictionMarket";
 import {
   PredictionAMMAbi,
-  PredictionAMMAddress,
 } from "@/constants/PredictionMarketAMM";
 import {
   ExternalLink,
   BadgeCheck,
-  ArrowUpRight,
   Copy,
   Check,
   Sparkles,
@@ -36,20 +36,22 @@ import { formatImageURL } from "@/hooks/metadata";
 import {
   isTrustedResolver,
   isPerpetualOracleResolver,
+  getTrustedResolver,
   ETH_WENT_UP_RESOLVER_ADDRESS,
   COINFLIP_RESOLVER_ADDRESS,
   NOUNS_PASS_VOTING_RESOLVER_ADDRESS,
+  BETH_PM_RESOLVER_ADDRESS,
 } from "@/constants/TrustedResolvers";
-import { extractOracleMetadata } from "@/lib/perpetualOracleUtils";
+import { extractOracleMetadata, extractNounsEvalBlock } from "@/lib/perpetualOracleUtils";
 import { EthWentUpResolverAbi } from "@/constants/EthWentUpResolver";
 import { CoinflipResolverAbi } from "@/constants/CoinflipResolver";
 import { NounsPassVotingResolverAbi } from "@/constants/NounsPassVotingResolver";
+import { BETHPMResolverAbi } from "@/constants/BETHPMResolver";
+import { ChainlinkAggregatorV3Abi, CHAINLINK_ETH_USD_FEED } from "@/constants/ChainlinkAggregator";
 import { useBalance } from "wagmi";
 import ReactMarkdown from "react-markdown";
 import { isUserRejectionError } from "@/lib/errors";
 import { Link } from "@tanstack/react-router";
-import { encodeTokenQ } from "@/lib/token-query";
-import { calculateNoTokenId } from "@/lib/pamm";
 
 interface MarketMetadata {
   name: string;
@@ -104,6 +106,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   const [imageError, setImageError] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const { address } = useAccount();
+  const { data: currentBlockNumber } = useBlockNumber({ watch: true });
 
   // Track which transactions we've already shown toasts for to prevent duplicates
   const toastedClaim = React.useRef<string | null>(null);
@@ -136,12 +139,15 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   const isOracle = bytecode && bytecode !== "0x";
   const isTrusted = isTrustedResolver(resolver);
   const isPerpetualOracle = isPerpetualOracleResolver(resolver);
+  const trustedResolverInfo = getTrustedResolver(resolver);
   const isEthWentUpResolver =
     resolver.toLowerCase() === ETH_WENT_UP_RESOLVER_ADDRESS.toLowerCase();
   const isCoinflipResolver =
     resolver.toLowerCase() === COINFLIP_RESOLVER_ADDRESS.toLowerCase();
   const isNounsResolver =
     resolver.toLowerCase() === NOUNS_PASS_VOTING_RESOLVER_ADDRESS.toLowerCase();
+  const isBETHPMResolver =
+    resolver.toLowerCase() === BETH_PM_RESOLVER_ADDRESS.toLowerCase();
 
   // Check ETH balance in resolver for tip button
   const { data: resolverBalance } = useBalance({
@@ -177,6 +183,27 @@ export const MarketCard: React.FC<MarketCardProps> = ({
       ethWentUpCanResolveData &&
       ethWentUpCanResolveData[0] === true, // ready
   );
+
+  // Fetch epoch data for EthWentUp to get start price
+  const { data: ethWentUpEpochData } = useReadContract({
+    address: ETH_WENT_UP_RESOLVER_ADDRESS as `0x${string}`,
+    abi: EthWentUpResolverAbi,
+    functionName: "epochs",
+    args: [marketId],
+    query: {
+      enabled: isEthWentUpResolver,
+    },
+  });
+
+  // Fetch current ETH/USD price from Chainlink
+  const { data: currentEthPriceData } = useReadContract({
+    address: CHAINLINK_ETH_USD_FEED as `0x${string}`,
+    abi: ChainlinkAggregatorV3Abi,
+    functionName: "latestRoundData",
+    query: {
+      enabled: isEthWentUpResolver,
+    },
+  });
 
   // Show tip button if balance is low (less than 2x tipPerResolve)
   const showTipButton = Boolean(
@@ -280,6 +307,27 @@ export const MarketCard: React.FC<MarketCardProps> = ({
       nounsResolverBalance.value < nounsTipPerAction * 2n,
   );
 
+  // Fetch BETHPM bet data (target amount and deadline)
+  const { data: bethBetData } = useReadContract({
+    address: BETH_PM_RESOLVER_ADDRESS as `0x${string}`,
+    abi: BETHPMResolverAbi,
+    functionName: "bets",
+    args: [marketId],
+    query: {
+      enabled: isBETHPMResolver,
+    },
+  });
+
+  // Fetch current BETH totalBurned
+  const { data: bethTotalBurned } = useReadContract({
+    address: BETH_PM_RESOLVER_ADDRESS as `0x${string}`,
+    abi: BETHPMResolverAbi,
+    functionName: "totalBurned",
+    query: {
+      enabled: isBETHPMResolver,
+    },
+  });
+
   //  Resolve and tip transaction handling
   const {
     writeContract: writeResolve,
@@ -309,27 +357,65 @@ export const MarketCard: React.FC<MarketCardProps> = ({
     args: [marketId],
   });
 
-  const closingTime = marketData ? Number(marketData[4]) : undefined;
   const canAccelerateClosing = marketData ? Boolean(marketData[5]) : false;
+
+  // Calculate closing time (with Nouns estimation based on eval block)
+  const closingTime = useMemo(() => {
+    // First check if there's an explicit closing time from market data
+    const explicitClosingTime = marketData ? Number(marketData[4]) : undefined;
+    if (explicitClosingTime) return explicitClosingTime;
+
+    // For Nouns markets, calculate estimated closing time based on eval block
+    if (isNounsResolver && description && currentBlockNumber) {
+      const evalBlock = extractNounsEvalBlock(description);
+      console.log('Nouns Debug:', {
+        hasDescription: !!description,
+        evalBlock,
+        currentBlockNumber: Number(currentBlockNumber),
+        descriptionPreview: description.substring(0, 200)
+      });
+      if (evalBlock) {
+        const currentBlock = Number(currentBlockNumber);
+        if (evalBlock > currentBlock) {
+          const blocksRemaining = evalBlock - currentBlock;
+          const secondsRemaining = blocksRemaining * 12; // ~12 seconds per block on Ethereum
+          const calculatedTime = Math.floor(Date.now() / 1000) + secondsRemaining;
+          console.log('Calculated Nouns closing time:', calculatedTime, new Date(calculatedTime * 1000));
+          return calculatedTime;
+        } else {
+          console.log('Eval block already passed:', evalBlock, 'vs', currentBlock);
+        }
+      } else {
+        console.log('No evalBlock found in description');
+      }
+    }
+
+    return undefined;
+  }, [marketData, isNounsResolver, description, currentBlockNumber]);
+
+  // Calculate accurate payout per share: pot / winning shares
+  // For AMM markets, use circulating supply (totalSupply - reserves)
+  // For Parimutuel markets, use total supply
+  let winningShares: bigint;
+  if (marketType === "amm" && rYes !== undefined && rNo !== undefined) {
+    // AMM: winning circulating shares = totalSupply - poolReserves
+    const yesCirculating = yesSupply - rYes;
+    const noCirculating = noSupply - rNo;
+    winningShares = outcome ? yesCirculating : noCirculating;
+  } else {
+    // Parimutuel: winning total supply
+    winningShares = outcome ? yesSupply : noSupply;
+  }
+
+  const calculatedPayoutPerShare = resolved && winningShares > 0n
+    ? (pot * BigInt(1e18)) / winningShares  // Scale by 1e18 to maintain precision (same as contract's Q)
+    : payoutPerShare; // Fallback to contract value if not resolved or no winning shares
+
   const isClosed = closingTime ? Date.now() / 1000 >= closingTime : false;
   const isTradingDisabled = resolved || isClosed;
 
   const hasPosition = userYesBalance > 0n || userNoBalance > 0n;
   const canClaim = resolved && userClaimable > 0n;
-
-  // Generate ZAMM swap URL for AMM markets
-  const getZammUrl = () => {
-    const yesId = marketId.toString();
-    const noId = calculateNoTokenId(marketId);
-
-    return {
-      sellToken: encodeTokenQ({
-        address: PredictionAMMAddress,
-        id: BigInt(yesId),
-      }),
-      buyToken: encodeTokenQ({ address: PredictionAMMAddress, id: noId }),
-    };
-  };
 
   const handleClaim = () => {
     if (!address) {
@@ -648,9 +734,18 @@ export const MarketCard: React.FC<MarketCardProps> = ({
             <div className="flex items-start justify-between gap-2 mb-1">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-bold text-sm line-clamp-2">
-                    {metadata.name}
-                  </h3>
+                  <Link
+                    to="/predict/$marketType/$marketId"
+                    params={{
+                      marketType: marketType,
+                      marketId: marketId.toString(),
+                    }}
+                    className="hover:underline"
+                  >
+                    <h3 className="font-bold text-sm line-clamp-2">
+                      {metadata.name}
+                    </h3>
+                  </Link>
                 </div>
                 <Badge
                   variant="outline"
@@ -660,7 +755,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                       : "border-purple-500 text-purple-600 dark:text-purple-400"
                   }`}
                 >
-                  {marketType === "amm" ? "Live Bets (AMM)" : "Pari-Mutuel"}
+                  {marketType === "amm" ? "Tradeable (AMM)" : "Parimutuel (Pot)"}
                 </Badge>
               </div>
               {resolved && (
@@ -782,6 +877,184 @@ export const MarketCard: React.FC<MarketCardProps> = ({
             <MarketCountdown closingTime={closingTime} resolved={resolved} />
           )}
 
+          {/* ETH Price Market Info - Show Start and Current/Resolution Price */}
+          {isEthWentUpResolver && ethWentUpEpochData && (() => {
+            // Extract start price and decimals from epoch data
+            const startPrice = ethWentUpEpochData[3]; // startPrice (uint256)
+            const startDecimals = ethWentUpEpochData[2]; // startDecimals (uint8)
+
+            // Only show if we have valid start price data
+            if (!startPrice || startPrice === 0n) return null;
+
+            // Format prices for display (convert to dollars with 2 decimal places)
+            const formatPrice = (price: bigint, decimals: number) => {
+              const priceNum = Number(price) / Math.pow(10, decimals);
+              return priceNum.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              });
+            };
+
+            const startPriceFormatted = formatPrice(startPrice, startDecimals);
+
+            return (
+              <div className="bg-yellow-500/5 border border-yellow-500/20 rounded p-2 space-y-1">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Sparkles className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-400" />
+                  <span className="text-xs font-semibold text-yellow-700 dark:text-yellow-300">
+                    ETH Price Oracle
+                  </span>
+                </div>
+                <div className="text-xs text-muted-foreground space-y-0.5">
+                  <div className="flex justify-between items-center">
+                    <span>Start Price:</span>
+                    <span className="font-mono font-semibold">${startPriceFormatted}</span>
+                  </div>
+                  {resolved ? (
+                    // For resolved markets, show the outcome
+                    <div className="flex justify-between items-center">
+                      <span>Resolution:</span>
+                      <span className={`font-mono font-semibold ${outcome ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                        Price went {outcome ? 'UP ↑' : 'DOWN ↓'}
+                      </span>
+                    </div>
+                  ) : currentEthPriceData ? (
+                    // For active markets with price data, show current price and change
+                    (() => {
+                      const currentPrice = currentEthPriceData[1]; // answer
+                      const currentDecimals = 8; // Chainlink ETH/USD uses 8 decimals
+                      const currentPriceFormatted = formatPrice(BigInt(currentPrice.toString()), currentDecimals);
+
+                      // Calculate price change
+                      const priceWentUp = currentPrice > startPrice * BigInt(Math.pow(10, currentDecimals - startDecimals));
+                      const priceDiff = Number(currentPrice) / Math.pow(10, currentDecimals) - Number(startPrice) / Math.pow(10, startDecimals);
+                      const priceChangePercent = (priceDiff / (Number(startPrice) / Math.pow(10, startDecimals))) * 100;
+
+                      return (
+                        <>
+                          <div className="flex justify-between items-center">
+                            <span>Current Price:</span>
+                            <span className="font-mono font-semibold flex items-center gap-1">
+                              ${currentPriceFormatted}
+                              {priceWentUp ? (
+                                <span className="text-green-600 dark:text-green-400 font-bold">↑</span>
+                              ) : (
+                                <span className="text-red-600 dark:text-red-400 font-bold">↓</span>
+                              )}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span>Change:</span>
+                            <span className={`font-mono font-semibold ${priceWentUp ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                              {priceWentUp ? '+' : ''}{priceChangePercent.toFixed(2)}%
+                            </span>
+                          </div>
+                        </>
+                      );
+                    })()
+                  ) : null}
+                  {!resolved && metadata && (metadata as any).resolveTime && (
+                    <div className="flex justify-between items-center pt-1 border-t border-yellow-500/20">
+                      <span>Resolves:</span>
+                      <span className="font-mono text-[11px]">
+                        {new Date((metadata as any).resolveTime * 1000).toLocaleString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                  )}
+                  {metadata && (metadata as any).rules && (
+                    <div className="pt-0.5 text-[11px] italic opacity-80">
+                      {(metadata as any).rules}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* BETH Burn Market Info - Show Target and Current Burn Amount */}
+          {isBETHPMResolver && bethBetData && bethTotalBurned !== undefined && (() => {
+            const targetAmount = bethBetData[0]; // amount (uint184)
+            const deadline = bethBetData[1]; // deadline (uint72)
+            const currentBurned = bethTotalBurned;
+
+            // Only show if we have valid target amount
+            if (!targetAmount || targetAmount === 0n) return null;
+
+            // Format burn amounts (in ETH with 4 decimal places)
+            const formatBurnAmount = (amount: bigint) => {
+              return Number(formatEther(amount)).toFixed(4);
+            };
+
+            const targetFormatted = formatBurnAmount(targetAmount);
+            const currentFormatted = formatBurnAmount(currentBurned);
+
+            // Calculate progress percentage
+            const progressPercent = Number(currentBurned) / Number(targetAmount) * 100;
+            const isOnTrack = currentBurned >= targetAmount;
+
+            return (
+              <div className="bg-red-500/5 border border-red-500/20 rounded p-2 space-y-1">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Sparkles className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
+                  <span className="text-xs font-semibold text-red-700 dark:text-red-300">
+                    BETH Burn Oracle
+                  </span>
+                </div>
+                <div className="text-xs text-muted-foreground space-y-0.5">
+                  <div className="flex justify-between items-center">
+                    <span>Target Burn:</span>
+                    <span className="font-mono font-semibold">{targetFormatted} ETH</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span>Current Burned:</span>
+                    <span className={`font-mono font-semibold ${isOnTrack ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
+                      {currentFormatted} ETH
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span>Progress:</span>
+                    <span className={`font-mono font-semibold ${isOnTrack ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                      {Math.min(progressPercent, 100).toFixed(2)}%{isOnTrack ? ' ✓' : ''}
+                    </span>
+                  </div>
+                  {/* Progress bar */}
+                  <div className="w-full bg-muted rounded-full h-2 overflow-hidden mt-1">
+                    <div
+                      className={`h-full transition-all ${isOnTrack ? 'bg-green-600 dark:bg-green-400' : 'bg-red-600 dark:bg-red-400'}`}
+                      style={{ width: `${Math.min(progressPercent, 100)}%` }}
+                    />
+                  </div>
+                  {!resolved && deadline && Number(deadline) > 0 && (
+                    <div className="flex justify-between items-center pt-1 border-t border-red-500/20">
+                      <span>Deadline:</span>
+                      <span className="font-mono text-[11px]">
+                        {new Date(Number(deadline) * 1000).toLocaleString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                          hour: "numeric",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                  )}
+                  {resolved && (
+                    <div className="flex justify-between items-center pt-1 border-t border-red-500/20">
+                      <span>Result:</span>
+                      <span className={`font-mono font-semibold ${outcome ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                        {outcome ? 'Target Reached ✓' : 'Target Missed ✗'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Perpetual Oracle Info - Timing and Rules */}
           {isPerpetualOracle &&
             metadata &&
@@ -833,14 +1106,43 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                       </a>
                     </div>
                   )}
-                  {isNounsResolver && (metadata as any).nounsEvalBlock && (
-                    <div className="flex justify-between">
-                      <span>Eval Block:</span>
-                      <span className="font-mono text-[10px]">
-                        {(metadata as any).nounsEvalBlock}
-                      </span>
-                    </div>
-                  )}
+                  {isNounsResolver && (metadata as any).nounsEvalBlock && (() => {
+                    const evalBlock = Number((metadata as any).nounsEvalBlock);
+                    const currentBlock = currentBlockNumber ? Number(currentBlockNumber) : null;
+
+                    // Estimate timestamp based on Ethereum's ~12 second block time
+                    let estimatedTime: string | null = null;
+                    if (currentBlock && evalBlock > currentBlock) {
+                      const blocksRemaining = evalBlock - currentBlock;
+                      const secondsRemaining = blocksRemaining * 12;
+                      const estimatedTimestamp = Date.now() + (secondsRemaining * 1000);
+                      const date = new Date(estimatedTimestamp);
+                      estimatedTime = date.toLocaleString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        hour12: true,
+                      });
+                    }
+
+                    return (
+                      <>
+                        <div className="flex justify-between">
+                          <span>Eval Block:</span>
+                          <span className="font-mono text-[10px]">
+                            {evalBlock.toLocaleString()}
+                          </span>
+                        </div>
+                        {estimatedTime && (
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>Est. End:</span>
+                            <span>{estimatedTime}</span>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                   {(metadata as any).resolveTime && !isNounsResolver && (
                     <div className="flex justify-between">
                       <span>
@@ -940,7 +1242,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                 {Number(formatEther(pot)).toFixed(4)} wstETH
               </span>
             </div>
-            {resolved && payoutPerShare > 0n && (
+            {resolved && calculatedPayoutPerShare > 0n && (
               <>
                 <div className="flex justify-between">
                   <span>Winning Side:</span>
@@ -952,14 +1254,14 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                   <span>Winning Shares:</span>
                   <span className="font-mono">
                     {Number(
-                      formatEther(outcome ? yesSupply : noSupply),
+                      formatEther(winningShares),
                     ).toFixed(4)}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Payout Per Share:</span>
                   <span className="font-mono">
-                    {Number(formatEther(payoutPerShare)).toFixed(4)} wstETH
+                    {Number(formatEther(calculatedPayoutPerShare)).toFixed(4)} wstETH
                   </span>
                 </div>
               </>
@@ -971,12 +1273,28 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                   href={`https://etherscan.io/address/${resolver}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1 hover:text-primary transition-colors font-mono"
+                  className="flex items-center gap-1 hover:text-primary transition-colors font-mono text-xs"
+                  title={resolver}
                 >
-                  {ensName || `${resolver.slice(0, 6)}...${resolver.slice(-4)}`}
+                  {trustedResolverInfo?.name || ensName || `${resolver.slice(0, 6)}...${resolver.slice(-4)}`}
                   <ExternalLink className="h-3 w-3" />
                 </a>
-                {isPerpetualOracle ? (
+                {trustedResolverInfo && trustedResolverInfo.description ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-help">
+                        {isPerpetualOracle ? (
+                          <BadgeCheck className="h-4 w-4 text-yellow-500 shrink-0" />
+                        ) : (
+                          <BadgeCheck className="h-4 w-4 text-blue-500 shrink-0" />
+                        )}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs max-w-xs">{trustedResolverInfo.description}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ) : isPerpetualOracle ? (
                   <span title="Perpetual Oracle Resolver">
                     <BadgeCheck className="h-4 w-4 text-yellow-500 shrink-0" />
                   </span>
@@ -1129,17 +1447,6 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                     ? "Market Closed"
                     : "Trade"}
               </Button>
-            )}
-
-            {marketType === "amm" && !resolved && (
-              <Link
-                to="/swap"
-                search={getZammUrl}
-                className="flex items-center justify-center gap-2 w-full px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 border border-blue-500/50 rounded-md hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-colors"
-              >
-                Trade on ZAMM
-                <ArrowUpRight className="h-4 w-4" />
-              </Link>
             )}
           </div>
         </div>

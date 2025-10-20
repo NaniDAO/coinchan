@@ -14,6 +14,7 @@ import { Slider } from "@/components/ui/slider";
 import { BadgeCheck } from "lucide-react";
 import { isPerpetualOracleResolver } from "@/constants/TrustedResolvers";
 import { isUserRejectionError } from "@/lib/errors";
+import { ChainlinkAggregatorV3Abi, CHAINLINK_ETH_USD_FEED } from "@/constants/ChainlinkAggregator";
 
 // wstETH contract address
 const WSTETH_ADDRESS = "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0" as const;
@@ -62,6 +63,13 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 
   const { writeContractAsync, data: hash, isPending, error: writeError, reset } = useWriteContract();
 
+  // Filter out user rejection errors from writeError
+  const displayError = React.useMemo(() => {
+    if (!writeError) return null;
+    if (isUserRejectionError(writeError)) return null;
+    return writeError;
+  }, [writeError]);
+
   const { isSuccess: txSuccess, isLoading: txLoading } = useWaitForTransactionReceipt({ hash });
 
   // Quote for AMM buy trades
@@ -107,10 +115,25 @@ export const TradeModal: React.FC<TradeModalProps> = ({
     address: WSTETH_ADDRESS,
     abi: WSTETH_ABI,
     functionName: "stEthPerToken",
-    query: {
-      enabled: marketType === "amm" && action === "buy",
-    },
   });
+
+  // Fetch current ETH/USD price from Chainlink
+  const { data: ethPriceData } = useReadContract({
+    address: CHAINLINK_ETH_USD_FEED as `0x${string}`,
+    abi: ChainlinkAggregatorV3Abi,
+    functionName: "latestRoundData",
+  });
+
+  // Calculate wstETH/USD price
+  // wstETH value = (stEthPerToken / 1e18) * ETH price
+  // stEthPerToken is in 1e18 scale, ETH/USD is in 1e8 scale (8 decimals)
+  const wstethUsdPrice = React.useMemo(() => {
+    if (!stEthPerToken || !ethPriceData) return null;
+    const ethPrice = ethPriceData[1]; // answer from Chainlink (int256, 8 decimals)
+    // Convert: (stEthPerToken * ethPrice) / 1e18 gives price in 8 decimals
+    const wstethPrice = (stEthPerToken * BigInt(ethPrice.toString())) / parseEther("1");
+    return Number(wstethPrice) / 1e8; // Convert to regular number with proper decimals
+  }, [stEthPerToken, ethPriceData]);
 
   React.useEffect(() => {
     if (txSuccess) {
@@ -236,7 +259,6 @@ export const TradeModal: React.FC<TradeModalProps> = ({
         }
       }
 
-      toast.success("Transaction submitted");
       setLocalError(null);
     } catch (err: any) {
       // Handle user rejection silently - no toast, just reset state
@@ -292,9 +314,9 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="space-y-3">
+          <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
             {marketName}
             {isPerpetualOracle && (
               <span title="Perpetual Oracle Resolver">
@@ -302,56 +324,72 @@ export const TradeModal: React.FC<TradeModalProps> = ({
               </span>
             )}
           </DialogTitle>
-          <DialogDescription>Trade shares in this prediction market</DialogDescription>
+          <DialogDescription className="text-sm">Trade shares in this prediction market</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Odds Display */}
-          <div className="bg-muted rounded-lg p-4 space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-green-600 dark:text-green-400 font-bold">YES {yesPercent.toFixed(2)}%</span>
-              <span className="text-red-600 dark:text-red-400 font-bold">NO {noPercent.toFixed(2)}%</span>
+        <div className="space-y-5">
+          {/* Odds Display - Enhanced */}
+          <div className="bg-card border border-border rounded-lg p-4 space-y-3">
+            <div className="flex justify-between items-center">
+              <div className="flex items-baseline gap-2">
+                <span className="text-green-600 dark:text-green-400 font-bold text-lg">YES</span>
+                <span className="text-green-600 dark:text-green-400 font-semibold text-2xl">{yesPercent.toFixed(1)}%</span>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-red-600 dark:text-red-400 font-semibold text-2xl">{noPercent.toFixed(1)}%</span>
+                <span className="text-red-600 dark:text-red-400 font-bold text-lg">NO</span>
+              </div>
             </div>
-            <div className="flex h-3 rounded-full overflow-hidden bg-background">
-              <div className="bg-green-600 dark:bg-green-400" style={{ width: `${yesPercent}%` }} />
-              <div className="bg-red-600 dark:bg-red-400" style={{ width: `${noPercent}%` }} />
+            <div className="flex h-2.5 rounded-full overflow-hidden bg-muted/50 border border-border/50">
+              <div className="bg-gradient-to-r from-green-500 to-green-600 dark:from-green-400 dark:to-green-500" style={{ width: `${yesPercent}%` }} />
+              <div className="bg-gradient-to-r from-red-500 to-red-600 dark:from-red-400 dark:to-red-500" style={{ width: `${noPercent}%` }} />
             </div>
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>{formatEther(displayYes)} wstETH</span>
-              <span>{formatEther(displayNo)} wstETH</span>
+              <span className="font-mono">{Number(formatEther(displayYes)).toFixed(4)} wstETH</span>
+              <span className="font-mono">{Number(formatEther(displayNo)).toFixed(4)} wstETH</span>
             </div>
           </div>
 
           {/* Trade Interface */}
           <Tabs value={action} onValueChange={(v) => setAction(v as "buy" | "sell")}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="buy">Buy</TabsTrigger>
-              <TabsTrigger value="sell">Sell</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 h-11">
+              <TabsTrigger value="buy" className="font-semibold">Buy</TabsTrigger>
+              <TabsTrigger value="sell" className="font-semibold">Sell</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="buy" className="space-y-4">
-              <div className="grid gap-2">
-                <Label>Position</Label>
-                <div className="grid grid-cols-2 gap-2">
+            <TabsContent value="buy" className="space-y-5 mt-5">
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold">Select Position</Label>
+                <div className="grid grid-cols-2 gap-3">
                   <Button
                     variant={position === "yes" ? "default" : "outline"}
                     onClick={() => setPosition("yes")}
-                    className={position === "yes" ? "bg-green-600 hover:bg-green-700" : ""}
+                    className={`h-12 font-bold text-base transition-all ${
+                      position === "yes"
+                        ? "bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 border-green-700 shadow-md"
+                        : "hover:bg-green-50 dark:hover:bg-green-950/20 hover:border-green-500"
+                    }`}
                   >
                     YES
                   </Button>
                   <Button
                     variant={position === "no" ? "default" : "outline"}
                     onClick={() => setPosition("no")}
-                    className={position === "no" ? "bg-red-600 hover:bg-red-700" : ""}
+                    className={`h-12 font-bold text-base transition-all ${
+                      position === "no"
+                        ? "bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 border-red-700 shadow-md"
+                        : "hover:bg-red-50 dark:hover:bg-red-950/20 hover:border-red-500"
+                    }`}
                   >
                     NO
                   </Button>
                 </div>
               </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="amount">{marketType === "amm" ? "Shares to Buy" : "Amount (ETH)"}</Label>
+              <div className="space-y-2">
+                <Label htmlFor="amount" className="text-sm font-semibold">
+                  {marketType === "amm" ? "Shares to Buy" : "Amount (ETH)"}
+                </Label>
                 <Input
                   id="amount"
                   type="number"
@@ -360,6 +398,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="0.1"
+                  className="h-12 text-base font-mono"
                 />
                 <p className="text-xs text-muted-foreground">
                   {marketType === "amm"
@@ -367,6 +406,111 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                     : `Buy ${position.toUpperCase()} shares with ETH`}
                 </p>
               </div>
+
+              {/* Potential Winnings Display */}
+              {amount && parseFloat(amount) > 0 && (() => {
+                const amountWei = parseEther(amount);
+
+                if (marketType === "amm") {
+                  // For AMM: shares bought = potential payout if win
+                  const sharesBought = amountWei;
+                  const costWei = estimatedCost > 0n ? estimatedCost : 0n;
+                  const profit = sharesBought > costWei ? sharesBought - costWei : 0n;
+
+                  const payoutUsd = wstethUsdPrice ? Number(formatEther(sharesBought)) * wstethUsdPrice : null;
+                  const profitUsd = wstethUsdPrice && profit > 0n ? Number(formatEther(profit)) * wstethUsdPrice : null;
+
+                  return (
+                    <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-purple-900 dark:text-purple-100">
+                          Potential Payout (if {position.toUpperCase()} wins)
+                        </span>
+                        <div className="text-right">
+                          <div className="font-mono font-bold text-base text-purple-900 dark:text-purple-100">
+                            {Number(formatEther(sharesBought)).toFixed(4)} wstETH
+                          </div>
+                          {payoutUsd && (
+                            <div className="text-xs text-purple-600 dark:text-purple-400 font-medium">
+                              ≈ ${payoutUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {profit > 0n && (
+                        <div className="flex items-center justify-between text-sm border-t border-purple-200/50 dark:border-purple-800/50 pt-2">
+                          <span className="text-purple-700 dark:text-purple-300">Potential Profit</span>
+                          <div className="text-right">
+                            <div className="font-mono font-semibold text-green-600 dark:text-green-400">
+                              +{Number(formatEther(profit)).toFixed(4)} wstETH
+                            </div>
+                            {profitUsd && (
+                              <div className="text-xs text-green-600 dark:text-green-400 font-medium">
+                                ≈ +${profitUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                } else {
+                  // For Parimutuel: calculate based on pool ratio
+                  const currentPositionPool = position === "yes" ? displayYes : displayNo;
+                  const totalPool = displayYes + displayNo;
+
+                  // After this bet, position pool increases
+                  const newPositionPool = currentPositionPool + amountWei;
+                  const newTotalPool = totalPool + amountWei;
+
+                  // If position wins: your share of total pool = (your amount / total position pool) * total pool
+                  const potentialPayout = newTotalPool > 0n
+                    ? (amountWei * newTotalPool) / newPositionPool
+                    : 0n;
+                  const profit = potentialPayout > amountWei ? potentialPayout - amountWei : 0n;
+
+                  const payoutUsd = wstethUsdPrice ? Number(formatEther(potentialPayout)) * wstethUsdPrice : null;
+                  const profitUsd = wstethUsdPrice && profit > 0n ? Number(formatEther(profit)) * wstethUsdPrice : null;
+
+                  return (
+                    <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-purple-900 dark:text-purple-100">
+                          Potential Payout (if {position.toUpperCase()} wins)
+                        </span>
+                        <div className="text-right">
+                          <div className="font-mono font-bold text-base text-purple-900 dark:text-purple-100">
+                            {Number(formatEther(potentialPayout)).toFixed(4)} wstETH
+                          </div>
+                          {payoutUsd && (
+                            <div className="text-xs text-purple-600 dark:text-purple-400 font-medium">
+                              ≈ ${payoutUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {profit > 0n && (
+                        <div className="flex items-center justify-between text-sm border-t border-purple-200/50 dark:border-purple-800/50 pt-2">
+                          <span className="text-purple-700 dark:text-purple-300">Potential Profit</span>
+                          <div className="text-right">
+                            <div className="font-mono font-semibold text-green-600 dark:text-green-400">
+                              +{Number(formatEther(profit)).toFixed(4)} wstETH
+                            </div>
+                            {profitUsd && (
+                              <div className="text-xs text-green-600 dark:text-green-400 font-medium">
+                                ≈ +${profitUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      <p className="text-xs text-purple-600 dark:text-purple-400 italic border-t border-purple-200/50 dark:border-purple-800/50 pt-2">
+                        Estimated based on current pool ratio. Final payout depends on total pool when market resolves.
+                      </p>
+                    </div>
+                  );
+                }
+              })()}
 
               {marketType === "amm" && estimatedCost > 0n && (() => {
                 const slippageMultiplier = BigInt(Math.floor((1 + slippageTolerance / 100) * 10000));
@@ -381,26 +525,28 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                 }
 
                 return (
-                  <div className="bg-muted rounded-lg p-3 space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Estimated Cost:</span>
-                      <span className="font-mono font-semibold">
+                  <div className="bg-card border border-border rounded-lg p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-muted-foreground">Estimated Cost</span>
+                      <span className="font-mono font-bold text-base">
                         {Number(formatEther(estimatedCost)).toFixed(6)} wstETH
                       </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Max Cost (with slippage):</span>
-                      <span className="font-mono text-xs">
-                        {Number(formatEther(wstInMax)).toFixed(6)} wstETH
-                      </span>
+                    <div className="border-t border-border pt-2 space-y-1.5 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Max Cost (with slippage)</span>
+                        <span className="font-mono text-xs">
+                          {Number(formatEther(wstInMax)).toFixed(6)} wstETH
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">ETH to send</span>
+                        <span className="font-mono font-semibold">
+                          {Number(formatEther(ethToSend)).toFixed(6)} ETH
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">ETH to send:</span>
-                      <span className="font-mono">
-                        {Number(formatEther(ethToSend)).toFixed(6)} ETH
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground italic">
+                    <p className="text-xs text-muted-foreground italic pt-1 border-t border-border/50">
                       Extra ETH is refunded as wstETH. Includes 40% buffer for on-chain pricing & small amount rounding.
                     </p>
                   </div>
@@ -408,8 +554,11 @@ export const TradeModal: React.FC<TradeModalProps> = ({
               })()}
 
               {marketType === "amm" && (
-                <div className="grid gap-2">
-                  <Label htmlFor="slippage">Slippage Tolerance: {slippageTolerance}%</Label>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="slippage" className="text-sm font-semibold">Slippage Tolerance</Label>
+                    <span className="font-mono font-bold text-sm">{slippageTolerance}%</span>
+                  </div>
                   <Slider
                     id="slippage"
                     min={0.1}
@@ -427,29 +576,37 @@ export const TradeModal: React.FC<TradeModalProps> = ({
               )}
             </TabsContent>
 
-            <TabsContent value="sell" className="space-y-4">
-              <div className="grid gap-2">
-                <Label>Position</Label>
-                <div className="grid grid-cols-2 gap-2">
+            <TabsContent value="sell" className="space-y-5 mt-5">
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold">Select Position</Label>
+                <div className="grid grid-cols-2 gap-3">
                   <Button
                     variant={position === "yes" ? "default" : "outline"}
                     onClick={() => setPosition("yes")}
-                    className={position === "yes" ? "bg-green-600 hover:bg-green-700" : ""}
+                    className={`h-12 font-bold text-base transition-all ${
+                      position === "yes"
+                        ? "bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 border-green-700 shadow-md"
+                        : "hover:bg-green-50 dark:hover:bg-green-950/20 hover:border-green-500"
+                    }`}
                   >
                     YES
                   </Button>
                   <Button
                     variant={position === "no" ? "default" : "outline"}
                     onClick={() => setPosition("no")}
-                    className={position === "no" ? "bg-red-600 hover:bg-red-700" : ""}
+                    className={`h-12 font-bold text-base transition-all ${
+                      position === "no"
+                        ? "bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 border-red-700 shadow-md"
+                        : "hover:bg-red-50 dark:hover:bg-red-950/20 hover:border-red-500"
+                    }`}
                   >
                     NO
                   </Button>
                 </div>
               </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="sell-amount">
+              <div className="space-y-2">
+                <Label htmlFor="sell-amount" className="text-sm font-semibold">
                   {marketType === "amm" ? "Shares to Sell" : "Amount (wstETH shares)"}
                 </Label>
                 <Input
@@ -460,27 +617,31 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="0.1"
+                  className="h-12 text-base font-mono"
                 />
                 <p className="text-xs text-muted-foreground">Sell your {position.toUpperCase()} shares for wstETH</p>
               </div>
 
               {marketType === "amm" && estimatedCost > 0n && (
-                <div className="bg-muted rounded-lg p-3 space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Estimated Payout:</span>
-                    <span className="font-mono font-semibold">
+                <div className="bg-card border border-border rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-muted-foreground">Estimated Payout</span>
+                    <span className="font-mono font-bold text-base">
                       {Number(formatEther(estimatedCost)).toFixed(6)} wstETH
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground italic">
+                  <p className="text-xs text-muted-foreground italic border-t border-border/50 pt-2">
                     Payout may vary due to price impact and slippage.
                   </p>
                 </div>
               )}
 
               {marketType === "amm" && (
-                <div className="grid gap-2">
-                  <Label htmlFor="slippage-sell">Slippage Tolerance: {slippageTolerance}%</Label>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="slippage-sell" className="text-sm font-semibold">Slippage Tolerance</Label>
+                    <span className="font-mono font-bold text-sm">{slippageTolerance}%</span>
+                  </div>
                   <Slider
                     id="slippage-sell"
                     min={0.1}
@@ -499,33 +660,48 @@ export const TradeModal: React.FC<TradeModalProps> = ({
             </TabsContent>
           </Tabs>
 
-          {(writeError || localError) && (
-            <Alert tone="destructive">
+          {(displayError || localError) && (
+            <Alert tone="destructive" className="border-l-4 border-l-red-500">
               <AlertDescription className="break-words text-sm">
-                {localError || writeError?.message || "Transaction failed"}
+                {localError || displayError?.message || "Transaction failed"}
               </AlertDescription>
             </Alert>
           )}
 
           {txLoading && (
-            <Alert>
-              <AlertDescription>Transaction is being confirmed…</AlertDescription>
+            <Alert className="border-l-4 border-l-blue-500">
+              <AlertDescription className="flex items-center gap-2">
+                <div className="h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                <span>Transaction is being confirmed…</span>
+              </AlertDescription>
             </Alert>
           )}
 
           {txSuccess && (
-            <Alert>
-              <AlertDescription className="text-green-600 dark:text-green-400">Trade successful!</AlertDescription>
+            <Alert className="border-l-4 border-l-green-500 bg-green-50 dark:bg-green-950/20">
+              <AlertDescription className="text-green-600 dark:text-green-400 font-semibold">
+                Trade successful!
+              </AlertDescription>
             </Alert>
           )}
 
-          <div className="flex gap-2">
-            <Button onClick={handleTrade} disabled={isPending || txLoading || !address} className="flex-1">
+          <div className="flex gap-3 pt-2">
+            <Button
+              onClick={handleTrade}
+              disabled={isPending || txLoading || !address}
+              className={`flex-1 h-12 font-semibold text-base ${
+                action === "buy"
+                  ? position === "yes"
+                    ? "bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700"
+                    : "bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700"
+                  : ""
+              }`}
+            >
               {isPending || txLoading
                 ? "Processing…"
                 : `${action === "buy" ? "Buy" : "Sell"} ${position.toUpperCase()}`}
             </Button>
-            <Button variant="outline" onClick={onClose} disabled={isPending || txLoading}>
+            <Button variant="outline" onClick={onClose} disabled={isPending || txLoading} className="h-12 px-6">
               Cancel
             </Button>
           </div>

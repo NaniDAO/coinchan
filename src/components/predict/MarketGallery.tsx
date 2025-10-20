@@ -3,19 +3,22 @@ import { useReadContract, useReadContracts, useAccount } from "wagmi";
 import { PredictionMarketAddress, PredictionMarketAbi } from "@/constants/PredictionMarket";
 import { PredictionAMMAddress, PredictionAMMAbi } from "@/constants/PredictionMarketAMM";
 import { MarketCard } from "./MarketCard";
-import { Spinner } from "@/components/ui/spinner";
+import { LoadingLogo } from "@/components/ui/loading-logo";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { isTrustedResolver, isPerpetualOracleResolver } from "@/constants/TrustedResolvers";
 
 interface MarketGalleryProps {
   refreshKey?: number;
 }
 
-type MarketFilter = "all" | "active" | "closed" | "resolved" | "positions" | "parimutuel" | "amm";
+type MarketFilter = "all" | "contract" | "curated" | "community" | "closed" | "resolved" | "positions";
 
 export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
   const [start] = useState(0);
-  const [filter, setFilter] = useState<MarketFilter>("active");
-  const count = 20;
+  const [filter, setFilter] = useState<MarketFilter>("curated");
+  // Fetch 100 markets per contract (200 total). Balance between completeness and performance.
+  // TODO: Implement pagination or infinite scroll when market count grows significantly
+  const count = 100;
   const { address } = useAccount();
 
   // Fetch Pari-Mutuel markets
@@ -64,19 +67,9 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
     },
   });
 
-  const isLoading = isLoadingPM || isLoadingAMM;
-  const refetch = () => {
-    refetchPM();
-    refetchAMM();
-  };
-  const refetchUserData = () => {
-    refetchUserDataPM();
-    refetchUserDataAMM();
-  };
-
   // Batch read trading status for Pari-Mutuel markets
   const marketIds = marketsData?.[0] || [];
-  const { data: tradingOpenData } = useReadContracts({
+  const { data: tradingOpenData, isLoading: isLoadingPMTrading } = useReadContracts({
     contracts: marketIds.map((marketId) => ({
       address: PredictionMarketAddress as `0x${string}`,
       abi: PredictionMarketAbi,
@@ -90,7 +83,7 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
 
   // Batch read trading status for AMM markets
   const ammMarketIds = ammMarketsData?.[0] || [];
-  const { data: ammTradingOpenData } = useReadContracts({
+  const { data: ammTradingOpenData, isLoading: isLoadingAMMTrading } = useReadContracts({
     contracts: ammMarketIds.map((marketId) => ({
       address: PredictionAMMAddress as `0x${string}`,
       abi: PredictionAMMAbi,
@@ -101,6 +94,16 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
       enabled: ammMarketIds.length > 0,
     },
   });
+
+  const isLoading = isLoadingPM || isLoadingAMM || isLoadingPMTrading || isLoadingAMMTrading;
+  const refetch = () => {
+    refetchPM();
+    refetchAMM();
+  };
+  const refetchUserData = () => {
+    refetchUserDataPM();
+    refetchUserDataAMM();
+  };
 
   useEffect(() => {
     if (refreshKey !== undefined) {
@@ -114,7 +117,7 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-12">
-        <Spinner />
+        <LoadingLogo />
       </div>
     );
   }
@@ -270,64 +273,124 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
     (m) => !excludedResolvers.has(m.resolver.toLowerCase()) && !excludedMarketIds.has(m.marketId)
   );
 
-  // Filter markets based on selected filter
-  const filteredMarkets = visibleMarkets.filter((market) => {
-    if (filter === "all") return true;
-    if (filter === "parimutuel") return market.marketType === "parimutuel";
-    if (filter === "amm") return market.marketType === "amm";
-    if (filter === "active") return market.tradingOpen && !market.resolved;
-    if (filter === "closed") {
-      // Hide dead pools (zero pot and zero shares on both sides) from Closed tab
-      const isDead = market.pot === 0n && market.yesSupply === 0n && market.noSupply === 0n;
-      return !market.tradingOpen && !market.resolved && !isDead;
+  // Define dust threshold: 0.0001 wstETH (100000000000000 wei = 10^14)
+  // Markets below this amount when closed/resolved are considered "dust" and hidden
+  const DUST_THRESHOLD = 100000000000000n; // 0.0001 wstETH
+
+  // First, filter out dust markets from closed/resolved
+  const nonDustMarkets = visibleMarkets.filter((market) => {
+    // Always keep active markets regardless of pot size
+    // This includes parimutuel markets with pot === 0 that haven't been initialized yet
+    if (market.tradingOpen && !market.resolved) {
+      return true;
     }
-    if (filter === "resolved") return market.resolved;
+
+    // For resolved markets: only keep if pot >= DUST_THRESHOLD
+    if (market.resolved) {
+      return market.pot >= DUST_THRESHOLD;
+    }
+
+    // For closed but unresolved markets:
+    // - Only keep if pot >= DUST_THRESHOLD (meaningful amounts)
+    // - Hide if pot is 0 (no activity) or pot < DUST_THRESHOLD (dust amounts)
+    return market.pot >= DUST_THRESHOLD;
+  });
+
+  // Calculate accurate counts based on non-dust markets
+  const activeMarkets = nonDustMarkets.filter((m) => m.tradingOpen && !m.resolved);
+  const contractCount = activeMarkets.filter((m) => isPerpetualOracleResolver(m.resolver)).length;
+  const curatedCount = activeMarkets.filter((m) => isTrustedResolver(m.resolver) && !isPerpetualOracleResolver(m.resolver)).length;
+  const communityCount = activeMarkets.filter((m) => !isTrustedResolver(m.resolver)).length;
+  const closedCount = nonDustMarkets.filter((m) => !m.tradingOpen && !m.resolved).length;
+  const resolvedCount = nonDustMarkets.filter((m) => m.resolved).length;
+  const positionsCount = nonDustMarkets.filter((m) => m.userYesBalance > 0n || m.userNoBalance > 0n).length;
+
+  // Filter markets based on selected filter
+  const filteredMarkets = nonDustMarkets.filter((market) => {
+    if (filter === "all") {
+      return true;
+    }
+    if (filter === "contract") {
+      return market.tradingOpen && !market.resolved && isPerpetualOracleResolver(market.resolver);
+    }
+    if (filter === "curated") {
+      return market.tradingOpen && !market.resolved && isTrustedResolver(market.resolver) && !isPerpetualOracleResolver(market.resolver);
+    }
+    if (filter === "community") {
+      return market.tradingOpen && !market.resolved && !isTrustedResolver(market.resolver);
+    }
+    if (filter === "closed") {
+      return !market.tradingOpen && !market.resolved;
+    }
+    if (filter === "resolved") {
+      return market.resolved;
+    }
     if (filter === "positions") {
       return market.userYesBalance > 0n || market.userNoBalance > 0n;
     }
     return true;
   });
 
-  const activeCount = visibleMarkets.filter((m) => m.tradingOpen && !m.resolved).length;
-  const closedCount = visibleMarkets.filter((m) => {
-    const isDead = m.pot === 0n && m.yesSupply === 0n && m.noSupply === 0n;
-    return !m.tradingOpen && !m.resolved && !isDead;
-  }).length;
-  const resolvedCount = visibleMarkets.filter((m) => m.resolved).length;
-  const positionsCount = visibleMarkets.filter((m) => m.userYesBalance > 0n || m.userNoBalance > 0n).length;
-  const pmCount = visibleMarkets.filter((m) => m.marketType === "parimutuel").length;
-  const ammCount = visibleMarkets.filter((m) => m.marketType === "amm").length;
+  // Calculate total markets count (before exclusions, just PM + AMM)
+  const totalPMMarkets = hasPMMarkets ? marketsData![0].length : 0;
+  const totalAMMMarkets = hasAMMMarkets ? ammMarketsData![0].length : 0;
+  const totalMarketsCount = totalPMMarkets + totalAMMMarkets;
 
   return (
     <div className="space-y-6">
+      {/* Total Markets Count Header */}
+      <div className="flex items-center justify-between text-sm text-muted-foreground">
+        <div>
+          <span className="font-semibold text-foreground">{totalMarketsCount}</span> total markets
+          <span className="hidden sm:inline">
+            {" "}({totalPMMarkets} Parimutuel, {totalAMMMarkets} AMM)
+          </span>
+        </div>
+        {nonDustMarkets.length < visibleMarkets.length && (
+          <div className="text-xs opacity-75">
+            Hiding {visibleMarkets.length - nonDustMarkets.length} finished markets
+          </div>
+        )}
+      </div>
+
       <Tabs value={filter} onValueChange={(v) => setFilter(v as MarketFilter)}>
         <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
           <TabsList className="inline-flex w-auto min-w-full">
-            <TabsTrigger value="active" className="whitespace-nowrap">
-              <span className="hidden sm:inline">Active ({activeCount})</span>
-              <span className="sm:hidden">Active</span>
-            </TabsTrigger>
+            {curatedCount > 0 && (
+              <TabsTrigger value="curated" className="whitespace-nowrap">
+                <span className="hidden sm:inline">Curated ({curatedCount})</span>
+                <span className="sm:hidden">Curated</span>
+              </TabsTrigger>
+            )}
+            {contractCount > 0 && (
+              <TabsTrigger value="contract" className="whitespace-nowrap">
+                <span className="hidden sm:inline">Contract ({contractCount})</span>
+                <span className="sm:hidden">Contract</span>
+              </TabsTrigger>
+            )}
+            {communityCount > 0 && (
+              <TabsTrigger value="community" className="whitespace-nowrap">
+                <span className="hidden sm:inline">Community ({communityCount})</span>
+                <span className="sm:hidden">Community</span>
+              </TabsTrigger>
+            )}
+            {closedCount > 0 && (
+              <TabsTrigger value="closed" className="whitespace-nowrap">
+                <span className="hidden sm:inline">Closed ({closedCount})</span>
+                <span className="sm:hidden">Closed</span>
+              </TabsTrigger>
+            )}
+            {resolvedCount > 0 && (
+              <TabsTrigger value="resolved" className="whitespace-nowrap">
+                <span className="hidden sm:inline">Resolved ({resolvedCount})</span>
+                <span className="sm:hidden">Resolved</span>
+              </TabsTrigger>
+            )}
             <TabsTrigger value="all" className="whitespace-nowrap">
-              <span className="hidden sm:inline">All ({visibleMarkets.length})</span>
+              <span className="hidden sm:inline">All ({nonDustMarkets.length})</span>
               <span className="sm:hidden">All</span>
             </TabsTrigger>
-            <TabsTrigger value="parimutuel" className="whitespace-nowrap">
-              <span className="hidden sm:inline">Pari-Mutuel ({pmCount})</span>
-              <span className="sm:hidden">PM</span>
-            </TabsTrigger>
-            <TabsTrigger value="amm" className="whitespace-nowrap">
-              <span className="hidden sm:inline">Live Bets ({ammCount})</span>
-              <span className="sm:hidden">AMM</span>
-            </TabsTrigger>
-            <TabsTrigger value="closed" className="whitespace-nowrap">
-              <span className="hidden sm:inline">Closed ({closedCount})</span>
-              <span className="sm:hidden">Closed</span>
-            </TabsTrigger>
-            <TabsTrigger value="resolved" className="whitespace-nowrap">
-              <span className="hidden sm:inline">Resolved ({resolvedCount})</span>
-              <span className="sm:hidden">Resolved</span>
-            </TabsTrigger>
-            {address && (
+            {address && positionsCount > 0 && (
               <TabsTrigger value="positions" className="whitespace-nowrap">
                 <span className="hidden sm:inline">My Positions ({positionsCount})</span>
                 <span className="sm:hidden">Mine</span>

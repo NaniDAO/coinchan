@@ -35,6 +35,7 @@ import { Route as ExploreTokenRouteImport } from './routes/explore/token'
 import { Route as ExplorePoolsRouteImport } from './routes/explore/pools'
 import { Route as ExploreOrdersRouteImport } from './routes/explore/orders'
 import { Route as CCoinIdRouteImport } from './routes/c.$coinId'
+import { Route as PredictMarketTypeMarketIdRouteImport } from './routes/predict.$marketType.$marketId'
 
 const WlfiRoute = WlfiRouteImport.update({
   id: '/wlfi',
@@ -166,6 +167,12 @@ const CCoinIdRoute = CCoinIdRouteImport.update({
   path: '/c/$coinId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PredictMarketTypeMarketIdRoute =
+  PredictMarketTypeMarketIdRouteImport.update({
+    id: '/$marketType/$marketId',
+    path: '/$marketType/$marketId',
+    getParentRoute: () => PredictRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -178,7 +185,7 @@ export interface FileRoutesByFullPath {
   '/ico': typeof IcoRoute
   '/limit': typeof LimitRoute
   '/positions': typeof PositionsRouteWithChildren
-  '/predict': typeof PredictRoute
+  '/predict': typeof PredictRouteWithChildren
   '/raise': typeof RaiseRoute
   '/send': typeof SendRoute
   '/stake': typeof StakeRoute
@@ -194,6 +201,7 @@ export interface FileRoutesByFullPath {
   '/positions/create': typeof PositionsCreateRoute
   '/farm/': typeof FarmIndexRoute
   '/positions/': typeof PositionsIndexRoute
+  '/predict/$marketType/$marketId': typeof PredictMarketTypeMarketIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -204,7 +212,7 @@ export interface FileRoutesByTo {
   '/explore': typeof ExploreRouteWithChildren
   '/ico': typeof IcoRoute
   '/limit': typeof LimitRoute
-  '/predict': typeof PredictRoute
+  '/predict': typeof PredictRouteWithChildren
   '/raise': typeof RaiseRoute
   '/send': typeof SendRoute
   '/stake': typeof StakeRoute
@@ -220,6 +228,7 @@ export interface FileRoutesByTo {
   '/positions/create': typeof PositionsCreateRoute
   '/farm': typeof FarmIndexRoute
   '/positions': typeof PositionsIndexRoute
+  '/predict/$marketType/$marketId': typeof PredictMarketTypeMarketIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -233,7 +242,7 @@ export interface FileRoutesById {
   '/ico': typeof IcoRoute
   '/limit': typeof LimitRoute
   '/positions': typeof PositionsRouteWithChildren
-  '/predict': typeof PredictRoute
+  '/predict': typeof PredictRouteWithChildren
   '/raise': typeof RaiseRoute
   '/send': typeof SendRoute
   '/stake': typeof StakeRoute
@@ -249,6 +258,7 @@ export interface FileRoutesById {
   '/positions/create': typeof PositionsCreateRoute
   '/farm/': typeof FarmIndexRoute
   '/positions/': typeof PositionsIndexRoute
+  '/predict/$marketType/$marketId': typeof PredictMarketTypeMarketIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -279,6 +289,7 @@ export interface FileRouteTypes {
     | '/positions/create'
     | '/farm/'
     | '/positions/'
+    | '/predict/$marketType/$marketId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -305,6 +316,7 @@ export interface FileRouteTypes {
     | '/positions/create'
     | '/farm'
     | '/positions'
+    | '/predict/$marketType/$marketId'
   id:
     | '__root__'
     | '/'
@@ -333,6 +345,7 @@ export interface FileRouteTypes {
     | '/positions/create'
     | '/farm/'
     | '/positions/'
+    | '/predict/$marketType/$marketId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -346,7 +359,7 @@ export interface RootRouteChildren {
   IcoRoute: typeof IcoRoute
   LimitRoute: typeof LimitRoute
   PositionsRoute: typeof PositionsRouteWithChildren
-  PredictRoute: typeof PredictRoute
+  PredictRoute: typeof PredictRouteWithChildren
   RaiseRoute: typeof RaiseRoute
   SendRoute: typeof SendRoute
   StakeRoute: typeof StakeRoute
@@ -540,6 +553,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CCoinIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/predict/$marketType/$marketId': {
+      id: '/predict/$marketType/$marketId'
+      path: '/$marketType/$marketId'
+      fullPath: '/predict/$marketType/$marketId'
+      preLoaderRoute: typeof PredictMarketTypeMarketIdRouteImport
+      parentRoute: typeof PredictRoute
+    }
   }
 }
 
@@ -586,6 +606,17 @@ const PositionsRouteWithChildren = PositionsRoute._addFileChildren(
   PositionsRouteChildren,
 )
 
+interface PredictRouteChildren {
+  PredictMarketTypeMarketIdRoute: typeof PredictMarketTypeMarketIdRoute
+}
+
+const PredictRouteChildren: PredictRouteChildren = {
+  PredictMarketTypeMarketIdRoute: PredictMarketTypeMarketIdRoute,
+}
+
+const PredictRouteWithChildren =
+  PredictRoute._addFileChildren(PredictRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
@@ -597,7 +628,7 @@ const rootRouteChildren: RootRouteChildren = {
   IcoRoute: IcoRoute,
   LimitRoute: LimitRoute,
   PositionsRoute: PositionsRouteWithChildren,
-  PredictRoute: PredictRoute,
+  PredictRoute: PredictRouteWithChildren,
   RaiseRoute: RaiseRoute,
   SendRoute: SendRoute,
   StakeRoute: StakeRoute,

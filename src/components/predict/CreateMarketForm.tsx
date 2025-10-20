@@ -303,9 +303,9 @@ ${lines
         });
       } else {
         // AMM-based market (PredictionAMM contract) with sensible default seeding
-        // Seed with 1 YES token and 1 NO token for 50/50 starting probability
-        const seedYes = parseEther("1");
-        const seedNo = parseEther("1");
+        // Seed with 10 YES tokens and 10 NO tokens for 50/50 starting probability with tighter spreads
+        const seedYes = parseEther("10");
+        const seedNo = parseEther("10");
 
         await writeContractAsync({
           address: PredictionAMMAddress as `0x${string}`,
@@ -354,10 +354,6 @@ ${lines
 
   return (
     <div className="bg-card border border-border rounded-lg p-6">
-      <Heading level={3} className="mb-4">
-        {t("predict.create_prediction_market")}
-      </Heading>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Form */}
         <div className="space-y-4">
