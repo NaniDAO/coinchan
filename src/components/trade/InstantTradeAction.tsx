@@ -163,6 +163,15 @@ export const InstantTradeAction = ({
   const publicClient = usePublicClient();
   const chainId = useChainId();
 
+  // Prevent errors during initialization when publicClient isn't ready
+  if (!publicClient) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-sm text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+
   /** ------------------------------------------------------------
    * Seed useTokenPair from URL so first paint reflects deep link
    * ------------------------------------------------------------ */
