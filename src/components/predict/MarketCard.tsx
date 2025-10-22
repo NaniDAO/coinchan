@@ -38,6 +38,7 @@ import {
   isPerpetualOracleResolver,
   getTrustedResolver,
   ETH_WENT_UP_RESOLVER_ADDRESS,
+  ETH_WENT_UP_RESOLVER_V2_ADDRESS,
   COINFLIP_RESOLVER_ADDRESS,
   NOUNS_PASS_VOTING_RESOLVER_ADDRESS,
   BETH_PM_RESOLVER_ADDRESS,
@@ -142,6 +143,8 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   const trustedResolverInfo = getTrustedResolver(resolver);
   const isEthWentUpResolver =
     resolver.toLowerCase() === ETH_WENT_UP_RESOLVER_ADDRESS.toLowerCase();
+  const isEthWentUpResolverV2 =
+    resolver.toLowerCase() === ETH_WENT_UP_RESOLVER_V2_ADDRESS.toLowerCase();
   const isCoinflipResolver =
     resolver.toLowerCase() === COINFLIP_RESOLVER_ADDRESS.toLowerCase();
   const isNounsResolver =
@@ -157,6 +160,14 @@ export const MarketCard: React.FC<MarketCardProps> = ({
     },
   });
 
+  // Check ETH balance in V2 resolver for tip button
+  const { data: resolverV2Balance } = useBalance({
+    address: ETH_WENT_UP_RESOLVER_V2_ADDRESS as `0x${string}`,
+    query: {
+      enabled: isEthWentUpResolverV2,
+    },
+  });
+
   // Fetch tip amount from resolver
   const { data: tipPerResolve } = useReadContract({
     address: ETH_WENT_UP_RESOLVER_ADDRESS as `0x${string}`,
@@ -164,6 +175,16 @@ export const MarketCard: React.FC<MarketCardProps> = ({
     functionName: "tipPerResolve",
     query: {
       enabled: isEthWentUpResolver,
+    },
+  });
+
+  // Fetch tip amount from V2 resolver
+  const { data: tipPerResolveV2 } = useReadContract({
+    address: ETH_WENT_UP_RESOLVER_V2_ADDRESS as `0x${string}`,
+    abi: EthWentUpResolverAbi,
+    functionName: "tipPerResolve",
+    query: {
+      enabled: isEthWentUpResolverV2,
     },
   });
 
@@ -177,11 +198,28 @@ export const MarketCard: React.FC<MarketCardProps> = ({
     },
   });
 
+  // Check if EthWentUp V2 market can be resolved using canResolveNow()
+  const { data: ethWentUpV2CanResolveData } = useReadContract({
+    address: ETH_WENT_UP_RESOLVER_V2_ADDRESS as `0x${string}`,
+    abi: EthWentUpResolverAbi,
+    functionName: "canResolveNow",
+    query: {
+      enabled: isEthWentUpResolverV2 && !resolved,
+    },
+  });
+
   const canResolve = Boolean(
     isEthWentUpResolver &&
       !resolved &&
       ethWentUpCanResolveData &&
       ethWentUpCanResolveData[0] === true, // ready
+  );
+
+  const canResolveV2 = Boolean(
+    isEthWentUpResolverV2 &&
+      !resolved &&
+      ethWentUpV2CanResolveData &&
+      ethWentUpV2CanResolveData[0] === true, // ready
   );
 
   // Fetch epoch data for EthWentUp to get start price
@@ -195,13 +233,24 @@ export const MarketCard: React.FC<MarketCardProps> = ({
     },
   });
 
+  // Fetch epoch data for EthWentUp V2 to get start price
+  const { data: ethWentUpV2EpochData } = useReadContract({
+    address: ETH_WENT_UP_RESOLVER_V2_ADDRESS as `0x${string}`,
+    abi: EthWentUpResolverAbi,
+    functionName: "epochs",
+    args: [marketId],
+    query: {
+      enabled: isEthWentUpResolverV2,
+    },
+  });
+
   // Fetch current ETH/USD price from Chainlink
   const { data: currentEthPriceData } = useReadContract({
     address: CHAINLINK_ETH_USD_FEED as `0x${string}`,
     abi: ChainlinkAggregatorV3Abi,
     functionName: "latestRoundData",
     query: {
-      enabled: isEthWentUpResolver,
+      enabled: isEthWentUpResolver || isEthWentUpResolverV2,
     },
   });
 
@@ -211,6 +260,14 @@ export const MarketCard: React.FC<MarketCardProps> = ({
       resolverBalance &&
       tipPerResolve &&
       resolverBalance.value < tipPerResolve * 2n,
+  );
+
+  // Show tip button for V2 if balance is low (less than 2x tipPerResolve)
+  const showTipButtonV2 = Boolean(
+    isEthWentUpResolverV2 &&
+      resolverV2Balance &&
+      tipPerResolveV2 &&
+      resolverV2Balance.value < tipPerResolveV2 * 2n,
   );
 
   // Check ETH balance in CoinflipResolver for tip button
@@ -444,6 +501,12 @@ export const MarketCard: React.FC<MarketCardProps> = ({
         abi: EthWentUpResolverAbi,
         functionName: "resolve",
       });
+    } else if (isEthWentUpResolverV2) {
+      writeResolve({
+        address: ETH_WENT_UP_RESOLVER_V2_ADDRESS as `0x${string}`,
+        abi: EthWentUpResolverAbi,
+        functionName: "resolve",
+      });
     } else if (isCoinflipResolver) {
       writeResolve({
         address: COINFLIP_RESOLVER_ADDRESS as `0x${string}`,
@@ -467,6 +530,13 @@ export const MarketCard: React.FC<MarketCardProps> = ({
         abi: EthWentUpResolverAbi,
         functionName: "fundTips",
         value: tipPerResolve,
+      });
+    } else if (isEthWentUpResolverV2 && tipPerResolveV2) {
+      writeTip({
+        address: ETH_WENT_UP_RESOLVER_V2_ADDRESS as `0x${string}`,
+        abi: EthWentUpResolverAbi,
+        functionName: "fundTips",
+        value: tipPerResolveV2,
       });
     } else if (isCoinflipResolver && coinflipTipPerResolve) {
       writeTip({
@@ -878,10 +948,12 @@ export const MarketCard: React.FC<MarketCardProps> = ({
           )}
 
           {/* ETH Price Market Info - Show Start and Current/Resolution Price */}
-          {isEthWentUpResolver && ethWentUpEpochData && (() => {
+          {(isEthWentUpResolver || isEthWentUpResolverV2) && (ethWentUpEpochData || ethWentUpV2EpochData) && (() => {
+            const epochData = isEthWentUpResolver ? ethWentUpEpochData : ethWentUpV2EpochData;
+            if (!epochData) return null;
             // Extract start price and decimals from epoch data
-            const startPrice = ethWentUpEpochData[3]; // startPrice (uint256)
-            const startDecimals = ethWentUpEpochData[2]; // startDecimals (uint8)
+            const startPrice = epochData[3]; // startPrice (uint256)
+            const startDecimals = epochData[2]; // startDecimals (uint8)
 
             // Only show if we have valid start price data
             if (!startPrice || startPrice === 0n) return null;
@@ -1346,7 +1418,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
           )}
 
           {/* Perpetual Oracle Automation - Resolve Button */}
-          {(canResolve || canResolveCoinflip || canResolveNouns) && (
+          {(canResolve || canResolveV2 || canResolveCoinflip || canResolveNouns) && (
             <div
               className={`${
                 isCoinflipResolver
@@ -1383,16 +1455,20 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                     ? nounsTipPerAction
                       ? formatEther(nounsTipPerAction)
                       : "0.001"
-                    : tipPerResolve
-                      ? formatEther(tipPerResolve)
-                      : "0.001"}{" "}
+                    : isEthWentUpResolverV2
+                      ? tipPerResolveV2
+                        ? formatEther(tipPerResolveV2)
+                        : "0.001"
+                      : tipPerResolve
+                        ? formatEther(tipPerResolve)
+                        : "0.001"}{" "}
                 ETH tip
               </p>
             </div>
           )}
 
           {/* Perpetual Oracle Tip Button - Subtle, only shown when balance is low */}
-          {(showTipButton || showCoinflipTipButton || showNounsTipButton) && (
+          {(showTipButton || showTipButtonV2 || showCoinflipTipButton || showNounsTipButton) && (
             <button
               onClick={handleTip}
               className={`w-full text-xs text-muted-foreground ${
@@ -1417,9 +1493,13 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                         ? nounsTipPerAction
                           ? formatEther(nounsTipPerAction)
                           : "0.001"
-                        : tipPerResolve
-                          ? formatEther(tipPerResolve)
-                          : "0.001"
+                        : isEthWentUpResolverV2
+                          ? tipPerResolveV2
+                            ? formatEther(tipPerResolveV2)
+                            : "0.001"
+                          : tipPerResolve
+                            ? formatEther(tipPerResolve)
+                            : "0.001"
                   } ETH`}
             </button>
           )}

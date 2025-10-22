@@ -111,18 +111,18 @@ export const Route = createRootRoute({
                         <span>{t("common.limit")}</span>
                       </Link>
                     </DropdownMenuItem>
-                    {/* NEW: Send */}
-                    <DropdownMenuItem asChild>
-                      <Link to="/send" className={itemClasses}>
-                        <SendIcon className="h-4 w-4" />
-                        <span>{t("common.send")}</span>
-                      </Link>
-                    </DropdownMenuItem>
                     {/* NEW: Predict */}
                     <DropdownMenuItem asChild>
                       <Link to="/predict" className={itemClasses}>
                         <Sparkles className="h-4 w-4" />
                         <span>{t("common.predict", "Predict")}</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    {/* NEW: Send */}
+                    <DropdownMenuItem asChild>
+                      <Link to="/send" className={itemClasses}>
+                        <SendIcon className="h-4 w-4" />
+                        <span>{t("common.send")}</span>
                       </Link>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -296,8 +296,8 @@ export const Route = createRootRoute({
                   {[
                     { to: "/swap", label: `${t("common.trade")} — Swap` },
                     { to: "/limit", label: `${t("common.trade")} — Limit` },
-                    { to: "/send", label: `${t("common.trade")} — Send` },
                     { to: "/predict", label: `${t("common.trade")} — ${t("common.predict", "Predict")}` },
+                    { to: "/send", label: `${t("common.trade")} — Send` },
                     { to: "/explore", label: t("common.explore") },
                     { to: "/explore/launches", label: "Launches" },
                     { to: "/explore/tokens", label: "Tokens" },

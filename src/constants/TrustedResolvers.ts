@@ -6,6 +6,7 @@ export interface TrustedResolver {
 }
 
 export const ETH_WENT_UP_RESOLVER_ADDRESS = "0x904EB96808704d0dB0469640188FCA86B762912b" as const;
+export const ETH_WENT_UP_RESOLVER_V2_ADDRESS = "0x8A9A5736E573098C9756a0d28035fa4AEacEbaf6" as const;
 export const COINFLIP_RESOLVER_ADDRESS = "0xeAd4D6A7C5C0D8ff7bFbe3ab1b4b4bc596C1FD1c" as const;
 export const NOUNS_PASS_VOTING_RESOLVER_ADDRESS = "0x1637047F090D6b38D81DA0C589D4D8B9D3C7F32e" as const;
 export const BETH_PM_RESOLVER_ADDRESS = "0x9E52F272bACf991FC842704593c86820Ab3e0dB8" as const;
@@ -15,6 +16,12 @@ export const TRUSTED_RESOLVERS: TrustedResolver[] = [
     address: ETH_WENT_UP_RESOLVER_ADDRESS,
     name: "EthWentUpResolver",
     description: "Perpetual oracle resolver for ETH price movements using Chainlink feeds",
+    isPerpetualOracle: true,
+  },
+  {
+    address: ETH_WENT_UP_RESOLVER_V2_ADDRESS,
+    name: "EthWentUpResolver V2",
+    description: "Perpetual oracle resolver for ETH price movements using Chainlink feeds (V2)",
     isPerpetualOracle: true,
   },
   {
