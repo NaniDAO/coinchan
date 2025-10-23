@@ -22,12 +22,12 @@ export const MarketDetailPage: React.FC<MarketDetailPageProps> = ({ marketType, 
   // Convert marketId string to BigInt
   const marketIdBigInt = BigInt(marketId);
 
-  // Fetch single market data
+  // Fetch single market data using getMarket (not getMarkets)
   const { data: marketData, isLoading } = useReadContract({
     address: contractAddress as `0x${string}`,
     abi,
-    functionName: "getMarkets",
-    args: [marketIdBigInt, 1n], // Get 1 market starting from marketId
+    functionName: "getMarket",
+    args: [marketIdBigInt],
   });
 
 
@@ -41,7 +41,7 @@ export const MarketDetailPage: React.FC<MarketDetailPageProps> = ({ marketType, 
     );
   }
 
-  if (!marketData || !marketData[0] || marketData[0].length === 0) {
+  if (!marketData) {
     return (
       <div className="mx-auto max-w-4xl p-4">
         <Button variant="ghost" onClick={() => navigate({ to: "/predict" })} className="mb-4">
@@ -56,23 +56,24 @@ export const MarketDetailPage: React.FC<MarketDetailPageProps> = ({ marketType, 
     );
   }
 
-  // Extract market data
-  const marketIds = marketData[0];
-  const yesSupplies = marketData[1];
-  const noSupplies = marketData[2];
-  const resolvers = marketData[3];
-  const resolved = marketData[4];
-  const outcome = marketData[5];
-  const pot = marketData[6];
-  const payoutPerShare = marketData[7];
-  const descs = marketData[8];
+  // Extract market data from getMarket response
+  // PM returns: (yesSupply, noSupply, resolver, resolved, outcome, pot, payoutPerShare, desc)
+  // AMM returns: (yesSupply, noSupply, resolver, resolved, outcome, pot, payoutPerShare, desc, closeTs, canClose, rYes, rNo, pYes_num, pYes_den)
+  const yesSupply = marketData[0];
+  const noSupply = marketData[1];
+  const resolver = marketData[2];
+  const resolved = marketData[3];
+  const outcome = marketData[4];
+  const pot = marketData[5];
+  const payoutPerShare = marketData[6];
+  const description = marketData[7];
 
   // For AMM markets, get additional data
   let rYes: bigint | undefined;
   let rNo: bigint | undefined;
-  if (marketType === "amm" && marketData.length > 11) {
-    rYes = marketData[11]?.[0];
-    rNo = marketData[12]?.[0];
+  if (marketType === "amm" && marketData.length > 10) {
+    rYes = marketData[10];
+    rNo = marketData[11];
   }
 
   return (
@@ -84,15 +85,15 @@ export const MarketDetailPage: React.FC<MarketDetailPageProps> = ({ marketType, 
 
       <div className="max-w-2xl mx-auto">
         <MarketCard
-          marketId={marketIds[0]}
-          yesSupply={yesSupplies[0]}
-          noSupply={noSupplies[0]}
-          resolver={resolvers[0]}
-          resolved={resolved[0]}
-          outcome={outcome[0]}
-          pot={pot[0]}
-          payoutPerShare={payoutPerShare[0]}
-          description={descs[0]}
+          marketId={marketIdBigInt}
+          yesSupply={yesSupply}
+          noSupply={noSupply}
+          resolver={resolver}
+          resolved={resolved}
+          outcome={outcome}
+          pot={pot}
+          payoutPerShare={payoutPerShare}
+          description={description}
           userYesBalance={0n}
           userNoBalance={0n}
           userClaimable={0n}

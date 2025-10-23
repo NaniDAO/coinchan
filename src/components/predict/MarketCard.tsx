@@ -30,6 +30,8 @@ import {
   Check,
   Sparkles,
   Coins,
+  Share2,
+  Star,
 } from "lucide-react";
 import { formatImageURL } from "@/hooks/metadata";
 import {
@@ -106,6 +108,44 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   const [imageError, setImageError] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [initialPosition, setInitialPosition] = useState<"yes" | "no">("yes");
+
+  // Favorites management
+  const [isFavorite, setIsFavorite] = useState(() => {
+    const favorites = JSON.parse(localStorage.getItem("favoriteMarkets") || "[]");
+    return favorites.includes(marketId.toString());
+  });
+
+  const toggleFavorite = () => {
+    const favorites = JSON.parse(localStorage.getItem("favoriteMarkets") || "[]");
+    const marketIdStr = marketId.toString();
+    const newFavorites = isFavorite
+      ? favorites.filter((id: string) => id !== marketIdStr)
+      : [...favorites, marketIdStr];
+    localStorage.setItem("favoriteMarkets", JSON.stringify(newFavorites));
+    setIsFavorite(!isFavorite);
+    toast.success(isFavorite ? "Removed from favorites" : "Added to favorites");
+    // Notify MarketGallery to update favorites count
+    window.dispatchEvent(new CustomEvent("favoriteToggled"));
+  };
+
+  // Share functionality
+  const handleShare = async () => {
+    const url = `${window.location.origin}/predict/${marketType}/${marketId}`;
+    const text = `Check out this prediction market: ${metadata?.name || "Prediction Market"}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: metadata?.name || "Market", text, url });
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          console.error("Share failed:", err);
+        }
+      }
+    } else {
+      await navigator.clipboard.writeText(url);
+      toast.success("Link copied to clipboard!");
+    }
+  };
   const { address } = useAccount();
   const { data: currentBlockNumber } = useBlockNumber({ watch: true });
 
@@ -821,6 +861,70 @@ export const MarketCard: React.FC<MarketCardProps> = ({
               </Badge>
             </div>
           )}
+
+          {/* Quick Trade Buttons - Appears on Hover (only for active markets) */}
+          {!resolved && !isTradingDisabled && (
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-end p-4">
+              <div className="w-full grid grid-cols-2 gap-2">
+                <Button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setInitialPosition("yes");
+                    setIsModalOpen(true);
+                  }}
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-6 text-base shadow-lg hover:shadow-xl transition-all"
+                  size="lg"
+                >
+                  Buy YES
+                </Button>
+                <Button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setInitialPosition("no");
+                    setIsModalOpen(true);
+                  }}
+                  className="bg-rose-500 hover:bg-rose-600 text-white font-bold py-6 text-base shadow-lg hover:shadow-xl transition-all"
+                  size="lg"
+                >
+                  Buy NO
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Action Buttons - Share and Favorite */}
+          <div className="absolute bottom-3 right-3 flex gap-2">
+            <Button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleShare();
+              }}
+              variant="secondary"
+              size="sm"
+              className="h-8 w-8 p-0 bg-background/95 hover:bg-accent hover:text-accent-foreground border border-border/50 backdrop-blur-sm shadow-lg transition-all"
+            >
+              <Share2 className="h-4 w-4" />
+            </Button>
+            <Button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleFavorite();
+              }}
+              variant="secondary"
+              size="sm"
+              className={`h-8 w-8 p-0 backdrop-blur-sm shadow-lg transition-all ${
+                isFavorite
+                  ? "bg-amber-500 hover:bg-amber-600 text-white border border-amber-600/50"
+                  : "bg-background/95 hover:bg-accent hover:text-accent-foreground border border-border/50"
+              }`}
+            >
+              <Star className={`h-4 w-4 ${isFavorite ? "fill-current" : ""}`} />
+            </Button>
+          </div>
         </div>
 
         <div className="p-5 space-y-4">
@@ -1285,6 +1389,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                   {marketType === "amm" ? "Pool NO:" : "Total NO:"} {Number(formatEther(marketType === "amm" && rNo !== undefined ? rNo : noSupply)).toFixed(2)}
                 </span>
               </div>
+
             </div>
           )}
 

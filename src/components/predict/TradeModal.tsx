@@ -20,11 +20,32 @@ import { PercentageBlobs } from "@/components/ui/percentage-blobs";
 // wstETH contract address
 const WSTETH_ADDRESS = "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0" as const;
 
-// Minimal ABI for wstETH stEthPerToken function
+// wstETH ABI for approvals and balance checks
 const WSTETH_ABI = [
   {
     inputs: [],
     name: "stEthPerToken",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "owner", type: "address" }, { name: "spender", type: "address" }],
+    name: "allowance",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "spender", type: "address" }, { name: "amount", type: "uint256" }],
+    name: "approve",
+    outputs: [{ name: "", type: "bool" }],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "account", type: "address" }],
+    name: "balanceOf",
     outputs: [{ name: "", type: "uint256" }],
     stateMutability: "view",
     type: "function",
@@ -64,10 +85,33 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   const [slippageTolerance, setSlippageTolerance] = useState(10); // 10% default for AMM markets
   const [localError, setLocalError] = useState<string | null>(null);
   const [showSlippageSettings, setShowSlippageSettings] = useState(false);
+  const [useWstETH, setUseWstETH] = useState<boolean>(false); // Auto-set based on balance
 
   // Fetch user's ETH balance for percentage buttons
   const { data: ethBalance } = useBalance({
     address: address,
+  });
+
+  // Fetch user's wstETH balance
+  const { data: wstethBalance, refetch: refetchWstethBalance } = useReadContract({
+    address: WSTETH_ADDRESS,
+    abi: WSTETH_ABI,
+    functionName: "balanceOf",
+    args: address ? [address] : undefined,
+    query: {
+      enabled: !!address,
+    },
+  });
+
+  // Check wstETH allowance for the market contract
+  const { data: wstethAllowance, refetch: refetchAllowance } = useReadContract({
+    address: WSTETH_ADDRESS,
+    abi: WSTETH_ABI,
+    functionName: "allowance",
+    args: address ? [address, contractAddress as `0x${string}`] : undefined,
+    query: {
+      enabled: !!address,
+    },
   });
 
   const { writeContractAsync, data: hash, isPending, error: writeError, reset } = useWriteContract();
@@ -80,6 +124,32 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   }, [writeError]);
 
   const { isSuccess: txSuccess, isLoading: txLoading } = useWaitForTransactionReceipt({ hash });
+
+  // Auto-select wstETH payment if user has sufficient balance
+  React.useEffect(() => {
+    if (action === "buy" && amount && parseFloat(amount) > 0 && wstethBalance) {
+      const amountWei = parseEther(amount);
+      // For AMM: amount is shares to buy, need to check if wstethBalance > estimatedCost
+      // For Parimutuel: amount is ETH to spend directly
+      if (marketType === "amm") {
+        // For AMM, use quote data to determine if we have enough wstETH
+        setUseWstETH(false); // Will update below based on quote
+      } else {
+        // For parimutuel, amount is direct wstETH needed
+        setUseWstETH(wstethBalance >= amountWei);
+      }
+    } else {
+      setUseWstETH(false);
+    }
+  }, [action, amount, wstethBalance, marketType]);
+
+  // Refetch balances and allowances when transaction succeeds
+  React.useEffect(() => {
+    if (txSuccess) {
+      refetchWstethBalance();
+      refetchAllowance();
+    }
+  }, [txSuccess, refetchWstethBalance, refetchAllowance]);
 
   // Quote for AMM buy trades
   const sharesAmount = amount && parseFloat(amount) > 0 ? parseEther(amount) : 0n;
@@ -104,6 +174,16 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   const estimatedCost = quoteData ? quoteData[1] : 0n; // wstInFair or wstOutFair
   const oppIn = quoteData ? quoteData[0] : 0n; // oppIn or oppOut
 
+  // For AMM markets, update useWstETH based on whether user has enough wstETH for the quoted cost
+  React.useEffect(() => {
+    if (action === "buy" && marketType === "amm" && estimatedCost > 0n && wstethBalance) {
+      // Add slippage buffer to estimated cost for comparison
+      const slippageMultiplier = BigInt(Math.floor((1 + slippageTolerance / 100) * 10000));
+      const wstInMax = (estimatedCost * slippageMultiplier) / 10000n;
+      setUseWstETH(wstethBalance >= wstInMax);
+    }
+  }, [action, marketType, estimatedCost, wstethBalance, slippageTolerance]);
+
   // For AMM markets, fetch pool reserves to show live odds
   const { data: ammPoolData } = useReadContract({
     address: contractAddress as `0x${string}`,
@@ -118,6 +198,17 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   // Extract reserves: [poolId, rYes, rNo, tsLast, kLast, lpSupply]
   const rYes = ammPoolData ? ammPoolData[1] : 0n;
   const rNo = ammPoolData ? ammPoolData[2] : 0n;
+
+  // Fetch PMTuning to calculate intelligent buffer based on market conditions
+  const { data: pmTuningData } = useReadContract({
+    address: contractAddress as `0x${string}`,
+    abi: PredictionAMMAbi,
+    functionName: "pmTuning",
+    args: [marketId],
+    query: {
+      enabled: marketType === "amm",
+    },
+  });
 
   // Fetch wstETH to stETH (≈ ETH) conversion rate
   const { data: stEthPerToken } = useReadContract({
@@ -143,6 +234,39 @@ export const TradeModal: React.FC<TradeModalProps> = ({
     const wstethPrice = (stEthPerToken * BigInt(ethPrice.toString())) / parseEther("1");
     return Number(wstethPrice) / 1e8; // Convert to regular number with proper decimals
   }, [stEthPerToken, ethPriceData]);
+
+  // Calculate intelligent buffer based on on-chain market conditions
+  // Returns basis points (e.g., 2500 = 25% buffer)
+  const calculateIntelligentBuffer = React.useCallback((sharesAmount: bigint) => {
+    // Base buffer for pool movements, ETH/wstETH rate changes, and general safety
+    let bufferBps = 500; // 5% base safety margin
+
+    // Add PMTuning maximum possible adjustment from on-chain data
+    if (pmTuningData) {
+      const lateRampMaxBps = pmTuningData[1]; // uint16
+      const extremeMaxBps = pmTuningData[2];  // uint16
+      // Both adjustments can apply simultaneously, so add them
+      const maxTuningBps = Number(lateRampMaxBps) + Number(extremeMaxBps);
+      bufferBps += maxTuningBps;
+    } else {
+      // Conservative fallback: assume max tuning caps from contract (20% total)
+      // This ensures safety even if pmTuning read fails
+      bufferBps += 2000; // 20% max per PAMM.sol:268
+    }
+
+    // Add extra buffer for very small trades due to proportionally higher rounding impact
+    // The contract adds fixed +5 wei which matters more for micro amounts
+    if (sharesAmount > 0n && sharesAmount < parseEther("0.01")) {
+      bufferBps += 500; // +5% extra for trades < 0.01 ETH
+    }
+
+    // Minimum buffer: never go below 10% (1000 bps) for safety
+    if (bufferBps < 1000) {
+      bufferBps = 1000;
+    }
+
+    return bufferBps;
+  }, [pmTuningData]);
 
   React.useEffect(() => {
     if (txSuccess) {
@@ -189,6 +313,59 @@ export const TradeModal: React.FC<TradeModalProps> = ({
     }
   }, [address, isOpen, isPending, txLoading]);
 
+  // Handle wstETH approval
+  const handleApprove = async () => {
+    if (!address) {
+      toast.error("Please connect your wallet");
+      return;
+    }
+
+    try {
+      setLocalError(null);
+
+      // Approve max uint256 for better UX (one-time approval)
+      const maxUint256 = BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+
+      await writeContractAsync({
+        address: WSTETH_ADDRESS,
+        abi: WSTETH_ABI,
+        functionName: "approve",
+        args: [contractAddress as `0x${string}`, maxUint256],
+      });
+
+      toast.success("Approval submitted! Waiting for confirmation...");
+    } catch (err: any) {
+      if (isUserRejectionError(err)) {
+        setLocalError(null);
+        return;
+      }
+
+      console.error("Approval error:", err);
+      const errorMessage = err?.shortMessage ?? err?.message ?? err?.reason ?? String(err);
+      setLocalError(errorMessage || "Approval failed");
+      toast.error(errorMessage || "Approval failed");
+    }
+  };
+
+  // Check if approval is needed for wstETH trades
+  const needsApproval = React.useMemo(() => {
+    if (!useWstETH || !address || action !== "buy") return false;
+
+    if (!amount || parseFloat(amount) <= 0) return false;
+
+    const amountWei = parseEther(amount);
+
+    // For AMM, check against estimated cost + slippage
+    if (marketType === "amm" && estimatedCost > 0n) {
+      const slippageMultiplier = BigInt(Math.floor((1 + slippageTolerance / 100) * 10000));
+      const wstInMax = (estimatedCost * slippageMultiplier) / 10000n;
+      return !wstethAllowance || wstethAllowance < wstInMax;
+    }
+
+    // For parimutuel, check against amount
+    return !wstethAllowance || wstethAllowance < amountWei;
+  }, [useWstETH, address, action, amount, marketType, estimatedCost, wstethAllowance, slippageTolerance]);
+
   const handleTrade = async () => {
     // Check wallet connection first
     if (!address) {
@@ -210,40 +387,65 @@ export const TradeModal: React.FC<TradeModalProps> = ({
       if (marketType === "amm") {
         // AMM market trading
         if (action === "buy") {
-          // For AMM buy: amount is shares to buy, we pay with ETH
           const slippageMultiplier = BigInt(Math.floor((1 + slippageTolerance / 100) * 10000));
           const wstInMax = (estimatedCost * slippageMultiplier) / 10000n;
           const oppInMax = (oppIn * slippageMultiplier) / 10000n;
 
-          // Calculate ETH needed: wstETH / stEthPerToken * 1e18 gives ≈ ETH needed
-          // CRITICAL: Contract calculates wstIn on-chain at execution time (not bounded by wstInMax when inIsETH=true)
-          // Need large buffer because wstIn can increase if: pool moves, tuning changes, rounding differences
-          // Small purchases need even more buffer due to proportionally larger rounding errors
-          // 40% buffer = slippage protection (10%) + state changes + tuning + rounding for small amounts
-          let ethValue: bigint;
-          if (stEthPerToken) {
-            // Use actual exchange rate: (wstInMax / stEthPerToken * 1e18) * 1.40
-            ethValue = (wstInMax * parseEther("1") * 140n) / (stEthPerToken * 100n);
-          } else {
-            // Fallback: use 1.2 ratio with 40% buffer = 1.68x total
-            ethValue = (wstInMax * 168n) / 100n;
-          }
-
           const functionName = position === "yes" ? "buyYesViaPool" : "buyNoViaPool";
-          await writeContractAsync({
-            address: contractAddress as `0x${string}`,
-            abi: PredictionAMMAbi,
-            functionName,
-            args: [
-              marketId,
-              amountWei, // yesOut or noOut (shares to buy)
-              true, // inIsETH
-              wstInMax, // wstInMax (slippage protection)
-              oppInMax, // oppInMax (slippage protection)
-              address, // to
-            ],
-            value: ethValue,
-          });
+
+          if (useWstETH) {
+            // Pay with wstETH directly (inIsETH=false)
+            // User already has wstETH and allowance is sufficient
+            await writeContractAsync({
+              address: contractAddress as `0x${string}`,
+              abi: PredictionAMMAbi,
+              functionName,
+              args: [
+                marketId,
+                amountWei, // yesOut or noOut (shares to buy)
+                false, // inIsETH = false (use wstETH directly)
+                wstInMax, // wstInMax (slippage protection)
+                oppInMax, // oppInMax (slippage protection)
+                address, // to
+              ],
+            });
+          } else {
+            // Pay with ETH (inIsETH=true)
+            // Calculate intelligent ETH buffer based on on-chain market conditions
+            // CRITICAL: Contract calculates wstIn on-chain at execution time (not bounded by wstInMax when inIsETH=true)
+            // Buffer accounts for:
+            // - PMTuning adjustments (read from on-chain, can be 0-20%)
+            // - Pool state changes between quote and execution
+            // - ETH/wstETH conversion rate fluctuations
+            // - Proportionally larger rounding errors for small trades
+            // This intelligent approach minimizes excess refunds while ensuring txs never fail
+            const bufferBps = calculateIntelligentBuffer(amountWei);
+            const bufferMultiplier = BigInt(10000 + bufferBps); // e.g., 12500 = 1.25x
+
+            let ethValue: bigint;
+            if (stEthPerToken) {
+              // Use actual exchange rate with intelligent buffer: (wstInMax / stEthPerToken * 1e18) * buffer
+              ethValue = (wstInMax * parseEther("1") * bufferMultiplier) / (stEthPerToken * 10000n);
+            } else {
+              // Fallback: use 1.2 ratio with intelligent buffer
+              ethValue = (wstInMax * 12n * bufferMultiplier) / 100000n;
+            }
+
+            await writeContractAsync({
+              address: contractAddress as `0x${string}`,
+              abi: PredictionAMMAbi,
+              functionName,
+              args: [
+                marketId,
+                amountWei, // yesOut or noOut (shares to buy)
+                true, // inIsETH = true
+                wstInMax, // wstInMax (slippage protection)
+                oppInMax, // oppInMax (slippage protection)
+                address, // to
+              ],
+              value: ethValue,
+            });
+          }
         } else {
           // For AMM sell: amount is shares to sell
           const slippageMultiplier = BigInt(Math.floor((1 - slippageTolerance / 100) * 10000));
@@ -434,21 +636,39 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                   className="h-14 text-lg font-mono rounded-lg"
                 />
 
-                {/* Percentage Buttons for ETH Buys (Parimutuel or AMM with ETH) */}
-                {ethBalance && (
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs text-muted-foreground">
-                      Balance: {Number(formatEther(ethBalance.value)).toFixed(4)} ETH
-                    </p>
-                    <PercentageBlobs
-                      value={0}
-                      onChange={handlePercentageChange}
-                      variant="inline"
-                      size="sm"
-                      steps={[25, 50, 100]}
-                    />
-                  </div>
-                )}
+                {/* Balance and Payment Method Info */}
+                <div className="space-y-2">
+                  {/* ETH Balance */}
+                  {ethBalance && !useWstETH && (
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs text-muted-foreground">
+                        ETH Balance: {Number(formatEther(ethBalance.value)).toFixed(4)} ETH
+                      </p>
+                      <PercentageBlobs
+                        value={0}
+                        onChange={handlePercentageChange}
+                        variant="inline"
+                        size="sm"
+                        steps={[25, 50, 100]}
+                      />
+                    </div>
+                  )}
+
+                  {/* wstETH Balance and Payment Method */}
+                  {wstethBalance !== undefined && wstethBalance > 0n && (
+                    <div className="flex items-center justify-between gap-2 text-xs">
+                      <p className="text-muted-foreground">
+                        wstETH Balance: {Number(formatEther(wstethBalance)).toFixed(4)} wstETH
+                      </p>
+                      {useWstETH && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium">
+                          <BadgeCheck className="h-3 w-3" />
+                          Paying with wstETH
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Potential Winnings Display */}
@@ -556,45 +776,75 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                 }
               })()}
 
-              {marketType === "amm" && estimatedCost > 0n && (() => {
+              {marketType === "amm" && estimatedCost > 0n && amount && parseFloat(amount) > 0 && (() => {
+                const amountWei = parseEther(amount);
                 const slippageMultiplier = BigInt(Math.floor((1 + slippageTolerance / 100) * 10000));
                 const wstInMax = (estimatedCost * slippageMultiplier) / 10000n;
 
-                // Calculate ETH to send using the same logic as handleTrade
-                let ethToSend: bigint;
-                if (stEthPerToken) {
-                  ethToSend = (wstInMax * parseEther("1") * 140n) / (stEthPerToken * 100n);
+                if (useWstETH) {
+                  // Paying with wstETH directly - simpler display
+                  return (
+                    <div className="bg-card border border-border rounded-lg p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-muted-foreground">Estimated Cost</span>
+                        <span className="font-mono font-bold text-base">
+                          {Number(formatEther(estimatedCost)).toFixed(6)} wstETH
+                        </span>
+                      </div>
+                      <div className="border-t border-border pt-2 space-y-1.5 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Max Cost (with slippage)</span>
+                          <span className="font-mono font-semibold">
+                            {Number(formatEther(wstInMax)).toFixed(6)} wstETH
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground italic pt-1 border-t border-border/50">
+                        Paying with wstETH directly. Any excess is refunded.
+                      </p>
+                    </div>
+                  );
                 } else {
-                  ethToSend = (wstInMax * 168n) / 100n;
-                }
+                  // Paying with ETH - show buffer calculation
+                  const bufferBps = calculateIntelligentBuffer(amountWei);
+                  const bufferMultiplier = BigInt(10000 + bufferBps);
+                  const bufferPercent = (bufferBps / 100).toFixed(1); // e.g., "25.0"
 
-                return (
-                  <div className="bg-card border border-border rounded-lg p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-muted-foreground">Estimated Cost</span>
-                      <span className="font-mono font-bold text-base">
-                        {Number(formatEther(estimatedCost)).toFixed(6)} wstETH
-                      </span>
-                    </div>
-                    <div className="border-t border-border pt-2 space-y-1.5 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Max Cost (with slippage)</span>
-                        <span className="font-mono text-xs">
-                          {Number(formatEther(wstInMax)).toFixed(6)} wstETH
+                  let ethToSend: bigint;
+                  if (stEthPerToken) {
+                    ethToSend = (wstInMax * parseEther("1") * bufferMultiplier) / (stEthPerToken * 10000n);
+                  } else {
+                    ethToSend = (wstInMax * 12n * bufferMultiplier) / 100000n;
+                  }
+
+                  return (
+                    <div className="bg-card border border-border rounded-lg p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-muted-foreground">Estimated Cost</span>
+                        <span className="font-mono font-bold text-base">
+                          {Number(formatEther(estimatedCost)).toFixed(6)} wstETH
                         </span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">ETH to send</span>
-                        <span className="font-mono font-semibold">
-                          {Number(formatEther(ethToSend)).toFixed(6)} ETH
-                        </span>
+                      <div className="border-t border-border pt-2 space-y-1.5 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Max Cost (with slippage)</span>
+                          <span className="font-mono text-xs">
+                            {Number(formatEther(wstInMax)).toFixed(6)} wstETH
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">ETH to send</span>
+                          <span className="font-mono font-semibold">
+                            {Number(formatEther(ethToSend)).toFixed(6)} ETH
+                          </span>
+                        </div>
                       </div>
+                      <p className="text-xs text-muted-foreground italic pt-1 border-t border-border/50">
+                        Extra ETH is refunded as wstETH. Includes {bufferPercent}% intelligent buffer based on market conditions.
+                      </p>
                     </div>
-                    <p className="text-xs text-muted-foreground italic pt-1 border-t border-border/50">
-                      Extra ETH is refunded as wstETH. Includes 40% buffer for on-chain pricing & small amount rounding.
-                    </p>
-                  </div>
-                );
+                  );
+                }
               })()}
 
               {/* Slippage Settings - Collapsible & Subtle */}
@@ -767,31 +1017,53 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 
           {/* Action Buttons - Modern Design */}
           <div className="flex gap-3 pt-4 border-t border-border/50">
-            <Button
-              onClick={handleTrade}
-              disabled={isPending || txLoading || !address}
-              className={`flex-1 h-14 font-bold text-base shadow-md hover:shadow-lg transition-all ${
-                action === "buy"
-                  ? position === "yes"
-                    ? "bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white"
-                    : "bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white"
-                  : position === "yes"
-                    ? "bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white"
-                    : "bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white"
-              }`}
-            >
-              {isPending || txLoading
-                ? "Processing…"
-                : `${action === "buy" ? "Buy" : "Sell"} ${position.toUpperCase()}`}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={onClose}
-              disabled={isPending || txLoading}
-              className="h-14 px-8 border-2 hover:bg-muted/50"
-            >
-              Cancel
-            </Button>
+            {needsApproval ? (
+              <>
+                <Button
+                  onClick={handleApprove}
+                  disabled={isPending || txLoading || !address}
+                  className="flex-1 h-14 font-bold text-base shadow-md hover:shadow-lg transition-all bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                >
+                  {isPending || txLoading ? "Approving…" : "Approve wstETH"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={onClose}
+                  disabled={isPending || txLoading}
+                  className="h-14 px-8 border-2 hover:bg-muted/50"
+                >
+                  Cancel
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  onClick={handleTrade}
+                  disabled={isPending || txLoading || !address}
+                  className={`flex-1 h-14 font-bold text-base shadow-md hover:shadow-lg transition-all ${
+                    action === "buy"
+                      ? position === "yes"
+                        ? "bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white"
+                        : "bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white"
+                      : position === "yes"
+                        ? "bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white"
+                        : "bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white"
+                  }`}
+                >
+                  {isPending || txLoading
+                    ? "Processing…"
+                    : `${action === "buy" ? "Buy" : "Sell"} ${position.toUpperCase()}`}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={onClose}
+                  disabled={isPending || txLoading}
+                  className="h-14 px-8 border-2 hover:bg-muted/50"
+                >
+                  Cancel
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </DialogContent>

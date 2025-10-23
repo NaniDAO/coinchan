@@ -14,7 +14,7 @@ interface MarketGalleryProps {
   refreshKey?: number;
 }
 
-type MarketFilter = "all" | "contract" | "curated" | "community" | "closed" | "resolved" | "positions";
+type MarketFilter = "all" | "contract" | "curated" | "community" | "closed" | "resolved" | "positions" | "favorites";
 type SortOption = "newest" | "pot" | "activity" | "closing";
 
 export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
@@ -23,10 +23,20 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const [favoritesVersion, setFavoritesVersion] = useState(0); // Force re-render when favorites change
   // Fetch 100 markets per contract (200 total). Balance between completeness and performance.
   // TODO: Implement pagination or infinite scroll when market count grows significantly
   const count = 100;
   const { address } = useAccount();
+
+  // Listen for favorite toggle events
+  useEffect(() => {
+    const handleFavoriteToggle = () => {
+      setFavoritesVersion((v) => v + 1);
+    };
+    window.addEventListener("favoriteToggled", handleFavoriteToggle);
+    return () => window.removeEventListener("favoriteToggled", handleFavoriteToggle);
+  }, []);
 
   // Debounce search input for better performance
   useEffect(() => {
@@ -36,7 +46,7 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Fetch Pari-Mutuel markets
+  // Fetch Pari-Mutuel markets with real-time updates
   const {
     data: marketsData,
     isLoading: isLoadingPM,
@@ -46,9 +56,12 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
     abi: PredictionMarketAbi,
     functionName: "getMarkets",
     args: [BigInt(start), BigInt(count)],
+    query: {
+      refetchInterval: 15000, // Poll every 15 seconds for real-time updates
+    },
   });
 
-  // Fetch AMM markets
+  // Fetch AMM markets with real-time updates
   const {
     data: ammMarketsData,
     isLoading: isLoadingAMM,
@@ -58,6 +71,9 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
     abi: PredictionAMMAbi,
     functionName: "getMarkets",
     args: [BigInt(start), BigInt(count)],
+    query: {
+      refetchInterval: 15000, // Poll every 15 seconds for real-time updates
+    },
   });
 
   // Get user positions for Pari-Mutuel if connected
@@ -312,6 +328,16 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
   const resolvedCount = nonDustMarkets.filter((m) => m.resolved).length;
   const positionsCount = nonDustMarkets.filter((m) => m.userYesBalance > 0n || m.userNoBalance > 0n).length;
 
+  // Get favorites from localStorage
+  const favorites = useMemo(() => {
+    try {
+      return new Set(JSON.parse(localStorage.getItem("favoriteMarkets") || "[]"));
+    } catch {
+      return new Set();
+    }
+  }, [favoritesVersion]); // Re-read when favorites change
+  const favoritesCount = nonDustMarkets.filter((m) => favorites.has(m.marketId.toString())).length;
+
   // Filter markets based on selected filter and search query (memoized for performance)
   const filteredMarkets = useMemo(() => {
     let markets = nonDustMarkets.filter((market) => {
@@ -335,6 +361,9 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
       }
       if (filter === "positions") {
         return market.userYesBalance > 0n || market.userNoBalance > 0n;
+      }
+      if (filter === "favorites") {
+        return favorites.has(market.marketId.toString());
       }
       return true;
     });
@@ -373,7 +402,7 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
     });
 
     return sorted;
-  }, [nonDustMarkets, filter, debouncedSearchQuery, sortBy]);
+  }, [nonDustMarkets, filter, debouncedSearchQuery, sortBy, favorites]);
 
   // Calculate total markets count (before exclusions, just PM + AMM)
   const totalPMMarkets = hasPMMarkets ? marketsData![0].length : 0;
@@ -509,6 +538,12 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
       <Tabs value={filter} onValueChange={(v) => setFilter(v as MarketFilter)}>
         <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
           <TabsList className="inline-flex w-auto min-w-full">
+            {favoritesCount > 0 && (
+              <TabsTrigger value="favorites" className="whitespace-nowrap">
+                <span className="hidden sm:inline">Favorites ({favoritesCount})</span>
+                <span className="sm:hidden">Favorites</span>
+              </TabsTrigger>
+            )}
             {curatedCount > 0 && (
               <TabsTrigger value="curated" className="whitespace-nowrap">
                 <span className="hidden sm:inline">Curated ({curatedCount})</span>
