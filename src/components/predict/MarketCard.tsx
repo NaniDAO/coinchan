@@ -3,7 +3,6 @@ import { formatEther } from "viem";
 import {
   useEnsName,
   useReadContract,
-  useBytecode,
   useWriteContract,
   useWaitForTransactionReceipt,
   useAccount,
@@ -116,13 +115,6 @@ export const MarketCard: React.FC<MarketCardProps> = ({
     chainId: mainnet.id,
   });
 
-  // Check if resolver is a contract (oracle)
-  const { data: bytecode } = useBytecode({
-    address: resolver as `0x${string}`,
-    chainId: mainnet.id,
-  });
-
-  const isOracle = bytecode && bytecode !== "0x";
   const isTrusted = isTrustedResolver(resolver);
   const isPerpetualOracle = isPerpetualOracleResolver(resolver);
   const trustedResolverInfo = getTrustedResolver(resolver);

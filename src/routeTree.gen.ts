@@ -8,585 +8,586 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from "./routes/__root";
-import { Route as WlfiRouteImport } from "./routes/wlfi";
-import { Route as UserRouteImport } from "./routes/user";
-import { Route as SwapRouteImport } from "./routes/swap";
-import { Route as StakeRouteImport } from "./routes/stake";
-import { Route as SendRouteImport } from "./routes/send";
-import { Route as RaiseRouteImport } from "./routes/raise";
-import { Route as PredictRouteImport } from "./routes/predict";
-import { Route as PositionsRouteImport } from "./routes/positions";
-import { Route as PmRouteImport } from "./routes/pm";
-import { Route as LimitRouteImport } from "./routes/limit";
-import { Route as IcoRouteImport } from "./routes/ico";
-import { Route as FarmRouteImport } from "./routes/farm";
-import { Route as ExploreRouteImport } from "./routes/explore";
-import { Route as EnsRouteImport } from "./routes/ens";
-import { Route as CultRouteImport } from "./routes/cult";
-import { Route as CreateRouteImport } from "./routes/create";
-import { Route as AboutRouteImport } from "./routes/about";
-import { Route as IndexRouteImport } from "./routes/index";
-import { Route as PositionsIndexRouteImport } from "./routes/positions/index";
-import { Route as FarmIndexRouteImport } from "./routes/farm/index";
-import { Route as PositionsCreateRouteImport } from "./routes/positions/create";
-import { Route as FarmCreateRouteImport } from "./routes/farm/create";
-import { Route as ExploreTokensRouteImport } from "./routes/explore/tokens";
-import { Route as ExploreTokenRouteImport } from "./routes/explore/token";
-import { Route as ExplorePoolsRouteImport } from "./routes/explore/pools";
-import { Route as ExploreOrdersRouteImport } from "./routes/explore/orders";
-import { Route as CCoinIdRouteImport } from "./routes/c.$coinId";
-import { Route as PredictMarketTypeMarketIdRouteImport } from "./routes/predict.$marketType.$marketId";
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as WlfiRouteImport } from './routes/wlfi'
+import { Route as UserRouteImport } from './routes/user'
+import { Route as SwapRouteImport } from './routes/swap'
+import { Route as StakeRouteImport } from './routes/stake'
+import { Route as SendRouteImport } from './routes/send'
+import { Route as RaiseRouteImport } from './routes/raise'
+import { Route as PredictRouteImport } from './routes/predict'
+import { Route as PositionsRouteImport } from './routes/positions'
+import { Route as PmRouteImport } from './routes/pm'
+import { Route as LimitRouteImport } from './routes/limit'
+import { Route as IcoRouteImport } from './routes/ico'
+import { Route as FarmRouteImport } from './routes/farm'
+import { Route as ExploreRouteImport } from './routes/explore'
+import { Route as EnsRouteImport } from './routes/ens'
+import { Route as CultRouteImport } from './routes/cult'
+import { Route as CreateRouteImport } from './routes/create'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as PositionsIndexRouteImport } from './routes/positions/index'
+import { Route as FarmIndexRouteImport } from './routes/farm/index'
+import { Route as PositionsCreateRouteImport } from './routes/positions/create'
+import { Route as FarmCreateRouteImport } from './routes/farm/create'
+import { Route as ExploreTokensRouteImport } from './routes/explore/tokens'
+import { Route as ExploreTokenRouteImport } from './routes/explore/token'
+import { Route as ExplorePoolsRouteImport } from './routes/explore/pools'
+import { Route as ExploreOrdersRouteImport } from './routes/explore/orders'
+import { Route as CCoinIdRouteImport } from './routes/c.$coinId'
+import { Route as PredictMarketTypeMarketIdRouteImport } from './routes/predict.$marketType.$marketId'
 
 const WlfiRoute = WlfiRouteImport.update({
-  id: "/wlfi",
-  path: "/wlfi",
+  id: '/wlfi',
+  path: '/wlfi',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const UserRoute = UserRouteImport.update({
-  id: "/user",
-  path: "/user",
+  id: '/user',
+  path: '/user',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const SwapRoute = SwapRouteImport.update({
-  id: "/swap",
-  path: "/swap",
+  id: '/swap',
+  path: '/swap',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const StakeRoute = StakeRouteImport.update({
-  id: "/stake",
-  path: "/stake",
+  id: '/stake',
+  path: '/stake',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const SendRoute = SendRouteImport.update({
-  id: "/send",
-  path: "/send",
+  id: '/send',
+  path: '/send',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const RaiseRoute = RaiseRouteImport.update({
-  id: "/raise",
-  path: "/raise",
+  id: '/raise',
+  path: '/raise',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const PredictRoute = PredictRouteImport.update({
-  id: "/predict",
-  path: "/predict",
+  id: '/predict',
+  path: '/predict',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const PositionsRoute = PositionsRouteImport.update({
-  id: "/positions",
-  path: "/positions",
+  id: '/positions',
+  path: '/positions',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const PmRoute = PmRouteImport.update({
-  id: "/pm",
-  path: "/pm",
+  id: '/pm',
+  path: '/pm',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const LimitRoute = LimitRouteImport.update({
-  id: "/limit",
-  path: "/limit",
+  id: '/limit',
+  path: '/limit',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const IcoRoute = IcoRouteImport.update({
-  id: "/ico",
-  path: "/ico",
+  id: '/ico',
+  path: '/ico',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const FarmRoute = FarmRouteImport.update({
-  id: "/farm",
-  path: "/farm",
+  id: '/farm',
+  path: '/farm',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const ExploreRoute = ExploreRouteImport.update({
-  id: "/explore",
-  path: "/explore",
+  id: '/explore',
+  path: '/explore',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const EnsRoute = EnsRouteImport.update({
-  id: "/ens",
-  path: "/ens",
+  id: '/ens',
+  path: '/ens',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const CultRoute = CultRouteImport.update({
-  id: "/cult",
-  path: "/cult",
+  id: '/cult',
+  path: '/cult',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const CreateRoute = CreateRouteImport.update({
-  id: "/create",
-  path: "/create",
+  id: '/create',
+  path: '/create',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const AboutRoute = AboutRouteImport.update({
-  id: "/about",
-  path: "/about",
+  id: '/about',
+  path: '/about',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const IndexRoute = IndexRouteImport.update({
-  id: "/",
-  path: "/",
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const PositionsIndexRoute = PositionsIndexRouteImport.update({
-  id: "/",
-  path: "/",
+  id: '/',
+  path: '/',
   getParentRoute: () => PositionsRoute,
-} as any);
+} as any)
 const FarmIndexRoute = FarmIndexRouteImport.update({
-  id: "/",
-  path: "/",
+  id: '/',
+  path: '/',
   getParentRoute: () => FarmRoute,
-} as any);
+} as any)
 const PositionsCreateRoute = PositionsCreateRouteImport.update({
-  id: "/create",
-  path: "/create",
+  id: '/create',
+  path: '/create',
   getParentRoute: () => PositionsRoute,
-} as any);
+} as any)
 const FarmCreateRoute = FarmCreateRouteImport.update({
-  id: "/create",
-  path: "/create",
+  id: '/create',
+  path: '/create',
   getParentRoute: () => FarmRoute,
-} as any);
+} as any)
 const ExploreTokensRoute = ExploreTokensRouteImport.update({
-  id: "/tokens",
-  path: "/tokens",
+  id: '/tokens',
+  path: '/tokens',
   getParentRoute: () => ExploreRoute,
-} as any);
+} as any)
 const ExploreTokenRoute = ExploreTokenRouteImport.update({
-  id: "/token",
-  path: "/token",
+  id: '/token',
+  path: '/token',
   getParentRoute: () => ExploreRoute,
-} as any);
+} as any)
 const ExplorePoolsRoute = ExplorePoolsRouteImport.update({
-  id: "/pools",
-  path: "/pools",
+  id: '/pools',
+  path: '/pools',
   getParentRoute: () => ExploreRoute,
-} as any);
+} as any)
 const ExploreOrdersRoute = ExploreOrdersRouteImport.update({
-  id: "/orders",
-  path: "/orders",
+  id: '/orders',
+  path: '/orders',
   getParentRoute: () => ExploreRoute,
-} as any);
+} as any)
 const CCoinIdRoute = CCoinIdRouteImport.update({
-  id: "/c/$coinId",
-  path: "/c/$coinId",
+  id: '/c/$coinId',
+  path: '/c/$coinId',
   getParentRoute: () => rootRouteImport,
-} as any);
-const PredictMarketTypeMarketIdRoute = PredictMarketTypeMarketIdRouteImport.update({
-  id: "/$marketType/$marketId",
-  path: "/$marketType/$marketId",
-  getParentRoute: () => PredictRoute,
-} as any);
+} as any)
+const PredictMarketTypeMarketIdRoute =
+  PredictMarketTypeMarketIdRouteImport.update({
+    id: '/$marketType/$marketId',
+    path: '/$marketType/$marketId',
+    getParentRoute: () => PredictRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  "/": typeof IndexRoute;
-  "/about": typeof AboutRoute;
-  "/create": typeof CreateRoute;
-  "/cult": typeof CultRoute;
-  "/ens": typeof EnsRoute;
-  "/explore": typeof ExploreRouteWithChildren;
-  "/farm": typeof FarmRouteWithChildren;
-  "/ico": typeof IcoRoute;
-  "/limit": typeof LimitRoute;
-  "/pm": typeof PmRoute;
-  "/positions": typeof PositionsRouteWithChildren;
-  "/predict": typeof PredictRouteWithChildren;
-  "/raise": typeof RaiseRoute;
-  "/send": typeof SendRoute;
-  "/stake": typeof StakeRoute;
-  "/swap": typeof SwapRoute;
-  "/user": typeof UserRoute;
-  "/wlfi": typeof WlfiRoute;
-  "/c/$coinId": typeof CCoinIdRoute;
-  "/explore/orders": typeof ExploreOrdersRoute;
-  "/explore/pools": typeof ExplorePoolsRoute;
-  "/explore/token": typeof ExploreTokenRoute;
-  "/explore/tokens": typeof ExploreTokensRoute;
-  "/farm/create": typeof FarmCreateRoute;
-  "/positions/create": typeof PositionsCreateRoute;
-  "/farm/": typeof FarmIndexRoute;
-  "/positions/": typeof PositionsIndexRoute;
-  "/predict/$marketType/$marketId": typeof PredictMarketTypeMarketIdRoute;
+  '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/create': typeof CreateRoute
+  '/cult': typeof CultRoute
+  '/ens': typeof EnsRoute
+  '/explore': typeof ExploreRouteWithChildren
+  '/farm': typeof FarmRouteWithChildren
+  '/ico': typeof IcoRoute
+  '/limit': typeof LimitRoute
+  '/pm': typeof PmRoute
+  '/positions': typeof PositionsRouteWithChildren
+  '/predict': typeof PredictRouteWithChildren
+  '/raise': typeof RaiseRoute
+  '/send': typeof SendRoute
+  '/stake': typeof StakeRoute
+  '/swap': typeof SwapRoute
+  '/user': typeof UserRoute
+  '/wlfi': typeof WlfiRoute
+  '/c/$coinId': typeof CCoinIdRoute
+  '/explore/orders': typeof ExploreOrdersRoute
+  '/explore/pools': typeof ExplorePoolsRoute
+  '/explore/token': typeof ExploreTokenRoute
+  '/explore/tokens': typeof ExploreTokensRoute
+  '/farm/create': typeof FarmCreateRoute
+  '/positions/create': typeof PositionsCreateRoute
+  '/farm/': typeof FarmIndexRoute
+  '/positions/': typeof PositionsIndexRoute
+  '/predict/$marketType/$marketId': typeof PredictMarketTypeMarketIdRoute
 }
 export interface FileRoutesByTo {
-  "/": typeof IndexRoute;
-  "/about": typeof AboutRoute;
-  "/create": typeof CreateRoute;
-  "/cult": typeof CultRoute;
-  "/ens": typeof EnsRoute;
-  "/explore": typeof ExploreRouteWithChildren;
-  "/ico": typeof IcoRoute;
-  "/limit": typeof LimitRoute;
-  "/pm": typeof PmRoute;
-  "/predict": typeof PredictRouteWithChildren;
-  "/raise": typeof RaiseRoute;
-  "/send": typeof SendRoute;
-  "/stake": typeof StakeRoute;
-  "/swap": typeof SwapRoute;
-  "/user": typeof UserRoute;
-  "/wlfi": typeof WlfiRoute;
-  "/c/$coinId": typeof CCoinIdRoute;
-  "/explore/orders": typeof ExploreOrdersRoute;
-  "/explore/pools": typeof ExplorePoolsRoute;
-  "/explore/token": typeof ExploreTokenRoute;
-  "/explore/tokens": typeof ExploreTokensRoute;
-  "/farm/create": typeof FarmCreateRoute;
-  "/positions/create": typeof PositionsCreateRoute;
-  "/farm": typeof FarmIndexRoute;
-  "/positions": typeof PositionsIndexRoute;
-  "/predict/$marketType/$marketId": typeof PredictMarketTypeMarketIdRoute;
+  '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/create': typeof CreateRoute
+  '/cult': typeof CultRoute
+  '/ens': typeof EnsRoute
+  '/explore': typeof ExploreRouteWithChildren
+  '/ico': typeof IcoRoute
+  '/limit': typeof LimitRoute
+  '/pm': typeof PmRoute
+  '/predict': typeof PredictRouteWithChildren
+  '/raise': typeof RaiseRoute
+  '/send': typeof SendRoute
+  '/stake': typeof StakeRoute
+  '/swap': typeof SwapRoute
+  '/user': typeof UserRoute
+  '/wlfi': typeof WlfiRoute
+  '/c/$coinId': typeof CCoinIdRoute
+  '/explore/orders': typeof ExploreOrdersRoute
+  '/explore/pools': typeof ExplorePoolsRoute
+  '/explore/token': typeof ExploreTokenRoute
+  '/explore/tokens': typeof ExploreTokensRoute
+  '/farm/create': typeof FarmCreateRoute
+  '/positions/create': typeof PositionsCreateRoute
+  '/farm': typeof FarmIndexRoute
+  '/positions': typeof PositionsIndexRoute
+  '/predict/$marketType/$marketId': typeof PredictMarketTypeMarketIdRoute
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport;
-  "/": typeof IndexRoute;
-  "/about": typeof AboutRoute;
-  "/create": typeof CreateRoute;
-  "/cult": typeof CultRoute;
-  "/ens": typeof EnsRoute;
-  "/explore": typeof ExploreRouteWithChildren;
-  "/farm": typeof FarmRouteWithChildren;
-  "/ico": typeof IcoRoute;
-  "/limit": typeof LimitRoute;
-  "/pm": typeof PmRoute;
-  "/positions": typeof PositionsRouteWithChildren;
-  "/predict": typeof PredictRouteWithChildren;
-  "/raise": typeof RaiseRoute;
-  "/send": typeof SendRoute;
-  "/stake": typeof StakeRoute;
-  "/swap": typeof SwapRoute;
-  "/user": typeof UserRoute;
-  "/wlfi": typeof WlfiRoute;
-  "/c/$coinId": typeof CCoinIdRoute;
-  "/explore/orders": typeof ExploreOrdersRoute;
-  "/explore/pools": typeof ExplorePoolsRoute;
-  "/explore/token": typeof ExploreTokenRoute;
-  "/explore/tokens": typeof ExploreTokensRoute;
-  "/farm/create": typeof FarmCreateRoute;
-  "/positions/create": typeof PositionsCreateRoute;
-  "/farm/": typeof FarmIndexRoute;
-  "/positions/": typeof PositionsIndexRoute;
-  "/predict/$marketType/$marketId": typeof PredictMarketTypeMarketIdRoute;
+  __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/create': typeof CreateRoute
+  '/cult': typeof CultRoute
+  '/ens': typeof EnsRoute
+  '/explore': typeof ExploreRouteWithChildren
+  '/farm': typeof FarmRouteWithChildren
+  '/ico': typeof IcoRoute
+  '/limit': typeof LimitRoute
+  '/pm': typeof PmRoute
+  '/positions': typeof PositionsRouteWithChildren
+  '/predict': typeof PredictRouteWithChildren
+  '/raise': typeof RaiseRoute
+  '/send': typeof SendRoute
+  '/stake': typeof StakeRoute
+  '/swap': typeof SwapRoute
+  '/user': typeof UserRoute
+  '/wlfi': typeof WlfiRoute
+  '/c/$coinId': typeof CCoinIdRoute
+  '/explore/orders': typeof ExploreOrdersRoute
+  '/explore/pools': typeof ExplorePoolsRoute
+  '/explore/token': typeof ExploreTokenRoute
+  '/explore/tokens': typeof ExploreTokensRoute
+  '/farm/create': typeof FarmCreateRoute
+  '/positions/create': typeof PositionsCreateRoute
+  '/farm/': typeof FarmIndexRoute
+  '/positions/': typeof PositionsIndexRoute
+  '/predict/$marketType/$marketId': typeof PredictMarketTypeMarketIdRoute
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath;
+  fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | "/"
-    | "/about"
-    | "/create"
-    | "/cult"
-    | "/ens"
-    | "/explore"
-    | "/farm"
-    | "/ico"
-    | "/limit"
-    | "/pm"
-    | "/positions"
-    | "/predict"
-    | "/raise"
-    | "/send"
-    | "/stake"
-    | "/swap"
-    | "/user"
-    | "/wlfi"
-    | "/c/$coinId"
-    | "/explore/orders"
-    | "/explore/pools"
-    | "/explore/token"
-    | "/explore/tokens"
-    | "/farm/create"
-    | "/positions/create"
-    | "/farm/"
-    | "/positions/"
-    | "/predict/$marketType/$marketId";
-  fileRoutesByTo: FileRoutesByTo;
+    | '/'
+    | '/about'
+    | '/create'
+    | '/cult'
+    | '/ens'
+    | '/explore'
+    | '/farm'
+    | '/ico'
+    | '/limit'
+    | '/pm'
+    | '/positions'
+    | '/predict'
+    | '/raise'
+    | '/send'
+    | '/stake'
+    | '/swap'
+    | '/user'
+    | '/wlfi'
+    | '/c/$coinId'
+    | '/explore/orders'
+    | '/explore/pools'
+    | '/explore/token'
+    | '/explore/tokens'
+    | '/farm/create'
+    | '/positions/create'
+    | '/farm/'
+    | '/positions/'
+    | '/predict/$marketType/$marketId'
+  fileRoutesByTo: FileRoutesByTo
   to:
-    | "/"
-    | "/about"
-    | "/create"
-    | "/cult"
-    | "/ens"
-    | "/explore"
-    | "/ico"
-    | "/limit"
-    | "/pm"
-    | "/predict"
-    | "/raise"
-    | "/send"
-    | "/stake"
-    | "/swap"
-    | "/user"
-    | "/wlfi"
-    | "/c/$coinId"
-    | "/explore/orders"
-    | "/explore/pools"
-    | "/explore/token"
-    | "/explore/tokens"
-    | "/farm/create"
-    | "/positions/create"
-    | "/farm"
-    | "/positions"
-    | "/predict/$marketType/$marketId";
+    | '/'
+    | '/about'
+    | '/create'
+    | '/cult'
+    | '/ens'
+    | '/explore'
+    | '/ico'
+    | '/limit'
+    | '/pm'
+    | '/predict'
+    | '/raise'
+    | '/send'
+    | '/stake'
+    | '/swap'
+    | '/user'
+    | '/wlfi'
+    | '/c/$coinId'
+    | '/explore/orders'
+    | '/explore/pools'
+    | '/explore/token'
+    | '/explore/tokens'
+    | '/farm/create'
+    | '/positions/create'
+    | '/farm'
+    | '/positions'
+    | '/predict/$marketType/$marketId'
   id:
-    | "__root__"
-    | "/"
-    | "/about"
-    | "/create"
-    | "/cult"
-    | "/ens"
-    | "/explore"
-    | "/farm"
-    | "/ico"
-    | "/limit"
-    | "/pm"
-    | "/positions"
-    | "/predict"
-    | "/raise"
-    | "/send"
-    | "/stake"
-    | "/swap"
-    | "/user"
-    | "/wlfi"
-    | "/c/$coinId"
-    | "/explore/orders"
-    | "/explore/pools"
-    | "/explore/token"
-    | "/explore/tokens"
-    | "/farm/create"
-    | "/positions/create"
-    | "/farm/"
-    | "/positions/"
-    | "/predict/$marketType/$marketId";
-  fileRoutesById: FileRoutesById;
+    | '__root__'
+    | '/'
+    | '/about'
+    | '/create'
+    | '/cult'
+    | '/ens'
+    | '/explore'
+    | '/farm'
+    | '/ico'
+    | '/limit'
+    | '/pm'
+    | '/positions'
+    | '/predict'
+    | '/raise'
+    | '/send'
+    | '/stake'
+    | '/swap'
+    | '/user'
+    | '/wlfi'
+    | '/c/$coinId'
+    | '/explore/orders'
+    | '/explore/pools'
+    | '/explore/token'
+    | '/explore/tokens'
+    | '/farm/create'
+    | '/positions/create'
+    | '/farm/'
+    | '/positions/'
+    | '/predict/$marketType/$marketId'
+  fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute;
-  AboutRoute: typeof AboutRoute;
-  CreateRoute: typeof CreateRoute;
-  CultRoute: typeof CultRoute;
-  EnsRoute: typeof EnsRoute;
-  ExploreRoute: typeof ExploreRouteWithChildren;
-  FarmRoute: typeof FarmRouteWithChildren;
-  IcoRoute: typeof IcoRoute;
-  LimitRoute: typeof LimitRoute;
-  PmRoute: typeof PmRoute;
-  PositionsRoute: typeof PositionsRouteWithChildren;
-  PredictRoute: typeof PredictRouteWithChildren;
-  RaiseRoute: typeof RaiseRoute;
-  SendRoute: typeof SendRoute;
-  StakeRoute: typeof StakeRoute;
-  SwapRoute: typeof SwapRoute;
-  UserRoute: typeof UserRoute;
-  WlfiRoute: typeof WlfiRoute;
-  CCoinIdRoute: typeof CCoinIdRoute;
+  IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
+  CreateRoute: typeof CreateRoute
+  CultRoute: typeof CultRoute
+  EnsRoute: typeof EnsRoute
+  ExploreRoute: typeof ExploreRouteWithChildren
+  FarmRoute: typeof FarmRouteWithChildren
+  IcoRoute: typeof IcoRoute
+  LimitRoute: typeof LimitRoute
+  PmRoute: typeof PmRoute
+  PositionsRoute: typeof PositionsRouteWithChildren
+  PredictRoute: typeof PredictRouteWithChildren
+  RaiseRoute: typeof RaiseRoute
+  SendRoute: typeof SendRoute
+  StakeRoute: typeof StakeRoute
+  SwapRoute: typeof SwapRoute
+  UserRoute: typeof UserRoute
+  WlfiRoute: typeof WlfiRoute
+  CCoinIdRoute: typeof CCoinIdRoute
 }
 
-declare module "@tanstack/react-router" {
+declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    "/wlfi": {
-      id: "/wlfi";
-      path: "/wlfi";
-      fullPath: "/wlfi";
-      preLoaderRoute: typeof WlfiRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/user": {
-      id: "/user";
-      path: "/user";
-      fullPath: "/user";
-      preLoaderRoute: typeof UserRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/swap": {
-      id: "/swap";
-      path: "/swap";
-      fullPath: "/swap";
-      preLoaderRoute: typeof SwapRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/stake": {
-      id: "/stake";
-      path: "/stake";
-      fullPath: "/stake";
-      preLoaderRoute: typeof StakeRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/send": {
-      id: "/send";
-      path: "/send";
-      fullPath: "/send";
-      preLoaderRoute: typeof SendRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/raise": {
-      id: "/raise";
-      path: "/raise";
-      fullPath: "/raise";
-      preLoaderRoute: typeof RaiseRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/predict": {
-      id: "/predict";
-      path: "/predict";
-      fullPath: "/predict";
-      preLoaderRoute: typeof PredictRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/positions": {
-      id: "/positions";
-      path: "/positions";
-      fullPath: "/positions";
-      preLoaderRoute: typeof PositionsRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/pm": {
-      id: "/pm";
-      path: "/pm";
-      fullPath: "/pm";
-      preLoaderRoute: typeof PmRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/limit": {
-      id: "/limit";
-      path: "/limit";
-      fullPath: "/limit";
-      preLoaderRoute: typeof LimitRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/ico": {
-      id: "/ico";
-      path: "/ico";
-      fullPath: "/ico";
-      preLoaderRoute: typeof IcoRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/farm": {
-      id: "/farm";
-      path: "/farm";
-      fullPath: "/farm";
-      preLoaderRoute: typeof FarmRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/explore": {
-      id: "/explore";
-      path: "/explore";
-      fullPath: "/explore";
-      preLoaderRoute: typeof ExploreRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/ens": {
-      id: "/ens";
-      path: "/ens";
-      fullPath: "/ens";
-      preLoaderRoute: typeof EnsRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/cult": {
-      id: "/cult";
-      path: "/cult";
-      fullPath: "/cult";
-      preLoaderRoute: typeof CultRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/create": {
-      id: "/create";
-      path: "/create";
-      fullPath: "/create";
-      preLoaderRoute: typeof CreateRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/about": {
-      id: "/about";
-      path: "/about";
-      fullPath: "/about";
-      preLoaderRoute: typeof AboutRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/": {
-      id: "/";
-      path: "/";
-      fullPath: "/";
-      preLoaderRoute: typeof IndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/positions/": {
-      id: "/positions/";
-      path: "/";
-      fullPath: "/positions/";
-      preLoaderRoute: typeof PositionsIndexRouteImport;
-      parentRoute: typeof PositionsRoute;
-    };
-    "/farm/": {
-      id: "/farm/";
-      path: "/";
-      fullPath: "/farm/";
-      preLoaderRoute: typeof FarmIndexRouteImport;
-      parentRoute: typeof FarmRoute;
-    };
-    "/positions/create": {
-      id: "/positions/create";
-      path: "/create";
-      fullPath: "/positions/create";
-      preLoaderRoute: typeof PositionsCreateRouteImport;
-      parentRoute: typeof PositionsRoute;
-    };
-    "/farm/create": {
-      id: "/farm/create";
-      path: "/create";
-      fullPath: "/farm/create";
-      preLoaderRoute: typeof FarmCreateRouteImport;
-      parentRoute: typeof FarmRoute;
-    };
-    "/explore/tokens": {
-      id: "/explore/tokens";
-      path: "/tokens";
-      fullPath: "/explore/tokens";
-      preLoaderRoute: typeof ExploreTokensRouteImport;
-      parentRoute: typeof ExploreRoute;
-    };
-    "/explore/token": {
-      id: "/explore/token";
-      path: "/token";
-      fullPath: "/explore/token";
-      preLoaderRoute: typeof ExploreTokenRouteImport;
-      parentRoute: typeof ExploreRoute;
-    };
-    "/explore/pools": {
-      id: "/explore/pools";
-      path: "/pools";
-      fullPath: "/explore/pools";
-      preLoaderRoute: typeof ExplorePoolsRouteImport;
-      parentRoute: typeof ExploreRoute;
-    };
-    "/explore/orders": {
-      id: "/explore/orders";
-      path: "/orders";
-      fullPath: "/explore/orders";
-      preLoaderRoute: typeof ExploreOrdersRouteImport;
-      parentRoute: typeof ExploreRoute;
-    };
-    "/c/$coinId": {
-      id: "/c/$coinId";
-      path: "/c/$coinId";
-      fullPath: "/c/$coinId";
-      preLoaderRoute: typeof CCoinIdRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/predict/$marketType/$marketId": {
-      id: "/predict/$marketType/$marketId";
-      path: "/$marketType/$marketId";
-      fullPath: "/predict/$marketType/$marketId";
-      preLoaderRoute: typeof PredictMarketTypeMarketIdRouteImport;
-      parentRoute: typeof PredictRoute;
-    };
+    '/wlfi': {
+      id: '/wlfi'
+      path: '/wlfi'
+      fullPath: '/wlfi'
+      preLoaderRoute: typeof WlfiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/user': {
+      id: '/user'
+      path: '/user'
+      fullPath: '/user'
+      preLoaderRoute: typeof UserRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/swap': {
+      id: '/swap'
+      path: '/swap'
+      fullPath: '/swap'
+      preLoaderRoute: typeof SwapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/stake': {
+      id: '/stake'
+      path: '/stake'
+      fullPath: '/stake'
+      preLoaderRoute: typeof StakeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/send': {
+      id: '/send'
+      path: '/send'
+      fullPath: '/send'
+      preLoaderRoute: typeof SendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/raise': {
+      id: '/raise'
+      path: '/raise'
+      fullPath: '/raise'
+      preLoaderRoute: typeof RaiseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/predict': {
+      id: '/predict'
+      path: '/predict'
+      fullPath: '/predict'
+      preLoaderRoute: typeof PredictRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/positions': {
+      id: '/positions'
+      path: '/positions'
+      fullPath: '/positions'
+      preLoaderRoute: typeof PositionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pm': {
+      id: '/pm'
+      path: '/pm'
+      fullPath: '/pm'
+      preLoaderRoute: typeof PmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/limit': {
+      id: '/limit'
+      path: '/limit'
+      fullPath: '/limit'
+      preLoaderRoute: typeof LimitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ico': {
+      id: '/ico'
+      path: '/ico'
+      fullPath: '/ico'
+      preLoaderRoute: typeof IcoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/farm': {
+      id: '/farm'
+      path: '/farm'
+      fullPath: '/farm'
+      preLoaderRoute: typeof FarmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/explore': {
+      id: '/explore'
+      path: '/explore'
+      fullPath: '/explore'
+      preLoaderRoute: typeof ExploreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ens': {
+      id: '/ens'
+      path: '/ens'
+      fullPath: '/ens'
+      preLoaderRoute: typeof EnsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cult': {
+      id: '/cult'
+      path: '/cult'
+      fullPath: '/cult'
+      preLoaderRoute: typeof CultRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/create': {
+      id: '/create'
+      path: '/create'
+      fullPath: '/create'
+      preLoaderRoute: typeof CreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/positions/': {
+      id: '/positions/'
+      path: '/'
+      fullPath: '/positions/'
+      preLoaderRoute: typeof PositionsIndexRouteImport
+      parentRoute: typeof PositionsRoute
+    }
+    '/farm/': {
+      id: '/farm/'
+      path: '/'
+      fullPath: '/farm/'
+      preLoaderRoute: typeof FarmIndexRouteImport
+      parentRoute: typeof FarmRoute
+    }
+    '/positions/create': {
+      id: '/positions/create'
+      path: '/create'
+      fullPath: '/positions/create'
+      preLoaderRoute: typeof PositionsCreateRouteImport
+      parentRoute: typeof PositionsRoute
+    }
+    '/farm/create': {
+      id: '/farm/create'
+      path: '/create'
+      fullPath: '/farm/create'
+      preLoaderRoute: typeof FarmCreateRouteImport
+      parentRoute: typeof FarmRoute
+    }
+    '/explore/tokens': {
+      id: '/explore/tokens'
+      path: '/tokens'
+      fullPath: '/explore/tokens'
+      preLoaderRoute: typeof ExploreTokensRouteImport
+      parentRoute: typeof ExploreRoute
+    }
+    '/explore/token': {
+      id: '/explore/token'
+      path: '/token'
+      fullPath: '/explore/token'
+      preLoaderRoute: typeof ExploreTokenRouteImport
+      parentRoute: typeof ExploreRoute
+    }
+    '/explore/pools': {
+      id: '/explore/pools'
+      path: '/pools'
+      fullPath: '/explore/pools'
+      preLoaderRoute: typeof ExplorePoolsRouteImport
+      parentRoute: typeof ExploreRoute
+    }
+    '/explore/orders': {
+      id: '/explore/orders'
+      path: '/orders'
+      fullPath: '/explore/orders'
+      preLoaderRoute: typeof ExploreOrdersRouteImport
+      parentRoute: typeof ExploreRoute
+    }
+    '/c/$coinId': {
+      id: '/c/$coinId'
+      path: '/c/$coinId'
+      fullPath: '/c/$coinId'
+      preLoaderRoute: typeof CCoinIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/predict/$marketType/$marketId': {
+      id: '/predict/$marketType/$marketId'
+      path: '/$marketType/$marketId'
+      fullPath: '/predict/$marketType/$marketId'
+      preLoaderRoute: typeof PredictMarketTypeMarketIdRouteImport
+      parentRoute: typeof PredictRoute
+    }
   }
 }
 
 interface ExploreRouteChildren {
-  ExploreOrdersRoute: typeof ExploreOrdersRoute;
-  ExplorePoolsRoute: typeof ExplorePoolsRoute;
-  ExploreTokenRoute: typeof ExploreTokenRoute;
-  ExploreTokensRoute: typeof ExploreTokensRoute;
+  ExploreOrdersRoute: typeof ExploreOrdersRoute
+  ExplorePoolsRoute: typeof ExplorePoolsRoute
+  ExploreTokenRoute: typeof ExploreTokenRoute
+  ExploreTokensRoute: typeof ExploreTokensRoute
 }
 
 const ExploreRouteChildren: ExploreRouteChildren = {
@@ -594,43 +595,47 @@ const ExploreRouteChildren: ExploreRouteChildren = {
   ExplorePoolsRoute: ExplorePoolsRoute,
   ExploreTokenRoute: ExploreTokenRoute,
   ExploreTokensRoute: ExploreTokensRoute,
-};
+}
 
-const ExploreRouteWithChildren = ExploreRoute._addFileChildren(ExploreRouteChildren);
+const ExploreRouteWithChildren =
+  ExploreRoute._addFileChildren(ExploreRouteChildren)
 
 interface FarmRouteChildren {
-  FarmCreateRoute: typeof FarmCreateRoute;
-  FarmIndexRoute: typeof FarmIndexRoute;
+  FarmCreateRoute: typeof FarmCreateRoute
+  FarmIndexRoute: typeof FarmIndexRoute
 }
 
 const FarmRouteChildren: FarmRouteChildren = {
   FarmCreateRoute: FarmCreateRoute,
   FarmIndexRoute: FarmIndexRoute,
-};
+}
 
-const FarmRouteWithChildren = FarmRoute._addFileChildren(FarmRouteChildren);
+const FarmRouteWithChildren = FarmRoute._addFileChildren(FarmRouteChildren)
 
 interface PositionsRouteChildren {
-  PositionsCreateRoute: typeof PositionsCreateRoute;
-  PositionsIndexRoute: typeof PositionsIndexRoute;
+  PositionsCreateRoute: typeof PositionsCreateRoute
+  PositionsIndexRoute: typeof PositionsIndexRoute
 }
 
 const PositionsRouteChildren: PositionsRouteChildren = {
   PositionsCreateRoute: PositionsCreateRoute,
   PositionsIndexRoute: PositionsIndexRoute,
-};
+}
 
-const PositionsRouteWithChildren = PositionsRoute._addFileChildren(PositionsRouteChildren);
+const PositionsRouteWithChildren = PositionsRoute._addFileChildren(
+  PositionsRouteChildren,
+)
 
 interface PredictRouteChildren {
-  PredictMarketTypeMarketIdRoute: typeof PredictMarketTypeMarketIdRoute;
+  PredictMarketTypeMarketIdRoute: typeof PredictMarketTypeMarketIdRoute
 }
 
 const PredictRouteChildren: PredictRouteChildren = {
   PredictMarketTypeMarketIdRoute: PredictMarketTypeMarketIdRoute,
-};
+}
 
-const PredictRouteWithChildren = PredictRoute._addFileChildren(PredictRouteChildren);
+const PredictRouteWithChildren =
+  PredictRoute._addFileChildren(PredictRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -652,5 +657,7 @@ const rootRouteChildren: RootRouteChildren = {
   UserRoute: UserRoute,
   WlfiRoute: WlfiRoute,
   CCoinIdRoute: CCoinIdRoute,
-};
-export const routeTree = rootRouteImport._addFileChildren(rootRouteChildren)._addFileTypes<FileRouteTypes>();
+}
+export const routeTree = rootRouteImport
+  ._addFileChildren(rootRouteChildren)
+  ._addFileTypes<FileRouteTypes>()
