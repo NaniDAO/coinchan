@@ -81,7 +81,7 @@ interface RecommendationCardProps {
 }
 
 function RecommendationCard({ recommendation, onClick, isSelected = false }: RecommendationCardProps) {
-  const { tokenIn, tokenOut, amount, side, why, signals, confidence } = recommendation;
+  const { tokenIn, tokenOut, amount, side, why, signals, confidence, references } = recommendation;
 
   // Helper to resolve IPFS URLs
   const resolveImageUrl = (url: string): string => {
@@ -153,6 +153,20 @@ function RecommendationCard({ recommendation, onClick, isSelected = false }: Rec
           {signals.map((signal) => (
             <SignalBadge key={signal} signal={signal} />
           ))}
+        </div>
+      )}
+
+      {/* References - only show heading if array is not empty */}
+      {references && references.length > 0 && (
+        <div className="mt-2 pt-2 border-t border-terminal-black/10">
+          <h4 className="text-[10px] font-medium text-muted-foreground uppercase mb-1">References</h4>
+          <div className="flex flex-wrap gap-1">
+            {references.map((ref, idx) => (
+              <span key={idx} className="text-[10px] text-muted-foreground">
+                #{ref}
+              </span>
+            ))}
+          </div>
         </div>
       )}
     </button>
