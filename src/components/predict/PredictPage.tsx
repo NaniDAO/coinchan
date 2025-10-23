@@ -20,14 +20,19 @@ const PredictPage: React.FC = () => {
 
   return (
     <div className="mx-auto max-w-7xl p-4 space-y-8">
-      <div className="text-center space-y-2">
-        <div className="flex items-center justify-center gap-2">
-          <Heading level={2}>{t("predict.prediction_markets")}</Heading>
+      {/* Enhanced Header */}
+      <div className="text-center space-y-4 pt-4">
+        <div className="flex items-center justify-center gap-3">
+          <div className="relative">
+            <Heading level={2} className="text-pink-500">
+              {t("predict.prediction_markets")}
+            </Heading>
+          </div>
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 onClick={() => setShowExplainer(true)}
-                className="text-muted-foreground hover:text-primary transition-colors"
+                className="text-muted-foreground hover:text-primary transition-all hover:scale-110 duration-200"
               >
                 <HelpCircle className="h-5 w-5" />
               </button>
@@ -37,18 +42,25 @@ const PredictPage: React.FC = () => {
             </TooltipContent>
           </Tooltip>
         </div>
-        <p className="text-sm text-muted-foreground">{t("predict.create_and_trade_tagline")}</p>
-        <p className="text-xs text-muted-foreground italic">
-          {t("predict.all_deposits_earn_lido")}{" "}
+        <p className="text-base text-muted-foreground max-w-2xl mx-auto">
+          {t("predict.create_and_trade_tagline")}
+        </p>
+        <div className="inline-flex items-center gap-2 px-4 py-2 bg-muted/30 rounded-full border border-border/50">
+          <span className="text-xs text-muted-foreground">
+            {t("predict.all_deposits_earn_lido")}
+          </span>
           <a
             href="https://lido.fi/"
             target="_blank"
             rel="noopener noreferrer"
-            className="underline hover:text-primary transition-colors"
+            className="text-xs font-semibold text-primary hover:underline transition-colors inline-flex items-center gap-1"
           >
             Lido
+            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
           </a>
-        </p>
+        </div>
       </div>
 
       <PredictExplainer isOpen={showExplainer} onClose={handleClose} />
