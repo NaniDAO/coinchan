@@ -161,9 +161,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 
     const balance = ethBalance.value;
     // Apply 1% gas discount for MAX (100%)
-    const adjustedBalance = percentage === 100
-      ? (balance * 99n) / 100n
-      : (balance * BigInt(percentage)) / 100n;
+    const adjustedBalance = percentage === 100 ? (balance * 99n) / 100n : (balance * BigInt(percentage)) / 100n;
 
     const calculatedAmount = formatEther(adjustedBalance);
     setAmount(calculatedAmount);
@@ -363,7 +361,9 @@ export const TradeModal: React.FC<TradeModalProps> = ({
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
                 <span className="text-emerald-600 dark:text-emerald-400 font-bold text-base">YES</span>
-                <span className="text-emerald-600 dark:text-emerald-400 font-bold text-2xl">{yesPercent.toFixed(2)}%</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold text-2xl">
+                  {yesPercent.toFixed(2)}%
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-rose-600 dark:text-rose-400 font-bold text-2xl">{noPercent.toFixed(2)}%</span>
@@ -372,8 +372,14 @@ export const TradeModal: React.FC<TradeModalProps> = ({
               </div>
             </div>
             <div className="flex h-3 rounded-full overflow-hidden bg-muted/50 shadow-inner">
-              <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 transition-all" style={{ width: `${yesPercent}%` }} />
-              <div className="bg-gradient-to-r from-rose-500 to-rose-600 transition-all" style={{ width: `${noPercent}%` }} />
+              <div
+                className="bg-gradient-to-r from-emerald-500 to-emerald-600 transition-all"
+                style={{ width: `${yesPercent}%` }}
+              />
+              <div
+                className="bg-gradient-to-r from-rose-500 to-rose-600 transition-all"
+                style={{ width: `${noPercent}%` }}
+              />
             </div>
             <div className="flex justify-between text-xs text-muted-foreground pt-1 border-t border-border/30">
               <span className="font-mono">{Number(formatEther(displayYes)).toFixed(2)} wstETH</span>
@@ -384,8 +390,12 @@ export const TradeModal: React.FC<TradeModalProps> = ({
           {/* Trade Interface */}
           <Tabs value={action} onValueChange={(v) => setAction(v as "buy" | "sell")}>
             <TabsList className="grid w-full grid-cols-2 h-11">
-              <TabsTrigger value="buy" className="font-semibold">Buy</TabsTrigger>
-              <TabsTrigger value="sell" className="font-semibold">Sell</TabsTrigger>
+              <TabsTrigger value="buy" className="font-semibold">
+                Buy
+              </TabsTrigger>
+              <TabsTrigger value="sell" className="font-semibold">
+                Sell
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="buy" className="space-y-5 mt-5">
@@ -452,150 +462,170 @@ export const TradeModal: React.FC<TradeModalProps> = ({
               </div>
 
               {/* Potential Winnings Display */}
-              {amount && parseFloat(amount) > 0 && (() => {
-                const amountWei = parseEther(amount);
+              {amount &&
+                parseFloat(amount) > 0 &&
+                (() => {
+                  const amountWei = parseEther(amount);
 
-                if (marketType === "amm") {
-                  // For AMM: shares bought = potential payout if win
-                  const sharesBought = amountWei;
-                  const costWei = estimatedCost > 0n ? estimatedCost : 0n;
-                  const profit = sharesBought > costWei ? sharesBought - costWei : 0n;
+                  if (marketType === "amm") {
+                    // For AMM: shares bought = potential payout if win
+                    const sharesBought = amountWei;
+                    const costWei = estimatedCost > 0n ? estimatedCost : 0n;
+                    const profit = sharesBought > costWei ? sharesBought - costWei : 0n;
 
-                  const payoutUsd = wstethUsdPrice ? Number(formatEther(sharesBought)) * wstethUsdPrice : null;
-                  const profitUsd = wstethUsdPrice && profit > 0n ? Number(formatEther(profit)) * wstethUsdPrice : null;
+                    const payoutUsd = wstethUsdPrice ? Number(formatEther(sharesBought)) * wstethUsdPrice : null;
+                    const profitUsd =
+                      wstethUsdPrice && profit > 0n ? Number(formatEther(profit)) * wstethUsdPrice : null;
 
-                  return (
-                    <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-purple-900 dark:text-purple-100">
-                          Potential Payout (if {position.toUpperCase()} wins)
-                        </span>
-                        <div className="text-right">
-                          <div className="font-mono font-bold text-base text-purple-900 dark:text-purple-100">
-                            {Number(formatEther(sharesBought)).toFixed(4)} wstETH
-                          </div>
-                          {payoutUsd && (
-                            <div className="text-xs text-purple-600 dark:text-purple-400 font-medium">
-                              ≈ ${payoutUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      {profit > 0n && (
-                        <div className="flex items-center justify-between text-sm border-t border-purple-200/50 dark:border-purple-800/50 pt-2">
-                          <span className="text-purple-700 dark:text-purple-300">Potential Profit</span>
+                    return (
+                      <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-purple-900 dark:text-purple-100">
+                            Potential Payout (if {position.toUpperCase()} wins)
+                          </span>
                           <div className="text-right">
-                            <div className="font-mono font-semibold text-green-600 dark:text-green-400">
-                              +{Number(formatEther(profit)).toFixed(4)} wstETH
+                            <div className="font-mono font-bold text-base text-purple-900 dark:text-purple-100">
+                              {Number(formatEther(sharesBought)).toFixed(4)} wstETH
                             </div>
-                            {profitUsd && (
-                              <div className="text-xs text-green-600 dark:text-green-400 font-medium">
-                                ≈ +${profitUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            {payoutUsd && (
+                              <div className="text-xs text-purple-600 dark:text-purple-400 font-medium">
+                                ≈ $
+                                {payoutUsd.toLocaleString(undefined, {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}
                               </div>
                             )}
                           </div>
                         </div>
-                      )}
-                    </div>
-                  );
-                } else {
-                  // For Parimutuel: calculate based on pool ratio
-                  const currentPositionPool = position === "yes" ? displayYes : displayNo;
-                  const totalPool = displayYes + displayNo;
-
-                  // After this bet, position pool increases
-                  const newPositionPool = currentPositionPool + amountWei;
-                  const newTotalPool = totalPool + amountWei;
-
-                  // If position wins: your share of total pool = (your amount / total position pool) * total pool
-                  const potentialPayout = newTotalPool > 0n
-                    ? (amountWei * newTotalPool) / newPositionPool
-                    : 0n;
-                  const profit = potentialPayout > amountWei ? potentialPayout - amountWei : 0n;
-
-                  const payoutUsd = wstethUsdPrice ? Number(formatEther(potentialPayout)) * wstethUsdPrice : null;
-                  const profitUsd = wstethUsdPrice && profit > 0n ? Number(formatEther(profit)) * wstethUsdPrice : null;
-
-                  return (
-                    <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-purple-900 dark:text-purple-100">
-                          Potential Payout (if {position.toUpperCase()} wins)
-                        </span>
-                        <div className="text-right">
-                          <div className="font-mono font-bold text-base text-purple-900 dark:text-purple-100">
-                            {Number(formatEther(potentialPayout)).toFixed(4)} wstETH
+                        {profit > 0n && (
+                          <div className="flex items-center justify-between text-sm border-t border-purple-200/50 dark:border-purple-800/50 pt-2">
+                            <span className="text-purple-700 dark:text-purple-300">Potential Profit</span>
+                            <div className="text-right">
+                              <div className="font-mono font-semibold text-green-600 dark:text-green-400">
+                                +{Number(formatEther(profit)).toFixed(4)} wstETH
+                              </div>
+                              {profitUsd && (
+                                <div className="text-xs text-green-600 dark:text-green-400 font-medium">
+                                  ≈ +$
+                                  {profitUsd.toLocaleString(undefined, {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  })}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          {payoutUsd && (
-                            <div className="text-xs text-purple-600 dark:text-purple-400 font-medium">
-                              ≈ ${payoutUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </div>
-                          )}
-                        </div>
+                        )}
                       </div>
-                      {profit > 0n && (
-                        <div className="flex items-center justify-between text-sm border-t border-purple-200/50 dark:border-purple-800/50 pt-2">
-                          <span className="text-purple-700 dark:text-purple-300">Potential Profit</span>
+                    );
+                  } else {
+                    // For Parimutuel: calculate based on pool ratio
+                    const currentPositionPool = position === "yes" ? displayYes : displayNo;
+                    const totalPool = displayYes + displayNo;
+
+                    // After this bet, position pool increases
+                    const newPositionPool = currentPositionPool + amountWei;
+                    const newTotalPool = totalPool + amountWei;
+
+                    // If position wins: your share of total pool = (your amount / total position pool) * total pool
+                    const potentialPayout = newTotalPool > 0n ? (amountWei * newTotalPool) / newPositionPool : 0n;
+                    const profit = potentialPayout > amountWei ? potentialPayout - amountWei : 0n;
+
+                    const payoutUsd = wstethUsdPrice ? Number(formatEther(potentialPayout)) * wstethUsdPrice : null;
+                    const profitUsd =
+                      wstethUsdPrice && profit > 0n ? Number(formatEther(profit)) * wstethUsdPrice : null;
+
+                    return (
+                      <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-purple-900 dark:text-purple-100">
+                            Potential Payout (if {position.toUpperCase()} wins)
+                          </span>
                           <div className="text-right">
-                            <div className="font-mono font-semibold text-green-600 dark:text-green-400">
-                              +{Number(formatEther(profit)).toFixed(4)} wstETH
+                            <div className="font-mono font-bold text-base text-purple-900 dark:text-purple-100">
+                              {Number(formatEther(potentialPayout)).toFixed(4)} wstETH
                             </div>
-                            {profitUsd && (
-                              <div className="text-xs text-green-600 dark:text-green-400 font-medium">
-                                ≈ +${profitUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            {payoutUsd && (
+                              <div className="text-xs text-purple-600 dark:text-purple-400 font-medium">
+                                ≈ $
+                                {payoutUsd.toLocaleString(undefined, {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}
                               </div>
                             )}
                           </div>
                         </div>
-                      )}
-                      <p className="text-xs text-purple-600 dark:text-purple-400 italic border-t border-purple-200/50 dark:border-purple-800/50 pt-2">
-                        Estimated based on current pool ratio. Final payout depends on total pool when market resolves.
+                        {profit > 0n && (
+                          <div className="flex items-center justify-between text-sm border-t border-purple-200/50 dark:border-purple-800/50 pt-2">
+                            <span className="text-purple-700 dark:text-purple-300">Potential Profit</span>
+                            <div className="text-right">
+                              <div className="font-mono font-semibold text-green-600 dark:text-green-400">
+                                +{Number(formatEther(profit)).toFixed(4)} wstETH
+                              </div>
+                              {profitUsd && (
+                                <div className="text-xs text-green-600 dark:text-green-400 font-medium">
+                                  ≈ +$
+                                  {profitUsd.toLocaleString(undefined, {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        <p className="text-xs text-purple-600 dark:text-purple-400 italic border-t border-purple-200/50 dark:border-purple-800/50 pt-2">
+                          Estimated based on current pool ratio. Final payout depends on total pool when market
+                          resolves.
+                        </p>
+                      </div>
+                    );
+                  }
+                })()}
+
+              {marketType === "amm" &&
+                estimatedCost > 0n &&
+                (() => {
+                  const slippageMultiplier = BigInt(Math.floor((1 + slippageTolerance / 100) * 10000));
+                  const wstInMax = (estimatedCost * slippageMultiplier) / 10000n;
+
+                  // Calculate ETH to send using the same logic as handleTrade
+                  let ethToSend: bigint;
+                  if (stEthPerToken) {
+                    ethToSend = (wstInMax * parseEther("1") * 140n) / (stEthPerToken * 100n);
+                  } else {
+                    ethToSend = (wstInMax * 168n) / 100n;
+                  }
+
+                  return (
+                    <div className="bg-card border border-border rounded-lg p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-muted-foreground">Estimated Cost</span>
+                        <span className="font-mono font-bold text-base">
+                          {Number(formatEther(estimatedCost)).toFixed(6)} wstETH
+                        </span>
+                      </div>
+                      <div className="border-t border-border pt-2 space-y-1.5 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Max Cost (with slippage)</span>
+                          <span className="font-mono text-xs">{Number(formatEther(wstInMax)).toFixed(6)} wstETH</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">ETH to send</span>
+                          <span className="font-mono font-semibold">
+                            {Number(formatEther(ethToSend)).toFixed(6)} ETH
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground italic pt-1 border-t border-border/50">
+                        Extra ETH is refunded as wstETH. Includes 40% buffer for on-chain pricing & small amount
+                        rounding.
                       </p>
                     </div>
                   );
-                }
-              })()}
-
-              {marketType === "amm" && estimatedCost > 0n && (() => {
-                const slippageMultiplier = BigInt(Math.floor((1 + slippageTolerance / 100) * 10000));
-                const wstInMax = (estimatedCost * slippageMultiplier) / 10000n;
-
-                // Calculate ETH to send using the same logic as handleTrade
-                let ethToSend: bigint;
-                if (stEthPerToken) {
-                  ethToSend = (wstInMax * parseEther("1") * 140n) / (stEthPerToken * 100n);
-                } else {
-                  ethToSend = (wstInMax * 168n) / 100n;
-                }
-
-                return (
-                  <div className="bg-card border border-border rounded-lg p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-muted-foreground">Estimated Cost</span>
-                      <span className="font-mono font-bold text-base">
-                        {Number(formatEther(estimatedCost)).toFixed(6)} wstETH
-                      </span>
-                    </div>
-                    <div className="border-t border-border pt-2 space-y-1.5 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Max Cost (with slippage)</span>
-                        <span className="font-mono text-xs">
-                          {Number(formatEther(wstInMax)).toFixed(6)} wstETH
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">ETH to send</span>
-                        <span className="font-mono font-semibold">
-                          {Number(formatEther(ethToSend)).toFixed(6)} ETH
-                        </span>
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground italic pt-1 border-t border-border/50">
-                      Extra ETH is refunded as wstETH. Includes 40% buffer for on-chain pricing & small amount rounding.
-                    </p>
-                  </div>
-                );
-              })()}
+                })()}
 
               {/* Slippage Settings - Collapsible & Subtle */}
               {marketType === "amm" && (
@@ -681,9 +711,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                   placeholder="0.1"
                   className="h-14 text-lg font-mono rounded-lg"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Sell your {position.toUpperCase()} shares for wstETH
-                </p>
+                <p className="text-xs text-muted-foreground">Sell your {position.toUpperCase()} shares for wstETH</p>
               </div>
 
               {marketType === "amm" && estimatedCost > 0n && (

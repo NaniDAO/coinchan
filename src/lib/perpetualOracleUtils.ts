@@ -125,7 +125,7 @@ export const generateOracleSvg = (question: string, symbol?: string): string => 
     "#FFCC00", // Bright Gold
   ];
 
-  const colors = isCoinflip ? coinflipColors : (isNouns ? nounsColors : (isBETH ? bethColors : oracleColors));
+  const colors = isCoinflip ? coinflipColors : isNouns ? nounsColors : isBETH ? bethColors : oracleColors;
 
   // Pick a consistent color based on question hash (for consistent colors per market)
   const colorIndex = question.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
@@ -153,20 +153,27 @@ export const generateOracleSvg = (question: string, symbol?: string): string => 
   }
 
   // Choose icon and badge color based on oracle type
-  const icon = isCoinflip ? "🎲" : (isNouns ? "⌐◨-◨" : (isBETH ? "🔥" : "⚡"));
+  const icon = isCoinflip ? "🎲" : isNouns ? "⌐◨-◨" : isBETH ? "🔥" : "⚡";
   const badgeColor = isCoinflip
     ? "rgba(65, 105, 225, 0.3)"
-    : (isNouns ? "rgba(255, 105, 180, 0.3)" : (isBETH ? "rgba(255, 69, 0, 0.3)" : "rgba(218, 165, 32, 0.3)"));
+    : isNouns
+      ? "rgba(255, 105, 180, 0.3)"
+      : isBETH
+        ? "rgba(255, 69, 0, 0.3)"
+        : "rgba(218, 165, 32, 0.3)";
 
   // Generate SVG with oracle branding
   // For Coinflip, add animated 8-bit style coin
-  const coinGradientDefs = isCoinflip ? `
+  const coinGradientDefs = isCoinflip
+    ? `
     <radialGradient id="coinGradient" cx="40%" cy="40%">
       <stop offset="0%" style="stop-color:#FFED4E;stop-opacity:1" />
       <stop offset="100%" style="stop-color:#FFD700;stop-opacity:0" />
-    </radialGradient>` : '';
+    </radialGradient>`
+    : "";
 
-  const animatedCoinSvg = isCoinflip ? `
+  const animatedCoinSvg = isCoinflip
+    ? `
   <g id="coin">
     <animateTransform
       attributeName="transform"
@@ -192,7 +199,8 @@ export const generateOracleSvg = (question: string, symbol?: string): string => 
     <circle cx="370" cy="35" r="2" fill="#FFF">
       <animate attributeName="opacity" values="0;1;0" dur="1.5s" begin="0.5s" repeatCount="indefinite"/>
     </circle>
-  </g>` : `<g>
+  </g>`
+    : `<g>
     <circle cx="360" cy="40" r="28" fill="rgba(0, 0, 0, 0.2)"/>
     <circle cx="360" cy="40" r="25" fill="${badgeColor}"/>
     <text x="360" y="${isNouns ? 47 : 52}" font-family="Arial, sans-serif" font-size="${isNouns ? 18 : 32}" font-weight="bold" text-anchor="middle" fill="#FFFFFF" stroke="rgba(0, 0, 0, 0.3)" stroke-width="1">${icon}</text>
@@ -221,9 +229,7 @@ ${lines
  * Converts SVG string to a data URL for use in img src
  */
 export const svgToDataUrl = (svg: string): string => {
-  const encoded = encodeURIComponent(svg)
-    .replace(/'/g, "%27")
-    .replace(/"/g, "%22");
+  const encoded = encodeURIComponent(svg).replace(/'/g, "%27").replace(/"/g, "%22");
   return `data:image/svg+xml,${encoded}`;
 };
 

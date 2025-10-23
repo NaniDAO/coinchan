@@ -131,11 +131,7 @@ export const Route = createRootRoute({
 
               {/* Explore (dropdown) */}
               <div className="flex-1 min-w-0 relative">
-                <DropdownMenu
-                  open={isExploreOpen}
-                  onOpenChange={setIsExploreOpen}
-                  modal={false}
-                >
+                <DropdownMenu open={isExploreOpen} onOpenChange={setIsExploreOpen} modal={false}>
                   <DropdownMenuTrigger asChild>
                     <Link
                       to="/explore/tokens"

@@ -285,7 +285,7 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
           }
 
           // Fetch from URL/IPFS
-          const url = market.description.startsWith('ipfs://')
+          const url = market.description.startsWith("ipfs://")
             ? `https://ipfs.io/ipfs/${market.description.slice(7)}`
             : market.description;
 
@@ -323,11 +323,10 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
   ]);
 
   // Memoize expensive filtering operations
-  const visibleMarkets = useMemo(() =>
-    allMarkets.filter(
-      (m) => !excludedResolvers.has(m.resolver.toLowerCase()) && !excludedMarketIds.has(m.marketId)
-    ),
-    [allMarkets.length] // Only recalculate when markets count changes
+  const visibleMarkets = useMemo(
+    () =>
+      allMarkets.filter((m) => !excludedResolvers.has(m.resolver.toLowerCase()) && !excludedMarketIds.has(m.marketId)),
+    [allMarkets.length], // Only recalculate when markets count changes
   );
 
   // Define dust threshold: 0.0001 wstETH (100000000000000 wei = 10^14)
@@ -335,31 +334,34 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
   const DUST_THRESHOLD = 100000000000000n; // 0.0001 wstETH
 
   // First, filter out dust markets from closed/resolved
-  const nonDustMarkets = useMemo(() =>
-    visibleMarkets.filter((market) => {
-      // Always keep active markets regardless of pot size
-      // This includes parimutuel markets with pot === 0 that haven't been initialized yet
-      if (market.tradingOpen && !market.resolved) {
-        return true;
-      }
+  const nonDustMarkets = useMemo(
+    () =>
+      visibleMarkets.filter((market) => {
+        // Always keep active markets regardless of pot size
+        // This includes parimutuel markets with pot === 0 that haven't been initialized yet
+        if (market.tradingOpen && !market.resolved) {
+          return true;
+        }
 
-      // For resolved markets: only keep if pot >= DUST_THRESHOLD
-      if (market.resolved) {
+        // For resolved markets: only keep if pot >= DUST_THRESHOLD
+        if (market.resolved) {
+          return market.pot >= DUST_THRESHOLD;
+        }
+
+        // For closed but unresolved markets:
+        // - Only keep if pot >= DUST_THRESHOLD (meaningful amounts)
+        // - Hide if pot is 0 (no activity) or pot < DUST_THRESHOLD (dust amounts)
         return market.pot >= DUST_THRESHOLD;
-      }
-
-      // For closed but unresolved markets:
-      // - Only keep if pot >= DUST_THRESHOLD (meaningful amounts)
-      // - Hide if pot is 0 (no activity) or pot < DUST_THRESHOLD (dust amounts)
-      return market.pot >= DUST_THRESHOLD;
-    }),
-    [visibleMarkets.length]
+      }),
+    [visibleMarkets.length],
   );
 
   // Calculate accurate counts based on non-dust markets
   const activeMarkets = nonDustMarkets.filter((m) => m.tradingOpen && !m.resolved);
   const contractCount = activeMarkets.filter((m) => isPerpetualOracleResolver(m.resolver)).length;
-  const curatedCount = activeMarkets.filter((m) => isTrustedResolver(m.resolver) && !isPerpetualOracleResolver(m.resolver)).length;
+  const curatedCount = activeMarkets.filter(
+    (m) => isTrustedResolver(m.resolver) && !isPerpetualOracleResolver(m.resolver),
+  ).length;
   const communityCount = activeMarkets.filter((m) => !isTrustedResolver(m.resolver)).length;
   const closedCount = nonDustMarkets.filter((m) => !m.tradingOpen && !m.resolved).length;
   const resolvedCount = nonDustMarkets.filter((m) => m.resolved).length;
@@ -375,7 +377,12 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
         return market.tradingOpen && !market.resolved && isPerpetualOracleResolver(market.resolver);
       }
       if (filter === "curated") {
-        return market.tradingOpen && !market.resolved && isTrustedResolver(market.resolver) && !isPerpetualOracleResolver(market.resolver);
+        return (
+          market.tradingOpen &&
+          !market.resolved &&
+          isTrustedResolver(market.resolver) &&
+          !isPerpetualOracleResolver(market.resolver)
+        );
       }
       if (filter === "community") {
         return market.tradingOpen && !market.resolved && !isTrustedResolver(market.resolver);
@@ -424,7 +431,8 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
         <div>
           <span className="font-semibold text-foreground">{totalMarketsCount}</span> total markets
           <span className="hidden sm:inline">
-            {" "}({totalPMMarkets} Parimutuel, {totalAMMMarkets} AMM)
+            {" "}
+            ({totalPMMarkets} Parimutuel, {totalAMMMarkets} AMM)
           </span>
         </div>
         {nonDustMarkets.length < visibleMarkets.length && (
@@ -519,10 +527,7 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
                   : `No ${filter === "all" ? "" : filter} markets found`}
               </p>
               {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  className="mt-4 text-sm text-primary hover:underline"
-                >
+                <button onClick={() => setSearchQuery("")} className="mt-4 text-sm text-primary hover:underline">
                   Clear search
                 </button>
               )}
