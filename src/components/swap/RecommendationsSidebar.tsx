@@ -101,7 +101,10 @@ function RecommendationCard({ recommendation, onClick, isSelected = false }: Rec
   const { tokenIn, tokenOut, amount, side, why, signals, confidence, references } = recommendation;
 
   // Helper to resolve IPFS URLs
-  const resolveImageUrl = (url: string): string => {
+  const resolveImageUrl = (url: string | undefined): string => {
+    if (!url) {
+      return "https://via.placeholder.com/28";
+    }
     if (url.startsWith("ipfs://")) {
       return url.replace("ipfs://", "https://ipfs.io/ipfs/");
     }

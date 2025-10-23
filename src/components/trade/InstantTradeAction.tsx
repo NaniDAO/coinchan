@@ -176,16 +176,21 @@ export const InstantTradeAction = forwardRef<
   // Track whether user manually changed the pair (to avoid re-hydrating/overwriting)
   const userChangedPairRef = useRef(false);
   const didInitialUrlHydrate = useRef(false);
+  const loadingFromRecommendationRef = useRef(false);
 
   const clearErrorsOnUserEdit = () => {
     setTxError(null);
     setSuppressErrors(true);
   };
 
-  // Reset amounts when pair changes (skip first URL hydration-triggered change)
+  // Reset amounts when pair changes (skip first URL hydration-triggered change and recommendation loads)
   useEffect(() => {
     if (!didInitialUrlHydrate.current && useSearchHook) {
       didInitialUrlHydrate.current = true;
+      return;
+    }
+    // Don't reset amounts if we're loading from a recommendation
+    if (loadingFromRecommendationRef.current) {
       return;
     }
     setSellAmount("");
@@ -300,6 +305,11 @@ export const InstantTradeAction = forwardRef<
 
   // Reflect quote into the opposite field
   useEffect(() => {
+    // Don't overwrite amounts when loading from a recommendation
+    if (loadingFromRecommendationRef.current) {
+      loadingFromRecommendationRef.current = false;
+      return;
+    }
     if (!quotingEnabled || !quote?.ok) return;
     if (lastEditedField === "sell") {
       if (buyAmount !== quote.amountOut) setBuyAmount(quote.amountOut ?? "");
@@ -553,6 +563,9 @@ export const InstantTradeAction = forwardRef<
         clearErrorsOnUserEdit();
         userChangedPairRef.current = true;
 
+        // Set flag to prevent quote from overwriting the recommendation amount
+        loadingFromRecommendationRef.current = true;
+
         // Convert recommendation TokenMetadata to app's TokenMetadata format
         const convertToken = (token: Recommendation["tokenIn"] | Recommendation["tokenOut"]): TokenMetadata => {
           // For ERC6909 tokens, parse the id as bigint; for ERC20, use 0n
@@ -572,19 +585,24 @@ export const InstantTradeAction = forwardRef<
         const newSellToken = convertToken(rec.tokenIn);
         const newBuyToken = convertToken(rec.tokenOut);
 
+        // Set tokens first
         setSellToken(newSellToken);
         setBuyToken(newBuyToken);
 
-        // Set the amount based on the side
-        if (rec.side === "SWAP_EXACT_IN") {
-          setSellAmount(rec.amount);
-          setBuyAmount("");
-          setLastEditedField("sell");
-        } else {
-          setBuyAmount(rec.amount);
-          setSellAmount("");
-          setLastEditedField("buy");
-        }
+        // Use setTimeout to ensure tokens are set before amounts
+        // This prevents race conditions with the quote effect
+        setTimeout(() => {
+          // Set the amount based on the side
+          if (rec.side === "SWAP_EXACT_IN") {
+            setSellAmount(rec.amount);
+            setBuyAmount("");
+            setLastEditedField("sell");
+          } else {
+            setBuyAmount(rec.amount);
+            setSellAmount("");
+            setLastEditedField("buy");
+          }
+        }, 0);
 
         // Update URL if search hook is enabled
         if (useSearchHook) {
