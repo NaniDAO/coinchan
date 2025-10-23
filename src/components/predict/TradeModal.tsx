@@ -63,6 +63,7 @@ interface TradeModalProps {
   contractAddress?: string;
   resolver?: string; // Optional: resolver address to show verification badge
   initialPosition?: "yes" | "no"; // Pre-select YES or NO when modal opens
+  onTransactionSuccess?: () => void; // Callback to refresh market data after transactions
 }
 
 export const TradeModal: React.FC<TradeModalProps> = ({
@@ -76,6 +77,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   contractAddress = PredictionMarketAddress,
   resolver,
   initialPosition = "yes",
+  onTransactionSuccess,
 }) => {
   const isPerpetualOracle = resolver ? isPerpetualOracleResolver(resolver) : false;
   const { address } = useAccount();
@@ -86,6 +88,8 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   const [localError, setLocalError] = useState<string | null>(null);
   const [showSlippageSettings, setShowSlippageSettings] = useState(false);
   const [useWstETH, setUseWstETH] = useState<boolean>(false); // Auto-set based on balance
+  const [showApprovalSuccess, setShowApprovalSuccess] = useState(false);
+  const [isApprovingWstETH, setIsApprovingWstETH] = useState(false); // Track if current tx is an approval
 
   // Fetch user's ETH balance for percentage buttons
   const { data: ethBalance } = useBalance({
@@ -144,12 +148,26 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   }, [action, amount, wstethBalance, marketType]);
 
   // Refetch balances and allowances when transaction succeeds
+  // Also handle approval success popup and market data refresh
   React.useEffect(() => {
     if (txSuccess) {
       refetchWstethBalance();
       refetchAllowance();
+
+      // If this was an approval transaction, show success popup
+      if (isApprovingWstETH) {
+        setShowApprovalSuccess(true);
+        setIsApprovingWstETH(false);
+        // Auto-hide the approval success message after 3 seconds
+        setTimeout(() => setShowApprovalSuccess(false), 3000);
+      }
+
+      // Refresh market data in parent component
+      if (onTransactionSuccess) {
+        onTransactionSuccess();
+      }
     }
-  }, [txSuccess, refetchWstethBalance, refetchAllowance]);
+  }, [txSuccess, refetchWstethBalance, refetchAllowance, isApprovingWstETH, onTransactionSuccess]);
 
   // Quote for AMM buy trades
   const sharesAmount = amount && parseFloat(amount) > 0 ? parseEther(amount) : 0n;
@@ -322,6 +340,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 
     try {
       setLocalError(null);
+      setIsApprovingWstETH(true); // Mark that we're approving
 
       // Approve max uint256 for better UX (one-time approval)
       const maxUint256 = BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
@@ -335,6 +354,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 
       toast.success("Approval submitted! Waiting for confirmation...");
     } catch (err: any) {
+      setIsApprovingWstETH(false); // Reset on error
       if (isUserRejectionError(err)) {
         setLocalError(null);
         return;
@@ -1011,6 +1031,20 @@ export const TradeModal: React.FC<TradeModalProps> = ({
             <Alert className="border-l-4 border-l-green-500 bg-green-50 dark:bg-green-950/20">
               <AlertDescription className="text-green-600 dark:text-green-400 font-semibold">
                 Trade successful!
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {showApprovalSuccess && (
+            <Alert className="border-l-4 border-l-blue-500 bg-blue-50 dark:bg-blue-950/20 animate-in slide-in-from-top-2 duration-300">
+              <AlertDescription className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-semibold">
+                <BadgeCheck className="h-5 w-5" />
+                <div>
+                  <div>wstETH Approved!</div>
+                  <div className="text-xs font-normal mt-1 text-blue-600/80 dark:text-blue-400/80">
+                    You can now proceed to buy shares
+                  </div>
+                </div>
               </AlertDescription>
             </Alert>
           )}

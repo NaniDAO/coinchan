@@ -1698,6 +1698,11 @@ export const MarketCard: React.FC<MarketCardProps> = ({
         contractAddress={contractAddress}
         resolver={resolver}
         initialPosition={initialPosition}
+        onTransactionSuccess={() => {
+          // Refetch market data to update odds/reserves after transactions
+          refetchMarketData();
+          if (onClaimSuccess) onClaimSuccess();
+        }}
       />
     </>
   );
