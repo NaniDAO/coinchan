@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useReadContract, useReadContracts, useAccount } from "wagmi";
 import { PredictionMarketAddress, PredictionMarketAbi } from "@/constants/PredictionMarket";
 import { PredictionAMMAddress, PredictionAMMAbi } from "@/constants/PredictionMarketAMM";
 import { MarketCard } from "./MarketCard";
 import { LoadingLogo } from "@/components/ui/loading-logo";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Search, X } from "lucide-react";
 import { isTrustedResolver, isPerpetualOracleResolver } from "@/constants/TrustedResolvers";
 
 interface MarketGalleryProps {
@@ -16,6 +18,8 @@ type MarketFilter = "all" | "contract" | "curated" | "community" | "closed" | "r
 export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
   const [start] = useState(0);
   const [filter, setFilter] = useState<MarketFilter>("curated");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [metadataCache, setMetadataCache] = useState<Map<string, any>>(new Map());
   // Fetch 100 markets per contract (200 total). Balance between completeness and performance.
   // TODO: Implement pagination or infinite scroll when market count grows significantly
   const count = 100;
@@ -255,6 +259,55 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
     });
   }
 
+  // Fetch metadata for all markets asynchronously
+  useEffect(() => {
+    const fetchAllMetadata = async () => {
+      if (allMarkets.length === 0) return;
+
+      const newCache = new Map(metadataCache);
+      let hasUpdates = false;
+
+      for (const market of allMarkets) {
+        const cacheKey = `${market.contractAddress}-${market.marketId}`;
+        if (newCache.has(cacheKey)) continue;
+
+        try {
+          // Try to parse as JSON first (for some legacy formats)
+          try {
+            const parsed = JSON.parse(market.description);
+            if (parsed.name) {
+              newCache.set(cacheKey, { name: parsed.name });
+              hasUpdates = true;
+              continue;
+            }
+          } catch {
+            // Not JSON, continue to fetch
+          }
+
+          // Fetch from URL/IPFS
+          const url = market.description.startsWith('ipfs://')
+            ? `https://ipfs.io/ipfs/${market.description.slice(7)}`
+            : market.description;
+
+          const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
+          const data = await response.json();
+          newCache.set(cacheKey, { name: data.name || "Unnamed Market" });
+          hasUpdates = true;
+        } catch (error) {
+          // Cache empty result to avoid refetching
+          newCache.set(cacheKey, { name: `Market #${market.marketId.toString().slice(0, 8)}` });
+          hasUpdates = true;
+        }
+      }
+
+      if (hasUpdates) {
+        setMetadataCache(newCache);
+      }
+    };
+
+    fetchAllMetadata();
+  }, [allMarkets.length, metadataCache]);
+
   // Excluded resolver addresses
   const excludedResolvers = new Set([
     "0x40cc6F9ca737a0aA746b645cFc92a67942162CC3".toLowerCase(),
@@ -269,8 +322,12 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
     2432527491801219314479643753245417709526518743184029612039853322401478992262n,
   ]);
 
-  const visibleMarkets = allMarkets.filter(
-    (m) => !excludedResolvers.has(m.resolver.toLowerCase()) && !excludedMarketIds.has(m.marketId)
+  // Memoize expensive filtering operations
+  const visibleMarkets = useMemo(() =>
+    allMarkets.filter(
+      (m) => !excludedResolvers.has(m.resolver.toLowerCase()) && !excludedMarketIds.has(m.marketId)
+    ),
+    [allMarkets.length] // Only recalculate when markets count changes
   );
 
   // Define dust threshold: 0.0001 wstETH (100000000000000 wei = 10^14)
@@ -278,23 +335,26 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
   const DUST_THRESHOLD = 100000000000000n; // 0.0001 wstETH
 
   // First, filter out dust markets from closed/resolved
-  const nonDustMarkets = visibleMarkets.filter((market) => {
-    // Always keep active markets regardless of pot size
-    // This includes parimutuel markets with pot === 0 that haven't been initialized yet
-    if (market.tradingOpen && !market.resolved) {
-      return true;
-    }
+  const nonDustMarkets = useMemo(() =>
+    visibleMarkets.filter((market) => {
+      // Always keep active markets regardless of pot size
+      // This includes parimutuel markets with pot === 0 that haven't been initialized yet
+      if (market.tradingOpen && !market.resolved) {
+        return true;
+      }
 
-    // For resolved markets: only keep if pot >= DUST_THRESHOLD
-    if (market.resolved) {
+      // For resolved markets: only keep if pot >= DUST_THRESHOLD
+      if (market.resolved) {
+        return market.pot >= DUST_THRESHOLD;
+      }
+
+      // For closed but unresolved markets:
+      // - Only keep if pot >= DUST_THRESHOLD (meaningful amounts)
+      // - Hide if pot is 0 (no activity) or pot < DUST_THRESHOLD (dust amounts)
       return market.pot >= DUST_THRESHOLD;
-    }
-
-    // For closed but unresolved markets:
-    // - Only keep if pot >= DUST_THRESHOLD (meaningful amounts)
-    // - Hide if pot is 0 (no activity) or pot < DUST_THRESHOLD (dust amounts)
-    return market.pot >= DUST_THRESHOLD;
-  });
+    }),
+    [visibleMarkets.length]
+  );
 
   // Calculate accurate counts based on non-dust markets
   const activeMarkets = nonDustMarkets.filter((m) => m.tradingOpen && !m.resolved);
@@ -305,31 +365,52 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
   const resolvedCount = nonDustMarkets.filter((m) => m.resolved).length;
   const positionsCount = nonDustMarkets.filter((m) => m.userYesBalance > 0n || m.userNoBalance > 0n).length;
 
-  // Filter markets based on selected filter
-  const filteredMarkets = nonDustMarkets.filter((market) => {
-    if (filter === "all") {
+  // Filter markets based on selected filter and search query (memoized for performance)
+  const filteredMarkets = useMemo(() => {
+    let markets = nonDustMarkets.filter((market) => {
+      if (filter === "all") {
+        return true;
+      }
+      if (filter === "contract") {
+        return market.tradingOpen && !market.resolved && isPerpetualOracleResolver(market.resolver);
+      }
+      if (filter === "curated") {
+        return market.tradingOpen && !market.resolved && isTrustedResolver(market.resolver) && !isPerpetualOracleResolver(market.resolver);
+      }
+      if (filter === "community") {
+        return market.tradingOpen && !market.resolved && !isTrustedResolver(market.resolver);
+      }
+      if (filter === "closed") {
+        return !market.tradingOpen && !market.resolved;
+      }
+      if (filter === "resolved") {
+        return market.resolved;
+      }
+      if (filter === "positions") {
+        return market.userYesBalance > 0n || market.userNoBalance > 0n;
+      }
       return true;
+    });
+
+    // Apply search filter if query exists
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      markets = markets.filter((market) => {
+        const cacheKey = `${market.contractAddress}-${market.marketId}`;
+        const cached = metadataCache.get(cacheKey);
+
+        if (cached && cached.name) {
+          // Search in cached market name
+          return cached.name.toLowerCase().includes(query);
+        }
+
+        // Fallback: search in market ID if metadata not yet loaded
+        return market.marketId.toString().includes(query);
+      });
     }
-    if (filter === "contract") {
-      return market.tradingOpen && !market.resolved && isPerpetualOracleResolver(market.resolver);
-    }
-    if (filter === "curated") {
-      return market.tradingOpen && !market.resolved && isTrustedResolver(market.resolver) && !isPerpetualOracleResolver(market.resolver);
-    }
-    if (filter === "community") {
-      return market.tradingOpen && !market.resolved && !isTrustedResolver(market.resolver);
-    }
-    if (filter === "closed") {
-      return !market.tradingOpen && !market.resolved;
-    }
-    if (filter === "resolved") {
-      return market.resolved;
-    }
-    if (filter === "positions") {
-      return market.userYesBalance > 0n || market.userNoBalance > 0n;
-    }
-    return true;
-  });
+
+    return markets;
+  }, [nonDustMarkets, filter, searchQuery, metadataCache]);
 
   // Calculate total markets count (before exclusions, just PM + AMM)
   const totalPMMarkets = hasPMMarkets ? marketsData![0].length : 0;
@@ -352,6 +433,35 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
           </div>
         )}
       </div>
+
+      {/* Search Bar - Subtle & Clean */}
+      <div className="relative max-w-md mx-auto">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+        <Input
+          type="text"
+          placeholder="Search markets by name..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10 pr-10 h-11 bg-muted/30 border-border/50 focus:bg-background transition-colors"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Clear search"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
+      {/* Show search results count when searching */}
+      {searchQuery && (
+        <div className="text-center text-sm text-muted-foreground">
+          Found <span className="font-semibold text-foreground">{filteredMarkets.length}</span> market
+          {filteredMarkets.length !== 1 ? "s" : ""} matching "{searchQuery}"
+        </div>
+      )}
 
       <Tabs value={filter} onValueChange={(v) => setFilter(v as MarketFilter)}>
         <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
@@ -401,11 +511,24 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
 
         <TabsContent value={filter} className="mt-6">
           {filteredMarkets.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              No {filter === "all" ? "" : filter} markets found
+            <div className="text-center py-16">
+              <div className="text-5xl mb-4 opacity-50">🔍</div>
+              <p className="text-muted-foreground text-base">
+                {searchQuery
+                  ? `No markets found matching "${searchQuery}"`
+                  : `No ${filter === "all" ? "" : filter} markets found`}
+              </p>
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="mt-4 text-sm text-primary hover:underline"
+                >
+                  Clear search
+                </button>
+              )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 animate-in fade-in duration-300">
               {filteredMarkets.map((market) => (
                 <MarketCard
                   key={`${market.contractAddress}-${market.marketId.toString()}`}

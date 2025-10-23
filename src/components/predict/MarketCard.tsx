@@ -1381,7 +1381,12 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                     className="flex items-center gap-1 hover:text-primary transition-colors font-mono"
                     title={resolver}
                   >
-                    {trustedResolverInfo?.name || ensName || `${resolver.slice(0, 6)}...${resolver.slice(-4)}`}
+                    {/* Prefer ENS name over generic "Trusted Resolver #X" labels */}
+                    {ensName ||
+                     (trustedResolverInfo?.name && !trustedResolverInfo.name.startsWith("Trusted Resolver #")
+                       ? trustedResolverInfo.name
+                       : null) ||
+                     `${resolver.slice(0, 6)}...${resolver.slice(-4)}`}
                     <ExternalLink className="h-3 w-3" />
                   </a>
                   {trustedResolverInfo && trustedResolverInfo.description ? (
