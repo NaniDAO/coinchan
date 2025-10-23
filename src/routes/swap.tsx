@@ -6,9 +6,11 @@ import { useTranslation } from "react-i18next";
 import { useAllCoins } from "@/hooks/metadata/use-all-coins";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SwapAction } from "@/components/swap/SwapAction";
-import { RecommendationsPanel } from "@/components/swap/RecommendationsPanel";
+import { RecommendationsSidebar } from "@/components/swap/RecommendationsSidebar";
+import { RecommendationCommandButton } from "@/components/swap/RecommendationCommandButton";
 import type { Recommendation } from "@/types/recommendations";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useRecommendations } from "@/hooks/use-recommendations";
 
 export const Route = createFileRoute("/swap")({
   component: RouteComponent,
@@ -18,8 +20,23 @@ export const Route = createFileRoute("/swap")({
 function RouteComponent() {
   const { t } = useTranslation();
   const { tokenCount, loading, error: loadError } = useAllCoins();
+  const { recommendations, loading: recsLoading } = useRecommendations();
   const [selectedRecommendationIndex, setSelectedRecommendationIndex] = useState<number | undefined>(undefined);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const swapActionRef = useRef<{ setTokensFromRecommendation: (rec: Recommendation) => void }>(null);
+
+  // Keyboard shortcut: Cmd/Ctrl + K to toggle sidebar
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setSidebarOpen((prev) => !prev);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // Loading state
   if (loading) {
@@ -35,6 +52,9 @@ function RouteComponent() {
     swapActionRef.current?.setTokensFromRecommendation(rec);
   };
 
+  const recommendationCount = recommendations?.recommendations?.length ?? 0;
+  const hasRecommendations = recommendationCount > 0;
+
   return (
     <TokenSelectionProvider>
       <div className="w-full !mb-10 mt-5 mx-auto !p-4 bg-background">
@@ -45,43 +65,43 @@ function RouteComponent() {
           </div>
         )}
 
-        {/* Two-column grid layout: swap on left, recommendations on right (desktop) / stacked (mobile) */}
-        <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-          {/* Left column: Swap interface */}
-          <div className="flex flex-col">
-            <div className="relative flex flex-col p-5">
-              <ErrorBoundary
-                fallback={
-                  <div className="flex items-center justify-center p-8">
-                    <div className="text-sm text-muted-foreground">Loading...</div>
-                  </div>
-                }
-              >
-                <SwapAction action="instant" ref={swapActionRef} />
-              </ErrorBoundary>
-              {/* Info showing token count */}
-              <div className="text-xs mt-5 text-center font-mono">
-                {t("common.available_tokens")} {tokenCount} {t("common.eth_plus_coins", { count: tokenCount - 1 })}
-              </div>
-            </div>
-          </div>
-
-          {/* Right column: Recommendations panel */}
-          <div className="flex flex-col">
+        {/* Single column layout with floating command button */}
+        <div className="w-full max-w-2xl mx-auto">
+          <div className="relative flex flex-col p-5">
             <ErrorBoundary
               fallback={
                 <div className="flex items-center justify-center p-8">
-                  <div className="text-sm text-muted-foreground">Loading recommendations...</div>
+                  <div className="text-sm text-muted-foreground">Loading...</div>
                 </div>
               }
             >
-              <RecommendationsPanel
-                onSelectRecommendation={handleRecommendationSelect}
-                selectedIndex={selectedRecommendationIndex}
-              />
+              <SwapAction action="instant" ref={swapActionRef} />
             </ErrorBoundary>
+
+            {/* Info showing token count */}
+            <div className="text-xs mt-5 text-center font-mono">
+              {t("common.available_tokens")} {tokenCount} {t("common.eth_plus_coins", { count: tokenCount - 1 })}
+            </div>
+
+            {/* Floating Command Button - positioned at top-right of swap card */}
+            <div className="absolute top-5 right-5">
+              <RecommendationCommandButton
+                loading={recsLoading}
+                hasRecommendations={hasRecommendations}
+                recommendationCount={recommendationCount}
+                onClick={() => setSidebarOpen(true)}
+              />
+            </div>
           </div>
         </div>
+
+        {/* Recommendations Sidebar */}
+        <RecommendationsSidebar
+          open={sidebarOpen}
+          onOpenChange={setSidebarOpen}
+          onSelectRecommendation={handleRecommendationSelect}
+          selectedIndex={selectedRecommendationIndex}
+        />
       </div>
     </TokenSelectionProvider>
   );
