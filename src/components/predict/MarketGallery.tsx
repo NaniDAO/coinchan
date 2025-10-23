@@ -144,59 +144,75 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
   const hasAMMMarkets = Boolean(ammMarketsData && ammMarketsData[0] && ammMarketsData[0].length > 0);
 
   // Parse Pari-Mutuel markets (memoized to ensure consistent hook calls)
-  const pmMarkets = useMemo(() => hasPMMarkets
-    ? {
-        marketIdsArray: marketsData![0],
-        yesSupplies: marketsData![1],
-        noSupplies: marketsData![2],
-        resolvers: marketsData![3],
-        resolved: marketsData![4],
-        outcome: marketsData![5],
-        pot: marketsData![6],
-        payoutPerShare: marketsData![7],
-        descs: marketsData![8],
-        next: marketsData![9],
-      }
-    : null, [hasPMMarkets, marketsData]);
+  const pmMarkets = useMemo(
+    () =>
+      hasPMMarkets
+        ? {
+            marketIdsArray: marketsData![0],
+            yesSupplies: marketsData![1],
+            noSupplies: marketsData![2],
+            resolvers: marketsData![3],
+            resolved: marketsData![4],
+            outcome: marketsData![5],
+            pot: marketsData![6],
+            payoutPerShare: marketsData![7],
+            descs: marketsData![8],
+            next: marketsData![9],
+          }
+        : null,
+    [hasPMMarkets, marketsData],
+  );
 
   // Parse AMM markets - note the AMM contract returns more fields
-  const ammMarkets = useMemo(() => hasAMMMarkets
-    ? {
-        marketIdsArray: ammMarketsData![0],
-        yesSupplies: ammMarketsData![1],
-        noSupplies: ammMarketsData![2],
-        resolvers: ammMarketsData![3],
-        resolved: ammMarketsData![4],
-        outcome: ammMarketsData![5],
-        pot: ammMarketsData![6],
-        payoutPerShare: ammMarketsData![7],
-        descs: ammMarketsData![8],
-        closes: ammMarketsData![9],
-        canCloses: ammMarketsData![10],
-        rYesArr: ammMarketsData![11],
-        rNoArr: ammMarketsData![12],
-        pYesNumArr: ammMarketsData![13],
-        pYesDenArr: ammMarketsData![14],
-        next: ammMarketsData![15],
-      }
-    : null, [hasAMMMarkets, ammMarketsData]);
+  const ammMarkets = useMemo(
+    () =>
+      hasAMMMarkets
+        ? {
+            marketIdsArray: ammMarketsData![0],
+            yesSupplies: ammMarketsData![1],
+            noSupplies: ammMarketsData![2],
+            resolvers: ammMarketsData![3],
+            resolved: ammMarketsData![4],
+            outcome: ammMarketsData![5],
+            pot: ammMarketsData![6],
+            payoutPerShare: ammMarketsData![7],
+            descs: ammMarketsData![8],
+            closes: ammMarketsData![9],
+            canCloses: ammMarketsData![10],
+            rYesArr: ammMarketsData![11],
+            rNoArr: ammMarketsData![12],
+            pYesNumArr: ammMarketsData![13],
+            pYesDenArr: ammMarketsData![14],
+            next: ammMarketsData![15],
+          }
+        : null,
+    [hasAMMMarkets, ammMarketsData],
+  );
 
   // Extract user positions data for both types
-  const userPositions = useMemo(() => userMarketsData
-    ? {
-        yesBalances: userMarketsData[2],
-        noBalances: userMarketsData[3],
-        claimables: userMarketsData[4],
-      }
-    : null, [userMarketsData]);
+  const userPositions = useMemo(
+    () =>
+      userMarketsData
+        ? {
+            yesBalances: userMarketsData[2],
+            noBalances: userMarketsData[3],
+            claimables: userMarketsData[4],
+          }
+        : null,
+    [userMarketsData],
+  );
 
-  const userAmmPositions = useMemo(() => userAmmMarketsData
-    ? {
-        yesBalances: userAmmMarketsData[2],
-        noBalances: userAmmMarketsData[3],
-        claimables: userAmmMarketsData[4],
-      }
-    : null, [userAmmMarketsData]);
+  const userAmmPositions = useMemo(
+    () =>
+      userAmmMarketsData
+        ? {
+            yesBalances: userAmmMarketsData[2],
+            noBalances: userAmmMarketsData[3],
+            claimables: userAmmMarketsData[4],
+          }
+        : null,
+    [userAmmMarketsData],
+  );
 
   // Combine markets from both contracts (memoized to ensure consistent hook calls)
   const allMarkets = useMemo(() => {
@@ -272,25 +288,32 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
   }, [pmMarkets, ammMarkets, userPositions, userAmmPositions, tradingOpenData, ammTradingOpenData]);
 
   // Excluded resolver addresses
-  const excludedResolvers = useMemo(() => new Set([
-    "0x40cc6F9ca737a0aA746b645cFc92a67942162CC3".toLowerCase(),
-    "0x07e53dd08D9579e90928636068835d4EADc253a6".toLowerCase(), // Old CoinflipResolver (excluded)
-    // Note: 0xeAd4D6A7C5C0D8ff7bFbe3ab1b4b4bc596C1FD1c is the NEW trusted CoinflipResolver and should be visible
-  ]), []);
+  const excludedResolvers = useMemo(
+    () =>
+      new Set([
+        "0x40cc6F9ca737a0aA746b645cFc92a67942162CC3".toLowerCase(),
+        "0x07e53dd08D9579e90928636068835d4EADc253a6".toLowerCase(), // Old CoinflipResolver (excluded)
+        // Note: 0xeAd4D6A7C5C0D8ff7bFbe3ab1b4b4bc596C1FD1c is the NEW trusted CoinflipResolver and should be visible
+      ]),
+    [],
+  );
 
   // Excluded market IDs (specific Coinflip markets to hide)
-  const excludedMarketIds = useMemo(() => new Set([
-    54729014062189984233222064350194783449228335005152376603700161212069844720568n,
-    26201201871669602142649258403946775672767689279764719138083439927528646678749n,
-    2432527491801219314479643753245417709526518743184029612039853322401478992262n,
-  ]), []);
+  const excludedMarketIds = useMemo(
+    () =>
+      new Set([
+        54729014062189984233222064350194783449228335005152376603700161212069844720568n,
+        26201201871669602142649258403946775672767689279764719138083439927528646678749n,
+        2432527491801219314479643753245417709526518743184029612039853322401478992262n,
+      ]),
+    [],
+  );
 
   // Memoize expensive filtering operations
-  const visibleMarkets = useMemo(() =>
-    allMarkets.filter(
-      (m) => !excludedResolvers.has(m.resolver.toLowerCase()) && !excludedMarketIds.has(m.marketId)
-    ),
-    [allMarkets, excludedResolvers, excludedMarketIds]
+  const visibleMarkets = useMemo(
+    () =>
+      allMarkets.filter((m) => !excludedResolvers.has(m.resolver.toLowerCase()) && !excludedMarketIds.has(m.marketId)),
+    [allMarkets, excludedResolvers, excludedMarketIds],
   );
 
   // Define dust threshold: 0.0001 wstETH (100000000000000 wei = 10^14)
@@ -298,31 +321,34 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
   const DUST_THRESHOLD = 100000000000000n; // 0.0001 wstETH
 
   // First, filter out dust markets from closed/resolved
-  const nonDustMarkets = useMemo(() =>
-    visibleMarkets.filter((market) => {
-      // Always keep active markets regardless of pot size
-      // This includes parimutuel markets with pot === 0 that haven't been initialized yet
-      if (market.tradingOpen && !market.resolved) {
-        return true;
-      }
+  const nonDustMarkets = useMemo(
+    () =>
+      visibleMarkets.filter((market) => {
+        // Always keep active markets regardless of pot size
+        // This includes parimutuel markets with pot === 0 that haven't been initialized yet
+        if (market.tradingOpen && !market.resolved) {
+          return true;
+        }
 
-      // For resolved markets: only keep if pot >= DUST_THRESHOLD
-      if (market.resolved) {
+        // For resolved markets: only keep if pot >= DUST_THRESHOLD
+        if (market.resolved) {
+          return market.pot >= DUST_THRESHOLD;
+        }
+
+        // For closed but unresolved markets:
+        // - Only keep if pot >= DUST_THRESHOLD (meaningful amounts)
+        // - Hide if pot is 0 (no activity) or pot < DUST_THRESHOLD (dust amounts)
         return market.pot >= DUST_THRESHOLD;
-      }
-
-      // For closed but unresolved markets:
-      // - Only keep if pot >= DUST_THRESHOLD (meaningful amounts)
-      // - Hide if pot is 0 (no activity) or pot < DUST_THRESHOLD (dust amounts)
-      return market.pot >= DUST_THRESHOLD;
-    }),
-    [visibleMarkets, DUST_THRESHOLD]
+      }),
+    [visibleMarkets, DUST_THRESHOLD],
   );
 
   // Calculate accurate counts based on non-dust markets
   const activeMarkets = nonDustMarkets.filter((m) => m.tradingOpen && !m.resolved);
   const contractCount = activeMarkets.filter((m) => isPerpetualOracleResolver(m.resolver)).length;
-  const curatedCount = activeMarkets.filter((m) => isTrustedResolver(m.resolver) && !isPerpetualOracleResolver(m.resolver)).length;
+  const curatedCount = activeMarkets.filter(
+    (m) => isTrustedResolver(m.resolver) && !isPerpetualOracleResolver(m.resolver),
+  ).length;
   const communityCount = activeMarkets.filter((m) => !isTrustedResolver(m.resolver)).length;
   const closedCount = nonDustMarkets.filter((m) => !m.tradingOpen && !m.resolved).length;
   const resolvedCount = nonDustMarkets.filter((m) => m.resolved).length;
@@ -348,7 +374,12 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
         return market.tradingOpen && !market.resolved && isPerpetualOracleResolver(market.resolver);
       }
       if (filter === "curated") {
-        return market.tradingOpen && !market.resolved && isTrustedResolver(market.resolver) && !isPerpetualOracleResolver(market.resolver);
+        return (
+          market.tradingOpen &&
+          !market.resolved &&
+          isTrustedResolver(market.resolver) &&
+          !isPerpetualOracleResolver(market.resolver)
+        );
       }
       if (filter === "community") {
         return market.tradingOpen && !market.resolved && !isTrustedResolver(market.resolver);
@@ -457,7 +488,8 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
         <div>
           <span className="font-semibold text-foreground">{totalMarketsCount}</span> total markets
           <span className="hidden sm:inline">
-            {" "}({totalPMMarkets} Parimutuel, {totalAMMMarkets} AMM)
+            {" "}
+            ({totalPMMarkets} Parimutuel, {totalAMMMarkets} AMM)
           </span>
         </div>
         {nonDustMarkets.length < visibleMarkets.length && (
@@ -597,10 +629,7 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
                   : `No ${filter === "all" ? "" : filter} markets found`}
               </p>
               {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  className="mt-4 text-sm text-primary hover:underline"
-                >
+                <button onClick={() => setSearchQuery("")} className="mt-4 text-sm text-primary hover:underline">
                   Clear search
                 </button>
               )}

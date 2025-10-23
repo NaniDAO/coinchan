@@ -39,14 +39,7 @@ function isValidNumberLike(v?: string) {
  * - No refetch on window focus/reconnect.
  * - Stays "fresh" forever for the same key (staleTime: Infinity).
  */
-export function useZRouterQuote({
-  publicClient,
-  sellToken,
-  buyToken,
-  rawAmount,
-  side,
-  enabled,
-}: UseZRouterQuoteArgs) {
+export function useZRouterQuote({ publicClient, sellToken, buyToken, rawAmount, side, enabled }: UseZRouterQuoteArgs) {
   console.log("useZRouterQuote", {
     publicClient,
     sellToken,
@@ -56,14 +49,8 @@ export function useZRouterQuote({
     enabled,
   });
   // Resolve tokens & decimals once
-  const tokenIn = useMemo(
-    () => toZRouterToken(sellToken || undefined),
-    [sellToken],
-  );
-  const tokenOut = useMemo(
-    () => toZRouterToken(buyToken || undefined),
-    [buyToken],
-  );
+  const tokenIn = useMemo(() => toZRouterToken(sellToken || undefined), [sellToken]);
+  const tokenOut = useMemo(() => toZRouterToken(buyToken || undefined), [buyToken]);
   const sellDecimals = sellToken?.decimals ?? 18;
   const buyDecimals = buyToken?.decimals ?? 18;
 
@@ -97,16 +84,14 @@ export function useZRouterQuote({
     [side, tokenIn, tokenOut, parsedAmount, sellDecimals, buyDecimals],
   );
 
-  const autoEnabled =
-    !!publicClient && !!tokenIn && !!tokenOut && !!parsedAmount;
+  const autoEnabled = !!publicClient && !!tokenIn && !!tokenOut && !!parsedAmount;
 
   return useQuery<ZRouterQuoteResult>({
     queryKey,
     enabled: enabled ?? autoEnabled,
     queryFn: async () => {
       // Safety guards (also protect against TS narrowing)
-      if (!publicClient || !tokenIn || !tokenOut || !parsedAmount)
-        return { ok: false };
+      if (!publicClient || !tokenIn || !tokenOut || !parsedAmount) return { ok: false };
 
       // Ask zrouter for a quote
       const res = await quote(publicClient, {

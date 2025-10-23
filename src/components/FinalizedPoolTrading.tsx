@@ -10,19 +10,12 @@ import { ZCurveClaim } from "@/components/ZCurveClaim";
 import { useETHPrice } from "@/hooks/use-eth-price";
 import { ZCurveAddLiquidity } from "@/components/ZCurveAddLiquidity";
 import { ZCurveRemoveLiquidity } from "@/components/ZCurveRemoveLiquidity";
-import {
-  TokenSelectionProvider,
-  useTokenSelection,
-} from "@/contexts/TokenSelectionContext";
+import { TokenSelectionProvider, useTokenSelection } from "@/contexts/TokenSelectionContext";
 import { useTheme } from "@/lib/theme";
 import { getEthereumIconDataUri } from "@/components/EthereumIcon";
 
 import type { TokenMeta } from "@/lib/coins";
-import {
-  useZCurveSale,
-  useZCurveSaleSummary,
-  useZCurveBalance,
-} from "@/hooks/use-zcurve-sale";
+import { useZCurveSale, useZCurveSaleSummary, useZCurveBalance } from "@/hooks/use-zcurve-sale";
 import { computeZCurvePoolId } from "@/lib/zCurvePoolId";
 import { useReserves } from "@/hooks/use-reserves";
 import React from "react";
@@ -62,9 +55,7 @@ function FinalizedPoolTradingInner({
   const { t } = useTranslation();
   const { address } = useAccount();
   const { theme } = useTheme();
-  const [activeTab, setActiveTab] = useState<
-    "swap" | "add" | "remove" | "airdrop" | "farm"
-  >("swap");
+  const [activeTab, setActiveTab] = useState<"swap" | "add" | "remove" | "airdrop" | "farm">("swap");
   const [hideFarm, setHideFarm] = useState(false);
   const { setSellToken, setBuyToken } = useTokenSelection();
   const { data: zDrops } = useGetZDrops({
@@ -78,10 +69,7 @@ function FinalizedPoolTradingInner({
   const [chartRefreshKey, setChartRefreshKey] = useState(0);
 
   const contractSource = getSourceByContract(contractAddress);
-  const source =
-    contractSource && contractSource !== "ERC20"
-      ? contractSource
-      : ("COOKBOOK" as const);
+  const source = contractSource && contractSource !== "ERC20" ? contractSource : ("COOKBOOK" as const);
 
   // Fetch sale and user data
   const { data: sale } = useZCurveSale(coinId);
@@ -99,11 +87,7 @@ function FinalizedPoolTradingInner({
   const { poolId, actualFee } = useMemo(() => {
     if (providedPoolId) {
       // If poolId is provided, extract fee from sale data
-      const feeOrHook = sale?.feeOrHook
-        ? BigInt(sale.feeOrHook)
-        : pool?.swapFee
-          ? BigInt(pool.swapFee)
-          : 30n;
+      const feeOrHook = sale?.feeOrHook ? BigInt(sale.feeOrHook) : pool?.swapFee ? BigInt(pool.swapFee) : 30n;
       const fee = feeOrHook < 10000n ? feeOrHook : 30n;
       return { poolId: providedPoolId, actualFee: fee };
     }
@@ -193,8 +177,7 @@ function FinalizedPoolTradingInner({
     const imageUrl = coinIcon ?? sale?.coin?.imageUrl ?? "";
 
     // Strictly bail if any required token fields aren't loaded yet
-    if (symbol === undefined || name === undefined || imageUrl === undefined)
-      return undefined;
+    if (symbol === undefined || name === undefined || imageUrl === undefined) return undefined;
 
     // Safely parse id
     if (coinId == null) return undefined;
@@ -246,9 +229,7 @@ function FinalizedPoolTradingInner({
     return (
       <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         <Alert>
-          <AlertDescription>
-            {t("trade.pool_not_found", "Pool not found")}
-          </AlertDescription>
+          <AlertDescription>{t("trade.pool_not_found", "Pool not found")}</AlertDescription>
         </Alert>
       </div>
     );
@@ -257,50 +238,47 @@ function FinalizedPoolTradingInner({
   const { data: ethPrice } = useETHPrice();
 
   // Calculate market cap and price
-  const { coinPrice, coinUsdPrice, marketCapUsd, marketCapEth } =
-    useMemo(() => {
-      if (!reserves || reserves.reserve0 === 0n || reserves.reserve1 === 0n) {
-        console.warn("No reserves available for pool:", poolId, reserves);
-        return {
-          coinPrice: 0,
-          coinUsdPrice: 0,
-          marketCapUsd: 0,
-          marketCapEth: 0,
-        };
-      }
-
-      // Price = ETH reserve / Token reserve (ETH is token0/reserve0)
-      const ethReserve = Number(formatEther(reserves.reserve0));
-      const tokenReserve = Number(formatUnits(reserves.reserve1, 18));
-
-      if (tokenReserve === 0) {
-        console.warn("Token reserve is 0");
-        return {
-          coinPrice: 0,
-          coinUsdPrice: 0,
-          marketCapUsd: 0,
-          marketCapEth: 0,
-        };
-      }
-
-      const price = ethReserve / tokenReserve;
-      const usdPrice = price * (ethPrice?.priceUSD || 0);
-
-      // Use actual total supply from the indexer (in wei, so format it)
-      // Never fall back to a hardcoded value - show N/A if not available
-      const supply = actualTotalSupply
-        ? Number(formatEther(actualTotalSupply))
-        : null;
-      const marketCapInEth = supply ? price * supply : 0;
-      const marketCap = supply ? usdPrice * supply : 0;
-
+  const { coinPrice, coinUsdPrice, marketCapUsd, marketCapEth } = useMemo(() => {
+    if (!reserves || reserves.reserve0 === 0n || reserves.reserve1 === 0n) {
+      console.warn("No reserves available for pool:", poolId, reserves);
       return {
-        coinPrice: price,
-        coinUsdPrice: usdPrice,
-        marketCapUsd: marketCap,
-        marketCapEth: marketCapInEth,
+        coinPrice: 0,
+        coinUsdPrice: 0,
+        marketCapUsd: 0,
+        marketCapEth: 0,
       };
-    }, [reserves, ethPrice?.priceUSD, poolId, actualTotalSupply]);
+    }
+
+    // Price = ETH reserve / Token reserve (ETH is token0/reserve0)
+    const ethReserve = Number(formatEther(reserves.reserve0));
+    const tokenReserve = Number(formatUnits(reserves.reserve1, 18));
+
+    if (tokenReserve === 0) {
+      console.warn("Token reserve is 0");
+      return {
+        coinPrice: 0,
+        coinUsdPrice: 0,
+        marketCapUsd: 0,
+        marketCapEth: 0,
+      };
+    }
+
+    const price = ethReserve / tokenReserve;
+    const usdPrice = price * (ethPrice?.priceUSD || 0);
+
+    // Use actual total supply from the indexer (in wei, so format it)
+    // Never fall back to a hardcoded value - show N/A if not available
+    const supply = actualTotalSupply ? Number(formatEther(actualTotalSupply)) : null;
+    const marketCapInEth = supply ? price * supply : 0;
+    const marketCap = supply ? usdPrice * supply : 0;
+
+    return {
+      coinPrice: price,
+      coinUsdPrice: usdPrice,
+      marketCapUsd: marketCap,
+      marketCapEth: marketCapInEth,
+    };
+  }, [reserves, ethPrice?.priceUSD, poolId, actualTotalSupply]);
 
   return (
     <div>
@@ -372,13 +350,7 @@ function FinalizedPoolTradingInner({
           <TabsContent value="swap" className="mt-4">
             <ErrorBoundary fallback={<div>Error loading LockedSwapTile</div>}>
               {/* Swap Section - Desktop: Right, Mobile: Top */}
-              <div className="w-full">
-                {token ? (
-                  <LockedSwapTile token={token} />
-                ) : (
-                  <div>loading...</div>
-                )}
-              </div>
+              <div className="w-full">{token ? <LockedSwapTile token={token} /> : <div>loading...</div>}</div>
             </ErrorBoundary>
           </TabsContent>
           <TabsContent value="add" className="mt-4">
@@ -408,9 +380,7 @@ function FinalizedPoolTradingInner({
             {zDrops ? (
               <ZDropsTable zDrops={zDrops} />
             ) : (
-              <div className="text-center text-muted-foreground">
-                {t("coin.no_airdrops", "No Airdrops Available")}
-              </div>
+              <div className="text-center text-muted-foreground">{t("coin.no_airdrops", "No Airdrops Available")}</div>
             )}
           </TabsContent>
           <TabsContent value="farm" className="mt-4">
@@ -427,9 +397,7 @@ function FinalizedPoolTradingInner({
         </Tabs>
       </div>
 
-      <ErrorBoundary
-        fallback={<ErrorFallback errorMessage="Error loading Pool Info" />}
-      >
+      <ErrorBoundary fallback={<ErrorFallback errorMessage="Error loading Pool Info" />}>
         {/* Info Section */}
         <PoolInfoSection
           tokenA={ETH_TOKEN} // @TODO Hardcoded FIX

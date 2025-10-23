@@ -30,7 +30,6 @@ export const MarketDetailPage: React.FC<MarketDetailPageProps> = ({ marketType, 
     args: [marketIdBigInt],
   });
 
-
   if (isLoading) {
     return (
       <div className="mx-auto max-w-4xl p-4">

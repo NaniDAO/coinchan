@@ -42,13 +42,9 @@ const PredictPage: React.FC = () => {
             </TooltipContent>
           </Tooltip>
         </div>
-        <p className="text-base text-muted-foreground max-w-2xl mx-auto">
-          {t("predict.create_and_trade_tagline")}
-        </p>
+        <p className="text-base text-muted-foreground max-w-2xl mx-auto">{t("predict.create_and_trade_tagline")}</p>
         <div className="inline-flex items-center gap-2 px-4 py-2 bg-muted/30 rounded-full border border-border/50">
-          <span className="text-xs text-muted-foreground">
-            {t("predict.all_deposits_earn_lido")}
-          </span>
+          <span className="text-xs text-muted-foreground">{t("predict.all_deposits_earn_lido")}</span>
           <a
             href="https://lido.fi/"
             target="_blank"
@@ -57,7 +53,12 @@ const PredictPage: React.FC = () => {
           >
             Lido
             <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+              />
             </svg>
           </a>
         </div>

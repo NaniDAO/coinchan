@@ -16,23 +16,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { TradeModal } from "./TradeModal";
 import { MarketCountdown } from "./MarketCountdown";
 import { ResolverControls } from "./ResolverControls";
-import {
-  PredictionMarketAddress,
-  PredictionMarketAbi,
-} from "@/constants/PredictionMarket";
-import {
-  PredictionAMMAbi,
-} from "@/constants/PredictionMarketAMM";
-import {
-  ExternalLink,
-  BadgeCheck,
-  Copy,
-  Check,
-  Sparkles,
-  Coins,
-  Share2,
-  Star,
-} from "lucide-react";
+import { PredictionMarketAddress, PredictionMarketAbi } from "@/constants/PredictionMarket";
+import { PredictionAMMAbi } from "@/constants/PredictionMarketAMM";
+import { ExternalLink, BadgeCheck, Copy, Check, Sparkles, Coins, Share2, Star } from "lucide-react";
 import { formatImageURL } from "@/hooks/metadata";
 import {
   isTrustedResolver,
@@ -137,7 +123,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
       try {
         await navigator.share({ title: metadata?.name || "Market", text, url });
       } catch (err) {
-        if ((err as Error).name !== 'AbortError') {
+        if ((err as Error).name !== "AbortError") {
           console.error("Share failed:", err);
         }
       }
@@ -157,11 +143,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   const toastedResolveError = React.useRef<any>(null);
   const toastedTipError = React.useRef<any>(null);
 
-  const {
-    writeContract,
-    data: claimHash,
-    error: claimError,
-  } = useWriteContract();
+  const { writeContract, data: claimHash, error: claimError } = useWriteContract();
   const { isSuccess: isClaimSuccess } = useWaitForTransactionReceipt({
     hash: claimHash,
   });
@@ -174,16 +156,11 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   const isTrusted = isTrustedResolver(resolver);
   const isPerpetualOracle = isPerpetualOracleResolver(resolver);
   const trustedResolverInfo = getTrustedResolver(resolver);
-  const isEthWentUpResolver =
-    resolver.toLowerCase() === ETH_WENT_UP_RESOLVER_ADDRESS.toLowerCase();
-  const isEthWentUpResolverV2 =
-    resolver.toLowerCase() === ETH_WENT_UP_RESOLVER_V2_ADDRESS.toLowerCase();
-  const isCoinflipResolver =
-    resolver.toLowerCase() === COINFLIP_RESOLVER_ADDRESS.toLowerCase();
-  const isNounsResolver =
-    resolver.toLowerCase() === NOUNS_PASS_VOTING_RESOLVER_ADDRESS.toLowerCase();
-  const isBETHPMResolver =
-    resolver.toLowerCase() === BETH_PM_RESOLVER_ADDRESS.toLowerCase();
+  const isEthWentUpResolver = resolver.toLowerCase() === ETH_WENT_UP_RESOLVER_ADDRESS.toLowerCase();
+  const isEthWentUpResolverV2 = resolver.toLowerCase() === ETH_WENT_UP_RESOLVER_V2_ADDRESS.toLowerCase();
+  const isCoinflipResolver = resolver.toLowerCase() === COINFLIP_RESOLVER_ADDRESS.toLowerCase();
+  const isNounsResolver = resolver.toLowerCase() === NOUNS_PASS_VOTING_RESOLVER_ADDRESS.toLowerCase();
+  const isBETHPMResolver = resolver.toLowerCase() === BETH_PM_RESOLVER_ADDRESS.toLowerCase();
 
   // Check ETH balance in resolver for tip button
   const { data: resolverBalance } = useBalance({
@@ -242,17 +219,11 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   });
 
   const canResolve = Boolean(
-    isEthWentUpResolver &&
-      !resolved &&
-      ethWentUpCanResolveData &&
-      ethWentUpCanResolveData[0] === true, // ready
+    isEthWentUpResolver && !resolved && ethWentUpCanResolveData && ethWentUpCanResolveData[0] === true, // ready
   );
 
   const canResolveV2 = Boolean(
-    isEthWentUpResolverV2 &&
-      !resolved &&
-      ethWentUpV2CanResolveData &&
-      ethWentUpV2CanResolveData[0] === true, // ready
+    isEthWentUpResolverV2 && !resolved && ethWentUpV2CanResolveData && ethWentUpV2CanResolveData[0] === true, // ready
   );
 
   // Fetch epoch data for EthWentUp to get start price
@@ -289,18 +260,12 @@ export const MarketCard: React.FC<MarketCardProps> = ({
 
   // Show tip button if balance is low (less than 2x tipPerResolve)
   const showTipButton = Boolean(
-    isEthWentUpResolver &&
-      resolverBalance &&
-      tipPerResolve &&
-      resolverBalance.value < tipPerResolve * 2n,
+    isEthWentUpResolver && resolverBalance && tipPerResolve && resolverBalance.value < tipPerResolve * 2n,
   );
 
   // Show tip button for V2 if balance is low (less than 2x tipPerResolve)
   const showTipButtonV2 = Boolean(
-    isEthWentUpResolverV2 &&
-      resolverV2Balance &&
-      tipPerResolveV2 &&
-      resolverV2Balance.value < tipPerResolveV2 * 2n,
+    isEthWentUpResolverV2 && resolverV2Balance && tipPerResolveV2 && resolverV2Balance.value < tipPerResolveV2 * 2n,
   );
 
   // Check ETH balance in CoinflipResolver for tip button
@@ -332,10 +297,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   });
 
   const canResolveCoinflip = Boolean(
-    isCoinflipResolver &&
-      !resolved &&
-      coinflipCanResolveData &&
-      coinflipCanResolveData[0] === true, // ready
+    isCoinflipResolver && !resolved && coinflipCanResolveData && coinflipCanResolveData[0] === true, // ready
   );
 
   // Show tip button for Coinflip if balance is low
@@ -391,10 +353,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
 
   // Show tip button for Nouns if balance is low
   const showNounsTipButton = Boolean(
-    isNounsResolver &&
-      nounsResolverBalance &&
-      nounsTipPerAction &&
-      nounsResolverBalance.value < nounsTipPerAction * 2n,
+    isNounsResolver && nounsResolverBalance && nounsTipPerAction && nounsResolverBalance.value < nounsTipPerAction * 2n,
   );
 
   // Fetch BETHPM bet data (target amount and deadline)
@@ -429,12 +388,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
     hash: resolveHash,
   });
 
-  const {
-    writeContract: writeTip,
-    data: tipHash,
-    isPending: isTipPending,
-    error: tipError,
-  } = useWriteContract();
+  const { writeContract: writeTip, data: tipHash, isPending: isTipPending, error: tipError } = useWriteContract();
   const { isSuccess: isTipSuccess } = useWaitForTransactionReceipt({
     hash: tipHash,
   });
@@ -458,11 +412,11 @@ export const MarketCard: React.FC<MarketCardProps> = ({
     // For Nouns markets, calculate estimated closing time based on eval block
     if (isNounsResolver && description && currentBlockNumber) {
       const evalBlock = extractNounsEvalBlock(description);
-      console.log('Nouns Debug:', {
+      console.log("Nouns Debug:", {
         hasDescription: !!description,
         evalBlock,
         currentBlockNumber: Number(currentBlockNumber),
-        descriptionPreview: description.substring(0, 200)
+        descriptionPreview: description.substring(0, 200),
       });
       if (evalBlock) {
         const currentBlock = Number(currentBlockNumber);
@@ -470,13 +424,13 @@ export const MarketCard: React.FC<MarketCardProps> = ({
           const blocksRemaining = evalBlock - currentBlock;
           const secondsRemaining = blocksRemaining * 12; // ~12 seconds per block on Ethereum
           const calculatedTime = Math.floor(Date.now() / 1000) + secondsRemaining;
-          console.log('Calculated Nouns closing time:', calculatedTime, new Date(calculatedTime * 1000));
+          console.log("Calculated Nouns closing time:", calculatedTime, new Date(calculatedTime * 1000));
           return calculatedTime;
         } else {
-          console.log('Eval block already passed:', evalBlock, 'vs', currentBlock);
+          console.log("Eval block already passed:", evalBlock, "vs", currentBlock);
         }
       } else {
-        console.log('No evalBlock found in description');
+        console.log("No evalBlock found in description");
       }
     }
 
@@ -497,9 +451,10 @@ export const MarketCard: React.FC<MarketCardProps> = ({
     winningShares = outcome ? yesSupply : noSupply;
   }
 
-  const calculatedPayoutPerShare = resolved && winningShares > 0n
-    ? (pot * BigInt(1e18)) / winningShares  // Scale by 1e18 to maintain precision (same as contract's Q)
-    : payoutPerShare; // Fallback to contract value if not resolved or no winning shares
+  const calculatedPayoutPerShare =
+    resolved && winningShares > 0n
+      ? (pot * BigInt(1e18)) / winningShares // Scale by 1e18 to maintain precision (same as contract's Q)
+      : payoutPerShare; // Fallback to contract value if not resolved or no winning shares
 
   const isClosed = closingTime ? Date.now() / 1000 >= closingTime : false;
   const isTradingDisabled = resolved || isClosed;
@@ -606,18 +561,13 @@ export const MarketCard: React.FC<MarketCardProps> = ({
       }
 
       // Show actual errors
-      const errorMessage =
-        (claimError as any)?.shortMessage ?? claimError?.message ?? "";
+      const errorMessage = (claimError as any)?.shortMessage ?? claimError?.message ?? "";
       toast.error(errorMessage || "Claim failed");
     }
   }, [claimError]);
 
   useEffect(() => {
-    if (
-      isResolveSuccess &&
-      resolveHash &&
-      toastedResolve.current !== resolveHash
-    ) {
+    if (isResolveSuccess && resolveHash && toastedResolve.current !== resolveHash) {
       toastedResolve.current = resolveHash;
       toast.success("Market resolved! Keeper tip paid.");
       refetchMarketData();
@@ -635,8 +585,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
       }
 
       // Show actual errors
-      const errorMessage =
-        (resolveError as any)?.shortMessage ?? resolveError?.message ?? "";
+      const errorMessage = (resolveError as any)?.shortMessage ?? resolveError?.message ?? "";
       toast.error(errorMessage || "Resolve failed");
     }
   }, [resolveError]);
@@ -644,9 +593,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   useEffect(() => {
     if (isTipSuccess && tipHash && toastedTip.current !== tipHash) {
       toastedTip.current = tipHash;
-      toast.success(
-        "Tip added successfully! Thank you for supporting keepers.",
-      );
+      toast.success("Tip added successfully! Thank you for supporting keepers.");
     }
   }, [isTipSuccess, tipHash]);
 
@@ -660,8 +607,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
       }
 
       // Show actual errors
-      const errorMessage =
-        (tipError as any)?.shortMessage ?? tipError?.message ?? "";
+      const errorMessage = (tipError as any)?.shortMessage ?? tipError?.message ?? "";
       toast.error(errorMessage || "Tip failed");
     }
   }, [tipError]);
@@ -726,9 +672,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
               let filePath = null;
 
               // First try with common image extensions
-              filePath = files.find((f) =>
-                /\.(jpg|jpeg|png|gif|svg|webp)$/i.test(f),
-              );
+              filePath = files.find((f) => /\.(jpg|jpeg|png|gif|svg|webp)$/i.test(f));
 
               // If no match, try to find files with "image" in the name (common pattern)
               if (!filePath) {
@@ -748,9 +692,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                   imageUrl = gatewayBase + filePath;
                 } else {
                   // Relative path, append to the directory URL
-                  imageUrl = imageUrl.endsWith("/")
-                    ? imageUrl + filePath
-                    : imageUrl + "/" + filePath;
+                  imageUrl = imageUrl.endsWith("/") ? imageUrl + filePath : imageUrl + "/" + filePath;
                 }
               }
             }
@@ -811,8 +753,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   } else {
     // Parimutuel markets: use total supply directly
     const totalSupply = yesSupply + noSupply;
-    yesPercent =
-      totalSupply > 0n ? (Number(yesSupply) / Number(totalSupply)) * 100 : 50;
+    yesPercent = totalSupply > 0n ? (Number(yesSupply) / Number(totalSupply)) * 100 : 50;
     noPercent = 100 - yesPercent;
   }
 
@@ -946,17 +887,13 @@ export const MarketCard: React.FC<MarketCardProps> = ({
               <div>
                 <div
                   className={`text-xs text-muted-foreground markdown-content transition-all ${
-                    isDescriptionExpanded
-                      ? "max-h-96 overflow-y-auto"
-                      : "line-clamp-3"
+                    isDescriptionExpanded ? "max-h-96 overflow-y-auto" : "line-clamp-3"
                   }`}
                 >
                   <ReactMarkdown
                     components={{
                       // Customize rendering to fit card design
-                      p: ({ children }: { children?: React.ReactNode }) => (
-                        <p className="mb-1 last:mb-0">{children}</p>
-                      ),
+                      p: ({ children }: { children?: React.ReactNode }) => <p className="mb-1 last:mb-0">{children}</p>,
                       a: ({
                         children,
                         href,
@@ -978,65 +915,39 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                         children,
                       }: {
                         children?: React.ReactNode;
-                      }) => (
-                        <strong className="font-semibold text-foreground">
-                          {children}
-                        </strong>
-                      ),
-                      em: ({ children }: { children?: React.ReactNode }) => (
-                        <em className="italic">{children}</em>
-                      ),
+                      }) => <strong className="font-semibold text-foreground">{children}</strong>,
+                      em: ({ children }: { children?: React.ReactNode }) => <em className="italic">{children}</em>,
                       code: ({ children }: { children?: React.ReactNode }) => (
-                        <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono">
-                          {children}
-                        </code>
+                        <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono">{children}</code>
                       ),
                       ul: ({ children }: { children?: React.ReactNode }) => (
-                        <ul className="list-disc list-inside space-y-0.5">
-                          {children}
-                        </ul>
+                        <ul className="list-disc list-inside space-y-0.5">{children}</ul>
                       ),
                       ol: ({ children }: { children?: React.ReactNode }) => (
-                        <ol className="list-decimal list-inside space-y-0.5">
-                          {children}
-                        </ol>
+                        <ol className="list-decimal list-inside space-y-0.5">{children}</ol>
                       ),
-                      li: ({ children }: { children?: React.ReactNode }) => (
-                        <li className="text-xs">{children}</li>
-                      ),
+                      li: ({ children }: { children?: React.ReactNode }) => <li className="text-xs">{children}</li>,
                       h1: ({ children }: { children?: React.ReactNode }) => (
-                        <h1 className="text-base font-bold mt-2 mb-1">
-                          {children}
-                        </h1>
+                        <h1 className="text-base font-bold mt-2 mb-1">{children}</h1>
                       ),
                       h2: ({ children }: { children?: React.ReactNode }) => (
-                        <h2 className="text-sm font-bold mt-2 mb-1">
-                          {children}
-                        </h2>
+                        <h2 className="text-sm font-bold mt-2 mb-1">{children}</h2>
                       ),
                       h3: ({ children }: { children?: React.ReactNode }) => (
-                        <h3 className="text-xs font-semibold mt-1 mb-0.5">
-                          {children}
-                        </h3>
+                        <h3 className="text-xs font-semibold mt-1 mb-0.5">{children}</h3>
                       ),
                       blockquote: ({
                         children,
                       }: {
                         children?: React.ReactNode;
-                      }) => (
-                        <blockquote className="border-l-2 border-primary pl-2 italic my-1">
-                          {children}
-                        </blockquote>
-                      ),
+                      }) => <blockquote className="border-l-2 border-primary pl-2 italic my-1">{children}</blockquote>,
                     }}
                   >
                     {metadata.description}
                   </ReactMarkdown>
                 </div>
                 <button
-                  onClick={() =>
-                    setIsDescriptionExpanded(!isDescriptionExpanded)
-                  }
+                  onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
                   className="text-xs text-primary hover:underline mt-1 focus:outline-none"
                 >
                   {isDescriptionExpanded ? "Show less" : "Read more..."}
@@ -1045,242 +956,253 @@ export const MarketCard: React.FC<MarketCardProps> = ({
             )}
           </div>
 
-          {closingTime && (
-            <MarketCountdown closingTime={closingTime} resolved={resolved} />
-          )}
+          {closingTime && <MarketCountdown closingTime={closingTime} resolved={resolved} />}
 
           {/* ETH Price Market Info - Show Start and Current/Resolution Price */}
-          {(isEthWentUpResolver || isEthWentUpResolverV2) && (ethWentUpEpochData || ethWentUpV2EpochData) && (() => {
-            const epochData = isEthWentUpResolver ? ethWentUpEpochData : ethWentUpV2EpochData;
-            if (!epochData) return null;
-            // Extract start price and decimals from epoch data
-            const startPrice = epochData[3]; // startPrice (uint256)
-            const startDecimals = epochData[2]; // startDecimals (uint8)
+          {(isEthWentUpResolver || isEthWentUpResolverV2) &&
+            (ethWentUpEpochData || ethWentUpV2EpochData) &&
+            (() => {
+              const epochData = isEthWentUpResolver ? ethWentUpEpochData : ethWentUpV2EpochData;
+              if (!epochData) return null;
+              // Extract start price and decimals from epoch data
+              const startPrice = epochData[3]; // startPrice (uint256)
+              const startDecimals = epochData[2]; // startDecimals (uint8)
 
-            // Only show if we have valid start price data
-            if (!startPrice || startPrice === 0n) return null;
+              // Only show if we have valid start price data
+              if (!startPrice || startPrice === 0n) return null;
 
-            // Format prices for display (convert to dollars with 2 decimal places)
-            const formatPrice = (price: bigint, decimals: number) => {
-              const priceNum = Number(price) / Math.pow(10, decimals);
-              return priceNum.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              });
-            };
+              // Format prices for display (convert to dollars with 2 decimal places)
+              const formatPrice = (price: bigint, decimals: number) => {
+                const priceNum = Number(price) / Math.pow(10, decimals);
+                return priceNum.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                });
+              };
 
-            const startPriceFormatted = formatPrice(startPrice, startDecimals);
+              const startPriceFormatted = formatPrice(startPrice, startDecimals);
 
-            return (
-              <div className="bg-yellow-500/5 border border-yellow-500/20 rounded p-2 space-y-1">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Sparkles className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-400" />
-                  <span className="text-xs font-semibold text-yellow-700 dark:text-yellow-300">
-                    ETH Price Oracle
-                  </span>
-                </div>
-                <div className="text-xs text-muted-foreground space-y-0.5">
-                  <div className="flex justify-between items-center">
-                    <span>Start Price:</span>
-                    <span className="font-mono font-semibold">${startPriceFormatted}</span>
+              return (
+                <div className="bg-yellow-500/5 border border-yellow-500/20 rounded p-2 space-y-1">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Sparkles className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-400" />
+                    <span className="text-xs font-semibold text-yellow-700 dark:text-yellow-300">ETH Price Oracle</span>
                   </div>
-                  {resolved ? (
-                    // For resolved markets, show the outcome
+                  <div className="text-xs text-muted-foreground space-y-0.5">
                     <div className="flex justify-between items-center">
-                      <span>Resolution:</span>
-                      <span className={`font-mono font-semibold ${outcome ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                        Price went {outcome ? 'UP ↑' : 'DOWN ↓'}
-                      </span>
+                      <span>Start Price:</span>
+                      <span className="font-mono font-semibold">${startPriceFormatted}</span>
                     </div>
-                  ) : currentEthPriceData ? (
-                    // For active markets with price data, show current price and change
-                    (() => {
-                      const currentPrice = currentEthPriceData[1]; // answer
-                      const currentDecimals = 8; // Chainlink ETH/USD uses 8 decimals
-                      const currentPriceFormatted = formatPrice(BigInt(currentPrice.toString()), currentDecimals);
+                    {resolved ? (
+                      // For resolved markets, show the outcome
+                      <div className="flex justify-between items-center">
+                        <span>Resolution:</span>
+                        <span
+                          className={`font-mono font-semibold ${outcome ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
+                        >
+                          Price went {outcome ? "UP ↑" : "DOWN ↓"}
+                        </span>
+                      </div>
+                    ) : currentEthPriceData ? (
+                      // For active markets with price data, show current price and change
+                      (() => {
+                        const currentPrice = currentEthPriceData[1]; // answer
+                        const currentDecimals = 8; // Chainlink ETH/USD uses 8 decimals
+                        const currentPriceFormatted = formatPrice(BigInt(currentPrice.toString()), currentDecimals);
 
-                      // Calculate price change
-                      const priceWentUp = currentPrice > startPrice * BigInt(Math.pow(10, currentDecimals - startDecimals));
-                      const priceDiff = Number(currentPrice) / Math.pow(10, currentDecimals) - Number(startPrice) / Math.pow(10, startDecimals);
-                      const priceChangePercent = (priceDiff / (Number(startPrice) / Math.pow(10, startDecimals))) * 100;
+                        // Calculate price change
+                        const priceWentUp =
+                          currentPrice > startPrice * BigInt(Math.pow(10, currentDecimals - startDecimals));
+                        const priceDiff =
+                          Number(currentPrice) / Math.pow(10, currentDecimals) -
+                          Number(startPrice) / Math.pow(10, startDecimals);
+                        const priceChangePercent =
+                          (priceDiff / (Number(startPrice) / Math.pow(10, startDecimals))) * 100;
 
-                      return (
-                        <>
-                          <div className="flex justify-between items-center">
-                            <span>Current Price:</span>
-                            <span className="font-mono font-semibold flex items-center gap-1">
-                              ${currentPriceFormatted}
-                              {priceWentUp ? (
-                                <span className="text-green-600 dark:text-green-400 font-bold">↑</span>
-                              ) : (
-                                <span className="text-red-600 dark:text-red-400 font-bold">↓</span>
-                              )}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span>Change:</span>
-                            <span className={`font-mono font-semibold ${priceWentUp ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                              {priceWentUp ? '+' : ''}{priceChangePercent.toFixed(2)}%
-                            </span>
-                          </div>
-                        </>
-                      );
-                    })()
-                  ) : null}
-                  {!resolved && metadata && (metadata as any).resolveTime && (
-                    <div className="flex justify-between items-center pt-1 border-t border-yellow-500/20">
-                      <span>Resolves:</span>
-                      <span className="font-mono text-[11px]">
-                        {new Date((metadata as any).resolveTime * 1000).toLocaleString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                    </div>
-                  )}
-                  {metadata && (metadata as any).rules && (
-                    <div className="pt-0.5 text-[11px] italic opacity-80">
-                      {(metadata as any).rules}
-                    </div>
-                  )}
+                        return (
+                          <>
+                            <div className="flex justify-between items-center">
+                              <span>Current Price:</span>
+                              <span className="font-mono font-semibold flex items-center gap-1">
+                                ${currentPriceFormatted}
+                                {priceWentUp ? (
+                                  <span className="text-green-600 dark:text-green-400 font-bold">↑</span>
+                                ) : (
+                                  <span className="text-red-600 dark:text-red-400 font-bold">↓</span>
+                                )}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span>Change:</span>
+                              <span
+                                className={`font-mono font-semibold ${priceWentUp ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
+                              >
+                                {priceWentUp ? "+" : ""}
+                                {priceChangePercent.toFixed(2)}%
+                              </span>
+                            </div>
+                          </>
+                        );
+                      })()
+                    ) : null}
+                    {!resolved && metadata && (metadata as any).resolveTime && (
+                      <div className="flex justify-between items-center pt-1 border-t border-yellow-500/20">
+                        <span>Resolves:</span>
+                        <span className="font-mono text-[11px]">
+                          {new Date((metadata as any).resolveTime * 1000).toLocaleString(undefined, {
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                    )}
+                    {metadata && (metadata as any).rules && (
+                      <div className="pt-0.5 text-[11px] italic opacity-80">{(metadata as any).rules}</div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })()}
+              );
+            })()}
 
           {/* BETH Burn Market Info - Show Target and Current Burn Amount */}
-          {isBETHPMResolver && bethBetData && bethTotalBurned !== undefined && (() => {
-            const targetAmount = bethBetData[0]; // amount (uint184)
-            const deadline = bethBetData[1]; // deadline (uint72)
-            const currentBurned = bethTotalBurned;
+          {isBETHPMResolver &&
+            bethBetData &&
+            bethTotalBurned !== undefined &&
+            (() => {
+              const targetAmount = bethBetData[0]; // amount (uint184)
+              const deadline = bethBetData[1]; // deadline (uint72)
+              const currentBurned = bethTotalBurned;
 
-            // Only show if we have valid target amount
-            if (!targetAmount || targetAmount === 0n) return null;
+              // Only show if we have valid target amount
+              if (!targetAmount || targetAmount === 0n) return null;
 
-            // Format burn amounts (in ETH with 4 decimal places)
-            const formatBurnAmount = (amount: bigint) => {
-              return Number(formatEther(amount)).toFixed(4);
-            };
+              // Format burn amounts (in ETH with 4 decimal places)
+              const formatBurnAmount = (amount: bigint) => {
+                return Number(formatEther(amount)).toFixed(4);
+              };
 
-            const targetFormatted = formatBurnAmount(targetAmount);
-            const currentFormatted = formatBurnAmount(currentBurned);
+              const targetFormatted = formatBurnAmount(targetAmount);
+              const currentFormatted = formatBurnAmount(currentBurned);
 
-            // Calculate progress percentage
-            const progressPercent = Number(currentBurned) / Number(targetAmount) * 100;
-            const isOnTrack = currentBurned >= targetAmount;
+              // Calculate progress percentage
+              const progressPercent = (Number(currentBurned) / Number(targetAmount)) * 100;
+              const isOnTrack = currentBurned >= targetAmount;
 
-            return (
-              <div className="bg-red-500/5 border border-red-500/20 rounded p-2 space-y-1">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Sparkles className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
-                  <span className="text-xs font-semibold text-red-700 dark:text-red-300">
-                    BETH Burn Oracle
-                  </span>
-                </div>
-                <div className="text-xs text-muted-foreground space-y-0.5">
-                  <div className="flex justify-between items-center">
-                    <span>Target Burn:</span>
-                    <span className="font-mono font-semibold">{targetFormatted} ETH</span>
+              return (
+                <div className="bg-red-500/5 border border-red-500/20 rounded p-2 space-y-1">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Sparkles className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
+                    <span className="text-xs font-semibold text-red-700 dark:text-red-300">BETH Burn Oracle</span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span>Current Burned:</span>
-                    <span className={`font-mono font-semibold ${isOnTrack ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
-                      {currentFormatted} ETH
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Progress:</span>
-                    <span className={`font-mono font-semibold ${isOnTrack ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                      {Math.min(progressPercent, 100).toFixed(2)}%{isOnTrack ? ' ✓' : ''}
-                    </span>
-                  </div>
-                  {/* Progress bar */}
-                  <div className="w-full bg-muted rounded-full h-2 overflow-hidden mt-1">
-                    <div
-                      className={`h-full transition-all ${isOnTrack ? 'bg-green-600 dark:bg-green-400' : 'bg-red-600 dark:bg-red-400'}`}
-                      style={{ width: `${Math.min(progressPercent, 100)}%` }}
-                    />
-                  </div>
-                  {!resolved && Number(deadline) > 0 && (
-                    <div className="flex justify-between items-center pt-1 border-t border-red-500/20">
-                      <span>Deadline:</span>
-                      <span className="font-mono text-[11px]">
-                        {new Date(Number(deadline) * 1000).toLocaleString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                          hour: "numeric",
-                          minute: "2-digit",
-                        })}
+                  <div className="text-xs text-muted-foreground space-y-0.5">
+                    <div className="flex justify-between items-center">
+                      <span>Target Burn:</span>
+                      <span className="font-mono font-semibold">{targetFormatted} ETH</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Current Burned:</span>
+                      <span
+                        className={`font-mono font-semibold ${isOnTrack ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}
+                      >
+                        {currentFormatted} ETH
                       </span>
                     </div>
-                  )}
-                  {resolved && (
-                    <div className="flex justify-between items-center pt-1 border-t border-red-500/20">
-                      <span>Result:</span>
-                      <span className={`font-mono font-semibold ${outcome ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                        {outcome ? 'Target Reached ✓' : 'Target Missed ✗'}
+                    <div className="flex justify-between items-center">
+                      <span>Progress:</span>
+                      <span
+                        className={`font-mono font-semibold ${isOnTrack ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
+                      >
+                        {Math.min(progressPercent, 100).toFixed(2)}%{isOnTrack ? " ✓" : ""}
                       </span>
                     </div>
-                  )}
+                    {/* Progress bar */}
+                    <div className="w-full bg-muted rounded-full h-2 overflow-hidden mt-1">
+                      <div
+                        className={`h-full transition-all ${isOnTrack ? "bg-green-600 dark:bg-green-400" : "bg-red-600 dark:bg-red-400"}`}
+                        style={{ width: `${Math.min(progressPercent, 100)}%` }}
+                      />
+                    </div>
+                    {!resolved && Number(deadline) > 0 && (
+                      <div className="flex justify-between items-center pt-1 border-t border-red-500/20">
+                        <span>Deadline:</span>
+                        <span className="font-mono text-[11px]">
+                          {new Date(Number(deadline) * 1000).toLocaleString(undefined, {
+                            month: "short",
+                            day: "numeric",
+                            hour: "numeric",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                    )}
+                    {resolved && (
+                      <div className="flex justify-between items-center pt-1 border-t border-red-500/20">
+                        <span>Result:</span>
+                        <span
+                          className={`font-mono font-semibold ${outcome ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
+                        >
+                          {outcome ? "Target Reached ✓" : "Target Missed ✗"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })()}
+              );
+            })()}
 
           {/* Perpetual Oracle Info - Timing and Rules */}
-          {isPerpetualOracle &&
-            metadata &&
-            ((metadata as any).resolveTime ||
-              (metadata as any).nounsProposalId) && (
-              <div
-                className={`${
-                  isCoinflipResolver
-                    ? "bg-blue-500/5 border border-blue-500/20"
-                    : isNounsResolver
-                      ? "bg-pink-500/5 border border-pink-500/20"
-                      : "bg-yellow-500/5 border border-yellow-500/20"
-                } rounded p-2 space-y-1`}
-              >
-                <div className="flex items-center gap-1.5">
-                  <Sparkles
-                    className={`h-3.5 w-3.5 ${
-                      isCoinflipResolver
-                        ? "text-blue-600 dark:text-blue-400"
-                        : isNounsResolver
-                          ? "text-pink-600 dark:text-pink-400"
-                          : "text-yellow-600 dark:text-yellow-400"
-                    }`}
-                  />
-                  <span
-                    className={`text-xs font-semibold ${
-                      isCoinflipResolver
-                        ? "text-blue-700 dark:text-blue-300"
-                        : isNounsResolver
-                          ? "text-pink-700 dark:text-pink-300"
-                          : "text-yellow-700 dark:text-yellow-300"
-                    }`}
-                  >
-                    Automated Oracle Market
-                  </span>
-                </div>
-                <div className="text-xs text-muted-foreground space-y-0.5">
-                  {isNounsResolver && (metadata as any).nounsProposalId && (
-                    <div className="flex justify-between">
-                      <span>Proposal ID:</span>
-                      <a
-                        href={`https://nouns.wtf/vote/${(metadata as any).nounsProposalId}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-mono text-pink-600 dark:text-pink-400 hover:underline flex items-center gap-1"
-                      >
-                        #{(metadata as any).nounsProposalId}
-                        <ExternalLink className="h-2.5 w-2.5" />
-                      </a>
-                    </div>
-                  )}
-                  {isNounsResolver && (metadata as any).nounsEvalBlock && (() => {
+          {isPerpetualOracle && metadata && ((metadata as any).resolveTime || (metadata as any).nounsProposalId) && (
+            <div
+              className={`${
+                isCoinflipResolver
+                  ? "bg-blue-500/5 border border-blue-500/20"
+                  : isNounsResolver
+                    ? "bg-pink-500/5 border border-pink-500/20"
+                    : "bg-yellow-500/5 border border-yellow-500/20"
+              } rounded p-2 space-y-1`}
+            >
+              <div className="flex items-center gap-1.5">
+                <Sparkles
+                  className={`h-3.5 w-3.5 ${
+                    isCoinflipResolver
+                      ? "text-blue-600 dark:text-blue-400"
+                      : isNounsResolver
+                        ? "text-pink-600 dark:text-pink-400"
+                        : "text-yellow-600 dark:text-yellow-400"
+                  }`}
+                />
+                <span
+                  className={`text-xs font-semibold ${
+                    isCoinflipResolver
+                      ? "text-blue-700 dark:text-blue-300"
+                      : isNounsResolver
+                        ? "text-pink-700 dark:text-pink-300"
+                        : "text-yellow-700 dark:text-yellow-300"
+                  }`}
+                >
+                  Automated Oracle Market
+                </span>
+              </div>
+              <div className="text-xs text-muted-foreground space-y-0.5">
+                {isNounsResolver && (metadata as any).nounsProposalId && (
+                  <div className="flex justify-between">
+                    <span>Proposal ID:</span>
+                    <a
+                      href={`https://nouns.wtf/vote/${(metadata as any).nounsProposalId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono text-pink-600 dark:text-pink-400 hover:underline flex items-center gap-1"
+                    >
+                      #{(metadata as any).nounsProposalId}
+                      <ExternalLink className="h-2.5 w-2.5" />
+                    </a>
+                  </div>
+                )}
+                {isNounsResolver &&
+                  (metadata as any).nounsEvalBlock &&
+                  (() => {
                     const evalBlock = Number((metadata as any).nounsEvalBlock);
                     const currentBlock = currentBlockNumber ? Number(currentBlockNumber) : null;
 
@@ -1289,13 +1211,13 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                     if (currentBlock && evalBlock > currentBlock) {
                       const blocksRemaining = evalBlock - currentBlock;
                       const secondsRemaining = blocksRemaining * 12;
-                      const estimatedTimestamp = Date.now() + (secondsRemaining * 1000);
+                      const estimatedTimestamp = Date.now() + secondsRemaining * 1000;
                       const date = new Date(estimatedTimestamp);
                       estimatedTime = date.toLocaleString(undefined, {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: 'numeric',
-                        minute: '2-digit',
+                        month: "short",
+                        day: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
                         hour12: true,
                       });
                     }
@@ -1304,9 +1226,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                       <>
                         <div className="flex justify-between">
                           <span>Eval Block:</span>
-                          <span className="font-mono text-[10px]">
-                            {evalBlock.toLocaleString()}
-                          </span>
+                          <span className="font-mono text-[10px]">{evalBlock.toLocaleString()}</span>
                         </div>
                         {estimatedTime && (
                           <div className="flex justify-between text-xs text-muted-foreground">
@@ -1317,41 +1237,31 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                       </>
                     );
                   })()}
-                  {(metadata as any).resolveTime && !isNounsResolver && (
-                    <div className="flex justify-between">
-                      <span>
-                        {isCoinflipResolver ? "Closes:" : "Resolves:"}
-                      </span>
-                      <span className="font-mono">
-                        {new Date(
-                          (metadata as any).resolveTime * 1000,
-                        ).toLocaleString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                    </div>
-                  )}
-                  {isCoinflipResolver &&
-                    (metadata as any).targetBlocks &&
-                    (metadata as any).targetBlocks.length > 0 && (
-                      <div className="flex justify-between">
-                        <span>Target Blocks:</span>
-                        <span className="font-mono text-[10px]">
-                          {(metadata as any).targetBlocks.join(", ")}
-                        </span>
-                      </div>
-                    )}
-                  {(metadata as any).rules && (
-                    <div className="pt-0.5 text-[11px] italic opacity-80">
-                      {(metadata as any).rules}
-                    </div>
-                  )}
-                </div>
+                {(metadata as any).resolveTime && !isNounsResolver && (
+                  <div className="flex justify-between">
+                    <span>{isCoinflipResolver ? "Closes:" : "Resolves:"}</span>
+                    <span className="font-mono">
+                      {new Date((metadata as any).resolveTime * 1000).toLocaleString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                )}
+                {isCoinflipResolver && (metadata as any).targetBlocks && (metadata as any).targetBlocks.length > 0 && (
+                  <div className="flex justify-between">
+                    <span>Target Blocks:</span>
+                    <span className="font-mono text-[10px]">{(metadata as any).targetBlocks.join(", ")}</span>
+                  </div>
+                )}
+                {(metadata as any).rules && (
+                  <div className="pt-0.5 text-[11px] italic opacity-80">{(metadata as any).rules}</div>
+                )}
               </div>
-            )}
+            </div>
+          )}
 
           {/* Odds Display - Enhanced for Active Markets */}
           {!resolved && (
@@ -1359,14 +1269,10 @@ export const MarketCard: React.FC<MarketCardProps> = ({
               <div className="flex justify-between items-center text-sm font-semibold">
                 <div className="flex items-center gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
-                  <span className="text-emerald-600 dark:text-emerald-400">
-                    YES {yesPercent.toFixed(2)}%
-                  </span>
+                  <span className="text-emerald-600 dark:text-emerald-400">YES {yesPercent.toFixed(2)}%</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-rose-600 dark:text-rose-400">
-                    NO {noPercent.toFixed(2)}%
-                  </span>
+                  <span className="text-rose-600 dark:text-rose-400">NO {noPercent.toFixed(2)}%</span>
                   <div className="w-2.5 h-2.5 rounded-full bg-rose-500"></div>
                 </div>
               </div>
@@ -1383,13 +1289,14 @@ export const MarketCard: React.FC<MarketCardProps> = ({
               {/* Pool/Supply Information */}
               <div className="flex justify-between text-xs text-muted-foreground pt-1 border-t border-border/30">
                 <span>
-                  {marketType === "amm" ? "Pool YES:" : "Total YES:"} {Number(formatEther(marketType === "amm" && rYes !== undefined ? rYes : yesSupply)).toFixed(2)}
+                  {marketType === "amm" ? "Pool YES:" : "Total YES:"}{" "}
+                  {Number(formatEther(marketType === "amm" && rYes !== undefined ? rYes : yesSupply)).toFixed(2)}
                 </span>
                 <span>
-                  {marketType === "amm" ? "Pool NO:" : "Total NO:"} {Number(formatEther(marketType === "amm" && rNo !== undefined ? rNo : noSupply)).toFixed(2)}
+                  {marketType === "amm" ? "Pool NO:" : "Total NO:"}{" "}
+                  {Number(formatEther(marketType === "amm" && rNo !== undefined ? rNo : noSupply)).toFixed(2)}
                 </span>
               </div>
-
             </div>
           )}
 
@@ -1406,17 +1313,13 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                   {userYesBalance > 0n && (
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">YES shares</span>
-                      <span className="font-mono font-semibold">
-                        {Number(formatEther(userYesBalance)).toFixed(4)}
-                      </span>
+                      <span className="font-mono font-semibold">{Number(formatEther(userYesBalance)).toFixed(4)}</span>
                     </div>
                   )}
                   {userNoBalance > 0n && (
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">NO shares</span>
-                      <span className="font-mono font-semibold">
-                        {Number(formatEther(userNoBalance)).toFixed(4)}
-                      </span>
+                      <span className="font-mono font-semibold">{Number(formatEther(userNoBalance)).toFixed(4)}</span>
                     </div>
                   )}
                   {canClaim && (
@@ -1437,9 +1340,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                 <span className="text-xs text-muted-foreground font-medium">
                   {marketType === "amm" ? "Total Pot (wstETH)" : "Prize Pool (wstETH)"}
                 </span>
-                <span className="font-mono font-bold text-sm">
-                  {Number(formatEther(pot)).toFixed(4)}
-                </span>
+                <span className="font-mono font-bold text-sm">{Number(formatEther(pot)).toFixed(4)}</span>
               </div>
             </div>
             {/* Resolved Market Stats */}
@@ -1447,15 +1348,15 @@ export const MarketCard: React.FC<MarketCardProps> = ({
               <div className="bg-muted/30 rounded-lg p-3 border border-border/50 space-y-2 text-xs">
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Winning Side</span>
-                  <span className={`font-bold ${outcome ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                  <span
+                    className={`font-bold ${outcome ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}
+                  >
                     {outcome ? "YES" : "NO"}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Winning Shares</span>
-                  <span className="font-mono font-semibold">
-                    {Number(formatEther(winningShares)).toFixed(4)}
-                  </span>
+                  <span className="font-mono font-semibold">{Number(formatEther(winningShares)).toFixed(4)}</span>
                 </div>
                 <div className="flex justify-between items-center pt-1.5 border-t border-border/30">
                   <span className="text-muted-foreground font-medium">Payout Per Share</span>
@@ -1480,10 +1381,10 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                   >
                     {/* Prefer ENS name over generic "Trusted Resolver #X" labels */}
                     {ensName ||
-                     (trustedResolverInfo?.name && !trustedResolverInfo.name.startsWith("Trusted Resolver #")
-                       ? trustedResolverInfo.name
-                       : null) ||
-                     `${resolver.slice(0, 6)}...${resolver.slice(-4)}`}
+                      (trustedResolverInfo?.name && !trustedResolverInfo.name.startsWith("Trusted Resolver #")
+                        ? trustedResolverInfo.name
+                        : null) ||
+                      `${resolver.slice(0, 6)}...${resolver.slice(-4)}`}
                     <ExternalLink className="h-3 w-3" />
                   </a>
                   {trustedResolverInfo && trustedResolverInfo.description ? (
@@ -1573,9 +1474,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                 disabled={isResolvePending}
               >
                 <Sparkles className="h-4 w-4 mr-2" />
-                {isResolvePending
-                  ? "Resolving..."
-                  : "Resolve Market (Earn Tip!)"}
+                {isResolvePending ? "Resolving..." : "Resolve Market (Earn Tip!)"}
               </Button>
               <p className="text-xs text-muted-foreground mt-1 text-center">
                 Automated market ready. Resolve to earn{" "}
@@ -1647,15 +1546,8 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                 <span className="text-base">Claim {Number(formatEther(userClaimable)).toFixed(4)} wstETH</span>
               </Button>
             ) : isTradingDisabled ? (
-              <Button
-                className="w-full"
-                size="lg"
-                disabled={true}
-                variant="outline"
-              >
-                {resolved
-                  ? "Market Resolved"
-                  : "Market Closed"}
+              <Button className="w-full" size="lg" disabled={true} variant="outline">
+                {resolved ? "Market Resolved" : "Market Closed"}
               </Button>
             ) : (
               <div className="grid grid-cols-2 gap-3">

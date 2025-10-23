@@ -19,9 +19,7 @@ export const SwapAction = (
       <SwapModeTab />
 
       {action === "instant" ? (
-        <InstantTradeAction
-          useSearchHook={location.pathname === "/swap" ? true : false}
-        />
+        <InstantTradeAction useSearchHook={location.pathname === "/swap" ? true : false} />
       ) : (
         <LimitSwapAction />
       )}

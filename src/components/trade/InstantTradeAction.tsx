@@ -7,49 +7,21 @@ import { useGetTokens } from "@/hooks/use-get-tokens";
 import { cn } from "@/lib/utils";
 import { FlipActionButton } from "../FlipActionButton";
 import { ETH_TOKEN, sameToken, TokenMetadata, ZAMM_TOKEN } from "@/lib/pools";
-import {
-  encodeFunctionData,
-  formatUnits,
-  maxUint256,
-  parseUnits,
-  type Address,
-} from "viem";
+import { encodeFunctionData, formatUnits, maxUint256, parseUnits, type Address } from "viem";
 import { mainnet } from "viem/chains";
-import {
-  useAccount,
-  useChainId,
-  usePublicClient,
-  useSendTransaction,
-  useWaitForTransactionReceipt,
-} from "wagmi";
+import { useAccount, useChainId, usePublicClient, useSendTransaction, useWaitForTransactionReceipt } from "wagmi";
 import { useZRouterQuote } from "@/hooks/use-zrouter-quote";
-import {
-  buildRoutePlan,
-  mainnetConfig,
-  findRoute,
-  simulateRoute,
-  erc20Abi,
-  zRouterAbi,
-} from "zrouter-sdk";
+import { buildRoutePlan, mainnetConfig, findRoute, simulateRoute, erc20Abi, zRouterAbi } from "zrouter-sdk";
 import { CoinsAbi } from "@/constants/Coins";
 import { toZRouterToken } from "@/lib/zrouter";
 import { SLIPPAGE_BPS } from "@/lib/swap";
 import { handleWalletError, isUserRejectionError } from "@/lib/errors";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "../ui/hover-card";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "../ui/hover-card";
 import { InfoIcon } from "lucide-react";
 import { SlippageSettings } from "../SlippageSettings";
 
 import { useLocation, useNavigate, useSearch } from "@tanstack/react-router";
-import {
-  encodeTokenQ,
-  parseTokenQ,
-  findTokenFlexible,
-  isCanonicalTokenQ,
-} from "@/lib/token-query";
+import { encodeTokenQ, parseTokenQ, findTokenFlexible, isCanonicalTokenQ } from "@/lib/token-query";
 
 /** ----------------------------------------------------------------
  * URL token helpers
@@ -63,15 +35,10 @@ function isAddress(str?: string): str is Address {
  * Resolve a URL token query against a loaded tokenlist.
  * Falls back to `minimalFromTokenQ` when no match yet.
  */
-function resolveFromUrl(
-  tokens: TokenMetadata[] | undefined,
-  q?: string,
-): Partial<TokenMetadata> | undefined {
+function resolveFromUrl(tokens: TokenMetadata[] | undefined, q?: string): Partial<TokenMetadata> | undefined {
   if (!q) return undefined;
   const match =
-    tokens && tokens.length
-      ? (findTokenFlexible(tokens as any, q) as TokenMetadata | undefined)
-      : undefined;
+    tokens && tokens.length ? (findTokenFlexible(tokens as any, q) as TokenMetadata | undefined) : undefined;
 
   if (match) return match;
   // parse token q
@@ -176,48 +143,30 @@ export const InstantTradeAction = ({
    * Seed useTokenPair from URL so first paint reflects deep link
    * ------------------------------------------------------------ */
   const urlInitialSell = useMemo(
-    () =>
-      useSearchHook
-        ? (resolveFromUrl(tokens, search.sellToken) as
-            | TokenMetadata
-            | undefined)
-        : undefined,
+    () => (useSearchHook ? (resolveFromUrl(tokens, search.sellToken) as TokenMetadata | undefined) : undefined),
     // include `tokens` so if they arrive before first render, we seed with richer info
     [useSearchHook, search.sellToken, tokens],
   );
 
   const urlInitialBuy = useMemo(
-    () =>
-      useSearchHook
-        ? (resolveFromUrl(tokens, search.buyToken) as TokenMetadata | undefined)
-        : undefined,
+    () => (useSearchHook ? (resolveFromUrl(tokens, search.buyToken) as TokenMetadata | undefined) : undefined),
     [useSearchHook, search.buyToken, tokens],
   );
 
-  const { sellToken, setSellToken, buyToken, setBuyToken, flip } = useTokenPair(
-    {
-      initial: {
-        // Priority: URL → explicit props → defaults
-        sellToken:
-          (urlInitialSell as TokenMetadata) ?? initialSellToken ?? ETH_TOKEN,
-        buyToken:
-          (urlInitialBuy as TokenMetadata) ?? initialBuyToken ?? ZAMM_TOKEN,
-      },
+  const { sellToken, setSellToken, buyToken, setBuyToken, flip } = useTokenPair({
+    initial: {
+      // Priority: URL → explicit props → defaults
+      sellToken: (urlInitialSell as TokenMetadata) ?? initialSellToken ?? ETH_TOKEN,
+      buyToken: (urlInitialBuy as TokenMetadata) ?? initialBuyToken ?? ZAMM_TOKEN,
     },
-  );
+  });
 
   const [sellAmount, setSellAmount] = useState("");
   const [buyAmount, setBuyAmount] = useState("");
-  const [lastEditedField, setLastEditedField] = useState<"sell" | "buy">(
-    "sell",
-  );
+  const [lastEditedField, setLastEditedField] = useState<"sell" | "buy">("sell");
   const [slippageBps, setSlippageBps] = useState<bigint>(SLIPPAGE_BPS);
 
-  const {
-    sendTransactionAsync,
-    isPending,
-    error: writeError,
-  } = useSendTransaction();
+  const { sendTransactionAsync, isPending, error: writeError } = useSendTransaction();
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
@@ -276,12 +225,8 @@ export const InstantTradeAction = ({
     // or when the URL is missing values. Do NOT inject ETH/ZAMM just because
     // we couldn't resolve yet.
     const updates: Record<string, string> = {};
-    const canonSellCandidate =
-      (tokens.length && findTokenFlexible(tokens as any, search.sellToken)) ||
-      undefined;
-    const canonBuyCandidate =
-      (tokens.length && findTokenFlexible(tokens as any, search.buyToken)) ||
-      undefined;
+    const canonSellCandidate = (tokens.length && findTokenFlexible(tokens as any, search.sellToken)) || undefined;
+    const canonBuyCandidate = (tokens.length && findTokenFlexible(tokens as any, search.buyToken)) || undefined;
 
     if (canonSellCandidate && !isCanonicalTokenQ(search.sellToken)) {
       let encoded = encodeTokenQ(canonSellCandidate);
@@ -294,17 +239,13 @@ export const InstantTradeAction = ({
 
     if (!search.sellToken && (sellToken || matchSell)) {
       let encoded = encodeTokenQ(
-        (canonSellCandidate ??
-          (sellToken as TokenMetadata) ??
-          (matchSell as TokenMetadata)) as TokenMetadata,
+        (canonSellCandidate ?? (sellToken as TokenMetadata) ?? (matchSell as TokenMetadata)) as TokenMetadata,
       );
       if (encoded) updates.sellToken = encoded;
     }
     if (!search.buyToken && (buyToken || matchBuy)) {
       let encoded = encodeTokenQ(
-        (canonBuyCandidate ??
-          (buyToken as TokenMetadata) ??
-          (matchBuy as TokenMetadata)) as TokenMetadata,
+        (canonBuyCandidate ?? (buyToken as TokenMetadata) ?? (matchBuy as TokenMetadata)) as TokenMetadata,
       );
       if (encoded) updates.buyToken = encoded;
     }
@@ -347,12 +288,7 @@ export const InstantTradeAction = ({
   const side = lastEditedField === "sell" ? "EXACT_IN" : "EXACT_OUT";
   const rawAmount = lastEditedField === "sell" ? sellAmount : buyAmount;
 
-  const quotingEnabled =
-    !!publicClient &&
-    !!sellToken &&
-    !!buyToken &&
-    !!rawAmount &&
-    Number(rawAmount) > 0;
+  const quotingEnabled = !!publicClient && !!sellToken && !!buyToken && !!rawAmount && Number(rawAmount) > 0;
 
   const { data: quote } = useZRouterQuote({
     publicClient: publicClient ?? undefined,
@@ -490,10 +426,7 @@ export const InstantTradeAction = ({
 
       const tokenIn = toZRouterToken(sellToken);
       const tokenOut = toZRouterToken(buyToken);
-      const decimals =
-        lastEditedField === "sell"
-          ? (sellToken.decimals ?? 18)
-          : (buyToken.decimals ?? 18);
+      const decimals = lastEditedField === "sell" ? sellToken.decimals ?? 18 : buyToken.decimals ?? 18;
       const amount = parseUnits(rawAmount, decimals);
       const routeSide = lastEditedField === "sell" ? "EXACT_IN" : "EXACT_OUT";
 
@@ -611,10 +544,7 @@ export const InstantTradeAction = ({
     setLastEditedField("sell");
   }, []);
 
-  const hasSell = useMemo(
-    () => !!(sellToken?.balance && BigInt(sellToken.balance) > 0n),
-    [sellToken?.balance],
-  );
+  const hasSell = useMemo(() => !!(sellToken?.balance && BigInt(sellToken.balance) > 0n), [sellToken?.balance]);
 
   return (
     <div>
@@ -690,9 +620,7 @@ export const InstantTradeAction = ({
           className="pb-4 rounded-t-2xl"
         />
 
-        <div
-          className={cn("absolute left-1/2 -translate-x-1/2 top-[50%] z-10")}
-        >
+        <div className={cn("absolute left-1/2 -translate-x-1/2 top-[50%] z-10")}>
           <FlipActionButton onClick={handleFlip} />
         </div>
 
@@ -714,13 +642,8 @@ export const InstantTradeAction = ({
             <InfoIcon className="h-6 w-6 opacity-70 cursor-help hover:opacity-100 transition-opacity" />
           </HoverCardTrigger>
           <HoverCardContent className="w-[320px] space-y-3">
-            <SlippageSettings
-              slippageBps={slippageBps}
-              setSlippageBps={setSlippageBps}
-            />
-            <p className="text-xs text-muted-foreground">
-              Fees are paid to LPs
-            </p>
+            <SlippageSettings slippageBps={slippageBps} setSlippageBps={setSlippageBps} />
+            <p className="text-xs text-muted-foreground">Fees are paid to LPs</p>
           </HoverCardContent>
         </HoverCard>
       </div>
@@ -731,8 +654,7 @@ export const InstantTradeAction = ({
         disabled={!isConnected || !sellAmount || isPending}
         className={cn(
           `w-full mt-3 button text-base px-8 py-4 bg-primary! text-primary-foreground! dark:bg-primary! dark:text-primary-foreground! font-bold rounded-lg transition hover:scale-105`,
-          (!isConnected || !sellAmount || isPending) &&
-            "opacity-50 cursor-not-allowed",
+          (!isConnected || !sellAmount || isPending) && "opacity-50 cursor-not-allowed",
         )}
       >
         {isPending ? "Processing…" : !sellAmount ? "Get Started" : "Swap"}
@@ -740,18 +662,10 @@ export const InstantTradeAction = ({
 
       {/* Errors / Success */}
       {writeError && !suppressErrors && !isUserRejectionError(writeError) && (
-        <div className="mt-2 text-sm text-red-500">
-          {handleWalletError(writeError) || "Transaction failed"}
-        </div>
+        <div className="mt-2 text-sm text-red-500">{handleWalletError(writeError) || "Transaction failed"}</div>
       )}
-      {txError && !suppressErrors && (
-        <div className="mt-2 text-sm text-red-500">{txError}</div>
-      )}
-      {isSuccess && (
-        <div className="mt-2 text-sm text-green-500">
-          Transaction confirmed! Hash: {txHash}
-        </div>
-      )}
+      {txError && !suppressErrors && <div className="mt-2 text-sm text-red-500">{txError}</div>}
+      {isSuccess && <div className="mt-2 text-sm text-green-500">Transaction confirmed! Hash: {txHash}</div>}
     </div>
   );
 };
