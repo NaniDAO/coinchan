@@ -37,7 +37,13 @@ function RouteComponent() {
         {/* Content based on mode */}
         <div className="w-full flex items-center justify-center">
           <div className="relative flex flex-col !w-xl p-5">
-            <ErrorBoundary fallback={<div>Error</div>}>
+            <ErrorBoundary
+              fallback={
+                <div className="flex items-center justify-center p-8">
+                  <div className="text-sm text-muted-foreground">Loading...</div>
+                </div>
+              }
+            >
               <SwapAction action="limit" />
             </ErrorBoundary>
             {/* Info showing token count */}

@@ -17,6 +17,7 @@ import { Route as SendRouteImport } from './routes/send'
 import { Route as RaiseRouteImport } from './routes/raise'
 import { Route as PredictRouteImport } from './routes/predict'
 import { Route as PositionsRouteImport } from './routes/positions'
+import { Route as PmRouteImport } from './routes/pm'
 import { Route as LimitRouteImport } from './routes/limit'
 import { Route as IcoRouteImport } from './routes/ico'
 import { Route as FarmRouteImport } from './routes/farm'
@@ -75,6 +76,11 @@ const PredictRoute = PredictRouteImport.update({
 const PositionsRoute = PositionsRouteImport.update({
   id: '/positions',
   path: '/positions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PmRoute = PmRouteImport.update({
+  id: '/pm',
+  path: '/pm',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LimitRoute = LimitRouteImport.update({
@@ -184,6 +190,7 @@ export interface FileRoutesByFullPath {
   '/farm': typeof FarmRouteWithChildren
   '/ico': typeof IcoRoute
   '/limit': typeof LimitRoute
+  '/pm': typeof PmRoute
   '/positions': typeof PositionsRouteWithChildren
   '/predict': typeof PredictRouteWithChildren
   '/raise': typeof RaiseRoute
@@ -212,6 +219,7 @@ export interface FileRoutesByTo {
   '/explore': typeof ExploreRouteWithChildren
   '/ico': typeof IcoRoute
   '/limit': typeof LimitRoute
+  '/pm': typeof PmRoute
   '/predict': typeof PredictRouteWithChildren
   '/raise': typeof RaiseRoute
   '/send': typeof SendRoute
@@ -241,6 +249,7 @@ export interface FileRoutesById {
   '/farm': typeof FarmRouteWithChildren
   '/ico': typeof IcoRoute
   '/limit': typeof LimitRoute
+  '/pm': typeof PmRoute
   '/positions': typeof PositionsRouteWithChildren
   '/predict': typeof PredictRouteWithChildren
   '/raise': typeof RaiseRoute
@@ -272,6 +281,7 @@ export interface FileRouteTypes {
     | '/farm'
     | '/ico'
     | '/limit'
+    | '/pm'
     | '/positions'
     | '/predict'
     | '/raise'
@@ -300,6 +310,7 @@ export interface FileRouteTypes {
     | '/explore'
     | '/ico'
     | '/limit'
+    | '/pm'
     | '/predict'
     | '/raise'
     | '/send'
@@ -328,6 +339,7 @@ export interface FileRouteTypes {
     | '/farm'
     | '/ico'
     | '/limit'
+    | '/pm'
     | '/positions'
     | '/predict'
     | '/raise'
@@ -358,6 +370,7 @@ export interface RootRouteChildren {
   FarmRoute: typeof FarmRouteWithChildren
   IcoRoute: typeof IcoRoute
   LimitRoute: typeof LimitRoute
+  PmRoute: typeof PmRoute
   PositionsRoute: typeof PositionsRouteWithChildren
   PredictRoute: typeof PredictRouteWithChildren
   RaiseRoute: typeof RaiseRoute
@@ -425,6 +438,13 @@ declare module '@tanstack/react-router' {
       path: '/positions'
       fullPath: '/positions'
       preLoaderRoute: typeof PositionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pm': {
+      id: '/pm'
+      path: '/pm'
+      fullPath: '/pm'
+      preLoaderRoute: typeof PmRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/limit': {
@@ -627,6 +647,7 @@ const rootRouteChildren: RootRouteChildren = {
   FarmRoute: FarmRouteWithChildren,
   IcoRoute: IcoRoute,
   LimitRoute: LimitRoute,
+  PmRoute: PmRoute,
   PositionsRoute: PositionsRouteWithChildren,
   PredictRoute: PredictRouteWithChildren,
   RaiseRoute: RaiseRoute,

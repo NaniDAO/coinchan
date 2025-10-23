@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { parseEther, formatEther } from "viem";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from "wagmi";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, useBalance } from "wagmi";
 import { toast } from "sonner";
 import { PredictionMarketAddress, PredictionMarketAbi } from "@/constants/PredictionMarket";
 import { PredictionAMMAbi } from "@/constants/PredictionMarketAMM";
@@ -11,10 +11,11 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Slider } from "@/components/ui/slider";
-import { BadgeCheck } from "lucide-react";
+import { BadgeCheck, Settings } from "lucide-react";
 import { isPerpetualOracleResolver } from "@/constants/TrustedResolvers";
 import { isUserRejectionError } from "@/lib/errors";
 import { ChainlinkAggregatorV3Abi, CHAINLINK_ETH_USD_FEED } from "@/constants/ChainlinkAggregator";
+import { PercentageBlobs } from "@/components/ui/percentage-blobs";
 
 // wstETH contract address
 const WSTETH_ADDRESS = "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0" as const;
@@ -40,6 +41,7 @@ interface TradeModalProps {
   marketType?: "parimutuel" | "amm";
   contractAddress?: string;
   resolver?: string; // Optional: resolver address to show verification badge
+  initialPosition?: "yes" | "no"; // Pre-select YES or NO when modal opens
 }
 
 export const TradeModal: React.FC<TradeModalProps> = ({
@@ -52,14 +54,21 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   marketType = "parimutuel",
   contractAddress = PredictionMarketAddress,
   resolver,
+  initialPosition = "yes",
 }) => {
   const isPerpetualOracle = resolver ? isPerpetualOracleResolver(resolver) : false;
   const { address } = useAccount();
   const [action, setAction] = useState<"buy" | "sell">("buy");
-  const [position, setPosition] = useState<"yes" | "no">("yes");
+  const [position, setPosition] = useState<"yes" | "no">(initialPosition);
   const [amount, setAmount] = useState("");
   const [slippageTolerance, setSlippageTolerance] = useState(10); // 10% default for AMM markets
   const [localError, setLocalError] = useState<string | null>(null);
+  const [showSlippageSettings, setShowSlippageSettings] = useState(false);
+
+  // Fetch user's ETH balance for percentage buttons
+  const { data: ethBalance } = useBalance({
+    address: address,
+  });
 
   const { writeContractAsync, data: hash, isPending, error: writeError, reset } = useWriteContract();
 
@@ -146,13 +155,31 @@ export const TradeModal: React.FC<TradeModalProps> = ({
     }
   }, [txSuccess, onClose]);
 
-  // Clear errors when modal closes
+  // Handle percentage selection for ETH buys
+  const handlePercentageChange = (percentage: number) => {
+    if (!ethBalance) return;
+
+    const balance = ethBalance.value;
+    // Apply 1% gas discount for MAX (100%)
+    const adjustedBalance = percentage === 100
+      ? (balance * 99n) / 100n
+      : (balance * BigInt(percentage)) / 100n;
+
+    const calculatedAmount = formatEther(adjustedBalance);
+    setAmount(calculatedAmount);
+  };
+
+  // Clear errors when modal closes and reset position to initialPosition when opening
   React.useEffect(() => {
     if (!isOpen) {
       setLocalError(null);
       reset();
+      setShowSlippageSettings(false);
+    } else {
+      // When modal opens, set position to initialPosition
+      setPosition(initialPosition);
     }
-  }, [isOpen, reset]);
+  }, [isOpen, reset, initialPosition]);
 
   // Handle wallet disconnection
   React.useEffect(() => {
@@ -315,8 +342,8 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="space-y-3">
-          <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
+        <DialogHeader className="space-y-2 pb-4 border-b border-border/50">
+          <DialogTitle className="flex items-center gap-2 text-xl font-bold">
             {marketName}
             {isPerpetualOracle && (
               <span title="Perpetual Oracle Resolver">
@@ -324,29 +351,33 @@ export const TradeModal: React.FC<TradeModalProps> = ({
               </span>
             )}
           </DialogTitle>
-          <DialogDescription className="text-sm">Trade shares in this prediction market</DialogDescription>
+          <DialogDescription className="text-sm text-muted-foreground">
+            Trade shares in this prediction market
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-5">
-          {/* Odds Display - Enhanced */}
-          <div className="bg-card border border-border rounded-lg p-4 space-y-3">
+        <div className="space-y-6 py-2">
+          {/* Odds Display - Modern Design */}
+          <div className="bg-gradient-to-br from-muted/30 to-muted/10 border border-border/50 rounded-xl p-4 space-y-3">
             <div className="flex justify-between items-center">
-              <div className="flex items-baseline gap-2">
-                <span className="text-green-600 dark:text-green-400 font-bold text-lg">YES</span>
-                <span className="text-green-600 dark:text-green-400 font-semibold text-2xl">{yesPercent.toFixed(1)}%</span>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold text-base">YES</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold text-2xl">{yesPercent.toFixed(2)}%</span>
               </div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-red-600 dark:text-red-400 font-semibold text-2xl">{noPercent.toFixed(1)}%</span>
-                <span className="text-red-600 dark:text-red-400 font-bold text-lg">NO</span>
+              <div className="flex items-center gap-2">
+                <span className="text-rose-600 dark:text-rose-400 font-bold text-2xl">{noPercent.toFixed(2)}%</span>
+                <span className="text-rose-600 dark:text-rose-400 font-bold text-base">NO</span>
+                <div className="w-3 h-3 rounded-full bg-rose-500"></div>
               </div>
             </div>
-            <div className="flex h-2.5 rounded-full overflow-hidden bg-muted/50 border border-border/50">
-              <div className="bg-gradient-to-r from-green-500 to-green-600 dark:from-green-400 dark:to-green-500" style={{ width: `${yesPercent}%` }} />
-              <div className="bg-gradient-to-r from-red-500 to-red-600 dark:from-red-400 dark:to-red-500" style={{ width: `${noPercent}%` }} />
+            <div className="flex h-3 rounded-full overflow-hidden bg-muted/50 shadow-inner">
+              <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 transition-all" style={{ width: `${yesPercent}%` }} />
+              <div className="bg-gradient-to-r from-rose-500 to-rose-600 transition-all" style={{ width: `${noPercent}%` }} />
             </div>
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span className="font-mono">{Number(formatEther(displayYes)).toFixed(4)} wstETH</span>
-              <span className="font-mono">{Number(formatEther(displayNo)).toFixed(4)} wstETH</span>
+            <div className="flex justify-between text-xs text-muted-foreground pt-1 border-t border-border/30">
+              <span className="font-mono">{Number(formatEther(displayYes)).toFixed(2)} wstETH</span>
+              <span className="font-mono">{Number(formatEther(displayNo)).toFixed(2)} wstETH</span>
             </div>
           </div>
 
@@ -358,35 +389,37 @@ export const TradeModal: React.FC<TradeModalProps> = ({
             </TabsList>
 
             <TabsContent value="buy" className="space-y-5 mt-5">
+              {/* Position Selection - Modern Cards */}
               <div className="space-y-3">
                 <Label className="text-sm font-semibold">Select Position</Label>
                 <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    variant={position === "yes" ? "default" : "outline"}
+                  <button
+                    type="button"
                     onClick={() => setPosition("yes")}
-                    className={`h-12 font-bold text-base transition-all ${
+                    className={`h-14 rounded-lg font-bold text-base transition-all border-2 ${
                       position === "yes"
-                        ? "bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 border-green-700 shadow-md"
-                        : "hover:bg-green-50 dark:hover:bg-green-950/20 hover:border-green-500"
+                        ? "bg-gradient-to-br from-emerald-500 to-emerald-600 border-emerald-600 text-white shadow-md scale-105"
+                        : "bg-muted/30 border-border hover:border-emerald-500/50 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
                     }`}
                   >
                     YES
-                  </Button>
-                  <Button
-                    variant={position === "no" ? "default" : "outline"}
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setPosition("no")}
-                    className={`h-12 font-bold text-base transition-all ${
+                    className={`h-14 rounded-lg font-bold text-base transition-all border-2 ${
                       position === "no"
-                        ? "bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 border-red-700 shadow-md"
-                        : "hover:bg-red-50 dark:hover:bg-red-950/20 hover:border-red-500"
+                        ? "bg-gradient-to-br from-rose-500 to-rose-600 border-rose-600 text-white shadow-md scale-105"
+                        : "bg-muted/30 border-border hover:border-rose-500/50 hover:bg-rose-50 dark:hover:bg-rose-950/20"
                     }`}
                   >
                     NO
-                  </Button>
+                  </button>
                 </div>
               </div>
 
-              <div className="space-y-2">
+              {/* Amount Input with Percentage Buttons */}
+              <div className="space-y-3">
                 <Label htmlFor="amount" className="text-sm font-semibold">
                   {marketType === "amm" ? "Shares to Buy" : "Amount (ETH)"}
                 </Label>
@@ -398,13 +431,24 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="0.1"
-                  className="h-12 text-base font-mono"
+                  className="h-14 text-lg font-mono rounded-lg"
                 />
-                <p className="text-xs text-muted-foreground">
-                  {marketType === "amm"
-                    ? `Enter number of ${position.toUpperCase()} shares to buy`
-                    : `Buy ${position.toUpperCase()} shares with ETH`}
-                </p>
+
+                {/* Percentage Buttons for ETH Buys (Parimutuel or AMM with ETH) */}
+                {ethBalance && (
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs text-muted-foreground">
+                      Balance: {Number(formatEther(ethBalance.value)).toFixed(4)} ETH
+                    </p>
+                    <PercentageBlobs
+                      value={0}
+                      onChange={handlePercentageChange}
+                      variant="inline"
+                      size="sm"
+                      steps={[25, 50, 100]}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Potential Winnings Display */}
@@ -553,59 +597,77 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                 );
               })()}
 
+              {/* Slippage Settings - Collapsible & Subtle */}
               {marketType === "amm" && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="slippage" className="text-sm font-semibold">Slippage Tolerance</Label>
-                    <span className="font-mono font-bold text-sm">{slippageTolerance}%</span>
-                  </div>
-                  <Slider
-                    id="slippage"
-                    min={0.1}
-                    max={20}
-                    step={0.1}
-                    value={[slippageTolerance]}
-                    onValueChange={(value) => setSlippageTolerance(value[0])}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>0.1%</span>
-                    <span>20%</span>
-                  </div>
+                <div className="pt-2 border-t border-border/30">
+                  <button
+                    type="button"
+                    onClick={() => setShowSlippageSettings(!showSlippageSettings)}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors text-sm"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Settings className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium text-muted-foreground">Slippage Settings</span>
+                    </div>
+                    <span className="font-mono font-semibold text-xs">{slippageTolerance}%</span>
+                  </button>
+
+                  {showSlippageSettings && (
+                    <div className="mt-3 space-y-3 px-3 pb-2">
+                      <Slider
+                        id="slippage"
+                        min={0.1}
+                        max={20}
+                        step={0.1}
+                        value={[slippageTolerance]}
+                        onValueChange={(value) => setSlippageTolerance(value[0])}
+                        className="w-full"
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>0.1%</span>
+                        <span>20%</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground italic">
+                        Higher slippage = more price movement tolerance
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </TabsContent>
 
             <TabsContent value="sell" className="space-y-5 mt-5">
+              {/* Position Selection - Modern Cards */}
               <div className="space-y-3">
                 <Label className="text-sm font-semibold">Select Position</Label>
                 <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    variant={position === "yes" ? "default" : "outline"}
+                  <button
+                    type="button"
                     onClick={() => setPosition("yes")}
-                    className={`h-12 font-bold text-base transition-all ${
+                    className={`h-14 rounded-lg font-bold text-base transition-all border-2 ${
                       position === "yes"
-                        ? "bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 border-green-700 shadow-md"
-                        : "hover:bg-green-50 dark:hover:bg-green-950/20 hover:border-green-500"
+                        ? "bg-gradient-to-br from-emerald-500 to-emerald-600 border-emerald-600 text-white shadow-md scale-105"
+                        : "bg-muted/30 border-border hover:border-emerald-500/50 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
                     }`}
                   >
                     YES
-                  </Button>
-                  <Button
-                    variant={position === "no" ? "default" : "outline"}
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setPosition("no")}
-                    className={`h-12 font-bold text-base transition-all ${
+                    className={`h-14 rounded-lg font-bold text-base transition-all border-2 ${
                       position === "no"
-                        ? "bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 border-red-700 shadow-md"
-                        : "hover:bg-red-50 dark:hover:bg-red-950/20 hover:border-red-500"
+                        ? "bg-gradient-to-br from-rose-500 to-rose-600 border-rose-600 text-white shadow-md scale-105"
+                        : "bg-muted/30 border-border hover:border-rose-500/50 hover:bg-rose-50 dark:hover:bg-rose-950/20"
                     }`}
                   >
                     NO
-                  </Button>
+                  </button>
                 </div>
               </div>
 
-              <div className="space-y-2">
+              {/* Amount Input */}
+              <div className="space-y-3">
                 <Label htmlFor="sell-amount" className="text-sm font-semibold">
                   {marketType === "amm" ? "Shares to Sell" : "Amount (wstETH shares)"}
                 </Label>
@@ -617,9 +679,11 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="0.1"
-                  className="h-12 text-base font-mono"
+                  className="h-14 text-lg font-mono rounded-lg"
                 />
-                <p className="text-xs text-muted-foreground">Sell your {position.toUpperCase()} shares for wstETH</p>
+                <p className="text-xs text-muted-foreground">
+                  Sell your {position.toUpperCase()} shares for wstETH
+                </p>
               </div>
 
               {marketType === "amm" && estimatedCost > 0n && (
@@ -636,25 +700,41 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                 </div>
               )}
 
+              {/* Slippage Settings - Collapsible & Subtle */}
               {marketType === "amm" && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="slippage-sell" className="text-sm font-semibold">Slippage Tolerance</Label>
-                    <span className="font-mono font-bold text-sm">{slippageTolerance}%</span>
-                  </div>
-                  <Slider
-                    id="slippage-sell"
-                    min={0.1}
-                    max={20}
-                    step={0.1}
-                    value={[slippageTolerance]}
-                    onValueChange={(value) => setSlippageTolerance(value[0])}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>0.1%</span>
-                    <span>20%</span>
-                  </div>
+                <div className="pt-2 border-t border-border/30">
+                  <button
+                    type="button"
+                    onClick={() => setShowSlippageSettings(!showSlippageSettings)}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors text-sm"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Settings className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium text-muted-foreground">Slippage Settings</span>
+                    </div>
+                    <span className="font-mono font-semibold text-xs">{slippageTolerance}%</span>
+                  </button>
+
+                  {showSlippageSettings && (
+                    <div className="mt-3 space-y-3 px-3 pb-2">
+                      <Slider
+                        id="slippage-sell"
+                        min={0.1}
+                        max={20}
+                        step={0.1}
+                        value={[slippageTolerance]}
+                        onValueChange={(value) => setSlippageTolerance(value[0])}
+                        className="w-full"
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>0.1%</span>
+                        <span>20%</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground italic">
+                        Higher slippage = more price movement tolerance
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </TabsContent>
@@ -685,23 +765,31 @@ export const TradeModal: React.FC<TradeModalProps> = ({
             </Alert>
           )}
 
-          <div className="flex gap-3 pt-2">
+          {/* Action Buttons - Modern Design */}
+          <div className="flex gap-3 pt-4 border-t border-border/50">
             <Button
               onClick={handleTrade}
               disabled={isPending || txLoading || !address}
-              className={`flex-1 h-12 font-semibold text-base ${
+              className={`flex-1 h-14 font-bold text-base shadow-md hover:shadow-lg transition-all ${
                 action === "buy"
                   ? position === "yes"
-                    ? "bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700"
-                    : "bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700"
-                  : ""
+                    ? "bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white"
+                    : "bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white"
+                  : position === "yes"
+                    ? "bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white"
+                    : "bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white"
               }`}
             >
               {isPending || txLoading
                 ? "Processing…"
                 : `${action === "buy" ? "Buy" : "Sell"} ${position.toUpperCase()}`}
             </Button>
-            <Button variant="outline" onClick={onClose} disabled={isPending || txLoading} className="h-12 px-6">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              disabled={isPending || txLoading}
+              className="h-14 px-8 border-2 hover:bg-muted/50"
+            >
               Cancel
             </Button>
           </div>

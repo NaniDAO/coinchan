@@ -17,7 +17,13 @@ function RouteComponent() {
   return (
     <div className="lg:pl-8 p-4">
       <div className="w-full !mb-10 mt-5 mx-auto !p-4 bg-background lg:max-w-2xl">
-        <ErrorBoundary fallback={<div>Error in InstantTradeAction</div>}>
+        <ErrorBoundary
+          fallback={
+            <div className="flex items-center justify-center p-8">
+              <div className="text-sm text-muted-foreground">Loading...</div>
+            </div>
+          }
+        >
           <InstantTradeAction />
         </ErrorBoundary>
       </div>
