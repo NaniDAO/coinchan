@@ -1154,7 +1154,7 @@
     "name": "Name",
     "closes": "Closes",
     "all_markets": "All Markets",
-    "prediction_markets": "Prediction Markets",
+    "prediction_markets": "Open Prediction Markets",
     "create_and_trade": "Create and trade on prediction markets",
     "create_and_trade_tagline": "Create and trade on what might happen",
     "all_deposits_earn_lido": "All trades earn yield from",
