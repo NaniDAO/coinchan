@@ -6,26 +6,47 @@ import { MarketCard } from "./MarketCard";
 import { LoadingLogo } from "@/components/ui/loading-logo";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Search, X } from "lucide-react";
+import { Search, X, TrendingUp, Clock, DollarSign } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { isTrustedResolver, isPerpetualOracleResolver } from "@/constants/TrustedResolvers";
 
 interface MarketGalleryProps {
   refreshKey?: number;
 }
 
-type MarketFilter = "all" | "contract" | "curated" | "community" | "closed" | "resolved" | "positions";
+type MarketFilter = "all" | "contract" | "curated" | "community" | "closed" | "resolved" | "positions" | "favorites";
+type SortOption = "newest" | "pot" | "activity" | "closing";
 
 export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
   const [start] = useState(0);
   const [filter, setFilter] = useState<MarketFilter>("curated");
   const [searchQuery, setSearchQuery] = useState("");
-  const [metadataCache, setMetadataCache] = useState<Map<string, any>>(new Map());
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const [favoritesVersion, setFavoritesVersion] = useState(0); // Force re-render when favorites change
   // Fetch 100 markets per contract (200 total). Balance between completeness and performance.
   // TODO: Implement pagination or infinite scroll when market count grows significantly
   const count = 100;
   const { address } = useAccount();
 
-  // Fetch Pari-Mutuel markets
+  // Listen for favorite toggle events
+  useEffect(() => {
+    const handleFavoriteToggle = () => {
+      setFavoritesVersion((v) => v + 1);
+    };
+    window.addEventListener("favoriteToggled", handleFavoriteToggle);
+    return () => window.removeEventListener("favoriteToggled", handleFavoriteToggle);
+  }, []);
+
+  // Debounce search input for better performance
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Fetch Pari-Mutuel markets with real-time updates
   const {
     data: marketsData,
     isLoading: isLoadingPM,
@@ -35,9 +56,12 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
     abi: PredictionMarketAbi,
     functionName: "getMarkets",
     args: [BigInt(start), BigInt(count)],
+    query: {
+      refetchInterval: 15000, // Poll every 15 seconds for real-time updates
+    },
   });
 
-  // Fetch AMM markets
+  // Fetch AMM markets with real-time updates
   const {
     data: ammMarketsData,
     isLoading: isLoadingAMM,
@@ -47,6 +71,9 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
     abi: PredictionAMMAbi,
     functionName: "getMarkets",
     args: [BigInt(start), BigInt(count)],
+    query: {
+      refetchInterval: 15000, // Poll every 15 seconds for real-time updates
+    },
   });
 
   // Get user positions for Pari-Mutuel if connected
@@ -100,233 +127,193 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
   });
 
   const isLoading = isLoadingPM || isLoadingAMM || isLoadingPMTrading || isLoadingAMMTrading;
-  const refetch = () => {
-    refetchPM();
-    refetchAMM();
-  };
-  const refetchUserData = () => {
-    refetchUserDataPM();
-    refetchUserDataAMM();
-  };
 
   useEffect(() => {
     if (refreshKey !== undefined) {
-      refetch();
+      refetchPM();
+      refetchAMM();
       if (address) {
-        refetchUserData();
+        refetchUserDataPM();
+        refetchUserDataAMM();
       }
     }
-  }, [refreshKey, refetch, refetchUserData, address]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey]);
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center py-12">
-        <LoadingLogo />
-      </div>
-    );
-  }
+  const hasPMMarkets = Boolean(marketsData && marketsData[0] && marketsData[0].length > 0);
+  const hasAMMMarkets = Boolean(ammMarketsData && ammMarketsData[0] && ammMarketsData[0].length > 0);
 
-  const hasPMMarkets = marketsData && marketsData[0] && marketsData[0].length > 0;
-  const hasAMMMarkets = ammMarketsData && ammMarketsData[0] && ammMarketsData[0].length > 0;
-
-  if (!hasPMMarkets && !hasAMMMarkets) {
-    return (
-      <div className="text-center py-12 text-muted-foreground">No prediction markets yet. Create the first one!</div>
-    );
-  }
-
-  // Parse Pari-Mutuel markets
-  const pmMarkets = hasPMMarkets
-    ? {
-        marketIdsArray: marketsData![0],
-        yesSupplies: marketsData![1],
-        noSupplies: marketsData![2],
-        resolvers: marketsData![3],
-        resolved: marketsData![4],
-        outcome: marketsData![5],
-        pot: marketsData![6],
-        payoutPerShare: marketsData![7],
-        descs: marketsData![8],
-        next: marketsData![9],
-      }
-    : null;
+  // Parse Pari-Mutuel markets (memoized to ensure consistent hook calls)
+  const pmMarkets = useMemo(
+    () =>
+      hasPMMarkets
+        ? {
+            marketIdsArray: marketsData![0],
+            yesSupplies: marketsData![1],
+            noSupplies: marketsData![2],
+            resolvers: marketsData![3],
+            resolved: marketsData![4],
+            outcome: marketsData![5],
+            pot: marketsData![6],
+            payoutPerShare: marketsData![7],
+            descs: marketsData![8],
+            next: marketsData![9],
+          }
+        : null,
+    [hasPMMarkets, marketsData],
+  );
 
   // Parse AMM markets - note the AMM contract returns more fields
-  const ammMarkets = hasAMMMarkets
-    ? {
-        marketIdsArray: ammMarketsData![0],
-        yesSupplies: ammMarketsData![1],
-        noSupplies: ammMarketsData![2],
-        resolvers: ammMarketsData![3],
-        resolved: ammMarketsData![4],
-        outcome: ammMarketsData![5],
-        pot: ammMarketsData![6],
-        payoutPerShare: ammMarketsData![7],
-        descs: ammMarketsData![8],
-        closes: ammMarketsData![9],
-        canCloses: ammMarketsData![10],
-        rYesArr: ammMarketsData![11],
-        rNoArr: ammMarketsData![12],
-        pYesNumArr: ammMarketsData![13],
-        pYesDenArr: ammMarketsData![14],
-        next: ammMarketsData![15],
-      }
-    : null;
+  const ammMarkets = useMemo(
+    () =>
+      hasAMMMarkets
+        ? {
+            marketIdsArray: ammMarketsData![0],
+            yesSupplies: ammMarketsData![1],
+            noSupplies: ammMarketsData![2],
+            resolvers: ammMarketsData![3],
+            resolved: ammMarketsData![4],
+            outcome: ammMarketsData![5],
+            pot: ammMarketsData![6],
+            payoutPerShare: ammMarketsData![7],
+            descs: ammMarketsData![8],
+            closes: ammMarketsData![9],
+            canCloses: ammMarketsData![10],
+            rYesArr: ammMarketsData![11],
+            rNoArr: ammMarketsData![12],
+            pYesNumArr: ammMarketsData![13],
+            pYesDenArr: ammMarketsData![14],
+            next: ammMarketsData![15],
+          }
+        : null,
+    [hasAMMMarkets, ammMarketsData],
+  );
 
   // Extract user positions data for both types
-  const userPositions = userMarketsData
-    ? {
-        yesBalances: userMarketsData[2],
-        noBalances: userMarketsData[3],
-        claimables: userMarketsData[4],
-      }
-    : null;
-
-  const userAmmPositions = userAmmMarketsData
-    ? {
-        yesBalances: userAmmMarketsData[2],
-        noBalances: userAmmMarketsData[3],
-        claimables: userAmmMarketsData[4],
-      }
-    : null;
-
-  // Combine markets from both contracts
-  const allMarkets: Array<{
-    marketId: bigint;
-    yesSupply: bigint;
-    noSupply: bigint;
-    resolver: string;
-    resolved: boolean;
-    outcome: boolean;
-    pot: bigint;
-    payoutPerShare: bigint;
-    description: string;
-    userYesBalance: bigint;
-    userNoBalance: bigint;
-    userClaimable: bigint;
-    tradingOpen: boolean;
-    marketType: "parimutuel" | "amm";
-    contractAddress: `0x${string}`;
-    rYes?: bigint;
-    rNo?: bigint;
-  }> = [];
-
-  // Add Pari-Mutuel markets
-  if (pmMarkets) {
-    pmMarkets.marketIdsArray.forEach((marketId, idx) => {
-      allMarkets.push({
-        marketId,
-        yesSupply: pmMarkets.yesSupplies[idx],
-        noSupply: pmMarkets.noSupplies[idx],
-        resolver: pmMarkets.resolvers[idx],
-        resolved: pmMarkets.resolved[idx],
-        outcome: pmMarkets.outcome[idx],
-        pot: pmMarkets.pot[idx],
-        payoutPerShare: pmMarkets.payoutPerShare[idx],
-        description: pmMarkets.descs[idx],
-        userYesBalance: userPositions?.yesBalances[idx] || 0n,
-        userNoBalance: userPositions?.noBalances[idx] || 0n,
-        userClaimable: userPositions?.claimables[idx] || 0n,
-        tradingOpen: Boolean(tradingOpenData?.[idx]?.result ?? true),
-        marketType: "parimutuel",
-        contractAddress: PredictionMarketAddress as `0x${string}`,
-      });
-    });
-  }
-
-  // Add AMM markets
-  if (ammMarkets) {
-    ammMarkets.marketIdsArray.forEach((marketId, idx) => {
-      allMarkets.push({
-        marketId,
-        yesSupply: ammMarkets.yesSupplies[idx],
-        noSupply: ammMarkets.noSupplies[idx],
-        resolver: ammMarkets.resolvers[idx],
-        resolved: ammMarkets.resolved[idx],
-        outcome: ammMarkets.outcome[idx],
-        pot: ammMarkets.pot[idx],
-        payoutPerShare: ammMarkets.payoutPerShare[idx],
-        description: ammMarkets.descs[idx],
-        userYesBalance: userAmmPositions?.yesBalances[idx] || 0n,
-        userNoBalance: userAmmPositions?.noBalances[idx] || 0n,
-        userClaimable: userAmmPositions?.claimables[idx] || 0n,
-        tradingOpen: Boolean(ammTradingOpenData?.[idx]?.result ?? true),
-        marketType: "amm",
-        contractAddress: PredictionAMMAddress as `0x${string}`,
-        rYes: ammMarkets.rYesArr[idx],
-        rNo: ammMarkets.rNoArr[idx],
-      });
-    });
-  }
-
-  // Fetch metadata for all markets asynchronously
-  useEffect(() => {
-    const fetchAllMetadata = async () => {
-      if (allMarkets.length === 0) return;
-
-      const newCache = new Map(metadataCache);
-      let hasUpdates = false;
-
-      for (const market of allMarkets) {
-        const cacheKey = `${market.contractAddress}-${market.marketId}`;
-        if (newCache.has(cacheKey)) continue;
-
-        try {
-          // Try to parse as JSON first (for some legacy formats)
-          try {
-            const parsed = JSON.parse(market.description);
-            if (parsed.name) {
-              newCache.set(cacheKey, { name: parsed.name });
-              hasUpdates = true;
-              continue;
-            }
-          } catch {
-            // Not JSON, continue to fetch
+  const userPositions = useMemo(
+    () =>
+      userMarketsData
+        ? {
+            yesBalances: userMarketsData[2],
+            noBalances: userMarketsData[3],
+            claimables: userMarketsData[4],
           }
+        : null,
+    [userMarketsData],
+  );
 
-          // Fetch from URL/IPFS
-          const url = market.description.startsWith("ipfs://")
-            ? `https://ipfs.io/ipfs/${market.description.slice(7)}`
-            : market.description;
+  const userAmmPositions = useMemo(
+    () =>
+      userAmmMarketsData
+        ? {
+            yesBalances: userAmmMarketsData[2],
+            noBalances: userAmmMarketsData[3],
+            claimables: userAmmMarketsData[4],
+          }
+        : null,
+    [userAmmMarketsData],
+  );
 
-          const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
-          const data = await response.json();
-          newCache.set(cacheKey, { name: data.name || "Unnamed Market" });
-          hasUpdates = true;
-        } catch (error) {
-          // Cache empty result to avoid refetching
-          newCache.set(cacheKey, { name: `Market #${market.marketId.toString().slice(0, 8)}` });
-          hasUpdates = true;
-        }
-      }
+  // Combine markets from both contracts (memoized to ensure consistent hook calls)
+  const allMarkets = useMemo(() => {
+    const markets: Array<{
+      marketId: bigint;
+      yesSupply: bigint;
+      noSupply: bigint;
+      resolver: string;
+      resolved: boolean;
+      outcome: boolean;
+      pot: bigint;
+      payoutPerShare: bigint;
+      description: string;
+      userYesBalance: bigint;
+      userNoBalance: bigint;
+      userClaimable: bigint;
+      tradingOpen: boolean;
+      marketType: "parimutuel" | "amm";
+      contractAddress: `0x${string}`;
+      rYes?: bigint;
+      rNo?: bigint;
+    }> = [];
 
-      if (hasUpdates) {
-        setMetadataCache(newCache);
-      }
-    };
+    // Add Pari-Mutuel markets
+    if (pmMarkets) {
+      pmMarkets.marketIdsArray.forEach((marketId, idx) => {
+        markets.push({
+          marketId,
+          yesSupply: pmMarkets.yesSupplies[idx],
+          noSupply: pmMarkets.noSupplies[idx],
+          resolver: pmMarkets.resolvers[idx],
+          resolved: pmMarkets.resolved[idx],
+          outcome: pmMarkets.outcome[idx],
+          pot: pmMarkets.pot[idx],
+          payoutPerShare: pmMarkets.payoutPerShare[idx],
+          description: pmMarkets.descs[idx],
+          userYesBalance: userPositions?.yesBalances[idx] || 0n,
+          userNoBalance: userPositions?.noBalances[idx] || 0n,
+          userClaimable: userPositions?.claimables[idx] || 0n,
+          tradingOpen: Boolean(tradingOpenData?.[idx]?.result ?? true),
+          marketType: "parimutuel",
+          contractAddress: PredictionMarketAddress as `0x${string}`,
+        });
+      });
+    }
 
-    fetchAllMetadata();
-  }, [allMarkets.length, metadataCache]);
+    // Add AMM markets
+    if (ammMarkets) {
+      ammMarkets.marketIdsArray.forEach((marketId, idx) => {
+        markets.push({
+          marketId,
+          yesSupply: ammMarkets.yesSupplies[idx],
+          noSupply: ammMarkets.noSupplies[idx],
+          resolver: ammMarkets.resolvers[idx],
+          resolved: ammMarkets.resolved[idx],
+          outcome: ammMarkets.outcome[idx],
+          pot: ammMarkets.pot[idx],
+          payoutPerShare: ammMarkets.payoutPerShare[idx],
+          description: ammMarkets.descs[idx],
+          userYesBalance: userAmmPositions?.yesBalances[idx] || 0n,
+          userNoBalance: userAmmPositions?.noBalances[idx] || 0n,
+          userClaimable: userAmmPositions?.claimables[idx] || 0n,
+          tradingOpen: Boolean(ammTradingOpenData?.[idx]?.result ?? true),
+          marketType: "amm",
+          contractAddress: PredictionAMMAddress as `0x${string}`,
+          rYes: ammMarkets.rYesArr[idx],
+          rNo: ammMarkets.rNoArr[idx],
+        });
+      });
+    }
+
+    return markets;
+  }, [pmMarkets, ammMarkets, userPositions, userAmmPositions, tradingOpenData, ammTradingOpenData]);
 
   // Excluded resolver addresses
-  const excludedResolvers = new Set([
-    "0x40cc6F9ca737a0aA746b645cFc92a67942162CC3".toLowerCase(),
-    "0x07e53dd08D9579e90928636068835d4EADc253a6".toLowerCase(), // Old CoinflipResolver (excluded)
-    // Note: 0xeAd4D6A7C5C0D8ff7bFbe3ab1b4b4bc596C1FD1c is the NEW trusted CoinflipResolver and should be visible
-  ]);
+  const excludedResolvers = useMemo(
+    () =>
+      new Set([
+        "0x40cc6F9ca737a0aA746b645cFc92a67942162CC3".toLowerCase(),
+        "0x07e53dd08D9579e90928636068835d4EADc253a6".toLowerCase(), // Old CoinflipResolver (excluded)
+        // Note: 0xeAd4D6A7C5C0D8ff7bFbe3ab1b4b4bc596C1FD1c is the NEW trusted CoinflipResolver and should be visible
+      ]),
+    [],
+  );
 
   // Excluded market IDs (specific Coinflip markets to hide)
-  const excludedMarketIds = new Set([
-    54729014062189984233222064350194783449228335005152376603700161212069844720568n,
-    26201201871669602142649258403946775672767689279764719138083439927528646678749n,
-    2432527491801219314479643753245417709526518743184029612039853322401478992262n,
-  ]);
+  const excludedMarketIds = useMemo(
+    () =>
+      new Set([
+        54729014062189984233222064350194783449228335005152376603700161212069844720568n,
+        26201201871669602142649258403946775672767689279764719138083439927528646678749n,
+        2432527491801219314479643753245417709526518743184029612039853322401478992262n,
+      ]),
+    [],
+  );
 
   // Memoize expensive filtering operations
   const visibleMarkets = useMemo(
     () =>
       allMarkets.filter((m) => !excludedResolvers.has(m.resolver.toLowerCase()) && !excludedMarketIds.has(m.marketId)),
-    [allMarkets.length], // Only recalculate when markets count changes
+    [allMarkets, excludedResolvers, excludedMarketIds],
   );
 
   // Define dust threshold: 0.0001 wstETH (100000000000000 wei = 10^14)
@@ -353,7 +340,7 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
         // - Hide if pot is 0 (no activity) or pot < DUST_THRESHOLD (dust amounts)
         return market.pot >= DUST_THRESHOLD;
       }),
-    [visibleMarkets.length],
+    [visibleMarkets, DUST_THRESHOLD],
   );
 
   // Calculate accurate counts based on non-dust markets
@@ -366,6 +353,16 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
   const closedCount = nonDustMarkets.filter((m) => !m.tradingOpen && !m.resolved).length;
   const resolvedCount = nonDustMarkets.filter((m) => m.resolved).length;
   const positionsCount = nonDustMarkets.filter((m) => m.userYesBalance > 0n || m.userNoBalance > 0n).length;
+
+  // Get favorites from localStorage
+  const favorites = useMemo(() => {
+    try {
+      return new Set(JSON.parse(localStorage.getItem("favoriteMarkets") || "[]"));
+    } catch {
+      return new Set();
+    }
+  }, [favoritesVersion]); // Re-read when favorites change
+  const favoritesCount = nonDustMarkets.filter((m) => favorites.has(m.marketId.toString())).length;
 
   // Filter markets based on selected filter and search query (memoized for performance)
   const filteredMarkets = useMemo(() => {
@@ -396,33 +393,93 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
       if (filter === "positions") {
         return market.userYesBalance > 0n || market.userNoBalance > 0n;
       }
+      if (filter === "favorites") {
+        return favorites.has(market.marketId.toString());
+      }
       return true;
     });
 
     // Apply search filter if query exists
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim();
+    if (debouncedSearchQuery.trim()) {
+      const query = debouncedSearchQuery.toLowerCase().trim();
       markets = markets.filter((market) => {
-        const cacheKey = `${market.contractAddress}-${market.marketId}`;
-        const cached = metadataCache.get(cacheKey);
-
-        if (cached && cached.name) {
-          // Search in cached market name
-          return cached.name.toLowerCase().includes(query);
-        }
-
-        // Fallback: search in market ID if metadata not yet loaded
-        return market.marketId.toString().includes(query);
+        // Search in description or market ID
+        const descLower = market.description.toLowerCase();
+        return descLower.includes(query) || market.marketId.toString().includes(query);
       });
     }
 
-    return markets;
-  }, [nonDustMarkets, filter, searchQuery, metadataCache]);
+    // Apply sorting
+    const sorted = [...markets].sort((a, b) => {
+      switch (sortBy) {
+        case "newest":
+          // Newest markets have higher IDs
+          return Number(b.marketId - a.marketId);
+        case "pot":
+          // Highest pot first
+          return Number(b.pot - a.pot);
+        case "activity":
+          // Markets with more total shares (activity)
+          const aActivity = a.yesSupply + a.noSupply;
+          const bActivity = b.yesSupply + b.noSupply;
+          return Number(bActivity - aActivity);
+        case "closing":
+          // Active markets only, no closing time for parimutuel
+          // For now, same as newest
+          return Number(b.marketId - a.marketId);
+        default:
+          return 0;
+      }
+    });
+
+    return sorted;
+  }, [nonDustMarkets, filter, debouncedSearchQuery, sortBy, favorites]);
 
   // Calculate total markets count (before exclusions, just PM + AMM)
   const totalPMMarkets = hasPMMarkets ? marketsData![0].length : 0;
   const totalAMMMarkets = hasAMMMarkets ? ammMarketsData![0].length : 0;
   const totalMarketsCount = totalPMMarkets + totalAMMMarkets;
+
+  // Skeleton loader component
+  const MarketCardSkeleton = () => (
+    <div className="bg-card border border-border rounded-xl overflow-hidden animate-pulse">
+      <div className="w-full h-40 bg-muted" />
+      <div className="p-5 space-y-4">
+        <div className="space-y-2">
+          <div className="h-4 bg-muted rounded w-3/4" />
+          <div className="h-3 bg-muted rounded w-1/2" />
+        </div>
+        <div className="h-20 bg-muted rounded" />
+        <div className="grid grid-cols-2 gap-3">
+          <div className="h-14 bg-muted rounded" />
+          <div className="h-14 bg-muted rounded" />
+        </div>
+      </div>
+    </div>
+  );
+
+  // Handle loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center py-8">
+          <LoadingLogo />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <MarketCardSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Handle empty state
+  if (!hasPMMarkets && !hasAMMMarkets) {
+    return (
+      <div className="text-center py-12 text-muted-foreground">No prediction markets yet. Create the first one!</div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -442,38 +499,83 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
         )}
       </div>
 
-      {/* Search Bar - Subtle & Clean */}
-      <div className="relative max-w-md mx-auto">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-        <Input
-          type="text"
-          placeholder="Search markets by name..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10 pr-10 h-11 bg-muted/30 border-border/50 focus:bg-background transition-colors"
-        />
-        {searchQuery && (
-          <button
-            onClick={() => setSearchQuery("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Clear search"
+      {/* Search and Sort Controls */}
+      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+        {/* Search Bar */}
+        <div className="relative flex-1 max-w-md mx-auto sm:mx-0">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <Input
+            type="text"
+            placeholder="Search markets by name..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 pr-10 h-11 bg-muted/30 border-border/50 focus:bg-background transition-colors"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Clear search"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+          {searchQuery !== debouncedSearchQuery && (
+            <div className="absolute right-10 top-1/2 -translate-y-1/2">
+              <div className="h-3 w-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
+        </div>
+
+        {/* Sort Dropdown */}
+        <div className="flex gap-2 justify-center sm:justify-start flex-wrap">
+          <Button
+            variant={sortBy === "newest" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setSortBy("newest")}
+            className="h-11 gap-2"
           >
-            <X className="h-4 w-4" />
-          </button>
-        )}
+            <Clock className="h-4 w-4" />
+            <span className="hidden sm:inline">Newest</span>
+          </Button>
+          <Button
+            variant={sortBy === "pot" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setSortBy("pot")}
+            className="h-11 gap-2"
+          >
+            <DollarSign className="h-4 w-4" />
+            <span className="hidden sm:inline">Highest Pot</span>
+          </Button>
+          <Button
+            variant={sortBy === "activity" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setSortBy("activity")}
+            className="h-11 gap-2"
+          >
+            <TrendingUp className="h-4 w-4" />
+            <span className="hidden sm:inline">Most Active</span>
+          </Button>
+        </div>
       </div>
 
       {/* Show search results count when searching */}
-      {searchQuery && (
-        <div className="text-center text-sm text-muted-foreground">
+      {debouncedSearchQuery && (
+        <div className="text-center text-sm text-muted-foreground animate-in fade-in duration-200">
           Found <span className="font-semibold text-foreground">{filteredMarkets.length}</span> market
-          {filteredMarkets.length !== 1 ? "s" : ""} matching "{searchQuery}"
+          {filteredMarkets.length !== 1 ? "s" : ""} matching "{debouncedSearchQuery}"
         </div>
       )}
 
       <Tabs value={filter} onValueChange={(v) => setFilter(v as MarketFilter)}>
         <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
           <TabsList className="inline-flex w-auto min-w-full">
+            {favoritesCount > 0 && (
+              <TabsTrigger value="favorites" className="whitespace-nowrap">
+                <span className="hidden sm:inline">Favorites ({favoritesCount})</span>
+                <span className="sm:hidden">Favorites</span>
+              </TabsTrigger>
+            )}
             {curatedCount > 0 && (
               <TabsTrigger value="curated" className="whitespace-nowrap">
                 <span className="hidden sm:inline">Curated ({curatedCount})</span>
@@ -554,8 +656,12 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
                   rYes={market.rYes}
                   rNo={market.rNo}
                   onClaimSuccess={() => {
-                    refetch();
-                    if (address) refetchUserData();
+                    refetchPM();
+                    refetchAMM();
+                    if (address) {
+                      refetchUserDataPM();
+                      refetchUserDataAMM();
+                    }
                   }}
                 />
               ))}

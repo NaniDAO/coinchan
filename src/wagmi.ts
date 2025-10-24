@@ -24,19 +24,25 @@ export const config = getDefaultConfig({
         batch: batchConfig,
         retryCount: 2,
         retryDelay: 200,
+        timeout: 15_000, // 15 second timeout
       }),
       // Alchemy fallback with batching
       http(import.meta.env.VITE_ALCHEMY_1, {
         batch: batchConfig,
         retryCount: 2,
         retryDelay: 200,
+        timeout: 15_000,
       }),
       // Cloudflare as last resort fallback (no batching)
-      http("https://cloudflare-eth.com"),
+      http("https://cloudflare-eth.com", {
+        timeout: 15_000,
+      }),
     ]),
   },
   // @TODO farcaster
   ssr: false,
   // Disable sync since we only support mainnet
   syncConnectedChain: false,
+  // Enable multiInjectedProviderDiscovery for better wallet detection
+  multiInjectedProviderDiscovery: true,
 });

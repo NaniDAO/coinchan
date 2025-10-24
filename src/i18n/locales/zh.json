@@ -1575,7 +1575,7 @@
     "name": "名称",
     "closes": "截止",
     "all_markets": "所有市场",
-    "prediction_markets": "预测市场",
+    "prediction_markets": "开放预测市场",
     "create_and_trade": "创建和交易预测市场",
     "create_and_trade_tagline": "创建和交易可能发生的事情",
     "all_deposits_earn_lido": "所有存款从以下赚取收益",

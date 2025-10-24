@@ -22,8 +22,26 @@
  * For BETHPM:
  * Example input: "BETH totalBurned() >= 1000000000000000000 ETH (wei) by 1234567890 Unix epoch time. Note: market may close early once threshold is reached."
  * Example output: "BETH Burn Milestone"
+ *
+ * For UNISUPPLYPM:
+ * Example input: "UNI totalSupply() > 1000000000000000000000000000 tokens (wei) by 1234567890 Unix epoch time. Note: market may close early once threshold is reached."
+ * Example output: "UNI Supply Milestone"
+ *
+ * For BUNNIBOUNTYPM:
+ * Example input: "Bunni residual bounty < 1000000000000000000 ETH (wei) by 1234567890 Unix epoch time. Note: market may close early once threshold is reached."
+ * Example output: "Bunni Bounty Payout"
  */
 export const extractMarketQuestion = (description: string): string => {
+  // For BUNNIBOUNTYPM, extract bounty milestone
+  if (description.startsWith("Bunni residual bounty")) {
+    return "Bunni Bounty Payout";
+  }
+
+  // For UNISUPPLYPM, extract supply milestone
+  if (description.startsWith("UNI totalSupply()")) {
+    return "UNI Supply Milestone";
+  }
+
   // For BETHPM, extract burn milestone
   if (description.startsWith("BETH totalBurned()")) {
     return "BETH Burn Milestone";
@@ -68,6 +86,8 @@ export const generateOracleSvg = (question: string, symbol?: string): string => 
   const isCoinflip = question === "Coinflip";
   const isNouns = question.startsWith("Nouns #");
   const isBETH = question === "BETH Burn Milestone";
+  const isUNI = question === "UNI Supply Milestone";
+  const isBUNNIBOUNTY = question === "Bunni Bounty Payout";
 
   // For Coinflip: blue/purple/blockchain theme
   const coinflipColors = [
@@ -111,6 +131,34 @@ export const generateOracleSvg = (question: string, symbol?: string): string => 
     "#E9967A", // Dark Salmon
   ];
 
+  // For UNI: pink/magenta/purple theme (UNI branding)
+  const uniColors = [
+    "#FF007A", // UNI Pink
+    "#FF1493", // Deep Pink
+    "#FF69B4", // Hot Pink
+    "#FF52A7", // Bright Pink
+    "#DA70D6", // Orchid
+    "#EE82EE", // Violet
+    "#FF00FF", // Magenta
+    "#DB7093", // Pale Violet Red
+    "#C71585", // Medium Violet Red
+    "#BA55D3", // Medium Orchid
+  ];
+
+  // For BUNNIBOUNTY: light blue/easter colors theme (bounty theme)
+  const bunniColors = [
+    "#87CEEB", // Sky Blue
+    "#87CEFA", // Light Sky Blue
+    "#ADD8E6", // Light Blue
+    "#B0E0E6", // Powder Blue
+    "#AFEEEE", // Pale Turquoise
+    "#7EC8E3", // Light Blue
+    "#89CFF0", // Baby Blue
+    "#A7C7E7", // Pastel Blue
+    "#6CB4EE", // Cornflower Blue
+    "#72A0C1", // Air Force Blue
+  ];
+
   // For EthWentUp and others: gold/yellow theme
   const oracleColors = [
     "#FFD700", // Gold
@@ -125,7 +173,17 @@ export const generateOracleSvg = (question: string, symbol?: string): string => 
     "#FFCC00", // Bright Gold
   ];
 
-  const colors = isCoinflip ? coinflipColors : isNouns ? nounsColors : isBETH ? bethColors : oracleColors;
+  const colors = isCoinflip
+    ? coinflipColors
+    : isNouns
+      ? nounsColors
+      : isBETH
+        ? bethColors
+        : isUNI
+          ? uniColors
+          : isBUNNIBOUNTY
+            ? bunniColors
+            : oracleColors;
 
   // Pick a consistent color based on question hash (for consistent colors per market)
   const colorIndex = question.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
@@ -153,14 +211,18 @@ export const generateOracleSvg = (question: string, symbol?: string): string => 
   }
 
   // Choose icon and badge color based on oracle type
-  const icon = isCoinflip ? "🎲" : isNouns ? "⌐◨-◨" : isBETH ? "🔥" : "⚡";
+  const icon = isCoinflip ? "🎲" : isNouns ? "⌐◨-◨" : isBETH ? "🔥" : isUNI ? "🦄" : isBUNNIBOUNTY ? "🐰" : "⚡";
   const badgeColor = isCoinflip
     ? "rgba(65, 105, 225, 0.3)"
     : isNouns
       ? "rgba(255, 105, 180, 0.3)"
       : isBETH
         ? "rgba(255, 69, 0, 0.3)"
-        : "rgba(218, 165, 32, 0.3)";
+        : isUNI
+          ? "rgba(255, 0, 122, 0.3)"
+          : isBUNNIBOUNTY
+            ? "rgba(135, 206, 235, 0.3)"
+            : "rgba(218, 165, 32, 0.3)";
 
   // Generate SVG with oracle branding
   // For Coinflip, add animated 8-bit style coin
@@ -329,6 +391,42 @@ export const extractBETHDeadline = (description: string): number | null => {
 };
 
 /**
+ * Extracts UNI supply target amount from description
+ * Example: "UNI totalSupply() > 1000000000000000000000000000 tokens (wei) by ..." → "1000000000000000000000000000"
+ */
+export const extractUNISupplyAmount = (description: string): string | null => {
+  const match = description.match(/totalSupply\(\)\s*>\s*(\d+)/);
+  return match ? match[1] : null;
+};
+
+/**
+ * Extracts UNI deadline from description
+ * Example: "... by 1234567890 Unix epoch time." → 1234567890
+ */
+export const extractUNIDeadline = (description: string): number | null => {
+  const match = description.match(/by\s+(\d+)\s+Unix epoch time/);
+  return match ? parseInt(match[1], 10) : null;
+};
+
+/**
+ * Extracts BUNNIBOUNTYPM target amount from description
+ * Example: "Bunni residual bounty < 1000000000000000000 ETH (wei) by ..." → "1000000000000000000"
+ */
+export const extractBUNNIBOUNTYPMAmount = (description: string): string | null => {
+  const match = description.match(/bounty\s*<\s*(\d+)/);
+  return match ? match[1] : null;
+};
+
+/**
+ * Extracts BUNNIBOUNTYPM deadline from description
+ * Example: "... by 1234567890 Unix epoch time." → 1234567890
+ */
+export const extractBUNNIBOUNTYPMDeadline = (description: string): number | null => {
+  const match = description.match(/by\s+(\d+)\s+Unix epoch time/);
+  return match ? parseInt(match[1], 10) : null;
+};
+
+/**
  * Extracts metadata from a perpetual oracle market description
  * Returns name, description, SVG image URL, and timing info
  */
@@ -351,6 +449,14 @@ export const extractOracleMetadata = (onchainDescription: string) => {
   const bethBurnAmount = extractBETHBurnAmount(onchainDescription);
   const bethDeadline = extractBETHDeadline(onchainDescription);
 
+  // Extract UNI-specific data
+  const uniSupplyAmount = extractUNISupplyAmount(onchainDescription);
+  const uniDeadline = extractUNIDeadline(onchainDescription);
+
+  // Extract BUNNIBOUNTYPM-specific data
+  const bunniBountyAmount = extractBUNNIBOUNTYPMAmount(onchainDescription);
+  const bunniBountyDeadline = extractBUNNIBOUNTYPMDeadline(onchainDescription);
+
   return {
     name: question,
     symbol: "ORACLE",
@@ -366,5 +472,9 @@ export const extractOracleMetadata = (onchainDescription: string) => {
     nounsEvalBlock,
     bethBurnAmount,
     bethDeadline,
+    uniSupplyAmount,
+    uniDeadline,
+    bunniBountyAmount,
+    bunniBountyDeadline,
   };
 };

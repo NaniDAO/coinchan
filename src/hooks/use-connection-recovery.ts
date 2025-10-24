@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 /**
  * Hook to handle wallet connection recovery when connector errors occur
+ * Provides defensive checks and automatic recovery from connector state issues
  */
 export function useConnectionRecovery() {
   const { isConnected, connector } = useAccount();
@@ -11,11 +12,45 @@ export function useConnectionRecovery() {
   const { connectors, connect } = useConnect();
   const lastErrorTime = useRef<number>(0);
   const recoveryAttempted = useRef<boolean>(false);
+  const lastValidationTime = useRef<number>(0);
 
   useEffect(() => {
     if (!isConnected || !connector) return;
 
-    // Set up a proxy to detect connector errors
+    // Periodically validate connector state to catch issues early
+    const validateConnector = () => {
+      const now = Date.now();
+      // Only validate once every 30 seconds to avoid overhead
+      if (now - lastValidationTime.current < 30000) return;
+      lastValidationTime.current = now;
+
+      try {
+        // Test if connector has required methods
+        if (typeof connector.getChainId !== "function") {
+          console.warn("Connector missing getChainId method, may need reconnection");
+          recoveryAttempted.current = false; // Allow recovery on next error
+        }
+      } catch (error) {
+        console.warn("Connector validation failed:", error);
+      }
+    };
+
+    // Run initial validation
+    validateConnector();
+
+    // Set up periodic validation
+    const validationInterval = setInterval(validateConnector, 30000);
+
+    // Cleanup
+    return () => {
+      clearInterval(validationInterval);
+    };
+
+  }, [isConnected, connector, disconnect]);
+
+  // Separate effect for error handling
+  useEffect(() => {
+    // Set up error handler for connector errors
     const handleConnectorError = (error: Error) => {
       const errorMessage = error?.message || "";
       const now = Date.now();
@@ -24,10 +59,11 @@ export function useConnectionRecovery() {
       if (
         errorMessage.includes("getChainId is not a function") ||
         errorMessage.includes("connector.getChainId") ||
-        errorMessage.includes("connections.get is not a function")
+        errorMessage.includes("connections.get is not a function") ||
+        errorMessage.includes("connector is undefined")
       ) {
-        // Throttle error handling (one attempt per 10 seconds)
-        if (now - lastErrorTime.current < 10000) return;
+        // Throttle error handling (one attempt per 15 seconds)
+        if (now - lastErrorTime.current < 15000) return;
         lastErrorTime.current = now;
 
         // Only attempt recovery once per error cycle
@@ -36,9 +72,10 @@ export function useConnectionRecovery() {
 
         console.warn("Wallet connector error detected, attempting recovery...");
 
-        // Show user-friendly notification
-        toast.error("Wallet connection issue detected. Please reconnect your wallet.", {
-          duration: 5000,
+        // Show user-friendly notification with reconnect option
+        toast.error("Wallet connection issue detected", {
+          description: "Please reconnect your wallet to continue.",
+          duration: 7000,
           action: {
             label: "Reconnect",
             onClick: () => {
@@ -60,23 +97,19 @@ export function useConnectionRecovery() {
 
     window.addEventListener("unhandledrejection", handleUnhandledRejection);
 
-    // Reset recovery flag when connection changes
-    const resetRecoveryFlag = () => {
-      recoveryAttempted.current = false;
-    };
-
-    // Also listen for successful connection to reset the flag
-    const checkConnection = setInterval(() => {
-      if (isConnected && connector) {
-        resetRecoveryFlag();
-      }
-    }, 5000);
-
     return () => {
       window.removeEventListener("unhandledrejection", handleUnhandledRejection);
-      clearInterval(checkConnection);
     };
-  }, [isConnected, connector, disconnect]);
+  }, [disconnect]);
+
+  // Separate effect to monitor connection state changes
+  useEffect(() => {
+    // Reset recovery flag when connection changes
+    if (isConnected && connector) {
+      // Connection is good, reset recovery flag
+      recoveryAttempted.current = false;
+    }
+  }, [isConnected, connector]);
 
   // Return a manual recovery function that components can call
   const attemptRecovery = async () => {

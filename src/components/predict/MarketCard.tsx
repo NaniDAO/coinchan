@@ -18,7 +18,7 @@ import { MarketCountdown } from "./MarketCountdown";
 import { ResolverControls } from "./ResolverControls";
 import { PredictionMarketAddress, PredictionMarketAbi } from "@/constants/PredictionMarket";
 import { PredictionAMMAbi } from "@/constants/PredictionMarketAMM";
-import { ExternalLink, BadgeCheck, Copy, Check, Sparkles, Coins } from "lucide-react";
+import { ExternalLink, BadgeCheck, Copy, Check, Sparkles, Coins, Share2, Star } from "lucide-react";
 import { formatImageURL } from "@/hooks/metadata";
 import {
   isTrustedResolver,
@@ -29,12 +29,16 @@ import {
   COINFLIP_RESOLVER_ADDRESS,
   NOUNS_PASS_VOTING_RESOLVER_ADDRESS,
   BETH_PM_RESOLVER_ADDRESS,
+  UNISUPPLY_PM_RESOLVER_ADDRESS,
+  BUNNIBOUNTYPM_RESOLVER_ADDRESS,
 } from "@/constants/TrustedResolvers";
 import { extractOracleMetadata, extractNounsEvalBlock } from "@/lib/perpetualOracleUtils";
 import { EthWentUpResolverAbi } from "@/constants/EthWentUpResolver";
 import { CoinflipResolverAbi } from "@/constants/CoinflipResolver";
 import { NounsPassVotingResolverAbi } from "@/constants/NounsPassVotingResolver";
 import { BETHPMResolverAbi } from "@/constants/BETHPMResolver";
+import { UNISUPPLYPMResolverAbi } from "@/constants/UNISUPPLYPMResolver";
+import { BUNNIBOUNTYPMResolverAbi } from "@/constants/BUNNIBOUNTYPMResolver";
 import { ChainlinkAggregatorV3Abi, CHAINLINK_ETH_USD_FEED } from "@/constants/ChainlinkAggregator";
 import { useBalance } from "wagmi";
 import ReactMarkdown from "react-markdown";
@@ -94,6 +98,44 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   const [imageError, setImageError] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [initialPosition, setInitialPosition] = useState<"yes" | "no">("yes");
+
+  // Favorites management
+  const [isFavorite, setIsFavorite] = useState(() => {
+    const favorites = JSON.parse(localStorage.getItem("favoriteMarkets") || "[]");
+    return favorites.includes(marketId.toString());
+  });
+
+  const toggleFavorite = () => {
+    const favorites = JSON.parse(localStorage.getItem("favoriteMarkets") || "[]");
+    const marketIdStr = marketId.toString();
+    const newFavorites = isFavorite
+      ? favorites.filter((id: string) => id !== marketIdStr)
+      : [...favorites, marketIdStr];
+    localStorage.setItem("favoriteMarkets", JSON.stringify(newFavorites));
+    setIsFavorite(!isFavorite);
+    toast.success(isFavorite ? "Removed from favorites" : "Added to favorites");
+    // Notify MarketGallery to update favorites count
+    window.dispatchEvent(new CustomEvent("favoriteToggled"));
+  };
+
+  // Share functionality
+  const handleShare = async () => {
+    const url = `${window.location.origin}/predict/${marketType}/${marketId}`;
+    const text = `Check out this prediction market: ${metadata?.name || "Prediction Market"}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: metadata?.name || "Market", text, url });
+      } catch (err) {
+        if ((err as Error).name !== "AbortError") {
+          console.error("Share failed:", err);
+        }
+      }
+    } else {
+      await navigator.clipboard.writeText(url);
+      toast.success("Link copied to clipboard!");
+    }
+  };
   const { address } = useAccount();
   const { data: currentBlockNumber } = useBlockNumber({ watch: true });
 
@@ -123,6 +165,8 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   const isCoinflipResolver = resolver.toLowerCase() === COINFLIP_RESOLVER_ADDRESS.toLowerCase();
   const isNounsResolver = resolver.toLowerCase() === NOUNS_PASS_VOTING_RESOLVER_ADDRESS.toLowerCase();
   const isBETHPMResolver = resolver.toLowerCase() === BETH_PM_RESOLVER_ADDRESS.toLowerCase();
+  const isUNISUPPLYPMResolver = resolver.toLowerCase() === UNISUPPLY_PM_RESOLVER_ADDRESS.toLowerCase();
+  const isBUNNIBOUNTYPMResolver = resolver.toLowerCase() === BUNNIBOUNTYPM_RESOLVER_ADDRESS.toLowerCase();
 
   // Check ETH balance in resolver for tip button
   const { data: resolverBalance } = useBalance({
@@ -336,6 +380,48 @@ export const MarketCard: React.FC<MarketCardProps> = ({
     functionName: "totalBurned",
     query: {
       enabled: isBETHPMResolver,
+    },
+  });
+
+  // Fetch UNISUPPLYPM bet data (target amount and deadline)
+  const { data: uniSupplyBetData } = useReadContract({
+    address: UNISUPPLY_PM_RESOLVER_ADDRESS as `0x${string}`,
+    abi: UNISUPPLYPMResolverAbi,
+    functionName: "bets",
+    args: [marketId],
+    query: {
+      enabled: isUNISUPPLYPMResolver,
+    },
+  });
+
+  // Fetch current UNI totalSupply
+  const { data: uniTotalSupply } = useReadContract({
+    address: UNISUPPLY_PM_RESOLVER_ADDRESS as `0x${string}`,
+    abi: UNISUPPLYPMResolverAbi,
+    functionName: "totalSupply",
+    query: {
+      enabled: isUNISUPPLYPMResolver,
+    },
+  });
+
+  // Fetch BUNNIBOUNTYPM bet data (target amount and deadline)
+  const { data: bunniBountyBetData } = useReadContract({
+    address: BUNNIBOUNTYPM_RESOLVER_ADDRESS as `0x${string}`,
+    abi: BUNNIBOUNTYPMResolverAbi,
+    functionName: "bets",
+    args: [marketId],
+    query: {
+      enabled: isBUNNIBOUNTYPMResolver,
+    },
+  });
+
+  // Fetch current bounty balance
+  const { data: bunniBountyBalance } = useReadContract({
+    address: BUNNIBOUNTYPM_RESOLVER_ADDRESS as `0x${string}`,
+    abi: BUNNIBOUNTYPMResolverAbi,
+    functionName: "bountyBalance",
+    query: {
+      enabled: isBUNNIBOUNTYPMResolver,
     },
   });
 
@@ -764,6 +850,70 @@ export const MarketCard: React.FC<MarketCardProps> = ({
               </Badge>
             </div>
           )}
+
+          {/* Quick Trade Buttons - Appears on Hover (only for active markets) */}
+          {!resolved && !isTradingDisabled && (
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-end p-4">
+              <div className="w-full grid grid-cols-2 gap-2">
+                <Button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setInitialPosition("yes");
+                    setIsModalOpen(true);
+                  }}
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-6 text-base shadow-lg hover:shadow-xl transition-all"
+                  size="lg"
+                >
+                  Buy YES
+                </Button>
+                <Button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setInitialPosition("no");
+                    setIsModalOpen(true);
+                  }}
+                  className="bg-rose-500 hover:bg-rose-600 text-white font-bold py-6 text-base shadow-lg hover:shadow-xl transition-all"
+                  size="lg"
+                >
+                  Buy NO
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Action Buttons - Share and Favorite */}
+          <div className="absolute bottom-3 right-3 flex gap-2">
+            <Button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleShare();
+              }}
+              variant="secondary"
+              size="sm"
+              className="h-8 w-8 p-0 bg-background/95 hover:bg-accent hover:text-accent-foreground border border-border/50 backdrop-blur-sm shadow-lg transition-all"
+            >
+              <Share2 className="h-4 w-4" />
+            </Button>
+            <Button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleFavorite();
+              }}
+              variant="secondary"
+              size="sm"
+              className={`h-8 w-8 p-0 backdrop-blur-sm shadow-lg transition-all ${
+                isFavorite
+                  ? "bg-amber-500 hover:bg-amber-600 text-white border border-amber-600/50"
+                  : "bg-background/95 hover:bg-accent hover:text-accent-foreground border border-border/50"
+              }`}
+            >
+              <Star className={`h-4 w-4 ${isFavorite ? "fill-current" : ""}`} />
+            </Button>
+          </div>
         </div>
 
         <div className="p-5 space-y-4">
@@ -1042,6 +1192,189 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                           className={`font-mono font-semibold ${outcome ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
                         >
                           {outcome ? "Target Reached ✓" : "Target Missed ✗"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
+          {/* UNI Supply Market Info - Show Target and Current Supply */}
+          {isUNISUPPLYPMResolver &&
+            uniSupplyBetData &&
+            uniTotalSupply !== undefined &&
+            (() => {
+              const targetAmount = uniSupplyBetData[0]; // amount (uint184)
+              const deadline = uniSupplyBetData[1]; // deadline (uint72)
+              const currentSupply = uniTotalSupply;
+
+              // Only show if we have valid target amount
+              if (!targetAmount || targetAmount === 0n) return null;
+
+              // Format supply amounts (in tokens with scientific notation for readability)
+              const formatSupplyAmount = (amount: bigint) => {
+                const amountStr = amount.toString();
+                // For very large numbers, show in scientific notation
+                if (amountStr.length > 6) {
+                  const exponent = amountStr.length - 1;
+                  const coefficient = amountStr[0] + "." + amountStr.slice(1, 4);
+                  return `${coefficient}e${exponent}`;
+                }
+                return amountStr;
+              };
+
+              const targetFormatted = formatSupplyAmount(targetAmount);
+              const currentFormatted = formatSupplyAmount(currentSupply);
+
+              // Calculate progress percentage
+              const progressPercent = (Number(currentSupply) / Number(targetAmount)) * 100;
+              const isOnTrack = currentSupply >= targetAmount;
+
+              return (
+                <div className="bg-pink-500/5 border border-pink-500/20 rounded p-2 space-y-1">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Sparkles className="h-3.5 w-3.5 text-pink-600 dark:text-pink-400" />
+                    <span className="text-xs font-semibold text-pink-700 dark:text-pink-300">UNI Supply Oracle</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground space-y-0.5">
+                    <div className="flex justify-between items-center">
+                      <span>Target Supply:</span>
+                      <span className="font-mono font-semibold">{targetFormatted}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Current Supply:</span>
+                      <span
+                        className={`font-mono font-semibold ${isOnTrack ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}
+                      >
+                        {currentFormatted}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Progress:</span>
+                      <span
+                        className={`font-mono font-semibold ${isOnTrack ? "text-green-600 dark:text-green-400" : "text-pink-600 dark:text-pink-400"}`}
+                      >
+                        {Math.min(progressPercent, 100).toFixed(2)}%{isOnTrack ? " ✓" : ""}
+                      </span>
+                    </div>
+                    {/* Progress bar */}
+                    <div className="w-full bg-muted rounded-full h-2 overflow-hidden mt-1">
+                      <div
+                        className={`h-full transition-all ${isOnTrack ? "bg-green-600 dark:bg-green-400" : "bg-pink-600 dark:bg-pink-400"}`}
+                        style={{ width: `${Math.min(progressPercent, 100)}%` }}
+                      />
+                    </div>
+                    {!resolved && Number(deadline) > 0 && (
+                      <div className="flex justify-between items-center pt-1 border-t border-pink-500/20">
+                        <span>Deadline:</span>
+                        <span className="font-mono text-[11px]">
+                          {new Date(Number(deadline) * 1000).toLocaleString(undefined, {
+                            month: "short",
+                            day: "numeric",
+                            hour: "numeric",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                    )}
+                    {resolved && (
+                      <div className="flex justify-between items-center pt-1 border-t border-pink-500/20">
+                        <span>Result:</span>
+                        <span
+                          className={`font-mono font-semibold ${outcome ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
+                        >
+                          {outcome ? "Target Reached ✓" : "Target Missed ✗"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
+          {/* Bunni Bounty Market Info - Show Target and Current Balance */}
+          {isBUNNIBOUNTYPMResolver &&
+            bunniBountyBetData &&
+            bunniBountyBalance !== undefined &&
+            (() => {
+              const targetAmount = bunniBountyBetData[0]; // amount (uint184) - threshold below which bounty is considered paid
+              const deadline = bunniBountyBetData[1]; // deadline (uint72)
+              const currentBalance = bunniBountyBalance;
+
+              // Only show if we have valid target amount
+              if (!targetAmount || targetAmount === 0n) return null;
+
+              // Format balance amounts (in ETH with 4 decimal places)
+              const formatBountyAmount = (amount: bigint) => {
+                return Number(formatEther(amount)).toFixed(4);
+              };
+
+              const targetFormatted = formatBountyAmount(targetAmount);
+              const currentFormatted = formatBountyAmount(currentBalance);
+
+              // Calculate how close we are to the threshold
+              // For bounty payout prediction: YES wins if balance DROPS below threshold (bounty paid out)
+              const balanceRatio = Number(currentBalance) / Number(targetAmount);
+              const bountyPaidOut = currentBalance < targetAmount;
+
+              return (
+                <div className="bg-sky-500/5 border border-sky-500/20 rounded p-2 space-y-1">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="text-base">🐰</span>
+                    <span className="text-xs font-semibold text-sky-700 dark:text-sky-300">Bunni Bounty Oracle</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground space-y-0.5">
+                    <div className="text-[11px] italic mb-1 text-sky-700 dark:text-sky-400">
+                      Predicting if bounty is fulfilled and paid out
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Payout Threshold:</span>
+                      <span className="font-mono font-semibold">&lt; {targetFormatted} ETH</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Current Balance:</span>
+                      <span
+                        className={`font-mono font-semibold ${bountyPaidOut ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}
+                      >
+                        {currentFormatted} ETH
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Status:</span>
+                      <span
+                        className={`font-mono font-semibold ${bountyPaidOut ? "text-green-600 dark:text-green-400" : "text-sky-600 dark:text-sky-400"}`}
+                      >
+                        {bountyPaidOut ? "Bounty Paid Out ✓" : "Bounty Active"}
+                      </span>
+                    </div>
+                    {/* Balance indicator bar */}
+                    <div className="w-full bg-muted rounded-full h-2 overflow-hidden mt-1">
+                      <div
+                        className={`h-full transition-all ${bountyPaidOut ? "bg-green-600 dark:bg-green-400" : "bg-sky-600 dark:bg-sky-400"}`}
+                        style={{ width: `${Math.min(balanceRatio * 100, 100)}%` }}
+                      />
+                    </div>
+                    {!resolved && Number(deadline) > 0 && (
+                      <div className="flex justify-between items-center pt-1 border-t border-sky-500/20">
+                        <span>Deadline:</span>
+                        <span className="font-mono text-[11px]">
+                          {new Date(Number(deadline) * 1000).toLocaleString(undefined, {
+                            month: "short",
+                            day: "numeric",
+                            hour: "numeric",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                    )}
+                    {resolved && (
+                      <div className="flex justify-between items-center pt-1 border-t border-sky-500/20">
+                        <span>Result:</span>
+                        <span
+                          className={`font-mono font-semibold ${outcome ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
+                        >
+                          {outcome ? "Bounty Paid Out ✓" : "Bounty Not Paid ✗"}
                         </span>
                       </div>
                     )}
@@ -1488,6 +1821,11 @@ export const MarketCard: React.FC<MarketCardProps> = ({
         contractAddress={contractAddress}
         resolver={resolver}
         initialPosition={initialPosition}
+        onTransactionSuccess={() => {
+          // Refetch market data to update odds/reserves after transactions
+          refetchMarketData();
+          if (onClaimSuccess) onClaimSuccess();
+        }}
       />
     </>
   );

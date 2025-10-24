@@ -14,6 +14,9 @@ export function ConnectionErrorHandler() {
       "connections.get is not a function",
       "Cannot read properties of undefined (reading 'getChainId')",
       "connector is undefined",
+      "connector is not defined",
+      "Cannot read properties of null",
+      "is not a function",
     ];
 
     // Track error state and user notifications
@@ -46,14 +49,14 @@ export function ConnectionErrorHandler() {
         // Suppress the error to prevent console spam
         event.preventDefault();
 
-        // Show user notification (throttled to once per 30 seconds)
-        if (now - lastNotificationTime > 30000) {
+        // Show user notification (throttled to once per 45 seconds)
+        if (now - lastNotificationTime > 45000) {
           lastNotificationTime = now;
-          toast.error("Wallet connection issue detected", {
-            description: "If transactions fail, please refresh the page and reconnect your wallet.",
-            duration: 5000,
+          toast.error("Wallet connection unstable", {
+            description: "Your wallet connection may be unstable. If you experience issues, try refreshing the page.",
+            duration: 6000,
             action: {
-              label: "Refresh",
+              label: "Refresh Page",
               onClick: () => window.location.reload(),
             },
           });
@@ -88,13 +91,13 @@ export function ConnectionErrorHandler() {
         event.preventDefault();
 
         // Show user notification (throttled)
-        if (now - lastNotificationTime > 30000) {
+        if (now - lastNotificationTime > 45000) {
           lastNotificationTime = now;
-          toast.error("Wallet connection issue detected", {
-            description: "If transactions fail, please refresh the page and reconnect your wallet.",
-            duration: 5000,
+          toast.error("Wallet connection unstable", {
+            description: "Your wallet connection may be unstable. If you experience issues, try refreshing the page.",
+            duration: 6000,
             action: {
-              label: "Refresh",
+              label: "Refresh Page",
               onClick: () => window.location.reload(),
             },
           });
