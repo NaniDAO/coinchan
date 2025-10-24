@@ -103,7 +103,7 @@ function RecommendationCard({ recommendation, onClick, isSelected = false }: Rec
   // Helper to resolve IPFS URLs
   const resolveImageUrl = (url: string | undefined): string => {
     if (!url) {
-      return "https://via.placeholder.com/28";
+      return "/placeholder.jpeg";
     }
     if (url.startsWith("ipfs://")) {
       return url.replace("ipfs://", "https://ipfs.io/ipfs/");
@@ -132,7 +132,7 @@ function RecommendationCard({ recommendation, onClick, isSelected = false }: Rec
               alt={tokenIn.symbol}
               className="w-7 h-7 rounded-full border-2 border-terminal-white"
               onError={(e) => {
-                (e.target as HTMLImageElement).src = "https://via.placeholder.com/28";
+                (e.target as HTMLImageElement).src = "/placeholder.jpeg";
               }}
             />
             <img
@@ -140,7 +140,7 @@ function RecommendationCard({ recommendation, onClick, isSelected = false }: Rec
               alt={tokenOut.symbol}
               className="w-7 h-7 rounded-full border-2 border-terminal-white"
               onError={(e) => {
-                (e.target as HTMLImageElement).src = "https://via.placeholder.com/28";
+                (e.target as HTMLImageElement).src = "/placeholder.jpeg";
               }}
             />
           </div>
