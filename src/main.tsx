@@ -32,7 +32,7 @@ const persister = createSyncStoragePersister({
   throttleTime: 1000,
 });
 
-// Configure query client with performance optimizations
+// Configure query client with performance optimizations and error handling
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -42,8 +42,24 @@ const queryClient = new QueryClient({
       gcTime: 7 * 24 * 60 * 60 * 1000, // 24 hours
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      // Retry less aggressively
+      // Retry with exponential backoff
       retry: 2,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    },
+    mutations: {
+      // Don't retry mutations on connector errors
+      retry: (failureCount, error) => {
+        const errorMessage = (error as Error)?.message || "";
+        // Don't retry on connector errors
+        if (
+          errorMessage.includes("getChainId is not a function") ||
+          errorMessage.includes("connector") ||
+          errorMessage.includes("User rejected")
+        ) {
+          return false;
+        }
+        return failureCount < 2;
+      },
     },
   },
 });
@@ -79,7 +95,12 @@ export const WalletProviders = ({
   const { i18n } = useTranslation();
 
   return (
-    <WagmiProvider config={config} reconnectOnMount={true}>
+    <WagmiProvider
+      config={config}
+      reconnectOnMount={true}
+      // Add error handling for connector issues
+      initialState={undefined}
+    >
       <PersistQueryClientProvider
         client={queryClient}
         persistOptions={{

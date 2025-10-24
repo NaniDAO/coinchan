@@ -7,8 +7,9 @@ import { PredictExplainer, usePredictExplainer } from "./PredictExplainer";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { HelpCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { PredictErrorBoundary } from "./ErrorBoundary";
 
-const PredictPage: React.FC = () => {
+const PredictPageContent: React.FC = () => {
   const { t } = useTranslation();
   const [refreshKey, setRefreshKey] = useState(0);
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
@@ -85,6 +86,15 @@ const PredictPage: React.FC = () => {
         )}
       </div>
     </div>
+  );
+};
+
+// Wrap the component with error boundary
+const PredictPage: React.FC = () => {
+  return (
+    <PredictErrorBoundary>
+      <PredictPageContent />
+    </PredictErrorBoundary>
   );
 };
 

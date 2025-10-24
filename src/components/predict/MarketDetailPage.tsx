@@ -8,13 +8,14 @@ import { LoadingLogo } from "@/components/ui/loading-logo";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { Heading } from "@/components/ui/typography";
+import { PredictErrorBoundary } from "./ErrorBoundary";
 
 interface MarketDetailPageProps {
   marketType: "parimutuel" | "amm";
   marketId: string;
 }
 
-export const MarketDetailPage: React.FC<MarketDetailPageProps> = ({ marketType, marketId }) => {
+const MarketDetailPageContent: React.FC<MarketDetailPageProps> = ({ marketType, marketId }) => {
   const navigate = useNavigate();
   const contractAddress = marketType === "amm" ? PredictionAMMAddress : PredictionMarketAddress;
   const abi = marketType === "amm" ? PredictionAMMAbi : PredictionMarketAbi;
@@ -104,5 +105,14 @@ export const MarketDetailPage: React.FC<MarketDetailPageProps> = ({ marketType, 
         />
       </div>
     </div>
+  );
+};
+
+// Wrap with error boundary for better error handling
+export const MarketDetailPage: React.FC<MarketDetailPageProps> = (props) => {
+  return (
+    <PredictErrorBoundary>
+      <MarketDetailPageContent {...props} />
+    </PredictErrorBoundary>
   );
 };
