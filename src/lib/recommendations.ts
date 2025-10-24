@@ -21,11 +21,8 @@ export class RecommendationsService {
     // Check cache first
     const cached = this.getFromCache(cacheKey);
     if (cached) {
-      console.log("[Recommendations] Cache hit:", normalizedAddress);
       return cached;
     }
-
-    console.log("[Recommendations] Cache miss, fetching from API:", normalizedAddress);
 
     // Fetch from API
     const response = await fetch(`${API_BASE_URL}/v1/recommendations`, {
