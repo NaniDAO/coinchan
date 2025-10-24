@@ -30,6 +30,7 @@ import {
   NOUNS_PASS_VOTING_RESOLVER_ADDRESS,
   BETH_PM_RESOLVER_ADDRESS,
   UNISUPPLY_PM_RESOLVER_ADDRESS,
+  BUNNIBOUNTYPM_RESOLVER_ADDRESS,
 } from "@/constants/TrustedResolvers";
 import { extractOracleMetadata, extractNounsEvalBlock } from "@/lib/perpetualOracleUtils";
 import { EthWentUpResolverAbi } from "@/constants/EthWentUpResolver";
@@ -37,6 +38,7 @@ import { CoinflipResolverAbi } from "@/constants/CoinflipResolver";
 import { NounsPassVotingResolverAbi } from "@/constants/NounsPassVotingResolver";
 import { BETHPMResolverAbi } from "@/constants/BETHPMResolver";
 import { UNISUPPLYPMResolverAbi } from "@/constants/UNISUPPLYPMResolver";
+import { BUNNIBOUNTYPMResolverAbi } from "@/constants/BUNNIBOUNTYPMResolver";
 import { ChainlinkAggregatorV3Abi, CHAINLINK_ETH_USD_FEED } from "@/constants/ChainlinkAggregator";
 import { useBalance } from "wagmi";
 import ReactMarkdown from "react-markdown";
@@ -164,6 +166,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   const isNounsResolver = resolver.toLowerCase() === NOUNS_PASS_VOTING_RESOLVER_ADDRESS.toLowerCase();
   const isBETHPMResolver = resolver.toLowerCase() === BETH_PM_RESOLVER_ADDRESS.toLowerCase();
   const isUNISUPPLYPMResolver = resolver.toLowerCase() === UNISUPPLY_PM_RESOLVER_ADDRESS.toLowerCase();
+  const isBUNNIBOUNTYPMResolver = resolver.toLowerCase() === BUNNIBOUNTYPM_RESOLVER_ADDRESS.toLowerCase();
 
   // Check ETH balance in resolver for tip button
   const { data: resolverBalance } = useBalance({
@@ -398,6 +401,27 @@ export const MarketCard: React.FC<MarketCardProps> = ({
     functionName: "totalSupply",
     query: {
       enabled: isUNISUPPLYPMResolver,
+    },
+  });
+
+  // Fetch BUNNIBOUNTYPM bet data (target amount and deadline)
+  const { data: bunniBountyBetData } = useReadContract({
+    address: BUNNIBOUNTYPM_RESOLVER_ADDRESS as `0x${string}`,
+    abi: BUNNIBOUNTYPMResolverAbi,
+    functionName: "bets",
+    args: [marketId],
+    query: {
+      enabled: isBUNNIBOUNTYPMResolver,
+    },
+  });
+
+  // Fetch current bounty balance
+  const { data: bunniBountyBalance } = useReadContract({
+    address: BUNNIBOUNTYPM_RESOLVER_ADDRESS as `0x${string}`,
+    abi: BUNNIBOUNTYPMResolverAbi,
+    functionName: "bountyBalance",
+    query: {
+      enabled: isBUNNIBOUNTYPMResolver,
     },
   });
 
@@ -1261,6 +1285,96 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                           className={`font-mono font-semibold ${outcome ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
                         >
                           {outcome ? "Target Reached ✓" : "Target Missed ✗"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
+          {/* Bunni Bounty Market Info - Show Target and Current Balance */}
+          {isBUNNIBOUNTYPMResolver &&
+            bunniBountyBetData &&
+            bunniBountyBalance !== undefined &&
+            (() => {
+              const targetAmount = bunniBountyBetData[0]; // amount (uint184) - threshold below which bounty is considered paid
+              const deadline = bunniBountyBetData[1]; // deadline (uint72)
+              const currentBalance = bunniBountyBalance;
+
+              // Only show if we have valid target amount
+              if (!targetAmount || targetAmount === 0n) return null;
+
+              // Format balance amounts (in ETH with 4 decimal places)
+              const formatBountyAmount = (amount: bigint) => {
+                return Number(formatEther(amount)).toFixed(4);
+              };
+
+              const targetFormatted = formatBountyAmount(targetAmount);
+              const currentFormatted = formatBountyAmount(currentBalance);
+
+              // Calculate how close we are to the threshold
+              // For bounty payout prediction: YES wins if balance DROPS below threshold (bounty paid out)
+              const balanceRatio = Number(currentBalance) / Number(targetAmount);
+              const bountyPaidOut = currentBalance < targetAmount;
+
+              return (
+                <div className="bg-sky-500/5 border border-sky-500/20 rounded p-2 space-y-1">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="text-base">🐰</span>
+                    <span className="text-xs font-semibold text-sky-700 dark:text-sky-300">Bunni Bounty Oracle</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground space-y-0.5">
+                    <div className="text-[11px] italic mb-1 text-sky-700 dark:text-sky-400">
+                      Predicting if bounty is fulfilled and paid out
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Payout Threshold:</span>
+                      <span className="font-mono font-semibold">&lt; {targetFormatted} ETH</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Current Balance:</span>
+                      <span
+                        className={`font-mono font-semibold ${bountyPaidOut ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}
+                      >
+                        {currentFormatted} ETH
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Status:</span>
+                      <span
+                        className={`font-mono font-semibold ${bountyPaidOut ? "text-green-600 dark:text-green-400" : "text-sky-600 dark:text-sky-400"}`}
+                      >
+                        {bountyPaidOut ? "Bounty Paid Out ✓" : "Bounty Active"}
+                      </span>
+                    </div>
+                    {/* Balance indicator bar */}
+                    <div className="w-full bg-muted rounded-full h-2 overflow-hidden mt-1">
+                      <div
+                        className={`h-full transition-all ${bountyPaidOut ? "bg-green-600 dark:bg-green-400" : "bg-sky-600 dark:bg-sky-400"}`}
+                        style={{ width: `${Math.min(balanceRatio * 100, 100)}%` }}
+                      />
+                    </div>
+                    {!resolved && Number(deadline) > 0 && (
+                      <div className="flex justify-between items-center pt-1 border-t border-sky-500/20">
+                        <span>Deadline:</span>
+                        <span className="font-mono text-[11px]">
+                          {new Date(Number(deadline) * 1000).toLocaleString(undefined, {
+                            month: "short",
+                            day: "numeric",
+                            hour: "numeric",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                    )}
+                    {resolved && (
+                      <div className="flex justify-between items-center pt-1 border-t border-sky-500/20">
+                        <span>Result:</span>
+                        <span
+                          className={`font-mono font-semibold ${outcome ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
+                        >
+                          {outcome ? "Bounty Paid Out ✓" : "Bounty Not Paid ✗"}
                         </span>
                       </div>
                     )}

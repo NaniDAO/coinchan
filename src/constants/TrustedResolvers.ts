@@ -11,6 +11,7 @@ export const COINFLIP_RESOLVER_ADDRESS = "0xeAd4D6A7C5C0D8ff7bFbe3ab1b4b4bc596C1
 export const NOUNS_PASS_VOTING_RESOLVER_ADDRESS = "0x1637047F090D6b38D81DA0C589D4D8B9D3C7F32e" as const;
 export const BETH_PM_RESOLVER_ADDRESS = "0x9E52F272bACf991FC842704593c86820Ab3e0dB8" as const;
 export const UNISUPPLY_PM_RESOLVER_ADDRESS = "0x41CCFe5F97368d08268e5DFD998c5b62283c69a6" as const;
+export const BUNNIBOUNTYPM_RESOLVER_ADDRESS = "0xD3eAE176700b4b25C0f14978Ee8B311784cce21C" as const;
 
 export const TRUSTED_RESOLVERS: TrustedResolver[] = [
   {
@@ -47,6 +48,12 @@ export const TRUSTED_RESOLVERS: TrustedResolver[] = [
     address: UNISUPPLY_PM_RESOLVER_ADDRESS,
     name: "UNISUPPLYPM",
     description: "Perpetual oracle resolver for UNI token supply milestones",
+    isPerpetualOracle: true,
+  },
+  {
+    address: BUNNIBOUNTYPM_RESOLVER_ADDRESS,
+    name: "BUNNIBOUNTYPM",
+    description: "Perpetual oracle resolver for Bunni bounty payout predictions",
     isPerpetualOracle: true,
   },
   {
