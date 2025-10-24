@@ -24,7 +24,8 @@ export function RecommendationsSidebar({
   selectedIndex,
 }: RecommendationsSidebarProps) {
   const { recommendations, loading, error } = useRecommendations();
-
+  console.log("Recommendations:", recommendations);
+  
   const handleSelectRecommendation = (rec: Recommendation, index: number) => {
     onSelectRecommendation(rec, index);
     onOpenChange(false); // Close sidebar after selection
