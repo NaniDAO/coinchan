@@ -31,6 +31,7 @@ import {
   BETH_PM_RESOLVER_ADDRESS,
   UNISUPPLY_PM_RESOLVER_ADDRESS,
   BUNNIBOUNTYPM_RESOLVER_ADDRESS,
+  UNIV4_FEE_SWITCH_PM_RESOLVER_ADDRESS,
 } from "@/constants/TrustedResolvers";
 import { extractOracleMetadata, extractNounsEvalBlock } from "@/lib/perpetualOracleUtils";
 import { EthWentUpResolverAbi } from "@/constants/EthWentUpResolver";
@@ -39,6 +40,7 @@ import { NounsPassVotingResolverAbi } from "@/constants/NounsPassVotingResolver"
 import { BETHPMResolverAbi } from "@/constants/BETHPMResolver";
 import { UNISUPPLYPMResolverAbi } from "@/constants/UNISUPPLYPMResolver";
 import { BUNNIBOUNTYPMResolverAbi } from "@/constants/BUNNIBOUNTYPMResolver";
+import { UniV4FeeSwitchPMResolverAbi } from "@/constants/UniV4FeeSwitchPMResolver";
 import { ChainlinkAggregatorV3Abi, CHAINLINK_ETH_USD_FEED } from "@/constants/ChainlinkAggregator";
 import { useBalance } from "wagmi";
 import ReactMarkdown from "react-markdown";
@@ -167,6 +169,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   const isBETHPMResolver = resolver.toLowerCase() === BETH_PM_RESOLVER_ADDRESS.toLowerCase();
   const isUNISUPPLYPMResolver = resolver.toLowerCase() === UNISUPPLY_PM_RESOLVER_ADDRESS.toLowerCase();
   const isBUNNIBOUNTYPMResolver = resolver.toLowerCase() === BUNNIBOUNTYPM_RESOLVER_ADDRESS.toLowerCase();
+  const isUniV4FeeSwitchPMResolver = resolver.toLowerCase() === UNIV4_FEE_SWITCH_PM_RESOLVER_ADDRESS.toLowerCase();
 
   // Check ETH balance in resolver for tip button
   const { data: resolverBalance } = useBalance({
@@ -422,6 +425,27 @@ export const MarketCard: React.FC<MarketCardProps> = ({
     functionName: "bountyBalance",
     query: {
       enabled: isBUNNIBOUNTYPMResolver,
+    },
+  });
+
+  // Fetch UniV4FeeSwitchPM deadline data
+  const { data: uniV4FeeSwitchDeadline } = useReadContract({
+    address: UNIV4_FEE_SWITCH_PM_RESOLVER_ADDRESS as `0x${string}`,
+    abi: UniV4FeeSwitchPMResolverAbi,
+    functionName: "deadline",
+    args: [marketId],
+    query: {
+      enabled: isUniV4FeeSwitchPMResolver,
+    },
+  });
+
+  // Fetch current Uniswap V4 protocolFeeController
+  const { data: uniV4ProtocolFeeController } = useReadContract({
+    address: UNIV4_FEE_SWITCH_PM_RESOLVER_ADDRESS as `0x${string}`,
+    abi: UniV4FeeSwitchPMResolverAbi,
+    functionName: "protocolFeeController",
+    query: {
+      enabled: isUniV4FeeSwitchPMResolver,
     },
   });
 
@@ -1378,6 +1402,99 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                         </span>
                       </div>
                     )}
+                  </div>
+                </div>
+              );
+            })()}
+
+          {/* UniV4 Fee Switch Market Info - Show Deadline and Fee Controller Status */}
+          {isUniV4FeeSwitchPMResolver &&
+            uniV4FeeSwitchDeadline !== undefined &&
+            (() => {
+              const deadline = Number(uniV4FeeSwitchDeadline);
+              const feeControllerSet =
+                uniV4ProtocolFeeController !== undefined &&
+                uniV4ProtocolFeeController !== "0x0000000000000000000000000000000000000000";
+
+              // Only show if we have valid deadline
+              if (!deadline || deadline === 0) return null;
+
+              return (
+                <div className="bg-pink-500/5 border border-pink-500/20 rounded p-2 space-y-1">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="text-base">🦄</span>
+                    <span className="text-xs font-semibold text-pink-700 dark:text-pink-300">
+                      Uniswap V4 Fee Switch Oracle
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground space-y-0.5">
+                    <div className="text-[11px] italic mb-1 text-pink-700 dark:text-pink-400">
+                      Predicting if Uniswap V4 protocol fee switch is activated
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Fee Controller:</span>
+                      <span
+                        className={`font-mono font-semibold ${feeControllerSet ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}
+                      >
+                        {feeControllerSet ? "Set ✓" : "Not Set"}
+                      </span>
+                    </div>
+                    {uniV4ProtocolFeeController && feeControllerSet && (
+                      <div className="flex justify-between items-center">
+                        <span>Controller Address:</span>
+                        <a
+                          href={`https://etherscan.io/address/${uniV4ProtocolFeeController}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-mono text-[10px] text-pink-600 dark:text-pink-400 hover:underline flex items-center gap-1"
+                        >
+                          {`${String(uniV4ProtocolFeeController).slice(0, 6)}...${String(uniV4ProtocolFeeController).slice(-4)}`}
+                          <ExternalLink className="h-2.5 w-2.5" />
+                        </a>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center">
+                      <span>Status:</span>
+                      <span
+                        className={`font-mono font-semibold ${feeControllerSet ? "text-green-600 dark:text-green-400" : "text-pink-600 dark:text-pink-400"}`}
+                      >
+                        {feeControllerSet ? "Fee Switch ON" : "Fee Switch OFF"}
+                      </span>
+                    </div>
+                    {/* Status indicator */}
+                    <div className="w-full bg-muted rounded-full h-2 overflow-hidden mt-1">
+                      <div
+                        className={`h-full transition-all ${feeControllerSet ? "bg-green-600 dark:bg-green-400" : "bg-pink-600 dark:bg-pink-400"}`}
+                        style={{ width: feeControllerSet ? "100%" : "0%" }}
+                      />
+                    </div>
+                    {!resolved && deadline > 0 && (
+                      <div className="flex justify-between items-center pt-1 border-t border-pink-500/20">
+                        <span>Deadline:</span>
+                        <span className="font-mono text-[11px]">
+                          {new Date(deadline * 1000).toLocaleString(undefined, {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                            hour: "numeric",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                    )}
+                    {resolved && (
+                      <div className="flex justify-between items-center pt-1 border-t border-pink-500/20">
+                        <span>Result:</span>
+                        <span
+                          className={`font-mono font-semibold ${outcome ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
+                        >
+                          {outcome ? "Fee Switch Activated ✓" : "Fee Switch Not Activated ✗"}
+                        </span>
+                      </div>
+                    )}
+                    <div className="pt-1 text-[10px] italic opacity-70 text-pink-700 dark:text-pink-400">
+                      Note: Market may resolve early if fee controller is set before deadline
+                    </div>
                   </div>
                 </div>
               );
