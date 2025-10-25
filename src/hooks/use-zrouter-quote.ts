@@ -40,14 +40,6 @@ function isValidNumberLike(v?: string) {
  * - Stays "fresh" forever for the same key (staleTime: Infinity).
  */
 export function useZRouterQuote({ publicClient, sellToken, buyToken, rawAmount, side, enabled }: UseZRouterQuoteArgs) {
-  console.log("useZRouterQuote", {
-    publicClient,
-    sellToken,
-    buyToken,
-    rawAmount,
-    side,
-    enabled,
-  });
   // Resolve tokens & decimals once
   const tokenIn = useMemo(() => toZRouterToken(sellToken || undefined), [sellToken]);
   const tokenOut = useMemo(() => toZRouterToken(buyToken || undefined), [buyToken]);
