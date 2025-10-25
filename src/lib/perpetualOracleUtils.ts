@@ -30,8 +30,17 @@
  * For BUNNIBOUNTYPM:
  * Example input: "Bunni residual bounty < 1000000000000000000 ETH (wei) by 1234567890 Unix epoch time. Note: market may close early once threshold is reached."
  * Example output: "Bunni Bounty Payout"
+ *
+ * For UniV4FeeSwitchPM:
+ * Example input: "Uniswap V4 protocolFeeController() != address(0) by 1234567890 Unix epoch time. Note: market may close early once threshold is reached."
+ * Example output: "Uniswap V4 Fee Switch"
  */
 export const extractMarketQuestion = (description: string): string => {
+  // For UniV4FeeSwitchPM, extract fee switch status
+  if (description.startsWith("Uniswap V4 protocolFeeController()")) {
+    return "Uniswap V4 Fee Switch";
+  }
+
   // For BUNNIBOUNTYPM, extract bounty milestone
   if (description.startsWith("Bunni residual bounty")) {
     return "Bunni Bounty Payout";
@@ -88,6 +97,7 @@ export const generateOracleSvg = (question: string, symbol?: string): string => 
   const isBETH = question === "BETH Burn Milestone";
   const isUNI = question === "UNI Supply Milestone";
   const isBUNNIBOUNTY = question === "Bunni Bounty Payout";
+  const isUniV4FeeSwitch = question === "Uniswap V4 Fee Switch";
 
   // For Coinflip: blue/purple/blockchain theme
   const coinflipColors = [
@@ -179,7 +189,7 @@ export const generateOracleSvg = (question: string, symbol?: string): string => 
       ? nounsColors
       : isBETH
         ? bethColors
-        : isUNI
+        : isUNI || isUniV4FeeSwitch
           ? uniColors
           : isBUNNIBOUNTY
             ? bunniColors
@@ -211,14 +221,26 @@ export const generateOracleSvg = (question: string, symbol?: string): string => 
   }
 
   // Choose icon and badge color based on oracle type
-  const icon = isCoinflip ? "🎲" : isNouns ? "⌐◨-◨" : isBETH ? "🔥" : isUNI ? "🦄" : isBUNNIBOUNTY ? "🐰" : "⚡";
+  const icon = isCoinflip
+    ? "🎲"
+    : isNouns
+      ? "⌐◨-◨"
+      : isBETH
+        ? "🔥"
+        : isUNI
+          ? "🦄"
+          : isUniV4FeeSwitch
+            ? "🦄"
+            : isBUNNIBOUNTY
+              ? "🐰"
+              : "⚡";
   const badgeColor = isCoinflip
     ? "rgba(65, 105, 225, 0.3)"
     : isNouns
       ? "rgba(255, 105, 180, 0.3)"
       : isBETH
         ? "rgba(255, 69, 0, 0.3)"
-        : isUNI
+        : isUNI || isUniV4FeeSwitch
           ? "rgba(255, 0, 122, 0.3)"
           : isBUNNIBOUNTY
             ? "rgba(135, 206, 235, 0.3)"
@@ -427,6 +449,15 @@ export const extractBUNNIBOUNTYPMDeadline = (description: string): number | null
 };
 
 /**
+ * Extracts UniV4FeeSwitchPM deadline from description
+ * Example: "Uniswap V4 protocolFeeController() != address(0) by 1234567890 Unix epoch time." → 1234567890
+ */
+export const extractUniV4FeeSwitchDeadline = (description: string): number | null => {
+  const match = description.match(/by\s+(\d+)\s+Unix epoch time/);
+  return match ? parseInt(match[1], 10) : null;
+};
+
+/**
  * Extracts metadata from a perpetual oracle market description
  * Returns name, description, SVG image URL, and timing info
  */
@@ -457,6 +488,9 @@ export const extractOracleMetadata = (onchainDescription: string) => {
   const bunniBountyAmount = extractBUNNIBOUNTYPMAmount(onchainDescription);
   const bunniBountyDeadline = extractBUNNIBOUNTYPMDeadline(onchainDescription);
 
+  // Extract UniV4FeeSwitchPM-specific data
+  const uniV4FeeSwitchDeadline = extractUniV4FeeSwitchDeadline(onchainDescription);
+
   return {
     name: question,
     symbol: "ORACLE",
@@ -476,5 +510,6 @@ export const extractOracleMetadata = (onchainDescription: string) => {
     uniDeadline,
     bunniBountyAmount,
     bunniBountyDeadline,
+    uniV4FeeSwitchDeadline,
   };
 };
