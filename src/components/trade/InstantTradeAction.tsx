@@ -292,7 +292,7 @@ export const InstantTradeAction = forwardRef<
   const side = lastEditedField === "sell" ? "EXACT_IN" : "EXACT_OUT";
   const rawAmount = lastEditedField === "sell" ? sellAmount : buyAmount;
 
-  const quotingEnabled = !!publicClient && !!sellToken && !!buyToken && !!rawAmount && Number(rawAmount) > 0;
+  const quotingEnabled = !!publicClient && !!sellToken && !!buyToken && !!rawAmount && Number(rawAmount) > 0 && !loadingFromRecommendationRef.current;
 
   const { data: quote } = useZRouterQuote({
     publicClient: publicClient ?? undefined,
@@ -305,11 +305,6 @@ export const InstantTradeAction = forwardRef<
 
   // Reflect quote into the opposite field
   useEffect(() => {
-    // Don't overwrite amounts when loading from a recommendation
-    if (loadingFromRecommendationRef.current) {
-      loadingFromRecommendationRef.current = false;
-      return;
-    }
     if (!quotingEnabled || !quote?.ok) return;
     if (lastEditedField === "sell") {
       if (buyAmount !== quote.amountOut) setBuyAmount(quote.amountOut ?? "");
@@ -592,6 +587,9 @@ export const InstantTradeAction = forwardRef<
         // Use setTimeout to ensure tokens are set before amounts
         // This prevents race conditions with the quote effect
         setTimeout(() => {
+          // Reset flag BEFORE setting amounts so quote hook can run when amounts update
+          loadingFromRecommendationRef.current = false;
+
           // Set the amount based on the side
           if (rec.side === "SWAP_EXACT_IN") {
             setSellAmount(rec.amount);
