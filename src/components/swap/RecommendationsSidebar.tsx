@@ -9,6 +9,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
+import { useTranslation } from "react-i18next";
 
 interface RecommendationsSidebarProps {
   open: boolean;
@@ -24,6 +25,7 @@ export function RecommendationsSidebar({
   selectedIndex,
 }: RecommendationsSidebarProps) {
   const { recommendations, loading, error } = useRecommendations();
+  const { t } = useTranslation();
 
   const handleSelectRecommendation = (rec: Recommendation, index: number) => {
     onSelectRecommendation(rec, index);
@@ -34,15 +36,15 @@ export function RecommendationsSidebar({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-[90%] sm:w-full sm:max-w-md overflow-y-auto p-0">
         <SheetHeader className="px-4 pt-4 pb-3 sm:px-6 sm:pt-6">
-          <SheetTitle className="text-base sm:text-lg">AI Recommendations</SheetTitle>
+          <SheetTitle className="text-base sm:text-lg">{t("recommendations.title")}</SheetTitle>
           <SheetDescription className="text-xs sm:text-sm">
             {loading
-              ? "Loading personalized swap recommendations..."
+              ? t("recommendations.loading")
               : recommendations && recommendations.recommendations.length > 0
-              ? `${recommendations.recommendations.length} suggestion${
-                  recommendations.recommendations.length === 1 ? "" : "s"
-                } based on your transaction history`
-              : "Connect your wallet and make some swaps to get personalized suggestions"}
+              ? recommendations.recommendations.length === 1
+                ? t("recommendations.suggestions_count", { count: recommendations.recommendations.length })
+                : t("recommendations.suggestions_count_plural", { count: recommendations.recommendations.length })
+              : t("recommendations.empty_state")}
           </SheetDescription>
         </SheetHeader>
 
@@ -55,13 +57,13 @@ export function RecommendationsSidebar({
 
           {error && (
             <div className="text-xs sm:text-sm text-muted-foreground text-center py-6 sm:py-8">
-              Failed to load recommendations. Please try again later.
+              {t("recommendations.error")}
             </div>
           )}
 
           {!loading && !error && (!recommendations || recommendations.recommendations.length === 0) && (
             <div className="text-xs sm:text-sm text-muted-foreground text-center py-6 sm:py-8">
-              No recommendations available at this time.
+              {t("recommendations.no_recommendations")}
             </div>
           )}
 
@@ -79,8 +81,10 @@ export function RecommendationsSidebar({
               </div>
 
               {recommendations.hits > 0 && (
-                <div className="mt-3 pt-3 sm:mt-4 sm:pt-4 border-t border-terminal-black/10 text-xs sm:text-sm text-muted-foreground text-center">
-                  Based on {recommendations.hits} transaction{recommendations.hits === 1 ? "" : "s"}
+                <div className="mt-3 pt-3 sm:mt-4 sm:pt-4 border-t border-border/50 text-xs sm:text-sm text-muted-foreground text-center">
+                  {recommendations.hits === 1
+                    ? t("recommendations.based_on_transactions", { count: recommendations.hits })
+                    : t("recommendations.based_on_transactions_plural", { count: recommendations.hits })}
                 </div>
               )}
             </>
@@ -99,6 +103,7 @@ interface RecommendationCardProps {
 
 function RecommendationCard({ recommendation, onClick, isSelected = false }: RecommendationCardProps) {
   const { tokenIn, tokenOut, amount, side, why, signals, confidence, references } = recommendation;
+  const { t } = useTranslation();
 
   // Helper to resolve IPFS URLs
   const resolveImageUrl = (url: string | undefined): string => {
@@ -117,10 +122,10 @@ function RecommendationCard({ recommendation, onClick, isSelected = false }: Rec
       onClick={onClick}
       className={cn(
         "w-full text-left p-3 sm:p-4 border-2 transition-all duration-150 min-h-[100px]",
-        "hover:shadow-[2px_2px_0_var(--terminal-black)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]",
+        "hover:shadow-[2px_2px_0_var(--border)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]",
         isSelected
-          ? "border-terminal-black bg-secondary"
-          : "border-terminal-black/30 bg-terminal-white hover:border-terminal-black"
+          ? "border-foreground bg-secondary"
+          : "border-border bg-card hover:border-foreground"
       )}
     >
       {/* Token Pair Header */}
@@ -130,7 +135,7 @@ function RecommendationCard({ recommendation, onClick, isSelected = false }: Rec
             <img
               src={resolveImageUrl(tokenIn.imageUrl)}
               alt={tokenIn.symbol}
-              className="w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 border-terminal-white"
+              className="w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 border-card"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = "/placeholder.jpeg";
               }}
@@ -138,7 +143,7 @@ function RecommendationCard({ recommendation, onClick, isSelected = false }: Rec
             <img
               src={resolveImageUrl(tokenOut.imageUrl)}
               alt={tokenOut.symbol}
-              className="w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 border-terminal-white"
+              className="w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 border-card"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = "/placeholder.jpeg";
               }}
@@ -160,7 +165,7 @@ function RecommendationCard({ recommendation, onClick, isSelected = false }: Rec
 
       {/* Amount */}
       <div className="text-xs sm:text-sm text-muted-foreground mb-2">
-        {side === "SWAP_EXACT_IN" ? "Sell" : "Buy"} {amount}{" "}
+        {side === "SWAP_EXACT_IN" ? t("common.sell") : t("common.buy")} {amount}{" "}
         {side === "SWAP_EXACT_IN" ? tokenIn.symbol : tokenOut.symbol}
       </div>
 
@@ -178,8 +183,8 @@ function RecommendationCard({ recommendation, onClick, isSelected = false }: Rec
 
       {/* References */}
       {references && references.length > 0 && (
-        <div className="mt-2 pt-2 border-t border-terminal-black/10">
-          <h4 className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase mb-1">References</h4>
+        <div className="mt-2 pt-2 border-t border-border/50">
+          <h4 className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase mb-1">{t("recommendations.references")}</h4>
           <div className="flex flex-wrap gap-x-2 gap-y-0.5">
             {references.map((ref, idx) => (
               <span key={idx} className="text-[10px] sm:text-xs text-muted-foreground">
