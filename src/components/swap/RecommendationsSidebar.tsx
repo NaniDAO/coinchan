@@ -24,8 +24,7 @@ export function RecommendationsSidebar({
   selectedIndex,
 }: RecommendationsSidebarProps) {
   const { recommendations, loading, error } = useRecommendations();
-  console.log("Recommendations:", recommendations);
-  
+
   const handleSelectRecommendation = (rec: Recommendation, index: number) => {
     onSelectRecommendation(rec, index);
     onOpenChange(false); // Close sidebar after selection
@@ -33,10 +32,10 @@ export function RecommendationsSidebar({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>AI Recommendations</SheetTitle>
-          <SheetDescription>
+      <SheetContent side="right" className="w-[90%] sm:w-full sm:max-w-md overflow-y-auto p-0">
+        <SheetHeader className="px-4 pt-4 pb-3 sm:px-6 sm:pt-6">
+          <SheetTitle className="text-base sm:text-lg">AI Recommendations</SheetTitle>
+          <SheetDescription className="text-xs sm:text-sm">
             {loading
               ? "Loading personalized swap recommendations..."
               : recommendations && recommendations.recommendations.length > 0
@@ -47,28 +46,28 @@ export function RecommendationsSidebar({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="mt-4">
+        <div className="px-4 pb-4 sm:px-6 sm:pb-6">
           {loading && (
-            <div className="flex items-center justify-center py-12">
+            <div className="flex items-center justify-center py-8 sm:py-12">
               <LoadingLogo size="sm" />
             </div>
           )}
 
           {error && (
-            <div className="text-xs text-muted-foreground text-center py-8 px-4">
+            <div className="text-xs sm:text-sm text-muted-foreground text-center py-6 sm:py-8">
               Failed to load recommendations. Please try again later.
             </div>
           )}
 
           {!loading && !error && (!recommendations || recommendations.recommendations.length === 0) && (
-            <div className="text-xs text-muted-foreground text-center py-8 px-4">
+            <div className="text-xs sm:text-sm text-muted-foreground text-center py-6 sm:py-8">
               No recommendations available at this time.
             </div>
           )}
 
           {!loading && !error && recommendations && recommendations.recommendations.length > 0 && (
             <>
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2 sm:gap-3">
                 {recommendations.recommendations.map((rec, idx) => (
                   <RecommendationCard
                     key={idx}
@@ -80,7 +79,7 @@ export function RecommendationsSidebar({
               </div>
 
               {recommendations.hits > 0 && (
-                <div className="mt-4 pt-4 border-t border-terminal-black/10 text-xs text-muted-foreground text-center">
+                <div className="mt-3 pt-3 sm:mt-4 sm:pt-4 border-t border-terminal-black/10 text-xs sm:text-sm text-muted-foreground text-center">
                   Based on {recommendations.hits} transaction{recommendations.hits === 1 ? "" : "s"}
                 </div>
               )}
@@ -117,21 +116,21 @@ function RecommendationCard({ recommendation, onClick, isSelected = false }: Rec
       type="button"
       onClick={onClick}
       className={cn(
-        "w-full text-left p-4 border-2 transition-all duration-150",
-        "hover:shadow-[2px_2px_0_var(--terminal-black)]",
+        "w-full text-left p-3 sm:p-4 border-2 transition-all duration-150 min-h-[100px]",
+        "hover:shadow-[2px_2px_0_var(--terminal-black)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]",
         isSelected
           ? "border-terminal-black bg-secondary"
           : "border-terminal-black/30 bg-terminal-white hover:border-terminal-black"
       )}
     >
       {/* Token Pair Header */}
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-2 sm:mb-2.5">
         <div className="flex items-center gap-2">
           <div className="flex items-center -space-x-2">
             <img
               src={resolveImageUrl(tokenIn.imageUrl)}
               alt={tokenIn.symbol}
-              className="w-7 h-7 rounded-full border-2 border-terminal-white"
+              className="w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 border-terminal-white"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = "/placeholder.jpeg";
               }}
@@ -139,13 +138,13 @@ function RecommendationCard({ recommendation, onClick, isSelected = false }: Rec
             <img
               src={resolveImageUrl(tokenOut.imageUrl)}
               alt={tokenOut.symbol}
-              className="w-7 h-7 rounded-full border-2 border-terminal-white"
+              className="w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 border-terminal-white"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = "/placeholder.jpeg";
               }}
             />
           </div>
-          <div className="flex items-center gap-1.5 text-sm font-medium">
+          <div className="flex items-center gap-1.5 text-sm sm:text-base font-medium">
             <span>{tokenIn.symbol}</span>
             <span className="text-muted-foreground">→</span>
             <span>{tokenOut.symbol}</span>
@@ -153,24 +152,24 @@ function RecommendationCard({ recommendation, onClick, isSelected = false }: Rec
         </div>
 
         {confidence !== null && (
-          <span className="text-xs font-medium text-green-600 dark:text-green-400">
+          <span className="text-xs sm:text-sm font-medium text-green-600 dark:text-green-400 flex-shrink-0">
             {Math.round(confidence * 100)}%
           </span>
         )}
       </div>
 
       {/* Amount */}
-      <div className="text-xs text-muted-foreground mb-2">
+      <div className="text-xs sm:text-sm text-muted-foreground mb-2">
         {side === "SWAP_EXACT_IN" ? "Sell" : "Buy"} {amount}{" "}
         {side === "SWAP_EXACT_IN" ? tokenIn.symbol : tokenOut.symbol}
       </div>
 
       {/* Reasoning */}
-      <div className="text-xs mb-2">{why}</div>
+      <div className="text-xs sm:text-sm mb-2 leading-relaxed">{why}</div>
 
       {/* Signals */}
       {signals.length > 0 && (
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1 sm:gap-1.5">
           {signals.map((signal) => (
             <SignalBadge key={signal} signal={signal} />
           ))}
@@ -180,10 +179,10 @@ function RecommendationCard({ recommendation, onClick, isSelected = false }: Rec
       {/* References */}
       {references && references.length > 0 && (
         <div className="mt-2 pt-2 border-t border-terminal-black/10">
-          <h4 className="text-[10px] font-medium text-muted-foreground uppercase mb-1">References</h4>
-          <div className="flex flex-wrap gap-1">
+          <h4 className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase mb-1">References</h4>
+          <div className="flex flex-wrap gap-x-2 gap-y-0.5">
             {references.map((ref, idx) => (
-              <span key={idx} className="text-[10px] text-muted-foreground">
+              <span key={idx} className="text-[10px] sm:text-xs text-muted-foreground">
                 #{ref}
               </span>
             ))}
@@ -218,7 +217,7 @@ function SignalBadge({ signal }: { signal: string }) {
 
   return (
     <span
-      className={cn("inline-block px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide", getSignalColor(signal))}
+      className={cn("inline-block px-1.5 py-0.5 sm:px-2 text-[10px] sm:text-[11px] font-medium uppercase tracking-wide", getSignalColor(signal))}
     >
       {signal.replace(/_/g, " ")}
     </span>
