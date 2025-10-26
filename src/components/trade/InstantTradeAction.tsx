@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo, forwardRef, useImperativeHandle } from "react";
-import type { Recommendation } from "@/types/recommendations";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 
 import { useTokenPair } from "@/hooks/use-token-pair";
 import { TradeController } from "./TradeController";
@@ -110,10 +109,12 @@ interface InstantTradeActionProps {
   useSearchHook?: boolean;
 }
 
-export const InstantTradeAction = forwardRef<
-  { setTokensFromRecommendation: (rec: Recommendation) => void },
-  InstantTradeActionProps
->(({ locked = false, initialSellToken, initialBuyToken, useSearchHook = false }, ref) => {
+export const InstantTradeAction = ({
+  locked = false,
+  initialSellToken,
+  initialBuyToken,
+  useSearchHook = false,
+}: InstantTradeActionProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const search = useSearch(
@@ -176,21 +177,16 @@ export const InstantTradeAction = forwardRef<
   // Track whether user manually changed the pair (to avoid re-hydrating/overwriting)
   const userChangedPairRef = useRef(false);
   const didInitialUrlHydrate = useRef(false);
-  const loadingFromRecommendationRef = useRef(false);
 
   const clearErrorsOnUserEdit = () => {
     setTxError(null);
     setSuppressErrors(true);
   };
 
-  // Reset amounts when pair changes (skip first URL hydration-triggered change and recommendation loads)
+  // Reset amounts when pair changes (skip first URL hydration-triggered change)
   useEffect(() => {
     if (!didInitialUrlHydrate.current && useSearchHook) {
       didInitialUrlHydrate.current = true;
-      return;
-    }
-    // Don't reset amounts if we're loading from a recommendation
-    if (loadingFromRecommendationRef.current) {
       return;
     }
     setSellAmount("");
@@ -305,11 +301,6 @@ export const InstantTradeAction = forwardRef<
 
   // Reflect quote into the opposite field
   useEffect(() => {
-    // Don't overwrite amounts when loading from a recommendation
-    if (loadingFromRecommendationRef.current) {
-      loadingFromRecommendationRef.current = false;
-      return;
-    }
     if (!quotingEnabled || !quote?.ok) return;
     if (lastEditedField === "sell") {
       if (buyAmount !== quote.amountOut) setBuyAmount(quote.amountOut ?? "");
@@ -555,75 +546,6 @@ export const InstantTradeAction = forwardRef<
 
   const hasSell = useMemo(() => !!(sellToken?.balance && BigInt(sellToken.balance) > 0n), [sellToken?.balance]);
 
-  // Expose method to set tokens from recommendation via ref
-  useImperativeHandle(
-    ref,
-    () => ({
-      setTokensFromRecommendation: (rec: Recommendation) => {
-        clearErrorsOnUserEdit();
-        userChangedPairRef.current = true;
-
-        // Set flag to prevent quote from overwriting the recommendation amount
-        loadingFromRecommendationRef.current = true;
-
-        // Convert recommendation TokenMetadata to app's TokenMetadata format
-        const convertToken = (token: Recommendation["tokenIn"] | Recommendation["tokenOut"]): TokenMetadata => {
-          // For ERC6909 tokens, parse the id as bigint; for ERC20, use 0n
-          const tokenId = token.standard === "ERC6909" && token.id ? BigInt(token.id) : 0n;
-
-          return {
-            address: token.address as Address,
-            id: tokenId,
-            decimals: token.decimals,
-            name: token.name,
-            symbol: token.symbol,
-            imageUrl: token.imageUrl,
-            standard: token.standard === "ERC6909" ? "ERC6909" : "ERC20",
-          } as TokenMetadata;
-        };
-
-        const newSellToken = convertToken(rec.tokenIn);
-        const newBuyToken = convertToken(rec.tokenOut);
-
-        // Set tokens first
-        setSellToken(newSellToken);
-        setBuyToken(newBuyToken);
-
-        // Use setTimeout to ensure tokens are set before amounts
-        // This prevents race conditions with the quote effect
-        setTimeout(() => {
-          // Set the amount based on the side
-          if (rec.side === "SWAP_EXACT_IN") {
-            setSellAmount(rec.amount);
-            setBuyAmount("");
-            setLastEditedField("sell");
-          } else {
-            setBuyAmount(rec.amount);
-            setSellAmount("");
-            setLastEditedField("buy");
-          }
-        }, 0);
-
-        // Update URL if search hook is enabled
-        if (useSearchHook) {
-          navigate({
-            to: ".",
-            replace: true,
-            search: (s: any) => ({
-              ...s,
-              sellToken: encodeTokenQ(newSellToken),
-              buyToken: encodeTokenQ(newBuyToken),
-            }),
-          });
-        }
-
-        // Scroll to swap form smoothly
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      },
-    }),
-    [setSellToken, setBuyToken, setSellAmount, setBuyAmount, setLastEditedField, useSearchHook, navigate],
-  );
-
   return (
     <div>
       {/* Optional controller-style single line input */}
@@ -746,6 +668,4 @@ export const InstantTradeAction = forwardRef<
       {isSuccess && <div className="mt-2 text-sm text-green-500">Transaction confirmed! Hash: {txHash}</div>}
     </div>
   );
-});
-
-InstantTradeAction.displayName = "InstantTradeAction";
+};

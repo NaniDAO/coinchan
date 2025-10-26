@@ -1491,17 +1491,5 @@
     "clear_hook": "Clear Hook (Use Swap Fees)",
     "using_custom_hook": "Using custom hook for pool logic",
     "swap_fee_summary": "Swap fee: {{fee}}%"
-  },
-  "recommendations": {
-    "title": "AI Recommendations",
-    "loading": "Loading personalized swap recommendations...",
-    "suggestions_count": "{{count}} suggestion based on your transaction history",
-    "suggestions_count_plural": "{{count}} suggestions based on your transaction history",
-    "empty_state": "Connect your wallet and make some swaps to get personalized suggestions",
-    "error": "Failed to load recommendations. Please try again later.",
-    "no_recommendations": "No recommendations available at this time.",
-    "based_on_transactions": "Based on {{count}} transaction",
-    "based_on_transactions_plural": "Based on {{count}} transactions",
-    "references": "References"
   }
 }
