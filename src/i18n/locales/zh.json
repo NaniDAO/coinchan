@@ -1597,5 +1597,17 @@
     "transaction_confirmed": "交易已确认！",
     "waiting_for_closing": "等待截止时间",
     "market_closes_at": "市场将在 {{time}} 自动关闭"
+  },
+  "recommendations": {
+    "title": "AI 推荐",
+    "loading": "正在加载个性化交易推荐...",
+    "suggestions_count": "基于您的交易历史的 {{count}} 个建议",
+    "suggestions_count_plural": "基于您的交易历史的 {{count}} 个建议",
+    "empty_state": "连接您的钱包并进行一些交易以获得个性化建议",
+    "error": "无法加载推荐。请稍后再试。",
+    "no_recommendations": "目前没有可用的推荐。",
+    "based_on_transactions": "基于 {{count}} 笔交易",
+    "based_on_transactions_plural": "基于 {{count}} 笔交易",
+    "references": "参考"
   }
 }
