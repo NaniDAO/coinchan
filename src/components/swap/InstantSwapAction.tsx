@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { encodeFunctionData, formatEther, formatUnits, maxUint256, parseUnits, type Address } from "viem";
 import { mainnet } from "viem/chains";
 import { useAccount, useChainId, usePublicClient, useSendTransaction, useWaitForTransactionReceipt } from "wagmi";
+import { useQueryClient } from "@tanstack/react-query";
 import { PoolSwapChart } from "@/PoolSwapChart";
 import { FlipActionButton } from "@/components/FlipActionButton";
 import { NetworkError } from "@/components/NetworkError";
@@ -48,6 +49,7 @@ export const InstantSwapAction = ({ lockedTokens, hidePriceChart = false }: Prop
   const publicClient = usePublicClient({ chainId });
   const { tokens, isEthBalanceFetching } = useAllCoins();
   const { data: ethPrice } = useETHPrice();
+  const queryClient = useQueryClient();
 
   // amounts + recipient
   const [sellAmt, setSellAmt] = useState("");
@@ -391,6 +393,9 @@ export const InstantSwapAction = ({ lockedTokens, hidePriceChart = false }: Prop
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
       if (receipt.status !== "success") throw new Error("Transaction failed");
       setTxHash(hash);
+
+      // Invalidate recommendations cache after successful swap
+      queryClient.invalidateQueries({ queryKey: ["recommendations"] });
     } catch (err: unknown) {
       const msg = handleWalletError(err);
       setTxError(msg || t("errors.unexpected"));

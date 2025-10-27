@@ -13,6 +13,7 @@ import {
   useWaitForTransactionReceipt,
 } from "wagmi";
 import { useReadContract } from "wagmi";
+import { useQueryClient } from "@tanstack/react-query";
 import { PoolSwapChart } from "@/PoolSwapChart";
 import { FlipActionButton } from "@/components/FlipActionButton";
 import { NetworkError } from "@/components/NetworkError";
@@ -41,6 +42,7 @@ export const LimitSwapAction = ({ lockedTokens }: Props) => {
   const chainId = useChainId();
   const publicClient = usePublicClient({ chainId });
   const { tokens, isEthBalanceFetching } = useAllCoins();
+  const queryClient = useQueryClient();
 
   // amounts
   const [sellAmt, setSellAmt] = useState("");
@@ -209,8 +211,11 @@ export const LimitSwapAction = ({ lockedTokens }: Props) => {
         const receipt = await publicClient!.waitForTransactionReceipt({
           hash: orderHash,
         });
-        if (receipt.status === "success") setTxHash(orderHash);
-        else throw new Error("Transaction failed");
+        if (receipt.status === "success") {
+          setTxHash(orderHash);
+          // Invalidate recommendations cache after successful swap
+          queryClient.invalidateQueries({ queryKey: ["recommendations"] });
+        } else throw new Error("Transaction failed");
       } else {
         if (isBatchingSupported) {
           sendCalls({ calls });
@@ -226,7 +231,11 @@ export const LimitSwapAction = ({ lockedTokens }: Props) => {
               hash,
             });
             if (receipt.status === "success") {
-              if (call === calls[calls.length - 1]) setTxHash(hash);
+              if (call === calls[calls.length - 1]) {
+                setTxHash(hash);
+                // Invalidate recommendations cache after successful swap
+                queryClient.invalidateQueries({ queryKey: ["recommendations"] });
+              }
             } else {
               throw new Error("Transaction failed");
             }
