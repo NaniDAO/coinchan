@@ -1122,7 +1122,8 @@
     "v3_zap_coming_soon": "Uniswap V3 Zap即将推出",
     "use_direct_route": "请暂时使用直接路由",
     "farming_coming_soon": "JPYC农场即将推出",
-    "check_back_later": "请稍后查看农场机会"
+    "check_back_later": "请稍后查看农场机会",
+    "insufficient_liquidity": "此金额的池流动性过低"
   },
   "errors": {
     "wallet_connection": "连接钱包错误",

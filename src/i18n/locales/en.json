@@ -952,7 +952,8 @@
     "v3_zap_coming_soon": "Uniswap V3 Zap coming soon",
     "use_direct_route": "Please use the Direct Route for now",
     "farming_coming_soon": "JPYC Farming coming soon",
-    "check_back_later": "Check back later for farming opportunities"
+    "check_back_later": "Check back later for farming opportunities",
+    "insufficient_liquidity": "Pool liquidity too low for this amount"
   },
   "errors": {
     "unexpected": "Unexpected error occurred",

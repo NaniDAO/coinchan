@@ -304,11 +304,12 @@ export const JpycBuySell = () => {
         return;
       }
 
-      // Minimum liquidity check to prevent calculation errors
-      const minEthLiquidity = parseEther("0.1");
-      const minJpycLiquidity = parseUnits("100", 18);
+      // Minimum liquidity check to prevent calculation errors - very low thresholds
+      // Only block if reserves are essentially zero to avoid false positives
+      const minEthLiquidity = parseEther("0.001"); // 0.001 ETH minimum
+      const minJpycLiquidity = parseUnits("1", 18); // 1 JPYC minimum
       if (poolReserves.reserve0 < minEthLiquidity || poolReserves.reserve1 < minJpycLiquidity) {
-        setErrorMessage(t("errors.insufficient_liquidity"));
+        setErrorMessage(t("jpyc.insufficient_liquidity"));
         if (field === "sell") setBuyAmount("");
         else setSellAmount("");
         return;
