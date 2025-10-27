@@ -27,6 +27,7 @@ import {
   ENS_POOL_ID,
   ENS_POOL_KEY,
   JPYC_POOL_ID,
+  JPYC_POOL_KEY,
 } from "./lib/coins";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import {
@@ -118,7 +119,9 @@ export const RemoveLiquidity = () => {
         sellToken?.symbol === "ENS" ||
         buyToken?.symbol === "ENS" ||
         sellToken?.symbol === "CULT" ||
-        buyToken?.symbol === "CULT";
+        buyToken?.symbol === "CULT" ||
+        sellToken?.symbol === "JPYC" ||
+        buyToken?.symbol === "JPYC";
 
       // Don't early return for custom pools with ID=0 or special tokens
       if (!address || !publicClient) return;
@@ -128,10 +131,11 @@ export const RemoveLiquidity = () => {
         // Calculate the pool ID - different method for custom pools
         let poolId;
 
-        // Check for CULT, ENS and WLFI specifically first
+        // Check for CULT, ENS, WLFI, and JPYC specifically first
         const isUsingCult = sellToken?.symbol === "CULT" || buyToken?.symbol === "CULT";
         const isUsingEns = sellToken?.symbol === "ENS" || buyToken?.symbol === "ENS";
         const isUsingWlfi = sellToken?.symbol === "WLFI" || buyToken?.symbol === "WLFI";
+        const isUsingJpyc = sellToken?.symbol === "JPYC" || buyToken?.symbol === "JPYC";
 
         if (isUsingCult) {
           // Use the specific CULT pool ID
@@ -142,6 +146,9 @@ export const RemoveLiquidity = () => {
         } else if (isUsingWlfi) {
           // Use the specific WLFI pool ID
           poolId = WLFI_POOL_ID;
+        } else if (isUsingJpyc) {
+          // Use the specific JPYC pool ID
+          poolId = JPYC_POOL_ID;
         } else if (isCustomPool) {
           // Use the custom token's poolId if available
           const customToken = sellToken?.isCustomPool ? sellToken : buyToken;
@@ -161,7 +168,7 @@ export const RemoveLiquidity = () => {
         // Determine which ZAMM address to use for LP balance lookup
         const tokenIdForCheck = sellToken?.id === null ? buyToken?.id : sellToken?.id;
         const isCookbook =
-          isUsingCult || isUsingEns || isUsingWlfi
+          isUsingCult || isUsingEns || isUsingWlfi || isUsingJpyc
             ? true
             : isCustomPool
               ? false
@@ -241,6 +248,7 @@ export const RemoveLiquidity = () => {
       const isUsingCult = sellToken?.symbol === "CULT" || buyToken?.symbol === "CULT";
       const isUsingEns = sellToken?.symbol === "ENS" || buyToken?.symbol === "ENS";
       const isUsingWlfi = sellToken?.symbol === "WLFI" || buyToken?.symbol === "WLFI";
+      const isUsingJpyc = sellToken?.symbol === "JPYC" || buyToken?.symbol === "JPYC";
       const customPoolUsed = sellToken?.isCustomPool || buyToken?.isCustomPool;
       let poolId;
 
@@ -253,6 +261,9 @@ export const RemoveLiquidity = () => {
       } else if (isUsingWlfi) {
         // Use the specific WLFI pool ID
         poolId = WLFI_POOL_ID;
+      } else if (isUsingJpyc) {
+        // Use the specific JPYC pool ID
+        poolId = JPYC_POOL_ID;
       } else if (customPoolUsed) {
         // Use the custom token's poolId if available
         const customToken = sellToken?.isCustomPool ? sellToken : buyToken;
@@ -275,7 +286,7 @@ export const RemoveLiquidity = () => {
 
       // Determine which ZAMM address to use for pool info lookup
       const isCookbook =
-        isUsingCult || isUsingEns || isUsingWlfi ? true : customPoolUsed ? false : isCookbookCoin(coinId);
+        isUsingCult || isUsingEns || isUsingWlfi || isUsingJpyc ? true : customPoolUsed ? false : isCookbookCoin(coinId);
       const targetZAMMAddress = isCookbook ? CookbookAddress : ZAMMAddress;
       const targetZAMMAbi = isCookbook ? CookbookAbi : ZAMMAbi;
 
@@ -317,7 +328,7 @@ export const RemoveLiquidity = () => {
       // Update the input fields with the calculated values
       setSellAmt(ethAmount === 0n ? "" : formatEther(ethAmount));
 
-      // Use the correct decimals for the token - handle CULT, ENS and WLFI specifically
+      // Use the correct decimals for the token - handle CULT, ENS, WLFI, and JPYC specifically
       let tokenDecimals = 18; // Default to 18 decimals
 
       if (isUsingCult) {
@@ -326,6 +337,8 @@ export const RemoveLiquidity = () => {
         tokenDecimals = 18; // ENS has 18 decimals
       } else if (isUsingWlfi) {
         tokenDecimals = 18; // WLFI has 18 decimals
+      } else if (isUsingJpyc) {
+        tokenDecimals = 18; // JPYC has 18 decimals
       } else if (customPoolUsed) {
         // For other custom pools (like USDT), use their actual decimals
         const customToken = sellToken?.isCustomPool ? sellToken : buyToken;
@@ -379,9 +392,10 @@ export const RemoveLiquidity = () => {
       const isUsingCult = sellToken.symbol === "CULT" || buyToken?.symbol === "CULT";
       const isUsingEns = sellToken.symbol === "ENS" || buyToken?.symbol === "ENS";
       const isUsingWlfi = sellToken.symbol === "WLFI" || buyToken?.symbol === "WLFI";
+      const isUsingJpyc = sellToken.symbol === "JPYC" || buyToken?.symbol === "JPYC";
 
       // Determine if this is a cookbook coin
-      const isCookbook = isCookbookCoin(coinId) || isUsingEns || isUsingWlfi;
+      const isCookbook = isCookbookCoin(coinId) || isUsingEns || isUsingWlfi || isUsingJpyc;
 
       if (isUsingCult) {
         // Use the specific CULT pool key with correct id1=0n and feeOrHook
@@ -392,6 +406,9 @@ export const RemoveLiquidity = () => {
       } else if (isUsingWlfi) {
         // Use the specific WLFI pool key
         poolKey = WLFI_POOL_KEY;
+      } else if (isUsingJpyc) {
+        // Use the specific JPYC pool key
+        poolKey = JPYC_POOL_KEY;
       } else if (isUsdtPool) {
         // Use the custom pool key for USDT-ETH pool
         const customToken = sellToken.isCustomPool ? sellToken : buyToken;

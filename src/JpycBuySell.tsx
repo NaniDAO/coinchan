@@ -15,7 +15,7 @@ import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { AddLiquidity } from "./AddLiquidity";
 import { RemoveLiquidity } from "./RemoveLiquidity";
-import { JPYCZapWrapper } from "./JPYCZapWrapper";
+import { JPYCZap } from "./JPYCZap";
 import { useTokenSelection } from "./contexts/TokenSelectionContext";
 import { getAmountOut, withSlippage, DEADLINE_SEC } from "./lib/swap";
 import { nowSec, formatNumber, debounce } from "./lib/utils";
@@ -869,7 +869,7 @@ export const JpycBuySell = () => {
             <ErrorBoundary
               fallback={<div className="text-center py-4 text-destructive">{t("common.error_loading_component")}</div>}
             >
-              <JPYCZapWrapper />
+              <JPYCZap />
             </ErrorBoundary>
           </TabsContent>
           <TabsContent value="farm" className="mt-2 sm:mt-4">

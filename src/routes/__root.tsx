@@ -255,7 +255,7 @@ export const Route = createRootRoute({
 
             {/* Desktop Right Side */}
             <div className="hidden md:flex items-center gap-2.5 flex-shrink-0">
-              <Link to="/raise">
+              <Link to="/create">
                 <Button variant="outline" size="sm">
                   {t("common.launch", "Launch")}
                 </Button>
