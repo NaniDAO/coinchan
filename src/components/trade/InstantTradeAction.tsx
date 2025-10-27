@@ -173,6 +173,9 @@ export const InstantTradeAction = forwardRef<
   const [txError, setTxError] = useState<string | null>(null);
   const [suppressErrors, setSuppressErrors] = useState(false);
 
+  // Track if swap execution has started (clicked) - distinct from isPending
+  const [isExecuting, setIsExecuting] = useState(false);
+
   // Track whether user manually changed the pair (to avoid re-hydrating/overwriting)
   const userChangedPairRef = useRef(false);
   const didInitialUrlHydrate = useRef(false);
@@ -181,6 +184,7 @@ export const InstantTradeAction = forwardRef<
   const clearErrorsOnUserEdit = () => {
     setTxError(null);
     setSuppressErrors(true);
+    setIsExecuting(false);
   };
 
   // Reset amounts when pair changes (skip first URL hydration-triggered change and recommendation loads)
@@ -292,7 +296,13 @@ export const InstantTradeAction = forwardRef<
   const side = lastEditedField === "sell" ? "EXACT_IN" : "EXACT_OUT";
   const rawAmount = lastEditedField === "sell" ? sellAmount : buyAmount;
 
-  const quotingEnabled = !!publicClient && !!sellToken && !!buyToken && !!rawAmount && Number(rawAmount) > 0 && !loadingFromRecommendationRef.current;
+  const quotingEnabled =
+    !!publicClient &&
+    !!sellToken &&
+    !!buyToken &&
+    !!rawAmount &&
+    Number(rawAmount) > 0 &&
+    !loadingFromRecommendationRef.current;
 
   const { data: quote } = useZRouterQuote({
     publicClient: publicClient ?? undefined,
@@ -407,22 +417,28 @@ export const InstantTradeAction = forwardRef<
   const executeSwap = async () => {
     // We are attempting a new swap; show future errors again
     setSuppressErrors(false);
+    // Set executing immediately to disable button and prevent multiple clicks
+    setIsExecuting(true);
 
     try {
       if (!isConnected || !owner) {
         setTxError("Connect your wallet to proceed");
+        setIsExecuting(false);
         return;
       }
       if (!sellToken || !buyToken || !publicClient) {
         setTxError("Select tokens and enter an amount");
+        setIsExecuting(false);
         return;
       }
       if (!rawAmount || Number(rawAmount) <= 0) {
         setTxError("Enter an amount to swap");
+        setIsExecuting(false);
         return;
       }
       if (chainId !== mainnet.id) {
         setTxError("Wrong network: switch to Ethereum Mainnet");
+        setIsExecuting(false);
         return;
       }
 
@@ -447,6 +463,7 @@ export const InstantTradeAction = forwardRef<
 
       if (!steps.length) {
         setTxError("No route found for this pair/amount");
+        setIsExecuting(false);
         return;
       }
 
@@ -459,6 +476,7 @@ export const InstantTradeAction = forwardRef<
 
       if (!plan) {
         setTxError("Failed to build route plan");
+        setIsExecuting(false);
         return;
       }
 
@@ -500,6 +518,7 @@ export const InstantTradeAction = forwardRef<
 
       if (!sim) {
         setTxError("Failed to simulate route");
+        setIsExecuting(false);
         return;
       }
 
@@ -529,6 +548,7 @@ export const InstantTradeAction = forwardRef<
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
       if (receipt.status !== "success") throw new Error("Transaction failed");
       setTxHash(hash);
+      setIsExecuting(false);
     } catch (err) {
       console.error("Caught error:", err);
       const msg = handleWalletError(err);
@@ -536,6 +556,7 @@ export const InstantTradeAction = forwardRef<
       if (msg !== null) {
         setTxError(msg);
       }
+      setIsExecuting(false);
     }
   };
 
@@ -727,13 +748,13 @@ export const InstantTradeAction = forwardRef<
       {/* Action button */}
       <button
         onClick={executeSwap}
-        disabled={!isConnected || !sellAmount || isPending}
+        disabled={!isConnected || !sellAmount || isExecuting || isPending}
         className={cn(
           `w-full mt-3 button text-base px-8 py-4 bg-primary! text-primary-foreground! dark:bg-primary! dark:text-primary-foreground! font-bold rounded-lg transition hover:scale-105`,
-          (!isConnected || !sellAmount || isPending) && "opacity-50 cursor-not-allowed",
+          (!isConnected || !sellAmount || isExecuting || isPending) && "opacity-50 cursor-not-allowed",
         )}
       >
-        {isPending ? "Processing…" : !sellAmount ? "Get Started" : "Swap"}
+        {isExecuting || isPending ? "Processing…" : !sellAmount ? "Get Started" : "Swap"}
       </button>
 
       {/* Errors / Success */}
