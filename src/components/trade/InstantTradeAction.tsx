@@ -18,7 +18,7 @@ import { toZRouterToken } from "@/lib/zrouter";
 import { SLIPPAGE_BPS } from "@/lib/swap";
 import { handleWalletError, isUserRejectionError } from "@/lib/errors";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "../ui/hover-card";
-import { InfoIcon } from "lucide-react";
+import { InfoIcon, Loader2 } from "lucide-react";
 import { SlippageSettings } from "../SlippageSettings";
 
 import { useLocation, useNavigate, useSearch } from "@tanstack/react-router";
@@ -304,7 +304,7 @@ export const InstantTradeAction = forwardRef<
     Number(rawAmount) > 0 &&
     !loadingFromRecommendationRef.current;
 
-  const { data: quote } = useZRouterQuote({
+  const { data: quote, isFetching: isQuoteFetching } = useZRouterQuote({
     publicClient: publicClient ?? undefined,
     sellToken,
     buyToken,
@@ -731,6 +731,14 @@ export const InstantTradeAction = forwardRef<
           className="pt-4 rounded-b-2xl"
         />
       </div>
+
+      {/* Quote loading indicator */}
+      {isQuoteFetching && quotingEnabled && (
+        <div className="flex items-center justify-center gap-2 py-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Fetching best price...</span>
+        </div>
+      )}
 
       {/* Settings */}
       <div className="flex items-center p-1 justify-end flex-row">
