@@ -292,7 +292,13 @@ export const InstantTradeAction = forwardRef<
   const side = lastEditedField === "sell" ? "EXACT_IN" : "EXACT_OUT";
   const rawAmount = lastEditedField === "sell" ? sellAmount : buyAmount;
 
-  const quotingEnabled = !!publicClient && !!sellToken && !!buyToken && !!rawAmount && Number(rawAmount) > 0 && !loadingFromRecommendationRef.current;
+  const quotingEnabled =
+    !!publicClient &&
+    !!sellToken &&
+    !!buyToken &&
+    !!rawAmount &&
+    Number(rawAmount) > 0 &&
+    !loadingFromRecommendationRef.current;
 
   const { data: quote } = useZRouterQuote({
     publicClient: publicClient ?? undefined,

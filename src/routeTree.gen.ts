@@ -19,6 +19,7 @@ import { Route as PredictRouteImport } from './routes/predict'
 import { Route as PositionsRouteImport } from './routes/positions'
 import { Route as PmRouteImport } from './routes/pm'
 import { Route as LimitRouteImport } from './routes/limit'
+import { Route as JpycRouteImport } from './routes/jpyc'
 import { Route as IcoRouteImport } from './routes/ico'
 import { Route as FarmRouteImport } from './routes/farm'
 import { Route as ExploreRouteImport } from './routes/explore'
@@ -86,6 +87,11 @@ const PmRoute = PmRouteImport.update({
 const LimitRoute = LimitRouteImport.update({
   id: '/limit',
   path: '/limit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JpycRoute = JpycRouteImport.update({
+  id: '/jpyc',
+  path: '/jpyc',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IcoRoute = IcoRouteImport.update({
@@ -189,6 +195,7 @@ export interface FileRoutesByFullPath {
   '/explore': typeof ExploreRouteWithChildren
   '/farm': typeof FarmRouteWithChildren
   '/ico': typeof IcoRoute
+  '/jpyc': typeof JpycRoute
   '/limit': typeof LimitRoute
   '/pm': typeof PmRoute
   '/positions': typeof PositionsRouteWithChildren
@@ -218,6 +225,7 @@ export interface FileRoutesByTo {
   '/ens': typeof EnsRoute
   '/explore': typeof ExploreRouteWithChildren
   '/ico': typeof IcoRoute
+  '/jpyc': typeof JpycRoute
   '/limit': typeof LimitRoute
   '/pm': typeof PmRoute
   '/predict': typeof PredictRouteWithChildren
@@ -248,6 +256,7 @@ export interface FileRoutesById {
   '/explore': typeof ExploreRouteWithChildren
   '/farm': typeof FarmRouteWithChildren
   '/ico': typeof IcoRoute
+  '/jpyc': typeof JpycRoute
   '/limit': typeof LimitRoute
   '/pm': typeof PmRoute
   '/positions': typeof PositionsRouteWithChildren
@@ -280,6 +289,7 @@ export interface FileRouteTypes {
     | '/explore'
     | '/farm'
     | '/ico'
+    | '/jpyc'
     | '/limit'
     | '/pm'
     | '/positions'
@@ -309,6 +319,7 @@ export interface FileRouteTypes {
     | '/ens'
     | '/explore'
     | '/ico'
+    | '/jpyc'
     | '/limit'
     | '/pm'
     | '/predict'
@@ -338,6 +349,7 @@ export interface FileRouteTypes {
     | '/explore'
     | '/farm'
     | '/ico'
+    | '/jpyc'
     | '/limit'
     | '/pm'
     | '/positions'
@@ -369,6 +381,7 @@ export interface RootRouteChildren {
   ExploreRoute: typeof ExploreRouteWithChildren
   FarmRoute: typeof FarmRouteWithChildren
   IcoRoute: typeof IcoRoute
+  JpycRoute: typeof JpycRoute
   LimitRoute: typeof LimitRoute
   PmRoute: typeof PmRoute
   PositionsRoute: typeof PositionsRouteWithChildren
@@ -452,6 +465,13 @@ declare module '@tanstack/react-router' {
       path: '/limit'
       fullPath: '/limit'
       preLoaderRoute: typeof LimitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/jpyc': {
+      id: '/jpyc'
+      path: '/jpyc'
+      fullPath: '/jpyc'
+      preLoaderRoute: typeof JpycRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ico': {
@@ -646,6 +666,7 @@ const rootRouteChildren: RootRouteChildren = {
   ExploreRoute: ExploreRouteWithChildren,
   FarmRoute: FarmRouteWithChildren,
   IcoRoute: IcoRoute,
+  JpycRoute: JpycRoute,
   LimitRoute: LimitRoute,
   PmRoute: PmRoute,
   PositionsRoute: PositionsRouteWithChildren,
