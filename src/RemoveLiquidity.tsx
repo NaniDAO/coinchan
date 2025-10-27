@@ -26,6 +26,7 @@ import {
   WLFI_POOL_KEY,
   ENS_POOL_ID,
   ENS_POOL_KEY,
+  JPYC_POOL_ID,
 } from "./lib/coins";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import {
@@ -69,13 +70,14 @@ export const RemoveLiquidity = () => {
     [sellToken, buyToken],
   );
 
-  // Override for ENS and WLFI
+  // Override for ENS, WLFI, and JPYC
   const isENS = sellToken?.symbol === "ENS" || buyToken?.symbol === "ENS";
   const isWLFI = sellToken?.symbol === "WLFI" || buyToken?.symbol === "WLFI";
-  const actualPoolId = isENS ? ENS_POOL_ID : isWLFI ? WLFI_POOL_ID : mainPoolId;
+  const isJPYC = sellToken?.symbol === "JPYC" || buyToken?.symbol === "JPYC";
+  const actualPoolId = isENS ? ENS_POOL_ID : isWLFI ? WLFI_POOL_ID : isJPYC ? JPYC_POOL_ID : mainPoolId;
 
   // Determine source for reserves based on coin type using shared utility
-  const reserveSource = isENS || isWLFI ? "COOKBOOK" : determineReserveSource(coinId, isCustomPool);
+  const reserveSource = isENS || isWLFI || isJPYC ? "COOKBOOK" : determineReserveSource(coinId, isCustomPool);
 
   const { data: reserves } = useReserves({
     poolId: actualPoolId,

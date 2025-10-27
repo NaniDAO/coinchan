@@ -47,6 +47,7 @@ export const JpycBuySell = () => {
 
   const [jpycBalance, setJpycBalance] = useState<bigint>(0n);
   const [ethBalance, setEthBalance] = useState<bigint>(0n);
+  const [jpycTotalSupply, setJpycTotalSupply] = useState<bigint>(0n);
   const [activeTab, setActiveTab] = useState<"swap" | "add" | "remove" | "zap">("swap");
   const [swapDirection, setSwapDirection] = useState<"buy" | "sell">("buy"); // buy = ETH->JPYC, sell = JPYC->ETH
   const [sellAmount, setSellAmount] = useState("");
@@ -134,13 +135,13 @@ export const JpycBuySell = () => {
     }
   }, [activeTab, ethToken, jpycToken, setSellToken, setBuyToken]);
 
-  // Consolidated data fetching for pool reserves and balances
+  // Consolidated data fetching for pool reserves, balances, and total supply
   useEffect(() => {
     const fetchAllData = async () => {
       if (!publicClient) return;
 
       try {
-        // Batch fetch pool data and balances in parallel
+        // Batch fetch pool data, balances, and total supply in parallel
         const promises = [];
 
         // Pool data
@@ -150,6 +151,15 @@ export const JpycBuySell = () => {
             abi: CookbookAbi,
             functionName: "pools",
             args: [JPYC_POOL_ID],
+          }),
+        );
+
+        // JPYC total supply (always fetch)
+        promises.push(
+          publicClient.readContract({
+            address: JPYC_ADDRESS,
+            abi: erc20Abi,
+            functionName: "totalSupply",
           }),
         );
 
@@ -177,10 +187,16 @@ export const JpycBuySell = () => {
           });
         }
 
+        // Update total supply
+        const totalSupply = results[1] as bigint;
+        if (totalSupply !== undefined) {
+          setJpycTotalSupply(totalSupply);
+        }
+
         // Update balances if fetched
-        if (address && results.length > 1) {
-          const jpycBalance = results[1] as bigint;
-          const ethBalance = results[2] as bigint;
+        if (address && results.length > 2) {
+          const jpycBalance = results[2] as bigint;
+          const ethBalance = results[3] as bigint;
 
           if (jpycBalance !== undefined) {
             setJpycBalance(jpycBalance);
@@ -279,7 +295,7 @@ export const JpycBuySell = () => {
     };
   }, [publicClient, poolReserves, ethBalance, isConnected]);
 
-  // Calculate market cap and price with memoization
+  // Calculate market cap and price with memoization using actual total supply
   const { jpycPrice, jpycUsdPrice, marketCapUsd } = useMemo(() => {
     const price =
       poolReserves.reserve0 > 0n && poolReserves.reserve1 > 0n
@@ -288,12 +304,11 @@ export const JpycBuySell = () => {
 
     const usdPrice = price * (ethPrice?.priceUSD || 0);
 
-    // JPYC circulating supply - using a placeholder, adjust as needed
-    const circulatingSupply = 10000000n * 10n ** 18n; // 10M tokens with 18 decimals
-    const marketCap = usdPrice * Number(formatUnits(circulatingSupply, 18));
+    // Use actual on-chain total supply
+    const marketCap = jpycTotalSupply > 0n ? usdPrice * Number(formatUnits(jpycTotalSupply, 18)) : 0;
 
     return { jpycPrice: price, jpycUsdPrice: usdPrice, marketCapUsd: marketCap };
-  }, [poolReserves.reserve0, poolReserves.reserve1, ethPrice?.priceUSD]);
+  }, [poolReserves.reserve0, poolReserves.reserve1, ethPrice?.priceUSD, jpycTotalSupply]);
 
   // Calculate output based on input
   const calculateOutput = useCallback(
@@ -882,7 +897,11 @@ export const JpycBuySell = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 text-sm">
           <div>
             <p className="text-muted-foreground">{t("coin.total_supply")}</p>
-            <p className="font-medium">10,000,000 JPYC</p>
+            <p className="font-medium">
+              {jpycTotalSupply > 0n
+                ? `${formatNumber(Number(formatUnits(jpycTotalSupply, 18)), 0)} JPYC`
+                : "Loading..."}
+            </p>
           </div>
           <div>
             <p className="text-muted-foreground">{t("coin.contract_address")}</p>

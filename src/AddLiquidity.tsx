@@ -30,6 +30,9 @@ import {
   WLFI_ADDRESS,
   WLFI_POOL_KEY,
   WLFI_POOL_ID,
+  JPYC_ADDRESS,
+  JPYC_POOL_ID,
+  JPYC_POOL_KEY,
 } from "./lib/coins";
 import { useTokenSelection } from "./contexts/TokenSelectionContext";
 import { determineReserveSource, getHelperContractInfo } from "./lib/coin-utils";
@@ -127,7 +130,7 @@ export const AddLiquidity = () => {
     return getHelperContractInfo(tokenId);
   }, [coinId, buyToken?.id]);
 
-  // Simple direct handling for CULT, ENS, WLFI and other custom pools
+  // Simple direct handling for CULT, ENS, WLFI, JPYC and other custom pools
   const { actualPoolId, reserveSource } = useMemo(() => {
     if (sellToken.symbol === "CULT" || buyToken?.symbol === "CULT") {
       return {
@@ -146,6 +149,14 @@ export const AddLiquidity = () => {
     if (sellToken.symbol === "WLFI" || buyToken?.symbol === "WLFI") {
       return {
         actualPoolId: WLFI_POOL_ID,
+        reserveSource: "COOKBOOK" as const,
+      };
+    }
+
+    // Direct JPYC handling - use the constant JPYC_POOL_ID
+    if (sellToken.symbol === "JPYC" || buyToken?.symbol === "JPYC") {
+      return {
+        actualPoolId: JPYC_POOL_ID,
         reserveSource: "COOKBOOK" as const,
       };
     }
@@ -180,13 +191,15 @@ export const AddLiquidity = () => {
     chainId: mainnet.id,
   });
 
-  // Set 10% slippage for ENS and WLFI pools, default for others (this is *slippage*, not fee)
+  // Set 10% slippage for ENS, WLFI, and JPYC pools, default for others (this is *slippage*, not fee)
   useEffect(() => {
     if (
       sellToken?.symbol === "ENS" ||
       buyToken?.symbol === "ENS" ||
       sellToken?.symbol === "WLFI" ||
-      buyToken?.symbol === "WLFI"
+      buyToken?.symbol === "WLFI" ||
+      sellToken?.symbol === "JPYC" ||
+      buyToken?.symbol === "JPYC"
     ) {
       setSlippageBps(1000n); // 10%
     } else {
@@ -204,10 +217,16 @@ export const AddLiquidity = () => {
     [sellToken, buyToken],
   );
 
-  // ERC20 detection
+  // Check if we're in JPYC context
+  const isJPYCPool = useMemo(
+    () => sellToken?.symbol === "JPYC" || buyToken?.symbol === "JPYC",
+    [sellToken, buyToken],
+  );
+
+  // ERC20 detection - includes WLFI and JPYC pools which are ERC20 tokens on Cookbook
   const isErc20Pool = useMemo(
-    () => sellToken.source === "ERC20" || buyToken?.source === "ERC20",
-    [sellToken.source, buyToken?.source],
+    () => sellToken.source === "ERC20" || buyToken?.source === "ERC20" || isWLFIPool || isJPYCPool,
+    [sellToken.source, buyToken?.source, isWLFIPool, isJPYCPool],
   );
 
   const erc20Meta: TokenMeta | undefined = useMemo(() => {
@@ -217,18 +236,24 @@ export const AddLiquidity = () => {
   }, [sellToken, buyToken]);
 
   // Determine the correct ERC20 token address for approval
-  // For WLFI, always use WLFI_ADDRESS regardless of token1
+  // For WLFI and JPYC, use their specific addresses
   const erc20TokenForApproval = useMemo(() => {
-    if (!erc20Meta) return zeroAddress;
-
     // Special handling for WLFI pools
-    if (erc20Meta.symbol === "WLFI" || erc20Meta.token1 === WLFI_ADDRESS) {
+    if (isWLFIPool) {
       return WLFI_ADDRESS;
     }
 
+    // Special handling for JPYC pools
+    if (isJPYCPool) {
+      const jpycToken = sellToken?.symbol === "JPYC" ? sellToken : buyToken;
+      return jpycToken?.token1 ?? zeroAddress;
+    }
+
+    if (!erc20Meta) return zeroAddress;
+
     // For other ERC20 tokens, use token1
     return erc20Meta.token1 ?? zeroAddress;
-  }, [erc20Meta]);
+  }, [erc20Meta, isWLFIPool, isJPYCPool, sellToken, buyToken]);
 
   // ERC20 allowance hook (generic)
   const {
@@ -237,7 +262,7 @@ export const AddLiquidity = () => {
     approveMax: approveGenericErc20Max,
   } = useErc20Allowance({
     token: erc20TokenForApproval,
-    spender: isErc20Pool && isCookbook && erc20Meta ? CookbookAddress : ZAMMAddress, // Use Cookbook for Cookbook pools, ZAMM otherwise
+    spender: isErc20Pool && (isCookbook && erc20Meta || isJPYCPool) ? CookbookAddress : ZAMMAddress, // Use Cookbook for Cookbook pools and JPYC, ZAMM otherwise
   });
 
   // Operator status (ERC6909 only)
@@ -276,6 +301,14 @@ export const AddLiquidity = () => {
   } = useErc20Allowance({
     token: WLFI_ADDRESS,
     spender: CookbookAddress, // WLFI uses Cookbook for liquidity
+  });
+  const {
+    allowance: jpycAllowance,
+    refetchAllowance: refetchJpycAllowance,
+    approveMax: approveJpycMax,
+  } = useErc20Allowance({
+    token: JPYC_ADDRESS,
+    spender: CookbookAddress, // JPYC uses Cookbook for liquidity
   });
 
   const [txHash, setTxHash] = useState<`0x${string}`>();
@@ -373,18 +406,24 @@ export const AddLiquidity = () => {
     buyToken?.token1 === WLFI_ADDRESS ||
     sellToken.poolId === WLFI_POOL_ID ||
     buyToken?.poolId === WLFI_POOL_ID;
+  // JPYC detection - check symbol or poolId
+  const isUsingJpyc =
+    sellToken.symbol === "JPYC" ||
+    buyToken?.symbol === "JPYC" ||
+    sellToken.poolId === JPYC_POOL_ID ||
+    buyToken?.poolId === JPYC_POOL_ID;
 
-  // All special tokens (CULT, ENS, WLFI) use Cookbook
-  const usesCookbook = isUsingCult || isUsingEns || isUsingWlfi || isCookbook;
+  // All special tokens (CULT, ENS, WLFI, JPYC) use Cookbook
+  const usesCookbook = isUsingCult || isUsingEns || isUsingWlfi || isUsingJpyc || isCookbook;
 
-  const targetAMMContract = isErc20Pool && !isUsingWlfi ? ZAMMAddress : usesCookbook ? CookbookAddress : ZAMMAddress;
+  const targetAMMContract = isErc20Pool && !isUsingWlfi && !isUsingJpyc ? ZAMMAddress : usesCookbook ? CookbookAddress : ZAMMAddress;
 
-  const targetAMMAbi = isErc20Pool && !isUsingWlfi ? ZAMMAbi : usesCookbook ? CookbookAbi : ZAMMAbi;
+  const targetAMMAbi = isErc20Pool && !isUsingWlfi && !isUsingJpyc ? ZAMMAbi : usesCookbook ? CookbookAbi : ZAMMAbi;
 
   const helperAddress =
-    isErc20Pool && !isUsingWlfi ? ZAMMHelperAddress : usesCookbook ? ZAMMHelperV1Address : ZAMMHelperAddress;
+    isErc20Pool && !isUsingWlfi && !isUsingJpyc ? ZAMMHelperAddress : usesCookbook ? ZAMMHelperV1Address : ZAMMHelperAddress;
 
-  const helperAbi = isErc20Pool && !isUsingWlfi ? ZAMMHelperAbi : usesCookbook ? ZAMMHelperV1Abi : ZAMMHelperAbi;
+  const helperAbi = isErc20Pool && !isUsingWlfi && !isUsingJpyc ? ZAMMHelperAbi : usesCookbook ? ZAMMHelperV1Abi : ZAMMHelperAbi;
 
   /* helpers to sync amounts */
   const syncFromSell = useCallback(
@@ -563,6 +602,9 @@ export const AddLiquidity = () => {
       } else if (isUsingWlfi) {
         // Use the specific WLFI pool key with correct id1=0n and feeOrHook
         poolKey = WLFI_POOL_KEY;
+      } else if (isUsingJpyc) {
+        // Use the specific JPYC pool key
+        poolKey = JPYC_POOL_KEY;
       } else if (isUsdtPool) {
         const customToken = sellToken.isCustomPool ? sellToken : buyToken!;
         poolKey = customToken.poolKey ?? USDT_POOL_KEY;
@@ -599,7 +641,7 @@ export const AddLiquidity = () => {
           ? erc20Meta?.decimals
           : isUsdtPool
             ? 6
-            : isUsingCult || isUsingEns || isUsingWlfi
+            : isUsingCult || isUsingEns || isUsingWlfi || isUsingJpyc
               ? 18
               : buyToken?.decimals) ?? 18;
 
@@ -628,6 +670,8 @@ export const AddLiquidity = () => {
         tokenAvailable = sellToken.symbol === "ENS" ? sellToken.balance || 0n : buyToken?.balance || 0n;
       } else if (isUsingWlfi) {
         tokenAvailable = sellToken.symbol === "WLFI" ? sellToken.balance || 0n : buyToken?.balance || 0n;
+      } else if (isUsingJpyc) {
+        tokenAvailable = sellToken.symbol === "JPYC" ? sellToken.balance || 0n : buyToken?.balance || 0n;
       } else {
         tokenAvailable = isSellETH ? buyToken?.balance || 0n : sellToken.balance || 0n;
       }
@@ -640,9 +684,11 @@ export const AddLiquidity = () => {
               ? "ENS"
               : isUsingWlfi
                 ? "WLFI"
-                : isSellETH
-                  ? buyToken?.symbol
-                  : sellToken.symbol;
+                : isUsingJpyc
+                  ? "JPYC"
+                  : isSellETH
+                    ? buyToken?.symbol
+                    : sellToken.symbol;
         setTxError(`Insufficient ${tokenSymbol} balance`);
         return;
       }
@@ -808,6 +854,45 @@ export const AddLiquidity = () => {
         }
       }
 
+      // Check for JPYC ERC20 approval if needed
+      if (isUsingJpyc) {
+        // For JPYC pools, we always need to approve JPYC tokens (not ETH)
+        // Determine which amount is JPYC based on token selection
+        const jpycAmount =
+          sellToken.symbol === "JPYC" || sellToken.token1 === JPYC_ADDRESS
+            ? parseUnits(sellAmt, 18) // JPYC has 18 decimals
+            : parseUnits(buyAmt, 18);
+
+        if (jpycAllowance === undefined || jpycAmount > jpycAllowance) {
+          try {
+            setTxError("Waiting for JPYC approval. Please confirm the transaction...");
+            const approved = await approveJpycMax();
+            if (!approved) return;
+
+            setTxError("JPYC approval submitted. Waiting for confirmation...");
+            const receipt = await publicClient.waitForTransactionReceipt({
+              hash: approved,
+            });
+
+            if (receipt.status === "success") {
+              await refetchJpycAllowance();
+              setTxError(null);
+            } else {
+              setTxError("JPYC approval failed. Please try again.");
+              return;
+            }
+          } catch (err) {
+            const errorMsg = handleWalletError(err, {
+              defaultMessage: t("errors.transaction_error"),
+            });
+            if (errorMsg) {
+              setTxError(errorMsg);
+            }
+            return;
+          }
+        }
+      }
+
       // Check if the user needs to approve the target AMM contract as operator
       // (ERC6909 coins on ZAMM only; not for Cookbook or ERC20s)
       const tokenId = buyToken?.id ?? coinId;
@@ -816,6 +901,7 @@ export const AddLiquidity = () => {
         !isUsingCult &&
         !isUsingEns &&
         !isUsingWlfi &&
+        !isUsingJpyc &&
         !isErc20Pool &&
         tokenId &&
         !isCookbook &&
@@ -851,9 +937,9 @@ export const AddLiquidity = () => {
 
       // ---------- Helper quote & addLiquidity ----------
       try {
-        // Special handling for WLFI, ENS, CULT, and all Cookbook coins - direct call without helper
+        // Special handling for WLFI, ENS, CULT, JPYC, and all Cookbook coins - direct call without helper
         // Cookbook coins don't need the helper contract
-        if (isUsingWlfi || isUsingEns || isUsingCult || (isCookbook && !isErc20Pool)) {
+        if (isUsingWlfi || isUsingEns || isUsingCult || isUsingJpyc || (isCookbook && !isErc20Pool)) {
           const actualAmount0Min = withSlippage(amount0, slippageBps);
           const actualAmount1Min = withSlippage(amount1, slippageBps);
 
@@ -864,7 +950,9 @@ export const AddLiquidity = () => {
               ? ENS_POOL_KEY
               : isUsingCult
                 ? CULT_POOL_KEY
-                : poolKey; // Use the already computed poolKey for regular cookbook coins
+                : isUsingJpyc
+                  ? JPYC_POOL_KEY
+                  : poolKey; // Use the already computed poolKey for regular cookbook coins
 
           const hash = await writeContractAsync({
             address: CookbookAddress,
