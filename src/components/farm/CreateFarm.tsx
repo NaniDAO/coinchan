@@ -13,7 +13,7 @@ import { isUserRejectionError } from "@/lib/errors";
 import { cn } from "@/lib/utils";
 import { type ChangeEvent, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { encodePacked, formatEther, keccak256, parseUnits, parseEther } from "viem";
+import { encodePacked, erc20Abi, formatEther, keccak256, parseUnits, parseEther } from "viem";
 import { mainnet } from "viem/chains";
 import { useAccount, usePublicClient, useWriteContract } from "wagmi";
 import { Button } from "../ui/button";
@@ -384,12 +384,11 @@ export const CreateFarm = () => {
     }
 
     // Validate reward token (ETH not supported by zChef)
-    if (!formData.rewardToken.id) {
-      if (formData.rewardToken.symbol === "ETH") {
-        newErrors.rewardToken = t("common.eth_not_supported_reward");
-      } else {
-        newErrors.rewardToken = t("common.please_select_reward_token");
-      }
+    if (formData.rewardToken.symbol === "ETH") {
+      newErrors.rewardToken = t("common.eth_not_supported_reward");
+    } else if (formData.rewardToken.id === null || formData.rewardToken.id === undefined) {
+      // id should be 0n for ERC20, or a valid bigint for ERC6909
+      newErrors.rewardToken = t("common.please_select_reward_token");
     }
 
     // Validate reward amount
@@ -480,10 +479,56 @@ export const CreateFarm = () => {
 
       // Check if approval is needed for reward token
       const rewardTokenId = formData.rewardToken.id;
-      if (rewardTokenId && !isRewardTokenOperatorApproved) {
+
+      // Handle ERC20 token approval (id === 0n and source === "ERC20")
+      if (rewardTokenId === 0n && formData.rewardToken.source === "ERC20") {
+        const erc20Address = formData.rewardToken.token1 as `0x${string}`;
+        if (!erc20Address) {
+          throw new Error("ERC20 token address not found");
+        }
+
         setTxStatus("pending");
 
+        // Check current allowance
+        const allowance = await publicClient?.readContract({
+          address: erc20Address,
+          abi: erc20Abi,
+          functionName: "allowance",
+          args: [address as `0x${string}`, ZChefAddress],
+        });
+
+        const rewardAmountBigInt = parseUnits(formData.rewardAmount, formData.rewardToken.decimals || 18);
+
+        // If allowance is insufficient, approve
+        if (!allowance || allowance < rewardAmountBigInt) {
+          try {
+            const approvalHash = await writeContractAsync({
+              address: erc20Address,
+              abi: erc20Abi,
+              functionName: "approve",
+              args: [ZChefAddress, rewardAmountBigInt],
+              chainId: mainnet.id,
+            });
+
+            if (publicClient) {
+              await publicClient.waitForTransactionReceipt({
+                hash: approvalHash,
+              });
+            }
+          } catch (approvalError: any) {
+            if (
+              approvalError?.message?.includes("getChainId is not a function") ||
+              approvalError?.message?.includes("connector.getChainId")
+            ) {
+              throw new Error(t("common.wallet_connection_lost"));
+            }
+            throw approvalError;
+          }
+        }
+      } else if (rewardTokenId && !isRewardTokenOperatorApproved) {
         // For ERC6909 tokens (both ZAMM and Cookbook coins), use setOperator
+        setTxStatus("pending");
+
         if (rewardTokenId >= 1000000n) {
           // ZAMM coins: use setOperator on Coins contract
           try {
@@ -576,19 +621,21 @@ export const CreateFarm = () => {
       const lpToken = isCultPool || isENSPool || isCookbookToken || poolId < 1000000n ? CookbookAddress : ZAMMAddress;
       const lpId = poolId;
 
-      // Reward token contract and ID (ETH not supported by zChef)
+      // Reward token contract and ID
       let rewardTokenAddress: `0x${string}`;
-      const rewardId = formData.rewardToken.id;
+      const rewardId = formData.rewardToken.id!;
 
-      if (!rewardId) {
-        // External ERC20 token (rewardId = 0 for ERC20)
-        // Note: ETH is not supported by zChef contract
-        throw new Error("External ERC20 tokens not yet supported");
+      if (rewardId === 0n && formData.rewardToken.source === "ERC20") {
+        // External ERC20 token - use token1 address and rewardId = 0n
+        rewardTokenAddress = formData.rewardToken.token1 as `0x${string}`;
+        if (!rewardTokenAddress) {
+          throw new Error("ERC20 token address not found");
+        }
       } else if (rewardId >= 1000000n) {
         // ZAMM coin - stored in Coins contract
         rewardTokenAddress = CoinsAddress;
       } else {
-        // Cookbook coin - stored in Cookbook contract
+        // Cookbook coin - stored in Cookbook contract (ENS, WLFI, JPYC, etc.)
         rewardTokenAddress = CookbookAddress;
       }
 
