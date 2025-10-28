@@ -242,15 +242,14 @@ export const AddLiquidity = () => {
 
     // Special handling for JPYC pools
     if (isJPYCPool) {
-      const jpycToken = sellToken?.symbol === "JPYC" ? sellToken : buyToken;
-      return jpycToken?.token1 ?? zeroAddress;
+      return JPYC_ADDRESS;
     }
 
     if (!erc20Meta) return zeroAddress;
 
     // For other ERC20 tokens, use token1
     return erc20Meta.token1 ?? zeroAddress;
-  }, [erc20Meta, isWLFIPool, isJPYCPool, sellToken, buyToken]);
+  }, [erc20Meta, isWLFIPool, isJPYCPool]);
 
   // ERC20 allowance hook (generic)
   const {
@@ -551,12 +550,9 @@ export const AddLiquidity = () => {
         // Standard checks for USDT token address
         (sellToken.isCustomPool && sellToken.token1 === USDT_ADDRESS) ||
         (buyToken?.isCustomPool && buyToken?.token1 === USDT_ADDRESS) ||
-        // Additional checks by symbol and ID for redundancy
+        // Additional checks by symbol
         sellToken.symbol === "USDT" ||
-        buyToken?.symbol === "USDT" ||
-        // Check for custom pool with ID=0 (USDT pool)
-        (sellToken.isCustomPool && sellToken.id === 0n) ||
-        (buyToken?.isCustomPool && buyToken?.id === 0n);
+        buyToken?.symbol === "USDT";
 
       // Get the amount of USDT being used
       let usdtAmount = 0n;
@@ -783,8 +779,8 @@ export const AddLiquidity = () => {
         }
       }
 
-      // Generic ERC20 approvals (skip for WLFI - it has its own dedicated section)
-      if (isErc20Pool && !isUsingWlfi) {
+      // Generic ERC20 approvals (skip for WLFI and JPYC - they have their own dedicated sections)
+      if (isErc20Pool && !isUsingWlfi && !isUsingJpyc) {
         const erc20Amount =
           sellToken.source === "ERC20"
             ? parseUnits(sellAmt, erc20Meta?.decimals ?? 18)
