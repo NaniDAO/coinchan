@@ -11,8 +11,8 @@ import { FarmUnstakeDialog } from "@/components/FarmUnstakeDialog";
 import { isUserRejectionError } from "@/lib/errors";
 import { ENS_TOKEN, ENS_POOL_ID, type TokenMeta } from "@/lib/coins";
 import { cn, formatBalance, formatNumber } from "@/lib/utils";
-import { useCombinedApr } from "@/hooks/use-combined-apr";
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
+import { APRDisplay } from "@/components/farm/APRDisplay";
 import type { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { useAllCoins } from "@/hooks/metadata/use-all-coins";
 import { useETHPrice } from "@/hooks/use-eth-price";
@@ -58,16 +58,23 @@ export function EnsFarmTab() {
   const { data: allStreams, isLoading: isLoadingStreams, error: streamsError } = useActiveIncentiveStreams();
 
   // Filter for ENS farms (matching ENS_POOL_ID or the specific farm chef ID)
+  // Also exclude expired streams based on endTime
   const ensFarms = useMemo(() => {
     try {
       if (!allStreams) return [];
+
+      const now = BigInt(Math.floor(Date.now() / 1000)); // Current unix timestamp
 
       return allStreams.filter((stream) => {
         try {
           // Match by pool ID or specific chef ID
           const matchesPool = BigInt(stream.lpId) === ENS_POOL_ID;
           const matchesChefId = BigInt(stream.chefId) === ENS_FARM_CHEF_ID;
-          return matchesPool || matchesChefId;
+
+          // Exclude expired streams (endTime has passed)
+          const isNotExpired = stream.endTime > now;
+
+          return (matchesPool || matchesChefId) && isNotExpired;
         } catch (err) {
           console.error(`Error processing stream ${stream?.chefId}:`, err);
           return false;
@@ -224,13 +231,6 @@ function EnsFarmCard({ farm, lpToken, onHarvest, isHarvesting, ethPrice, userLpB
   const { data: userBalance } = useZChefUserBalance(farm.chefId);
   const { data: pendingRewards, isLoading: isLoadingRewards } = useZChefPendingReward(farm.chefId);
 
-  // Get combined APR data to show base and farm APR separately
-  const { baseApr, farmApr } = useCombinedApr({
-    stream: farm,
-    lpToken: lpToken,
-    enabled: true,
-  });
-
   // Fetch ZAMM reserves if reward token is ZAMM
   const isZAMMReward = farm.rewardCoin?.symbol === "ZAMM";
   const { data: zammReserves } = useReserves({
@@ -332,11 +332,7 @@ function EnsFarmCard({ farm, lpToken, onHarvest, isHarvesting, ethPrice, userLpB
             <p className="text-sm font-mono font-bold text-primary">{formatBalance(formatEther(totalShares), "LP")}</p>
           </div>
           <div className="bg-muted/10 p-3 rounded border border-border">
-            <p className="text-xs text-muted-foreground font-mono">{t("common.apr")}</p>
-            <div className="text-sm font-mono font-bold">
-              <span className="text-primary">Base APR {baseApr.toFixed(1)}%</span>
-              {farmApr > 0 && <span className="text-green-600"> + Farm APR {farmApr.toFixed(1)}%</span>}
-            </div>
+            <APRDisplay stream={farm} lpToken={lpToken} inlineBreakdown={true} />
           </div>
         </div>
 

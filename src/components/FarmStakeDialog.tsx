@@ -11,7 +11,7 @@ import { useZapCalculations, calculateMaxEthForZap } from "@/hooks/use-zap-calcu
 import { useZapDeposit } from "@/hooks/use-zap-deposit";
 import { useZChefActions, useZChefUserBalance, useZChefPool, useSetOperatorApproval } from "@/hooks/use-zchef-contract";
 import { ZChefAddress } from "@/constants/zChef";
-import { ETH_TOKEN, ENS_POOL_ID, WLFI_POOL_ID, type TokenMeta } from "@/lib/coins";
+import { ETH_TOKEN, ENS_POOL_ID, WLFI_POOL_ID, JPYC_POOL_ID, type TokenMeta } from "@/lib/coins";
 import { isUserRejectionError } from "@/lib/errors";
 import { cn, formatBalance } from "@/lib/utils";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -22,6 +22,7 @@ import { APRDisplay } from "./farm/APRDisplay";
 import { ENSLogo } from "./icons/ENSLogo";
 import { LpTokensTab } from "./farm/LpTokensTab";
 import { EthZapTab } from "./farm/EthZapTab";
+import { useErc20Metadata } from "@/hooks/use-erc20-metadata";
 
 interface FarmStakeDialogProps {
   stream: IncentiveStream;
@@ -76,6 +77,23 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
   const { data: poolData } = useZChefPool(stream.chefId);
   const totalStaked = poolData?.[7] ?? stream.totalShares ?? 0n;
 
+  // Check if reward is ERC20 (rewardId === 0n)
+  const isErc20Reward = stream.rewardId === 0n || String(stream.rewardId) === "0";
+
+  // Get ERC20 metadata (symbol, decimals) for ERC20 rewards
+  const { symbol: erc20Symbol, isLoading: isMetadataLoading } = useErc20Metadata({
+    tokenAddress: isErc20Reward ? (stream.rewardToken as `0x${string}`) : undefined,
+  });
+
+  // Hardcoded DAI metadata as fallback (DAI mainnet address)
+  const DAI_ADDRESS = "0x6B175474E89094C44Da98b954EedeAC495271d0F";
+  const isDaiToken = stream.rewardToken?.toLowerCase() === DAI_ADDRESS.toLowerCase();
+
+  // For ERC20 rewards, prioritize the ERC20 metadata over indexer data
+  const rewardSymbol = isErc20Reward
+    ? erc20Symbol || (isDaiToken ? "DAI" : isMetadataLoading ? "Loading..." : "ERC20")
+    : stream.rewardCoin?.symbol || "???";
+
   // LP balance
   const { balance: lpTokenBalance, isLoading: isLpBalanceLoading } = useLpBalance({
     lpToken,
@@ -125,18 +143,47 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
         ? formatEther(ethToken.balance < maxEthForZap ? ethToken.balance : maxEthForZap)
         : "0";
 
-  // Debounced zap calculation
+  // Debounced zap calculation with comprehensive error handling
   const debounceTimerRef = useRef<NodeJS.Timeout>();
   const debouncedZapCalculation = useCallback(
     (ethAmount: string) => {
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
       debounceTimerRef.current = setTimeout(async () => {
         try {
+          // Validate inputs before calculation
+          if (!stream || !lpToken || !lpToken.poolId) {
+            console.warn("Missing required data for zap calculation:", { stream, lpToken });
+            setZapCalculation({
+              estimatedTokens: 0n,
+              estimatedLiquidity: 0n,
+              amount0Min: 0n,
+              amount1Min: 0n,
+              amountOutMin: 0n,
+              halfEthAmount: 0n,
+              poolKey: null,
+              lpSrc: "0x0000000000000000000000000000000000000000" as `0x${string}`,
+              isValid: false,
+              error: "Missing pool configuration",
+            });
+            return;
+          }
+
           const result = await calculateZapAmounts(ethAmount, stream, lpToken, slippageBps);
           setZapCalculation(result);
         } catch (e) {
           console.error("Zap calculation failed:", e);
-          setZapCalculation(null);
+          setZapCalculation({
+            estimatedTokens: 0n,
+            estimatedLiquidity: 0n,
+            amount0Min: 0n,
+            amount1Min: 0n,
+            amountOutMin: 0n,
+            halfEthAmount: 0n,
+            poolKey: null,
+            lpSrc: "0x0000000000000000000000000000000000000000" as `0x${string}`,
+            isValid: false,
+            error: e instanceof Error ? e.message : "Calculation failed",
+          });
         }
       }, 500);
     },
@@ -294,7 +341,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
           <DialogTitle>{t("common.stake")}</DialogTitle>
         </DialogHeader>
 
-        <div key={stakeMode} className="space-y-6">
+        <div className="space-y-6">
           {/* Pool Information */}
           <div className="border border-primary/30 rounded-lg p-4">
             <div className="flex items-center justify-between mb-3">
@@ -307,6 +354,15 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                 ) : BigInt(stream.lpId) === WLFI_POOL_ID ? (
                   <div className="relative">
                     <img src="/wlfi.png" alt="WLFI" className="w-8 h-8 rounded-full border-2 border-primary/40" />
+                    <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-primary/30 to-transparent opacity-50 blur-sm"></div>
+                  </div>
+                ) : BigInt(stream.lpId) === JPYC_POOL_ID ? (
+                  <div className="relative">
+                    <img
+                      src="https://content.wrappr.wtf/ipfs/bafkreigzo74zz6wlriztpznhuqxbh4nrucakv7dg6dxbroxlofzedthpce"
+                      alt="JPYC"
+                      className="w-8 h-8 rounded-full border-2 border-primary/40"
+                    />
                     <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-primary/30 to-transparent opacity-50 blur-sm"></div>
                   </div>
                 ) : lpToken?.imageUrl ? (
@@ -325,13 +381,15 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
                       ? "ENS"
                       : BigInt(stream.lpId) === WLFI_POOL_ID
                         ? "WLFI"
-                        : lpToken?.symbol ||
-                          (() => {
-                            const lpId = stream.lpId?.toString();
-                            return lpId && lpId.length > 12
-                              ? `Pool ${lpId.slice(0, 6)}...${lpId.slice(-6)}`
-                              : `Pool ${lpId}`;
-                          })()}
+                        : BigInt(stream.lpId) === JPYC_POOL_ID
+                          ? "JPYC"
+                          : lpToken?.symbol ||
+                            (() => {
+                              const lpId = stream.lpId?.toString();
+                              return lpId && lpId.length > 12
+                                ? `Pool ${lpId.slice(0, 6)}...${lpId.slice(-6)}`
+                                : `Pool ${lpId}`;
+                            })()}
                   </h3>
                   <p className="text-xs text-muted-foreground font-mono">{t("common.lp_token_pool")}</p>
                 </div>
@@ -350,7 +408,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div className="bg-background/30 border border-primary/20 rounded p-3">
                 <p className="text-muted-foreground font-mono text-xs">{t("common.reward_token")}</p>
-                <p className="font-mono font-bold text-primary">{stream.rewardCoin?.symbol}</p>
+                <p className="font-mono font-bold text-primary">{rewardSymbol}</p>
               </div>
               {lpToken && (
                 <div className="bg-background/30 border border-primary/20 rounded p-3">

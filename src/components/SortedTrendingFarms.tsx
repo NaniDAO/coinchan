@@ -1,9 +1,8 @@
 import { useCombinedApr } from "@/hooks/use-combined-apr";
 import { useIncentiveStream } from "@/hooks/use-incentive-stream";
-import { type IncentiveStream, useActiveIncentiveStreams } from "@/hooks/use-incentive-streams";
 import { usePoolApy } from "@/hooks/use-pool-apy";
 import { useZChefPool } from "@/hooks/use-zchef-contract";
-import { JPYC_POOL_ID, JPYC_TOKEN } from "@/lib/coins";
+import { JPYC_POOL_ID, JPYC_TOKEN, JPYC_FARM_CHEF_ID } from "@/lib/coins";
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { ErrorBoundary } from "./ErrorBoundary";
@@ -20,27 +19,28 @@ interface FarmConfig {
 }
 
 const FARM_CONFIGS: FarmConfig[] = [
-  {
-    id: "wlfi",
-    chefId: "4753336069341144815480881976275515062700439895685858969634251725712618967096",
-    url: "/wlfi",
-    imgUrl: "/wlfi.png",
-    color: "var(--diamond-gold)",
-  },
-  {
-    id: "farm-1",
-    chefId: "2774204975865484998625983578957308881936129866247490838637631956688562044384",
-    url: "/farm",
-  },
-  {
-    id: "ens",
-    chefId: "12765013073856762050559588919702526147788652705749016564979941683606005588033",
-    url: "/ens",
-    imgUrl: "/ens.svg",
-    color: "var(--diamond-blue)",
-  },
+   {
+     id: "wlfi",
+     chefId: "4753336069341144815480881976275515062700439895685858969634251725712618967096",
+     url: "/wlfi",
+     imgUrl: "/wlfi.png",
+     color: "var(--diamond-gold)",
+   },
+   {
+     id: "farm-1",
+     chefId: "2774204975865484998625983578957308881936129866247490838637631956688562044384",
+     url: "/stake",
+   },
+   {
+     id: "ens",
+     chefId: "12765013073856762050559588919702526147788652705749016564979941683606005588033",
+     url: "/ens",
+     imgUrl: "/ens.svg",
+     color: "var(--diamond-blue)",
+   },
   {
     id: "jpyc",
+    chefId: JPYC_FARM_CHEF_ID.toString(),
     url: "/jpyc",
     imgUrl: "https://content.wrappr.wtf/ipfs/bafkreigzo74zz6wlriztpznhuqxbh4nrucakv7dg6dxbroxlofzedthpce",
     color: "#4A90E2",
@@ -64,18 +64,17 @@ const useFarmApr = (config: FarmConfig) => {
   });
 
   // JPYC-specific data
-  const { data: jpycPoolApr } = usePoolApy(JPYC_POOL_ID.toString());
-  const { data: allStreams } = useActiveIncentiveStreams();
-
-  const jpycFarm = useMemo(() => {
-    if (!config.isJpyc || !allStreams) return null;
-    return allStreams.find((stream) => BigInt(stream.lpId) === JPYC_POOL_ID);
-  }, [config.isJpyc, allStreams]);
+  const { data: jpycPoolApr } = usePoolApy(JPYC_POOL_ID.toString(), "COOKBOOK");
+  const { data: jpycStreamData } = useIncentiveStream(config.isJpyc && config.chefId ? config.chefId : "");
+  const { data: jpycPoolData } = useZChefPool(config.isJpyc && config.chefId ? BigInt(config.chefId) : 0n);
 
   const jpycAprData = useCombinedApr({
-    stream: (jpycFarm || {}) as IncentiveStream,
+    stream:
+      jpycStreamData?.stream && jpycPoolData?.[7]
+        ? { ...jpycStreamData?.stream, totalShares: jpycPoolData?.[7] }
+        : jpycStreamData?.stream,
     lpToken: JPYC_TOKEN,
-    enabled: config.isJpyc && !!jpycFarm,
+    enabled: config.isJpyc && !!config.chefId,
   });
 
   // Calculate total APR
@@ -92,7 +91,7 @@ const useFarmApr = (config: FarmConfig) => {
   return {
     totalApr,
     ticker,
-    isLoading: config.isJpyc ? !jpycPoolApr : !streamData,
+    isLoading: config.isJpyc ? !jpycPoolApr || !jpycStreamData : !streamData,
   };
 };
 

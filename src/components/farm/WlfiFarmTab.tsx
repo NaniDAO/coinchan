@@ -33,13 +33,21 @@ export const WlfiFarmTab = () => {
   }, [wlfiReserves]);
 
   // Filter for WLFI farms (matching WLFI_POOL_ID)
+  // Also exclude expired streams based on endTime
   const wlfiFarms = useMemo(() => {
     if (!allStreams) return [];
+
+    const now = BigInt(Math.floor(Date.now() / 1000)); // Current unix timestamp
 
     return allStreams.filter((stream) => {
       try {
         // Match by pool ID
-        return BigInt(stream.lpId) === WLFI_POOL_ID;
+        const matchesPool = BigInt(stream.lpId) === WLFI_POOL_ID;
+
+        // Exclude expired streams (endTime has passed)
+        const isNotExpired = stream.endTime > now;
+
+        return matchesPool && isNotExpired;
       } catch (error) {
         console.error("Error filtering WLFI farms:", error);
         return false;

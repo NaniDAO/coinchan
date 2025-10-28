@@ -10,9 +10,10 @@ interface APRDisplayProps {
   stream: IncentiveStream;
   lpToken: TokenMeta;
   shortView?: boolean;
+  inlineBreakdown?: boolean; // Shows "Base X% + Farm Y%" in compact format
 }
 
-export function APRDisplay({ stream, lpToken, shortView = true }: APRDisplayProps) {
+export function APRDisplay({ stream, lpToken, shortView = true, inlineBreakdown = false }: APRDisplayProps) {
   const { t } = useTranslation();
   const [showFarmApr, setShowFarmApr] = useState(false);
 
@@ -20,9 +21,9 @@ export function APRDisplay({ stream, lpToken, shortView = true }: APRDisplayProp
   const { data: poolData } = useZChefPool(stream.chefId);
   const totalStaked = poolData?.[7] ?? stream.totalShares ?? 0n;
 
-  // Calculate combined APR (base + farm incentives)
+  // Calculate combined APR (base + farm incentives) - update stream with real-time totalShares
   const combinedAprData = useCombinedApr({
-    stream,
+    stream: poolData?.[7] ? { ...stream, totalShares: poolData[7] } : stream,
     lpToken,
     enabled: true, // Only fetch when dialog is open
   });
@@ -36,16 +37,38 @@ export function APRDisplay({ stream, lpToken, shortView = true }: APRDisplayProp
 
   if (combinedAprData.isLoading === true) {
     return (
-      <div className="border border-muted p-3">
-        <div className="animate-pulse">
-          <div className="h-3 bg-muted mb-2"></div>
-          <div className="h-6 bg-muted mb-2"></div>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="h-12 bg-muted"></div>
-            <div className="h-12 bg-muted"></div>
+      <div className={inlineBreakdown ? "animate-pulse" : "border border-muted p-3"}>
+        {inlineBreakdown ? (
+          <>
+            <p className="text-xs text-muted-foreground font-mono">{t("common.apr")}</p>
+            <div className="h-5 bg-muted mt-1 w-32"></div>
+          </>
+        ) : (
+          <div className="animate-pulse">
+            <div className="h-3 bg-muted mb-2"></div>
+            <div className="h-6 bg-muted mb-2"></div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="h-12 bg-muted"></div>
+              <div className="h-12 bg-muted"></div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
+    );
+  }
+
+  // Inline breakdown mode: shows "Base X% + Farm Y%" in compact format
+  if (inlineBreakdown) {
+    return (
+      <>
+        <p className="text-xs text-muted-foreground font-mono">{t("common.apr")}</p>
+        <div className="text-sm font-mono font-bold">
+          <span className="text-primary">Base {combinedAprData.baseApr.toFixed(1)}%</span>
+          {combinedAprData.farmApr > 0 && (
+            <span className="text-green-600"> + Farm {combinedAprData.farmApr.toFixed(1)}%</span>
+          )}
+        </div>
+      </>
     );
   }
 

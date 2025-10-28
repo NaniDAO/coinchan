@@ -1,14 +1,17 @@
 import { usePoolApy } from "@/hooks/use-pool-apy";
 import { cn } from "@/lib/utils";
+import { CoinSource } from "@/lib/coins";
 
 export const PoolApyDisplay = ({
   poolId,
+  source,
   className,
 }: {
   poolId?: string;
+  source?: CoinSource;
   className?: string;
 }) => {
-  const { data } = usePoolApy(poolId);
+  const { data } = usePoolApy(poolId, source);
 
   if (!poolId) return null;
   if (!data) return null;

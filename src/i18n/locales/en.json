@@ -235,6 +235,8 @@
     "cult_farms": "CULT FARMS",
     "ens_farms": "ENS FARMS",
     "no_ens_farms_active": "No active ENS farms at the moment",
+    "jpyc_farms": "JPYC FARMS",
+    "no_jpyc_farms_active": "No active JPYC farms at the moment",
     "no_active_farms_label": "NO ACTIVE FARMS",
     "error_loading_farms_label": "ERROR LOADING FARMS",
     "connect_wallet_label": "CONNECT WALLET",
@@ -1008,6 +1010,7 @@
     "enter_valid_eth_amount": "Please enter a valid ETH amount",
     "insufficient_eth_balance": "Insufficient ETH balance",
     "insufficient_ens_balance": "Insufficient ENS balance",
+    "insufficient_liquidity": "Pool liquidity too low for this amount",
     "connect_to_mainnet": "Please connect to Ethereum mainnet to perform this action",
     "unable_to_fetch_ens_price": "Unable to fetch ENS price data"
   },

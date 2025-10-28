@@ -1,4 +1,5 @@
 import type { CoinSource, TokenMeta } from "@/lib/coins";
+import { JPYC_FARM_CHEF_ID } from "@/lib/coins";
 import { useMemo } from "react";
 import type { IncentiveStream } from "./use-incentive-streams";
 import { useZChefRewardPerSharePerYear } from "./use-zchef-contract";
@@ -9,8 +10,10 @@ import { mainnet } from "viem/chains";
 import { SWAP_FEE } from "@/lib/swap";
 import { useGetTVL } from "./use-get-tvl";
 import { useCoinPrice } from "./use-coin-price";
+import { useErc20Price } from "./use-erc20-price";
 import { parseEther, formatEther } from "viem";
 import { useReserves } from "./use-reserves";
+import { useErc20Metadata } from "./use-erc20-metadata";
 
 // Hardcoded ZAMM pool ID for price calculations (ETH/ZAMM pool on original ZAMM AMM)
 const ZAMM_POOL_ID = 22979666169544372205220120853398704213623237650449182409187385558845249460832n;
@@ -42,7 +45,7 @@ const EIGHTEEN_DECIMALS = 1_000_000_000_000_000_000n; // 1e18 (ZAMM & ETH)
  * for incentivized liquidity pools
  */
 export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedAprParams): CombinedAprData {
-  // Fetch base APR from trading fees
+  // Fetch base APR from trading fees - pass the pool's source to query the correct AMM
   const { data: baseAprData, isLoading: isBaseAprLoading } = usePoolApy(lpToken?.poolId?.toString(), lpToken?.source);
 
   const { data: farmInfo, isLoading: isFarmInfoLoading } = useReadContract({
@@ -58,8 +61,15 @@ export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedA
     source: lpToken?.source as CoinSource,
   });
 
-  // Check if reward token is veZAMM (ID 87) - treat as 1:1 with ZAMM
-  const isVeZAMM = farmInfo?.[3] === 87n || stream?.rewardId === 87n;
+  // Check reward token type
+  const rewardId = farmInfo?.[3] || stream?.rewardId;
+  const rewardTokenAddress = farmInfo?.[2] || stream?.rewardToken;
+  const isVeZAMM = rewardId === 87n;
+  // More robust ERC20 detection: check for 0n, "0" string, or JPYC farm specifically
+  const isErc20Reward =
+    rewardId === 0n ||
+    String(rewardId) === "0" ||
+    (stream?.chefId && BigInt(stream.chefId) === JPYC_FARM_CHEF_ID);
 
   // Get ZAMM reserves if reward token is veZAMM (for 1:1 pricing)
   const { data: zammReserves } = useReserves({
@@ -77,19 +87,29 @@ export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedA
     return Number(formatEther(reserve0)) / Number(formatEther(reserve1));
   }, [isVeZAMM, zammReserves]);
 
-  // Get normal reward token price for non-veZAMM tokens
+  // Get ERC20 token price from Chainlink (for ERC20 tokens like DAI, USDC, etc.)
+  const { data: erc20PriceEth } = useErc20Price({
+    tokenAddress: isErc20Reward ? (rewardTokenAddress as `0x${string}`) : undefined,
+  });
+
+  // Get ERC20 metadata (symbol) for ERC20 rewards
+  const { symbol: erc20Symbol } = useErc20Metadata({
+    tokenAddress: isErc20Reward ? (rewardTokenAddress as `0x${string}`) : undefined,
+  });
+
+  // Get normal reward token price for non-veZAMM, non-ERC20 tokens
   const { data: normalRewardPriceEth } = useCoinPrice({
     token:
-      farmInfo?.[3] && farmInfo?.[2]
+      rewardId && rewardTokenAddress && !isErc20Reward
         ? {
-            id: farmInfo?.[3],
-            address: farmInfo?.[2],
+            id: rewardId,
+            address: rewardTokenAddress,
           }
         : undefined,
   });
 
-  // Use ZAMM price for veZAMM, otherwise use normal price
-  const rewardPriceEth = isVeZAMM ? zammPriceEth : normalRewardPriceEth;
+  // Priority: Chainlink for ERC20 > ZAMM price for veZAMM > normal price
+  const rewardPriceEth = isErc20Reward ? erc20PriceEth : isVeZAMM ? zammPriceEth : normalRewardPriceEth;
 
   // Fetch farm incentive APR
   const { data: rewardPerSharePerYearOnchain, isLoading: isFarmAprLoading } = useZChefRewardPerSharePerYear(
@@ -133,6 +153,18 @@ export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedA
     return 0n;
   }, [rewardPerSharePerYearOnchain, farmInfo, stream?.status, stream?.endTime, stream?.totalShares]);
 
+  // Get correct reward symbol based on reward type
+  const rewardSymbol = useMemo(() => {
+    if (isVeZAMM) return "veZAMM (1:1 ZAMM)";
+    // For ERC20 rewards, prefer ERC20 symbol, fallback to "ERC20" if still loading
+    if (isErc20Reward) {
+      if (erc20Symbol) return erc20Symbol;
+      // Don't fall back to wrong symbol from indexer - show generic label instead
+      return "ERC20";
+    }
+    return stream?.rewardCoin?.symbol || "???";
+  }, [isVeZAMM, isErc20Reward, erc20Symbol, stream?.rewardCoin?.symbol]);
+
   // Calculate combined APR
   const combinedApr = useMemo(() => {
     const isLoading = isBaseAprLoading || isFarmAprLoading || isFarmInfoLoading;
@@ -144,18 +176,28 @@ export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedA
       totalApr: 0,
       breakdown: {
         tradingFees: Number(lpToken?.swapFee || 100n),
-        rewardSymbol: isVeZAMM ? "veZAMM (1:1 ZAMM)" : stream?.rewardCoin?.symbol || "???",
+        rewardSymbol,
       },
       isLoading,
     };
 
     try {
-      if (isLoading || !poolTvlInEth || !rewardPriceEth || poolTvlInEth === 0 || rewardPriceEth === 0) {
-        return defaultResult;
-      }
-
-      // Calculate base APR from trading fees
+      // Calculate base APR from trading fees - this should always work if usePoolApy returns data
       const baseApr = Number(baseAprData?.slice(0, -1)) || 0;
+
+      // If we can't calculate farm APR due to missing data, just return base APR
+      if (isLoading || !poolTvlInEth || !rewardPriceEth || poolTvlInEth === 0 || rewardPriceEth === 0) {
+        return {
+          baseApr,
+          farmApr: 0,
+          totalApr: baseApr,
+          breakdown: {
+            tradingFees: Number(lpToken?.swapFee || 100n),
+            rewardSymbol,
+          },
+          isLoading,
+        };
+      }
       const totalShares =
         stream?.totalShares && stream?.totalShares > 0n
           ? stream?.totalShares
@@ -182,7 +224,7 @@ export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedA
           totalApr: baseApr,
           breakdown: {
             tradingFees: Number(lpToken?.swapFee || SWAP_FEE),
-            rewardSymbol: isVeZAMM ? "veZAMM (1:1 ZAMM)" : stream?.rewardCoin?.symbol || "???",
+            rewardSymbol,
           },
           isLoading: false,
         };
@@ -211,7 +253,7 @@ export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedA
         totalApr,
         breakdown: {
           tradingFees: Number(lpToken?.swapFee || SWAP_FEE),
-          rewardSymbol: isVeZAMM ? "veZAMM (1:1 ZAMM)" : stream?.rewardCoin?.symbol || "???",
+          rewardSymbol,
         },
         isLoading: false,
       };
@@ -232,6 +274,7 @@ export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedA
     rewardPriceEth,
     isVeZAMM,
     farmInfo,
+    rewardSymbol,
   ]);
 
   return combinedApr;

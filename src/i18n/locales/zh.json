@@ -1149,6 +1149,7 @@
     "enter_valid_eth_amount": "请输入有效的ETH金额",
     "insufficient_eth_balance": "ETH余额不足",
     "insufficient_ens_balance": "ENS余额不足",
+    "insufficient_liquidity": "此金额的池流动性过低",
     "connect_to_mainnet": "请连接到以太坊主网以执行此操作",
     "unable_to_fetch_ens_price": "无法获取ENS价格数据"
   },

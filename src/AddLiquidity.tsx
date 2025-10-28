@@ -218,10 +218,7 @@ export const AddLiquidity = () => {
   );
 
   // Check if we're in JPYC context
-  const isJPYCPool = useMemo(
-    () => sellToken?.symbol === "JPYC" || buyToken?.symbol === "JPYC",
-    [sellToken, buyToken],
-  );
+  const isJPYCPool = useMemo(() => sellToken?.symbol === "JPYC" || buyToken?.symbol === "JPYC", [sellToken, buyToken]);
 
   // ERC20 detection - includes WLFI and JPYC pools which are ERC20 tokens on Cookbook
   const isErc20Pool = useMemo(
@@ -262,7 +259,7 @@ export const AddLiquidity = () => {
     approveMax: approveGenericErc20Max,
   } = useErc20Allowance({
     token: erc20TokenForApproval,
-    spender: isErc20Pool && (isCookbook && erc20Meta || isJPYCPool) ? CookbookAddress : ZAMMAddress, // Use Cookbook for Cookbook pools and JPYC, ZAMM otherwise
+    spender: isErc20Pool && ((isCookbook && erc20Meta) || isJPYCPool) ? CookbookAddress : ZAMMAddress, // Use Cookbook for Cookbook pools and JPYC, ZAMM otherwise
   });
 
   // Operator status (ERC6909 only)
@@ -416,14 +413,20 @@ export const AddLiquidity = () => {
   // All special tokens (CULT, ENS, WLFI, JPYC) use Cookbook
   const usesCookbook = isUsingCult || isUsingEns || isUsingWlfi || isUsingJpyc || isCookbook;
 
-  const targetAMMContract = isErc20Pool && !isUsingWlfi && !isUsingJpyc ? ZAMMAddress : usesCookbook ? CookbookAddress : ZAMMAddress;
+  const targetAMMContract =
+    isErc20Pool && !isUsingWlfi && !isUsingJpyc ? ZAMMAddress : usesCookbook ? CookbookAddress : ZAMMAddress;
 
   const targetAMMAbi = isErc20Pool && !isUsingWlfi && !isUsingJpyc ? ZAMMAbi : usesCookbook ? CookbookAbi : ZAMMAbi;
 
   const helperAddress =
-    isErc20Pool && !isUsingWlfi && !isUsingJpyc ? ZAMMHelperAddress : usesCookbook ? ZAMMHelperV1Address : ZAMMHelperAddress;
+    isErc20Pool && !isUsingWlfi && !isUsingJpyc
+      ? ZAMMHelperAddress
+      : usesCookbook
+        ? ZAMMHelperV1Address
+        : ZAMMHelperAddress;
 
-  const helperAbi = isErc20Pool && !isUsingWlfi && !isUsingJpyc ? ZAMMHelperAbi : usesCookbook ? ZAMMHelperV1Abi : ZAMMHelperAbi;
+  const helperAbi =
+    isErc20Pool && !isUsingWlfi && !isUsingJpyc ? ZAMMHelperAbi : usesCookbook ? ZAMMHelperV1Abi : ZAMMHelperAbi;
 
   /* helpers to sync amounts */
   const syncFromSell = useCallback(

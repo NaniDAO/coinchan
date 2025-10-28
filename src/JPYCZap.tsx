@@ -22,11 +22,19 @@ import { ConnectMenu } from "./ConnectMenu";
  * (Uniswap V2/V3, Sushiswap, Curve, or ZAMM) using zQuoter, then executes
  * the swap and LP addition in a single transaction via zRouter.
  */
+// Custom slippage options for JPYC zap (higher due to low liquidity)
+const JPYC_ZAP_SLIPPAGE_OPTIONS = [
+  { label: "2%", value: 200n },
+  { label: "3%", value: 300n },
+  { label: "5%", value: 500n },
+  { label: "10%", value: 1000n },
+];
+
 export const JPYCZap = () => {
   const { t } = useTranslation();
   const { address, isConnected } = useAccount();
   const [ethAmount, setEthAmount] = useState("");
-  const [slippageBps, setSlippageBps] = useState<bigint>(50n); // 0.5% default
+  const [slippageBps, setSlippageBps] = useState<bigint>(500n); // 5% default for low liquidity
   const [swapBps] = useState<bigint>(5000n); // 50/50 split
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [txError, setTxError] = useState<string | null>(null);
@@ -129,6 +137,7 @@ export const JPYCZap = () => {
         <SlippageSettings
           slippageBps={slippageBps}
           setSlippageBps={setSlippageBps}
+          slippageOptions={JPYC_ZAP_SLIPPAGE_OPTIONS}
         />
       </div>
 
@@ -140,16 +149,12 @@ export const JPYCZap = () => {
           <div className="space-y-1.5 text-xs">
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">{t("jpyc.eth_for_swap")}:</span>
-              <span className="font-mono">
-                {formatNumber(Number(formatEther(zapPreview.ethSwap)), 6)} ETH
-              </span>
+              <span className="font-mono">{formatNumber(Number(formatEther(zapPreview.ethSwap)), 6)} ETH</span>
             </div>
 
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">{t("jpyc.eth_for_lp")}:</span>
-              <span className="font-mono">
-                {formatNumber(Number(formatEther(zapPreview.ethLP)), 6)} ETH
-              </span>
+              <span className="font-mono">{formatNumber(Number(formatEther(zapPreview.ethLP)), 6)} ETH</span>
             </div>
 
             <div className="flex justify-between items-center">
@@ -161,15 +166,11 @@ export const JPYCZap = () => {
 
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">{t("jpyc.jpyc_for_lp")}:</span>
-              <span className="font-mono">
-                {formatNumber(Number(formatUnits(zapPreview.jpycForLP, 18)), 2)} JPYC
-              </span>
+              <span className="font-mono">{formatNumber(Number(formatUnits(zapPreview.jpycForLP, 18)), 2)} JPYC</span>
             </div>
           </div>
 
-          <div className="pt-2 mt-2 border-t border-border text-xs text-muted-foreground">
-            {t("jpyc.zap_note")}
-          </div>
+          <div className="pt-2 mt-2 border-t border-border text-xs text-muted-foreground">{t("jpyc.zap_note")}</div>
         </div>
       )}
 
@@ -211,12 +212,7 @@ export const JPYCZap = () => {
       {!isConnected ? (
         <ConnectMenu />
       ) : (
-        <Button
-          onClick={executeZap}
-          disabled={isButtonDisabled}
-          className="w-full"
-          size="lg"
-        >
+        <Button onClick={executeZap} disabled={isButtonDisabled} className="w-full" size="lg">
           {isPending || isConfirming ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -242,6 +238,11 @@ export const JPYCZap = () => {
           <li>{t("jpyc.zap_step_3")}</li>
           <li>{t("jpyc.zap_step_4")}</li>
         </ul>
+        <div className="mt-2 pt-2 border-t border-border/30">
+          <p className="text-xs text-amber-600 dark:text-amber-400">
+            ⚠️ Default slippage is 5% due to low liquidity in JPYC pools. Increase to 10% if transactions fail.
+          </p>
+        </div>
       </div>
     </div>
   );

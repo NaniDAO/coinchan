@@ -235,6 +235,9 @@ export const JPYC_POOL_ID = computeCustomPoolId(
   JPYC_POOL_KEY.feeOrHook,
 );
 
+// JPYC farm chef ID for DAI rewards
+export const JPYC_FARM_CHEF_ID = 90013580741451744416824693533159903514795472174037311667902418546056945695956n;
+
 // veZAMM token - Special ERC6909 cookbook coin for farm rewards
 export const VEZAMM_TOKEN: TokenMeta = {
   id: 87n, // ERC6909 cookbook coin ID 87

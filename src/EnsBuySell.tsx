@@ -83,7 +83,7 @@ export const EnsBuySell = () => {
   }, [allStreams]);
 
   // Get base APR for the pool
-  const { data: poolApr } = usePoolApy(ENS_POOL_ID.toString());
+  const { data: poolApr } = usePoolApy(ENS_POOL_ID.toString(), "COOKBOOK");
 
   // Get combined APR - always call the hook but disable it when no farm exists
   const { farmApr = 0 } = useCombinedApr({
@@ -305,10 +305,9 @@ export const EnsBuySell = () => {
         return;
       }
 
-      // Minimum liquidity check to prevent calculation errors
-      const minEthLiquidity = parseEther("0.1");
-      const minEnsLiquidity = parseUnits("100", 18);
-      if (poolReserves.reserve0 < minEthLiquidity || poolReserves.reserve1 < minEnsLiquidity) {
+      // Only show insufficient liquidity if pool truly has no reserves
+      // If there's any liquidity at all, allow swap calculations
+      if (poolReserves.reserve0 === 0n || poolReserves.reserve1 === 0n) {
         setErrorMessage(t("errors.insufficient_liquidity"));
         if (field === "sell") setBuyAmount("");
         else setSellAmount("");
@@ -756,7 +755,47 @@ export const EnsBuySell = () => {
                 )}
 
                 {errorMessage && <p className="text-destructive text-sm">{errorMessage}</p>}
-                {isSuccess && <p className="text-green-600 text-sm">{t("ens.transaction_confirmed")}</p>}
+
+                {/* Transaction status with etherscan link */}
+                {txHash && (
+                  <div className="border border-primary/30 rounded-lg p-4 bg-primary/5">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-center gap-2">
+                        {!isSuccess && (
+                          <>
+                            <div className="animate-pulse h-4 w-4 bg-yellow-500 rounded-full"></div>
+                            <span className="font-mono font-bold text-yellow-500 text-sm">[{t("common.status_confirming")}]</span>
+                          </>
+                        )}
+                        {isSuccess && (
+                          <>
+                            <div className="h-4 w-4 bg-green-500 rounded-full"></div>
+                            <span className="font-mono font-bold text-green-500 text-sm">[{t("common.status_success")}]</span>
+                          </>
+                        )}
+                      </div>
+                      <div className="text-center">
+                        <a
+                          href={`https://etherscan.io/tx/${txHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-3 py-1.5 bg-background/50 border border-primary/20 rounded font-mono text-xs hover:bg-primary/10 transition-colors duration-200"
+                        >
+                          <span className="text-muted-foreground">{t("common.tx_label")}:</span>
+                          <span className="text-primary font-bold">
+                            {txHash.slice(0, 6)}...{txHash.slice(-4)}
+                          </span>
+                          <span className="text-muted-foreground">{t("common.external_link")}</span>
+                        </a>
+                      </div>
+                      {isSuccess && (
+                        <div className="text-center">
+                          <p className="text-sm text-green-600 font-mono">{t("ens.transaction_confirmed")}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Slippage Settings */}
                 <div className="mt-4">

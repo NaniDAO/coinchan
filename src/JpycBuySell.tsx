@@ -10,7 +10,15 @@ import { SlippageSettings } from "./components/SlippageSettings";
 // Lazy load heavy components
 const PoolPriceChart = lazy(() => import("./components/PoolPriceChart"));
 import { ChevronDownIcon } from "lucide-react";
-import { type TokenMeta, ETH_TOKEN, JPYC_TOKEN, JPYC_POOL_ID, JPYC_ADDRESS, JPYC_POOL_KEY } from "./lib/coins";
+import {
+  type TokenMeta,
+  ETH_TOKEN,
+  JPYC_TOKEN,
+  JPYC_POOL_ID,
+  JPYC_ADDRESS,
+  JPYC_POOL_KEY,
+  JPYC_FARM_CHEF_ID,
+} from "./lib/coins";
 import { CookbookAbi, CookbookAddress } from "./constants/Cookbook";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { AddLiquidity } from "./AddLiquidity";
@@ -30,9 +38,8 @@ const JpycFarmTab = lazy(() =>
   import("./components/farm/JpycFarmTab").then((module) => ({ default: module.JpycFarmTab })),
 );
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import { useActiveIncentiveStreams } from "./hooks/use-incentive-streams";
+import { useIncentiveStream } from "./hooks/use-incentive-stream";
 import { useCombinedApr } from "./hooks/use-combined-apr";
-import { usePoolApy } from "./hooks/use-pool-apy";
 
 export const JpycBuySell = () => {
   const { t } = useTranslation();
@@ -72,25 +79,18 @@ export const JpycBuySell = () => {
     spender: CookbookAddress,
   });
 
-  // Get active incentive streams for JPYC
-  const { data: allStreams } = useActiveIncentiveStreams();
+  // Get JPYC farm data using the specific chef ID
+  const { data: jpycFarmData } = useIncentiveStream(JPYC_FARM_CHEF_ID.toString());
 
-  // Find JPYC farm
-  const jpycFarm = useMemo(() => {
-    if (!allStreams) return null;
-    // Look for farms incentivizing the JPYC pool
-    return allStreams.find((stream) => BigInt(stream.lpId) === JPYC_POOL_ID);
-  }, [allStreams]);
-
-  // Get base APR for the pool
-  const { data: poolApr } = usePoolApy(JPYC_POOL_ID.toString());
-
-  // Get combined APR - always call the hook but disable it when no farm exists
-  const { farmApr = 0 } = useCombinedApr({
-    stream: jpycFarm || ({} as any),
+  // Get combined APR - useCombinedApr internally calls usePoolApy and returns both baseApr and farmApr
+  const combinedAprData = useCombinedApr({
+    stream: jpycFarmData?.stream || ({} as any),
     lpToken: JPYC_TOKEN,
-    enabled: !!jpycFarm,
+    enabled: !!jpycFarmData?.stream,
   });
+
+  const poolApr = combinedAprData.baseApr.toFixed(6) + "%";
+  const farmApr = combinedAprData.farmApr;
 
   // Create token metadata objects with current data - optimized to reduce object creation
   const ethToken = useMemo<TokenMeta>(() => {
@@ -752,7 +752,47 @@ export const JpycBuySell = () => {
                 )}
 
                 {errorMessage && <p className="text-destructive text-sm">{errorMessage}</p>}
-                {isSuccess && <p className="text-green-600 text-sm">{t("jpyc.transaction_confirmed")}</p>}
+
+                {/* Transaction status with etherscan link */}
+                {txHash && (
+                  <div className="border border-primary/30 rounded-lg p-4 bg-primary/5">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-center gap-2">
+                        {!isSuccess && (
+                          <>
+                            <div className="animate-pulse h-4 w-4 bg-yellow-500 rounded-full"></div>
+                            <span className="font-mono font-bold text-yellow-500 text-sm">[{t("common.status_confirming")}]</span>
+                          </>
+                        )}
+                        {isSuccess && (
+                          <>
+                            <div className="h-4 w-4 bg-green-500 rounded-full"></div>
+                            <span className="font-mono font-bold text-green-500 text-sm">[{t("common.status_success")}]</span>
+                          </>
+                        )}
+                      </div>
+                      <div className="text-center">
+                        <a
+                          href={`https://etherscan.io/tx/${txHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-3 py-1.5 bg-background/50 border border-primary/20 rounded font-mono text-xs hover:bg-primary/10 transition-colors duration-200"
+                        >
+                          <span className="text-muted-foreground">{t("common.tx_label")}:</span>
+                          <span className="text-primary font-bold">
+                            {txHash.slice(0, 6)}...{txHash.slice(-4)}
+                          </span>
+                          <span className="text-muted-foreground">{t("common.external_link")}</span>
+                        </a>
+                      </div>
+                      {isSuccess && (
+                        <div className="text-center">
+                          <p className="text-sm text-green-600 font-mono">{t("jpyc.transaction_confirmed")}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Slippage Settings */}
                 <div className="mt-4">

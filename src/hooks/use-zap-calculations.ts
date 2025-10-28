@@ -3,7 +3,7 @@ import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
 import { CheckTheChainAbi, CheckTheChainAddress } from "@/constants/CheckTheChain";
 import type { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { isCookbookCoin } from "@/lib/coin-utils";
-import { type TokenMeta, CULT_POOL_KEY, ENS_POOL_KEY, WLFI_POOL_KEY, WLFI_POOL_ID } from "@/lib/coins";
+import { type TokenMeta, CULT_POOL_KEY, ENS_POOL_KEY, WLFI_POOL_KEY, WLFI_POOL_ID, JPYC_POOL_KEY, JPYC_POOL_ID } from "@/lib/coins";
 import { SINGLE_ETH_SLIPPAGE_BPS, SWAP_FEE, computePoolKey, getAmountOut, withSlippage } from "@/lib/swap";
 import { useCallback } from "react";
 import { formatEther, formatUnits, parseEther } from "viem";
@@ -88,7 +88,7 @@ export function useZapCalculations() {
       const ethAmountBigInt = parseEther(ethAmount);
       const halfEthAmount = ethAmountBigInt / 2n;
 
-      // Determine if this is a Cookbook coin, CULT, ENS, or WLFI
+      // Determine if this is a Cookbook coin, CULT, ENS, WLFI, or JPYC
       // For ZAMM pools, lpToken.id is the pool ID, not the coin ID
       // We need to use the coin ID from the poolKey
       const tokenId = lpToken.poolKey?.id1 || lpToken.id || 0n;
@@ -96,23 +96,24 @@ export function useZapCalculations() {
       const isCULT = lpToken.symbol === "CULT";
       const isENS = lpToken.symbol === "ENS";
       const isWLFI = lpToken.symbol === "WLFI" || BigInt(stream.lpId) === WLFI_POOL_ID;
+      const isJPYC = lpToken.symbol === "JPYC" || BigInt(stream.lpId) === JPYC_POOL_ID;
 
-      // For ENS and WLFI, we should use the stream's lpId directly
-      const poolIdToUse = isENS || isWLFI ? BigInt(stream.lpId) : lpToken?.poolId;
+      // For ENS, WLFI, and JPYC, we should use the stream's lpId directly
+      const poolIdToUse = isENS || isWLFI || isJPYC ? BigInt(stream.lpId) : lpToken?.poolId;
 
       if (!poolIdToUse) {
         throw new Error("LP token pool ID not defined");
       }
 
-      // Validate that the stream's LP pool matches our token (skip for ENS and WLFI since we use stream.lpId)
-      if (!isENS && !isWLFI && lpToken.poolId && BigInt(stream.lpId) !== BigInt(lpToken.poolId)) {
+      // Validate that the stream's LP pool matches our token (skip for ENS, WLFI, and JPYC since we use stream.lpId)
+      if (!isENS && !isWLFI && !isJPYC && lpToken.poolId && BigInt(stream.lpId) !== BigInt(lpToken.poolId)) {
         throw new Error("Stream LP ID does not match token pool ID");
       }
 
       // Determine LP source and target addresses
-      // CULT, ENS, and WLFI use Cookbook for liquidity operations
-      const lpSrc = isCookbook || isCULT || isENS || isWLFI ? CookbookAddress : ZAMMAddress;
-      const lpAbi = isCookbook || isCULT || isENS || isWLFI ? CookbookAbi : ZAMMAbi;
+      // CULT, ENS, WLFI, and JPYC use Cookbook for liquidity operations
+      const lpSrc = isCookbook || isCULT || isENS || isWLFI || isJPYC ? CookbookAddress : ZAMMAddress;
+      const lpAbi = isCookbook || isCULT || isENS || isWLFI || isJPYC ? CookbookAbi : ZAMMAbi;
 
       // Get swap fee for the token, preferring stream data if available
       const swapFee = lpToken.swapFee ?? SWAP_FEE;
@@ -137,6 +138,10 @@ export function useZapCalculations() {
         // Use the predefined WLFI pool key
         poolKey = WLFI_POOL_KEY;
         poolId = WLFI_POOL_ID; // Always use the correct WLFI pool ID
+      } else if (isJPYC) {
+        // Use the predefined JPYC pool key (ERC20 token, not Cookbook coin)
+        poolKey = JPYC_POOL_KEY;
+        poolId = JPYC_POOL_ID; // Always use the correct JPYC pool ID
       } else if (isCookbook) {
         // For cookbook coins, use the pool ID from lpToken which is already correct
         // Don't compute it from tokenId as that's the coin ID, not pool parameters

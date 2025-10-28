@@ -90,7 +90,8 @@ export const EthZapTab: React.FC<EthZapTabProps> = ({
     if (stream && stream.rewardRate && newTotalStaked > 0n) {
       const secondsPerDay = 86400n;
       const ACC_PRECISION = 1000000000000n; // 1e12
-      const userDailyRewards = (lpTokensOut * stream.rewardRate * secondsPerDay) / newTotalStaked / ACC_PRECISION;
+      const rewardRateBigInt = BigInt(stream.rewardRate);
+      const userDailyRewards = (lpTokensOut * rewardRateBigInt * secondsPerDay) / newTotalStaked / ACC_PRECISION;
       dailyRewards = formatUnits(userDailyRewards, stream.rewardCoin?.decimals || 18);
     }
 

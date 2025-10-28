@@ -286,7 +286,11 @@ export const RemoveLiquidity = () => {
 
       // Determine which ZAMM address to use for pool info lookup
       const isCookbook =
-        isUsingCult || isUsingEns || isUsingWlfi || isUsingJpyc ? true : customPoolUsed ? false : isCookbookCoin(coinId);
+        isUsingCult || isUsingEns || isUsingWlfi || isUsingJpyc
+          ? true
+          : customPoolUsed
+            ? false
+            : isCookbookCoin(coinId);
       const targetZAMMAddress = isCookbook ? CookbookAddress : ZAMMAddress;
       const targetZAMMAbi = isCookbook ? CookbookAbi : ZAMMAbi;
 

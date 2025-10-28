@@ -3,13 +3,14 @@ import type { Address } from "viem";
 /**
  * ZAMMZapETHJPYC - One-step zapper for ETH → JPYC → LP
  *
- * This contract leverages zQuoter and zRouter to automatically find the best
- * external source of JPYC (Uniswap V2/V3, Sushiswap, Curve, or ZAMM) and
- * executes the zap in a single transaction.
+ * This contract forces ETH→USDC→JPYC routing to use liquid external pools
+ * (Uniswap V3/V4 USDC/JPYC) instead of the illiquid ETH/JPYC pool on ZAMM.
+ * Executes the zap in a single transaction via zQuoter and zRouter.
+ * Also sweeps JPYC, USDC, and ETH dust back to the user.
  *
- * Contract deployed at: 0x644C22269b0572f22a3FccB9CDE24B604F56eC03
+ * Contract deployed at: 0xe1e2D40807d37f158b12824a48aA00C2CF1c6af2
  */
-export const ZAMMZapETHJPYCAddress: Address = "0x644C22269b0572f22a3FccB9CDE24B604F56eC03";
+export const ZAMMZapETHJPYCAddress: Address = "0xe1e2D40807d37f158b12824a48aA00C2CF1c6af2";
 
 export const ZAMMZapETHJPYCAbi = [
   // Errors
