@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { parseEther, formatEther, formatUnits } from "viem";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from "wagmi";
@@ -31,8 +31,30 @@ const JPYC_ZAP_SLIPPAGE_OPTIONS = [
   { label: "40%", value: 4000n },
 ];
 
-export const JPYCZap = () => {
+interface JPYCZapProps {
+  isJapanese?: boolean;
+  japaneseTranslate?: (key: string) => string;
+}
+
+export const JPYCZap: React.FC<JPYCZapProps> = ({ isJapanese = false, japaneseTranslate }) => {
   const { t } = useTranslation();
+
+  // Use Japanese translation if available, otherwise fallback to i18n
+  const translate = (key: string): string => {
+    if (isJapanese && japaneseTranslate) {
+      return japaneseTranslate(key);
+    }
+    // Map keys to i18n keys
+    const i18nKeyMap: Record<string, string> = {
+      "how_it_works": "jpyc.how_it_works",
+      "zap_step_1": "jpyc.zap_step_1",
+      "zap_step_2": "jpyc.zap_step_2",
+      "zap_step_3": "jpyc.zap_step_3",
+      "zap_step_4": "jpyc.zap_step_4",
+      "high_slippage_note": "jpyc.high_slippage_note",
+    };
+    return t(i18nKeyMap[key] || key);
+  };
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient({ chainId: mainnet.id });
   const [ethAmount, setEthAmount] = useState("");
@@ -270,15 +292,15 @@ export const JPYCZap = () => {
 
       {/* Info Section */}
       <div className="bg-muted/20 border border-border/50 rounded-lg p-3 space-y-2 text-xs text-muted-foreground">
-        <div className="font-medium text-foreground">{t("jpyc.how_it_works")}</div>
+        <div className="font-medium text-foreground">{translate("how_it_works")}</div>
         <ul className="space-y-1 list-disc list-inside">
-          <li>{t("jpyc.zap_step_1")}</li>
-          <li>{t("jpyc.zap_step_2")}</li>
-          <li>{t("jpyc.zap_step_3")}</li>
-          <li>{t("jpyc.zap_step_4")}</li>
+          <li>{translate("zap_step_1")}</li>
+          <li>{translate("zap_step_2")}</li>
+          <li>{translate("zap_step_3")}</li>
+          <li>{translate("zap_step_4")}</li>
         </ul>
         <div className="mt-2 pt-2 border-t border-border/30">
-          <p className="text-xs text-amber-600 dark:text-amber-400">ℹ️ {t("jpyc.high_slippage_note")}</p>
+          <p className="text-xs text-amber-600 dark:text-amber-400">ℹ️ {translate("high_slippage_note")}</p>
         </div>
       </div>
     </div>

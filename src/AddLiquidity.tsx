@@ -1,3 +1,4 @@
+import React from "react";
 import { Loader2 } from "lucide-react";
 import {
   CookbookPoolKey,
@@ -70,8 +71,27 @@ const sqrt = (value: bigint): bigint => {
   return z;
 };
 
-export const AddLiquidity = () => {
+interface AddLiquidityProps {
+  isJapanese?: boolean;
+  japaneseTranslate?: (key: string) => string;
+}
+
+export const AddLiquidity: React.FC<AddLiquidityProps> = ({ isJapanese = false, japaneseTranslate }) => {
   const { t } = useTranslation();
+
+  // Use Japanese translation if available, otherwise fallback to i18n
+  const translate = (key: string, params?: Record<string, any>): string => {
+    if (isJapanese && japaneseTranslate) {
+      return japaneseTranslate(key);
+    }
+    const i18nKeyMap: Record<string, string> = {
+      "adding_liquidity_provides": "pool.adding_liquidity_provides",
+      "lp_tokens_proof": "pool.lp_tokens_proof",
+      "earn_fees": "pool.earn_fees_from_trades",
+      "withdraw_anytime": "pool.withdraw_anytime",
+    };
+    return t(i18nKeyMap[key] || key, params);
+  };
   const { isConnected, address } = useAccount();
   const chainId = useChainId();
   const publicClient = usePublicClient({ chainId });
@@ -1146,15 +1166,15 @@ export const AddLiquidity = () => {
       )}
 
       <div className="text-xs bg-muted/50 border border-primary/30 rounded p-2 mt-2 text-muted-foreground dark:text-gray-300">
-        <p className="font-medium mb-1">{t("pool.adding_liquidity_provides")}</p>
+        <p className="font-medium mb-1">{translate("adding_liquidity_provides")}</p>
         <ul className="list-disc pl-4 space-y-0.5">
-          <li>{t("pool.lp_tokens_proof")}</li>
+          <li>{translate("lp_tokens_proof")}</li>
           <li>
-            {t("pool.earn_fees_from_trades", {
+            {translate("earn_fees", {
               fee: Number(swapFee ?? DEFAULT_SWAP_FEE) / 100,
             })}
           </li>
-          <li>{t("pool.withdraw_anytime")}</li>
+          <li>{translate("withdraw_anytime")}</li>
         </ul>
       </div>
 

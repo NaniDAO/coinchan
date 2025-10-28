@@ -482,13 +482,36 @@ export function useSetOperatorApproval() {
         return hash;
       });
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       // Invalidate operator status queries to refetch the updated approval state
       // This ensures the UI accurately reflects the on-chain operator approval status
+
+      // First, directly update the cache for immediate UI response
+      queryClient.setQueriesData(
+        {
+          queryKey: ["readContract"],
+          predicate: (query) => {
+            // Update all isOperator queries for the current user
+            return (
+              query.queryKey[0] === "readContract" &&
+              typeof query.queryKey[1] === "object" &&
+              query.queryKey[1] !== null &&
+              "functionName" in query.queryKey[1] &&
+              query.queryKey[1].functionName === "isOperator" &&
+              "args" in query.queryKey[1] &&
+              Array.isArray(query.queryKey[1].args) &&
+              query.queryKey[1].args[0] === address &&
+              query.queryKey[1].args[1] === variables.operator
+            );
+          },
+        },
+        variables.approved
+      );
+
+      // Then invalidate to trigger background refetch for confirmation
       queryClient.invalidateQueries({
         queryKey: ["readContract"],
         predicate: (query) => {
-          // Invalidate all isOperator queries for the current user
           return (
             query.queryKey[0] === "readContract" &&
             typeof query.queryKey[1] === "object" &&

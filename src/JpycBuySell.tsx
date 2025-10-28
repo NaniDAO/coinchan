@@ -575,6 +575,26 @@ export const JpycBuySell = () => {
       "insufficient_liquidity": "流動性が不足しています",
       "error_loading_component": "コンポーネントの読み込みエラー",
       "error_loading_farm": "ファームの読み込みエラー",
+
+      // Zap explainer
+      "how_it_works": "仕組み",
+      "zap_step_1": "ETHの一部をJPYCにスワップします（最適なルートを自動選択）",
+      "zap_step_2": "コントラクトがJPYCの最適なDEXを自動検索します（Uniswap V2/V3、Curve、Sushiswap、ZAMM）",
+      "zap_step_3": "残りのETHと取得したJPYCをZAMMプールに追加します",
+      "zap_step_4": "余剰トークンは自動的に払い戻されます",
+      "high_slippage_note": "現在の流動性が低いため、デフォルトのスリッページは30%です。必要に応じて調整してください。",
+
+      // Remove Liquidity
+      "remove_liquidity_info": "流動性の削除",
+      "your_lp_balance": "LPトークン残高: {balance}",
+      "enter_lp_amount": "バーンするLPトークン数を入力",
+      "preview_expected_return": "プレビューではETHとトークンの予想返却量を表示します",
+
+      // Add Liquidity
+      "adding_liquidity_provides": "流動性の追加により以下が得られます",
+      "lp_tokens_proof": "ポジションの証明としてのLPトークン",
+      "earn_fees": "取引から手数料を獲得",
+      "withdraw_anytime": "いつでも流動性を引き出し可能",
     };
     return translations[key] || key;
   };
@@ -971,7 +991,7 @@ export const JpycBuySell = () => {
             <ErrorBoundary
               fallback={<div className="text-center py-4 text-destructive">{isJapanese ? ja("error_loading_component") : t("common.error_loading_component")}</div>}
             >
-              <AddLiquidity />
+              <AddLiquidity isJapanese={isJapanese} japaneseTranslate={ja} />
             </ErrorBoundary>
           </TabsContent>
 
@@ -979,7 +999,7 @@ export const JpycBuySell = () => {
             <ErrorBoundary
               fallback={<div className="text-center py-4 text-destructive">{isJapanese ? ja("error_loading_component") : t("common.error_loading_component")}</div>}
             >
-              <RemoveLiquidity />
+              <RemoveLiquidity isJapanese={isJapanese} japaneseTranslate={ja} />
             </ErrorBoundary>
           </TabsContent>
 
@@ -987,7 +1007,7 @@ export const JpycBuySell = () => {
             <ErrorBoundary
               fallback={<div className="text-center py-4 text-destructive">{isJapanese ? ja("error_loading_component") : t("common.error_loading_component")}</div>}
             >
-              <JPYCZap />
+              <JPYCZap isJapanese={isJapanese} japaneseTranslate={ja} />
             </ErrorBoundary>
           </TabsContent>
           <TabsContent value="farm" className="mt-2 sm:mt-4">

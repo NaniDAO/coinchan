@@ -1,3 +1,4 @@
+import React from "react";
 import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -43,8 +44,27 @@ import {
 } from "./lib/swap";
 import { nowSec } from "./lib/utils";
 
-export const RemoveLiquidity = () => {
+interface RemoveLiquidityProps {
+  isJapanese?: boolean;
+  japaneseTranslate?: (key: string) => string;
+}
+
+export const RemoveLiquidity: React.FC<RemoveLiquidityProps> = ({ isJapanese = false, japaneseTranslate }) => {
   const { t } = useTranslation();
+
+  // Use Japanese translation if available, otherwise fallback to i18n
+  const translate = (key: string, params?: Record<string, any>): string => {
+    if (isJapanese && japaneseTranslate) {
+      return japaneseTranslate(key);
+    }
+    const i18nKeyMap: Record<string, string> = {
+      "remove_liquidity_info": "pool.remove_liquidity_info",
+      "your_lp_balance": "pool.your_lp_balance",
+      "enter_lp_amount": "pool.enter_lp_amount",
+      "preview_expected_return": "pool.preview_expected_return",
+    };
+    return t(i18nKeyMap[key] || key, params);
+  };
   // Use shared token selection context
   const { sellToken, buyToken, setSellToken, setBuyToken } = useTokenSelection();
 
@@ -582,15 +602,15 @@ export const RemoveLiquidity = () => {
         {/* Slippage information - clickable to show settings */}
         <SlippageSettings setSlippageBps={setSlippageBps} slippageBps={slippageBps} />
         <div className="text-xs bg-muted/50 border border-primary/30 rounded p-2 mt-2 text-muted-foreground">
-          <p className="font-medium mb-1">{t("pool.remove_liquidity_info")}</p>
+          <p className="font-medium mb-1">{translate("remove_liquidity_info")}</p>
           <ul className="list-disc pl-4 space-y-0.5">
             <li>
-              {t("pool.your_lp_balance", {
+              {translate("your_lp_balance", {
                 balance: formatUnits(lpTokenBalance, 18),
               })}
             </li>
-            <li>{t("pool.enter_lp_amount")}</li>
-            <li>{t("pool.preview_expected_return")}</li>
+            <li>{translate("enter_lp_amount")}</li>
+            <li>{translate("preview_expected_return")}</li>
           </ul>
         </div>
 

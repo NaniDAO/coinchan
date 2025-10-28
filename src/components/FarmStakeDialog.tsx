@@ -63,6 +63,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
   const [txStatus, setTxStatus] = useState<"idle" | "pending" | "confirming" | "success" | "error">("idle");
   const [txError, setTxError] = useState<string | null>(null);
   const [txMessage, setTxMessage] = useState<string | null>(null);
+  const [localOperatorApproved, setLocalOperatorApproved] = useState<boolean | null>(null);
 
   const { deposit } = useZChefActions();
   const { calculateZapAmounts } = useZapCalculations();
@@ -122,6 +123,9 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
     operator: ZChefAddress,
     source: lpToken?.source || "COOKBOOK",
   });
+
+  // Use local state if set (after approval), otherwise use query data
+  const effectiveOperatorApproval = localOperatorApproved !== null ? localOperatorApproved : isOperatorApproved;
 
   // Max ETH for zap by liquidity
   const maxEthForZap = useMemo(() => {
@@ -217,6 +221,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
       setTxMessage(null);
       setTxStatus("idle");
       setShowSlippageSettings(false);
+      setLocalOperatorApproved(null); // Reset local approval state
     }
   }, [open]);
 
@@ -235,7 +240,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
       setTxError(null);
 
       // Need operator approval for LP flow
-      if (stakeMode === "lp" && !isOperatorApproved) {
+      if (stakeMode === "lp" && !effectiveOperatorApproval) {
         try {
           setTxHash(null);
           setTxMessage(t("common.approving_operator"));
@@ -253,24 +258,19 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
             });
           }
 
-          // Refetch operator status to ensure we have the latest approval state
+          // Update local state immediately after confirmation
+          setLocalOperatorApproved(true);
+
+          // Also refetch to update cache in background
+          refetchOperatorStatus();
+
+          // Show success message briefly
           setTxMessage(t("common.operator_approved_proceeding"));
-          const { data: updatedApprovalStatus } = await refetchOperatorStatus();
-
-          // Verify that the approval was successful on-chain
-          if (!updatedApprovalStatus) {
-            console.warn("Operator approval transaction confirmed but status not updated yet, waiting...");
-            // Give the chain a moment to update state, then retry
-            await new Promise((r) => setTimeout(r, 1000));
-            const { data: retryApprovalStatus } = await refetchOperatorStatus();
-            if (!retryApprovalStatus) {
-              throw new Error("Operator approval status could not be verified");
-            }
-          }
-
-          setTxStatus("pending");
           setTxHash(null);
-          await new Promise((r) => setTimeout(r, 500));
+          await new Promise((r) => setTimeout(r, 1000));
+
+          // Reset status for deposit transaction
+          setTxStatus("pending");
         } catch (approvalError: any) {
           if (isUserRejectionError(approvalError)) {
             setTxStatus("idle");
@@ -521,7 +521,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
               amount={amount}
               setAmount={setAmount}
               maxAmount={maxAmount}
-              isOperatorApproved={!!isOperatorApproved}
+              isOperatorApproved={!!effectiveOperatorApproval}
               isLpBalanceLoading={isLpBalanceLoading}
               onMaxClick={handleMaxClick}
               onStakeClick={handleStake}
