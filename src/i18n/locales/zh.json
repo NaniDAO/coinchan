@@ -76,6 +76,8 @@
     "approve": "批准",
     "cancel": "取消",
     "confirm": "确认",
+    "confirm_in_wallet": "在钱包中确认…",
+    "confirming": "确认中…",
     "slippage": "滑点",
     "network": "网络",
     "address": "地址",

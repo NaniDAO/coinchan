@@ -74,6 +74,8 @@
     "approve": "Approve",
     "cancel": "Cancel",
     "confirm": "Confirm",
+    "confirm_in_wallet": "Confirm in wallet…",
+    "confirming": "Confirming…",
     "slippage": "Slippage",
     "network": "Network",
     "address": "Address",
