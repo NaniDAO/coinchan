@@ -47,6 +47,7 @@ export const JpycBuySell = () => {
   const publicClient = usePublicClient({ chainId: mainnet.id });
   const { data: ethPrice } = useETHPrice();
   const { setSellToken, setBuyToken } = useTokenSelection();
+  const [isJapanese, setIsJapanese] = useState(false);
   const [poolReserves, setPoolReserves] = useState<{
     reserve0: bigint;
     reserve1: bigint;
@@ -324,7 +325,7 @@ export const JpycBuySell = () => {
       const minEthLiquidity = parseEther("0.001"); // 0.001 ETH minimum
       const minJpycLiquidity = parseUnits("1", 18); // 1 JPYC minimum
       if (poolReserves.reserve0 < minEthLiquidity || poolReserves.reserve1 < minJpycLiquidity) {
-        setErrorMessage(t("jpyc.insufficient_liquidity"));
+        setErrorMessage(isJapanese ? ja("insufficient_liquidity") : t("jpyc.insufficient_liquidity"));
         if (field === "sell") setBuyAmount("");
         else setSellAmount("");
         return;
@@ -520,17 +521,90 @@ export const JpycBuySell = () => {
     }
   };
 
+  // Japanese translations
+  const ja = (key: string): string => {
+    const translations: Record<string, string> = {
+      // Header
+      "language": "日本語",
+
+      // Tabs
+      "swap": "スワップ",
+      "add": "追加",
+      "remove": "削除",
+      "zap": "ザップ",
+      "farm": "ファーム",
+
+      // Swap panel
+      "you_pay": "支払い",
+      "you_receive": "受取り",
+      "buy_jpyc": "JPYCを買う",
+      "sell_jpyc": "JPYCを売る",
+      "buying": "購入中",
+      "selling": "売却中",
+      "get": "取得",
+      "zap_lp": "LPをザップ",
+
+      // Transaction status
+      "status_confirming": "確認中",
+      "status_success": "成功",
+      "tx_label": "トランザクション",
+      "external_link": "↗",
+      "transaction_confirmed": "トランザクションが確認されました",
+
+      // Chart
+      "hide_chart": "チャートを非表示",
+      "show_chart": "チャートを表示",
+      "price_history": "価格履歴",
+      "pool_fee": "プール手数料",
+
+      // Stats
+      "price": "価格",
+      "market_cap": "時価総額",
+      "pool_eth": "プールETH",
+      "pool_jpyc": "プールJPYC",
+      "price_impact": "価格影響",
+
+      // About section
+      "about_title": "JPYCについて",
+      "about_description": "JPYCは日本円に連動した暗号資産です。日本円とJPYCは1対1で交換できます。",
+      "total_supply": "総供給量",
+      "contract_address": "コントラクトアドレス",
+      "decimals": "桁数",
+
+      // Errors
+      "insufficient_liquidity": "流動性が不足しています",
+      "error_loading_component": "コンポーネントの読み込みエラー",
+      "error_loading_farm": "ファームの読み込みエラー",
+    };
+    return translations[key] || key;
+  };
+
   return (
     <div className="container mx-auto max-w-2xl px-2 sm:px-4 py-4 sm:py-8">
       {/* Header with JPYC/Farcaster theme */}
-      <div className="mb-4 sm:mb-8 text-center">
-        <div className="flex items-center justify-center gap-3">
-          <img
-            src="https://content.wrappr.wtf/ipfs/bafkreigzo74zz6wlriztpznhuqxbh4nrucakv7dg6dxbroxlofzedthpce"
-            alt="JPYC"
-            className="w-12 h-12 sm:w-16 sm:h-16 rounded-full"
-          />
-          <div className="text-4xl sm:text-5xl font-bold text-[#4A90E2]">JPYC</div>
+      <div className="mb-4 sm:mb-8">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex-1" />
+          <div className="flex items-center justify-center gap-3 flex-1">
+            <img
+              src="https://content.wrappr.wtf/ipfs/bafkreigzo74zz6wlriztpznhuqxbh4nrucakv7dg6dxbroxlofzedthpce"
+              alt="JPYC"
+              className="w-12 h-12 sm:w-16 sm:h-16 rounded-full"
+            />
+            <div className="text-4xl sm:text-5xl font-bold text-[#4A90E2]">JPYC</div>
+          </div>
+          <div className="flex-1 flex justify-end">
+            <button
+              onClick={() => setIsJapanese(!isJapanese)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                isJapanese
+                  ? "bg-[#4A90E2] text-white"
+                  : "bg-[#4A90E2]/10 text-[#4A90E2] hover:bg-[#4A90E2]/20"
+              }`}
+            >
+              日本語
+            </button>
+          </div>
         </div>
       </div>
 
@@ -601,7 +675,7 @@ export const JpycBuySell = () => {
                 arbitrageInfo?.type === "swap" && activeTab !== "swap" ? "ring-1 ring-green-400/50" : ""
               }`}
             >
-              {t("common.swap")}
+              {isJapanese ? ja("swap") : t("common.swap")}
               {arbitrageInfo?.type === "swap" && activeTab !== "swap" && (
                 <span className="absolute -top-1 -right-1 flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -613,13 +687,13 @@ export const JpycBuySell = () => {
               value="add"
               className="flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-[#4A90E2]/20 dark:data-[state=active]:bg-[#4A90E2]/30 data-[state=active]:text-[#4A90E2] dark:data-[state=active]:text-white"
             >
-              {t("common.add")}
+              {isJapanese ? ja("add") : t("common.add")}
             </TabsTrigger>
             <TabsTrigger
               value="remove"
               className="flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-[#4A90E2]/20 dark:data-[state=active]:bg-[#4A90E2]/30 data-[state=active]:text-[#4A90E2] dark:data-[state=active]:text-white"
             >
-              {t("common.remove")}
+              {isJapanese ? ja("remove") : t("common.remove")}
             </TabsTrigger>
             <TabsTrigger
               value="zap"
@@ -627,7 +701,7 @@ export const JpycBuySell = () => {
                 arbitrageInfo?.type === "zap" && activeTab !== "zap" ? "ring-1 ring-green-400/50" : ""
               }`}
             >
-              {t("common.zap")}
+              {isJapanese ? ja("zap") : t("common.zap")}
               {arbitrageInfo?.type === "zap" && activeTab !== "zap" && (
                 <span className="absolute -top-1 -right-1 flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -639,7 +713,7 @@ export const JpycBuySell = () => {
               value="farm"
               className="flex-1 sm:flex-initial px-2 py-1.5 text-xs sm:text-sm data-[state=active]:bg-[#4A90E2]/20 dark:data-[state=active]:bg-[#4A90E2]/30 data-[state=active]:text-[#4A90E2] dark:data-[state=active]:text-white"
             >
-              {t("common.farm")}
+              {isJapanese ? ja("farm") : t("common.farm")}
             </TabsTrigger>
           </TabsList>
 
@@ -649,7 +723,7 @@ export const JpycBuySell = () => {
               <div className="relative space-y-1">
                 {/* Sell panel */}
                 <SwapPanel
-                  title={swapDirection === "buy" ? t("jpyc.you_pay") : t("jpyc.you_pay")}
+                  title={swapDirection === "buy" ? (isJapanese ? ja("you_pay") : t("jpyc.you_pay")) : (isJapanese ? ja("you_pay") : t("jpyc.you_pay"))}
                   selectedToken={swapDirection === "buy" ? ethToken : jpycToken}
                   tokens={[]} // Empty array prevents token selection
                   onSelect={() => {}} // No-op
@@ -708,7 +782,7 @@ export const JpycBuySell = () => {
 
                 {/* Buy panel */}
                 <SwapPanel
-                  title={swapDirection === "buy" ? t("jpyc.you_receive") : t("jpyc.you_receive")}
+                  title={swapDirection === "buy" ? (isJapanese ? ja("you_receive") : t("jpyc.you_receive")) : (isJapanese ? ja("you_receive") : t("jpyc.you_receive"))}
                   selectedToken={swapDirection === "buy" ? jpycToken : ethToken}
                   tokens={[]} // Empty array prevents token selection
                   onSelect={() => {}} // No-op
@@ -741,12 +815,12 @@ export const JpycBuySell = () => {
                     {isPending ? (
                       <span className="flex items-center gap-2">
                         <LoadingLogo size="sm" />
-                        {swapDirection === "buy" ? t("jpyc.buying") : t("jpyc.selling")}
+                        {swapDirection === "buy" ? (isJapanese ? ja("buying") : t("jpyc.buying")) : (isJapanese ? ja("selling") : t("jpyc.selling"))}
                       </span>
                     ) : swapDirection === "buy" ? (
-                      t("jpyc.buy_jpyc")
+                      isJapanese ? ja("buy_jpyc") : t("jpyc.buy_jpyc")
                     ) : (
-                      t("jpyc.sell_jpyc")
+                      isJapanese ? ja("sell_jpyc") : t("jpyc.sell_jpyc")
                     )}
                   </Button>
                 )}
@@ -762,7 +836,7 @@ export const JpycBuySell = () => {
                           <>
                             <div className="animate-pulse h-4 w-4 bg-yellow-500 rounded-full"></div>
                             <span className="font-mono font-bold text-yellow-500 text-sm">
-                              [{t("common.status_confirming")}]
+                              [{isJapanese ? ja("status_confirming") : t("common.status_confirming")}]
                             </span>
                           </>
                         )}
@@ -770,7 +844,7 @@ export const JpycBuySell = () => {
                           <>
                             <div className="h-4 w-4 bg-green-500 rounded-full"></div>
                             <span className="font-mono font-bold text-green-500 text-sm">
-                              [{t("common.status_success")}]
+                              [{isJapanese ? ja("status_success") : t("common.status_success")}]
                             </span>
                           </>
                         )}
@@ -782,16 +856,16 @@ export const JpycBuySell = () => {
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-2 px-3 py-1.5 bg-background/50 border border-primary/20 rounded font-mono text-xs hover:bg-primary/10 transition-colors duration-200"
                         >
-                          <span className="text-muted-foreground">{t("common.tx_label")}:</span>
+                          <span className="text-muted-foreground">{isJapanese ? ja("tx_label") : t("common.tx_label")}:</span>
                           <span className="text-primary font-bold">
                             {txHash.slice(0, 6)}...{txHash.slice(-4)}
                           </span>
-                          <span className="text-muted-foreground">{t("common.external_link")}</span>
+                          <span className="text-muted-foreground">{isJapanese ? ja("external_link") : t("common.external_link")}</span>
                         </a>
                       </div>
                       {isSuccess && (
                         <div className="text-center">
-                          <p className="text-sm text-green-600 font-mono">{t("jpyc.transaction_confirmed")}</p>
+                          <p className="text-sm text-green-600 font-mono">{isJapanese ? ja("transaction_confirmed") : t("jpyc.transaction_confirmed")}</p>
                         </div>
                       )}
                     </div>
@@ -807,7 +881,7 @@ export const JpycBuySell = () => {
                 {priceImpact && (
                   <div className="mt-2 p-2 bg-muted/50 rounded-md">
                     <div className="text-xs text-muted-foreground flex items-center justify-between">
-                      <span>{t("swap.price_impact")}:</span>
+                      <span>{isJapanese ? ja("price_impact") : t("swap.price_impact")}:</span>
                       <span
                         className={`font-medium ${priceImpact.impactPercent > 0 ? "text-green-600" : "text-red-600"}`}
                       >
@@ -827,13 +901,13 @@ export const JpycBuySell = () => {
                       onClick={() => setShowPriceChart((prev) => !prev)}
                       className="text-xs text-muted-foreground flex items-center gap-1 hover:text-primary"
                     >
-                      {showPriceChart ? t("coin.hide_chart") : t("coin.show_chart")}
+                      {showPriceChart ? (isJapanese ? ja("hide_chart") : t("coin.hide_chart")) : (isJapanese ? ja("show_chart") : t("coin.show_chart"))}
                       <ChevronDownIcon
                         className={`w-3 h-3 transition-transform ${showPriceChart ? "rotate-180" : ""}`}
                       />
                     </button>
                     {showPriceChart && (
-                      <div className="text-xs text-muted-foreground">JPYC/ETH {t("coin.price_history")}</div>
+                      <div className="text-xs text-muted-foreground">JPYC/ETH {isJapanese ? ja("price_history") : t("coin.price_history")}</div>
                     )}
                   </div>
 
@@ -858,18 +932,18 @@ export const JpycBuySell = () => {
                 </div>
               </div>
 
-              <div className="text-xs text-muted-foreground text-center">{t("coin.pool_fee")}: 0.3%</div>
+              <div className="text-xs text-muted-foreground text-center">{isJapanese ? ja("pool_fee") : t("coin.pool_fee")}: 0.3%</div>
 
               {/* Market Stats - subtle below chart */}
               <div className="mt-4 sm:mt-6 grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 text-xs">
                 <div className="text-center">
-                  <p className="text-muted-foreground opacity-70">{t("coin.price")}</p>
+                  <p className="text-muted-foreground opacity-70">{isJapanese ? ja("price") : t("coin.price")}</p>
                   <p className="font-medium">{jpycPrice > 0 ? `${jpycPrice.toFixed(6)} ETH` : "-"}</p>
                   <p className="text-muted-foreground opacity-60">${jpycUsdPrice.toFixed(2)}</p>
                 </div>
 
                 <div className="text-center">
-                  <p className="text-muted-foreground opacity-70">{t("coin.market_cap")}</p>
+                  <p className="text-muted-foreground opacity-70">{isJapanese ? ja("market_cap") : t("coin.market_cap")}</p>
                   <p className="font-medium">
                     $
                     {marketCapUsd > 1e9
@@ -881,12 +955,12 @@ export const JpycBuySell = () => {
                 </div>
 
                 <div className="text-center">
-                  <p className="text-muted-foreground opacity-70">{t("coin.pool_eth")}</p>
+                  <p className="text-muted-foreground opacity-70">{isJapanese ? ja("pool_eth") : t("coin.pool_eth")}</p>
                   <p className="font-medium">{formatEther(poolReserves.reserve0)} ETH</p>
                 </div>
 
                 <div className="text-center">
-                  <p className="text-muted-foreground opacity-70">{t("coin.pool_jpyc")}</p>
+                  <p className="text-muted-foreground opacity-70">{isJapanese ? ja("pool_jpyc") : t("coin.pool_jpyc")}</p>
                   <p className="font-medium">{Number(formatUnits(poolReserves.reserve1, 18)).toFixed(3)} JPYC</p>
                 </div>
               </div>
@@ -895,7 +969,7 @@ export const JpycBuySell = () => {
 
           <TabsContent value="add" className="mt-2 sm:mt-4">
             <ErrorBoundary
-              fallback={<div className="text-center py-4 text-destructive">{t("common.error_loading_component")}</div>}
+              fallback={<div className="text-center py-4 text-destructive">{isJapanese ? ja("error_loading_component") : t("common.error_loading_component")}</div>}
             >
               <AddLiquidity />
             </ErrorBoundary>
@@ -903,7 +977,7 @@ export const JpycBuySell = () => {
 
           <TabsContent value="remove" className="mt-2 sm:mt-4">
             <ErrorBoundary
-              fallback={<div className="text-center py-4 text-destructive">{t("common.error_loading_component")}</div>}
+              fallback={<div className="text-center py-4 text-destructive">{isJapanese ? ja("error_loading_component") : t("common.error_loading_component")}</div>}
             >
               <RemoveLiquidity />
             </ErrorBoundary>
@@ -911,13 +985,13 @@ export const JpycBuySell = () => {
 
           <TabsContent value="zap" className="mt-2 sm:mt-4">
             <ErrorBoundary
-              fallback={<div className="text-center py-4 text-destructive">{t("common.error_loading_component")}</div>}
+              fallback={<div className="text-center py-4 text-destructive">{isJapanese ? ja("error_loading_component") : t("common.error_loading_component")}</div>}
             >
               <JPYCZap />
             </ErrorBoundary>
           </TabsContent>
           <TabsContent value="farm" className="mt-2 sm:mt-4">
-            <ErrorBoundary fallback={<div>{t("common.error_loading_farm")}</div>}>
+            <ErrorBoundary fallback={<div>{isJapanese ? ja("error_loading_farm") : t("common.error_loading_farm")}</div>}>
               <Suspense
                 fallback={
                   <div className="h-64 flex items-center justify-center">
@@ -935,12 +1009,12 @@ export const JpycBuySell = () => {
       {/* Info Section with Fark Blue theme */}
       <div className="mt-6 md:mt-8 bg-card border border-[#4A90E2]/20 dark:border-[#4A90E2]/10 rounded-lg p-4 md:p-6">
         <h2 className="text-lg md:text-xl font-semibold mb-4 text-[#4A90E2] dark:text-[#6CA8E8]">
-          {t("jpyc.about_title")}
+          {isJapanese ? ja("about_title") : t("jpyc.about_title")}
         </h2>
-        <p className="text-muted-foreground mb-4">{t("jpyc.about_description")}</p>
+        <p className="text-muted-foreground mb-4">{isJapanese ? ja("about_description") : t("jpyc.about_description")}</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 text-sm">
           <div>
-            <p className="text-muted-foreground">{t("coin.total_supply")}</p>
+            <p className="text-muted-foreground">{isJapanese ? ja("total_supply") : t("coin.total_supply")}</p>
             <p className="font-medium">
               {jpycTotalSupply > 0n
                 ? `${formatNumber(Number(formatUnits(jpycTotalSupply, 18)), 0)} JPYC`
@@ -948,7 +1022,7 @@ export const JpycBuySell = () => {
             </p>
           </div>
           <div>
-            <p className="text-muted-foreground">{t("coin.contract_address")}</p>
+            <p className="text-muted-foreground">{isJapanese ? ja("contract_address") : t("coin.contract_address")}</p>
             <a
               href={`https://etherscan.io/address/${JPYC_ADDRESS}`}
               target="_blank"
@@ -959,11 +1033,11 @@ export const JpycBuySell = () => {
             </a>
           </div>
           <div>
-            <p className="text-muted-foreground">{t("coin.pool_fee")}</p>
+            <p className="text-muted-foreground">{isJapanese ? ja("pool_fee") : t("coin.pool_fee")}</p>
             <p className="font-medium">0.3%</p>
           </div>
           <div>
-            <p className="text-muted-foreground">{t("coin.decimals")}</p>
+            <p className="text-muted-foreground">{isJapanese ? ja("decimals") : t("coin.decimals")}</p>
             <p className="font-medium">18</p>
           </div>
         </div>

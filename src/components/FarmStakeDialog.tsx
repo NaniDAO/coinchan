@@ -117,7 +117,7 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
   }, [ethBalance]);
 
   // Operator status (ERC6909)
-  const { data: isOperatorApproved } = useLpOperatorStatus({
+  const { data: isOperatorApproved, refetch: refetchOperatorStatus } = useLpOperatorStatus({
     owner: address,
     operator: ZChefAddress,
     source: lpToken?.source || "COOKBOOK",
@@ -252,8 +252,23 @@ export function FarmStakeDialog({ stream, lpToken, trigger, onSuccess }: FarmSta
               hash: approvalHash as `0x${string}`,
             });
           }
-          setTxStatus("pending");
+
+          // Refetch operator status to ensure we have the latest approval state
           setTxMessage(t("common.operator_approved_proceeding"));
+          const { data: updatedApprovalStatus } = await refetchOperatorStatus();
+
+          // Verify that the approval was successful on-chain
+          if (!updatedApprovalStatus) {
+            console.warn("Operator approval transaction confirmed but status not updated yet, waiting...");
+            // Give the chain a moment to update state, then retry
+            await new Promise((r) => setTimeout(r, 1000));
+            const { data: retryApprovalStatus } = await refetchOperatorStatus();
+            if (!retryApprovalStatus) {
+              throw new Error("Operator approval status could not be verified");
+            }
+          }
+
+          setTxStatus("pending");
           setTxHash(null);
           await new Promise((r) => setTimeout(r, 500));
         } catch (approvalError: any) {
