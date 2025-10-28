@@ -1,14 +1,15 @@
 import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { parseEther, formatEther, formatUnits } from "viem";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from "wagmi";
+import { mainnet } from "viem/chains";
 import { Button } from "./components/ui/button";
 import { SwapPanel } from "./components/SwapPanel";
 import { SlippageSettings } from "./components/SlippageSettings";
 import { LoadingLogo } from "./components/ui/loading-logo";
 import { CheckIcon, Loader2, ExternalLink } from "lucide-react";
 import { ZAMMZapETHJPYCAbi, ZAMMZapETHJPYCAddress } from "./constants/ZAMMZapETHJPYC";
-import { ETH_TOKEN, JPYC_POOL_KEY } from "./lib/coins";
+import { ETH_TOKEN, JPYC_POOL_KEY, type TokenMeta } from "./lib/coins";
 import { useJpycZapPreview } from "./hooks/use-jpyc-zap-preview";
 import { handleWalletError, isUserRejectionError } from "./lib/errors";
 import { formatNumber } from "./lib/utils";
@@ -33,11 +34,13 @@ const JPYC_ZAP_SLIPPAGE_OPTIONS = [
 export const JPYCZap = () => {
   const { t } = useTranslation();
   const { address, isConnected } = useAccount();
+  const publicClient = usePublicClient({ chainId: mainnet.id });
   const [ethAmount, setEthAmount] = useState("");
   const [slippageBps, setSlippageBps] = useState<bigint>(3000n); // 30% default for illiquid conditions
   const [swapBps] = useState<bigint>(5000n); // 50/50 split
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [txError, setTxError] = useState<string | null>(null);
+  const [ethBalance, setEthBalance] = useState<bigint>(0n);
 
   const { writeContractAsync, isPending } = useWriteContract();
   const { isSuccess, isLoading: isConfirming } = useWaitForTransactionReceipt({ hash: txHash });
@@ -51,20 +54,55 @@ export const JPYCZap = () => {
     enabled: !!ethAmount && parseFloat(ethAmount) > 0,
   });
 
+  // Fetch ETH balance
+  useEffect(() => {
+    const fetchEthBalance = async () => {
+      if (!publicClient || !address) return;
+
+      try {
+        const balance = await publicClient.getBalance({ address });
+        setEthBalance(balance);
+      } catch (error) {
+        console.error("Failed to fetch ETH balance:", error);
+      }
+    };
+
+    fetchEthBalance();
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchEthBalance, 30000);
+    return () => clearInterval(interval);
+  }, [publicClient, address]);
+
+  // Create ETH token with updated balance
+  const ethToken = useMemo<TokenMeta>(() => {
+    if (ETH_TOKEN.balance === ethBalance) {
+      return ETH_TOKEN;
+    }
+    return {
+      ...ETH_TOKEN,
+      balance: ethBalance,
+    };
+  }, [ethBalance]);
+
   // Reset transaction state when amount or slippage changes
   useEffect(() => {
     setTxHash(undefined);
     setTxError(null);
   }, [ethAmount, slippageBps]);
 
-  // Reset on success
+  // Reset on success and refetch balance
   useEffect(() => {
     if (isSuccess) {
       setEthAmount("");
       setTxHash(undefined);
       setTxError(null);
+
+      // Refetch balance after successful transaction
+      if (publicClient && address) {
+        publicClient.getBalance({ address }).then(setEthBalance).catch(console.error);
+      }
     }
-  }, [isSuccess]);
+  }, [isSuccess, publicClient, address]);
 
   const executeZap = async () => {
     if (!address || !ethAmount || parseFloat(ethAmount) <= 0) {
@@ -113,17 +151,18 @@ export const JPYCZap = () => {
       {/* ETH Input Panel */}
       <SwapPanel
         title={t("common.you_pay")}
-        selectedToken={ETH_TOKEN}
-        tokens={[ETH_TOKEN]}
+        selectedToken={ethToken}
+        tokens={[ethToken]}
         onSelect={() => {}} // Single token selection
         isEthBalanceFetching={false}
         amount={ethAmount}
         onAmountChange={setEthAmount}
         showMaxButton={true}
+        showPercentageSlider={ethBalance > 0n}
         onMax={() => {
-          if (ETH_TOKEN.balance) {
+          if (ethBalance > 0n) {
             // Reserve ~0.01 ETH for gas
-            const maxEth = ETH_TOKEN.balance - parseEther("0.01");
+            const maxEth = ethBalance - parseEther("0.01");
             if (maxEth > 0n) {
               setEthAmount(formatEther(maxEth));
             }
