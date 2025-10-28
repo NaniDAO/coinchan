@@ -24,17 +24,17 @@ import { ConnectMenu } from "./ConnectMenu";
  */
 // Custom slippage options for JPYC zap (higher due to low liquidity)
 const JPYC_ZAP_SLIPPAGE_OPTIONS = [
-  { label: "2%", value: 200n },
-  { label: "3%", value: 300n },
-  { label: "5%", value: 500n },
   { label: "10%", value: 1000n },
+  { label: "20%", value: 2000n },
+  { label: "30%", value: 3000n },
+  { label: "40%", value: 4000n },
 ];
 
 export const JPYCZap = () => {
   const { t } = useTranslation();
   const { address, isConnected } = useAccount();
   const [ethAmount, setEthAmount] = useState("");
-  const [slippageBps, setSlippageBps] = useState<bigint>(500n); // 5% default for low liquidity
+  const [slippageBps, setSlippageBps] = useState<bigint>(3000n); // 30% default for illiquid conditions
   const [swapBps] = useState<bigint>(5000n); // 50/50 split
   const [txHash, setTxHash] = useState<`0x${string}`>();
   const [txError, setTxError] = useState<string | null>(null);
@@ -240,7 +240,7 @@ export const JPYCZap = () => {
         </ul>
         <div className="mt-2 pt-2 border-t border-border/30">
           <p className="text-xs text-amber-600 dark:text-amber-400">
-            ⚠️ Default slippage is 5% due to low liquidity in JPYC pools. Increase to 10% if transactions fail.
+            ℹ️ {t("jpyc.high_slippage_note")}
           </p>
         </div>
       </div>

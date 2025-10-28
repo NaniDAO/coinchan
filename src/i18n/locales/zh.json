@@ -1125,7 +1125,8 @@
     "use_direct_route": "请暂时使用直接路由",
     "farming_coming_soon": "JPYC农场即将推出",
     "check_back_later": "请稍后查看农场机会",
-    "insufficient_liquidity": "此金额的池流动性过低"
+    "insufficient_liquidity": "此金额的池流动性过低",
+    "high_slippage_note": "由于当前市场流动性不足，默认滑点为30%。可根据需要调整。"
   },
   "errors": {
     "wallet_connection": "连接钱包错误",

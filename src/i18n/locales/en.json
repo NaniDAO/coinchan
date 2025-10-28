@@ -140,6 +140,8 @@
     "emission_preview": "Emission Preview",
     "farm_created_successfully": "Farm created successfully! Check the Browse tab to see your new farm.",
     "error_loading_farm": "Error loading farm",
+    "high_slippage_note": "Default 30% slippage due to current illiquid market conditions. Adjust as needed.",
+    "very_high_slippage_warning": "Extremely high slippage - you may receive significantly less than expected",
     "please_select_token_with_lp_pool": "Please select a token with an LP pool",
     "selected_token_no_valid_pool": "Selected token has no valid liquidity pool",
     "selected_token_no_liquidity": "Selected token pool has no liquidity",
@@ -986,7 +988,8 @@
     "zap_calculation_error": "Error calculating zap",
     "zapping": "Zapping...",
     "execute_zap": "Execute Zap",
-    "zap_successful": "Zap successful! LP tokens added to your wallet."
+    "zap_successful": "Zap successful! LP tokens added to your wallet.",
+    "high_slippage_note": "Default 30% slippage due to current illiquid market conditions. Adjust as needed."
   },
   "errors": {
     "unexpected": "Unexpected error occurred",
