@@ -764,13 +764,17 @@ export const EnsBuySell = () => {
                         {!isSuccess && (
                           <>
                             <div className="animate-pulse h-4 w-4 bg-yellow-500 rounded-full"></div>
-                            <span className="font-mono font-bold text-yellow-500 text-sm">[{t("common.status_confirming")}]</span>
+                            <span className="font-mono font-bold text-yellow-500 text-sm">
+                              [{t("common.status_confirming")}]
+                            </span>
                           </>
                         )}
                         {isSuccess && (
                           <>
                             <div className="h-4 w-4 bg-green-500 rounded-full"></div>
-                            <span className="font-mono font-bold text-green-500 text-sm">[{t("common.status_success")}]</span>
+                            <span className="font-mono font-bold text-green-500 text-sm">
+                              [{t("common.status_success")}]
+                            </span>
                           </>
                         )}
                       </div>

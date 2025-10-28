@@ -12,9 +12,7 @@ export const useErc20Price = ({ tokenAddress }: { tokenAddress?: Address }) => {
   const normalizedAddress = tokenAddress ? tokenAddress.toLowerCase() : undefined;
 
   // Get the Chainlink price feed address for this token
-  const priceFeedAddress = normalizedAddress
-    ? CHAINLINK_PRICE_FEEDS[normalizedAddress]
-    : undefined;
+  const priceFeedAddress = normalizedAddress ? CHAINLINK_PRICE_FEEDS[normalizedAddress] : undefined;
 
   // Fetch price from Chainlink
   const { data: priceData, isLoading } = useReadContract({
@@ -38,7 +36,6 @@ export const useErc20Price = ({ tokenAddress }: { tokenAddress?: Address }) => {
       staleTime: 3600_000, // 1 hour (decimals don't change)
     },
   });
-
 
   // Parse price data
   if (!priceData || !decimalsData) {

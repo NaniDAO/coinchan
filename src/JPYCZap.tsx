@@ -239,9 +239,7 @@ export const JPYCZap = () => {
           <li>{t("jpyc.zap_step_4")}</li>
         </ul>
         <div className="mt-2 pt-2 border-t border-border/30">
-          <p className="text-xs text-amber-600 dark:text-amber-400">
-            ℹ️ {t("jpyc.high_slippage_note")}
-          </p>
+          <p className="text-xs text-amber-600 dark:text-amber-400">ℹ️ {t("jpyc.high_slippage_note")}</p>
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { useAllCoins } from "@/hooks/metadata/use-all-coins";
 import { useIncentiveStreams, useUserIncentivePositions } from "@/hooks/use-incentive-streams";
+import { useUserFarmPositionsFromContract } from "@/hooks/use-user-farm-positions";
 import { useFarmsSummary } from "@/hooks/use-farms-summary";
 import { useZChefActions } from "@/hooks/use-zchef-contract";
 import { isUserRejectionError } from "@/lib/errors";
@@ -19,8 +20,19 @@ export const ManageFarms = () => {
 
   const { tokens } = useAllCoins();
   const { data: allStreams } = useIncentiveStreams();
-  const { data: userPositions, isLoading: isLoadingPositions } = useUserIncentivePositions();
+  const { data: indexerPositions, isLoading: isLoadingIndexer } = useUserIncentivePositions();
+  const { data: contractPositions, isLoading: isLoadingContract } = useUserFarmPositionsFromContract();
   const { harvest } = useZChefActions();
+
+  // Use contract positions as fallback if indexer returns empty
+  const userPositions = useMemo(() => {
+    if (indexerPositions && indexerPositions.length > 0) {
+      return indexerPositions;
+    }
+    return contractPositions || [];
+  }, [indexerPositions, contractPositions]);
+
+  const isLoadingPositions = isLoadingIndexer && isLoadingContract;
 
   const relevantStreams = useMemo(() => {
     if (!allStreams || !userPositions) return undefined;

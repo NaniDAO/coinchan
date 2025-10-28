@@ -3,7 +3,15 @@ import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
 import { CheckTheChainAbi, CheckTheChainAddress } from "@/constants/CheckTheChain";
 import type { IncentiveStream } from "@/hooks/use-incentive-streams";
 import { isCookbookCoin } from "@/lib/coin-utils";
-import { type TokenMeta, CULT_POOL_KEY, ENS_POOL_KEY, WLFI_POOL_KEY, WLFI_POOL_ID, JPYC_POOL_KEY, JPYC_POOL_ID } from "@/lib/coins";
+import {
+  type TokenMeta,
+  CULT_POOL_KEY,
+  ENS_POOL_KEY,
+  WLFI_POOL_KEY,
+  WLFI_POOL_ID,
+  JPYC_POOL_KEY,
+  JPYC_POOL_ID,
+} from "@/lib/coins";
 import { SINGLE_ETH_SLIPPAGE_BPS, SWAP_FEE, computePoolKey, getAmountOut, withSlippage } from "@/lib/swap";
 import { useCallback } from "react";
 import { formatEther, formatUnits, parseEther } from "viem";

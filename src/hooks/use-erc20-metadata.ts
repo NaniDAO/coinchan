@@ -29,7 +29,6 @@ export const useErc20Metadata = ({ tokenAddress }: { tokenAddress?: Address }) =
     },
   });
 
-
   if (!data || !data[0]?.result || !data[1]?.result) {
     return {
       symbol: undefined,

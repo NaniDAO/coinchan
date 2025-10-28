@@ -214,57 +214,17 @@ export function useUserIncentivePositions(userAddress?: `0x${string}`) {
       const positions = data.data.incentiveUserPositions.items;
 
       const formattedPositions = positions.map((pos: any) => {
-        const stream = pos.incentiveStream;
-
-        const share = Number(pos.shares);
-        const totalShares = Number(stream.totalShares);
-        const rewardRate = Number(stream.rewardRate);
-        const isActive = stream.status === "ACTIVE";
-
-        const sharePercentage = totalShares > 0 ? ((share / totalShares) * 100).toFixed(4) : "0.0000";
-
-        const estimatedApy =
-          totalShares > 0 && isActive ? ((rewardRate * 31536000 * share) / (totalShares * 1e12)).toFixed(2) : "0.00";
-
         return {
-          // Position details
-          chefId: pos.chefId.toString(),
+          chefId: BigInt(pos.chefId),
           user: pos.user,
-          shares: pos.shares.toString(),
-          rewardDebt: pos.rewardDebt.toString(),
-          pendingRewards: pos.pendingRewards.toString(),
-          totalDeposited: pos.totalDeposited.toString(),
-          totalWithdrawn: pos.totalWithdrawn.toString(),
-          totalHarvested: pos.totalHarvested.toString(),
-          sharePercentage,
-          estimatedApy,
-
-          // Stream info
-          streamInfo: {
-            creator: stream.creator,
-            lpToken: stream.lpToken,
-            lpId: stream.lpId.toString(),
-            rewardToken: stream.rewardToken,
-            rewardId: stream.rewardId.toString(),
-            rewardAmount: stream.rewardAmount.toString(),
-            rewardRate: stream.rewardRate.toString(),
-            startTime: stream.startTime.toString(),
-            endTime: stream.endTime.toString(),
-            totalShares: stream.totalShares.toString(),
-            accRewardPerShare: stream.accRewardPerShare.toString(),
-            status: stream.status,
-          },
-
-          // Token metadata
-          tokenInfo: {
-            rewardSymbol: stream.rewardCoin.symbol,
-            rewardDecimals: stream.rewardCoin.decimals,
-          },
-
-          timestamps: {
-            createdAt: pos.createdAt.toString(),
-            updatedAt: pos.updatedAt.toString(),
-          },
+          shares: BigInt(pos.shares),
+          rewardDebt: BigInt(pos.rewardDebt),
+          pendingRewards: BigInt(pos.pendingRewards),
+          totalDeposited: BigInt(pos.totalDeposited),
+          totalWithdrawn: BigInt(pos.totalWithdrawn),
+          totalHarvested: BigInt(pos.totalHarvested),
+          createdAt: pos.createdAt,
+          updatedAt: pos.updatedAt,
         };
       });
 

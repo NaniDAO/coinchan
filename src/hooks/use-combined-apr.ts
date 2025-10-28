@@ -67,9 +67,7 @@ export function useCombinedApr({ stream, lpToken, enabled = true }: UseCombinedA
   const isVeZAMM = rewardId === 87n;
   // More robust ERC20 detection: check for 0n, "0" string, or JPYC farm specifically
   const isErc20Reward =
-    rewardId === 0n ||
-    String(rewardId) === "0" ||
-    (stream?.chefId && BigInt(stream.chefId) === JPYC_FARM_CHEF_ID);
+    rewardId === 0n || String(rewardId) === "0" || (stream?.chefId && BigInt(stream.chefId) === JPYC_FARM_CHEF_ID);
 
   // Get ZAMM reserves if reward token is veZAMM (for 1:1 pricing)
   const { data: zammReserves } = useReserves({
