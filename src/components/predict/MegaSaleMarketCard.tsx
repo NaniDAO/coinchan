@@ -1,5 +1,10 @@
-import React, { useState } from "react";
-import { useAccount, useReadContract, useReadContracts } from "wagmi";
+import React, { useMemo, useState } from "react";
+import {
+  useAccount,
+  useReadContract,
+  useReadContracts,
+  useWriteContract,
+} from "wagmi";
 import {
   MegaSalePMResolverAddress,
   MegaSalePMResolverAbi,
@@ -40,6 +45,10 @@ interface MegaSaleOptionRowProps {
   marketType: "parimutuel" | "amm";
   contractAddress: `0x${string}`;
   onTradeClick: (position: "yes" | "no") => void;
+  // NEW:
+  canResolve?: boolean;
+  onResolve?: () => void;
+  isResolving?: boolean;
 }
 
 export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
@@ -50,6 +59,9 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
   yesCost,
   noCost,
   onTradeClick,
+  canResolve = false,
+  onResolve,
+  isResolving = false,
 }) => {
   const { address } = useAccount();
 
@@ -60,21 +72,13 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
     args: [marketId],
   });
 
-  // User YES balance (token id = marketId)
   const { data: yesBal } = useTokenBalance({
-    token: {
-      id: marketId,
-      address: PredictionAMMAddress,
-    },
+    token: { id: marketId, address: PredictionAMMAddress },
     address,
   });
 
-  // User NO balance (token id = noId)
   const { data: noBal } = useTokenBalance({
-    token: {
-      id: noId ?? 0n,
-      address: PredictionAMMAddress,
-    },
+    token: { id: noId ?? 0n, address: PredictionAMMAddress },
     address,
   });
 
@@ -84,7 +88,6 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
 
   return (
     <div className="grid grid-cols-[1fr_auto_auto_auto] gap-3 items-center py-4 px-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 rounded-lg transition-colors border-b border-zinc-200 dark:border-zinc-800 last:border-b-0">
-      {/* Outcome label, volume, and holding indicator */}
       <div>
         <div className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
           {label}
@@ -111,7 +114,6 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
         )}
       </div>
 
-      {/* Percentage chance - large and prominent */}
       <div className="text-right">
         <div className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
           {yesPercent.toFixed(2)}%
@@ -121,33 +123,49 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
         </div>
       </div>
 
-      {/* Buy Yes button */}
-      <Button
-        onClick={() => onTradeClick("yes")}
-        className="bg-emerald-500 hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-700 text-white font-semibold px-4 py-2 h-auto rounded-md shadow-sm transition-all"
-        size="sm"
-      >
-        <div className="flex flex-col items-center gap-0.5">
-          <span className="text-[10px] uppercase tracking-wide opacity-90">
-            buy Yes
-          </span>
-          <span className="text-sm">{yesCost}</span>
-        </div>
-      </Button>
+      {/* If resolvable, show a single Resolve button; else show trading buttons */}
+      {canResolve ? (
+        <>
+          <div className="col-span-2 flex justify-end">
+            <Button
+              onClick={onResolve}
+              disabled={isResolving}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 h-auto rounded-md shadow-sm transition-all"
+              size="sm"
+            >
+              {isResolving ? "Resolving..." : "Resolve"}
+            </Button>
+          </div>
+        </>
+      ) : (
+        <>
+          <Button
+            onClick={() => onTradeClick("yes")}
+            className="bg-emerald-500 hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-700 text-white font-semibold px-4 py-2 h-auto rounded-md shadow-sm transition-all"
+            size="sm"
+          >
+            <div className="flex flex-col items-center gap-0.5">
+              <span className="text-[10px] uppercase tracking-wide opacity-90">
+                buy Yes
+              </span>
+              <span className="text-sm">{yesCost}</span>
+            </div>
+          </Button>
 
-      {/* Buy No button */}
-      <Button
-        onClick={() => onTradeClick("no")}
-        className="bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 font-semibold px-4 py-2 h-auto rounded-md shadow-sm transition-all"
-        size="sm"
-      >
-        <div className="flex flex-col items-center gap-0.5">
-          <span className="text-[10px] uppercase tracking-wide opacity-70">
-            buy No
-          </span>
-          <span className="text-sm">{noCost}</span>
-        </div>
-      </Button>
+          <Button
+            onClick={() => onTradeClick("no")}
+            className="bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 font-semibold px-4 py-2 h-auto rounded-md shadow-sm transition-all"
+            size="sm"
+          >
+            <div className="flex flex-col items-center gap-0.5">
+              <span className="text-[10px] uppercase tracking-wide opacity-70">
+                buy No
+              </span>
+              <span className="text-sm">{noCost}</span>
+            </div>
+          </Button>
+        </>
+      )}
     </div>
   );
 };
@@ -173,6 +191,7 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
   onTradeSuccess,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isResolvingId, setIsResolvingId] = useState<bigint | null>(null); // NEW
   const [selectedMarket, setSelectedMarket] = useState<{
     marketId: bigint;
     yesSupply: bigint;
@@ -182,33 +201,35 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
     position: "yes" | "no";
   } | null>(null);
 
-  // Fetch current bid amount from MegaSalePM
   const { data: currentBidAmount } = useReadContract({
     address: MegaSalePMResolverAddress as `0x${string}`,
     abi: MegaSalePMResolverAbi,
     functionName: "totalActiveBidAmount",
-    query: {
-      refetchInterval: 15000, // Refresh every 15 seconds
-    },
+    query: { refetchInterval: 15000 },
   });
 
-  // Fetch official deadline
   const { data: officialDeadline } = useReadContract({
     address: MegaSalePMResolverAddress as `0x${string}`,
     abi: MegaSalePMResolverAbi,
     functionName: "closeAuctionAtTimestamp",
-    query: {
-      refetchInterval: 60000, // Refresh every minute
-    },
+    query: { refetchInterval: 60000 },
   });
 
-  // Fetch quotes for buying shares to show accurate prices
-  // Quote for 1 full share (1e18 share units) to get cost per share in wstETH
-  // Per PAMM.sol quoteBuyYes: wstInFair = wstETH cost for buying `yesOut` shares
-  const quoteAmount = 1000000000000000000n; // 1.0 share (1e18 share units)
+  // bets(marketId) -> (amount, deadline)
+  const { data: betsData } = useReadContracts({
+    contracts: markets.map((m) => ({
+      address: MegaSalePMResolverAddress as `0x${string}`,
+      abi: MegaSalePMResolverAbi,
+      functionName: "bets",
+      args: [m.marketId],
+    })),
+    query: { refetchInterval: 15000, enabled: markets.length > 0 },
+  });
+
+  // Quotes for AMM (unchanged)
+  const quoteAmount = 1000000000000000000n;
   const ammMarkets = markets.filter((m) => m.marketType === "amm");
 
-  // Get YES quotes - returns (oppIn, wstInFair, p0_num, p0_den, p1_num, p1_den)
   const { data: yesQuotes } = useReadContracts({
     contracts: ammMarkets.map((market) => ({
       address: market.contractAddress,
@@ -216,12 +237,9 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
       functionName: "quoteBuyYes",
       args: [market.marketId, quoteAmount],
     })),
-    query: {
-      refetchInterval: 15000,
-    },
+    query: { refetchInterval: 15000 },
   });
 
-  // Get NO quotes - independently quoted for accurate spread display
   const { data: noQuotes } = useReadContracts({
     contracts: ammMarkets.map((market) => ({
       address: market.contractAddress,
@@ -229,15 +247,32 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
       functionName: "quoteBuyNo",
       args: [market.marketId, quoteAmount],
     })),
-    query: {
-      refetchInterval: 15000,
-    },
+    query: { refetchInterval: 15000 },
   });
+
+  const { writeContractAsync } = useWriteContract();
+
+  const handleResolve = async (marketId: bigint) => {
+    try {
+      setIsResolvingId(marketId);
+      await writeContractAsync({
+        address: MegaSalePMResolverAddress as `0x${string}`,
+        abi: MegaSalePMResolverAbi,
+        functionName: "resolveBet",
+        args: [marketId],
+      });
+      // Trigger a refetch outside: parent already refetches when onTradeSuccess fires
+      onTradeSuccess?.();
+    } catch (e) {
+      console.error("resolveBet failed:", e);
+    } finally {
+      setIsResolvingId(null);
+    }
+  };
 
   const handleTradeClick = (marketId: bigint, position: "yes" | "no") => {
     const market = markets.find((m) => m.marketId === marketId);
     if (!market) return;
-
     setSelectedMarket({
       marketId: market.marketId,
       yesSupply: market.yesSupply,
@@ -249,10 +284,7 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
     setIsModalOpen(true);
   };
 
-  // Calculate odds and prices for each market
-  // Per PAMM.sol (lines 896-901): impliedYesProb = rNo / (rYes + rNo)
-  // Prices are from path-fair EV charge via Simpson's rule (fee-aware, lines 321-376)
-  // Note: PAMM uses pot-based payouts (not fixed $1 per share like Polymarket)
+  // ---- existing getMarketData (unchanged) ----
   const getMarketData = (market: (typeof markets)[0], quoteIdx: number) => {
     let yesPercent = 50;
     let yesCost = "0.500";
@@ -265,17 +297,13 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
     ) {
       const totalReserves = market.rYes + market.rNo;
       if (totalReserves > 0n) {
-        // Implied YES probability from AMM reserves (PAMM.sol line 897: return (rNo, rYes + rNo))
-        // YES probability = rNo / (rYes + rNo)
         yesPercent = (Number(market.rNo) / Number(totalReserves)) * 100;
 
-        // Get actual prices from quotes (not just probability)
         const hasYesQuote =
           yesQuotes &&
           yesQuotes[quoteIdx] &&
           yesQuotes[quoteIdx].status === "success" &&
           yesQuotes[quoteIdx].result;
-
         const hasNoQuote =
           noQuotes &&
           noQuotes[quoteIdx] &&
@@ -296,16 +324,9 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
           // wstInFair (index 1) = path-fair EV charge in wstETH for buying `quoteAmount` YES shares
           // This includes fees (10 bps pool fee) + optional PMTuning adjustments (lines 429-457)
           const wstInFair = yesQuote[1];
-          if (wstInFair > 0n) {
-            // Cost per share = wstInFair / quoteAmount = wstETH per share
-            // Example: if wstInFair = 0.65e18 for 1e18 shares, then cost = 0.65 wstETH per share
-            const yesCostNum = Number(wstInFair) / Number(quoteAmount);
-            yesCost = yesCostNum.toFixed(3);
-          }
-        } else {
-          // Fallback to probability-based pricing if quote unavailable
-          yesCost = (yesPercent / 100).toFixed(3);
-        }
+          if (wstInFair > 0n)
+            yesCost = (Number(wstInFair) / Number(quoteAmount)).toFixed(3);
+        } else yesCost = (yesPercent / 100).toFixed(3);
 
         if (hasNoQuote) {
           // Independently quote NO shares - Per PAMM.sol quoteBuyNo (lines 939-969)
@@ -319,19 +340,11 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
             bigint,
           ];
           const wstInFair = noQuote[1];
-          if (wstInFair > 0n) {
-            // Cost per NO share = wstInFair / quoteAmount = wstETH per NO share
-            // YES + NO prices can sum to > 1.0 due to fees/spread (Polymarket-style bid-ask spread)
-            const noCostNum = Number(wstInFair) / Number(quoteAmount);
-            noCost = noCostNum.toFixed(3);
-          }
-        } else {
-          // Fallback to probability-based pricing if quote unavailable
-          noCost = ((100 - yesPercent) / 100).toFixed(3);
-        }
+          if (wstInFair > 0n)
+            noCost = (Number(wstInFair) / Number(quoteAmount)).toFixed(3);
+        } else noCost = ((100 - yesPercent) / 100).toFixed(3);
       }
     } else {
-      // Parimutuel - use supply ratios for both probability and pricing
       const totalSupply = market.yesSupply + market.noSupply;
       if (totalSupply > 0n) {
         yesPercent = (Number(market.yesSupply) / Number(totalSupply)) * 100;
@@ -343,18 +356,36 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
     return { yesPercent, yesCost, noCost };
   };
 
-  // Calculate total pot (wstETH) across all markets
-  // pot correctly accumulates wstETH from both YES and NO purchases
+  // Totals
   const totalPot = markets.reduce((sum, m) => sum + m.pot, 0n);
   const currentAmount = currentBidAmount || 0n;
+
+  // Build a quick lookup for bets by marketId
+  const betByMarketId = useMemo(() => {
+    const map = new Map<bigint, { amount?: bigint; deadline?: bigint }>();
+    if (betsData) {
+      markets.forEach((m, i) => {
+        const entry = betsData[i];
+        if (entry?.status === "success" && entry.result) {
+          const [amount, deadline] = entry.result as unknown as [
+            bigint,
+            bigint,
+          ];
+          map.set(m.marketId, { amount, deadline });
+        } else {
+          map.set(m.marketId, {});
+        }
+      });
+    }
+    return map;
+  }, [betsData, markets]);
 
   return (
     <>
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-lg max-w-4xl mx-auto">
-        {/* Header - Polymarket style */}
+        {/* Header (unchanged) */}
         <div className="p-6 border-b border-zinc-200 dark:border-zinc-800">
           <div className="flex items-start gap-4">
-            {/* Logo */}
             <img
               src={MEGAETH_LOGO}
               alt="MegaETH"
@@ -363,14 +394,10 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
                 (e.target as HTMLImageElement).style.display = "none";
               }}
             />
-
             <div className="flex-1 min-w-0">
-              {/* Market Question */}
               <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
                 MegaETH public sale total commitments?
               </h2>
-
-              {/* Stats row */}
               <div className="flex items-center gap-4 text-sm">
                 <div className="text-zinc-600 dark:text-zinc-400">
                   <span className="font-semibold text-zinc-900 dark:text-zinc-100">
@@ -378,7 +405,6 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
                   </span>{" "}
                   Total Volume
                 </div>
-
                 {officialDeadline !== undefined && officialDeadline > 0n && (
                   <div className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-400">
                     <Calendar className="h-3.5 w-3.5" />
@@ -395,7 +421,6 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
                 )}
               </div>
 
-              {/* Current progress */}
               <div className="mt-3 text-sm">
                 <span className="text-zinc-600 dark:text-zinc-400">
                   Current raised:{" "}
@@ -408,7 +433,7 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
           </div>
         </div>
 
-        {/* Outcomes list - Polymarket style */}
+        {/* Outcomes */}
         <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
           <div className="px-2 py-2 bg-zinc-50 dark:bg-zinc-900/50">
             <div className="grid grid-cols-[1fr_auto_auto_auto] gap-3 px-4 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
@@ -421,29 +446,15 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
 
           {BETTING_OPTIONS.map((option, idx) => {
             const market = markets.find((m) => {
-              // Match market by extracting the amount from description
-              // Description format per MegaSalePM.sol line 42: "MegaSale totalActiveBidAmount() >= <amount> USDT by <deadline> Unix epoch time..."
-              // Example: "MegaSale totalActiveBidAmount() >= 1000000000000000 USDT by 1735689600 Unix epoch time..."
               const match = m.description.match(/>=\s*(\d+)\s*USDT/);
-              if (!match) {
-                console.warn(
-                  "Failed to parse market description:",
-                  m.description,
-                );
-                return false;
-              }
+              if (!match) return false;
               const descAmount = BigInt(match[1]);
               return descAmount === option.amount;
             });
 
-            if (!market) {
-              console.warn(
-                `No market found for betting option: ${option.label} (${option.amount})`,
-              );
-              return null;
-            }
+            if (!market) return null;
 
-            // Find quote index for AMM markets
+            // AMM quote index
             const ammMarkets = markets.filter((m) => m.marketType === "amm");
             const quoteIdx = ammMarkets.findIndex(
               (m) => m.marketId === market.marketId,
@@ -453,9 +464,13 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
               market,
               quoteIdx,
             );
-
-            // Use pot which tracks total wstETH from both YES and NO purchases
             const liquidity = market.pot;
+
+            // ---- NEW: compute canResolve from bets() + totalActiveBidAmount ----
+            const bet = betByMarketId.get(market.marketId);
+            const threshold = bet?.amount ?? option.amount; // hard fallback to label amount if bets() missing
+            const canResolve =
+              !market.resolved && currentAmount >= (threshold ?? 0n);
 
             return (
               <MegaSaleOptionRow
@@ -471,12 +486,14 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
                 onTradeClick={(position) =>
                   handleTradeClick(market.marketId, position)
                 }
+                canResolve={canResolve}
+                onResolve={() => handleResolve(market.marketId)}
+                isResolving={isResolvingId === market.marketId}
               />
             );
           })}
         </div>
 
-        {/* Footer note */}
         <div className="px-6 py-4 bg-zinc-50 dark:bg-zinc-900/50 border-t border-zinc-200 dark:border-zinc-800 space-y-2">
           <p className="text-xs text-zinc-500 dark:text-zinc-400 text-center">
             Volume = total wstETH deposited in market (pot). Includes all YES
@@ -490,7 +507,7 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
         </div>
       </div>
 
-      {/* Trade Modal */}
+      {/* Trade Modal (unchanged) */}
       {selectedMarket && (
         <TradeModal
           isOpen={isModalOpen}
@@ -504,7 +521,7 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
           resolver={MegaSalePMResolverAddress}
           initialPosition={selectedMarket.position}
           onTransactionSuccess={() => {
-            if (onTradeSuccess) onTradeSuccess();
+            onTradeSuccess?.();
           }}
         />
       )}
