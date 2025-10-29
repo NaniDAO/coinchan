@@ -25,7 +25,7 @@ const BETTING_OPTIONS = [
 interface MegaSaleOptionRowProps {
   marketId: bigint;
   label: string;
-  volume: bigint;
+  liquidity: bigint;
   yesPercent: number;
   yesCost: string;
   noCost: string;
@@ -36,7 +36,7 @@ interface MegaSaleOptionRowProps {
 
 const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
   label,
-  volume,
+  liquidity,
   yesPercent,
   yesCost,
   noCost,
@@ -48,7 +48,7 @@ const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
       <div>
         <div className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{label}</div>
         <div className="text-xs text-zinc-500 dark:text-zinc-400">
-          {Number(formatEther(volume)).toFixed(2)} wstETH Vol.
+          {Number(formatEther(liquidity)).toFixed(3)} wstETH Vol.
         </div>
       </div>
 
@@ -269,6 +269,8 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({ markets,
     return { yesPercent, yesCost, noCost };
   };
 
+  // Calculate total pot (wstETH) across all markets
+  // pot correctly accumulates wstETH from both YES and NO purchases
   const totalPot = markets.reduce((sum, m) => sum + m.pot, 0n);
   const currentAmount = currentBidAmount || 0n;
 
@@ -298,9 +300,9 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({ markets,
               <div className="flex items-center gap-4 text-sm">
                 <div className="text-zinc-600 dark:text-zinc-400">
                   <span className="font-semibold text-zinc-900 dark:text-zinc-100">
-                    {Number(formatEther(totalPot)).toFixed(2)} wstETH
+                    {Number(formatEther(totalPot)).toFixed(3)} wstETH
                   </span>{" "}
-                  Vol.
+                  Total Volume
                 </div>
 
                 {officialDeadline !== undefined && officialDeadline > 0n && (
@@ -332,7 +334,7 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({ markets,
         <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
           <div className="px-2 py-2 bg-zinc-50 dark:bg-zinc-900/50">
             <div className="grid grid-cols-[1fr_auto_auto_auto] gap-3 px-4 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
-              <div>Outcome</div>
+              <div>Outcome (Volume)</div>
               <div className="text-right">% Chance</div>
               <div></div>
               <div></div>
@@ -364,12 +366,15 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({ markets,
 
             const { yesPercent, yesCost, noCost } = getMarketData(market, quoteIdx);
 
+            // Use pot which tracks total wstETH from both YES and NO purchases
+            const liquidity = market.pot;
+
             return (
               <MegaSaleOptionRow
                 key={idx}
                 marketId={market.marketId}
                 label={option.label}
-                volume={market.pot}
+                liquidity={liquidity}
                 yesPercent={yesPercent}
                 yesCost={`${yesCost}Ξ`}
                 noCost={`${noCost}Ξ`}
@@ -384,7 +389,8 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({ markets,
         {/* Footer note */}
         <div className="px-6 py-4 bg-zinc-50 dark:bg-zinc-900/50 border-t border-zinc-200 dark:border-zinc-800 space-y-2">
           <p className="text-xs text-zinc-500 dark:text-zinc-400 text-center">
-            Prices in wstETH per share. % Chance shows market probability. Prices include 0.1% AMM fee + slippage.
+            Volume = total wstETH deposited in market (pot). Includes all YES and NO purchases. Prices in wstETH per
+            share include 0.1% AMM fee + slippage.
           </p>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 text-center font-medium">
             ⚡ Markets resolve early if threshold is reached before deadline, or at deadline based on final amount.
