@@ -209,7 +209,7 @@ export const Route = createRootRoute({
                 </DropdownMenu>
               </div>
 
-              {/* Farm (dropdown) - UPDATED */}
+              {/* Farm (dropdown) - Back in header navigation */}
               <div className="flex-1 min-w-0 relative">
                 <DropdownMenu open={isFarmOpen} onOpenChange={setIsFarmOpen} modal={false}>
                   <DropdownMenuTrigger asChild>
@@ -231,12 +231,6 @@ export const Route = createRootRoute({
                     onMouseLeave={() => setIsFarmOpen(false)}
                   >
                     <DropdownMenuItem asChild>
-                      <Link to="/stake" className={itemClasses}>
-                        <TrendingUp className="h-4 w-4" />
-                        <span>{t("common.stake", "Stake")}</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
                       <Link to="/farm" className={itemClasses}>
                         <Layers className="h-4 w-4" />
                         <span>{t("common.farm")}</span>
@@ -248,6 +242,12 @@ export const Route = createRootRoute({
                         <span>{t("navigation.create", "Create")}</span>
                       </Link>
                     </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/stake" className={itemClasses}>
+                        <TrendingUp className="h-4 w-4" />
+                        <span>{t("common.stake", "Stake")}</span>
+                      </Link>
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -255,7 +255,7 @@ export const Route = createRootRoute({
 
             {/* Desktop Right Side */}
             <div className="hidden md:flex items-center gap-2.5 flex-shrink-0">
-              <Link to="/raise">
+              <Link to="/create">
                 <Button variant="outline" size="sm">
                   {t("common.launch", "Launch")}
                 </Button>

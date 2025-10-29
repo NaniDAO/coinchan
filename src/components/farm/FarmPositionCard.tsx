@@ -3,10 +3,12 @@ import { useZChefPendingReward, useZChefUserBalance } from "@/hooks/use-zchef-co
 import { ETH_TOKEN, type TokenMeta } from "@/lib/coins";
 import { formatBalance, formatNumber } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
-import { formatEther } from "viem";
+import { formatEther, formatUnits } from "viem";
 import { useETHPrice } from "@/hooks/use-eth-price";
 import { useReserves } from "@/hooks/use-reserves";
-import { memo } from "react";
+import { useErc20Metadata } from "@/hooks/use-erc20-metadata";
+import { useErc20Price } from "@/hooks/use-erc20-price";
+import { memo, useMemo } from "react";
 
 // Hardcoded ZAMM pool ID for price calculations
 const ZAMM_POOL_ID = 22979666169544372205220120853398704213623237650449182409187385558845249460832n;
@@ -40,6 +42,44 @@ export const FarmPositionCard = memo(function FarmPositionCard({
   // Get real-time user balance from contract
   const { data: onchainUserBalance } = useZChefUserBalance(stream.chefId);
   const actualUserShares = onchainUserBalance ?? position.shares;
+
+  // Check if reward is ERC20 (rewardId === 0n)
+  const isErc20Reward = stream.rewardId === 0n || String(stream.rewardId) === "0";
+
+  // Get ERC20 metadata (symbol, decimals) for ERC20 rewards
+  const {
+    symbol: erc20Symbol,
+    decimals: erc20Decimals,
+    isLoading: isMetadataLoading,
+  } = useErc20Metadata({
+    tokenAddress: isErc20Reward ? (stream.rewardToken as `0x${string}`) : undefined,
+  });
+
+  // Get ERC20 price from Chainlink for USD value calculation
+  const { data: erc20Price } = useErc20Price({
+    tokenAddress: isErc20Reward ? (stream.rewardToken as `0x${string}`) : undefined,
+  });
+
+  // Hardcoded DAI metadata as fallback (DAI mainnet address)
+  const DAI_ADDRESS = "0x6B175474E89094C44Da98b954EedeAC495271d0F";
+  const isDaiToken = stream.rewardToken?.toLowerCase() === DAI_ADDRESS.toLowerCase();
+
+  // For ERC20 rewards, ALWAYS prioritize the ERC20 metadata over indexer data
+  // If still loading, show "Loading..." instead of wrong symbol from indexer
+  // For DAI specifically, use hardcoded values as ultimate fallback
+  const rewardSymbol = useMemo(() => {
+    if (isErc20Reward) {
+      return erc20Symbol || (isDaiToken ? "DAI" : isMetadataLoading ? "..." : "ERC20");
+    }
+    return stream.rewardCoin?.symbol || "???";
+  }, [isErc20Reward, erc20Symbol, isDaiToken, isMetadataLoading, stream.rewardCoin?.symbol]);
+
+  const rewardDecimals = useMemo(() => {
+    if (isErc20Reward) {
+      return erc20Decimals || (isDaiToken ? 18 : 18);
+    }
+    return stream.rewardCoin?.decimals || 18;
+  }, [isErc20Reward, erc20Decimals, isDaiToken, stream.rewardCoin?.decimals]);
 
   // Fetch ZAMM reserves if reward token is ZAMM
   const isZAMMReward = stream.rewardCoin?.symbol === "ZAMM";
@@ -81,7 +121,7 @@ export const FarmPositionCard = memo(function FarmPositionCard({
               </span>
               <div className="text-left sm:text-right">
                 <span className="font-mono font-bold text-green-600">
-                  {formatBalance(formatEther(actualPendingRewards), stream.rewardCoin?.symbol)}
+                  {formatBalance(formatUnits(actualPendingRewards, rewardDecimals), rewardSymbol)}
                 </span>
                 {ethPrice?.priceUSD &&
                 isZAMMReward &&
@@ -97,6 +137,14 @@ export const FarmPositionCard = memo(function FarmPositionCard({
                       const zammPriceInEth = ethReserve / zammReserve;
                       const zammPriceUsd = zammPriceInEth * ethPrice.priceUSD;
                       return formatNumber(rewardAmount * zammPriceUsd, 2);
+                    })()} USD
+                  </div>
+                ) : ethPrice?.priceUSD && isErc20Reward && erc20Price && actualPendingRewards > 0n ? (
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    ≈ ${(() => {
+                      const rewardAmount = parseFloat(formatUnits(actualPendingRewards, rewardDecimals));
+                      const tokenPriceUsd = erc20Price * ethPrice.priceUSD;
+                      return formatNumber(rewardAmount * tokenPriceUsd, 2);
                     })()} USD
                   </div>
                 ) : null}

@@ -99,6 +99,9 @@ export const ENS_ADDRESS = "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72" as `0x${
 // WLFI token address
 export const WLFI_ADDRESS = "0xdA5e1988097297dCdc1f90D4dFE7909e847CBeF6" as `0x${string}`;
 
+// JPYC token address
+export const JPYC_ADDRESS = "0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29" as `0x${string}`;
+
 // CULT pool configuration for hooked router
 export const CULT_POOL_KEY: {
   id0: bigint;
@@ -208,6 +211,33 @@ export const WLFI_POOL_KEY: {
 // WLFI pool ID (provided by user)
 export const WLFI_POOL_ID = 109150706156886812195108904483484593967435659529679008546360713268243188304041n;
 
+// JPYC pool configuration for Cookbook
+export const JPYC_POOL_KEY: {
+  id0: bigint;
+  id1: bigint;
+  token0: `0x${string}`;
+  token1: `0x${string}`;
+  feeOrHook: bigint;
+} = {
+  id0: 0n, // ETH token ID
+  id1: 0n, // JPYC token ID (ERC20 uses id=0)
+  token0: zeroAddress, // ETH address (0x0)
+  token1: JPYC_ADDRESS, // JPYC token address
+  feeOrHook: 30n, // 0.3% fee (30 bps)
+};
+
+// JPYC pool ID - computed using the same method as other pools
+export const JPYC_POOL_ID = computeCustomPoolId(
+  JPYC_POOL_KEY.id0,
+  JPYC_POOL_KEY.id1,
+  JPYC_POOL_KEY.token0,
+  JPYC_POOL_KEY.token1,
+  JPYC_POOL_KEY.feeOrHook,
+);
+
+// JPYC farm chef ID for DAI rewards
+export const JPYC_FARM_CHEF_ID = 90013580741451744416824693533159903514795472174037311667902418546056945695956n;
+
 // veZAMM token - Special ERC6909 cookbook coin for farm rewards
 export const VEZAMM_TOKEN: TokenMeta = {
   id: 87n, // ERC6909 cookbook coin ID 87
@@ -264,6 +294,26 @@ export const WLFI_TOKEN: TokenMeta = {
   token1: WLFI_ADDRESS, // Add token1 for identification
 };
 
+// Define JPYC token
+export const JPYC_TOKEN: TokenMeta = {
+  id: 0n, // Special JPYC token with ID 0 (ERC20)
+  name: "JPY Coin",
+  symbol: "JPYC",
+  source: "COOKBOOK", // Use Cookbook for JPYC pools
+  tokenUri: "https://content.wrappr.wtf/ipfs/bafkreigzo74zz6wlriztpznhuqxbh4nrucakv7dg6dxbroxlofzedthpce", // JPYC logo from IPFS
+  imageUrl: "https://content.wrappr.wtf/ipfs/bafkreigzo74zz6wlriztpznhuqxbh4nrucakv7dg6dxbroxlofzedthpce", // JPYC logo from IPFS
+  reserve0: 1000000000000000000000n, // 1000 ETH (placeholder - will be updated by hook)
+  reserve1: 2000000000000000000000000n, // 2M JPYC (18 decimals, placeholder)
+  swapFee: 30n, // 0.3% fee tier (30 bps)
+  balance: 0n, // User balance
+  // Custom properties for the JPYC pool
+  isCustomPool: true,
+  poolId: JPYC_POOL_ID,
+  poolKey: JPYC_POOL_KEY as any, // Cast to any to avoid type errors
+  decimals: 18, // JPYC has 18 decimals
+  token1: JPYC_ADDRESS, // Add token1 for identification
+};
+
 const INIT_CODE_HASH: Hex = "0x6594461b4ce3b23f6cbdcdcf50388d5f444bf59a82f6e868dfd5ef2bfa13f6d4"; // the 0x6594…f6d4 init code hash
 
 /**
@@ -304,6 +354,7 @@ export const HARDCODED_ADDR: Record<string, Address> = {
   USDT: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
   CULT: "0x0000000000c5dc95539589fbD24BE07c6C14eCa4",
   ENS: "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72",
+  JPYC: "0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29",
   ETH: "0x0000000000000000000000000000000000000000",
 };
 

@@ -40,14 +40,21 @@ export function CultFarmTab() {
   const { data: allStreams, isLoading: isLoadingStreams, error: streamsError } = useActiveIncentiveStreams();
 
   // Filter for CULT-only farms (where lpId matches CULT_POOL_ID)
+  // Also exclude expired streams based on endTime
   const cultFarms = useMemo(() => {
     try {
       if (!allStreams) return [];
 
+      const now = BigInt(Math.floor(Date.now() / 1000)); // Current unix timestamp
+
       return allStreams.filter((stream) => {
         try {
           const matchesPool = BigInt(stream.lpId) === CULT_POOL_ID;
-          return matchesPool;
+
+          // Exclude expired streams (endTime has passed)
+          const isNotExpired = stream.endTime > now;
+
+          return matchesPool && isNotExpired;
         } catch (err) {
           console.error(`Error processing stream ${stream?.chefId}:`, err);
           return false;

@@ -45,7 +45,6 @@ export function useConnectionRecovery() {
     return () => {
       clearInterval(validationInterval);
     };
-
   }, [isConnected, connector, disconnect]);
 
   // Separate effect for error handling

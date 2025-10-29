@@ -3,9 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useLandingData, useRandomLoadingText } from "../hooks/use-landing-data";
 import { useProtocolStats } from "../hooks/use-protocol-stats";
 import { useTheme } from "@/lib/theme";
-import { TrendingFarm } from "./TrendingFarm";
-import { ErrorBoundary } from "./ErrorBoundary";
-import { LoadingLogo } from "./ui/loading-logo";
+import { SortedTrendingFarms } from "./SortedTrendingFarms";
 import { GovernanceProposals } from "./GovernanceProposals";
 import { useNavigate } from "@tanstack/react-router";
 
@@ -149,30 +147,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
       {/* Trending Farms Section */}
       <div className="mb-4">
         <div className="text-lg mb-2 font-bold">{t("landing.trending")}:</div>
-        <div className="space-y-0 text-xs">
-          <ErrorBoundary fallback={<LoadingLogo />}>
-            <TrendingFarm
-              chefId="4753336069341144815480881976275515062700439895685858969634251725712618967096"
-              url="/wlfi"
-              imgUrl="/wlfi.png"
-              color="var(--diamond-gold)"
-            />
-          </ErrorBoundary>
-          <ErrorBoundary fallback={<LoadingLogo />}>
-            <TrendingFarm
-              chefId="2774204975865484998625983578957308881936129866247490838637631956688562044384"
-              url="/farm"
-            />
-          </ErrorBoundary>
-          <ErrorBoundary fallback={<LoadingLogo />}>
-            <TrendingFarm
-              chefId="12765013073856762050559588919702526147788652705749016564979941683606005588033"
-              url="/ens"
-              imgUrl="/ens.svg"
-              color="var(--diamond-blue)"
-            />
-          </ErrorBoundary>
-        </div>
+        <SortedTrendingFarms />
       </div>
       {/* Governance */}
       <GovernanceProposals />

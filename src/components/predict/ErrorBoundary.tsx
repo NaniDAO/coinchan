@@ -99,9 +99,7 @@ export class PredictErrorBoundary extends Component<Props, State> {
             </div>
             <div className="space-y-2">
               <h2 className="text-xl font-bold">Something went wrong</h2>
-              <p className="text-muted-foreground">
-                An unexpected error occurred. Please try refreshing the page.
-              </p>
+              <p className="text-muted-foreground">An unexpected error occurred. Please try refreshing the page.</p>
             </div>
             <Button onClick={this.handleReset} className="w-full" size="lg">
               Refresh Page

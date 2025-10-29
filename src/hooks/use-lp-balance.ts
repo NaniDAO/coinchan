@@ -1,7 +1,7 @@
 import { CookbookAbi, CookbookAddress } from "@/constants/Cookbook";
 import { ZAMMAbi, ZAMMAddress } from "@/constants/ZAAM";
 import { isCookbookCoin } from "@/lib/coin-utils";
-import { type TokenMeta, USDT_POOL_ID, CULT_POOL_ID, WLFI_POOL_ID } from "@/lib/coins";
+import { type TokenMeta, USDT_POOL_ID, CULT_POOL_ID, WLFI_POOL_ID, JPYC_POOL_ID } from "@/lib/coins";
 import { computePoolId } from "@/lib/swap";
 import { useQuery } from "@tanstack/react-query";
 import { useAccount, usePublicClient } from "wagmi";
@@ -42,11 +42,13 @@ export function useLpBalance({ lpToken, poolId: providedPoolId, enabled = true }
           // Calculate pool ID using the same logic as RemoveLiquidity
           const isCustomPool = lpToken.isCustomPool;
           if (isCustomPool) {
-            // Check if this is CULT token specifically
+            // Check if this is CULT, WLFI, or JPYC token specifically
             if (lpToken.symbol === "CULT") {
               poolId = CULT_POOL_ID;
             } else if (lpToken.symbol === "WLFI") {
               poolId = WLFI_POOL_ID;
+            } else if (lpToken.symbol === "JPYC") {
+              poolId = JPYC_POOL_ID;
             } else {
               poolId = lpToken.poolId || USDT_POOL_ID;
             }
@@ -59,13 +61,15 @@ export function useLpBalance({ lpToken, poolId: providedPoolId, enabled = true }
         }
 
         // Determine which ZAMM address to use for LP balance lookup
-        // CULT, ENS, and WLFI tokens should always use Cookbook
+        // CULT, ENS, WLFI, and JPYC tokens should always use Cookbook
         const isENS = lpToken.symbol === "ENS";
         const isWLFI = lpToken.symbol === "WLFI";
+        const isJPYC = lpToken.symbol === "JPYC";
         const isCookbook =
           lpToken.symbol === "CULT" ||
           isENS ||
           isWLFI ||
+          isJPYC ||
           (lpToken.isCustomPool ? false : lpToken.id ? isCookbookCoin(lpToken.id) : false);
         const targetZAMMAddress = isCookbook ? CookbookAddress : ZAMMAddress;
         const targetZAMMAbi = isCookbook ? CookbookAbi : ZAMMAbi;

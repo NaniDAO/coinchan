@@ -2,13 +2,7 @@ import { useRecommendations } from "@/hooks/use-recommendations";
 import type { Recommendation } from "@/types/recommendations";
 import { cn } from "@/lib/utils";
 import { LoadingLogo } from "@/components/ui/loading-logo";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { useTranslation } from "react-i18next";
 
 interface RecommendationsSidebarProps {
@@ -41,10 +35,10 @@ export function RecommendationsSidebar({
             {loading
               ? t("recommendations.loading")
               : recommendations && recommendations.recommendations.length > 0
-              ? recommendations.recommendations.length === 1
-                ? t("recommendations.suggestions_count", { count: recommendations.recommendations.length })
-                : t("recommendations.suggestions_count_plural", { count: recommendations.recommendations.length })
-              : t("recommendations.empty_state")}
+                ? recommendations.recommendations.length === 1
+                  ? t("recommendations.suggestions_count", { count: recommendations.recommendations.length })
+                  : t("recommendations.suggestions_count_plural", { count: recommendations.recommendations.length })
+                : t("recommendations.empty_state")}
           </SheetDescription>
         </SheetHeader>
 
@@ -123,9 +117,7 @@ function RecommendationCard({ recommendation, onClick, isSelected = false }: Rec
       className={cn(
         "w-full text-left p-3 sm:p-4 border-2 transition-all duration-150 min-h-[100px]",
         "hover:shadow-[2px_2px_0_var(--border)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]",
-        isSelected
-          ? "border-foreground bg-secondary"
-          : "border-border bg-card hover:border-foreground"
+        isSelected ? "border-foreground bg-secondary" : "border-border bg-card hover:border-foreground",
       )}
     >
       {/* Token Pair Header */}
@@ -184,7 +176,9 @@ function RecommendationCard({ recommendation, onClick, isSelected = false }: Rec
       {/* References */}
       {references && references.length > 0 && (
         <div className="mt-2 pt-2 border-t border-border/50">
-          <h4 className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase mb-1">{t("recommendations.references")}</h4>
+          <h4 className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase mb-1">
+            {t("recommendations.references")}
+          </h4>
           <div className="flex flex-wrap gap-x-2 gap-y-0.5">
             {references.map((ref, idx) => (
               <span key={idx} className="text-[10px] sm:text-xs text-muted-foreground">
@@ -222,7 +216,10 @@ function SignalBadge({ signal }: { signal: string }) {
 
   return (
     <span
-      className={cn("inline-block px-1.5 py-0.5 sm:px-2 text-[10px] sm:text-[11px] font-medium uppercase tracking-wide", getSignalColor(signal))}
+      className={cn(
+        "inline-block px-1.5 py-0.5 sm:px-2 text-[10px] sm:text-[11px] font-medium uppercase tracking-wide",
+        getSignalColor(signal),
+      )}
     >
       {signal.replace(/_/g, " ")}
     </span>

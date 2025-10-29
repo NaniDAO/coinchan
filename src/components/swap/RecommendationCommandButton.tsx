@@ -29,14 +29,14 @@ export function RecommendationCommandButton({
         !isConnected && "opacity-40 cursor-not-allowed border-terminal-black/30 bg-terminal-gray",
         isConnected && !loading && "border-terminal-black bg-terminal-white hover:bg-secondary",
         isConnected && loading && "border-terminal-black bg-terminal-white",
-        className
+        className,
       )}
       title={
         !isConnected
           ? "Connect wallet to view recommendations"
           : loading
-          ? "Loading recommendations..."
-          : `${recommendationCount} recommendation${recommendationCount === 1 ? "" : "s"} available`
+            ? "Loading recommendations..."
+            : `${recommendationCount} recommendation${recommendationCount === 1 ? "" : "s"} available`
       }
     >
       {/* Command Symbol */}
@@ -47,11 +47,7 @@ export function RecommendationCommandButton({
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className={cn(
-          "w-6 h-6",
-          loading && "animate-spin",
-          !isConnected && "text-muted-foreground"
-        )}
+        className={cn("w-6 h-6", loading && "animate-spin", !isConnected && "text-muted-foreground")}
       >
         {/* Command key symbol: ⌘ */}
         <path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z" />

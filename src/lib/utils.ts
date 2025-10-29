@@ -264,6 +264,48 @@ export function formatBalance(amount: string | number | bigint, symbol = ""): st
   return symbol ? `${Number(amount).toFixed(2)} ${symbol}` : amount.toString();
 }
 
+/**
+ * Format USDT amount (6 decimals) with commas and appropriate precision
+ * @param amount The amount in USDT base units (1e6 = 1 USDT)
+ * @param includeSymbol Whether to include the "USDT" suffix
+ * @returns Formatted USDT string with commas
+ */
+export function formatUSDT(amount: bigint | number | string, includeSymbol = false): string {
+  const amountBigInt = typeof amount === "bigint" ? amount : BigInt(amount);
+  const usdtValue = Number(amountBigInt) / 1_000_000; // Convert from 6 decimals
+
+  const formatted = new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(usdtValue);
+
+  return includeSymbol ? `${formatted} USDT` : formatted;
+}
+
+/**
+ * Format USDT amount in abbreviated form (K, M, B) for compact display
+ * @param amount The amount in USDT base units (1e6 = 1 USDT)
+ * @param includeSymbol Whether to include the "USDT" suffix
+ * @returns Formatted USDT string with abbreviation
+ */
+export function formatUSDTCompact(amount: bigint | number | string, includeSymbol = false): string {
+  const amountBigInt = typeof amount === "bigint" ? amount : BigInt(amount);
+  const usdtValue = Number(amountBigInt) / 1_000_000; // Convert from 6 decimals
+
+  let formatted: string;
+  if (usdtValue >= 1e9) {
+    formatted = (usdtValue / 1e9).toFixed(2) + "B";
+  } else if (usdtValue >= 1e6) {
+    formatted = (usdtValue / 1e6).toFixed(2) + "M";
+  } else if (usdtValue >= 1e3) {
+    formatted = (usdtValue / 1e3).toFixed(2) + "K";
+  } else {
+    formatted = usdtValue.toFixed(2);
+  }
+
+  return includeSymbol ? `${formatted} USDT` : formatted;
+}
+
 export const generateRandomSlug = () => {
   const words = [
     "apple",
