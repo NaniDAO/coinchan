@@ -1325,6 +1325,7 @@
     "loading_data": "> loading market data...",
     "system_ready": "> system ready",
     "trending": "trending",
+    "predictions": "predictions",
     "sales": "sales",
     "coins": "coins",
     "protocol": "protocol",

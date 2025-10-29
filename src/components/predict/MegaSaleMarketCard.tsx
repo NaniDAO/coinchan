@@ -54,7 +54,7 @@ const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
 
       {/* Percentage chance - large and prominent */}
       <div className="text-right">
-        <div className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{Math.round(yesPercent)}%</div>
+        <div className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{yesPercent.toFixed(2)}%</div>
         <div className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase tracking-wide">chance</div>
       </div>
 

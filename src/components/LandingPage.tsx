@@ -144,6 +144,29 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
         </div>
       </div>
 
+      {/* MegaETH Prediction Markets */}
+      <div className="mb-4">
+        <div className="text-lg mb-2 font-bold">{t("landing.predictions")}:</div>
+        <div className="space-y-0 text-xs">
+          <div className="w-fit text-lg">
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/mega" })}
+              className="flex flex-row items-center hover:underline cursor-pointer"
+            >
+              <span className="text-muted-foreground">└── </span>
+              <img
+                src="https://content.wrappr.wtf/ipfs/bafkreiefdha6ms7w3pdbrgdmsdwny373psbdq5t7oaaoryt3hh7pi7ndmy"
+                alt="MegaETH"
+                className="w-4 h-4 mr-2 rounded-full"
+              />
+              <span className="font-bold">MegaETH Fundraise</span>
+              <span className="text-muted-foreground text-xs ml-1">(6 markets)</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Trending Farms Section */}
       <div className="mb-4">
         <div className="text-lg mb-2 font-bold">{t("landing.trending")}:</div>
