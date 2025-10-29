@@ -58,10 +58,10 @@ export const RemoveLiquidity: React.FC<RemoveLiquidityProps> = ({ isJapanese = f
       return japaneseTranslate(key);
     }
     const i18nKeyMap: Record<string, string> = {
-      "remove_liquidity_info": "pool.remove_liquidity_info",
-      "your_lp_balance": "pool.your_lp_balance",
-      "enter_lp_amount": "pool.enter_lp_amount",
-      "preview_expected_return": "pool.preview_expected_return",
+      remove_liquidity_info: "pool.remove_liquidity_info",
+      your_lp_balance: "pool.your_lp_balance",
+      enter_lp_amount: "pool.enter_lp_amount",
+      preview_expected_return: "pool.preview_expected_return",
     };
     return t(i18nKeyMap[key] || key, params);
   };

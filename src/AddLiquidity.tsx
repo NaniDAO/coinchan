@@ -85,10 +85,10 @@ export const AddLiquidity: React.FC<AddLiquidityProps> = ({ isJapanese = false, 
       return japaneseTranslate(key);
     }
     const i18nKeyMap: Record<string, string> = {
-      "adding_liquidity_provides": "pool.adding_liquidity_provides",
-      "lp_tokens_proof": "pool.lp_tokens_proof",
-      "earn_fees": "pool.earn_fees_from_trades",
-      "withdraw_anytime": "pool.withdraw_anytime",
+      adding_liquidity_provides: "pool.adding_liquidity_provides",
+      lp_tokens_proof: "pool.lp_tokens_proof",
+      earn_fees: "pool.earn_fees_from_trades",
+      withdraw_anytime: "pool.withdraw_anytime",
     };
     return t(i18nKeyMap[key] || key, params);
   };

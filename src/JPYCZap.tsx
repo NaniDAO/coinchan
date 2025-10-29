@@ -46,12 +46,12 @@ export const JPYCZap: React.FC<JPYCZapProps> = ({ isJapanese = false, japaneseTr
     }
     // Map keys to i18n keys
     const i18nKeyMap: Record<string, string> = {
-      "how_it_works": "jpyc.how_it_works",
-      "zap_step_1": "jpyc.zap_step_1",
-      "zap_step_2": "jpyc.zap_step_2",
-      "zap_step_3": "jpyc.zap_step_3",
-      "zap_step_4": "jpyc.zap_step_4",
-      "high_slippage_note": "jpyc.high_slippage_note",
+      how_it_works: "jpyc.how_it_works",
+      zap_step_1: "jpyc.zap_step_1",
+      zap_step_2: "jpyc.zap_step_2",
+      zap_step_3: "jpyc.zap_step_3",
+      zap_step_4: "jpyc.zap_step_4",
+      high_slippage_note: "jpyc.high_slippage_note",
     };
     return t(i18nKeyMap[key] || key);
   };

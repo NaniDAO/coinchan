@@ -3,12 +3,17 @@ import { useReadContract, useReadContracts, useAccount } from "wagmi";
 import { PredictionMarketAddress, PredictionMarketAbi } from "@/constants/PredictionMarket";
 import { PredictionAMMAddress, PredictionAMMAbi } from "@/constants/PredictionMarketAMM";
 import { MarketCard } from "./MarketCard";
+import { MegaSaleMarketCard } from "./MegaSaleMarketCard";
 import { LoadingLogo } from "@/components/ui/loading-logo";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Search, X, TrendingUp, Clock, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { isTrustedResolver, isPerpetualOracleResolver } from "@/constants/TrustedResolvers";
+import {
+  isTrustedResolver,
+  isPerpetualOracleResolver,
+  MEGASALE_PM_RESOLVER_ADDRESS,
+} from "@/constants/TrustedResolvers";
 
 interface MarketGalleryProps {
   refreshKey?: number;
@@ -19,7 +24,7 @@ type SortOption = "newest" | "pot" | "activity" | "closing";
 
 export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
   const [start] = useState(0);
-  const [filter, setFilter] = useState<MarketFilter>("curated");
+  const [filter, setFilter] = useState<MarketFilter>("contract");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("newest");
@@ -576,16 +581,16 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
                 <span className="sm:hidden">Favorites</span>
               </TabsTrigger>
             )}
-            {curatedCount > 0 && (
-              <TabsTrigger value="curated" className="whitespace-nowrap">
-                <span className="hidden sm:inline">Curated ({curatedCount})</span>
-                <span className="sm:hidden">Curated</span>
-              </TabsTrigger>
-            )}
             {contractCount > 0 && (
               <TabsTrigger value="contract" className="whitespace-nowrap">
                 <span className="hidden sm:inline">Contract ({contractCount})</span>
                 <span className="sm:hidden">Contract</span>
+              </TabsTrigger>
+            )}
+            {curatedCount > 0 && (
+              <TabsTrigger value="curated" className="whitespace-nowrap">
+                <span className="hidden sm:inline">Curated ({curatedCount})</span>
+                <span className="sm:hidden">Curated</span>
               </TabsTrigger>
             )}
             {communityCount > 0 && (
@@ -635,36 +640,67 @@ export const MarketGallery: React.FC<MarketGalleryProps> = ({ refreshKey }) => {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 animate-in fade-in duration-300">
-              {filteredMarkets.map((market) => (
-                <MarketCard
-                  key={`${market.contractAddress}-${market.marketId.toString()}`}
-                  marketId={market.marketId}
-                  yesSupply={market.yesSupply}
-                  noSupply={market.noSupply}
-                  resolver={market.resolver}
-                  resolved={market.resolved}
-                  outcome={market.outcome}
-                  pot={market.pot}
-                  payoutPerShare={market.payoutPerShare}
-                  description={market.description}
-                  userYesBalance={market.userYesBalance}
-                  userNoBalance={market.userNoBalance}
-                  userClaimable={market.userClaimable}
-                  marketType={market.marketType}
-                  contractAddress={market.contractAddress}
-                  rYes={market.rYes}
-                  rNo={market.rNo}
-                  onClaimSuccess={() => {
-                    refetchPM();
-                    refetchAMM();
-                    if (address) {
-                      refetchUserDataPM();
-                      refetchUserDataAMM();
-                    }
-                  }}
-                />
-              ))}
+            <div className="space-y-5">
+              {/* MegaSale Markets - Special Card */}
+              {(() => {
+                const megaSaleMarkets = filteredMarkets.filter(
+                  (m) => m.resolver.toLowerCase() === MEGASALE_PM_RESOLVER_ADDRESS.toLowerCase(),
+                );
+
+                if (megaSaleMarkets.length > 0) {
+                  return (
+                    <div className="mb-5">
+                      <MegaSaleMarketCard
+                        markets={megaSaleMarkets}
+                        onTradeSuccess={() => {
+                          refetchPM();
+                          refetchAMM();
+                          if (address) {
+                            refetchUserDataPM();
+                            refetchUserDataAMM();
+                          }
+                        }}
+                      />
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
+              {/* Regular Markets Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 animate-in fade-in duration-300">
+                {filteredMarkets
+                  .filter((m) => m.resolver.toLowerCase() !== MEGASALE_PM_RESOLVER_ADDRESS.toLowerCase())
+                  .map((market) => (
+                    <MarketCard
+                      key={`${market.contractAddress}-${market.marketId.toString()}`}
+                      marketId={market.marketId}
+                      yesSupply={market.yesSupply}
+                      noSupply={market.noSupply}
+                      resolver={market.resolver}
+                      resolved={market.resolved}
+                      outcome={market.outcome}
+                      pot={market.pot}
+                      payoutPerShare={market.payoutPerShare}
+                      description={market.description}
+                      userYesBalance={market.userYesBalance}
+                      userNoBalance={market.userNoBalance}
+                      userClaimable={market.userClaimable}
+                      marketType={market.marketType}
+                      contractAddress={market.contractAddress}
+                      rYes={market.rYes}
+                      rNo={market.rNo}
+                      onClaimSuccess={() => {
+                        refetchPM();
+                        refetchAMM();
+                        if (address) {
+                          refetchUserDataPM();
+                          refetchUserDataAMM();
+                        }
+                      }}
+                    />
+                  ))}
+              </div>
             </div>
           )}
         </TabsContent>
