@@ -505,7 +505,7 @@ export function useSetOperatorApproval() {
             );
           },
         },
-        variables.approved
+        variables.approved,
       );
 
       // Then invalidate to trigger background refetch for confirmation

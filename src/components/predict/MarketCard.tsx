@@ -32,6 +32,7 @@ import {
   UNISUPPLY_PM_RESOLVER_ADDRESS,
   BUNNIBOUNTYPM_RESOLVER_ADDRESS,
   UNIV4_FEE_SWITCH_PM_RESOLVER_ADDRESS,
+  MEGASALE_PM_RESOLVER_ADDRESS,
 } from "@/constants/TrustedResolvers";
 import { extractOracleMetadata, extractNounsEvalBlock } from "@/lib/perpetualOracleUtils";
 import { EthWentUpResolverAbi } from "@/constants/EthWentUpResolver";
@@ -41,7 +42,9 @@ import { BETHPMResolverAbi } from "@/constants/BETHPMResolver";
 import { UNISUPPLYPMResolverAbi } from "@/constants/UNISUPPLYPMResolver";
 import { BUNNIBOUNTYPMResolverAbi } from "@/constants/BUNNIBOUNTYPMResolver";
 import { UniV4FeeSwitchPMResolverAbi } from "@/constants/UniV4FeeSwitchPMResolver";
+import { MegaSalePMResolverAbi } from "@/constants/MegaSalePMResolver";
 import { ChainlinkAggregatorV3Abi, CHAINLINK_ETH_USD_FEED } from "@/constants/ChainlinkAggregator";
+import { formatUSDTCompact } from "@/lib/utils";
 import { useBalance } from "wagmi";
 import ReactMarkdown from "react-markdown";
 import { isUserRejectionError } from "@/lib/errors";
@@ -170,6 +173,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   const isUNISUPPLYPMResolver = resolver.toLowerCase() === UNISUPPLY_PM_RESOLVER_ADDRESS.toLowerCase();
   const isBUNNIBOUNTYPMResolver = resolver.toLowerCase() === BUNNIBOUNTYPM_RESOLVER_ADDRESS.toLowerCase();
   const isUniV4FeeSwitchPMResolver = resolver.toLowerCase() === UNIV4_FEE_SWITCH_PM_RESOLVER_ADDRESS.toLowerCase();
+  const isMegaSalePMResolver = resolver.toLowerCase() === MEGASALE_PM_RESOLVER_ADDRESS.toLowerCase();
 
   // Check ETH balance in resolver for tip button
   const { data: resolverBalance } = useBalance({
@@ -446,6 +450,27 @@ export const MarketCard: React.FC<MarketCardProps> = ({
     functionName: "protocolFeeController",
     query: {
       enabled: isUniV4FeeSwitchPMResolver,
+    },
+  });
+
+  // Fetch MegaSalePM bet data (target amount and deadline)
+  const { data: megaSaleBetData } = useReadContract({
+    address: MEGASALE_PM_RESOLVER_ADDRESS as `0x${string}`,
+    abi: MegaSalePMResolverAbi,
+    functionName: "bets",
+    args: [marketId],
+    query: {
+      enabled: isMegaSalePMResolver,
+    },
+  });
+
+  // Fetch current MegaSale totalActiveBidAmount
+  const { data: megaSaleTotalBid } = useReadContract({
+    address: MEGASALE_PM_RESOLVER_ADDRESS as `0x${string}`,
+    abi: MegaSalePMResolverAbi,
+    functionName: "totalActiveBidAmount",
+    query: {
+      enabled: isMegaSalePMResolver,
     },
   });
 
@@ -1402,6 +1427,93 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                         </span>
                       </div>
                     )}
+                  </div>
+                </div>
+              );
+            })()}
+
+          {/* MegaSale Market Info - Show Target and Current Fundraise Amount */}
+          {isMegaSalePMResolver &&
+            megaSaleBetData &&
+            megaSaleTotalBid !== undefined &&
+            (() => {
+              const targetAmount = megaSaleBetData[0]; // amount (uint64) in USDT base units
+              const deadline = megaSaleBetData[1]; // deadline (uint72)
+              const currentAmount = megaSaleTotalBid;
+
+              // Only show if we have valid target amount
+              if (!targetAmount || targetAmount === 0n) return null;
+
+              // Calculate progress percentage
+              const progressPercent = (Number(currentAmount) / Number(targetAmount)) * 100;
+              const isOnTrack = currentAmount >= targetAmount;
+
+              return (
+                <div className="bg-emerald-500/5 border border-emerald-500/20 rounded p-2 space-y-1">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="text-base">🚀</span>
+                    <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                      MegaETH Fundraise Oracle
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground space-y-0.5">
+                    <div className="text-[11px] italic mb-1 text-emerald-700 dark:text-emerald-400">
+                      Predicting MegaETH fundraise milestone achievement
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Target Amount:</span>
+                      <span className="font-mono font-semibold">{formatUSDTCompact(targetAmount, true)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Current Raised:</span>
+                      <span
+                        className={`font-mono font-semibold ${isOnTrack ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}
+                      >
+                        {formatUSDTCompact(currentAmount, true)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Progress:</span>
+                      <span
+                        className={`font-mono font-semibold ${isOnTrack ? "text-green-600 dark:text-green-400" : "text-emerald-600 dark:text-emerald-400"}`}
+                      >
+                        {Math.min(progressPercent, 100).toFixed(2)}%{isOnTrack ? " ✓" : ""}
+                      </span>
+                    </div>
+                    {/* Progress bar */}
+                    <div className="w-full bg-muted rounded-full h-2 overflow-hidden mt-1">
+                      <div
+                        className={`h-full transition-all ${isOnTrack ? "bg-green-600 dark:bg-green-400" : "bg-emerald-600 dark:bg-emerald-400"}`}
+                        style={{ width: `${Math.min(progressPercent, 100)}%` }}
+                      />
+                    </div>
+                    {!resolved && Number(deadline) > 0 && (
+                      <div className="flex justify-between items-center pt-1 border-t border-emerald-500/20">
+                        <span>Deadline:</span>
+                        <span className="font-mono text-[11px]">
+                          {new Date(Number(deadline) * 1000).toLocaleString(undefined, {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                            hour: "numeric",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                    )}
+                    {resolved && (
+                      <div className="flex justify-between items-center pt-1 border-t border-emerald-500/20">
+                        <span>Result:</span>
+                        <span
+                          className={`font-mono font-semibold ${outcome ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
+                        >
+                          {outcome ? "Target Reached ✓" : "Target Missed ✗"}
+                        </span>
+                      </div>
+                    )}
+                    <div className="pt-1 text-[10px] italic opacity-70 text-emerald-700 dark:text-emerald-400">
+                      Note: Market may resolve early if threshold is reached before deadline
+                    </div>
                   </div>
                 </div>
               );

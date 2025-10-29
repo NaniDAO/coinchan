@@ -13,6 +13,7 @@ export const BETH_PM_RESOLVER_ADDRESS = "0x9E52F272bACf991FC842704593c86820Ab3e0
 export const UNISUPPLY_PM_RESOLVER_ADDRESS = "0x41CCFe5F97368d08268e5DFD998c5b62283c69a6" as const;
 export const BUNNIBOUNTYPM_RESOLVER_ADDRESS = "0xD3eAE176700b4b25C0f14978Ee8B311784cce21C" as const;
 export const UNIV4_FEE_SWITCH_PM_RESOLVER_ADDRESS = "0xF92007bFaF3B3738922c33f2F44Cd445a684257E" as const;
+export const MEGASALE_PM_RESOLVER_ADDRESS = "0x14B782586a218C2F9F84b815308cc25fE0A7642F" as const;
 
 export const TRUSTED_RESOLVERS: TrustedResolver[] = [
   {
@@ -61,6 +62,12 @@ export const TRUSTED_RESOLVERS: TrustedResolver[] = [
     address: UNIV4_FEE_SWITCH_PM_RESOLVER_ADDRESS,
     name: "UniV4FeeSwitchPM",
     description: "Perpetual oracle resolver for Uniswap V4 fee switch activation",
+    isPerpetualOracle: true,
+  },
+  {
+    address: MEGASALE_PM_RESOLVER_ADDRESS,
+    name: "MegaSalePM",
+    description: "Perpetual oracle resolver for MegaETH fundraise milestones in USDT",
     isPerpetualOracle: true,
   },
   {
