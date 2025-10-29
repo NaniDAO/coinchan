@@ -29,7 +29,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Slider } from "@/components/ui/slider";
-import { BadgeCheck, Settings } from "lucide-react";
+import { BadgeCheck, CopyIcon, Settings } from "lucide-react";
 import { isPerpetualOracleResolver } from "@/constants/TrustedResolvers";
 import { isUserRejectionError } from "@/lib/errors";
 import {
@@ -39,6 +39,7 @@ import {
 import { PercentageBlobs } from "@/components/ui/percentage-blobs";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { WSTETH_ABI, WSTETH_ADDRESS } from "@/constants/WSTETH";
+import { trunc } from "@/lib/utils";
 
 interface TradeModalProps {
   isOpen: boolean;
@@ -558,6 +559,11 @@ export const TradeModal: React.FC<TradeModalProps> = ({
     displayNo = noSupply;
   }
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Copied to clipboard!");
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
@@ -633,6 +639,15 @@ export const TradeModal: React.FC<TradeModalProps> = ({
             </TabsList>
 
             <TabsContent value="buy" className="space-y-5 mt-5">
+              <div>
+                <button
+                  onClick={() => copyToClipboard(marketId.toString())}
+                  className="flex flex-row justify-between items-center text-xs font-extralight text-wrap max-w-2xl"
+                >
+                  Market ID: <span>{trunc(marketId.toString(), 8)}</span>
+                  <CopyIcon className="ml-2 h-2 w-2" />
+                </button>
+              </div>
               {/* Position Selection - Modern Cards */}
               <div className="space-y-3">
                 <Label className="text-sm font-semibold">Select Position</Label>
