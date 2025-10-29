@@ -1,15 +1,23 @@
 import React, { useState } from "react";
-import { useReadContract, useReadContracts } from "wagmi";
-import { MegaSalePMResolverAddress, MegaSalePMResolverAbi } from "@/constants/MegaSalePMResolver";
-import { PredictionAMMAbi } from "@/constants/PredictionMarketAMM";
+import { useAccount, useReadContract, useReadContracts } from "wagmi";
+import {
+  MegaSalePMResolverAddress,
+  MegaSalePMResolverAbi,
+} from "@/constants/MegaSalePMResolver";
+import {
+  PredictionAMMAbi,
+  PredictionAMMAddress,
+} from "@/constants/PredictionMarketAMM";
 import { formatUSDT } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "lucide-react";
 import { formatEther } from "viem";
 import { TradeModal } from "./TradeModal";
+import { useTokenBalance } from "@/hooks/use-token-balance";
 
 // MegaETH logo URL
-const MEGAETH_LOGO = "https://content.wrappr.wtf/ipfs/bafkreiefdha6ms7w3pdbrgdmsdwny373psbdq5t7oaaoryt3hh7pi7ndmy";
+const MEGAETH_LOGO =
+  "https://content.wrappr.wtf/ipfs/bafkreiefdha6ms7w3pdbrgdmsdwny373psbdq5t7oaaoryt3hh7pi7ndmy";
 
 // Betting options for the official deadline
 // Note: USDT has 6 decimals, so amounts are multiplied by 1e6
@@ -34,7 +42,8 @@ interface MegaSaleOptionRowProps {
   onTradeClick: (position: "yes" | "no") => void;
 }
 
-const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
+export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
+  marketId,
   label,
   liquidity,
   yesPercent,
@@ -42,20 +51,74 @@ const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
   noCost,
   onTradeClick,
 }) => {
+  const { address } = useAccount();
+
+  const { data: noId } = useReadContract({
+    address: PredictionAMMAddress,
+    abi: PredictionAMMAbi,
+    functionName: "getNoId",
+    args: [marketId],
+  });
+
+  // User YES balance (token id = marketId)
+  const { data: yesBal } = useTokenBalance({
+    token: {
+      id: marketId,
+      address: PredictionAMMAddress,
+    },
+    address,
+  });
+
+  // User NO balance (token id = noId)
+  const { data: noBal } = useTokenBalance({
+    token: {
+      id: noId ?? 0n,
+      address: PredictionAMMAddress,
+    },
+    address,
+  });
+
+  const hasYes = (yesBal ?? 0n) > 0n;
+  const hasNo = (noBal ?? 0n) > 0n;
+  const hasPosition = hasYes || hasNo;
+
   return (
     <div className="grid grid-cols-[1fr_auto_auto_auto] gap-3 items-center py-4 px-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 rounded-lg transition-colors border-b border-zinc-200 dark:border-zinc-800 last:border-b-0">
-      {/* Outcome label and volume */}
+      {/* Outcome label, volume, and holding indicator */}
       <div>
-        <div className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{label}</div>
+        <div className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+          {label}
+        </div>
         <div className="text-xs text-zinc-500 dark:text-zinc-400">
           {Number(formatEther(liquidity)).toFixed(3)} wstETH Vol.
         </div>
+
+        {hasPosition && (
+          <div className="mt-1 inline-flex items-center gap-2 rounded-md bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 px-2 py-0.5 text-[11px] font-medium">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            Holding
+            {hasYes && (
+              <span className="font-mono">
+                &nbsp;YES {Number(formatEther(yesBal!)).toFixed(4)}
+              </span>
+            )}
+            {hasNo && (
+              <span className="font-mono">
+                &nbsp;NO {Number(formatEther(noBal!)).toFixed(4)}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Percentage chance - large and prominent */}
       <div className="text-right">
-        <div className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{yesPercent.toFixed(2)}%</div>
-        <div className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase tracking-wide">chance</div>
+        <div className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+          {yesPercent.toFixed(2)}%
+        </div>
+        <div className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase tracking-wide">
+          chance
+        </div>
       </div>
 
       {/* Buy Yes button */}
@@ -65,7 +128,9 @@ const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
         size="sm"
       >
         <div className="flex flex-col items-center gap-0.5">
-          <span className="text-[10px] uppercase tracking-wide opacity-90">buy Yes</span>
+          <span className="text-[10px] uppercase tracking-wide opacity-90">
+            buy Yes
+          </span>
           <span className="text-sm">{yesCost}</span>
         </div>
       </Button>
@@ -77,7 +142,9 @@ const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
         size="sm"
       >
         <div className="flex flex-col items-center gap-0.5">
-          <span className="text-[10px] uppercase tracking-wide opacity-70">buy No</span>
+          <span className="text-[10px] uppercase tracking-wide opacity-70">
+            buy No
+          </span>
           <span className="text-sm">{noCost}</span>
         </div>
       </Button>
@@ -101,7 +168,10 @@ interface MegaSaleMarketCardProps {
   onTradeSuccess?: () => void;
 }
 
-export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({ markets, onTradeSuccess }) => {
+export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
+  markets,
+  onTradeSuccess,
+}) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMarket, setSelectedMarket] = useState<{
     marketId: bigint;
@@ -188,7 +258,11 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({ markets,
     let yesCost = "0.500";
     let noCost = "0.500";
 
-    if (market.marketType === "amm" && market.rYes !== undefined && market.rNo !== undefined) {
+    if (
+      market.marketType === "amm" &&
+      market.rYes !== undefined &&
+      market.rNo !== undefined
+    ) {
       const totalReserves = market.rYes + market.rNo;
       if (totalReserves > 0n) {
         // Implied YES probability from AMM reserves (PAMM.sol line 897: return (rNo, rYes + rNo))
@@ -309,7 +383,9 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({ markets,
                   <div className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-400">
                     <Calendar className="h-3.5 w-3.5" />
                     <span>
-                      {new Date(Number(officialDeadline) * 1000).toLocaleDateString("en-US", {
+                      {new Date(
+                        Number(officialDeadline) * 1000,
+                      ).toLocaleDateString("en-US", {
                         month: "short",
                         day: "numeric",
                         year: "numeric",
@@ -321,7 +397,9 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({ markets,
 
               {/* Current progress */}
               <div className="mt-3 text-sm">
-                <span className="text-zinc-600 dark:text-zinc-400">Current raised: </span>
+                <span className="text-zinc-600 dark:text-zinc-400">
+                  Current raised:{" "}
+                </span>
                 <span className="font-semibold text-emerald-600 dark:text-emerald-400">
                   {formatUSDT(currentAmount, true)}
                 </span>
@@ -348,7 +426,10 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({ markets,
               // Example: "MegaSale totalActiveBidAmount() >= 1000000000000000 USDT by 1735689600 Unix epoch time..."
               const match = m.description.match(/>=\s*(\d+)\s*USDT/);
               if (!match) {
-                console.warn("Failed to parse market description:", m.description);
+                console.warn(
+                  "Failed to parse market description:",
+                  m.description,
+                );
                 return false;
               }
               const descAmount = BigInt(match[1]);
@@ -356,15 +437,22 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({ markets,
             });
 
             if (!market) {
-              console.warn(`No market found for betting option: ${option.label} (${option.amount})`);
+              console.warn(
+                `No market found for betting option: ${option.label} (${option.amount})`,
+              );
               return null;
             }
 
             // Find quote index for AMM markets
             const ammMarkets = markets.filter((m) => m.marketType === "amm");
-            const quoteIdx = ammMarkets.findIndex((m) => m.marketId === market.marketId);
+            const quoteIdx = ammMarkets.findIndex(
+              (m) => m.marketId === market.marketId,
+            );
 
-            const { yesPercent, yesCost, noCost } = getMarketData(market, quoteIdx);
+            const { yesPercent, yesCost, noCost } = getMarketData(
+              market,
+              quoteIdx,
+            );
 
             // Use pot which tracks total wstETH from both YES and NO purchases
             const liquidity = market.pot;
@@ -380,7 +468,9 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({ markets,
                 noCost={`${noCost}Ξ`}
                 marketType={market.marketType}
                 contractAddress={market.contractAddress}
-                onTradeClick={(position) => handleTradeClick(market.marketId, position)}
+                onTradeClick={(position) =>
+                  handleTradeClick(market.marketId, position)
+                }
               />
             );
           })}
@@ -389,11 +479,13 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({ markets,
         {/* Footer note */}
         <div className="px-6 py-4 bg-zinc-50 dark:bg-zinc-900/50 border-t border-zinc-200 dark:border-zinc-800 space-y-2">
           <p className="text-xs text-zinc-500 dark:text-zinc-400 text-center">
-            Volume = total wstETH deposited in market (pot). Includes all YES and NO purchases. Prices in wstETH per
-            share include 0.1% AMM fee + slippage.
+            Volume = total wstETH deposited in market (pot). Includes all YES
+            and NO purchases. Prices in wstETH per share include 0.1% AMM fee +
+            slippage.
           </p>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 text-center font-medium">
-            ⚡ Markets resolve early if threshold is reached before deadline, or at deadline based on final amount.
+            ⚡ Markets resolve early if threshold is reached before deadline, or
+            at deadline based on final amount.
           </p>
         </div>
       </div>

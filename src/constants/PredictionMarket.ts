@@ -1,4 +1,5 @@
-export const PredictionMarketAddress = "0x0000000000F8d9F51f0765a9dAd6a9487ba85f1e";
+export const PredictionMarketAddress =
+  "0x0000000000F8d9F51f0765a9dAd6a9487ba85f1e";
 
 export const PredictionMarketAbi = [
   { inputs: [], stateMutability: "payable", type: "constructor" },
@@ -20,10 +21,25 @@ export const PredictionMarketAbi = [
   {
     anonymous: false,
     inputs: [
-      { indexed: true, internalType: "address", name: "owner", type: "address" },
-      { indexed: true, internalType: "address", name: "spender", type: "address" },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "owner",
+        type: "address",
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "spender",
+        type: "address",
+      },
       { indexed: true, internalType: "uint256", name: "id", type: "uint256" },
-      { indexed: false, internalType: "uint256", name: "amount", type: "uint256" },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "amount",
+        type: "uint256",
+      },
     ],
     name: "Approval",
     type: "event",
@@ -31,9 +47,19 @@ export const PredictionMarketAbi = [
   {
     anonymous: false,
     inputs: [
-      { indexed: true, internalType: "address", name: "buyer", type: "address" },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "buyer",
+        type: "address",
+      },
       { indexed: true, internalType: "uint256", name: "id", type: "uint256" },
-      { indexed: false, internalType: "uint256", name: "amount", type: "uint256" },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "amount",
+        type: "uint256",
+      },
     ],
     name: "Bought",
     type: "event",
@@ -41,10 +67,25 @@ export const PredictionMarketAbi = [
   {
     anonymous: false,
     inputs: [
-      { indexed: true, internalType: "address", name: "claimer", type: "address" },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "claimer",
+        type: "address",
+      },
       { indexed: true, internalType: "uint256", name: "id", type: "uint256" },
-      { indexed: false, internalType: "uint256", name: "shares", type: "uint256" },
-      { indexed: false, internalType: "uint256", name: "payout", type: "uint256" },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "shares",
+        type: "uint256",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "payout",
+        type: "uint256",
+      },
     ],
     name: "Claimed",
     type: "event",
@@ -52,8 +93,18 @@ export const PredictionMarketAbi = [
   {
     anonymous: false,
     inputs: [
-      { indexed: true, internalType: "uint256", name: "marketId", type: "uint256" },
-      { indexed: false, internalType: "uint256", name: "closedAt", type: "uint256" },
+      {
+        indexed: true,
+        internalType: "uint256",
+        name: "marketId",
+        type: "uint256",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "closedAt",
+        type: "uint256",
+      },
       { indexed: true, internalType: "address", name: "by", type: "address" },
     ],
     name: "Closed",
@@ -62,10 +113,25 @@ export const PredictionMarketAbi = [
   {
     anonymous: false,
     inputs: [
-      { indexed: true, internalType: "uint256", name: "marketId", type: "uint256" },
+      {
+        indexed: true,
+        internalType: "uint256",
+        name: "marketId",
+        type: "uint256",
+      },
       { indexed: true, internalType: "uint256", name: "noId", type: "uint256" },
-      { indexed: false, internalType: "string", name: "description", type: "string" },
-      { indexed: false, internalType: "address", name: "resolver", type: "address" },
+      {
+        indexed: false,
+        internalType: "string",
+        name: "description",
+        type: "string",
+      },
+      {
+        indexed: false,
+        internalType: "address",
+        name: "resolver",
+        type: "address",
+      },
     ],
     name: "Created",
     type: "event",
@@ -73,8 +139,18 @@ export const PredictionMarketAbi = [
   {
     anonymous: false,
     inputs: [
-      { indexed: true, internalType: "address", name: "owner", type: "address" },
-      { indexed: true, internalType: "address", name: "operator", type: "address" },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "owner",
+        type: "address",
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "operator",
+        type: "address",
+      },
       { indexed: false, internalType: "bool", name: "approved", type: "bool" },
     ],
     name: "OperatorSet",
@@ -83,7 +159,12 @@ export const PredictionMarketAbi = [
   {
     anonymous: false,
     inputs: [
-      { indexed: true, internalType: "uint256", name: "marketId", type: "uint256" },
+      {
+        indexed: true,
+        internalType: "uint256",
+        name: "marketId",
+        type: "uint256",
+      },
       { indexed: false, internalType: "bool", name: "outcome", type: "bool" },
     ],
     name: "Resolved",
@@ -92,7 +173,12 @@ export const PredictionMarketAbi = [
   {
     anonymous: false,
     inputs: [
-      { indexed: true, internalType: "address", name: "resolver", type: "address" },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "resolver",
+        type: "address",
+      },
       { indexed: false, internalType: "uint16", name: "bps", type: "uint16" },
     ],
     name: "ResolverFeeSet",
@@ -101,9 +187,19 @@ export const PredictionMarketAbi = [
   {
     anonymous: false,
     inputs: [
-      { indexed: true, internalType: "address", name: "seller", type: "address" },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "seller",
+        type: "address",
+      },
       { indexed: true, internalType: "uint256", name: "id", type: "uint256" },
-      { indexed: false, internalType: "uint256", name: "amount", type: "uint256" },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "amount",
+        type: "uint256",
+      },
     ],
     name: "Sold",
     type: "event",
@@ -111,11 +207,21 @@ export const PredictionMarketAbi = [
   {
     anonymous: false,
     inputs: [
-      { indexed: false, internalType: "address", name: "caller", type: "address" },
+      {
+        indexed: false,
+        internalType: "address",
+        name: "caller",
+        type: "address",
+      },
       { indexed: true, internalType: "address", name: "from", type: "address" },
       { indexed: true, internalType: "address", name: "to", type: "address" },
       { indexed: true, internalType: "uint256", name: "id", type: "uint256" },
-      { indexed: false, internalType: "uint256", name: "amount", type: "uint256" },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "amount",
+        type: "uint256",
+      },
     ],
     name: "Transfer",
     type: "event",

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { parseEther, formatEther } from "viem";
+import { parseEther, formatEther, zeroAddress } from "viem";
 import {
   useAccount,
   useWriteContract,
@@ -12,7 +12,10 @@ import {
   PredictionMarketAddress,
   PredictionMarketAbi,
 } from "@/constants/PredictionMarket";
-import { PredictionAMMAbi } from "@/constants/PredictionMarketAMM";
+import {
+  PredictionAMMAbi,
+  PredictionAMMAddress,
+} from "@/constants/PredictionMarketAMM";
 import {
   Dialog,
   DialogContent,
@@ -34,47 +37,8 @@ import {
   CHAINLINK_ETH_USD_FEED,
 } from "@/constants/ChainlinkAggregator";
 import { PercentageBlobs } from "@/components/ui/percentage-blobs";
-
-// wstETH contract address
-const WSTETH_ADDRESS = "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0" as const;
-
-// wstETH ABI for approvals and balance checks
-const WSTETH_ABI = [
-  {
-    inputs: [],
-    name: "stEthPerToken",
-    outputs: [{ name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      { name: "owner", type: "address" },
-      { name: "spender", type: "address" },
-    ],
-    name: "allowance",
-    outputs: [{ name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      { name: "spender", type: "address" },
-      { name: "amount", type: "uint256" },
-    ],
-    name: "approve",
-    outputs: [{ name: "", type: "bool" }],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [{ name: "account", type: "address" }],
-    name: "balanceOf",
-    outputs: [{ name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-] as const;
+import { useTokenBalance } from "@/hooks/use-token-balance";
+import { WSTETH_ABI, WSTETH_ADDRESS } from "@/constants/WSTETH";
 
 interface TradeModalProps {
   isOpen: boolean;
@@ -121,6 +85,33 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   const { data: ethBalance } = useBalance({
     address: address,
   });
+
+  const { data: noId } = useReadContract({
+    address: PredictionAMMAddress,
+    abi: PredictionAMMAbi,
+    functionName: "getNoId",
+    args: [marketId],
+  });
+
+  // 🔹 Determine current token id for the Sell tab
+  const tokenIdForPosition: bigint | undefined =
+    position === "yes" ? marketId : (noId ?? 0n);
+
+  // 🔹 Get user's share balance for the current token id (only when selling)
+  const { data: userTokenBalance } = useTokenBalance({
+    token: {
+      id: tokenIdForPosition,
+      address: PredictionAMMAddress,
+    },
+    address: address ? address : zeroAddress,
+  });
+
+  // Helper: MAX button handler for selling
+  const handleMaxSell = () => {
+    if (!userTokenBalance) return;
+    // userTokenBalance is a bigint of 18 decimals
+    setAmount(formatEther(userTokenBalance));
+  };
 
   // Fetch user's wstETH balance
   const { data: wstethBalance, refetch: refetchWstethBalance } =
@@ -291,48 +282,33 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   });
 
   // Calculate wstETH/USD price
-  // wstETH value = (stEthPerToken / 1e18) * ETH price
-  // stEthPerToken is in 1e18 scale, ETH/USD is in 1e8 scale (8 decimals)
   const wstethUsdPrice = React.useMemo(() => {
     if (!stEthPerToken || !ethPriceData) return null;
     const ethPrice = ethPriceData[1]; // answer from Chainlink (int256, 8 decimals)
-    // Convert: (stEthPerToken * ethPrice) / 1e18 gives price in 8 decimals
     const wstethPrice =
       (stEthPerToken * BigInt(ethPrice.toString())) / parseEther("1");
-    return Number(wstethPrice) / 1e8; // Convert to regular number with proper decimals
+    return Number(wstethPrice) / 1e8;
   }, [stEthPerToken, ethPriceData]);
 
   // Calculate intelligent buffer based on on-chain market conditions
-  // Returns basis points (e.g., 2500 = 25% buffer)
   const calculateIntelligentBuffer = React.useCallback(
     (sharesAmount: bigint) => {
-      // Base buffer for pool movements, ETH/wstETH rate changes, and general safety
-      let bufferBps = 500; // 5% base safety margin
+      let bufferBps = 500; // 5%
 
-      // Add PMTuning maximum possible adjustment from on-chain data
       if (pmTuningData) {
         const lateRampMaxBps = pmTuningData[1]; // uint16
         const extremeMaxBps = pmTuningData[2]; // uint16
-        // Both adjustments can apply simultaneously, so add them
         const maxTuningBps = Number(lateRampMaxBps) + Number(extremeMaxBps);
         bufferBps += maxTuningBps;
       } else {
-        // Conservative fallback: assume max tuning caps from contract (20% total)
-        // This ensures safety even if pmTuning read fails
-        bufferBps += 2000; // 20% max per PAMM.sol:268
+        bufferBps += 2000; // 20% conservative fallback
       }
 
-      // Add extra buffer for very small trades due to proportionally higher rounding impact
-      // The contract adds fixed +5 wei which matters more for micro amounts
       if (sharesAmount > 0n && sharesAmount < parseEther("0.01")) {
-        bufferBps += 500; // +5% extra for trades < 0.01 ETH
+        bufferBps += 500; // +5% small-trade cushion
       }
 
-      // Minimum buffer: never go below 10% (1000 bps) for safety
-      if (bufferBps < 1000) {
-        bufferBps = 1000;
-      }
-
+      if (bufferBps < 1000) bufferBps = 1000; // min 10%
       return bufferBps;
     },
     [pmTuningData],
@@ -354,7 +330,6 @@ export const TradeModal: React.FC<TradeModalProps> = ({
     if (!ethBalance) return;
 
     const balance = ethBalance.value;
-    // Apply 1% gas discount for MAX (100%)
     const adjustedBalance =
       percentage === 100
         ? (balance * 99n) / 100n
@@ -371,7 +346,6 @@ export const TradeModal: React.FC<TradeModalProps> = ({
       reset();
       setShowSlippageSettings(false);
     } else {
-      // When modal opens, set position to initialPosition
       setPosition(initialPosition);
     }
   }, [isOpen, reset, initialPosition]);
@@ -393,9 +367,8 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 
     try {
       setLocalError(null);
-      setIsApprovingWstETH(true); // Mark that we're approving
+      setIsApprovingWstETH(true);
 
-      // Approve max uint256 for better UX (one-time approval)
       const maxUint256 = BigInt(
         "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
       );
@@ -409,7 +382,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 
       toast.success("Approval submitted! Waiting for confirmation...");
     } catch (err: any) {
-      setIsApprovingWstETH(false); // Reset on error
+      setIsApprovingWstETH(false);
       if (isUserRejectionError(err)) {
         setLocalError(null);
         return;
@@ -431,7 +404,6 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 
     const amountWei = parseEther(amount);
 
-    // For AMM, check against estimated cost + slippage
     if (marketType === "amm" && estimatedCost > 0n) {
       const slippageMultiplier = BigInt(
         Math.floor((1 + slippageTolerance / 100) * 10000),
@@ -440,7 +412,6 @@ export const TradeModal: React.FC<TradeModalProps> = ({
       return !wstethAllowance || wstethAllowance < wstInMax;
     }
 
-    // For parimutuel, check against amount
     return !wstethAllowance || wstethAllowance < amountWei;
   }, [
     useWstETH,
@@ -454,7 +425,6 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   ]);
 
   const handleTrade = async () => {
-    // Check wallet connection first
     if (!address) {
       toast.error("Please connect your wallet");
       return;
@@ -465,14 +435,12 @@ export const TradeModal: React.FC<TradeModalProps> = ({
       return;
     }
 
-    // Clear any previous errors
     setLocalError(null);
 
     try {
       const amountWei = parseEther(amount);
 
       if (marketType === "amm") {
-        // AMM market trading
         if (action === "buy") {
           const slippageMultiplier = BigInt(
             Math.floor((1 + slippageTolerance / 100) * 10000),
@@ -484,42 +452,22 @@ export const TradeModal: React.FC<TradeModalProps> = ({
             position === "yes" ? "buyYesViaPool" : "buyNoViaPool";
 
           if (useWstETH) {
-            // Pay with wstETH directly (inIsETH=false)
-            // User already has wstETH and allowance is sufficient
             await writeContractAsync({
               address: contractAddress as `0x${string}`,
               abi: PredictionAMMAbi,
               functionName,
-              args: [
-                marketId,
-                amountWei, // yesOut or noOut (shares to buy)
-                false, // inIsETH = false (use wstETH directly)
-                wstInMax, // wstInMax (slippage protection)
-                oppInMax, // oppInMax (slippage protection)
-                address, // to
-              ],
+              args: [marketId, amountWei, false, wstInMax, oppInMax, address],
             });
           } else {
-            // Pay with ETH (inIsETH=true)
-            // Calculate intelligent ETH buffer based on on-chain market conditions
-            // CRITICAL: Contract calculates wstIn on-chain at execution time (not bounded by wstInMax when inIsETH=true)
-            // Buffer accounts for:
-            // - PMTuning adjustments (read from on-chain, can be 0-20%)
-            // - Pool state changes between quote and execution
-            // - ETH/wstETH conversion rate fluctuations
-            // - Proportionally larger rounding errors for small trades
-            // This intelligent approach minimizes excess refunds while ensuring txs never fail
             const bufferBps = calculateIntelligentBuffer(amountWei);
-            const bufferMultiplier = BigInt(10000 + bufferBps); // e.g., 12500 = 1.25x
+            const bufferMultiplier = BigInt(10000 + bufferBps);
 
             let ethValue: bigint;
             if (stEthPerToken) {
-              // Use actual exchange rate with intelligent buffer: (wstInMax / stEthPerToken * 1e18) * buffer
               ethValue =
                 (wstInMax * parseEther("1") * bufferMultiplier) /
                 (stEthPerToken * 10000n);
             } else {
-              // Fallback: use 1.2 ratio with intelligent buffer
               ethValue = (wstInMax * 12n * bufferMultiplier) / 100000n;
             }
 
@@ -527,19 +475,11 @@ export const TradeModal: React.FC<TradeModalProps> = ({
               address: contractAddress as `0x${string}`,
               abi: PredictionAMMAbi,
               functionName,
-              args: [
-                marketId,
-                amountWei, // yesOut or noOut (shares to buy)
-                true, // inIsETH = true
-                wstInMax, // wstInMax (slippage protection)
-                oppInMax, // oppInMax (slippage protection)
-                address, // to
-              ],
+              args: [marketId, amountWei, true, wstInMax, oppInMax, address],
               value: ethValue,
             });
           }
         } else {
-          // For AMM sell: amount is shares to sell
           const slippageMultiplier = BigInt(
             Math.floor((1 - slippageTolerance / 100) * 10000),
           );
@@ -552,17 +492,10 @@ export const TradeModal: React.FC<TradeModalProps> = ({
             address: contractAddress as `0x${string}`,
             abi: PredictionAMMAbi,
             functionName,
-            args: [
-              marketId,
-              amountWei, // yesIn or noIn (shares to sell)
-              wstOutMin, // wstOutMin (slippage protection)
-              oppOutMin, // oppOutMin (slippage protection)
-              address, // to
-            ],
+            args: [marketId, amountWei, wstOutMin, oppOutMin, address],
           });
         }
       } else {
-        // Parimutuel market trading
         if (action === "buy") {
           const functionName = position === "yes" ? "buyYes" : "buyNo";
           await writeContractAsync({
@@ -585,35 +518,26 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 
       setLocalError(null);
     } catch (err: any) {
-      // Handle user rejection silently - no toast, just reset state
       if (isUserRejectionError(err)) {
         setLocalError(null);
         return;
       }
 
-      // For actual errors, log and show to user
       console.error("Trade error:", err);
 
-      // Extract clean error message - avoid showing huge error objects
       const errorMessage =
         err?.shortMessage ?? err?.message ?? err?.reason ?? String(err);
       let displayMessage = errorMessage;
       if (errorMessage && errorMessage.length > 200) {
-        // Truncate very long errors - likely stack traces
         displayMessage = errorMessage.substring(0, 200) + "...";
       }
 
-      // Show error in toast and local error state
       setLocalError(displayMessage || "Transaction failed");
       toast.error(displayMessage || "Transaction failed");
     }
   };
 
   // For AMM markets, use pool reserves for odds; for parimutuel, use total supply
-  // AMM odds formula (from PAMM.sol impliedYesProb):
-  //   YES probability = rNo / (rYes + rNo)
-  //   NO probability = rYes / (rYes + rNo)
-  // This is because reserves are inversely related to probability in a CPMM
   let yesPercent: number;
   let noPercent: number;
   let displayYes: bigint;
@@ -621,15 +545,11 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 
   if (marketType === "amm" && rYes > 0n && rNo > 0n) {
     const totalReserves = rYes + rNo;
-    // YES probability uses rNo in numerator (inverse relationship)
-    // Use high precision calculation to avoid BigInt truncation
     yesPercent = (Number(rNo) / Number(totalReserves)) * 100;
     noPercent = 100 - yesPercent;
-    // For display of reserve values, show actual reserves
     displayYes = rYes;
     displayNo = rNo;
   } else {
-    // Parimutuel markets: use total supply directly
     const totalSupply = yesSupply + noSupply;
     yesPercent =
       totalSupply > 0n ? (Number(yesSupply) / Number(totalSupply)) * 100 : 50;
@@ -802,7 +722,6 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                   const amountWei = parseEther(amount);
 
                   if (marketType === "amm") {
-                    // For AMM: shares bought = potential payout if win
                     const sharesBought = amountWei;
                     const costWei = estimatedCost > 0n ? estimatedCost : 0n;
                     const profit =
@@ -862,16 +781,13 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                       </div>
                     );
                   } else {
-                    // For Parimutuel: calculate based on pool ratio
                     const currentPositionPool =
                       position === "yes" ? displayYes : displayNo;
                     const totalPool = displayYes + displayNo;
 
-                    // After this bet, position pool increases
                     const newPositionPool = currentPositionPool + amountWei;
                     const newTotalPool = totalPool + amountWei;
 
-                    // If position wins: your share of total pool = (your amount / total position pool) * total pool
                     const potentialPayout =
                       newTotalPool > 0n
                         ? (amountWei * newTotalPool) / newPositionPool
@@ -954,7 +870,6 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                     (estimatedCost * slippageMultiplier) / 10000n;
 
                   if (useWstETH) {
-                    // Paying with wstETH directly - simpler display
                     return (
                       <div className="bg-card border border-border rounded-lg p-4 space-y-3">
                         <div className="flex items-center justify-between">
@@ -982,10 +897,9 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                       </div>
                     );
                   } else {
-                    // Paying with ETH - show buffer calculation
                     const bufferBps = calculateIntelligentBuffer(amountWei);
                     const bufferMultiplier = BigInt(10000 + bufferBps);
-                    const bufferPercent = (bufferBps / 100).toFixed(1); // e.g., "25.0"
+                    const bufferPercent = (bufferBps / 100).toFixed(1);
 
                     let ethToSend: bigint;
                     if (stEthPerToken) {
@@ -1061,7 +975,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                       <Slider
                         id="slippage"
                         min={0.1}
-                        max={40}
+                        max={100}
                         step={0.1}
                         value={[slippageTolerance]}
                         onValueChange={(value) =>
@@ -1071,7 +985,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                       />
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>0.1%</span>
-                        <span>40%</span>
+                        <span>100%</span>
                       </div>
                       <p className="text-xs text-muted-foreground italic">
                         Higher slippage = more price movement tolerance
@@ -1112,23 +1026,58 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                 </div>
               </div>
 
-              {/* Amount Input */}
-              <div className="space-y-3">
-                <Label htmlFor="sell-amount" className="text-sm font-semibold">
-                  {marketType === "amm"
-                    ? "Shares to Sell"
-                    : "Amount (wstETH shares)"}
-                </Label>
-                <Input
-                  id="sell-amount"
-                  type="number"
-                  step="0.001"
-                  min="0"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.1"
-                  className="h-14 text-lg font-mono rounded-lg"
-                />
+              {/* Amount Input + MAX + Balance */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label
+                    htmlFor="sell-amount"
+                    className="text-sm font-semibold"
+                  >
+                    {marketType === "amm"
+                      ? "Shares to Sell"
+                      : "Amount (shares)"}
+                  </Label>
+
+                  {/* Balance display (only when we have it) */}
+                  {action === "sell" &&
+                    tokenIdForPosition !== undefined &&
+                    userTokenBalance !== undefined && (
+                      <span className="text-xs text-muted-foreground">
+                        Balance:{" "}
+                        <span className="font-mono">
+                          {Number(formatEther(userTokenBalance ?? 0n)).toFixed(
+                            6,
+                          )}
+                        </span>
+                      </span>
+                    )}
+                </div>
+
+                <div className="flex gap-2">
+                  <Input
+                    id="sell-amount"
+                    type="number"
+                    step="0.001"
+                    min="0"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="0.1"
+                    className="h-14 text-lg font-mono rounded-lg flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleMaxSell}
+                    disabled={
+                      !userTokenBalance || userTokenBalance === 0n || !address
+                    }
+                    className="h-14 px-4 border-2 font-bold"
+                    title="Sell your full balance"
+                  >
+                    MAX
+                  </Button>
+                </div>
+
                 <p className="text-xs text-muted-foreground">
                   Sell your {position.toUpperCase()} shares for wstETH
                 </p>
