@@ -61,6 +61,7 @@ interface MegaSaleOptionRowProps {
   onTradeClick: (position: "yes" | "no") => void;
   // NEW:
   canResolve?: boolean;
+  resolveReason?: "threshold" | "deadline";
   onResolve?: () => void;
   isResolving?: boolean;
   resolved?: boolean;
@@ -79,6 +80,7 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
   noCost,
   onTradeClick,
   canResolve = false,
+  resolveReason,
   onResolve,
   isResolving = false,
   resolved = false,
@@ -225,7 +227,11 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
                   disabled={isResolving}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 h-auto rounded-md shadow-sm transition-all text-xs flex-1"
                 >
-                  {isResolving ? "Resolving..." : "Resolve"}
+                  {isResolving
+                    ? "Resolving..."
+                    : resolveReason === "deadline"
+                      ? "Resolve (Closed)"
+                      : "Resolve"}
                 </Button>
               ) : (
                 <>
@@ -335,12 +341,21 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
                   onClaim?.();
                 }}
                 disabled={isClaiming}
-                className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/50 font-semibold px-6 py-2 h-auto rounded-md transition-all"
+                className="bg-gradient-to-r from-emerald-500/15 to-emerald-600/15 hover:from-emerald-500/25 hover:to-emerald-600/25 text-emerald-700 dark:text-emerald-300 border-2 border-emerald-400/50 dark:border-emerald-600/50 hover:border-emerald-500/70 dark:hover:border-emerald-500/70 font-semibold px-6 py-2.5 h-auto rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
                 size="sm"
               >
-                {isClaiming
-                  ? "Claiming..."
-                  : `Claim ${Number(formatEther(userClaimable)).toFixed(4)} wstETH`}
+                {isClaiming ? (
+                  "Claiming..."
+                ) : (
+                  <div className="flex flex-col items-center gap-0.5">
+                    <span className="text-[10px] uppercase tracking-wider opacity-80">
+                      Claim Winnings
+                    </span>
+                    <span className="text-sm font-bold">
+                      {Number(formatEther(userClaimable)).toFixed(4)} wstETH
+                    </span>
+                  </div>
+                )}
               </Button>
             ) : resolved ? (
               // Show resolved state for markets without claimable winnings
@@ -353,17 +368,28 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
                 Resolved
               </Button>
             ) : canResolve ? (
-              // Show resolve button when threshold is met
+              // Show resolve button when threshold is met or deadline passed
               <Button
                 onClick={(e) => {
                   e.stopPropagation();
                   onResolve?.();
                 }}
                 disabled={isResolving}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 h-auto rounded-md shadow-sm transition-all"
+                className="bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-semibold px-5 py-2.5 h-auto rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
                 size="sm"
               >
-                {isResolving ? "Resolving..." : "Resolve"}
+                {isResolving ? (
+                  "Resolving..."
+                ) : (
+                  <div className="flex flex-col items-center gap-0.5">
+                    <span className="text-[10px] uppercase tracking-wider opacity-90">
+                      {resolveReason === "deadline" ? "Market Closed" : "Ready to Resolve"}
+                    </span>
+                    <span className="text-sm font-bold">
+                      {resolveReason === "deadline" ? "Resolve Now" : "Resolve Market"}
+                    </span>
+                  </div>
+                )}
               </Button>
             ) : (
               // Show trading buttons for active markets
@@ -882,11 +908,19 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
             );
             const liquidity = market.pot;
 
-            // ---- NEW: compute canResolve from bets() + totalActiveBidAmount ----
+            // ---- NEW: compute canResolve from bets() + totalActiveBidAmount + deadline ----
             const bet = betByMarketId.get(market.marketId);
             const threshold = bet?.amount ?? option.amount; // hard fallback to label amount if bets() missing
+            const isPastDeadline = !!(
+              officialDeadline &&
+              officialDeadline > 0n &&
+              currentTime >= Number(officialDeadline) * 1000
+            );
             const canResolve =
-              !market.resolved && currentAmount >= (threshold ?? 0n);
+              !market.resolved &&
+              (currentAmount >= (threshold ?? 0n) || isPastDeadline);
+            const resolveReason =
+              currentAmount >= (threshold ?? 0n) ? "threshold" : "deadline";
 
             // Get user claimable amount for this market
             let userClaimable = 0n;
@@ -922,6 +956,7 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
                   handleTradeClick(market.marketId, position)
                 }
                 canResolve={canResolve}
+                resolveReason={canResolve ? resolveReason : undefined}
                 onResolve={() => handleResolve(market.marketId)}
                 isResolving={isResolvingId === market.marketId}
                 resolved={market.resolved}
