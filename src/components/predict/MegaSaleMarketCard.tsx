@@ -114,145 +114,148 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
       className="border-b border-zinc-200 dark:border-zinc-800 last:border-b-0"
     >
       <CollapsibleTrigger asChild>
-        <div className="w-full grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 items-center py-4 px-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 rounded-lg transition-colors cursor-pointer">
-      <div>
-        <div className="flex items-center gap-2">
-          <div className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-            {label}
+        <div className="w-full grid grid-cols-[1fr_auto_auto_auto_auto] gap-3  py-4 px-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 rounded-lg transition-colors cursor-pointer">
+          <div className="w-full flex flex-row items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+                {label}
+              </div>
+              {resolved && (
+                <span
+                  className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                    outcome
+                      ? "bg-green-500/20 text-green-700 dark:text-green-300"
+                      : "bg-red-500/20 text-red-700 dark:text-red-300"
+                  }`}
+                >
+                  {outcome ? "✓ YES WON" : "✗ NO WON"}
+                </span>
+              )}
+            </div>
+            <div className="text-xs text-zinc-500 dark:text-zinc-400">
+              {Number(formatEther(liquidity)).toFixed(3)} wstETH Vol.
+            </div>
+
+            {hasPosition && (
+              <div className="mt-1 inline-flex items-center gap-2 rounded-md bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 px-2 py-0.5 text-[11px] font-medium">
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                Holding
+                {hasYes && (
+                  <span className="font-mono">
+                    &nbsp;YES {Number(formatEther(yesBal!)).toFixed(4)}
+                  </span>
+                )}
+                {hasNo && (
+                  <span className="font-mono">
+                    &nbsp;NO {Number(formatEther(noBal!)).toFixed(4)}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {canClaim && (
+              <div className="mt-1 inline-flex items-center gap-2 rounded-md bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200 px-2 py-1 text-[11px] font-semibold">
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                Claimable: {Number(formatEther(userClaimable)).toFixed(4)}{" "}
+                wstETH
+              </div>
+            )}
           </div>
-          {resolved && (
-            <span
-              className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                outcome
-                  ? "bg-green-500/20 text-green-700 dark:text-green-300"
-                  : "bg-red-500/20 text-red-700 dark:text-red-300"
-              }`}
+
+          <div className="text-right">
+            <div className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+              {yesPercent.toFixed(2)}%
+            </div>
+            <div className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase tracking-wide">
+              chance
+            </div>
+          </div>
+
+          {/* Action buttons based on market state */}
+          {canClaim ? (
+            // Show claim button if user has winnings
+            <Button
+              onClick={(e) => {
+                e.stopPropagation();
+                onClaim?.();
+              }}
+              disabled={isClaiming}
+              className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold px-6 py-2 h-auto rounded-md shadow-md hover:shadow-lg transition-all"
+              size="sm"
             >
-              {outcome ? "✓ YES WON" : "✗ NO WON"}
-            </span>
+              {isClaiming
+                ? "Claiming..."
+                : `Claim ${Number(formatEther(userClaimable)).toFixed(4)} wstETH`}
+            </Button>
+          ) : resolved ? (
+            // Show resolved state for markets without claimable winnings
+            <Button
+              disabled
+              variant="outline"
+              className="px-4 py-2 h-auto text-zinc-500"
+              size="sm"
+            >
+              Resolved
+            </Button>
+          ) : canResolve ? (
+            // Show resolve button when threshold is met
+            <Button
+              onClick={(e) => {
+                e.stopPropagation();
+                onResolve?.();
+              }}
+              disabled={isResolving}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 h-auto rounded-md shadow-sm transition-all"
+              size="sm"
+            >
+              {isResolving ? "Resolving..." : "Resolve"}
+            </Button>
+          ) : (
+            // Show trading buttons for active markets
+            <>
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTradeClick("yes");
+                }}
+                className="bg-emerald-500 hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-700 text-white font-semibold px-4 py-2 h-auto rounded-md shadow-sm transition-all"
+                size="sm"
+              >
+                <div className="flex flex-col items-center gap-0.5">
+                  <span className="text-[10px] uppercase tracking-wide opacity-90">
+                    buy Yes
+                  </span>
+                  <span className="text-sm">{yesCost}</span>
+                </div>
+              </Button>
+
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTradeClick("no");
+                }}
+                className="bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 font-semibold px-4 py-2 h-auto rounded-md shadow-sm transition-all"
+                size="sm"
+              >
+                <div className="flex flex-col items-center gap-0.5">
+                  <span className="text-[10px] uppercase tracking-wide opacity-70">
+                    buy No
+                  </span>
+                  <span className="text-sm">{noCost}</span>
+                </div>
+              </Button>
+            </>
           )}
-        </div>
-        <div className="text-xs text-zinc-500 dark:text-zinc-400">
-          {Number(formatEther(liquidity)).toFixed(3)} wstETH Vol.
-        </div>
 
-        {hasPosition && (
-          <div className="mt-1 inline-flex items-center gap-2 rounded-md bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 px-2 py-0.5 text-[11px] font-medium">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            Holding
-            {hasYes && (
-              <span className="font-mono">
-                &nbsp;YES {Number(formatEther(yesBal!)).toFixed(4)}
-              </span>
-            )}
-            {hasNo && (
-              <span className="font-mono">
-                &nbsp;NO {Number(formatEther(noBal!)).toFixed(4)}
-              </span>
+          {/* Expand/Collapse Indicator */}
+          <div className="flex items-center justify-center">
+            {isExpanded ? (
+              <ChevronUp className="h-5 w-5 text-zinc-400" />
+            ) : (
+              <ChevronDown className="h-5 w-5 text-zinc-400" />
             )}
           </div>
-        )}
-
-        {canClaim && (
-          <div className="mt-1 inline-flex items-center gap-2 rounded-md bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200 px-2 py-1 text-[11px] font-semibold">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse" />
-            Claimable: {Number(formatEther(userClaimable)).toFixed(4)} wstETH
-          </div>
-        )}
-      </div>
-
-      <div className="text-right">
-        <div className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-          {yesPercent.toFixed(2)}%
         </div>
-        <div className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase tracking-wide">
-          chance
-        </div>
-      </div>
-
-      {/* Action buttons based on market state */}
-      {canClaim ? (
-        // Show claim button if user has winnings
-        <Button
-          onClick={(e) => {
-            e.stopPropagation();
-            onClaim?.();
-          }}
-          disabled={isClaiming}
-          className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold px-6 py-2 h-auto rounded-md shadow-md hover:shadow-lg transition-all"
-          size="sm"
-        >
-          {isClaiming ? "Claiming..." : `Claim ${Number(formatEther(userClaimable)).toFixed(4)} wstETH`}
-        </Button>
-      ) : resolved ? (
-        // Show resolved state for markets without claimable winnings
-        <Button
-          disabled
-          variant="outline"
-          className="px-4 py-2 h-auto text-zinc-500"
-          size="sm"
-        >
-          Resolved
-        </Button>
-      ) : canResolve ? (
-        // Show resolve button when threshold is met
-        <Button
-          onClick={(e) => {
-            e.stopPropagation();
-            onResolve?.();
-          }}
-          disabled={isResolving}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 h-auto rounded-md shadow-sm transition-all"
-          size="sm"
-        >
-          {isResolving ? "Resolving..." : "Resolve"}
-        </Button>
-      ) : (
-        // Show trading buttons for active markets
-        <>
-          <Button
-            onClick={(e) => {
-              e.stopPropagation();
-              onTradeClick("yes");
-            }}
-            className="bg-emerald-500 hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-700 text-white font-semibold px-4 py-2 h-auto rounded-md shadow-sm transition-all"
-            size="sm"
-          >
-            <div className="flex flex-col items-center gap-0.5">
-              <span className="text-[10px] uppercase tracking-wide opacity-90">
-                buy Yes
-              </span>
-              <span className="text-sm">{yesCost}</span>
-            </div>
-          </Button>
-
-          <Button
-            onClick={(e) => {
-              e.stopPropagation();
-              onTradeClick("no");
-            }}
-            className="bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 font-semibold px-4 py-2 h-auto rounded-md shadow-sm transition-all"
-            size="sm"
-          >
-            <div className="flex flex-col items-center gap-0.5">
-              <span className="text-[10px] uppercase tracking-wide opacity-70">
-                buy No
-              </span>
-              <span className="text-sm">{noCost}</span>
-            </div>
-          </Button>
-        </>
-      )}
-
-      {/* Expand/Collapse Indicator */}
-      <div className="flex items-center justify-center">
-        {isExpanded ? (
-          <ChevronUp className="h-5 w-5 text-zinc-400" />
-        ) : (
-          <ChevronDown className="h-5 w-5 text-zinc-400" />
-        )}
-      </div>
-    </div>
       </CollapsibleTrigger>
 
       {/* Collapsible Chart Content */}
@@ -425,7 +428,8 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
       }
 
       // Show actual errors
-      const errorMessage = (claimError as any)?.shortMessage ?? claimError?.message ?? "";
+      const errorMessage =
+        (claimError as any)?.shortMessage ?? claimError?.message ?? "";
       toast.error(errorMessage || "Claim failed");
     }
   }, [claimError]);
@@ -638,8 +642,12 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
             if (userMarketsData) {
               const [yesIds, noIds, , , claimables] = userMarketsData;
               // Check if this market exists in user's markets (either YES or NO position)
-              const yesIdx = yesIds.findIndex((id: bigint) => id === market.marketId);
-              const noIdx = noIds.findIndex((id: bigint) => id === market.marketId);
+              const yesIdx = yesIds.findIndex(
+                (id: bigint) => id === market.marketId,
+              );
+              const noIdx = noIds.findIndex(
+                (id: bigint) => id === market.marketId,
+              );
 
               if (yesIdx !== -1) {
                 userClaimable = claimables[yesIdx];
@@ -668,7 +676,9 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
                 resolved={market.resolved}
                 outcome={(market as any).outcome ?? false}
                 userClaimable={userClaimable}
-                onClaim={() => handleClaim(market.marketId, market.contractAddress)}
+                onClaim={() =>
+                  handleClaim(market.marketId, market.contractAddress)
+                }
                 isClaiming={claimingMarketId === market.marketId}
               />
             );
