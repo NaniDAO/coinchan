@@ -33,6 +33,8 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { PredictionProbabilityChart } from "./PredictionProbabilityChart";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { MarketLeaderboard } from "./MarketLeaderboard";
 
 // MegaETH logo URL
 const MEGAETH_LOGO =
@@ -444,10 +446,21 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
         </div>
       </CollapsibleTrigger>
 
-      {/* Collapsible Chart Content */}
+      {/* Collapsible Chart and Leaderboard Content */}
       <CollapsibleContent>
         <div className="px-4 pb-4 pt-2 bg-zinc-50/50 dark:bg-zinc-900/30">
-          <PredictionProbabilityChart marketId={marketId} />
+          <Tabs defaultValue="chart" className="w-full">
+            <TabsList className="w-full grid grid-cols-2 mb-4">
+              <TabsTrigger value="chart">Chart</TabsTrigger>
+              <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
+            </TabsList>
+            <TabsContent value="chart">
+              <PredictionProbabilityChart marketId={marketId} />
+            </TabsContent>
+            <TabsContent value="leaderboard">
+              <MarketLeaderboard marketId={marketId} />
+            </TabsContent>
+          </Tabs>
         </div>
       </CollapsibleContent>
     </Collapsible>
