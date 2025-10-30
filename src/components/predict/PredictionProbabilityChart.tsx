@@ -57,6 +57,7 @@ export function PredictionProbabilityChart({ marketId }: PredictionProbabilityCh
         mode: PriceScaleMode.Normal,
         borderColor: theme.borderColor,
         borderVisible: false,
+        visible: true,
         scaleMargins: {
           top: 0.1,
           bottom: 0.1,
