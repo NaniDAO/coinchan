@@ -97,10 +97,19 @@ export function PredictionProbabilityChart({ marketId }: PredictionProbabilityCh
     });
 
     // Convert data to chart format (probabilities as percentages)
-    const yesData = data.data.map((point) => ({
-      time: point.timestamp as UTCTimestamp,
-      value: point.yesChance * 100, // Convert to percentage
-    }));
+    // Filter duplicate timestamps and ensure strictly ascending order
+    const yesData = data.data
+      .map((point) => ({
+        time: point.timestamp as UTCTimestamp,
+        value: point.yesChance * 100, // Convert to percentage
+      }))
+      .reduce((acc, point) => {
+        // Only add if timestamp is strictly greater than the last one
+        if (acc.length === 0 || point.time > acc[acc.length - 1].time) {
+          acc.push(point);
+        }
+        return acc;
+      }, [] as Array<{ time: UTCTimestamp; value: number }>);
 
     yesSeries.setData(yesData);
 

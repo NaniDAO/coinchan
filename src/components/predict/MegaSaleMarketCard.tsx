@@ -114,7 +114,7 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
       className="border-b border-zinc-200 dark:border-zinc-800 last:border-b-0"
     >
       <CollapsibleTrigger asChild>
-        <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 items-center py-4 px-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 rounded-lg transition-colors cursor-pointer">
+        <div className="w-full grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 items-center py-4 px-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 rounded-lg transition-colors cursor-pointer">
       <div>
         <div className="flex items-center gap-2">
           <div className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
