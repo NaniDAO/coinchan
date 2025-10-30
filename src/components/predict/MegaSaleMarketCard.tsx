@@ -311,16 +311,14 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
     query: { refetchInterval: 15000 },
   });
 
-  // Fetch user claimable amounts for all markets
-  const { data: userClaimableData } = useReadContracts({
-    contracts: markets.map((m) => ({
-      address: m.contractAddress,
-      abi: PredictionAMMAbi,
-      functionName: "getUserMarket",
-      args: address ? [m.marketId, address] : undefined,
-    })),
+  // Fetch user market data (balances and claimables)
+  const { data: userMarketsData } = useReadContract({
+    address: PredictionAMMAddress as `0x${string}`,
+    abi: PredictionAMMAbi,
+    functionName: "getUserMarkets",
+    args: address ? [address, BigInt(0), BigInt(200)] : undefined,
     query: {
-      enabled: !!address && markets.length > 0,
+      enabled: !!address,
       refetchInterval: 15000,
     },
   });
@@ -598,12 +596,18 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
               !market.resolved && currentAmount >= (threshold ?? 0n);
 
             // Get user claimable amount for this market
-            const marketIdx = markets.findIndex((m) => m.marketId === market.marketId);
-            const userMarketData = userClaimableData?.[marketIdx];
             let userClaimable = 0n;
-            if (userMarketData?.status === "success" && userMarketData.result) {
-              const result = userMarketData.result as unknown as readonly [bigint, bigint, bigint];
-              userClaimable = result[2]; // claimable is third element
+            if (userMarketsData) {
+              const [yesIds, noIds, , , claimables] = userMarketsData;
+              // Check if this market exists in user's markets (either YES or NO position)
+              const yesIdx = yesIds.findIndex((id: bigint) => id === market.marketId);
+              const noIdx = noIds.findIndex((id: bigint) => id === market.marketId);
+
+              if (yesIdx !== -1) {
+                userClaimable = claimables[yesIdx];
+              } else if (noIdx !== -1) {
+                userClaimable = claimables[noIdx];
+              }
             }
 
             return (
