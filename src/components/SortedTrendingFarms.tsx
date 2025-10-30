@@ -29,7 +29,7 @@ const FARM_CONFIGS: FarmConfig[] = [
   {
     id: "farm-1",
     chefId: "2774204975865484998625983578957308881936129866247490838637631956688562044384",
-    url: "/stake",
+    url: "/farm",
   },
   {
     id: "ens",
