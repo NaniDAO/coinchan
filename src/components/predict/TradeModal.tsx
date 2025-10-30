@@ -29,6 +29,11 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Slider } from "@/components/ui/slider";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { BadgeCheck, CopyIcon, Settings } from "lucide-react";
 import { isPerpetualOracleResolver } from "@/constants/TrustedResolvers";
 import { isUserRejectionError } from "@/lib/errors";
@@ -256,6 +261,22 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   // Extract reserves: [poolId, rYes, rNo, tsLast, kLast, lpSupply]
   const rYes = ammPoolData ? ammPoolData[1] : 0n;
   const rNo = ammPoolData ? ammPoolData[2] : 0n;
+
+  // Fetch full market data for PAMM (pot, circulating supply, payout calculations)
+  const { data: marketData } = useReadContract({
+    address: contractAddress as `0x${string}`,
+    abi: PredictionAMMAbi,
+    functionName: "getMarket",
+    args: [marketId],
+    query: {
+      enabled: marketType === "amm",
+    },
+  });
+
+  // Extract market data: [yesSupply, noSupply, resolver, resolved, outcome, pot, payoutPerShare, desc, closeTs, canClose, rYes, rNo, pYes_num, pYes_den]
+  const currentPot = marketData ? marketData[5] : 0n; // pot
+  const yesCirculating = marketData ? marketData[0] : 0n; // yesSupply (includes ZAMM LP)
+  const noCirculating = marketData ? marketData[1] : 0n; // noSupply (includes ZAMM LP)
 
   // Fetch PMTuning to calculate intelligent buffer based on market conditions
   const { data: pmTuningData } = useReadContract({
@@ -579,6 +600,33 @@ export const TradeModal: React.FC<TradeModalProps> = ({
           <DialogDescription className="text-sm text-muted-foreground">
             Trade shares in this prediction market
           </DialogDescription>
+
+          {/* PAMM Payout Explainer - Only for AMM markets */}
+          {marketType === "amm" && (
+            <Collapsible className="mt-3">
+              <CollapsibleTrigger className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
+                <span>ℹ️</span>
+                <span className="font-medium">How do PAMM payouts work?</span>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg text-xs space-y-2">
+                <p className="font-semibold text-blue-900 dark:text-blue-100">
+                  PAMM uses parimutuel (pool-based) payouts
+                </p>
+                <ul className="list-disc list-inside space-y-1.5 text-blue-800 dark:text-blue-200">
+                  <li>Every trade adds wstETH to a shared pot</li>
+                  <li>
+                    At resolution, winners split the pot proportionally:{" "}
+                    <span className="font-mono bg-blue-100 dark:bg-blue-900/40 px-1 rounded">
+                      payout per share = pot ÷ winning shares
+                    </span>
+                  </li>
+                  <li>Your profit depends on both winning AND your average cost vs. final payout per share</li>
+                  <li>Earlier positions typically get better returns (like traditional parimutuel betting)</li>
+                  <li>You can also exit positions early by selling at current market odds</li>
+                </ul>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
         </DialogHeader>
 
         <div className="space-y-6 py-2">
@@ -750,6 +798,20 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                         ? Number(formatEther(profit)) * wstethUsdPrice
                         : null;
 
+                    // Calculate cost per share and projected payout per share
+                    // Formula matches PAMM.sol: payoutPerShare = mulDiv(pot, Q, winningCirc) where Q = 1e18
+                    const Q = parseEther("1"); // 1e18, same as contract
+                    const userAvgCostPerShare = costWei > 0n && sharesBought > 0n
+                      ? (costWei * Q) / sharesBought  // Cost in wei per share
+                      : 0n;
+
+                    const positionCirculating = position === "yes" ? yesCirculating : noCirculating;
+                    const projectedPayoutPerShare = positionCirculating > 0n && currentPot > 0n
+                      ? (currentPot * Q) / positionCirculating  // Payout in wei per share
+                      : 0n;
+
+                    const isAboveBreakeven = userAvgCostPerShare > projectedPayoutPerShare && projectedPayoutPerShare > 0n;
+
                     return (
                       <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4 space-y-2">
                         <div className="flex items-center justify-between">
@@ -793,6 +855,43 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                             </div>
                           </div>
                         )}
+
+                        {/* Payout Analysis */}
+                        <div className="space-y-2 text-xs border-t border-purple-200/50 dark:border-purple-800/50 pt-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-purple-700 dark:text-purple-300 font-medium">
+                              Your Cost Per Share
+                            </span>
+                            <span className="font-mono text-purple-900 dark:text-purple-100">
+                              {Number(formatEther(userAvgCostPerShare)).toFixed(6)} wstETH
+                            </span>
+                          </div>
+                          {projectedPayoutPerShare > 0n && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-purple-700 dark:text-purple-300 font-medium">
+                                Current Payout/Share (if resolved now)
+                              </span>
+                              <span className="font-mono text-purple-900 dark:text-purple-100">
+                                {Number(formatEther(projectedPayoutPerShare)).toFixed(6)} wstETH
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Position Status - Only show if significantly above breakeven */}
+                          {isAboveBreakeven && userAvgCostPerShare > projectedPayoutPerShare * 11n / 10n && (
+                            <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded p-2 mt-2">
+                              <p className="text-blue-700 dark:text-blue-300 text-[11px] leading-relaxed">
+                                💡 <span className="font-medium">Heads up:</span> For this position to be profitable at current odds,
+                                more traders would need to bet on the opposite side to grow the pot.
+                                Alternatively, you can sell now at market odds or wait for the odds to improve.
+                              </p>
+                            </div>
+                          )}
+
+                          <p className="text-purple-600 dark:text-purple-400 italic pt-1 text-[11px]">
+                            Payouts are determined by the final pot size divided by winning shares (parimutuel style)
+                          </p>
+                        </div>
                       </div>
                     );
                   } else {

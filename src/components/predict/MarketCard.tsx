@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { formatEther } from "viem";
+import { formatEther, parseEther } from "viem";
 import {
   useEnsName,
   useReadContract,
@@ -1782,6 +1782,43 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                       <span className="font-mono font-semibold">{Number(formatEther(userNoBalance)).toFixed(4)}</span>
                     </div>
                   )}
+
+                  {/* PAMM Position Info - Only for AMM markets with active positions */}
+                  {marketType === "amm" && !resolved && pot > 0n && (
+                    <>
+                      {userYesBalance > 0n && yesSupply > 0n && (() => {
+                        // Formula matches PAMM.sol: payoutPerShare = mulDiv(pot, Q, winningCirc) where Q = 1e18
+                        const Q = parseEther("1");
+                        const payoutPerShare = (pot * Q) / yesSupply;
+                        return (
+                          <div className="pt-1.5 border-t border-blue-200/50 dark:border-blue-800/50 space-y-1">
+                            <div className="flex justify-between items-center text-[10px]">
+                              <span className="text-muted-foreground">Current payout/share (YES)</span>
+                              <span className="font-mono text-blue-700 dark:text-blue-300">
+                                {Number(formatEther(payoutPerShare)).toFixed(4)} wstETH
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                      {userNoBalance > 0n && noSupply > 0n && (() => {
+                        // Formula matches PAMM.sol: payoutPerShare = mulDiv(pot, Q, winningCirc) where Q = 1e18
+                        const Q = parseEther("1");
+                        const payoutPerShare = (pot * Q) / noSupply;
+                        return (
+                          <div className="pt-1.5 border-t border-blue-200/50 dark:border-blue-800/50 space-y-1">
+                            <div className="flex justify-between items-center text-[10px]">
+                              <span className="text-muted-foreground">Current payout/share (NO)</span>
+                              <span className="font-mono text-blue-700 dark:text-blue-300">
+                                {Number(formatEther(payoutPerShare)).toFixed(4)} wstETH
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </>
+                  )}
+
                   {canClaim && (
                     <div className="flex justify-between items-center pt-1.5 border-t border-blue-200/50 dark:border-blue-800/50">
                       <span className="font-semibold text-emerald-600 dark:text-emerald-400">Claimable</span>
