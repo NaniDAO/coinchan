@@ -595,8 +595,8 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
 
         {/* Outcomes */}
         <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
-          <div className="px-2 py-2 bg-zinc-50 dark:bg-zinc-900/50">
-            <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 px-4 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
+          <div className="px-6 py-2 bg-zinc-50 dark:bg-zinc-900/50">
+            <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
               <div>Outcome (Volume)</div>
               <div className="text-right">% Chance</div>
               <div></div>

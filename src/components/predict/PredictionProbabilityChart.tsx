@@ -46,6 +46,9 @@ export function PredictionProbabilityChart({ marketId }: PredictionProbabilityCh
         textColor: theme.textColor,
         attributionLogo: false,
       },
+      localization: {
+        priceFormatter: (price: number) => `${price.toFixed(1)}%`,
+      },
       grid: {
         vertLines: { color: theme.gridColor },
         horzLines: { color: theme.gridColor },
@@ -93,29 +96,13 @@ export function PredictionProbabilityChart({ marketId }: PredictionProbabilityCh
       priceLineVisible: true,
     });
 
-    // Create line series for NO probability
-    const noSeries = chart.addSeries(LineSeries, {
-      color: "#ef4444", // Red for NO
-      lineWidth: 3,
-      crosshairMarkerVisible: true,
-      crosshairMarkerRadius: 6,
-      lastValueVisible: true,
-      priceLineVisible: true,
-    });
-
     // Convert data to chart format (probabilities as percentages)
     const yesData = data.data.map((point) => ({
       time: point.timestamp as UTCTimestamp,
       value: point.yesChance * 100, // Convert to percentage
     }));
 
-    const noData = data.data.map((point) => ({
-      time: point.timestamp as UTCTimestamp,
-      value: point.noChance * 100, // Convert to percentage
-    }));
-
     yesSeries.setData(yesData);
-    noSeries.setData(noData);
 
     // Fit content to show all data
     chart.timeScale().fitContent();
@@ -171,19 +158,11 @@ export function PredictionProbabilityChart({ marketId }: PredictionProbabilityCh
   return (
     <div className="w-full">
       <div className="flex items-center justify-between mb-4 px-4">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-emerald-500" />
-            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              YES Probability
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-red-500" />
-            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              NO Probability
-            </span>
-          </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-emerald-500" />
+          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            YES Probability
+          </span>
         </div>
         <div className="text-xs text-zinc-500 dark:text-zinc-400">
           {data.count} event{data.count !== 1 ? "s" : ""}
