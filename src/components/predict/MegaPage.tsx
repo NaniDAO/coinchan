@@ -216,16 +216,27 @@ export const MegaPage: React.FC = () => {
           Predict the success of the MegaETH fundraise. Will they reach these ambitious milestones? Markets use an
           automated market maker (AMM) for instant trading and pot-based payouts to winners.
         </p>
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-stone-100 dark:bg-zinc-800 rounded-full border border-stone-300 dark:border-zinc-700">
-          <span className="text-sm text-stone-700 dark:text-zinc-300">Powered by onchain oracle</span>
+        <div className="flex flex-col sm:flex-row gap-3 items-center justify-center">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-stone-100 dark:bg-zinc-800 rounded-full border border-stone-300 dark:border-zinc-700">
+            <span className="text-sm text-stone-700 dark:text-zinc-300">Powered by onchain oracle</span>
+            <a
+              href={`https://etherscan.io/address/${MEGASALE_PM_RESOLVER_ADDRESS}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1"
+            >
+              View Contract
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          </div>
           <a
-            href={`https://etherscan.io/address/${MEGASALE_PM_RESOLVER_ADDRESS}`}
+            href="https://github.com/zammdefi/pm"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-950 rounded-full border border-blue-300 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors"
           >
-            View Contract
-            <ExternalLink className="h-3 w-3" />
+            <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">📚 How PAMM Markets Work</span>
+            <ExternalLink className="h-3 w-3 text-blue-600 dark:text-blue-400" />
           </a>
         </div>
       </div>

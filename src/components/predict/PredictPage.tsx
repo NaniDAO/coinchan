@@ -44,16 +44,34 @@ const PredictPageContent: React.FC = () => {
           </Tooltip>
         </div>
         <p className="text-base text-muted-foreground max-w-2xl mx-auto">{t("predict.create_and_trade_tagline")}</p>
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-muted/30 rounded-full border border-border/50">
-          <span className="text-xs text-muted-foreground">{t("predict.all_deposits_earn_lido")}</span>
+        <div className="flex flex-col sm:flex-row gap-3 items-center justify-center">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-muted/30 rounded-full border border-border/50">
+            <span className="text-xs text-muted-foreground">{t("predict.all_deposits_earn_lido")}</span>
+            <a
+              href="https://lido.fi/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs font-semibold text-primary hover:underline transition-colors inline-flex items-center gap-1"
+            >
+              Lido
+              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                />
+              </svg>
+            </a>
+          </div>
           <a
-            href="https://lido.fi/"
+            href="https://github.com/zammdefi/pm"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs font-semibold text-primary hover:underline transition-colors inline-flex items-center gap-1"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-950 rounded-full border border-blue-300 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors"
           >
-            Lido
-            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">📚 How PAMM Markets Work</span>
+            <svg className="h-3 w-3 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
