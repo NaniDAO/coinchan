@@ -3,6 +3,7 @@ import { formatEther, parseEther } from "viem";
 import {
   useEnsName,
   useReadContract,
+  useReadContracts,
   useWriteContract,
   useWaitForTransactionReceipt,
   useAccount,
@@ -143,6 +144,80 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   };
   const { address } = useAccount();
   const { data: currentBlockNumber } = useBlockNumber({ watch: true });
+
+  // CRITICAL: For PAMM markets, we need to calculate circulating supply (excludes PAMM + ZAMM)
+  // Get noId first
+  const { data: noId } = useReadContract({
+    address: contractAddress,
+    abi: PredictionAMMAbi,
+    functionName: "getNoId",
+    args: [marketId],
+    query: {
+      enabled: marketType === "amm",
+    },
+  });
+
+  // ZAMM address from PAMM.sol line 146
+  const ZAMM_ADDRESS = "0x000000000000040470635EB91b7CE4D132D616eD" as const;
+
+  // Fetch balances held by PAMM and ZAMM to calculate true circulating supply
+  const { data: excludedBalances } = useReadContracts({
+    contracts: [
+      {
+        address: contractAddress,
+        abi: PredictionAMMAbi,
+        functionName: "balanceOf",
+        args: [contractAddress, marketId], // PAMM's YES balance
+      },
+      {
+        address: contractAddress,
+        abi: PredictionAMMAbi,
+        functionName: "balanceOf",
+        args: [ZAMM_ADDRESS, marketId], // ZAMM's YES balance
+      },
+      {
+        address: contractAddress,
+        abi: PredictionAMMAbi,
+        functionName: "balanceOf",
+        args: [contractAddress, noId ?? 0n], // PAMM's NO balance
+      },
+      {
+        address: contractAddress,
+        abi: PredictionAMMAbi,
+        functionName: "balanceOf",
+        args: [ZAMM_ADDRESS, noId ?? 0n], // ZAMM's NO balance
+      },
+    ],
+    query: {
+      enabled: marketType === "amm" && !!noId,
+    },
+  });
+
+  // Calculate TRUE circulating supply (matches PAMM.sol _circulating function)
+  const pammYesBal = excludedBalances?.[0]?.result ?? 0n;
+  const zammYesBal = excludedBalances?.[1]?.result ?? 0n;
+  const pammNoBal = excludedBalances?.[2]?.result ?? 0n;
+  const zammNoBal = excludedBalances?.[3]?.result ?? 0n;
+
+  const yesCirculating = yesSupply - pammYesBal - zammYesBal;
+  const noCirculating = noSupply - pammNoBal - zammNoBal;
+
+  // CRITICAL: Fetch resolver fee (PAMM.sol lines 777-784 deducts this from pot before payout)
+  const { data: resolverFeeBps } = useReadContract({
+    address: contractAddress,
+    abi: PredictionAMMAbi,
+    functionName: "resolverFeeBps",
+    args: [resolver as `0x${string}`],
+    query: {
+      enabled: marketType === "amm" && !!resolver,
+    },
+  });
+
+  // Apply resolver fee to pot (matching PAMM.sol line 779)
+  const feeBps = resolverFeeBps ?? 0;
+  const potAfterFee = pot > 0n && feeBps > 0
+    ? (pot * BigInt(10000 - feeBps)) / 10000n
+    : pot;
 
   // Track which transactions we've already shown toasts for to prevent duplicates
   const toastedClaim = React.useRef<string | null>(null);
@@ -535,13 +610,12 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   }, [marketData, isNounsResolver, description, currentBlockNumber]);
 
   // Calculate accurate payout per share: pot / winning shares
-  // For AMM markets, use circulating supply (totalSupply - reserves)
+  // For AMM markets, use circulating supply (excludes PAMM + ZAMM, calculated at lines 202-203)
   // For Parimutuel markets, use total supply
   let winningShares: bigint;
-  if (marketType === "amm" && rYes !== undefined && rNo !== undefined) {
-    // AMM: winning circulating shares = totalSupply - poolReserves
-    const yesCirculating = yesSupply - rYes;
-    const noCirculating = noSupply - rNo;
+  if (marketType === "amm") {
+    // AMM: Use already-calculated yesCirculating/noCirculating (lines 202-203)
+    // which correctly excludes BOTH PAMM and ZAMM holdings per PAMM.sol _circulating()
     winningShares = outcome ? yesCirculating : noCirculating;
   } else {
     // Parimutuel: winning total supply
@@ -550,7 +624,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
 
   const calculatedPayoutPerShare =
     resolved && winningShares > 0n
-      ? (pot * BigInt(1e18)) / winningShares // Scale by 1e18 to maintain precision (same as contract's Q)
+      ? (potAfterFee * BigInt(1e18)) / winningShares // Use potAfterFee (after resolver fee), scale by Q=1e18
       : payoutPerShare; // Fallback to contract value if not resolved or no winning shares
 
   const isClosed = closingTime ? Date.now() / 1000 >= closingTime : false;
@@ -1786,10 +1860,12 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                   {/* PAMM Position Info - Only for AMM markets with active positions */}
                   {marketType === "amm" && !resolved && pot > 0n && (
                     <>
-                      {userYesBalance > 0n && yesSupply > 0n && (() => {
+                      {userYesBalance > 0n && yesCirculating > 0n && (() => {
                         // Formula matches PAMM.sol: payoutPerShare = mulDiv(pot, Q, winningCirc) where Q = 1e18
+                        // CRITICAL: Use yesCirculating (excludes PAMM + ZAMM), not yesSupply
+                        // CRITICAL: Use potAfterFee (after resolver fee), not pot
                         const Q = parseEther("1");
-                        const payoutPerShare = (pot * Q) / yesSupply;
+                        const payoutPerShare = (potAfterFee * Q) / yesCirculating;
                         return (
                           <div className="pt-1.5 border-t border-blue-200/50 dark:border-blue-800/50 space-y-1">
                             <div className="flex justify-between items-center text-[10px]">
@@ -1801,10 +1877,12 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                           </div>
                         );
                       })()}
-                      {userNoBalance > 0n && noSupply > 0n && (() => {
+                      {userNoBalance > 0n && noCirculating > 0n && (() => {
                         // Formula matches PAMM.sol: payoutPerShare = mulDiv(pot, Q, winningCirc) where Q = 1e18
+                        // CRITICAL: Use noCirculating (excludes PAMM + ZAMM), not noSupply
+                        // CRITICAL: Use potAfterFee (after resolver fee), not pot
                         const Q = parseEther("1");
-                        const payoutPerShare = (pot * Q) / noSupply;
+                        const payoutPerShare = (potAfterFee * Q) / noCirculating;
                         return (
                           <div className="pt-1.5 border-t border-blue-200/50 dark:border-blue-800/50 space-y-1">
                             <div className="flex justify-between items-center text-[10px]">

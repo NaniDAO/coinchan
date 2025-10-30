@@ -5,6 +5,7 @@ import {
   useWriteContract,
   useWaitForTransactionReceipt,
   useReadContract,
+  useReadContracts,
   useBalance,
 } from "wagmi";
 import { toast } from "sonner";
@@ -275,8 +276,71 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 
   // Extract market data: [yesSupply, noSupply, resolver, resolved, outcome, pot, payoutPerShare, desc, closeTs, canClose, rYes, rNo, pYes_num, pYes_den]
   const currentPot = marketData ? marketData[5] : 0n; // pot
-  const yesCirculating = marketData ? marketData[0] : 0n; // yesSupply (includes ZAMM LP)
-  const noCirculating = marketData ? marketData[1] : 0n; // noSupply (includes ZAMM LP)
+  const yesTotalSupply = marketData ? marketData[0] : 0n; // yesSupply (total, includes ZAMM LP + PAMM)
+  const noTotalSupply = marketData ? marketData[1] : 0n; // noSupply (total, includes ZAMM LP + PAMM)
+
+  // CRITICAL: Need to calculate TRUE circulating supply by excluding PAMM and ZAMM holdings
+  // This matches PAMM.sol _circulating() function (lines 1289-1295)
+  const ZAMM_ADDRESS = "0x000000000000040470635EB91b7CE4D132D616eD" as const;
+
+  // Fetch balances held by PAMM and ZAMM to calculate circulating supply
+  const { data: excludedBalances } = useReadContracts({
+    contracts: [
+      {
+        address: contractAddress as `0x${string}`,
+        abi: PredictionAMMAbi,
+        functionName: "balanceOf",
+        args: [contractAddress as `0x${string}`, marketId], // PAMM's YES balance
+      },
+      {
+        address: contractAddress as `0x${string}`,
+        abi: PredictionAMMAbi,
+        functionName: "balanceOf",
+        args: [ZAMM_ADDRESS, marketId], // ZAMM's YES balance
+      },
+      {
+        address: contractAddress as `0x${string}`,
+        abi: PredictionAMMAbi,
+        functionName: "balanceOf",
+        args: [contractAddress as `0x${string}`, noId ?? 0n], // PAMM's NO balance
+      },
+      {
+        address: contractAddress as `0x${string}`,
+        abi: PredictionAMMAbi,
+        functionName: "balanceOf",
+        args: [ZAMM_ADDRESS, noId ?? 0n], // ZAMM's NO balance
+      },
+    ],
+    query: {
+      enabled: marketType === "amm" && !!noId,
+    },
+  });
+
+  // Calculate TRUE circulating supply (excludes PAMM and ZAMM, matching contract logic)
+  const pammYesBal = excludedBalances?.[0]?.result ?? 0n;
+  const zammYesBal = excludedBalances?.[1]?.result ?? 0n;
+  const pammNoBal = excludedBalances?.[2]?.result ?? 0n;
+  const zammNoBal = excludedBalances?.[3]?.result ?? 0n;
+
+  const yesCirculating = yesTotalSupply - pammYesBal - zammYesBal;
+  const noCirculating = noTotalSupply - pammNoBal - zammNoBal;
+
+  // CRITICAL: Fetch resolver fee (PAMM.sol lines 777-784 deducts this from pot before payout)
+  const { data: resolverFeeBps } = useReadContract({
+    address: contractAddress as `0x${string}`,
+    abi: PredictionAMMAbi,
+    functionName: "resolverFeeBps",
+    args: [resolver as `0x${string}`],
+    query: {
+      enabled: marketType === "amm" && !!resolver,
+    },
+  });
+
+  // Apply resolver fee to pot (matching PAMM.sol line 779: fee = pot * feeBps / 10_000, then pot -= fee)
+  const feeBps = resolverFeeBps ?? 0;
+  const potAfterFee = currentPot > 0n && feeBps > 0
+    ? (currentPot * BigInt(10000 - feeBps)) / 10000n
+    : currentPot;
 
   // Fetch PMTuning to calculate intelligent buffer based on market conditions
   const { data: pmTuningData } = useReadContract({
@@ -806,8 +870,8 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                       : 0n;
 
                     const positionCirculating = position === "yes" ? yesCirculating : noCirculating;
-                    const projectedPayoutPerShare = positionCirculating > 0n && currentPot > 0n
-                      ? (currentPot * Q) / positionCirculating  // Payout in wei per share
+                    const projectedPayoutPerShare = positionCirculating > 0n && potAfterFee > 0n
+                      ? (potAfterFee * Q) / positionCirculating  // Payout in wei per share (after resolver fee)
                       : 0n;
 
                     const isAboveBreakeven = userAvgCostPerShare > projectedPayoutPerShare && projectedPayoutPerShare > 0n;
@@ -867,14 +931,21 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                             </span>
                           </div>
                           {projectedPayoutPerShare > 0n && (
-                            <div className="flex items-center justify-between">
-                              <span className="text-purple-700 dark:text-purple-300 font-medium">
-                                Current Payout/Share (if resolved now)
-                              </span>
-                              <span className="font-mono text-purple-900 dark:text-purple-100">
-                                {Number(formatEther(projectedPayoutPerShare)).toFixed(6)} wstETH
-                              </span>
-                            </div>
+                            <>
+                              <div className="flex items-center justify-between">
+                                <span className="text-purple-700 dark:text-purple-300 font-medium">
+                                  Payout/Share (if resolved now)
+                                </span>
+                                <span className="font-mono text-purple-900 dark:text-purple-100">
+                                  {Number(formatEther(projectedPayoutPerShare)).toFixed(6)} wstETH
+                                </span>
+                              </div>
+                              {feeBps > 0 && (
+                                <div className="text-[10px] text-purple-600 dark:text-purple-400 italic">
+                                  (After {(feeBps / 100).toFixed(2)}% resolver fee)
+                                </div>
+                              )}
+                            </>
                           )}
 
                           {/* Position Status - Only show if significantly above breakeven */}
