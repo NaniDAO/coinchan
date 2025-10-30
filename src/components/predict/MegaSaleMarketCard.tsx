@@ -121,9 +121,9 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
       className="border-b border-zinc-200 dark:border-zinc-800 last:border-b-0"
     >
       <CollapsibleTrigger asChild>
-        <div className="w-full py-4 px-3 sm:px-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 rounded-lg transition-colors cursor-pointer">
+        <div className="w-full flex justify-between py-4 px-3 sm:px-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 rounded-lg transition-colors cursor-pointer">
           {/* Mobile: Stack everything vertically */}
-          <div className="flex flex-col gap-3 sm:hidden">
+          <div className="w-full flex flex-col gap-3 sm:hidden">
             {/* Header row */}
             <div className="flex items-start justify-between gap-2">
               <div className="flex flex-col gap-1.5 flex-1 min-w-0">
@@ -270,7 +270,7 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
           </div>
 
           {/* Desktop/Tablet: Grid layout */}
-          <div className="hidden sm:grid sm:grid-cols-[1fr_auto_auto_auto_auto] sm:gap-3">
+          <div className="w-full hidden sm:grid sm:grid-cols-[1fr_auto_auto_auto_auto] sm:gap-3">
             <div className="w-full flex flex-col gap-2">
               <div className="flex items-center gap-2">
                 <div className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
@@ -383,10 +383,14 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
                 ) : (
                   <div className="flex flex-col items-center gap-0.5">
                     <span className="text-[10px] uppercase tracking-wider opacity-90">
-                      {resolveReason === "deadline" ? "Market Closed" : "Ready to Resolve"}
+                      {resolveReason === "deadline"
+                        ? "Market Closed"
+                        : "Ready to Resolve"}
                     </span>
                     <span className="text-sm font-bold">
-                      {resolveReason === "deadline" ? "Resolve Now" : "Resolve Market"}
+                      {resolveReason === "deadline"
+                        ? "Resolve Now"
+                        : "Resolve Market"}
                     </span>
                   </div>
                 )}
@@ -725,7 +729,9 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
     if (remaining <= 0) return { expired: true };
 
     const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const hours = Math.floor(
+      (remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+    );
     const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
 
     return { expired: false, days, hours, minutes };
@@ -787,19 +793,25 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
                   >
                     <div className="space-y-3 text-sm">
                       <div>
-                        <p className="font-semibold mb-1">How PAMM trading works:</p>
+                        <p className="font-semibold mb-1">
+                          How PAMM trading works:
+                        </p>
                         <p className="text-zinc-300">
-                          This is a prediction market where YES/NO shares split a prize pot, not fixed $1 payouts.
+                          This is a prediction market where YES/NO shares split
+                          a prize pot, not fixed $1 payouts.
                         </p>
                       </div>
 
                       <div>
-                        <p className="font-semibold mb-1">Your payout if you win:</p>
+                        <p className="font-semibold mb-1">
+                          Your payout if you win:
+                        </p>
                         <p className="text-zinc-300">
                           Total pot ÷ Winning shares held by all users
                         </p>
                         <p className="text-xs text-zinc-400 mt-1">
-                          You profit if your average entry cost per share is below the final payout per share.
+                          You profit if your average entry cost per share is
+                          below the final payout per share.
                         </p>
                       </div>
 
@@ -814,7 +826,8 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
 
                       <div className="pt-2 border-t border-zinc-700">
                         <p className="text-xs text-zinc-400">
-                          💡 Tip: Check the quote before trading to see your exact cost and price impact
+                          💡 Tip: Check the quote before trading to see your
+                          exact cost and price impact
                         </p>
                       </div>
                     </div>
