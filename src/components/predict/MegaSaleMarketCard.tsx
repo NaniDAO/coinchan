@@ -16,8 +16,13 @@ import {
 } from "@/constants/PredictionMarketAMM";
 import { formatUSDT } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Calendar, ChevronDown, ChevronUp } from "lucide-react";
+import { Calendar, ChevronDown, ChevronUp, Info } from "lucide-react";
 import { formatEther } from "viem";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { TradeModal } from "./TradeModal";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { toast } from "sonner";
@@ -293,6 +298,7 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isResolvingId, setIsResolvingId] = useState<bigint | null>(null);
   const [claimingMarketId, setClaimingMarketId] = useState<bigint | null>(null);
+  const [currentTime, setCurrentTime] = useState(Date.now());
   const [selectedMarket, setSelectedMarket] = useState<{
     marketId: bigint;
     yesSupply: bigint;
@@ -301,6 +307,14 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
     contractAddress: `0x${string}`;
     position: "yes" | "no";
   } | null>(null);
+
+  // Update current time every minute for countdown
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 60000); // Update every minute
+    return () => clearInterval(interval);
+  }, []);
 
   const { data: currentBidAmount } = useReadContract({
     address: MegaSalePMResolverAddress as `0x${string}`,
@@ -524,6 +538,24 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
   const totalPot = markets.reduce((sum, m) => sum + m.pot, 0n);
   const currentAmount = currentBidAmount || 0n;
 
+  // Calculate time remaining for countdown
+  const getTimeRemaining = () => {
+    if (!officialDeadline || officialDeadline === 0n) return null;
+
+    const deadlineMs = Number(officialDeadline) * 1000;
+    const remaining = deadlineMs - currentTime;
+
+    if (remaining <= 0) return { expired: true };
+
+    const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+
+    return { expired: false, days, hours, minutes };
+  };
+
+  const timeRemaining = getTimeRemaining();
+
   // Build a quick lookup for bets by marketId
   const betByMarketId = useMemo(() => {
     const map = new Map<bigint, { amount?: bigint; deadline?: bigint }>();
@@ -559,9 +591,91 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
               }}
             />
             <div className="flex-1 min-w-0">
-              <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
-                MegaETH public sale total commitments?
-              </h2>
+              <div className="flex items-center gap-2 mb-2">
+                <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
+                  MegaETH public sale total commitments?
+                </h2>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                    >
+                      <Info className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side="right"
+                    className="max-w-sm bg-zinc-900 dark:bg-zinc-800 text-zinc-100 p-4"
+                  >
+                    <div className="space-y-3 text-sm">
+                      <div>
+                        <p className="font-semibold mb-1">How PAMM trading works:</p>
+                        <p className="text-zinc-300">
+                          This is a prediction market where YES/NO shares split a prize pot, not fixed $1 payouts.
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="font-semibold mb-1">Your payout if you win:</p>
+                        <p className="text-zinc-300">
+                          Total pot ÷ Winning shares held by all users
+                        </p>
+                        <p className="text-xs text-zinc-400 mt-1">
+                          You profit if your average entry cost per share is below the final payout per share.
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="font-semibold mb-1">Key features:</p>
+                        <ul className="text-zinc-300 text-xs space-y-1 list-disc list-inside">
+                          <li>Prices shown include 0.1% pool fee</li>
+                          <li>Buy low, sell high before close to lock gains</li>
+                          <li>Late trading may have additional fees</li>
+                        </ul>
+                      </div>
+
+                      <div className="pt-2 border-t border-zinc-700">
+                        <p className="text-xs text-zinc-400">
+                          💡 Tip: Check the quote before trading to see your exact cost and price impact
+                        </p>
+                      </div>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+
+              {/* Countdown Timer - Featured prominently */}
+              {timeRemaining && (
+                <div className="mb-3 inline-flex items-center gap-2 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 border border-orange-200 dark:border-orange-800 rounded-lg px-4 py-2.5">
+                  <Calendar className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                  {timeRemaining.expired ? (
+                    <span className="font-bold text-orange-900 dark:text-orange-200">
+                      Trading Closed
+                    </span>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-orange-700 dark:text-orange-300">
+                        Closes in:
+                      </span>
+                      <div className="flex items-center gap-1.5 font-mono font-bold text-orange-900 dark:text-orange-100">
+                        {(timeRemaining.days ?? 0) > 0 && (
+                          <span className="bg-orange-200 dark:bg-orange-900 px-2 py-0.5 rounded">
+                            {timeRemaining.days}d
+                          </span>
+                        )}
+                        <span className="bg-orange-200 dark:bg-orange-900 px-2 py-0.5 rounded">
+                          {timeRemaining.hours ?? 0}h
+                        </span>
+                        <span className="bg-orange-200 dark:bg-orange-900 px-2 py-0.5 rounded">
+                          {timeRemaining.minutes ?? 0}m
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="flex items-center gap-4 text-sm">
                 <div className="text-zinc-600 dark:text-zinc-400">
                   <span className="font-semibold text-zinc-900 dark:text-zinc-100">
@@ -569,20 +683,6 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
                   </span>{" "}
                   Total Volume
                 </div>
-                {officialDeadline !== undefined && officialDeadline > 0n && (
-                  <div className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-400">
-                    <Calendar className="h-3.5 w-3.5" />
-                    <span>
-                      {new Date(
-                        Number(officialDeadline) * 1000,
-                      ).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </span>
-                  </div>
-                )}
               </div>
 
               <div className="mt-3 text-sm">
