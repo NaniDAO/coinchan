@@ -16,8 +16,13 @@ import {
 } from "@/constants/PredictionMarketAMM";
 import { formatUSDT } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "lucide-react";
+import { Calendar, Info } from "lucide-react";
 import { formatEther } from "viem";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { TradeModal } from "./TradeModal";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { toast } from "sonner";
@@ -545,9 +550,59 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
               }}
             />
             <div className="flex-1 min-w-0">
-              <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
-                MegaETH public sale total commitments?
-              </h2>
+              <div className="flex items-center gap-2 mb-2">
+                <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
+                  MegaETH public sale total commitments?
+                </h2>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                    >
+                      <Info className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side="right"
+                    className="max-w-sm bg-zinc-900 dark:bg-zinc-800 text-zinc-100 p-4"
+                  >
+                    <div className="space-y-3 text-sm">
+                      <div>
+                        <p className="font-semibold mb-1">How PAMM trading works:</p>
+                        <p className="text-zinc-300">
+                          This is a prediction market where YES/NO shares split a prize pot, not fixed $1 payouts.
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="font-semibold mb-1">Your payout if you win:</p>
+                        <p className="text-zinc-300">
+                          Total pot ÷ Winning shares held by all users
+                        </p>
+                        <p className="text-xs text-zinc-400 mt-1">
+                          You profit if your average entry cost per share is below the final payout per share.
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="font-semibold mb-1">Key features:</p>
+                        <ul className="text-zinc-300 text-xs space-y-1 list-disc list-inside">
+                          <li>Prices shown include 0.1% pool fee</li>
+                          <li>Buy low, sell high before close to lock gains</li>
+                          <li>Late trading may have additional fees</li>
+                        </ul>
+                      </div>
+
+                      <div className="pt-2 border-t border-zinc-700">
+                        <p className="text-xs text-zinc-400">
+                          💡 Tip: Check the quote before trading to see your exact cost and price impact
+                        </p>
+                      </div>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
 
               {/* Countdown Timer - Featured prominently */}
               {timeRemaining && (
