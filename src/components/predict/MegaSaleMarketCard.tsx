@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   useAccount,
   useReadContract,
   useReadContracts,
   useWriteContract,
+  useWaitForTransactionReceipt,
 } from "wagmi";
 import {
   MegaSalePMResolverAddress,
@@ -19,6 +20,8 @@ import { Calendar } from "lucide-react";
 import { formatEther } from "viem";
 import { TradeModal } from "./TradeModal";
 import { useTokenBalance } from "@/hooks/use-token-balance";
+import { toast } from "sonner";
+import { isUserRejectionError } from "@/lib/errors";
 
 // MegaETH logo URL
 const MEGAETH_LOGO =
@@ -49,6 +52,11 @@ interface MegaSaleOptionRowProps {
   canResolve?: boolean;
   onResolve?: () => void;
   isResolving?: boolean;
+  resolved?: boolean;
+  outcome?: boolean;
+  userClaimable?: bigint;
+  onClaim?: () => void;
+  isClaiming?: boolean;
 }
 
 export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
@@ -62,6 +70,11 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
   canResolve = false,
   onResolve,
   isResolving = false,
+  resolved = false,
+  outcome = false,
+  userClaimable = 0n,
+  onClaim,
+  isClaiming = false,
 }) => {
   const { address } = useAccount();
 
@@ -85,12 +98,26 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
   const hasYes = (yesBal ?? 0n) > 0n;
   const hasNo = (noBal ?? 0n) > 0n;
   const hasPosition = hasYes || hasNo;
+  const canClaim = resolved && userClaimable > 0n;
 
   return (
     <div className="grid grid-cols-[1fr_auto_auto_auto] gap-3 items-center py-4 px-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 rounded-lg transition-colors border-b border-zinc-200 dark:border-zinc-800 last:border-b-0">
       <div>
-        <div className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-          {label}
+        <div className="flex items-center gap-2">
+          <div className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+            {label}
+          </div>
+          {resolved && (
+            <span
+              className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                outcome
+                  ? "bg-green-500/20 text-green-700 dark:text-green-300"
+                  : "bg-red-500/20 text-red-700 dark:text-red-300"
+              }`}
+            >
+              {outcome ? "✓ YES WON" : "✗ NO WON"}
+            </span>
+          )}
         </div>
         <div className="text-xs text-zinc-500 dark:text-zinc-400">
           {Number(formatEther(liquidity)).toFixed(3)} wstETH Vol.
@@ -112,6 +139,13 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
             )}
           </div>
         )}
+
+        {canClaim && (
+          <div className="mt-1 inline-flex items-center gap-2 rounded-md bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200 px-2 py-1 text-[11px] font-semibold">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse" />
+            Claimable: {Number(formatEther(userClaimable)).toFixed(4)} wstETH
+          </div>
+        )}
       </div>
 
       <div className="text-right">
@@ -123,21 +157,45 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
         </div>
       </div>
 
-      {/* If resolvable, show a single Resolve button; else show trading buttons */}
-      {canResolve ? (
-        <>
-          <div className="col-span-2 flex justify-end">
-            <Button
-              onClick={onResolve}
-              disabled={isResolving}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 h-auto rounded-md shadow-sm transition-all"
-              size="sm"
-            >
-              {isResolving ? "Resolving..." : "Resolve"}
-            </Button>
-          </div>
-        </>
+      {/* Action buttons based on market state */}
+      {canClaim ? (
+        // Show claim button if user has winnings
+        <div className="col-span-2 flex justify-end">
+          <Button
+            onClick={onClaim}
+            disabled={isClaiming}
+            className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold px-6 py-2 h-auto rounded-md shadow-md hover:shadow-lg transition-all"
+            size="sm"
+          >
+            {isClaiming ? "Claiming..." : `Claim ${Number(formatEther(userClaimable)).toFixed(4)} wstETH`}
+          </Button>
+        </div>
+      ) : resolved ? (
+        // Show resolved state for markets without claimable winnings
+        <div className="col-span-2 flex justify-end">
+          <Button
+            disabled
+            variant="outline"
+            className="px-4 py-2 h-auto text-zinc-500"
+            size="sm"
+          >
+            Resolved
+          </Button>
+        </div>
+      ) : canResolve ? (
+        // Show resolve button when threshold is met
+        <div className="col-span-2 flex justify-end">
+          <Button
+            onClick={onResolve}
+            disabled={isResolving}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 h-auto rounded-md shadow-sm transition-all"
+            size="sm"
+          >
+            {isResolving ? "Resolving..." : "Resolve"}
+          </Button>
+        </div>
       ) : (
+        // Show trading buttons for active markets
         <>
           <Button
             onClick={() => onTradeClick("yes")}
@@ -176,6 +234,7 @@ interface MegaSaleMarketCardProps {
     yesSupply: bigint;
     noSupply: bigint;
     resolved: boolean;
+    outcome?: boolean;
     pot: bigint;
     marketType: "parimutuel" | "amm";
     contractAddress: `0x${string}`;
@@ -190,8 +249,10 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
   markets,
   onTradeSuccess,
 }) => {
+  const { address } = useAccount();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isResolvingId, setIsResolvingId] = useState<bigint | null>(null); // NEW
+  const [isResolvingId, setIsResolvingId] = useState<bigint | null>(null);
+  const [claimingMarketId, setClaimingMarketId] = useState<bigint | null>(null);
   const [selectedMarket, setSelectedMarket] = useState<{
     marketId: bigint;
     yesSupply: bigint;
@@ -250,7 +311,30 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
     query: { refetchInterval: 15000 },
   });
 
+  // Fetch user market data (balances and claimables)
+  const { data: userMarketsData } = useReadContract({
+    address: PredictionAMMAddress as `0x${string}`,
+    abi: PredictionAMMAbi,
+    functionName: "getUserMarkets",
+    args: address ? [address, BigInt(0), BigInt(200)] : undefined,
+    query: {
+      enabled: !!address,
+      refetchInterval: 15000,
+    },
+  });
+
   const { writeContractAsync } = useWriteContract();
+
+  // Claim transaction handling
+  const {
+    writeContract: writeClaim,
+    data: claimHash,
+    error: claimError,
+  } = useWriteContract();
+
+  const { isSuccess: isClaimSuccess } = useWaitForTransactionReceipt({
+    hash: claimHash,
+  });
 
   const handleResolve = async (marketId: bigint) => {
     try {
@@ -269,6 +353,45 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
       setIsResolvingId(null);
     }
   };
+
+  const handleClaim = (marketId: bigint, contractAddress: `0x${string}`) => {
+    if (!address) {
+      toast.error("Please connect your wallet");
+      return;
+    }
+    setClaimingMarketId(marketId);
+    writeClaim({
+      address: contractAddress,
+      abi: PredictionAMMAbi,
+      functionName: "claim",
+      args: [marketId, address],
+    });
+  };
+
+  // Handle claim success
+  useEffect(() => {
+    if (isClaimSuccess && claimHash) {
+      toast.success("Claim successful!");
+      setClaimingMarketId(null);
+      onTradeSuccess?.();
+    }
+  }, [isClaimSuccess, claimHash, onTradeSuccess]);
+
+  // Handle claim error
+  useEffect(() => {
+    if (claimError) {
+      setClaimingMarketId(null);
+
+      // Handle user rejection silently
+      if (isUserRejectionError(claimError)) {
+        return;
+      }
+
+      // Show actual errors
+      const errorMessage = (claimError as any)?.shortMessage ?? claimError?.message ?? "";
+      toast.error(errorMessage || "Claim failed");
+    }
+  }, [claimError]);
 
   const handleTradeClick = (marketId: bigint, position: "yes" | "no") => {
     const market = markets.find((m) => m.marketId === marketId);
@@ -472,6 +595,21 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
             const canResolve =
               !market.resolved && currentAmount >= (threshold ?? 0n);
 
+            // Get user claimable amount for this market
+            let userClaimable = 0n;
+            if (userMarketsData) {
+              const [yesIds, noIds, , , claimables] = userMarketsData;
+              // Check if this market exists in user's markets (either YES or NO position)
+              const yesIdx = yesIds.findIndex((id: bigint) => id === market.marketId);
+              const noIdx = noIds.findIndex((id: bigint) => id === market.marketId);
+
+              if (yesIdx !== -1) {
+                userClaimable = claimables[yesIdx];
+              } else if (noIdx !== -1) {
+                userClaimable = claimables[noIdx];
+              }
+            }
+
             return (
               <MegaSaleOptionRow
                 key={idx}
@@ -489,6 +627,11 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
                 canResolve={canResolve}
                 onResolve={() => handleResolve(market.marketId)}
                 isResolving={isResolvingId === market.marketId}
+                resolved={market.resolved}
+                outcome={(market as any).outcome ?? false}
+                userClaimable={userClaimable}
+                onClaim={() => handleClaim(market.marketId, market.contractAddress)}
+                isClaiming={claimingMarketId === market.marketId}
               />
             );
           })}
