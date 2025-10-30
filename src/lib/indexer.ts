@@ -17,6 +17,42 @@ export interface PricePointData {
   timestamp: string;
 }
 
+export interface PredictionChartPoint {
+  timestamp: number;
+  timestampMs: number;
+  yesChance: number;
+  noChance: number;
+  rYes: string;
+  rNo: string;
+  eventType: "SEEDED" | "BOUGHT" | "SOLD";
+  txHash: string;
+  blockNumber: string;
+}
+
+export interface PredictionChartData {
+  market: {
+    marketId: string;
+    yesId: string;
+    noId: string;
+    description: string;
+    resolver: string;
+    status: string;
+    resolved: boolean;
+    outcome: boolean | null;
+    currentYesChance: number;
+    currentNoChance: number;
+    currentRYes: string;
+    currentRNo: string;
+    pot: string;
+    closeTs: string;
+    createdAt: number;
+    updatedAt: number;
+    resolvedAt: number | null;
+  };
+  data: PredictionChartPoint[];
+  count: number;
+}
+
 const fp18ToFloat = (raw: string) => Number(formatUnits(BigInt(raw), 18));
 export const toEthPerZamm = (raw: string) => {
   const zammPerEth = fp18ToFloat(raw);
@@ -140,4 +176,30 @@ export async function fetchPoolPricePoints(
     price0: Number(p.price0),
     price1: Number(p.price1),
   }));
+}
+
+/**
+ * Fetches prediction market probability chart data from the API.
+ * @param marketId - the market identifier (as a string representing BigInt)
+ * @returns PredictionChartData with market info and time-series probability data
+ */
+export async function fetchPredictionChart(
+  marketId: string,
+): Promise<PredictionChartData> {
+  const baseUrl = import.meta.env.VITE_INDEXER_URL + "/api/prediction-chart";
+
+  const params = new URLSearchParams();
+  params.append("marketId", marketId);
+
+  const url = `${baseUrl}?${params.toString()}`;
+
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    console.error(`Error fetching prediction chart: ${response.statusText}`);
+    throw new Error(`Error fetching prediction chart: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data;
 }

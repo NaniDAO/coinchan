@@ -16,12 +16,18 @@ import {
 } from "@/constants/PredictionMarketAMM";
 import { formatUSDT } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "lucide-react";
+import { Calendar, ChevronDown, ChevronUp } from "lucide-react";
 import { formatEther } from "viem";
 import { TradeModal } from "./TradeModal";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { toast } from "sonner";
 import { isUserRejectionError } from "@/lib/errors";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { PredictionProbabilityChart } from "./PredictionProbabilityChart";
 
 // MegaETH logo URL
 const MEGAETH_LOGO =
@@ -77,6 +83,7 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
   isClaiming = false,
 }) => {
   const { address } = useAccount();
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const { data: noId } = useReadContract({
     address: PredictionAMMAddress,
@@ -101,7 +108,13 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
   const canClaim = resolved && userClaimable > 0n;
 
   return (
-    <div className="grid grid-cols-[1fr_auto_auto_auto] gap-3 items-center py-4 px-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 rounded-lg transition-colors border-b border-zinc-200 dark:border-zinc-800 last:border-b-0">
+    <Collapsible
+      open={isExpanded}
+      onOpenChange={setIsExpanded}
+      className="border-b border-zinc-200 dark:border-zinc-800 last:border-b-0"
+    >
+      <CollapsibleTrigger asChild>
+        <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 items-center py-4 px-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 rounded-lg transition-colors cursor-pointer">
       <div>
         <div className="flex items-center gap-2">
           <div className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
@@ -160,45 +173,48 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
       {/* Action buttons based on market state */}
       {canClaim ? (
         // Show claim button if user has winnings
-        <div className="col-span-2 flex justify-end">
-          <Button
-            onClick={onClaim}
-            disabled={isClaiming}
-            className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold px-6 py-2 h-auto rounded-md shadow-md hover:shadow-lg transition-all"
-            size="sm"
-          >
-            {isClaiming ? "Claiming..." : `Claim ${Number(formatEther(userClaimable)).toFixed(4)} wstETH`}
-          </Button>
-        </div>
+        <Button
+          onClick={(e) => {
+            e.stopPropagation();
+            onClaim?.();
+          }}
+          disabled={isClaiming}
+          className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold px-6 py-2 h-auto rounded-md shadow-md hover:shadow-lg transition-all"
+          size="sm"
+        >
+          {isClaiming ? "Claiming..." : `Claim ${Number(formatEther(userClaimable)).toFixed(4)} wstETH`}
+        </Button>
       ) : resolved ? (
         // Show resolved state for markets without claimable winnings
-        <div className="col-span-2 flex justify-end">
-          <Button
-            disabled
-            variant="outline"
-            className="px-4 py-2 h-auto text-zinc-500"
-            size="sm"
-          >
-            Resolved
-          </Button>
-        </div>
+        <Button
+          disabled
+          variant="outline"
+          className="px-4 py-2 h-auto text-zinc-500"
+          size="sm"
+        >
+          Resolved
+        </Button>
       ) : canResolve ? (
         // Show resolve button when threshold is met
-        <div className="col-span-2 flex justify-end">
-          <Button
-            onClick={onResolve}
-            disabled={isResolving}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 h-auto rounded-md shadow-sm transition-all"
-            size="sm"
-          >
-            {isResolving ? "Resolving..." : "Resolve"}
-          </Button>
-        </div>
+        <Button
+          onClick={(e) => {
+            e.stopPropagation();
+            onResolve?.();
+          }}
+          disabled={isResolving}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 h-auto rounded-md shadow-sm transition-all"
+          size="sm"
+        >
+          {isResolving ? "Resolving..." : "Resolve"}
+        </Button>
       ) : (
         // Show trading buttons for active markets
         <>
           <Button
-            onClick={() => onTradeClick("yes")}
+            onClick={(e) => {
+              e.stopPropagation();
+              onTradeClick("yes");
+            }}
             className="bg-emerald-500 hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-700 text-white font-semibold px-4 py-2 h-auto rounded-md shadow-sm transition-all"
             size="sm"
           >
@@ -211,7 +227,10 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
           </Button>
 
           <Button
-            onClick={() => onTradeClick("no")}
+            onClick={(e) => {
+              e.stopPropagation();
+              onTradeClick("no");
+            }}
             className="bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 font-semibold px-4 py-2 h-auto rounded-md shadow-sm transition-all"
             size="sm"
           >
@@ -224,7 +243,25 @@ export const MegaSaleOptionRow: React.FC<MegaSaleOptionRowProps> = ({
           </Button>
         </>
       )}
+
+      {/* Expand/Collapse Indicator */}
+      <div className="flex items-center justify-center">
+        {isExpanded ? (
+          <ChevronUp className="h-5 w-5 text-zinc-400" />
+        ) : (
+          <ChevronDown className="h-5 w-5 text-zinc-400" />
+        )}
+      </div>
     </div>
+      </CollapsibleTrigger>
+
+      {/* Collapsible Chart Content */}
+      <CollapsibleContent>
+        <div className="px-4 pb-4 pt-2 bg-zinc-50/50 dark:bg-zinc-900/30">
+          <PredictionProbabilityChart marketId={marketId} />
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 };
 
@@ -559,9 +596,10 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
         {/* Outcomes */}
         <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
           <div className="px-2 py-2 bg-zinc-50 dark:bg-zinc-900/50">
-            <div className="grid grid-cols-[1fr_auto_auto_auto] gap-3 px-4 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
+            <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 px-4 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
               <div>Outcome (Volume)</div>
               <div className="text-right">% Chance</div>
+              <div></div>
               <div></div>
               <div></div>
             </div>
