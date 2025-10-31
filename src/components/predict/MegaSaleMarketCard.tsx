@@ -35,6 +35,7 @@ import {
 import { PredictionProbabilityChart } from "./PredictionProbabilityChart";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { MarketLeaderboard } from "./MarketLeaderboard";
+import { useMegaMarketsVolume } from "@/hooks/use-mega-markets-volume";
 
 // MegaETH logo URL
 const MEGAETH_LOGO =
@@ -502,6 +503,10 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
     position: "yes" | "no";
   } | null>(null);
 
+  // Fetch total volume for all mega markets
+  const marketIds = useMemo(() => markets.map((m) => m.marketId), [markets]);
+  const { data: volumeData } = useMegaMarketsVolume({ marketIds });
+
   // Update current time every minute for countdown
   useEffect(() => {
     const interval = setInterval(() => {
@@ -886,6 +891,15 @@ export const MegaSaleMarketCard: React.FC<MegaSaleMarketCardProps> = ({
                   </span>{" "}
                   Total Volume Locked
                 </div>
+
+                {volumeData && (
+                  <div className="text-zinc-600 dark:text-zinc-400">
+                    <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                      {volumeData.totalTradeVolumeEth} wstETH
+                    </span>{" "}
+                    Total Volume Traded
+                  </div>
+                )}
 
                 <div className="text-zinc-600 dark:text-zinc-400">
                   <span className="text-zinc-600 dark:text-zinc-400">
