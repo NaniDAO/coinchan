@@ -158,6 +158,14 @@ export function MarketLeaderboard({ marketId }: MarketLeaderboardProps) {
               const yesShares = BigInt(participant.currentYesShares);
               const noShares = BigInt(participant.currentNoShares);
 
+              // Calculate net positions from trading history
+              const totalYesBought = BigInt(participant.totalYesBought);
+              const totalYesSold = BigInt(participant.totalYesSold);
+              const totalNoBought = BigInt(participant.totalNoBought);
+              const totalNoSold = BigInt(participant.totalNoSold);
+              const netYesTraded = totalYesBought - totalYesSold;
+              const netNoTraded = totalNoBought - totalNoSold;
+
               return (
                 <tr
                   key={participant.user}
@@ -184,32 +192,51 @@ export function MarketLeaderboard({ marketId }: MarketLeaderboardProps) {
                     {Number.parseFloat(participant.totalVolumeEth).toFixed(4)}
                   </td>
                   <td className="px-4 py-3">
-                    {participant.hasOpenPosition ? (
-                      <div className="flex flex-col gap-1 text-xs">
-                        {yesShares > 0n && (
-                          <div className="inline-flex items-center gap-1.5">
-                            <span className="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-950/50 px-2 py-0.5 font-medium text-emerald-700 dark:text-emerald-400">
-                              YES
-                            </span>
-                            <span className="text-zinc-700 dark:text-zinc-300 tabular-nums">
-                              {formatEther(yesShares).slice(0, 8)}
-                            </span>
-                          </div>
-                        )}
-                        {noShares > 0n && (
-                          <div className="inline-flex items-center gap-1.5">
-                            <span className="inline-flex items-center rounded-full bg-red-100 dark:bg-red-950/50 px-2 py-0.5 font-medium text-red-700 dark:text-red-400">
-                              NO
-                            </span>
-                            <span className="text-zinc-700 dark:text-zinc-300 tabular-nums">
-                              {formatEther(noShares).slice(0, 8)}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-xs text-zinc-400">Closed</span>
-                    )}
+                    <div className="flex flex-col gap-1 text-xs">
+                      {participant.hasOpenPosition ? (
+                        <>
+                          {yesShares > 0n && (
+                            <div className="inline-flex items-center gap-1.5">
+                              <span className="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-950/50 px-2 py-0.5 font-medium text-emerald-700 dark:text-emerald-400">
+                                YES
+                              </span>
+                              <span className="text-zinc-700 dark:text-zinc-300 tabular-nums">
+                                {formatEther(yesShares).slice(0, 8)}
+                              </span>
+                            </div>
+                          )}
+                          {noShares > 0n && (
+                            <div className="inline-flex items-center gap-1.5">
+                              <span className="inline-flex items-center rounded-full bg-red-100 dark:bg-red-950/50 px-2 py-0.5 font-medium text-red-700 dark:text-red-400">
+                                NO
+                              </span>
+                              <span className="text-zinc-700 dark:text-zinc-300 tabular-nums">
+                                {formatEther(noShares).slice(0, 8)}
+                              </span>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          {netYesTraded > 0n && (
+                            <div className="inline-flex items-center gap-1.5">
+                              <span className="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-950/50 px-2 py-0.5 font-medium text-emerald-700 dark:text-emerald-400">
+                                YES
+                              </span>
+                              <span className="text-xs text-zinc-400">Claimed</span>
+                            </div>
+                          )}
+                          {netNoTraded > 0n && (
+                            <div className="inline-flex items-center gap-1.5">
+                              <span className="inline-flex items-center rounded-full bg-red-100 dark:bg-red-950/50 px-2 py-0.5 font-medium text-red-700 dark:text-red-400">
+                                NO
+                              </span>
+                              <span className="text-xs text-zinc-400">Claimed</span>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-right text-zinc-600 dark:text-zinc-400 text-xs">
                     {participant.buyCount}B / {participant.sellCount}S
